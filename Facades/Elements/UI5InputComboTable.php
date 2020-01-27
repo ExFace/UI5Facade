@@ -9,6 +9,9 @@ use exface\Core\Factories\DataSheetFactory;
 use exface\Core\DataTypes\UrlDataType;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Exceptions\Facades\FacadeLogicError;
+use exface\UI5Facade\Facades\Elements\UI5ValueHelpDialog;
+use exface\Core\Interfaces\Widgets\iShowDataColumn;
+use exface\Core\Interfaces\Widgets\iShowSingleAttribute;
 
 /**
  * Generates OpenUI5 selects
@@ -263,14 +266,14 @@ JS;
      * 
      * @return string
      */
-    protected function buildJsPropertyValueHelpRequest() : string
+    protected function buildJsPropertyValueHelpRequest($oControllerJs = 'oController') : string
     {
         // Currently, the value-help-button will simply trigger the autosuggest by firing the suggest
         // event with a special callback, that forces the input to show suggestions. This callback
         // is needed because just firing the suggest event will only show the suggestions if the
         // current text differs from the previous suggestion - don't know if this is a feature or
         // a bug. But with an explicit .showItems() it works well.
-        return <<<JS
+/*        return <<<JS
             function(oEvent) {
                 var oInput = oEvent.getSource();
                 {$this->buildJsBusyIconShow()};
@@ -292,6 +295,24 @@ JS;
             },
 
 JS;
+*/
+        $btn = $this->getWidget()->getLookupButton();
+        /* @var $btnEl \exface\UI5Facade\Facades\Elements\UI5Button */
+        $btnEl = $this->getFacade()->getElement($btn);
+        
+        return <<<JS
+
+            function(oEvent) {
+                if (sap.ui.getCore().byId('{$btnEl->getId()}') === undefined) {
+                    var oLookupButton = {$btnEl->buildJsConstructor()};
+                    {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oLookupButton);
+                }
+                {$btnEl->buildJsClickEventHandlerCall()}
+            },
+
+JS;
+        
+        return $btnEl->buildJsClickViewEventHandlerCall() . ',';
     }
      
     /**
@@ -562,6 +583,72 @@ if ($valueJs !== undefined) {
 }
 
 JS;
+        }
+    }
+    
+    /**
+     * Returns a JS snippet, that can set data given in the same structure as the data getter would produce.
+     *
+     * This is basically the opposite of buildJsDataGetter(). The input must be valid JS code representing
+     * or returning a JS data sheet.
+     *
+     * For example, this code will extract data from a table and put it into a container:
+     * $container->buildJsDataSetter($table->buildJsDataGetter())
+     *
+     * @param string $jsData
+     * @return string
+     */
+    public function buildJsDataSetter(string $jsData) : string
+    {
+        $widget = $this->getWidget();
+        
+        if ($widget instanceof iShowSingleAttribute && $widget instanceof iShowDataColumn && $widget->isBoundToAttribute()) {
+
+            $parentSetter = parent::buildJsDataSetter($jsData);
+            $colName = $this->getWidget()->getValueAttributeAlias();
+        
+            // The '!' in front of the IFFE is required because it would not get executed stand alone
+            // resulting in a "SyntaxError: Function statements require a function name" instead.
+            return <<<JS
+
+!function() {
+    var oData = {$jsData};
+console.log(oData);
+    if (oData !== undefined && Array.isArray(oData.rows) && oData.rows.length > 0) {
+        if (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}") {
+
+             if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
+                var oInput = sap.ui.getCore().byId("{$this->getId()}");
+                oInput.{$this->buildJsEmptyMethod()};
+                oData.rows.forEach(function(oRow){
+                    oInput.{$this->buildJsSetSelectedKeyMethod("oRow['{$colName}']", "oRow['{$widget->getTextColumn()->getDataColumnName()}']")};
+                });
+                                     
+            } else {
+                var val;
+                if (oData.rows.length === 1) {
+                   val = oData.rows[0]['{$colName}'];
+                } else if (oData.rows.length > 1) {
+                    var vals = [];
+                    oData.rows.forEach(function(oRow) {
+                        vals.push(oRow['{$colName}']);
+                    });
+                    val = vals.join('{$widget->getAttribute()->getValueListDelimiter()}');
+                }
+                {$this->buildJsValueSetter("val")}
+            }
+    
+    
+        } else {
+            $parentSetter;
+        }
+    }
+}()
+
+JS;
+            } else {
+            $class = get_class($this);
+            return "console.warn('No data setter implemented for {$class}!')";
         }
     }
 }

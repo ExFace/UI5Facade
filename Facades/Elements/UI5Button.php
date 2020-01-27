@@ -13,6 +13,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDisableConditionTrait;
 use exface\Core\CommonLogic\Constants\Icons;
 use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\Exceptions\Facades\FacadeUnsupportedWidgetPropertyWarning;
+use exface\Core\Actions\SendToWidget;
 
 /**
  * Generates jQuery Mobile buttons for ExFace
@@ -27,6 +28,7 @@ class UI5Button extends UI5AbstractElement
     use JqueryButtonTrait {
         buildJsInputRefresh as buildJsInputRefreshViaTrait;
         buildJsNavigateToPage as buildJsNavigateToPageViaTrait;
+        buildJsClickSendToWidget as buildJsClickSendToWidgetViaTrait;
     }
     
     /**
@@ -425,7 +427,7 @@ JS;
             if ($dialogElement->isMaximized()) {
                 return $this->getController()->buildJsControllerGetter($this) . '.onNavBack();';
             } else {
-                return "try{ sap.ui.getCore().byId('{$input_element->getId()}').close(); } catch (e) { console.error('Could not close dialog: ' + e); }";
+                return "try{ sap.ui.getCore().byId('{$dialogElement->getId()}').close(); } catch (e) { console.error('Could not close dialog: ' + e); }";
             }
         }
         return "";
@@ -546,5 +548,17 @@ JS;
             $semCols[$semCol] = $btnType;
         }
         return $semCols;
+    }
+    
+    /**
+     * 
+     * @param SendToWidget $action
+     * @param AbstractJqueryElement $input_element
+     * @return string
+     */
+    protected function buildJsClickSendToWidget(SendToWidget $action, AbstractJqueryElement $input_element) : string
+    {
+        $this->getFacade()->createController($this->getFacade()->getElement($this->getWidget()->getPage()->getWidgetRoot()));
+        return $this->buildJsClickSendToWidgetViaTrait($action, $input_element);
     }
 }

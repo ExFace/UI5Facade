@@ -32,32 +32,83 @@ use exface\Core\Widgets\DataTable;
  */
 class UI5ValueHelpDialog extends UI5DataTable
 {
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsConstructor()
+     */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        $this->getPaginatorElement()->registerControllerMethods();
-        return $this->buildJsValueHelpDialogConstructor($oControllerJs);
+        $tableConstructorJs = parent::buildJsConstructor($oControllerJs);
+        
+        $body = <<<JS
+        sap.ui.getCore().byId("{$this->getId()}__ValueHelpDialog").destroy();
+JS;
+        $this->getController()->addMethod("handleCancelVHelp", $this, "oEvent", $body);
+        
+        $body = <<<JS
+        alert("OK Pressed!");
+JS;
+        $this->getController()->addMethod("handleOkayVHelp", $this, "oEvent", $body);
+        
+        return $this->buildJsValueHelpDialogConstructor($tableConstructorJs, $oControllerJs);
     }   
-                    
-    protected function buildJsValueHelpDialogConstructor(string $oControllerJs) : string
+    
+    /**
+     * 
+     * @param string $tableConstructorJs
+     * @param string $oControllerJs
+     * @return string
+     */
+    protected function buildJsValueHelpDialogConstructor(string $tableConstructorJs, string $oControllerJs) : string
     {
+        $functionNameExtension = str_replace('_', '', $this->getId());
+        $functionNameExtension = ucfirst($functionNameExtension);
+        
         return <<<JS
-
-            new sap.m.Dialog({
+            new sap.m.Dialog( "{$this->getId()}_ValueHelpDialog" ,{
                 content: [
-                    todo: "Title, etc.",
-                    {$this->buildJsValueHelpTableWrapper($oControllerJs, $this->buildJsConstructorForControl($oControllerJs))},
+                    {$this->buildJsValueHelpTableWrapper($oControllerJs, $tableConstructorJs)},
                 ],
-                todo: "toolbar",
-                close: {$this->getController()->buildJsEventHandler($this, 'close', true)}
+                buttons: [
+                    new sap.m.Button({
+                        text: "OK",
+                        press: function () {
+                            oController.handleOkayVHelp{$functionNameExtension}();
+                        }
+                    }),
+                    new sap.m.Button({
+                        text: "Cancel",
+                        press: function () {
+                            oController.handleCancelVHelp{$functionNameExtension}();
+                        }
+                    }),
+                ],
+                afterClose: {$this->getController()->buildJsEventHandler($this, 'close', true)}
             })
 
 JS;
     }
     
+    /**
+     * 
+     * @param string $oControllerJs
+     * @param string $tableConstructorJs
+     * @return string
+     */
     protected function buildJsValueHelpTableWrapper(string $oControllerJs, string $tableConstructorJs) : string
     {
-        // TODO add a special table wrapper instead of UI5DataElementTrait::buildJsPage().
         return $tableConstructorJs;
+    }
+    
+    /**
+     * 
+     * @param string $tableConstructorJs
+     * @return mixed
+     */
+    protected function changeDataTableIds(string $tableConstructorJs)
+    {
+        return str_replace("__DataTable", "__ValueHelpDialog__DataTable", $tableConstructorJs);
     }
     
     /**
@@ -68,5 +119,15 @@ JS;
     public function addOnCloseScript(string $js) : UI5ValueHelpDialog
     {
         $this->getController()->addOnEventScript($this, 'close', $js);
+        return $this;
+    }
+    
+    /**
+     * 
+     * @return bool
+     */
+    protected function getLoadDataOnShowView() : bool
+    {
+        return false;
     }
 }
