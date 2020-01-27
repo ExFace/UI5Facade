@@ -86,9 +86,3 @@ table.jexcel {width: 100%}
 .dashboard_gridcontainer_layout {grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)) !important; grid-auto-rows: auto !important;}
 .sapFCardContent > .sapMPanel > .sapMPanelContent {border-bottom: 0 !important}
 .dashboard_gridcontainer_gap_margin_bottom {margin-bottom: 10px !important}
-
-/* DataLookupDialog */
-.sapMDialog > .sapMDialogSection > .sapMDialogScroll {height: 100%}
-.sapMDialog .sapMVBox > .sapMFlexItemAlignAuto {height: 100%}
-.dataLookupDialogSelectedElementsTokenizer {height: 1.625rem; overflow: hidden; border-width: 1px; border-color: #89919a; border-style: solid; border-radius: 5px; display: block;}
-.dataLookupDialogSelectedElementsHBoxFlexItem {width: calc(100% - 32px);}
