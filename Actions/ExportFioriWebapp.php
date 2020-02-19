@@ -114,7 +114,8 @@ class ExportFioriWebapp extends AbstractActionDeferred implements iModifyData, i
                 'MODIFIED_ON' => $row['MODIFIED_ON']
             ]);
             // Do not pass the transaction to the update to force autocommit
-            $updSheet->dataUpdate(false, $transaction);
+            // FIXME updating the app for some reason does not work because the current user cannot be found. Why???
+            //$updSheet->dataUpdate(false, $transaction);
             
             yield PHP_EOL . 'Exported to ' . $webappFolder;
             
@@ -243,9 +244,8 @@ class ExportFioriWebapp extends AbstractActionDeferred implements iModifyData, i
             $viewJs = StringDataType::encodeUTF8($viewJs);
             
             $controllerJs = $controller->buildJsController();
-            //$controllerJs = StringDataType::encodeUTF8($controllerJs);
         } catch (\Throwable $e) {
-            throw new ActionRuntimeError($this, 'Cannot export view/controller for widget "' . $widget->getId() . '" in page "' . $widget->getPage()->getAliasWithNamespace() . '": ' . $e->getMessage(), null, $e);
+            throw new ActionRuntimeError($this, 'Cannot export view/controller for widget ' . $widget->getWidgetType() . ' "' . $widget->getCaption() . '" (object "' . $widget->getMetaObject()->getAliasWithNamespace() . '", id "' . $widget->getId() . '") in page "' . $widget->getPage()->getAliasWithNamespace() . '": ' . $e->getMessage(), null, $e);
         }
         
         if (! $viewJs) {
@@ -272,14 +272,15 @@ class ExportFioriWebapp extends AbstractActionDeferred implements iModifyData, i
             Filemanager::pathConstruct($viewDir);
         }
         
+        yield $msgIndent . '+ Widget ' . $widget->getWidgetType() . ' "' . $widget->getCaption() . '": ' . PHP_EOL;
         file_put_contents($viewFile, $viewJs);
-        yield $msgIndent . StringDataType::substringAfter($view->getPath(), $webapp->getComponentPath() . '/') . PHP_EOL;
+        yield $msgIndent . '| ' . StringDataType::substringAfter($view->getPath(), $webapp->getComponentPath() . '/') . PHP_EOL;
         file_put_contents($controllerFile, $controllerJs);
-        yield $msgIndent . StringDataType::substringAfter($controller->getPath(), $webapp->getComponentPath() . '/') . PHP_EOL;
+        yield $msgIndent . '| ' . StringDataType::substringAfter($controller->getPath(), $webapp->getComponentPath() . '/') . PHP_EOL;
         
         if ($linkDepth > 0) {
             foreach ($this->findLinkedViewWidgets($widget) as $dialog) {
-                yield from $this->exportWidget($webapp, $dialog, $exportFolder, ($linkDepth-1), $msgIndent);
+                yield from $this->exportWidget($webapp, $dialog, $exportFolder, ($linkDepth-1), $msgIndent . '| ');
             }
         }
     }
