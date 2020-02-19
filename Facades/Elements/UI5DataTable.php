@@ -1373,59 +1373,79 @@ JS;
     {
         $widget = $this->getWidget();
         $syncDataColumnName = $column->getDataColumnName();
-        $selectRow ='';
         if ($this->isMList() === true) {
-            $selectRow = <<<JS
             
-                                    var oItem = oTable.getItems()[index];
-                                    oTable.setSelectedItem(oItem);
-                                    
+            return <<<JS
+            
+                var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                if (oTable.getModel()._syncChanges === undefined) {
+                    oTable.getModel()._syncChanges = false;
+                }
+                var selected = false;
+                var selectedItems = [];
+                if (oEvent !== undefined) {
+                    selected = oEvent.getParameters().selected;                    
+                    selectedItems = oEvent.getParameter("listItems");
+                }
+
+                if (oTable.getModel()._syncChanges === false && selected === true && selectedItems.length !== 0) {                    
+                    oTable.getModel()._syncChanges = true;
+                    var itemValues = selectedItems[0].getBindingContext().getObject();
+                    var value = itemValues['{$syncDataColumnName}'];
+                    if (value !== undefined) {                        
+                        var aData = oTable.getModel().getData().rows;
+                        for (var i in aData) {
+                            if (value === aData[i]['{$syncDataColumnName}']) {
+                                var index = parseInt(i);
+                                var oItem = oTable.getItems()[index];
+                                oTable.setSelectedItem(oItem);
+                            }
+                        }
+                    } else {
+                        var error = "Data Column '{$syncDataColumnName}' not found in data columns for widget '{$widget->getId()}'!";
+                        {$this->buildJsShowMessageError('error', '"ERROR"')}
+                    }
+                console.log('SyncSelection Done!');                    
+                oTable.getModel()._syncChanges = false;
+                }
+                
 JS;
         } else {
-            $selectRow = <<<JS
-            
-                                    oTable.addSelectionInterval(index, index);
-                                    
-JS;
-        }
         
-        return <<<JS
+            return <<<JS
         
                 var oTable = sap.ui.getCore().byId('{$this->getId()}');
                 if (oTable.getModel()._syncChanges === undefined) {
                     oTable.getModel()._syncChanges = false;
                 }
-                if (oTable.getModel()._syncChanges === false) {
+                var rowIdx = -1;                
+                if (oEvent !== undefined) {
+                    rowIdx = oEvent.getParameters().rowIndex;
+                }
+                var selectedRowsIdx = [];
+                selectedRowsIdx = oTable.getSelectedIndices();
+                
+                if (oTable.getModel()._syncChanges === false && selectedRowsIdx.includes(rowIdx)) {
                     oTable.getModel()._syncChanges = true;
-                    var rows = {$this->buildJsGetSelectedRows('oTable')}
-                    if (rows[0].length != 0) {
-                        if (rows[0]['{$syncDataColumnName}'] !== undefined) {
-                            var values = [];
-                            rows.forEach(function(row) {
-                                var value = row['{$syncDataColumnName}'];
-                                if (! values.includes(value)) {
-                                    values.push(value);
-                                }
-                            })
+                    var rowValues = oEvent.getParameters().rowContext.getObject();
+                    var value = rowValues['{$syncDataColumnName}'];
+                    if (value !== undefined) {                          
                             var aData = oTable.getModel().getData().rows;
-                            var iRowIdx = [];
                             for (var i in aData) {
-                                if (values.includes(aData[i]['{$syncDataColumnName}'])) {
+                                if (value === aData[i]['{$syncDataColumnName}']) {
                                     var index = parseInt(i);
-                                    {$selectRow}
+                                    oTable.addSelectionInterval(index, index);
                                 }
-                            console.log('SyncSelection Done!');
                             }
-                        } else {
-                            var error = "Data Column '{$syncDataColumnName}' not found in data columns for widget '{$widget->getId()}'!";
-                            {$this->buildJsShowMessageError('error', '"ERROR"')}
-                        }
+                    } else {
+                        var error = "Data Column '{$syncDataColumnName}' not found in data columns for widget '{$widget->getId()}'!";
+                        {$this->buildJsShowMessageError('error', '"ERROR"')}
                     }
+                console.log('SyncSelection Done!');
                 oTable.getModel()._syncChanges = false;
                 }
                 
 JS;
-                            
-                            
+        }                   
     }
 }
