@@ -296,4 +296,13 @@ JS;
         
         return $js;
     }
+    
+    /**
+     * {inheritdoc}
+     * @see UI5DataElementTrait::isEditable()
+     */
+    protected function isEditable()
+    {
+        return false;
+    }
 }
