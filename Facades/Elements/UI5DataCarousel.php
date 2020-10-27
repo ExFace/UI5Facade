@@ -1,7 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Widgets\DataCarousel;
 use exface\Core\Interfaces\Widgets\iShowSingleAttribute;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataCarouselTrait;
@@ -13,10 +12,10 @@ use exface\Core\Actions\ShowDialog;
  *
  * @author Andrej Kabachnik
  * 
- * @method DataCarousel getWidget()
+ * @method \exface\Core\Widgets\DataCarousel getWidget()
  *        
  */
-class UI5DataCarousel extends UI5Split
+class UI5DataCarousel extends UI5Container
 {
     use JqueryDataCarouselTrait;
     
@@ -24,6 +23,23 @@ class UI5DataCarousel extends UI5Split
     {
         parent::init(); 
         $this->registerSyncOnMaster();
+    }
+    
+    public function buildJsConstructor($oControllerJs = 'oController') : string
+    {
+        return <<<JS
+        
+    new sap.f.FlexibleColumnLayout("{$this->getId()}", {
+        layout: sap.f.LayoutType.OneColumn,
+        beginColumnPages: [
+            {$this->getFacade()->getElement($this->getWidget()->getDataWidget())->buildJsConstructor($oControllerJs)}
+        ],
+        midColumnPages: [
+            {$this->getFacade()->getElement($this->getWidget()->getDetailsWidget())->buildJsConstructor($oControllerJs)}
+        ]
+    })
+
+JS;
     }
     
     protected function registerSyncOnMaster()
