@@ -486,7 +486,50 @@ JS;
     public function buildJsDataGetter(ActionInterface $action = null, bool $unrendered = false)
     {
         if ($unrendered === true) {
-            return $this->buildJsDataGetterViaTrait($action, $unrendered);
+            $prefillFiltersJs = '';
+            foreach ($this->getWidget()->getFilters() as $filter) {
+                $input = $filter->getInputWidget();
+                $inputEl = $this->getFacade()->getElement($input);
+                if ($inputEl->isValueBoundToModel()) {
+                    $prefillFiltersJs .= <<<JS
+    
+    aPrefillConditions.push({
+        expression: "{$filter->getAttributeAlias()}", 
+        comparator: "{$filter->getComparator()}", 
+        value: {$this->getController()->buildJsControllerGetter($this)}.getView().getModel().getProperty('{$inputEl->buildJsValueBindingPath()}'), 
+        object_alias: "{$filter->getMetaObject()->getAliasWithNamespace()}"
+    });console.log(aPrefillConditions);
+
+JS;
+                }
+            }
+            return <<<JS
+
+function(){
+    var oData = {$this->buildJsDataGetterViaTrait($action, $unrendered)};
+    var aPrefillConditions = [];
+    $prefillFiltersJs
+
+    if (aPrefillConditions.length > 0) {
+        if (oData.filters === undefined) {
+            oData.filters = {};
+        }
+            
+        if (oData.filters.nested_groups === undefined) {
+            oData.filters.nested_groups = [];
+        }
+
+        oData.filters.nested_groups.push({
+            operator: "AND", 
+            conditions: aPrefillConditions
+        })
+    }
+    
+    return oData;
+}()
+
+
+JS;
         }
         
         return <<<JS

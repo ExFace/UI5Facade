@@ -150,7 +150,7 @@ JS;
      *
      * @return boolean
      */
-    protected function isValueBoundToModel()
+    public function isValueBoundToModel()
     {        
         return true;
     }

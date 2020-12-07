@@ -151,7 +151,7 @@ JS;
      * 
      * @return boolean
      */
-    protected function isValueBoundToModel()
+    public function isValueBoundToModel()
     {
         if ($this->valueBoundToModel !== null) {
             return $this->valueBoundToModel;
