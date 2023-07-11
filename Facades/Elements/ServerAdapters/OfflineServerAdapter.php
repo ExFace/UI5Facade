@@ -57,38 +57,46 @@ class OfflineServerAdapter implements UI5ServerAdapterInterface
         $checkIfPrefillRequiredJs = <<<JS
 
                 if (navigator.onLine === false) {
-                    var uid;
-                    var uidCol = $uidColNameJs;
                     var bStopPrefill = false;
-                    if ($oParamsJs.data && $oParamsJs.data.rows && $oParamsJs.data.rows[0]) {
-                        if (uidCol) {
-                            uid = $oParamsJs.data.rows[0][uidCol]; 
-        
-                            if (uid === undefined || uid === '') {
-                                console.warn('Cannot prefill from preload data: no UID value found in input rows!');
-                            }
-            
-                            if ($oParamsJs.data.filters === undefined) {
-                                $oParamsJs.data.filters = {};
-                            }
-            
-                            if ($oParamsJs.data.filters.conditions === undefined) {
-                                $oParamsJs.data.filters.conditions = [];
-                            }     
-            
-                            $oParamsJs.data.filters.conditions.push({
+                    (function(oModel, oParams) {
+                        var uid;
+                        var uidCol = $uidColNameJs;
+                        var sWidgetObjectId = '{$obj->getId()}';
+                        var fnAddUidFilter = function(uidCol, mVal, oParams) {
+                            oParams.data.filters = oParams.data.filters || {};
+                            oParams.data.filters.conditions = oParams.data.filters.conditions || [];
+                            oParams.data.filters.conditions.push({
                                 expression: uidCol,
                                 comparator: '{$equals}',
                                 value: uid,
                                 object_alias: '{$obj->getAliasWithNamespace()}'
                             });
-                        } else {
-                            $oModelJs.setData($oParamsJs.data.rows[0]);
-                            bStopPrefill = true;
+                        };
+                        switch (true) {
+                            case oParams.data !== undefined && oParams.data.rows !== undefined && oParams.data.rows[0] !== undefined:
+                                if (uidCol) {
+                                    uid = oParams.data.rows[0][uidCol];
+                                    if (uid === undefined || uid === '') {
+                                        console.warn('Cannot prefill from preload data: no UID value found in input rows!');
+                                    }
+                                    fnAddUidFilter(uidCol, uid, oParams); 
+                                } else {
+                                    oModel.setData(oParams.data.rows[0]);
+                                    bStopPrefill = true;
+                                }
+                                break;
+                            case (oParams.prefill !== undefined && oParams.prefill.rows !== undefined && oParams.prefill.rows[0] !== undefined):
+                                if (uidCol && undefined !== (uid = oParams.prefill.rows[0][uidCol])) {
+                                    fnAddUidFilter(uidCol, uid, oParams); 
+                                } else {
+                                    oModel.setData(oParams.prefill.rows[0]);
+                                    bStopPrefill = true;
+                                }
+                                break;
+                            default:
+                                bStopPrefill = true;
                         }
-                    } else {
-                        bStopPrefill = true;
-                    }
+                    })($oModelJs, $oParamsJs);
     
                     if(bStopPrefill === true) {
                         {$onModelLoadedJs}
