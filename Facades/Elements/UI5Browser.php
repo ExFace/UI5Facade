@@ -9,14 +9,30 @@ class UI5Browser extends UI5AbstractElement
     
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        $this->registerConditionalProperties();
+        if ($this->isValueBoundToModel()) {
+            $initPropsJs = <<<JS
+            
+            var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}_wrapper').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
+            oValueBinding.attachChange(function(oEvent){
+                var mVal = sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}');
+                {$this->buildJsValueSetter('mVal')};
+            });
+            
+JS;
+        } else {
+            $initPropsJs = '';
+        }
         
         $escapedHtml = json_encode($this->buildHtmlIFrame());
         $control = <<<JS
         
         new sap.ui.core.HTML("{$this->getId()}_wrapper", {
-            content: {$escapedHtml}
+            content: {$escapedHtml},
+            afterRendering: function() {
+                {$initPropsJs}
+            }
         })
+        {$this->buildJsPseudoEventHandlers()}
         
 JS;
         if ($this->getWidget()->hasParent() === false) {
@@ -24,6 +40,11 @@ JS;
         }
         
         return $control;
+    }
+    
+    public function buildJsValueSetter($value)
+    {
+        return "$('#{$this->getId()})[0].href = " . $value;
     }
     
     /**
