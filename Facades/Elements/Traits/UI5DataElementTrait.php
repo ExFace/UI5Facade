@@ -311,10 +311,10 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsSetHidden()
      */
-    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, string $elementId = null) : string
+    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, bool $emptyWidget = false, string $elementId = null) : string
     {
         $elementId = $elementId ?? $this->getId() . '_panel';
-        return parent::buildJsSetHidden($hidden, $resetWidget, $elementId);
+        return parent::buildJsSetHidden($hidden, $resetWidget, $emptyWidget, $elementId);
     }
     
     /**

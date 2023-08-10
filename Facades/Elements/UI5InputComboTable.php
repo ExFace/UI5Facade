@@ -96,7 +96,7 @@ JS;
             foreach ($widget->getTable()->getFilters() as $fltr) {
                 if ($link = $fltr->getValueWidgetLink()) {
                     $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
-                    $linked_element->addOnChangeScript("setTimeout(function(){{$this->buildJsValueSetter('')}},0);");
+                    $linked_element->addOnChangeScript("setTimeout(function(){{$this->buildJsEmpty()}},0);");
                 }
             }
         }
@@ -795,6 +795,27 @@ JS;
         } else {
             return "setValue('').setSelectedKey('').destroyTokens()";
         }
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsEmpty()
+     */
+    protected function buildJsEmpty() : string
+    {
+        return <<<JS
+        (function(){
+			var val = {$this->buildJsValueGetter()};
+            if (val !== undefined && val !== '' && val !== null) {
+                oInput = sap.ui.getCore().byId('{$this->getId()}');
+                oInput.{$this->buildJsEmptyMethod()}
+                oInput.fireChange({
+                        value: ''
+                });
+            }
+        })()
+JS;
     }
     
     /**

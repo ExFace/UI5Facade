@@ -160,7 +160,24 @@ JS;
         $value = null;
         $widget = $this->getWidget();
         
-        if ($widget->getValueWidgetLink()) {
+        // if the widget is bound to the model use the value binding
+        // else use the widget link if there is one
+        // if none of those exists just use the value of the widget
+        if ($this->isValueBoundToModel()) {
+            $value = $this->buildJsValueBinding();
+        } else {
+            if ($widget->getValueWidgetLink()) {
+                $targetWidget = $widget->getValueWidgetLink()->getTargetWidget();
+                if ($targetWidget instanceof iHaveValue) {
+                    $value = str_replace("\n", '', $targetWidget->getValueWithDefaults());
+                    $value = '"' . $this->escapeJsTextValue($value) . '"';
+                }
+            } else {
+                $value = '"' . $this->escapeJsTextValue($this->getWidget()->getValueWithDefaults()) . '"';
+            }
+        }
+        
+        /*if ($widget->getValueWidgetLink()) {
             $targetWidget = $widget->getValueWidgetLink()->getTargetWidget();
             if ($targetWidget instanceof iHaveValue) {
                 $value = str_replace("\n", '', $targetWidget->getValueWithDefaults());
@@ -174,7 +191,7 @@ JS;
             } else {
                 $value = '"' . $this->escapeJsTextValue($this->getWidget()->getValueWithDefaults()) . '"';
             }
-        }
+        }*/
         
         return ($value ? 'value: ' . $value . ',' : '');
     }

@@ -246,6 +246,16 @@ JS;
             return '""';
         }
     }
+
+    /**
+     * Returns inline JS to empty the widget.
+     * 
+     * @return string
+     */
+    protected function buildJsEmpty() : string
+    {
+        return $this->buildJsValueSetter("''");
+    }
     
     /**
      * 
@@ -328,19 +338,25 @@ JS;
      * @param string $elementId
      * @return string
      */
-    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, string $elementId = null) : string
+    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, bool $emptyWidget = false, string $elementId = null) : string
     {
         $bVisibleJs = ($hidden ? 'false' : 'true');
         $bResetJs = ($resetWidget ? 'true' : 'false');
+        $bEmptyJs = ($emptyWidget ? 'true' : 'false');
         $elementId = $elementId ?? $this->getId();
         return <<<JS
-(function(bVisible, oCtrl, bReset){
+(function(bVisible, oCtrl, bReset, bEmpty){
     if (! oCtrl || bVisible === oCtrl.getVisible()) return;
     oCtrl.setVisible(bVisible).$()?.trigger('visibleChange', [{visible: bVisible}]);
-    if (bReset === true && bVisible === false) {
+    // reset only if element gets hidden, should be reset and should not be emptied
+    if (bReset === true && bVisible === false && bEmpty === false) {
         {$this->buildJsResetter()}
     }
-})($bVisibleJs, sap.ui.getCore().byId('{$elementId}'), $bResetJs)
+    // empty only if element gets hidden and should be emptied
+    if (bEmpty === true && bVisible === false) {
+        {$this->buildJsEmpty()}
+    }
+})($bVisibleJs, sap.ui.getCore().byId('{$elementId}'), $bResetJs, $bEmptyJs)
 JS;
     }
     
@@ -680,9 +696,10 @@ JS;
         if ($this->isVisible()) {
             if ($condProp = $widget->getHiddenIf()) {
                 $resetOnChange = $condProp->hasResetWidgetOnChange() ?? ($widget instanceof iTakeInput);
+                $emptyOnChange = $condProp->hasEmptyWidgetOnChange() ?? false;
                 $this->registerConditionalPropertyUpdaterOnLinkedElements(
                     $condProp,
-                    $this->buildJsSetHidden(true, $resetOnChange),
+                    $this->buildJsSetHidden(true, $resetOnChange, $emptyOnChange),
                     $this->buildJsSetHidden(false, $resetOnChange)
                 );
                 $js = $this->buildJsConditionalProperty(

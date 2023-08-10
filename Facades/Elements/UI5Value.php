@@ -8,6 +8,8 @@ use exface\Core\Widgets\Input;
 use exface\Core\Interfaces\Widgets\iShowDataColumn;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\DataTypes\StringDataType;
+use exface\Core\CommonLogic\DataSheets\DataColumn;
 
 /**
  * Generates sap.m.Text controls for Value widgets
@@ -457,7 +459,32 @@ JS;
         // Also refresh the live reference each time the view is prefilled!
         // But use setTimeout() to make sure all widgets binding-events affected
         // by the prefill really are done!
-        $this->getController()->addOnPrefillDataChangedScript('setTimeout(function(){ ' . $this->buildJsLiveReference() . '}, 0);');
+        // TODO actually dont refresh it when the value is bound to the model and the 
+        // value of the linked element is empty
+        // need this to not overwrite the prefill for the value if the linked element has an empty prefill value
+        // can be the case if a value is linked to an InputCombo but also can be filled manually
+        $bBoundToModelJs = ($this->isValueBoundToModel() ? 'true' : 'false');
+        $js = '';
+        if ($linked_element = $this->getLinkedFacadeElement()) {
+            $link = $this->getWidget()->getValueWidgetLink();
+            $col = $link->getTargetColumnId();
+            if (! StringDataType::startsWith($col, '~')) {
+                $col = DataColumn::sanitizeColumnName($col);
+            }
+            $js = <<<JS
+        setTimeout(function(){
+            var bBoundToModel = {$bBoundToModelJs};
+            var val = {$linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())}
+            if (bBoundToModel === true && (val === undefined || val === '' || val === null)) {
+                return;
+            }
+            console.log("Prefill change");
+            {$this->buildJsValueSetter('val')}
+        }, 0);
+        JS;
+            $this->getController()->addOnPrefillDataChangedScript($js);
+        }
+        
         return $this;
     }
     
@@ -561,7 +588,7 @@ JS;
         return $this->getUseWidgetId() ? $this->getId() . '__label' : '';
     }
     
-    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, string $elementId = null) : string
+    protected function buildJsSetHidden(bool $hidden, bool $resetWidget = false, bool $emptyWidget = false, string $elementId = null) : string
     {
         $showHideLabelJs = '';
         if ($this->isLabelRendered() === true || $this->getRenderCaptionAsLabel()) {
@@ -572,9 +599,10 @@ JS;
         
         $bVisibleJs = ($hidden ? 'false' : 'true');
         $bResetJs = ($resetWidget ? 'true' : 'false');
+        $bEmptyJs = ($emptyWidget ? 'true' : 'false');
         $elementId = $elementId ?? $this->getId();
         return <<<JS
-(function(bVisible, oCtrl, bReset){
+(function(bVisible, oCtrl, bReset, bEmpty){
     if (oCtrl.getParent().getMetadata().getName() == 'sap.ui.layout.form.FormElement') {
         if (bVisible === oCtrl.getParent().getVisible()) {
             return;
@@ -588,10 +616,15 @@ JS;
         {$showHideLabelJs}
     }
     oCtrl.$()?.trigger('visibleChange', [{visible: bVisible}]);
-    if (bReset === true && bVisible === false) {
+    // reset only if element gets hidden, should be reset and should not be emptied
+    if (bReset === true && bVisible === false && bEmpty === false) {
         {$this->buildJsResetter()}
     }
-})($bVisibleJs, sap.ui.getCore().byId('{$elementId}'), $bResetJs)
+    // empty only if element gets hidden and should be emptied
+    if (bEmpty === true && bVisible === false) {
+        {$this->buildJsEmpty()}
+    }
+})($bVisibleJs, sap.ui.getCore().byId('{$elementId}'), $bResetJs, $bEmptyJs)
 JS;
     }
     
