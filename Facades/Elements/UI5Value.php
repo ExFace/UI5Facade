@@ -643,10 +643,9 @@ JS;
             $output = <<<JS
                 var bBoundToModel = {$bBoundToModelJs};
                 var val = {$linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())}
-                if (bBoundToModel === true && (val === undefined || val === '' || val === null)) {
-                    return;
-                }
-                {$this->buildJsValueSetter('val')}                
+                if (! (bBoundToModel === true && (val === undefined || val === '' || val === null))) {
+                    {$this->buildJsValueSetter('val')}
+                }              
 JS;
         }
         return $output;
