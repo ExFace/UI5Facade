@@ -458,31 +458,9 @@ JS;
         $this->registerLiveReferenceAtLinkedElementViaTrait();
         // Also refresh the live reference each time the view is prefilled!
         // But use setTimeout() to make sure all widgets binding-events affected
-        // by the prefill really are done!
-        // TODO check the logic
-        // actually dont refresh it when the value is bound to the model and the 
-        // value of the linked element is empty
-        // need this to not overwrite the prefill for the value if the linked element has an empty prefill value
-        // can be the case if a value is linked to an InputCombo but also can be filled manually
-        $bBoundToModelJs = ($this->isValueBoundToModel() ? 'true' : 'false');
-        $js = '';
-        if ($linked_element = $this->getLinkedFacadeElement()) {
-            $link = $this->getWidget()->getValueWidgetLink();
-            $col = $link->getTargetColumnId();
-            if (! StringDataType::startsWith($col, '~')) {
-                $col = DataColumn::sanitizeColumnName($col);
-            }
-            $js = <<<JS
-        setTimeout(function(){
-            var bBoundToModel = {$bBoundToModelJs};
-            var val = {$linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())}
-            if (bBoundToModel === true && (val === undefined || val === '' || val === null)) {
-                return;
-            }
-            {$this->buildJsValueSetter('val')}
-        }, 0);
-        JS;
-            $this->getController()->addOnPrefillDataChangedScript($js);
+        // by the prefill really are done!        
+        if ($this->getLinkedFacadeElement()) {
+            $this->getController()->addOnPrefillDataChangedScript("setTimeout(function(){{$this->buildJsLiveReference()}}, 0);");
         }
         
         return $this;
@@ -636,5 +614,41 @@ JS;
     public function buildJsValueGetterMethod()
     {
         return "getText()";
+    }
+    
+    protected function buildJsLiveReference()
+    {
+        if (($this->getWidget() instanceof Value) && $this->getWidget()->isInTable() === true) {
+            return '';
+        }
+        
+        $output = '';
+        if ($linked_element = $this->getLinkedFacadeElement()) {
+            // TODO check the logic, maybe invent a new uxon-proberty to control that?
+            // actually dont refresh it when the value is bound to the model and the
+            // value of the linked element is empty
+            // need this to not empty inputs that are boudn to the model and to a value
+            // especially after a prefill InputComboTables load their columns and
+            // if the input is bound to a column that is empty but was actually filled manually
+            // the prefill and data loading from additional columns would empty the input
+            $bBoundToModelJs = ($this->isValueBoundToModel() ? 'true' : 'false');
+            $link = $this->getWidget()->getValueWidgetLink();
+            $col = $link->getTargetColumnId();
+            if (! StringDataType::startsWith($col, '~')) {
+                $col = DataColumn::sanitizeColumnName($col);
+            }
+            $output = '
+					' . $this->buildJsValueSetter($linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())) . ';';
+            
+            $output = <<<JS
+                var bBoundToModel = {$bBoundToModelJs};
+                var val = {$linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())}
+                if (bBoundToModel === true && (val === undefined || val === '' || val === null)) {
+                    return;
+                }
+                {$this->buildJsValueSetter('val')}                
+JS;
+        }
+        return $output;
     }
 }
