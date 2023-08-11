@@ -459,7 +459,8 @@ JS;
         // Also refresh the live reference each time the view is prefilled!
         // But use setTimeout() to make sure all widgets binding-events affected
         // by the prefill really are done!
-        // TODO actually dont refresh it when the value is bound to the model and the 
+        // TODO check the logic
+        // actually dont refresh it when the value is bound to the model and the 
         // value of the linked element is empty
         // need this to not overwrite the prefill for the value if the linked element has an empty prefill value
         // can be the case if a value is linked to an InputCombo but also can be filled manually
@@ -478,7 +479,6 @@ JS;
             if (bBoundToModel === true && (val === undefined || val === '' || val === null)) {
                 return;
             }
-            console.log("Prefill change");
             {$this->buildJsValueSetter('val')}
         }, 0);
         JS;

@@ -2301,4 +2301,11 @@ JS;
         $configuratorElement = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
         return $this->buildJsDataResetter() . ';' . ($this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '') . ';' . $configuratorElement->buildJsResetter();
     }
+    
+    
+    
+    protected function buildJsEmpty() : string
+    {
+        return $this->buildJsResetter();
+    }
 }
