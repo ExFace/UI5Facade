@@ -10,6 +10,7 @@ use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\NumberDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\CommonLogic\DataSheets\DataColumn;
+use exface\Core\Widgets\Filter;
 
 /**
  * Generates sap.m.Text controls for Value widgets
@@ -626,24 +627,24 @@ JS;
         if ($linked_element = $this->getLinkedFacadeElement()) {
             // TODO check the logic, maybe invent a new uxon-proberty to control that?
             // actually dont refresh it when the value is bound to the model and the
-            // value of the linked element is empty
-            // need this to not empty inputs that are boudn to the model and to a value
+            // value of the linked element is empty but only if the widget is not a filter!
+            // need this to not empty inputs that are bound to the model and to a value
             // especially after a prefill InputComboTables load their columns and
             // if the input is bound to a column that is empty but was actually filled manually
             // the prefill and data loading from additional columns would empty the input
             $bBoundToModelJs = ($this->isValueBoundToModel() ? 'true' : 'false');
+            $bIsFilter = (($this->getWidget()->getParent() instanceof Filter) ? 'true' : 'false');
             $link = $this->getWidget()->getValueWidgetLink();
             $col = $link->getTargetColumnId();
             if (! StringDataType::startsWith($col, '~')) {
                 $col = DataColumn::sanitizeColumnName($col);
             }
-            $output = '
-					' . $this->buildJsValueSetter($linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())) . ';';
-            
             $output = <<<JS
                 var bBoundToModel = {$bBoundToModelJs};
+                var bIsFilter = {$bIsFilter};
+                console.log('Binding for {$this->getId()}');
                 var val = {$linked_element->buildJsValueGetter($col, $link->getTargetRowNumber())}
-                if (! (bBoundToModel === true && (val === undefined || val === '' || val === null))) {
+                if (! (bBoundToModel === true && bIsFilter === false && (val === undefined || val === '' || val === null))) {
                     {$this->buildJsValueSetter('val')}
                 }              
 JS;
