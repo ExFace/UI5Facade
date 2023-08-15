@@ -90,6 +90,11 @@ JS;
 JS;
     }
     
+    protected function buildJsFullscreenContainerGetter() : string
+    {
+        return "$('#{$this->getId()}').parent().parent()";
+    }
+    
     /**
      *
      * {@inheritDoc}
