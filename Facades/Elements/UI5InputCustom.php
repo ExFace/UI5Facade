@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\DataTypes\StringDataType;
 
 /**
  * Creates a sap.ui.core.HTML for InputCustom widgets
@@ -53,6 +54,8 @@ JS;
             $initPropsJs .= $this->buildJsSetDisabled(true);
         }
         
+        $css = StringDataType::replaceLineBreaks($this->getWidget()->getCss(), ' ');
+        
         return <<<JS
 
         new sap.ui.core.HTML("{$this->getId()}", {
@@ -60,6 +63,9 @@ JS;
             afterRendering: function() {
                 {$initJs}
                 {$initPropsJs}
+                if ($('#{$this->getId()}_css').length === 0) {
+                    $('head').append($('<style id="{$this->getId()}_css">{$css}</style>'));
+                }
             }
         })
 

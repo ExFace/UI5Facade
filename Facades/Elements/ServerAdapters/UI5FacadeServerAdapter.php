@@ -370,7 +370,7 @@ JS;
             
             return $.ajax({
                 url: "{$this->getElement()->getAjaxUrl()}",
-                type: "GET",
+                type: "POST",
 				data: {$oParamsJs},
                 success: function(response, textStatus, jqXHR) {
                     var oPrefillRow = {};
