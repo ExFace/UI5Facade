@@ -872,6 +872,11 @@ JS;
                 return <<<JS
                 
             .attachItemPress(function(oEvent) {
+                var oListItem = oEvent.getParameters().listItem;
+                if (oListItem === undefined || oListItem.getMetadata().getName() === 'sap.m.GroupHeaderListItem') {
+                    return;
+                }
+
                 {$this->getFacade()->getElement($leftclick_button)->buildJsClickEventHandlerCall($oControllerJsVar)};
             })
 JS;
