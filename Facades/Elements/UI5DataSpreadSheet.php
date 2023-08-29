@@ -40,9 +40,9 @@ class UI5DataSpreadSheet extends UI5AbstractElement implements UI5DataElementInt
                 new sap.ui.core.HTML("{$this->getId()}", {
                     content: "<div id=\"{$this->getId()}\"><div id=\"{$this->getId()}_jexcel\" class=\"{$this->buildCssElementClass()} sapUiTable\"></div></div>",
                     afterRendering: function(oEvent) {
-                        {$this->buildJsDestroy()}
-                        {$this->buildJsJExcelInit()}
-                        {$this->buildJsRefresh()}
+                        {$this->buildJsDestroy()};
+                        {$this->buildJsJExcelInit()};
+                        {$this->buildJsRefresh()};
                         {$this->buildJsFixOverflowVisibility()}
                     }
                 })
@@ -53,21 +53,73 @@ JS;
     }
     
     /**
+     * Dropdowns from jExcel are cut off by the border of the containing UI5 control sometimes
+     * because that UI5 control has overflow:hidden at some point. The overflow is temporary
+     * made visible by this code everytime a dropdown is opened and restored when it closes.
+     * 
+     * Making the overflow visible after rendering initially did not work as the UI5 controls
+     * got scrollbars then. It must be done right before the dropdown appears!
+     * 
+     * So far the following problematic situations were identified:
+     * 
+     * - jExcel is inside a responsive grid 
+     *      - All DOM parents up to the first grid get overflow:visible anyway - just to be sure.
+     *      - If the grid has .sapUiRespGridOverflowHidden, its immediate children get overflow:hidden 
+     *      in certain situations, but we just make the overflow visible always. This is done for
+     *      all grids up the hierarchy because they may be nested
      * 
      * @return string
      */
     protected function buildJsFixOverflowVisibility() : string
     {
         return <<<JS
+                        (function() {
+                            var jExcel = {$this->buildJsJqueryElement()}[0].exfWidget.getJExcel();
+                            var fnOnEditStart = jExcel.options.oneditionstart;
+                            var fnOnEditEnd = jExcel.options.oneditionend;
 
-                        var aParents = {$this->buildJsJqueryElement()}.parents();
-                        for (var i = 0; i < aParents.length; i++) {
-                            var jqParent = $(aParents[i]);
-                            if (jqParent.hasClass('sapUiRespGrid') === true) {
-                                break;
-                            }
-                            $(jqParent).css('overflow', 'visible');
-                        }
+                            jExcel.options.oneditionstart = function(el, domCell, x, y){
+                                if ($(domCell).hasClass('jexcel_dropdown')) {
+                                    var bRespGridFound = false;
+                                    $(domCell).data('overflowShown', []);
+                                    {$this->buildJsJqueryElement()}.parents().each(function(i, domEl) {
+                                        var jqEl = $(domEl);
+                                        if (jqEl.hasClass('sapUiRespGrid') === true) {
+                                            bRespGridFound = true;
+                                        }
+                                        if (! bRespGridFound) {
+                                            jqEl.css('overflow', 'visible');
+                                            $(domCell).data('overflowShown').push(jqEl[0]);
+                                        }
+                                        if (jqEl.hasClass('sapUiRespGridOverflowHidden')) {
+                                            jqEl.children().each(function(j, domChild){
+                                                $(domChild).css('overflow', 'visible');
+                                                $(domCell).data('overflowShown').push(domChild);
+                                            });
+                                        }
+                                    });
+                                }
+
+                                if (fnOnEditStart) {
+                                    fnOnEditStart(el, domCell, x, y);
+                                }
+                            };
+                            jExcel.options.oneditionend = function(el, domCell, x, y){
+                                if ($(domCell).hasClass('jexcel_dropdown')) {
+                                    var aEls = $(domCell).data('overflowShown');
+                                    if (aEls) {
+                                        aEls.forEach(function(domEl) {
+                                            $(domEl).css('overflow', '');
+                                        });
+                                        $(domCell).removeData('overflowShown');
+                                    }
+                                }
+
+                                if (fnOnEditEnd) {
+                                    fnOnEditEnd(el, domCell, x, y);
+                                }
+                            };
+                        })();
 
 JS;
     }
