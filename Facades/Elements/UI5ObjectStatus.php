@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
+use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 
 /**
  * Generates sap.m.ObjectStatus for any value widget.
@@ -19,6 +20,8 @@ use exface\Core\Interfaces\Widgets\iHaveColorScale;
  */
 class UI5ObjectStatus extends UI5Display
 {    
+    use UI5ColorClassesTrait;
+    
     private $title = null;
     
     private $inverted = false;
@@ -31,6 +34,14 @@ class UI5ObjectStatus extends UI5Display
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
+        if ($this->getWidget()->hasColorScale()) {
+            if ($this->isInverted()) {
+                $colorCss = 'background-color: [#color#]';
+            } else {
+                $colorCss = 'color: [#color#]';
+            }
+            $this->registerColorClasses($this->getWidget()->getColorScale(), '.exf-custom-color.exf-color-[#color#] .sapMObjStatusText', $colorCss);
+        }
         return <<<JS
         
         new sap.m.ObjectStatus("{$this->getId()}", {
@@ -90,7 +101,7 @@ JS;
      */
     protected function buildJsColorValueNoColor() : string
     {
-        return 'sap.ui.core.ValueState.None';
+        return 'null';
     }
     
     /**
@@ -113,17 +124,21 @@ JS;
         return $this;
     }
     
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Display::buildJsColorCssSetter()
+     */
     protected function buildJsColorCssSetter(string $oControlJs, string $sColorJs) : string
     {
-        $cssProperty = $this->getInverted() ? 'background-color' : 'color';
-        return "if ($sColorJs === null) { $oControlJs.$().find('.sapMObjStatusText').css('$cssProperty', null);} else {setTimeout(function(){ $oControlJs.$().find('.sapMObjStatusText').css('$cssProperty', $sColorJs); }, 0)}";
+        return $this->buildJsColorClassSetter($oControlJs, $sColorJs, 'exf-custom-color', 'exf-color-');
     }
     
     /**
      *
      * @return bool
      */
-    protected function getInverted() : bool
+    protected function isInverted() : bool
     {
         return $this->inverted;
     }
@@ -145,7 +160,7 @@ JS;
      */
     protected function buildJsPropertyInverted() : string
     {
-        return 'inverted: ' . ($this->getInverted() ? 'true' : 'false') . ',';
+        return 'inverted: ' . ($this->isInverted() ? 'true' : 'false') . ',';
     }
     
     /**
@@ -183,7 +198,7 @@ JS;
         var oColorScale = {$semColsJs};
         oControl.setState(oColorScale[sColor]);
     }
-    {$this->buildJsColorCssSetter('oControl', "sColor || {$this->buildJsColorValueNoColor()}")};
+    {$this->buildJsColorCssSetter('oControl', "sColor")};
 })({$valueJs})
 
 JS;
