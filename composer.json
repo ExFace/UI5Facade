@@ -1,54 +1,54 @@
 {
-    "name": "exface/UI5Facade",
-    "description": "UI-Facade for the ExFace business web-app plattform based on the SAP OpenUI5 library",
-    "type": "library",
-    "license": [
-        "GPL-3.0+",
-        "proprietary"
-    ],
-    "authors": [
-        {
-            "name": "Andrej Kabachnik",
-            "email": "kabachnik@gmail.com",
-            "role": "Creator"
-        }
-    ],
-    "support": {
-        "source": "https://github.com/exface/UI5Facade",
-        "docs": "https://github.com/exface/UI5Facade/blob/master/Docs",
-        "issues": "https://github.com/exface/UI5Facade/issues"
-    },
-    "require": {
-        "exface/core": "^1.0",
-        "bower-asset/font-awesome-openui5": "^v2.1",
-        "bower-asset/ui5-qrcode": "~0.9",
-        "npm-asset/dexie": "^2.0.4",
-        "npm-asset/echarts": "^5",
-        "npm-asset/moment": "^2.24.0",
-        "npm-asset/leaflet": "^1.7",
-        "npm-asset/leaflet-extra-markers": "^1.2",
-        "npm-asset/leaflet-fullscreen": "^1.0",
-        "npm-asset/leaflet.locatecontrol": "~0.72",
-        "npm-asset/esri-leaflet": "^3.0",
-        "npm-asset/leaflet.markercluster": "^1.4",
-        "npm-asset/tinycolor2": "^1.4.2",
-        "npm-asset/tinygradient": "^1.1.4",
-        "npm-asset/jspreadsheet-ce": "^4.10"
-    },
-    "autoload": {
-        "psr-4": {
-            "exface\\UI5Facade\\": ""
-        },
-        "exclude-from-classmap": [
-            "/Config/",
-            "/Translations/",
-            "/Model/"
-        ]
-    },
-    "extra": {
-        "app": {
-            "app_uid": "0x11e837e87a640bfd91380205857feb80",
-            "app_alias": "exface.UI5Facade"
-        }
-    }
+	"name" : "exface/UI5Facade",
+	"description" : "UI-Facade for the ExFace business web-app plattform based on the SAP OpenUI5 library",
+	"type" : "library",
+	"license" : [
+		"GPL-3.0+",
+		"proprietary"
+	],
+	"authors" : [{
+			"name" : "Andrej Kabachnik",
+			"email" : "kabachnik@gmail.com",
+			"role" : "Creator"
+		}
+	],
+	"support" : {
+		"source" : "https://github.com/exface/UI5Facade",
+		"docs" : "https://github.com/exface/UI5Facade/blob/master/Docs",
+		"issues" : "https://github.com/exface/UI5Facade/issues"
+	},
+	"require" : {
+		"exface/core" : "^1.0",
+		"bower-asset/font-awesome-openui5" : "^v2.1",
+		"bower-asset/ui5-qrcode" : "~0.9",
+		"npm-asset/dexie" : "^2.0.4",
+		"npm-asset/echarts" : "^5",
+		"npm-asset/moment" : "^2.24.0",
+		"npm-asset/leaflet" : "^1.7",
+		"npm-asset/leaflet-extra-markers" : "^1.2",
+		"npm-asset/leaflet-fullscreen" : "^1.0",
+		"npm-asset/leaflet.locatecontrol" : "~0.72",
+		"npm-asset/esri-leaflet" : "^3.0",
+		"npm-asset/leaflet.markercluster" : "^1.4",
+		"npm-asset/tinycolor2" : "^1.4.2",
+		"npm-asset/tinygradient" : "^1.1.4",
+		"npm-asset/jspreadsheet-ce" : "^4.10",
+		"npm-asset/survey-knockout" : "^1"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"exface\\UI5Facade\\" : ""
+		},
+		"exclude-from-classmap" : [
+			"/Config/",
+			"/Translations/",
+			"/Model/"
+		]
+	},
+	"extra" : {
+		"app" : {
+			"app_uid" : "0x11e837e87a640bfd91380205857feb80",
+			"app_alias" : "exface.UI5Facade"
+		}
+	}
 }

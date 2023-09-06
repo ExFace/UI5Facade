@@ -148,6 +148,17 @@
 	"LIBS.SLICK.LIGHTBOX_JS": "npm-asset/slick-lightbox/dist/slick-lightbox.min.js",
 	"LIBS.SLICK.LIGHTBOX_CSS": "npm-asset/slick-lightbox/dist/slick-lightbox.css",
 	
+	"LIBS.SURVEY.KNOCKOUT_JS": "npm-asset/knockout/build/output/knockout-latest.js",
+	"LIBS.SURVEY.SURVEY_JS": "npm-asset/survey-knockout/survey.ko.min.js",
+	"LIBS.SURVEY.SURVEY_CSS": "npm-asset/survey-knockout/survey.min.css",
+	"LIBS.SURVEY.THEME_CSS": "exface/UI5Facade/Facades/js/survey-js/openui5-survey.css",
+	"LIBS.SURVEY.CREATOR_JS": "npm-asset/survey-creator/survey-creator.min.js",
+	"LIBS.SURVEY.CREATOR_CSS": "npm-asset/survey-creator/survey-creator.min.css",
+	"LIBS.SURVEY.CREATOR_ACE_JS": [
+		"npm-asset/ace-builds/src-min/ace.js",
+		"npm-asset/ace-builds/src-min/ext-language_tools.js"
+	],
+	
 	"PWA.ENABLED": true,
     "PWA.DEFAULT_STYLE.THEME_COLOR": "#3367D6",
     "PWA.DEFAULT_STYLE.BACKGROUND_COLOR": "#3367D6",

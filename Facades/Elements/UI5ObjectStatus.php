@@ -57,6 +57,26 @@ JS;
     }
     
     /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Value::isLabelRendered()
+     */
+    protected function isLabelRendered() : bool
+    {
+        return false;
+    }
+    
+    /***
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Value::getRenderCaptionAsLabel()
+     */
+    protected function getRenderCaptionAsLabel(bool $default = true) : bool
+    {
+        return false;
+    }
+    
+    /**
      *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Value::buildJsLabelWrapper()
