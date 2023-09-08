@@ -16,17 +16,17 @@
 .sv_main.sv_default_css .sv_container,
 .sv_main .sv_container .sv_body .sv_p_root .sv_q_title {font-family: "72","72full",Arial,Helvetica,sans-serif; font-size: .875rem; color: #6a6d70; font-weight: normal}
 .sv_main .sv_container .sv_body .sv_p_root .sv_q .sv_q_other input, 
-.sv_main .sv_container .sv_body .sv_p_root .sv_q .sv_q_text_root, 
 .sv_main .sv_container .sv_body .sv_p_root .sv_q input:not([type="button"]):not([type="reset"]):not([type="submit"]):not([type="image"]):not([type="checkbox"]):not([type="radio"]), 
 .sv_main .sv_container .sv_body .sv_p_root .sv_q select, 
 .sv_main .sv_container .sv_body .sv_p_root .sv_q textarea {
     padding: .1875rem .5rem !important;
-    border: .0625rem solid #89919a !important;
+    border: .0625rem solid #89919a;
 }
 .sv_main .sv_container .sv_body .sv_p_root .sv_q .sv_q_dropdown_control {
     padding: 0 !important;
-    border: 0 !important;
+    border: .0625rem solid #89919a !important;
 }
+.sv_main.sv_default_css .sv_container .sv_body .sv_p_root .sv_q .sv_q_dropdown_control .sv_q_dropdown__value .sv_q_dropdown__filter-string-input[type=text] {border: none !important;}
 .sv_main .sv_row .sv_row {padding-left: 0.75rem; padding-right:0.75rem}
 .sv_main .sv_container .sv_body .sv_p_root .sv_p_title {
     border-width: 1px;
@@ -92,3 +92,6 @@
     speak: none;
     content: "\e1ef";
 }
+
+/* Creator */
+.svd_surveyjs_designer_container {padding: 10px;}

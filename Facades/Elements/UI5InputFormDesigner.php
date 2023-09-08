@@ -49,15 +49,12 @@ class UI5InputFormDesigner extends UI5InputForm
                 SurveyCreator.localization.currentLocale = "{$this->getSurveyLocale()}";
                     
                 // Show Designer, Test Survey, JSON Editor and additionally Logic tabs
-                var options = {
-                    showLogicTab: true
-                };
+                var oOptions = {};
+                {$this->buildJsCreatorInitOptions('oOptions')}
                 //create the SurveyJS Creator and render it in div with id equals to "creatorElement"
-                oCreator = new SurveyCreator.SurveyCreator("{$this->getIdOfCreatorDiv()}", options);
-                //Show toolbox in the right container. It is shown on the left by default
-                oCreator.showToolbox = "left";
-                //Show property grid in the right container, combined with toolbox
-                oCreator.showPropertyGrid = "right";
+                oCreator = new SurveyCreator.SurveyCreator("{$this->getIdOfCreatorDiv()}", oOptions);
+
+                {$this->buildJsCreatorInit('oCreator')}
 
                 {$this->buildJsCreatorVar()} = oCreator;
                 
@@ -130,5 +127,44 @@ JS;
     {
         // TODO
         return '';
+    }
+    
+    protected function buildJsCreatorInitOptions(string $oOptionsJs = 'oOptions') : string
+    {
+        return <<<JS
+
+
+                $oOptionsJs.showLogicTab = true;
+JS;
+    }
+    
+    protected function buildJsCreatorInit(string $oCreatorJs = 'oCreator') : string
+    {
+        return <<<JS
+
+                //Show toolbox in the right container. It is shown on the left by default
+                $oCreatorJs.showToolbox = "left";
+                //Show property grid in the right container, combined with toolbox
+                $oCreatorJs.showPropertyGrid = "right";
+    
+                $oCreatorJs.onQuestionAdded.add(function(_, options) {
+                    options.question.hideNumber = true
+                    switch (options.question.jsonObj.type) {
+                        case 'text':
+                            options.question.titleLocation = 'left';
+                            break;
+                        case 'dropdown':
+                            options.question.titleLocation = 'left';
+                            break;
+                        case 'boolean':
+                            options.question.titleLocation = 'left';
+                            break;
+                        case 'file':
+                            options.question.titleLocation = 'left';
+                            break;
+                    }
+                });
+    
+JS;
     }
 }
