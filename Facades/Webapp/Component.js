@@ -1,6 +1,7 @@
 sap.ui.define([
-	"sap/ui/core/UIComponent"
-], function (UIComponent) {
+	"sap/ui/core/UIComponent",
+	"sap/m/MessageBox"
+], function (UIComponent, MessageBox) {
 	"use strict";
 
 	return UIComponent.extend("[#app_id#].Component", {
@@ -15,6 +16,20 @@ sap.ui.define([
 
             // create the views based on the url/hash
             this.getRouter().initialize();
+
+			(function(proxied) {
+			  window.alert = function() {
+			    console.log(arguments);
+			    return proxied.apply(this, arguments);
+			  };
+			})(window.alert);
+			(function(proxied) {
+			  window.confirm = function() {
+			    console.log(arguments);
+			    return MessageBox.confirm(arguments[0]);
+			    return proxied.apply(this, arguments);
+			  };
+			})(window.confirm);
         },
 		
         /**
