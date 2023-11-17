@@ -190,18 +190,45 @@ JS;
             var sColNameStart = '{$startCol->getDataColumnName()}';
             var sColNameEnd = '{$endCol->getDataColumnName()}';
 
-            /* TODO move children with parent when parent is dragged along the timeline
-            var iDurationOld = oRow[sColNameEnd] - oRow[sColNameStart]; // How to calculate the difference between two date in JS???
-            var iDurationNew = dEnd - dStart;
-            // Moving is when the duration does not change
-            if (iDurationOld === iDurationNew) {
+            // move children with parent when parent is dragged along the timeline
+
+            function dateDiff(a, b, unit) {
+                let _unit;
+                if (unit === 'days') {
+                    _unit = 1000 * 60 * 60 * 24;
+                }
+                if (unit === 'hours') {
+                    _unit = 1000 * 60 * 60;
+                }
+                if (unit === 'seconds') {
+                    _unit = 1000 * 60 * 60;
+                }
+                // Convert both dates to UTC to avoid timezone issues
+                const utc1 = new Date(a.toUTCString());
+                const utc2 = new Date(b.toUTCString());
+                return Math.floor((utc2 - utc1) / _unit);
+            }
+
+            var iDurationOld = dateDiff(new Date (oRow[sColNameStart]), new Date(oRow[sColNameEnd]), 'hours');
+            var iDurationNew = dateDiff(new Date(dStart), new Date(dEnd), 'hours');
+            var durationDiffInHours = Math.abs(iDurationNew - iDurationOld);
+            var moveDiffInDays = dateDiff(new Date (oRow[sColNameStart]), new Date(dStart), 'days'); 
+            
+            // Check if the parent has been moved without the duration changing
+            if (durationDiffInHours <= 24) {
                 oRow._children.forEach(function(oChildRow, iIdx) {
                     // move dates of oChildRow as far as the parent row was moved
-                })
-                // what if the child row has children too???? 
-                // If we change oRow._children, do we need to explicitly update the oModel. Check oModel.getData()
+                    startDate = new Date(oChildRow['date_start_plan']);
+                    endDate = new Date(oChildRow['date_end_plan']);
+                    startDate.setDate(startDate.getDate() + moveDiffInDays);
+                    endDate.setDate(endDate.getDate() + moveDiffInDays);
+                    oRow._children[iIdx]['date_start_plan'] = {$startFormatter->buildJsFormatDateObjectToInternal('startDate')};
+                    oRow._children[iIdx]['date_end_plan'] = {$startFormatter->buildJsFormatDateObjectToInternal('endDate')};
+
+                    // if the child row has children too call the function recursively
+                    // TODO
+                })  
             }
-            */
             oModel.setProperty(oCtxt.sPath + '/' + sColNameStart, {$startFormatter->buildJsFormatDateObjectToInternal('dStart')});
             oModel.setProperty(oCtxt.sPath + '/' + sColNameEnd, {$endFormatter->buildJsFormatDateObjectToInternal('dEnd')});
     	}
@@ -314,7 +341,7 @@ JS;
                         }
                     }
 
-                    // remove rows without children in oDataTree.rows if 'is_folder_flag' is set to 1
+                    // remove rows without children in oDataTree.rows if treeFolderFlagAttributeAlias is set to 1
                     for (let i = oDataTree.rows.length - 1; i >= 0; i--) {
                         removeRowsWithoutChildren(oDataTree.rows[i], i, oDataTree.rows);
                     }
