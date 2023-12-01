@@ -191,43 +191,35 @@ JS;
             var sColNameEnd = '{$endCol->getDataColumnName()}';
 
             // move children with parent when parent is dragged along the timeline
+            var oldStart = new Date(oRow[sColNameStart]);
+            var oldEnd = new Date(oRow[sColNameEnd]);
+            var newStart = new Date({$startFormatter->buildJsFormatDateObjectToInternal('dStart')});
+            var newEnd = new Date({$startFormatter->buildJsFormatDateObjectToInternal('dEnd')});
 
-            function dateDiff(a, b, unit) {
-                let _unit;
-                if (unit === 'days') {
-                    _unit = 1000 * 60 * 60 * 24;
-                }
-                if (unit === 'hours') {
-                    _unit = 1000 * 60 * 60;
-                }
-                if (unit === 'seconds') {
-                    _unit = 1000 * 60 * 60;
-                }
-                // Convert both dates to UTC to avoid timezone issues
-                const utc1 = new Date(a.toUTCString());
-                const utc2 = new Date(b.toUTCString());
-                return Math.floor((utc2 - utc1) / _unit);
-            }
-
-            var iDurationOld = dateDiff(new Date (oRow[sColNameStart]), new Date(oRow[sColNameEnd]), 'hours');
-            var iDurationNew = dateDiff(new Date(dStart), new Date(dEnd), 'hours');
-            var durationDiffInHours = Math.abs(iDurationNew - iDurationOld);
-            var moveDiffInDays = dateDiff(new Date (oRow[sColNameStart]), new Date(dStart), 'days'); 
-            
             // Check if the parent has been moved without the duration changing
-            if (durationDiffInHours <= 24) {
-                oRow._children.forEach(function(oChildRow, iIdx) {
-                    // move dates of oChildRow as far as the parent row was moved
-                    startDate = new Date(oChildRow['date_start_plan']);
-                    endDate = new Date(oChildRow['date_end_plan']);
-                    startDate.setDate(startDate.getDate() + moveDiffInDays);
-                    endDate.setDate(endDate.getDate() + moveDiffInDays);
-                    oRow._children[iIdx]['date_start_plan'] = {$startFormatter->buildJsFormatDateObjectToInternal('startDate')};
-                    oRow._children[iIdx]['date_end_plan'] = {$startFormatter->buildJsFormatDateObjectToInternal('endDate')};
+            var iDurationOld = oldEnd - oldStart;
+            var iDurationNew = newEnd - newStart;
+            
+            if (iDurationOld ===  iDurationNew) {
+                var moveDiffInDays = (newStart - oldStart) / 1000 / 60 / 60 / 24;
+                
+                function processChildrenRecursively(oRow, moveDiffInDays, sColNameStart, sColNameEnd) {
+                    oRow._children.forEach(function(oChildRow, iIdx) {
+                        // move dates of oChildRow as far as the parent row was moved
+                        var startDateChild = new Date(oChildRow['date_start_plan']);
+                        var endDateChild = new Date(oChildRow['date_end_plan']);
+                        startDateChild.setDate(startDateChild.getDate() + moveDiffInDays);
+                        endDateChild.setDate(endDateChild.getDate() + moveDiffInDays);
+                        oRow._children[iIdx][sColNameStart] = {$startFormatter->buildJsFormatDateObjectToInternal('startDateChild')};
+                        oRow._children[iIdx][sColNameEnd] = {$startFormatter->buildJsFormatDateObjectToInternal('endDateChild')};
 
-                    // if the child row has children too call the function recursively
-                    // TODO
-                })  
+                        // if the child row has children too, call the function recursively
+                        if (oChildRow._children && oChildRow._children.length > 0) {
+                            processChildrenRecursively(oChildRow, moveDiffInDays, sColNameStart, sColNameEnd);
+                        }
+                    });
+                }
+                processChildrenRecursively(oRow, moveDiffInDays, sColNameStart, sColNameEnd);
             }
             oModel.setProperty(oCtxt.sPath + '/' + sColNameStart, {$startFormatter->buildJsFormatDateObjectToInternal('dStart')});
             oModel.setProperty(oCtxt.sPath + '/' + sColNameEnd, {$endFormatter->buildJsFormatDateObjectToInternal('dEnd')});
