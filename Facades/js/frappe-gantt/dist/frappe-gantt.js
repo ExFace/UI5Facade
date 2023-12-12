@@ -235,17 +235,37 @@ var Gantt = (function () {
         },
 
         add(date, qty, scale) {
-            qty = parseInt(qty, 10);
+			var iDays = 0;
+			var newDate;
+            qty = parseInt(qty, 10);        	
+            if (scale === HOUR) {
+				iDays = Math.floor(qty/24);
+				qty = 0; //qty - iDays*24;
+			}
+            /*switch (scale) {
+				case YEAR: date.setFullYear(date.getFullYear() + qty); break;
+				case MONTH: date.setMonth(date.getMonth() + qty); break;
+				case DAY: date.setDate(date.getDate() + qty); break;
+				case HOUR: date.setHours(date.getHours() + qty); break;
+				case MINUTE: date.setMinutes(date.getMinutes() + qty); break;
+				case SECOND: date.setSeconds(date.getSeconds() + qty); break;
+				case MILLISECOND: date.setMilliseconds(date.getMilliseconds() + qty); break;
+			}
+			return date;
+			*/
+			// return moment(date).add(qty, scale).toDate();
             const vals = [
                 date.getFullYear() + (scale === YEAR ? qty : 0),
                 date.getMonth() + (scale === MONTH ? qty : 0),
-                date.getDate() + (scale === DAY ? qty : 0),
+                date.getDate() + (scale === DAY ? qty : 0) + iDays,
                 date.getHours() + (scale === HOUR ? qty : 0),
                 date.getMinutes() + (scale === MINUTE ? qty : 0),
                 date.getSeconds() + (scale === SECOND ? qty : 0),
                 date.getMilliseconds() + (scale === MILLISECOND ? qty : 0),
             ];
-            return new Date(...vals);
+            newDate = new Date(...vals);
+            return newDate;
+            
         },
 
         start_of(date, scale) {
@@ -757,7 +777,10 @@ var Gantt = (function () {
                 width_in_units * this.gantt.options.step,
                 'hour'
             );
-
+console.log('diff', (new_start_date - new_end_date) - (this.task._start - this.task._end));
+console.log(this.gantt.gantt_start);
+console.log(new_start_date);
+console.log(new_end_date);
             return { new_start_date, new_end_date };
         }
 
