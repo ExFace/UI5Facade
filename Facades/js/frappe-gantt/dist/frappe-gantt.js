@@ -237,11 +237,14 @@ var Gantt = (function () {
         add(date, qty, scale) {
 			var iDays = 0;
 			var newDate;
-            qty = parseInt(qty, 10);        	
+			var bFullDays = false;
+            qty = parseInt(qty, 10); 
+            bFullDays = ((scale === HOUR) && (qty % 24 === 0)) || scale === DAY || scale === MONTH;
+            /*       	
             if (scale === HOUR) {
 				iDays = Math.floor(qty/24);
 				qty = 0; //qty - iDays*24;
-			}
+			}*/
             /*switch (scale) {
 				case YEAR: date.setFullYear(date.getFullYear() + qty); break;
 				case MONTH: date.setMonth(date.getMonth() + qty); break;
@@ -254,7 +257,7 @@ var Gantt = (function () {
 			return date;
 			*/
 			// return moment(date).add(qty, scale).toDate();
-            const vals = [
+            var vals = [
                 date.getFullYear() + (scale === YEAR ? qty : 0),
                 date.getMonth() + (scale === MONTH ? qty : 0),
                 date.getDate() + (scale === DAY ? qty : 0) + iDays,
@@ -264,6 +267,12 @@ var Gantt = (function () {
                 date.getMilliseconds() + (scale === MILLISECOND ? qty : 0),
             ];
             newDate = new Date(...vals);
+            /*if (bFullDays === true && newDate.getHours() !== date.getHours()) {
+				console.log('found diff', qty/24, newDate.getHours() - date.getHours());
+				console.log(date);
+				console.log(newDate);
+				newDate = new Date(...vals);
+			}*/
             return newDate;
             
         },
@@ -766,21 +775,55 @@ var Gantt = (function () {
         compute_start_end_date() {
             const bar = this.$bar;
             const x_in_units = bar.getX() / this.gantt.options.column_width;
-            const new_start_date = date_utils.add(
+            const bFullDays = this.gantt.options.step % 24 === 0;
+            var new_start_date = date_utils.add(
                 this.gantt.gantt_start,
                 x_in_units * this.gantt.options.step,
                 'hour'
             );
             const width_in_units = bar.getWidth() / this.gantt.options.column_width;
-            const new_end_date = date_utils.add(
+            var new_end_date = date_utils.add(
                 new_start_date,
                 width_in_units * this.gantt.options.step,
                 'hour'
             );
-console.log('diff', (new_start_date - new_end_date) - (this.task._start - this.task._end));
+            var diff_old = (this.task._start - this.task._end) / (1000*60*60*24);
+            var diff_new = (new_start_date - new_end_date) / (1000*60*60*24);
+            var iTZDiffStart = Math.abs(new_start_date.getTimezoneOffset()) - Math.abs(this.task._start.getTimezoneOffset());
+            var iTZDiffEnd = Math.abs(new_end_date.getTimezoneOffset()) - Math.abs(this.task._end.getTimezoneOffset());
+            var iTZDiffStartEndNew = Math.abs(new_start_date.getTimezoneOffset()) - Math.abs(new_end_date.getTimezoneOffset());
+			var iTZDiffStartEndOld = Math.abs(this.task._start.getTimezoneOffset()) - Math.abs(this.task._end.getTimezoneOffset());
+			const fnRoundHours = function(oDateNew, oDateOld) {
+				var oDateRounded = oDateNew;
+				var iDiff = oDateOld.getHours() - oDateNew.getHours();
+				if (iDiff < 0) {
+					if (Math.abs(iDiff) > 12) {
+						oDateRounded.setTime(oDateNew.getTime() + ((24-Math.abs(iDiff))*60*60*1000))
+					} else {
+						oDateRounded.setHours(0);
+					}
+				}
+				return oDateRounded;
+			};
+console.log('diff', );
 console.log(this.gantt.gantt_start);
-console.log(new_start_date);
-console.log(new_end_date);
+console.log(this.task._start, 'old start');
+console.log(this.task._end, 'old end');
+console.log(new_start_date, 'new start 1');
+console.log(new_end_date, 'new end 1');
+			if (bFullDays === true) {
+				if (new_start_date.getHours() !== this.task._start.getHours()) {
+					//new_start_date = fnRoundHours(new_start_date, this.task._start);
+					console.log('round start date', new_start_date);
+				}
+				if (new_end_date.getHours() !== this.task._end.getHours()) {
+					//new_end_date = fnRoundHours(new_end_date, this.task._end);
+					console.log('round end date', new_end_date);
+				}
+			}
+console.log(new_start_date, 'new start 2');
+console.log(new_end_date, 'new end 2');
+console.log('diff_2', (new_start_date - new_end_date) / (1000*60*60*24) - diff_old);
             return { new_start_date, new_end_date };
         }
 
