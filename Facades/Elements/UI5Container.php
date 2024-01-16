@@ -165,7 +165,7 @@ JS;
         new sap.m.Page({
             title: "{$caption}",
             showNavButton: {$showNavButton},
-            navButtonPress: [oController.onNavBack, oController],
+            navButtonPress: [oController.navBack, oController],
             content: [
                 {$contentJs}
             ],
@@ -229,5 +229,27 @@ JS;
         }
         
         return '';
+    }
+    
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Container::buildJsChangesGetter()
+     */
+    public function buildJsChangesGetter() : string
+    {
+        $checks = [];
+        foreach ($this->getWidget()->getWidgets() as $w) {
+            $el = $this->getFacade()->getElement($w);
+            $check = $el->buildJsChangesGetter();
+            if ($check !== '' && $check !== '[]') {
+                $checks[] = $check;
+            }
+        }
+        if (empty($checks)) {
+            return '[]';
+        }
+        
+        return "([]).concat(\n" . implode(",\n", $checks) . "\n)";
     }
 }

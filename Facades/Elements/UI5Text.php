@@ -62,9 +62,9 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Display::setAlignment()
      */
-    public function setAlignment($propertyValue)
+    public function setAlignment(string $propertyValueJs) : UI5Display
     {
-        $this->alignmentProperty = $propertyValue;
+        $this->alignmentProperty = $propertyValueJs;
         return $this;
     }
     
@@ -74,9 +74,20 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Display::buildJsPropertyAlignment()
      */
-    protected function buildJsPropertyAlignment()
+    protected function buildJsPropertyAlignment() : string
     {
-        return $this->alignmentProperty ? 'textAlign: ' . $this->alignmentProperty . ',' : '';
+        if ($this->alignmentProperty === null) {
+            $widgetAlign = $this->getWidget()->getAlign();
+            switch ($widgetAlign) {
+                case EXF_ALIGN_DEFAULT: $align = 'sap.ui.core.TextAlign.Begin'; break;
+                case EXF_ALIGN_OPPOSITE: $align = 'sap.ui.core.TextAlign.End'; break;
+                default:
+                    $align = json_encode(ucfirst($widgetAlign));
+            }
+        } else {
+            $align = $this->alignmentProperty;
+        }
+        return "textAlign: {$align},";
     }
     
     /**

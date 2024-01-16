@@ -87,6 +87,10 @@
 .sv_main .sv_qstn .sv_q_file .sv_q_file_choose_button:hover,
 .sv_main.sv_default_css input[type="button"]:hover, 
 .sv_default_css button:hover {background-color: #ebf5fe !important;}
+/* Dropdown menu */
+.sv-list__item--selected {border-bottom: 0.0625rem solid #0854a0;background: #e5f0fa!important;font-weight: normal!important;}
+.sv-list__item-body {font-size: .875rem;color: #32363a;padding: 6px 16px;}
+.sv-list {border: 1px solid rgb(50, 54, 58)}
 /* Dropdown arrow */
 .sv_main .sv_container .sv_body .sv_p_root .sv_q .sv_select_wrapper:before {
     background: none;
@@ -105,6 +109,27 @@
 /* Booleans, sliders */
 .sv_main.sv_main .sv-boolean__switch {background-color: #ebf5fe; border: 1px solid #89919a; padding-top: 1px}
 .sv_main.sv_main .sv-boolean__slider {background-color: #0854a0;}
+.sv-boolean__switch {
+    width: 2.5rem!important;
+    height: 1.25rem!important;
+    background: #ebf5fe!important;
+    border-color: #0854a0!important;
+    position: relative;
+    margin: 5px;
+}
+.sv-boolean__slider {
+    margin-left: 0;
+    height: 1.625rem!important;
+    width: 1.625rem!important;
+    z-index: 1;
+    position: absolute;
+    top: -0.2rem;
+    left: -10%;
+}
+.sv-boolean--indeterminate .sv-boolean__slider {margin-left: 25%!important;}
+.sv-boolean--disabled {cursor: default!important;}
+.sv-boolean--disabled .sv-boolean__label {cursor: default!important;}
+.sv-boolean--disabled .sv-boolean__switch{opacity: 40%;cursor: default!important;}
 
 /* Dynamic matrix */
 /* Add-button */

@@ -7,6 +7,12 @@ sap.ui.define([
 		
 		onInit : function() {
 			[#onInit#]
+			
+			/* TODO Move check for unsaved changes here (see onNavBack)
+			this.getNavContainer().attachNavigate(function(oEvent){
+				console.log('navigate', oEvent.getSource(), oEvent.getParameters());
+			});
+			*/
 		},
 		
 		getRouter : function () {
@@ -19,6 +25,10 @@ sap.ui.define([
 		
 		getViewName : function(sPageAlias, sWidgetId) {
 			return sPageAlias + (sWidgetId ? '.'+sWidgetId : '');
+		},
+		
+		getNavContainer : function() {
+			return sap.ui.getCore().byId('[#app_id#].app');
 		},
 		
 		/**
@@ -78,7 +88,6 @@ sap.ui.define([
 			var bUseCombinedViewControllers	= oController.getOwnerComponent().getManifest()['exface']['useCombinedViewControllers']
 			var bViewPreloaded = this.isPreloaded(this._getModulePath(sViewName, 'view'));
 			bForceLoad = bForceLoad === undefined ? false : bForceLoad;
-			console.log('Loading view', sViewName);
 			// Load view and controller with a custom async AJAX if running on UI server. 
 			// Reasons:
 			// 1) By default, views and controllers are loaded with sync requests (not compatible with CacheAPI)
@@ -98,7 +107,6 @@ sap.ui.define([
 					dataType: "script",
 					cache: true,
 					success: function(script, textStatus) {
-						console.log("Loaded page " + sViewName);
 						
 						if (oCallbacks && oCallbacks.success) {
 							oCallbacks.success();
@@ -195,19 +203,47 @@ sap.ui.define([
 			return '[#assets_path#]';
 		},
 		
-		onNavBack : function (oEvent) {
-			var oHistory, sPreviousHash;
-			oHistory = History.getInstance();
-			sPreviousHash = oHistory.getPreviousHash();
+		/**
+		 * Function to be called by all sorts of back buttons and buttons closing a dialog
+		 * 
+		 */
+		navBack : function (oEvent) {
+			var oController = this;
+			var oHistory = History.getInstance();
+			var sPreviousHash = oHistory.getPreviousHash();
 			if (sPreviousHash !== undefined) {
 				window.history.go(-1);
 			} else {
-				this.getRouter().navTo("[#app_id#]", {}, true /*no history*/);
+				oController.getRouter().navTo("[#app_id#]", {}, true /*no history*/);
 			}
 		},
 		
+		showWarningAboutUnsavedChanges : function(fnDiscard) {
+			var oDialog = new sap.m.Dialog({
+				type: sap.m.DialogType.Message,
+				title: "{i18n>MESSAGE.DISCARD_CHANGES.TITLE}",
+				content: new sap.m.Text({ text: "{i18n>MESSAGE.DISCARD_CHANGES.TEXT}" }),
+				beginButton: new sap.m.Button({
+					type: sap.m.ButtonType.Emphasized,
+					text: "{i18n>MESSAGE.DISCARD_CHANGES.DISCARD}",
+					press: function () {
+						oDialog.close().destroy();
+						fnDiscard()
+					}.bind(this)
+				}),
+				endButton: new sap.m.Button({
+					text: "{i18n>COMMON.CANCEL}",
+					press: function () {
+						oDialog.close().destroy();
+					}.bind(this)
+				})
+			})
+			.setModel(this.getNavContainer().getModel('i18n'), 'i18n');
+			oDialog.open();
+		},
+		
 		/**
-		 * Produces a string to be used as route parameter from a given object.		 * 
+		 * Produces a string to be used as route parameter from a given object.
 		 * @param Object oParams
 		 * @return String
 		 */

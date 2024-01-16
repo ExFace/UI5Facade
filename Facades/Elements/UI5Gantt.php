@@ -362,7 +362,7 @@ JS;
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
-        $draggableJs = $widget->isEditable() ? 'true' : 'false';
+        $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         if ($calItem->hasColorScale()) {
             $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
         } else {

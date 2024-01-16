@@ -46,7 +46,7 @@ trait UI5MomentFormatterTrait
         
         $controller->addExternalModule('libs.moment.moment', $facade->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         if ($momentLocale !== '') {
-            $controller->addExternalModule('libs.moment.locale', $facade->buildUrlToSource("LIBS.MOMENT.LOCALES") . '/' . $momentLocale . '.js', null);
+            $controller->addExternalModule('libs.moment.locale', $facade->buildUrlToSource("LIBS.MOMENT.LOCALES", false) . '/' . $momentLocale . '.js', null);
         }
         
         return;

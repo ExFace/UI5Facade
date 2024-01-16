@@ -281,17 +281,11 @@ JS;
     {
         switch ($this->getWidget()->getAlign()) {
             case EXF_ALIGN_RIGHT:
-            case EXF_ALIGN_OPPOSITE:
-                $alignment = '"End"';
-                break;
-            case EXF_ALIGN_CENTER:
-                $alignment = '"Center"';
-                break;
+            case EXF_ALIGN_OPPOSITE: $alignment = 'sap.ui.core.TextAlign.End'; break;
+            case EXF_ALIGN_CENTER: $alignment = 'sap.ui.core.TextAlign.Center'; break;
             case EXF_ALIGN_LEFT:
             case EXF_ALIGN_DEFAULT:
-            default:
-                $alignment = '"Begin"';
-                
+            default: $alignment = 'sap.ui.core.TextAlign.Begin'; break;
         }
         
         return $alignment;

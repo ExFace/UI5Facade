@@ -539,11 +539,11 @@ JS;
         return $output;
     }
     
-    protected function buildJsCloseDialog() : string
+    protected function buildJsCloseDialog(bool $checkChanges = true) : string
     {
         $widget = $this->getWidget();
         if (($widget instanceof DialogButton) && $widget->getCloseDialogAfterActionSucceeds()) {
-            return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog();
+            return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog($checkChanges);
         }
         return "";
     }
@@ -588,7 +588,7 @@ JS;
 								
 								{$this->buildJsBusyIconHide()}
                                 if (sap.ui.getCore().byId("{$this->getId()}") !== undefined) {
-                                    {$this->buildJsCloseDialog()}
+                                    {$this->buildJsCloseDialog(false)}
 								    {$this->buildJsTriggerActionEffects($action)}
                                 }
 		                       	{$this->buildJsBusyIconHide()}

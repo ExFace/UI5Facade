@@ -3,6 +3,8 @@
 	
 	"CONTEXT.BUTTON.CLOSE": "Schließen",
 	
+	"COMMON.CANCEL": "Abbrechen",
+	
 	"ERROR.DETAILS": "Details",
 	"ERROR.LOG_ID_HINT": "Bei Support-Anfragen bitte angeben!",
 	"ERROR.BUTTON_TEXT": "Schließen",
@@ -20,7 +22,9 @@
 	"MESSAGE.TYPE.ERROR": "Fehler",
 	"MESSAGE.TYPE.WARNING": "Warnung",
 	"MESSAGE.TYPE.INFO": "Info",
-	
+	"MESSAGE.DISCARD_CHANGES.TITLE": "Änderungen verwerfen?",
+	"MESSAGE.DISCARD_CHANGES.TEXT": "Es gibt ungespeicherte Änderungen. Wenn sie wegnavigieren, gehe diese verloren!",
+	"MESSAGE.DISCARD_CHANGES.DISCARD": "Verwerfen",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "URL nicht gefunden",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Seite nicht gefunden!",

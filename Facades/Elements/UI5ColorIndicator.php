@@ -61,7 +61,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Display::buildJsPropertyAlignment()
      */
-    protected function buildJsPropertyAlignment()
+    protected function buildJsPropertyAlignment() : string
     {
         return '';
     }

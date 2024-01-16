@@ -1,13 +1,12 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Facades\AbstractAjaxFacade\Elements\JExcelTrait;
-use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\Traits\UI5HelpButtonTrait;
+use exface\UI5Facade\Facades\Elements\Traits\UI5JExcelTrait;
 
 class UI5DataImporter extends UI5AbstractElement
 {    
-    use JExcelTrait;
+    use UI5JExcelTrait;
     use UI5HelpButtonTrait;
     
     /**
@@ -22,11 +21,8 @@ class UI5DataImporter extends UI5AbstractElement
         }
         
         $controller = $this->getController();
-        $controller->addOnDefineScript($this->buildJsFixJqueryImportUseStrict());
         $controller->addOnPrefillDataChangedScript($this->buildJsResetter());
-        
-        $controller->addMethod('onFixedFooterSpread', $this, '', $this->buildJsFixedFootersSpreadFunctionBody());
-        
+        $this->registerControllerMethods($controller);
         $this->registerExternalModules($controller);
         
         $table = <<<JS
@@ -57,13 +53,11 @@ JS;
         $toolbar = $toolbar ?? $this->buildJsToolbar($oControllerJs);
         $hDim = $this->getWidget()->getHeight();
         if (! $hDim->isUndefined()) {
-            $height = $this->getHeight();
-        } else {
-            $height = $this->buildCssHeightDefaultValue();
-        }
+            $height = "height: '{$this->getHeight()}',";
+        } 
         return <<<JS
         new sap.m.Panel({
-            height: "$height",
+            $height
             headerToolbar: [
                 {$toolbar}.addStyleClass("sapMTBHeader-CTX")
             ],
@@ -74,6 +68,8 @@ JS;
         
 JS;
     }
+    
+    
     
     /**
      * 
@@ -112,95 +108,6 @@ JS;
 			})
 			
 JS;
-    }
-    
-    /**
-     * 
-     * @return string
-     */
-    protected function buildJsFixOverflowVisibility() : string
-    {
-        return <<<JS
-
-                        var aParents = {$this->buildJsJqueryElement()}.parents();
-                        for (var i = 0; i < aParents.length; i++) {
-                            var jqParent = $(aParents[i]);
-                            if (jqParent.hasClass('sapUiRespGrid ') === true) {
-                                break;
-                            }
-                            $(jqParent).css('overflow', 'visible');
-                        }
-
-JS;
-    }
-    
-    /**
-     * @see JExcelTrait::buildJsJqueryElement()
-     */
-    protected function buildJsJqueryElement() : string
-    {
-        return "$('#{$this->getId()}_jexcel')";
-    }
-    
-    protected function buildJsFixedFootersSpread() : string
-    {
-        return $this->getController()->buildJsMethodCallFromController('onFixedFooterSpread', $this, '');
-    }
-    
-    /**
-     *
-     * @return array
-     */
-    protected function getJsIncludes() : array
-    {
-        $htmlTagsArray = $this->buildHtmlHeadTagsForJExcel();
-        $tags = implode('', $htmlTagsArray);
-        $jsTags = [];
-        preg_match_all('#<script[^>]*src="([^"]*)"[^>]*></script>#is', $tags, $jsTags);
-        return $jsTags[1];
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::registerExternalModules()
-     */
-    public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
-    {
-        $controller->addExternalModule('exface.openui5.jexcel', $this->getFacade()->buildUrlToSource("LIBS.JEXCEL.JS"), null, 'jexcel');
-        $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS'));
-        $controller->addExternalModule('exface.openui5.jsuites', $this->getFacade()->buildUrlToSource("LIBS.JEXCEL.JS_JSUITES"), null, 'jsuites');
-        $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS_JSUITES'));
-        
-        return $this;
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsBusyIconShow()
-     */
-    public function buildJsBusyIconShow($global = false)
-    {
-        if ($global) {
-            return parent::buildJsBusyIconShow($global);
-        } else {
-            return 'sap.ui.getCore().byId("' . $this->getId() . '").getParent().setBusyIndicatorDelay(0).setBusy(true);';
-        }
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsBusyIconHide()
-     */
-    public function buildJsBusyIconHide($global = false)
-    {
-        if ($global) {
-            return parent::buildJsBusyIconHide($global);
-        } else {
-            return 'sap.ui.getCore().byId("' . $this->getId() . '").getParent().setBusy(false);';
-        }
     }
     
     /**

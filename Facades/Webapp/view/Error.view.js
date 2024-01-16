@@ -12,7 +12,7 @@ sap.ui.jsview("[#error_view_name#]", {
 			text: [#error_text#],
 			description: [#error_description#],
 			showNavButton: true,
-			navButtonPress: [oController.onNavBack, oController]
+			navButtonPress: [oController.navBack, oController]
 		});
 	}
 });

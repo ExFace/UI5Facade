@@ -380,7 +380,12 @@ JS;
         return $js;
     }
     
-    public function buildJsHasChanges() : string
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsChangesGetter()
+     */
+    public function buildJsChangesGetter() : string
     {
         $widget = $this->getWidget();
         
@@ -391,12 +396,14 @@ JS;
         if (! $this->isValueBoundToModel()) {
             $staticDefault = $widget->getValueWithDefaults();
             $initialValueJs = json_encode($staticDefault);
-            $js = "($initialValueJs == {$this->buildJsValueGetter()})";
+            $getValuesJs = <<<JS
+
+    var mValPrefill = $initialValueJs;
+    var mValCurrent = {$this->buildJsValueGetter()};
+JS;
         } else {
-            $js = <<<JS
+            $getValuesJs = <<<JS
             
-(function(){
-    var oInput = sap.ui.getCore().byId('{$this->getId()}');
     var oViewModel = oInput.getModel('view');
     var oModel = oInput.getModel();
     var sPath = "{$this->getValueBindingPath()}";
@@ -408,13 +415,27 @@ JS;
     if (oModel && sPath !== '') {
         mValCurrent = oModel.getProperty(sPath);
     }
-    return mValCurrent != mValPrefill ;
-})()
-
 JS;
         }
         
-        return $js;
+        return <<<JS
+
+(function(oInput){
+    $getValuesJs
+    if (mValCurrent == mValPrefill) {
+        return [];
+    }
+    return [
+        {
+            elementId: '{$this->getId()}',
+            caption: {$this->escapeString($this->getCaption())},
+            valueOld: mValPrefill,
+            valueNew: mValCurrent
+        }
+    ];
+})(sap.ui.getCore().byId('{$this->getId()}'))
+
+JS;
     }
     
     /**

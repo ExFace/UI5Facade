@@ -138,14 +138,16 @@ JS;
     }
     
     /**
-     * Sets the alignment for the content within the display: Begin, End, Center, Left or Right.
+     * Sets the alignment for the content within the display: `"Begin"`, `"End"`, `"Center"`, `"Left"` or `"Right"`.
      * 
-     * @param $propertyValue
+     * Accepts a JS snippet as argument: e.g. `"Begin"` or `sap.ui.core.TextAlign.Center`.
+     * 
+     * @param $propertyValueJs
      * @return UI5Display
      */
-    public function setAlignment($propertyValue)
+    public function setAlignment(string $propertyValueJs) : UI5Display
     {
-        $this->alignmentProperty = $propertyValue;
+        $this->alignmentProperty = $propertyValueJs;
         return $this;
     }
 
@@ -153,7 +155,7 @@ JS;
      * 
      * @return string
      */
-    protected function buildJsPropertyAlignment()
+    protected function buildJsPropertyAlignment() : string
     {
         return $this->alignmentProperty ? 'textAlign: ' . $this->alignmentProperty . ',' : '';
     }

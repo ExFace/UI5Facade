@@ -693,4 +693,24 @@ JS;
         }
         return $pwa;
     }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade::buildUrlToSource($configOption)
+     */
+    public function buildUrlToSource(string $configOption, bool $addVersionHash = false) : string
+    {
+        return parent::buildUrlToSource($configOption, $addVersionHash);
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade::buildUrlToVendorFile()
+     */
+    public function buildUrlToVendorFile(string $configOption, bool $addVersionHash = false) : string
+    {
+        return parent::buildUrlToVendorFile($configOption, $addVersionHash);
+    }
 }

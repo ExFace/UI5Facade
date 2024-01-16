@@ -12,7 +12,7 @@ sap.ui.jsview("[#app_id#].view.Offline", {
 			text: "{i18n>WEBAPP.ROUTING.OFFLINE.TEXT}",
 			description: "{i18n>WEBAPP.ROUTING.OFFLINE.DESCRIPTION}",
 			showNavButton: true,
-			navButtonPress: [oController.onNavBack, oController]
+			navButtonPress: [oController.navBack, oController]
 		});
 	}
 });

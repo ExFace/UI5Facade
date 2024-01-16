@@ -19,10 +19,10 @@ sap.ui.define([
 		},
 		
 		/**
-		 * override the parent's onNavBack (inherited from BaseController)
+		 * override the parent's navBack (inherited from BaseController)
 		 * @param oEvent
 		 */
-		onNavBack : function (oEvent){
+		navBack : function (oEvent){
 			var oHashChanger = HashChanger.getInstance();
 			var sHash = oHashChanger.getHash();console.log(this._oData, sHash);
 			// in some cases we could display a certain target when the back button is pressed
@@ -37,8 +37,8 @@ sap.ui.define([
 			} else if (sHash === "") {
 				this.getRouter().getTargets().display('[#app_id#]');
 			}
-			// call the parent's onNavBack
-			BaseController.prototype.onNavBack.apply(this, arguments);
+			// call the parent's navBack
+			BaseController.prototype.navBack.apply(this, arguments);
 		},
 		
 		/**

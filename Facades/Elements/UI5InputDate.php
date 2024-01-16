@@ -204,4 +204,18 @@ JS;
         $this->getDateBindingFormatter()->registerExternalModules($controller);
         return $this;
     }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    {
+        switch (true) {
+            case $functionName === InputDate::FUNCTION_ADD:
+                return $this->buildJsCallFunctionAddSubtract($parameters);
+        }
+        return parent::buildJsCallFunction($functionName, $parameters);
+    }
 }
