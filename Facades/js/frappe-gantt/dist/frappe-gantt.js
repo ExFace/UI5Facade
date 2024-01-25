@@ -744,22 +744,40 @@ var Gantt = (function () {
         }
 
         compute_start_end_date() {
-            const bar = this.$bar;
-            const x_in_units = bar.getX() / this.gantt.options.column_width;
-            const new_start_date = date_utils.add(
-                this.gantt.gantt_start,
-                x_in_units * this.gantt.options.step,
-                'hour'
-            );
-            const width_in_units = bar.getWidth() / this.gantt.options.column_width;
-            const new_end_date = date_utils.add(
-                new_start_date,
-                width_in_units * this.gantt.options.step,
-                'hour'
-            );
-
-            return { new_start_date, new_end_date };
-        }
+	        const bar = this.$bar;
+	        const x_in_units = bar.getX() / this.gantt.options.column_width;
+	        // Tried to apply a fix from here - https://github.com/frappe/gantt/issues/110
+	        let new_start_date = date_utils.add(
+	            this.gantt.gantt_start,
+	            x_in_units * this.gantt.options.step,
+	            'hour'
+	        );
+	        const start_offset = this.gantt.gantt_start.getTimezoneOffset() - new_start_date.getTimezoneOffset();
+	        if (start_offset !== 0) {
+	            new_start_date = date_utils.add(
+	                new_start_date,
+	                start_offset,
+	                'minute'
+	            );
+	        }
+	        const width_in_units = bar.getWidth() / this.gantt.options.column_width;
+	        let new_end_date = date_utils.add(
+	            new_start_date,
+	            width_in_units * this.gantt.options.step,
+	            'hour'
+	        );
+	        // This was not part of the fix above, but added similarly to the fix
+	        const end_offset = new_start_date.getTimezoneOffset() - new_end_date.getTimezoneOffset();
+	        if (end_offset !== 0) {
+	            new_start_date = date_utils.add(
+	                new_start_date,
+	                end_offset,
+	                'minute'
+	            );
+	        }
+	
+	        return { new_start_date, new_end_date };
+	    }
 
         compute_progress() {
             const progress =
