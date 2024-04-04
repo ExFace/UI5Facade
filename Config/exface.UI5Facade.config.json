@@ -134,7 +134,7 @@
     
     "LIBS.PDFVIEWER.DIST": "exface/UI5Facade/Facades/js/ui5LabPdf/dist/resources/ui5lab/wl/pdf/",
     
-    "LIBS.ECHARTS.ECHARTS_JS": "exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min.js",
+    "LIBS.ECHARTS.ECHARTS_JS": "npm-asset/echarts/dist/echarts.js",
 	"LIBS.ECHARTS.ECHARTSHEATMAP_JS": "exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts46Heatmap.custom.min.js",    
     "LIBS.ECHARTS.THEME_JS": "exface/UI5Facade/Facades/js/echarts/ui5theme.js",
     "LIBS.ECHARTS.THEME_NAME": "ui5theme",
