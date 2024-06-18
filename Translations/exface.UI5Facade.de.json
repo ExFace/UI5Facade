@@ -95,6 +95,8 @@
 	"WEBAPP.SHELL.PWA.MENU_RE_SYNC_TOOLTIP": "Synchronisiere alle Offline Daten für dieses Gerät.",
 	"WEBAPP.SHELL.PWA.MENU_RESET": "Zurücksetzen",
 	"WEBAPP.SHELL.PWA.MENU_RESET_TOOLTIP": "Lösche alle offline Daten für dieses Gerät.",
+	"WEBAPP.SHELL.PWA.OFFLINE_TOGGLED_DUE_LOW_SPEED": "Offline-Modus aktiviert aufgrund langsamer Verbindung",
+	"WEBAPP.SHELL.PWA.ONLINE_TOGGLED_BACK_DUE_SPEED": "Offline-Modus deaktiviert aufgrund schneller Verbindung",
 	"WEBAPP.SHELL.USER.TITLE": "Aktueller Nutzer",
 	
 	"WIDGET.CHART.FULLSCREEN_MAXIMIZE": "Maximieren",

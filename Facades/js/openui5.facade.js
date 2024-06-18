@@ -33,6 +33,10 @@ window.addEventListener('offline', function(){
 	exfLauncher.toggleOnlineIndicator();
 });
 
+window.addEventListener('load', function() {
+	exfLauncher.initPoorNetworkPoller();
+});
+
 if (navigator.serviceWorker) {
 	navigator.serviceWorker.addEventListener('message', function(event) {
 		exfLauncher.contextBar.getComponent().getPWA().updateQueueCount()
@@ -51,12 +55,80 @@ const exfLauncher = {};
 	var _oShell = {};
 	var _oAppMenu;
 	var _oLauncher = this;
+	var _oNetworkSpeedPoller;
+	var _bLowSpeed = false;
 	var _oConfig = {
 		contextBar: {
 			refreshWaitSeconds: 5
 		}
 	};
-	
+
+	this.initFastNetworkPoller = function() {
+		_oNetworkSpeedPoller = setInterval(function(){
+			if(!['2g', 'slow-2g', 'offline'].includes(navigator?.connection?.effectiveType) && _bLowSpeed) {
+				exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.ONLINE_TOGGLED_BACK_DUE_SPEED"));
+				exfLauncher.toggleOnlineIndicator();
+				exfLauncher.revertMockNetworkError();
+				_bLowSpeed = false;
+				clearInterval(_oNetworkSpeedPoller);
+				exfLauncher.initPoorNetworkPoller();
+			}
+		}, 5000);
+	}
+
+	this.initPoorNetworkPoller = function() {
+		if (!navigator.onLine) {
+			clearInterval(_oNetworkSpeedPoller);
+		}
+		_oNetworkSpeedPoller = setInterval(function(){
+			if(['2g', 'slow-2g'].includes(navigator?.connection?.effectiveType)) {
+				exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.OFFLINE_TOGGLED_DUE_LOW_SPEED"));
+				exfLauncher.toggleOnlineIndicator({ lowSpeed: true});
+				exfLauncher.mockNetworkError();
+				_bLowSpeed = true;
+				clearInterval(_oNetworkSpeedPoller);
+				exfLauncher.initFastNetworkPoller();
+			}
+		}, 5000);
+	};
+
+	this.isOnline = function() {
+		return !_bLowSpeed && navigator.onLine;
+	};
+
+	// Revert network functions to original
+	this.revertMockNetworkError = function() {
+		window.fetch = window._originalFetch;
+		window.XMLHttpRequest = window._originalXMLHttpRequest;
+	};
+
+	// Simulate network error in poor network speeds
+	this.mockNetworkError = function() {
+		// Store original network functions
+		window._originalFetch = window.fetch;
+		window._originalXMLHttpRequest = window.XMLHttpRequest;
+		function MockFetch () {
+			return new Promise((resolve, reject) => {
+				reject(new Error('Network error'));
+			});
+		};
+		function MockXHR() {
+			this.readyState = 4;
+			this.status = 0; 
+			this.onreadystatechange = null;
+		}
+		MockXHR.prototype.open = function(method, url) {};
+		MockXHR.prototype.send = function() {
+			if (this.onreadystatechange) {
+				this.onreadystatechange();
+			}
+		};
+		// Replace network functions with mock functions
+		window.XMLHttpRequest = MockXHR;
+		window.fetch = MockFetch;
+	};
+
+
 	this.getShell = function() {
 		return _oShell;
 	};
@@ -103,7 +175,7 @@ const exfLauncher = {};
 		                }),
 		                new sap.m.ToolbarSpacer(),
 		                new sap.m.Button("exf-network-indicator", {
-		                    icon: function(){return navigator.onLine ? "sap-icon://connected" : "sap-icon://disconnected"}(),
+		                    icon: function(){return exfLauncher.isOnline() ? "sap-icon://connected" : "sap-icon://disconnected"}(),
 		                    text: "{/_network/queueCnt} / {/_network/syncErrorCnt}",
 		                    layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
 		                    press: _oLauncher.showOfflineMenu
@@ -384,10 +456,12 @@ const exfLauncher = {};
 		return $("meta[name='page_id']").attr("content");
 	};
 
-	this.toggleOnlineIndicator = function() {
-		sap.ui.getCore().byId('exf-network-indicator').setIcon(navigator.onLine ? 'sap-icon://connected' : 'sap-icon://disconnected');
-		_oShell.getModel().setProperty("/_network/online", navigator.onLine);
-		if (navigator.onLine !== false) {
+	this.toggleOnlineIndicator = function({ lowSpeed = false } = {}) {
+		const isOnline = navigator.onLine && !lowSpeed;
+
+		sap.ui.getCore().byId('exf-network-indicator').setIcon(isOnline ? 'sap-icon://connected' : 'sap-icon://disconnected');
+		_oShell.getModel().setProperty("/_network/online", isOnline);
+		if (navigator.onLine) {
 			_oLauncher.contextBar.load();
 			if (exfPWA) {
 				exfPWA.actionQueue.syncOffline();

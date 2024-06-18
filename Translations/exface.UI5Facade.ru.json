@@ -36,6 +36,9 @@
 	"WEBAPP.SHELL.PWA.MENU_SYNC_TOOLTIP": "Synchronize all offline data for this client",
 	"WEBAPP.SHELL.PWA.MENU_RESET": "Clear",
 	"WEBAPP.SHELL.PWA.MENU_RESET_TOOLTIP": "Remove all offline data from this client",
+	"WEBAPP.SHELL.PWA.OFFLINE_TOGGLED_DUE_LOW_SPEED": "Оффлайн-режим включен из-за медленного соединения", 
+	"WEBAPP.SHELL.PWA.ONLINE_TOGGLED_BACK_DUE_SPEED": "Оффлайн-режим выключен из-за улучшения соединения",
+
 	"WEBAPP.SHELL.USER.TITLE": "Вы вошли как",
 	
 	"WIDGET.DATATPAGINATOR.SHOWING": "Показано %from% - %to% из %total%",

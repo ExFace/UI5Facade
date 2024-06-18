@@ -94,6 +94,9 @@
 	"WEBAPP.SHELL.PWA.MENU_RE_SYNC_TOOLTIP": "Synchronize all offline data for this client.",
 	"WEBAPP.SHELL.PWA.MENU_RESET": "Clear",
 	"WEBAPP.SHELL.PWA.MENU_RESET_TOOLTIP": "Remove all offline data from this client",
+	"WEBAPP.SHELL.PWA.OFFLINE_TOGGLED_DUE_LOW_SPEED": "Offline mode activated due to slow connection", 
+	"WEBAPP.SHELL.PWA.ONLINE_TOGGLED_BACK_DUE_SPEED": "Online mode activated due to fast connection",
+
 	"WEBAPP.SHELL.USER.TITLE": "Current User",
 	
 	"WIDGET.CHART.FULLSCREEN_MAXIMIZE": "Maximize",
