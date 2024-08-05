@@ -122,7 +122,7 @@ sap.ui.define([
 						
 						oController.getOwnerComponent().getManifestEntry("/exface/useCombinedViewControllers");
 						
-						if (navigator.onLine === false) {
+						if (!exfLauncher.isOnline()) {
 							oController.getRouter().getTargets().display("offline");
 						} else {
 							oController.getOwnerComponent().showAjaxErrorDialog(jqXHR);
@@ -136,7 +136,7 @@ sap.ui.define([
 				return $.ajax(params);
 			} else {
 				if(! bViewPreloaded && ! sap.ui.getCore().byId(sViewId)) {
-					if (navigator.onLine === false) {
+					if (!exfLauncher.isOnline()) {
 						oController.getRouter().getTargets().display("offline");
 					} 
 				}

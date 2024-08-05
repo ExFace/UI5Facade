@@ -204,7 +204,7 @@ JS;
 
 							$oParamsJs.webapp = '{$this->getElement()->getFacade()->getWebapp()->getRootPage()->getAliasWithNamespace()}';
                             var oComponent = {$controller->buildJsComponentGetter()};                
-                            if (navigator.onLine === false) {
+                            if (!exfLauncher.isOnline()) {
                                 if (bSkipIfOffline) {
                                     fnOnModelLoaded();
                                     return $oModelJs;
@@ -268,7 +268,7 @@ JS;
     								},
     								error: function(jqXHR, textStatus, errorThrown){
                                         fnOnError();
-                                        if (navigator.onLine === false) {
+                                        if (!exfLauncher.isOnline()) {
                                             fnOnOffline();
                                         } else {
                                             {$this->getElement()->getController()->buildJsComponentGetter()}.showAjaxErrorDialog(jqXHR)
@@ -334,7 +334,7 @@ JS;
                             $oModelJs.setData(response);
 							{$onModelLoadedJs}
 	                    } else {
-							if (navigator.onLine === false) {
+							if (!exfLauncher.isOnline()) {
                                 if (oData.length = 0) {
                                     {$onOfflineJs}
                                 } else {
@@ -348,7 +348,7 @@ JS;
 					},
 					error: function(jqXHR, textStatus, errorThrown){
                         {$onErrorJs}
-                        if (navigator.onLine === false) {
+                        if (!exfLauncher.isOnline()) {
                             {$onOfflineJs}
                         } else {
                             {$this->getElement()->getController()->buildJsComponentGetter()}.showAjaxErrorDialog(jqXHR)
@@ -404,7 +404,7 @@ JS;
                 },
                 error: function(jqXHR, textStatus, errorThrown){
                     {$onErrorJs}
-                    if (navigator.onLine === false) {
+                    if (!exfLauncher.isOnline()) {
                         {$onOfflineJs}
                     } else {
                         {$this->getElement()->getController()->buildJsComponentGetter()}.showAjaxErrorDialog(jqXHR)

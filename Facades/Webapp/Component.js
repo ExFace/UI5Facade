@@ -449,7 +449,7 @@ sap.ui.define([
 					if (exfPWA === undefined || exfLauncher === undefined) {
 						return;
 					}
-					if (navigator.onLine === false) {
+					if (!exfLauncher.isOnline()) {
 						exfLauncher.getShell().getModel().setProperty("/_network/syncErrorCnt", '-');
 						return;
 					}

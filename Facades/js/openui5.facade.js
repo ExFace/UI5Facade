@@ -1,6 +1,8 @@
 // Toggle online/offlie icon
 window.addEventListener('online', function(){
-	exfLauncher.toggleOnlineIndicator();
+	if (exfLauncher.isOnline()) {
+		exfLauncher.toggleOnlineIndicator();
+	}
 	exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
 	if(!navigator.serviceWorker){
 		exfPWA.actionQueue.getIds('offline')
@@ -33,6 +35,10 @@ window.addEventListener('offline', function(){
 	exfLauncher.toggleOnlineIndicator();
 });
 
+window.addEventListener('load', function() {
+	exfLauncher.initPoorNetworkPoller();
+});
+
 if (navigator.serviceWorker) {
 	navigator.serviceWorker.addEventListener('message', function(event) {
 		exfLauncher.contextBar.getComponent().getPWA().updateQueueCount()
@@ -51,12 +57,174 @@ const exfLauncher = {};
 	var _oShell = {};
 	var _oAppMenu;
 	var _oLauncher = this;
+	var _oNetworkSpeedPoller;
+	var _oSpeedStatusDialogInterval
+	var _bLowSpeed = false;
+	var _forceOffline = false;
+	var _autoOffline = true;
+	var _speedHistory = [null, null, null, null, null, null, null, null, null, null, null, null, null, null];
 	var _oConfig = {
 		contextBar: {
 			refreshWaitSeconds: 5
 		}
 	};
+
+	const SPEEDTEST_DUMMY_DATA_NAME = 'speedtest.data.json';
+
+	this.initFastNetworkPoller = function() {
+		clearInterval(_oNetworkSpeedPoller);
+		_oNetworkSpeedPoller = setInterval(function(){
+			if(!exfLauncher.isNetworkSlow() && _bLowSpeed) {
+				exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_STABLE_INTERNET"));
+				exfLauncher.toggleOnlineIndicator();
+				exfLauncher.revertMockNetworkError();
+				_bLowSpeed = false;
+				clearInterval(_oNetworkSpeedPoller);
+				exfLauncher.initPoorNetworkPoller();
+			}
+		}, 5000);
+	}
+
+	this.initPoorNetworkPoller = function() {
+		clearInterval(_oNetworkSpeedPoller);
+		_oNetworkSpeedPoller = setInterval(function(){
+			if(exfLauncher.isNetworkSlow()){
+				exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_SLOW_INTERNET"));
+				exfLauncher.toggleOnlineIndicator({ lowSpeed: true});
+				exfLauncher.mockNetworkError();
+				_bLowSpeed = true;
+				clearInterval(_oNetworkSpeedPoller);
+				exfLauncher.initFastNetworkPoller();
+			}
+		}, 5000);
+	};
+
+
+	this.isNetworkSlow = function() {
+		// Check if the network speed is slow via browser API (Chrome, Opera, Edge)
+		if (navigator?.connection?.effectiveType) {
+			return ['2g', 'slow-2g'].includes(navigator.connection.effectiveType);
+		} 
+		// Check if the network speed is slow via network speed history (iOS, Android, Firefox)
+		else {
+			let customSpeed;
+			if (_speedHistory.indexOf(null) === -1) {
+				customSpeed = _speedHistory[_speedHistory.length - 1];
+			} else if (_speedHistory.indexOf(null) === 0) {
+				customSpeed = 100;
+			} else {
+				customSpeed = _speedHistory[_speedHistory.indexOf(null) - 1];
+			}
+			return customSpeed < 0.5;
+		}
+	}
+
+
+
+	this.isOnline = function() {
+		return !_bLowSpeed && !_forceOffline && navigator.onLine;
+	};
+
+	this.sendMessageToServiceWorker = function (message) {
+		if (navigator?.serviceWorker?.controller) {
+			navigator.serviceWorker.controller.postMessage(message);
+		} else {
+			navigator.serviceWorker.ready.then((registration) => {
+				if (registration.active) {
+					registration.active.postMessage(message);
+				}
+			});
+		}
+	}	
+
+	// Revert network functions to original
+	this.revertMockNetworkError = function() {
+		window.fetch = window._originalFetch;
+		window.XMLHttpRequest = window._originalXMLHttpRequest;
+		exfLauncher.sendMessageToServiceWorker({ action: 'virtuallyOfflineDisabled' });
+	};
+
+	// Simulate network error in poor network speeds, except for specific URLs
+	this.mockNetworkError = function() {
+		// Store original network functions
+		window._originalFetch = window.fetch;
+		window._originalXMLHttpRequest = window.XMLHttpRequest;
+
+		function MockFetch (input, init) {
+			// Check if the URL contains dummy data name
+			if (typeof input === "string" && input.includes(SPEEDTEST_DUMMY_DATA_NAME)) {
+				return window._originalFetch(input, init);
+			}
+			return new Promise((resolve, reject) => {
+				reject(new Error('Network error'));
+			});
+		};
+
+
+		function MockXHR() {
+			const xhr = new window._originalXMLHttpRequest();
+			const self = this;
 	
+			// Manually copy event handler properties
+			const eventHandlers = [
+				"onreadystatechange", "onload", "onerror", "onprogress", 
+				"onabort", "ontimeout", "onloadstart", "onloadend"
+			];
+			eventHandlers.forEach(handler => {
+				Object.defineProperty(self, handler, {
+					get: function() { return xhr[handler]; },
+					set: function(val) { xhr[handler] = val; }
+				});
+			});
+	
+			// Manually copy response properties
+			const responseProperties = [
+				"readyState", "responseText", "response", "status", "statusText", 
+				"responseType", "responseURL", "responseXML"
+			];
+			responseProperties.forEach(prop => {
+				Object.defineProperty(self, prop, {
+					get: function() { return xhr[prop]; }
+				});
+			});
+	
+			// Bind the methods
+			for (const attr in xhr) {
+				if (typeof xhr[attr] === 'function') {
+					this[attr] = xhr[attr].bind(xhr);
+				}
+			}
+	
+			this.open = function(method, url) {
+				if (url.includes(SPEEDTEST_DUMMY_DATA_NAME)) {
+					this._url = url;
+					xhr.open.apply(xhr, arguments);
+				}
+			};
+	
+			this.send = function(...args) {
+				// Check if the URL contains dummy data name
+				if (this._url && this._url.includes(SPEEDTEST_DUMMY_DATA_NAME)) {
+					xhr.send.apply(xhr, args);
+				} else {
+					setTimeout(() => {
+						if (self.onreadystatechange) {
+							self.readyState = 4;
+							self.status = 0;
+							self.onreadystatechange();
+						}
+					}, 0);
+				}
+			};
+		}
+	
+
+		// Replace network functions with mock functions
+		window.XMLHttpRequest = MockXHR;
+		window.fetch = MockFetch;
+		exfLauncher.sendMessageToServiceWorker({ action: 'virtuallyOfflineEnabled' });
+	};
+
 	this.getShell = function() {
 		return _oShell;
 	};
@@ -103,7 +271,7 @@ const exfLauncher = {};
 		                }),
 		                new sap.m.ToolbarSpacer(),
 		                new sap.m.Button("exf-network-indicator", {
-		                    icon: function(){return navigator.onLine ? "sap-icon://connected" : "sap-icon://disconnected"}(),
+		                    icon: function(){return exfLauncher.isOnline() ? "sap-icon://connected" : "sap-icon://disconnected"}(),
 		                    text: "{/_network/queueCnt} / {/_network/syncErrorCnt}",
 		                    layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
 		                    press: _oLauncher.showOfflineMenu
@@ -184,13 +352,25 @@ const exfLauncher = {};
 					return;
 				}
 				
-				setTimeout(function(){
+				exfLauncher.measureNetworkSpeed();
+
+				if (window._oNetworkSpeedPoller) {
+					clearInterval(window._oNetworkSpeedPoller);
+				}
+
+ 				window._oNetworkSpeedPoller = setInterval(function(){
+					// IDEA: Measure network speed every 15 seconds
+					exfLauncher.measureNetworkSpeed();
+				}, 1000 * 60);
+
+			setTimeout(function(){
 					// IDEA had to disable adding context bar extras to every request due to
 					// performance issues. This will be needed for asynchronous contexts like
 					// user messaging, external task management, etc. So put the line back in
 					// place to fetch context data with every request instead of a dedicated one.
 					// if ($.active == 0 && $('#contextBar .context-bar-spinner').length > 0){
 					//if ($('#contextBar .context-bar-spinner').length > 0){
+
 						$.ajax({
 							type: 'GET',
 							url: 'api/ui5/' + _oLauncher.getPageId() + '/context',
@@ -384,10 +564,68 @@ const exfLauncher = {};
 		return $("meta[name='page_id']").attr("content");
 	};
 
-	this.toggleOnlineIndicator = function() {
-		sap.ui.getCore().byId('exf-network-indicator').setIcon(navigator.onLine ? 'sap-icon://connected' : 'sap-icon://disconnected');
-		_oShell.getModel().setProperty("/_network/online", navigator.onLine);
-		if (navigator.onLine !== false) {
+	this.registerNetworkSpeed = function(speedMbps) {
+		const minusOneIndex = _speedHistory.indexOf(null);
+		if (minusOneIndex !== -1) {
+			_speedHistory[minusOneIndex] = speedMbps;
+		} else {
+			_speedHistory.shift();
+			_speedHistory.push(speedMbps);
+		}
+	};
+
+	this.calculateSpeedTier = function(speedMbps) {
+		let speedClass;
+		switch (true) {
+			case speedMbps == '-':
+			case speedClass == 0:
+				speedClass = '-';
+				break;
+			case speedMbps < 0.3:
+				speedClass = '2G';
+				break;
+			case speedMbps < 5:
+				speedClass = '3G';
+				break;
+			case speedMbps < 50:
+				speedClass = '4G';
+				break;
+			default:
+				speedClass = '5G';
+				break;
+		}
+		return speedClass;
+	};
+
+	this.measureNetworkSpeed = function() {
+		const startTime = new Date();
+		let endTime;
+		$.ajax({
+			type: 'GET',
+			url: `vendor/exface/UI5Facade/Facades/js/${SPEEDTEST_DUMMY_DATA_NAME}`,
+			dataType: 'json',
+			success: function(data, textStatus, jqXHR) {
+				endTime = new Date();
+				const contentLength = 50 * 1024; // 50KB
+				const durationMs = endTime - startTime; // Duration in milliseconds
+				const durationSeconds = durationMs / 1000; // Convert duration to seconds
+				const contentLengthBits = contentLength * 8; // Convert content length to bits
+				const speedMbps = (contentLengthBits / (durationSeconds * 1024 * 1024)).toFixed(1); // Calculate speed in Megabits per second (Mbit/s)
+				let speedClass;
+				exfLauncher.registerNetworkSpeed(speedMbps);
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.error(errorThrown);
+			}
+		});
+	};
+
+	this.toggleOnlineIndicator = function({ lowSpeed = false } = {}) {
+		const isOnline = navigator.onLine && !lowSpeed;
+
+		sap.ui.getCore().byId('exf-network-indicator').setIcon(isOnline ? 'sap-icon://connected' : 'sap-icon://disconnected');
+		_oShell.getModel().setProperty("/_network/online", isOnline);
+		if (exfLauncher.isOnline()) {
 			_oLauncher.contextBar.load();
 			if (exfPWA) {
 				exfPWA.actionQueue.syncOffline();
@@ -399,6 +637,31 @@ const exfLauncher = {};
 		sap.m.MessageToast.show(message);
 		return;
 	};
+
+	this.calculateSpeed = function() {
+		const avarageSpeed = navigator?.connection?.downlink ? `${navigator?.connection?.downlink} Mbps` : '-';
+		const speedTier = navigator?.connection?.effectiveType ? navigator?.connection?.effectiveType.toUpperCase() : '-';
+
+		let customSpeed;
+		if (_speedHistory.indexOf(null) === -1) {
+			customSpeed = _speedHistory[_speedHistory.length - 1];
+		} else if (_speedHistory.indexOf(null) === 0) {
+			customSpeed = 0;
+		} else {
+			customSpeed = _speedHistory[_speedHistory.indexOf(null) - 1];
+		}
+
+		const customSpeedAvarageLabel = customSpeed ? `${customSpeed} Mbps` : '-';
+		const customSpeedTier = exfLauncher.calculateSpeedTier(customSpeed);
+
+		return {
+			avarageSpeed,
+			speedTier,
+			customSpeed,
+			customSpeedAvarageLabel,
+			customSpeedTier
+		};
+	}
 	
 	/**
 	 * Shows a dialog with offline storage info (quota, preload data summary, etc.)
@@ -407,7 +670,16 @@ const exfLauncher = {};
 	 */
 	this.showStorage = async function(oEvent) {
 		
-		var dialog = new sap.m.Dialog({title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}", icon: "sap-icon://unwired"});
+		var dialog = new sap.m.Dialog({
+			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}",
+			icon: "sap-icon://unwired",
+			afterClose: function(oEvent) {
+				oEvent.getSource().destroy();
+				if (_oSpeedStatusDialogInterval) {
+					clearInterval(_oSpeedStatusDialogInterval);
+				}
+			}
+		});
 		var oButton = oEvent.getSource();
 		var button = new sap.m.Button({
 			icon: 'sap-icon://font-awesome/close',
@@ -465,11 +737,94 @@ const exfLauncher = {};
 			await promise;
 		}
 		
+		
+		const { 
+			avarageSpeed,
+			speedTier,
+			customSpeedAvarageLabel,
+			customSpeedTier
+		} = exfLauncher.calculateSpeed();
+
+		/* $("#sparkline").sparkline([10.4,3,6,12,], {
+			type: 'line',
+			width: '200px',
+			height: '100px',
+			chartRangeMin: 0,
+			drawNormalOnTop: false}); */
+
+		const oBrowserCurrentSpeedTierItem = new sap.m.DisplayListItem('browser_speed_tier_display',{
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER}",
+			value: speedTier,
+		});
+
+		const oBrowserCurrentSpeedItem = new sap.m.DisplayListItem('browser_speed_display',{
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED}",
+			value: avarageSpeed,
+		});
+
+		const oCustomCurrentSpeedTierItem = new sap.m.DisplayListItem('custom_speed_tier_display', {
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM}",
+			value: customSpeedTier,
+		});
+
+		const oCustomCurrentSpeedItem = new sap.m.DisplayListItem('custom_speed_display',{
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_CUSTOM}",
+			value: customSpeedAvarageLabel,
+		});
+
+		_oSpeedStatusDialogInterval = setInterval(() => {
+			const {
+				avarageSpeed,
+				speedTier,
+				customSpeedAvarageLabel,
+				customSpeedTier
+			} = exfLauncher.calculateSpeed();
+
+			sap.ui.getCore().byId('browser_speed_tier_display').setValue(speedTier);
+			sap.ui.getCore().byId('browser_speed_display').setValue(avarageSpeed);
+			sap.ui.getCore().byId('custom_speed_tier_display').setValue(customSpeedTier);
+			sap.ui.getCore().byId('custom_speed_display').setValue(customSpeedAvarageLabel);
+		}, 1000);
+
+
+		[
+			new sap.m.GroupHeaderListItem({
+				title: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TITLE}",
+				upperCase: false
+			}),
+			oBrowserCurrentSpeedTierItem,
+			oBrowserCurrentSpeedItem,
+			oCustomCurrentSpeedTierItem,
+			oCustomCurrentSpeedItem,
+			new sap.m.GroupHeaderListItem({
+				title: "{i18n>WEBAPP.SHELL.NETWORK_HEALTH}",
+				upperCase: false,
+			}),
+			new sap.m.CustomListItem({
+				content: new sap.ui.core.HTML('network_speed_chart_wrapper',{
+					content:'<div id="network_speed_chart"></div>',
+					afterRendering: function() {
+						setInterval(function(){
+							$("#network_speed_chart").sparkline(_speedHistory, {
+								type: 'line',
+								width: '100%',
+								height: '100px',
+								chartRangeMin: 0,
+								drawNormalOnTop: false,
+							});
+						}, 1000);
+					}
+				})
+			})
+
+		].forEach(item => list.addItem(item));
+		
+		
 		list.addItem(new sap.m.GroupHeaderListItem({
 			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_SYNCED}",
 			upperCase: false
 		}));
-		
+
 		var oTable = new sap.m.Table({
 			autoPopinMode: true,
 			fixedLayout: false,
@@ -1194,6 +1549,19 @@ const exfLauncher = {};
 			exfLauncher.showMessageToast(oI18nModel.getProperty('WEBAPP.SHELL.PWA.CLEARED_ERROR}'));
 		})
 	};
+
+	this.getTitle = function () {
+		switch (true) {
+			case !navigator.onLine:
+				return "Offline, No Internet";
+			case _forceOffline:
+				return "Offline, Forced";
+			case _autoOffline && _bLowSpeed:
+				return "Offline, Low Speed";
+			default:
+				return "Online";
+		}
+	}
 	
 	/**
 	 * Shows the offline menu
@@ -1207,9 +1575,12 @@ const exfLauncher = {};
     	_oLauncher.contextBar.getComponent().getPWA().updateErrorCount();
 		var oButton = oEvent.getSource();
 		var oPopover = sap.ui.getCore().byId('exf-network-menu');
+		const titleInterval = setInterval(function(){
+			oPopover.setTitle(exfLauncher.getTitle());
+		}, 1000);
 		if (oPopover === undefined) {
 			oPopover = new sap.m.ResponsivePopover("exf-network-menu", {
-				title: "{= ${/_network/online} > 0 ? ${i18n>WEBAPP.SHELL.NETWORK.ONLINE} : ${i18n>WEBAPP.SHELL.NETWORK.OFFLINE} }",
+				title: exfLauncher.getTitle(),
 				placement: "Bottom",
 				content: [
 					new sap.m.MessageStrip({
@@ -1267,7 +1638,66 @@ const exfLauncher = {};
 								icon: "sap-icon://sys-cancel",
 								type: "Active",
 								press: _oLauncher.clearPreload,
-							})
+							}),
+							new sap.m.GroupHeaderListItem({
+								title: "{i18n>WEBAPP.SHELL.NETWORK.OFFLINE_HEADER}",
+								upperCase: false
+							}),
+							new sap.m.CustomListItem({
+								content: new sap.m.FlexBox({
+									direction: "Row",
+									alignItems: "Center",
+									customData: new sap.ui.core.CustomData({
+										key: "style",
+										value: "gap: 1rem;"
+									}),
+									items: [
+										new sap.m.Switch('auto_offline_toggle', {
+											state: _autoOffline,
+											disabled: !navigator.onLine,
+											change: function(oEvent){
+												var oSwitch = oEvent.getSource();
+												if (oSwitch.getState()) {
+													exfLauncher.toggleAutoOfflineOn();
+												} else {
+													exfLauncher.toggleAutoOfflineOff();
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: "{i18n>WEBAPP.SHELL.NETWORK_AUTOMATIC_OFFLINE}"
+										}),
+									],
+								}),
+							}),
+							new sap.m.CustomListItem({
+								content: new sap.m.FlexBox({
+									direction: "Row",
+									alignItems: "Center",
+									customData: new sap.ui.core.CustomData({
+										key: "style",
+										value: "gap: 1rem;"
+									}),
+									items: [
+										new sap.m.Switch('force_offline_toggle', {
+											state: _forceOffline,
+											disabled: !navigator.onLine,
+											change: function(oEvent){
+												var oSwitch = oEvent.getSource();
+												if (oSwitch.getState()) {
+													exfLauncher.toggleForceOfflineOn();
+												} else {
+													exfLauncher.toggleForceOfflineOff();							
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: "{i18n>WEBAPP.SHELL.NETWORK_FORCE_OFFLINE}"
+										}),
+									],
+									style: "padding-left: 1rem; padding-right: 1rem;",
+								}),
+							}),
 						]
 					})
 				],
@@ -1278,7 +1708,10 @@ const exfLauncher = {};
 			            press: function() {oPopover.close();},
 			        })
 					
-				]
+				],
+				afterClose: function(oEvent) {
+					clearInterval(titleInterval);
+				}
 			})
 			.setModel(oButton.getModel())
 			.setModel(oButton.getModel('i18n'), 'i18n');
@@ -1288,4 +1721,48 @@ const exfLauncher = {};
 			oPopover.openBy(oButton);
 		});
 	};
+	this.toggleForceOfflineOn = function() {
+		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON"));
+		// mock api with error function, if it is not already mocked via low speed
+		if (!_bLowSpeed) {
+			exfLauncher.mockNetworkError();
+		} else {
+			_bLowSpeed = false;
+		}
+		// clear auto low speed poller
+		clearInterval(_oNetworkSpeedPoller);
+		_forceOffline = true;
+		exfLauncher.toggleOnlineIndicator({ lowSpeed: true });
+		sap.ui.getCore().byId('auto_offline_toggle').setEnabled(false);	
+	}
+
+	this.toggleForceOfflineOff = function() {
+		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
+		exfLauncher.revertMockNetworkError()
+		_bLowSpeed = false;
+		_forceOffline = false;
+		// restart auto low speed poller
+		if (_autoOffline) {
+			exfLauncher.initPoorNetworkPoller()
+		}
+		exfLauncher.toggleOnlineIndicator();
+		sap.ui.getCore().byId('auto_offline_toggle').setEnabled(true);
+	}
+
+	this.toggleAutoOfflineOn = function() {
+		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON"));
+		exfLauncher.initPoorNetworkPoller()
+		_autoOffline = true;
+	}
+
+	this.toggleAutoOfflineOff = function() {
+		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_OFF"));
+		_autoOffline = false;
+		clearInterval(_oNetworkSpeedPoller);
+		if (_bLowSpeed) {
+			exfLauncher.revertMockNetworkError();
+			exfLauncher.toggleOnlineIndicator({ lowSpeed: false });
+		}
+		_bLowSpeed = false;
+	}
 }).apply(exfLauncher);

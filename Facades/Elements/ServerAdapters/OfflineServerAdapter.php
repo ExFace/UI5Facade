@@ -56,7 +56,7 @@ class OfflineServerAdapter implements UI5ServerAdapterInterface
         // is such kind of prefill needed for the object.
         $checkIfPrefillRequiredJs = <<<JS
 
-                if (navigator.onLine === false) {
+                if (!exfLauncher.isOnline()) {
                     var uid;
                     var uidCol = $uidColNameJs;
                     var bStopPrefill = false;
@@ -115,7 +115,7 @@ JS;
                     {$fallBackRequest};
                 };
 
-                if (navigator.onLine) {
+                if (!exfLauncher.isOnline()) {
                     return fnFallback();
                 };
 
