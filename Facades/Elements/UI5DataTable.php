@@ -127,7 +127,7 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
                     alternateRowColors: {$striped},
                     noDataText: "{$this->getWidget()->getEmptyText()}",
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
-                    selectionChange: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
+                    selectionChange: {$this->buildJSSelectionChangeForMTable()},
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
                     mode: {$mode},
                     headerToolbar: [
@@ -181,6 +181,43 @@ JS;
                 
 JS;
     }
+
+
+    protected function buildJSSelectionChangeForMTable()
+    {
+        $controller = $this->getController();
+
+        return <<<JS
+        function (oEvent) {
+            const oTable = oEvent.getSource();
+            const aAllItems = oTable.getItems();
+            const aSelectedRows = oTable.getSelectedItems();
+            const aAllObjects = aAllItems.map(oItem => {
+                return oItem.getBindingContext().getObject();
+            });
+            const aSelectedObjects = aSelectedRows.map(oItem => {
+                return oItem.getBindingContext().getObject();
+            });
+
+            const newSelectedItemList = [];
+
+            oTable._selectedObjects.forEach(oldItem => {
+                // Old item exist in current dynamic list
+                const bExistInAllObjects = aAllObjects.some(item => JSON.stringify(item) === JSON.stringify(oldItem));
+                if (!bExistInAllObjects) { 
+                    newSelectedItemList.push(oldItem);
+                }
+            });
+
+            newSelectedItemList.push(...aSelectedObjects);
+
+            oTable._selectedObjects = newSelectedItemList;
+            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)}[0]();
+        }
+JS;
+    }
+
+
     
     /**
      * 
@@ -799,10 +836,8 @@ JS;
                 } else {
                     $aRowsJs = '[];' . <<<JS
                     
-        var aSelectedContexts = oTable.getSelectedContexts();
-        for (var i in aSelectedContexts) {
-            aRows.push(aSelectedContexts[i].getObject());
-        }
+            if (!oTable._selectedObjects) oTable._selectedObjects = [];
+            aRows.push(...oTable._selectedObjects);
         
 JS;
                 }
@@ -842,7 +877,7 @@ JS;
             if($this->getWidget()->getMultiSelect() === false) {
                 $rows = "($oTableJs && $oTableJs.getSelectedItem() ? [$oTableJs.getSelectedItem().getBindingContext().getObject()] : [])";
             } else {
-                $rows = "$oTableJs.getSelectedContexts().reduce(function(aRows, oCtxt) {aRows.push(oCtxt.getObject()); return aRows;},[])";
+                $rows = "$oTableJs._selectedObjects";
             }
         }
         return $rows;
@@ -1411,6 +1446,15 @@ var {$rowIdxJs} = function() {
             iRowIdx = i;
         }
     }
+    // Remove item from table's selected objects
+    if ({$deSelect}) {
+        var aTableSelectedObjects = oTable._selectedObjects;
+        const selectedObjectsIndex = aTableSelectedObjects.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
+        if (selectedObjectsIndex !== -1) {
+            aTableSelectedObjects.splice(selectedObjectsIndex, 1);
+        }
+    } 
+
 
     if (iRowIdx == -1){
 		{$onNotFoundJs};

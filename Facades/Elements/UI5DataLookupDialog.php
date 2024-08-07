@@ -115,6 +115,18 @@ JS;
             title: {$this->escapeString($this->getCaption())},
 			buttons : [ {$this->buildJsDialogButtons(false)} ],
 			content : [ {$this->buildJsDialogContent()} ],
+            afterOpen: function () {
+                const oInputCombo = sap.ui.getCore().byId("{$this->getFacade()->getElement($this->getWidget()->getParent()->getParent())->getId()}");
+                const oMultiInput = sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
+                const tokens = oInputCombo.getTokens();
+                if (tokens) {
+                    oMultiInput.setTokens(oInputCombo.getTokens());
+                    oMultiInput.fireTokenUpdate({
+                        type: sap.m.Tokenizer.TokenUpdateType.Added,
+                        addedTokens: oInputCombo.getTokens()
+                    });
+                }
+            },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()}')
 JS;
@@ -333,6 +345,7 @@ JS;
             
             // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
             if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
+                $this->getFacade()->getElement($widget)->addOnRefreshScript($this->buildJsTableRefreshHandler());
                 $this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
                 $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsTokenChangeHandler('oEvent'));
             }
@@ -355,7 +368,6 @@ JS;
         $tableElement = $this->getFacade()->getElement($table);
         
         return <<<JS
-
                 var oMultiInput = $oEventJs.getSource();
                 var oEventParams = $oEventJs.getParameters();
                 var aRemovedTokens = oEventParams['removedTokens'] || [];
@@ -379,6 +391,39 @@ JS;
                 }
 
 JS;
+    }
+
+
+    protected function buildJsTableRefreshHandler(): string
+    {
+        $table = $this->getWidget()->getDataWidget();
+        $tableElementId = $this->getFacade()->getElement($table)->getId();
+
+        return <<<JS
+        const sId = "{$this->getWidget()->getDataWidget()->getUidColumn()->getDataColumnName()}";
+        var oMultiInput =  sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
+
+        const oTable = sap.ui.getCore().byId("{$tableElementId}");
+        const items = oTable.getItems();
+        const tokens = oMultiInput.getTokens();
+        
+        items.forEach(item => {
+            const bExistInTokens = tokens.some(token => token.getKey() === item.getBindingContext().getObject()[sId]);
+            oTable.setSelectedItem(item, bExistInTokens);
+        });
+
+        const newSelectedObjetcs = [];
+
+        (oTable._selectedObjects || []).forEach(object => {
+            if (tokens.some(token => token.getKey() === object[sId])) {
+                newSelectedObjetcs.push(object);
+            }
+        });
+
+        oTable._selectedObjects = newSelectedObjetcs;
+
+JS;
+
     }
     
     /**
@@ -412,16 +457,17 @@ JS;
             if (! oMultiInput) {
                 return;
             }
-
-			oMultiInput.removeAllTokens();
+            
+            var aNewTokens = [];
 
             var aSelection = {$dataGetterJs};
+            var aAllRows = sap.ui.getCore().byId("{$tableElement->getId()}").getModel().getData().rows;
             var aRows =  aSelection.rows;
-            var aNewTokens = [];
 
             // Create tokens for every selected row
             var aSelectedIds = {$tableElement->buildJsValueGetter($idAttributeAlias)};
             var aSelectedLables = {$tableElement->buildJsValueGetter("{$labelColName}")};
+
             aRows.forEach(function(oRow){
                 var oToken = new sap.m.Token({
                     key: oRow.{$idAttributeAlias},
@@ -429,6 +475,19 @@ JS;
                 });
                 aNewTokens.push(oToken);
             });
+             
+            // keep not existant token in new tokens list
+            const oldTokens = oMultiInput.getTokens();
+            oldTokens.forEach(token => {
+                const bExistInCurrentPage = aAllRows.some(row => row["{$idAttributeAlias}"] === token.getKey());
+                const bExistInTokenList= aNewTokens.some(newToken => newToken.getKey() === token.getKey());
+                if (!bExistInCurrentPage && !bExistInTokenList) {
+                    aNewTokens.push(token);
+                }
+            });
+
+
+            oMultiInput.removeAllTokens();
 
             // Fire tokenUpdaet (_before_ actually adding tokens because that's how it seems
             // to work when doing it manually)

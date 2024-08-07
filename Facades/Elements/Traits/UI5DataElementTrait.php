@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
@@ -843,6 +844,7 @@ JS;
 
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
+            {$this->buildJsMultiSelectionOnLoaded('oTable')};
 
 JS;
             
@@ -908,6 +910,32 @@ JS;
                 
 JS;
     }
+
+
+    protected function buildJsMultiSelectionOnLoaded(string $oTableJs)
+    {
+
+        $widget = $this->getWidget();
+        if ($widget instanceof iSupportMultiSelect && $widget->getMultiSelect() === true ) {
+
+            
+            return <<<JS
+        const selectedObjects = {$oTableJs}._selectedObjects;
+        {$oTableJs}.getItems().forEach(function (oItem) {
+            var oContext = oItem.getBindingContext();
+            var bSelected = selectedObjects.some(function (oSelectedObject) {
+                const oRow = oContext.getObject();
+                return JSON.stringify(oSelectedObject) === JSON.stringify(oRow);
+            });
+            
+            oTable.setSelectedItem(oItem, bSelected);
+        });
+JS;
+        } else {
+            return '';
+        }
+    }
+
               
     /**
      * Returns a JS snippet to show a message instead of data: e.g. "Please set filters first"
