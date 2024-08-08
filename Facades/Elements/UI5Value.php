@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\Filter;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryLiveReferenceTrait;
@@ -643,19 +644,24 @@ JS;
         
         $bVisibleJs = ($hidden ? 'false' : 'true');
         $elementId = $elementId ?? $this->getId();
+        $disableContainerJs = $this->buildJsShowHideContainer();
+
         return <<<JS
 (function(bVisible, oCtrl){
     if (oCtrl.getParent().getMetadata().getName() == 'sap.ui.layout.form.FormElement') {
         if (bVisible === oCtrl.getParent().getVisible()) {
             return;
         }
+        
         oCtrl.getParent().setVisible(bVisible);
     } else {
         if (bVisible === oCtrl.getVisible()) {
             return;
         }
         oCtrl.setVisible(bVisible);
-        {$showHideLabelJs}
+        
+{$disableContainerJs}
+{$showHideLabelJs}
     }
     oCtrl.$()?.trigger('visibleChange', [{visible: bVisible}]);
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
@@ -670,5 +676,34 @@ JS;
     public function buildJsValueGetterMethod()
     {
         return "getText()";
+    }
+
+    /**
+     * Builds a JS snippet for toggling the container of the widget whenever the widget itself is toggled on or off.
+     * This is primarily used to properly hide Filters using their 'hidden_if' property, but may
+     * be extended to include additional widget types.
+     *
+     * **NOTE** This function utilizes a hard-coded DOM structure and is therefore extremely brittle.
+     * TODO Find a less brittle way to address the proper DOM element.
+     *
+     * @return string
+     */
+    private function buildJsShowHideContainer() : string
+    {
+        $parent = $this->getWidget()->getParent();
+        switch (true) {
+            case $parent instanceof Filter:
+                return  <<<JS
+        let container = document.getElementById(oCtrl.getParent().getId()).parentElement; // Hardcoded DOM structure :(
+
+        if(bVisible) {
+            container.classList.remove('sapUiHiddenPlaceholder');
+        } else {
+            container.classList.add('sapUiHiddenPlaceholder');
+        }
+        JS;
+            default:
+                return '';
+        }
     }
 }

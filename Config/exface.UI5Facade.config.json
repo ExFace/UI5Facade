@@ -97,7 +97,9 @@
     	"exface/Core/Facades/AbstractPWAFacade/sw_tools.js",
     	"exface/Core/Facades/AbstractPWAFacade/exfPWA.js"
     ],
-	
+
+	"LIBS.HTMLDIFF.JS": "exface/JEasyUIFacade/Facades/js/htmldiff/js/htmldiff.js",
+
 	"LIBS.FACADE.CSS": "exface/UI5Facade/Facades/js/openui5.template.css",
 	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/UI5Facade/Facades/js/openui5.controls.js",
 	
