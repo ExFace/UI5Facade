@@ -183,13 +183,29 @@ JS;
     }
 
 
+
+    /**
+     * On every selection change event save the selection and perform on-change scripts
+     * 
+     * This method also ensures, that previously selected rows are selected again when
+     * following the pagination back and fourth or using filters. That is, 
+     * - if you select a row on one page, go to the next one and return back, the initially 
+     * selected row will still be selected
+     * - if you select a row on one page, go to another one and press a button, the (invisible)
+     * selected row on the first page will be among the action data
+     * 
+     * @return string
+     */
     protected function buildJSSelectionChangeForMTable()
     {
         $controller = $this->getController();
+        $widget = $this->getWidget();
+        $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
 
         return <<<JS
         function (oEvent) {
             const oTable = oEvent.getSource();
+            const sUidCol = {$uidColJs};
             const aAllObjects = {$this->buildJsGetRowsAll('oTable')};
             const newSelectedItemList = [];
             const aSelectedObjects = oTable.getSelectedContexts().reduce(
@@ -200,11 +216,21 @@ JS;
                 []
             );
 
-            (oTable._selectedObjects || []).forEach(oldItem => {
+            (oTable._selectedObjects || []).forEach(oRowOld => {
                 // Old item exist in current dynamic list
-                const bExistInAllObjects = aAllObjects.some(item => JSON.stringify(item) === JSON.stringify(oldItem));
-                if (!bExistInAllObjects) { 
-                    newSelectedItemList.push(oldItem);
+                var bExistInAllObjects = false;
+                try {
+                    if (sUidCol !== null) {
+                        bExistInAllObjects = aAllObjects.some(oRow => oRow[sUidCol] === oRowOld[sUidCol]);
+                    } else {
+                        bExistInAllObjects = aAllObjects.some(oRow => JSON.stringify(oRow) === JSON.stringify(oRowOld));
+                    }
+                } catch (e) {
+                    console.error('Error comparing data rows:', e);
+                    bExistInAllObjects = false;
+                }
+                if (! bExistInAllObjects) { 
+                    newSelectedItemList.push(oRowOld);
                 }
             });
             
