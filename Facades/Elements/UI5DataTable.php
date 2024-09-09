@@ -201,7 +201,15 @@ JS;
         $controller = $this->getController();
         $widget = $this->getWidget();
         $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
-
+        if ($widget->getMultiSelect() === false) {
+            return <<<JS
+        function (oEvent) {
+            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)}[0]();
+        }
+JS;
+            
+        }
+        
         return <<<JS
         function (oEvent) {
             const oTable = oEvent.getSource();
@@ -232,7 +240,7 @@ JS;
                 if (! bExistInAllObjects) { 
                     newSelectedItemList.push(oRowOld);
                 }
-            });
+            });           
             
             newSelectedItemList.push(...aSelectedObjects);
 
@@ -862,7 +870,8 @@ JS;
                     $aRowsJs = '[];' . <<<JS
                     
             if (!oTable._selectedObjects) oTable._selectedObjects = [];
-            aRows.push(...oTable._selectedObjects);
+            var aSelection = {$this->buildJsGetRowsSelected('oTable')};
+            aRows.push(...aSelection);
         
 JS;
                 }
