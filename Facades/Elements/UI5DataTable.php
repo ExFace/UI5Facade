@@ -902,7 +902,7 @@ JS;
             if($this->getWidget()->getMultiSelect() === false) {
                 $rows = "($oTableJs && $oTableJs.getSelectedItem() ? [$oTableJs.getSelectedItem().getBindingContext().getObject()] : [])";
             } else {
-                $rows = "$oTableJs._selectedObjects";
+                $rows = "($oTableJs._selectedObjects || [])";
             }
         }
         return $rows;
