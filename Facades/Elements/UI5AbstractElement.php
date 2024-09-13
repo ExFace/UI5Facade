@@ -821,53 +821,21 @@ JS;
     }
 
     /**
-     * Returns an inline JS snippet (without ending `;`) that shows a warning there are unsaved changes or returns FALSE otherwise.
-     * 
-     * This can be easily used in if-statements. To check if there are unsaved changes do:
-     * 
-     * ```javascript
-     * if ({$element->buildJsHasUnsavedChanges()} === true) {
-     *  // show error
-     * } else {
-     *  // everything is fine
-     * }
-     * 
-     * ```
-     * 
-     * Or to show a user warning, where the user can pick from "discard and continue" or "cancel"
-     * 
-     * ```javascript
-     * var fnAction = function() {
-     *  // do something here
-     * }
-     * if ({$element->buildJsHasUnsavedChanges('fnAction')} === false) {
-     *  fnAction();
-     * }
-     * 
-     * ```
-     * 
-     * @param string $fnOnDiscardJs
-     * @return string
+     * @inheritDoc
      */
     public function buildJsCheckForUnsavedChanges(bool $showWarning = true, string $fnOnDiscardJs = '') : string
     {
         // only do the check if the controller of the element is actually initialized
         // for the Buttons opening HelpDialog, the NotificationDialog etc. in the UI5 header toolbar
-        //the input element controller is not initalized or there is none
+        //the input element controller is not initialized or there is none
         try {
             $controller = $this->getController();
         } catch (FacadeRuntimeError $e) {
-            return <<<JS
-            
-                    (function(fnDiscardAndContinue){
-                        return false;
-                    })({$fnOnDiscardJs})
-JS;
+            return 'false';
         }
         
         $showWarningJs = $showWarning === false ? '' : "{$controller->buildJsControllerGetter($this)}.showWarningAboutUnsavedChanges(fnDiscardAndContinue)";
         return <<<JS
-
                     (function(fnDiscardAndContinue){
                         var aChanges = {$this->buildJsChangesGetter()};
                         // Ignore changes in invisible controls because the user does not see them!
@@ -888,7 +856,7 @@ JS;
                     })({$fnOnDiscardJs})
 JS;
     }
-    
+
     /**
      *
      * {@inheritDoc}
