@@ -267,7 +267,7 @@ JS;
                                     ],
                                     press: function(){
                                         sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}").removeAllTokens();
-                                        sap.ui.getCore().byId("{$tableElement->getId()}").removeSelections().fireSelectionChange();
+                                        sap.ui.getCore().byId("{$tableElement->getId()}").removeSelections(true, true);
                                     }
                                 })
                             ]
@@ -400,10 +400,12 @@ JS;
     protected function buildJsTableRefreshHandler(): string
     {
         $table = $this->getWidget()->getDataWidget();
-        $tableElementId = $this->getFacade()->getElement($table)->getId();
+        $tableEl = $this->getFacade()->getElement($table);
+        $tableElementId = $tableEl->getId();
+        $tableUidCol = $table->getUidColumn();
 
         return <<<JS
-        const sId = "{$this->getWidget()->getDataWidget()->getUidColumn()->getDataColumnName()}";
+        const sId = "{$tableUidCol->getDataColumnName()}";
         var oMultiInput =  sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
 
         const oTable = sap.ui.getCore().byId("{$tableElementId}");
@@ -421,6 +423,7 @@ JS;
             if (tokens.some(token => token.getKey() === object[sId])) {
                 newSelectedObjetcs.push(object);
             }
+            {$tableEl->buildJsSelectRowByValue($tableUidCol, 'sId')};
         });
 
         oTable._selectedObjects = newSelectedObjetcs;

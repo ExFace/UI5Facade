@@ -3,7 +3,6 @@ namespace exface\UI5Facade\Facades\Elements\Traits;
 
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
-use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -22,11 +21,9 @@ use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\UI5Facade\Facades\Elements\ServerAdapters\UI5FacadeServerAdapter;
-use exface\Core\CommonLogic\UxonObject;
 use exface\UI5Facade\Facades\Elements\ServerAdapters\OfflineServerAdapter;
 use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface;
 use exface\Core\Widgets\DataButton;
-use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
 use exface\Core\Interfaces\Widgets\iHaveQuickSearch;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 
@@ -841,10 +838,10 @@ JS;
             } else {
                 delete oTable._exfPendingData;
             }
-
+console.log('onload');
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
-            {$this->buildJsMultiSelectionOnLoaded('oTable')};
+            {$this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')};
 
 JS;
             
@@ -912,39 +909,14 @@ JS;
     }
 
 
-    protected function buildJsMultiSelectionOnLoaded(string $oTableJs)
+    /**
+     * 
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsDataLoaderOnLoadedRestoreSelection(string $oTableJs) : string
     {
-
-        $widget = $this->getWidget();
-        if ($widget instanceof iSupportMultiSelect && $widget->getMultiSelect() === true ) {
-
-            // Restore previous selection (however only if oTable._selectedObjects exists and, thus, the implementations supports this feature)
-            // TODO add support for selection restore to sap.ui.table.Table!
-            return <<<JS
-                setTimeout(function() {
-                    const aPrevSelectedRows = {$oTableJs}._selectedObjects;
-                    const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs)};
-                    const aRows = {$this->buildJsGetRowsAll($oTableJs)};
-                    if (aPrevSelectedRows === undefined) {
-                        return;
-                    }
-                    aNowSelectedRows.forEach(function (oRow) {
-                        var bSelected = aPrevSelectedRows.some(function (oSelectedRow) {
-                            return JSON.stringify(oSelectedRow) === JSON.stringify(oRow);
-                        });
-                        var iRowIdx = aRows.indexOf(oRow);
-                        if (bSelected) {
-                            {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', false, 'false')}
-                        } else {
-                            {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', true, 'false')}
-                        }
-                    });
-                });
-
-JS;
-        } else {
-            return '';
-        }
+        return '';
     }
 
               
@@ -2397,7 +2369,7 @@ JS;
      * @param string $oControlJs
      * @return string
      */
-    protected abstract function buildJsGetRowsSelected(string $oControlJs) : string;
+    protected abstract function buildJsGetRowsSelected(string $oControlJs, bool $onlyCurrentPage = true) : string;
     
     /**
      * 
@@ -2438,7 +2410,7 @@ JS;
                 return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsDataGetter($action);
             
             default:
-                $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl')};";
+                $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl', false)};";
         }
         
         // Determine the columns we need in the actions data
@@ -2481,7 +2453,7 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var newSelection = {$this->buildJsGetRowsSelected('oControl')};
+                    var newSelection = {$this->buildJsGetRowsSelected('oControl', false)};
                     var oldSelection = oControl.data('exfPreviousSelection') || [];
                     oControl.data('exfPreviousSelection', newSelection);
                     return {$this->buildJsRowCompare('oldSelection', 'newSelection', false)};

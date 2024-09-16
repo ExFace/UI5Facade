@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
+use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\DataTableResponsive;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\DataColumn;
@@ -22,7 +23,7 @@ use exface\Core\DataTypes\NumberDataType;
 
 /**
  *
- * @method DataTable getWidget()
+ * @method \exface\Core\Widgets\DataTable getWidget()
  *
  * @author Andrej Kabachnik
  *
@@ -127,7 +128,7 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
                     alternateRowColors: {$striped},
                     noDataText: "{$this->getWidget()->getEmptyText()}",
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
-                    selectionChange: {$this->buildJSSelectionChangeForMTable()},
+                    selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
                     mode: {$mode},
                     headerToolbar: [
@@ -196,49 +197,51 @@ JS;
      * 
      * @return string
      */
-    protected function buildJSSelectionChangeForMTable()
+    protected function buildJsPropertySelectionChange(string $oEventJs)
     {
         $controller = $this->getController();
         $widget = $this->getWidget();
         $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
 
         return <<<JS
-        function (oEvent) {
-            const oTable = oEvent.getSource();
+        
+            const oTable = $oEventJs.getSource();
+            const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
+            const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
             const sUidCol = {$uidColJs};
-            const aAllObjects = {$this->buildJsGetRowsAll('oTable')};
-            const newSelectedItemList = [];
-            const aSelectedObjects = oTable.getSelectedContexts().reduce(
-                function(aRows, oCtxt) {
-                    aRows.push(oCtxt.getObject()); 
-                    return aRows;
-                },
-                []
-            );
+            var aRowsVisible = [];
+            var aRowsMerged = [];
+            var aRowsSelected = {$this->buildJsGetRowsSelected('oTable')};
 
-            (oTable._selectedObjects || []).forEach(oRowOld => {
-                // Old item exist in current dynamic list
-                var bExistInAllObjects = false;
-                try {
-                    if (sUidCol !== null) {
-                        bExistInAllObjects = aAllObjects.some(oRow => oRow[sUidCol] === oRowOld[sUidCol]);
-                    } else {
-                        bExistInAllObjects = aAllObjects.some(oRow => JSON.stringify(oRow) === JSON.stringify(oRowOld));
+            if (bMultiSelect === true && bMultiSelectSave === true) {
+                aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
+
+                (oTable._selectedObjects || []).forEach(oRowOld => {
+                    // Old item exist in current dynamic list
+                    var bInCurrentRows = false;
+                    try {
+                        if (sUidCol !== null) {
+                            bInCurrentRows = aRowsVisible.some(oRow => oRow[sUidCol] === oRowOld[sUidCol]);
+                        } else {
+                            bInCurrentRows = aRowsVisible.some(oRow => JSON.stringify(oRow) === JSON.stringify(oRowOld));
+                        }
+                    } catch (e) {
+                        console.error('Error comparing data rows:', e);
+                        bInCurrentRows = false;
                     }
-                } catch (e) {
-                    console.error('Error comparing data rows:', e);
-                    bExistInAllObjects = false;
-                }
-                if (! bExistInAllObjects) { 
-                    newSelectedItemList.push(oRowOld);
-                }
-            });
-            
-            newSelectedItemList.push(...aSelectedObjects);
+                    if (! bInCurrentRows) { 
+                        aRowsMerged.push(oRowOld);
+                    }
+                });
+                
+                aRowsMerged.push(...aRowsSelected);
 
-            oTable._selectedObjects = newSelectedItemList;
-            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)}[0]();
-        }
+                oTable._selectedObjects = aRowsMerged;
+            } else {
+                oTable._selectedObjects = aRowsSelected;
+            }
+            console.log('selection', oTable._selectedObjects);
+            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
     }
 
@@ -885,12 +888,69 @@ JS;
     }()
 JS;
     }
+
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait::buildJsDataLoaderOnLoadedRestoreSelection()
+     */
+    protected function buildJsDataLoaderOnLoadedRestoreSelection(string $oTableJs) : string
+    {
+        $widget = $this->getWidget();
+        if ($widget->getMultiSelect() === true ) {
+            $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
+                    
+            // Restore previous selection (however only if oTable._selectedObjects exists and, thus, the implementations supports this feature)
+            // TODO add support for selection restore to sap.ui.table.Table!
+            return <<<JS
+                setTimeout(function() {
+                    const aPrevSelectedRows = {$oTableJs}._selectedObjects;
+                    const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs, true)};
+                    const aRows = {$this->buildJsGetRowsAll($oTableJs)};
+                    const sUidCol = $uidColJs;
+                    const fnSelect = function(iRowIdx) {
+                        {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', false, 'false')}
+                    };
+                    const fnDeselect = function(iRowIdx) {
+                        {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', true, 'false')}
+                    }
+                    if (aPrevSelectedRows === undefined) {
+                        return;
+                    }
+                    console.log('restore', aPrevSelectedRows, aNowSelectedRows);
+                    aNowSelectedRows.forEach(function (oRow) {
+                        var bSelected = exfTools.data.indexOfRow(aPrevSelectedRows, oRow, sUidCol) > -1;
+                        var iRowIdx = exfTools.data.indexOfRow(aRows, oRow, sUidCol);
+                        if (iRowIdx === -1) {
+                            return;
+                        }
+                        if (bSelected) {
+                            fnSelect(iRowIdx);
+                        } else {
+                            fnDeselect(iRowIdx);
+                        }
+                    });
+                    aPrevSelectedRows.forEach(function (oRow) {
+                        var iRowIdx = exfTools.data.indexOfRow(aRows, oRow, sUidCol);
+                        if (iRowIdx === -1) {
+                            return;
+                        } else {
+                            fnSelect(iRowIdx);
+                        }
+                    });
+                });
+
+JS;
+        } else {
+            return '';
+        }
+    }
     
     /**
      * 
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oTableJs) : string
+    protected function buildJsGetRowsSelected(string $oTableJs, bool $onlyCurrentPage = true) : string
     {
         if ($this->isUiTable()) {
             if($this->getWidget()->getMultiSelect() === false) {
@@ -902,7 +962,19 @@ JS;
             if($this->getWidget()->getMultiSelect() === false) {
                 $rows = "($oTableJs && $oTableJs.getSelectedItem() ? [$oTableJs.getSelectedItem().getBindingContext().getObject()] : [])";
             } else {
-                $rows = "$oTableJs._selectedObjects";
+                if ($onlyCurrentPage === true) {
+                    $rows = <<<JS
+                    oTable.getSelectedContexts().reduce(
+                        function(aRows, oCtxt) {
+                            aRows.push(oCtxt.getObject()); 
+                            return aRows;
+                        },
+                        []
+                    )
+JS;
+                } else {
+                    $rows = "($oTableJs._selectedObjects || [])";
+                }
             }
         }
         return $rows;
@@ -1485,7 +1557,7 @@ var {$rowIdxJs} = function() {
         }
     }
     // Remove item from table's selected objects
-    if ({$deSelect}) {
+    if ({$this->escapeBool($deSelect)}) {
         var aTableSelectedObjects = oTable._selectedObjects;
         const selectedObjectsIndex = aTableSelectedObjects.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
         if (selectedObjectsIndex !== -1) {
@@ -1964,13 +2036,20 @@ JS;
      */
     protected function buildJsDataResetter() : string
     {
-        $resetUiTable = ! $this->isUiTable() ? '' : <<<JS
+        if ($this->isUiTable()) {
+            $resetTableJs = ! $this->isUiTable() ? '' : <<<JS
 
             if (sap.ui.getCore().byId('{$this->getId()}').getEnableGrouping() === true) {
                 sap.ui.getCore().byId('{$this->getId()}').setEnableGrouping(false);
             }   
 JS;
-        return $resetUiTable . $this->buildJsDataResetterViaTrait();
+        } elseif ($this->isMTable()) {
+            $resetTableJs = <<<JS
+console.log('clear');
+            //sap.ui.getCore().byId('{$this->getId()}').removeSelections();
+JS;
+        }
+        return $resetTableJs . $this->buildJsDataResetterViaTrait();
     }
     
     protected function buildJsFixRowHeight(string $oTableJs) : string
