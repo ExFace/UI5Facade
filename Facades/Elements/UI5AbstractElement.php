@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\StringDataType;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
@@ -42,7 +43,21 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     private $controller = null;
     
     private $layoutData = null;
-    
+
+    private const CONFIRMATION_TOKENS = [
+        ActionInterface::CONFIRMATION_UNSAVED_CHANGES => [
+            'title' => "{i18n>MESSAGE.DISCARD_CHANGES.TITLE}",
+            'content' => "{i18n>MESSAGE.DISCARD_CHANGES.TEXT}",
+            'confirm' => "{i18n>MESSAGE.DISCARD_CHANGES.DISCARD}"
+        ],
+
+        ActionInterface::CONFIRMATION_FOR_ACTION => [
+            'title' => "{i18n>MESSAGE.CONFIRM_ACTION.TITLE}",
+            'content' => "{i18n>MESSAGE.CONFIRM_ACTION.TEXT}",
+            'confirm' => "{i18n>MESSAGE.CONFIRM_ACTION.DISCARD}"
+        ]
+    ];
+
     /**
      * 
      * {@inheritDoc}
@@ -823,7 +838,7 @@ JS;
     /**
      * @inheritDoc
      */
-    public function buildJsCheckForUnsavedChanges(bool $showWarning = true, string $fnOnDiscardJs = '') : string
+    public function buildJsCheckForUnsavedChanges() : string
     {
         // only do the check if the controller of the element is actually initialized
         // for the Buttons opening HelpDialog, the NotificationDialog etc. in the UI5 header toolbar
@@ -833,27 +848,65 @@ JS;
         } catch (FacadeRuntimeError $e) {
             return 'false';
         }
-        
-        $showWarningJs = $showWarning === false ? '' : "{$controller->buildJsControllerGetter($this)}.showWarningAboutUnsavedChanges(fnDiscardAndContinue)";
+
         return <<<JS
-                    (function(fnDiscardAndContinue){
-                        var aChanges = {$this->buildJsChangesGetter()};
-                        // Ignore changes in invisible controls because the user does not see them!
-                        aChanges = aChanges.filter(function(oChange) {
-                            var oCtrl;
-                            if (! oChange.elementId) return true;
-                            oCtrl = sap.ui.getCore().byId(oChange.elementId);
-                            if (oCtrl && oCtrl.getVisible !== undefined) {
-                                return oCtrl.getVisible();
-                            }
-                            return true;
-                        });
-                        if (aChanges.length > 0) {
-                            {$showWarningJs};
-                            return true;
-                        }
-                        return false;
-                    })({$fnOnDiscardJs})
+
+(function(){
+    var aChanges = {$this->buildJsChangesGetter()};
+    // Ignore changes in invisible controls because the user does not see them!
+    aChanges = aChanges.filter(function(oChange) {
+        var oCtrl;
+        if (! oChange.elementId) return true;
+        oCtrl = sap.ui.getCore().byId(oChange.elementId);
+        if (oCtrl && oCtrl.getVisible !== undefined) {
+            return oCtrl.getVisible();
+        }
+        return true;
+    });
+    
+    return aChanges.length > 0;
+})()
+JS;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function buildJsAskForConfirmationDialog( string $confirmationType, string $fnConfirm = '') : string
+    {
+        $tokens = self::CONFIRMATION_TOKENS[$confirmationType];
+        if(!$tokens) {
+            return '';
+        }
+
+        return <<<JS
+
+(function(fnConfirm){
+    var oController = {$this->getController()->buildJsControllerGetter($this)};
+    var oDialog = new sap.m.Dialog({
+        type: sap.m.DialogType.Message,
+        title: "{$tokens['title']}",
+        content: new sap.m.Text({ text: "{$tokens['content']}" }),
+        beginButton: new sap.m.Button({
+            type: sap.m.ButtonType.Emphasized,
+            text: "{$tokens['confirm']}",
+            press: function () {
+                oDialog.close().destroy();
+                fnConfirm();
+            }.bind(oController)
+        }),
+        endButton: new sap.m.Button({
+            text: "{i18n>COMMON.CANCEL}",
+            press: function () {
+                oDialog.close().destroy();
+            }.bind(oController)
+        })
+    })
+    .setModel(oController.getNavContainer().getModel('i18n'), 'i18n');
+
+    oDialog.open();
+    return true;
+})({$fnConfirm})
 JS;
     }
 

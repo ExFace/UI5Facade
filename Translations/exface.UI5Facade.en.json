@@ -26,6 +26,9 @@
 	"MESSAGE.DISCARD_CHANGES.TITLE": "Discard changes?",
 	"MESSAGE.DISCARD_CHANGES.TEXT": "There seem to be unsaved changes here. If you navigate away, they will be lost.",
 	"MESSAGE.DISCARD_CHANGES.DISCARD": "Discard changes",
+	"MESSAGE.CONFIRM_ACTION.TITLE": "Confirmation required",
+	"MESSAGE.CONFIRM_ACTION.TEXT": "Please confirm that you wish to proceed with this action.",
+	"MESSAGE.CONFIRM_ACTION.DISCARD": "Confirm",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "Invalid Route",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Page not found!",

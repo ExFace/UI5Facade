@@ -27,6 +27,9 @@
 	"MESSAGE.DISCARD_CHANGES.TITLE": "Änderungen verwerfen?",
 	"MESSAGE.DISCARD_CHANGES.TEXT": "Es gibt ungespeicherte Änderungen. Wenn sie wegnavigieren, gehe diese verloren!",
 	"MESSAGE.DISCARD_CHANGES.DISCARD": "Verwerfen",
+	"MESSAGE.CONFIRM_ACTION.TITLE": "Bestätigung erforderlich",
+	"MESSAGE.CONFIRM_ACTION.TEXT": "Bitte bestätigen Sie, dass Sie diese Aktion wirklich durchführen wollen.",
+	"MESSAGE.CONFIRM_ACTION.DISCARD": "Bestätigen",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "URL nicht gefunden",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Seite nicht gefunden!",

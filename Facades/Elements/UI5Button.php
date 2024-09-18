@@ -462,7 +462,7 @@ JS;
 JS;
         }
 
-        return $this->buildJsConfirmationsWrapper($js);
+        return $js;
     }
     
     protected function buildJsOpenDialogForUnexpectedView(string $oViewContent) : string
