@@ -24,7 +24,7 @@ sap.ui.define([
 		 */
 		navBack : function (oEvent){
 			var oHashChanger = HashChanger.getInstance();
-			var sHash = oHashChanger.getHash();console.log(this._oData, sHash);
+			var sHash = oHashChanger.getHash();
 			// in some cases we could display a certain target when the back button is pressed
 			if (this._oData && this._oData.fromTarget) {
 				this.getRouter().getTargets().display(this._oData.fromTarget);

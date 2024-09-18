@@ -672,13 +672,22 @@ JS;
         // If the prefill cannot be fetched due to being offline, show the offline message view
         // (if the dialog is a page) or an error-popup (if the dialog is a regular dialog).
         if ($this->isMaximized()) {
-            $showOfflineMsgJs = $oViewJs . '.getController().getRouter().getTargets().display("offline")';
+            // In case of the offline-view, make sure to close this dialog first and switch to
+            // the offline view then. Otherwise, the back-button of the offline view would 
+            // return to this dialog (because it is the one that navigated to the offline view)
+            // and trigger prefill again and open the offline view recursively
+            $showOfflineMsgJs = <<<JS
+
+            {$this->buildJsCloseDialog(false)}
+            setTimeout(function(){
+                {$oViewJs}.getController().getRouter().getTargets().display("offline");
+            }, 10);
+JS;
         } else {
             $showOfflineMsgJs = <<<JS
             
             {$this->getController()->buildJsComponentGetter()}.showDialog('{$this->translate('WIDGET.DATATABLE.OFFLINE_ERROR_TITLE')}', '{$this->translate('WIDGET.DATATABLE.OFFLINE_ERROR')}', 'Error');
-            {$this->buildJsCloseDialog()}
-            
+            {$this->buildJsCloseDialog()}  
 JS;
         }
         
