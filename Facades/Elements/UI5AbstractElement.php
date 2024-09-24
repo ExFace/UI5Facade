@@ -44,20 +44,6 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     
     private $layoutData = null;
 
-    private const CONFIRMATION_TOKENS = [
-        ActionInterface::CONFIRMATION_UNSAVED_CHANGES => [
-            'title' => "{i18n>MESSAGE.DISCARD_CHANGES.TITLE}",
-            'content' => "{i18n>MESSAGE.DISCARD_CHANGES.TEXT}",
-            'confirm' => "{i18n>MESSAGE.DISCARD_CHANGES.DISCARD}"
-        ],
-
-        ActionInterface::CONFIRMATION_FOR_ACTION => [
-            'title' => "{i18n>MESSAGE.CONFIRM_ACTION.TITLE}",
-            'content' => "{i18n>MESSAGE.CONFIRM_ACTION.TEXT}",
-            'confirm' => "{i18n>MESSAGE.CONFIRM_ACTION.DISCARD}"
-        ]
-    ];
-
     /**
      * 
      * {@inheritDoc}
@@ -872,31 +858,26 @@ JS;
     /**
      * @inheritDoc
      */
-    public function buildJsAskForConfirmationDialog( string $confirmationType, string $fnConfirm = '') : string
+    public function buildJsAskForConfirmationDialog( array $translationTokens, string $fnConfirm = '') : string
     {
-        $tokens = self::CONFIRMATION_TOKENS[$confirmationType];
-        if(!$tokens) {
-            return '';
-        }
-
         return <<<JS
 
 (function(fnConfirm){
     var oController = {$this->getController()->buildJsControllerGetter($this)};
     var oDialog = new sap.m.Dialog({
         type: sap.m.DialogType.Message,
-        title: "{$tokens['title']}",
-        content: new sap.m.Text({ text: "{$tokens['content']}" }),
+        title: "{i18n>{$translationTokens['title']}}",
+        content: new sap.m.Text({ text: "{i18n>{$translationTokens['content']}}" }),
         beginButton: new sap.m.Button({
             type: sap.m.ButtonType.Emphasized,
-            text: "{$tokens['confirm']}",
+            text: "{i18n>{$translationTokens['confirm']}}",
             press: function () {
                 oDialog.close().destroy();
                 fnConfirm();
             }.bind(oController)
         }),
         endButton: new sap.m.Button({
-            text: "{i18n>COMMON.CANCEL}",
+            text: "{i18n>{$translationTokens['cancel']}}",
             press: function () {
                 oDialog.close().destroy();
             }.bind(oController)

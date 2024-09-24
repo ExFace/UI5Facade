@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Communication\UserConfirmations\ConfirmationForUnsavedChanges;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryButtonTrait;
@@ -562,7 +563,7 @@ JS;
     {
         $widget = $this->getWidget();
         if (($widget instanceof DialogButton) && $widget->getCloseDialogAfterActionSucceeds()) {
-            $checkChanges = $checkChanges ?? $this->isConfirmationRequired(ActionInterface::CONFIRMATION_UNSAVED_CHANGES);
+            $checkChanges = $checkChanges ?? ConfirmationForUnsavedChanges::isRequiredWithoutActionReference();
             return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog($checkChanges);
         }
         return '';

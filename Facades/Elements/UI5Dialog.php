@@ -1,7 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Interfaces\Actions\ActionInterface as ActionInterfaceAlias;
+use exface\Core\Communication\UserConfirmations\ConfirmationForUnsavedChanges;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -143,7 +143,7 @@ JS, false));
                     // Check for unsaved changes if required.
                     if (bCheckChanges === true) {
                         if (true === {$this->buildJsCheckForUnsavedChanges()} &&
-                            true === {$this->buildJsAskForConfirmationDialog(ActionInterfaceAlias::CONFIRMATION_UNSAVED_CHANGES, 'fnClose')}) {
+                            true === {$this->buildJsAskForConfirmationDialog(ConfirmationForUnsavedChanges::getDefaultTranslationTokens(), 'fnClose')}) {
                             return;
                         }
                     }
