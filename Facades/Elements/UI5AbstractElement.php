@@ -3,7 +3,6 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
-use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\StringDataType;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
