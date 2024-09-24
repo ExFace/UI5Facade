@@ -24,9 +24,19 @@
 	"MESSAGE.TYPE.ERROR": "Fehler",
 	"MESSAGE.TYPE.WARNING": "Warnung",
 	"MESSAGE.TYPE.INFO": "Info",
-	"MESSAGE.DISCARD_CHANGES.TITLE": "Änderungen verwerfen?",
-	"MESSAGE.DISCARD_CHANGES.TEXT": "Es gibt ungespeicherte Änderungen. Wenn sie wegnavigieren, gehe diese verloren!",
-	"MESSAGE.DISCARD_CHANGES.DISCARD": "Verwerfen",
+	"MESSAGE.CANCEL": "Abbrechen",
+
+	"MESSAGE.CONFIRM.CHANGES.TITLE": "Änderungen verwerfen?",
+	"MESSAGE.CONFIRM.CHANGES.TEXT": "Es gibt ungespeicherte Änderungen. Wenn sie wegnavigieren, gehe diese verloren!",
+	"MESSAGE.CONFIRM.CHANGES.CONFIRM": "Verwerfen",
+
+	"MESSAGE.CONFIRM.ACTION.TITLE": "Bestätigung erforderlich",
+	"MESSAGE.CONFIRM.ACTION.TEXT": "Bitte bestätigen Sie, dass Sie diese Aktion wirklich durchführen wollen.",
+	"MESSAGE.CONFIRM.ACTION.CONFIRM": "Bestätigen",
+
+	"MESSAGE.CONFIRM.DELETE.TITLE": "Eintrag löschen",
+	"MESSAGE.CONFIRM.DELETE.TEXT": "Wollen Sie diesen Eintrag wirklich löschen?",
+	"MESSAGE.CONFIRM.DELETE.CONFIRM": "Löschen",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "URL nicht gefunden",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Seite nicht gefunden!",
