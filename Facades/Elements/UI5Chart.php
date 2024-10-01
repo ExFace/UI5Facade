@@ -40,6 +40,7 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
     public function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->registerFiltersWithApplyOnChange($this);
+        $this->addChartButtons();
         $controller = $this->getController();
         
         $controller->addMethod($this->buildJsDataLoadFunctionName(), $this, '', $this->buildJsDataLoadFunctionBody());

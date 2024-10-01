@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades;
 
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
+use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
@@ -30,7 +31,6 @@ use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsEnumFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5EnumFormatter;
 use exface\Core\Interfaces\DataSheets\DataSheetInterface;
 use exface\UI5Facade\Facades\Formatters\UI5TimeFormatter;
-use exface\Core\Facades\AbstractFacade\AbstractFacade;
 use exface\Core\Interfaces\Exceptions\ErrorExceptionInterface;
 use exface\Core\Exceptions\Facades\FacadeLogicError;
 use GuzzleHttp\Psr7\Response;
@@ -81,7 +81,7 @@ use exface\Core\Interfaces\Facades\PWAFacadeInterface;
  * - `advance_focus_on_enter` [boolean] - makes the focus go to the next focusable widget when ENTER 
  * is pressed (in addition to the default TAB).
  * 
- * @method ui5AbstractElement getElement()
+ * @method ui5AbstractElement getElement($widget)
  * 
  * @author Andrej Kabachnik
  *
@@ -283,6 +283,7 @@ JS;
     protected function getMiddleware() : array
     {
         $middleware = parent::getMiddleware();
+        array_unshift($middleware, new ServerTimingMiddleware($this));
         $middleware[] = new UI5TableUrlParamsReader($this, 'getInputData', 'setInputData');
         $middleware[] = new UI5WebappRouter($this);
         
@@ -433,7 +434,7 @@ JS;
      */   
     public function buildResponseData(DataSheetInterface $data_sheet, WidgetInterface $widget = null)
     {
-        $data = array();
+        $data = [];
         $data['rows'] = array_merge($this->buildResponseDataRowsSanitized($data_sheet, true, false), $data_sheet->getTotalsRows());
         $data['recordsFiltered'] = $data_sheet->countRowsInDataSource();
         $data['recordsTotal'] = $data_sheet->countRowsInDataSource();

@@ -669,8 +669,9 @@ JS;
                                     if(oResultModel.getProperty('/download')){
                                         // Workaround to force the browser to download even if it is a text file!
                                         var a = document.createElement('A');
-                                        a.href = oResultModel.getProperty('/download');
-                                        a.download = response.download.substr(a.href.lastIndexOf('/') + 1);
+                                        var sDlPath = oResultModel.getProperty('/download')
+                                        a.href = sDlPath;
+                                        a.download = sDlPath.substr(sDlPath.lastIndexOf('/') + 1);
                                         document.body.appendChild(a);
                                         a.click();
                                         document.body.removeChild(a);
