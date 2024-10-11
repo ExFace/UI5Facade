@@ -1,4 +1,15 @@
-import { ServiceWorkerUtils } from './openui5.virtual.offline.js';
+// Store the original console.error function
+const originalConsoleError = console.error;
+
+// Array to store captured errors
+let capturedErrors = [];
+
+// Regex patterns for errors to ignore
+const ignoredErrorPatterns = [
+	/Assertion failed: could not find any translatable text for key/i,
+	/The target you tried to get .* does not exist!/i,
+	/EventProvider sap\.m\.routing\.Targets/i
+];
 
 // Toggle online/offlie icon
 window.addEventListener('online', function () {
@@ -82,11 +93,11 @@ const exfLauncher = {};
 			refreshWaitSeconds: 5
 		}
 	};
-  
+
 	// Reload context bar every 30 seconds
 	setInterval(function () {
 		exfLauncher.contextBar.load();
-	}, 30*1000);
+	}, 30 * 1000);
 
 	var _lastNetworkState = {
 		isLowSpeed: false,
@@ -94,8 +105,7 @@ const exfLauncher = {};
 		isAutoOffline: false
 	};
 
-	// Start Network State
-	initNetworkState();
+
 
 	function updateNetworkState(isLowSpeed, isAutoOffline) {
 		var isOnline = navigator.onLine;
@@ -136,13 +146,16 @@ const exfLauncher = {};
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(function () {
 			var isNetworkSlow = exfLauncher.isNetworkSlow();
+			if (isNetworkSlow) {
+				_bLowSpeed = true;
+			}
+
 			if (isNetworkSlow && _autoOffline) {
 				exfLauncher.updateNetworkState(isNetworkSlow, _autoOffline);
-				_bLowSpeed = true;
 				clearInterval(_oNetworkSpeedPoller);
 				exfLauncher.initFastNetworkPoller();
 			}
-		}, 5*1000);
+		}, 5 * 1000);
 	};
 
 	this.initFastNetworkPoller = function () {
@@ -151,27 +164,29 @@ const exfLauncher = {};
 			var isNetworkSlow = exfLauncher.isNetworkSlow();
 			exfLauncher.updateNetworkState(isNetworkSlow, _autoOffline);
 
-			if (!isNetworkSlow || !_autoOffline) {
+			if (!isNetworkSlow) {
 				_bLowSpeed = false;
+			}
+			if (!isNetworkSlow || !_autoOffline) {
 				clearInterval(_oNetworkSpeedPoller);
 				exfLauncher.initPoorNetworkPoller();
 			}
 		}, 5000);
 	};
 
-	// Function to initialize the network state
-	function initNetworkState() {
-		exfPWA.data.getAutoOfflineToggleStatus()
-			.then(function (autoOfflineStatus) {
-				_autoOffline = autoOfflineStatus;
-				updateNetworkState(exfLauncher.isNetworkSlow(), _autoOffline);
-				exfLauncher.initPoorNetworkPoller();
-			})
-			.catch(function (error) {
-				console.error("Error initializing network state:", error);
-				exfLauncher.initPoorNetworkPoller();
-			});
-	};
+	// // Function to initialize the network state
+	// function initNetworkState() {
+	// 	exfPWA.data.getAutoOfflineToggleStatus()
+	// 		.then(function (autoOfflineStatus) {
+	// 			_autoOffline = autoOfflineStatus;
+	// 			updateNetworkState(exfLauncher.isNetworkSlow(), _autoOffline);
+	// 			exfLauncher.initPoorNetworkPoller();
+	// 		})
+	// 		.catch(function (error) {
+	// 			console.error("Error initializing network state:", error);
+	// 			exfLauncher.initPoorNetworkPoller();
+	// 		});
+	// };
 
 	this.isNetworkSlow = function () {
 		// Check if the network speed is slow via browser API (Chrome, Opera, Edge) 
@@ -228,22 +243,47 @@ const exfLauncher = {};
 	};
 
 
-	this.isOnline = async function () {
-		return !await this.isVirtualOffline() && navigator.onLine;
-	};
+	// this.isOnline = async function () {
+	// 	return !await this.isVirtualOffline() && navigator.onLine;
+	// };
 
+	this.isOnline = async function () {
+		// Check if we're virtually offline
+		if (this.isVirtualOffline()) {
+			return false;
+		}
+
+		// Check if we're in forced offline mode
+		if (_forceOffline) {
+			return false;
+		}
+
+		// Check if we're in low-speed offline mode (semi-offline)
+		if (_autoOffline && _bLowSpeed) {
+			return false;
+		}
+
+		// Check if we're in semi-offline mode
+		const isSemiOffline = await this.isSemiOffline();
+		if (isSemiOffline) {
+			return false;
+		}
+
+		// If none of the above conditions are true, check the browser's online status
+		return navigator.onLine;
+	};
 
 	this.revertMockNetworkError = function () {
 		setTimeout(() => {
 			syncOfflineItems();
 		}, 100);
-		ServiceWorkerUtils.message({ action: 'virtuallyOfflineDisabled' });
+		// ServiceWorkerUtils.message({ action: 'virtuallyOfflineDisabled' });
 		exfPWA.setVirtuallyOffline(false);
 	};
 
 	// Simulate network error in poor network speeds, except for specific URLs 
 	this.mockNetworkError = function () {
-		ServiceWorkerUtils.message({ action: 'virtuallyOfflineEnabled' });
+		// ServiceWorkerUtils.message({ action: 'virtuallyOfflineEnabled' });
 		exfPWA.setVirtuallyOffline(true);
 	};
 
@@ -618,23 +658,35 @@ const exfLauncher = {};
 
 		sap.ui.getCore().byId('exf-network-indicator').setIcon(isOnline ? 'sap-icon://connected' : 'sap-icon://disconnected');
 		_oShell.getModel().setProperty("/_network/online", isOnline);
-		// TODO Why is exfLauncher.isOnline() true when this method is called with lowSpeed = true?
-		// Shouldn't the entire app go offline at this moment?
-		if (isOnline && exfLauncher.isOnline()) {
-			_oLauncher.contextBar.load();
-			if (exfPWA) {
-				// TODO when we switch back from forced-offline to regular, it we should probably not resync all offline
-				// data because that is likely to happen in potentially low-speed situations. How to detect this?
-				exfPWA.actionQueue.syncOffline();
+		if (exfLauncher.isOnline()) {
+			// TODO Why is exfLauncher.isOnline() true when this method is called with lowSpeed = true?
+			// Shouldn't the entire app go offline at this moment?
+			if (isOnline && exfLauncher.isOnline()) {
+				_oLauncher.contextBar.load();
+				if (exfPWA) {
+					// TODO when we switch back from forced-offline to regular, it we should probably not resync all offline
+					// data because that is likely to happen in potentially low-speed situations. How to detect this?
+					exfPWA.actionQueue.syncOffline();
+				}
 			}
 		}
 	};
 
-	this.showMessageToast = function (message) {
-		sap.m.MessageToast.show(message);
-		return;
-	};
+	this.showMessageToast = function (message, duration) {
+		// Set default duration to 3000 milliseconds (3 seconds)
 
+		var defaultDuration = 3000;
+
+		// If a duration is provided, use it; otherwise, use the default duration
+		var toastDuration = duration || defaultDuration;
+
+		// Show the MessageToast with the customized duration
+		sap.m.MessageToast.show(message, {
+			duration: toastDuration,
+			width: "20em"  // Increase the width of the message (optional)
+		});
+	};
+  
 	this.calculateSpeed = function () {
 		const avarageSpeed = navigator?.connection?.downlink ? `${navigator?.connection?.downlink} Mbps` : '-';
 		const speedTier = navigator?.connection?.effectiveType ? navigator?.connection?.effectiveType.toUpperCase() : '-';
@@ -1559,9 +1611,6 @@ const exfLauncher = {};
 			case _autoOffline && _bLowSpeed:
 				exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_BAD_CONNECTION);
 				return "Offline, Low Speed";
-			case _autoOffline && !_bLowSpeed:
-				exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_BAD_CONNECTION); ///
-				return "Offline, Low Speed";
 			default:
 				exfPWA.data.saveConnectionStatus(NETWORK_STATUS_ONLINE);
 				return "Online";
@@ -1643,6 +1692,12 @@ const exfLauncher = {};
 								icon: "sap-icon://sys-cancel",
 								type: "Active",
 								press: _oLauncher.clearPreload,
+							}),
+							new sap.m.StandardListItem({
+								title: "{i18n>WEBAPP.SHELL.NETWORK.ERROR_LOG}",
+								type: "Active",
+								icon: "sap-icon://message-warning",
+								press: _oLauncher.showErrorLog
 							}),
 							new sap.m.GroupHeaderListItem({
 								title: "{i18n>WEBAPP.SHELL.NETWORK.OFFLINE_HEADER}",
@@ -1744,6 +1799,56 @@ const exfLauncher = {};
 		});
 	};
 
+	this.showErrorLog = function (oEvent) {
+		var oButton = oEvent.getSource();
+		var oTable = new sap.m.Table({
+			autoPopinMode: true,
+			fixedLayout: false,
+			columns: [
+				new sap.m.Column({
+					header: new sap.m.Label({ text: "Timestamp" }),
+					width: "200px"
+				}),
+				new sap.m.Column({
+					header: new sap.m.Label({ text: "Message" })
+				}),
+				new sap.m.Column({
+					header: new sap.m.Label({ text: "URL" }),
+					width: "200px"
+				}),
+				new sap.m.Column({
+					header: new sap.m.Label({ text: "Stack" }),
+					width: "200px"
+				})
+			],
+			items: {
+				path: "/errors",
+				template: new sap.m.ColumnListItem({
+					cells: [
+						new sap.m.Text({ text: "{timestamp}" }),
+						new sap.m.Text({ text: "{message}" }),
+						new sap.m.Text({ text: "{url}" }),
+						new sap.m.Text({ text: "{stack}" })
+					]
+				})
+			}
+		});
+
+		var oModel = new sap.ui.model.json.JSONModel({
+			errors: capturedErrors
+		});
+		oTable.setModel(oModel);
+
+		_oLauncher.contextBar.getComponent().showDialog(
+			// '{i18n>WEBAPP.SHELL.NETWORK.ERROR_LOG}',
+			'Error Log',
+			oTable,
+			undefined,
+			undefined,
+			true
+		);
+	};
+
 	this.toggleForceOfflineOn = function () {
 		_forceOffline = true;
 		exfLauncher.updateNetworkState(true, true);
@@ -1777,32 +1882,6 @@ const exfLauncher = {};
 		exfPWA.setVirtuallyOffline(false);
 	};
 
-
-		/**
-	 * Updates the auto offline toggle status in IndexedDB
-	 * @param {boolean} status - The status to set (true for enabled, false for disabled)
-	 * @returns {Promise} A promise that resolves when the update is complete
-	 */
-	function updateAutoOfflineToggleStatus(status) {
-		return new Promise((resolve, reject) => {
-			if (exfPWA && exfPWA.data && typeof exfPWA.data.saveAutoOfflineToggleStatus === 'function') {
-				exfPWA.data.saveAutoOfflineToggleStatus(status)
-					.then(() => {
-						console.log(`Auto offline toggle status updated to ${status}`);
-						resolve();
-					})
-					.catch((error) => {
-						console.error('Error updating auto offline toggle status:', error);
-						reject(error);
-					});
-			} else {
-				const error = new Error('exfPWA.data.saveAutoOfflineToggleStatus is not available');
-				console.error(error.message);
-				reject(error);
-			}
-		});
-	}
-
 	this.toggleAutoOfflineOn = function () {
 		exfPWA.data.saveAutoOfflineToggleStatus(true)
 			.then(function () {
@@ -1811,10 +1890,10 @@ const exfLauncher = {};
 			})
 			.then(function (isNetworkSlow) {
 				exfLauncher.updateNetworkState(isNetworkSlow, _autoOffline);
-	
+
 				var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-				exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON")); 
-	
+				exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON"));
+
 				if (isNetworkSlow) {
 					exfLauncher.initFastNetworkPoller();
 					// Update the network menu title
@@ -1825,7 +1904,7 @@ const exfLauncher = {};
 				} else {
 					exfLauncher.initPoorNetworkPoller();
 				}
-	
+
 				// Update the network indicator icon
 				exfLauncher.toggleOnlineIndicator({ lowSpeed: isNetworkSlow });
 			})
@@ -1834,8 +1913,8 @@ const exfLauncher = {};
 				exfLauncher.showMessageToast("Error turning on auto offline mode");
 			});
 	};
-	 
-	 
+
+
 	this.toggleAutoOfflineOff = function () {
 		exfPWA.data.saveAutoOfflineToggleStatus(false)
 			.then(function () {
@@ -2055,7 +2134,7 @@ exfLauncher.updateNetworkState = function (isLowSpeed, isAutoOffline) {
 		isOnline: isOnline,
 		isAutoOffline: isAutoOffline
 	};
-	
+
 	// Check the current state and update only if there's a change
 	if (JSON.stringify(currentState) !== JSON.stringify(this._lastNetworkState)) {
 		this._lastNetworkState = currentState;
@@ -2075,18 +2154,75 @@ exfLauncher.updateNetworkState = function (isLowSpeed, isAutoOffline) {
 
 		// Save connection status
 		exfPWA.data.saveConnectionStatus(connectionStatus);
- 
+
 		if (isLowSpeed && isAutoOffline) {
 			this.mockNetworkError();
 		} else {
 			this.revertMockNetworkError();
 		}
 
-		console.log('Network state updated:', connectionStatus);
 	}
 };
 
 // Define initial state
 exfLauncher._lastNetworkState = null;
 
+// Override the default console.error function to capture and log errors
+console.error = function (...args) {
+	// Call the original console.error function
+	originalConsoleError.apply(console, args);
+
+	// Create the error message
+	let errorMessage = args.map(arg => {
+		if (arg instanceof Error) {
+			return arg.stack || arg.message; // Return stack trace or message if it's an Error object
+		} else if (typeof arg === 'object') {
+			return JSON.stringify(arg); // Convert objects to JSON string
+		} else {
+			return String(arg); // Convert other types to string
+		}
+	}).join(' ');
+
+	// Check if the error message matches a pattern that should be ignored
+	const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
+
+	if (!shouldIgnore) {
+		//get error details
+		const errorDetails = {
+			message: errorMessage,
+			timestamp: new Date().toISOString(),
+			url: window.location.href,
+			stack: new Error().stack // Capture stack trace
+		};
+
+		// Add to captured errors
+		capturedErrors.push(errorDetails);
+
+		// Show toast message if exfLauncher is defined and has the showMessageToast function
+		if (typeof exfLauncher !== 'undefined' && typeof exfLauncher.showMessageToast === 'function') {
+			exfLauncher.showMessageToast('An error occurred. Check the error log for details.', 5000);
+		}
+	}
+};
+
+// Store the existing window.onload function (if it exists)
+var existingOnload = window.onload;
+
+// Define the new window.onload function
+window.onload = function () {
+	// If there is an existing onload function, call it
+	if (typeof existingOnload === 'function') {
+		existingOnload();
+	}
+
+	// Clear the error list (Step 5)
+	capturedErrors = [];
+
+	// After the page has finished loading, check the error count and show toast message (Step 6)
+	setTimeout(function () {
+		if (capturedErrors.length > 0) {
+			exfLauncher.showMessageToast(capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
+		}
+	}, 1000); // 1 second delay to ensure the page has fully loaded
+};
 window['exfLauncher'] = exfLauncher;
