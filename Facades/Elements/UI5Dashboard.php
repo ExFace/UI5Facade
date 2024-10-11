@@ -89,14 +89,22 @@ class UI5Dashboard extends UI5Container
         foreach ($this->getDataElements() as $el) {
             $searchJs .= PHP_EOL . $el->buildJsRefresh();
         }
-
+        
+        $resetJs = "";        
+        $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
+        $resetJs .= <<<JS
+        
+setTimeout(function() {
+$searchJs;
+}(),0);
+JS;        
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         $buttons = [];
         $btn = WidgetFactory::createFromUxonInParent($this->getWidget()->getConfiguratorWidget()->getFilterTab(), new UxonObject([
             'widget_type' => 'Button',
             'action' => [
                 'alias' => 'exface.Core.CustomFacadeScript',
-                'script' => ''
+                'script' => $resetJs
             ],
             'show_icon' => false,
             'hint' => $translator->translate('ACTION.RESETWIDGET.NAME'),
@@ -133,6 +141,12 @@ class UI5Dashboard extends UI5Container
             }
         }
         return $els;
+    }
+    
+    protected function getConfiguratorElement() : UI5DashboardConfigurator
+    {
+        $configuratorWidget = $this->getWidget()->getConfiguratorWidget();
+        return $this->getFacade()->getElement($configuratorWidget);
     }
     
     /**
