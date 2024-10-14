@@ -84,27 +84,14 @@ class UI5Dashboard extends UI5Container
         if (! $this->isWrappedInDynamicPage()) {
             return '';
         }
-
-        $searchJs = '';
-        foreach ($this->getDataElements() as $el) {
-            $searchJs .= PHP_EOL . $el->buildJsRefresh();
-        }
         
-        $resetJs = "";        
-        $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
-        $resetJs .= <<<JS
-        
-setTimeout(function() {
-$searchJs;
-}(),0);
-JS;        
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         $buttons = [];
         $btn = WidgetFactory::createFromUxonInParent($this->getWidget()->getConfiguratorWidget()->getFilterTab(), new UxonObject([
             'widget_type' => 'Button',
             'action' => [
                 'alias' => 'exface.Core.CustomFacadeScript',
-                'script' => $resetJs
+                'script' => $this->buildJsResetter()
             ],
             'show_icon' => false,
             'hint' => $translator->translate('ACTION.RESETWIDGET.NAME'),
@@ -117,7 +104,7 @@ JS;
             'widget_type' => 'Button',
             'action' => [
                 'alias' => 'exface.Core.CustomFacadeScript',
-                'script' => $searchJs
+                'script' => $this->buildJsRefresh()
             ],
             'show_icon' => false,
             'hint' => $translator->translate('ACTION.READDATA.NAME'),
@@ -130,6 +117,37 @@ JS;
             $buttonsJs .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
         return $buttonsJs;
+    }
+    
+    /**
+     * 
+     * @return string
+     */
+    public function buildJsRefresh() : string
+    {
+        $searchJs = '';
+        foreach ($this->getDataElements() as $el) {
+            $searchJs .= PHP_EOL . $el->buildJsRefresh();
+        }
+        return $searchJs;
+    }
+    
+    /**
+     *
+     * @return string
+     */
+    public function buildJsResetter() : string
+    {
+        $resetJs = "";
+        $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
+        $resetJs .= <<<JS
+        
+setTimeout(function() {
+    {$this->buildJsRefresh()}
+}(),0);
+JS;
+        
+    return $resetJs;
     }
 
     protected function getDataElements() : array
