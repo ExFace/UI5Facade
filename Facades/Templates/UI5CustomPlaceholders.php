@@ -19,6 +19,8 @@ class UI5CustomPlaceholders extends AbstractPlaceholderResolver
 {
     private $facade = null;
     
+    protected string $prefix = 'ui5:';
+    
     /**
      *
      * @param FacadeInterface $facade
