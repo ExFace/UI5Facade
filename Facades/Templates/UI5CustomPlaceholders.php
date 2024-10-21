@@ -1,10 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Templates;
 
-use exface\Core\Interfaces\TemplateRenderers\PlaceholderResolverInterface;
+use exface\Core\CommonLogic\TemplateRenderer\AbstractPlaceholderResolver;
 use exface\Core\Interfaces\Facades\FacadeInterface;
-use exface\Core\CommonLogic\TemplateRenderer\Traits\PrefixedPlaceholderTrait;
-use exface\Core\Templates\Placeholders\WidgetRenderPlaceholders;
 use exface\UI5Facade\Facades\UI5Facade;
 
 /**
@@ -17,13 +15,11 @@ use exface\UI5Facade\Facades\UI5Facade;
  * @author Andrej Kabachnik
  *
  */
-class UI5CustomPlaceholders implements PlaceholderResolverInterface
+class UI5CustomPlaceholders extends AbstractPlaceholderResolver
 {
-    use PrefixedPlaceholderTrait;
-    
     private $facade = null;
     
-    private $prefix = 'ui5:';
+    protected string $prefix = 'ui5:';
     
     /**
      *
