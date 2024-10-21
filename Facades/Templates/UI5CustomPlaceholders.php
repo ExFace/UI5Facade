@@ -39,8 +39,8 @@ class UI5CustomPlaceholders extends AbstractPlaceholderResolver
     public function resolve(array $placeholders) : array
     {
         $phVals = [];
-        foreach ($this->filterPlaceholders($placeholders, $this->prefix) as $placeholder) {
-            $option = $this->stripPrefix($placeholder, $this->prefix);
+        foreach ($this->filterPlaceholders($placeholders) as $placeholder) {
+            $option = $this->stripPrefix($placeholder);
             switch ($option) {
                 case 'density_body_class':
                     if ($this->facade->getContentDensity() === 'cozy') {
