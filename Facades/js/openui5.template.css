@@ -127,6 +127,7 @@ img.sapMImg:not(.sapUxAPObjectPageHeaderObjectImage) {display: block; max-width:
 
 /* Temp. fixes for UI5 issues */
 .sapMImageContentImageIcon.sapUiIcon {position: absolute; display: block;}
+.sapUiFormM:not(.sapUiFormEdit) .sapUiFormResGridCont>div .sapUiIcon.sapMImageContentImageIcon {font-size: 1.75rem}
 /* Image and title in object page layout header to close to page header line in 1.67.1 */
 .sapUxAPObjectPageHeaderContent {padding-top: 1rem;}
 /* sap.m.Table group header rows barely different from striped rows */
