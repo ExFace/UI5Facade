@@ -156,6 +156,11 @@
 	"LIBS.SLICK.THEME_CSS": "npm-asset/slick-carousel/slick/slick-theme.css",
 	"LIBS.SLICK.LIGHTBOX_JS": "npm-asset/slick-lightbox/dist/slick-lightbox.min.js",
 	"LIBS.SLICK.LIGHTBOX_CSS": "npm-asset/slick-lightbox/dist/slick-lightbox.css",
+
+	"LIBS.TOASTUI.EDITOR.JS": "exface/UI5Facade/Facades/js/toastui-editor-all.min.js",
+	"LIBS.TOASTUI.EDITOR.CSS": "npm-asset/toast-ui--editor/dist/toastui-editor.css",
+	
+	"LIBS.MERMAID.JS": "exface/core/Facades/AbstractAjaxFacade/js/mermaid.min.js",
 		
 	"LIBS.PIVOTTABLE.CORE.JS": "npm-asset/pivottable/dist/pivot.min.js",
    	"LIBS.PIVOTTABLE.CORE.CSS": "npm-asset/pivottable/dist/pivot.min.css",
