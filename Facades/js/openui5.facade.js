@@ -324,6 +324,7 @@ const exfLauncher = {};
 	this.contextBar = function () {
 		var _oComponent = {};
 		var _oContextBar = {
+			traceJs: false,
 			lastContextRefresh: null,
 			init: function (oComponent) {
 				_oComponent = oComponent;
@@ -412,6 +413,7 @@ const exfLauncher = {};
 				var oCtxtData = {};
 				var sColor;
 
+				_oContextBar.data = data;
 				oToolbar.removeAllContent();
 
 				for (var i = 0; i < aItemsOld.length; i++) {
@@ -442,12 +444,46 @@ const exfLauncher = {};
 								var oButton = oEvent.getSource();
 								_oContextBar.showMenu(oButton);
 							}
-						}).data('widget', oCtxtData.bar_widget_id, true),
+						})
+						.data('widget', oCtxtData.bar_widget_id, true)
+						.data('context', oCtxtData.context_alias, true),
 						iItemsIndex
 					);
+
+					// Handle JS tracer if it is enabled in the DebugContext
+					if (id.endsWith('CoreDebugContext')) {
+						_oContextBar._setupTracer(oCtxtData);
+					}
 				}
 				_oLauncher.contextBar.getComponent().getPWA().updateQueueCount();
 				_oLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			},
+
+			_setupTracer: function(oCtxtData) {
+				if (oCtxtData.indicator !== 'OFF' && oCtxtData.indicator.includes('F')) {
+					if (_oContextBar.traceJs !== true) {
+						_oContextBar.traceJs = true;
+						if (window.eruda === undefined) {
+							var script = document.createElement('script'); 
+							script.src="vendor/npm-asset/eruda/eruda.js"; 
+							document.body.appendChild(script); 
+							script.onload = function () { 
+								eruda.init();
+							} 
+						}
+						$(document).on('debugShowJsTrace', function(oEvent) {
+							if (window.eruda !== undefined) {
+								eruda.show();
+							}
+							oEvent.preventDefault();
+						});
+					}
+				} else {
+					if (_oContextBar.traceJs === true) {
+						_oContextBar.traceJs = false;
+						$(document).off('debugShowJsTrace');
+					}
+				}
 			},
 
 			showMenu: function (oButton) {
@@ -549,10 +585,11 @@ const exfLauncher = {};
 						oView._handleEvent(oEvent);
 
 						oView.fireBeforeRendering();
-
-						// After-open events
+						
+						// Populate the popover
 						oPopoverPage.addContent(oView);
 
+						// After-open events
 						oEvent = jQuery.Event("AfterShow", oNavInfoOpen);
 						oEvent.srcControl = oPopover.getContent()[0];
 						oEvent.data = {};
