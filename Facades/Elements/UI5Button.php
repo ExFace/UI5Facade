@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\ContextBar;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryButtonTrait;
@@ -636,12 +637,19 @@ JS;
         // Before triggering action effects, double check, that the input element is stil there!
         // This is important because it may be gone after a dialog was closed, which would result
         // in JS errors. Checking input element and not button element here to make it work with
-        // actions without a rendered button - e.g. drop actions
+        // actions without a rendered button - e.g. drop actions.
+        // NOTE: the ContextBar does not have an an id in UI5 because it is generated in openui5.facade.js
+        // where the correct id cannot be build, so we need to explicitly exclude it here!
+        if ($input_element && $input_element->getWidget() instanceof ContextBar) {
+            $skipEffectsJs = 'false /* Always trigger effects on context bar actions! */';
+        } else {
+            $skipEffectsJs = '(sap.ui.getCore().byId("{$input_element->getId()}") === undefined)';
+        }
         $onModelLoadedJs = <<<JS
 
 								
 								{$this->buildJsBusyIconHide()}
-                                if (sap.ui.getCore().byId("{$input_element->getId()}") !== undefined) {
+                                if (false === $skipEffectsJs) {
                                     {$this->buildJsCloseDialog(false)}
 								    {$this->buildJsTriggerActionEffects($action)}
                                 }
@@ -675,7 +683,7 @@ JS;
                                         document.body.appendChild(a);
                                         a.click();
                                         document.body.removeChild(a);
-                   					}
+                   					}console.log('action success');
                                     {$jsOnSuccess}
 								}
 JS;
