@@ -683,7 +683,7 @@ JS;
                                         document.body.appendChild(a);
                                         a.click();
                                         document.body.removeChild(a);
-                   					}console.log('action success');
+                   					}
                                     {$jsOnSuccess}
 								}
 JS;
