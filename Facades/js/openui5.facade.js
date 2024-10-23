@@ -8,7 +8,8 @@ let capturedErrors = [];
 const ignoredErrorPatterns = [
 	/Assertion failed: could not find any translatable text for key/i,
 	/The target you tried to get .* does not exist!/i,
-	/EventProvider sap\.m\.routing\.Targets/i
+	/EventProvider sap\.m\.routing\.Targets/i,
+	/Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
 ];
 
 // Toggle online/offlie icon
@@ -50,7 +51,7 @@ if (navigator.serviceWorker) {
 }
 
 function syncOfflineItems() {
-	if (exfLauncher._bLowSpeed || exfLauncher._forceOffline) return;
+	if (exfLauncher.isOfflineVirtually()) return;
 
 	exfPWA.actionQueue.getIds('offline')
 		.then(function (ids) {
@@ -90,7 +91,6 @@ const exfLauncher = {};
 	const NETWORK_STATUS_OFFLINE = 'offline';
 
 	var _oShell = {};
-	var _oAppMenu;
 	var _oLauncher = this;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
@@ -115,9 +115,8 @@ const exfLauncher = {};
 		isAutoOffline: false
 	};
 
-
-
 	function updateNetworkState(isLowSpeed, isAutoOffline) {
+		// TODO aka 23.10.2024: What about forced offline? Why isn't it here?
 		var isOnline = navigator.onLine;
 		var currentState = {
 			isLowSpeed: isLowSpeed,
@@ -243,33 +242,18 @@ const exfLauncher = {};
 		}
 	};
 
-	this.isVirtualOffline = function () {
-		return _bLowSpeed || _forceOffline || exfPWA.isVirtuallyOffline;
+	this.isOfflineVirtually = function () {
+		return (_autoOffline && _bLowSpeed) || _forceOffline;
 	};
 
 
 	this.isSemiOffline = async function () {
-		return await exfPWA.isSemiOffline();
+		return await exfPWA.isOfflineVirtually();
 	};
-
-
-	// this.isOnline = async function () {
-	// 	return !await this.isVirtualOffline() && navigator.onLine;
-	// };
 
 	this.isOnline = async function () {
 		// Check if we're virtually offline
-		if (this.isVirtualOffline()) {
-			return false;
-		}
-
-		// Check if we're in forced offline mode
-		if (_forceOffline) {
-			return false;
-		}
-
-		// Check if we're in low-speed offline mode (semi-offline)
-		if (_autoOffline && _bLowSpeed) {
+		if (this.isOfflineVirtually()) {
 			return false;
 		}
 
@@ -405,6 +389,11 @@ const exfLauncher = {};
 				});
 				oComponent.getPWA().updateQueueCount();
 				oComponent.getPWA().updateErrorCount();
+				
+				$(document).on('debugShowJsTrace', function(oEvent) {
+					_oLauncher.showErrorLog();
+					oEvent.preventDefault();
+				});
 			},
 
 			getComponent: function () {
@@ -420,7 +409,8 @@ const exfLauncher = {};
 				}
 				_oContextBar.lastContextRefresh = new Date();
 
-				if (navigator.onLine === false) {
+				// Do not really refresh if offline or semi-offline
+				if (navigator.onLine === false || exfLauncher.isOfflineVirtually()) {
 					_oContextBar.refresh({});
 					return;
 				}
@@ -513,25 +503,10 @@ const exfLauncher = {};
 				if (oCtxtData.indicator !== 'OFF' && oCtxtData.indicator.includes('F')) {
 					if (_oContextBar.traceJs !== true) {
 						_oContextBar.traceJs = true;
-						if (window.eruda === undefined) {
-							var script = document.createElement('script'); 
-							script.src="vendor/npm-asset/eruda/eruda.js"; 
-							document.body.appendChild(script); 
-							script.onload = function () { 
-								eruda.init();
-							} 
-						}
-						$(document).on('debugShowJsTrace', function(oEvent) {
-							if (window.eruda !== undefined) {
-								eruda.show();
-							}
-							oEvent.preventDefault();
-						});
 					}
 				} else {
 					if (_oContextBar.traceJs === true) {
 						_oContextBar.traceJs = false;
-						$(document).off('debugShowJsTrace');
 					}
 				}
 			},
@@ -1741,12 +1716,6 @@ const exfLauncher = {};
 								type: "Active",
 								press: _oLauncher.clearPreload,
 							}),
-							new sap.m.StandardListItem({
-								title: "{i18n>WEBAPP.SHELL.NETWORK.ERROR_LOG}",
-								type: "Active",
-								icon: "sap-icon://message-warning",
-								press: _oLauncher.showErrorLog
-							}),
 							new sap.m.GroupHeaderListItem({
 								title: "{i18n>WEBAPP.SHELL.NETWORK.OFFLINE_HEADER}",
 								upperCase: false
@@ -1847,7 +1816,6 @@ const exfLauncher = {};
 	};
 
 	this.showErrorLog = function (oEvent) {
-		var oButton = oEvent.getSource();
 		var oTable = new sap.m.Table({
 			autoPopinMode: true,
 			fixedLayout: false,
@@ -2023,7 +1991,6 @@ const exfLauncher = {};
 				}),
 				beginButton: new sap.m.Button({
 					text: "Dismiss All",
-					type: "Emphasized",
 					press: function() {
 						// Clear Error List
 						capturedErrors = [];
@@ -2068,12 +2035,12 @@ const exfLauncher = {};
 
 	this.toggleForceOfflineOff = function () {
 		_forceOffline = false;
+		_bLowSpeed = false;
+		// TODO aka 23.10.2024: shouldn't the state be forced offline here?
 		exfLauncher.updateNetworkState(false, _autoOffline);
 
 		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
 		exfLauncher.revertMockNetworkError();
-		_bLowSpeed = false;
-
 		if (_autoOffline) {
 			exfLauncher.initPoorNetworkPoller();
 		} else {
@@ -2174,6 +2141,7 @@ const exfLauncher = {};
 				return exfLauncher.isNetworkSlow();
 			})
 			.then(function (isNetworkSlow) {
+				// TODO aka 23.10.2024: shouldn't the network state now be determined from _autoOffline AND _bLowSpeed?
 				exfLauncher.updateNetworkState(isNetworkSlow, _autoOffline);
 
 				clearInterval(_oNetworkSpeedPoller);
@@ -2483,7 +2451,9 @@ exfLauncher.showErrorPopover = function(errorMessage) {
     // Show Popover only if there are active errors
     if (activeErrors.length > 0) {
         var oNetworkIndicator = sap.ui.getCore().byId("exf-network-indicator");
-        this.errorPopover.openBy(oNetworkIndicator);
+		jQuery.sap.delayedCall(0, this, function () {
+        	this.errorPopover.openBy(oNetworkIndicator);
+		});
     }
 };
 
@@ -2506,7 +2476,7 @@ console.error = function (...args) {
 
     const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
 
-    if (!shouldIgnore && !exfLauncher.dismissedErrors.has(errorMessage)) {
+    if (exfLauncher.contextBar.traceJs && ! shouldIgnore && ! exfLauncher.dismissedErrors.has(errorMessage)) {
         const errorDetails = {
             message: errorMessage,
             timestamp: new Date().toISOString(),
