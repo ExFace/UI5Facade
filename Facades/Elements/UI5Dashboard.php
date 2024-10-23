@@ -84,19 +84,14 @@ class UI5Dashboard extends UI5Container
         if (! $this->isWrappedInDynamicPage()) {
             return '';
         }
-
-        $searchJs = '';
-        foreach ($this->getDataElements() as $el) {
-            $searchJs .= PHP_EOL . $el->buildJsRefresh();
-        }
-
+        
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         $buttons = [];
         $btn = WidgetFactory::createFromUxonInParent($this->getWidget()->getConfiguratorWidget()->getFilterTab(), new UxonObject([
             'widget_type' => 'Button',
             'action' => [
                 'alias' => 'exface.Core.CustomFacadeScript',
-                'script' => ''
+                'script' => $this->buildJsResetter()
             ],
             'show_icon' => false,
             'hint' => $translator->translate('ACTION.RESETWIDGET.NAME'),
@@ -109,7 +104,7 @@ class UI5Dashboard extends UI5Container
             'widget_type' => 'Button',
             'action' => [
                 'alias' => 'exface.Core.CustomFacadeScript',
-                'script' => $searchJs
+                'script' => $this->buildJsRefresh()
             ],
             'show_icon' => false,
             'hint' => $translator->translate('ACTION.READDATA.NAME'),
@@ -123,6 +118,37 @@ class UI5Dashboard extends UI5Container
         }
         return $buttonsJs;
     }
+    
+    /**
+     * 
+     * @return string
+     */
+    public function buildJsRefresh() : string
+    {
+        $searchJs = '';
+        foreach ($this->getDataElements() as $el) {
+            $searchJs .= PHP_EOL . $el->buildJsRefresh();
+        }
+        return $searchJs;
+    }
+    
+    /**
+     *
+     * @return string
+     */
+    public function buildJsResetter() : string
+    {
+        $resetJs = "";
+        $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
+        $resetJs .= <<<JS
+        
+setTimeout(function() {
+    {$this->buildJsRefresh()}
+}(),0);
+JS;
+        
+    return $resetJs;
+    }
 
     protected function getDataElements() : array
     {
@@ -133,6 +159,12 @@ class UI5Dashboard extends UI5Container
             }
         }
         return $els;
+    }
+    
+    protected function getConfiguratorElement() : UI5DashboardConfigurator
+    {
+        $configuratorWidget = $this->getWidget()->getConfiguratorWidget();
+        return $this->getFacade()->getElement($configuratorWidget);
     }
     
     /**
