@@ -4,10 +4,26 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\ToastUIEditorTrait;
 
+/**
+ * UI5 specific implementation of the InputMarkdown widget, which enables the use of the ToastUI
+ * markdown editor.
+ */
 class UI5InputMarkdown extends UI5Input
 {
     use ToastUIEditorTrait;
-    
+
+    /**
+     * @return void
+     */
+    protected function init()
+    {
+        parent::init();
+
+        // Make sure to register the controller var as early as possible because it is needed in buildJsValidator(),
+        // which is called by the outer Dialog or Form widget
+        $this->getController()->addDependentObject('editor', $this, 'null');
+    }
+
     /**
      *
      * {@inheritDoc}
@@ -16,12 +32,29 @@ class UI5InputMarkdown extends UI5Input
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
+        $this->addOnChangeScript(<<<JS
+
+            (function(sVal){
+                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
+                var sBindingPath = '{$this->getValueBindingPath()}';
+                console.log('change', sVal);
+                oModel.setProperty(sVal);
+            })({$this->buildJsValueGetter()})
+JS);
         return <<<JS
 
         new sap.ui.core.HTML("{$this->getId()}", {
-            content: {$this->escapeString($this->buildHtmlMarkdownEditor())},
+            content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                var {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()}
+                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
+                var sBindingPath = '{$this->getValueBindingPath()}';
+                var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
+                oValueBinding.attachChange(function(oEvent){
+                    var sVal = oModel.getProperty(sBindingPath);
+                    {$this->buildJsValueSetter("sVal")}
+                });
+                
+                {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()}
             }
         })
 JS;
@@ -53,13 +86,12 @@ JS;
         return parent::getHeight();
     }
 
-    public function buildJsDataGetter(\exface\Core\Interfaces\Actions\ActionInterface $action = null)
+    /**
+     *
+     * @return string
+     */
+    protected function buildJsMarkdownVar() : string
     {
-        $a = 0;
-        if ($this->getWidget()->isDisplayOnly()) {
-            return '{}';
-        } else {
-            return parent::buildJsDataGetter($action);
-        }
+        return $this->getController()->buildJsDependentObjectGetter('editor', $this);
     }
 }
