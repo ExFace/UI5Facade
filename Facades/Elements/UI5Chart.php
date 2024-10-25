@@ -14,6 +14,11 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
  * 
+ * ## Life References
+ * 
+ * - `~legend_active`: All currently `enabled` elements in the chart legend.
+ * - `~legend_disabled`: All currently `disabled` elements in the chart legend.
+ * 
  * @method exface\Core\Widgets\Chart getWidget()
  * @method UI5ControllerInterface getController()
  * 
