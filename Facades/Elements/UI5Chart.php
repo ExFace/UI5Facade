@@ -452,4 +452,22 @@ JS;
     {
         return true;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function addOnChangeScript($js) : static
+    {
+        parent::addOnChangeScript($js);
+
+        if (str_contains($js, $this->buildJsValueGetter($this->getLegendActiveToken()))) {
+            $this->getController()->addOnEventScript($this, $this->getInvokeLegendActiveGetter(), $js);
+        }
+
+        if (str_contains($js, $this->buildJsValueGetter($this->getLegendDisabledToken()))) {
+            $this->getController()->addOnEventScript($this, $this->getInvokeLegendDisabledGetter(), $js);
+        }
+        
+        return $this;
+    }
 }
