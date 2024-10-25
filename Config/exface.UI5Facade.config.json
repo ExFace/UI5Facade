@@ -66,8 +66,15 @@
 			"matcher": "/.*\\/api\\/ui5\\?(?!.*context).*/i",
 			"script": [
 				"swTools.strategies.semiOffline({",
-				"    onlineStrategy: new workbox.strategies.NetworkFirst(),",
-				"    offlineStrategy: new workbox.strategies.CacheFirst()",
+				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
 				"})"
 			]
 		},
@@ -75,23 +82,43 @@
 			"description": "Cache reading POST requests from the UI5 API (e.g. POST `/api/ui5?action=...`)",
 			"method": "POST",
 			"matcher": "/.*\\/api\\/ui5(?!.*context).*/i",
-			"strategy": "swTools.strategies.postNetworkFirst",
+			"strategy": "swTools.strategies.POSTNetworkFirst",
 			"cacheName": "ui5-cache",
     		"maxAgeSeconds": 604800
 		},
     	"GET Webapp files": {
 			"description": "Cache views, controllers, etc. in case offline (e.g. GET `/api/ui5/webapps/...`)",
 			"matcher": "/.*\\/api\\/ui5\\/webapps\\/.*/i",
-			"strategy": "swTools.strategies.postNetworkFirst",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.semiOffline({",
+				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
+				"})"
+			]
 		},
     	"GET i18n, config": {
 			"description": "Cache UI5 specific files in addition to regular JS and CSS cache rules from Core",
 			"matcher": "/(.*\\.properties|.*\\.woff2|.*\\/cldr\\/.*\\.json)/",
-			"strategy": "workbox.strategies.StaleWhileRevalidate",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.semiOffline({",
+				"    onlineStrategy: new workbox.strategies.StaleWhileRevalidate({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
+				"})"
+			]
 		}
     },
     "INSTALLER.SERVICEWORKER.IMPORTS": [
