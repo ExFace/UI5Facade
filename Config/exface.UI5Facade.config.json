@@ -82,9 +82,12 @@
 			"description": "Cache reading POST requests from the UI5 API (e.g. POST `/api/ui5?action=...`)",
 			"method": "POST",
 			"matcher": "/.*\\/api\\/ui5(?!.*context).*/i",
-			"strategy": "swTools.strategies.POSTNetworkFirst",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.semiOffline({",
+				"    onlineStrategy: swTools.strategies.POSTNetworkFirst(),",
+				"    offlineStrategy: swTools.strategies.POSTCacheOnly()",
+				"})"
+			]
 		},
     	"GET Webapp files": {
 			"description": "Cache views, controllers, etc. in case offline (e.g. GET `/api/ui5/webapps/...`)",
@@ -183,11 +186,6 @@
 	"LIBS.SLICK.THEME_CSS": "npm-asset/slick-carousel/slick/slick-theme.css",
 	"LIBS.SLICK.LIGHTBOX_JS": "npm-asset/slick-lightbox/dist/slick-lightbox.min.js",
 	"LIBS.SLICK.LIGHTBOX_CSS": "npm-asset/slick-lightbox/dist/slick-lightbox.css",
-
-	"LIBS.TOASTUI.EDITOR.JS": "exface/UI5Facade/Facades/js/toastui-editor-all.min.js",
-	"LIBS.TOASTUI.EDITOR.CSS": "npm-asset/toast-ui--editor/dist/toastui-editor.css",
-	
-	"LIBS.MERMAID.JS": "exface/core/Facades/AbstractAjaxFacade/js/mermaid.min.js",
 		
 	"LIBS.PIVOTTABLE.CORE.JS": "npm-asset/pivottable/dist/pivot.min.js",
    	"LIBS.PIVOTTABLE.CORE.CSS": "npm-asset/pivottable/dist/pivot.min.css",

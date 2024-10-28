@@ -115,42 +115,6 @@ const exfLauncher = {};
 		isAutoOffline: false
 	};
 
-	function updateNetworkState(isLowSpeed, isAutoOffline) {
-		// TODO aka 23.10.2024: What about forced offline? Why isn't it here?
-		var isOnline = navigator.onLine;
-		var currentState = {
-			isLowSpeed: isLowSpeed,
-			isOnline: isOnline,
-			isAutoOffline: isAutoOffline
-		};
-
-		var shouldUpdateUI = JSON.stringify(currentState) !== JSON.stringify(_lastNetworkState);
-
-		if (shouldUpdateUI) {
-			if (currentState.isOnline) {
-				if (currentState.isLowSpeed && currentState.isAutoOffline) {
-					exfLauncher.toggleOnlineIndicator({ lowSpeed: true });
-					exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_SLOW_INTERNET"));
-				} else {
-					exfLauncher.toggleOnlineIndicator({ lowSpeed: false });
-					if (_lastNetworkState.isLowSpeed || !_lastNetworkState.isOnline) {
-						exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_STABLE_INTERNET"));
-					}
-				}
-			} else {
-				exfLauncher.toggleOnlineIndicator({ lowSpeed: false });
-				exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.NETWORK.OFFLINE"));
-			}
-
-			if (currentState.isLowSpeed && currentState.isAutoOffline) {
-				exfLauncher.mockNetworkError();
-			} else {
-				exfLauncher.revertMockNetworkError();
-			}
-			_lastNetworkState = currentState;
-		}
-	};
-
 	this.initPoorNetworkPoller = function () {
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(function () {
@@ -197,6 +161,10 @@ const exfLauncher = {};
 	// 		});
 	// };
 
+	/**
+	 * TODO does this function return boolean or promise??? Looks like a mixture right now!
+	 * @returns {boolean}
+	 */
 	this.isNetworkSlow = function () {
 		// Check if the network speed is slow via browser API (Chrome, Opera, Edge) 
 		if (navigator?.connection?.effectiveType) {
@@ -228,11 +196,11 @@ const exfLauncher = {};
 
 					if (averageSpeed > 0.1) {
 						// If the average speed is greater than 0.5
-						exfPWA.data.saveConnectionStatus(NETWORK_STATUS_ONLINE);
+						exfPWA.data.saveConnectionStatus(NETWORK_STATUS_ONLINE, false, _autoOffline, _forceOffline);
 						return false; // Network is fast
 					} else {
 						// If the average speed is 0.5 or less
-						exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_BAD_CONNECTION);
+						exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_BAD_CONNECTION, true, _autoOffline, _forceOffline);
 						return true; // Network is slow
 					}
 				})
@@ -242,6 +210,10 @@ const exfLauncher = {};
 		}
 	};
 
+	/**
+	 * 
+	 * @returns {boolean}
+	 */
 	this.isOfflineVirtually = function () {
 		return (_autoOffline && _bLowSpeed) || _forceOffline;
 	};
@@ -251,34 +223,20 @@ const exfLauncher = {};
 		return await exfPWA.isOfflineVirtually();
 	};
 
-	this.isOnline = async function () {
+	this.isOnline = function () {
 		// Check if we're virtually offline
 		if (this.isOfflineVirtually()) {
 			return false;
 		}
 
 		// Check if we're in semi-offline mode
-		const isSemiOffline = await this.isSemiOffline();
+		const isSemiOffline = this.isOfflineVirtually();
 		if (isSemiOffline) {
 			return false;
 		}
 
 		// If none of the above conditions are true, check the browser's online status
 		return navigator.onLine;
-	};
-
-	this.revertMockNetworkError = function () {
-		setTimeout(() => {
-			syncOfflineItems();
-		}, 100);
-		// ServiceWorkerUtils.message({ action: 'virtuallyOfflineDisabled' });
-		exfPWA.setVirtuallyOffline(false);
-	};
-
-	// Simulate network error in poor network speeds, except for specific URLs 
-	this.mockNetworkError = function () {
-		// ServiceWorkerUtils.message({ action: 'virtuallyOfflineEnabled' });
-		exfPWA.setVirtuallyOffline(true);
 	};
 
 	this.getShell = function () {
@@ -1534,10 +1492,11 @@ const exfLauncher = {};
 				})
 			}
 		})
-			.setModel(oButton.getModel())
-			.setModel(oButton.getModel('i18n'), 'i18n');
+		.setModel(oButton.getModel())
+		.setModel(oButton.getModel('i18n'), 'i18n');
 
-		exfPWA.errors.sync()
+		if (_oLauncher.isOnline()) {
+			exfPWA.errors.sync()
 			.then(function (data) {
 				var oData = {};
 				if (data.rows !== undefined) {
@@ -1552,6 +1511,7 @@ const exfLauncher = {};
 				oTable.setModel(function () { return new sap.ui.model.json.JSONModel(oData) }(), 'errorModel');
 				_oLauncher.contextBar.getComponent().showDialog('{i18n>WEBAPP.SHELL.NETWORK.ERROR_TABLE_ERRORS}', oTable, undefined, undefined, true);
 			})
+		}
 	};
 
 	/**
@@ -1624,18 +1584,18 @@ const exfLauncher = {};
 
 
 
+	/**
+	 * TODO Could this be oStatus.toString()? But shouldn't we translate these strings?
+	 * @returns {string}
+	 */
 	this.getTitle = function () {
 		if (_forceOffline) {
-			exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_FORCED);
 			return "Offline, Forced";
 		} else if (!navigator.onLine) {
-			exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE);
 			return "Offline, No Internet";
 		} else if (_autoOffline && _bLowSpeed) {
-			exfPWA.data.saveConnectionStatus(NETWORK_STATUS_OFFLINE_BAD_CONNECTION);
 			return "Offline, Low Speed";
 		} else {
-			exfPWA.data.saveConnectionStatus(NETWORK_STATUS_ONLINE);
 			return "Online";
 		}
 	};
@@ -1958,15 +1918,15 @@ const exfLauncher = {};
 	
 		// Update error logs and add network status information 
 		var updatedErrors = capturedErrors.map(function (error) {
-			return exfPWA.getLatestConnectionStatus()
-				.then(function (connectionStatus) {
+			return exfPWA.getConnectionStatus()
+				.then(function (oStatus) {
 					return {
 						timestamp: error.timestamp,
 						message: error.message,
 						url: error.url,
 						stack: error.stack,
 						networkStatus: navigator.connection ? navigator.connection.effectiveType : 'Unknown',
-						connectionStatus: connectionStatus
+						connectionStatus: oStatus.toString()
 					};
 				});
 		});
@@ -2009,12 +1969,11 @@ const exfLauncher = {};
 	this.toggleForceOfflineOn = function () {
 		_forceOffline = true;
 		_autoOffline = false; // Disable auto offline when force offline is enabled
-		exfLauncher.updateNetworkState(true, false);
+		_oLauncher.updateNetworkState(true, false);
 
-		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON"));
-		exfLauncher.mockNetworkError();
+		_oLauncher.showMessageToast(_oLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON"));
 		clearInterval(_oNetworkSpeedPoller);
-		exfLauncher.toggleOnlineIndicator({ lowSpeed: true });
+		_oLauncher.toggleOnlineIndicator({ lowSpeed: true });
 
 		// Update UI elements
 		var autoOfflineSwitch = sap.ui.getCore().byId('auto_offline_toggle');
@@ -2029,7 +1988,7 @@ const exfLauncher = {};
 			forceOfflineSwitch.setState(true);
 		}
 
-		exfPWA.setVirtuallyOffline(true);
+		// TODO move this to where network status is saved
 		exfPWA.data.saveAutoOfflineToggleStatus(false); // Save auto offline status
 	};
 
@@ -2037,14 +1996,13 @@ const exfLauncher = {};
 		_forceOffline = false;
 		_bLowSpeed = false;
 		// TODO aka 23.10.2024: shouldn't the state be forced offline here?
-		exfLauncher.updateNetworkState(false, _autoOffline);
+		_oLauncher.updateNetworkState(false, _autoOffline);
 
-		exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
-		exfLauncher.revertMockNetworkError();
+		_oLauncher.showMessageToast(_oLauncher.contextBar.getComponent().getModel('i18n').getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
 		if (_autoOffline) {
-			exfLauncher.initPoorNetworkPoller();
+			_oLauncher.initPoorNetworkPoller();
 		} else {
-			exfLauncher.toggleOnlineIndicator({ lowSpeed: false });
+			_oLauncher.toggleOnlineIndicator({ lowSpeed: false });
 		}
 
 		// Update UI elements
@@ -2058,8 +2016,6 @@ const exfLauncher = {};
 		if (forceOfflineSwitch) {
 			forceOfflineSwitch.setState(false);
 		}
-
-		exfPWA.setVirtuallyOffline(false);
 	};
 
 	this.toggleAutoOfflineOn = function () {
@@ -2081,7 +2037,6 @@ const exfLauncher = {};
 
 				if (isNetworkSlow) {
 					exfLauncher.initFastNetworkPoller();
-					exfLauncher.mockNetworkError();
 				} else {
 					exfLauncher.initPoorNetworkPoller();
 				}
@@ -2117,14 +2072,9 @@ const exfLauncher = {};
 				connectionStatus = 'online';
 			}
 
+			// TODO why is lowSpeed connected to forceOffline?
 			this.toggleOnlineIndicator({ lowSpeed: _forceOffline || (isLowSpeed && isAutoOffline) });
-			exfPWA.data.saveConnectionStatus(connectionStatus);
-
-			if (_forceOffline || (isLowSpeed && isAutoOffline)) {
-				this.mockNetworkError();
-			} else {
-				this.revertMockNetworkError();
-			}
+			exfPWA.data.saveConnectionStatus(connectionStatus, isLowSpeed, isAutoOffline, _forceOffline);
 
 			// Update network menu title
 			var oPopover = sap.ui.getCore().byId('exf-network-menu');
@@ -2141,13 +2091,11 @@ const exfLauncher = {};
 				return exfLauncher.isNetworkSlow();
 			})
 			.then(function (isNetworkSlow) {
-				// TODO aka 23.10.2024: shouldn't the network state now be determined from _autoOffline AND _bLowSpeed?
 				exfLauncher.updateNetworkState(isNetworkSlow, _autoOffline);
 
 				clearInterval(_oNetworkSpeedPoller);
 
 				if (_bLowSpeed) {
-					exfLauncher.revertMockNetworkError();
 					_bLowSpeed = false;
 				}
 
