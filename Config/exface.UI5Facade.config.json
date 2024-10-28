@@ -65,7 +65,7 @@
 			"description": "Cache data from the UI5 API (e.g. GET `/api/ui5?action=...`)",
 			"matcher": "/.*\\/api\\/ui5\\?(?!.*context).*/i",
 			"script": [
-				"swTools.strategies.semiOffline({",
+				"swTools.strategies.SemiOfflineSwitch({",
 				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
 				"       cacheName : 'ui5-cache',",
 				"       plugins: [",
@@ -83,7 +83,7 @@
 			"method": "POST",
 			"matcher": "/.*\\/api\\/ui5(?!.*context).*/i",
 			"script": [
-				"swTools.strategies.semiOffline({",
+				"swTools.strategies.SemiOfflineSwitch({",
 				"    onlineStrategy: swTools.strategies.POSTNetworkFirst(),",
 				"    offlineStrategy: swTools.strategies.POSTCacheOnly()",
 				"})"
@@ -93,7 +93,7 @@
 			"description": "Cache views, controllers, etc. in case offline (e.g. GET `/api/ui5/webapps/...`)",
 			"matcher": "/.*\\/api\\/ui5\\/webapps\\/.*/i",
 			"script": [
-				"swTools.strategies.semiOffline({",
+				"swTools.strategies.SemiOfflineSwitch({",
 				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
 				"       cacheName : 'ui5-cache',",
 				"       plugins: [",
@@ -110,7 +110,7 @@
 			"description": "Cache UI5 specific files in addition to regular JS and CSS cache rules from Core",
 			"matcher": "/(.*\\.properties|.*\\.woff2|.*\\/cldr\\/.*\\.json)/",
 			"script": [
-				"swTools.strategies.semiOffline({",
+				"swTools.strategies.SemiOfflineSwitch({",
 				"    onlineStrategy: new workbox.strategies.StaleWhileRevalidate({",
 				"       cacheName : 'ui5-cache',",
 				"       plugins: [",
