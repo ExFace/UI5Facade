@@ -643,7 +643,7 @@ JS;
         if ($input_element && $input_element->getWidget() instanceof ContextBar) {
             $skipEffectsJs = 'false /* Always trigger effects on context bar actions! */';
         } else {
-            $skipEffectsJs = '(sap.ui.getCore().byId("{$input_element->getId()}") === undefined)';
+            $skipEffectsJs = '(sap.ui.getCore().byId("{$input_element->getId()}") !== undefined)';
         }
         $onModelLoadedJs = <<<JS
 
