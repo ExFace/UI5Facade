@@ -310,11 +310,18 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .sapUiIcon.exf-svg-icon::before {padding-top: 1px; width: 16px; display: block; margin-left: auto; margin-right: auto;}
 .sapUiTableCellInner > .sapUiIcon::before {padding-top: 2px}
 
-/* NavTiles IconTabBar */
-.tileHeaderMarginTop {margin-top: 50px;}
+/* NavTiles IconTabBar & SearchFilter */
+[id*="-content"] {scroll-padding-top: 50px;}
 .customHeader {box-shadow: none;}
-.responsiveFlexbox {position: sticky; z-index: 1000; width: auto;}
-@media (max-width: 966px) {
-    .responsiveFlexbox {flex-direction: column;}
-    .customSearchField {padding-left: 16px;padding-right: 16px;}
+.responsiveFlexbox {position: fixed; z-index: 1; width: 100%; justify-content: space-between; padding-right:1rem; box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.2); margin: auto;}
+@media (max-width: 1024px) {
+    .responsiveFlexbox {flex-direction: column;padding-bottom: 12px;}
+    [id*="-content"] {scroll-padding-top: 90px;}
+    #__field0 {padding-left: 1rem;}
 }
+
+/* NavTiles SearchFilter */
+[class*="sapMSF"] {height: 2rem !important;margin-top: 2px;}
+.sapMSFB {padding-top: 3px !important;}
+
+
