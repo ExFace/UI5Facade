@@ -313,7 +313,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* NavTiles IconTabBar & SearchFilter */
 [id*="-content"] {scroll-padding-top: 50px;}
 .customHeader {box-shadow: none;}
-.responsiveFlexbox {position: fixed; z-index: 1; width: 100%; justify-content: space-between; padding-right:1rem;}
+.responsiveFlexbox {position: fixed; z-index: 1; width: 100%; justify-content: space-between; padding-right:1rem; box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.2); margin: auto;}
 @media (max-width: 1024px) {
     .responsiveFlexbox {flex-direction: column;padding-bottom: 12px;}
     [id*="-content"] {scroll-padding-top: 90px;}
@@ -321,13 +321,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 }
 
 /* NavTiles SearchFilter */
-#__field0-reset::after {vertical-align: text-top;}
-#__field0-search::after {vertical-align: text-top;}
-#__field0-I {vertical-align: text-top;}
-#__field0-F {height: 2rem;}
-#__field0 {padding-top: 6px;}
+[class*="sapMSF"] {height: 2rem !important;margin-top: 2px;}
+.sapMSFB {padding-top: 3px !important;}
 
 
-/* Hide Progress Box in Image Upload Section */
-[id*="-progressBox"] {display: none;}
-.sapMUCButtonContainer {align-self: center;}

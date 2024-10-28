@@ -65,6 +65,10 @@ JS;
         return $navbar . ', ' . parent::buildJsChildrenConstructors();
     }
 
+    /**
+     * Summary of buildJsIconTabBar
+     * @return string
+     */
     protected function buildJsIconTabBar() : string
     {
         $this->getController()->addOnEventScript($this, 'TabSelect', <<<JS
@@ -149,12 +153,15 @@ JS);
             growFactor: 0
         }))
             ]
-        }).addStyleClass('responsiveFlexbox')
+        }).addStyleClass('responsiveFlexbox'),
 
-        //TODO: Add navbar.js for proper SearchFilter shrinking here
 JS;
     }
 
+    /**
+     * Summary of buildJsIconTabBarItems
+     * @return string
+     */
     protected function buildJsIconTabBarItems() : string
     {
         $js = '';
