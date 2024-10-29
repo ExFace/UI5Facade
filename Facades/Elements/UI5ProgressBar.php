@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
+use exface\Core\Interfaces\Widgets\iHaveHintScale;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 
 /**
@@ -200,9 +201,29 @@ JS;
      */
     protected function buildJsPropertyTooltip()
     {
-        if ($this->getWidget()->isInTable() === true && $this->isValueBoundToModel()) {
-            $value = $this->buildJsValueBinding();
-            return 'tooltip: ' . $value .',';
+        if (! $this->isValueBoundToModel()) {
+            return parent::buildJsPropertyTooltip();
+        }
+
+        $widget = $this->getWidget();
+        switch (true) {
+            case ($widget instanceof iHaveHintScale) && ! $widget->getHintScale()->isEmpty():
+                $scale = $widget->getHintScale();
+                $value = $this->buildJsValueBinding(<<<JS
+                
+                    formatter: function(mVal){
+                        var sHint = {$this->buildJsScaleResolver('mVal', $scale->getScaleValues(), $scale->isRangeBased())};
+                        if (sHint === null || sHint === undefined) {
+                            sHint = (mVal || '').toString();
+                        }
+                        console.log('hint', mVal, sHint);
+                        return sHint;
+                    },
+JS);
+                return 'tooltip: ' . $value .',';
+            case $widget->isInTable() === true && $this->isValueBoundToModel():
+                $value = $this->buildJsValueBinding('formatter: function(value){return (value === null || value === undefined) ? value : value.toString();},');
+                return 'tooltip: ' . $value .',';
         }
         
         return parent::buildJsPropertyTooltip();
