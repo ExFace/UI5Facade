@@ -3,10 +3,12 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\ToastUIEditorTrait;
+use exface\Core\Widgets\InputMarkdown;
 
 /**
- * UI5 specific implementation of the InputMarkdown widget, which enables the use of the ToastUI
- * markdown editor.
+ * UI5 implementation of the corresponding widget.
+ * 
+ * @see InputMarkdown
  */
 class UI5InputMarkdown extends UI5Input
 {
@@ -90,5 +92,67 @@ JS;
     protected function buildJsMarkdownVar() : string
     {
         return $this->getController()->buildJsDependentObjectGetter('editor', $this);
+    }
+
+    protected function buildJsRequiredGetter(): string
+    {
+        return $this->getWidget()->isRequired() ? 'true' : 'false';
+    }
+
+    protected function buildJsFullScreenToggleClickHandler() : string
+    {
+        $markdownVarJs = $this->buildJsMarkdownVar();
+        
+        return <<<JS
+
+                        var jqFullScreenContainer = $('#{$this->getId()}').parent().parent();
+                        //set the z-index of the fullscreen dynamically so it works with popovers
+                        var iZIndex = 0;
+                        var iMaxZIndex = 0;
+                        var parent = jqFullScreenContainer.parent();
+                        if (isNaN(jqFullScreenContainer.css('z-index'))) {
+                            //get the maximum z-index of parent elements of the data element
+                            while (parent.length !== 0 && parent[0].tagName !== "BODY") {
+                                iZIndex = parseInt(parent.css("z-index"));
+                                
+                                if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
+                                    iMaxZIndex = iZIndex;
+                                }    
+                                parent = parent.parent();
+                            }
+                        
+                            //check if the currently found maximum z-index is bigger than the z-index of the app header 
+                            var jqHeaderElement = $('.sapUiUfdShellHead');
+                            iZIndex = parseInt(jqHeaderElement.css("z-index"));
+                            if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
+                                iMaxZIndex = iZIndex;
+                            }
+                            
+                            iMaxZIndex = iMaxZIndex + 1;
+                            jqFullScreenContainer.css('z-index', iMaxZIndex);
+                        }
+                        
+                        var oEditor = {$markdownVarJs};
+                        var jqBtn = $('#{$this->getFullScreenToggleId()}');
+                        var bExpanding = ! jqFullScreenContainer.hasClass('fullscreen');
+                    
+                        jqBtn.find('i')
+                            .removeClass('fa-expand')
+                            .removeClass('fa-compress')
+                            .addClass(bExpanding ? 'fa-compress' : 'fa-expand');
+                        if (bExpanding) {
+                            if (jqFullScreenContainer.innerWidth() > 800) {
+                                oEditor.changePreviewStyle('vertical');
+                            }
+                            
+                            oEditor._originalParent = jqFullScreenContainer.parent();
+                            jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
+                            jqFullScreenContainer.addClass('fullscreen');
+                        } else {
+                            oEditor.changePreviewStyle('tab');
+                            jqFullScreenContainer.appendTo(oEditor._originalParent);
+                            jqFullScreenContainer.removeClass('fullscreen');
+                        }
+JS;
     }
 }
