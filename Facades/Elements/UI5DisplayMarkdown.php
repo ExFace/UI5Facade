@@ -2,23 +2,17 @@
 
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\UI5Facade\Facades\Elements\UI5Value;
+use exface\Core\Facades\AbstractAjaxFacade\Elements\ToastUIEditorTrait;
+use exface\Core\Widgets\DisplayMarkdown;
 
-class UI5MarkdownDisplay extends UI5Value
+/**
+ * UI5 implementation of the corresponding widget.
+ * 
+ * @see DisplayMarkdown
+ */
+class UI5DisplayMarkdown extends UI5Value
 {
     use ToastUIEditorTrait;
-
-    /**
-     * @return void
-     */
-    protected function init()
-    {
-        parent::init();
-
-        // Make sure to register the controller var as early as possible because it is needed in buildJsValidator(),
-        // which is called by the outer Dialog or Form widget
-        $this->getController()->addDependentObject('editor', $this, 'null');
-    }
 
     /**
      *
@@ -28,26 +22,30 @@ class UI5MarkdownDisplay extends UI5Value
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
-        $this->addOnChangeScript(<<<JS
-
-            (function(sVal){
-                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty(sVal);
-            })({$this->buildJsValueGetter()})
-JS);
+        $markdownVar = $this->buildJsMarkdownVar();
+        
         return <<<JS
 
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
-                var sBindingPath = '{$this->getValueBindingPath()}';
-                var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
-                oValueBinding.attachChange(function(oEvent){
-                    var sVal = oModel.getProperty(sBindingPath);
-                    {$this->buildJsValueSetter("sVal")}
-                });
+                console.log('{$markdownVar}');
                 
-                {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()}
+                {$markdownVar} = {$this->buildJsMarkdownInitViewer()}
+                
+                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
+                if(oModel !== undefined) {
+                    var sBindingPath = '{$this->getValueBindingPath()}';
+                    var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
+                    
+                    oValueBinding.attachChange(function(oEvent){
+                        var sVal = oModel.getProperty(sBindingPath);
+                        {$this->buildJsValueSetter("sVal")}
+                    });
+                } else {
+                    var sContent = '`MARKDOWN`';
+                    {$this->buildJsValueSetter('sContent')};
+                }
             }
         })
 JS;
@@ -78,13 +76,6 @@ JS;
         }
         return parent::getHeight();
     }
-
-    /**
-     *
-     * @return string
-     */
-    protected function buildJsMarkdownVar() : string
-    {
-        return $this->getController()->buildJsDependentObjectGetter('editor', $this);
-    }
+    
+    
 }
