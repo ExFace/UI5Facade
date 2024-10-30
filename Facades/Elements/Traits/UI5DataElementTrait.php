@@ -3,7 +3,7 @@ namespace exface\UI5Facade\Facades\Elements\Traits;
 
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
-use exface\Core\Widgets\DataTable;
+use exface\UI5Facade\Facades\Elements\UI5DynamicPage;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -22,11 +22,9 @@ use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\UI5Facade\Facades\Elements\ServerAdapters\UI5FacadeServerAdapter;
-use exface\Core\CommonLogic\UxonObject;
 use exface\UI5Facade\Facades\Elements\ServerAdapters\OfflineServerAdapter;
 use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface;
 use exface\Core\Widgets\DataButton;
-use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
 use exface\Core\Interfaces\Widgets\iHaveQuickSearch;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 
@@ -1318,6 +1316,7 @@ JS;
 			header: new sap.f.DynamicPageHeader({
                 pinnable: true,
 				content: [
+                    {$this->getConfiguratorElement()->buildJsMessages($oControllerJs)}
                     new sap.ui.layout.Grid({
                         defaultSpan: "XL2 L3 M4 S12",
                         containerQuery: true,
