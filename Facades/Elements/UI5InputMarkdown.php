@@ -135,7 +135,7 @@ JS;
                         var oEditor = {$markdownVarJs};
                         var jqBtn = $('#{$this->getFullScreenToggleId()}');
                         var bExpanding = ! jqFullScreenContainer.hasClass('fullscreen');
-                    
+                        console.log("fullscreen");
                         jqBtn.find('i')
                             .removeClass('fa-expand')
                             .removeClass('fa-compress')
@@ -144,13 +144,20 @@ JS;
                             if (jqFullScreenContainer.innerWidth() > 800) {
                                 oEditor.changePreviewStyle('vertical');
                             }
-                            
                             oEditor._originalParent = jqFullScreenContainer.parent();
+                            oEditor._originalIndex = jqFullScreenContainer.index();
                             jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
                             jqFullScreenContainer.addClass('fullscreen');
                         } else {
+                            var iChildCount = oEditor._originalParent.children().length;
+                            if (iChildCount !== 0) {
+                                var iTargetIndex = Math.min(oEditor._originalParent.children().length, oEditor._originalIndex);
+                                oEditor._originalParent.children().eq(iTargetIndex).before(jqFullScreenContainer);
+                            } else {
+                                jqFullScreenContainer.appendTo(oEditor._originalParent);
+                            }
+                            
                             oEditor.changePreviewStyle('tab');
-                            jqFullScreenContainer.appendTo(oEditor._originalParent);
                             jqFullScreenContainer.removeClass('fullscreen');
                         }
 JS;
