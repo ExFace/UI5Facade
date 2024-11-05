@@ -37,7 +37,7 @@ class UI5InputMarkdown extends UI5Input
         $this->addOnChangeScript(<<<JS
 
             (function(sVal){
-                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty(sVal);
+                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sVal);
             })({$this->buildJsValueGetter()})
 JS);
         return <<<JS
