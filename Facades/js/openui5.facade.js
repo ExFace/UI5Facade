@@ -116,6 +116,8 @@ const exfLauncher = {};
 	};
 
 	this.initPoorNetworkPoller = function () {
+		// FIXME #auto-offline
+		return;
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(function () {
 			var isNetworkSlow = exfLauncher.isNetworkSlow();
@@ -132,6 +134,8 @@ const exfLauncher = {};
 	};
 
 	this.initFastNetworkPoller = function () {
+		// FIXME #auto-offline
+		return;
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(function () {
 			var isNetworkSlow = exfLauncher.isNetworkSlow();
@@ -166,6 +170,8 @@ const exfLauncher = {};
 	 * @returns {boolean}
 	 */
 	this.isNetworkSlow = function () {
+		// FIXME #auto-offline
+		return false;
 		// Check if the network speed is slow via browser API (Chrome, Opera, Edge) 
 		if (navigator?.connection?.effectiveType) {
 			if (['2g', 'slow-2g'].includes(navigator.connection.effectiveType)) {
@@ -1690,7 +1696,11 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('auto_offline_toggle', {
-											state: true,
+											// FIXME #auto-offline
+											// state: true,
+											// enabled: navigator.onLine, // Changed from disabled to enabled
+											visible: false,
+											state: false,
 											enabled: navigator.onLine, // Changed from disabled to enabled
 											change: function (oEvent) {
 												var oSwitch = oEvent.getSource();
@@ -1702,6 +1712,8 @@ const exfLauncher = {};
 											}
 										}),
 										new sap.m.Text({
+											// FIXME #auto-offline
+											visible: false,
 											text: "{i18n>WEBAPP.SHELL.NETWORK_AUTOMATIC_OFFLINE}"
 										}),
 									],
