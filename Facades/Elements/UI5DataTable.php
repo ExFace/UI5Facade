@@ -206,18 +206,19 @@ JS;
         return <<<JS
         
             const oTable = $oEventJs.getSource();
+            const oModelSelected = oTable.getModel({$this->getModelNameForSelections()});
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
             const sUidCol = {$uidColJs};
             var aRowsVisible = [];
             var aRowsMerged = [];
-            var aRowsSelected = {$this->buildJsGetRowsSelected('oTable')};
+            var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
 
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
-
-                (oTable._selectedObjects || []).forEach(oRowOld => {
-                    // Old item exist in current dynamic list
+                // Keep all previously selected rows, that are NOT in the current page
+                // because they definitely could not be deselected
+                oModelSelected.getProperty('/rows').forEach(oRowOld => {
                     var bInCurrentRows = false;
                     try {
                         if (sUidCol !== null) {
@@ -233,14 +234,14 @@ JS;
                         aRowsMerged.push(oRowOld);
                     }
                 });
-                
-                aRowsMerged.push(...aRowsSelected);
+                // Add all currently visible selected rows
+                aRowsMerged.push(...aRowsSelectedVisible);
 
-                oTable._selectedObjects = aRowsMerged;
+                oModelSelected.setProperty('/rows', aRowsMerged);
             } else {
-                oTable._selectedObjects = aRowsSelected;
+                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
             }
-            console.log('selection', oTable._selectedObjects);
+            console.log('selection', oModelSelected.getData());
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
     }
@@ -862,12 +863,7 @@ JS;
         
 JS;
                 } else {
-                    $aRowsJs = '[];' . <<<JS
-                    
-            if (!oTable._selectedObjects) oTable._selectedObjects = [];
-            aRows.push(...oTable._selectedObjects);
-        
-JS;
+                    $aRowsJs = "oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
                 }
                 
         }
@@ -880,6 +876,8 @@ JS;
         var oTable = sap.ui.getCore().byId('{$this->getId()}');
         var oDirtyColumn = sap.ui.getCore().byId('{$this->getDirtyFlagAlias()}');
         var aRows = {$aRowsJs};
+
+        console.log('data getter table', aRows);
         
         // Remove any keys, that are not in the columns of the widget
         aRows = aRows.map(({ $colNamesList }) => ({ $colNamesList }));
@@ -900,11 +898,13 @@ JS;
         if ($widget->getMultiSelect() === true ) {
             $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
                     
-            // Restore previous selection (however only if oTable._selectedObjects exists and, thus, the implementations supports this feature)
+            // Restore previous selection
             // TODO add support for selection restore to sap.ui.table.Table!
             return <<<JS
                 setTimeout(function() {
-                    const aPrevSelectedRows = {$oTableJs}._selectedObjects;
+                    const oTable = {$oTableJs};
+                    const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
+                    const aPrevSelectedRows = oModelSelected.getProperty('/rows');
                     const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs, true)};
                     const aRows = {$this->buildJsGetRowsAll($oTableJs)};
                     const sUidCol = $uidColJs;
@@ -950,7 +950,7 @@ JS;
      * 
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oTableJs, bool $onlyCurrentPage = true) : string
+    protected function buildJsGetRowsSelected(string $oTableJs) : string
     {
         if ($this->isUiTable()) {
             if($this->getWidget()->getMultiSelect() === false) {
@@ -962,8 +962,7 @@ JS;
             if($this->getWidget()->getMultiSelect() === false) {
                 $rows = "($oTableJs && $oTableJs.getSelectedItem() ? [$oTableJs.getSelectedItem().getBindingContext().getObject()] : [])";
             } else {
-                if ($onlyCurrentPage === true) {
-                    $rows = <<<JS
+                $rows = <<<JS
                     oTable.getSelectedContexts().reduce(
                         function(aRows, oCtxt) {
                             aRows.push(oCtxt.getObject()); 
@@ -972,9 +971,6 @@ JS;
                         []
                     )
 JS;
-                } else {
-                    $rows = "($oTableJs._selectedObjects || [])";
-                }
             }
         }
         return $rows;
@@ -1550,6 +1546,7 @@ JS;
 var {$rowIdxJs} = function() {
     var oTable = sap.ui.getCore().byId("{$this->getId()}");
     var aData = oTable.getModel().getData().rows;
+    var oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
     var iRowIdx = -1;
     for (var i in aData) {
         if (aData[i]['{$column->getDataColumnName()}'] == $valueJs) {
@@ -1558,10 +1555,11 @@ var {$rowIdxJs} = function() {
     }
     // Remove item from table's selected objects
     if ({$this->escapeBool($deSelect)}) {
-        var aTableSelectedObjects = oTable._selectedObjects;
-        const selectedObjectsIndex = aTableSelectedObjects.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
+        var aSelectedRows = oModelSelected.getProperty('/rows');
+        const selectedObjectsIndex = aSelectedRows.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
         if (selectedObjectsIndex !== -1) {
-            aTableSelectedObjects.splice(selectedObjectsIndex, 1);
+            aSelectedRows.splice(selectedObjectsIndex, 1);
+            oModelSelected.setProperty('/rows', aSelectedRows);
         }
     } 
 

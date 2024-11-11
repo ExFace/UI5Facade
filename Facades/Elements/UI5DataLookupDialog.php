@@ -409,6 +409,7 @@ JS;
         var oMultiInput =  sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
 
         const oTable = sap.ui.getCore().byId("{$tableElementId}");
+        const oModelSelected = oTable.getModel('{$tableEl->getModelNameForSelections()}');
         const items = oTable.getItems();
         const tokens = oMultiInput.getTokens();
         
@@ -419,14 +420,14 @@ JS;
 
         const newSelectedObjetcs = [];
 
-        (oTable._selectedObjects || []).forEach(object => {
+        oModelSelected.getProperty('/rows').forEach(object => {
             if (tokens.some(token => token.getKey() === object[sId])) {
                 newSelectedObjetcs.push(object);
             }
             {$tableEl->buildJsSelectRowByValue($tableUidCol, 'sId')};
         });
 
-        oTable._selectedObjects = newSelectedObjetcs;
+        oModelSelected.setProperty('/rows', newSelectedObjetcs);
 
 JS;
 

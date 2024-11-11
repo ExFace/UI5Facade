@@ -81,7 +81,7 @@ JS;
      * {@inheritdoc}
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oTableJs, bool $onlyCurrentPage = true): string
+    protected function buildJsGetRowsSelected(string $oTableJs): string
     {
         return '[]';
     }

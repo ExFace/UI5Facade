@@ -412,7 +412,7 @@ JS;
      * 
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oControlJs, bool $onlyCurrentPage = true) : string
+    protected function buildJsGetRowsSelected(string $oControlJs) : string
     {
         return $this->buildJsDataGetter(ActionFactory::createFromString($this->getWorkbench(), SaveData::class)) . '.rows';
     }

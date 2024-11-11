@@ -232,6 +232,7 @@ JS);
 
         .setModel(new sap.ui.model.json.JSONModel())
         .setModel(new sap.ui.model.json.JSONModel(), '{$this->getModelNameForConfigurator()}')
+        .setModel(new sap.ui.model.json.JSONModel({rows: []}), '{$this->getModelNameForSelections()}')
 JS;
         
         // If the table has editable columns, we need to track changes made by the user.
@@ -1601,6 +1602,11 @@ JS;
         return 'data_last_loaded';
     }
     
+    protected function getModelNameForSelections() : string
+    {
+        return 'selections';
+    }
+    
     protected function getEditableColumnNamesJson() : string
     {
         $editabelColNames = [];
@@ -2369,7 +2375,7 @@ JS;
      * @param string $oControlJs
      * @return string
      */
-    protected abstract function buildJsGetRowsSelected(string $oControlJs, bool $onlyCurrentPage = true) : string;
+    protected abstract function buildJsGetRowsSelected(string $oControlJs) : string;
     
     /**
      * 
