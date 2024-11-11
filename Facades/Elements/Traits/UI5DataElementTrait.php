@@ -109,6 +109,8 @@ trait UI5DataElementTrait {
     private $dynamicPageHeaderCollapsed = null;
     
     private $dynamicPageShowToolbar = false;
+
+    private $dynamicPage = null;
     
     /**
      *
@@ -2539,5 +2541,17 @@ JS;
                 ];
             })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
+    }
+
+    public function getDynamicPage() : ?UI5DynamicPage
+    {
+        if ($this->dynamicPage === null) {
+            if ($this->isWrappedInDynamicPage()) {
+                $el = new UI5DynamicPage($this->getWidget(), $this->getFacade());
+                $el->setController($this->getController());
+                $this->dynamicPage = $el; 
+            }
+        }
+        return $this->dynamicPage;
     }
 }
