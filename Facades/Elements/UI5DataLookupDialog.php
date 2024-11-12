@@ -115,21 +115,6 @@ JS;
             title: {$this->escapeString($this->getCaption())},
 			buttons : [ {$this->buildJsDialogButtons(false)} ],
 			content : [ {$this->buildJsDialogContent()} ],
-            afterOpen: function () {
-                const oInputCombo = sap.ui.getCore().byId("{$this->getFacade()->getElement($this->getWidget()->getParent()->getParent())->getId()}");
-                const oMultiInput = sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
-                var tokens;
-                if (oMultiInput && oInputCombo.getTokens !== undefined) {
-                    tokens = oInputCombo.getTokens();
-                }                
-                if (tokens) {
-                    oMultiInput.setTokens(oInputCombo.getTokens());
-                    oMultiInput.fireTokenUpdate({
-                        type: sap.m.Tokenizer.TokenUpdateType.Added,
-                        addedTokens: oInputCombo.getTokens()
-                    });
-                }
-            },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()}')
 JS;
@@ -182,7 +167,7 @@ JS;
             
             // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
             if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
-                $this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
+                //$this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
                 $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsTokenChangeHandler('oEvent'));
             }
             $tableElement = $this->getFacade()->getElement($widget);
@@ -215,8 +200,17 @@ JS;
         
         $table = $this->getWidget()->getDataWidget();
         $tableElement = $this->getFacade()->getElement($table);
-        
+        $modelName = $tableElement->getModelNameForSelections();
+
         $splitterId = $this->getDialogContentPanelSplitterLayoutId();
+        
+        $this->getController()->addOnInitScript(<<<JS
+        
+                    (function(oContentPanel, oDataCtrl){
+                        oContentPanel.setModel(oDataCtrl.getModel('$modelName'), '$modelName');
+                    })(sap.ui.getCore().byId('{$this->getDialogContentPanelId()}'), sap.ui.getCore().byId('{$tableElement->getId()}'));
+JS);
+        
         
         return <<<JS
             new sap.m.Panel( "{$this->getDialogContentPanelId()}",
@@ -254,6 +248,13 @@ JS;
                                         })
                                     ],
                                     tokenUpdate: {$this->getController()->buildJsEventHandler($this, self::EVENT_NAME_TOKEN_UPDATE, true)},
+                                    tokens: {
+                                        path: "{$modelName}>/rows",
+                                        template: new sap.m.Token({
+                                            key: "{{$modelName}>{$this->getWidget()->getDataWidget()->getUidColumn()->getDataColumnName()}}",
+                                            text: "{{$modelName}>{$this->getTokenNameColumn()->getDataColumnName()}}"
+                                        })
+                                    }
                                 }).addStyleClass('exf-datalookup-tokenizer'),
                                 new sap.m.Button("{$this->getDialogContentPanelTokenizerClearButtonId()}",
                                 {
@@ -347,11 +348,11 @@ JS;
         foreach ($this->getWidget()->getWidgets() as $widget) {
             
             // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
-            if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
+            /*if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
                 $this->getFacade()->getElement($widget)->addOnRefreshScript($this->buildJsTableRefreshHandler());
                 $this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
                 $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsTokenChangeHandler('oEvent'));
-            }
+            }*/
             $tableElement = $this->getFacade()->getElement($widget);
             $dialog = $this->getWidget();
             $hideHeader = true;
@@ -371,6 +372,7 @@ JS;
         $tableElement = $this->getFacade()->getElement($table);
         
         return <<<JS
+
                 var oMultiInput = $oEventJs.getSource();
                 var oEventParams = $oEventJs.getParameters();
                 var aRemovedTokens = oEventParams['removedTokens'] || [];
@@ -392,7 +394,6 @@ JS;
                 } else {
                     oMultiInputClearButton.setEnabled(true);
                 }
-
 JS;
     }
 
