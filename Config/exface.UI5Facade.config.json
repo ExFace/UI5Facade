@@ -64,32 +64,64 @@
 		"GET data": {
 			"description": "Cache data from the UI5 API (e.g. GET `/api/ui5?action=...`)",
 			"matcher": "/.*\\/api\\/ui5\\?(?!.*context).*/i",
-			"strategy": "workbox.strategies.NetworkFirst",
-			"cacheName": "data-cache",
-    		"maxEntries": 50,
-    		"maxAgeSeconds": 86400
+			"script": [
+				"swTools.strategies.SemiOfflineSwitch({",
+				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
+				"})"
+			]
 		},
     	"POST data": {
 			"description": "Cache reading POST requests from the UI5 API (e.g. POST `/api/ui5?action=...`)",
 			"method": "POST",
 			"matcher": "/.*\\/api\\/ui5(?!.*context).*/i",
-			"strategy": "swTools.strategies.postNetworkFirst",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.SemiOfflineSwitch({",
+				"    onlineStrategy: swTools.strategies.POSTNetworkFirst(),",
+				"    offlineStrategy: swTools.strategies.POSTCacheOnly()",
+				"})"
+			]
 		},
     	"GET Webapp files": {
 			"description": "Cache views, controllers, etc. in case offline (e.g. GET `/api/ui5/webapps/...`)",
 			"matcher": "/.*\\/api\\/ui5\\/webapps\\/.*/i",
-			"strategy": "swTools.strategies.postNetworkFirst",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.SemiOfflineSwitch({",
+				"    onlineStrategy: new workbox.strategies.NetworkFirst({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
+				"})"
+			]
 		},
     	"GET i18n, config": {
 			"description": "Cache UI5 specific files in addition to regular JS and CSS cache rules from Core",
 			"matcher": "/(.*\\.properties|.*\\.woff2|.*\\/cldr\\/.*\\.json)/",
-			"strategy": "workbox.strategies.StaleWhileRevalidate",
-			"cacheName": "ui5-cache",
-    		"maxAgeSeconds": 604800
+			"script": [
+				"swTools.strategies.SemiOfflineSwitch({",
+				"    onlineStrategy: new workbox.strategies.StaleWhileRevalidate({",
+				"       cacheName : 'ui5-cache',",
+				"       plugins: [",
+				"           new workbox.expiration.ExpirationPlugin({maxAgeSeconds: 604800})",
+				"       ],",
+				"    }),",
+				"    offlineStrategy: new workbox.strategies.CacheOnly({",
+				"        cacheName: 'ui5-cache'",
+				"    })",
+				"})"
+			]
 		}
     },
     "INSTALLER.SERVICEWORKER.IMPORTS": [
@@ -145,6 +177,9 @@
     "LIBS.ECHARTS.THEME_NAME": "ui5theme",
 	"LIBS.TINYCOLOR.JS": "npm-asset/tinycolor2/dist/tinycolor-min.js",
 	"LIBS.TINYGRADIENT.JS": "npm-asset/tinygradient/browser.js",
+	
+	"LIBS.TOASTUI.EDITOR.JS": "exface/UI5Facade/Facades/js/toastui-editor-all.min.js",
+    "LIBS.TOASTUI.EDITOR.CSS": "npm-asset/toast-ui--editor/dist/toastui-editor.css",
     
     "LIBS.MOMENT.JS": "npm-asset/moment/min/moment.min.js",
     "LIBS.MOMENT.LOCALES": "npm-asset/moment/locale",
@@ -158,11 +193,11 @@
 	"LIBS.PIVOTTABLE.CORE.JS": "npm-asset/pivottable/dist/pivot.min.js",
    	"LIBS.PIVOTTABLE.CORE.CSS": "npm-asset/pivottable/dist/pivot.min.css",
    	"LIBS.PIVOTTABLE.LANG.JS": "npm-asset/pivottable/dist/pivot.[#lang#].js",
-   	"LIBS.PIVOTTABLE.SUBTOTAL.JS": "npm-asset/subtotal/dist/subtotal.min.js",
+   	"LIBS.PIVOTTABLE.SUBTOTAL.JS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.CHARTS": "npm-asset/pivottable/dist/plotly_renderers.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.EXPORT": "npm-asset/pivottable/dist/export_renderers.min.js",
    	"LIBS.PIVOTTABLE.LIBS.PLOTLY": "exface/JEasyUIFacade/Facades/js/plotly-basic-latest.min.js",
-   	"LIBS.PIVOTTABLE.SUBTOTAL.CSS": "npm-asset/subtotal/dist/subtotal.min.css",
+   	"LIBS.PIVOTTABLE.SUBTOTAL.CSS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.css",
    	"LIBS.PIVOTTABLE.UI.JS": "npm-asset/jquery-ui/dist/jquery-ui.min.js",
    	"LIBS.PIVOTTABLE.UI.CSS": "npm-asset/jquery-ui/dist/themes/base/jquery-ui.min.css",
    	"LIBS.PIVOTTABLE.UI.THEME": "npm-asset/jquery-ui/dist/themes/base/theme.css",

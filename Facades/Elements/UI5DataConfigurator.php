@@ -5,8 +5,8 @@ use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
-use exface\Core\Widgets\Data;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\DataTypes\ComparatorDataType;
 
@@ -430,8 +430,19 @@ JS;
     protected function buildJsonModelForColumns() : string
     {
         $data = [];
+        $optionalColsJs = <<<JS
+        
+        var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
+        oTable._exfOptionalCols = [];
+JS;
         if ($this->hasTabColumns() === true) {
-            foreach ($this->getWidget()->getDataWidget()->getColumns() as $col) {
+            $cols = $this->getWidget()->getDataWidget()->getColumns();
+            $colsOptional = [];
+            if ($this->getWidget() instanceof DataTableConfigurator) {
+                $colsOptional = $this->getWidget()->getColumnsTab()->getWidgets();
+                $cols = array_merge($cols, $colsOptional);
+            }
+            foreach ($cols as $col) {
                 $data[] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "column_id" => $this->getFacade()->getElement($col)->getId(),
@@ -441,6 +452,23 @@ JS;
                     "_initialVisibility" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "toggleable" => $col->isHidden() ? false : true
                 ];
+            }
+
+            $optionalColsJs = '';
+            if (! empty($colsOptional)) {
+                foreach ($colsOptional as $col) {
+                
+                $optionalColsJs .= <<<JS
+                
+        oTable._exfOptionalCols.push({$this->getFacade()->getElement($col)->buildJsConstructor()});
+JS;
+                }   
+                $this->getController()->addOnInitScript(<<<JS
+        
+        var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
+        oTable._exfOptionalCols = [];
+        {$optionalColsJs}
+JS);
             }
         }
         return json_encode($data);
@@ -495,6 +523,21 @@ JS;
             }
         }
         return $filters . $filters_hidden;
+    }
+
+    /**
+     * Returns the constructors for messages for this configurator (delimited AND ending with a comma)
+     * 
+     * @param string $oControllerJs
+     * @return string
+     */
+    public function buildJsMessages(string $oControllerJs = 'oController') : string
+    {
+        $js = '';
+        foreach ($this->getWidget()->getMessageList()->getMessages() as $msgWidget) {
+            $js .= $this->getFacade()->getElement($msgWidget)->buildJsConstructor($oControllerJs) . '.removeStyleClass("sapUiResponsiveMargin").addStyleClass("sapUiSmallMargin"),' . PHP_EOL;
+        }
+        return $js;
     }
     
     /**

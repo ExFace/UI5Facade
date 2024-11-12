@@ -40,6 +40,7 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
     public function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->registerFiltersWithApplyOnChange($this);
+        $this->addChartButtons();
         $controller = $this->getController();
         
         $controller->addMethod($this->buildJsDataLoadFunctionName(), $this, '', $this->buildJsDataLoadFunctionBody());
@@ -49,7 +50,10 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
         $controller->addMethod($this->buildJsSingleClickFunctionName(), $this, 'oParams', $this->buildJsSingleClickFunctionBody('oParams') . $this->getController()->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false));
         
         $this->registerExternalModules($controller);
-        
+        $showMessageScript = '';
+        if ($this->getDataWidget()->hasAutoloadData() === false) {
+            $showMessageScript = $this->buildJsShowMessageOverlay($this->getDataWidget()->getAutoloadDisabledHint());
+        }
         $chart = <<<JS
 
                 new sap.ui.core.HTML("{$this->getId()}", {
@@ -59,6 +63,7 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
                         {$this->buildJsEventHandlers()}
                         
                         setTimeout(function(){
+                            {$showMessageScript}
                             {$this->buildJsEChartsResize()}
                         }, 0);
                         sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
@@ -386,7 +391,14 @@ JS;
      */
     protected function buildJsShowMessageOverlay(string $message) : string
     {
-        return $this->buildJsDataResetter() . ';' . $this->buildJsMessageOverlayShow($message);
+        // in some cases it can be that this is called but the eCharts instance is not yet initialized so we wrap it in a try catch
+        return <<<JS
+try {        
+    {$this->buildJsDataResetter()};
+    {$this->buildJsMessageOverlayShow($message)};
+} catch(e) {}
+
+JS;
     }
     
     /**
