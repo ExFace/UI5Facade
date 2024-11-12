@@ -37,7 +37,7 @@ class UI5InputMarkdown extends UI5Input
         $this->addOnChangeScript(<<<JS
 
             (function(sVal){
-                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty(sVal);
+                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sVal);
             })({$this->buildJsValueGetter()})
 JS);
         return <<<JS
@@ -49,8 +49,10 @@ JS);
                 var sBindingPath = '{$this->getValueBindingPath()}';
                 var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
                 oValueBinding.attachChange(function(oEvent){
-                    var sVal = oModel.getProperty(sBindingPath);
-                    {$this->buildJsValueSetter("sVal")}
+                    setTimeout(function(){
+                        var sVal = oModel.getProperty(sBindingPath);
+                        {$this->buildJsValueSetter("sVal")}
+                    }, 0);
                 });
                 
                 {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()}
@@ -102,40 +104,17 @@ JS;
     protected function buildJsFullScreenToggleClickHandler() : string
     {
         $markdownVarJs = $this->buildJsMarkdownVar();
+        $jsController = $this->getController()->buildJsControllerGetter($this);
         
         return <<<JS
 
-                        var jqFullScreenContainer = $('#{$this->getId()}').parent().parent();
-                        //set the z-index of the fullscreen dynamically so it works with popovers
-                        var iZIndex = 0;
-                        var iMaxZIndex = 0;
-                        var parent = jqFullScreenContainer.parent();
-                        if (isNaN(jqFullScreenContainer.css('z-index'))) {
-                            //get the maximum z-index of parent elements of the data element
-                            while (parent.length !== 0 && parent[0].tagName !== "BODY") {
-                                iZIndex = parseInt(parent.css("z-index"));
-                                
-                                if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
-                                    iMaxZIndex = iZIndex;
-                                }    
-                                parent = parent.parent();
-                            }
-                        
-                            //check if the currently found maximum z-index is bigger than the z-index of the app header 
-                            var jqHeaderElement = $('.sapUiUfdShellHead');
-                            iZIndex = parseInt(jqHeaderElement.css("z-index"));
-                            if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
-                                iMaxZIndex = iZIndex;
-                            }
-                            
-                            iMaxZIndex = iMaxZIndex + 1;
-                            jqFullScreenContainer.css('z-index', iMaxZIndex);
-                        }
+                        var jqFullScreenContainer = $('#{$this->getId()}').parent();
+                        {$jsController}.setZIndexToMax(jqFullScreenContainer);
                         
                         var oEditor = {$markdownVarJs};
                         var jqBtn = $('#{$this->getFullScreenToggleId()}');
                         var bExpanding = ! jqFullScreenContainer.hasClass('fullscreen');
-                    
+
                         jqBtn.find('i')
                             .removeClass('fa-expand')
                             .removeClass('fa-compress')
@@ -144,13 +123,20 @@ JS;
                             if (jqFullScreenContainer.innerWidth() > 800) {
                                 oEditor.changePreviewStyle('vertical');
                             }
-                            
                             oEditor._originalParent = jqFullScreenContainer.parent();
+                            oEditor._originalIndex = jqFullScreenContainer.index();
                             jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
                             jqFullScreenContainer.addClass('fullscreen');
                         } else {
+                            var iChildCount = oEditor._originalParent.children().length;
+                            if (iChildCount !== 0) {
+                                var iTargetIndex = Math.min(oEditor._originalParent.children().length, oEditor._originalIndex);
+                                oEditor._originalParent.children().eq(iTargetIndex).before(jqFullScreenContainer);
+                            } else {
+                                jqFullScreenContainer.appendTo(oEditor._originalParent);
+                            }
+                            
                             oEditor.changePreviewStyle('tab');
-                            jqFullScreenContainer.appendTo(oEditor._originalParent);
                             jqFullScreenContainer.removeClass('fullscreen');
                         }
 JS;

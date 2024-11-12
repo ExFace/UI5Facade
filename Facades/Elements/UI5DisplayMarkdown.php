@@ -29,8 +29,6 @@ class UI5DisplayMarkdown extends UI5Value
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                console.log('{$markdownVar}');
-                
                 {$markdownVar} = {$this->buildJsMarkdownInitViewer()}
                 
                 var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
@@ -39,8 +37,10 @@ class UI5DisplayMarkdown extends UI5Value
                     var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
                     
                     oValueBinding.attachChange(function(oEvent){
-                        var sVal = oModel.getProperty(sBindingPath);
-                        {$this->buildJsValueSetter("sVal")}
+                        setTimeout(function(){
+                            var sVal = oModel.getProperty(sBindingPath);
+                            {$this->buildJsValueSetter("sVal")}
+                        }, 0);
                     });
                 } else {
                     var sContent = '`MARKDOWN`';
