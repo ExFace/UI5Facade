@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
@@ -232,7 +233,7 @@ JS);
 
         .setModel(new sap.ui.model.json.JSONModel())
         .setModel(new sap.ui.model.json.JSONModel(), '{$this->getModelNameForConfigurator()}')
-        .setModel(new sap.ui.model.json.JSONModel({rows: []}), '{$this->getModelNameForSelections()}')
+        .setModel(new sap.ui.model.json.JSONModel({rows: [], count: 0}), '{$this->getModelNameForSelections()}')
 JS;
         
         // If the table has editable columns, we need to track changes made by the user.
@@ -249,14 +250,32 @@ JS;
             $controller->addMethod('updateChangesModel', $this, 'oDataChanged', $this->buildJsEditableChangesWatcherUpdateMethod('oDataChanged'));
             $bindChangeWatcherJs = <<<JS
 
-            var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
-            oRowsBinding.attachChange(function(oEvent){
-                var oBinding = oEvent.getSource();
-                var oDataChanged = oBinding.getModel().getData();
-                {$controller->buildJsMethodCallFromController('updateChangesModel', $this, 'oDataChanged')};
-            });
+            (function(oTable){
+                var oModel = oTable.getModel();
+                var oRowsBinding = new sap.ui.model.Binding(oModel, '/rows', oModel.getContext('/rows'));
+                oRowsBinding.attachChange(function(oEvent){
+                    var oBinding = oEvent.getSource();
+                    var oDataChanged = oBinding.getModel().getData();
+                    {$controller->buildJsMethodCallFromController('updateChangesModel', $this, 'oDataChanged')};
+                });
+            })(sap.ui.getCore().byId('{$this->getId()}'));
 JS;
             $controller->addOnInitScript($bindChangeWatcherJs);
+        }
+
+        if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true) {
+            $controller->addOnInitScript($bindChangeWatcherJs = <<<JS
+
+            (function(oTable) {
+                var oModel = oTable.getModel('{$this->getModelNameForSelections()}');
+                var oSelectionBinding = new sap.ui.model.Binding(oModel, '/rows', oModel.getContext('/rows'));
+                oSelectionBinding.attachChange(function(oEvent){
+                    var oModel = oEvent.getSource().getModel();
+                    // Do NOT use setProperty() to prevent onChange loops here!
+                    oModel.oData.count = oModel.getProperty('/rows').length;
+                });
+            })(sap.ui.getCore().byId('{$this->getId()}'));
+JS);
         }
         
         if ($this->isWrappedInDynamicPage()){
@@ -388,8 +407,9 @@ JS;
      * @return string
      */
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
-    {        
-        $heading = $this->isWrappedInDynamicPage() || $this->getWidget()->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+    {   
+        $widget = $this->getWidget();
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
         
         $leftExtras = $leftExtras === null ? '' : rtrim($leftExtras, ", ") . ',';
         $rightExtras = $rightExtras === null ? '' : rtrim($rightExtras, ", ") . ',';
@@ -402,6 +422,7 @@ JS;
         
         return <<<JS
 
+                    {$this->buildJsToolbarSelectionCounter()}
                     {$heading}
                     {$leftExtras}
 			        new sap.m.ToolbarSpacer(),
@@ -413,6 +434,80 @@ JS;
                     {$this->buildJsHelpButtonConstructor()}
 
 JS;
+    }
+
+    protected function buildJsToolbarSelectionCounter() : string
+    {
+        $widget = $this->getWidget();
+        $dataWidget = $this->getDataWidget();
+        if ($dataWidget->getMetaObject()->hasLabelAttribute()) {
+            $labelCol = $dataWidget->getColumnByAttributeAlias($dataWidget->getMetaObject()->getLabelAttributeAlias());
+        }
+        if (! $labelCol) {
+            $labelCol = $dataWidget->getColumns()[0];
+        }
+        $uidColName = $dataWidget->hasUidColumn() ? "'{$dataWidget->getUidColumn()->getDataColumnName()}'" : 'null';
+
+        if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true && ! $this->getDynamicPageShowToolbar()) {
+            $modelName = $this->getModelNameForSelections();
+            $js = <<<JS
+
+                    new sap.m.Button({
+                        icon: 'sap-icon://complete',
+                        type: 'Ghost',
+                        tooltip: '{= \${{$modelName}>/rows}.length} rows selected',
+                        visible: '{= \${{$modelName}>/rows}.length > 1 ? true : false}',
+                        layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
+                        customData: [
+                            new sap.m.BadgeCustomData({
+                                key: "badge",
+                                value: '{= \${{$modelName}>/rows}.length}'
+                            })
+                        ],
+                        press: function(oEvent) {
+                            var oBtn = oEvent.getSource();
+                            var sPopoverId = '{$this->getId()}_selectionsPopover';
+                            var oPopover = sap.ui.getCore().byId(sPopoverId);
+                            if (oPopover === undefined) {
+                                oPopover = new sap.m.Popover(sPopoverId, {
+                                    title: '{= \${{$modelName}>/rows}.length} rows selected',
+                                    content: [
+                                        new sap.m.List({
+                                            mode: "Delete",
+                                            items: {
+                                                path: "{$modelName}>/rows",
+                                                template: new sap.m.StandardListItem({
+                                                    title: "{{$modelName}>{$labelCol->getDataColumnName()}}",
+                                                    type: "Active"
+                                                })
+                                            },
+                                            delete: function(oEvent) {
+                                                var oItem = oEvent.getParameters().listItem;
+                                                var oRowUnselected = oItem.getBindingContext('{$modelName}').getObject();
+                                                var iItem = oItem.getParent().indexOfItem(oItem);
+                                                var sUidCol = {$uidColName};
+                                                var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                                                var iTableIdx = exfTools.data.indexOfRow(oTable.getModel().getProperty('/rows'), oRowUnselected, sUidCol);
+                                                oTable.getModel('{$modelName}').getProperty('/rows').splice(iItem, 1);
+                                                // FIXME this does not refresh the counter on the button if the row is deleted on a different page! Why???
+                                                oTable.getModel('{$modelName}').refresh();
+                                                if (iTableIdx > -1) {
+                                                    {$this->buildJsSelectRowByIndex('oTable', 'iTableIdx', true, 'false')}
+                                                }
+                                            }
+                                        })
+                                    ]
+                                }).setModel(oBtn.getModel('{$modelName}'), '{$modelName}');
+                                {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oPopover);
+                            }
+                            oPopover.openBy(oBtn);
+                        }
+                    }),
+JS;
+        } else {
+            $js = '';
+        }
+        return $js;
     }
     
     /**
@@ -645,12 +740,17 @@ JS;
     protected function buildJsDataResetter() : string
     {
         $widget = $this->getWidget();
-        $js = "sap.ui.getCore().byId('{$this->getId()}').getModel().setData({});";
-        if ($widget instanceof iShowData && $widget->isEditable() && $widget->getEditableChangesResetOnRefresh()) {            
-            $js .= $this->buildJsEditableChangesWatcherReset();
+        if (($widget instanceof iCanEditData) && $widget->isEditable() && $widget->getEditableChangesResetOnRefresh()) {            
+            $resetEditableTable = $this->buildJsEditableChangesWatcherReset();
         }
-        $js .= $this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false) . ';';
-        return $js;
+        return <<<JS
+
+        ;(function(oTable){
+            oTable.getModel().setData({});
+            {$resetEditableTable}
+            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+        })(sap.ui.getCore().byId('{$this->getId()}'));  
+JS;
     }
     
     /**
@@ -839,7 +939,6 @@ JS;
             } else {
                 delete oTable._exfPendingData;
             }
-console.log('onload');
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
             {$this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')};
@@ -1488,6 +1587,8 @@ JS;
      *
      * If this widget has no UID column or $trustUid is FALSE, the JSON-representations of
      * the rows will be compared.
+     * 
+     * @deprecated TODO use exfTools.data.compareRows() instead!
      *
      * @param string $leftRowJs
      * @param string $rightRowJs
@@ -1603,7 +1704,7 @@ JS;
         return 'data_last_loaded';
     }
     
-    protected function getModelNameForSelections() : string
+    public function getModelNameForSelections() : string
     {
         return 'selections';
     }
@@ -2460,10 +2561,10 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var newSelection = {$this->buildJsGetRowsSelected('oControl', false)};
-                    var oldSelection = oControl.data('exfPreviousSelection') || [];
-                    oControl.data('exfPreviousSelection', newSelection);
-                    return {$this->buildJsRowCompare('oldSelection', 'newSelection', false)};
+                    var aNewSelection = oControl.getModel('{$this->getModelNameForSelections()}').getProperty('/rows');
+                    var aOldSelection = oControl.data('exfPreviousSelection') || [];
+                    oControl.data('exfPreviousSelection', aNewSelection);
+                    return {$this->buildJsRowCompare('aOldSelection', 'aNewSelection', false)};
                 })()
             ) {
                 return;

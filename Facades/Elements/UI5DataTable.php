@@ -204,9 +204,8 @@ JS;
         $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
         if ($widget->getMultiSelect() === false) {
             return <<<JS
-        function (oEvent) {
-            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)}[0]();
-        }
+
+            {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
             
         }
@@ -214,7 +213,7 @@ JS;
         return <<<JS
         
             const oTable = $oEventJs.getSource();
-            const oModelSelected = oTable.getModel({$this->getModelNameForSelections()});
+            const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
             const sUidCol = {$uidColJs};
@@ -222,23 +221,13 @@ JS;
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
 
+            console.log('onSelect save, vis, all', bMultiSelectSave, aRowsSelectedVisible, oModelSelected.getProperty('/rows'));
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 // Keep all previously selected rows, that are NOT in the current page
                 // because they definitely could not be deselected
                 oModelSelected.getProperty('/rows').forEach(oRowOld => {
-                    var bInCurrentRows = false;
-                    try {
-                        if (sUidCol !== null) {
-                            bInCurrentRows = aRowsVisible.some(oRow => oRow[sUidCol] === oRowOld[sUidCol]);
-                        } else {
-                            bInCurrentRows = aRowsVisible.some(oRow => JSON.stringify(oRow) === JSON.stringify(oRowOld));
-                        }
-                    } catch (e) {
-                        console.error('Error comparing data rows:', e);
-                        bInCurrentRows = false;
-                    }
-                    if (! bInCurrentRows) { 
+                    if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1) { 
                         aRowsMerged.push(oRowOld);
                     }
                 });
@@ -249,7 +238,7 @@ JS;
             } else {
                 oModelSelected.setProperty('/rows', aRowsSelectedVisible);
             }
-            console.log('selection', oModelSelected.getData());
+            console.log('onSelect merged', oModelSelected.getProperty('/rows'));
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
     }
@@ -399,7 +388,7 @@ JS;
                 {$enableGrouping}
         		filter: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
         		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
-                rowSelectionChange: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
+                rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
         		{$this->buildJsPropertyVisibile()}
                 {$initDnDJs}
@@ -838,40 +827,10 @@ JS;
                 
             // In all other cases the data are the selected rows
             default:
-                // NOTE: selected indices are not neccessarily the row indices in the model!
-                // The table sometimes sorts the rows differently (e.g. when grouping in used).
-                // This is why getContextByIndex() must be used instead of direct access to
-                // the rows array.
-                
-                // NOTE: if there are total rows at the bottom, they can be selected too and will
-                // even match data rows as the totals are appended to the data by the loader. This
-                // is why we need to chek if the selected index is greater than the number of
-                // real data rows (excluding the totals).
-                // TODO: this might not work correctly with row grouping. Need some more testing!
-                if ($this->isUiTable()) {
-                    $aRowsJs = '[];' . <<<JS
-                    
-        var aSelectedIndices = oTable.getSelectedIndices();
-        var oModel = oTable.getModel();
-        var oCxt;
-        var row;
-        var iFixedRowsCnt = oTable.getFixedBottomRowCount();
-        for (var i in aSelectedIndices) {
-            if (iFixedRowsCnt > 0 && aSelectedIndices[i] >= (oModel.getData().rows.length - iFixedRowsCnt)) {
-                continue;
-            }
-            oCxt = oTable.getContextByIndex(aSelectedIndices[i]);
-            if (oCxt) {
-                row = oModel.getProperty(oCxt.sPath);
-                if (row !== undefined && row !== '') {
-                    aRows.push(row);
-                }
-            }
-        }
-        
-JS;
-                } else {
+                if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true) {
                     $aRowsJs = "oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
+                } else {
+                    $aRowsJs = $this->buildJsGetRowsSelected('oTable');
                 }
                 
         }
@@ -909,8 +868,7 @@ JS;
             // Restore previous selection
             // TODO add support for selection restore to sap.ui.table.Table!
             return <<<JS
-                setTimeout(function() {
-                    const oTable = {$oTableJs};
+                setTimeout(function(oTable) {
                     const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
                     const aPrevSelectedRows = oModelSelected.getProperty('/rows');
                     const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs, true)};
@@ -925,7 +883,7 @@ JS;
                     if (aPrevSelectedRows === undefined) {
                         return;
                     }
-                    console.log('restore', aPrevSelectedRows, aNowSelectedRows);
+                    console.log('restore prev/now', aPrevSelectedRows, aNowSelectedRows);
                     aNowSelectedRows.forEach(function (oRow) {
                         var bSelected = exfTools.data.indexOfRow(aPrevSelectedRows, oRow, sUidCol) > -1;
                         var iRowIdx = exfTools.data.indexOfRow(aRows, oRow, sUidCol);
@@ -946,7 +904,8 @@ JS;
                             fnSelect(iRowIdx);
                         }
                     });
-                });
+                    setTimeout(function(){console.log('restore result', oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows'))}, 10);
+                }, 0, {$oTableJs});
 
 JS;
         } else {
@@ -971,7 +930,7 @@ JS;
                 $rows = "($oTableJs && $oTableJs.getSelectedItem() ? [$oTableJs.getSelectedItem().getBindingContext().getObject()] : [])";
             } else {
                 $rows = <<<JS
-                    oTable.getSelectedContexts().reduce(
+                    $oTableJs.getSelectedContexts().reduce(
                         function(aRows, oCtxt) {
                             aRows.push(oCtxt.getObject()); 
                             return aRows;
