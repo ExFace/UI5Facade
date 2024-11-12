@@ -524,6 +524,21 @@ JS);
         }
         return $filters . $filters_hidden;
     }
+
+    /**
+     * Returns the constructors for messages for this configurator (delimited AND ending with a comma)
+     * 
+     * @param string $oControllerJs
+     * @return string
+     */
+    public function buildJsMessages(string $oControllerJs = 'oController') : string
+    {
+        $js = '';
+        foreach ($this->getWidget()->getMessageList()->getMessages() as $msgWidget) {
+            $js .= $this->getFacade()->getElement($msgWidget)->buildJsConstructor($oControllerJs) . '.removeStyleClass("sapUiResponsiveMargin").addStyleClass("sapUiSmallMargin"),' . PHP_EOL;
+        }
+        return $js;
+    }
     
     /**
      * Returns a constructor for the give filter element followed by a comma.
