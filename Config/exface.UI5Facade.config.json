@@ -177,6 +177,9 @@
     "LIBS.ECHARTS.THEME_NAME": "ui5theme",
 	"LIBS.TINYCOLOR.JS": "npm-asset/tinycolor2/dist/tinycolor-min.js",
 	"LIBS.TINYGRADIENT.JS": "npm-asset/tinygradient/browser.js",
+	
+	"LIBS.TOASTUI.EDITOR.JS": "exface/UI5Facade/Facades/js/toastui-editor-all.min.js",
+    "LIBS.TOASTUI.EDITOR.CSS": "npm-asset/toast-ui--editor/dist/toastui-editor.css",
     
     "LIBS.MOMENT.JS": "npm-asset/moment/min/moment.min.js",
     "LIBS.MOMENT.LOCALES": "npm-asset/moment/locale",
