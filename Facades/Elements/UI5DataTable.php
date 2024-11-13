@@ -970,7 +970,7 @@ function(){
     var iRowIdx = {$rowNr};
     
     if (iRowIdx !== undefined && iRowIdx >= 0) {
-        var aData = oModel.getData().data;
+        var aData = oModel.getData().rows;
         aData[iRowIdx]["{$dataColumnName}"] = $value;
         oModel.setProperty("/rows", aData);
         // TODO why does the code below not work????
@@ -1526,7 +1526,6 @@ var {$rowIdxJs} = function() {
         const selectedObjectsIndex = aSelectedRows.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
         if (selectedObjectsIndex !== -1) {
             aSelectedRows.splice(selectedObjectsIndex, 1);
-            oModelSelected.setProperty('/rows', aSelectedRows);
         }
     } 
 

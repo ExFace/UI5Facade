@@ -262,21 +262,6 @@ JS;
 JS;
             $controller->addOnInitScript($bindChangeWatcherJs);
         }
-
-        if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true) {
-            $controller->addOnInitScript($bindChangeWatcherJs = <<<JS
-
-            (function(oTable) {
-                var oModel = oTable.getModel('{$this->getModelNameForSelections()}');
-                var oSelectionBinding = new sap.ui.model.Binding(oModel, '/rows', oModel.getContext('/rows'));
-                oSelectionBinding.attachChange(function(oEvent){
-                    var oModel = oEvent.getSource().getModel();
-                    // Do NOT use setProperty() to prevent onChange loops here!
-                    oModel.oData.count = oModel.getProperty('/rows').length;
-                });
-            })(sap.ui.getCore().byId('{$this->getId()}'));
-JS);
-        }
         
         if ($this->isWrappedInDynamicPage()){
             return $this->buildJsPage($js, $oControllerJs) . $initModels;
@@ -487,10 +472,13 @@ JS;
                                                 var iItem = oItem.getParent().indexOfItem(oItem);
                                                 var sUidCol = {$uidColName};
                                                 var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                                                var oModel = oTable.getModel('{$modelName}');
                                                 var iTableIdx = exfTools.data.indexOfRow(oTable.getModel().getProperty('/rows'), oRowUnselected, sUidCol);
-                                                oTable.getModel('{$modelName}').getProperty('/rows').splice(iItem, 1);
-                                                // FIXME this does not refresh the counter on the button if the row is deleted on a different page! Why???
-                                                oTable.getModel('{$modelName}').refresh();
+                                                oModel.getProperty('/rows').splice(iItem, 1);
+                                                // Force refresh model binding - otherwise if you select items, paginate to next
+                                                // page and remove one of previously selected items, the indicator will not be
+                                                // updated
+                                                oModel.refresh(true);
                                                 if (iTableIdx > -1) {
                                                     {$this->buildJsSelectRowByIndex('oTable', 'iTableIdx', true, 'false')}
                                                 }

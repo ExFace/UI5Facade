@@ -3,12 +3,9 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Interfaces\Widgets\iHaveHeader;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
-use exface\Core\Factories\ActionFactory;
-use exface\Core\Actions\UpdateData;
-use exface\Core\Interfaces\Model\MetaAttributeInterface;
-use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
  * The `DataLookupDialog` is a `ValueHelpDialog` which may be used to search for values from `DataTables`.
@@ -89,9 +86,9 @@ class UI5DataLookupDialog extends UI5Dialog
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
                     
-            // If the dialog requires a prefill, we need to load the data once the dialog is opened.
-            if ($this->needsPrefill()) {
-                $prefill = <<<JS
+        // If the dialog requires a prefill, we need to load the data once the dialog is opened.
+        if ($this->needsPrefill()) {
+            $prefill = <<<JS
                 
             beforeOpen: function(oEvent) {
                 var oDialog = oEvent.getSource();
@@ -167,8 +164,7 @@ JS;
             
             // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
             if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
-                //$this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
-                $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsTokenChangeHandler('oEvent'));
+                $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsOnTokenUpdate('oEvent'));
             }
             $tableElement = $this->getFacade()->getElement($widget);
             $dialog = $this->getWidget();
@@ -198,8 +194,7 @@ JS;
             return '';
         }
         
-        $table = $this->getWidget()->getDataWidget();
-        $tableElement = $this->getFacade()->getElement($table);
+        $tableElement = $this->getTableElement();
         $modelName = $tableElement->getModelNameForSelections();
 
         $splitterId = $this->getDialogContentPanelSplitterLayoutId();
@@ -222,9 +217,8 @@ JS);
                     headerToolbar: [
                         new sap.m.OverflowToolbar({
                             content: [
-                                new sap.m.Text("{$this->getDialogContentPanelItemCounterId()}",
-                                {
-                                    text: "{$this->translate('WIDGET.DATALOOKUPDIALOG.SELECTED_ITEMS')}"
+                                new sap.m.Text({
+                                    text: "{$this->translate('WIDGET.DATALOOKUPDIALOG.SELECTED_ITEMS')} ({= \${{$this->getModelNameForSelections()}>/rows}.length})"
                                 })
                             ]
                         })
@@ -235,7 +229,7 @@ JS);
                             alignItems: "Center",
                             fitContainer: true,
                             items: [
-                                new sap.m.MultiInput("{$this->getDialogContentPanelTokenizerId()}",
+                                new sap.m.MultiInput(
                                     {
                                     width: "100%",
                                     showValueHelp: true,
@@ -256,19 +250,18 @@ JS);
                                         })
                                     }
                                 }).addStyleClass('exf-datalookup-tokenizer'),
-                                new sap.m.Button("{$this->getDialogContentPanelTokenizerClearButtonId()}",
-                                {
+                                new sap.m.Button({
                                     icon: "sap-icon://sys-cancel",
                                     type: "Transparent",
-                                    enabled: false,
+                                    enabled: '{= \${{$modelName}>/rows}.length > 0 ? true : false}',
                                     layoutData: [
                                         new sap.m.FlexItemData({
                                             growFactor: 0
                                         })
                                     ],
-                                    press: function(){
-                                        sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}").removeAllTokens();
-                                        sap.ui.getCore().byId("{$tableElement->getId()}").removeSelections(true, true);
+                                    press: function(oEvent){
+                                        var oModel = oEvent.getSource().getModel('{$modelName}');
+                                        oModel.setProperty('/rows', []);
                                     }
                                 })
                             ]
@@ -293,6 +286,13 @@ JS);
                 })
 JS;
     }
+
+    protected function getModelNameForSelections() : string
+    {
+        $table = $this->getWidget()->getDataWidget();
+        $tableElement = $this->getFacade()->getElement($table);
+        return $tableElement->getModelNameForSelections();
+    }
     
     /**
      * 
@@ -311,28 +311,10 @@ JS;
     {
         return $this->getDialogContentPanelId() . '_' . 'SplitterLayoutData';
     }
-    
-    /**
-     * 
-     * @return string
-     */
-    protected function getDialogContentPanelTokenizerId() : string
+
+    protected function getTableElement() : UI5DataElementInterface
     {
-        return $this->getDialogContentPanelId() . '_' . 'Tokenizer';
-    }
-    
-    /**
-     * 
-     * @return string
-     */
-    protected function getDialogContentPanelTokenizerClearButtonId() : string
-    {
-        return $this->getDialogContentPanelId() . '_' . 'TokenizerClearButton';
-    }
-    
-    protected function getDialogContentPanelItemCounterId() : string
-    {
-        return $this->getDialogContentPanelId() . '_' . 'ItemCounter';
+        return $this->getFacade()->getElement($this->getWidget()->getDataWidget());
     }
     
     /**
@@ -346,13 +328,6 @@ JS;
     {
         $js = '';
         foreach ($this->getWidget()->getWidgets() as $widget) {
-            
-            // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
-            /*if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
-                $this->getFacade()->getElement($widget)->addOnRefreshScript($this->buildJsTableRefreshHandler());
-                $this->getFacade()->getElement($widget)->addOnChangeScript($this->buildJsSelectionChangeHandler());
-                $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsTokenChangeHandler('oEvent'));
-            }*/
             $tableElement = $this->getFacade()->getElement($widget);
             $dialog = $this->getWidget();
             $hideHeader = true;
@@ -366,7 +341,7 @@ JS;
         return $js;
     }
     
-    protected function buildJsTokenChangeHandler(string $oEventJs) : string
+    protected function buildJsOnTokenUpdate(string $oEventJs) : string
     {
         $table = $this->getWidget()->getDataWidget();
         $tableElement = $this->getFacade()->getElement($table);
@@ -376,136 +351,11 @@ JS;
                 var oMultiInput = $oEventJs.getSource();
                 var oEventParams = $oEventJs.getParameters();
                 var aRemovedTokens = oEventParams['removedTokens'] || [];
-                var aAddedTokens = oEventParams['addedTokens'] || [];
-                var iItemCounter = oMultiInput.getTokens().length + aAddedTokens.length - aRemovedTokens.length;
-                var sItemCounterText = '{$this->translate('WIDGET.DATALOOKUPDIALOG.SELECTED_ITEMS')} (' + iItemCounter + ')';
                 
                 aRemovedTokens.forEach(function(oToken){
                     var sKey = oToken.getKey();
                     {$tableElement->buildJsSelectRowByValue($table->getUidColumn(), 'sKey', '', 'rowIdx', true)}
                 });
-
-                sap.ui.getCore().byId("{$this->getDialogContentPanelItemCounterId()}").setText(sItemCounterText);
-    
-                // disable the remove-selection button when no selection is made
-                var oMultiInputClearButton = sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerClearButtonId()}");
-                if (iItemCounter == 0){
-                    oMultiInputClearButton.setEnabled(false);
-                } else {
-                    oMultiInputClearButton.setEnabled(true);
-                }
-JS;
-    }
-
-
-    protected function buildJsTableRefreshHandler(): string
-    {
-        $table = $this->getWidget()->getDataWidget();
-        $tableEl = $this->getFacade()->getElement($table);
-        $tableElementId = $tableEl->getId();
-        $tableUidCol = $table->getUidColumn();
-
-        return <<<JS
-        const sId = "{$tableUidCol->getDataColumnName()}";
-        var oMultiInput =  sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
-
-        const oTable = sap.ui.getCore().byId("{$tableElementId}");
-        const oModelSelected = oTable.getModel('{$tableEl->getModelNameForSelections()}');
-        const items = oTable.getItems();
-        const tokens = oMultiInput.getTokens();
-        
-        items.forEach(item => {
-            const bExistInTokens = tokens.some(token => token.getKey() === item.getBindingContext().getObject()[sId]);
-            oTable.setSelectedItem(item, bExistInTokens);
-        });
-
-        const newSelectedObjetcs = [];
-
-        oModelSelected.getProperty('/rows').forEach(object => {
-            if (tokens.some(token => token.getKey() === object[sId])) {
-                newSelectedObjetcs.push(object);
-            }
-            {$tableEl->buildJsSelectRowByValue($tableUidCol, 'sId')};
-        });
-
-        oModelSelected.setProperty('/rows', newSelectedObjetcs);
-
-JS;
-
-    }
-    
-    /**
-     * This function generates the JS-code for the handler of the event onChange on the LookupDialog's `DataTable`.
-     * It is responsible for most of the logic for the tokenizer in the 'SelectedItems' panel.
-     * 
-     * Creating the tokens works as follows:
-     * First the important values (label and ID) of the currently selected items are getting extracted from the table.
-     * Then for every row of selected elements, a token is created, it's key being the UID value of a row,
-     * and the value yeilding the label value of the row. If there is no label attribute is set for the current object,
-     * it will just use the UID-Attribute.
-     * In addition to this, on creation of the tokens, another value is stored in their `CustomData`, this being the 
-     * ID of the table. This value is used to determinate the table, on which the deletion of the selection is to be fired on,
-     * when a Token is deleted or when the 'delete-all' button in the 'Selected Items' panel is pressed.
-     * 
-     * @return string
-     */
-    protected function buildJsSelectionChangeHandler() : string
-    {
-        $table = $this->getWidget()->getDataWidget();
-        $tableElement = $this->getFacade()->getElement($table);
-        
-        $idAttributeAlias = $table->getMetaObject()->getUidAttributeAlias();
-        $labelColName = $this->getTokenNameColumn()->getDataColumnName();
-        
-        $dataGetterJs = $tableElement->buildJsDataGetter(ActionFactory::createFromString($this->getWorkbench(), UpdateData::class));
-        
-        return <<<JS
-
-            var oMultiInput =  sap.ui.getCore().byId("{$this->getDialogContentPanelTokenizerId()}");
-            if (! oMultiInput) {
-                return;
-            }
-            
-            var aNewTokens = [];
-
-            var aSelection = {$dataGetterJs};
-            var aAllRows = sap.ui.getCore().byId("{$tableElement->getId()}").getModel().getData().rows;
-            var aRows =  aSelection.rows;
-
-            // Create tokens for every selected row
-            var aSelectedIds = {$tableElement->buildJsValueGetter($idAttributeAlias)};
-            var aSelectedLables = {$tableElement->buildJsValueGetter("{$labelColName}")};
-
-            aRows.forEach(function(oRow){
-                var oToken = new sap.m.Token({
-                    key: oRow.{$idAttributeAlias},
-                    text: oRow.{$labelColName}
-                });
-                aNewTokens.push(oToken);
-            });
-             
-            // keep not existant token in new tokens list
-            var oldTokens = oMultiInput.getTokens();
-            oldTokens.forEach(token => {
-                const bExistInCurrentPage = aAllRows.some(row => row["{$idAttributeAlias}"] === token.getKey());
-                const bExistInTokenList= aNewTokens.some(newToken => newToken.getKey() === token.getKey());
-                if (!bExistInCurrentPage && !bExistInTokenList) {
-                    aNewTokens.push(token);
-                }
-            });
-
-
-            oMultiInput.removeAllTokens();
-
-            // Fire tokenUpdaet (_before_ actually adding tokens because that's how it seems
-            // to work when doing it manually)
-            oMultiInput.fireTokenUpdate({
-                type: sap.m.Tokenizer.TokenUpdateType.Added,
-                addedTokens: aNewTokens
-            });
-            
-            // add the tokens
-            aNewTokens.forEach(function(oToken) {oMultiInput.addToken(oToken);});
 JS;
     }
     
