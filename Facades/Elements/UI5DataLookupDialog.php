@@ -190,25 +190,20 @@ JS;
      */
     protected function buildJsDialogSelectedItemsPanel() : string
     {
-        if ($this->getWidget()->getMultiSelect() !== true){
+        $widget = $this->getWidget();
+        if ($widget->getMultiSelect() !== true){
             return '';
         }
         
         $tableElement = $this->getTableElement();
         $modelName = $tableElement->getModelNameForSelections();
 
-        $splitterId = $this->getDialogContentPanelSplitterLayoutId();
-        
-        $this->getController()->addOnInitScript(<<<JS
-        
-                    (function(oContentPanel, oDataCtrl){
-                        oContentPanel.setModel(oDataCtrl.getModel('$modelName'), '$modelName');
-                    })(sap.ui.getCore().byId('{$this->getDialogContentPanelId()}'), sap.ui.getCore().byId('{$tableElement->getId()}'));
-JS);
         
         
+
+        $splitterId = $this->getIdOfSplitter();
         return <<<JS
-            new sap.m.Panel( "{$this->getDialogContentPanelId()}",
+            new sap.m.Panel("{$this->getIdOfContentPanel()}",
                 {
                     expandable: true,
                     expandAnimation: false,
@@ -229,7 +224,7 @@ JS);
                             alignItems: "Center",
                             fitContainer: true,
                             items: [
-                                new sap.m.MultiInput('{$this->getId()}_selectedTokens', {
+                                new sap.m.MultiInput('{$this->getIdOfSelectedTokensInput()}', {
                                     width: "100%",
                                     showValueHelp: true,
                                     valueHelpOnly: true,
@@ -300,18 +295,23 @@ JS;
      * 
      * @return string
      */
-    protected function getDialogContentPanelId() : string
+    protected function getIdOfContentPanel() : string
     {
         return $this->getId() . '_' . 'SelectedItemsPanel';
+    }
+
+    protected function getIdOfSelectedTokensInput() : string
+    {
+        return "{$this->getId()}_selectedTokens";
     }
     
     /**
      * 
      * @return string
      */
-    protected function getDialogContentPanelSplitterLayoutId() : string
+    protected function getIdOfSplitter() : string
     {
-        return $this->getDialogContentPanelId() . '_' . 'SplitterLayoutData';
+        return $this->getIdOfContentPanel() . '_' . 'SplitterLayoutData';
     }
 
     protected function getTableElement() : UI5DataElementInterface

@@ -233,7 +233,7 @@ JS);
 
         .setModel(new sap.ui.model.json.JSONModel())
         .setModel(new sap.ui.model.json.JSONModel(), '{$this->getModelNameForConfigurator()}')
-        .setModel(new sap.ui.model.json.JSONModel({rows: [], count: 0}), '{$this->getModelNameForSelections()}')
+        .setModel(new sap.ui.model.json.JSONModel({rows: []}), '{$this->getModelNameForSelections()}')
 JS;
         
         // If the table has editable columns, we need to track changes made by the user.
@@ -2609,4 +2609,17 @@ JS;
             })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
     }
+
+    /**
+     * TODO
+    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    {
+        switch (true) {
+            case $functionName === Data::FUNCTION_SELECT:
+                return $this->buildJsSelectRowByIndex();
+            case $functionName === Data::FUNCTION_UNSELECT:
+                return "setTimeout(function(){ {$this->buildJsEmpty()} }, 0);";
+        }
+        return parent::buildJsCallFunction($functionName, $parameters);
+    }*/
 }
