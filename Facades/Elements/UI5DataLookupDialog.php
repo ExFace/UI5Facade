@@ -229,8 +229,7 @@ JS);
                             alignItems: "Center",
                             fitContainer: true,
                             items: [
-                                new sap.m.MultiInput(
-                                    {
+                                new sap.m.MultiInput('{$this->getId()}_selectedTokens', {
                                     width: "100%",
                                     showValueHelp: true,
                                     valueHelpOnly: true,
@@ -260,8 +259,11 @@ JS);
                                         })
                                     ],
                                     press: function(oEvent){
-                                        var oModel = oEvent.getSource().getModel('{$modelName}');
-                                        oModel.setProperty('/rows', []);
+                                        var oInput = sap.ui.getCore().byId('{$this->getId()}_selectedTokens');
+                                        oInput.fireTokenUpdate({
+                                            type: sap.m.Tokenizer.TokenUpdateType.Removed,
+                                            removedTokens: oInput.getTokens()
+                                        });
                                     }
                                 })
                             ]
