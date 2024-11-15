@@ -1009,8 +1009,10 @@ JS;
     var oInput = sap.ui.getCore().byId("{$this->getId()}");
     var mVal;
     var aVals = [];
-    if (oData !== undefined && Array.isArray(oData.rows) && oData.rows.length > 0) {
-        if (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}") {
+    if (oData !== undefined && Array.isArray(oData.rows) && (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}")) {
+        if (oData.rows.length === 0) {
+            {$this->buildJsValueSetter("''")};
+        } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
             if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
                 oInput.{$this->buildJsEmptyMethod()};
@@ -1032,9 +1034,9 @@ JS;
                 }
                 {$this->buildJsValueSetter("mVal")}
             }
-        } else {
-            $parentSetter;
-        }
+        } 
+    } else {
+        $parentSetter;
     }
 })({$jsData})
 
