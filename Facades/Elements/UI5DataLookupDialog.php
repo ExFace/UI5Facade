@@ -22,9 +22,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
  *
  */
 class UI5DataLookupDialog extends UI5Dialog 
-{
-    const EVENT_NAME_TOKEN_UPDATE = 'tokenUpdate';
-    
+{    
     private $tokenNameColumn = null;
     
     /**
@@ -225,11 +223,6 @@ JS;
     protected function attachEventHandlersToElements() : UI5DataLookupDialog
     {
         foreach ($this->getWidget()->getWidgets() as $widget) {
-            
-            // if the widget is the DataTable, and it uses Multiselect attatch the handlers for the SelectedITems panel
-            if ($widget instanceof iSupportMultiSelect && $this->getWidget()->getMultiSelect() === true){
-                $this->getController()->addOnEventScript($this, self::EVENT_NAME_TOKEN_UPDATE, $this->buildJsOnTokenUpdate('oEvent'));
-            }
             $tableElement = $this->getFacade()->getElement($widget);
             $dialog = $this->getWidget();
             $hideHeader = true;
@@ -295,7 +288,16 @@ JS;
                                             growFactor: 1
                                         })
                                     ],
-                                    tokenUpdate: {$this->getController()->buildJsEventHandler($this, self::EVENT_NAME_TOKEN_UPDATE, true)},
+                                    tokenUpdate: function(oEvent){
+                                        var oMultiInput = oEvent.getSource();
+                                        var oEventParams = oEvent.getParameters();
+                                        var aRemovedTokens = oEventParams['removedTokens'] || [];
+                                        
+                                        aRemovedTokens.forEach(function(oToken){
+                                            var sKey = oToken.getKey();
+                                            {$tableElement->buildJsSelectRowByValue($tableElement->getWidget()->getUidColumn(), 'sKey', '', 'rowIdx', true)}
+                                        });
+                                    },
                                     tokens: {
                                         path: "{$modelName}>/rows",
                                         template: new sap.m.Token({
@@ -392,24 +394,6 @@ JS;
             $js .= ($js ? ",\n" : '') . $tableElement->buildJsConstructor();
         }        
         return $js;
-    }
-    
-    protected function buildJsOnTokenUpdate(string $oEventJs) : string
-    {
-        $table = $this->getWidget()->getDataWidget();
-        $tableElement = $this->getFacade()->getElement($table);
-        
-        return <<<JS
-
-                var oMultiInput = $oEventJs.getSource();
-                var oEventParams = $oEventJs.getParameters();
-                var aRemovedTokens = oEventParams['removedTokens'] || [];
-                
-                aRemovedTokens.forEach(function(oToken){
-                    var sKey = oToken.getKey();
-                    {$tableElement->buildJsSelectRowByValue($table->getUidColumn(), 'sKey', '', 'rowIdx', true)}
-                });
-JS;
     }
     
     /**

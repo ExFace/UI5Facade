@@ -1533,9 +1533,9 @@ var {$rowIdxJs} = function() {
         const selectedObjectsIndex = aSelectedRows.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
         if (selectedObjectsIndex !== -1) {
             aSelectedRows.splice(selectedObjectsIndex, 1);
+            oModelSelected.refresh(true);
         }
     } 
-
 
     if (iRowIdx == -1){
 		{$onNotFoundJs};
