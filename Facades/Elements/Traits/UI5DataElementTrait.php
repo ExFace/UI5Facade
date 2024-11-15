@@ -435,12 +435,13 @@ JS;
 
         if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true && ! $this->getDynamicPageShowToolbar()) {
             $modelName = $this->getModelNameForSelections();
+            $translator = $this->getFacade()->getApp()->getTranslator();
             $js = <<<JS
 
                     new sap.m.Button({
                         icon: 'sap-icon://complete',
                         type: 'Ghost',
-                        tooltip: '{= \${{$modelName}>/rows}.length} rows selected',
+                        tooltip: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
                         visible: '{= \${{$modelName}>/rows}.length > 1 ? true : false}',
                         layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
                         customData: [
@@ -455,7 +456,7 @@ JS;
                             var oPopover = sap.ui.getCore().byId(sPopoverId);
                             if (oPopover === undefined) {
                                 oPopover = new sap.m.Popover(sPopoverId, {
-                                    title: '{= \${{$modelName}>/rows}.length} rows selected',
+                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}}',
                                     content: [
                                         new sap.m.List({
                                             mode: "Delete",
@@ -468,6 +469,7 @@ JS;
                                             },
                                             delete: function(oEvent) {
                                                 var oItem = oEvent.getParameters().listItem;
+                                                var oList = oPopover.getContent()[0];
                                                 var oRowUnselected = oItem.getBindingContext('{$modelName}').getObject();
                                                 var iItem = oItem.getParent().indexOfItem(oItem);
                                                 var sUidCol = {$uidColName};
@@ -484,7 +486,26 @@ JS;
                                                 }
                                             }
                                         })
-                                    ]
+                                    ],/* TODO
+                                    footer: [
+                                        new sap.m.OverflowToolbar({
+                                            content: [
+                                                new sap.m.Button({
+                                                    text: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
+                                                    press: function(oEvent) {
+                                                        var oBtn = oEvent.getSource();
+                                                        var oList = oPopover.getContent()[0];
+                                                        // oList.removeAllItems();
+                                                        oList.getItems().forEach(function(oItem){
+                                                            oList.fireDelete({
+                                                                listItem: oItem
+                                                            });
+                                                        });
+                                                    }
+                                                })
+                                            ]
+                                        })
+                                    ]*/
                                 }).setModel(oBtn.getModel('{$modelName}'), '{$modelName}');
                                 {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oPopover);
                             }

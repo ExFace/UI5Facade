@@ -918,7 +918,19 @@ JS;
             if($this->getWidget()->getMultiSelect() === false) {
                 $rows = "($oTableJs && $oTableJs.getSelectedIndex() !== -1 && $oTableJs.getContextByIndex($oTableJs.getSelectedIndex()) !== undefined ? [$oTableJs.getContextByIndex($oTableJs.getSelectedIndex()).getObject()] : [])";
             } else {
-                $rows = "(function(){var selectedIdx = $oTableJs.getSelectedIndices(); var aRows = []; selectedIdx.forEach(index => aRows.push($oTableJs.getContextByIndex(index).getObject())); return aRows;})()";
+                $rows = <<<JS
+                    (function(oTable){
+                        var selectedIdx = oTable.getSelectedIndices(); 
+                        var aRows = []; 
+                        selectedIdx.forEach(function(i) {
+                            var oCtxt = oTable.getContextByIndex(i);
+                            if (oCtxt) {
+                                aRows.push(oCtxt.getObject());
+                            }
+                        }); 
+                    return aRows;
+                })($oTableJs)
+JS;
             }
         } else {
             if($this->getWidget()->getMultiSelect() === false) {
