@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades\Elements\Traits;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
+use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -436,13 +437,14 @@ JS;
         if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true && ! $this->getDynamicPageShowToolbar()) {
             $modelName = $this->getModelNameForSelections();
             $translator = $this->getFacade()->getApp()->getTranslator();
+            $minSelectsToShowIndicator = ($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation() ? 1 : 2;
             $js = <<<JS
 
                     new sap.m.Button({
                         icon: 'sap-icon://complete',
                         type: 'Ghost',
                         tooltip: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
-                        visible: '{= \${{$modelName}>/rows}.length > 1 ? true : false}',
+                        visible: '{= \${{$modelName}>/rows}.length >= {$minSelectsToShowIndicator} ? true : false}',
                         layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
                         customData: [
                             new sap.m.BadgeCustomData({
