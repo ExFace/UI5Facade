@@ -221,7 +221,6 @@ JS;
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
 
-            console.log('onSelect save, vis, all', bMultiSelectSave, aRowsSelectedVisible, oModelSelected.getProperty('/rows'));
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 // Keep all previously selected rows, that are NOT in the current page
@@ -238,7 +237,7 @@ JS;
             } else {
                 oModelSelected.setProperty('/rows', aRowsSelectedVisible);
             }
-            console.log('onSelect merged', oModelSelected.getProperty('/rows'));
+            
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
     }
@@ -843,8 +842,6 @@ JS;
         var oTable = sap.ui.getCore().byId('{$this->getId()}');
         var oDirtyColumn = sap.ui.getCore().byId('{$this->getDirtyFlagAlias()}');
         var aRows = {$aRowsJs};
-
-        console.log('data getter table', aRows);
         
         // Remove any keys, that are not in the columns of the widget
         aRows = aRows.map(({ $colNamesList }) => ({ $colNamesList }));
@@ -883,7 +880,6 @@ JS;
                     if (aPrevSelectedRows === undefined) {
                         return;
                     }
-                    console.log('restore prev/now', aPrevSelectedRows, aNowSelectedRows);
                     aNowSelectedRows.forEach(function (oRow) {
                         var bSelected = exfTools.data.indexOfRow(aPrevSelectedRows, oRow, sUidCol) > -1;
                         var iRowIdx = exfTools.data.indexOfRow(aRows, oRow, sUidCol);
@@ -904,7 +900,6 @@ JS;
                             fnSelect(iRowIdx);
                         }
                     });
-                    setTimeout(function(){console.log('restore result', oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows'))}, 10);
                 }, 0, {$oTableJs});
 
 JS;
@@ -2000,6 +1995,7 @@ JS;
      */
     protected function buildJsDataResetter() : string
     {
+        $resetTableJs = '';
         if ($this->isUiTable()) {
             $resetTableJs = ! $this->isUiTable() ? '' : <<<JS
 
@@ -2008,10 +2004,11 @@ JS;
             }   
 JS;
         } elseif ($this->isMTable()) {
+            /* TODO clear selectios or not??? Not sure, why we removed this, but it caused trouble
             $resetTableJs = <<<JS
-console.log('clear');
+
             //sap.ui.getCore().byId('{$this->getId()}').removeSelections();
-JS;
+JS;*/
         }
         return $resetTableJs . $this->buildJsDataResetterViaTrait();
     }

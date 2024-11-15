@@ -97,12 +97,22 @@ class UI5DataLookupDialog extends UI5Dialog
             },
             
 JS;
-            } else {
-                $prefill = '';
-            }
+        } else {
+            $prefill = '';
+        }
+
+        // Make sure, the entire dialog shares the selections models of the inner data widget
+        $this->getController()->addOnInitScript(<<<JS
+        
+            (function() {
+                const oDialog = sap.ui.getCore().byId('{$this->getId()}');
+                const oTable = sap.ui.getCore().byId('{$this->getTableElement()->getId()}');
+                oDialog.setModel(oTable.getModel('{$this->getModelNameForSelections()}'), '{$this->getModelNameForSelections()}');
+            })();
+JS      );
             
-            // Finally, instantiate the dialog
-            return <<<JS
+        // Finally, instantiate the dialog
+        return <<<JS
             
         new sap.m.Dialog("{$this->getId()}", {
 			{$icon}
@@ -112,8 +122,62 @@ JS;
             title: {$this->escapeString($this->getCaption())},
 			buttons : [ {$this->buildJsDialogButtons(false)} ],
 			content : [ {$this->buildJsDialogContent()} ],
+            afterOpen: function (oEvent) {
+                {$this->buildJsOnDialogAfterOpen('oEvent')}
+            },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()}')
+JS;
+    }
+
+    /**
+     * Every time we open the dialog, we need to get the current value from the widget
+     * we are selecting for and make sure all these items are selected.
+     * 
+     * This only makes sense for multi-select lookups because in the case of single-select
+     * we can't even show that an element was selected previously (because we can only have
+     * a single one selected).
+     * 
+     * @param string $oEventJs
+     * @return string
+     */
+    protected function buildJsOnDialogAfterOpen(string $oEventJs) : string
+    {
+        if ($this->getWidget()->getMultiSelect() === false) {
+            return '';
+        }
+        $triggerInputWidget = $this->getWidget()->getTriggerInputWidget();
+        if ($triggerInputWidget === null) {
+            return '';
+        }
+        $triggerInputEl = $this->getFacade()->getElement($triggerInputWidget);
+        $keyCol = $this->getTokenKeyColumn();
+        $textCol = $this->getTokenNameColumn();
+        // Get the current value of the calling element (e.g. an InputComboTable) using its
+        // value getter. This is very generic as all widgets have a value getter. But we need
+        // to make sure to extract values only and strip off spaces that might be added around
+        // the delimiters.
+        // TODO what happens if the other widget cannot give us the texts? The InputComboTable
+        // can, but are there other widgets, that may call the lookup dialog?
+        return <<<JS
+
+                const oDialog = {$oEventJs}.getSource();
+                const oModel = oDialog.getModel('{$this->getModelNameForSelections()}');
+                const mVals = {$triggerInputEl->buildJsValueGetter()};
+                const mTexts = {$triggerInputEl->buildJsValueGetter($textCol->getDataColumnName())};
+                var aRows = [], aVals = [], aTexts = [];
+                if (mVals === undefined || mVals === '' || mVals === null) {
+                    return;
+                }
+                aVals = Array.isArray(mVals) ? mVals : mVals.split('{$keyCol->getAttribute()->getValueListDelimiter()}');
+                aTexts = Array.isArray(mTexts) ? mTexts : mTexts.split('{$textCol->getAttribute()->getValueListDelimiter()}');
+                aVals.forEach(function(mVal, i){
+                    var mText = aTexts[i];
+                    mText = exfTools.string.isString(mText) ? mText.trim() : mText;
+                    mVal = exfTools.string.isString(mVal) ? mVal.trim() : mVal;
+                    aRows.push({{$keyCol->getDataColumnName()} : mVal, {$textCol->getDataColumnName()} : mText});
+                });
+                oModel.setProperty('/rows', aRows);
 JS;
     }
     
@@ -198,13 +262,9 @@ JS;
         $tableElement = $this->getTableElement();
         $modelName = $tableElement->getModelNameForSelections();
 
-        
-        
-
         $splitterId = $this->getIdOfSplitter();
         return <<<JS
-            new sap.m.Panel("{$this->getIdOfContentPanel()}",
-                {
+            new sap.m.Panel({
                     expandable: true,
                     expandAnimation: false,
                     expanded: true,
@@ -239,7 +299,7 @@ JS;
                                     tokens: {
                                         path: "{$modelName}>/rows",
                                         template: new sap.m.Token({
-                                            key: "{{$modelName}>{$this->getWidget()->getDataWidget()->getUidColumn()->getDataColumnName()}}",
+                                            key: "{{$modelName}>{$this->getTokenKeyColumn()->getDataColumnName()}}",
                                             text: "{{$modelName}>{$this->getTokenNameColumn()->getDataColumnName()}}"
                                         })
                                     }
@@ -290,15 +350,6 @@ JS;
         $tableElement = $this->getFacade()->getElement($table);
         return $tableElement->getModelNameForSelections();
     }
-    
-    /**
-     * 
-     * @return string
-     */
-    protected function getIdOfContentPanel() : string
-    {
-        return $this->getId() . '_' . 'SelectedItemsPanel';
-    }
 
     protected function getIdOfSelectedTokensInput() : string
     {
@@ -311,7 +362,7 @@ JS;
      */
     protected function getIdOfSplitter() : string
     {
-        return $this->getIdOfContentPanel() . '_' . 'SplitterLayoutData';
+        return $this->getId() . '_' . 'SplitterLayoutData';
     }
 
     protected function getTableElement() : UI5DataElementInterface
@@ -361,8 +412,21 @@ JS;
 JS;
     }
     
+    /**
+     * 
+     * @return \exface\Core\Widgets\DataColumn
+     */
     protected function getTokenNameColumn() : DataColumn
     {
         return $this->tokenNameColumn;
+    }
+    
+    /**
+     * 
+     * @return \exface\Core\Widgets\DataColumn
+     */
+    protected function getTokenKeyColumn() : DataColumn
+    {
+        return $this->getWidget()->getDataWidget()->getUidColumn();
     }
 }

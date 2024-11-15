@@ -998,7 +998,10 @@ JS;
 
 
     /**
+     * Implement this method to restore the selection when switching pages if neccessary
      * 
+     * 
+     * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsDataLoaderOnLoadedRestoreSelection() for an example
      * @param string $oTableJs
      * @return string
      */
@@ -1692,6 +1695,17 @@ JS;
         return 'data_last_loaded';
     }
     
+    /**
+     * Returns the name of the UI5 model that keeps currently selected rows.
+     * 
+     * This model use used to synchronize selections between the main control (e.g. table), the selection 
+     * indicator and possible other controls.
+     * 
+     * @see buildJsToolbarSelectionCounter()
+     * @see buildJsDataLoaderOnLoadedRestoreSelection()
+     * 
+     * @return string
+     */
     public function getModelNameForSelections() : string
     {
         return 'selections';
@@ -2461,6 +2475,13 @@ JS;
      * those rows).
      * 
      * For single-select widget, this method must return an array with one or zero elements.
+     * 
+     * If pagination is used, this method only returns the selections from the current page!
+     * Keeping selections on other pages (depending on `multi_select_saved_on_navigation`) is
+     * handled by syncing via selections model - see `buildJsDataLoaderOnLoadedRestoreSelection()` 
+     * and `buildJsToolbarSelectionCounter()` for more details.
+     * 
+     * @see buildJsDataLoaderOnLoadedRestoreSelection()
      * 
      * @param string $oControlJs
      * @return string
