@@ -12,15 +12,33 @@ const ignoredErrorPatterns = [
 	/Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
 ];
 
+$(window).on('networkchanged', function(oEvent, oNetStat) {
+	try {
+		// TODO why doesn't this work???
+		// const oNetStat = oEvent.state;
+		const oNetStat = exfPWA.network.getState();
+		exfLauncher.updateNetworkModel(oNetStat);
+		
+		if (oNetStat.isOnline()) {
+			exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			if (!navigator.serviceWorker) {
+				syncOfflineItems();
+			}
+		} 
+	} catch (error) {
+		console.error('Error handling online event:', error);
+	}
+});
+
 // Toggle online/offlie icon
+// TODO make the networkchanged event also fire when browser goes online/offline and get rid
+// if these listeners then. So exfPWA needs to listen to browser online/offlie and trigger
+// our own networkchanged event then. 
 window.addEventListener('online', async function () {
 	try {
-		const state = await exfPWA.network.getState();
-		await exfLauncher.updateNetworkState(state._bSlowNetwork, state._bAutoOffline);
-
-		if (exfLauncher.isOnline()) {
-			exfLauncher.toggleOnlineIndicator();
-		}
+		const oNetStat = exfPWA.network.getState();
+		await exfLauncher.updateNetworkModel(oNetStat);
+		
 		exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
 		if (!navigator.serviceWorker) {
 			syncOfflineItems();
@@ -32,9 +50,7 @@ window.addEventListener('online', async function () {
 
 window.addEventListener('offline', async function () {
 	try {
-		const state = await exfPWA.network.getState();
-		await exfLauncher.updateNetworkState(state._bSlowNetwork, state._bAutoOffline);
-		exfLauncher.toggleOnlineIndicator();
+		exfLauncher.updateNetworkModel(exfPWA.network.getState());
 	} catch (error) {
 		console.error('Error handling offline event:', error);
 	}
@@ -70,7 +86,7 @@ if (navigator.serviceWorker) {
 }
 
 function syncOfflineItems() {
-	if (exfPWA.network.isOfflineVirtually()) return;
+	if (exfPWA.network.getState().isOfflineVirtually()) return;
 
 	exfPWA.actionQueue.getIds('offline')
 		.then(function (ids) {
@@ -109,7 +125,6 @@ const exfLauncher = {};
 	var _oLauncher = this;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
-	var _forceOffline = false;
 
 	const _speedHistory = new Array(SPEED_HISTORY_ARRAY_LENGTH).fill(null);
 	var _oConfig = {
@@ -141,7 +156,7 @@ const exfLauncher = {};
 				}
 
 				// Check Network Speed
-				const isNetworkSlow = await exfPWA.network.isNetworkSlow();
+				const isNetworkSlow = await exfPWA.network.getState().isNetworkSlow();
 
 				// If auto offline is true and network is slow
 				if (isNetworkSlow && state._bAutoOffline) {
@@ -163,7 +178,7 @@ const exfLauncher = {};
 		_oNetworkSpeedPoller = setInterval(async function () {
 			try {
 				//take the network state
-				const state = await exfPWA.network.getState();
+				const state = await exfPWA.network.checkState();
 
 				// If forced offline true, stop polling
 				if (state._bForcedOffline) {
@@ -172,7 +187,7 @@ const exfLauncher = {};
 				}
 
 				// check network speed
-				const isNetworkSlow = await exfPWA.network.isNetworkSlow();
+				const isNetworkSlow = await exfPWA.network.getState().isNetworkSlow();
 
 				// Auto offline true ve network fast 
 				// or auto offline off, get back to poller
@@ -196,16 +211,16 @@ const exfLauncher = {};
 	 * @returns {boolean}
 	 */
 	this.isOfflineVirtually = function () {
-		return exfPWA.network.isOfflineVirtually();
+		return exfPWA.network.getState().isOfflineVirtually();
 	};
 
 
 	this.isSemiOffline = async function () {
-		return exfPWA.network.isOfflineVirtually();
+		return exfPWA.network.getState().isOfflineVirtually();
 	};
 
 	this.isOnline = function () {
-		return exfPWA.network.isOnline();
+		return exfPWA.network.getState().isOnline();
 	};
 
 	this.getShell = function () {
@@ -254,7 +269,7 @@ const exfLauncher = {};
 						}),
 						new sap.m.ToolbarSpacer(),
 						new sap.m.Button("exf-network-indicator", {
-							icon: function () { return exfLauncher.isOnline() ? "sap-icon://connected" : "sap-icon://disconnected" }(),
+							icon: "{= ${/_network/online} > 0 ? 'sap-icon://connected' : 'sap-icon://disconnected'}",
 							text: "{/_network/queueCnt} / {/_network/syncErrorCnt}",
 							layoutData: new sap.m.OverflowToolbarLayoutData({ priority: "NeverOverflow" }),
 							press: _oLauncher.showOfflineMenu
@@ -266,14 +281,49 @@ const exfLauncher = {};
 
 			]
 		})
-			.setModel(new sap.ui.model.json.JSONModel({
-				_network: {
-					online: navigator.onLine,
-					queueCnt: 0,
-					syncErrorCnt: 0,
-					deviceId: exfPWA.getDeviceId()
+		.setModel(new sap.ui.model.json.JSONModel({
+			_network: {
+				online: true,
+				queueCnt: 0,
+				syncErrorCnt: 0,
+				deviceId: exfPWA.getDeviceId(),
+				state: {}
+			}
+		}, true));
+
+		exfLauncher.updateNetworkModel(exfPWA.network.getState(), _oShell.getModel());
+		_oShell.getModel().attachPropertyChange(function(oEvent){
+			var oParams = oEvent.getParameters();
+			var oModelStateNew = oEvent.getSource().getData()._network.state;
+			exfPWA.network.setState(oModelStateNew.forcedOffline, oModelStateNew.autoOffline, oModelStateNew.slowNetwork);
+			console.log('model changed', oEvent);
+
+			// TODO move this IF logic to networkchanged listner because this logic does not depend
+			// on the exact way HOW things changed. Id does not matter if they were chane by the UI
+			// or something else.
+			if (oParams.path === '/_network/state/autoOffline') {
+				if (oModelStateNew.autoOffline) {
+					if (isNetworkSlow) {
+						exfLauncher.initFastNetworkPoller();
+					} else {
+						exfLauncher.initPoorNetworkPoller();
+					}
+					var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
+					exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON"));
+				} else {
+					// Auto-offline off
+					clearInterval(_oNetworkSpeedPoller);
+					exfLauncher.initPoorNetworkPoller();
+
+					var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
+					exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_OFF"));
 				}
-			}));
+			}
+
+			if (oParams.path === '/_network/state/forcedOffline') {
+				// TODO toggle stuff for forced offline here instead of separate toggle-functions
+			}
+		});
 
 		return _oShell;
 	};
@@ -328,6 +378,7 @@ const exfLauncher = {};
 			},
 
 			load: function (delay) {
+				var oNetState = exfPWA.network.getState();
 				if (delay === undefined) delay = 100;
 
 				// Don't refresh if configured wait-time not passed yet
@@ -337,7 +388,7 @@ const exfLauncher = {};
 				_oContextBar.lastContextRefresh = new Date();
 
 				// Do not really refresh if offline or semi-offline
-				if (navigator.onLine === false || exfPWA.network.isOfflineVirtually()) {
+				if (oNetState.isBrowserOnline() === false || oNetState.isOfflineVirtually()) {
 					_oContextBar.refresh({});
 					return;
 				}
@@ -600,31 +651,6 @@ const exfLauncher = {};
 				break;
 		}
 		return speedClass;
-	};
-
-	this.toggleOnlineIndicator = async function ({ lowSpeed = false } = {}) {
-		try {
-			// Use existing exfPWA functions
-			const isOnline = exfPWA.network.isOnline();
-
-			// Update UI
-			const networkIndicator = sap.ui.getCore().byId('exf-network-indicator');
-			if (networkIndicator) {
-				networkIndicator.setIcon(isOnline ? 'sap-icon://connected' : 'sap-icon://disconnected');
-			}
-
-			_oShell.getModel().setProperty("/_network/online", isOnline);
-
-			if (isOnline) {
-				_oLauncher.contextBar.load();
-				if (exfPWA) {
-					exfPWA.actionQueue.syncOffline();
-				}
-			}
-
-		} catch (error) {
-			console.error('Error in toggleOnlineIndicator:', error);
-		}
 	};
 
 	this.showMessageToast = function (message, duration) {
@@ -1557,12 +1583,6 @@ const exfLauncher = {};
 			})
 	};
 
-
-
-	this.getTitle = function () {
-		return exfPWA.network.getStateString();
-	};
-
 	/**
 	 * Shows the offline menu
 	 * 
@@ -1577,13 +1597,13 @@ const exfLauncher = {};
 		var oButton = oEvent.getSource();
 		var oPopover = sap.ui.getCore().byId('exf-network-menu');
 		const titleInterval = setInterval(function () {
-			oPopover.setTitle(exfPWA.network.getStateString());
+			oPopover.setTitle(exfPWA.network.getState().toString());
 		}, 1000);
 
 
 		if (oPopover === undefined) {
 			oPopover = new sap.m.ResponsivePopover("exf-network-menu", {
-				title: exfLauncher.getTitle(),
+				title: "{/_network/title}",
 				placement: "Bottom",
 				content: [
 					new sap.m.MessageStrip({
@@ -1656,15 +1676,7 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('auto_offline_toggle', {
-											state: true,
-											change: function (oEvent) {
-												var oSwitch = oEvent.getSource();
-												if (oSwitch.getState()) {
-													exfLauncher.toggleAutoOfflineOn();
-												} else {
-													exfLauncher.toggleAutoOfflineOff();
-												}
-											}
+											state: "{/_network/state/autoOffline}",
 										}),
 										new sap.m.Text({
 											// FIXME #auto-offline
@@ -1684,7 +1696,7 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('force_offline_toggle', {
-											state: _forceOffline,
+											state: "{/_network/forcedOffline}",
 											//enabled: navigator.onLine, // Changed from disabled to enabled
 											change: function (oEvent) {
 												var oSwitch = oEvent.getSource();
@@ -1720,7 +1732,7 @@ const exfLauncher = {};
 				.setModel(oButton.getModel('i18n'), 'i18n');
 
 			// Get and set initial toggle states after popover creation
-			exfPWA.network.getState().then(state => {
+			exfPWA.network.checkState().then(state => {
 				var autoOfflineSwitch = sap.ui.getCore().byId('auto_offline_toggle');
 				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
 
@@ -1940,7 +1952,7 @@ const exfLauncher = {};
 	};
 
 	this.toggleForceOfflineOn = function () {
-		exfPWA.network.getState()
+		exfPWA.network.checkState()
 			.then(state => {
 				// Only change force offline, preserve auto offline state
 				return exfPWA.network.setState(true, state._bAutoOffline, state._bSlowNetwork);
@@ -1950,7 +1962,6 @@ const exfLauncher = {};
 					.getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON"));
 
 				clearInterval(_oNetworkSpeedPoller);
-				_oLauncher.toggleOnlineIndicator({ lowSpeed: true });
 
 				// Update only force offline switch state
 				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
@@ -1962,7 +1973,7 @@ const exfLauncher = {};
 
 	this.toggleForceOfflineOff = function () {
 		// First get the current state
-		exfPWA.network.getState()
+		exfPWA.network.checkState()
 			.then(state => {
 				// Only change force offline, preserve auto offline state
 				return exfPWA.network.setState(false, state._bAutoOffline, state._bSlowNetwork);
@@ -1972,13 +1983,11 @@ const exfLauncher = {};
 					.getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
 	
 				// Get state again to determine polling behavior
-				return exfPWA.network.getState();
+				return exfPWA.network.checkState();
 			})
 			.then(state => {
 				if (state._bAutoOffline) {
 					_oLauncher.initPoorNetworkPoller();
-				} else {
-					_oLauncher.toggleOnlineIndicator({ lowSpeed: false });
 				}
 	
 				// Update only force offline switch state
@@ -1993,41 +2002,23 @@ const exfLauncher = {};
 			});
 	};
 
-	this.toggleAutoOfflineOn = function () {
-		exfPWA.network.getState()
-			.then(state => {
-				if (state._bForcedOffline) {
-					exfLauncher.showMessageToast(exfLauncher.contextBar.getComponent().getModel('i18n')
-						.getProperty("WEBAPP.SHELL.PWA.AUTO_OFFLINE_DISABLED_FORCE_OFFLINE"));
-					return;
-				}
+	this.updateNetworkModel = function(oNetStat, oModel) {
+		console.log('set network model', oNetStat);
+		var oModel = oModel === undefined ? exfLauncher.getShell().getModel() : oModel;
+		var oNetStat = exfPWA.network.getState();
+		oModel.setProperty('/_network/state', {
+			autoOffline: oNetStat.hasAutoffline(),
+			slowNetwork: oNetStat.isNetworkSlow(),
+			forcedOffline: oNetStat.isOfflineForced()
+		});
+		oModel.setProperty('/_network/title', oNetStat.toString());
+		oModel.setProperty('/_network/online', oNetStat.isOnline());
+	},
 
-				return exfPWA.network.setState(false, true, false);
-			})
-			.then(() => {
-				return exfPWA.network.isNetworkSlow();
-			})
-			.then(isNetworkSlow => {
-				if (isNetworkSlow) {
-					exfLauncher.initFastNetworkPoller();
-				} else {
-					exfLauncher.initPoorNetworkPoller();
-				}
-
-				exfLauncher.toggleOnlineIndicator({ lowSpeed: isNetworkSlow });
-
-				var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-				exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON"));
-			})
-			.catch(error => {
-				console.error("Error turning on auto offline mode:", error);
-				exfLauncher.showMessageToast("Error turning on auto offline mode");
-			});
-	};
-
+	// TODO remove his after the pollers have moved to exfPWA
 	this.updateNetworkState = async function (isLowSpeed, isAutoOffline) {
 		try {
-			const currentState = await exfPWA.network.getState();
+			const currentState = exfPWA.network.getState();
 
 			await exfPWA.network.setState(
 				currentState._bForcedOffline,
@@ -2035,20 +2026,15 @@ const exfLauncher = {};
 				isLowSpeed
 			);
 
-			// Update UI indicators
-			this.toggleOnlineIndicator({
-				lowSpeed: isLowSpeed
-			});
-
 			// Update network menu title if open
 			const oPopover = sap.ui.getCore().byId('exf-network-menu');
 			if (oPopover) {
-				oPopover.setTitle(exfPWA.network.getStateString());
+				oPopover.setTitle(currentState.toString());
 			}
 
 			// Update polling behavior
-			if (!exfPWA.network.isOnline()) {
-				if (!currentState._bForcedOffline) {
+			if (! currentState.isOnline()) {
+				if (! currentState._bForcedOffline) {
 					clearInterval(_oNetworkSpeedPoller);
 					this.initFastNetworkPoller();
 				}
@@ -2064,22 +2050,7 @@ const exfLauncher = {};
 			return false;
 		}
 	};
-
-	this.toggleAutoOfflineOff = function () {
-		exfPWA.network.setState(false, false, false)
-			.then(() => {
-				clearInterval(_oNetworkSpeedPoller);
-				exfLauncher.initPoorNetworkPoller();
-				exfLauncher.toggleOnlineIndicator({ lowSpeed: false });
-
-				var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-				exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_OFF"));
-			})
-			.catch(error => {
-				console.error("Error turning off auto offline mode:", error);
-				exfLauncher.showMessageToast("Error turning off auto offline mode");
-			});
-	};
+	
 }).apply(exfLauncher);
 
 
