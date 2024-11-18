@@ -126,6 +126,8 @@ const exfLauncher = {};
 
 
 	this.initPoorNetworkPoller = function () {
+		// FIXME #auto-offline
+		return;
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(async function () {
 			try {
@@ -155,6 +157,8 @@ const exfLauncher = {};
 	};
 
 	this.initFastNetworkPoller = function () {
+		// FIXME #auto-offline
+		return;
 		clearInterval(_oNetworkSpeedPoller);
 		_oNetworkSpeedPoller = setInterval(async function () {
 			try {
@@ -180,10 +184,8 @@ const exfLauncher = {};
 					// Network hala yavaş ve auto offline açıksa state'i güncelle
 					await exfLauncher.updateNetworkState(isNetworkSlow, state._bAutoOffline);
 				}
-
 			} catch (error) {
 				console.error('Error in fast network poller:', error);
-	 
 			}
 		}, 5000); // Check every 5 seconds
 	};
@@ -1655,7 +1657,6 @@ const exfLauncher = {};
 									items: [
 										new sap.m.Switch('auto_offline_toggle', {
 											state: true,
-											//: navigator.onLine, // Changed from disabled to enabled
 											change: function (oEvent) {
 												var oSwitch = oEvent.getSource();
 												if (oSwitch.getState()) {
@@ -1666,6 +1667,8 @@ const exfLauncher = {};
 											}
 										}),
 										new sap.m.Text({
+											// FIXME #auto-offline
+											visible: false,
 											text: "{i18n>WEBAPP.SHELL.NETWORK_AUTOMATIC_OFFLINE}"
 										}),
 									],

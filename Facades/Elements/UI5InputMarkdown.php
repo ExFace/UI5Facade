@@ -3,10 +3,12 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\ToastUIEditorTrait;
+use exface\Core\Widgets\InputMarkdown;
 
 /**
- * UI5 specific implementation of the InputMarkdown widget, which enables the use of the ToastUI
- * markdown editor.
+ * UI5 implementation of the corresponding widget.
+ * 
+ * @see InputMarkdown
  */
 class UI5InputMarkdown extends UI5Input
 {
@@ -35,10 +37,7 @@ class UI5InputMarkdown extends UI5Input
         $this->addOnChangeScript(<<<JS
 
             (function(sVal){
-                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
-                var sBindingPath = '{$this->getValueBindingPath()}';
-                console.log('change', sVal);
-                oModel.setProperty(sVal);
+                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sVal);
             })({$this->buildJsValueGetter()})
 JS);
         return <<<JS
@@ -50,8 +49,10 @@ JS);
                 var sBindingPath = '{$this->getValueBindingPath()}';
                 var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
                 oValueBinding.attachChange(function(oEvent){
-                    var sVal = oModel.getProperty(sBindingPath);
-                    {$this->buildJsValueSetter("sVal")}
+                    setTimeout(function(){
+                        var sVal = oModel.getProperty(sBindingPath);
+                        {$this->buildJsValueSetter("sVal")}
+                    }, 0);
                 });
                 
                 {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()}
@@ -93,5 +94,51 @@ JS;
     protected function buildJsMarkdownVar() : string
     {
         return $this->getController()->buildJsDependentObjectGetter('editor', $this);
+    }
+
+    protected function buildJsRequiredGetter(): string
+    {
+        return $this->getWidget()->isRequired() ? 'true' : 'false';
+    }
+
+    protected function buildJsFullScreenToggleClickHandler() : string
+    {
+        $markdownVarJs = $this->buildJsMarkdownVar();
+        $jsController = $this->getController()->buildJsControllerGetter($this);
+        
+        return <<<JS
+
+                        var jqFullScreenContainer = $('#{$this->getId()}').parent();
+                        {$jsController}.setZIndexToMax(jqFullScreenContainer);
+                        
+                        var oEditor = {$markdownVarJs};
+                        var jqBtn = $('#{$this->getFullScreenToggleId()}');
+                        var bExpanding = ! jqFullScreenContainer.hasClass('fullscreen');
+
+                        jqBtn.find('i')
+                            .removeClass('fa-expand')
+                            .removeClass('fa-compress')
+                            .addClass(bExpanding ? 'fa-compress' : 'fa-expand');
+                        if (bExpanding) {
+                            if (jqFullScreenContainer.innerWidth() > 800) {
+                                oEditor.changePreviewStyle('vertical');
+                            }
+                            oEditor._originalParent = jqFullScreenContainer.parent();
+                            oEditor._originalIndex = jqFullScreenContainer.index();
+                            jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
+                            jqFullScreenContainer.addClass('fullscreen');
+                        } else {
+                            var iChildCount = oEditor._originalParent.children().length;
+                            if (iChildCount !== 0) {
+                                var iTargetIndex = Math.min(oEditor._originalParent.children().length, oEditor._originalIndex);
+                                oEditor._originalParent.children().eq(iTargetIndex).before(jqFullScreenContainer);
+                            } else {
+                                jqFullScreenContainer.appendTo(oEditor._originalParent);
+                            }
+                            
+                            oEditor.changePreviewStyle('tab');
+                            jqFullScreenContainer.removeClass('fullscreen');
+                        }
+JS;
     }
 }

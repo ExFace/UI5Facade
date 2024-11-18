@@ -289,15 +289,17 @@ JS;
         // Now generate columns and cells from the column widgets
         $columns = '';
         $cells = '';
+        $valueColName = $widget->getValueColumn()->getDataColumnName();
+        $textColName = $widget->getTextColumn()->getDataColumnName();
         foreach ($widget->getTable()->getColumns() as $idx => $col) {
             /* @var $element \exface\UI5Facade\Facades\Elements\UI5DataColumn */
             $element = $this->getFacade()->getElement($col);
             $columns .= ($columns ? ",\n" : '') . $element->buildJsConstructorForMColumn();
             $cells .= ($cells ? ",\n" : '') . $element->buildJsConstructorForCell($this->getModelNameForAutosuggest());
-            if ($col->getId() === $widget->getValueColumn()->getId()) {
+            if ($col->getDataColumnName() === $valueColName) {
                 $value_idx = $idx;
             }
-            if ($col->getId() === $widget->getTextColumn()->getId()) {
+            if ($col->getDataColumnName() === $textColName) {
                 $text_idx = $idx;
             }
         }
@@ -311,11 +313,6 @@ JS;
         
         $control = $widget->getMultiSelect() ? 'sap.m.MultiInput' : 'sap.m.Input';
         $vhpOptions = "showValueHelp: true, valueHelpRequest: {$this->buildJsPropertyValueHelpRequest()}";
-        /*if ($widget->isRelation()) {
-            $vhpOptions = "showValueHelp: true, valueHelpRequest: {$this->buildJsPropertyValueHelpRequest()}";
-        } else {
-            $vhpOptions = "showValueHelp: false";
-        }*/
         
         $tokenUpdateJs = '';
         if ($widget->getMultiSelect()) {
@@ -326,11 +323,11 @@ JS;
             if (oEvent.getParameters().type !== 'removed') {
                 return;
             }
-            setTimeout(function(){
-                var oInput = sap.ui.getCore().byId('{$this->getId()}'); 
-                var sVal = {$this->buildJsValueGetter()};
-                oInput.fireChange({value: sVal});
-            },0);
+                    setTimeout(function(){
+                        var oInput = sap.ui.getCore().byId('{$this->getId()}'); 
+                        var sVal = {$this->buildJsValueGetter()};
+                        oInput.fireChange({value: sVal});
+                    },0);
         })
 
 JS;
@@ -1012,8 +1009,10 @@ JS;
     var oInput = sap.ui.getCore().byId("{$this->getId()}");
     var mVal;
     var aVals = [];
-    if (oData !== undefined && Array.isArray(oData.rows) && oData.rows.length > 0) {
-        if (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}") {
+    if (oData !== undefined && Array.isArray(oData.rows) && (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}")) {
+        if (oData.rows.length === 0) {
+            {$this->buildJsValueSetter("''")};
+        } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
             if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
                 oInput.{$this->buildJsEmptyMethod()};
@@ -1035,9 +1034,9 @@ JS;
                 }
                 {$this->buildJsValueSetter("mVal")}
             }
-        } else {
-            $parentSetter;
-        }
+        } 
+    } else {
+        $parentSetter;
     }
 })({$jsData})
 
