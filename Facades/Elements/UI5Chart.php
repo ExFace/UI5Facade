@@ -7,9 +7,6 @@ use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Actions\SaveData;
-use exface\Core\Factories\WidgetFactory;
-use exface\Core\CommonLogic\UxonObject;
-use exface\Core\Widgets\DataButton;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
@@ -26,7 +23,6 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
     use UI5DataElementTrait {
         buildJsConfiguratorButtonConstructor as buildJsConfiguratorButtonConstructorViaTrait;
         buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
-        UI5DataElementTrait::buildJsRowCompare insteadof EChartsTrait;
         EChartsTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         EChartsTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         EChartsTrait::buildJsDataGetter insteadof UI5DataElementTrait;

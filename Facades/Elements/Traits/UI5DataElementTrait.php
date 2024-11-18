@@ -1592,34 +1592,6 @@ JS;
         return null;
     }
     
-    /**
-     * Returns an inline JS snippet to compare two data rows represented by JS objects.
-     *
-     * If this widget has a UID column, only the values of this column will be compared,
-     * unless $trustUid is FALSE. This is handy if you need to compare if the rows represent
-     * the same object (e.g. when selecting based on a row).
-     *
-     * If this widget has no UID column or $trustUid is FALSE, the JSON-representations of
-     * the rows will be compared.
-     * 
-     * @deprecated TODO use exfTools.data.compareRows() instead!
-     *
-     * @param string $leftRowJs
-     * @param string $rightRowJs
-     * @param bool $trustUid
-     * @return string
-     */
-    protected function buildJsRowCompare(string $leftRowJs, string $rightRowJs, bool $trustUid = true) : string
-    {
-        $widget = $this->getWidget();
-        if ($trustUid === true && $widget instanceof iHaveColumns && $widget->hasUidColumn()) {
-            $uid = $widget->getUidColumn()->getDataColumnName();
-            return "{$leftRowJs}['{$uid}'] == {$rightRowJs}['{$uid}']";
-        } else {
-            return "(JSON.stringify({$leftRowJs}) == JSON.stringify({$rightRowJs}))";
-        }
-    }
-    
     protected function getConfiguratorElement() : UI5DataConfigurator
     {
         return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
@@ -2593,10 +2565,11 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var aNewSelection = oControl.getModel('{$this->getModelNameForSelections()}').getProperty('/rows');
+                    var aNewSelection = {$this->buildJsGetRowsSelected('oControl')};
                     var aOldSelection = oControl.data('exfPreviousSelection') || [];
+                    var bNoChange = exfTools.data.compareRows(aOldSelection, aNewSelection);
                     oControl.data('exfPreviousSelection', aNewSelection);
-                    return {$this->buildJsRowCompare('aOldSelection', 'aNewSelection', false)};
+                    return bNoChange;
                 })()
             ) {
                 return;
