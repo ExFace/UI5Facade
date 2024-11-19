@@ -11,6 +11,11 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
  * 
+ * ## Life References
+ * 
+ * - `~legend_active`: All currently `enabled` elements in the chart legend.
+ * - `~legend_disabled`: All currently `disabled` elements in the chart legend.
+ * 
  * @method exface\Core\Widgets\Chart getWidget()
  * @method UI5ControllerInterface getController()
  * 
@@ -458,5 +463,23 @@ JS;
     protected function isWrappedInPanel() : bool
     {
         return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function addOnChangeScript($js) : static
+    {
+        parent::addOnChangeScript($js);
+
+        if (str_contains($js, $this->buildJsValueGetter($this->getLegendActiveToken()))) {
+            $this->getController()->addOnEventScript($this, $this->getInvokeLegendActiveGetter(), $js);
+        }
+
+        if (str_contains($js, $this->buildJsValueGetter($this->getLegendDisabledToken()))) {
+            $this->getController()->addOnEventScript($this, $this->getInvokeLegendDisabledGetter(), $js);
+        }
+        
+        return $this;
     }
 }
