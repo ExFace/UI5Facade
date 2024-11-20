@@ -468,7 +468,7 @@ JS;
     /**
      * @inheritDoc
      */
-    public function addOnChangeScript($js) : static
+    public function addOnChangeScript($js)
     {
         parent::addOnChangeScript($js);
 
@@ -481,5 +481,25 @@ JS;
         }
         
         return $this;
+    }
+    
+    /**
+     * 
+     * @param string $aLegendActive
+     * @return string
+     */
+    protected function buildJsLegendActiveEventHandler(string $aLegendActive) : string
+    {
+        return substr_replace($this->getController()->buildJsEventHandler($this, $this->getInvokeLegendActiveGetter(), false), $aLegendActive, -1, 0);
+    }
+    
+    /**
+     * 
+     * @param string $aLegendDisabled
+     * @return string
+     */
+    protected function buildJsLegendDisabledEventHandler(string $aLegendDisabled) : string
+    {
+        return substr_replace($this->getController()->buildJsEventHandler($this, $this->getInvokeLegendActiveGetter(), false), $aLegendDisabled, -1, 0);
     }
 }
