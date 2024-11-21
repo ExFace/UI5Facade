@@ -472,12 +472,12 @@ JS;
     {
         parent::addOnChangeScript($js);
 
-        if (str_contains($js, $this->buildJsValueGetter($this->getLegendActiveToken()))) {
-            $this->getController()->addOnEventScript($this, $this->getInvokeLegendActiveGetter(), $js);
+        if (str_contains($js, $this->buildJsValueGetter($this->legendActiveToken))) {
+            $this->getController()->addOnEventScript($this, 'invokeLegendActiveGetter', $js);
         }
 
-        if (str_contains($js, $this->buildJsValueGetter($this->getLegendDisabledToken()))) {
-            $this->getController()->addOnEventScript($this, $this->getInvokeLegendDisabledGetter(), $js);
+        if (str_contains($js, $this->buildJsValueGetter($this->legendDisabledToken))) {
+            $this->getController()->addOnEventScript($this, 'invokeLegendDisabledGetter', $js);
         }
         
         return $this;
@@ -485,21 +485,21 @@ JS;
     
     /**
      * 
-     * @param string $aLegendActive
+     * @param string $aLegendActiveJs
      * @return string
      */
-    protected function buildJsLegendActiveEventHandler(string $aLegendActive) : string
+    protected function buildJsLegendActiveEventHandler(string $aLegendActiveJs) : string
     {
-        return substr_replace($this->getController()->buildJsEventHandler($this, $this->getInvokeLegendActiveGetter(), false), $aLegendActive, -1, 0);
+        return substr_replace($this->getController()->buildJsEventHandler($this, 'invokeLegendActiveGetter', false), $aLegendActiveJs, -1, 0);
     }
     
     /**
      * 
-     * @param string $aLegendDisabled
+     * @param string $aLegendDisabledJs
      * @return string
      */
-    protected function buildJsLegendDisabledEventHandler(string $aLegendDisabled) : string
+    protected function buildJsLegendDisabledEventHandler(string $aLegendDisabledJs) : string
     {
-        return substr_replace($this->getController()->buildJsEventHandler($this, $this->getInvokeLegendActiveGetter(), false), $aLegendDisabled, -1, 0);
+        return substr_replace($this->getController()->buildJsEventHandler($this, 'invokeLegendDisabledGetter', false), $aLegendDisabledJs, -1, 0);
     }
 }
