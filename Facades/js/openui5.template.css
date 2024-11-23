@@ -20,6 +20,13 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .exf-context-popup .sapMPanelContent {border-bottom: 0 !important}
 /* Fix for vertical scroll bar due to 4px in shell container */
 .sapUiUfdSpltContCntnt {overflow: hidden}
+/* Announcements */
+#exf-announcement {height: 1.75rem}
+#exf-announcement > .sapMLabel {margin: auto 10px;}
+#exf-announcement > .sapMLabel > .fa {min-width: 12px;}
+
+#exf-loader {width: 100%; height: 100vh; background: white; position: absolute;}
+.exf-launcher {position: relative; height: 100%; width: 100%;}
 
 /* sap.m.Input */
 /* fix for suggest-table being hidden the first time the phone-suggest-dialog opens 
