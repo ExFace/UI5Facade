@@ -478,6 +478,7 @@ const exfLauncher = {};
 			 */
 			showAnnouncement: function(sText, sType, sIcon) {
 				var sHeight = '1.75rem';
+				var iHeightTotal = '0';
 				var sClass = 'sapMMsgStripInformation';
 				var sIconCls = sIcon ? (sIcon.startsWith('fa-') ? 'fa ' + sIcon : sIcon) : 'fa fa-info-circle';
 				var jqStrip;
@@ -502,9 +503,9 @@ const exfLauncher = {};
 					default:
 						break;
 				}
-				jqStrip = $('<div id="exf-announcement" style="height: ' + sHeight + '" class="sapMTB-Transparent-CTX ' + sClass + '"><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
-				$('body').prepend(jqStrip);
-				$('.exf-launcher').css({'height': 'calc(100% - ' + sHeight + ')'});
+				jqStrip = $('<div class="exf-announcement sapMTB-Transparent-CTX ' + sClass + ' style="height: ' + sHeight + '""><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
+				iHeightTotal = $('#exf-announcements').append(jqStrip).outerHeight();
+				$('.exf-launcher').css({'height': 'calc(100% - ' + iHeightTotal + 'px)'});
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
 			},
 
@@ -512,7 +513,7 @@ const exfLauncher = {};
 			 * @return void
 			 */
 			hideAnnouncement: function() {
-				$('#exf-announcement').remove();
+				$('#exf-announcements').empty();
 				$('.exf-launcher').css({'height': '100%'});
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
