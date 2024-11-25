@@ -2,17 +2,20 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\EChartsTrait;
+use exface\Core\Widgets\Chart;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Actions\SaveData;
-use exface\Core\Factories\WidgetFactory;
-use exface\Core\CommonLogic\UxonObject;
-use exface\Core\Widgets\DataButton;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
+ * 
+ * ## Life References
+ * 
+ * - `~legend_active`: All currently `enabled` elements in the chart legend.
+ * - `~legend_disabled`: All currently `disabled` elements in the chart legend.
  * 
  * @method exface\Core\Widgets\Chart getWidget()
  * @method UI5ControllerInterface getController()
@@ -26,7 +29,6 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
     use UI5DataElementTrait {
         buildJsConfiguratorButtonConstructor as buildJsConfiguratorButtonConstructorViaTrait;
         buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
-        UI5DataElementTrait::buildJsRowCompare insteadof EChartsTrait;
         EChartsTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         EChartsTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         EChartsTrait::buildJsDataGetter insteadof UI5DataElementTrait;
@@ -462,5 +464,43 @@ JS;
     protected function isWrappedInPanel() : bool
     {
         return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function addOnChangeScript($js)
+    {
+        parent::addOnChangeScript($js);
+
+        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_ACTIVE))) {
+            $this->getController()->addOnEventScript($this, 'invokeLegendActiveGetter', $js);
+        }
+
+        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_INACTIVE))) {
+            $this->getController()->addOnEventScript($this, 'invokeLegendDisabledGetter', $js);
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * 
+     * @param string $aLegendActiveJs
+     * @return string
+     */
+    protected function buildJsLegendActiveEventHandler(string $aLegendActiveJs) : string
+    {
+        return substr_replace($this->getController()->buildJsEventHandler($this, 'invokeLegendActiveGetter', false), $aLegendActiveJs, -1, 0);
+    }
+    
+    /**
+     * 
+     * @param string $aLegendDisabledJs
+     * @return string
+     */
+    protected function buildJsLegendDisabledEventHandler(string $aLegendDisabledJs) : string
+    {
+        return substr_replace($this->getController()->buildJsEventHandler($this, 'invokeLegendDisabledGetter', false), $aLegendDisabledJs, -1, 0);
     }
 }
