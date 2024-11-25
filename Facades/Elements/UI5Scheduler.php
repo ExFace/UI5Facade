@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\Scheduler;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
@@ -636,13 +637,13 @@ JS;
     {
         if ($dataColumnName !== null) {
             $dateFormat = DateTimeDataType::DATETIME_ICU_FORMAT_INTERNAL;
-            if (mb_strtolower($dataColumnName) === '~start_date') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_START_DATE) {
                 return "exfTools.date.format(sap.ui.getCore().byId('{$this->getId()}').getStartDate(), '$dateFormat')";
             }
-            if (mb_strtolower($dataColumnName) === '~end_date') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_END_DATE) {
                 return "exfTools.date.format(function(oPCal){return oPCal.getEndDate !== undefined ? oPCal.getEndDate() : oPCal._getFirstAndLastRangeDate().oEndDate.oDate}(sap.ui.getCore().byId('{$this->getId()}')), '$dateFormat')";
             }            
-            if (mb_strtolower($dataColumnName) === '~resources_title') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_RESOUCES_TITLE) {
                 $col = $this->getWidget()->getResourcesConfig()->getTitleColumn();
                 $delim = $col && $col->isBoundToAttribute() ? $col->getAttribute()->getValueListDelimiter() : EXF_LIST_SEPARATOR;
                 return <<<JS

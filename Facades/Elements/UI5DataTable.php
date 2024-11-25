@@ -1125,29 +1125,36 @@ JS;
     protected function buildJsDataLoaderOnLoaded(string $oModelJs = 'oModel') : string
     {
         $paginator = $this->getPaginatorElement();
+        $uidColNameJs = $this->getDataWidget()->hasUidColumn() ? "'{$this->getDataWidget()->getUidColumn()->getDataColumnName()}'" : 'undefined';
         
-        // Add single-result action to onLoadSuccess
+        // Add single-result action to onLoadSuccess. Make sure it is only fired once as
+        // long as the same UID is selected. This means, if the row itself changes (e.g.
+        // being saved from the single-select-action) it is still regarded as the same row
+        // as long as it has the same UID. Thus the action will not get called repeatedly.
         if (($singleResultButton = $this->getWidget()->getButtons(function($btn) {return ($btn instanceof DataButton) && $btn->isBoundToSingleResult() === true;})[0]) || $this->getWidget()->getSelectSingleResult()) {
             $buttonClickJs = '';
             if ($singleResultButton) {
                 $buttonClickJs = <<<JS
 
-                if (lastRow === undefined || {$this->buildJsRowCompare('curRow', 'lastRow')} === false) {
-                    oTable._singleResultActionPerformedFor = curRow;
-                    {$this->getFacade()->getElement($singleResultButton)->buildJsClickEventHandlerCall('oController')};
-                }
+                    if (lastRow === undefined || exfTools.data.compareRows(curRow, lastRow, sUidCol) === false) {
+                        oTable._singleResultActionPerformedFor = curRow;
+                        {$this->getFacade()->getElement($singleResultButton)->buildJsClickEventHandlerCall('oController')};
+                    }
 JS;
             }
             $singleResultJs = <<<JS
-            if ({$oModelJs}.getData().rows.length === 1) {
-                var curRow = {$oModelJs}.getData().rows[0];
-                var lastRow = oTable._singleResultActionPerformedFor;
-                {$this->buildJsSelectRowByIndex('oTable', '0')}
-                {$buttonClickJs}                
-            } else {
-                oTable._singleResultActionPerformedFor = {};
-            }
-                        
+
+            (function(oTable, oModel){
+                if (oModel.getData().rows.length === 1) {
+                    var sUidCol = $uidColNameJs;
+                    var curRow = {$oModelJs}.getData().rows[0];
+                    var lastRow = oTable._singleResultActionPerformedFor;
+                    {$this->buildJsSelectRowByIndex('oTable', '0')}
+                    {$buttonClickJs}                
+                } else {
+                    oTable._singleResultActionPerformedFor = {};
+                }
+            })(oTable, {$oModelJs});            
 JS;
         }
                     
