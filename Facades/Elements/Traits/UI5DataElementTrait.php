@@ -1,9 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
-use exface\UI5Facade\Facades\Elements\UI5DynamicPage;
+use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -233,6 +234,7 @@ JS);
 
         .setModel(new sap.ui.model.json.JSONModel())
         .setModel(new sap.ui.model.json.JSONModel(), '{$this->getModelNameForConfigurator()}')
+        .setModel(new sap.ui.model.json.JSONModel({rows: []}), '{$this->getModelNameForSelections()}')
 JS;
         
         // If the table has editable columns, we need to track changes made by the user.
@@ -249,12 +251,15 @@ JS;
             $controller->addMethod('updateChangesModel', $this, 'oDataChanged', $this->buildJsEditableChangesWatcherUpdateMethod('oDataChanged'));
             $bindChangeWatcherJs = <<<JS
 
-            var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
-            oRowsBinding.attachChange(function(oEvent){
-                var oBinding = oEvent.getSource();
-                var oDataChanged = oBinding.getModel().getData();
-                {$controller->buildJsMethodCallFromController('updateChangesModel', $this, 'oDataChanged')};
-            });
+            (function(oTable){
+                var oModel = oTable.getModel();
+                var oRowsBinding = new sap.ui.model.Binding(oModel, '/rows', oModel.getContext('/rows'));
+                oRowsBinding.attachChange(function(oEvent){
+                    var oBinding = oEvent.getSource();
+                    var oDataChanged = oBinding.getModel().getData();
+                    {$controller->buildJsMethodCallFromController('updateChangesModel', $this, 'oDataChanged')};
+                });
+            })(sap.ui.getCore().byId('{$this->getId()}'));
 JS;
             $controller->addOnInitScript($bindChangeWatcherJs);
         }
@@ -388,8 +393,9 @@ JS;
      * @return string
      */
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
-    {        
-        $heading = $this->isWrappedInDynamicPage() || $this->getWidget()->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+    {   
+        $widget = $this->getWidget();
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
         
         $leftExtras = $leftExtras === null ? '' : rtrim($leftExtras, ", ") . ',';
         $rightExtras = $rightExtras === null ? '' : rtrim($rightExtras, ", ") . ',';
@@ -402,6 +408,7 @@ JS;
         
         return <<<JS
 
+                    {$this->buildJsToolbarSelectionCounter()}
                     {$heading}
                     {$leftExtras}
 			        new sap.m.ToolbarSpacer(),
@@ -413,6 +420,105 @@ JS;
                     {$this->buildJsHelpButtonConstructor()}
 
 JS;
+    }
+
+    protected function buildJsToolbarSelectionCounter() : string
+    {
+        $widget = $this->getWidget();
+        $dataWidget = $this->getDataWidget();
+        if ($dataWidget->getMetaObject()->hasLabelAttribute()) {
+            $labelCol = $dataWidget->getColumnByAttributeAlias($dataWidget->getMetaObject()->getLabelAttributeAlias());
+        }
+        if (! $labelCol) {
+            $labelCol = $dataWidget->getColumns()[0];
+        }
+        $uidColName = $dataWidget->hasUidColumn() ? "'{$dataWidget->getUidColumn()->getDataColumnName()}'" : 'null';
+
+        if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true && ! $this->getDynamicPageShowToolbar()) {
+            $modelName = $this->getModelNameForSelections();
+            $translator = $this->getFacade()->getApp()->getTranslator();
+            $minSelectsToShowIndicator = ($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation() ? 1 : 2;
+            $js = <<<JS
+
+                    new sap.m.Button({
+                        icon: 'sap-icon://complete',
+                        type: 'Ghost',
+                        tooltip: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
+                        visible: '{= \${{$modelName}>/rows}.length >= {$minSelectsToShowIndicator} ? true : false}',
+                        layoutData: new sap.m.OverflowToolbarLayoutData({priority: "NeverOverflow"}),
+                        customData: [
+                            new sap.m.BadgeCustomData({
+                                key: "badge",
+                                value: '{= \${{$modelName}>/rows}.length}'
+                            })
+                        ],
+                        press: function(oEvent) {
+                            var oBtn = oEvent.getSource();
+                            var sPopoverId = '{$this->getId()}_selectionsPopover';
+                            var oPopover = sap.ui.getCore().byId(sPopoverId);
+                            if (oPopover === undefined) {
+                                oPopover = new sap.m.Popover(sPopoverId, {
+                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}}',
+                                    content: [
+                                        new sap.m.List({
+                                            mode: "Delete",
+                                            items: {
+                                                path: "{$modelName}>/rows",
+                                                template: new sap.m.StandardListItem({
+                                                    title: "{{$modelName}>{$labelCol->getDataColumnName()}}",
+                                                    type: "Active"
+                                                })
+                                            },
+                                            delete: function(oEvent) {
+                                                var oItem = oEvent.getParameters().listItem;
+                                                var oList = oPopover.getContent()[0];
+                                                var oRowUnselected = oItem.getBindingContext('{$modelName}').getObject();
+                                                var iItem = oItem.getParent().indexOfItem(oItem);
+                                                var sUidCol = {$uidColName};
+                                                var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                                                var oModel = oTable.getModel('{$modelName}');
+                                                var iTableIdx = exfTools.data.indexOfRow(oTable.getModel().getProperty('/rows'), oRowUnselected, sUidCol);
+                                                oModel.getProperty('/rows').splice(iItem, 1);
+                                                // Force refresh model binding - otherwise if you select items, paginate to next
+                                                // page and remove one of previously selected items, the indicator will not be
+                                                // updated
+                                                oModel.refresh(true);
+                                                if (iTableIdx > -1) {
+                                                    {$this->buildJsSelectRowByIndex('oTable', 'iTableIdx', true, 'false')}
+                                                }
+                                            }
+                                        })
+                                    ],/* TODO
+                                    footer: [
+                                        new sap.m.OverflowToolbar({
+                                            content: [
+                                                new sap.m.Button({
+                                                    text: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
+                                                    press: function(oEvent) {
+                                                        var oBtn = oEvent.getSource();
+                                                        var oList = oPopover.getContent()[0];
+                                                        // oList.removeAllItems();
+                                                        oList.getItems().forEach(function(oItem){
+                                                            oList.fireDelete({
+                                                                listItem: oItem
+                                                            });
+                                                        });
+                                                    }
+                                                })
+                                            ]
+                                        })
+                                    ]*/
+                                }).setModel(oBtn.getModel('{$modelName}'), '{$modelName}');
+                                {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oPopover);
+                            }
+                            oPopover.openBy(oBtn);
+                        }
+                    }),
+JS;
+        } else {
+            $js = '';
+        }
+        return $js;
     }
     
     /**
@@ -645,12 +751,17 @@ JS;
     protected function buildJsDataResetter() : string
     {
         $widget = $this->getWidget();
-        $js = "sap.ui.getCore().byId('{$this->getId()}').getModel().setData({});";
-        if ($widget instanceof iShowData && $widget->isEditable() && $widget->getEditableChangesResetOnRefresh()) {            
-            $js .= $this->buildJsEditableChangesWatcherReset();
+        if (($widget instanceof iCanEditData) && $widget->isEditable() && $widget->getEditableChangesResetOnRefresh()) {            
+            $resetEditableTable = $this->buildJsEditableChangesWatcherReset();
         }
-        $js .= $this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false) . ';';
-        return $js;
+        return <<<JS
+
+        ;(function(oTable){
+            oTable.getModel().setData({});
+            {$resetEditableTable}
+            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+        })(sap.ui.getCore().byId('{$this->getId()}'));  
+JS;
     }
     
     /**
@@ -839,10 +950,9 @@ JS;
             } else {
                 delete oTable._exfPendingData;
             }
-
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
-            {$this->buildJsMultiSelectionOnLoaded('oTable')};
+            {$this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')};
 
 JS;
             
@@ -910,39 +1020,17 @@ JS;
     }
 
 
-    protected function buildJsMultiSelectionOnLoaded(string $oTableJs)
+    /**
+     * Implement this method to restore the selection when switching pages if neccessary
+     * 
+     * 
+     * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsDataLoaderOnLoadedRestoreSelection() for an example
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsDataLoaderOnLoadedRestoreSelection(string $oTableJs) : string
     {
-
-        $widget = $this->getWidget();
-        if ($widget instanceof iSupportMultiSelect && $widget->getMultiSelect() === true ) {
-
-            // Restore previous selection (however only if oTable._selectedObjects exists and, thus, the implementations supports this feature)
-            // TODO add support for selection restore to sap.ui.table.Table!
-            return <<<JS
-                setTimeout(function() {
-                    const aPrevSelectedRows = {$oTableJs}._selectedObjects;
-                    const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs)};
-                    const aRows = {$this->buildJsGetRowsAll($oTableJs)};
-                    if (aPrevSelectedRows === undefined) {
-                        return;
-                    }
-                    aNowSelectedRows.forEach(function (oRow) {
-                        var bSelected = aPrevSelectedRows.some(function (oSelectedRow) {
-                            return JSON.stringify(oSelectedRow) === JSON.stringify(oRow);
-                        });
-                        var iRowIdx = aRows.indexOf(oRow);
-                        if (bSelected) {
-                            {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', false, 'false')}
-                        } else {
-                            {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', true, 'false')}
-                        }
-                    });
-                });
-
-JS;
-        } else {
-            return '';
-        }
+        return '';
     }
 
               
@@ -1504,32 +1592,6 @@ JS;
         return null;
     }
     
-    /**
-     * Returns an inline JS snippet to compare two data rows represented by JS objects.
-     *
-     * If this widget has a UID column, only the values of this column will be compared,
-     * unless $trustUid is FALSE. This is handy if you need to compare if the rows represent
-     * the same object (e.g. when selecting based on a row).
-     *
-     * If this widget has no UID column or $trustUid is FALSE, the JSON-representations of
-     * the rows will be compared.
-     *
-     * @param string $leftRowJs
-     * @param string $rightRowJs
-     * @param bool $trustUid
-     * @return string
-     */
-    protected function buildJsRowCompare(string $leftRowJs, string $rightRowJs, bool $trustUid = true) : string
-    {
-        $widget = $this->getWidget();
-        if ($trustUid === true && $widget instanceof iHaveColumns && $widget->hasUidColumn()) {
-            $uid = $widget->getUidColumn()->getDataColumnName();
-            return "{$leftRowJs}['{$uid}'] == {$rightRowJs}['{$uid}']";
-        } else {
-            return "(JSON.stringify({$leftRowJs}) == JSON.stringify({$rightRowJs}))";
-        }
-    }
-    
     protected function getConfiguratorElement() : UI5DataConfigurator
     {
         return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
@@ -1626,6 +1688,22 @@ JS;
     protected function getModelNameForDataLastLoaded() : string
     {
         return 'data_last_loaded';
+    }
+    
+    /**
+     * Returns the name of the UI5 model that keeps currently selected rows.
+     * 
+     * This model use used to synchronize selections between the main control (e.g. table), the selection 
+     * indicator and possible other controls.
+     * 
+     * @see buildJsToolbarSelectionCounter()
+     * @see buildJsDataLoaderOnLoadedRestoreSelection()
+     * 
+     * @return string
+     */
+    public function getModelNameForSelections() : string
+    {
+        return 'selections';
     }
     
     protected function getEditableColumnNamesJson() : string
@@ -2393,6 +2471,13 @@ JS;
      * 
      * For single-select widget, this method must return an array with one or zero elements.
      * 
+     * If pagination is used, this method only returns the selections from the current page!
+     * Keeping selections on other pages (depending on `multi_select_saved_on_navigation`) is
+     * handled by syncing via selections model - see `buildJsDataLoaderOnLoadedRestoreSelection()` 
+     * and `buildJsToolbarSelectionCounter()` for more details.
+     * 
+     * @see buildJsDataLoaderOnLoadedRestoreSelection()
+     * 
      * @param string $oControlJs
      * @return string
      */
@@ -2437,7 +2522,7 @@ JS;
                 return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsDataGetter($action);
             
             default:
-                $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl')};";
+                $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl', false)};";
         }
         
         // Determine the columns we need in the actions data
@@ -2480,10 +2565,11 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var newSelection = {$this->buildJsGetRowsSelected('oControl')};
-                    var oldSelection = oControl.data('exfPreviousSelection') || [];
-                    oControl.data('exfPreviousSelection', newSelection);
-                    return {$this->buildJsRowCompare('oldSelection', 'newSelection', false)};
+                    var aNewSelection = {$this->buildJsGetRowsSelected('oControl')};
+                    var aOldSelection = oControl.data('exfPreviousSelection') || [];
+                    var bNoChange = exfTools.data.compareRows(aOldSelection, aNewSelection);
+                    oControl.data('exfPreviousSelection', aNewSelection);
+                    return bNoChange;
                 })()
             ) {
                 return;
@@ -2540,4 +2626,17 @@ JS;
             })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
     }
+
+    /**
+     * TODO
+    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    {
+        switch (true) {
+            case $functionName === Data::FUNCTION_SELECT:
+                return $this->buildJsSelectRowByIndex();
+            case $functionName === Data::FUNCTION_UNSELECT:
+                return "setTimeout(function(){ {$this->buildJsEmpty()} }, 0);";
+        }
+        return parent::buildJsCallFunction($functionName, $parameters);
+    }*/
 }

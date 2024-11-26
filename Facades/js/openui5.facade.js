@@ -436,6 +436,12 @@ const exfLauncher = {};
 						_oShell.getModel().setProperty("/_network/syncErrorCnt", parseInt(oCtxtData.indicator));
 						continue;
 					}
+					if (oCtxtData.context_alias === 'exface.Core.NotificationContext') {
+						_oContextBar.hideAnnouncement();
+						(oCtxtData.announcements || []).forEach(function(oMsg) {
+							_oContextBar.showAnnouncement(oMsg.text, oMsg.type, oMsg.icon);
+						});
+					}
 					if (oCtxtData.visibility === 'hide_allways') {
 						continue;
 					}
@@ -461,6 +467,55 @@ const exfLauncher = {};
 				}
 				_oLauncher.contextBar.getComponent().getPWA().updateQueueCount();
 				_oLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			},
+
+			/**
+			 * 
+			 * @param {string} sText 
+			 * @param {string} sType 
+			 * @param {string} sIcon 
+			 * @return void
+			 */
+			showAnnouncement: function(sText, sType, sIcon) {
+				var sHeight = '1.75rem';
+				var iHeightTotal = '0';
+				var sClass = 'sapMMsgStripInformation';
+				var sIconCls = sIcon ? (sIcon.startsWith('fa-') ? 'fa ' + sIcon : sIcon) : 'fa fa-info-circle';
+				var jqStrip;
+				switch (sType.toLowerCase()) {
+					case 'warning':
+						sClass = 'sapMMsgStripWarning';
+						sIconCls = 'fa fa-exclamation-triangle';
+						break;
+					case 'error':
+						sClass = 'sapMMsgStripError';
+						sIconCls = 'fa fa-times-circle';
+						break;
+					case 'success':
+						sClass = 'sapMMsgStripSuccess';
+						sIconCls = 'fa fa-check-circle-o';
+						break;
+					case 'hint':
+						sClass = 'sapMMsgStripInformation';
+						sIconCls = 'fa fa-exclamation-circle';
+						break;
+					case 'info':
+					default:
+						break;
+				}
+				jqStrip = $('<div class="exf-announcement sapMTB-Transparent-CTX ' + sClass + ' style="height: ' + sHeight + '""><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
+				iHeightTotal = $('#exf-announcements').append(jqStrip).outerHeight();
+				$('.exf-launcher').css({'height': 'calc(100% - ' + iHeightTotal + 'px)'});
+				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
+			},
+
+			/**
+			 * @return void
+			 */
+			hideAnnouncement: function() {
+				$('#exf-announcements').empty();
+				$('.exf-launcher').css({'height': '100%'});
+				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
 
 			_setupTracer: function(oCtxtData) {
