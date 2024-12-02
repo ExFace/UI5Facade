@@ -169,6 +169,7 @@ const exfLauncher = {};
 
 	var _oShell = {};
 	var _oLauncher = this;
+	var _bBusy = false;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
 
@@ -206,6 +207,16 @@ const exfLauncher = {};
 	};
 
 	this.initShell = function () {
+
+		// Save global busy indicator state to be able to determine when the app
+		// is busy - e.g. for UI testing.
+		sap.ui.core.BusyIndicator.attachOpen(function(Event){
+			_bBusy = true;
+		});
+		sap.ui.core.BusyIndicator.attachClose(function(Event){
+			_bBusy = false;
+		});
+
 		_oShell = new sap.ui.unified.Shell({
 			header: [
 				new sap.m.OverflowToolbar({
@@ -285,6 +296,15 @@ const exfLauncher = {};
 		});
 
 		return _oShell;
+	};
+
+	/**
+	 * Returns TRUE if the global busy indicator is shown and FALSE otherwise
+	 * 
+	 * @returns {boolean}
+	 */
+	this.isBusy = function() {
+		return _bBusy && $('#exf-loader').is(':visible') === false;
 	};
 
 	this.setAppMenu = function (oControl) {
@@ -451,6 +471,7 @@ const exfLauncher = {};
 			 */
 			showAnnouncement: function (sText, sType, sIcon) {
 				var sHeight = '1.75rem';
+				var iHeightTotal = '0';
 				var sClass = 'sapMMsgStripInformation';
 				var sIconCls = sIcon ? (sIcon.startsWith('fa-') ? 'fa ' + sIcon : sIcon) : 'fa fa-info-circle';
 				var jqStrip;
@@ -475,18 +496,18 @@ const exfLauncher = {};
 					default:
 						break;
 				}
-				jqStrip = $('<div id="exf-announcement" style="height: ' + sHeight + '" class="sapMTB-Transparent-CTX ' + sClass + '"><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
-				$('body').prepend(jqStrip);
-				$('.exf-launcher').css({ 'height': 'calc(100% - ' + sHeight + ')' });
+				jqStrip = $('<div class="exf-announcement sapMTB-Transparent-CTX ' + sClass + ' style="height: ' + sHeight + '""><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
+				iHeightTotal = $('#exf-announcements').append(jqStrip).outerHeight();
+				$('.exf-launcher').css({'height': 'calc(100% - ' + iHeightTotal + 'px)'});
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
 			},
 
 			/**
 			 * @return void
 			 */
-			hideAnnouncement: function () {
-				$('#exf-announcement').remove();
-				$('.exf-launcher').css({ 'height': '100%' });
+			hideAnnouncement: function() {
+				$('#exf-announcements').empty();
+				$('.exf-launcher').css({'height': '100%'});
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
 

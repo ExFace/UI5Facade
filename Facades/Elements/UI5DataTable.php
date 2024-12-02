@@ -1501,62 +1501,6 @@ JS;
     }
     
     /**
-     * Returns JS code to select the first row in a table, that has the given value in the specified column.
-     * If the parameter '$deSelect' is true, it will deselect the row instead.
-     *
-     * The generated code will search the current values of the $column for an exact match
-     * for the value of $valueJs JS variable, mark the first matching row as selected and
-     * scroll to it to ensure it is visible to the user.
-     *
-     * The row index (starting with 0) is saved to the JS variable specified in $rowIdxJs.
-     *
-     * If the $valueJs is not found, $onNotFoundJs will be executed and $rowIdxJs will be
-     * set to -1.
-     *
-     * @param DataColumn $column
-     * @param string $valueJs
-     * @param string $onNotFoundJs
-     * @param string $rowIdxJs
-     * @param bool $deSelect
-     * @return string
-     */
-    public function buildJsSelectRowByValue(DataColumn $column, string $valueJs, string $onNotFoundJs = '', string $rowIdxJs = 'rowIdx', bool $deSelect = false) : string
-    {
-        return <<<JS
-        
-var {$rowIdxJs} = function() {
-    var oTable = sap.ui.getCore().byId("{$this->getId()}");
-    var aData = oTable.getModel().getData().rows;
-    var oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
-    var iRowIdx = -1;
-    for (var i in aData) {
-        if (aData[i]['{$column->getDataColumnName()}'] == $valueJs) {
-            iRowIdx = i;
-        }
-    }
-    // Remove item from table's selected objects
-    if ({$this->escapeBool($deSelect)}) {
-        var aSelectedRows = oModelSelected.getProperty('/rows');
-        const selectedObjectsIndex = aSelectedRows.findIndex(selectedObject => selectedObject['{$column->getDataColumnName()}'] == $valueJs);
-        if (selectedObjectsIndex !== -1) {
-            aSelectedRows.splice(selectedObjectsIndex, 1);
-            oModelSelected.refresh(true);
-        }
-    } 
-
-    if (iRowIdx == -1){
-		{$onNotFoundJs};
-	} else {
-        {$this->buildJsSelectRowByIndex('oTable', 'iRowIdx', $deSelect)}
-	}
-
-    return iRowIdx;
-}();
-
-JS;
-    }
-    
-    /**
      * 
      * @see UI5DataElementTrait::buildJsShowMessageOverlay()
      */
