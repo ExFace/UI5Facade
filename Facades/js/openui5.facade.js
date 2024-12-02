@@ -64,34 +64,24 @@ const ignoredErrorPatterns = [
 $(window).on('networkchanged', async function (oEvent, data) {
 	try {
 		// Get current network state
+		// TODO get it from the event here
 		const state = exfPWA.network.getState();
 
 		// Update UI components with new state
 		exfLauncher.updateNetworkModel(state);
 
-		// Handle Service Worker updates when coming online
-		if (!state.isOfflineForced() && 'serviceWorker' in navigator) {
-			const registration = await navigator.serviceWorker.getRegistration();
-			if (registration) {
-				await registration.update();
-			}
-		}
-
-		// Configure network polling based on state
-		if (state.hasAutoffline()) {
-			if (state.isOfflineVirtually()) {
-				exfPWA.network.initFastNetworkPoller();
-			} else {
-				exfPWA.network.initPoorNetworkPoller();
-			}
-		}
-
 		// Handle online-specific actions
 		if (state.isOnline()) {
 			// Update error counters
-			exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			exfLauncher.contextBar.getComponent().getPWA()
+			.updateQueueCount()
+			.then(function () {
+				exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+				// What did that message toast do?
+				// exfLauncher.showMessageToast(event.data);
+			})
 			// Sync offline items if no ServiceWorker available
-			if (!navigator.serviceWorker) {
+			if (! navigator.serviceWorker) {
 				syncOfflineItems();
 			}
 		}
@@ -99,37 +89,6 @@ $(window).on('networkchanged', async function (oEvent, data) {
 		console.error('Error handling network changed event:', error);
 	}
 });
-
-window.addEventListener('load', function () {
-	// Initialize network state monitoring
-	exfPWA.network.init();
-
-	// Initialize network polling if auto-offline is enabled
-	const state = exfPWA.network.getState();
-	if (state.hasAutoffline()) {
-		exfPWA.network.initPoorNetworkPoller();
-	}
-
-	//ServiceWorker automatic update
-	checkForServiceWorkerUpdate();
-	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.getRegistration().then(reg => {
-			if (reg && reg.waiting) {
-				reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-			}
-		});
-	}
-});
-
-if (navigator.serviceWorker) {
-	navigator.serviceWorker.addEventListener('message', function (event) {
-		exfLauncher.contextBar.getComponent().getPWA().updateQueueCount()
-			.then(function () {
-				exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
-				exfLauncher.showMessageToast(event.data);
-			})
-	});
-}
 
 function syncOfflineItems() {
 	if (exfPWA.network.getState().isOfflineVirtually()) return;
@@ -170,7 +129,6 @@ const exfLauncher = {};
 	var _oShell = {};
 	var _oLauncher = this;
 	var _bBusy = false;
-	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
 
 	const _speedHistory = new Array(SPEED_HISTORY_ARRAY_LENGTH).fill(null);
@@ -190,11 +148,6 @@ const exfLauncher = {};
 	 * @returns {boolean}
 	 */
 	this.isOfflineVirtually = function () {
-		return exfPWA.network.getState().isOfflineVirtually();
-	};
-
-
-	this.isSemiOffline = async function () {
 		return exfPWA.network.getState().isOfflineVirtually();
 	};
 
@@ -270,17 +223,23 @@ const exfLauncher = {};
 
 			]
 		})
-			.setModel(new sap.ui.model.json.JSONModel({
-				_network: {
-					online: true,
-					queueCnt: 0,
-					syncErrorCnt: 0,
-					deviceId: exfPWA.getDeviceId(),
-					state: {}
-				}
-			}, true));
+		.setModel(new sap.ui.model.json.JSONModel({
+			_network: {
+				online: true,
+				queueCnt: 0,
+				syncErrorCnt: 0,
+				deviceId: exfPWA.getDeviceId(),
+				state: {}
+			}
+		}, true));
 
+		// Initialize the network model by reading the current network state from the
+		// PWA. This will put all the toggles in their correct positions
 		exfLauncher.updateNetworkModel(exfPWA.network.getState(), _oShell.getModel());
+
+		// Now, every time the user changes things like the auto-offline-toggle, we will get a change
+		// in the model here. Just propagate this change to exfPWA. It will decide if this really
+		// is a network change or not.
 		_oShell.getModel().attachPropertyChange(function (oEvent) {
 			var oParams = oEvent.getParameters();
 			var oModelStateNew = oEvent.getSource().getData()._network.state;
@@ -372,6 +331,8 @@ const exfLauncher = {};
 					return;
 				}
 
+				// TODO move to opening the quota stats dialog. Only need this refresh logic when the speed
+				// graph is being shown
 				window._oNetworkSpeedPoller = setInterval(function () {
 					// IDEA: Measure network speed every 5 seconds 
 					listNetworkStats();
@@ -1770,10 +1731,11 @@ const exfLauncher = {};
 					clearInterval(titleInterval);
 				}
 			})
-				.setModel(oButton.getModel())
-				.setModel(oButton.getModel('i18n'), 'i18n');
+			.setModel(oButton.getModel())
+			.setModel(oButton.getModel('i18n'), 'i18n');
 
 			// Get and set initial toggle states after popover creation
+			// TODO is that still needed? Why no run updateNetworkModel() here?
 			exfPWA.network.checkState().then(state => {
 				var autoOfflineSwitch = sap.ui.getCore().byId('auto_offline_toggle');
 				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
@@ -2360,17 +2322,3 @@ window.onload = function () {
 	}, 1000); // 1 second delay to ensure the page has fully loaded
 };
 window['exfLauncher'] = exfLauncher;
-
-
-//ServiceWorker automatic update
-function checkForServiceWorkerUpdate() {
-	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.getRegistration().then(reg => {
-			if (reg) {
-				reg.update();
-			}
-		});
-	}
-}
-//
-//v1
