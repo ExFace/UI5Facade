@@ -12,57 +12,103 @@ const ignoredErrorPatterns = [
 	/Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
 ];
 
-$(window).on('networkchanged', function(oEvent, oNetStat) {
+// /**
+//  * Handles network state changes throughout the application
+//  * Updates UI, manages service worker, and handles offline functionality
+//  */
+// $(window).on('networkchanged', async function (oEvent, oNetStat) {
+// 	try {
+// 		// Retrieve current network state
+// 		const state = exfPWA.network.getState();
+
+// 		// Update UI components with new state
+// 		exfLauncher.updateNetworkModel(state);
+
+// 		// Handle Service Worker updates when coming online
+// 		if (!state.isOfflineForced() && 'serviceWorker' in navigator) {
+// 			const registration = await navigator.serviceWorker.getRegistration();
+// 			if (registration) {
+// 				await registration.update();
+// 			}
+// 		}
+
+// 		// Configure network polling based on state
+// 		if (state.hasAutoffline()) {
+// 			if (state.isOfflineVirtually()) {
+// 				// Switch to fast polling when virtually offline
+// 				exfPWA.network.initFastNetworkPoller();
+// 			} else {
+// 				// Use standard polling when online
+// 				exfPWA.network.initPoorNetworkPoller();
+// 			}
+// 		}
+
+// 		// Handle online-specific actions
+// 		if (state.isOnline()) {
+// 			// Update error counters
+// 			exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+// 			// Sync offline items if no ServiceWorker available
+// 			if (!navigator.serviceWorker) {
+// 				syncOfflineItems();
+// 			}
+// 		}
+// 	} catch (error) {
+// 		console.error('Error handling network changed event:', error);
+// 	}
+// });
+
+/**
+ * Handles network state changes throughout the application
+ * Simplified version - focuses on current state rather than changes
+ */
+$(window).on('networkchanged', async function (oEvent, data) {
 	try {
-		// TODO why doesn't this work???
-		// const oNetStat = oEvent.state;
-		const oNetStat = exfPWA.network.getState();
-		exfLauncher.updateNetworkModel(oNetStat);
-		
-		if (oNetStat.isOnline()) {
+		// Get current network state
+		const state = exfPWA.network.getState();
+
+		// Update UI components with new state
+		exfLauncher.updateNetworkModel(state);
+
+		// Handle Service Worker updates when coming online
+		if (!state.isOfflineForced() && 'serviceWorker' in navigator) {
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (registration) {
+				await registration.update();
+			}
+		}
+
+		// Configure network polling based on state
+		if (state.hasAutoffline()) {
+			if (state.isOfflineVirtually()) {
+				exfPWA.network.initFastNetworkPoller();
+			} else {
+				exfPWA.network.initPoorNetworkPoller();
+			}
+		}
+
+		// Handle online-specific actions
+		if (state.isOnline()) {
+			// Update error counters
 			exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			// Sync offline items if no ServiceWorker available
 			if (!navigator.serviceWorker) {
 				syncOfflineItems();
 			}
-		} 
-	} catch (error) {
-		console.error('Error handling online event:', error);
-	}
-});
-
-// Toggle online/offlie icon
-// TODO make the networkchanged event also fire when browser goes online/offline and get rid
-// if these listeners then. So exfPWA needs to listen to browser online/offlie and trigger
-// our own networkchanged event then. 
-window.addEventListener('online', async function () {
-	try {
-		const oNetStat = exfPWA.network.getState();
-		await exfLauncher.updateNetworkModel(oNetStat);
-		
-		exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
-		if (!navigator.serviceWorker) {
-			syncOfflineItems();
 		}
 	} catch (error) {
-		console.error('Error handling online event:', error);
+		console.error('Error handling network changed event:', error);
 	}
 });
-
-window.addEventListener('offline', async function () {
-	try {
-		exfLauncher.updateNetworkModel(exfPWA.network.getState());
-	} catch (error) {
-		console.error('Error handling offline event:', error);
-	}
-});
-
-//
-//
-//
-
 
 window.addEventListener('load', function () {
-	exfLauncher.initPoorNetworkPoller();
+	// Initialize network state monitoring
+	exfPWA.network.init();
+
+	// Initialize network polling if auto-offline is enabled
+	const state = exfPWA.network.getState();
+	if (state.hasAutoffline()) {
+		exfPWA.network.initPoorNetworkPoller();
+	}
 
 	//ServiceWorker automatic update
 	checkForServiceWorkerUpdate();
@@ -137,74 +183,6 @@ const exfLauncher = {};
 	setInterval(function () {
 		exfLauncher.contextBar.load();
 	}, 30 * 1000);
-
-
-
-	this.initPoorNetworkPoller = function () {
-		// FIXME #auto-offline
-		return;
-		clearInterval(_oNetworkSpeedPoller);
-		_oNetworkSpeedPoller = setInterval(async function () {
-			try {
-				//take the network state
-				const state = await exfPWA.network.getState();
-
-				// If we are forced offline mode, stop polling
-				if (state._bForcedOffline) {
-					clearInterval(_oNetworkSpeedPoller);
-					return;
-				}
-
-				// Check Network Speed
-				const isNetworkSlow = await exfPWA.network.getState().isNetworkSlow();
-
-				// If auto offline is true and network is slow
-				if (isNetworkSlow && state._bAutoOffline) {
-					await exfLauncher.updateNetworkState(isNetworkSlow, state._bAutoOffline);
-					clearInterval(_oNetworkSpeedPoller);
-					exfLauncher.initFastNetworkPoller();
-				}
-
-			} catch (error) {
-				console.error('Error in poor network poller:', error); 
-			}
-		}, 5 * 1000); // Check every 5 seconds
-	};
-
-	this.initFastNetworkPoller = function () {
-		// FIXME #auto-offline
-		return;
-		clearInterval(_oNetworkSpeedPoller);
-		_oNetworkSpeedPoller = setInterval(async function () {
-			try {
-				//take the network state
-				const state = await exfPWA.network.checkState();
-
-				// If forced offline true, stop polling
-				if (state._bForcedOffline) {
-					clearInterval(_oNetworkSpeedPoller);
-					return;
-				}
-
-				// check network speed
-				const isNetworkSlow = await exfPWA.network.getState().isNetworkSlow();
-
-				// Auto offline true ve network fast 
-				// or auto offline off, get back to poller
-				if (!isNetworkSlow || !state._bAutoOffline) {
-					await exfLauncher.updateNetworkState(isNetworkSlow, state._bAutoOffline);
-					clearInterval(_oNetworkSpeedPoller);
-					exfLauncher.initPoorNetworkPoller();
-				} else {
-					// Network hala yavaş ve auto offline açıksa state'i güncelle
-					await exfLauncher.updateNetworkState(isNetworkSlow, state._bAutoOffline);
-				}
-			} catch (error) {
-				console.error('Error in fast network poller:', error);
-			}
-		}, 5000); // Check every 5 seconds
-	};
-
 
 	/**
 	 * 
@@ -281,48 +259,29 @@ const exfLauncher = {};
 
 			]
 		})
-		.setModel(new sap.ui.model.json.JSONModel({
-			_network: {
-				online: true,
-				queueCnt: 0,
-				syncErrorCnt: 0,
-				deviceId: exfPWA.getDeviceId(),
-				state: {}
-			}
-		}, true));
+			.setModel(new sap.ui.model.json.JSONModel({
+				_network: {
+					online: true,
+					queueCnt: 0,
+					syncErrorCnt: 0,
+					deviceId: exfPWA.getDeviceId(),
+					state: {}
+				}
+			}, true));
 
 		exfLauncher.updateNetworkModel(exfPWA.network.getState(), _oShell.getModel());
-		_oShell.getModel().attachPropertyChange(function(oEvent){
+		_oShell.getModel().attachPropertyChange(function (oEvent) {
 			var oParams = oEvent.getParameters();
 			var oModelStateNew = oEvent.getSource().getData()._network.state;
 			exfPWA.network.setState(oModelStateNew.forcedOffline, oModelStateNew.autoOffline, oModelStateNew.slowNetwork);
 			console.log('model changed', oEvent);
 
-			// TODO move this IF logic to networkchanged listner because this logic does not depend
-			// on the exact way HOW things changed. Id does not matter if they were chane by the UI
-			// or something else.
-			if (oParams.path === '/_network/state/autoOffline') {
-				if (oModelStateNew.autoOffline) {
-					if (isNetworkSlow) {
-						exfLauncher.initFastNetworkPoller();
-					} else {
-						exfLauncher.initPoorNetworkPoller();
-					}
-					var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-					exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON"));
-				} else {
-					// Auto-offline off
-					clearInterval(_oNetworkSpeedPoller);
-					exfLauncher.initPoorNetworkPoller();
-
-					var i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-					exfLauncher.showMessageToast(i18nModel.getProperty("WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_OFF"));
-				}
-			}
-
-			if (oParams.path === '/_network/state/forcedOffline') {
-				// TODO toggle stuff for forced offline here instead of separate toggle-functions
-			}
+			// Just update the network state, everything else will be handled by networkchanged event
+			exfPWA.network.setState(
+				oModelStateNew.forcedOffline,
+				oModelStateNew.autoOffline,
+				oModelStateNew.slowNetwork
+			);
 		});
 
 		return _oShell;
@@ -452,7 +411,7 @@ const exfLauncher = {};
 					}
 					if (oCtxtData.context_alias === 'exface.Core.NotificationContext') {
 						_oContextBar.hideAnnouncement();
-						(oCtxtData.announcements || []).forEach(function(oMsg) {
+						(oCtxtData.announcements || []).forEach(function (oMsg) {
 							_oContextBar.showAnnouncement(oMsg.text, oMsg.type, oMsg.icon);
 						});
 					}
@@ -490,7 +449,7 @@ const exfLauncher = {};
 			 * @param {string} sIcon 
 			 * @return void
 			 */
-			showAnnouncement: function(sText, sType, sIcon) {
+			showAnnouncement: function (sText, sType, sIcon) {
 				var sHeight = '1.75rem';
 				var sClass = 'sapMMsgStripInformation';
 				var sIconCls = sIcon ? (sIcon.startsWith('fa-') ? 'fa ' + sIcon : sIcon) : 'fa fa-info-circle';
@@ -518,20 +477,20 @@ const exfLauncher = {};
 				}
 				jqStrip = $('<div id="exf-announcement" style="height: ' + sHeight + '" class="sapMTB-Transparent-CTX ' + sClass + '"><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
 				$('body').prepend(jqStrip);
-				$('.exf-launcher').css({'height': 'calc(100% - ' + sHeight + ')'});
+				$('.exf-launcher').css({ 'height': 'calc(100% - ' + sHeight + ')' });
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
 			},
 
 			/**
 			 * @return void
 			 */
-			hideAnnouncement: function() {
+			hideAnnouncement: function () {
 				$('#exf-announcement').remove();
-				$('.exf-launcher').css({'height': '100%'});
+				$('.exf-launcher').css({ 'height': '100%' });
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
 
-			_setupTracer: function(oCtxtData) {
+			_setupTracer: function (oCtxtData) {
 				if (oCtxtData.indicator !== 'OFF' && oCtxtData.indicator.includes('F')) {
 					if (_oContextBar.traceJs !== true) {
 						_oContextBar.traceJs = true;
@@ -1733,8 +1692,6 @@ const exfLauncher = {};
 											state: "{/_network/state/autoOffline}",
 										}),
 										new sap.m.Text({
-											// FIXME #auto-offline
-											visible: false,
 											text: "{i18n>WEBAPP.SHELL.NETWORK_AUTOMATIC_OFFLINE}"
 										}),
 									],
@@ -1750,14 +1707,24 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('force_offline_toggle', {
-											state: "{/_network/forcedOffline}",
-											//enabled: navigator.onLine, // Changed from disabled to enabled
-											change: function (oEvent) {
-												var oSwitch = oEvent.getSource();
-												if (oSwitch.getState()) {
-													exfLauncher.toggleForceOfflineOn();
-												} else {
-													exfLauncher.toggleForceOfflineOff();
+											state: "{/_network/state/forcedOffline}",
+											change: async function (oEvent) {
+												const oSwitch = oEvent.getSource();
+												const newState = oSwitch.getState();
+
+												try {
+													await exfPWA.network.handleForceOfflineToggle(newState);
+
+													const i18nModel = _oLauncher.contextBar.getComponent().getModel('i18n');
+													const messageKey = newState ?
+														"WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON" :
+														"WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF";
+													exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+												} catch (error) {
+													console.error('Error toggling force offline:', error);
+													// Revert switch state on error
+													oSwitch.setState(!newState);
+													exfLauncher.showMessageToast("Error toggling force offline mode");
 												}
 											}
 										}),
@@ -2005,58 +1972,8 @@ const exfLauncher = {};
 		});
 	};
 
-	this.toggleForceOfflineOn = function () {
-		exfPWA.network.checkState()
-			.then(state => {
-				// Only change force offline, preserve auto offline state
-				return exfPWA.network.setState(true, state._bAutoOffline, state._bSlowNetwork);
-			})
-			.then(() => {
-				_oLauncher.showMessageToast(_oLauncher.contextBar.getComponent().getModel('i18n')
-					.getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON"));
 
-				clearInterval(_oNetworkSpeedPoller);
-
-				// Update only force offline switch state
-				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
-				if (forceOfflineSwitch) {
-					forceOfflineSwitch.setState(true);
-				}
-			});
-	};
-
-	this.toggleForceOfflineOff = function () {
-		// First get the current state
-		exfPWA.network.checkState()
-			.then(state => {
-				// Only change force offline, preserve auto offline state
-				return exfPWA.network.setState(false, state._bAutoOffline, state._bSlowNetwork);
-			})
-			.then(() => {
-				_oLauncher.showMessageToast(_oLauncher.contextBar.getComponent().getModel('i18n')
-					.getProperty("WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF"));
-	
-				// Get state again to determine polling behavior
-				return exfPWA.network.checkState();
-			})
-			.then(state => {
-				if (state._bAutoOffline) {
-					_oLauncher.initPoorNetworkPoller();
-				}
-	
-				// Update only force offline switch state
-				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
-				if (forceOfflineSwitch) {
-					forceOfflineSwitch.setState(false);
-				}
-			})
-			.catch(error => {
-				console.error('Error toggling force offline off:', error);
-				_oLauncher.showMessageToast("Error toggling force offline mode off");
-			});
-	};
-
-	this.updateNetworkModel = function(oNetStat, oModel) {
+	this.updateNetworkModel = function (oNetStat, oModel) {
 		console.log('set network model', oNetStat);
 		var oModel = oModel === undefined ? exfLauncher.getShell().getModel() : oModel;
 		var oNetStat = exfPWA.network.getState();
@@ -2067,44 +1984,8 @@ const exfLauncher = {};
 		});
 		oModel.setProperty('/_network/title', oNetStat.toString());
 		oModel.setProperty('/_network/online', oNetStat.isOnline());
-	},
+	}
 
-	// TODO remove his after the pollers have moved to exfPWA
-	this.updateNetworkState = async function (isLowSpeed, isAutoOffline) {
-		try {
-			const currentState = exfPWA.network.getState();
-
-			await exfPWA.network.setState(
-				currentState._bForcedOffline,
-				isAutoOffline,
-				isLowSpeed
-			);
-
-			// Update network menu title if open
-			const oPopover = sap.ui.getCore().byId('exf-network-menu');
-			if (oPopover) {
-				oPopover.setTitle(currentState.toString());
-			}
-
-			// Update polling behavior
-			if (! currentState.isOnline()) {
-				if (! currentState._bForcedOffline) {
-					clearInterval(_oNetworkSpeedPoller);
-					this.initFastNetworkPoller();
-				}
-			} else {
-				clearInterval(_oNetworkSpeedPoller);
-				this.initPoorNetworkPoller();
-			}
-
-			return true;
-
-		} catch (error) {
-			console.error('Failed to update network state:', error);
-			return false;
-		}
-	};
-	
 }).apply(exfLauncher);
 
 
@@ -2181,7 +2062,7 @@ $.ajax = function (options) {
 						window.networkStatCleanupInterval = setInterval(function () {
 							const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 							exfPWA.network.deleteStatsBefore(tenMinutesAgo)
-								.then(() => exfPWA.network.listNetworkStats());
+								.then(() => listNetworkStats());
 						}, 10 * 60 * 1000);
 					}
 				});
@@ -2470,6 +2351,5 @@ function checkForServiceWorkerUpdate() {
 		});
 	}
 }
+//
 //v1
-//v2
-//v3

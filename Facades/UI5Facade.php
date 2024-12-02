@@ -126,6 +126,8 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
                     if ($task->isTriggeredOnPage()) {
                         $appRootPageAlias = $task->getPageSelector()->__toString();
                     }
+                    //test
+
                 } 
                 if ($appRootPageAlias) {
                     $this->initWebapp($appRootPageAlias);
