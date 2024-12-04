@@ -50,8 +50,6 @@ JS;
 		$controller->addExternalCss($f->buildUrlToSource('LIBS.PIVOTTABLE.UI.THEME'));
 		return $this;
     }
-    
-
 
 	/**
      *
@@ -86,8 +84,10 @@ JS;
 JS;
 	}
 	
-	
-	
+	/**
+	 * 
+	 * @return string
+	 */
 	protected function buildJsFullscreenContainerGetter() : string
 	{
 	    return "$('#{$this->getId()}').parent().parent()";
