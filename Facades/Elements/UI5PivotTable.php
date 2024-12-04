@@ -25,7 +25,7 @@ class UI5PivotTable extends UI5AbstractElement
                 })
 JS;
 
-		return $this->buildJsPanelWrapper($pivotTable, $oControllerJs);
+        return $this->buildJsPanelWrapper($pivotTable, $oControllerJs) . ".addStyleClass('sapUiNoContentPadding')";
 
 	}
 
@@ -85,7 +85,13 @@ JS;
         })(jQuery);
 JS;
 	}
-
+	
+	
+	
+	protected function buildJsFullscreenContainerGetter() : string
+	{
+	    return "$('#{$this->getId()}').parent().parent()";
+	}
 
 	/**
      * 
