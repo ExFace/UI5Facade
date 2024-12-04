@@ -45,3 +45,14 @@
 .pvtVals a {color: #0854a0!important;}
 .pvtVals {border: solid .0625rem #89919a!important;}
 .pvtAxisContainer {border: solid .0625rem #89919a!important;}
+
+/* Borders between groups */
+.pvtTable tr:has(th.pvtRowLabel) {
+    border-top-style: solid;
+    border-bottom-style: double;
+}
+
+.pvtTable tr:has(th.pvtTotalLabel.colTotal) {border-top-style: solid;}
+
+.pvtTable tr td.pvtRowSubtotal.rowexpanded {background-color: #efefef !important;}
+
