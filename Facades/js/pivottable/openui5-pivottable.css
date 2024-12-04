@@ -45,3 +45,24 @@
 .pvtVals a {color: #0854a0!important;}
 .pvtVals {border: solid .0625rem #89919a!important;}
 .pvtAxisContainer {border: solid .0625rem #89919a!important;}
+
+/* Borders between groups */
+.pvtTable tr:has(td.pvtRowSubtotal) {
+    border-bottom-style: solid;
+    border-bottom-color: #CDCDCD;
+}
+.pvtTable tr:has(th.pvtTotalLabel.colTotal) {
+    border-top-style: solid;
+    border-top-color: #CDCDCD;
+}
+.pvtTable tr td.pvtRowSubtotal.rowexpanded,
+.pvtTable tr td.pvtTotal,
+.pvtTable tr td.pvtGrandTotal {
+	background-color: #efefef !important;
+}
+table.pvtTable * {
+    font-size: .875rem !important;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    line-height: normal;
+    color: #32363a;
+}
