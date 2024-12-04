@@ -373,6 +373,9 @@ JS;
                 url: "{$this->getElement()->getAjaxUrl()}",
                 type: "POST",
 				data: {$oParamsJs},
+                headers: {
+                    'X-Offline-Strategy': 'NetworkFirst'
+                },
                 success: function(response, textStatus, jqXHR) {
                     var oPrefillRow = {};
                     if (Object.keys({$oModelJs}.getData()).length !== 0) {
