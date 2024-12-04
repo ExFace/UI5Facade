@@ -932,4 +932,14 @@ JS, false);
         
         return $this;
     }
+
+    /**
+     * Returns inline JS function calls like `.addStyleClass('.exfw .exfw-InputComboTable')`
+     * @return string
+     */
+    protected function buildJsAddCssWidgetClasses() : string
+    {
+        return ".addStyleClass('{$this->buildCssWidgetClass()}')";
+        
+    }
 }

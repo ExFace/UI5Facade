@@ -69,6 +69,9 @@ JS;
                 if ($('#{$this->getId()}_css').length === 0) {
                     $appendCssJs
                 }
+                sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
+                    {$widget->getScriptToResize()}
+                });
             }
         })
 

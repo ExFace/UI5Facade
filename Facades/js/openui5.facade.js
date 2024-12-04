@@ -92,6 +92,7 @@ const exfLauncher = {};
 
 	var _oShell = {};
 	var _oLauncher = this;
+	var _bBusy = false;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
 	var _bLowSpeed = false;
@@ -250,6 +251,16 @@ const exfLauncher = {};
 	};
 
 	this.initShell = function () {
+
+		// Save global busy indicator state to be able to determine when the app
+		// is busy - e.g. for UI testing.
+		sap.ui.core.BusyIndicator.attachOpen(function(Event){
+			_bBusy = true;
+		});
+		sap.ui.core.BusyIndicator.attachClose(function(Event){
+			_bBusy = false;
+		});
+
 		_oShell = new sap.ui.unified.Shell({
 			header: [
 				new sap.m.OverflowToolbar({
@@ -313,6 +324,15 @@ const exfLauncher = {};
 			}));
 
 		return _oShell;
+	};
+
+	/**
+	 * Returns TRUE if the global busy indicator is shown and FALSE otherwise
+	 * 
+	 * @returns {boolean}
+	 */
+	this.isBusy = function() {
+		return _bBusy && $('#exf-loader').is(':visible') === false;
 	};
 
 	this.setAppMenu = function (oControl) {

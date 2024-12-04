@@ -50,7 +50,7 @@ class UI5Value extends UI5AbstractElement implements UI5ValueBindingInterface, U
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        return $this->buildJsConstructorForMainControl($oControllerJs);
+        return $this->buildJsConstructorForMainControl($oControllerJs) . $this->buildJsAddCssWidgetClasses();
     }
     
     /**

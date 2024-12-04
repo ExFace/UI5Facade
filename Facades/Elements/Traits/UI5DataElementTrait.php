@@ -265,9 +265,9 @@ JS;
         }
         
         if ($this->isWrappedInDynamicPage()){
-            return $this->buildJsPage($js, $oControllerJs) . $initModels;
+            return $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
         } else {
-            return $js . $initModels;
+            return $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
     }
     
