@@ -47,12 +47,22 @@
 .pvtAxisContainer {border: solid .0625rem #89919a!important;}
 
 /* Borders between groups */
-.pvtTable tr:has(th.pvtRowLabel) {
-    border-top-style: solid;
-    border-bottom-style: double;
+.pvtTable tr:has(td.pvtRowSubtotal) {
+    border-bottom-style: solid;
+    border-bottom-color: #CDCDCD;
 }
-
-.pvtTable tr:has(th.pvtTotalLabel.colTotal) {border-top-style: solid;}
-
-.pvtTable tr td.pvtRowSubtotal.rowexpanded {background-color: #efefef !important;}
-
+.pvtTable tr:has(th.pvtTotalLabel.colTotal) {
+    border-top-style: solid;
+    border-top-color: #CDCDCD;
+}
+.pvtTable tr td.pvtRowSubtotal.rowexpanded,
+.pvtTable tr td.pvtTotal,
+.pvtTable tr td.pvtGrandTotal {
+	background-color: #efefef !important;
+}
+table.pvtTable * {
+    font-size: .875rem !important;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    line-height: normal;
+    color: #32363a;
+}
