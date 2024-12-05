@@ -378,11 +378,11 @@ const exfLauncher = {};
 					_oContextBar.refresh({});
 					return;
 				}
-
+				/* FIXME #performance this caused a memory leak for some installations
 				window._oNetworkSpeedPoller = setInterval(function () {
 					// IDEA: Measure network speed every 5 seconds 
 					listNetworkStats();
-				}, 1000 * 5);
+				}, 1000 * 5);*/
 
 				setTimeout(function () {
 					// IDEA had to disable adding context bar extras to every request due to
@@ -2293,6 +2293,10 @@ $.ajax = function (options) {
 
 
 function listNetworkStats() {
+	// FIXME #performance this caused a memory leak for some installations
+	// The code seemed to get called indefinitely causing all JS to run very
+	// slow and memory consuption of the browser tab to jump to 1.1-1.2 GB
+	return;
 	exfPWA.data.getAllNetworkStats()
 		.then(stats => {
 			if (exfPWA.isAvailable() === false) {
