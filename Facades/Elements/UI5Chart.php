@@ -62,7 +62,6 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
                     afterRendering: function(oEvent) {
                         {$this->buildJsEChartsInit($this->getFacade()->getConfig()->getOption('LIBS.ECHARTS.THEME_NAME'))}
                         {$this->buildJsEventHandlers()}
-                        
                         setTimeout(function(){
                             {$showMessageScript}
                             {$this->buildJsEChartsResize()}
@@ -70,6 +69,7 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
                         sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
                             {$this->buildJsEChartsResize()}
                         });
+                        {$this->buildJsForceLegendSelectUpdate()}
                     }
                 })
 
