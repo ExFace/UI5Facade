@@ -27,6 +27,18 @@ $(window).on('networkchanged', async function (oEvent, oData) {
 	try {
 		// Get current network state  
 		const oNetState = oData.currentState;
+		const oChanges = oData.chages;
+		const i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
+		var messageKey;
+
+		if (oChanges.forcedOffline !== undefined) {
+			messageKey = oChanges.forcedOffline ?
+				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON" :
+				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF";
+			exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+		}
+
+		// TODO add other messages here
 
 		// Log state change for debugging
 		console.debug('Network State Changed:', {
@@ -101,6 +113,7 @@ const exfLauncher = {};
 	// This is required because browser's online/offline events weren't being captured properly
 	// Without this initialization, the application couldn't detect network status changes
 	exfPWA.network.init();
+	this.registerAjaxSpeedLogging();
 
 	const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
 
@@ -231,11 +244,14 @@ const exfLauncher = {};
 			console.log('model changed', oEvent);
 
 			// Just update the network state, everything else will be handled by networkchanged event
-			exfPWA.network.setState(
-				oModelStateNew.forcedOffline,
-				oModelStateNew.autoOffline,
-				oModelStateNew.slowNetwork
-			).then(function () {
+			// TODO not sure, what is better - change everything here or do partial changes like in the
+			// case of the forced-offline switch (see sap.m.Switch('forced_offline_toggle'). Since we
+			// actually always change just one of them, maybe partial updates are better?
+			exfPWA.network.setState({
+				forcedOffline: oModelStateNew.forcedOffline,
+				autoOffline: oModelStateNew.autoOffline,
+				slowNetwork: oModelStateNew.slowNetwork
+			}).then(function () {
 				// When state updated succesfully, networkchanged event'i will be triggered automatically
 				console.log('Network state updated:', oModelStateNew);
 			});
@@ -1677,24 +1693,15 @@ const exfLauncher = {};
 									items: [
 										new sap.m.Switch('force_offline_toggle', {
 											state: "{/_network/state/forcedOffline}",
-											change: async function (oEvent) {
+											change: function (oEvent) {
+												// TODO why can't we just change the model here? See sap.m.Switch('auto_offline_toggle' above
 												const oSwitch = oEvent.getSource();
-												const newState = oSwitch.getState();
-
-												try {
-													await exfPWA.network.handleForceOfflineToggle(newState);
-
-													const i18nModel = _oLauncher.contextBar.getComponent().getModel('i18n');
-													const messageKey = newState ?
-														"WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON" :
-														"WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF";
-													exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
-												} catch (error) {
+												exfPWA.network
+												.setState({forcedOffline: oSwitch.getState()})
+												.catch (error => {
 													console.error('Error toggling force offline:', error);
-													// Revert switch state on error
-													oSwitch.setState(!newState);
 													exfLauncher.showMessageToast("Error toggling force offline mode");
-												}
+												})
 											}
 										}),
 										new sap.m.Text({
@@ -1721,19 +1728,10 @@ const exfLauncher = {};
 				.setModel(oButton.getModel())
 				.setModel(oButton.getModel('i18n'), 'i18n');
 
-			// Get and set initial toggle states after popover creation
-			// TODO is that still needed? Why no run updateNetworkModel() here?
+			// Get the initial network state from exfPWA and populate the UI5 model
+			// this will put the switche in their initial position.
 			exfPWA.network.checkState().then(state => {
-				var autoOfflineSwitch = sap.ui.getCore().byId('auto_offline_toggle');
-				var forceOfflineSwitch = sap.ui.getCore().byId('force_offline_toggle');
-
-				if (autoOfflineSwitch) {
-					autoOfflineSwitch.setState(state._bAutoOffline);
-				}
-
-				if (forceOfflineSwitch) {
-					forceOfflineSwitch.setState(state._bForcedOffline);
-				}
+				exfLauncher.updateNetworkModel(state);
 			});
 		}
 
@@ -1955,119 +1953,127 @@ const exfLauncher = {};
 		oModel.setProperty('/_network/title', oNetStat.toString());
 		oModel.setProperty('/_network/online', oNetStat.isOnline());
 	}
-	exfPWA.network.init();
-}).apply(exfLauncher);
 
-
-var originalAjax = $.ajax;
-$.ajax = function (options) {
-	var startTime = new Date().getTime();
-	// Calculate the request headers length
-	let requestHeadersLength = 0;
-	if (options.headers) {
-		for (let header in options.headers) {
-			if (options.headers.hasOwnProperty(header)) {
-				requestHeadersLength += new Blob([header + ": " + options.headers[header] + "\r\n"]).size * 8;
-			}
-		}
-	}
-
-	// Calculate the request content length (if any)
-	let requestContentLength = 0;
-	if (options.data) {
-		requestContentLength = new Blob([JSON.stringify(options.data)]).size * 8;
-	}
-
-	var newOptions = $.extend({}, options, {
-		success: function (data, textStatus, jqXHR) {
-			// Record the response end time
-			let endTime = new Date().getTime();
-
-			// Check if the response is from cache; skip measurement if true
-			if (jqXHR.getResponseHeader('X-Cache') === 'HIT') {
-				return; // Cancel measurement
-			}
-
-			// Retrieve the 'Server-Timing' header
-			let serverTimingHeader = jqXHR.getResponseHeader('Server-Timing');
-			let serverTimingValue = 0;
-
-			// Extract the 'dur' value from the Server-Timing header
-			if (serverTimingHeader) {
-				let durMatch = serverTimingHeader.match(/dur=([\d\.]+)/);
-				if (durMatch) {
-					serverTimingValue = parseFloat(durMatch[1]);
+	/**
+	 * Save network stats on every AJAX request in order to use these stats
+	 * to determin slow network.
+	 * 
+	 * @return void
+	 */
+	this.registerAjaxSpeedLogging = function() {
+		var originalAjax = $.ajax;
+		$.ajax = function (options) {
+			var startTime = new Date().getTime();
+			// Calculate the request headers length
+			let requestHeadersLength = 0;
+			if (options.headers) {
+				for (let header in options.headers) {
+					if (options.headers.hasOwnProperty(header)) {
+						requestHeadersLength += new Blob([header + ": " + options.headers[header] + "\r\n"]).size * 8;
+					}
 				}
 			}
 
-			// Calculate the duration, adjusting for server processing time
-			let duration = (endTime - startTime - serverTimingValue) / 1000; // Convert to seconds
+			// Calculate the request content length (if any)
+			let requestContentLength = 0;
+			if (options.data) {
+				requestContentLength = new Blob([JSON.stringify(options.data)]).size * 8;
+			}
 
-			// Retrieve the Content-Length (size) of the response
-			let responseContentLength = parseInt(jqXHR.getResponseHeader('Content-Length')) || 0;
+			var newOptions = $.extend({}, options, {
+				success: function (data, textStatus, jqXHR) {
+					// Record the response end time
+					let endTime = new Date().getTime();
 
-			// Calculate the length of response headers
-			let responseHeaders = jqXHR.getAllResponseHeaders(); // Retrieves all response headers as a string
-			let responseHeadersLength = new Blob([responseHeaders]).size * 8; // Calculate in bits
-
-			// Calculate the total data size (request headers + request body + response headers + response body) in bits
-			let totalDataSize = (requestHeadersLength + requestContentLength + responseHeadersLength + responseContentLength * 8);
-
-			// Calculate internet speed in Mbps
-			let speedMbps = totalDataSize / (duration * 1000000);
-
-			// Retrieve the Content-Type from the headers or from the contentType property
-			let requestMimeType = options.contentType || (options.headers && options.headers['Content-Type']) || 'application/x-www-form-urlencoded; charset=UTF-8';
-
-			// check exfPWA library is exists
-			if (typeof exfPWA !== 'undefined') {
-				exfPWA.network.saveStat(
-					new Date(endTime),
-					speedMbps,
-					requestMimeType,
-					totalDataSize
-				).then(() => {
-					// Set Cleanup interval
-					if (!window.networkStatCleanupInterval) {
-						window.networkStatCleanupInterval = setInterval(function () {
-							const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-							exfPWA.network.deleteStatsBefore(tenMinutesAgo)
-								.then(() => listNetworkStats());
-						}, 10 * 60 * 1000);
+					// Check if the response is from cache; skip measurement if true
+					if (jqXHR.getResponseHeader('X-Cache') === 'HIT') {
+						return; // Cancel measurement
 					}
-				});
-			} else {
-				console.error("exfPWA is not defined");
+
+					// Retrieve the 'Server-Timing' header
+					let serverTimingHeader = jqXHR.getResponseHeader('Server-Timing');
+					let serverTimingValue = 0;
+
+					// Extract the 'dur' value from the Server-Timing header
+					if (serverTimingHeader) {
+						let durMatch = serverTimingHeader.match(/dur=([\d\.]+)/);
+						if (durMatch) {
+							serverTimingValue = parseFloat(durMatch[1]);
+						}
+					}
+
+					// Calculate the duration, adjusting for server processing time
+					let duration = (endTime - startTime - serverTimingValue) / 1000; // Convert to seconds
+
+					// Retrieve the Content-Length (size) of the response
+					let responseContentLength = parseInt(jqXHR.getResponseHeader('Content-Length')) || 0;
+
+					// Calculate the length of response headers
+					let responseHeaders = jqXHR.getAllResponseHeaders(); // Retrieves all response headers as a string
+					let responseHeadersLength = new Blob([responseHeaders]).size * 8; // Calculate in bits
+
+					// Calculate the total data size (request headers + request body + response headers + response body) in bits
+					let totalDataSize = (requestHeadersLength + requestContentLength + responseHeadersLength + responseContentLength * 8);
+
+					// Calculate internet speed in Mbps
+					let speedMbps = totalDataSize / (duration * 1000000);
+
+					// Retrieve the Content-Type from the headers or from the contentType property
+					let requestMimeType = options.contentType || (options.headers && options.headers['Content-Type']) || 'application/x-www-form-urlencoded; charset=UTF-8';
+
+					// check exfPWA library is exists
+					if (typeof exfPWA !== 'undefined') {
+						exfPWA.network.saveStat(
+							new Date(endTime),
+							speedMbps,
+							requestMimeType,
+							totalDataSize
+						).then(() => {
+							// Set Cleanup interval
+							if (!window.networkStatCleanupInterval) {
+								window.networkStatCleanupInterval = setInterval(function () {
+									const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+									exfPWA.network.deleteStatsBefore(tenMinutesAgo)
+										.then(() => listNetworkStats());
+								}, 10 * 60 * 1000);
+							}
+						});
+					} else {
+						console.error("exfPWA is not defined");
+					}
+
+
+					if (options.success) {
+						options.success.apply(this, arguments);
+					}
+				},
+				complete: function (jqXHR, textStatus) {
+					if (options.complete) {
+						options.complete.apply(this, arguments);
+					}
+				}
+			});
+
+			// Function to delete old network stats
+			function deleteOldNetworkStats() {
+				if (typeof exfPWA !== 'undefined') {
+					var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+					exfPWA.network.deleteNetworkStatsBefore(tenMinutesAgo)
+						.then(function () {
+
+						})
+						.catch(function (error) {
+							console.error("Error deleting old network stats:", error);
+						});
+				}
 			}
 
-
-			if (options.success) {
-				options.success.apply(this, arguments);
-			}
-		},
-		complete: function (jqXHR, textStatus) {
-			if (options.complete) {
-				options.complete.apply(this, arguments);
-			}
-		}
-	});
-
-	// Function to delete old network stats
-	function deleteOldNetworkStats() {
-		if (typeof exfPWA !== 'undefined') {
-			var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-			exfPWA.network.deleteNetworkStatsBefore(tenMinutesAgo)
-				.then(function () {
-
-				})
-				.catch(function (error) {
-					console.error("Error deleting old network stats:", error);
-				});
-		}
+			return originalAjax.call(this, newOptions);
+		};
 	}
+}).apply(exfLauncher);
 
-	return originalAjax.call(this, newOptions);
-};
+
 
 
 function listNetworkStats() {
