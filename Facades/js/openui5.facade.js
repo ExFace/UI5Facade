@@ -12,81 +12,54 @@ const ignoredErrorPatterns = [
 	/Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
 ];
 
-// /**
-//  * Handles network state changes throughout the application
-//  * Updates UI, manages service worker, and handles offline functionality
-//  */
-// $(window).on('networkchanged', async function (oEvent, oNetStat) {
-// 	try {
-// 		// Retrieve current network state
-// 		const state = exfPWA.network.getState();
-
-// 		// Update UI components with new state
-// 		exfLauncher.updateNetworkModel(state);
-
-// 		// Handle Service Worker updates when coming online
-// 		if (!state.isOfflineForced() && 'serviceWorker' in navigator) {
-// 			const registration = await navigator.serviceWorker.getRegistration();
-// 			if (registration) {
-// 				await registration.update();
-// 			}
-// 		}
-
-// 		// Configure network polling based on state
-// 		if (state.hasAutoffline()) {
-// 			if (state.isOfflineVirtually()) {
-// 				// Switch to fast polling when virtually offline
-// 				exfPWA.network.initFastNetworkPoller();
-// 			} else {
-// 				// Use standard polling when online
-// 				exfPWA.network.initPoorNetworkPoller();
-// 			}
-// 		}
-
-// 		// Handle online-specific actions
-// 		if (state.isOnline()) {
-// 			// Update error counters
-// 			exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
-// 			// Sync offline items if no ServiceWorker available
-// 			if (!navigator.serviceWorker) {
-// 				syncOfflineItems();
-// 			}
-// 		}
-// 	} catch (error) {
-// 		console.error('Error handling network changed event:', error);
-// 	}
-// });
 
 /**
- * Handles network state changes throughout the application
- * Simplified version - focuses on current state rather than changes
+ * Network State Change Event Handler
+ * 
+ * This event handler manages application-wide responses to network state changes.
+ * It updates UI components, handles offline queue synchronization, and manages
+ * network-dependent features.
+ * 
+ * @param {jQuery.Event} oEvent The jQuery event object
+ * @param {Object} oData The event data containing current network state
  */
-$(window).on('networkchanged', async function (oEvent, data) {
+$(window).on('networkchanged', async function (oEvent, oData) {
 	try {
-		// Get current network state
-		// TODO get it from the event here
-		const state = exfPWA.network.getState();
+		// Get current network state  
+		const oNetState = oData.currentState;
+
+		// Log state change for debugging
+		console.debug('Network State Changed:', {
+			timestamp: new Date().toISOString(),
+			state: oNetState.toString(),
+			isOnline: oNetState.isOnline(),
+			isOfflineVirtually: oNetState.isOfflineVirtually()
+		});
 
 		// Update UI components with new state
-		exfLauncher.updateNetworkModel(state);
+		exfLauncher.updateNetworkModel(oNetState);
 
 		// Handle online-specific actions
-		if (state.isOnline()) {
+		if (oNetState.isOnline()) {
 			// Update error counters
 			exfLauncher.contextBar.getComponent().getPWA()
-			.updateQueueCount()
-			.then(function () {
-				exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
-				// What did that message toast do?
-				// exfLauncher.showMessageToast(event.data);
-			})
+				.updateQueueCount()
+				.then(function () {
+					exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+					// What did that message toast do?
+					// exfLauncher.showMessageToast(event.oData);
+				})
 			// Sync offline items if no ServiceWorker available
-			if (! navigator.serviceWorker) {
+			if (!navigator.serviceWorker) {
 				syncOfflineItems();
 			}
 		}
 	} catch (error) {
-		console.error('Error handling network changed event:', error);
+		console.error('Network State Change Handler Error:', {
+			message: oError.message,
+			stack: oError.stack,
+			timestamp: new Date().toISOString()
+		});
 	}
 });
 
@@ -123,6 +96,11 @@ const exfLauncher = {};
 (function () {
 
 	exfPWA.actionQueue.setTopics(['offline', 'ui5']);
+
+	// Initialize network state management and event listeners 
+	// This is required because browser's online/offline events weren't being captured properly
+	// Without this initialization, the application couldn't detect network status changes
+	exfPWA.network.init();
 
 	const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
 
@@ -163,10 +141,10 @@ const exfLauncher = {};
 
 		// Save global busy indicator state to be able to determine when the app
 		// is busy - e.g. for UI testing.
-		sap.ui.core.BusyIndicator.attachOpen(function(Event){
+		sap.ui.core.BusyIndicator.attachOpen(function (Event) {
 			_bBusy = true;
 		});
-		sap.ui.core.BusyIndicator.attachClose(function(Event){
+		sap.ui.core.BusyIndicator.attachClose(function (Event) {
 			_bBusy = false;
 		});
 
@@ -223,15 +201,15 @@ const exfLauncher = {};
 
 			]
 		})
-		.setModel(new sap.ui.model.json.JSONModel({
-			_network: {
-				online: true,
-				queueCnt: 0,
-				syncErrorCnt: 0,
-				deviceId: exfPWA.getDeviceId(),
-				state: {}
-			}
-		}, true));
+			.setModel(new sap.ui.model.json.JSONModel({
+				_network: {
+					online: true,
+					queueCnt: 0,
+					syncErrorCnt: 0,
+					deviceId: exfPWA.getDeviceId(),
+					state: {}
+				}
+			}, true));
 
 		// Initialize the network model by reading the current network state from the
 		// PWA. This will put all the toggles in their correct positions
@@ -240,10 +218,16 @@ const exfLauncher = {};
 		// Now, every time the user changes things like the auto-offline-toggle, we will get a change
 		// in the model here. Just propagate this change to exfPWA. It will decide if this really
 		// is a network change or not.
+
+		/*
+				-When the auto offline, forced offline or network offline switch changes, the model is updated
+				-We pass the model change to exfPWA
+				-exfPWA handles the rest - triggering the networkchanged event if there's a real change
+		*/
 		_oShell.getModel().attachPropertyChange(function (oEvent) {
+
 			var oParams = oEvent.getParameters();
 			var oModelStateNew = oEvent.getSource().getData()._network.state;
-			exfPWA.network.setState(oModelStateNew.forcedOffline, oModelStateNew.autoOffline, oModelStateNew.slowNetwork);
 			console.log('model changed', oEvent);
 
 			// Just update the network state, everything else will be handled by networkchanged event
@@ -251,7 +235,10 @@ const exfLauncher = {};
 				oModelStateNew.forcedOffline,
 				oModelStateNew.autoOffline,
 				oModelStateNew.slowNetwork
-			);
+			).then(function () {
+				// When state updated succesfully, networkchanged event'i will be triggered automatically
+				console.log('Network state updated:', oModelStateNew);
+			});
 		});
 
 		return _oShell;
@@ -262,7 +249,7 @@ const exfLauncher = {};
 	 * 
 	 * @returns {boolean}
 	 */
-	this.isBusy = function() {
+	this.isBusy = function () {
 		return _bBusy && $('#exf-loader').is(':visible') === false;
 	};
 
@@ -459,16 +446,16 @@ const exfLauncher = {};
 				}
 				jqStrip = $('<div class="exf-announcement sapMTB-Transparent-CTX ' + sClass + ' style="height: ' + sHeight + '""><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
 				iHeightTotal = $('#exf-announcements').append(jqStrip).outerHeight();
-				$('.exf-launcher').css({'height': 'calc(100% - ' + iHeightTotal + 'px)'});
+				$('.exf-launcher').css({ 'height': 'calc(100% - ' + iHeightTotal + 'px)' });
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
 			},
 
 			/**
 			 * @return void
 			 */
-			hideAnnouncement: function() {
+			hideAnnouncement: function () {
 				$('#exf-announcements').empty();
-				$('.exf-launcher').css({'height': '100%'});
+				$('.exf-launcher').css({ 'height': '100%' });
 				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
 
@@ -1731,8 +1718,8 @@ const exfLauncher = {};
 					clearInterval(titleInterval);
 				}
 			})
-			.setModel(oButton.getModel())
-			.setModel(oButton.getModel('i18n'), 'i18n');
+				.setModel(oButton.getModel())
+				.setModel(oButton.getModel('i18n'), 'i18n');
 
 			// Get and set initial toggle states after popover creation
 			// TODO is that still needed? Why no run updateNetworkModel() here?
@@ -1968,7 +1955,7 @@ const exfLauncher = {};
 		oModel.setProperty('/_network/title', oNetStat.toString());
 		oModel.setProperty('/_network/online', oNetStat.isOnline());
 	}
-
+	exfPWA.network.init();
 }).apply(exfLauncher);
 
 
@@ -2321,4 +2308,4 @@ window.onload = function () {
 		}
 	}, 1000); // 1 second delay to ensure the page has fully loaded
 };
-window['exfLauncher'] = exfLauncher;
+window['exfLauncher'] = exfLauncher; 
