@@ -317,13 +317,13 @@ const exfLauncher = {};
 					_oContextBar.refresh({});
 					return;
 				}
-
+				/* FIXME #performance this caused a memory leak for some installations
 				// TODO move to opening the quota stats dialog. Only need this refresh logic when the speed
 				// graph is being shown
 				window._oNetworkSpeedPoller = setInterval(function () {
 					// IDEA: Measure network speed every 5 seconds 
 					listNetworkStats();
-				}, 1000 * 5);
+				}, 1000 * 5);*/
 
 				setTimeout(function () {
 					// IDEA had to disable adding context bar extras to every request due to
@@ -2056,7 +2056,7 @@ $.ajax = function (options) {
 	function deleteOldNetworkStats() {
 		if (typeof exfPWA !== 'undefined') {
 			var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-			exfPWA.data.deleteNetworkStatsBefore(tenMinutesAgo)
+			exfPWA.network.deleteNetworkStatsBefore(tenMinutesAgo)
 				.then(function () {
 
 				})
@@ -2071,6 +2071,10 @@ $.ajax = function (options) {
 
 
 function listNetworkStats() {
+	// FIXME #performance this caused a memory leak for some installations
+	// The code seemed to get called indefinitely causing all JS to run very
+	// slow and memory consuption of the browser tab to jump to 1.1-1.2 GB
+	return;
 	exfPWA.network.getAllStats()
 		.then(stats => {
 			if (exfPWA.isAvailable() === false) {
