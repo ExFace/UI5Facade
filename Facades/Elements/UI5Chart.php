@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\EChartsTrait;
+use exface\Core\Widgets\Chart;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
@@ -472,11 +473,11 @@ JS;
     {
         parent::addOnChangeScript($js);
 
-        if (str_contains($js, $this->buildJsValueGetter($this->legendActiveToken))) {
+        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_ACTIVE))) {
             $this->getController()->addOnEventScript($this, 'invokeLegendActiveGetter', $js);
         }
 
-        if (str_contains($js, $this->buildJsValueGetter($this->legendDisabledToken))) {
+        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_INACTIVE))) {
             $this->getController()->addOnEventScript($this, 'invokeLegendDisabledGetter', $js);
         }
         

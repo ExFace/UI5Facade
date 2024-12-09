@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\TextHeading;
 use exface\Core\Widgets\WidgetGrid;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\Interfaces\Widgets\iContainOtherWidgets;
@@ -42,6 +43,15 @@ class UI5DialogHeader extends UI5Container
     protected function buildJsConstructorForChild(WidgetInterface $widget, string $oControllerJs) : string
     {
         switch (true) {
+            // Render TextHeading widgets as sap.m.Label because no other headings are supported inside a dialog header
+            case $widget instanceof TextHeading:
+                $js = <<<JS
+
+                    new sap.m.Label({
+                        text: {$this->escapeString($widget->getText())}
+                    }).addStyleClass('exf-textheading')
+JS;
+                break;
             // Render any custom value widget or input directly (i.e. if widget type is not generic Display)
             // Also do it for standard Displays with boolean values as they are ultimately rendered as icons
             case $widget instanceof iDisplayValue && ($widget->getWidgetType() !== 'Display' || ($widget->getValueDataType() instanceof BooleanDataType)):

@@ -20,6 +20,12 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .exf-context-popup .sapMPanelContent {border-bottom: 0 !important}
 /* Fix for vertical scroll bar due to 4px in shell container */
 .sapUiUfdSpltContCntnt {overflow: hidden}
+/* Announcements */
+#exf-announcements .sapMLabel {margin: auto 10px;}
+#exf-announcements .sapMLabel > .fa {min-width: 12px;}
+
+#exf-loader {width: 100%; height: 100vh; background: white; position: absolute;}
+.exf-launcher {position: relative; height: 100%; width: 100%;}
 
 /* sap.m.Input */
 /* fix for suggest-table being hidden the first time the phone-suggest-dialog opens 
@@ -182,12 +188,19 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .sapUxAPObjectPageSection.sapUiNoContentPadding {margin-bottom: 1.5rem;}
 .exf-dialog-page.exf-dialog-filled .sapUxAPObjectPageSection.sapUiNoContentPadding {margin-bottom: 0;}
 .exf-dialog-page.exf-dialog-filled .sapUxAPObjectPageSection.sapUiNoContentPadding + .sapUxAPObjectPageSection.sapUiNoContentPadding {margin-top: 1rem;}
+.exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem}
 /* Dialog header with different controls */
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle}
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.25rem;}
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem;}
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit;}
-.exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.25rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
+/* Custom margins for Text widgets in dialog header*/
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-text > .sapUiHLayoutChildWrapper:first-of-type {vertical-align: top}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-text > .sapUiHLayoutChildWrapper:last-of-type {margin-top: 1px}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-text,
+.sapUxAPObjectPageHeaderContent .sapUiVltCell > .sapMFT {margin-top: 0.25rem}
+/* TextHeading widgets in dialog headers*/
+.sapUxAPObjectPageHeaderContent .sapMLabel.exf-textheading {vertical-align: middle}
 /* Dialog (non-max) */
 html.sap-phone .sapMDialog {min-width: 20rem !important}
 html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !important}

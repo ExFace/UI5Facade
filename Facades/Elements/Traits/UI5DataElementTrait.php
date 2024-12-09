@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
@@ -10,7 +11,6 @@ use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
 use exface\UI5Facade\Facades\Elements\UI5SearchField;
 use exface\Core\Widgets\Input;
-use exface\Core\Interfaces\Widgets\iHaveColumns;
 use exface\Core\Interfaces\Widgets\iShowData;
 use exface\Core\Widgets\Dialog;
 use exface\Core\DataTypes\WidgetVisibilityDataType;
@@ -265,9 +265,9 @@ JS;
         }
         
         if ($this->isWrappedInDynamicPage()){
-            return $this->buildJsPage($js, $oControllerJs) . $initModels;
+            return $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
         } else {
-            return $js . $initModels;
+            return $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
     }
     
@@ -2626,17 +2626,106 @@ JS;
             })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
     }
+    
+    /**
+     * Returns JS code to select the first row in a table, that has the given value in the specified column.
+     * If the parameter '$deSelect' is true, it will deselect the row instead.
+     *
+     * The generated code will search the current values of the $column for an exact match
+     * for the value of $valuesJs JS variable, mark the first matching row as selected and
+     * scroll to it to ensure it is visible to the user.
+     *
+     * The row index (starting with 0) is saved to the JS variable specified in $rowIdxJs.
+     *
+     * If the $valuesJs is not found, $onNotFoundJs will be executed and $rowIdxJs will be
+     * set to -1.
+     * 
+     * @param string $valuesJs
+     * @param mixed $columnName
+     * @param bool $deSelect
+     * @param string $onNotFoundJs
+     * 
+     * @throws \exface\Core\Exceptions\Facades\FacadeRuntimeError
+     * 
+     * @return string
+     */
+    public function buildJsSelectRowByValue(string $valuesJs, ?string $columnName = null, bool $deSelect = false, string $onNotFoundJs = '') : string
+    {
+        if ($columnName === null) {
+            if ($this->getDataWidget()->hasUidColumn()) {
+                $columnName = $this->getDataWidget()->getUidColumn();
+            } else {
+                throw new FacadeRuntimeError('Cannot select data row by value!');
+            }
+        }
+        $col = $this->getDataWidget()->getColumnByDataColumnName($columnName);
+        switch (true) {
+            case $col->isBoundToAttribute():
+                $delim = $col->getAttribute()->getValueListDelimiter();
+                break;
+            default:
+                $delim = EXF_LIST_SEPARATOR;
+                break;
+        }
+        return <<<JS
+        
+(function(mVals) {
+    var oTable = sap.ui.getCore().byId("{$this->getId()}");
+    var aRows = oTable.getModel().getData().rows;
+    var oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
+    var aRowIdxs = [];
+    var aVals = [];
+    var sValDelimiter = {$this->escapeString($delim)};
+    if (mVals === null || mVals === undefined || mVals === '') {
+        return aRowIdxs;
+    }
+    aVals = Array.isArray(mVals) ? mVals : mVals.toString().split(sValDelimiter);
+    aVals.forEach(function(mVal){
+        var aValIdxs = [];
+        for (var i in aRows) {
+            if (aRows[i]['{$columnName}'] == mVal) {
+                aValIdxs.push(i);
+            }
+        }
+        // Remove item from table's selected objects
+        if ({$this->escapeBool($deSelect)}) {
+            var aSelectedRows = oModelSelected.getProperty('/rows');
+            const selectedObjectsIndex = aSelectedRows.findIndex(selectedObject => selectedObject['{$columnName}'] == mVal);
+            if (selectedObjectsIndex !== -1) {
+                aSelectedRows.splice(selectedObjectsIndex, 1);
+            }
+        } 
+
+        if (aValIdxs.length === 0){
+            {$onNotFoundJs};
+        } else {
+            aRowIdxs = aRowIdxs.concat(aValIdxs);
+        }
+    });
+    aRowIdxs.forEach(function(i){
+        {$this->buildJsSelectRowByIndex('oTable', 'i', $deSelect)}
+    });
+    oModelSelected.refresh(true);
+    return aRowIdxs;
+})($valuesJs);
+JS;
+    }
 
     /**
-     * TODO
+     * 
+     * @see \exface\UI5FAcade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
+     */
     public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
     {
         switch (true) {
             case $functionName === Data::FUNCTION_SELECT:
-                return $this->buildJsSelectRowByIndex();
             case $functionName === Data::FUNCTION_UNSELECT:
-                return "setTimeout(function(){ {$this->buildJsEmpty()} }, 0);";
+                list($vals, $colName, $scrollTo) = $parameters;
+                if (empty($vals)) {
+                    throw new WidgetFunctionArgumentError($this, 'No values passed to widget function select of ' . $this->getWidget()->getWidgetType());
+                }
+                return $this->buildJsSelectRowByValue($vals, $colName, $functionName === Data::FUNCTION_UNSELECT);
         }
         return parent::buildJsCallFunction($functionName, $parameters);
-    }*/
+    }
 }

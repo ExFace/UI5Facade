@@ -92,6 +92,7 @@ const exfLauncher = {};
 
 	var _oShell = {};
 	var _oLauncher = this;
+	var _bBusy = false;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
 	var _bLowSpeed = false;
@@ -250,6 +251,16 @@ const exfLauncher = {};
 	};
 
 	this.initShell = function () {
+
+		// Save global busy indicator state to be able to determine when the app
+		// is busy - e.g. for UI testing.
+		sap.ui.core.BusyIndicator.attachOpen(function(Event){
+			_bBusy = true;
+		});
+		sap.ui.core.BusyIndicator.attachClose(function(Event){
+			_bBusy = false;
+		});
+
 		_oShell = new sap.ui.unified.Shell({
 			header: [
 				new sap.m.OverflowToolbar({
@@ -315,6 +326,15 @@ const exfLauncher = {};
 		return _oShell;
 	};
 
+	/**
+	 * Returns TRUE if the global busy indicator is shown and FALSE otherwise
+	 * 
+	 * @returns {boolean}
+	 */
+	this.isBusy = function() {
+		return _bBusy && $('#exf-loader').is(':visible') === false;
+	};
+
 	this.setAppMenu = function (oControl) {
 		_oAppMenu = oControl;
 	};
@@ -378,11 +398,11 @@ const exfLauncher = {};
 					_oContextBar.refresh({});
 					return;
 				}
-
+				/* FIXME #performance this caused a memory leak for some installations
 				window._oNetworkSpeedPoller = setInterval(function () {
 					// IDEA: Measure network speed every 5 seconds 
 					listNetworkStats();
-				}, 1000 * 5);
+				}, 1000 * 5);*/
 
 				setTimeout(function () {
 					// IDEA had to disable adding context bar extras to every request due to
@@ -436,6 +456,12 @@ const exfLauncher = {};
 						_oShell.getModel().setProperty("/_network/syncErrorCnt", parseInt(oCtxtData.indicator));
 						continue;
 					}
+					if (oCtxtData.context_alias === 'exface.Core.NotificationContext') {
+						_oContextBar.hideAnnouncement();
+						(oCtxtData.announcements || []).forEach(function(oMsg) {
+							_oContextBar.showAnnouncement(oMsg.text, oMsg.type, oMsg.icon);
+						});
+					}
 					if (oCtxtData.visibility === 'hide_allways') {
 						continue;
 					}
@@ -461,6 +487,55 @@ const exfLauncher = {};
 				}
 				_oLauncher.contextBar.getComponent().getPWA().updateQueueCount();
 				_oLauncher.contextBar.getComponent().getPWA().updateErrorCount();
+			},
+
+			/**
+			 * 
+			 * @param {string} sText 
+			 * @param {string} sType 
+			 * @param {string} sIcon 
+			 * @return void
+			 */
+			showAnnouncement: function(sText, sType, sIcon) {
+				var sHeight = '1.75rem';
+				var iHeightTotal = '0';
+				var sClass = 'sapMMsgStripInformation';
+				var sIconCls = sIcon ? (sIcon.startsWith('fa-') ? 'fa ' + sIcon : sIcon) : 'fa fa-info-circle';
+				var jqStrip;
+				switch (sType.toLowerCase()) {
+					case 'warning':
+						sClass = 'sapMMsgStripWarning';
+						sIconCls = 'fa fa-exclamation-triangle';
+						break;
+					case 'error':
+						sClass = 'sapMMsgStripError';
+						sIconCls = 'fa fa-times-circle';
+						break;
+					case 'success':
+						sClass = 'sapMMsgStripSuccess';
+						sIconCls = 'fa fa-check-circle-o';
+						break;
+					case 'hint':
+						sClass = 'sapMMsgStripInformation';
+						sIconCls = 'fa fa-exclamation-circle';
+						break;
+					case 'info':
+					default:
+						break;
+				}
+				jqStrip = $('<div class="exf-announcement sapMTB-Transparent-CTX ' + sClass + ' style="height: ' + sHeight + '""><div class="sapMLabel" style="line-height: ' + sHeight + '"><i class="' + sIconCls + '"></i> ' + sText + '</div></div>');
+				iHeightTotal = $('#exf-announcements').append(jqStrip).outerHeight();
+				$('.exf-launcher').css({'height': 'calc(100% - ' + iHeightTotal + 'px)'});
+				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').hide();
+			},
+
+			/**
+			 * @return void
+			 */
+			hideAnnouncement: function() {
+				$('#exf-announcements').empty();
+				$('.exf-launcher').css({'height': '100%'});
+				$('.sapUiUfdShell.sapUiUfdShellCurtainHidden .sapUiUfdShellCurtain').show();
 			},
 
 			_setupTracer: function(oCtxtData) {
@@ -2238,6 +2313,10 @@ $.ajax = function (options) {
 
 
 function listNetworkStats() {
+	// FIXME #performance this caused a memory leak for some installations
+	// The code seemed to get called indefinitely causing all JS to run very
+	// slow and memory consuption of the browser tab to jump to 1.1-1.2 GB
+	return;
 	exfPWA.data.getAllNetworkStats()
 		.then(stats => {
 			if (exfPWA.isAvailable() === false) {
