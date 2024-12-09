@@ -434,8 +434,10 @@ JS;
     {
         $widget = $this->getWidget();
         $heightInRows = $widget instanceof DataTable ? $widget->getHeightInRows() : null;
-        
+        $heightInRowsDefault = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
         $height = $widget->getHeight();
+        $singleRowHeightPx = '33';
+
         switch (true) {
             case $heightInRows !== null:
                 $minAutoRowCount = $heightInRows;
@@ -448,7 +450,7 @@ JS;
                 $heightPx = NumberDataType::cast($heightPx);
                 $minAutoRowCount = <<<JS
                 function(){
-                    var iRowHeight = 33;
+                    var iRowHeight = {$singleRowHeightPx};
                     var jqTest = $('<div class="sapMTB sapMTBHeader-CTX"></div>').appendTo('body');
                     var iToolbarHeight = jqTest.height();
                     var iTableHeight = {$heightPx};
@@ -458,10 +460,72 @@ JS;
 
 JS;
                 break;
+            // Calculate the max. number of rows, that will fit the given percentage of the
+            // height of the container. Note, the immediate container might be simply the
+            // FormElement, that will always have the same height as the table, so look for
+            // the Form further up the hierarchy
+            // TODO add other container types in case the table is not part of the form
+            case $height->isPercentual():
+            case $height->isMax():
+                if ($height->isPercentual()) {
+                    $heightPercent = StringDataType::substringBefore($height->getValue(), '%', $height->getValue());
+                    $heightPercent = NumberDataType::cast($heightPercent);
+                } else {
+                    $heightPercent = 100;
+                }
+                // NOTE: this JS code makes use of the oController variable. Since this is called inside the
+                // table constructor, oController should always be defined as 
+                $minAutoRowCount = <<<JS
+                function(){
+                    var iRowHeight = iHeaderHeight = {$singleRowHeightPx};
+                    var iRowsDefault = {$heightInRowsDefault};
+                    var jqTest = $('<div class="sapMTB sapMTBHeader-CTX"></div>').appendTo('body');
+                    var iToolbarHeight = jqTest.height();
+                    var fnCalcHeight = function(oContainer){
+                        var jqContainer = oContainer.$();
+                        var iContainerHeight = jqContainer ? jqContainer.innerHeight() : null;
+                        var iTargetHeight;
+                        if (iContainerHeight) {
+                            iTargetHeight = iContainerHeight / 100 * {$heightPercent};
+                            return Math.floor((iTargetHeight - iHeaderHeight - iToolbarHeight) / iRowHeight);
+                        }
+                        return null;
+                    };
+                    jqTest.remove();
+
+                    setTimeout(function(){
+                        var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                        var oContainer = oController.findParentOfType(oTable, sap.ui.layout.form.Form);
+                        var bResizing;
+                        if (! oContainer) {
+                            return;
+                        }
+
+                        sap.ui.core.ResizeHandler.register(oContainer, function(){
+                            var iRows;
+                            if (bResizing === true) {
+                                bResizing = false;
+                                return;
+                            }
+                            bResizing = true;
+                            setTimeout(function(){
+                                iRows = fnCalcHeight(oContainer);
+                                if (iRows !== null) {
+                                    oTable.setMinAutoRowCount(iRows);
+                                }
+                            }, 10);
+                        });
+                    }, 0);
+                    
+                    return iRowsDefault;
+                }()
+
+JS;
+                break;
             //case $height->isUndefined():
             //case $height->isAuto():
             default:
-                $minAutoRowCount = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
+                $minAutoRowCount = $heightInRowsDefault;
                 break;            
         }
         
