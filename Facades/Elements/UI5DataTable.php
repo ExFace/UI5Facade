@@ -44,6 +44,13 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     const EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED = 'firstVisibleRowChanged';
     
     const CONTROLLER_METHOD_RESIZE_COLUMNS = 'resizeColumns';
+
+    /**
+     * This JS controller property will hold an object of optional column instances
+     * with data_column_name as key and sap.ui.table.Column or sap.m.Column as value.
+     * @var string
+     */
+    const CONTROLLER_VAR_OPTIONAL_COLS = 'optionalCols';
     
     protected function init()
     {
@@ -54,6 +61,31 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     protected function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $widget = $this->getWidget();
+        $controller = $this->getController();
+        
+        // Initialize optional column from the configurator when the
+        // JS controller is initialized.
+        // IDEA maybe just initialize the controller var here and run the
+        // constructors of the columns only on-demand in buildJsRefreshPersonalization()?
+        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+        $colsOptionalInitJs = '';
+        if (! empty($colsOptional)) {
+            foreach ($colsOptional as $col) {
+            $colsOptionalInitJs .= <<<JS
+            
+                    oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+JS;
+            }
+        }
+        $controller->addOnInitScript(<<<JS
+        
+            (function(){
+                var oColsOptional = {};
+                {$colsOptionalInitJs}
+                {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+            })();
+JS);
+
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
         } else {
@@ -79,22 +111,22 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
         } else {
             $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').removeSelections(true)";
         }
-        $this->getController()->addOnPrefillDataChangedScript($clearSelectionJs);
+        $controller->addOnPrefillDataChangedScript($clearSelectionJs);
         
         return $js;
     }
 
-    protected function isMList() : bool
+    public function isMList() : bool
     {
         return $this->isMTable();
     }
     
-    protected function isMTable()
+    public function isMTable()
     {
         return $this->getWidget() instanceof DataTableResponsive;
     }
     
-    protected function isUiTable()
+    public function isUiTable()
     {
         return ! ($this->getWidget() instanceof DataTableResponsive);
     }
@@ -1581,31 +1613,54 @@ JS;
     
     public function buildJsRefreshPersonalization() : string
     {
+        $widget = $this->getWidget();
+        $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
         if ($this->isUiTable() === true) {
             return <<<JS
 
+                        var oController = {$this->getController()->buildJsControllerGetter($this)};
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
-                        
+                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
                         var aColumnsNew = [];
                         var bOrderChanged = false;
+                        var iConfOffset = 0;
+                        var oDirtyColumn = aColumns.filter(oColumn => oColumn.getId() === "{$this->getDirtyFlagAlias()}")[0];
+                        var oUidCol = aColumns.filter(oColumn => oColumn.data('data_column_name') === {$this->escapeString($uidColName)})[0];
+                        
+                        if (oDirtyColumn !== undefined) {
+                            iConfOffset += 1;
+                            aColumnsNew.push(oDirtyColumn);  
+                        }
+                        
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
-                            var iConfOffset = 0;
-                            aColumns.forEach(function(oColumn, iColIdx) {
-                                if (oColumn.getId() === "{$this->getDirtyFlagAlias()}") {
-                                    iConfOffset += 1;
-                                    aColumnsNew.push(oColumn);  
-                                    return;
-                                }
+                            var bFoundCol = false;
+                            var oColumn;
+                            // See if the column is part of the table right nw
+                            for (var iColIdx = 0; iColIdx < aColumns.length; iColIdx++) {
+                                oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    if (iColIdx !== iConfIdx) bOrderChanged = true;
+                                    if (iColIdx !== iConfIdx + iConfOffset) bOrderChanged = true;
                                     oColumn.setVisible(oColConfig.visible);
                                     aColumnsNew.push(oColumn);
+                                    bFoundCol = true;
                                     return;
                                 }
-                            });
+                            }
+                            // If it is not AND it is an optional column, add it to the table
+                            if (oColConfig.visible === true && oColsOptional[oColConfig.column_name] !== undefined) {
+                                aColumnsNew.push(oColsOptional[oColConfig.column_name]); 
+                                bOrderChanged = true;   
+                            }  
                         });
+                        // TODO what if the column was part of the table, but is not in the config?
+                        // e.g. the UID column, that is always added automatically. It seems to be
+                        // added at the end, so we handle it here. But that does not feel good!
+                        if (oUidCol !== undefined) {
+                            aColumnsNew.push(oUidCol); 
+                        }
+
                         if (bOrderChanged === true) {
                             oTable.removeAllColumns();
                             aColumnsNew.forEach(oColumn => {
