@@ -710,10 +710,19 @@ JS;
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
 
-            // Add filters and sorters from column menus
+            {$oParamsJs}.data.columns = [];
+            // Process currently visible columns:
+            // - Add filters and sorters from column menus
+            // - Add column name to ensure even optional data is read if required
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
+                if (oColumn.data('_exfDataColumnName')) {
+                    {$oParamsJs}.data.columns.push({
+                        name: oColumn.data('_exfDataColumnName'),
+                        attribute_alias: oColumn.data('_exfAttributeAlias')
+                    });
+                }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
     				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
@@ -1649,9 +1658,13 @@ JS;
                                 }
                             }
                             // If it is not AND it is an optional column, add it to the table
-                            if (oColConfig.visible === true && oColsOptional[oColConfig.column_name] !== undefined) {
-                                aColumnsNew.push(oColsOptional[oColConfig.column_name]); 
-                                bOrderChanged = true;   
+                            if (oColConfig.visible === true) {
+                                oColumn = oColsOptional[oColConfig.column_name];
+                                if (oColumn !== undefined) {
+                                    oColumn.setVisible(true);
+                                    aColumnsNew.push(oColumn); 
+                                    bOrderChanged = true;
+                                }   
                             }  
                         });
                         // TODO what if the column was part of the table, but is not in the config?
