@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades;
 
+use exface\Core\CommonLogic\Debugger;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -475,7 +476,7 @@ JS;
             return '';
         }
         if ($request !== null && $this->isRequestFrontend($request)) {
-            return $this->getWorkbench()->getDebugger()->printException($exception);
+            return Debugger::printException($exception);
         } else {
             return htmlspecialchars($exception->getMessage());
         }
