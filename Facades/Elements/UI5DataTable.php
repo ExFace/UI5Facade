@@ -718,10 +718,17 @@ JS;
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
                 if (oColumn.data('_exfDataColumnName')) {
-                    {$oParamsJs}.data.columns.push({
-                        name: oColumn.data('_exfDataColumnName'),
-                        attribute_alias: oColumn.data('_exfAttributeAlias')
-                    });
+                    if (oColumn.data('_exfAttributeAlias') {
+                        {$oParamsJs}.data.columns.push({
+                            name: oColumn.data('_exfDataColumnName'),
+                            attribute_alias: oColumn.data('_exfAttributeAlias')
+                        });
+                    } else if (oColumn.data('_exfCalculation') {
+                        {$oParamsJs}.data.columns.push({
+                            name: oColumn.data('_exfDataColumnName'),
+                            expression: oColumn.data('_exfCalculation')
+                        });
+                    }
                 }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
