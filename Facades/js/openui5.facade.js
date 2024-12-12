@@ -126,7 +126,6 @@ $(window).on('networkchanged', function (oEvent, oData) {
 		});
 
 
-
 		// Update UI components with new state 
 		try {
 			exfLauncher.updateNetworkModel(oNetState);
@@ -451,29 +450,62 @@ const exfLauncher = {};
 		// in the model here. Just propagate this change to exfPWA. It will decide if this really
 		// is a network change or not.
 
-		/*
-				-When the auto offline, forced offline or network offline switch changes, the model is updated
-				-We pass the model change to exfPWA
-				-exfPWA handles the rest - triggering the networkchanged event if there's a real change
-		*/
+		/**
+		 * Network state change handler
+		 * Manages partial updates to network state based on UI model changes
+		 * 
+		 * This handler:
+		 * 1. Listens for changes to network state properties in the UI model
+		 * 2. Creates targeted update objects containing only changed properties (Partial)
+		 * 3. Updates network state through exfPWA state management system
+		 * 4. Triggers networkchanged event for UI updates
+		 * 
+		 * We pass the model change to exfPWA
+		 * exfPWA handles the rest - triggering the networkchanged event if there's a real change
+		 * 
+		 * @param {sap.ui.base.Event} oEvent The property change event
+		 */
 		_oShell.getModel().attachPropertyChange(function (oEvent) {
-
+			// Extract changed property details from event
 			var oParams = oEvent.getParameters();
-			var oModelStateNew = oEvent.getSource().getData()._network.state;
-			console.log('model changed', oEvent);
+			var sPath = oParams.path; // Property path that changed
+			var bValue = oParams.value; // New value
 
-			// Just update the network state, everything else will be handled by networkchanged event
-			// TODO not sure, what is better - change everything here or do partial changes like in the
-			// case of the forced-offline switch (see sap.m.Switch('forced_offline_toggle'). Since we
-			// actually always change just one of them, maybe partial updates are better?
-			exfPWA.network.setState({
-				forcedOffline: oModelStateNew.forcedOffline,
-				autoOffline: oModelStateNew.autoOffline,
-				slowNetwork: oModelStateNew.slowNetwork
-			}).then(function () {
-				// When state updated succesfully, networkchanged event'i will be triggered automatically
-				console.log('Network state updated:', oModelStateNew);
-			});
+			// Initialize partial update object
+			var oUpdateObj = {};
+
+			// Map changed property to corresponding state update
+			// Only the changed property will be included in update object
+			if (sPath.endsWith('forcedOffline')) {
+				oUpdateObj.forcedOffline = bValue; // Manual offline toggle
+			} else if (sPath.endsWith('autoOffline')) {
+				oUpdateObj.autoOffline = bValue; // Automatic offline mode toggle
+			} else if (sPath.endsWith('slowNetwork')) {
+				oUpdateObj.slowNetwork = bValue; // Network speed status
+			}
+
+			// Only proceed with update if we have changes to apply
+			if (Object.keys(oUpdateObj).length > 0) {
+				console.debug('Network State Partial Update:', {
+					path: sPath,
+					update: oUpdateObj,
+					timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+				});
+
+				// Update network state through PWA manager
+				// This will:
+				// 1. Apply changes to internal state
+				// 2. Persist state changes in IndexedDB
+				// 3. Trigger networkchanged event if state actually changed
+				exfPWA.network.setState(oUpdateObj)
+					.catch(function (oError) {
+						console.error('Failed to update network state:', {
+							error: oError,
+							update: oUpdateObj,
+							timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+						});
+					});
+			}
 		});
 
 		return _oShell;
@@ -1265,8 +1297,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return new Date(sTime).toString("yyyy-MM-dd HH:mm:ss");
-													//return exfTools.date.format(new Date(sTime), 'DATETIME_ICU_FORMAT_INTERNAL');
+													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
 												}
 											}
 										}),
@@ -1375,9 +1406,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return new Date(sTime).toString("yyyy-MM-dd HH:mm:ss"); //exftools date format
-													//return exfTools.date.format(new Date(sTime), 'DATETIME_ICU_FORMAT_INTERNAL');
-
+													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
 												}
 											}
 										}),
