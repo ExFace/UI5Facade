@@ -17,25 +17,16 @@ sap.ui.define([
 		parseValue: function (date) {
 			var ParseParams = undefined;
 			var dateFormat = undefined;
-			var valueFormat = undefined;
-			if (this.options.ParseParams) {
-				ParseParams = this.options.ParseParams;
-			}
-			if (this.options.dateFormat) {
-				dateFormat = this.options.dateFormat;
-			}
+			if (this.options.ParseParams) ParseParams = this.options.ParseParams;
+			if (this.options.dateFormat) dateFormat = this.options.dateFormat;
 			if (this.options.valueFormat) {
-				valueFormat = this.options.valueFormat;
-				return exfTools.date.format(exfTools.date.parse(date, dateFormat, ParseParams), valueFormat);
+				return exfTools.date.format(exfTools.date.parse(date, dateFormat, ParseParams), this.options.valueFormat);
 			}
 			return exfTools.date.parse(date, dateFormat, ParseParams);
 		},			
 		
 		formatValue: function (sDate) {
-			var dateFormat = undefined;
-			if (this.options.dateFormat) {
-				dateFormat = this.options.dateFormat;
-			}
+			var dateFormat = this.options.dateFormat ? dateFormat = this.options.dateFormat : undefined;
 			return exfTools.date.format(sDate, dateFormat);			
 		},
 		

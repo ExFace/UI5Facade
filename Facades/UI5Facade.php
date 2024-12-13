@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades;
 
 use exface\Core\CommonLogic\Debugger;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
@@ -14,6 +15,7 @@ use exface\UI5Facade\Facades\Formatters\UI5DefaultFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5BooleanFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsNumberFormatter;
+use exface\UI5Facade\Facades\Formatters\UI5ListFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5NumberFormatter;
 use exface\UI5Facade\Facades\Middleware\UI5TableUrlParamsReader;
 use exface\UI5Facade\Facades\Middleware\UI5WebappRouter;
@@ -248,6 +250,8 @@ JS;
         $formatter = $this->getDataTypeFormatter($dataType);
         
         switch (true) {
+            case $formatter instanceof JsListFormatter:
+                return new UI5ListFormatter($formatter);
             case $formatter instanceof JsBooleanFormatter:
                 return new UI5BooleanFormatter($formatter);
             case ($formatter instanceof JsNumberFormatter) && $formatter->getDataType()->getBase() === 10:
