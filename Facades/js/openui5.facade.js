@@ -196,6 +196,9 @@ function syncOfflineItems() {
 		})
 };
 
+//this definition is using by network speed graph
+const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
+
 const exfLauncher = {};
 (function () {
 
@@ -278,18 +281,10 @@ const exfLauncher = {};
 							speedMbps,
 							requestMimeType,
 							totalDataSize
-						).then(() => {
-							// Set Cleanup interval
-							// if (!window.networkStatCleanupInterval) {
-							// 	window.networkStatCleanupInterval = setInterval(function () {
-							// 		const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-							// 		exfPWA.network.deleteStatsBefore(tenMinutesAgo)
-							// 			.then(() => listNetworkStats());
-							// 	}, 10 * 60 * 1000);
-							// }
-
+						).then(() => {  
 							//This delete code moved to exfPWA : The current cleanup in openui5 depends on the browser tab being open, which is unreliable. 
 							// Moving this process to exfPWA ensures consistent background cleanup independent of the UI state.
+							console.log("Network Stat Saved");
 						});
 					} else {
 						console.error("exfPWA is not defined");
@@ -333,7 +328,7 @@ const exfLauncher = {};
 	exfPWA.network.init();
 	registerAjaxSpeedLogging();
 
-	const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
+
 
 	var _oShell = {};
 	var _oLauncher = this;
@@ -851,7 +846,13 @@ const exfLauncher = {};
 						oView.fireAfterRendering();
 
 						// TODO need close-events here?
-
+						/*CLOSE-events
+						 * Why We Need Close Events:
+						* 1. If we have open events, Without proper close events, vievs might stay in memory even after closing
+						* we might need to remove the event handlers 
+						* 2. Resource cleanup
+						* 3. Following proper view lifecycle improves stability and performance
+						*/
 						oPopover.setBusy(false);
 
 					},
@@ -943,20 +944,31 @@ const exfLauncher = {};
 	}
 
 	/**
-	 * Shows a dialog with offline storage info (quota, preload data summary, etc.)
-	 * 
-	 * @return void
-	 */
+	* Shows a dialog with offline storage info (quota, preload data summary, etc.)
+		* 
+		* @return void
+		*
+		* * Key features for performance:
+		* 1. Interval Management 
+		*    - Clears interval when dialog closes  
+		* 2. Resource Cleanup
+		*    - All intervals are cleaned up in afterClose event 
+		* 3. Chart Updates
+		*    - Only updates when chart is visible
+		*    - Uses visibility check before each update 
+	*/
 	this.showStorage = async function (oEvent) {
 
 		var dialog = new sap.m.Dialog({
 			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}",
 			icon: "sap-icon://unwired",
+			// Cleanup handler ensures all intervals stop when dialog closes
 			afterClose: function (oEvent) {
-				oEvent.getSource().destroy();
+				// Clear all intervals to stop background processing
 				if (_oSpeedStatusDialogInterval) {
 					clearInterval(_oSpeedStatusDialogInterval);
 				}
+				oEvent.getSource().destroy();
 			}
 		});
 		var oButton = oEvent.getSource();
@@ -1015,13 +1027,6 @@ const exfLauncher = {};
 			//wait for the promise to resolve
 			await promise;
 		}
-		//
-		//
-		//
-		//
-		//
-		//V1
-		//
 
 		const {
 			avarageSpeed,
@@ -1057,6 +1062,12 @@ const exfLauncher = {};
 			value: customSpeedAvarageLabel,
 		});
 
+		// Clearing the interval, because of this error :   browser_speed_tier_display was openui5.facade.js?v20241209112552:1088 
+		// Uncaught TypeError: Cannot read properties of undefined (reading 'setValue')
+		// We cam clear the interval or we can check if the element is exist, then we can set values 
+		if (_oSpeedStatusDialogInterval) {
+			clearInterval(_oSpeedStatusDialogInterval);
+		}
 		_oSpeedStatusDialogInterval = setInterval(() => {
 			const {
 				avarageSpeed,
@@ -1089,16 +1100,28 @@ const exfLauncher = {};
 				content: new sap.ui.core.HTML('network_speed_chart_wrapper', {
 					content: '<div id="network_speed_chart"></div>',
 					afterRendering: function () {
-						setInterval(function () {
-							$("#network_speed_chart").sparkline(_speedHistory, {
-								type: 'line',
-								width: '100%',
-								height: '100px',
-								chartRangeMin: 0,
-								chartRangeMax: 10,
-								drawNormalOnTop: false,
-							});
-						}, 1000);
+						// Initial chart update with sparkline
+						// Setup interval that includes visibility check
+						_oSpeedStatusDialogInterval = setInterval(function () {
+							const chartDiv = document.getElementById('network_speed_chart');
+							// Only update if chart is visible
+							//check element is on DOM && check element is visible
+							if (chartDiv && chartDiv.offsetParent) {
+								$("#network_speed_chart").sparkline(_speedHistory, {
+									type: 'line',
+									width: '100%',
+									height: '100px',
+									chartRangeMin: 0,
+									chartRangeMax: 10,
+									drawNormalOnTop: false
+								});
+								// Update network stats only when visible
+								listNetworkStats();
+							}
+						}, 5000);
+
+						// Initial data load
+						listNetworkStats();
 					}
 				})
 			})
@@ -1222,7 +1245,7 @@ const exfLauncher = {};
 		dialog.open();
 		return;
 	};
-
+ 
 	/**
 	 * Displays a testing menu for network-related data and statistics.
 	 * Creates a dialog containing network state changes and performance metrics.
@@ -2195,17 +2218,9 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('force_offline_toggle', {
-											state: "{/_network/state/forcedOffline}",
-											change: function (oEvent) {
-												// TODO why can't we just change the model here? See sap.m.Switch('auto_offline_toggle' above
-												const oSwitch = oEvent.getSource();
-												exfPWA.network
-													.setState({ forcedOffline: oSwitch.getState() })
-													.catch(error => {
-														console.error('Error toggling force offline:', error);
-														exfLauncher.showMessageToast("Error toggling force offline mode");
-													})
-											}
+											//Instead of a custom change handler, we can use a model binding and
+											//let the property change listener in the shell do the work like auto_offline_toggle
+											state: "{/_network/state/forcedOffline}"
 										}),
 										new sap.m.Text({
 											text: "{i18n>WEBAPP.SHELL.NETWORK_FORCE_OFFLINE}"
@@ -2462,12 +2477,26 @@ const exfLauncher = {};
 
 
 
-
+/**
+ * Collects and processes network stats for chart visualization.
+ * Only runs when chart is visible to optimize performance.
+ * This prevents unnecessary processing and memory consumption when stats aren't being displayed 
+ * Gets data from IndexedDB, processes it, and updates speed history chart.
+ * Shows only last 10 records and refreshes the chart completely on each update.
+ * 
+ * @returns {void} No return value
+ * @throws {Error} Logs error if stats collection fails
+ */
 function listNetworkStats() {
-	// FIXME #performance this caused a memory leak for some installations
-	// The code seemed to get called indefinitely causing all JS to run very
-	// slow and memory consuption of the browser tab to jump to 1.1-1.2 GB
-	return;
+	// Skip if chart is not visible
+	// Critical visibility check to prevent unnecessary processing
+	// offsetParent will be null if element is not visible or not in DOM
+	// This ensures we only process data when user can actually see the chart
+	const chartElement = document.getElementById('network_speed_chart');
+	if (!chartElement || !chartElement.offsetParent) {
+		return;
+	}
+	// Get and process network stats
 	exfPWA.network.getAllStats()
 		.then(stats => {
 			if (exfPWA.isAvailable() === false) {
@@ -2477,10 +2506,10 @@ function listNetworkStats() {
 			if (stats.length === 0) {
 				return; // Exit if there are no stats
 			}
-
+ 
 			// Sort the statistics by time (oldest to newest)
 			stats.sort((a, b) => a.time - b.time);
-
+		  
 			const averageSpeeds = {};
 			const currentSecond = Math.floor(Date.now() / 1000); // Get current time in seconds
 			const earliestSecond = Math.floor(stats[0].time / 1000); // Earliest timestamp (first element)
@@ -2526,8 +2555,9 @@ function listNetworkStats() {
 					result[second] = lastKnownSpeed; // If no data for this second, use last known speed
 				}
 			}
-
+ 
 			// Register each calculated speed
+			// Update speed history for chart
 			Object.keys(result).forEach(second => {
 				exfLauncher.registerNetworkSpeed(result[second]);
 			});
