@@ -1036,12 +1036,12 @@ JS;
                         var aRows = []; 
                         selectedIdx.forEach(function(i) {
                             var oCtxt = oTable.getContextByIndex(i);
-                            if (oCtxt) {
+                            if (oCtxt && oCtxt.getObject()) {
                                 aRows.push(oCtxt.getObject());
                             }
                         }); 
-                    return aRows;
-                })($oTableJs)
+                        return aRows;
+                    })($oTableJs)
 JS;
             }
         } else {
@@ -1591,18 +1591,33 @@ JS;
                 
         } else {
             $deSelectJs = $deSelect ? 'true' : 'false';
+            // Cannot use the row index directly here because row group headers
+            // are also part of the row numbering. In any case, it is much more
+            // reliable to check each binding and compare its path to the row
+            // number inside the rows array of the model.
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
                     var aSelections = oTable.getSelectedIndices();
-                    if (bScrollTo) {
-                        oTable.setFirstVisibleRow({$iRowIdxJs});
-                    }
+                    var iTableIdx = iRowIdx;
+                    var oBinding = oTable.getBinding("rows");
+                    var fnFindTableIdx = function(iRowIdx) {
+                        for (var i = 0; i < oBinding.getLength(); i++) {
+                            var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
+                            if (context && context.getPath() === `/rows/` + iRowIdx) {
+                                return i; // Match found
+                            }
+                        }
+                    };
+                    iTableIdx = fnFindTableIdx(iRowIdx);
                     oTable.clearSelection();
                     if (bDeselect === false) {
-                        oTable.setSelectedIndex(iRowIdx);
+                        oTable.setSelectedIndex(iTableIdx);
+                    }
+                    if (bScrollTo) {
+                        oTable.setFirstVisibleRow(iTableIdx);
                     }
                     aSelections.forEach(function(i){
-                        if (i !== iRowIdx) {
+                        if (i !== iTableIdx) {
                             oTable.addSelectionInterval(i, i);
                         }
                     });
