@@ -51,9 +51,6 @@ class UI5DisplayMarkdown extends UI5Value
                             {$this->buildJsValueSetter("sVal")}
                         }, 0);
                     });
-                } else {
-                    var sContent = '`MARKDOWN`';
-                    {$this->buildJsValueSetter('sContent')};
                 }
                 
                 oHtml._toastUiBinding = true;
