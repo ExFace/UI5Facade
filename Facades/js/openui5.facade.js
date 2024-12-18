@@ -139,13 +139,13 @@ $(window).on('networkchanged', function (oEvent, oData) {
 			if (pwa && typeof pwa.updateQueueCount === 'function') {
 				pwa.updateQueueCount()
 					.then(() => {
-						if (typeof pwa.updateErrorCount === 'function') {
-							return pwa.updateErrorCount();
-						}
+						_oContextBar.load();
 					})
 					.catch(error => {
 						console.error('Failed to update queue or error counts:', error);
 					});
+			} else {
+				_oContextBar.load();
 			}
 
 			// Sync offline items if no ServiceWorker available
@@ -550,7 +550,6 @@ const exfLauncher = {};
 					}
 				});
 				oComponent.getPWA().updateQueueCount();
-				oComponent.getPWA().updateErrorCount();
 
 				$(document).on('debugShowJsTrace', function (oEvent) {
 					_oLauncher.showErrorLog();
@@ -660,7 +659,6 @@ const exfLauncher = {};
 					}
 				}
 				_oLauncher.contextBar.getComponent().getPWA().updateQueueCount();
-				_oLauncher.contextBar.getComponent().getPWA().updateErrorCount();
 			},
 
 			/**
