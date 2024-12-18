@@ -23,53 +23,145 @@ const ignoredErrorPatterns = [
  * @param {jQuery.Event} oEvent The jQuery event object
  * @param {Object} oData The event data containing current network state
  */
-$(window).on('networkchanged', async function (oEvent, oData) {
-	try {
-		// Get current network state  
-		const oNetState = oData.currentState;
-		const oChanges = oData.chages;
-		const i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
-		var messageKey;
 
-		if (oChanges.forcedOffline !== undefined) {
-			messageKey = oChanges.forcedOffline ?
-				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON" :
-				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF";
-			exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+$(window).on('networkchanged', function (oEvent, oData) {
+	try {
+		//oData value was coming undefined, thats why i modified below codes
+		// Safety check for oData
+		if (!oData) {
+			console.warn('Network state change event received without data');
+			return;
 		}
 
-		// TODO add other messages here
+		// Get current network state  
+		const oNetState = oData.currentState;
+		if (!oNetState) {
+			console.warn('Network state change event received without current state');
+			return;
+		}
 
-		// Log state change for debugging
+		// Safety check for changes object
+		const oChanges = oData.changes;
+		const i18nModel = exfLauncher.contextBar.getComponent().getModel('i18n');
+
+		// Safely check forcedOffline changes
+		if (oChanges && oChanges.forcedOffline !== undefined) {
+			const messageKey = oChanges.forcedOffline ?
+				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_ON" :
+				"WEBAPP.SHELL.PWA.FORCE_OFFLINE_OFF";
+			try {
+				exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+			} catch (toastError) {
+				console.warn('Failed to show message toast:', toastError);
+			}
+		}
+
+		// Safely check auto offline changes
+		if (oChanges && oChanges.autoOffline !== undefined) {
+			const messageKey = oChanges.autoOffline ?
+				"WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_ON" :
+				"WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_OFF";
+			try {
+				exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+			} catch (toastError) {
+				console.warn('Failed to show message toast:', toastError);
+			}
+		}
+
+		// Safely check auto offline and slow network changes 
+		if (oChanges && oChanges.autoOffline !== undefined && oData.currentState._bSlowNetwork) {
+			const messageKey = oChanges.autoOffline ?
+				"WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_SLOW_INTERNET" :
+				"WEBAPP.SHELL.PWA.AUTOMATIC_OFFLINE_STABLE_INTERNET";
+			try {
+				exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+			} catch (toastError) {
+				console.warn('Failed to show message toast:', toastError);
+			}
+		}
+
+		// Handle browser online/offline state changes
+		if (oChanges && oChanges.browserOnline !== undefined) {
+			const messageKey = oChanges.browserOnline ?
+				"WEBAPP.SHELL.NETWORK.ONLINE" :
+				"WEBAPP.SHELL.NETWORK.OFFLINE";
+			try {
+				exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+			} catch (toastError) {
+				console.warn('Failed to show browser online/offline toast:', toastError);
+			}
+		}
+
+		// //https://home.unicode.org/
+		// console.debug(
+		// 	"%c 😀⚠️ Failed to cleanup network stats:",
+		// 	"color: white; background-color: red; padding: 4px; border-radius: 4px;",
+		// 	"Some error Text ...."
+		// );
+
+		// console.log(
+		// 	"%c ❌ Failed to save or cleanup network stats:",
+		// 	"color: white; background-color: orange; padding: 4px; border-radius: 4px;",
+		// 	oError
+		// );
+
+		// // Log state change with safety checks
+		// console.debug("%c ⚠️ Network State Changed:",
+		// 	"color: white; background-color: red; padding: 4px; border-radius: 4px;",
+		// 	{
+		// 		timestamp: new Date().toISOString(),
+		// 		state: oNetState.toString ? oNetState.toString() : 'Unknown State',
+		// 		isOnline: typeof oNetState.isOnline === 'function' ? oNetState.isOnline() : 'Unknown',
+		// 		isOfflineVirtually: typeof oNetState.isOfflineVirtually === 'function' ?
+		// 			oNetState.isOfflineVirtually() : 'Unknown'
+		// 	});
+
+		// Log state change with safety checks
 		console.debug('Network State Changed:', {
 			timestamp: new Date().toISOString(),
-			state: oNetState.toString(),
-			isOnline: oNetState.isOnline(),
-			isOfflineVirtually: oNetState.isOfflineVirtually()
+			state: oNetState.toString ? oNetState.toString() : 'Unknown State',
+			isOnline: typeof oNetState.isOnline === 'function' ? oNetState.isOnline() : 'Unknown',
+			isOfflineVirtually: typeof oNetState.isOfflineVirtually === 'function' ?
+				oNetState.isOfflineVirtually() : 'Unknown'
 		});
 
-		// Update UI components with new state
-		exfLauncher.updateNetworkModel(oNetState);
+
+		// Update UI components with new state 
+		try {
+			exfLauncher.updateNetworkModel(oNetState);
+		} catch (modelError) {
+			console.error('Failed to update network model:', modelError);
+		}
 
 		// Handle online-specific actions
-		if (oNetState.isOnline()) {
-			// Update error counters
-			exfLauncher.contextBar.getComponent().getPWA()
-				.updateQueueCount()
-				.then(function () {
-					exfLauncher.contextBar.getComponent().getPWA().updateErrorCount();
-					// What did that message toast do?
-					// exfLauncher.showMessageToast(event.oData);
-				})
-			// Sync offline items if no ServiceWorker available
-			if (!navigator.serviceWorker) {
-				syncOfflineItems();
+		if (oNetState.isOnline && oNetState.isOnline()) {
+			try {
+				// Update error counters
+				const pwa = exfLauncher.contextBar.getComponent().getPWA();
+				if (pwa && typeof pwa.updateQueueCount === 'function') {
+					pwa.updateQueueCount()
+						.then(() => {
+							if (typeof pwa.updateErrorCount === 'function') {
+								return pwa.updateErrorCount();
+							}
+						})
+						.catch(error => {
+							console.error('Failed to update queue or error counts:', error);
+						});
+				}
+
+				// Sync offline items if no ServiceWorker available
+				if (!navigator.serviceWorker) {
+					syncOfflineItems();
+				}
+			} catch (onlineError) {
+				console.error('Failed to process online state actions:', onlineError);
 			}
 		}
 	} catch (error) {
 		console.error('Network State Change Handler Error:', {
-			message: oError.message,
-			stack: oError.stack,
+			message: error.message,
+			stack: error.stack,
 			timestamp: new Date().toISOString()
 		});
 	}
@@ -104,8 +196,129 @@ function syncOfflineItems() {
 		})
 };
 
+//this definition is using by network speed graph
+const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
+
 const exfLauncher = {};
 (function () {
+
+
+	/*
+	* I was getting an error because the registerAjaxSpeedLogging function was defined in IIFE (Immediately Invoked Function Expression) 
+	* but was trying to be called before. We cannot use the function before it is defined. So I simply changed its location.
+	*/
+	/**
+	 * Save network stats on every AJAX request in order to use these stats
+	 * to determin slow network.
+	 * 
+	 * @return void
+	 */
+	var registerAjaxSpeedLogging = function () {
+		var originalAjax = $.ajax;
+		$.ajax = function (options) {
+			var startTime = new Date().getTime();
+			// Calculate the request headers length
+			let requestHeadersLength = 0;
+			if (options.headers) {
+				for (let header in options.headers) {
+					if (options.headers.hasOwnProperty(header)) {
+						requestHeadersLength += new Blob([header + ": " + options.headers[header] + "\r\n"]).size * 8;
+					}
+				}
+			}
+
+			// Calculate the request content length (if any)
+			let requestContentLength = 0;
+			if (options.data) {
+				requestContentLength = new Blob([JSON.stringify(options.data)]).size * 8;
+			}
+
+			var newOptions = $.extend({}, options, {
+				success: function (data, textStatus, jqXHR) {
+					// Record the response end time
+					let endTime = new Date().getTime();
+
+					// Check if the response is from cache; skip measurement if true
+					if (jqXHR.getResponseHeader('X-Cache') === 'HIT') {
+						return; // Cancel measurement
+					}
+
+					// Retrieve the 'Server-Timing' header
+					let serverTimingHeader = jqXHR.getResponseHeader('Server-Timing');
+					let serverTimingValue = 0;
+
+					// Extract the 'dur' value from the Server-Timing header
+					if (serverTimingHeader) {
+						let durMatch = serverTimingHeader.match(/dur=([\d\.]+)/);
+						if (durMatch) {
+							serverTimingValue = parseFloat(durMatch[1]);
+						}
+					}
+
+					// Calculate the duration, adjusting for server processing time
+					let duration = (endTime - startTime - serverTimingValue) / 1000; // Convert to seconds
+
+					// Retrieve the Content-Length (size) of the response
+					let responseContentLength = parseInt(jqXHR.getResponseHeader('Content-Length')) || 0;
+
+					// Calculate the length of response headers
+					let responseHeaders = jqXHR.getAllResponseHeaders(); // Retrieves all response headers as a string
+					let responseHeadersLength = new Blob([responseHeaders]).size * 8; // Calculate in bits
+
+					// Calculate the total data size (request headers + request body + response headers + response body) in bits
+					let totalDataSize = (requestHeadersLength + requestContentLength + responseHeadersLength + responseContentLength * 8);
+
+					// Calculate internet speed in Mbps
+					let speedMbps = totalDataSize / (duration * 1000000);
+
+					// Retrieve the Content-Type from the headers or from the contentType property
+					let requestMimeType = options.contentType || (options.headers && options.headers['Content-Type']) || 'application/x-www-form-urlencoded; charset=UTF-8';
+
+					// check exfPWA library is exists
+					if (typeof exfPWA !== 'undefined') {
+						exfPWA.network.saveStat(
+							new Date(endTime),
+							speedMbps,
+							requestMimeType,
+							totalDataSize
+						).then(() => {  
+							//This delete code moved to exfPWA : The current cleanup in openui5 depends on the browser tab being open, which is unreliable. 
+							// Moving this process to exfPWA ensures consistent background cleanup independent of the UI state.
+							console.log("Network Stat Saved");
+						});
+					} else {
+						console.error("exfPWA is not defined");
+					}
+
+
+					if (options.success) {
+						options.success.apply(this, arguments);
+					}
+				},
+				complete: function (jqXHR, textStatus) {
+					if (options.complete) {
+						options.complete.apply(this, arguments);
+					}
+				}
+			});
+
+			// // Function to delete old network stats
+			// function deleteOldNetworkStats() {
+			// 	if (typeof exfPWA !== 'undefined') {
+			// 		var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+			// 		exfPWA.network.deleteStatsBefore(tenMinutesAgo)
+			// 			.then(function () {
+
+			// 			})
+			// 			.catch(function (error) {
+			// 				console.error("Error deleting old network stats:", error);
+			// 			});
+			// 	}
+			// }
+
+			return originalAjax.call(this, newOptions);
+		};
+	}
 
 	exfPWA.actionQueue.setTopics(['offline', 'ui5']);
 
@@ -113,9 +326,9 @@ const exfLauncher = {};
 	// This is required because browser's online/offline events weren't being captured properly
 	// Without this initialization, the application couldn't detect network status changes
 	exfPWA.network.init();
-	this.registerAjaxSpeedLogging();
+	registerAjaxSpeedLogging();
 
-	const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
+
 
 	var _oShell = {};
 	var _oLauncher = this;
@@ -232,29 +445,62 @@ const exfLauncher = {};
 		// in the model here. Just propagate this change to exfPWA. It will decide if this really
 		// is a network change or not.
 
-		/*
-				-When the auto offline, forced offline or network offline switch changes, the model is updated
-				-We pass the model change to exfPWA
-				-exfPWA handles the rest - triggering the networkchanged event if there's a real change
-		*/
+		/**
+		 * Network state change handler
+		 * Manages partial updates to network state based on UI model changes
+		 * 
+		 * This handler:
+		 * 1. Listens for changes to network state properties in the UI model
+		 * 2. Creates targeted update objects containing only changed properties (Partial)
+		 * 3. Updates network state through exfPWA state management system
+		 * 4. Triggers networkchanged event for UI updates
+		 * 
+		 * We pass the model change to exfPWA
+		 * exfPWA handles the rest - triggering the networkchanged event if there's a real change
+		 * 
+		 * @param {sap.ui.base.Event} oEvent The property change event
+		 */
 		_oShell.getModel().attachPropertyChange(function (oEvent) {
-
+			// Extract changed property details from event
 			var oParams = oEvent.getParameters();
-			var oModelStateNew = oEvent.getSource().getData()._network.state;
-			console.log('model changed', oEvent);
+			var sPath = oParams.path; // Property path that changed
+			var bValue = oParams.value; // New value
 
-			// Just update the network state, everything else will be handled by networkchanged event
-			// TODO not sure, what is better - change everything here or do partial changes like in the
-			// case of the forced-offline switch (see sap.m.Switch('forced_offline_toggle'). Since we
-			// actually always change just one of them, maybe partial updates are better?
-			exfPWA.network.setState({
-				forcedOffline: oModelStateNew.forcedOffline,
-				autoOffline: oModelStateNew.autoOffline,
-				slowNetwork: oModelStateNew.slowNetwork
-			}).then(function () {
-				// When state updated succesfully, networkchanged event'i will be triggered automatically
-				console.log('Network state updated:', oModelStateNew);
-			});
+			// Initialize partial update object
+			var oUpdateObj = {};
+
+			// Map changed property to corresponding state update
+			// Only the changed property will be included in update object
+			if (sPath.endsWith('forcedOffline')) {
+				oUpdateObj.forcedOffline = bValue; // Manual offline toggle
+			} else if (sPath.endsWith('autoOffline')) {
+				oUpdateObj.autoOffline = bValue; // Automatic offline mode toggle
+			} else if (sPath.endsWith('slowNetwork')) {
+				oUpdateObj.slowNetwork = bValue; // Network speed status
+			}
+
+			// Only proceed with update if we have changes to apply
+			if (Object.keys(oUpdateObj).length > 0) {
+				console.debug('Network State Partial Update:', {
+					path: sPath,
+					update: oUpdateObj,
+					timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+				});
+
+				// Update network state through PWA manager
+				// This will:
+				// 1. Apply changes to internal state
+				// 2. Persist state changes in IndexedDB
+				// 3. Trigger networkchanged event if state actually changed
+				exfPWA.network.setState(oUpdateObj)
+					.catch(function (oError) {
+						console.error('Failed to update network state:', {
+							error: oError,
+							update: oUpdateObj,
+							timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+						});
+					});
+			}
 		});
 
 		return _oShell;
@@ -600,7 +846,13 @@ const exfLauncher = {};
 						oView.fireAfterRendering();
 
 						// TODO need close-events here?
-
+						/*CLOSE-events
+						 * Why We Need Close Events:
+						* 1. If we have open events, Without proper close events, vievs might stay in memory even after closing
+						* we might need to remove the event handlers 
+						* 2. Resource cleanup
+						* 3. Following proper view lifecycle improves stability and performance
+						*/
 						oPopover.setBusy(false);
 
 					},
@@ -692,20 +944,31 @@ const exfLauncher = {};
 	}
 
 	/**
-	 * Shows a dialog with offline storage info (quota, preload data summary, etc.)
-	 * 
-	 * @return void
-	 */
+	* Shows a dialog with offline storage info (quota, preload data summary, etc.)
+		* 
+		* @return void
+		*
+		* * Key features for performance:
+		* 1. Interval Management 
+		*    - Clears interval when dialog closes  
+		* 2. Resource Cleanup
+		*    - All intervals are cleaned up in afterClose event 
+		* 3. Chart Updates
+		*    - Only updates when chart is visible
+		*    - Uses visibility check before each update 
+	*/
 	this.showStorage = async function (oEvent) {
 
 		var dialog = new sap.m.Dialog({
 			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}",
 			icon: "sap-icon://unwired",
+			// Cleanup handler ensures all intervals stop when dialog closes
 			afterClose: function (oEvent) {
-				oEvent.getSource().destroy();
+				// Clear all intervals to stop background processing
 				if (_oSpeedStatusDialogInterval) {
 					clearInterval(_oSpeedStatusDialogInterval);
 				}
+				oEvent.getSource().destroy();
 			}
 		});
 		var oButton = oEvent.getSource();
@@ -765,7 +1028,6 @@ const exfLauncher = {};
 			await promise;
 		}
 
-
 		const {
 			avarageSpeed,
 			speedTier,
@@ -800,6 +1062,12 @@ const exfLauncher = {};
 			value: customSpeedAvarageLabel,
 		});
 
+		// Clearing the interval, because of this error :   browser_speed_tier_display was openui5.facade.js?v20241209112552:1088 
+		// Uncaught TypeError: Cannot read properties of undefined (reading 'setValue')
+		// We cam clear the interval or we can check if the element is exist, then we can set values 
+		if (_oSpeedStatusDialogInterval) {
+			clearInterval(_oSpeedStatusDialogInterval);
+		}
 		_oSpeedStatusDialogInterval = setInterval(() => {
 			const {
 				avarageSpeed,
@@ -832,16 +1100,28 @@ const exfLauncher = {};
 				content: new sap.ui.core.HTML('network_speed_chart_wrapper', {
 					content: '<div id="network_speed_chart"></div>',
 					afterRendering: function () {
-						setInterval(function () {
-							$("#network_speed_chart").sparkline(_speedHistory, {
-								type: 'line',
-								width: '100%',
-								height: '100px',
-								chartRangeMin: 0,
-								chartRangeMax: 10,
-								drawNormalOnTop: false,
-							});
-						}, 1000);
+						// Initial chart update with sparkline
+						// Setup interval that includes visibility check
+						_oSpeedStatusDialogInterval = setInterval(function () {
+							const chartDiv = document.getElementById('network_speed_chart');
+							// Only update if chart is visible
+							//check element is on DOM && check element is visible
+							if (chartDiv && chartDiv.offsetParent) {
+								$("#network_speed_chart").sparkline(_speedHistory, {
+									type: 'line',
+									width: '100%',
+									height: '100px',
+									chartRangeMin: 0,
+									chartRangeMax: 10,
+									drawNormalOnTop: false
+								});
+								// Update network stats only when visible
+								listNetworkStats();
+							}
+						}, 5000);
+
+						// Initial data load
+						listNetworkStats();
 					}
 				})
 			})
@@ -964,6 +1244,246 @@ const exfLauncher = {};
 		dialog.setModel(oButton.getModel('i18n'), 'i18n');
 		dialog.open();
 		return;
+	};
+ 
+	/**
+	 * Displays a testing menu for network-related data and statistics.
+	 * Creates a dialog containing network state changes and performance metrics.
+	 * 
+	 * @param {sap.ui.base.Event} oEvent The event object from the triggering action
+	 * @return {void}
+	 */
+	this.showTesterMenu = function (oEvent) {
+		// Create the main dialog container for the testing interface
+		var oDialog = new sap.m.Dialog({
+			title: "Network Testing Data",
+			icon: "sap-icon://performance",
+			contentWidth: "90%",
+			contentHeight: "90%",
+			// Cleanup on dialog close to prevent memory leaks
+			afterClose: function (oEvent) {
+				oEvent.getSource().destroy();
+			}
+		});
+
+		// Create a formatter function to convert boolean values to Yes/No
+		// Utility function to convert boolean values to Yes/No for better readability
+		var formatBoolean = function (value) {
+			if (value === true || value === "true") return "Yes";
+			if (value === false || value === "false") return "No";
+			return "Unknown";
+		};
+
+		// Create tab container to organize different types of network data
+		var oTabContainer = new sap.m.IconTabBar({
+			items: [
+				// First tab: Network Connection States
+				new sap.m.IconTabFilter({
+					key: "connection",
+					text: "Connection States",
+					content: [
+						new sap.m.Table({
+							growing: true, //This a property used in SAP UI5 tables for performance optimization and pagination
+							growingThreshold: 20, // Show 20 items initially, then allow growing
+							columns: [
+								// Timestamp column showing when the state was recorded
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Time" }),
+									width: "180px"
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Auto Offline" })
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Browser Online" })
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Force Offline" })
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Slow Network" })
+								}),
+								// Overall connection status with visual indicator
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Status" }),
+									hAlign: "Center"
+								})
+							],
+							// Bind the table rows to the connection data
+							items: {
+								path: "/connections",
+								template: new sap.m.ColumnListItem({
+									cells: [
+										// Time column
+										// Format and display timestamp
+										new sap.m.Text({
+											text: {
+												path: "time",
+												formatter: function (sTime) {
+													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
+												}
+											}
+										}),
+										// Auto Offline column
+										new sap.m.Text({
+											text: {
+												path: "state/bAutoOffline",
+												formatter: formatBoolean
+											}
+										}),
+										// Browser Online column
+										new sap.m.Text({
+											text: {
+												path: "state/bBrowserOnline",
+												formatter: formatBoolean
+											}
+										}),
+										// Forced Offline column
+										new sap.m.Text({
+											text: {
+												path: "state/bForcedOffline",
+												formatter: formatBoolean
+											}
+										}),
+										// Slow Network column
+										new sap.m.Text({
+											text: {
+												path: "state/bSlowNetwork",
+												formatter: formatBoolean
+											}
+										}),
+										// Status column with icon
+										// HBox is a horizontal layout control where we can place controls next to each other.
+										// Displays overall status with icon and text
+										new sap.m.HBox({
+											justifyContent: "Center",
+											items: [
+												// Status icon that changes based on connection state
+												new sap.ui.core.Icon({
+													src: {
+														path: "state",
+														formatter: function (state) {
+															if (!state) return "sap-icon://disconnected";
+															// Online durumunda forced offline veya auto offline+slow network yoksa
+															if (state.bBrowserOnline && !state.bForcedOffline &&
+																!(state.bAutoOffline && state.bSlowNetwork)) {
+																return "sap-icon://connected";
+															}
+															return "sap-icon://disconnected";
+														}
+													},
+													// Color coding for status (green/red)
+													color: {
+														path: "state",
+														formatter: function (state) {
+															if (!state) return sap.ui.core.IconColor.Negative; //enum sap.ui.core.IconColor
+															if (state.bBrowserOnline && !state.bForcedOffline &&
+																!(state.bAutoOffline && state.bSlowNetwork)) {
+																return sap.ui.core.IconColor.Positive;
+															}
+															return sap.ui.core.IconColor.Negative;
+														}
+													}
+												}),
+												// Status text (Online/Offline)
+												new sap.m.Text({
+													text: {
+														path: "state",
+														formatter: function (state) {
+															if (!state) return " Offline";
+															if (state.bBrowserOnline && !state.bForcedOffline &&
+																!(state.bAutoOffline && state.bSlowNetwork)) {
+																return " Online";
+															}
+															return " Offline";
+														}
+													}
+												}).addStyleClass("sapUiTinyMarginBegin")
+											]
+										})
+									]
+								})
+							}
+						})
+					]
+				}),
+				// Second tab: Network Performance Statistics
+				new sap.m.IconTabFilter({
+					key: "networkstats",
+					text: "Network Statistics",
+					content: [
+						new sap.m.Table({
+							growing: true,
+							growingThreshold: 20,
+							columns: [
+								new sap.m.Column({ header: new sap.m.Label({ text: "Time" }) }),
+								new sap.m.Column({ header: new sap.m.Label({ text: "Speed (Mbps)" }) }),
+								new sap.m.Column({ header: new sap.m.Label({ text: "Size (bytes)" }) })
+							],
+							// Bind network statistics data
+							items: {
+								path: "/networkstats",
+								template: new sap.m.ColumnListItem({
+									cells: [
+										new sap.m.Text({
+											text: {
+												path: "time",
+												formatter: function (sTime) {
+													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "speed",
+												formatter: function (fSpeed) {
+													return fSpeed.toFixed(2);
+												}
+											}
+										}),
+										new sap.m.Text({ text: "{size}" })
+									]
+								})
+							}
+						})
+					]
+				})
+			]
+		});
+
+		// Add close button to dialog
+		oDialog.addButton(new sap.m.Button({
+			text: "Close",
+			press: function () { oDialog.close(); }
+		}));
+
+		// Add the tab container to the dialog
+		oDialog.addContent(oTabContainer);
+
+		if (exfPWA && exfPWA.isAvailable()) {
+			Promise.all([
+				exfPWA.network.getAllStates(),
+				exfPWA.network.getAllStats()
+			]).then(function ([aConnections, aStats]) {
+				// For model binding, prepare the data
+				var oModel = new sap.ui.model.json.JSONModel({
+					connections: aConnections,
+					networkstats: aStats.slice(-50) // Last 50 records
+				});
+				oDialog.setModel(oModel);
+			}).catch(function (oError) {
+				console.error('Failed to load network data:', oError);
+				oDialog.setModel(new sap.ui.model.json.JSONModel({
+					connections: [],
+					networkstats: []
+				}));
+			});
+		}
+		else {
+			console.warn('PWA functionality is not available - offline data cannot be displayed');
+		}
+		// Display the dialog
+		oDialog.open();
 	};
 
 	/**
@@ -1654,6 +2174,12 @@ const exfLauncher = {};
 								press: _oLauncher.showStorage,
 							}),
 							new sap.m.StandardListItem({
+								title: "Tester Menu",  // Not using i18n as this is a development tool
+								icon: "sap-icon://performance",
+								type: "Active",
+								press: _oLauncher.showTesterMenu,  // New function we'll create
+							}),
+							new sap.m.StandardListItem({
 								title: "{i18n>WEBAPP.SHELL.PWA.MENU_RESET}",
 								tooltip: "{i18n>WEBAPP.SHELL.PWA.MENU_RESET_TOOLTIP}",
 								icon: "sap-icon://sys-cancel",
@@ -1692,17 +2218,9 @@ const exfLauncher = {};
 									}),
 									items: [
 										new sap.m.Switch('force_offline_toggle', {
-											state: "{/_network/state/forcedOffline}",
-											change: function (oEvent) {
-												// TODO why can't we just change the model here? See sap.m.Switch('auto_offline_toggle' above
-												const oSwitch = oEvent.getSource();
-												exfPWA.network
-												.setState({forcedOffline: oSwitch.getState()})
-												.catch (error => {
-													console.error('Error toggling force offline:', error);
-													exfLauncher.showMessageToast("Error toggling force offline mode");
-												})
-											}
+											//Instead of a custom change handler, we can use a model binding and
+											//let the property change listener in the shell do the work like auto_offline_toggle
+											state: "{/_network/state/forcedOffline}"
 										}),
 										new sap.m.Text({
 											text: "{i18n>WEBAPP.SHELL.NETWORK_FORCE_OFFLINE}"
@@ -1954,133 +2472,31 @@ const exfLauncher = {};
 		oModel.setProperty('/_network/online', oNetStat.isOnline());
 	}
 
-	/**
-	 * Save network stats on every AJAX request in order to use these stats
-	 * to determin slow network.
-	 * 
-	 * @return void
-	 */
-	this.registerAjaxSpeedLogging = function() {
-		var originalAjax = $.ajax;
-		$.ajax = function (options) {
-			var startTime = new Date().getTime();
-			// Calculate the request headers length
-			let requestHeadersLength = 0;
-			if (options.headers) {
-				for (let header in options.headers) {
-					if (options.headers.hasOwnProperty(header)) {
-						requestHeadersLength += new Blob([header + ": " + options.headers[header] + "\r\n"]).size * 8;
-					}
-				}
-			}
 
-			// Calculate the request content length (if any)
-			let requestContentLength = 0;
-			if (options.data) {
-				requestContentLength = new Blob([JSON.stringify(options.data)]).size * 8;
-			}
-
-			var newOptions = $.extend({}, options, {
-				success: function (data, textStatus, jqXHR) {
-					// Record the response end time
-					let endTime = new Date().getTime();
-
-					// Check if the response is from cache; skip measurement if true
-					if (jqXHR.getResponseHeader('X-Cache') === 'HIT') {
-						return; // Cancel measurement
-					}
-
-					// Retrieve the 'Server-Timing' header
-					let serverTimingHeader = jqXHR.getResponseHeader('Server-Timing');
-					let serverTimingValue = 0;
-
-					// Extract the 'dur' value from the Server-Timing header
-					if (serverTimingHeader) {
-						let durMatch = serverTimingHeader.match(/dur=([\d\.]+)/);
-						if (durMatch) {
-							serverTimingValue = parseFloat(durMatch[1]);
-						}
-					}
-
-					// Calculate the duration, adjusting for server processing time
-					let duration = (endTime - startTime - serverTimingValue) / 1000; // Convert to seconds
-
-					// Retrieve the Content-Length (size) of the response
-					let responseContentLength = parseInt(jqXHR.getResponseHeader('Content-Length')) || 0;
-
-					// Calculate the length of response headers
-					let responseHeaders = jqXHR.getAllResponseHeaders(); // Retrieves all response headers as a string
-					let responseHeadersLength = new Blob([responseHeaders]).size * 8; // Calculate in bits
-
-					// Calculate the total data size (request headers + request body + response headers + response body) in bits
-					let totalDataSize = (requestHeadersLength + requestContentLength + responseHeadersLength + responseContentLength * 8);
-
-					// Calculate internet speed in Mbps
-					let speedMbps = totalDataSize / (duration * 1000000);
-
-					// Retrieve the Content-Type from the headers or from the contentType property
-					let requestMimeType = options.contentType || (options.headers && options.headers['Content-Type']) || 'application/x-www-form-urlencoded; charset=UTF-8';
-
-					// check exfPWA library is exists
-					if (typeof exfPWA !== 'undefined') {
-						exfPWA.network.saveStat(
-							new Date(endTime),
-							speedMbps,
-							requestMimeType,
-							totalDataSize
-						).then(() => {
-							// Set Cleanup interval
-							if (!window.networkStatCleanupInterval) {
-								window.networkStatCleanupInterval = setInterval(function () {
-									const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-									exfPWA.network.deleteStatsBefore(tenMinutesAgo)
-										.then(() => listNetworkStats());
-								}, 10 * 60 * 1000);
-							}
-						});
-					} else {
-						console.error("exfPWA is not defined");
-					}
-
-
-					if (options.success) {
-						options.success.apply(this, arguments);
-					}
-				},
-				complete: function (jqXHR, textStatus) {
-					if (options.complete) {
-						options.complete.apply(this, arguments);
-					}
-				}
-			});
-
-			// Function to delete old network stats
-			function deleteOldNetworkStats() {
-				if (typeof exfPWA !== 'undefined') {
-					var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-					exfPWA.network.deleteNetworkStatsBefore(tenMinutesAgo)
-						.then(function () {
-
-						})
-						.catch(function (error) {
-							console.error("Error deleting old network stats:", error);
-						});
-				}
-			}
-
-			return originalAjax.call(this, newOptions);
-		};
-	}
 }).apply(exfLauncher);
 
 
 
-
+/**
+ * Collects and processes network stats for chart visualization.
+ * Only runs when chart is visible to optimize performance.
+ * This prevents unnecessary processing and memory consumption when stats aren't being displayed 
+ * Gets data from IndexedDB, processes it, and updates speed history chart.
+ * Shows only last 10 records and refreshes the chart completely on each update.
+ * 
+ * @returns {void} No return value
+ * @throws {Error} Logs error if stats collection fails
+ */
 function listNetworkStats() {
-	// FIXME #performance this caused a memory leak for some installations
-	// The code seemed to get called indefinitely causing all JS to run very
-	// slow and memory consuption of the browser tab to jump to 1.1-1.2 GB
-	return;
+	// Skip if chart is not visible
+	// Critical visibility check to prevent unnecessary processing
+	// offsetParent will be null if element is not visible or not in DOM
+	// This ensures we only process data when user can actually see the chart
+	const chartElement = document.getElementById('network_speed_chart');
+	if (!chartElement || !chartElement.offsetParent) {
+		return;
+	}
+	// Get and process network stats
 	exfPWA.network.getAllStats()
 		.then(stats => {
 			if (exfPWA.isAvailable() === false) {
@@ -2090,10 +2506,10 @@ function listNetworkStats() {
 			if (stats.length === 0) {
 				return; // Exit if there are no stats
 			}
-
+ 
 			// Sort the statistics by time (oldest to newest)
 			stats.sort((a, b) => a.time - b.time);
-
+		  
 			const averageSpeeds = {};
 			const currentSecond = Math.floor(Date.now() / 1000); // Get current time in seconds
 			const earliestSecond = Math.floor(stats[0].time / 1000); // Earliest timestamp (first element)
@@ -2139,8 +2555,9 @@ function listNetworkStats() {
 					result[second] = lastKnownSpeed; // If no data for this second, use last known speed
 				}
 			}
-
+ 
 			// Register each calculated speed
+			// Update speed history for chart
 			Object.keys(result).forEach(second => {
 				exfLauncher.registerNetworkSpeed(result[second]);
 			});
@@ -2318,4 +2735,5 @@ window.onload = function () {
 		}
 	}, 1000); // 1 second delay to ensure the page has fully loaded
 };
-window['exfLauncher'] = exfLauncher; 
+window['exfLauncher'] = exfLauncher;
+//v1 
