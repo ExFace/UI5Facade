@@ -121,9 +121,7 @@ $(window).on('networkchanged', function (oEvent, oData) {
 		console.debug('Network State Changed:', {
 			timestamp: new Date().toISOString(),
 			state: oNetState.toString ? oNetState.toString() : 'Unknown State',
-			isOnline: typeof oNetState.isOnline === 'function' ? oNetState.isOnline() : 'Unknown',
-			isOfflineVirtually: typeof oNetState.isOfflineVirtually === 'function' ?
-				oNetState.isOfflineVirtually() : 'Unknown'
+			flags: oNetState.serialize()
 		});
 
 
@@ -136,27 +134,23 @@ $(window).on('networkchanged', function (oEvent, oData) {
 
 		// Handle online-specific actions
 		if (oNetState.isOnline && oNetState.isOnline()) {
-			try {
-				// Update error counters
-				const pwa = exfLauncher.contextBar.getComponent().getPWA();
-				if (pwa && typeof pwa.updateQueueCount === 'function') {
-					pwa.updateQueueCount()
-						.then(() => {
-							if (typeof pwa.updateErrorCount === 'function') {
-								return pwa.updateErrorCount();
-							}
-						})
-						.catch(error => {
-							console.error('Failed to update queue or error counts:', error);
-						});
-				}
+			// Update error counters
+			const pwa = exfLauncher.contextBar.getComponent().getPWA();
+			if (pwa && typeof pwa.updateQueueCount === 'function') {
+				pwa.updateQueueCount()
+					.then(() => {
+						if (typeof pwa.updateErrorCount === 'function') {
+							return pwa.updateErrorCount();
+						}
+					})
+					.catch(error => {
+						console.error('Failed to update queue or error counts:', error);
+					});
+			}
 
-				// Sync offline items if no ServiceWorker available
-				if (!navigator.serviceWorker) {
-					syncOfflineItems();
-				}
-			} catch (onlineError) {
-				console.error('Failed to process online state actions:', onlineError);
+			// Sync offline items if no ServiceWorker available
+			if (!navigator.serviceWorker) {
+				syncOfflineItems();
 			}
 		}
 	} catch (error) {
@@ -203,11 +197,6 @@ const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes
 const exfLauncher = {};
 (function () {
 
-
-	/*
-	* I was getting an error because the registerAjaxSpeedLogging function was defined in IIFE (Immediately Invoked Function Expression) 
-	* but was trying to be called before. We cannot use the function before it is defined. So I simply changed its location.
-	*/
 	/**
 	 * Save network stats on every AJAX request in order to use these stats
 	 * to determin slow network.
@@ -339,14 +328,19 @@ const exfLauncher = {};
 	const _speedHistory = new Array(SPEED_HISTORY_ARRAY_LENGTH).fill(null);
 	var _oConfig = {
 		contextBar: {
-			refreshWaitSeconds: 5
+			refreshWaitSeconds: 5,
+			autoloadIntervalSeconds: 30
+		},
+		network: {
+			slowNetworkPollIntervalSeconds: 30,
+			fastNetworkPollIntervalSeconds: 30,
 		}
 	};
 
-	// Reload context bar every 30 seconds
+	// Reload context bar every X seconds
 	setInterval(function () {
 		exfLauncher.contextBar.load();
-	}, 30 * 1000);
+	}, _oConfig.contextBar.autoloadIntervalSeconds * 1000);
 
 	/**
 	 * 
@@ -356,6 +350,10 @@ const exfLauncher = {};
 		return exfPWA.network.getState().isOfflineVirtually();
 	};
 
+	/**
+	 * 
+	 * @returns {boolean}
+	 */
 	this.isOnline = function () {
 		return exfPWA.network.getState().isOnline();
 	};
@@ -428,23 +426,22 @@ const exfLauncher = {};
 
 			]
 		})
-			.setModel(new sap.ui.model.json.JSONModel({
-				_network: {
-					online: true,
-					queueCnt: 0,
-					syncErrorCnt: 0,
-					deviceId: exfPWA.getDeviceId(),
-					state: {}
-				}
-			}, true));
+		.setModel(new sap.ui.model.json.JSONModel({
+			_network: {
+				online: true,
+				queueCnt: 0,
+				syncErrorCnt: 0,
+				deviceId: exfPWA.getDeviceId(),
+				state: {}
+			}
+		}, true));
 
 		// Initialize the network model by reading the current network state from the
-		// PWA. This will put all the toggles in their correct positions
-		exfLauncher.updateNetworkModel(exfPWA.network.getState(), _oShell.getModel());
-
+		// PWA. This will put all the toggles in their correct positions.
 		// Now, every time the user changes things like the auto-offline-toggle, we will get a change
 		// in the model here. Just propagate this change to exfPWA. It will decide if this really
 		// is a network change or not.
+		exfLauncher.updateNetworkModel(exfPWA.network.getState(), _oShell.getModel());
 
 		/**
 		 * Network state change handler
@@ -580,13 +577,6 @@ const exfLauncher = {};
 					_oContextBar.refresh({});
 					return;
 				}
-				/* FIXME #performance this caused a memory leak for some installations
-				// TODO move to opening the quota stats dialog. Only need this refresh logic when the speed
-				// graph is being shown
-				window._oNetworkSpeedPoller = setInterval(function () {
-					// IDEA: Measure network speed every 5 seconds 
-					listNetworkStats();
-				}, 1000 * 5);*/
 
 				setTimeout(function () {
 					// IDEA had to disable adding context bar extras to every request due to
@@ -881,29 +871,6 @@ const exfLauncher = {};
 		}
 	};
 
-	this.calculateSpeedTier = function (speedMbps) {
-		let speedClass;
-		switch (true) {
-			case speedMbps == '-':
-			case speedClass == 0:
-				speedClass = '-';
-				break;
-			case speedMbps < 0.3:
-				speedClass = '2G';
-				break;
-			case speedMbps < 5:
-				speedClass = '3G';
-				break;
-			case speedMbps < 50:
-				speedClass = '4G';
-				break;
-			default:
-				speedClass = '5G';
-				break;
-		}
-		return speedClass;
-	};
-
 	this.showMessageToast = function (message, duration) {
 		// Set default duration to 3000 milliseconds (3 seconds)
 
@@ -919,46 +886,69 @@ const exfLauncher = {};
 		});
 	};
 
-	this.calculateSpeed = function () {
-		const avarageSpeed = navigator?.connection?.downlink ? `${navigator?.connection?.downlink} Mbps` : '-';
-		const speedTier = navigator?.connection?.effectiveType ? navigator?.connection?.effectiveType.toUpperCase() : '-';
-
-		let customSpeed;
-		if (_speedHistory.indexOf(null) === -1) {
-			customSpeed = _speedHistory[_speedHistory.length - 1];
-		} else if (_speedHistory.indexOf(null) === 0) {
-			customSpeed = 0;
-		} else {
-			customSpeed = _speedHistory[_speedHistory.indexOf(null) - 1];
-		}
-
-		const customSpeedAvarageLabel = customSpeed ? `${customSpeed} Mbps` : '-';
-		const customSpeedTier = exfLauncher.calculateSpeedTier(customSpeed);
-
-		return {
-			avarageSpeed,
-			speedTier,
-			customSpeed,
-			customSpeedAvarageLabel,
-			customSpeedTier
-		};
-	}
-
 	/**
 	* Shows a dialog with offline storage info (quota, preload data summary, etc.)
-		* 
-		* @return void
-		*
-		* * Key features for performance:
-		* 1. Interval Management 
-		*    - Clears interval when dialog closes  
-		* 2. Resource Cleanup
-		*    - All intervals are cleaned up in afterClose event 
-		* 3. Chart Updates
-		*    - Only updates when chart is visible
-		*    - Uses visibility check before each update 
+	* 
+	* @return void
+	*
+	* * Key features for performance:
+	* 1. Interval Management 
+	*    - Clears interval when dialog closes  
+	* 2. Resource Cleanup
+	*    - All intervals are cleaned up in afterClose event 
+	* 3. Chart Updates
+	*    - Only updates when chart is visible
+	*    - Uses visibility check before each update 
 	*/
 	this.showStorage = async function (oEvent) {
+		const oCalculator = {
+			calculateSpeed: function () {
+				const avarageSpeed = navigator?.connection?.downlink ? `${navigator?.connection?.downlink} Mbps` : '-';
+				const speedTier = navigator?.connection?.effectiveType ? navigator?.connection?.effectiveType.toUpperCase() : '-';
+
+				let customSpeed;
+				if (_speedHistory.indexOf(null) === -1) {
+					customSpeed = _speedHistory[_speedHistory.length - 1];
+				} else if (_speedHistory.indexOf(null) === 0) {
+					customSpeed = 0;
+				} else {
+					customSpeed = _speedHistory[_speedHistory.indexOf(null) - 1];
+				}
+
+				const customSpeedAvarageLabel = customSpeed ? `${customSpeed} Mbps` : '-';
+				const customSpeedTier = oCalculator.calculateSpeedTier(customSpeed);
+
+				return {
+					avarageSpeed,
+					speedTier,
+					customSpeed,
+					customSpeedAvarageLabel,
+					customSpeedTier
+				};
+			},
+			calculateSpeedTier: function (speedMbps) {
+				let speedClass;
+				switch (true) {
+					case speedMbps == '-':
+					case speedClass == 0:
+						speedClass = '-';
+						break;
+					case speedMbps < 0.3:
+						speedClass = '2G';
+						break;
+					case speedMbps < 5:
+						speedClass = '3G';
+						break;
+					case speedMbps < 50:
+						speedClass = '4G';
+						break;
+					default:
+						speedClass = '5G';
+						break;
+				}
+				return speedClass;
+			}
+		};
 
 		var dialog = new sap.m.Dialog({
 			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}",
@@ -1034,7 +1024,7 @@ const exfLauncher = {};
 			speedTier,
 			customSpeedAvarageLabel,
 			customSpeedTier
-		} = exfLauncher.calculateSpeed();
+		} = oCalculator.calculateSpeed();
 
 		/* $("#sparkline").sparkline([10.4,3,6,12,], {
 			type: 'line',
@@ -1075,7 +1065,7 @@ const exfLauncher = {};
 				speedTier,
 				customSpeedAvarageLabel,
 				customSpeedTier
-			} = exfLauncher.calculateSpeed();
+			} = oCalculator.calculateSpeed();
 
 			sap.ui.getCore().byId('browser_speed_tier_display').setValue(speedTier);
 			sap.ui.getCore().byId('browser_speed_display').setValue(avarageSpeed);
@@ -2200,7 +2190,7 @@ const exfLauncher = {};
 										value: "gap: 1rem;"
 									}),
 									items: [
-										new sap.m.Switch('auto_offline_toggle', {
+										new sap.m.Switch({
 											state: "{/_network/state/autoOffline}",
 										}),
 										new sap.m.Text({
@@ -2218,7 +2208,7 @@ const exfLauncher = {};
 										value: "gap: 1rem;"
 									}),
 									items: [
-										new sap.m.Switch('force_offline_toggle', {
+										new sap.m.Switch({
 											//Instead of a custom change handler, we can use a model binding and
 											//let the property change listener in the shell do the work like auto_offline_toggle
 											state: "{/_network/state/forcedOffline}"
@@ -2452,31 +2442,31 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 					text: "Details",
 					icon: "sap-icon://detail-view",
 					press: function () {
-						console.log('Details button pressed');  
+						console.log('Details button pressed');
 
 						// Get current active errors
 						window.capturedErrors = window.capturedErrors || [];
-						var activeErrors = window.capturedErrors.filter(error => 
+						var activeErrors = window.capturedErrors.filter(error =>
 							!exfLauncher.dismissedErrors.has(error.message)
 						);
-					
-						console.log('Active errors:', activeErrors);  
-					
+
+						console.log('Active errors:', activeErrors);
+
 						// Close the popover
 						exfLauncher.errorPopover.close();
-					
+
 						// Ensure tracer.js is loaded and show error log
 						if (window.exfTracer) {
-							console.log('Showing error log with tracer...');  
+							console.log('Showing error log with tracer...');
 							window.exfTracer.showErrorLog(activeErrors);
 						} else {
-							console.log('Loading tracer.js...');  
+							console.log('Loading tracer.js...');
 							var currentScriptPath = $('script[src*="openui5.facade.js"]').attr('src');
 							var tracerPath = currentScriptPath.replace('facade.js', 'tracer.js');
-					
+
 							$.getScript(tracerPath)
 								.done(function () {
-									console.log('Tracer.js loaded successfully');  
+									console.log('Tracer.js loaded successfully');
 									window.exfTracer.showErrorLog(activeErrors);
 								})
 								.fail(function (jqxhr, settings, exception) {
@@ -2533,49 +2523,49 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 console.error = function (...args) {
 	originalConsoleError.apply(console, args);
 
-    // Initialize arrays if undefined
-    window.capturedErrors = window.capturedErrors || [];
-    exfLauncher.dismissedErrors = exfLauncher.dismissedErrors || new Set();
+	// Initialize arrays if undefined
+	window.capturedErrors = window.capturedErrors || [];
+	exfLauncher.dismissedErrors = exfLauncher.dismissedErrors || new Set();
 
-    let errorMessage = args.map(arg => {
-        if (arg instanceof Error) {
-            return arg.stack || arg.message;
-        } else if (typeof arg === 'object') {
-            try {
-                return JSON.stringify(arg);
-            } catch (e) {
-                return String(arg);
-            }
-        } else {
-            return String(arg);
-        }
-    }).join(' ');
+	let errorMessage = args.map(arg => {
+		if (arg instanceof Error) {
+			return arg.stack || arg.message;
+		} else if (typeof arg === 'object') {
+			try {
+				return JSON.stringify(arg);
+			} catch (e) {
+				return String(arg);
+			}
+		} else {
+			return String(arg);
+		}
+	}).join(' ');
 
-    const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
+	const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
 
-    if (exfLauncher.contextBar.traceJs && !shouldIgnore && 
-        !exfLauncher.dismissedErrors.has(errorMessage)) {
-        
-        const errorDetails = {
-            message: errorMessage,
-            timestamp: new Date().toISOString(),
-            url: window.location.href,
-            stack: new Error().stack
-        };
+	if (exfLauncher.contextBar.traceJs && !shouldIgnore &&
+		!exfLauncher.dismissedErrors.has(errorMessage)) {
 
-        console.log('Capturing error:', errorDetails); // Debug için
-        window.capturedErrors.push(errorDetails);
+		const errorDetails = {
+			message: errorMessage,
+			timestamp: new Date().toISOString(),
+			url: window.location.href,
+			stack: new Error().stack
+		};
 
-        // Show error popover
-        if (typeof exfLauncher !== 'undefined' && 
-            typeof exfLauncher.showErrorPopover === 'function') {
-            try {
-                exfLauncher.showErrorPopover(errorMessage);
-            } catch (e) {
-                console.error('Error showing popover:', e);
-            }
-        }
-    }
+		console.log('Capturing error:', errorDetails); // Debug için
+		window.capturedErrors.push(errorDetails);
+
+		// Show error popover
+		if (typeof exfLauncher !== 'undefined' &&
+			typeof exfLauncher.showErrorPopover === 'function') {
+			try {
+				exfLauncher.showErrorPopover(errorMessage);
+			} catch (e) {
+				console.error('Error showing popover:', e);
+			}
+		}
+	}
 };
 
 
@@ -2586,17 +2576,17 @@ var existingOnload = window.onload;
 // Define the new window.onload function
 window.onload = function () {
 	if (typeof existingOnload === 'function') {
-        existingOnload();
-    }
+		existingOnload();
+	}
 
-    // Initialize/clear error list
-    window.capturedErrors = [];
+	// Initialize/clear error list
+	window.capturedErrors = [];
 
-    setTimeout(function () {
-        if (window.capturedErrors.length > 0) {
-            exfLauncher.showMessageToast(window.capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
-        }
-    }, 1000);
+	setTimeout(function () {
+		if (window.capturedErrors.length > 0) {
+			exfLauncher.showMessageToast(window.capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
+		}
+	}, 1000);
 };
 window['exfLauncher'] = exfLauncher;
 //v1 
