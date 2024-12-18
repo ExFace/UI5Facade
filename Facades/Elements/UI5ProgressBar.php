@@ -216,7 +216,6 @@ JS;
                         if (sHint === null || sHint === undefined) {
                             sHint = (mVal || '').toString();
                         }
-                        console.log('hint', mVal, sHint);
                         return sHint;
                     },
 JS);

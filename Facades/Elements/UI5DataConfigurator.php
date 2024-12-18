@@ -93,6 +93,9 @@ class UI5DataConfigurator extends UI5Tabs
         
         $dataElement = $this->getDataElement();
         if ($dataElement instanceof UI5DataTable) {
+            // Need to add a controller variable here because the configurator constructor is
+            // rendered BEFORE the constrcutor of the table.
+            $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -430,17 +433,14 @@ JS;
     protected function buildJsonModelForColumns() : string
     {
         $data = [];
-        $optionalColsJs = <<<JS
-        
-        var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
-        oTable._exfOptionalCols = [];
-JS;
+        $widget = $this->getWidget();
+
         if ($this->hasTabColumns() === true) {
-            $cols = $this->getWidget()->getDataWidget()->getColumns();
-            $colsOptional = [];
-            if ($this->getWidget() instanceof DataTableConfigurator) {
-                $colsOptional = $this->getWidget()->getColumnsTab()->getWidgets();
-                $cols = array_merge($cols, $colsOptional);
+            $cols = $widget->getDataWidget()->getColumns();
+            // Add all optional columns from the configurator here. This will automatically
+            // make them filterable in the search-tab!
+            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+                $cols = array_merge($cols, $widget->getOptionalColumns());
             }
             foreach ($cols as $col) {
                 $data[] = [
@@ -453,23 +453,6 @@ JS;
                     "toggleable" => $col->isHidden() ? false : true
                 ];
             }
-
-            $optionalColsJs = '';
-            if (! empty($colsOptional)) {
-                foreach ($colsOptional as $col) {
-                
-                $optionalColsJs .= <<<JS
-                
-        oTable._exfOptionalCols.push({$this->getFacade()->getElement($col)->buildJsConstructor()});
-JS;
-                }   
-                $this->getController()->addOnInitScript(<<<JS
-        
-        var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
-        oTable._exfOptionalCols = [];
-        {$optionalColsJs}
-JS);
-            }
         }
         return json_encode($data);
     }
@@ -480,9 +463,10 @@ JS);
      */
     protected function buildJsonModelForSortables() : string
     {
+        $widget = $this->getWidget();
         $data = [];
         $sorters = [];
-        $table = $this->getWidget()->getDataWidget();
+        $table = $widget->getDataWidget();
         foreach ($table->getSorters() as $sorter) {
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
@@ -490,7 +474,12 @@ JS);
                 "caption" => $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName()
             ];
         }
-        foreach ($table->getColumns() as $col) {
+        $cols = $table->getColumns();
+        // Also add all optional columns from the configurator - if they are sortable, of course.
+        if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+            $cols = array_merge($cols, $widget->getOptionalColumns());
+        }
+        foreach ($cols as $col) {
             if (! $col->isSortable()) {
                 continue;
             }

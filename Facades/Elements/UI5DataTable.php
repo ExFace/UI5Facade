@@ -44,6 +44,13 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     const EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED = 'firstVisibleRowChanged';
     
     const CONTROLLER_METHOD_RESIZE_COLUMNS = 'resizeColumns';
+
+    /**
+     * This JS controller property will hold an object of optional column instances
+     * with data_column_name as key and sap.ui.table.Column or sap.m.Column as value.
+     * @var string
+     */
+    const CONTROLLER_VAR_OPTIONAL_COLS = 'optionalCols';
     
     protected function init()
     {
@@ -54,6 +61,31 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     protected function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $widget = $this->getWidget();
+        $controller = $this->getController();
+        
+        // Initialize optional column from the configurator when the
+        // JS controller is initialized.
+        // IDEA maybe just initialize the controller var here and run the
+        // constructors of the columns only on-demand in buildJsRefreshPersonalization()?
+        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+        $colsOptionalInitJs = '';
+        if (! empty($colsOptional)) {
+            foreach ($colsOptional as $col) {
+            $colsOptionalInitJs .= <<<JS
+            
+                    oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+JS;
+            }
+        }
+        $controller->addOnInitScript(<<<JS
+        
+            (function(){
+                var oColsOptional = {};
+                {$colsOptionalInitJs}
+                {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+            })();
+JS);
+
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
         } else {
@@ -79,22 +111,22 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
         } else {
             $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').removeSelections(true)";
         }
-        $this->getController()->addOnPrefillDataChangedScript($clearSelectionJs);
+        $controller->addOnPrefillDataChangedScript($clearSelectionJs);
         
         return $js;
     }
 
-    protected function isMList() : bool
+    public function isMList() : bool
     {
         return $this->isMTable();
     }
     
-    protected function isMTable()
+    public function isMTable()
     {
         return $this->getWidget() instanceof DataTableResponsive;
     }
     
-    protected function isUiTable()
+    public function isUiTable()
     {
         return ! ($this->getWidget() instanceof DataTableResponsive);
     }
@@ -434,8 +466,10 @@ JS;
     {
         $widget = $this->getWidget();
         $heightInRows = $widget instanceof DataTable ? $widget->getHeightInRows() : null;
-        
+        $heightInRowsDefault = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
         $height = $widget->getHeight();
+        $singleRowHeightPx = '33';
+
         switch (true) {
             case $heightInRows !== null:
                 $minAutoRowCount = $heightInRows;
@@ -448,7 +482,7 @@ JS;
                 $heightPx = NumberDataType::cast($heightPx);
                 $minAutoRowCount = <<<JS
                 function(){
-                    var iRowHeight = 33;
+                    var iRowHeight = {$singleRowHeightPx};
                     var jqTest = $('<div class="sapMTB sapMTBHeader-CTX"></div>').appendTo('body');
                     var iToolbarHeight = jqTest.height();
                     var iTableHeight = {$heightPx};
@@ -458,10 +492,72 @@ JS;
 
 JS;
                 break;
+            // Calculate the max. number of rows, that will fit the given percentage of the
+            // height of the container. Note, the immediate container might be simply the
+            // FormElement, that will always have the same height as the table, so look for
+            // the Form further up the hierarchy
+            // TODO add other container types in case the table is not part of the form
+            case $height->isPercentual():
+            case $height->isMax():
+                if ($height->isPercentual()) {
+                    $heightPercent = StringDataType::substringBefore($height->getValue(), '%', $height->getValue());
+                    $heightPercent = NumberDataType::cast($heightPercent);
+                } else {
+                    $heightPercent = 100;
+                }
+                // NOTE: this JS code makes use of the oController variable. Since this is called inside the
+                // table constructor, oController should always be defined as 
+                $minAutoRowCount = <<<JS
+                function(){
+                    var iRowHeight = iHeaderHeight = {$singleRowHeightPx};
+                    var iRowsDefault = {$heightInRowsDefault};
+                    var jqTest = $('<div class="sapMTB sapMTBHeader-CTX"></div>').appendTo('body');
+                    var iToolbarHeight = jqTest.height();
+                    var fnCalcHeight = function(oContainer){
+                        var jqContainer = oContainer.$();
+                        var iContainerHeight = jqContainer ? jqContainer.innerHeight() : null;
+                        var iTargetHeight;
+                        if (iContainerHeight) {
+                            iTargetHeight = iContainerHeight / 100 * {$heightPercent};
+                            return Math.floor((iTargetHeight - iHeaderHeight - iToolbarHeight) / iRowHeight);
+                        }
+                        return null;
+                    };
+                    jqTest.remove();
+
+                    setTimeout(function(){
+                        var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                        var oContainer = oController.findParentOfType(oTable, sap.ui.layout.form.Form);
+                        var bResizing;
+                        if (! oContainer) {
+                            return;
+                        }
+
+                        sap.ui.core.ResizeHandler.register(oContainer, function(){
+                            var iRows;
+                            if (bResizing === true) {
+                                bResizing = false;
+                                return;
+                            }
+                            bResizing = true;
+                            setTimeout(function(){
+                                iRows = fnCalcHeight(oContainer);
+                                if (iRows !== null) {
+                                    oTable.setMinAutoRowCount(iRows);
+                                }
+                            }, 10);
+                        });
+                    }, 0);
+                    
+                    return iRowsDefault;
+                }()
+
+JS;
+                break;
             //case $height->isUndefined():
             //case $height->isAuto():
             default:
-                $minAutoRowCount = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
+                $minAutoRowCount = $heightInRowsDefault;
                 break;            
         }
         
@@ -614,10 +710,26 @@ JS;
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
 
-            // Add filters and sorters from column menus
+            {$oParamsJs}.data.columns = [];
+            // Process currently visible columns:
+            // - Add filters and sorters from column menus
+            // - Add column name to ensure even optional data is read if required
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
+                if (oColumn.data('_exfDataColumnName')) {
+                    if (oColumn.data('_exfAttributeAlias')) {
+                        {$oParamsJs}.data.columns.push({
+                            name: oColumn.data('_exfDataColumnName'),
+                            attribute_alias: oColumn.data('_exfAttributeAlias')
+                        });
+                    } else if (oColumn.data('_exfCalculation')) {
+                        {$oParamsJs}.data.columns.push({
+                            name: oColumn.data('_exfDataColumnName'),
+                            expression: oColumn.data('_exfCalculation')
+                        });
+                    }
+                }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
     				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
@@ -924,12 +1036,12 @@ JS;
                         var aRows = []; 
                         selectedIdx.forEach(function(i) {
                             var oCtxt = oTable.getContextByIndex(i);
-                            if (oCtxt) {
+                            if (oCtxt && oCtxt.getObject()) {
                                 aRows.push(oCtxt.getObject());
                             }
                         }); 
-                    return aRows;
-                })($oTableJs)
+                        return aRows;
+                    })($oTableJs)
 JS;
             }
         } else {
@@ -1479,18 +1591,33 @@ JS;
                 
         } else {
             $deSelectJs = $deSelect ? 'true' : 'false';
+            // Cannot use the row index directly here because row group headers
+            // are also part of the row numbering. In any case, it is much more
+            // reliable to check each binding and compare its path to the row
+            // number inside the rows array of the model.
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
                     var aSelections = oTable.getSelectedIndices();
-                    if (bScrollTo) {
-                        oTable.setFirstVisibleRow({$iRowIdxJs});
-                    }
+                    var iTableIdx = iRowIdx;
+                    var oBinding = oTable.getBinding("rows");
+                    var fnFindTableIdx = function(iRowIdx) {
+                        for (var i = 0; i < oBinding.getLength(); i++) {
+                            var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
+                            if (context && context.getPath() === `/rows/` + iRowIdx) {
+                                return i; // Match found
+                            }
+                        }
+                    };
+                    iTableIdx = fnFindTableIdx(iRowIdx);
                     oTable.clearSelection();
                     if (bDeselect === false) {
-                        oTable.setSelectedIndex(iRowIdx);
+                        oTable.setSelectedIndex(iTableIdx);
+                    }
+                    if (bScrollTo) {
+                        oTable.setFirstVisibleRow(iTableIdx);
                     }
                     aSelections.forEach(function(i){
-                        if (i !== iRowIdx) {
+                        if (i !== iTableIdx) {
                             oTable.addSelectionInterval(i, i);
                         }
                     });
@@ -1517,31 +1644,58 @@ JS;
     
     public function buildJsRefreshPersonalization() : string
     {
+        $widget = $this->getWidget();
+        $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
         if ($this->isUiTable() === true) {
             return <<<JS
 
+                        var oController = {$this->getController()->buildJsControllerGetter($this)};
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
-                        
+                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
                         var aColumnsNew = [];
                         var bOrderChanged = false;
+                        var iConfOffset = 0;
+                        var oDirtyColumn = aColumns.filter(oColumn => oColumn.getId() === "{$this->getDirtyFlagAlias()}")[0];
+                        var oUidCol = aColumns.filter(oColumn => oColumn.data('data_column_name') === {$this->escapeString($uidColName)})[0];
+                        
+                        if (oDirtyColumn !== undefined) {
+                            iConfOffset += 1;
+                            aColumnsNew.push(oDirtyColumn);  
+                        }
+                        
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
-                            var iConfOffset = 0;
-                            aColumns.forEach(function(oColumn, iColIdx) {
-                                if (oColumn.getId() === "{$this->getDirtyFlagAlias()}") {
-                                    iConfOffset += 1;
-                                    aColumnsNew.push(oColumn);  
-                                    return;
-                                }
+                            var bFoundCol = false;
+                            var oColumn;
+                            // See if the column is part of the table right nw
+                            for (var iColIdx = 0; iColIdx < aColumns.length; iColIdx++) {
+                                oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    if (iColIdx !== iConfIdx) bOrderChanged = true;
+                                    if (iColIdx !== iConfIdx + iConfOffset) bOrderChanged = true;
                                     oColumn.setVisible(oColConfig.visible);
                                     aColumnsNew.push(oColumn);
+                                    bFoundCol = true;
                                     return;
                                 }
-                            });
+                            }
+                            // If it is not AND it is an optional column, add it to the table
+                            if (oColConfig.visible === true) {
+                                oColumn = oColsOptional[oColConfig.column_name];
+                                if (oColumn !== undefined) {
+                                    oColumn.setVisible(true);
+                                    aColumnsNew.push(oColumn); 
+                                    bOrderChanged = true;
+                                }   
+                            }  
                         });
+                        // TODO what if the column was part of the table, but is not in the config?
+                        // e.g. the UID column, that is always added automatically. It seems to be
+                        // added at the end, so we handle it here. But that does not feel good!
+                        if (oUidCol !== undefined) {
+                            aColumnsNew.push(oUidCol); 
+                        }
+
                         if (bOrderChanged === true) {
                             oTable.removeAllColumns();
                             aColumnsNew.forEach(oColumn => {
