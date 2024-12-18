@@ -2,14 +2,15 @@
 const originalConsoleError = console.error;
 
 // Array to store captured errors
+window.capturedErrors = [];
 let capturedErrors = [];
 
 // Regex patterns for errors to ignore
 const ignoredErrorPatterns = [
-	/Assertion failed: could not find any translatable text for key/i,
-	/The target you tried to get .* does not exist!/i,
-	/EventProvider sap\.m\.routing\.Targets/i,
-	/Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
+	// /Assertion failed: could not find any translatable text for key/i,
+	// /The target you tried to get .* does not exist!/i,
+	// /EventProvider sap\.m\.routing\.Targets/i,
+	// /Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
 ];
 
 
@@ -281,7 +282,7 @@ const exfLauncher = {};
 							speedMbps,
 							requestMimeType,
 							totalDataSize
-						).then(() => {  
+						).then(() => {
 							//This delete code moved to exfPWA : The current cleanup in openui5 depends on the browser tab being open, which is unreliable. 
 							// Moving this process to exfPWA ensures consistent background cleanup independent of the UI state.
 							console.log("Network Stat Saved");
@@ -1245,7 +1246,7 @@ const exfLauncher = {};
 		dialog.open();
 		return;
 	};
- 
+
 	/**
 	 * Displays a testing menu for network-related data and statistics.
 	 * Creates a dialog containing network state changes and performance metrics.
@@ -2259,203 +2260,27 @@ const exfLauncher = {};
 	};
 
 	this.showErrorLog = function (oEvent) {
-		var oTable = new sap.m.Table({
-			autoPopinMode: true,
-			fixedLayout: false,
-			columns: [
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "Timestamp" }),
-					width: "200px",
-					hAlign: "Begin"
-				}),
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "Message" })
-				}),
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "URL" })
-				}),
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "Stack" })
-				}),
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "Network Status" }),
-					width: "150px"
-				}),
-				new sap.m.Column({
-					header: new sap.m.Label({ text: "Connection Status" }),
-					width: "150px"
+		if (window.exfTracer) {
+			// Global capturedErrors'u güvenli bir şekilde geç
+			var errors = Array.isArray(window.capturedErrors) ? window.capturedErrors : [];
+			window.exfTracer.showErrorLog(errors);
+		} else {
+			var currentScriptPath = $('script[src*="openui5.facade.js"]').attr('src');
+			var tracerPath = currentScriptPath.replace('facade.js', 'tracer.js');
+
+			$.getScript(tracerPath)
+				.done(function () {
+					var errors = Array.isArray(window.capturedErrors) ? window.capturedErrors : [];
+					window.exfTracer.showErrorLog(errors);
 				})
-			],
-			items: {
-				path: "/errors",
-				template: new sap.m.ColumnListItem({
-					cells: [
-						new sap.m.Text({
-							text: {
-								path: "timestamp",
-								type: new sap.ui.model.type.DateTime({
-									pattern: "yyyy-MM-dd HH:mm:ss",
-									UTC: true
-								})
-							}
-						}),
-						new sap.m.VBox({
-							items: [
-								new sap.m.Text({
-									text: {
-										path: "message",
-										formatter: function (text) {
-											return text && text.length > 100 ? text.substring(0, 100) + "..." : text;
-										}
-									}
-								}).addStyleClass("sapUiTinyMarginBottom"),
-								new sap.m.Link({
-									text: {
-										path: "message",
-										formatter: function (text) {
-											return text && text.length > 100 ? "More" : "";
-										}
-									},
-									press: function (oEvent) {
-										var oLink = oEvent.getSource();
-										var oVBox = oLink.getParent();
-										var oText = oVBox.getItems()[0];
-										var sFullText = oEvent.getSource().getBindingContext().getObject().message;
-
-										if (oLink.getText() === "More") {
-											oText.setText(sFullText);
-											oLink.setText("Less");
-										} else {
-											oText.setText(sFullText.substring(0, 100) + "...");
-											oLink.setText("More");
-										}
-									}
-								})
-							]
-						}),
-						new sap.m.VBox({
-							items: [
-								new sap.m.Text({
-									text: {
-										path: "url",
-										formatter: function (text) {
-											return text && text.length > 100 ? text.substring(0, 100) + "..." : text;
-										}
-									}
-								}).addStyleClass("sapUiTinyMarginBottom"),
-								new sap.m.Link({
-									text: {
-										path: "url",
-										formatter: function (text) {
-											return text && text.length > 100 ? "More" : "";
-										}
-									},
-									press: function (oEvent) {
-										var oLink = oEvent.getSource();
-										var oVBox = oLink.getParent();
-										var oText = oVBox.getItems()[0];
-										var sFullText = oEvent.getSource().getBindingContext().getObject().url;
-
-										if (oLink.getText() === "More") {
-											oText.setText(sFullText);
-											oLink.setText("Less");
-										} else {
-											oText.setText(sFullText.substring(0, 100) + "...");
-											oLink.setText("More");
-										}
-									}
-								})
-							]
-						}),
-						new sap.m.VBox({
-							items: [
-								new sap.m.Text({
-									text: {
-										path: "stack",
-										formatter: function (text) {
-											return text && text.length > 100 ? text.substring(0, 100) + "..." : text;
-										}
-									}
-								}).addStyleClass("sapUiTinyMarginBottom"),
-								new sap.m.Link({
-									text: {
-										path: "stack",
-										formatter: function (text) {
-											return text && text.length > 100 ? "More" : "";
-										}
-									},
-									press: function (oEvent) {
-										var oLink = oEvent.getSource();
-										var oVBox = oLink.getParent();
-										var oText = oVBox.getItems()[0];
-										var sFullText = oEvent.getSource().getBindingContext().getObject().stack;
-
-										if (oLink.getText() === "More") {
-											oText.setText(sFullText);
-											oLink.setText("Less");
-										} else {
-											oText.setText(sFullText.substring(0, 100) + "...");
-											oLink.setText("More");
-										}
-									}
-								})
-							]
-						}),
-						new sap.m.Text({ text: "{networkStatus}" }),
-						new sap.m.Text({ text: "{connectionStatus}" })
-					]
-				})
-			}
-		});
-
-		// Update error logs and add network status information 
-		var updatedErrors = capturedErrors.map(function (error) {
-			return exfPWA.getConnectionStatus()
-				.then(function (oStatus) {
-					return {
-						timestamp: new Date(error.timestamp),
-						message: error.message,
-						url: error.url,
-						stack: error.stack,
-						networkStatus: navigator.connection ? navigator.connection.effectiveType : 'Unknown',
-						connectionStatus: oStatus.toString()
-					};
+				.fail(function (jqxhr, settings, exception) {
+					console.error('Failed to load tracer script:', {
+						error: exception,
+						path: tracerPath,
+						status: jqxhr.status
+					});
 				});
-		});
-
-		Promise.all(updatedErrors).then(function (resolvedErrors) {
-			var oModel = new sap.ui.model.json.JSONModel({
-				errors: resolvedErrors
-			});
-			oTable.setModel(oModel);
-
-			var dialog = new sap.m.Dialog({
-				title: 'Error Log',
-				contentWidth: "90%",
-				contentHeight: "80%",
-				content: [oTable],
-				endButton: new sap.m.Button({
-					text: "Close",
-					type: "Emphasized",
-					press: function () {
-						dialog.close();
-					}
-				}),
-				beginButton: new sap.m.Button({
-					text: "Dismiss All",
-					press: function () {
-						// Clear Error List
-						capturedErrors = [];
-
-						// Update Model 
-						oTable.getModel().setProperty("/errors", []);
-						exfLauncher.showMessageToast("Error log cleared");
-					}
-				})
-			});
-
-			dialog.open();
-		});
+		}
 	};
 
 
@@ -2506,10 +2331,10 @@ function listNetworkStats() {
 			if (stats.length === 0) {
 				return; // Exit if there are no stats
 			}
- 
+
 			// Sort the statistics by time (oldest to newest)
 			stats.sort((a, b) => a.time - b.time);
-		  
+
 			const averageSpeeds = {};
 			const currentSecond = Math.floor(Date.now() / 1000); // Get current time in seconds
 			const earliestSecond = Math.floor(stats[0].time / 1000); // Earliest timestamp (first element)
@@ -2555,7 +2380,7 @@ function listNetworkStats() {
 					result[second] = lastKnownSpeed; // If no data for this second, use last known speed
 				}
 			}
- 
+
 			// Register each calculated speed
 			// Update speed history for chart
 			Object.keys(result).forEach(second => {
@@ -2576,14 +2401,13 @@ exfLauncher.dismissedErrors = new Set();
  * @param {string} errorMessage - The most recent error message to display.
  */
 exfLauncher.showErrorPopover = function (errorMessage) {
-	// Close and destroy the existing popover if it's open 
-	if (this.errorPopover) {
-		this.errorPopover.close();
-		this.errorPopover.destroy();
-	}
+	// Using window.capturedErrors explicitly indicates the variable's global scope
+	// Initialize arrays if undefined
+	window.capturedErrors = window.capturedErrors || [];
+	this.dismissedErrors = this.dismissedErrors || new Set();
 
 	// Filter out dismissed errors 
-	var activeErrors = capturedErrors.filter(error => !this.dismissedErrors.has(error.message));
+	var activeErrors = window.capturedErrors.filter(error => !this.dismissedErrors.has(error.message));
 
 	// Prepare error messages as a list  
 	var errorList = new sap.m.List({
@@ -2628,16 +2452,41 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 					text: "Details",
 					icon: "sap-icon://detail-view",
 					press: function () {
-						// Close the popover before showing the  log
+						console.log('Details button pressed');  
+
+						// Get current active errors
+						window.capturedErrors = window.capturedErrors || [];
+						var activeErrors = window.capturedErrors.filter(error => 
+							!exfLauncher.dismissedErrors.has(error.message)
+						);
+					
+						console.log('Active errors:', activeErrors);  
+					
+						// Close the popover
 						exfLauncher.errorPopover.close();
-						// Create a dummy event object since showErrorLog  expects one
-						var dummyEvent = {
-							getSource: function () {
-								return sap.ui.getCore().byId("exf-network-indicator");
-							}
-						};
-						// Show the detailed error log
-						exfLauncher.showErrorLog(dummyEvent);
+					
+						// Ensure tracer.js is loaded and show error log
+						if (window.exfTracer) {
+							console.log('Showing error log with tracer...');  
+							window.exfTracer.showErrorLog(activeErrors);
+						} else {
+							console.log('Loading tracer.js...');  
+							var currentScriptPath = $('script[src*="openui5.facade.js"]').attr('src');
+							var tracerPath = currentScriptPath.replace('facade.js', 'tracer.js');
+					
+							$.getScript(tracerPath)
+								.done(function () {
+									console.log('Tracer.js loaded successfully');  
+									window.exfTracer.showErrorLog(activeErrors);
+								})
+								.fail(function (jqxhr, settings, exception) {
+									console.error('Failed to load tracer script:', {
+										error: exception,
+										path: tracerPath,
+										status: jqxhr.status
+									});
+								});
+						}
 					}
 				}),
 				new sap.m.Button({
@@ -2684,33 +2533,49 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 console.error = function (...args) {
 	originalConsoleError.apply(console, args);
 
-	let errorMessage = args.map(arg => {
-		if (arg instanceof Error) {
-			return arg.stack || arg.message;
-		} else if (typeof arg === 'object') {
-			return JSON.stringify(arg);
-		} else {
-			return String(arg);
-		}
-	}).join(' ');
+    // Initialize arrays if undefined
+    window.capturedErrors = window.capturedErrors || [];
+    exfLauncher.dismissedErrors = exfLauncher.dismissedErrors || new Set();
 
-	const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
+    let errorMessage = args.map(arg => {
+        if (arg instanceof Error) {
+            return arg.stack || arg.message;
+        } else if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg);
+            } catch (e) {
+                return String(arg);
+            }
+        } else {
+            return String(arg);
+        }
+    }).join(' ');
 
-	if (exfLauncher.contextBar.traceJs && !shouldIgnore && !exfLauncher.dismissedErrors.has(errorMessage)) {
-		const errorDetails = {
-			message: errorMessage,
-			timestamp: new Date().toISOString(),
-			url: window.location.href,
-			stack: new Error().stack
-		};
+    const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
 
-		capturedErrors.push(errorDetails);
+    if (exfLauncher.contextBar.traceJs && !shouldIgnore && 
+        !exfLauncher.dismissedErrors.has(errorMessage)) {
+        
+        const errorDetails = {
+            message: errorMessage,
+            timestamp: new Date().toISOString(),
+            url: window.location.href,
+            stack: new Error().stack
+        };
 
-		// Show or update the popover
-		if (typeof exfLauncher !== 'undefined' && typeof exfLauncher.showErrorPopover === 'function') {
-			exfLauncher.showErrorPopover(errorMessage);
-		}
-	}
+        console.log('Capturing error:', errorDetails); // Debug için
+        window.capturedErrors.push(errorDetails);
+
+        // Show error popover
+        if (typeof exfLauncher !== 'undefined' && 
+            typeof exfLauncher.showErrorPopover === 'function') {
+            try {
+                exfLauncher.showErrorPopover(errorMessage);
+            } catch (e) {
+                console.error('Error showing popover:', e);
+            }
+        }
+    }
 };
 
 
@@ -2720,20 +2585,18 @@ var existingOnload = window.onload;
 
 // Define the new window.onload function
 window.onload = function () {
-	// If there is an existing onload function, call it
 	if (typeof existingOnload === 'function') {
-		existingOnload();
-	}
+        existingOnload();
+    }
 
-	// Clear the error list (Step 5)
-	capturedErrors = [];
+    // Initialize/clear error list
+    window.capturedErrors = [];
 
-	// After the page has finished loading, check the error count and show toast message (Step 6)
-	setTimeout(function () {
-		if (capturedErrors.length > 0) {
-			exfLauncher.showMessageToast(capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
-		}
-	}, 1000); // 1 second delay to ensure the page has fully loaded
+    setTimeout(function () {
+        if (window.capturedErrors.length > 0) {
+            exfLauncher.showMessageToast(window.capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
+        }
+    }, 1000);
 };
 window['exfLauncher'] = exfLauncher;
 //v1 
