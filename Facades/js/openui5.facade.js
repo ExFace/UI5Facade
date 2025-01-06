@@ -1777,7 +1777,8 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
+													// return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');--> 2025-01-00606 13:53:48.627  day is in wrong format
+													return sap.ui.core.format.DateFormat.getDateTimeInstance({pattern: 'yyyy-MM-dd HH:mm'}).format(new Date(sTime));
 												}
 											}
 										}),
@@ -1909,7 +1910,8 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return exfTools.date.format(new Date(sTime), 'YYYY-MM-DD HH:mm:ss.SSS');
+													// return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');--> 2025-01-00606 13:53:48.627  day is in wrong format
+													return sap.ui.core.format.DateFormat.getDateTimeInstance({pattern: 'yyyy-MM-dd HH:mm:ss.SSS'}).format(new Date(sTime));
 												}
 											}
 										}),
