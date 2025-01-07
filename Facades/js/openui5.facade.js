@@ -558,6 +558,9 @@ const exfLauncher = {};
 					// a single variable could be used if both will always have the same value.
 				}
 			}
+		},
+		storageQuota: {
+			speedHistoryLength: 3 * 60 * 1000,  // 3-minute for performance average duration value
 		}
 	};
 
@@ -1135,15 +1138,15 @@ const exfLauncher = {};
 				// Calculate actual average speed from recent API calls
 				let fCustomSpeed = await updateSpeedHistory();
 				const customSpeedAvarageLabel = fCustomSpeed ?
-					`${fCustomSpeed.toFixed(2)} Mbps` : '-';
-				const customSpeedTier = oCalculator.calculateSpeedTier(fCustomSpeed);
+					`${fCustomSpeed.toFixed(2)} Second` : '-';
+				// const customSpeedTier = oCalculator.calculateSpeedTier(fCustomSpeed);
 
 				return {
 					avarageSpeed,
 					speedTier,
 					customSpeed: fCustomSpeed,
-					customSpeedAvarageLabel,
-					customSpeedTier
+					customSpeedAvarageLabel
+					// ,					customSpeedTier
 				};
 			},
 			calculateSpeedTier: function (speedMbps) {
@@ -1206,8 +1209,8 @@ const exfLauncher = {};
 			avarageSpeed,
 			speedTier,
 			customSpeed,
-			customSpeedAvarageLabel,
-			customSpeedTier
+			customSpeedAvarageLabel
+			// ,			customSpeedTier
 		} = oCalculator.calculateSpeed();
 
 		const oBrowserCurrentSpeedTierItem = new sap.m.DisplayListItem('browser_speed_tier_display', {
@@ -1220,10 +1223,10 @@ const exfLauncher = {};
 			value: avarageSpeed,
 		});
 
-		const oCustomCurrentSpeedTierItem = new sap.m.DisplayListItem('custom_speed_tier_display', {
-			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM}",
-			value: customSpeedTier,
-		});
+		// const oCustomCurrentSpeedTierItem = new sap.m.DisplayListItem('custom_speed_tier_display', {
+		// 	label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM}",
+		// 	value: customSpeedTier,
+		// });
 
 		const oCustomCurrentSpeedItem = new sap.m.DisplayListItem('custom_speed_display', {
 			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_CUSTOM}",
@@ -1306,15 +1309,15 @@ const exfLauncher = {};
 			// Get references to display elements
 			const oBrowserSpeedTierDisplay = sap.ui.getCore().byId('browser_speed_tier_display');
 			const oBrowserSpeedDisplay = sap.ui.getCore().byId('browser_speed_display');
-			const oCustomSpeedTierDisplay = sap.ui.getCore().byId('custom_speed_tier_display');
+			// const oCustomSpeedTierDisplay = sap.ui.getCore().byId('custom_speed_tier_display');
 			const oCustomSpeedDisplay = sap.ui.getCore().byId('custom_speed_display');
 
 			// Calculate new speed values
 			const {
 				avarageSpeed,
 				speedTier,
-				customSpeedAvarageLabel,
-				customSpeedTier
+				customSpeedAvarageLabel
+				// ,				customSpeedTier
 			} = await oCalculator.calculateSpeed();
 
 			// Update UI elements with null checks
@@ -1324,15 +1327,15 @@ const exfLauncher = {};
 			if (oBrowserSpeedDisplay) {
 				oBrowserSpeedDisplay.setValue(avarageSpeed);
 			}
-			if (oCustomSpeedTierDisplay) {
-				oCustomSpeedTierDisplay.setValue(customSpeedTier);
-			}
+			// if (oCustomSpeedTierDisplay) {
+			// 	oCustomSpeedTierDisplay.setValue(customSpeedTier);
+			// }
 			if (oCustomSpeedDisplay) {
 				oCustomSpeedDisplay.setValue(customSpeedAvarageLabel);
 			}
 		}, 5000);
 
-		//1
+		//2
 		[
 			new sap.m.GroupHeaderListItem({
 				title: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TITLE}",
@@ -1340,7 +1343,7 @@ const exfLauncher = {};
 			}),
 			oBrowserCurrentSpeedTierItem,
 			oBrowserCurrentSpeedItem,
-			oCustomCurrentSpeedTierItem,
+			// oCustomCurrentSpeedTierItem,
 			oCustomCurrentSpeedItem,
 			new sap.m.GroupHeaderListItem({
 				title: "{i18n>WEBAPP.SHELL.NETWORK_HEALTH}",
@@ -1511,8 +1514,11 @@ const exfLauncher = {};
 	 * @returns {Promise<number>} Average speed in Mbps
 	 */
 	function updateSpeedHistory() {
-		// Calculate timestamp for 3 minutes ago
-		const iThreeMinutesAgo = Date.now() - (3 * 60 * 1000);
+
+		const iSpeedHistoryLength = _oConfig.storageQuota.speedHistoryLength;
+		// Calculate timestamp for "iSpeedHistoryLength" minutes ago
+		const iThreeMinutesAgo = Date.now() - iSpeedHistoryLength;
+		
 
 		return exfPWA.network.getAllStats()
 			.then(aStats => {
@@ -1526,7 +1532,7 @@ const exfLauncher = {};
 				// Calculate average speed if we have data
 				if (aRecentStats.length > 0) {
 					const fAverageSpeed = aRecentStats.reduce((fSum, oStat) =>
-						fSum + (oStat.speed || 0), 0) / aRecentStats.length;
+						fSum + (oStat.network_duration || 0), 0) / aRecentStats.length;
 
 					// // Update speed history array
 					// _speedHistory.push(fAverageSpeed);

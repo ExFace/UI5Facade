@@ -106,7 +106,7 @@
 	"WEBAPP.SHELL.NETWORK_AUTOMATIC_OFFLINE": "Automatic Offline",
 	"WEBAPP.SHELL.NETWORK_SPEED": "Network Speed (Browser API)",
 	"WEBAPP.SHELL.NETWORK_SPEED_TIER": "Speed Tier (Browser API)",
-	"WEBAPP.SHELL.NETWORK_SPEED_CUSTOM": "Network Speed (Custom API)",
+	"WEBAPP.SHELL.NETWORK_SPEED_CUSTOM": "Network Duration (Custom API)",
 	"WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM": "Speed Tier (Custom API)",
 	"WEBAPP.SHELL.NETWORK_HEALTH": "Network Health",
 	"WEBAPP.SHELL.NETWORK_SPEED_TITLE": "Internet Speed Measurements",
