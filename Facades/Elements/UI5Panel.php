@@ -431,9 +431,9 @@ JS;
             $required = true;
             $containsInput = false;
             foreach ($widgets as $widget) {
-                if ($widget instanceof iTakeInput) {
+                if (($widget instanceof iTakeInput) && $widget->isHidden() === false) {
                     $containsInput = true;
-                    if ($widget->isRequired() === false && $widget->isHidden() === false) {
+                    if ($widget->isRequired() === false) {
                         $required = false;
                         break;
                     }
