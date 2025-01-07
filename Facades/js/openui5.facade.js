@@ -711,7 +711,7 @@ const exfLauncher = {};
 				console.debug('Network State Partial Update:', {
 					path: sPath,
 					update: oUpdateObj,
-					timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+					timestamp: exfTools.date.format(new Date(), 'yyyy-MM-dd HH:mm:ss.SSS')
 				});
 
 				// Update network state through PWA manager
@@ -724,7 +724,7 @@ const exfLauncher = {};
 						console.error('Failed to update network state:', {
 							error: oError,
 							update: oUpdateObj,
-							timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+							timestamp: exfTools.date.format(new Date(), 'yyyy-MM-dd HH:mm:ss.SSS')
 						});
 					});
 			}
@@ -1783,8 +1783,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													// return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');--> 2025-01-00606 13:53:48.627  day is in wrong format
-													return sap.ui.core.format.DateFormat.getDateTimeInstance({pattern: 'yyyy-MM-dd HH:mm'}).format(new Date(sTime));
+													return exfTools.date.format(sTime, 'yyyy-MM-dd HH:mm:ss.SSS');
 												}
 											}
 										}),
@@ -1916,8 +1915,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													// return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');--> 2025-01-00606 13:53:48.627  day is in wrong format
-													return sap.ui.core.format.DateFormat.getDateTimeInstance({pattern: 'yyyy-MM-dd HH:mm:ss.SSS'}).format(new Date(sTime));
+													return exfTools.date.format(sTime, 'yyyy-MM-dd HH:mm:ss.SSS');
 												}
 											}
 										}),
