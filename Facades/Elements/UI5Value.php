@@ -50,7 +50,7 @@ class UI5Value extends UI5AbstractElement implements UI5ValueBindingInterface, U
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        return $this->buildJsConstructorForMainControl($oControllerJs);
+        return $this->buildJsConstructorForMainControl($oControllerJs) . $this->buildJsAddCssWidgetClasses();
     }
     
     /**
@@ -140,6 +140,9 @@ JS;
             return $this->buildJsConstructorForLabel() . $element_constructor;
         } else {
             $layout = $this->getRenderCaptionAsLayoutType() === self::LABEL_FLEXBOX_HORIZONTAL ? 'HorizontalLayout' : 'VerticalLayout';
+            // Give the label a custom CSS class, that includes the widget type - to be able to fix CSS issues with certain
+            // widgets
+            $cssWidgetClass = 'exf-label-for-' . mb_strtolower($this->getWidget()->getWidgetType());
             return <<<JS
 
 new sap.ui.layout.{$layout}({
@@ -147,7 +150,7 @@ new sap.ui.layout.{$layout}({
         {$this->buildJsConstructorForLabel()}
         {$element_constructor}
     ]
-}).addStyleClass('exf-label-{$this->getRenderCaptionAsLayoutType()}')
+}).addStyleClass('exf-label-{$this->getRenderCaptionAsLayoutType()} {$cssWidgetClass}')
 JS;
         }
     }
@@ -648,6 +651,9 @@ JS;
 
         return <<<JS
 (function(bVisible, oCtrl){
+    if (oCtrl === undefined) {
+        return;
+    }
     if (oCtrl.getParent().getMetadata().getName() == 'sap.ui.layout.form.FormElement') {
         if (bVisible === oCtrl.getParent().getVisible()) {
             return;
@@ -655,14 +661,15 @@ JS;
         
         oCtrl.getParent().setVisible(bVisible);
     } else {
+        {$disableContainerJs}
+        {$showHideLabelJs}
+        
         if (bVisible === oCtrl.getVisible()) {
             return;
         }
         oCtrl.setVisible(bVisible);
-        
-{$disableContainerJs}
-{$showHideLabelJs}
     }
+    
     oCtrl.$()?.trigger('visibleChange', [{visible: bVisible}]);
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
 JS;

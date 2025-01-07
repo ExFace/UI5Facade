@@ -5,8 +5,8 @@ use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
-use exface\Core\Widgets\Data;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\DataTypes\ComparatorDataType;
 
@@ -93,6 +93,9 @@ class UI5DataConfigurator extends UI5Tabs
         
         $dataElement = $this->getDataElement();
         if ($dataElement instanceof UI5DataTable) {
+            // Need to add a controller variable here because the configurator constructor is
+            // rendered BEFORE the constrcutor of the table.
+            $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -430,8 +433,16 @@ JS;
     protected function buildJsonModelForColumns() : string
     {
         $data = [];
+        $widget = $this->getWidget();
+
         if ($this->hasTabColumns() === true) {
-            foreach ($this->getWidget()->getDataWidget()->getColumns() as $col) {
+            $cols = $widget->getDataWidget()->getColumns();
+            // Add all optional columns from the configurator here. This will automatically
+            // make them filterable in the search-tab!
+            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+                $cols = array_merge($cols, $widget->getOptionalColumns());
+            }
+            foreach ($cols as $col) {
                 $data[] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "column_id" => $this->getFacade()->getElement($col)->getId(),
@@ -452,9 +463,10 @@ JS;
      */
     protected function buildJsonModelForSortables() : string
     {
+        $widget = $this->getWidget();
         $data = [];
         $sorters = [];
-        $table = $this->getWidget()->getDataWidget();
+        $table = $widget->getDataWidget();
         foreach ($table->getSorters() as $sorter) {
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
@@ -462,7 +474,12 @@ JS;
                 "caption" => $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName()
             ];
         }
-        foreach ($table->getColumns() as $col) {
+        $cols = $table->getColumns();
+        // Also add all optional columns from the configurator - if they are sortable, of course.
+        if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+            $cols = array_merge($cols, $widget->getOptionalColumns());
+        }
+        foreach ($cols as $col) {
             if (! $col->isSortable()) {
                 continue;
             }
@@ -495,6 +512,21 @@ JS;
             }
         }
         return $filters . $filters_hidden;
+    }
+
+    /**
+     * Returns the constructors for messages for this configurator (delimited AND ending with a comma)
+     * 
+     * @param string $oControllerJs
+     * @return string
+     */
+    public function buildJsMessages(string $oControllerJs = 'oController') : string
+    {
+        $js = '';
+        foreach ($this->getWidget()->getMessageList()->getMessages() as $msgWidget) {
+            $js .= $this->getFacade()->getElement($msgWidget)->buildJsConstructor($oControllerJs) . '.removeStyleClass("sapUiResponsiveMargin").addStyleClass("sapUiSmallMargin"),' . PHP_EOL;
+        }
+        return $js;
     }
     
     /**

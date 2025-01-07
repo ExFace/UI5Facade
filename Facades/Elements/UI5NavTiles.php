@@ -137,7 +137,7 @@ JS;
     protected function hasIconTabBar() : bool
     {
         //return $this->getWidget()->getDepth() > 1;
-        return true;
+        return false;
     }
     
     /**

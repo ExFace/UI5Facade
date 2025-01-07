@@ -91,9 +91,8 @@
 				sap.ui.require([
 					"sap/ui/unified/Shell",
 					"sap/ui/core/ComponentContainer",
-					"sap/f/Avatar",
 					"sap/tnt/NavigationList"
-				], function (Shell, ComponentContainer, Avatar, NavigationList) {
+				], function (Shell, ComponentContainer, NavigationList) {
 					var oShell = exfLauncher.initShell();
 					oShell.addContent(
 			    		new sap.ui.core.ComponentContainer({
@@ -111,22 +110,28 @@
 				    );
 					
 					initMainMenu(oShell);
+
+					oShell.getModel().setProperty('/_app', {
+						home_title: '[#~page:name#]',
+						home_url: './',
+						app_url: '[#~page:url#]'
+					});
+					
+					oShell.placeAt("[#~page:alias#]");
 					
 					setTimeout(function(){
-						oShell.getModel().setProperty('/_app', {
-							home_title: '[#~page:name#]',
-							home_url: './',
-							app_url: '[#~page:url#]'
-						});
-						
-						oShell.placeAt("[#~page:alias#]");
+						$('#exf-loader').hide();
 					}, 1000);
 				});
 			});
 		</script>
 		
 	</head>
-	<body id="[#~page:alias#]" class="[#ui5:density_body_class#]">
-		<div id="exf-loader" style="width: 100%; height: 100vh; background: white; position: absolute;"><div id="exf-loader-spinner"></div></div>
+	<body class="[#ui5:density_body_class#]">
+		<div id="exf-announcements"></div>
+		<div id="[#~page:alias#]" class="exf-launcher"></div>
+		<div id="exf-loader">
+			<div id="exf-loader-spinner"></div>
+		</div>
 	</body>
 </html>

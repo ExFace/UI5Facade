@@ -588,8 +588,12 @@ JS;
         
         // Append the object name to the caption unless
         // - The dialog has a custom caption (= not qual to the button caption)
-        // - The caption is the same as the object name (would look stupid then)
-        return $caption === $objectName || $caption !== $buttonCaption ? $caption : $caption . ': ' . $objectName;
+        // - The object name is already part of the caption (having it there twice would look stupid)
+        $buttonHasCustomCaption = $caption !== $buttonCaption;
+        if (! $buttonHasCustomCaption && mb_stripos($caption, $objectName) === false) {
+            $caption .= ': ' . $objectName;
+        }
+        return $caption;
     }
     
     /**
@@ -1156,6 +1160,6 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        return $this->getController()->getView()->buildJsViewGetter($this) . ".setData({});";
+        return $this->getController()->getView()->buildJsViewGetter($this) . ".getModel().setData({});";
     }
 }
