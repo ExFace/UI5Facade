@@ -340,24 +340,24 @@ JS;
     
     protected function buildJsConstructorFormGroup(array $widgets, WidgetInterface $containerWidget = null) : string
     {
-        $js = '';
+        $constructors = [];
+        $groupWidgets = [];
         $nonGroupWidgets = [];
         $hiddenWidgets = [];
 
         foreach ($widgets as $widget) {
             if ($widget instanceof WidgetGroup || $widget instanceof iFillEntireContainer) {
-                
+                $groupWidgets[] = $widget;
+
                 if (! empty($nonGroupWidgets)) {
-                    $js .= $js !== '' ? ",\n" : '';
-                    $js .= $this->buildJsConstructorFormContainer($nonGroupWidgets, $containerWidget);
+                    $constructors[] = $this->buildJsConstructorFormContainer($nonGroupWidgets, $containerWidget);
                     $nonGroupWidgets = [];
                 }
                 
-                $js .= $js !== '' ? ",\n" : '';
                 if ($widget instanceof WidgetGroup) {
-                    $js .= $this->buildJsConstructorFormGroup($widget->getWidgets(), $widget);
+                    $constructors[] = $this->buildJsConstructorFormGroup($widget->getWidgets(), $widget);
                 } else {
-                    $js .= $this->buildJsConstructorFormContainer([$widget], $containerWidget);
+                    $constructors[] = $this->buildJsConstructorFormContainer([$widget], $containerWidget);
                 }
             } else {
                 if ($widget->isHidden()) {
@@ -367,14 +367,33 @@ JS;
                 }
             }            
         }
-        $js .= $js !== '' ? ",\n" : '';
         $nonGroupWidgets = array_merge($nonGroupWidgets, $hiddenWidgets);
         
         if (! empty($nonGroupWidgets)) {
-            $js .= $this->buildJsConstructorFormContainer($nonGroupWidgets, $containerWidget);
+            $constructors[] = $this->buildJsConstructorFormContainer($nonGroupWidgets, $containerWidget);
+        }
+
+        // If we are on top level AND there is only one inner widget, it will be stretched accross the entire
+        // grid by default. To avoid this, we need at least one more (empty) FormContainer.
+        if (count($constructors) === 1 && ($containerWidget === null || $containerWidget === $this->getWidget())) {
+            $groupWidth = null;
+            switch (true) {
+                case ! empty($groupWidgets):
+                    if ($groupWidgets[0]->getWidth()->isRelative() || $groupWidgets[0]->getWidth()->isUndefined()) {
+                        $groupWidth = $groupWidgets[0]->getWidth()->getValue() ?? 1;
+                    }
+                    break;
+                case ! empty($nonGroupWidgets):
+                    $groupWidth = 1;
+                    break;
+            }
+            $gridCols = $this->getNumberOfColumns();
+            if ($groupWidth !== null && $groupWidth < $gridCols) {
+                $constructors[] = "new sap.ui.layout.form.FormContainer()";
+            }
         }
         
-        return $js;
+        return implode(",\n", $constructors);
     }
     
     protected function buildJsConstructorFormContainer(array $widgets, WidgetInterface $containerWidget = null) : string
