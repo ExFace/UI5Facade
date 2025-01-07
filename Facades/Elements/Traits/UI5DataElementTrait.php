@@ -646,7 +646,6 @@ if (isNaN(jqFullscreenContainer.css('z-index'))) {
     //get the maximum z-index of parent elements of the data element
     while (parent.length !== 0 && parent[0].tagName !== "BODY") {
         iZIndex = parseInt(parent.css("z-index"));
-        
         if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
             iMaxZIndex = iZIndex;
         }    
@@ -654,12 +653,16 @@ if (isNaN(jqFullscreenContainer.css('z-index'))) {
     }
 
     //check if the currently found maximum z-index is bigger than the z-index of the app header 
-    var jqHeaderElement = $('.sapUiUfdShellHead');
-    iZIndex = parseInt(jqHeaderElement.css("z-index"));
-    if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
-        iMaxZIndex = iZIndex;
-    }
-    
+    ([
+        '.sapUiUfdShellHead',
+        '.sapUiUfdShell .sapUiUfdShellBrand'
+    ]).forEach(function(sSelector){
+        var jqEl = $(sSelector);
+        var iZIndex = jqEl.length > 0 ? parseInt(jqEl.css("z-index")) : null;
+        if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
+            iMaxZIndex = iZIndex;
+        }    
+    });    
     iMaxZIndex = iMaxZIndex + 1;
     jqFullscreenContainer.css('z-index', iMaxZIndex);
 }
