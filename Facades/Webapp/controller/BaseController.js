@@ -218,30 +218,6 @@ sap.ui.define([
 			}
 		},
 		
-		showWarningAboutUnsavedChanges : function(fnDiscard) {
-			var oDialog = new sap.m.Dialog({
-				type: sap.m.DialogType.Message,
-				title: "{i18n>MESSAGE.DISCARD_CHANGES.TITLE}",
-				content: new sap.m.Text({ text: "{i18n>MESSAGE.DISCARD_CHANGES.TEXT}" }),
-				beginButton: new sap.m.Button({
-					type: sap.m.ButtonType.Emphasized,
-					text: "{i18n>MESSAGE.DISCARD_CHANGES.DISCARD}",
-					press: function () {
-						oDialog.close().destroy();
-						fnDiscard()
-					}.bind(this)
-				}),
-				endButton: new sap.m.Button({
-					text: "{i18n>COMMON.CANCEL}",
-					press: function () {
-						oDialog.close().destroy();
-					}.bind(this)
-				})
-			})
-			.setModel(this.getNavContainer().getModel('i18n'), 'i18n');
-			oDialog.open();
-		},
-		
 		/**
 		 * Produces a string to be used as route parameter from a given object.
 		 * @param Object oParams

@@ -23,9 +23,19 @@
 	"MESSAGE.TYPE.ERROR": "Error",
 	"MESSAGE.TYPE.WARNING": "Warning",
 	"MESSAGE.TYPE.INFO": "Info",
-	"MESSAGE.DISCARD_CHANGES.TITLE": "Discard changes?",
-	"MESSAGE.DISCARD_CHANGES.TEXT": "There seem to be unsaved changes here. If you navigate away, they will be lost.",
-	"MESSAGE.DISCARD_CHANGES.DISCARD": "Discard changes",
+	"MESSAGE.CANCEL": "Cancel",
+
+	"MESSAGE.CONFIRM.CHANGES.TITLE": "Discard changes?",
+	"MESSAGE.CONFIRM.CHANGES.TEXT": "There seem to be unsaved changes here. If you navigate away, they will be lost.",
+	"MESSAGE.CONFIRM.CHANGES.CONFIRM": "Discard changes",
+
+	"MESSAGE.CONFIRM.ACTION.TITLE": "Confirmation required",
+	"MESSAGE.CONFIRM.ACTION.TEXT": "Please confirm that you wish to proceed with this action.",
+	"MESSAGE.CONFIRM.ACTION.CONFIRM": "Confirm",
+
+	"MESSAGE.CONFIRM.DELETE.TITLE": "Delete item",
+	"MESSAGE.CONFIRM.DELETE.TEXT": "Do you really want to delete this item?.",
+	"MESSAGE.CONFIRM.DELETE.CONFIRM": "Delete",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "Invalid Route",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Page not found!",

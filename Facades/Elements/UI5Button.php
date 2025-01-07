@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Communication\UserConfirmations\ConfirmationForUnsavedChanges;
 use exface\Core\Widgets\ContextBar;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -296,15 +297,6 @@ JS;
         } else {
             $closeDialogJs = '';
         }
-
-        $checkChangesJs = '';
-        if ($this->isCheckForUnsavedChangesRequired()) {
-            $checkChangesJs = <<<JS
-                        if(true === {$this->getInputElement()->buildJsCheckForUnsavedChanges(true, 'fnAction')}) {
-                            return;
-                        }
-JS;
-        }
         
         // Build the AJAX request
         $js = <<<JS
@@ -471,22 +463,8 @@ JS;
                         
 JS;
         }
-        
-        // Place the code for the action in a callable. Perform confirmation checks, etc. and
-        // call the code at the very end giving the checks the possibility to cancel the whole
-        // thing.
-        // TODO #confirmation move this to JqueryButtonTrait!
-        return <<<JS
-                    
-                    var fnAction = function() {
-                        $js
-                    };
 
-                    {$checkChangesJs}
-
-                    fnAction();
-
-JS;
+        return $js;
     }
     
     protected function buildJsOpenDialogForUnexpectedView(string $oViewContent) : string
@@ -586,7 +564,7 @@ JS;
     {
         $widget = $this->getWidget();
         if (($widget instanceof DialogButton) && $widget->getCloseDialogAfterActionSucceeds()) {
-            $checkChanges = $checkChanges ?? $this->isCheckForUnsavedChangesRequired();
+            $checkChanges = $checkChanges ?? ConfirmationForUnsavedChanges::isRequiredWithoutActionReference();
             return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog($checkChanges);
         }
         return '';

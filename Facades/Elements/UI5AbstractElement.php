@@ -42,7 +42,7 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     private $controller = null;
     
     private $layoutData = null;
-    
+
     /**
      * 
      * {@inheritDoc}
@@ -821,74 +821,75 @@ JS;
     }
 
     /**
-     * Returns an inline JS snippet (without ending `;`) that shows a warning there are unsaved changes or returns FALSE otherwise.
-     * 
-     * This can be easily used in if-statements. To check if there are unsaved changes do:
-     * 
-     * ```javascript
-     * if ({$element->buildJsHasUnsavedChanges()} === true) {
-     *  // show error
-     * } else {
-     *  // everything is fine
-     * }
-     * 
-     * ```
-     * 
-     * Or to show a user warning, where the user can pick from "discard and continue" or "cancel"
-     * 
-     * ```javascript
-     * var fnAction = function() {
-     *  // do something here
-     * }
-     * if ({$element->buildJsHasUnsavedChanges('fnAction')} === false) {
-     *  fnAction();
-     * }
-     * 
-     * ```
-     * 
-     * @param string $fnOnDiscardJs
-     * @return string
+     * @inheritDoc
      */
-    public function buildJsCheckForUnsavedChanges(bool $showWarning = true, string $fnOnDiscardJs = '') : string
+    public function buildJsCheckForUnsavedChanges() : string
     {
         // only do the check if the controller of the element is actually initialized
         // for the Buttons opening HelpDialog, the NotificationDialog etc. in the UI5 header toolbar
-        //the input element controller is not initalized or there is none
+        //the input element controller is not initialized or there is none
         try {
             $controller = $this->getController();
         } catch (FacadeRuntimeError $e) {
-            return <<<JS
-            
-                    (function(fnDiscardAndContinue){
-                        return false;
-                    })({$fnOnDiscardJs})
-JS;
+            return 'false';
         }
-        
-        $showWarningJs = $showWarning === false ? '' : "{$controller->buildJsControllerGetter($this)}.showWarningAboutUnsavedChanges(fnDiscardAndContinue)";
+
         return <<<JS
 
-                    (function(fnDiscardAndContinue){
-                        var aChanges = {$this->buildJsChangesGetter()};
-                        // Ignore changes in invisible controls because the user does not see them!
-                        aChanges = aChanges.filter(function(oChange) {
-                            var oCtrl;
-                            if (! oChange.elementId) return true;
-                            oCtrl = sap.ui.getCore().byId(oChange.elementId);
-                            if (oCtrl && oCtrl.getVisible !== undefined) {
-                                return oCtrl.getVisible();
-                            }
-                            return true;
-                        });
-                        if (aChanges.length > 0) {
-                            {$showWarningJs};
-                            return true;
-                        }
-                        return false;
-                    })({$fnOnDiscardJs})
+(function(){
+    var aChanges = {$this->buildJsChangesGetter()};
+    // Ignore changes in invisible controls because the user does not see them!
+    aChanges = aChanges.filter(function(oChange) {
+        var oCtrl;
+        if (! oChange.elementId) return true;
+        oCtrl = sap.ui.getCore().byId(oChange.elementId);
+        if (oCtrl && oCtrl.getVisible !== undefined) {
+            return oCtrl.getVisible();
+        }
+        return true;
+    });
+    
+    return aChanges.length > 0;
+})()
 JS;
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function buildJsAskForConfirmationDialog( array $translationTokens, string $fnConfirm = '') : string
+    {
+        return <<<JS
+
+(function(fnConfirm){
+    var oController = {$this->getController()->buildJsControllerGetter($this)};
+    var oDialog = new sap.m.Dialog({
+        type: sap.m.DialogType.Message,
+        title: "{i18n>{$translationTokens['title']}}",
+        content: new sap.m.Text({ text: "{i18n>{$translationTokens['content']}}" }),
+        beginButton: new sap.m.Button({
+            type: sap.m.ButtonType.Emphasized,
+            text: "{i18n>{$translationTokens['confirm']}}",
+            press: function () {
+                oDialog.close().destroy();
+                fnConfirm();
+            }.bind(oController)
+        }),
+        endButton: new sap.m.Button({
+            text: "{i18n>{$translationTokens['cancel']}}",
+            press: function () {
+                oDialog.close().destroy();
+            }.bind(oController)
+        })
+    })
+    .setModel(oController.getNavContainer().getModel('i18n'), 'i18n');
+
+    oDialog.open();
+    return true;
+})({$fnConfirm})
+JS;
+    }
+
     /**
      *
      * {@inheritDoc}
