@@ -586,7 +586,7 @@ JS;
                             content: [
                         	    {$element->buildJsConstructor()}
                             ]
-                        }),
+                        }).addStyleClass('{$element->buildCssWidgetClass()}'),
                         
 JS;
     }
