@@ -1,3 +1,5 @@
+//ignoredErrorPatterns
+
 // Store the original console.error function
 const originalConsoleError = console.error;
 
@@ -5,12 +7,140 @@ const originalConsoleError = console.error;
 window.capturedErrors = [];
 let capturedErrors = [];
 
-// Regex patterns for errors to ignore
-const ignoredErrorPatterns = [
-	// /Assertion failed: could not find any translatable text for key/i,
-	// /The target you tried to get .* does not exist!/i,
-	// /EventProvider sap\.m\.routing\.Targets/i,
-	// /Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i
+/**
+ * Error Pattern Management System
+ * 
+ * A comprehensive system for managing and persisting error filtering patterns.
+ * This implementation provides:
+ * - Configurable error patterns with persistence
+ * - User interface for pattern management
+ * - Automatic state restoration on page load
+ * 
+ * Usage:
+ * - Patterns can be enabled/disabled through UI
+ * - States persist across page reloads
+ * - Active patterns filter out matching errors from the error log
+ */
+
+/**
+ * Storage utility for error pattern configuration
+ * Provides methods to save and load pattern states using localStorage
+ * 
+ * Implementation details:
+ * - Uses localStorage for persistence
+ * - Only stores essential data (description and active state)
+ * - Handles storage errors gracefully
+ * - Provides debug logging for troubleshooting
+ */
+const oErrorPatternStorage = {
+	// Key used for localStorage entries
+	STORAGE_KEY: 'errorPatternConfig',
+
+	/**
+	 * Saves current pattern configurations to localStorage
+	 * 
+	 * @description
+	 * Converts pattern objects to a simplified format for storage:
+	 * - Excludes RegExp objects which can't be serialized
+	 * - Only stores description and active state
+	 * - Provides error handling and debug logging
+	 */
+	savePatternStates: function () {
+		try {
+			// Create simplified objects for storage
+			const aPatternStates = aConfigurableErrorPatterns.map(oPattern => ({
+				description: oPattern.description,
+				active: oPattern.active
+			}));
+
+			// Store in localStorage
+			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(aPatternStates));
+			console.debug('Error pattern states saved:', {
+				timestamp: new Date().toISOString(),
+				patterns: aPatternStates
+			});
+		} catch (oError) {
+			console.warn('Failed to save error pattern states:', {
+				error: oError,
+				timestamp: new Date().toISOString()
+			});
+		}
+	},
+
+	/**
+	 * Loads and applies saved pattern states from localStorage
+	 * 
+	 * @description
+	 * - Retrieves saved states from localStorage
+	 * - Matches saved states to existing patterns by description
+	 * - Updates active states of matching patterns
+	 * - Maintains pattern integrity by only updating existing patterns
+	 */
+	loadPatternStates: function () {
+		try {
+			const sSavedStates = localStorage.getItem(this.STORAGE_KEY);
+			if (sSavedStates) {
+				const aSavedStates = JSON.parse(sSavedStates);
+
+				// Update existing patterns with saved states
+				aSavedStates.forEach((oSavedPattern) => {
+					const oExistingPattern = aConfigurableErrorPatterns.find(
+						oPattern => oPattern.description === oSavedPattern.description
+					);
+					if (oExistingPattern) {
+						oExistingPattern.active = oSavedPattern.active;
+					}
+				});
+
+				console.debug('Error pattern states loaded:', {
+					timestamp: new Date().toISOString(),
+					loadedStates: aSavedStates,
+					activePatterns: aConfigurableErrorPatterns.filter(p => p.active).length
+				});
+			}
+		} catch (oError) {
+			console.warn('Failed to load error pattern states:', {
+				error: oError,
+				timestamp: new Date().toISOString()
+			});
+		}
+	}
+};
+
+/**
+ * Error Pattern Management System
+ * 
+ * A system to configure which types of errors should be collected in the error log.
+ * Each pattern has:
+ * - pattern: RegExp to match error messages
+ * - description: Human readable description of what errors to collect
+ * - active: When true, matching errors will be collected. When false, they will be ignored
+ */
+const aConfigurableErrorPatterns = [
+	{
+		pattern: /Assertion failed: could not find any translatable text for key/i,
+		description: "Translation key errors",
+		active: true,
+		category: "UI5"
+	},
+	{
+		pattern: /The target you tried to get .* does not exist!/i,
+		description: "Target not found errors",
+		active: true,
+		category: "Navigation"
+	},
+	{
+		pattern: /EventProvider sap\.m\.routing\.Targets/i,
+		description: "Event provider errors",
+		active: true,
+		category: "Events"
+	},
+	{
+		pattern: /Modules that use an anonymous define\(\) call must be loaded with a require\(\) call.*/i,
+		description: "Module loading errors",
+		active: true,
+		category: "Module Loading"
+	}
 ];
 
 
@@ -88,6 +218,13 @@ $(window).on('networkchanged', function (oEvent, oData) {
 				"WEBAPP.SHELL.NETWORK.OFFLINE";
 			try {
 				exfLauncher.showMessageToast(i18nModel.getProperty(messageKey));
+
+				// Decrease the number of background API calls - context bar oContextBar.load()
+				// Refresh context bar when transitioning to online
+				if (oChanges.browserOnline) {
+					console.debug('Refreshing context bar after going online');
+					exfLauncher.contextBar.load();
+				}
 			} catch (toastError) {
 				console.warn('Failed to show browser online/offline toast:', toastError);
 			}
@@ -128,6 +265,24 @@ $(window).on('networkchanged', function (oEvent, oData) {
 		// Update UI components with new state 
 		try {
 			exfLauncher.updateNetworkModel(oNetState);
+
+			//Decrease the number of background API calls - context bar oContextBar.load()
+			// Refresh context bar when transitioning to online state
+			// This covers both browser online state and virtual offline states
+			if (oNetState.isOnline()) {
+				const previouslyOffline = oChanges.browserOnline === true ||
+					oChanges.forcedOffline === false ||
+					(oChanges.autoOffline === false || oChanges.slowNetwork === false);
+
+				if (previouslyOffline) {
+					console.debug('Refreshing context bar after network state change:', {
+						changes: oChanges,
+						currentState: oNetState.toString()
+					});
+					exfLauncher.contextBar.load();
+				}
+			}
+
 		} catch (modelError) {
 			console.error('Failed to update network model:', modelError);
 		}
@@ -135,17 +290,34 @@ $(window).on('networkchanged', function (oEvent, oData) {
 		// Handle online-specific actions
 		if (oNetState.isOnline && oNetState.isOnline()) {
 			// Update error counters
-			const pwa = exfLauncher.contextBar.getComponent().getPWA();
-			if (pwa && typeof pwa.updateQueueCount === 'function') {
-				pwa.updateQueueCount()
-					.then(() => {
-						_oContextBar.load();
-					})
+			/**
+			 * Update queue and error counts for PWA status
+			 * I was getting this error : openui5.facade.js?v20241209112552:2522 Failed to update queue or error counts: 
+			 * 		ReferenceError: _oContextBar is not defined
+			 * 
+			 * Problem we had:
+			 * - The code was trying to use _oContextBar when it might not exist
+			 * - This caused an error when trying to update queue counts
+			 * 
+			 * Why we use Promise.all():
+			 * 1. Run both updates (queue and error counts) at the same time
+			 * 2. More efficient than running them one after another
+			 * 3. Can catch errors from both updates in one place
+			 * 4. If one update fails, we still get results from the other one
+			 * 
+			 * Example:
+			 * Without Promise.all: Update queue (wait) -> Update errors (wait) => Takes longer
+			 * With Promise.all:    Update queue + Update errors (wait once) => Faster
+			 */
+			const pwa = exfLauncher?.contextBar?.getComponent()?.getPWA();
+			if (pwa) {
+				Promise.all([
+					typeof pwa.updateQueueCount === 'function' ? pwa.updateQueueCount() : Promise.resolve(),
+					typeof pwa.updateErrorCount === 'function' ? pwa.updateErrorCount() : Promise.resolve()
+				])
 					.catch(error => {
-						console.error('Failed to update queue or error counts:', error);
+						console.warn('Failed to update queue or error counts:', error);
 					});
-			} else {
-				_oContextBar.load();
 			}
 
 			// Sync offline items if no ServiceWorker available
@@ -191,8 +363,7 @@ function syncOfflineItems() {
 		})
 };
 
-//this definition is using by network speed graph
-const SPEED_HISTORY_ARRAY_LENGTH = 10 * 60; // seconds for 10 minutes 
+
 
 const exfLauncher = {};
 (function () {
@@ -223,6 +394,16 @@ const exfLauncher = {};
 				requestContentLength = new Blob([JSON.stringify(options.data)]).size * 8;
 			}
 
+			// Extract relative URL
+			let relativeUrl = options.url;
+			try {
+				// Remove any absolute URL parts if present
+				const urlObject = new URL(options.url, window.location.origin);
+				relativeUrl = urlObject.pathname + urlObject.search;
+			} catch (e) {
+				// URL was already relative, use as is
+			}
+
 			var newOptions = $.extend({}, options, {
 				success: function (data, textStatus, jqXHR) {
 					// Record the response end time
@@ -245,36 +426,58 @@ const exfLauncher = {};
 						}
 					}
 
-					// Calculate the duration, adjusting for server processing time
-					let duration = (endTime - startTime - serverTimingValue) / 1000; // Convert to seconds
+					// Calculate total duration (includes server processing time)
+					// Calculate network-only duration (excludes server processing) 
+					// Timing calculation with validation - changed the logic because at old version i saw - values a few times
+					let totalDuration = (endTime - startTime) / 1000;
+					let networkDuration = 0;
 
-					// Retrieve the Content-Length (size) of the response
+					if (serverTimingValue && serverTimingValue > 0) {
+						networkDuration = Math.max(0, (totalDuration * 1000 - serverTimingValue) / 1000);
+					} else {
+						networkDuration = totalDuration; // If no valid server timing, use total duration
+					}
+
+					// Get response sizes
 					let responseContentLength = parseInt(jqXHR.getResponseHeader('Content-Length')) || 0;
+					let responseHeaders = jqXHR.getAllResponseHeaders();
+					let responseHeadersLength = new Blob([responseHeaders]).size * 8;
 
-					// Calculate the length of response headers
-					let responseHeaders = jqXHR.getAllResponseHeaders(); // Retrieves all response headers as a string
-					let responseHeadersLength = new Blob([responseHeaders]).size * 8; // Calculate in bits
-
-					// Calculate the total data size (request headers + request body + response headers + response body) in bits
+					// Calculate total data size in bits
 					let totalDataSize = (requestHeadersLength + requestContentLength + responseHeadersLength + responseContentLength * 8);
 
-					// Calculate internet speed in Mbps
-					let speedMbps = totalDataSize / (duration * 1000000);
+					// Calculate network speed in Mbps 
+					// Using network duration (excluding server time) for more accurate speed calculation
+					let speedMbps = totalDataSize / (networkDuration * 1000000); // Convert to Mbps
 
-					// Retrieve the Content-Type from the headers or from the contentType property
-					let requestMimeType = options.contentType || (options.headers && options.headers['Content-Type']) || 'application/x-www-form-urlencoded; charset=UTF-8';
+					// Get request MIME type
+					let requestMimeType = options.contentType ||
+						(options.headers && options.headers['Content-Type']) ||
+						'application/x-www-form-urlencoded; charset=UTF-8';
 
-					// check exfPWA library is exists
+					// Save network stats if exfPWA is available
 					if (typeof exfPWA !== 'undefined') {
 						exfPWA.network.saveStat(
-							new Date(endTime),
-							speedMbps,
-							requestMimeType,
-							totalDataSize
+							new Date(endTime),          // timestamp
+							speedMbps,                  // speed in Mbps
+							requestMimeType,            // MIME type
+							totalDataSize,              // total size in bits
+							networkDuration,            // network duration in seconds
+							totalDuration,              // total duration including server time
+							serverTimingValue,          // server processing time
+							options.type || 'GET',      // HTTP method
+							relativeUrl,                // relative URL
+							requestContentLength + requestHeadersLength,    // request size in bits (totalDataSize)
+							responseContentLength * 8 + responseHeadersLength // response size in bits
 						).then(() => {
-							//This delete code moved to exfPWA : The current cleanup in openui5 depends on the browser tab being open, which is unreliable. 
-							// Moving this process to exfPWA ensures consistent background cleanup independent of the UI state.
-							console.log("Network Stat Saved");
+							console.debug("Network Stat Saved", {
+								url: relativeUrl,
+								method: options.type || 'GET',
+								totalTime: totalDuration.toFixed(3) + 's',
+								networkTime: networkDuration.toFixed(3) + 's',
+								serverTime: (serverTimingValue / 1000).toFixed(3) + 's',
+								speed: speedMbps.toFixed(2) + ' Mbps'
+							});
 						});
 					} else {
 						console.error("exfPWA is not defined");
@@ -323,19 +526,45 @@ const exfLauncher = {};
 	var _oShell = {};
 	var _oLauncher = this;
 	var _bBusy = false;
-	var _oSpeedStatusDialogInterval
+	// Store interval ID for network speed status updates
+	// This allows us to properly cleanup when dialog closes
 
-	const _speedHistory = new Array(SPEED_HISTORY_ARRAY_LENGTH).fill(null);
+
+	/**
+	 * Global configuration object for application settings
+	 * 
+	 * @type {Object}
+	 * @property {Object} contextBar - Settings for context bar functionality
+	 * @property {Object} network - Network-related configurations
+	 */
 	var _oConfig = {
 		contextBar: {
-			refreshWaitSeconds: 5,
-			autoloadIntervalSeconds: 30
+			refreshWaitSeconds: 5,         // Wait time between context refreshes
+			autoloadIntervalSeconds: 30    // Interval for automatic context loading
 		},
 		network: {
-			slowNetworkPollIntervalSeconds: 30,
-			fastNetworkPollIntervalSeconds: 30,
+			polling: exfPWA.getConfig().network.polling, // Reference network polling settings
+			monitoring: {
+				performanceInterval: 3 * 60 * 1000,  // 3-minute interval for performance monitoring
+				historyWindow: 10 * 60 * 1000,      // 10-minute window for historical data,
+				refreshChartInterval: 5 * 1000,          // 5-second interval for graph updates
+				chart: {
+					displayMaxSeconds: 10,           // Maximum value shown on chart Y-axis
+					normalDurationSeconds: 1.5,      // Upper limit for normal performance
+					dataPointsCount: 600,            // Number of data points to show (10 minutes)
+					historyLength: 10 * 60          // Moved SPEED_HISTORY_ARRAY_LENGTH here (10 minutes in seconds) 10 min * 60 sec = 600
+					// dataPointsCount determines the number of points to show on the graph and historyLength determines the amount of data to store in memory
+					// seperating these 2 variable allowing you to store 30 minutes of data but only show the last 10 minutes with different values
+					// a single variable could be used if both will always have the same value.
+				}
+			}
+		},
+		storageQuota: {
+			speedHistoryLength: 3 * 60 * 1000,  // 3-minute for performance average duration value
 		}
 	};
+
+
 
 	// Reload context bar every X seconds
 	setInterval(function () {
@@ -426,15 +655,15 @@ const exfLauncher = {};
 
 			]
 		})
-		.setModel(new sap.ui.model.json.JSONModel({
-			_network: {
-				online: true,
-				queueCnt: 0,
-				syncErrorCnt: 0,
-				deviceId: exfPWA.getDeviceId(),
-				state: {}
-			}
-		}, true));
+			.setModel(new sap.ui.model.json.JSONModel({
+				_network: {
+					online: true,
+					queueCnt: 0,
+					syncErrorCnt: 0,
+					deviceId: exfPWA.getDeviceId(),
+					state: {}
+				}
+			}, true));
 
 		// Initialize the network model by reading the current network state from the
 		// PWA. This will put all the toggles in their correct positions.
@@ -482,7 +711,7 @@ const exfLauncher = {};
 				console.debug('Network State Partial Update:', {
 					path: sPath,
 					update: oUpdateObj,
-					timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+					timestamp: exfTools.date.format(new Date(), 'yyyy-MM-dd HH:mm:ss.SSS')
 				});
 
 				// Update network state through PWA manager
@@ -495,7 +724,7 @@ const exfLauncher = {};
 						console.error('Failed to update network state:', {
 							error: oError,
 							update: oUpdateObj,
-							timestamp: exfTools.date.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS')
+							timestamp: exfTools.date.format(new Date(), 'yyyy-MM-dd HH:mm:ss.SSS')
 						});
 					});
 			}
@@ -859,16 +1088,6 @@ const exfLauncher = {};
 		return $("meta[name='page_id']").attr("content");
 	};
 
-	this.registerNetworkSpeed = function (speedMbps) {
-		const minusOneIndex = _speedHistory.indexOf(null);
-		if (minusOneIndex !== -1) {
-			_speedHistory[minusOneIndex] = speedMbps;
-		} else {
-			_speedHistory.shift();
-			_speedHistory.push(speedMbps);
-		}
-	};
-
 	this.showMessageToast = function (message, duration) {
 		// Set default duration to 3000 milliseconds (3 seconds)
 
@@ -883,6 +1102,9 @@ const exfLauncher = {};
 			width: "20em"  // Increase the width of the message (optional)
 		});
 	};
+
+
+
 
 	/**
 	* Shows a dialog with offline storage info (quota, preload data summary, etc.)
@@ -900,28 +1122,31 @@ const exfLauncher = {};
 	*/
 	this.showStorage = async function (oEvent) {
 		const oCalculator = {
-			calculateSpeed: function () {
-				const avarageSpeed = navigator?.connection?.downlink ? `${navigator?.connection?.downlink} Mbps` : '-';
-				const speedTier = navigator?.connection?.effectiveType ? navigator?.connection?.effectiveType.toUpperCase() : '-';
+			/**
+			 * Calculates various network speed metrics
+			 * Combines browser API data with actual API call performance
+			 * 
+			 * @returns {Promise<Object>} Speed metrics including browser and custom measurements
+			 */
+			calculateSpeed: async function () {
+				// Get theoretical speed from browser's Network API
+				const avarageSpeed = navigator?.connection?.downlink ?
+					`${navigator?.connection?.downlink} Mbps` : '-';
+				const speedTier = navigator?.connection?.effectiveType ?
+					navigator?.connection?.effectiveType.toUpperCase() : '-';
 
-				let customSpeed;
-				if (_speedHistory.indexOf(null) === -1) {
-					customSpeed = _speedHistory[_speedHistory.length - 1];
-				} else if (_speedHistory.indexOf(null) === 0) {
-					customSpeed = 0;
-				} else {
-					customSpeed = _speedHistory[_speedHistory.indexOf(null) - 1];
-				}
-
-				const customSpeedAvarageLabel = customSpeed ? `${customSpeed} Mbps` : '-';
-				const customSpeedTier = oCalculator.calculateSpeedTier(customSpeed);
+				// Calculate actual average speed from recent API calls
+				let fCustomSpeed = await updateSpeedHistory();
+				const customSpeedAvarageLabel = fCustomSpeed ?
+					`${fCustomSpeed.toFixed(2)} Second` : '-';
+				// const customSpeedTier = oCalculator.calculateSpeedTier(fCustomSpeed);
 
 				return {
 					avarageSpeed,
 					speedTier,
-					customSpeed,
-					customSpeedAvarageLabel,
-					customSpeedTier
+					customSpeed: fCustomSpeed,
+					customSpeedAvarageLabel
+					// ,					customSpeedTier
 				};
 			},
 			calculateSpeedTier: function (speedMbps) {
@@ -948,6 +1173,13 @@ const exfLauncher = {};
 			}
 		};
 
+		/**
+		* _oSpeedStatusDialogInterval is used to:
+		* - Periodically update network speed metrics and chart in the dialog (every 5s)
+		* - Store the interval ID so it can be cleared when dialog closes
+		* - Prevent memory leaks by stopping updates when data isn't visible
+		*/
+		var _oSpeedStatusDialogInterval;
 		var dialog = new sap.m.Dialog({
 			title: "{i18n>WEBAPP.SHELL.NETWORK.STORAGE_HEADER}",
 			icon: "sap-icon://unwired",
@@ -968,6 +1200,40 @@ const exfLauncher = {};
 		});
 		dialog.addButton(button);
 		let list = new sap.m.List({});
+		// Display items for network speed
+		/**
+		 * Creates display items for network speed information
+		 * These will be updated in real-time while dialog is open
+		 */
+		const {
+			avarageSpeed,
+			speedTier,
+			customSpeed,
+			customSpeedAvarageLabel
+			// ,			customSpeedTier
+		} = oCalculator.calculateSpeed();
+
+		const oBrowserCurrentSpeedTierItem = new sap.m.DisplayListItem('browser_speed_tier_display', {
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER}",
+			value: speedTier,
+		});
+
+		const oBrowserCurrentSpeedItem = new sap.m.DisplayListItem('browser_speed_display', {
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED}",
+			value: avarageSpeed,
+		});
+
+		// const oCustomCurrentSpeedTierItem = new sap.m.DisplayListItem('custom_speed_tier_display', {
+		// 	label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM}",
+		// 	value: customSpeedTier,
+		// });
+
+		const oCustomCurrentSpeedItem = new sap.m.DisplayListItem('custom_speed_display', {
+			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_CUSTOM}",
+			value: customSpeedAvarageLabel,
+		});
+
+		//
 		//check if possible to acces storage (means https connection)
 		if (navigator.storage && navigator.storage.estimate) {
 			var promise = navigator.storage.estimate()
@@ -1017,61 +1283,59 @@ const exfLauncher = {};
 			await promise;
 		}
 
-		const {
-			avarageSpeed,
-			speedTier,
-			customSpeedAvarageLabel,
-			customSpeedTier
-		} = oCalculator.calculateSpeed();
-
-		/* $("#sparkline").sparkline([10.4,3,6,12,], {
-			type: 'line',
-			width: '200px',
-			height: '100px',
-			chartRangeMin: 0,
-			drawNormalOnTop: false}); */
-
-		const oBrowserCurrentSpeedTierItem = new sap.m.DisplayListItem('browser_speed_tier_display', {
-			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER}",
-			value: speedTier,
-		});
-
-		const oBrowserCurrentSpeedItem = new sap.m.DisplayListItem('browser_speed_display', {
-			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED}",
-			value: avarageSpeed,
-		});
-
-		const oCustomCurrentSpeedTierItem = new sap.m.DisplayListItem('custom_speed_tier_display', {
-			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TIER_CUSTOM}",
-			value: customSpeedTier,
-		});
-
-		const oCustomCurrentSpeedItem = new sap.m.DisplayListItem('custom_speed_display', {
-			label: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_CUSTOM}",
-			value: customSpeedAvarageLabel,
-		});
 
 		// Clearing the interval, because of this error :   browser_speed_tier_display was openui5.facade.js?v20241209112552:1088 
 		// Uncaught TypeError: Cannot read properties of undefined (reading 'setValue')
 		// We cam clear the interval or we can check if the element is exist, then we can set values 
+		/**
+		 * Setup real-time updates for network speed display
+		 * Updates will occur every second while dialog is open
+		 */
+		// Clear any existing interval before creating a new one
 		if (_oSpeedStatusDialogInterval) {
 			clearInterval(_oSpeedStatusDialogInterval);
 		}
-		_oSpeedStatusDialogInterval = setInterval(() => {
+
+		/**
+		 * Sets up periodic updates for network speed display
+		 * Updates both browser API and custom calculated speeds every second
+		 * 
+		 * Safety features:
+		 * - Null checks for UI elements
+		 * - Error handling for speed calculations
+		 * - Cleanup on dialog close
+		 */
+		_oSpeedStatusDialogInterval = setInterval(async () => {
+			// Get references to display elements
+			const oBrowserSpeedTierDisplay = sap.ui.getCore().byId('browser_speed_tier_display');
+			const oBrowserSpeedDisplay = sap.ui.getCore().byId('browser_speed_display');
+			// const oCustomSpeedTierDisplay = sap.ui.getCore().byId('custom_speed_tier_display');
+			const oCustomSpeedDisplay = sap.ui.getCore().byId('custom_speed_display');
+
+			// Calculate new speed values
 			const {
 				avarageSpeed,
 				speedTier,
-				customSpeedAvarageLabel,
-				customSpeedTier
-			} = oCalculator.calculateSpeed();
+				customSpeedAvarageLabel
+				// ,				customSpeedTier
+			} = await oCalculator.calculateSpeed();
 
-			sap.ui.getCore().byId('browser_speed_tier_display').setValue(speedTier);
-			sap.ui.getCore().byId('browser_speed_display').setValue(avarageSpeed);
-			sap.ui.getCore().byId('custom_speed_tier_display').setValue(customSpeedTier);
-			sap.ui.getCore().byId('custom_speed_display').setValue(customSpeedAvarageLabel);
-		}, 1000);
+			// Update UI elements with null checks
+			if (oBrowserSpeedTierDisplay) {
+				oBrowserSpeedTierDisplay.setValue(speedTier);
+			}
+			if (oBrowserSpeedDisplay) {
+				oBrowserSpeedDisplay.setValue(avarageSpeed);
+			}
+			// if (oCustomSpeedTierDisplay) {
+			// 	oCustomSpeedTierDisplay.setValue(customSpeedTier);
+			// }
+			if (oCustomSpeedDisplay) {
+				oCustomSpeedDisplay.setValue(customSpeedAvarageLabel);
+			}
+		}, 5000);
 
-
+		//2
 		[
 			new sap.m.GroupHeaderListItem({
 				title: "{i18n>WEBAPP.SHELL.NETWORK_SPEED_TITLE}",
@@ -1079,7 +1343,7 @@ const exfLauncher = {};
 			}),
 			oBrowserCurrentSpeedTierItem,
 			oBrowserCurrentSpeedItem,
-			oCustomCurrentSpeedTierItem,
+			// oCustomCurrentSpeedTierItem,
 			oCustomCurrentSpeedItem,
 			new sap.m.GroupHeaderListItem({
 				title: "{i18n>WEBAPP.SHELL.NETWORK_HEALTH}",
@@ -1095,6 +1359,8 @@ const exfLauncher = {};
 							const chartDiv = document.getElementById('network_speed_chart');
 							// Only update if chart is visible
 							//check element is on DOM && check element is visible
+							const _speedHistory = new Array(_oConfig.network.monitoring.chart.historyLength).fill(null);
+
 							if (chartDiv && chartDiv.offsetParent) {
 								$("#network_speed_chart").sparkline(_speedHistory, {
 									type: 'line',
@@ -1105,12 +1371,12 @@ const exfLauncher = {};
 									drawNormalOnTop: false
 								});
 								// Update network stats only when visible
-								listNetworkStats();
+								displayNetworkPerformance();
 							}
-						}, 5000);
+						}, _oConfig.network.monitoring.refreshChartInterval);
 
 						// Initial data load
-						listNetworkStats();
+						displayNetworkPerformance();
 					}
 				})
 			})
@@ -1235,6 +1501,214 @@ const exfLauncher = {};
 		return;
 	};
 
+
+	/**
+	 * Updates _speedHistory array with average network speed from last 3 minutes
+	 * 
+	 * This function:
+	 * 1. Gets network stats from last 3 minutes
+	 * 2. Filters for context API calls only
+	 * 3. Calculates average speed
+	 * //4. Updates _speedHistory array
+	 * 
+	 * @returns {Promise<number>} Average speed in Mbps
+	 */
+	function updateSpeedHistory() {
+
+		const iSpeedHistoryLength = _oConfig.storageQuota.speedHistoryLength;
+		// Calculate timestamp for "iSpeedHistoryLength" minutes ago
+		const iThreeMinutesAgo = Date.now() - iSpeedHistoryLength;
+		
+
+		return exfPWA.network.getAllStats()
+			.then(aStats => {
+				// Filter stats for last 3 minutes context API calls only
+				const aRecentStats = aStats.filter(oStat =>
+					oStat.time >= iThreeMinutesAgo &&
+					oStat.relative_url &&
+					oStat.relative_url.includes('/context')
+				);
+
+				// Calculate average speed if we have data
+				if (aRecentStats.length > 0) {
+					const fAverageSpeed = aRecentStats.reduce((fSum, oStat) =>
+						fSum + (oStat.network_duration || 0), 0) / aRecentStats.length;
+
+					// // Update speed history array
+					// _speedHistory.push(fAverageSpeed);
+					// // Maintain fixed array length
+					// if (_speedHistory.length > _oConfig.network.monitoring.chart.historyLength) {
+					// 	_speedHistory.shift();
+					// }
+
+					return fAverageSpeed;
+				}
+				return 0;
+			});
+	};
+
+	/**
+ * Network Health Performance Monitor
+ * 
+ * Real-time visualization of network performance metrics focusing on context API calls.
+ * Uses configuration from _oConfig.network.monitoring.chart for display parameters.
+ * 
+ * Features:
+ * - Dynamic line chart showing network performance over time
+ * - Color-coded performance bands based on configured thresholds
+ * - Intelligent value capping with tooltip preservation
+ * - Memory-efficient data processing
+ * 
+ * @returns {void}
+ * @throws {Error} Throws and logs errors during data processing or visualization
+ */
+	function displayNetworkPerformance() {
+		// Get chart configuration values
+		const DISPLAY_MAX = _oConfig.network.monitoring.chart.displayMaxSeconds;
+		const NORMAL_DURATION = _oConfig.network.monitoring.chart.normalDurationSeconds;
+		const DATA_POINTS = _oConfig.network.monitoring.chart.dataPointsCount;
+
+
+		// Performance optimization: Skip processing if chart isn't visible
+		// This check prevents unnecessary data processing when nobody is looking
+		const oChartElement = document.getElementById('network_speed_chart');
+		if (!oChartElement || !oChartElement.offsetParent) {
+			return;
+		}
+
+		// Fetch all network statistics from IndexedDB storage
+		exfPWA.network.getAllStats()
+			.then(aStats => {
+				// Early exit conditions
+				if (!exfPWA.isAvailable() || aStats.length === 0) {
+					console.debug('Network stats not available or empty');
+					return;
+				}
+
+				// Ensure chronological order for processing
+				aStats.sort((a, b) => a.time - b.time);
+
+				// Initialize data structures
+				const oAverageDurations = {};   // Holds durations grouped by second
+				const oRealDurations = {};      // Stores actual values (including those >2s)
+				const iCurrentSecond = Math.floor(Date.now() / 1000);  // Current time in seconds
+				const iEarliestSecond = Math.floor(aStats[0].time / 1000);
+				const iLatestSecond = Math.floor(aStats[aStats.length - 1].time / 1000);
+
+				// Log analysis range for monitoring
+				console.debug('Network Stats Analysis Range:', {
+					start: new Date(iEarliestSecond * 1000).toISOString(),
+					end: new Date(iLatestSecond * 1000).toISOString(),
+					duration: `${((iLatestSecond - iEarliestSecond) / 60).toFixed(1)} minutes`,
+					totalDataPoints: aStats.length,
+					displayMax: DISPLAY_MAX + 's',
+					normalThreshold: NORMAL_DURATION + 's'
+				});
+
+				// First data pass: Group durations by second
+				// We only process context API calls as they're our performance indicators
+				aStats.forEach(oStat => {
+					// Skip non-context requests - they're not relevant for this analysis
+					if (!oStat.relative_url || !oStat.relative_url.includes('/context')) {
+						return;
+					}
+
+					// Group durations by their second timestamp
+					const iRequestSecond = Math.floor(oStat.time / 1000);
+					if (!oAverageDurations[iRequestSecond]) {
+						oAverageDurations[iRequestSecond] = [];
+					}
+
+					// Store the network_duration (excludes server processing time)
+					if (oStat.network_duration !== undefined) {
+						oAverageDurations[iRequestSecond].push(oStat.network_duration);
+					}
+				});
+
+				// Prepare arrays for chart rendering
+				const aSparklineData = [];      // Display values (capped at DISPLAY_MAX)
+				const aSparklineTimes = [];     // Corresponding timestamps
+				const aRealValues = [];         // Actual values for tooltips
+				let fLastKnownDuration = 0;     // Used to fill gaps in data
+
+				// Second data pass: Process each second for the last 10 minutes
+				// This creates a consistent array of "DATA_POINTS.lenght" data points
+				for (let i = 0; i < DATA_POINTS; i++) {
+					const iSecond = iCurrentSecond - (DATA_POINTS - 1 - i);
+					let fDuration;          // Display value (capped)
+					let fRealDuration;      // Actual value (uncapped)
+
+					if (oAverageDurations[iSecond]) {
+						// Calculate average duration for this second
+						const aValidDurations = oAverageDurations[iSecond].filter(d => !isNaN(d));
+						if (aValidDurations.length > 0) {
+							// Calculate the true average duration
+							fRealDuration = aValidDurations.reduce((a, b) => a + b, 0) / aValidDurations.length;
+
+							// Log high values for monitoring
+							if (fRealDuration > DISPLAY_MAX) {
+								console.debug('High Network Duration:', {
+									actualValue: fRealDuration.toFixed(2) + 's',
+									displayValue: DISPLAY_MAX + 's',
+									timestamp: new Date(iSecond * 1000).toISOString(),
+									requestCount: aValidDurations.length
+								});
+							}
+
+							// Cap the display value but keep real value for tooltip
+							fDuration = Math.min(fRealDuration, DISPLAY_MAX);
+							fLastKnownDuration = fDuration;
+						} else {
+							// No valid measurements - use last known values
+							fDuration = fLastKnownDuration;
+							fRealDuration = fDuration;
+						}
+					} else {
+						// Fill gaps with last known values for smooth visualization
+						fDuration = fLastKnownDuration;
+						fRealDuration = fDuration;
+					}
+
+					// Store values and timestamp
+					aSparklineData.push(fDuration);
+					aRealValues.push(fRealDuration);
+					aSparklineTimes.push(new Date(iSecond * 1000));
+				}
+
+				// Render the sparkline chart
+				$("#network_speed_chart").sparkline(aSparklineData, {
+					type: 'line',                    // Line chart type
+					width: '100%',                   // Use full container width
+					height: '100px',                 // Fixed height
+					chartRangeMin: 0,                // Y-axis starts at 0
+					chartRangeMax: DISPLAY_MAX,      // Y-axis capped at display maximum
+					normalRangeMin: 0,               // Normal range start
+					normalRangeMax: NORMAL_DURATION, // Normal range end
+					normalRangeColor: 'rgb(206, 246, 184)', // for gray -> sap.ui.core.IconColor.Default,
+
+					// Remove distracting elements
+					spotColor: undefined,
+					minSpotColor: undefined,
+					maxSpotColor: undefined,
+
+					// Custom tooltip showing both real duration and time
+					tooltipFormatter: function (spark, options, fields) {
+						const fRealDuration = aRealValues[fields.x].toFixed(2);
+						const sTime = aSparklineTimes[fields.x].toLocaleTimeString();
+						return `${fRealDuration}s (${sTime})`; // Example: "2.73s (15:45:23)"
+					}
+				});
+			})
+			.catch(oError => {
+				console.error("Network Performance Monitor Error:", {
+					error: oError,
+					message: oError.message,
+					stack: oError.stack,
+					timestamp: new Date().toISOString()
+				});
+			});
+	};
+
 	/**
 	 * Displays a testing menu for network-related data and statistics.
 	 * Creates a dialog containing network state changes and performance metrics.
@@ -1309,7 +1783,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
+													return exfTools.date.format(sTime, 'yyyy-MM-dd HH:mm:ss.SSS');
 												}
 											}
 										}),
@@ -1407,7 +1881,30 @@ const exfLauncher = {};
 							columns: [
 								new sap.m.Column({ header: new sap.m.Label({ text: "Time" }) }),
 								new sap.m.Column({ header: new sap.m.Label({ text: "Speed (Mbps)" }) }),
-								new sap.m.Column({ header: new sap.m.Label({ text: "Size (bytes)" }) })
+								new sap.m.Column({ header: new sap.m.Label({ text: "Method" }) }),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "URL" }),
+									minScreenWidth: "Tablet",
+									demandPopin: true
+								}),
+								new sap.m.Column({ header: new sap.m.Label({ text: "Network Time (s)" }) }),
+								new sap.m.Column({ header: new sap.m.Label({ text: "Server Time (ms)" }) }),
+								new sap.m.Column({ header: new sap.m.Label({ text: "Total Time (s)" }) }),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Request Size" }),
+									minScreenWidth: "Tablet",
+									demandPopin: true
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Response Size" }),
+									minScreenWidth: "Tablet",
+									demandPopin: true
+								}),
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "MIME Type" }),
+									minScreenWidth: "Desktop",
+									demandPopin: true
+								})
 							],
 							// Bind network statistics data
 							items: {
@@ -1418,7 +1915,7 @@ const exfLauncher = {};
 											text: {
 												path: "time",
 												formatter: function (sTime) {
-													return exfTools.date.format(sTime, 'YYYY-MM-DD HH:mm:ss.SSS');
+													return exfTools.date.format(sTime, 'yyyy-MM-dd HH:mm:ss.SSS');
 												}
 											}
 										}),
@@ -1426,19 +1923,459 @@ const exfLauncher = {};
 											text: {
 												path: "speed",
 												formatter: function (fSpeed) {
-													return fSpeed.toFixed(2);
+													return fSpeed ? fSpeed.toFixed(2) : '-';
 												}
 											}
 										}),
-										new sap.m.Text({ text: "{size}" })
+										new sap.m.Text({
+											text: {
+												path: "method",
+												formatter: function (sMethod) {
+													return sMethod || '-';
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "relative_url",
+												formatter: function (sUrl) {
+													return sUrl || '-';
+												}
+											}
+										}),
+										new sap.m.ObjectStatus({
+											text: {
+												path: "network_duration",
+												formatter: function (fDuration) {
+													return fDuration ? fDuration.toFixed(3) : '-';
+												}
+											},
+											state: {
+												path: "network_duration",
+												formatter: function (fDuration) {
+													if (!fDuration) return "None";             // No duration - Default color
+													if (fDuration > 1.5) return "Error";         // Over 1.5s - Red (Critical)
+													if (fDuration > 0.1) return "Warning";     // 0s to 1s - Orange/Yellow (Warning) 
+													return "Success";                          // Under 0.1s - Green (Good)
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "server_time",
+												formatter: function (fTime) {
+													return fTime ? Math.round(fTime) : '-';
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "total_duration",
+												formatter: function (fDuration) {
+													return fDuration ? fDuration.toFixed(3) : '-';
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "request_size",
+												formatter: function (iSize) {
+													return iSize ? iSize.toLocaleString() : '-';
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "response_size",
+												formatter: function (iSize) {
+													return iSize ? iSize.toLocaleString() : '-';
+												}
+											}
+										}),
+										new sap.m.Text({
+											text: {
+												path: "mime_type",
+												formatter: function (sMime) {
+													return sMime || '-';
+												}
+											}
+										})
 									]
 								})
 							}
 						})
 					]
+				}),
+
+				/**
+				* Network Performance History Tab
+				* 
+				* Displays network performance statistics over time intervals
+				* Provides insights into network request durations and performance categorization
+				*/
+				new sap.m.IconTabFilter({
+					key: "networkhistory",
+					text: "Network Performance History",
+					content: [
+						// Main performance history table
+						new sap.m.Table({
+							id: "networkPerformanceHistoryTable",
+							growing: true,
+							growingThreshold: 20,
+							columns: [
+								// Time interval column
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Time Interval" }),
+									width: "200px"
+								}),
+								// Request count column
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Request Count" }),
+									width: "120px"
+								}),
+								// Average network duration column
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Avg Network Duration (s)" }),
+									width: "150px"
+								}),
+								// Performance status column
+								new sap.m.Column({
+									header: new sap.m.Label({ text: "Performance Status" }),
+									width: "120px"
+								})
+							],
+							// Data binding for network performance averages
+							items: {
+								path: "networkModel>/networkAverages",
+								template: new sap.m.ColumnListItem({
+									cells: [
+										// Time interval cell
+										new sap.m.Text({
+											text: "{networkModel>interval}"
+										}),
+										// Request count cell
+										new sap.m.Text({
+											text: "{networkModel>count}"
+										}),
+										// Average duration cell with color-coded status
+										new sap.m.ObjectStatus({
+											text: {
+												path: "networkModel>averageDuration",
+												formatter: function (duration) {
+													return duration ? duration.toFixed(3) + " s" : "-";
+												}
+											},
+											state: {
+												path: "networkModel>averageDuration",
+												formatter: function (duration) {
+													if (!duration) return "None";
+													if (duration > 2) return "Error";
+													if (duration > 1) return "Warning";
+													return "Success";
+												}
+											}
+										}),
+										// Performance status cell
+										new sap.m.ObjectStatus({
+											text: {
+												path: "networkModel>averageDuration",
+												formatter: function (duration) {
+													if (!duration) return "No Data";
+													if (duration > 2) return "Very Slow";
+													if (duration > 1) return "Slow";
+													if (duration > 0.5) return "Medium";
+													return "Fast";
+												}
+											},
+											state: {
+												path: "networkModel>averageDuration",
+												formatter: function (duration) {
+													if (!duration) return "None";
+													if (duration > 2) return "Error";
+													if (duration > 1) return "Warning";
+													if (duration > 0.5) return "Information";
+													return "Success";
+												}
+											}
+										})
+									]
+								})
+							}
+						}),
+						// Refresh button for network performance data
+						new sap.m.Button({
+							text: "Refresh Data",
+							icon: "sap-icon://refresh",
+							press: function () {
+								var oTable = sap.ui.getCore().byId("networkPerformanceHistoryTable");
+								if (oTable) {
+									prepareNetworkAverages(oTable);
+								} else {
+									console.error("Performance table not found");
+								}
+							}
+						}).addStyleClass("sapUiSmallMargin")
+					]
+				}),
+
+				/**
+			   * Error Pattern Configuration Tab
+			   * 
+			   * UI Component for managing error pattern configurations.
+			   * Provides a user-friendly interface for:
+			   * - Viewing all available error patterns
+			   * - Enabling/disabling individual patterns
+			   * - Immediate feedback on changes
+			   * - Visual status of pattern states
+			   */
+				new sap.m.IconTabFilter({
+					key: "errorPatterns",
+					text: "Error Patterns",
+					content: [
+						new sap.m.VBox({
+							items: [
+								/**
+								 * Information Strip
+								 * Provides context and usage instructions to users
+								 * Appears at the top of the configuration panel
+								 */
+								new sap.m.MessageStrip({
+									text: "Configure which types of errors should be filtered from the error log.",
+									type: "Information",
+									showIcon: true,
+									showCloseButton: false
+								}).addStyleClass("sapUiSmallMarginBottom"),
+
+								/**
+								 * Pattern Configuration Table
+								 * Main interface for pattern management
+								 * 
+								 * Features:
+								 * - Growing behavior for large pattern lists
+								 * - Responsive layout with popin for small screens
+								 * - Real-time state updates
+								 * - Visual feedback on changes
+								 */
+								new sap.m.Table({
+									growing: true,                // Enable dynamic loading
+									growingThreshold: 20,         // Items per page
+									growingScrollToLoad: true,    // Load more on scroll
+									columns: [
+										new sap.m.Column({
+											header: new sap.m.Label({ text: "Error Type" }),
+											demandPopin: true,    // Responsive behavior
+											minScreenWidth: "Tablet",
+											popinDisplay: "Block"
+										}),
+										new sap.m.Column({
+											header: new sap.m.Label({ text: "Active" }),
+											hAlign: "Center",
+											width: "100px",
+											demandPopin: false    // Keep switch visible
+										})
+									],
+									items: {
+										path: "/patterns",        // Bind to pattern model
+										template: new sap.m.ColumnListItem({
+											cells: [
+												/**
+												 * Pattern Description Cell
+												 * Shows human-readable pattern description
+												 */
+												new sap.m.Text({
+													text: "{description}",
+													wrapping: true
+												}),
+
+												/**
+												 * Pattern State Control
+												 * Toggle switch for enabling/disabling patterns
+												 * 
+												 * Features:
+												 * - Immediate state change
+												 * - Automatic persistence
+												 * - Visual feedback
+												 */
+												new sap.m.Switch({
+													state: "{active}",
+													change: function (oEvent) {
+														// Get pattern context and new state
+														var oContext = oEvent.getSource().getBindingContext();
+														var oPattern = oContext.getObject();
+														var bNewState = oEvent.getParameter("state");
+
+														// Update pattern state
+														oPattern.active = bNewState;
+
+														// Persist changes immediately
+														oErrorPatternStorage.savePatternStates();
+
+														// Provide user feedback
+														sap.m.MessageToast.show(
+															bNewState ?
+																"Error pattern activated: " + oPattern.description :
+																"Error pattern deactivated: " + oPattern.description,
+															{ duration: 2000 }
+														);
+
+														// Log state change for debugging
+														console.debug('Pattern state changed:', {
+															pattern: oPattern.description,
+															newState: bNewState,
+															timestamp: new Date().toISOString()
+														});
+													}
+												})
+											]
+										})
+									}
+								}).setModel(new sap.ui.model.json.JSONModel({
+									patterns: aConfigurableErrorPatterns
+								}))
+							]
+						}).addStyleClass("sapUiSmallMargin")
+					]
 				})
+
 			]
 		});
+
+
+		/**
+	 * Processes network stats into time intervals for historical analysis
+	 * Uses configuration settings for interval duration and monitoring window
+	 * 
+	 * @param {Array} aStats - Raw network statistics array
+	 * @returns {Array} Processed history records grouped by time intervals
+	 */
+		function processNetworkHistory(aStats) {
+			// Sort stats chronologically
+			aStats.sort((a, b) => a.time - b.time);
+
+			if (aStats.length === 0) return [];
+
+			// Get interval duration from config
+			const iIntervalMs = _oConfig.network.monitoring.performanceInterval;
+			const aHistory = [];
+
+			// Calculate start time (rounded down to nearest interval)
+			let iStartTime = Math.floor(aStats[0].time / iIntervalMs) * iIntervalMs;
+			const iEndTime = aStats[aStats.length - 1].time;
+
+			// Process each interval period
+			for (let iTime = iStartTime; iTime <= iEndTime; iTime += iIntervalMs) {
+				const iPeriodEnd = iTime + iIntervalMs;
+
+				// Filter stats for this period
+				const aPeriodStats = aStats.filter(oStat =>
+					oStat.time >= iTime &&
+					oStat.time < iPeriodEnd &&
+					oStat.relative_url &&
+					oStat.relative_url.includes('/context')
+				);
+
+				if (aPeriodStats.length > 0) {
+					// Calculate metrics for the period
+					const fAvgNetworkTime = aPeriodStats.reduce((fSum, oStat) =>
+						fSum + oStat.network_duration, 0) / aPeriodStats.length;
+
+					const iSlowCalls = aPeriodStats.filter(oStat =>
+						oStat.network_duration > 1.5).length;
+
+					const fSlowPercentage = (iSlowCalls / aPeriodStats.length) * 100;
+
+					// Add period data to history
+					aHistory.push({
+						period: {
+							start: iTime,
+							end: iPeriodEnd
+						},
+						totalCalls: aPeriodStats.length,
+						avgNetworkTime: fAvgNetworkTime,
+						slowPercentage: fSlowPercentage,
+						status: fSlowPercentage >= 50 ? "SLOW" : "NORMAL"
+					});
+				}
+			}
+
+			return aHistory;
+		};
+
+		/**
+		 * Prepares network performance averages for display
+		 * Groups statistics by configured time intervals
+		 * 
+		 * @param {sap.m.Table} oTable - Table to populate with performance data
+		 * @returns {Promise} Promise resolving with network performance averages
+		 */
+		function prepareNetworkAverages(oTable) {
+			// Validate table reference
+			if (!oTable || !oTable.setModel) {
+				console.error('Invalid table reference');
+				return Promise.reject('Invalid table reference');
+			}
+
+			// Fetch all network statistics
+			return exfPWA.network.getAllStats()
+				.then(function (aStats) {
+					// Sort statistics by time chronologically
+					aStats.sort(function (a, b) {
+						return a.time - b.time;
+					});
+
+					// Get interval duration from config
+					const iIntervalMs = _oConfig.network.monitoring.performanceInterval;
+
+					// Calculate earliest timestamp for data analysis
+					const iEarliestTimestamp = aStats[0]?.time || Date.now();
+
+					// Group statistics by intervals
+					var oAverages = {};
+					aStats.forEach(function (oStat) {
+						// Round down to nearest interval start
+						var iIntervalStart = Math.floor(oStat.time / iIntervalMs) * iIntervalMs;
+
+						if (!oAverages[iIntervalStart]) {
+							// Create new interval entry with timestamps
+							oAverages[iIntervalStart] = {
+								intervalStart: new Date(iIntervalStart).toLocaleTimeString(),
+								intervalEnd: new Date(iIntervalStart + iIntervalMs).toLocaleTimeString(),
+								intervalFullStart: new Date(iIntervalStart),
+								intervalFullEnd: new Date(iIntervalStart + iIntervalMs),
+								totalDuration: 0,
+								count: 0
+							};
+						}
+
+						// Accumulate statistics for this interval
+						oAverages[iIntervalStart].totalDuration += oStat.network_duration;
+						oAverages[iIntervalStart].count++;
+					});
+
+					// Calculate final averages and format intervals
+					var aAverages = Object.values(oAverages).map(function (oInterval) {
+						oInterval.averageDuration = oInterval.totalDuration / oInterval.count;
+						oInterval.interval = `${oInterval.intervalStart} - ${oInterval.intervalEnd}`;
+						return oInterval;
+					});
+
+					// Sort chronologically
+					aAverages.sort((a, b) => a.intervalFullStart - b.intervalFullStart);
+
+					// Create and set model for the table
+					var oModel = new sap.ui.model.json.JSONModel({
+						networkAverages: aAverages
+					});
+
+					oTable.setModel(oModel, "networkModel");
+					return { averages: aAverages };
+				})
+				.catch(function (error) {
+					console.error('Error retrieving network statistics:', error);
+					return { averages: [] };
+				});
+		};
+
 
 		// Add close button to dialog
 		oDialog.addButton(new sap.m.Button({
@@ -1457,7 +2394,8 @@ const exfLauncher = {};
 				// For model binding, prepare the data
 				var oModel = new sap.ui.model.json.JSONModel({
 					connections: aConnections,
-					networkstats: aStats.slice(-50) // Last 50 records
+					networkstats: aStats.slice(-50), // Last 50 records
+					networkhistory: processNetworkHistory(aStats)
 				});
 				oDialog.setModel(oModel);
 			}).catch(function (oError) {
@@ -1467,6 +2405,13 @@ const exfLauncher = {};
 					networkstats: []
 				}));
 			});
+
+			// Network Performance History tablosunu hemen yükle
+			var oTable = sap.ui.getCore().byId("networkPerformanceHistoryTable");
+			if (oTable) {
+				prepareNetworkAverages(oTable);
+			}
+
 		}
 		else {
 			console.warn('PWA functionality is not available - offline data cannot be displayed');
@@ -1767,7 +2712,7 @@ const exfLauncher = {};
 								exfPWA.actionQueue.getByIds(selectedIds)
 									.then(function (aQItems) {
 										var oData = {
-											deviceId: _pwa.getDeviceId(),
+											deviceId: exfPWA.getDeviceId(),
 											actions: aQItems
 										};
 										var sJson = JSON.stringify(oData);
@@ -2030,7 +2975,7 @@ const exfLauncher = {};
 	 * @return Promise
 	 */
 	this.syncOffline = function (oEvent) {
-		oButton = oEvent.getSource();
+		const oButton = oEvent.getSource();
 		oButton.setBusyIndicatorDelay(0).setBusy(true);
 		var oI18nModel = oButton.getModel('i18n');
 		return exfPWA.syncAll()
@@ -2053,7 +2998,7 @@ const exfLauncher = {};
 	 * @return Promise
 	 */
 	this.reSyncOffline = function (oEvent) {
-		oButton = oEvent.getSource();
+		const oButton = oEvent.getSource();
 		oButton.setBusyIndicatorDelay(0).setBusy(true);
 		var oI18nModel = oButton.getModel('i18n');
 		return exfPWA.syncAll({ doReSync: true })
@@ -2290,96 +3235,6 @@ const exfLauncher = {};
 
 
 
-/**
- * Collects and processes network stats for chart visualization.
- * Only runs when chart is visible to optimize performance.
- * This prevents unnecessary processing and memory consumption when stats aren't being displayed 
- * Gets data from IndexedDB, processes it, and updates speed history chart.
- * Shows only last 10 records and refreshes the chart completely on each update.
- * 
- * @returns {void} No return value
- * @throws {Error} Logs error if stats collection fails
- */
-function listNetworkStats() {
-	// Skip if chart is not visible
-	// Critical visibility check to prevent unnecessary processing
-	// offsetParent will be null if element is not visible or not in DOM
-	// This ensures we only process data when user can actually see the chart
-	const chartElement = document.getElementById('network_speed_chart');
-	if (!chartElement || !chartElement.offsetParent) {
-		return;
-	}
-	// Get and process network stats
-	exfPWA.network.getAllStats()
-		.then(stats => {
-			if (exfPWA.isAvailable() === false) {
-				return;
-			}
-			// Check if there are any statistics available
-			if (stats.length === 0) {
-				return; // Exit if there are no stats
-			}
-
-			// Sort the statistics by time (oldest to newest)
-			stats.sort((a, b) => a.time - b.time);
-
-			const averageSpeeds = {};
-			const currentSecond = Math.floor(Date.now() / 1000); // Get current time in seconds
-			const earliestSecond = Math.floor(stats[0].time / 1000); // Earliest timestamp (first element)
-			const latestSecond = Math.floor(stats[stats.length - 1].time / 1000); // Latest timestamp (last element)
-
-			// Group speeds by second
-			stats.forEach(stat => {
-				const requestTimeInSeconds = Math.floor(stat.time / 1000); // Convert timestamp to seconds
-				if (!averageSpeeds[requestTimeInSeconds]) {
-					averageSpeeds[requestTimeInSeconds] = []; // Initialize array if it doesn't exist
-				}
-				averageSpeeds[requestTimeInSeconds].push(stat.speed); // Collect speeds for this second
-			});
-
-			const secondsToProcess = latestSecond - earliestSecond; // Calculate the number of seconds to process
-
-			const result = {};
-			let lastKnownSpeed = 0; // Variable to store the last known speed
-
-			// Iterate over each second from earliest to latest
-			for (let i = 0; i <= secondsToProcess; i++) {
-				const second = earliestSecond + i; // Get the second to process
-
-				if (averageSpeeds[second]) {
-					// Filter out any NaN values from the speeds and convert to doubles
-					const validSpeeds = averageSpeeds[second].filter(speed => {
-						const isValid = !isNaN(speed); // Check if speed is not NaN
-						if (!isValid) {
-							console.warn(`Invalid speed detected: ${speed} at second ${second}`);
-						}
-						return isValid; // Return valid speeds
-					}).map(speed => parseFloat(speed)); // Convert to floating-point numbers
-
-					if (validSpeeds.length > 0) {
-						// Calculate the average speed from valid speeds
-						const avgSpeed = validSpeeds.reduce((a, b) => a + b, 0) / validSpeeds.length;
-						result[second] = avgSpeed; // Store the average speed for this second
-						lastKnownSpeed = avgSpeed; // Update the last known speed
-					} else {
-						result[second] = lastKnownSpeed; // Use the last known speed if no valid speeds
-					}
-				} else {
-					result[second] = lastKnownSpeed; // If no data for this second, use last known speed
-				}
-			}
-
-			// Register each calculated speed
-			// Update speed history for chart
-			Object.keys(result).forEach(second => {
-				exfLauncher.registerNetworkSpeed(result[second]);
-			});
-		})
-		.catch(error => {
-			console.error("An error occurred while listing network statistics:", error);
-		});
-}
-
 // Set to keep track of dismissed errors
 exfLauncher.dismissedErrors = new Set();
 
@@ -2397,23 +3252,60 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 	// Filter out dismissed errors 
 	var activeErrors = window.capturedErrors.filter(error => !this.dismissedErrors.has(error.message));
 
-	// Prepare error messages as a list  
+	/**
+	 * Error List with SAPUI5 Model Binding
+	 * 
+	 * - Fixed: Undefined error issues on click events
+	 * - Uses: Model binding instead of direct object access
+	 * - Better: Memory management and maintainability
+	 */
 	var errorList = new sap.m.List({
-		items: activeErrors.map(function (error) {
-			return new sap.m.StandardListItem({
-				title: error.message,
-				description: new Date(error.timestamp).toLocaleString(),
+		items: {
+			// Using root path for model binding to access all error objects
+			path: "/",
+			template: new sap.m.StandardListItem({
+				title: "{message}",
+				description: {
+					path: "timestamp",
+					formatter: function (timestamp) {
+						return new Date(timestamp).toLocaleString();
+					}
+				},
 				type: "Active",
 				wrapping: true,
-				press: function () {
-					// Show error details 
-					sap.m.MessageBox.error(error.stack || error.message, {
-						title: "Error Details"
-					});
+				// Get error details from binding context to avoid undefined errors
+				press: function (oEvent) {
+					var oItem = oEvent.getSource();
+					var oContext = oItem.getBindingContext();
+					var error = oContext.getObject();
+
+					// Call tracer's existing showErrorLog with single error
+					if (window.exfTracer && typeof window.exfTracer.showErrorLog === 'function') {
+						window.exfTracer.showErrorLog([error]);
+					} else {
+						// Load tracer.js if not available
+						var currentScriptPath = $('script[src*="openui5.facade.js"]').attr('src');
+						var tracerPath = currentScriptPath.replace('facade.js', 'tracer.js');
+
+						$.getScript(tracerPath)
+							.done(function () {
+								window.exfTracer.showErrorLog([error]);
+							})
+							.fail(function (jqxhr, settings, exception) {
+								console.error('Failed to load tracer script:', error);
+								// Fallback to simple error display
+								sap.m.MessageBox.error(error.stack || error.message, {
+									title: "Error Details"
+								});
+							});
+					}
 				}
-			});
-		})
+			})
+		}
 	});
+
+	// Set the model with active errors data
+	errorList.setModel(new sap.ui.model.json.JSONModel(activeErrors));
 
 	this.errorPopover = new sap.m.Popover({
 		placement: sap.m.PlacementType.Bottom,
@@ -2514,17 +3406,26 @@ exfLauncher.showErrorPopover = function (errorMessage) {
 	}
 };
 
+
 /**
- * Overrides the default console.error function to capture and log errors.
- * This function logs the original error, captures error details, and displays them in a popover.
+ * Error collection and management functionality
+ * Modified console.error to manage error collection based on pattern configuration
+ * 
+ * Flow:
+ * 1. Original error is logged normally
+ * 2. Error message is checked against active patterns
+ * 3. If any active pattern matches, error is collected (unless dismissed)
+ * 4. Collected errors are displayed in error popover
  */
 console.error = function (...args) {
+	// Keep original console.error functionality
 	originalConsoleError.apply(console, args);
 
-	// Initialize arrays if undefined
+	// Initialize tracking arrays
 	window.capturedErrors = window.capturedErrors || [];
 	exfLauncher.dismissedErrors = exfLauncher.dismissedErrors || new Set();
 
+	// Format error message from arguments
 	let errorMessage = args.map(arg => {
 		if (arg instanceof Error) {
 			return arg.stack || arg.message;
@@ -2539,11 +3440,24 @@ console.error = function (...args) {
 		}
 	}).join(' ');
 
-	const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
+	/**
+	 * Check if error should be collected
+	 * Only collect errors that match active patterns
+	 * Active patterns = true -> collect matching errors
+	 * Active patterns = false -> ignore matching errors
+	 */
+	const bShouldCollect = aConfigurableErrorPatterns
+		.filter(oPattern => oPattern.active)  // Only check active patterns
+		.some(oPattern => oPattern.pattern.test(errorMessage));
 
-	if (exfLauncher.contextBar.traceJs && !shouldIgnore &&
+	// Collect error if:
+	// 1. JS tracing is enabled
+	// 2. Error matches an active pattern
+	// 3. Error hasn't been dismissed
+	if (exfLauncher.contextBar.traceJs && bShouldCollect &&
 		!exfLauncher.dismissedErrors.has(errorMessage)) {
 
+		// Create error details object
 		const errorDetails = {
 			message: errorMessage,
 			timestamp: new Date().toISOString(),
@@ -2551,10 +3465,15 @@ console.error = function (...args) {
 			stack: new Error().stack
 		};
 
-		console.log('Capturing error:', errorDetails); // Debug için
-		window.capturedErrors.push(errorDetails);
+		// Log error capture for debugging
+		console.debug('Error captured:', {
+			message: errorMessage,
+			matchedPattern: true,
+			timestamp: new Date().toISOString()
+		});
 
-		// Show error popover
+		// Store error and show in popover
+		window.capturedErrors.push(errorDetails);
 		if (typeof exfLauncher !== 'undefined' &&
 			typeof exfLauncher.showErrorPopover === 'function') {
 			try {
@@ -2571,20 +3490,52 @@ console.error = function (...args) {
 // Store the existing window.onload function (if it exists)
 var existingOnload = window.onload;
 
-// Define the new window.onload function
+/**
+ * Enhanced Window Load Handler
+ * 
+ * Responsible for:
+ * 1. Initializing the error tracking system
+ * 2. Loading saved pattern configurations
+ * 3. Setting up error notifications
+ * 
+ * @extends {Window.onload}
+ */
 window.onload = function () {
+	// Maintain existing functionality
 	if (typeof existingOnload === 'function') {
 		existingOnload();
 	}
 
-	// Initialize/clear error list
+	/**
+	* Error Tracking Initialization
+	* Reset error collection for new session
+	*/
 	window.capturedErrors = [];
 
+	/**
+		* Delayed Error Notification
+		* Checks for accumulated errors after page load
+		*/
 	setTimeout(function () {
 		if (window.capturedErrors.length > 0) {
-			exfLauncher.showMessageToast(window.capturedErrors.length + ' errors occurred. Check the error log for details.', 3000);
+			// Notify user of captured errors
+			exfLauncher.showMessageToast(
+				window.capturedErrors.length + ' errors occurred. Check the error log for details.',
+				3000
+			);
+
+			// Log error summary for debugging
+			console.debug('Initial error summary:', {
+				errorCount: window.capturedErrors.length,
+				timestamp: new Date().toISOString(),
+				activePatterns: aConfigurableErrorPatterns.filter(p => p.active).length
+			});
 		}
-	}, 1000);
+	}, 1000);  // Delay to allow for initial page operations
 };
+
 window['exfLauncher'] = exfLauncher;
-//v1 
+// v1
+// v2
+//    v3    
+
