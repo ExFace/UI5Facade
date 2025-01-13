@@ -2,6 +2,11 @@
     "object_alias": "exface.Core.MESSAGE",
     "columns": [
         {
+            "name": "_EXPORT_SUMMARY",
+            "hidden": true,
+            "attribute_alias": "LABEL"
+        },
+        {
             "name": "CREATED_ON",
             "attribute_alias": "CREATED_ON"
         },
@@ -52,6 +57,7 @@
     ],
     "rows": [
         {
+            "_EXPORT_SUMMARY": "7S55K77 Required package \"Survey JS Creator\" not installed",
             "CREATED_ON": "2023-09-05 15:01:27",
             "MODIFIED_ON": "2023-09-05 15:01:48",
             "CREATED_BY_USER": "0x11e8fe1c902c8ebea23ee4b318306b9a",
@@ -60,7 +66,14 @@
             "APP": "0x11e837e87a640bfd91380205857feb80",
             "CODE": "7S55K77",
             "TITLE": "Required package \"Survey JS Creator\" not installed",
-            "DESCRIPTION": "The widget `InputFormDesigner` requires the JavaScript library \"Survey JS Creator\", that must be installed separately because it is not free for commercial use. \nIf you need the `InputFormDesigner`, please obtain an appropriate license and add the following to the `composer.json` of your installation:\n```\n\"npm-asset\/survey-creator\": \"^1\"\n```",
+            "DESCRIPTION": [
+                "// Multiline text delimited by `\n`",
+                "The widget `InputFormDesigner` requires the JavaScript library \"Survey JS Creator\", that must be installed separately because it is not free for commercial use. ",
+                "If you need the `InputFormDesigner`, please obtain an appropriate license and add the following to the `composer.json` of your installation:",
+                "```",
+                "\"npm-asset/survey-creator\": \"^1\"",
+                "```"
+            ],
             "HINT": "",
             "TYPE": "ERROR",
             "DOCS": ""
