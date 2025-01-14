@@ -386,7 +386,13 @@ JS;
             return 'sap.ui.getCore().byId("' . $this->getId() . '").getParent().setBusy(false);';
         }
     }
-    
+
+    protected function buildJsDispatchChangeEvent(): string
+    {
+        return $this->getController()->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false);
+    }
+
+
     /**
      * {@inheritdoc}
      * @see \exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait::buildJsShowMessageOverlay()

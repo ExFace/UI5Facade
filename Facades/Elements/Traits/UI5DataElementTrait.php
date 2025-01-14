@@ -725,24 +725,26 @@ JS;
     }
     
     /**
-     * Returns a JS snippet, that performs the given $onFailJs if required filters are missing.
+     * Returns a JS self invoking function, that returns TRUE if all required filters are present and FALSE otherwise.
      * 
-     * @param string $onFailJs
      * @return string
      */
-    protected function buildJsCheckRequiredFilters(string $onFailJs) : string
+    protected function buildJsCheckRequiredFilters() : string
     {
         $configurator_element = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
         return <<<JS
 
-                try {
-                    if (! {$configurator_element->buildJsValidator()}) {
-                        {$onFailJs};
-                    }
-                } catch (e) {
-                    console.warn('Could not check filter validity - ', e);
-                }      
-                
+(function (){
+    try {
+        if ({$configurator_element->buildJsValidator()}) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (e) {
+        console.warn('Could not check filter validity - ', e);
+    }
+})()
 JS;
     }
     
@@ -980,9 +982,13 @@ JS;
                 var oController = this;
                 var aSortItems = [];
                 var sCurrentRequestData = '';
+
+                if(!{$this->buildJsCheckRequiredFilters()}) {
+                    {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
+                    return Promise.resolve(oModel);
+                 }
                 
-                {$this->buildJsCheckRequiredFilters($this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint()) . "; return Promise.resolve(oModel);")}
-                
+                // Busy icon
                 {$this->buildJsBusyIconShow()}
                 
         		// Add quick search
