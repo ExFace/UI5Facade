@@ -661,14 +661,15 @@ JS;
         
         oCtrl.getParent().setVisible(bVisible);
     } else {
+        {$disableContainerJs}
+        {$showHideLabelJs}
+        
         if (bVisible === oCtrl.getVisible()) {
             return;
         }
         oCtrl.setVisible(bVisible);
-        
-{$disableContainerJs}
-{$showHideLabelJs}
     }
+    
     oCtrl.$()?.trigger('visibleChange', [{visible: bVisible}]);
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
 JS;

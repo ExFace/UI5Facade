@@ -68,7 +68,11 @@ class UI5DataColumn extends UI5AbstractElement
         } else {
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
-        
+        if ($col->getAttributeAlias() !== null) {
+            $expression = ".data('_exfAttributeAlias', '{$col->getAttributeAlias()}')";
+        } elseif ($col->getCalculationExpression() !== null) {
+            $expression = ".data('_exfCalculation', '{$col->getCalculationExpression()}')";
+        }
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
         // any way to see the entire caption except for using the tooltip.
@@ -89,7 +93,7 @@ class UI5DataColumn extends UI5AbstractElement
         {$this->buildJsPropertyWidthMin()}
         {$grouped}
 	})
-	.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
+	{$expression}
 	.data('_exfDataColumnName', '{$col->getDataColumnName()}')
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })

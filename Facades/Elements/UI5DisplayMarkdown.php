@@ -29,9 +29,18 @@ class UI5DisplayMarkdown extends UI5Value
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                {$markdownVar} = {$this->buildJsMarkdownInitViewer()}
+                // Sometimes the DOM structure of ToastUI gets disrupted during initialization.
+                // We can detect if the DOM structure was disrupted and repeat initialization if necessary.
+                if (($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
+                    {$markdownVar} = {$this->buildJsMarkdownInitViewer()};
+                }
                 
-                var oModel = sap.ui.getCore().byId('{$this->getId()}').getModel();
+                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+                if (oHtml && "_toastUiBinding" in oHtml && oHtml._toastUiBinding) {
+                    return;
+                }
+                
+                var oModel = oHtml.getModel();
                 if(oModel !== undefined) {
                     var sBindingPath = '{$this->getValueBindingPath()}';
                     var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
@@ -42,10 +51,9 @@ class UI5DisplayMarkdown extends UI5Value
                             {$this->buildJsValueSetter("sVal")}
                         }, 0);
                     });
-                } else {
-                    var sContent = '`MARKDOWN`';
-                    {$this->buildJsValueSetter('sContent')};
                 }
+                
+                oHtml._toastUiBinding = true;
             }
         })
 JS;
@@ -76,6 +84,4 @@ JS;
         }
         return parent::getHeight();
     }
-    
-    
 }

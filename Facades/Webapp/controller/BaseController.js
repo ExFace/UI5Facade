@@ -297,7 +297,23 @@ sap.ui.define([
 				jqElement.css('z-index', iMaxZIndex);
 			}
 			return jqElement;
-		}
+		},
+
+		/**
+		 * E.g. oController.findParentOfType(oTable, sap.ui.layout.form.Form)
+		 * 
+		 * @param {sap.ui.core.Element} oControl
+		 * @param {object} oClass
+		 * @return {sap.ui.core.Element}
+		 */
+		findParentOfType: function(oControl, oClass) {
+			while (oControl && oControl.getParent) {
+				oControl = oControl.getParent();
+				if (oControl instanceof oClass){
+					return oControl;
+				}
+		    }
+		},
 	});
 });
 
