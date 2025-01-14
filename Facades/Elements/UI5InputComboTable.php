@@ -266,7 +266,6 @@ JS;
                         var oInput = sap.ui.getCore().byId('{$this->getId()}');
                         var sKeys = oInput.getSelectedKey();
                         var sTexts = oInput.getValue();
-                        console.log('{$widget->getAttributeAlias()}', sKeys);
                         if (sKeys !== undefined && sKeys !== null && sKeys !== '' && ! sTexts) {
                             oInput.destroyTokens();
                             sKeys.split(',').forEach(function(sVal){
