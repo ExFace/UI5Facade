@@ -363,20 +363,22 @@ JS;
             // Also make sure tokens are destroyed when the bound model value is emptied. This does not happen automatically!
             // In particular, this means, when a dialog is closed and reopened for another instance, the previous value remains
             // in place until the new prefill finished loading. This looks stupid as all the other inputs are emptied right away.
+            // The setTimeout() is required to ensure, all bindings are already instantiated 
             $this->getController()->addOnInitScript(<<<JS
 
-            (function(){
+            setTimeout(function(){
                 var oInput = sap.ui.getCore().byId('{$this->getId()}');
                 var oBinding = oInput.getBinding('selectedKey');
-                if (oBinding) {
-                    oBinding.attachChange(function(oEvent){
-                        var sVal = oBinding.getValue();
-                        if (sVal === undefined || sVal === null || sVal === '') {
-                            {$this->buildJsEmpty()};
-                        }
-                    });
+                if (! oBinding) {
+                    return,
                 }
-            })();
+                oBinding.attachChange(function(oEvent){
+                    var sVal = oBinding.getValue();
+                    if (sVal === undefined || sVal === null || sVal === '') {
+                        {$this->buildJsEmpty()};
+                    }
+                });
+            }, 0);
             
 JS);
         }
