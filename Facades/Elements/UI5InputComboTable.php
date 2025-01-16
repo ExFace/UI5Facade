@@ -368,9 +368,12 @@ JS;
 
             setTimeout(function(){
                 var oInput = sap.ui.getCore().byId('{$this->getId()}');
+                if (! oInput) {
+                    return;
+                }
                 var oBinding = oInput.getBinding('selectedKey');
                 if (! oBinding) {
-                    return,
+                    return;
                 }
                 oBinding.attachChange(function(oEvent){
                     var sVal = oBinding.getValue();
