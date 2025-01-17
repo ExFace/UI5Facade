@@ -71,7 +71,7 @@ class UI5DataColumn extends UI5AbstractElement
         if ($col->getAttributeAlias() !== null) {
             $expression = ".data('_exfAttributeAlias', '{$col->getAttributeAlias()}')";
         } elseif ($col->getCalculationExpression() !== null) {
-            $expression = ".data('_exfCalculation', '{$col->getCalculationExpression()}')";
+            $expression = ".data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})";
         }
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
