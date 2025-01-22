@@ -292,11 +292,11 @@ JS;
                                         var oMultiInput = oEvent.getSource();
                                         var oEventParams = oEvent.getParameters();
                                         var aRemovedTokens = oEventParams['removedTokens'] || [];
-                                        
+                                        var aRemoved = [];
                                         aRemovedTokens.forEach(function(oToken){
-                                            var sKey = oToken.getKey();
-                                            {$tableElement->buildJsSelectRowByValue($tableElement->getWidget()->getUidColumn(), 'sKey', '', 'rowIdx', true)}
+                                            aRemoved.push(oToken.getKey());
                                         });
+                                        {$tableElement->buildJsSelectRowByValue('aRemoved', $this->getTokenKeyColumn()->getDataColumnName(), true)}
                                     },
                                     tokens: {
                                         path: "{$modelName}>/rows",

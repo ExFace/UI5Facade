@@ -32,7 +32,9 @@ class UI5Container extends UI5AbstractElement
         $js = $this->buildJsPanelWrapper($this->buildJsChildrenConstructors());
         
         if ($this->hasPageWrapper() === true) {
-            return $this->buildJsPageWrapper($js);
+            return $this->buildJsPageWrapper($js) . $this->buildJsAddCssWidgetClasses();
+        } else {
+            $js .= $this->buildJsAddCssWidgetClasses();
         }
         
         return $js;

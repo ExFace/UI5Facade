@@ -50,7 +50,7 @@ class UI5Value extends UI5AbstractElement implements UI5ValueBindingInterface, U
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        return $this->buildJsConstructorForMainControl($oControllerJs);
+        return $this->buildJsConstructorForMainControl($oControllerJs) . $this->buildJsAddCssWidgetClasses();
     }
     
     /**
@@ -661,14 +661,15 @@ JS;
         
         oCtrl.getParent().setVisible(bVisible);
     } else {
+        {$disableContainerJs}
+        {$showHideLabelJs}
+        
         if (bVisible === oCtrl.getVisible()) {
             return;
         }
         oCtrl.setVisible(bVisible);
-        
-{$disableContainerJs}
-{$showHideLabelJs}
     }
+    
     oCtrl.$()?.trigger('visibleChange', [{visible: bVisible}]);
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
 JS;
