@@ -26,7 +26,7 @@ trait UI5HelpButtonTrait {
             $helpBtnEl = $this->getFacade()->getElement($widget->getHelpButton());
             return <<<JS
             
-                    new sap.m.OverflowToolbarButton({
+                    new sap.m.OverflowToolbarButton('{$helpBtnEl->getId()}', {
                         type: sap.m.ButtonType.{$buttonType},
                         icon: "sap-icon://sys-help",
                         text: "{$helpBtnEl->getCaption()}",
