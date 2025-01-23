@@ -268,7 +268,6 @@ JS;
                     var sColor = {$this->buildJsScaleResolver('value', $widget->getColorScale(), $widget->isColorScaleRangeBased())};
                     var sValueColor;
                     var oCtrl = this;
-                    console.log('{$this->getWidget()->getAttributeAlias()}', sColor)
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         {$this->buildJsColorCssSetter('oCtrl', 'null')}
@@ -298,10 +297,13 @@ JS;
             return <<<JS
 
                 formatter: function(value) {
-                    if (value === "1" || value === "true" || value === 1 || value === true) {
-                        return {$this->escapeString($type->format(true))};
-                    } else {
-                        return {$this->escapeString($type->format(false))};
+                    switch (true) {
+                        case value === null || value === undefined || value === '':
+                            return null;
+                        case value === "1" || value === "true" || value === 1 || value === true:
+                            return {$this->escapeString($type->format(true))};
+                        default:
+                            return {$this->escapeString($type->format(false))};
                     }
                 },
 JS;
