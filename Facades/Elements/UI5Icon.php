@@ -86,7 +86,7 @@ JS;
             return '';
         }
         
-        switch (strtolower($widget->getIconSize())) {
+        switch (strtolower($widget->getIconSize() ?? '')) {
             case EXF_TEXT_SIZE_BIG: $size = 'size: "36px",'; break;
             case EXF_TEXT_SIZE_SMALL: $size = 'size: "12px",'; break;
             case EXF_TEXT_SIZE_NORMAL: 

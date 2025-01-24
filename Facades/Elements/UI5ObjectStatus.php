@@ -1,8 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
 use exface\Core\Interfaces\Widgets\iHaveHintScale;
+use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\Widgets\ColorIndicator;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 use exface\UI5FAcade\Facades\UI5PropertyBinding;
@@ -280,5 +282,44 @@ JS;
             $value = $ui5ColorBinding->buildJsModelBinding($formatterJs);
         }
         return $value;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Display::buildJsValueBindingOptions()
+     */
+    public function buildJsValueBindingOptions()
+    {
+        $widget = $this->getWidget();
+        // Make sure, booleans are formatted as yes/no and not as icons, which is default
+        // for UI Display widgets.
+        if ($widget instanceof iHaveValue && ($type = $widget->getValueDataType()) instanceof BooleanDataType) {
+            return <<<JS
+
+                formatter: function(value) {
+                    switch (true) {
+                        case value === null || value === undefined || value === '':
+                            return null;
+                        case value === "1" || value === "true" || value === 1 || value === true:
+                            return {$this->escapeString($type->format(true))};
+                        default:
+                            return {$this->escapeString($type->format(false))};
+                    }
+                },
+JS;
+        }
+        return $this->getValueBindingFormatter()->buildJsBindingProperties();
+    }
+
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Display::buildJsValueBindingPropertyName()
+     */
+    public function buildJsValueBindingPropertyName() : string
+    {
+        // Make sure the value binding ist always `text` and not `src` for booleans because
+        // the ObjectStatus does not show booleans as icons
+        return 'text';
     }
 }
