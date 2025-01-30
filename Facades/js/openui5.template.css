@@ -164,6 +164,8 @@ table.jexcel > tbody > tr > td.jexcel_row {background-color: #f2f2f2; border-top
 table.jexcel > tbody > tr > td.readonly {color:inherit;}
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
+table.jexcel > tbody > tr > td.readonly > input[type=checkbox], 
+table.jexcel > tbody > tr > td.readonly > input[type=radio] {opacity: 1;}
 html.sapUiTheme-sap_fiori_3 table.jexcel td > textarea {padding-top: 10px !important; padding: 2px 4px; margin-bottom: -1px; margin-top: -1px;}
 table.jexcel > tbody > tr > td.jexcel_dropdown { background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E");}
 table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none;}
