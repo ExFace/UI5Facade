@@ -107,9 +107,9 @@ JS);
         // TODO it would be even better to check if previously selected UIDs are still there
         // and select their rows again like we do in EuiData::buildJsonOnLoadSuccessSelectionFix()
         if ($this->isUiTable()) {
-            $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').clearSelection()";
+            $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').clearSelection();";
         } else {
-            $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').removeSelections(true)";
+            $clearSelectionJs = "sap.ui.getCore().byId('{$this->getId()}').removeSelections(true);";
         }
         $controller->addOnPrefillDataChangedScript($clearSelectionJs);
         
@@ -975,7 +975,6 @@ JS;
             $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
                     
             // Restore previous selection
-            // TODO add support for selection restore to sap.ui.table.Table!
             return <<<JS
                 setTimeout(function(oTable) {
                     const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
