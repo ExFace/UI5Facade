@@ -177,6 +177,8 @@ trait UI5DataElementTrait {
         // is run after all the view loading logic finished - that's what the setTimeout() is for -
         // otherwise the refresh would run before the view finished initializing, before the prefill
         // is started and will probably be empty.
+        // Finally, all selections are removed to ensure child elements of one instance are not
+        // automatically selected when opening another one.
         if ($dataWidget->hasAutoloadData()) {
             $autoloadJs = <<<JS
 
@@ -188,18 +190,23 @@ trait UI5DataElementTrait {
                     if (bIsBack === false) {
                         try { 
                             {$this->buildJsDataResetter()} 
+                            {$this->buildJsSelectionModelReset()}
                         } catch (e) {} 
                         setTimeout(function(){ 
                             {$this->buildJsRefresh()} 
                         }, 0);
                     }
                 })();
-
 JS;
             $controller->addOnShowViewScript($autoloadJs);
         } else {
-            $controller->addOnShowViewScript($this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint()));
+            $autoloadJs = <<<JS
+
+                {$this->buildJsSelectionModelReset()}
+                {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+JS;
         }
+        $controller->addOnShowViewScript($autoloadJs);
         
         // add trigger to refresh data automatically when widget has autorefresh_intervall set.
         if ($widget->hasAutorefreshIntervall()) {
@@ -2069,6 +2076,15 @@ JS;
     {
         return "$({$oDomElementClickedJs}).parents('tr').index()";
     }
+
+    /**
+     * Returns the JS script to reset to reset the model holding selected rows and the corresponding counter
+     * @return string
+     */
+    protected function buildJsSelectionModelReset() : string
+    {
+        return "sap.ui.getCore().byId('{$this->getId()}').getModel('{$this->getModelNameForSelections()}').setData({rows: []});";
+    }
     
     /**
      * 
@@ -2611,7 +2627,7 @@ JS;
         $resetConfiguratorJs = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsResetter();
         $resetEditableCellsJs = $this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '';
         $resetQuickSearch = $this->hasQuickSearch() ? $this->getQuickSearchElement()->buildJsResetter() : '';
-        return $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
+        return $this->buildJsSelectionModelReset() . $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
     }
     
     /**
