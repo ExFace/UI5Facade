@@ -491,7 +491,7 @@ JS;
                     oDialog.destroy();
                 }
             }
-		}).addStyleClass('{$this->buildCssElementClass()}')
+		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
 JS;
     }
@@ -624,7 +624,7 @@ JS;
                 {$this->buildJsPageHeaderContent($oControllerJs)}
             ],
             footer: {$this->buildJsFloatingToolbar()}
-        }).addStyleClass('{$this->buildCssElementClass()}')
+        }).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
 
 JS;
@@ -1094,6 +1094,7 @@ JS;
      */
     public function buildJsRefresh(bool $forcePrefillRefresh = false)
     { 
+        $prefillJs = '';
         if ($this->needsPrefill()) {
             $prefillJs .= $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_PREFILL, $this, 'oView, ' . ($forcePrefillRefresh ? 'true' : 'false'));
         } else {
