@@ -28,7 +28,7 @@ class UI5DataMatrix extends UI5DataTable
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isUiTable()
      */
-    protected function isUiTable()
+    public function isUiTable()
     {
         return true;    
     }
@@ -38,7 +38,7 @@ class UI5DataMatrix extends UI5DataTable
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isMTable()
      */
-    protected function isMTable()
+    public function isMTable()
     {
         return false;
     }

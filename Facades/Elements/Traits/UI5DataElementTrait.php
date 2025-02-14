@@ -1,6 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\DataTypes\BooleanDataType;
+use exface\Core\DataTypes\DateDataType;
+use exface\Core\DataTypes\StringDataType;
+use exface\Core\DataTypes\TextDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
@@ -177,6 +181,8 @@ trait UI5DataElementTrait {
         // is run after all the view loading logic finished - that's what the setTimeout() is for -
         // otherwise the refresh would run before the view finished initializing, before the prefill
         // is started and will probably be empty.
+        // Finally, all selections are removed to ensure child elements of one instance are not
+        // automatically selected when opening another one.
         if ($dataWidget->hasAutoloadData()) {
             $autoloadJs = <<<JS
 
@@ -188,18 +194,23 @@ trait UI5DataElementTrait {
                     if (bIsBack === false) {
                         try { 
                             {$this->buildJsDataResetter()} 
+                            {$this->buildJsSelectionModelReset()}
                         } catch (e) {} 
                         setTimeout(function(){ 
                             {$this->buildJsRefresh()} 
                         }, 0);
                     }
                 })();
-
 JS;
             $controller->addOnShowViewScript($autoloadJs);
         } else {
-            $controller->addOnShowViewScript($this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint()));
+            $autoloadJs = <<<JS
+
+                {$this->buildJsSelectionModelReset()}
+                {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+JS;
         }
+        $controller->addOnShowViewScript($autoloadJs);
         
         // add trigger to refresh data automatically when widget has autorefresh_intervall set.
         if ($widget->hasAutorefreshIntervall()) {
@@ -429,8 +440,35 @@ JS;
         if ($dataWidget->getMetaObject()->hasLabelAttribute()) {
             $labelCol = $dataWidget->getColumnByAttributeAlias($dataWidget->getMetaObject()->getLabelAttributeAlias());
         }
+        // Find the most suitable columns to show in the little menu with all selected items
+        // If the object has a label attribute and there is a column with this attribute, take
+        // that column. Otherwise, find the left-most visiblecolumn, that is a regular Display 
+        // widget and is a "short" string. 
+        // IDEA would it be even better to only take attribute columns with required attributes
+        // to make sure, it always has value?
+        $firstVisibleCol = null;
+        $firstDisplayCol = null;
         if (! $labelCol) {
-            $labelCol = $dataWidget->getColumns()[0];
+            foreach ($dataWidget->getColumns() as $col) {
+                $cellWidget = $col->getCellWidget();
+                if ($firstVisibleCol === null && $col->isHidden !== false) {
+                    $firstVisibleCol = $col;
+                }
+                if ($cellWidget->getWidgetType() !== 'Display') {
+                    continue;
+                }
+                if ($firstDisplayCol === null && $col->isHidden !== false) {
+                    $firstDisplayCol = $col;
+                }
+                $cellDataType = $cellWidget->getValueDataType();
+                if ($cellDataType instanceof StringDataType && ! ($cellDataType instanceof TextDataType)) {
+                    $labelCol = $col;
+                    break;
+                }
+            }
+        }
+        if (! $labelCol) {
+            $labelCol = $firstDisplayCol ?? $firstVisibleCol;
         }
         $uidColName = $dataWidget->hasUidColumn() ? "'{$dataWidget->getUidColumn()->getDataColumnName()}'" : 'null';
 
@@ -2069,6 +2107,15 @@ JS;
     {
         return "$({$oDomElementClickedJs}).parents('tr').index()";
     }
+
+    /**
+     * Returns the JS script to reset to reset the model holding selected rows and the corresponding counter
+     * @return string
+     */
+    protected function buildJsSelectionModelReset() : string
+    {
+        return "sap.ui.getCore().byId('{$this->getId()}').getModel('{$this->getModelNameForSelections()}').setData({rows: []});";
+    }
     
     /**
      * 
@@ -2611,7 +2658,7 @@ JS;
         $resetConfiguratorJs = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsResetter();
         $resetEditableCellsJs = $this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '';
         $resetQuickSearch = $this->hasQuickSearch() ? $this->getQuickSearchElement()->buildJsResetter() : '';
-        return $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
+        return $this->buildJsSelectionModelReset() . $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
     }
     
     /**
