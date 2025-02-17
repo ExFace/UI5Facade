@@ -130,7 +130,7 @@ formatter: function(value) {
             return value;
         }
     
-        return value.split('{$this->getWidget()->getMultiSelectValueDelimiter()}');
+        return value.split('{$this->getWidget()->getMultiSelectValueDelimiter()}').filter(value => value);
     },
     
 JS;
