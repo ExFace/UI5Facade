@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Interfaces\Widgets\ConfirmationWidgetInterface;
 use exface\Core\Widgets\ContextBar;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -14,6 +16,7 @@ use exface\Core\CommonLogic\Constants\Icons;
 use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\Exceptions\Facades\FacadeUnsupportedWidgetPropertyWarning;
 use exface\Core\Actions\SendToWidget;
+use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Factories\UiPageFactory;
 use exface\UI5Facade\Facades\UI5Facade;
@@ -89,7 +92,6 @@ class UI5Button extends UI5AbstractElement
     use JqueryButtonTrait {
         buildJsNavigateToPage as buildJsNavigateToPageViaTrait;
         buildJsClickSendToWidget as buildJsClickSendToWidgetViaTrait;
-        buildJsRequestDataCollector as buildJsRequestDataCollectorViaTrait;
     }
     
     private $button_type = null;
@@ -296,15 +298,6 @@ JS;
         } else {
             $closeDialogJs = '';
         }
-
-        $checkChangesJs = '';
-        if ($this->isCheckForUnsavedChangesRequired()) {
-            $checkChangesJs = <<<JS
-                        if(true === {$this->getInputElement()->buildJsCheckForUnsavedChanges(true, 'fnAction')}) {
-                            return;
-                        }
-JS;
-        }
         
         // Build the AJAX request
         $js = <<<JS
@@ -471,22 +464,7 @@ JS;
                         
 JS;
         }
-        
-        // Place the code for the action in a callable. Perform confirmation checks, etc. and
-        // call the code at the very end giving the checks the possibility to cancel the whole
-        // thing.
-        // TODO #confirmation move this to JqueryButtonTrait!
-        return <<<JS
-                    
-                    var fnAction = function() {
-                        $js
-                    };
-
-                    {$checkChangesJs}
-
-                    fnAction();
-
-JS;
+        return $js;
     }
     
     protected function buildJsOpenDialogForUnexpectedView(string $oViewContent) : string
@@ -586,9 +564,19 @@ JS;
     {
         $widget = $this->getWidget();
         if (($widget instanceof DialogButton) && $widget->getCloseDialogAfterActionSucceeds()) {
-            $checkChanges = $checkChanges ?? $this->isCheckForUnsavedChangesRequired();
+            // If there is no explicit information about checking changes, try to ask the
+            // action for its settings. If there is no action and we are closing a dialog,
+            // then it is probably the default close button and we should check for changes!
+            if ($checkChanges === null) {
+                if ($widget->hasAction()) {
+                    $cnfWidget = $widget->getAction()->getConfirmationForUnsavedChanges();
+                    $checkChanges = $cnfWidget !== null && ! $cnfWidget->isDisabled();
+                } else {
+                    $checkChanges = true;
+                }
+            }
             return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog($checkChanges);
-        }
+         }
         return '';
     }
     
@@ -703,7 +691,7 @@ JS;
                             
                 var fnRequest = function() {
                     if ({$input_element->buildJsValidator()}) {
-                        {$this->buildJsCheckRequestDataSize($jsRequestData, $this->getAjaxPostSizeMax())}
+                        {$this->buildJsRequestDataCheckSize($jsRequestData, $this->getAjaxPostSizeMax())}
                         {$this->buildJsBusyIconShow()}
                         var oResultModel = new sap.ui.model.json.JSONModel();
                         var params = {
@@ -761,23 +749,6 @@ JS;
     }
     
     /**
-     * 
-     * @see JqueryButtonTrait::buildJsRequestDataCollector()
-     */
-    protected function buildJsRequestDataCollector(ActionInterface $action, AbstractJqueryElement $input_element, string $jsVariable = 'requestData')
-    {
-        $js = $this->buildJsRequestDataCollectorViaTrait($action, $input_element, $jsVariable);
-        
-        /*if ($facadeOptUxon = $this->getWidget()->getFacadeOptions($this->getFacade())) {
-            if ($facadeOptUxon->hasProperty('custom_request_data_script')) {
-                $js .= $facadeOptUxon->getProperty('custom_request_data_script');
-            }
-        }*/
-        
-        return $js;
-    }
-    
-    /**
      *
      * @param string $functionName
      * @return string
@@ -812,5 +783,14 @@ JS;
     {
         $this->button_type = $button_type;
         return $this;
+    }
+
+    protected function buildJsConfirmation(ConfirmationWidgetInterface $widget, string $jsRequestData, string $onContinueJs, string $onCancelJs = null)
+    {
+        $confirmationEl = $this->getFacade()->getElement($widget);
+        if (! $confirmationEl instanceof UI5ConfirmationElementInterface) {
+            throw new FacadeRuntimeError('Cannot use widget "' . $widget->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+        }
+        return $confirmationEl->buildJsConfirmation($jsRequestData, $onContinueJs, $onCancelJs ?? '');
     }
 }

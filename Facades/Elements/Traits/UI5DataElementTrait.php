@@ -2665,7 +2665,7 @@ JS;
      * 
      * @return string
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         return <<<JS
 (function(oTable){

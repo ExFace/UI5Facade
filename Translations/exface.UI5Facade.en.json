@@ -23,9 +23,6 @@
 	"MESSAGE.TYPE.ERROR": "Error",
 	"MESSAGE.TYPE.WARNING": "Warning",
 	"MESSAGE.TYPE.INFO": "Info",
-	"MESSAGE.DISCARD_CHANGES.TITLE": "Discard changes?",
-	"MESSAGE.DISCARD_CHANGES.TEXT": "There seem to be unsaved changes here. If you navigate away, they will be lost.",
-	"MESSAGE.DISCARD_CHANGES.DISCARD": "Discard changes",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "Invalid Route",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Page not found!",

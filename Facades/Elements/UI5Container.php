@@ -242,7 +242,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Container::buildJsChangesGetter()
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         $checks = [];
         foreach ($this->getWidget()->getWidgets() as $w) {
@@ -256,7 +256,22 @@ JS;
             return '[]';
         }
         
-        return "([]).concat(\n" . implode(",\n", $checks) . "\n)";
+        $js = "([]).concat(\n" . implode(",\n", $checks) . "\n)";
+        if ($onlyVisible === true) {
+            $js .= <<<JS
+.filter(function(oChange) {
+                    var oCtrl;
+                    if (! oChange.elementId) return true;
+                    oCtrl = sap.ui.getCore().byId(oChange.elementId);
+                    if (oCtrl && oCtrl.getVisible !== undefined) {
+                        return oCtrl.getVisible();
+                    }
+                    return true;
+                })
+JS;
+        }
+        
+        return $js;
     }
     
     /**
