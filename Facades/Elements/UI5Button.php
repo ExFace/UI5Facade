@@ -531,7 +531,7 @@ JS;
             		            oUrlParams[pair[0]] = val;
                             }
                     	} 
-                        this.navTo("{$pageSelector}", '', {
+                        {$this->getController()->buildJsControllerGetter($this)}.navTo("{$pageSelector}", '', {
                             data: oUrlParams,
                             success: function(){ 
                                 {$inputElement->buildJsBusyIconHide()} 
