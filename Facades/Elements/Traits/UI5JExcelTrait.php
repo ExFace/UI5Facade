@@ -105,7 +105,7 @@ trait UI5JExcelTrait {
      */
     public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
-        return "({$this->buildJsJqueryElement()}[0].exfWidget.hasChanges() ? [{elementId: '{$this->getId()}', caption: {$this->escapeString($this->getCaption())}}] : [])";
+        return "({$this->buildJsJqueryElement()}[0] && {$this->buildJsJqueryElement()}[0].exfWidget.hasChanges() ? [{elementId: '{$this->getId()}', caption: {$this->escapeString($this->getCaption())}}] : [])";
     }
     
     /**
