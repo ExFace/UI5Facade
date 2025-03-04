@@ -132,9 +132,9 @@ JS, false));
         
         
         $closeAction = ActionFactory::createFromString($this->getWorkbench(), GoBack::class, $widget);
-        $closeConfirmationEl = $this->getFacade()->getElement($closeAction->getConfirmationForUnsavedChanges());
+        $closeConfirmationEl = $this->getFacade()->getElement($closeAction->getConfirmations()->getConfirmationForUnsavedChanges());
         if (! $closeConfirmationEl instanceof UI5ConfirmationElementInterface) {
-            throw new FacadeRuntimeError('Cannot use widget "' . $closeAction->getConfirmationForUnsavedChanges()->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+            throw new FacadeRuntimeError('Cannot use widget "' . $closeConfirmationEl->getWidget()->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
         }
         $controller->addMethod(self::CONTROLLER_METHOD_CLOSE_DIALOG, $this, 'oEvent', <<<JS
             

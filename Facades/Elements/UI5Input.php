@@ -8,7 +8,6 @@ use exface\Core\Widgets\Filter;
 use exface\Core\Widgets\Input;
 use exface\Core\Widgets\InputComboTable;
 use exface\Core\Widgets\DataLookupDialog;
-use exface\Core\Widgets\Parts\ConditionalPropertyCondition;
 use exface\Core\Widgets\KPI;
 
 /**

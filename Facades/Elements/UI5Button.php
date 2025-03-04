@@ -89,6 +89,8 @@ use exface\UI5Facade\Facades\UI5Facade;
  */
 class UI5Button extends UI5AbstractElement
 {
+    const EVENT_NAME_PRESS = 'press';
+
     use JqueryButtonTrait {
         buildJsNavigateToPage as buildJsNavigateToPageViaTrait;
         buildJsClickSendToWidget as buildJsClickSendToWidgetViaTrait;
@@ -231,8 +233,8 @@ JS;
     {
         $controller = $this->getController();
         $clickJs = $this->buildJsClickFunction();
-        $controller->addOnEventScript($this, 'press', ($clickJs ? $clickJs : $default));
-        return $this->getController()->buildJsEventHandler($this, 'press', true);        
+        $controller->addOnEventScript($this, self::EVENT_NAME_PRESS, ($clickJs ? "return {$clickJs}" : $default));
+        return $this->getController()->buildJsEventHandler($this, self::EVENT_NAME_PRESS, true);        
     }
     
     /**
@@ -242,7 +244,7 @@ JS;
      */
     public function buildJsClickEventHandlerCall(string $oControllerJsVar = null) : string
     {
-        $methodName = $this->getController()->buildJsEventHandlerMethodName('press');
+        $methodName = $this->getController()->buildJsEventHandlerMethodName(self::EVENT_NAME_PRESS);
         if ($oControllerJsVar === null) {
             return $this->getController()->buildJsMethodCallFromController($methodName, $this, '');
         } else {
@@ -258,7 +260,7 @@ JS;
     public function buildJsClickFunctionName()
     {
         $controller = $this->getController();
-        return $controller->buildJsMethodName($controller->buildJsEventHandlerMethodName('press'), $this);
+        return $controller->buildJsMethodName($controller->buildJsEventHandlerMethodName(self::EVENT_NAME_PRESS), $this);
     }
 
     /**
@@ -569,7 +571,7 @@ JS;
             // then it is probably the default close button and we should check for changes!
             if ($checkChanges === null) {
                 if ($widget->hasAction()) {
-                    $cnfWidget = $widget->getAction()->getConfirmationForUnsavedChanges();
+                    $cnfWidget = $widget->getAction()->getConfirmations()->getConfirmationForUnsavedChanges();
                     $checkChanges = $cnfWidget !== null && ! $cnfWidget->isDisabled();
                 } else {
                     $checkChanges = true;
