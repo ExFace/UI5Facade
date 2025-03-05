@@ -571,7 +571,7 @@ JS;
             // then it is probably the default close button and we should check for changes!
             if ($checkChanges === null) {
                 if ($widget->hasAction()) {
-                    $cnfWidget = $widget->getAction()->getConfirmations()->getConfirmationForUnsavedChanges();
+                    $cnfWidget = $widget->getAction()->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst();
                     $checkChanges = $cnfWidget !== null && ! $cnfWidget->isDisabled();
                 } else {
                     $checkChanges = true;
