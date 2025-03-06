@@ -793,6 +793,20 @@ JS;
         if (! $confirmationEl instanceof UI5ConfirmationElementInterface) {
             throw new FacadeRuntimeError('Cannot use widget "' . $widget->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
         }
-        return $confirmationEl->buildJsConfirmation($jsRequestData, $onContinueJs, $onCancelJs ?? '');
+
+        if (null !== $conditionalProperty = $widget->getDisabledIf()) {
+            $checkDisabledJs = $this->buildJsConditionalPropertyIf($conditionalProperty->getConditionGroup());
+        } else {
+            $checkDisabledJs = 'false';
+        }
+        return <<<JS
+        
+        var bDisabled = ({$checkDisabledJs});
+        if (bDisabled) {
+            {$onContinueJs}
+        } else {
+            {$confirmationEl->buildJsConfirmation($jsRequestData, $onContinueJs, $onCancelJs ?? '')};
+        }
+JS;
     }
 }
