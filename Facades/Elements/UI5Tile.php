@@ -100,7 +100,7 @@ new sap.m.GenericTile("{$this->getId()}", {
             ]
         })
     ]
-}).addStyleClass("sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout {$tileClass} {$this->buildCssElementClass()}")
+}).addStyleClass("sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout {$tileClass} {$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
 JS;
     }
      
