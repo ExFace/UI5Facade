@@ -72,6 +72,8 @@ JS;
             $this->addOnSuccessScript($goToStepJs);
             $actionJs = parent::buildJsClickFunction($action, $jsRequestData);
             $goToStepJs = '';
+        } else {
+            $actionJs = '{}';
         }
         
         // Make sure to start the JS without a blank line to make sure it can be
@@ -79,10 +81,13 @@ JS;
         return <<<JS
             (function(requestData){
                 var jqTabs = $('#{$tabsElement->getId()}');
+                var oResult;
                 {$validateJs}
-                {$actionJs}
+                
+                oResult = {$actionJs}
                 {$goToStepJs}
 
+                return oResult;
             })({$jsRequestData});
                     
 JS;
