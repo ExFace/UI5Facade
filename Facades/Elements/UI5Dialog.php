@@ -167,7 +167,7 @@ JS
         
         // Build the dialog and return its JS constructor
         if ($this->isMaximized() === false) {
-            return $this->buildJsDialog();
+            return $this->buildJsDialog($oControllerJs);
         } else {
             // Controller method to apply height-fix for inner controls with virtual scrolling
             if ($this->isObjectPageLayout()) {
@@ -192,7 +192,7 @@ JS
             if ($this->isObjectPageLayout()) {
                 return $this->buildJsPage($this->buildJsObjectPageLayout($oControllerJs), $oControllerJs);
             } else {
-                return $this->buildJsPage($this->buildJsChildrenConstructors());
+                return $this->buildJsPage($this->buildJsChildrenConstructors(), $oControllerJs);
             }
         }        
     }
@@ -254,7 +254,7 @@ JS
      * Returns TRUE if the dialog is maximized (i.e. should be rendered as a page) and FALSE otherwise (i.e. rendering as dialog).
      * @return boolean
      */
-    public function isMaximized()
+    public function isMaximized() : bool
     {
         $widget = $this->getWidget();
         $widget_setting = $widget->isMaximized();
@@ -429,7 +429,7 @@ JS;
         return $found;
     }
 				
-    protected function buildJsDialog()
+    protected function buildJsDialog(string $oControllerJs) : string
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
