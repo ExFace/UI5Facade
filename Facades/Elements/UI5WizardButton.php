@@ -74,14 +74,19 @@ JS;
             $goToStepJs = '';
         }
         
+        // Make sure to start the JS without a blank line to make sure it can be
+        // used with assignments: e.g. `return {$this->buildJsClickFunction()}`
         return <<<JS
-        
-					var jqTabs = $('#{$tabsElement->getId()}');
-                    {$validateJs}
-                    {$actionJs}
-                    {$goToStepJs}
+            (function(requestData){
+                var jqTabs = $('#{$tabsElement->getId()}');
+                {$validateJs}
+                {$actionJs}
+                {$goToStepJs}
+
+            })({$jsRequestData});
                     
 JS;
+
     }
     
     /**
