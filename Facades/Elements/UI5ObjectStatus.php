@@ -263,9 +263,15 @@ JS;
             $value = ''; // TODO
         } else {
             $semColsJs = json_encode($this->getColorSemanticMap());
+            if ($widget->hasColorScale()) {
+                $colorResolverJs = $this->buildJsScaleResolver('value', $widget->getColorScale(), $widget->isColorScaleRangeBased());
+            } else {
+                // TODO how to handle color values coming from data - e.g. a formula calculating color
+                $colorResolverJs = '(value || "")';
+            }
             $formatterJs = <<<JS
                 formatter: function(value){
-                    var sColor = {$this->buildJsScaleResolver('value', $widget->getColorScale(), $widget->isColorScaleRangeBased())};
+                    var sColor = {$colorResolverJs};
                     var sValueColor;
                     var oCtrl = this;
                     if (sColor.startsWith('~')) {

@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\ColorIndicator;
 use exface\Core\CommonLogic\Constants\Colors;
+use exface\UI5FAcade\Facades\UI5PropertyBinding;
 
 /**
  * Renders a ColorIndicator widget as sap.ui.core.Icon with a colored circle.
@@ -73,13 +74,22 @@ JS;
      */
     protected function buildJsColorValue() : string
     {
-        if (! $this->isValueBoundToModel()) {
+        $widget = $this->getWidget();
+        $widgetColorBinding = $widget->getColorBinding();
+        $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
+        if (! $ui5ColorBinding->isBoundToModel()) {
             $value = $this->buildJsColorValueNoColor(); // TODO
         } else {
             $semColsJs = json_encode($this->getColorSemanticMap());
+            if ($widget->hasColorScale()) {
+                $colorResolverJs = $this->buildJsScaleResolver('value', $widget->getColorScale(), $widget->isColorScaleRangeBased());
+            } else {
+                // TODO how to handle color values coming from data - e.g. a formula calculating color
+                $colorResolverJs = '(value || "")';
+            }
             $bindingOptions = <<<JS
                 formatter: function(value){
-                    var sColor = {$this->buildJsScaleResolver('value', $this->getWidget()->getColorScale(), $this->getWidget()->isColorScaleRangeBased())};
+                    var sColor = {$colorResolverJs};
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         return oColorScale[sColor];
@@ -88,7 +98,7 @@ JS;
                 }
                 
 JS;
-            $value = $this->buildJsValueBinding($bindingOptions);
+            $value = $ui5ColorBinding->buildJsModelBinding($bindingOptions);
         }
         return $value;
     }
