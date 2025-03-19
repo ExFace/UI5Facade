@@ -116,7 +116,28 @@ JS;
         $property = $widget->getMultiSelect() ? 'selectedKeys' : 'selectedKey';
         return ($value ? $property . ': ' . $value . ',' : '');
     }
+
+    public function buildJsValueBindingOptions(): string
+    {
+        if(!$this->getWidget()->getMultiSelect()) {
+            return '';
+        }
+        
+        return <<<JS
+
+formatter: function(value) {
+        if (value === undefined || typeof value !== 'string' ) {
+            return value;
+        }
     
+        return value.split('{$this->getWidget()->getMultiSelectValueDelimiter()}').filter(value => value);
+    },
+    
+JS;
+
+    }
+
+
     /**
      * 
      * {@inheritDoc}
@@ -163,7 +184,7 @@ JS;
      */
     public function buildJsValueBindingPropertyName() : string
     {
-        return 'selectedKey';
+        return $this->getWidget()->getMultiSelect() ? 'selectedKeys' : 'selectedKey';
     }
     
     /**

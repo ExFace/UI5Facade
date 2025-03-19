@@ -79,7 +79,7 @@ class UI5DataLookupDialog extends UI5Dialog
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Dialog::buildJsDialog()
      */
-    protected function buildJsDialog()
+    protected function buildJsDialog(string $oControllerJs): string
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
@@ -124,7 +124,7 @@ JS      );
                 {$this->buildJsOnDialogAfterOpen('oEvent')}
             },
             {$prefill}
-		}).addStyleClass('{$this->buildCssElementClass()}')
+		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
 JS;
     }
 

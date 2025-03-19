@@ -24,9 +24,6 @@
 	"MESSAGE.TYPE.ERROR": "Fehler",
 	"MESSAGE.TYPE.WARNING": "Warnung",
 	"MESSAGE.TYPE.INFO": "Info",
-	"MESSAGE.DISCARD_CHANGES.TITLE": "Änderungen verwerfen?",
-	"MESSAGE.DISCARD_CHANGES.TEXT": "Wenn Sie diese Ansicht verlassen, gehen ggf. vorhandene ungespeicherten Änderungen verloren!",
-	"MESSAGE.DISCARD_CHANGES.DISCARD": "Verlassen",
 	
 	"WEBAPP.ROUTING.NOTFOUND.TITLE": "URL nicht gefunden",
 	"WEBAPP.ROUTING.NOTFOUND.TEXT": "Seite nicht gefunden!",

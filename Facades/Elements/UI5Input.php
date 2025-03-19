@@ -8,7 +8,6 @@ use exface\Core\Widgets\Filter;
 use exface\Core\Widgets\Input;
 use exface\Core\Widgets\InputComboTable;
 use exface\Core\Widgets\DataLookupDialog;
-use exface\Core\Widgets\Parts\ConditionalPropertyCondition;
 use exface\Core\Widgets\KPI;
 
 /**
@@ -423,7 +422,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsChangesGetter()
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         $widget = $this->getWidget();
         

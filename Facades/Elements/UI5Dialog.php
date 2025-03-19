@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Actions\GoBack;
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -13,6 +15,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
+use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
  * In OpenUI5 dialog widgets are either rendered as sap.m.Page (if maximized) or as sap.m.Dialog.
@@ -125,11 +128,19 @@ JS, false));
             $closeDialogJs = "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget)->getId()}').close();";
         } else {
             $closeDialogJs = "this.navBack(oEvent);";
-        }    
+        } 
+        
+        
+        $closeAction = ActionFactory::createFromString($this->getWorkbench(), GoBack::class, $widget);
+        $closeConfirmationEl = $this->getFacade()->getElement($closeAction->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst());
+        if (! $closeConfirmationEl instanceof UI5ConfirmationElementInterface) {
+            throw new FacadeRuntimeError('Cannot use widget "' . $closeConfirmationEl->getWidget()->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+        }
         $controller->addMethod(self::CONTROLLER_METHOD_CLOSE_DIALOG, $this, 'oEvent', <<<JS
             
                 try {
                     var oViewModel = this.getView().getModel('view');
+                    var aChanges = [];
                     var bCheckChanges = ! (oEvent !== undefined && oEvent.getParameters().bCheckChanges === false);
                     var fnClose = function(){
                         oViewModel.setProperty('/_prefill/current_data_hash', null);
@@ -138,10 +149,12 @@ JS, false));
                         {$closeDialogJs}
                         {$dialogOpenerBtnEl->buildJsTriggerActionEffects($dialogOpenerAction)}
                     }.bind(this);
-
+                    
                     // Check for unsaved changes if required.
                     if (bCheckChanges === true) {
-                        if (true === {$this->buildJsCheckForUnsavedChanges(true, 'fnClose')}) {
+                        aChanges = {$this->buildJsChangesGetter(true)};
+                        if (aChanges && aChanges.length > 0) {
+                            {$closeConfirmationEl->buildJsConfirmation('{}', 'fnClose()')}
                             return;
                         }
                     }
@@ -154,7 +167,7 @@ JS
         
         // Build the dialog and return its JS constructor
         if ($this->isMaximized() === false) {
-            return $this->buildJsDialog();
+            return $this->buildJsDialog($oControllerJs);
         } else {
             // Controller method to apply height-fix for inner controls with virtual scrolling
             if ($this->isObjectPageLayout()) {
@@ -179,7 +192,7 @@ JS
             if ($this->isObjectPageLayout()) {
                 return $this->buildJsPage($this->buildJsObjectPageLayout($oControllerJs), $oControllerJs);
             } else {
-                return $this->buildJsPage($this->buildJsChildrenConstructors());
+                return $this->buildJsPage($this->buildJsChildrenConstructors(), $oControllerJs);
             }
         }        
     }
@@ -241,7 +254,7 @@ JS
      * Returns TRUE if the dialog is maximized (i.e. should be rendered as a page) and FALSE otherwise (i.e. rendering as dialog).
      * @return boolean
      */
-    public function isMaximized()
+    public function isMaximized() : bool
     {
         $widget = $this->getWidget();
         $widget_setting = $widget->isMaximized();
@@ -416,7 +429,7 @@ JS;
         return $found;
     }
 				
-    protected function buildJsDialog()
+    protected function buildJsDialog(string $oControllerJs) : string
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';

@@ -210,6 +210,9 @@ JS;
 
                     setTimeout(function(){
                         var oInput = sap.ui.getCore().byId('{$this->getId()}');
+                        if (oInput === undefined) {
+                            return;
+                        }
                         {$missingValueJs} 
                     }, 0);
 JS);
@@ -225,15 +228,28 @@ JS);
                 // NOTE: without setTimeout() the oInput is sometimes not initialized yet when init() of the
                 // view is called in dialogs. In particular, this happens if the InputComboTable is a filter
                 // in a table, that is the only direct child of a dialog.
+                // NOTE: Event with setTimeout() it does not always work because hidden controls may even no
+                // be rendered at init(). In this case, the binding is attached to the view model. This should
+                // work for most cases too!
                 if ($this->isValueBoundToModel() && ! $this->getView()->getModel()->hasBinding($widget, 'value_text')) {
                     $emptyValueWithKeyJs = <<<JS
 
                     setTimeout(function(){
                         var oInput = sap.ui.getCore().byId('{$this->getId()}');
-                        var oModel = oInput.getModel();
-                        var oKeyBinding = new sap.ui.model.Binding(oModel, '{$this->getValueBindingPath()}', oModel.getContext('{$this->getValueBindingPath()}'));
+                        var oModel, oKeyBinding;
+                        if (oInput) {
+                            oModel = oInput.getModel();
+                        } else if (oController) {
+                            oModel = oController.getView().getModel();
+                        } else {
+                            return;
+                        }
+                        oKeyBinding = new sap.ui.model.Binding(oModel, '{$this->getValueBindingPath()}', oModel.getContext('{$this->getValueBindingPath()}'));
                         oKeyBinding.attachChange(function(oEvent){
                             var sBindingPath, mModelVal;
+                            if (! oInput) {
+                                return;
+                            }
                             if (oInput.getSelectedKey() === '') {
                                 if (oInput.getTokens !== undefined) {
                                     sBindingPath = oInput.getBinding('selectedKey').sPath;
