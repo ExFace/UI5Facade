@@ -989,6 +989,9 @@ JS;
         
         $onLoadedJs = <<<JS
             
+            if (oModel.getProperty('/rows')?.length > 100) {
+                oModel.setSizeLimit(oModel.getProperty('/rows').length);
+            }
             if (oTable._exfPendingData !== undefined && oTable._exfPendingData !== sCurrentRequestData) {
                 delete oTable._exfPendingData;
                 {$this->buildJsRefresh()}
@@ -999,7 +1002,6 @@ JS;
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
             {$this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')};
-
 JS;
             
         $onErrorJs = 'delete oTable._exfPendingData; ' . $this->buildJsBusyIconHide();
