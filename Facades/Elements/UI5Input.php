@@ -48,7 +48,7 @@ class UI5Input extends UI5Value
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
         $this->registerOnChangeValidation();
-        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs));
+        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs) . ".addStyleClass('{$this->buildCssWidgetClass()}')");
     }
     
     /**

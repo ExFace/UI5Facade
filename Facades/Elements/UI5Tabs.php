@@ -43,6 +43,17 @@ class UI5Tabs extends UI5Container
         if ($widget->getActiveTabIndex() > 0) {
             $options .= 'selectedKey: ' . $this->escapeString($this->getFacade()->getElement($selectedTab)->getId()) . ',';
         }
+        foreach ($widget->getTabs() as $tab) {
+            if ($tab->isFilledBySingleWidget() === true) {
+                $tabEl = $this->getFacade()->getElement($tab);
+                $resizeContentJs .= <<<JS
+
+                    if (sKey === '{$tabEl->getId()}') {
+                        {$this->getFacade()->getElement($tab->getFillerWidget())->getOnResizeScript()}
+                    }
+JS;
+            } 
+        }
         
         return <<<JS
 
@@ -56,6 +67,10 @@ class UI5Tabs extends UI5Container
         ],
         select: function(oEvent) {
             {$this->buildJsOnChangeScript('oEvent')}
+
+            setTimeout(function(sKey){
+                {$resizeContentJs}
+            }, 0, oEvent.getParameters().key);
         }
     })
     {$this->buildJsPseudoEventHandlers()}
@@ -113,10 +128,10 @@ JS;
             var oTabBar = $oEventJs.getSource();
             var sKey = oParams.selectedKey;
             var aTabIdsNoPadding = $filledTabIdsJSON;
-            if (aTabIdsNoPadding.indexOf('sKey') !== -1) {
-                oTabBar.setApplyContentPadding(true);
-            } else {
+            if (aTabIdsNoPadding.indexOf(sKey) !== -1) {
                 oTabBar.setApplyContentPadding(false);
+            } else {
+                oTabBar.setApplyContentPadding(true);
             }
 JS . $this->getOnChangeScript();
     }

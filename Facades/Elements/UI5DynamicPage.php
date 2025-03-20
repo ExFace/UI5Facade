@@ -48,6 +48,17 @@ class UI5DynamicPage extends UI5AbstractElement
         if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
+
+        // Call resize scripts as soon as the header is collapsed or expanded
+        $this->getController()->addOnInitScript(<<<JS
+                        
+            sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getHeader(), function(){
+                setTimeout(function(){
+                    {$this->getOnResizeScript()}
+                }, 0);
+            });
+JS
+        );
         
         $toolbar = $this->buildJsHeaderToolbarButtons() ?? '';
         

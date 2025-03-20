@@ -115,8 +115,10 @@ JS;
         $widget = $this->getWidget();
         if ($this->isObjectPageSection()) {
             $dialogEl = $this->getFacade()->getElement($widget->getTabs()->getParent());
-            return "sap.ui.getCore().byId('{$dialogEl->getIdOfObjectPageLayout()}').setSelectedSection('{$this->getId()}')";
+            $js = "sap.ui.getCore().byId('{$dialogEl->getIdOfObjectPageLayout()}').setSelectedSection('{$this->getId()}')";
+        } else {
+            $js = "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget->getTabs())->getId()}').setSelectedKey('{$widget->getTabIndex()}');";
         }
-        return "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget->getTabs())->getId()}').setSelectedKey('{$widget->getTabIndex()}')";
+        return $js;
     }
 }

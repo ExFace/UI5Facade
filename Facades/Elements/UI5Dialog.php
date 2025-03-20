@@ -1068,6 +1068,7 @@ JS;
                         }
                         oPanel.setHeight((iHeightContent - iHeightHeaderTitle - iHeightHeaderDetails) + 'px');
                     });
+                    {$this->getOnResizeScript()}
 JS;
     }
     
