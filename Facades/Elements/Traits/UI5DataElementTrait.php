@@ -717,6 +717,9 @@ if (jqFullscreenContainer.hasClass('fullscreen') === false) {
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
     oButton.setIcon('sap-icon://full-screen');
 }
+setTimeout(function(){
+    {$this->getOnResizeScript()}
+}, 0);
 JS;
         $this->getController()->addOnHideViewScript("if ({$this->buildJsFullscreenContainerGetter()}.hasClass('fullscreen') === true) {{$script}}", true);
         return <<<JS
@@ -1465,8 +1468,13 @@ JS;
             content: [
                 {$content}
             ]
-        })
+        }).addStyleClass('{$this->buildCssDynamicPageClasses()}')
 JS;
+    }
+
+    protected function buildCssDynamicPageClasses() : string
+    {
+        return '';
     }
     
     protected function buildJsTitleHeading(string $title, string $backButton) : string

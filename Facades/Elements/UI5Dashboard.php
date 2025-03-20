@@ -497,6 +497,7 @@ JS;
             $dynamicPage->setContentJs($contentJs);
             $dynamicPage->setHeaderToolbarJs($this->buildJsHeaderButtons());
             $dynamicPage->setId($this->getId() . '_page');
+            $dynamicPage->addOnResizeScript($this->getOnResizeScript());
             return $dynamicPage->buildJsConstructor();
         } else {
             return parent::buildJsPageWrapper($contentJs, $footerConstructor, $headerContentJs);

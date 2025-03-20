@@ -753,7 +753,7 @@ JS;
     {
         return ! (($this->getWidget() instanceof iFillEntireContainer) || $this->getWidget()->getWidth()->isMax());
     }
-    
+
     /**
      * Returns TRUE if the element requires a container height to scale properly (like sap.ui.table.Table).
      * 
@@ -908,5 +908,48 @@ JS, false);
     {
         return ".addStyleClass('{$this->buildCssWidgetClass()}')";
         
+    }
+
+    /**
+     * Registers resize listeners on controller init, that will call this elements resize script.
+     * 
+     * Many facade elements must react to their parent being resized. UI5 seems to provide a
+     * comfortable ResizeHandler, but it turns out, it does not always work. 
+     * 
+     * Known issues of the ResizeHandler being solved here:
+     * - Cannot attach a ResizeHandler to sap.m.IconTabFilter - JS error (missing DOM element?)
+     * - Extending/collapsing the header of a sap.f.DynamicPage does not trigger ResizeHandler at all
+     * 
+     * @return UI5AbstractElement
+     */
+    protected function registerResizeListeners() : UI5AbstractElement
+    {
+        $this->getController()->addOnInitScript(<<<JS
+
+(function(oController, oControl){
+    var oDynamicPage = oController.findParentOfType(oControl, sap.f.DynamicPage);
+    var oParent = oControl.getParent();
+    
+    while (oParent instanceof sap.m.IconTabFilter) {
+        oParent = oParent.getParent();
+    }
+    if (oParent) {
+        sap.ui.core.ResizeHandler.register(oParent, function(){
+            setTimeout(function(){
+                {$this->getOnResizeScript()}
+            }, 0);
+        });
+    }
+    if (oDynamicPage) {
+        sap.ui.core.ResizeHandler.register(oDynamicPage.getHeader(), function(){
+            setTimeout(function(){
+                {$this->getOnResizeScript()}
+            }, 0);
+        });
+    }
+})(oController, sap.ui.getCore().byId('{$this->getId()}'));
+JS);
+        
+        return $this;
     }
 }

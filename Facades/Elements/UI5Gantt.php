@@ -66,13 +66,6 @@ class UI5Gantt extends UI5DataTree
                                     },100);
                                 });
                             }
-                            
-                            setTimeout(function(){
-                                // TODO
-                            }, 0);
-                            sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
-                                // TODO
-                            });
                         },0);
                     }
                 })
