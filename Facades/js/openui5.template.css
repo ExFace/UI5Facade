@@ -76,7 +76,10 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > span {line-height: 2.375rem}
 /* Fix page header collaps button icon shifted to the right */
 .sapUiSizeCompact .sapFDynamicPageToggleHeaderIndicator > .sapMBtnInner {padding-left: 0.2rem !important; padding-right: 0.2rem !important;}
-/* */
+/* noscroll for Scheduler and other widgets with internal scrolling */
+.sapFDynamicPage.noscroll .sapMScrollBarOuterDiv {display: none;}
+.sapFDynamicPage.noscroll .sapFDynamicPageContentWrapper {overflow: hidden!important;}
+
 .sapFDynamicPage-Std-Phone .sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped>.sapFDynamicPageTitle {padding-bottom: 1.2rem;}
 .sapFDynamicPage-Std-Phone .sapFDynamicPageTitleWrapper>.sapFDynamicPageTitle .sapFDynamicPageTitleActionsBar {padding-right: 0;}
 .sapFDynamicPage-Std-Phone .sapFDynamicPageTitleWrapper>.sapFDynamicPageTitle .sapFDynamicPageTitleActionsBar > .sapMTB {padding-right: 0;}
@@ -287,8 +290,10 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .sapUiLoSplitterContent > .sapUiNoContentPadding > .sapMPanelContent  > .sapFDynamicPage > .sapFDynamicPageContentWrapper > .sapFDynamicPageContent > .sapFDynamicPageContentFitContainer {padding: 0}
 
 /* Fullscreen */
-.fullscreen {position: fixed!important; top: 0; left: 0;  width: 100vw!important; height: 100vh!important; background: rgba(255,255,255);}
+.fullscreen {position: fixed!important; top: 0; left: 0; padding: 0; width: 100vw!important; height: 100vh!important; background: rgba(255,255,255);}
 .sapUiRespGrid.fullscreen > .sapUiRespGridSpanS12 {height: 100%}
+/* Fullscreen Scheduler */
+.fullscreen > .sapMITBContent {padding: 0; height: 100%; max-height: 100vh;};
 
 /* SegmentedButtons */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}
@@ -305,6 +310,9 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 }
 .sapMPlanCal.halfHeight>.sapMList .sapMListTblCell.sapMPlanCalAppRow {height: inherit;}
 .sapMPlanCal.halfHeight>.sapMList .sapMPlanCalAppRow>.sapUiCalendarRow {height: 100%}
+/* Stick headers + scrolling */
+.sapMPlanCal.sapMPCSticky > .sapMList > .sapMListInfoTBarContainer {top: 0 !important;} 
+.sapMPlanCal.sapMPCSticky > .sapMList {overflow: auto;}
 /* Nav buttons */
 .sapMBtn.exf-scheduler-nav {position: absolute; padding: 0;}
 .sapMBtn.exf-scheduler-nav > span {height: 100%}
