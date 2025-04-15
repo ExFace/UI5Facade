@@ -112,7 +112,7 @@ class UI5Button extends UI5AbstractElement
         new sap.m.Button("{$this->getId()}", { 
             {$this->buildJsProperties()}
         })
-        .addStyleClass("{$this->buildCssElementClass()}")
+        .addStyleClass("{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
         {$this->buildJsPseudoEventHandlers()}
 
 JS;
@@ -808,5 +808,15 @@ JS;
             {$confirmationEl->buildJsConfirmation($jsRequestData, $onContinueJs, $onCancelJs ?? '')};
         }
 JS;
+    }
+
+    public function buildCssWidgetClass() : string
+    {
+        $classes = parent::buildCssWidgetClass();
+        $widget = $this->getWidget();
+        if (($widget instanceof DialogButton) && ($widget->getCloseDialogAfterActionSucceeds() || $widget->getCloseDialogAfterActionFails())) {
+            $classes .= ' exf-dialog-close';
+        }
+        return $classes;
     }
 }
