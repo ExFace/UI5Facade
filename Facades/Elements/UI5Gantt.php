@@ -78,6 +78,15 @@ JS;
     
     /**
      *
+     * @see UI5DataElementTrait::isWrappedInPanel()
+     */
+    protected function isWrappedInPanel() : bool
+    {
+        return true;
+    }
+    
+    /**
+     *
      * @return string
      */
     protected function buildJsPropertyColumnHeaderHeight() : string

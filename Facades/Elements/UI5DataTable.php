@@ -717,17 +717,23 @@ JS;
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
+                var oColParam;
                 if (oColumn.data('_exfDataColumnName')) {
                     if (oColumn.data('_exfAttributeAlias')) {
-                        {$oParamsJs}.data.columns.push({
-                            name: oColumn.data('_exfDataColumnName'),
+                        oColParam = {
                             attribute_alias: oColumn.data('_exfAttributeAlias')
-                        });
+                        };
+                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                            oColParam.name = oColumn.data('_exfDataColumnName');
+                        }
                     } else if (oColumn.data('_exfCalculation')) {
-                        {$oParamsJs}.data.columns.push({
+                        oColParam = {
                             name: oColumn.data('_exfDataColumnName'),
                             expression: oColumn.data('_exfCalculation')
-                        });
+                        };
+                    }
+                    if (oColParam !== undefined) {
+                        {$oParamsJs}.data.columns.push(oColParam);
                     }
                 }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){

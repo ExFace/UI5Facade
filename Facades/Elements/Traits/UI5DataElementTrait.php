@@ -343,7 +343,11 @@ JS;
      */
     protected function buildJsSetHidden(bool $hidden, string $elementId = null) : string
     {
-        $elementId = $elementId ?? $this->getId() . '_panel';
+        if ($this->isWrappedInPanel()) {
+            $elementId = $elementId ?? $this->getId() . '_panel';
+        } else {
+            $elementId = $elementId ?? $this->getId();
+        }
         return parent::buildJsSetHidden($hidden, $elementId);
     }
     

@@ -31,6 +31,15 @@ JS;
 
 	/**
      *
+     * @see UI5DataElementTrait::isWrappedInPanel()
+     */
+    protected function isWrappedInPanel() : bool
+    {
+        return true;
+    }
+
+	/**
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait::registerExternalModules()
      */
