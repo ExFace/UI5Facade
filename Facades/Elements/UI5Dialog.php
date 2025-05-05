@@ -308,7 +308,8 @@ JS;
         $widget = $this->getWidget();
         
         if ($widget->hasHeader()) {
-            foreach ($widget->getHeader()->getChildren() as $child) {
+            $header = $widget->getHeader();
+            foreach ($header->getChildren() as $child) {
                 if ($child instanceof Image) {
                     $imageElement = $this->getFacade()->getElement($child);
                     $image = <<<JS
@@ -321,13 +322,14 @@ JS;
                 }
             }
             
-            
+            $alwaysShowContentHeader = $header->isCollapsible(true) ? 'false' : 'true';
             $header_content = $this->getFacade()->getElement($widget->getHeader())->buildJsConstructor();
         }
         
         return <<<JS
 
             showTitleInHeaderContent: true,
+            alwaysShowContentHeader: {$alwaysShowContentHeader},
             headerTitle:
 				new sap.uxap.ObjectPageHeader({
 					objectTitle: {$this->buildJsObjectTitle()},
