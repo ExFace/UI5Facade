@@ -306,7 +306,8 @@ JS;
     protected function buildJsHeader(string $oControllerJs = 'oController')
     {
         $widget = $this->getWidget();
-        
+        $alwaysShowContentHeader = 'false';
+
         if ($widget->hasHeader()) {
             $header = $widget->getHeader();
             foreach ($header->getChildren() as $child) {
