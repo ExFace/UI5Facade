@@ -2,6 +2,8 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\DataTypes\TextDataType;
+use exface\Core\DataTypes\TextStylesDataType;
+use exface\Core\Widgets\Text;
 
 /**
  * Generates sap.m.FormattedText controls for Text widgets
@@ -135,14 +137,33 @@ JS;
      */
     public function buildJsValueBindingOptions()
     {
-        if ($this->getWidget()->isMultiLine() && ($this->getWidget()->getValueDataType() instanceof TextDataType)) {
+        if ($this->getWidget()->getValueDataType() instanceof TextDataType) {
+            switch ($this->getWidget()->getStyle()) {
+                case TextStylesDataType::BOLD:
+                    $openTag = "'<strong>' +";
+                    $closeTag = "+ '</strong>'";
+                    break;
+                case TextStylesDataType::ITALIC:
+                    $openTag = "'<span style=\"font-style:italic;\">' +";
+                    $closeTag = "+ '</span>'";
+                    break;
+                default:
+                    $openTag = '';
+                    $closeTag = '';
+            }
             return <<<JS
             
                 formatter: function(value) {
+                    var bMultiline = {$this->escapeBool($this->getWidget()->isMultiLine())};
+                    var sVal = ({$this->getValueBindingFormatter()->getJsFormatter()->buildJsFormatter('value')} + '');
                     if (value == undefined || value == null) {
                         return '';
                     }
-                    return ({$this->getValueBindingFormatter()->getJsFormatter()->buildJsFormatter('value')} + '').replace(/([^>\\r\\n]?)(\\r\\n|\\n\\r|\\r|\\n)/g, '$1<br>$2');
+                    if (bMultiline) {
+                        sVal.replace(/([^>\\r\\n]?)(\\r\\n|\\n\\r|\\r|\\n)/g, '$1<br>$2');
+                    }
+                    console.log(sVal)
+                    return {$openTag} sVal {$closeTag};
                 },
                 
 JS;
