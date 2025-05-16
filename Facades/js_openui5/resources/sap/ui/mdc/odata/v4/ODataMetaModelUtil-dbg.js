@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
+sap.ui.define([], () => {
 	"use strict";
 
 	/**
@@ -11,12 +11,13 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 *
 	 * @private
 	 * @since 1.62
+	 * @deprecated This module should not be used and will be removed in future versions!
 	 */
-	var util = function() {};
+	const util = function() {};
 
 	util.fetchAllAnnotations = function(oMetaModel, sEntityPath) {
-		var oCtx = oMetaModel.getMetaContext(sEntityPath);
-		return oMetaModel.requestObject("@", oCtx).then( function (mAnnos) {
+		const oCtx = oMetaModel.getMetaContext(sEntityPath);
+		return oMetaModel.requestObject("@", oCtx).then((mAnnos) => {
 			return mAnnos;
 		});
 	};
@@ -27,12 +28,13 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @param {object} mAnnos a list of annotations of the entity set
 	 * @returns {object} mCustomAggregates a map to the custom aggregates keyed by theri qualifiers
 	 */
-	util.getAllCustomAggregates = function (mAnnos) {
-		var mCustomAggregates = {}, sAnno;
-		for (var sAnnoKey in mAnnos) {
+	util.getAllCustomAggregates = function(mAnnos) {
+		const mCustomAggregates = {};
+		let sAnno;
+		for (const sAnnoKey in mAnnos) {
 			if (sAnnoKey.startsWith("@Org.OData.Aggregation.V1.CustomAggregate")) {
 				sAnno = sAnnoKey.replace("@Org.OData.Aggregation.V1.CustomAggregate#", "");
-				var aAnno = sAnno.split("@");
+				const aAnno = sAnno.split("@");
 
 				if (aAnno.length == 2) {
 					//inner annotation that is not part of 	Validation.AggregatableTerms
@@ -60,12 +62,13 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 		return mCustomAggregates;
 	};
 
-	util.getAllAggregatableProperties = function (mAnnos) {
-		var mAggregatableProperties = {}, aProperties, oProperty;
+	util.getAllAggregatableProperties = function(mAnnos) {
+		const mAggregatableProperties = {};
+		let aProperties, oProperty;
 		if (mAnnos["@com.sap.vocabularies.Analytics.v1.AggregatedProperties"]) {
 			aProperties = mAnnos["@com.sap.vocabularies.Analytics.v1.AggregatedProperties"];
 
-			for (var i = 0; i < aProperties.length; i++) {
+			for (let i = 0; i < aProperties.length; i++) {
 				oProperty = aProperties[i];
 
 				mAggregatableProperties[oProperty.Value] = {
@@ -94,11 +97,11 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * </ul>
 	 */
 	util.getAllDataPoints = function(mAnnos) {
-		var mDataPoints = {};
-		for (var sAnnoKey in mAnnos) {
+		const mDataPoints = {};
+		for (const sAnnoKey in mAnnos) {
 			if (sAnnoKey.startsWith("@com.sap.vocabularies.UI.v1.DataPoint")) {
-				var sQualifier = sAnnoKey.replace("@com.sap.vocabularies.UI.v1.DataPoint#", "");
-				var sValue = mAnnos[sAnnoKey].Value.$Path;
+				const sQualifier = sAnnoKey.replace("@com.sap.vocabularies.UI.v1.DataPoint#", "");
+				const sValue = mAnnos[sAnnoKey].Value.$Path;
 				mDataPoints[sValue] = mDataPoints[sValue] || {};
 				mDataPoints[sValue][sQualifier] = util.createDataPointProperty(mAnnos[sAnnoKey]);
 			}
@@ -114,7 +117,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @param oDataPointAnno
 	 */
 	util.createDataPointProperty = function(oDataPointAnno) {
-		var oDataPoint = {};
+		const oDataPoint = {};
 
 		if (oDataPointAnno.TargetValue) {
 			oDataPoint.targetValue = oDataPointAnno.TargetValue.$Path;
@@ -124,7 +127,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 			oDataPoint.foreCastValue = oDataPointAnno.ForeCastValue.$Path;
 		}
 
-		var oCriticality = null;
+		let oCriticality = null;
 		if (oDataPointAnno.Criticality) {
 
 			if (oDataPointAnno.Criticality.$Path) {
@@ -139,8 +142,8 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 			}
 
 		} else if (oDataPointAnno.CriticalityCalculation) {
-			var oThresholds = {};
-			var bConstant = util._buildThresholds(oThresholds, oDataPointAnno.CriticalityCalculation);
+			const oThresholds = {};
+			const bConstant = util._buildThresholds(oThresholds, oDataPointAnno.CriticalityCalculation);
 
 			if (bConstant) {
 				oCriticality = {
@@ -163,33 +166,39 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 
 	/**
 	 * Checks whether the thresholds are dynamic or constant.
-	 * @param {object} the threshold skeleton
-	 * @param {object} the UI.DataPoint.CriticalityCalculation annotation
+	 * @param {object} oThresholds the threshold skeleton
+	 * @param {object} oCriticalityCalculation the UI.DataPoint.CriticalityCalculation annotation
 	 * @returns {boolean} <code>true</code> if the threshold should be supplied as ConstantThresholds, <code>false</code> if the threshold should
 	 *          be supplied as DynamicThresholds
 	 * @private
 	 */
 	util._buildThresholds = function(oThresholds, oCriticalityCalculation) {
-		var aKeys = [
-			"AcceptanceRangeLowValue", "AcceptanceRangeHighValue", "ToleranceRangeLowValue", "ToleranceRangeHighValue", "DeviationRangeLowValue", "DeviationRangeHighValue"
+		const aKeys = [
+			"AcceptanceRangeLowValue",
+			"AcceptanceRangeHighValue",
+			"ToleranceRangeLowValue",
+			"ToleranceRangeHighValue",
+			"DeviationRangeLowValue",
+			"DeviationRangeHighValue"
 		];
-		var bConstant = true, sKey;
+		let bConstant = true,
+			sKey;
 
 
 		oThresholds.ImprovementDirection = oCriticalityCalculation.ImprovementDirection.$EnumMember.replace("com.sap.vocabularies.UI.v1.ImprovementDirectionType/", "");
 
 
-		var oDynamicThresholds = {
+		const oDynamicThresholds = {
 			oneSupplied: false,
 			usedMeasures: []
 			// combination to check whether at least one is supplied
 		};
-		var oConstantThresholds = {
+		const oConstantThresholds = {
 			oneSupplied: false
 			// combination to check whether at least one is supplied
 		};
 
-		for (var i = 0; i < aKeys.length; i++) {
+		for (let i = 0; i < aKeys.length; i++) {
 			sKey = aKeys[i];
 			oDynamicThresholds[sKey] = oCriticalityCalculation[sKey] ? oCriticalityCalculation[sKey].$Path : undefined;
 			oDynamicThresholds.oneSupplied = oDynamicThresholds.oneSupplied || oDynamicThresholds[sKey];
@@ -207,14 +216,14 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 		if (oDynamicThresholds.oneSupplied) {
 			bConstant = false;
 
-			for (var i = 0; i < aKeys.length; i++) {
+			for (let i = 0; i < aKeys.length; i++) {
 				if (oDynamicThresholds[aKeys[i]]) {
 					oThresholds[aKeys[i]] = oDynamicThresholds[aKeys[i]];
 				}
 			}
 			oThresholds.usedMeasures = oDynamicThresholds.usedMeasures;
 		} else {
-			var oAggregationLevel;
+			let oAggregationLevel;
 			oThresholds.AggregationLevels = [];
 
 			// check if at least one static value is supplied
@@ -225,7 +234,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 					VisibleDimensions: null
 				};
 
-				for (var i = 0; i < aKeys.length; i++) {
+				for (let i = 0; i < aKeys.length; i++) {
 					if (oConstantThresholds[aKeys[i]]) {
 						oAggregationLevel[aKeys[i]] = oConstantThresholds[aKeys[i]];
 					}
@@ -237,13 +246,11 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 
 			// further check for ConstantThresholds
 			if (oCriticalityCalculation.ConstantThresholds && oCriticalityCalculation.ConstantThresholds.length > 0) {
-				for (var i = 0; i < oCriticalityCalculation.ConstantThresholds.length; i++) {
-					var oAggregationLevelInfo = oCriticalityCalculation.ConstantThresholds[i];
-
-					var aVisibleDimensions = oAggregationLevelInfo.AggregationLevel ? [] : null;
+				for (const oAggregationLevelInfo of oCriticalityCalculation.ConstantThresholds) {
+					const aVisibleDimensions = oAggregationLevelInfo.AggregationLevel ? [] : null;
 
 					if (oAggregationLevelInfo.AggregationLevel && oAggregationLevelInfo.AggregationLevel.length > 0) {
-						for (var j = 0; j < oAggregationLevelInfo.AggregationLevel.length; j++) {
+						for (let j = 0; j < oAggregationLevelInfo.AggregationLevel.length; j++) {
 							aVisibleDimensions.push(oAggregationLevelInfo.AggregationLevel[j].$PropertyPath);
 						}
 					}
@@ -252,8 +259,8 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 						VisibleDimensions: aVisibleDimensions
 					};
 
-					for (var j = 0; j < aKeys.length; j++) {
-						var nValue = oAggregationLevelInfo[aKeys[j]];
+					for (let j = 0; j < aKeys.length; j++) {
+						const nValue = oAggregationLevelInfo[aKeys[j]];
 						if (nValue) {
 							oAggregationLevel[aKeys[j]] = nValue;
 						}
@@ -274,7 +281,8 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @returns {{sortable: boolean, propertyInfo: {}}} An object containing the sort restriction information
 	 */
 	util.getSortRestrictionsInfo = function(oSortRestrictions) {
-		var i, sPropertyName, oSortRestrictionsInfo = {
+		let i, sPropertyName;
+		const oSortRestrictionsInfo = {
 			sortable: true,
 			propertyInfo: {}
 		};
@@ -282,7 +290,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 		if (oSortRestrictions) {
 			oSortRestrictionsInfo.sortable = (oSortRestrictions.Sortable != null) ? oSortRestrictions.Sortable : true;
 			if (oSortRestrictions.NonSortableProperties) {
-				for (i = 0; i < oSortRestrictions.NonSortableProperties; i++) {
+				for (i = 0; i < oSortRestrictions.NonSortableProperties.length; i++) {
 					sPropertyName = oSortRestrictions.NonSortableProperties[i].$PropertyPath;
 					oSortRestrictionsInfo[sPropertyName] = {
 						sortable: false
@@ -290,7 +298,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 				}
 			}
 			if (oSortRestrictions.AscendingOnlyProperties) {
-				for (i = 0; i < oSortRestrictions.AscendingOnlyProperties; i++) {
+				for (i = 0; i < oSortRestrictions.AscendingOnlyProperties.length; i++) {
 					sPropertyName = oSortRestrictions.AscendingOnlyProperties[i].$PropertyPath;
 					oSortRestrictionsInfo[sPropertyName] = {
 						sortable: true,
@@ -299,8 +307,8 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 				}
 			}
 
-			if (oSortRestrictions.AscendingOnlyProperties) {
-				for (i = 0; i < oSortRestrictions.DescendingOnlyProperties; i++) {
+			if (oSortRestrictions.DescendingOnlyProperties) {
+				for (i = 0; i < oSortRestrictions.DescendingOnlyProperties.length; i++) {
 					sPropertyName = oSortRestrictions.DescendingOnlyProperties[i].$PropertyPath;
 					oSortRestrictionsInfo[sPropertyName] = {
 						sortable: true,
@@ -319,7 +327,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @param oSortRestrictionInfo the SortInformation restrictions
 	 */
 	util.addSortInfoForProperty = function(oProperty, oSortRestrictionInfo) {
-		var oPropertyInfo = oSortRestrictionInfo[oProperty.name];
+		const oPropertyInfo = oSortRestrictionInfo[oProperty.name];
 		oProperty.sortable = oSortRestrictionInfo.sortable && oPropertyInfo ? oPropertyInfo.sortable : true;
 
 		if (oProperty.sortable) {
@@ -334,7 +342,8 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @return {{filterable: boolean, propertyInfo: {}}} An object containing the filter restriction information
 	 */
 	util.getFilterRestrictionsInfo = function(oFilterRestrictions) {
-		var i, sPropertyName, oFilterRestrictionsInfo = {
+		let i, sPropertyName;
+		const oFilterRestrictionsInfo = {
 			filterable: true,
 			propertyInfo: {}
 		};
@@ -346,14 +355,14 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 			//Hierarchical Case
 			oFilterRestrictionsInfo.requiredProperties = [];
 			if (oFilterRestrictionsInfo.RequiredProperties) {
-				for (i = 0; i < oFilterRestrictions.NonFilterableProperties; i++) {
+				for (i = 0; i < oFilterRestrictions.NonFilterableProperties.length; i++) {
 					sPropertyName = oFilterRestrictions.NonFilterableProperties[i].$PropertyPath;
 					oFilterRestrictionsInfo.requiredProperties.push(sPropertyName);
 				}
 			}
 
 			if (oFilterRestrictions.NonFilterableProperties) {
-				for (i = 0; i < oFilterRestrictions.NonFilterableProperties; i++) {
+				for (i = 0; i < oFilterRestrictions.NonFilterableProperties.length; i++) {
 					sPropertyName = oFilterRestrictions.NonFilterableProperties[i].$PropertyPath;
 					oFilterRestrictionsInfo[sPropertyName] = {
 						filterable: false
@@ -363,7 +372,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 
 			if (oFilterRestrictions.FilterExpressionRestrictions) {
 				//TBD
-				for (i = 0; i < oFilterRestrictions.FilterExpressionRestrictions; i++) {
+				for (i = 0; i < oFilterRestrictions.FilterExpressionRestrictions.length; i++) {
 					sPropertyName = oFilterRestrictions.FilterExpressionRestrictions[i].$PropertyPath;
 					oFilterRestrictionsInfo[sPropertyName] = {
 						filterable: true,
@@ -379,15 +388,18 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	};
 
 	util.isMultiValueFilterExpression = function(sFilterExpression) {
-		var bIsMultiValue = true;
+		let bIsMultiValue = true;
 
 		//SingleValue | MultiValue | SingleRange | MultiRange | SearchExpression | MultiRangeOrSearchExpression
 
 		switch (sFilterExpression) {
 			case "SearchExpression":
 			case "SingleRange":
-			case "SingleValue": bIsMultiValue = false; break;
-			default: break;
+			case "SingleValue":
+				bIsMultiValue = false;
+				break;
+			default:
+				break;
 		}
 
 		return bIsMultiValue;
@@ -399,7 +411,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	 * @param oFilterRestrictionInfo the filter restrictions
 	 */
 	util.addFilterInfoForProperty = function(oProperty, oFilterRestrictionInfo) {
-		var oPropertyInfo = oFilterRestrictionInfo[oProperty.name];
+		const oPropertyInfo = oFilterRestrictionInfo[oProperty.name];
 		oProperty.filterable = oFilterRestrictionInfo.filterable && oPropertyInfo ? oPropertyInfo.filterable : true;
 
 		if (oProperty.filterable) {
@@ -408,7 +420,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	};
 
 	util.fetchCalendarTag = function(oMetaModel, oCtx) {
-		var COMMON = "@com.sap.vocabularies.Common.v1.";
+		const COMMON = "@com.sap.vocabularies.Common.v1.";
 		return Promise.all([
 			oMetaModel.requestObject(COMMON + "IsCalendarYear", oCtx),
 			oMetaModel.requestObject(COMMON + "IsCalendarHalfyear", oCtx),
@@ -422,7 +434,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 			oMetaModel.requestObject(COMMON + "IsCalendarYearMonth", oCtx),
 			oMetaModel.requestObject(COMMON + "IsCalendarYearWeek", oCtx),
 			oMetaModel.requestObject(COMMON + "IsCalendarDate", oCtx)
-		]).then(function(aTag) {
+		]).then((aTag) => {
 			if (aTag[0]) {
 				return "year";
 			}
@@ -479,7 +491,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	};
 
 	util.fetchFiscalTag = function(oMetaModel, oCtx) {
-		var COMMON = "@com.sap.vocabularies.Common.v1.";
+		const COMMON = "@com.sap.vocabularies.Common.v1.";
 		return Promise.all([
 			oMetaModel.requestObject(COMMON + "IsFiscalYear", oCtx),
 			oMetaModel.requestObject(COMMON + "IsFiscalPeriod", oCtx),
@@ -490,7 +502,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 			oMetaModel.requestObject(COMMON + "IsFiscalYearWeek", oCtx),
 			oMetaModel.requestObject(COMMON + "IsDayOfFiscalYear", oCtx),
 			oMetaModel.requestObject(COMMON + "IsFiscalYearVariant", oCtx)
-		]).then(function(aTag) {
+		]).then((aTag) => {
 			if (aTag[0]) {
 				return "year";
 			}
@@ -535,9 +547,9 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 	};
 
 	util.fetchCriticality = function(oMetaModel, oCtx) {
-		var UI = "@com.sap.vocabularies.UI.v1";
-		return oMetaModel.requestObject(UI + ".ValueCriticality", oCtx).then(function(aValueCriticality) {
-			var oCriticality, oValueCriticality;
+		const UI = "@com.sap.vocabularies.UI.v1";
+		return oMetaModel.requestObject(UI + ".ValueCriticality", oCtx).then((aValueCriticality) => {
+			let oCriticality, oValueCriticality;
 
 			if (aValueCriticality) {
 				oCriticality = {
@@ -549,7 +561,7 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 					Neutral: []
 				};
 
-				for (var i = 0; i < aValueCriticality.length; i++) {
+				for (let i = 0; i < aValueCriticality.length; i++) {
 					oValueCriticality = aValueCriticality[i];
 
 					if (oValueCriticality.Criticality.$EnumMember.endsWith("VeryPositive")) {
@@ -561,16 +573,16 @@ sap.ui.define(["sap/ui/mdc/util/TypeUtil"], function(TypeUtil) {
 					} else if (oValueCriticality.Criticality.$EnumMember.endsWith("VeryNegative")) {
 						oCriticality.VeryNegative.push(oValueCriticality.Value);
 					} else if (oValueCriticality.Criticality.$EnumMember.endsWith("Negative")) {
-							oCriticality.Negative.push(oValueCriticality.Value);
+						oCriticality.Negative.push(oValueCriticality.Value);
 					} else {
-							oCriticality.Neutral.push(oValueCriticality.Value);
+						oCriticality.Neutral.push(oValueCriticality.Value);
 					}
 
 				}
 
-				for (var sKey in oCriticality) {
+				for (const sKey in oCriticality) {
 					if (oCriticality[sKey].length == 0) {
-						delete  oCriticality[sKey];
+						delete oCriticality[sKey];
 					}
 				}
 			}

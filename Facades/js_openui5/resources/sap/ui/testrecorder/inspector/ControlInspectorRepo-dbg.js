@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,7 @@ sap.ui.define([
 	var oControlInspectorRepo = null;
 
 	// memoize recent requests and selectors.
-	// one repo entry contains a selector/snippet request data (domElementId and action), a generated selector and a code snippet.
+	// one repo entry contains a selector/snippet request data (domElementId, action and assertion), a generated selector and a code snippet.
 	// a repo entry is identified by its domElementId.
 	// * the request data is needed to re-generate snippets for a selected control when the snippet settings are changed
 	// (e.g. immediately show new selector when dialog is changed)
@@ -30,7 +30,7 @@ sap.ui.define([
 	var ControlInspectorRepo = BaseObject.extend("sap.ui.testrecorder.inspector.ControlInspectorRepo", {
 		constructor: function () {
 			if (!oControlInspectorRepo) {
-				Object.apply(this, arguments);
+				BaseObject.apply(this, arguments);
 			} else {
 				return oControlInspectorRepo;
 			}
@@ -54,6 +54,7 @@ sap.ui.define([
 	 * @param {object} mRequestData data used to generate selectors or snippets for a single control
 	 * @param {string} mRequestData.domElementId dom element ID
 	 * @param {string} mRequestData.action name of the action - used to generate a snippet
+	 * @param {object} mRequestData.assertion assertion details - property name, type and expected value
 	 * @param {object} mSelector generated control selector
 	 * @param {string} sSnippet code snippet for a single control
 	 */
@@ -66,7 +67,8 @@ sap.ui.define([
 		var iUpdateIndex = -1;
 		// if there is already a repo entry with the same domElementId, update it with the new values
 		aRepo.forEach(function (mRepoData, index) {
-			if (mRepoData.domElementId === mRequestData.domElementId) {
+			if (mRepoData.domElementId === mRequestData.domElementId &&
+					JSON.stringify(mRepoData.assertion) === JSON.stringify(mRequestData.assertion)) {
 				iUpdateIndex = index;
 			}
 		});
@@ -90,13 +92,14 @@ sap.ui.define([
 
 	/**
 	 * get the "snippet request" objects from all repo entries
-	 * @returns {array} an array of object containing a domElementId and action
+	 * @returns {array} an array of object containing a domElementId, action and assertion
 	 */
 	ControlInspectorRepo.prototype.getRequests = function () {
 		return aRepo.map(function (mData) {
 			return {
 				domElementId: mData.domElementId,
-				action: mData.action
+				action: mData.action,
+				assertion: mData.assertion
 			};
 		});
 	};

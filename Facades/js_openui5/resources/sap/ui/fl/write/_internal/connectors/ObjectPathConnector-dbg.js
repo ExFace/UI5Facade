@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,43 +24,47 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.ObjectPathConnector
 	 * @since 1.73
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.Storage
 	 */
 	return merge({}, BaseConnector, /** @lends sap.ui.fl.write._internal.connectors.ObjectPathConnector */ {
 		layers: [],
-		setJsonPath: function (sInitialJsonPath) {
+		setJsonPath(sInitialJsonPath) {
 			sJsonPath = sInitialJsonPath;
 		},
 
-		loadFlexData: function (mPropertyBag) {
-			var sPath = sJsonPath || mPropertyBag.path;
+		loadFlexData(mPropertyBag) {
+			const sPath = sJsonPath || mPropertyBag.path;
 			if (sPath) {
 				return LoaderExtensions.loadResource({
 					dataType: "json",
 					url: sPath,
 					async: true
-				}).then(function (oResponse) {
-					return Object.assign(StorageUtils.getEmptyFlexDataResponse(), oResponse);
+				}).then(function(oResponse) {
+					return { ...StorageUtils.getEmptyFlexDataResponse(), ...oResponse };
 				});
 			}
 			return Promise.resolve();
 		},
 
-		loadFeatures: function (mPropertyBag) {
+		loadFeatures(mPropertyBag) {
 			var sPath = sJsonPath || mPropertyBag.path;
 			if (sPath) {
 				return LoaderExtensions.loadResource({
 					dataType: "json",
 					url: sPath,
 					async: true
-				}).then(function (sFlexReference, oResponse) {
+				}).then(function(sFlexReference, oResponse) {
 					oResponse.componentClassName = sFlexReference;
 					return oResponse.settings || {};
 				}.bind(null, mPropertyBag.flexReference));
 			}
 			return Promise.resolve({});
+		},
+
+		loadVariantsAuthors() {
+			return Promise.resolve({});
 		}
 	});
-}, true);
+});

@@ -3,69 +3,255 @@
 	"resources": [
 		{
 			"name": "Component-dbg.js",
-			"size": 2038,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/Component.js",
+			"size": 2046,
+			"isDebug": true,
+			"required": [
+				"sap/m/library.js",
+				"sap/m/routing/Router.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/view/ContentDetails.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/ContentDetailsEdit.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/EmptyDetails.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/LayerContentMaster.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/Layers.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/MainView.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/Overview.view.xml",
+				"sap/ui/layout/library.js",
+				"sap/ui/model/json/JSONModel.js",
+				"sap/ui/model/resource/ResourceModel.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
 		},
 		{
 			"name": "Component.js",
-			"size": 1308
+			"module": "sap/ui/fl/support/apps/contentbrowser/Component.js",
+			"size": 1284,
+			"required": [
+				"sap/m/library.js",
+				"sap/m/routing/Router.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/view/ContentDetails.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/ContentDetailsEdit.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/EmptyDetails.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/LayerContentMaster.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/Layers.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/MainView.view.xml",
+				"sap/ui/fl/support/apps/contentbrowser/view/Overview.view.xml",
+				"sap/ui/layout/library.js",
+				"sap/ui/model/json/JSONModel.js",
+				"sap/ui/model/resource/ResourceModel.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
+		},
+		{
+			"name": "Component.js.map",
+			"size": 1427,
+			"isDebug": true
 		},
 		{
 			"name": "controller/ContentDetails-dbg.controller.js",
-			"size": 9742,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetails.controller.js",
+			"size": 10058,
+			"isDebug": true,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/Dialog.js",
+				"sap/m/Input.js",
+				"sap/m/Text.js",
+				"sap/m/library.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
 		},
 		{
 			"name": "controller/ContentDetails.controller.js",
-			"size": 4014
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetails.controller.js",
+			"size": 4165,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/Dialog.js",
+				"sap/m/Input.js",
+				"sap/m/Text.js",
+				"sap/m/library.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
+		},
+		{
+			"name": "controller/ContentDetails.controller.js.map",
+			"size": 5527,
+			"isDebug": true
 		},
 		{
 			"name": "controller/ContentDetailsEdit-dbg.controller.js",
-			"size": 8187,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetailsEdit.controller.js",
+			"size": 8583,
+			"isDebug": true,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/Dialog.js",
+				"sap/m/Input.js",
+				"sap/m/Text.js",
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
 		},
 		{
 			"name": "controller/ContentDetailsEdit.controller.js",
-			"size": 3330
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetailsEdit.controller.js",
+			"size": 3552,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/Dialog.js",
+				"sap/m/Input.js",
+				"sap/m/Text.js",
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
+		},
+		{
+			"name": "controller/ContentDetailsEdit.controller.js.map",
+			"size": 4723,
+			"isDebug": true
 		},
 		{
 			"name": "controller/LayerContentMaster-dbg.controller.js",
-			"size": 6583,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/LayerContentMaster.controller.js",
+			"size": 6493,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/Filter.js",
+				"sap/ui/model/FilterOperator.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
 		},
 		{
 			"name": "controller/LayerContentMaster.controller.js",
-			"size": 2802
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/LayerContentMaster.controller.js",
+			"size": 2756,
+			"required": [
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+				"sap/ui/model/Filter.js",
+				"sap/ui/model/FilterOperator.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
+		},
+		{
+			"name": "controller/LayerContentMaster.controller.js.map",
+			"size": 3616,
+			"isDebug": true
 		},
 		{
 			"name": "controller/Layers-dbg.controller.js",
-			"size": 1395,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/Layers.controller.js",
+			"size": 1427,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
 		},
 		{
 			"name": "controller/Layers.controller.js",
-			"size": 702
+			"module": "sap/ui/fl/support/apps/contentbrowser/controller/Layers.controller.js",
+			"size": 727,
+			"required": [
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
 		},
 		{
-			"name": "i18n/i18n.properties",
-			"size": 1356
-		},
-		{
-			"name": "index.html",
-			"size": 725
-		},
-		{
-			"name": "lrepConnector/LRepConnector-dbg.js",
-			"size": 11435,
+			"name": "controller/Layers.controller.js.map",
+			"size": 851,
 			"isDebug": true
 		},
 		{
+			"name": "i18n/i18n.properties",
+			"module": "sap/ui/fl/support/apps/contentbrowser/i18n/i18n.properties",
+			"size": 1441
+		},
+		{
+			"name": "index.html",
+			"size": 665
+		},
+		{
+			"name": "lrepConnector/LRepConnector-dbg.js",
+			"module": "sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+			"size": 11530,
+			"isDebug": true,
+			"required": [
+				"sap/ui/fl/Utils.js",
+				"sap/ui/thirdparty/jquery.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
+		},
+		{
 			"name": "lrepConnector/LRepConnector.js",
-			"size": 3088
+			"module": "sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
+			"size": 3084,
+			"required": [
+				"sap/ui/fl/Utils.js",
+				"sap/ui/thirdparty/jquery.js"
+			],
+			"condRequired": [
+				"sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js"
+			]
+		},
+		{
+			"name": "lrepConnector/LRepConnector.js.map",
+			"size": 4816,
+			"isDebug": true
 		},
 		{
 			"name": "manifest.json",
+			"module": "sap/ui/fl/support/apps/contentbrowser/manifest.json",
 			"size": 3039
+		},
+		{
+			"name": "resources.json",
+			"size": 11204
 		},
 		{
 			"name": "style.css",
@@ -73,45 +259,128 @@
 		},
 		{
 			"name": "utils/DataUtils-dbg.js",
-			"size": 4409,
-			"isDebug": true
+			"module": "sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+			"size": 4232,
+			"isDebug": true,
+			"required": [
+				"sap/m/GroupHeaderListItem.js"
+			]
 		},
 		{
 			"name": "utils/DataUtils.js",
-			"size": 1377
+			"module": "sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
+			"size": 1302,
+			"required": [
+				"sap/m/GroupHeaderListItem.js"
+			]
 		},
 		{
-			"name": "utils/ErrorUtils-dbg.js",
-			"size": 2377,
+			"name": "utils/DataUtils.js.map",
+			"size": 2011,
 			"isDebug": true
 		},
 		{
+			"name": "utils/ErrorUtils-dbg.js",
+			"module": "sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js",
+			"size": 2329,
+			"isDebug": true,
+			"required": [
+				"sap/m/MessageItem.js",
+				"sap/m/MessagePopover.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
+		},
+		{
 			"name": "utils/ErrorUtils.js",
-			"size": 1056
+			"module": "sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js",
+			"size": 1084,
+			"required": [
+				"sap/m/MessageItem.js",
+				"sap/m/MessagePopover.js",
+				"sap/ui/model/json/JSONModel.js"
+			]
+		},
+		{
+			"name": "utils/ErrorUtils.js.map",
+			"size": 1309,
+			"isDebug": true
 		},
 		{
 			"name": "view/ContentDetails.view.xml",
-			"size": 1481
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/ContentDetails.view.xml",
+			"size": 1569,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/CheckBox.js",
+				"sap/m/DisplayListItem.js",
+				"sap/m/IconTabBar.js",
+				"sap/m/IconTabFilter.js",
+				"sap/m/List.js",
+				"sap/m/Page.js",
+				"sap/m/Text.js",
+				"sap/m/Toolbar.js",
+				"sap/m/ToolbarSpacer.js",
+				"sap/ui/fl/support/apps/contentbrowser/controller/ContentDetails.controller.js",
+				"sap/ui/layout/form/SimpleForm.js"
+			]
 		},
 		{
 			"name": "view/ContentDetailsEdit.view.xml",
-			"size": 760
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/ContentDetailsEdit.view.xml",
+			"size": 850,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/CheckBox.js",
+				"sap/m/Page.js",
+				"sap/m/TextArea.js",
+				"sap/m/Toolbar.js",
+				"sap/m/ToolbarSpacer.js",
+				"sap/ui/fl/support/apps/contentbrowser/controller/ContentDetailsEdit.controller.js",
+				"sap/ui/layout/form/SimpleForm.js"
+			]
 		},
 		{
 			"name": "view/EmptyDetails.view.xml",
-			"size": 80
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/EmptyDetails.view.xml",
+			"size": 80,
+			"required": [
+				"sap/m/Page.js"
+			]
 		},
 		{
 			"name": "view/LayerContentMaster.view.xml",
-			"size": 1135
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/LayerContentMaster.view.xml",
+			"size": 1132,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/List.js",
+				"sap/m/Page.js",
+				"sap/m/SearchField.js",
+				"sap/m/StandardListItem.js",
+				"sap/m/Toolbar.js",
+				"sap/ui/fl/support/apps/contentbrowser/controller/LayerContentMaster.controller.js"
+			]
 		},
 		{
 			"name": "view/Layers.view.xml",
-			"size": 636
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/Layers.view.xml",
+			"size": 636,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/List.js",
+				"sap/m/Page.js",
+				"sap/m/StandardListItem.js",
+				"sap/m/Toolbar.js",
+				"sap/ui/fl/support/apps/contentbrowser/controller/Layers.controller.js"
+			]
 		},
 		{
 			"name": "view/MainView.view.xml",
-			"size": 93
+			"module": "sap/ui/fl/support/apps/contentbrowser/view/MainView.view.xml",
+			"size": 93,
+			"required": [
+				"sap/m/SplitApp.js"
+			]
 		}
 	]
 }

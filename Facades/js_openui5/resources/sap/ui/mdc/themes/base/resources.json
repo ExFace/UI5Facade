@@ -3,122 +3,124 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
+			"theme": "base"
+		},
+		{
+			"name": "AdaptFiltersPanel.less",
+			"size": 741,
+			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "AdaptationFilterBar.less",
-			"size": 46,
+			"size": 322,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "BaseField.less",
-			"size": 1500,
+			"name": "Chart.less",
+			"size": 1179,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "BaseFilterField.less",
-			"size": 309,
+			"name": "FieldBase.less",
+			"size": 3972,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FilterBar.less",
-			"size": 683,
+			"size": 1253,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "GroupPanelBase.less",
-			"size": 803,
+			"name": "GroupView.less",
+			"size": 1697,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "InfoPanel.less",
-			"size": 3783,
+			"size": 3990,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "ListView.less",
+			"size": 1077,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "PersonalizationDialog.less",
-			"size": 777,
+			"size": 524,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "SelectionDialog.less",
-			"size": 139,
+			"name": "QueryPanel.less",
+			"size": 269,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Table.less",
-			"size": 16,
+			"size": 371,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "TokenDisplay.less",
+			"size": 2681,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "TokenizerDisplay.less",
+			"size": 3047,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ValueHelpDialog.less",
-			"size": 3552,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 441,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 80085,
+			"size": 4927,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 7287,
+			"size": 15998,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 122,
+			"module": "sap/ui/mdc/themes/base/library-parameters.json",
+			"size": 750,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 7290,
+			"size": 15995,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 12735,
+			"size": 27398,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 574,
+			"size": 670,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 7527,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 7530,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 2045
 		}
 	]
 }

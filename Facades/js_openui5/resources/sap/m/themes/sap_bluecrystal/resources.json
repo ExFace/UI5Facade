@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 137,
+			"size": 187,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -38,13 +38,13 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 6500,
+			"size": 5262,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "Carousel.less",
-			"size": 2489,
+			"size": 1614,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "ComboBoxBase.less",
-			"size": 688,
+			"size": 570,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -80,7 +80,7 @@
 		},
 		{
 			"name": "Dialog.less",
-			"size": 1266,
+			"size": 1296,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -122,13 +122,13 @@
 		},
 		{
 			"name": "Input.less",
-			"size": 282,
+			"size": 346,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "InputBase.less",
-			"size": 1835,
+			"size": 1798,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -152,7 +152,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 390,
+			"size": 410,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -164,7 +164,7 @@
 		},
 		{
 			"name": "MessageStrip.less",
-			"size": 679,
+			"size": 437,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -188,7 +188,7 @@
 		},
 		{
 			"name": "NewsContent.less",
-			"size": 373,
+			"size": 290,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -200,13 +200,13 @@
 		},
 		{
 			"name": "ObjectAttribute.less",
-			"size": 1165,
+			"size": 1017,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "ObjectHeader.less",
-			"size": 3056,
+			"size": 1605,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -230,7 +230,7 @@
 		},
 		{
 			"name": "Panel.less",
-			"size": 863,
+			"size": 918,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -242,7 +242,7 @@
 		},
 		{
 			"name": "Popover.less",
-			"size": 5730,
+			"size": 5874,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -278,7 +278,7 @@
 		},
 		{
 			"name": "RatingIndicator.less",
-			"size": 1934,
+			"size": 1501,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -296,7 +296,7 @@
 		},
 		{
 			"name": "SegmentedButton.less",
-			"size": 5479,
+			"size": 5313,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -308,7 +308,7 @@
 		},
 		{
 			"name": "SelectList.less",
-			"size": 1103,
+			"size": 667,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -326,7 +326,7 @@
 		},
 		{
 			"name": "Slider.less",
-			"size": 745,
+			"size": 827,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -416,19 +416,19 @@
 		},
 		{
 			"name": "Token.less",
-			"size": 1059,
+			"size": 583,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "Tokenizer.less",
-			"size": 898,
+			"size": 687,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "Toolbar.less",
-			"size": 906,
+			"size": 444,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -469,23 +469,6 @@
 			"theme": "sap_bluecrystal"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 32033,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 139803,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 139433,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
 			"name": "img-RTL/sap_inset.png",
 			"size": 2214,
 			"theme": "sap_bluecrystal"
@@ -497,40 +480,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 587674,
+			"size": 725974,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 13595,
+			"module": "sap/m/themes/sap_bluecrystal/library-parameters.json",
+			"size": 21488,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.css",
-			"size": 587592,
+			"size": 725953,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.less",
-			"size": 91363,
+			"size": 85990,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.source.less",
-			"size": 2625,
+			"size": 3233,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 633538,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 633456,
-			"theme": "sap_bluecrystal"
+			"name": "resources.json",
+			"size": 9437
 		},
 		{
 			"name": "shared.less",

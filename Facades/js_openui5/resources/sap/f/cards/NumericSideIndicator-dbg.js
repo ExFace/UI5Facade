@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/m/Text",
-	"sap/f/cards/NumericSideIndicatorRenderer"
+	"sap/f/cards/NumericSideIndicatorRenderer",
+	"sap/f/cards/util/addTooltipIfTruncated"
 ], function (
 	Control,
 	Text,
-	NumericSideIndicatorRenderer
+	NumericSideIndicatorRenderer,
+	addTooltipIfTruncated
 ) {
 	"use strict";
 
@@ -26,13 +28,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.64
 	 * @alias sap.f.cards.NumericSideIndicator
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var NumericSideIndicator = Control.extend("sap.f.cards.NumericSideIndicator", {
 		metadata: {
@@ -52,7 +53,20 @@ sap.ui.define([
 				/**
 				 * Defines the unit of measurement (scaling prefix) for the numeric value
 				 */
-				unit: { "type": "string", group : "Data" }
+				unit: { "type": "string", group : "Data" },
+
+				/**
+				 * The semantic color which represents the state of the side indicator.
+				 * @experimental since 1.95
+				 * Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 */
+				state: { "type": "sap.m.ValueColor", group: "Appearance", defaultValue : "None" },
+
+				/**
+				 * Defines if tooltips should be shown for truncated texts.
+				 * @private
+				 */
+				useTooltips: { type: "boolean", visibility: "hidden", defaultValue: false}
 			},
 			aggregations: {
 
@@ -80,7 +94,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {string} sValue The text of the title
-	 * @return {sap.f.cards.NumericSideIndicator} this pointer for chaining
+	 * @return {this} this pointer for chaining
 	 */
 	NumericSideIndicator.prototype.setTitle = function(sValue) {
 		this.setProperty("title", sValue, true);
@@ -93,7 +107,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {string} sValue The text of the title
-	 * @return {sap.f.cards.NumericSideIndicator} this pointer for chaining
+	 * @return {this} this pointer for chaining
 	 */
 	NumericSideIndicator.prototype.setNumber = function(sValue) {
 		this.setProperty("number", sValue, true);
@@ -106,12 +120,24 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {string} sValue The text of the title
-	 * @return {sap.f.cards.NumericSideIndicator} this pointer for chaining
+	 * @return {this} this pointer for chaining
 	 */
 	NumericSideIndicator.prototype.setUnit = function(sValue) {
 		this.setProperty("unit", sValue, true);
 		this._getUnit().setText(sValue);
 		return this;
+	};
+
+	NumericSideIndicator.prototype.onAfterRendering = function () {
+		if (this.getAggregation("_title")) {
+			this._enhanceText(this.getAggregation("_title"));
+		}
+		if (this.getAggregation("_number")) {
+			this._enhanceText(this.getAggregation("_number"));
+		}
+		if (this.getAggregation("_unit")) {
+			this._enhanceText(this.getAggregation("_unit"));
+		}
 	};
 
 	/**
@@ -140,7 +166,7 @@ sap.ui.define([
 	 * @private
 	 * @return {sap.m.Text} The number aggregation
 	 */
-	NumericSideIndicator.prototype._getNumber = function () {
+	 NumericSideIndicator.prototype._getNumber = function () {
 		var oControl = this.getAggregation("_number");
 
 		if (!oControl) {
@@ -170,6 +196,17 @@ sap.ui.define([
 		}
 
 		return oControl;
+	};
+
+	/**
+	 * When the option <code>useTooltips</code> is set to <code>true</code> - enhances the given text with a tooltip if the text is truncated.
+	 * @private
+	 * @param {sap.m.Text} oText The text control.
+	 */
+	NumericSideIndicator.prototype._enhanceText = function (oText) {
+		if (this.getProperty("useTooltips")) {
+			addTooltipIfTruncated(oText);
+		}
 	};
 
 	return NumericSideIndicator;

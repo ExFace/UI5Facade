@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/support/supportRules/ui/controllers/BaseController",
 	"sap/ui/support/supportRules/ui/models/SelectionUtils",
 	"sap/ui/support/supportRules/ui/models/PresetsUtils",
@@ -14,21 +15,24 @@ sap.ui.define([
 	"sap/ui/support/supportRules/ui/models/Documentation",
 	"sap/ui/support/supportRules/util/Utils",
 	"sap/m/GroupHeaderListItem",
-	"sap/ui/thirdparty/jquery",
+	"sap/base/util/deepExtend",
 	"sap/ui/core/library",
-	"sap/ui/support/library"
-], function (BaseController,
-			 SelectionUtils,
-			 PresetsUtils,
-			 Fragment,
-			 MessageToast,
-			 MessageBox,
-			 Documentation,
-			 Utils,
-			 GroupHeaderListItem,
-			 jQuery,
-			 coreLibrary,
-			 library) {
+	"sap/ui/core/date/UI5Date"
+], function(
+	Element,
+	BaseController,
+	SelectionUtils,
+	PresetsUtils,
+	Fragment,
+	MessageToast,
+	MessageBox,
+	Documentation,
+	Utils,
+	GroupHeaderListItem,
+	deepExtend,
+	coreLibrary,
+	UI5Date
+) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
@@ -89,7 +93,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.support.supportRules.ui.controllers.BaseController
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @alias sap.ui.support.supportRules.ui.controllers.PresetsController
 	 */
@@ -109,24 +113,28 @@ sap.ui.define([
 		oBtn.focus();
 
 		if (!this._oPresetsPopover) {
-			this._oPresetsPopover = sap.ui.xmlfragment(
-				Constants.SELECT_FRAGMENT_ID,
-				"sap.ui.support.supportRules.ui.views.Presets",
-				this
-			);
-			this.oView.addDependent(this._oPresetsPopover);
+			this._oPresetsPopover = Fragment.load({
+				id: Constants.SELECT_FRAGMENT_ID,
+				name: "sap.ui.support.supportRules.ui.views.Presets",
+				controller: this
+			}).then(function (oPresetsPopover) {
+				this.oView.addDependent(oPresetsPopover);
+				return oPresetsPopover;
+			}.bind(this));
 		}
 
-		if (!this._oPresetsPopover.isOpen()) {
-			// set correct focus in the popover
-			this._oPresetsPopover.setInitialFocus(
-				Fragment.byId(Constants.SELECT_FRAGMENT_ID, "select").getSelectedItem().getId()
-			);
+		this._oPresetsPopover.then(function (oPresetsPopover) {
+			if (!oPresetsPopover.isOpen()) {
+				// set correct focus in the popover
+				oPresetsPopover.setInitialFocus(
+					Fragment.byId(Constants.SELECT_FRAGMENT_ID, "select").getSelectedItem().getId()
+				);
 
-			this._oPresetsPopover.openBy(oBtn);
-		} else {
-			this._oPresetsPopover.close();
-		}
+				oPresetsPopover.openBy(oBtn);
+			} else {
+				oPresetsPopover.close();
+			}
+		});
 	};
 
 	/**
@@ -145,7 +153,7 @@ sap.ui.define([
 	 * Closes the variant select when an item is clicked
 	 */
 	PresetsController.prototype.onPresetItemPress = function () {
-		this._oPresetsPopover.close();
+		Fragment.byId(Constants.SELECT_FRAGMENT_ID, "presetsPopover").close();
 	};
 
 	/**
@@ -156,7 +164,7 @@ sap.ui.define([
 		var sPath = oEvent.getSource().getBindingContext().getPath(),
 			oDeletePreset = this.oModel.getProperty(sPath),
 			aCustomPresets = this.oModel.getProperty("/customPresets"),
-			sDeletedItemId = oEvent.getSource().$().closest(".sapMLIB").attr("id");
+			sDeletedItemId = oEvent.getSource().getDomRef().closest(".sapMLIB").getAttribute("id");
 
 		// use the path to find and delete
 		var aPresets = this.oModel.getProperty("/selectionPresets");
@@ -190,7 +198,7 @@ sap.ui.define([
 		// deleting item fires tap event
 		// for the next item in the list which needs to be suppressed
 		if (iDeletedPresetIndex !== aPresets.length) {
-			var oNextListItem = sap.ui.getCore().byId(sDeletedItemId),
+			var oNextListItem = Element.getElementById(sDeletedItemId),
 				fnOntap = oNextListItem.ontap;
 
 			oNextListItem.ontap = function() {
@@ -207,18 +215,21 @@ sap.ui.define([
 	PresetsController.prototype.onPresetItemReset = function (oEvent) {
 		var sPath = oEvent.getSource().getBindingContext().getPath(),
 			oPreset = this.oModel.getProperty(sPath),
-			aPresets = oPreset.isSystemPreset ?  PresetsUtils.getSystemPresets() : this.oModel.getProperty("/customPresets");
+			aPresets = oPreset.isSystemPreset ? PresetsUtils.getSystemPresets() : this.oModel.getProperty("/customPresets"),
+			oCLI = oEvent.getSource().getParent().getParent().getParent();
 
-		aPresets.some(function (oInitialPreset) {
+		// We hide the focused item (the button), so we have to restore the focus manually,
+		// because the ResponsivePopover can't restore it on Chrome.
+		// This way the popover is kept open on all browsers, which provides consistency.
+		oCLI.focus();
+
+		aPresets.forEach(function (oInitialPreset) {
 			if (oInitialPreset.id === oPreset.id) {
-				oPreset.title = oInitialPreset.title;
-				oPreset.selections = oInitialPreset.selections;
-				oPreset.isModified = false;
-				return true;
+				this.oModel.setProperty(sPath + "/title", oInitialPreset.title);
+				this.oModel.setProperty(sPath + "/selections", oInitialPreset.selections);
+				this.oModel.setProperty(sPath + "/isModified", false);
 			}
-		});
-
-		this.oModel.refresh();
+		}.bind(this));
 
 		if (oPreset.selected) {
 			this._applyPreset(oPreset);
@@ -230,15 +241,19 @@ sap.ui.define([
 	 */
 	PresetsController.prototype.onImportPress = function () {
 		if (!this._oImportDialog) {
-			this._oImportDialog = sap.ui.xmlfragment(
-				Constants.IMPORT_FRAGMENT_ID,
-				"sap.ui.support.supportRules.ui.views.PresetImport",
-				this
-			);
-			this.oView.addDependent(this._oImportDialog);
+			this._oImportDialog = Fragment.load({
+				id: Constants.IMPORT_FRAGMENT_ID,
+				name: "sap.ui.support.supportRules.ui.views.PresetImport",
+				controller: this
+			}).then(function (oImportDialog) {
+				this.oView.addDependent(oImportDialog);
+				return oImportDialog;
+			}.bind(this));
 		}
 
-		this._oImportDialog.open();
+		this._oImportDialog.then(function (oImportDialog) {
+			oImportDialog.open();
+		});
 	};
 
 	/**
@@ -301,7 +316,7 @@ sap.ui.define([
 
 			// parse the date exported value, so it can be displayed
 			if (oFileData.dateExported) {
-				oFileData.dateExported = new Date(oFileData.dateExported);
+				oFileData.dateExported = UI5Date.getInstance(oFileData.dateExported);
 			}
 
 			this.oModel.setProperty("/currentImportData", oFileData);
@@ -316,7 +331,7 @@ sap.ui.define([
 	 * Handles the pressing of the cancel button on import
 	 */
 	PresetsController.prototype.onImportCancelPress = function () {
-		this._oImportDialog.close();
+		Fragment.byId(Constants.IMPORT_FRAGMENT_ID, "importDialog").close();
 	};
 
 	/**
@@ -334,7 +349,7 @@ sap.ui.define([
 				+ "\"I agree to use local storage persistency\" from Support Assistant settings.";
 		}
 
-		this._oImportDialog.close();
+		Fragment.byId(Constants.IMPORT_FRAGMENT_ID, "importDialog").close();
 
 		MessageToast.show(sMessage, { width: "50%" });
 	};
@@ -364,26 +379,25 @@ sap.ui.define([
 		this.oModel.setProperty("/currentExportData", {
 			"id": (oCurrentPreset.isMySelection || oCurrentPreset.isSystemPreset) ? "" : oCurrentPreset.id,
 			"title": oCurrentPreset.title,
-			"descriptionValue": oCurrentPreset.description, // there is an issue on build if we use OpenUI5 UI Library: sap.ui.support
-			"dateExportedForDisplay": new Date(), // the current date is shown as export date
+			"descriptionValue": oCurrentPreset.description, // there is an issue on build if we use ${description}
+			"dateExportedForDisplay": UI5Date.getInstance(), // the current date is shown as export date
 			"isMySelection": oCurrentPreset.isMySelection
 		});
 
 		if (!this._oExportDialog) {
-			this._oExportDialog = sap.ui.xmlfragment(
-				Constants.EXPORT_FRAGMENT_ID,
-				"sap.ui.support.supportRules.ui.views.PresetExport",
-				this
-			);
-			this._oExportDialog.attachAfterClose(function () {
-				this._clearValidationState();
+			this._oExportDialog = Fragment.load({
+				id: Constants.EXPORT_FRAGMENT_ID,
+				name: "sap.ui.support.supportRules.ui.views.PresetExport",
+				controller: this
+			}).then(function (oExportDialog) {
+				this.oView.addDependent(oExportDialog);
+				return oExportDialog;
 			}.bind(this));
-			this.oView.addDependent(this._oExportDialog);
-
-			this.initializeExportValidations();
 		}
 
-		this._oExportDialog.open();
+		this._oExportDialog.then(function (oExportDialog) {
+			oExportDialog.open();
+		});
 	};
 
 	/**
@@ -493,7 +507,7 @@ sap.ui.define([
 	 * Cancels an export
 	 */
 	PresetsController.prototype.onExportCancelPress = function () {
-		this._oExportDialog.close();
+		Fragment.byId(Constants.EXPORT_FRAGMENT_ID, "exportDialog").close();
 	};
 
 	/**
@@ -520,8 +534,7 @@ sap.ui.define([
 		);
 
 		MessageToast.show("The Rule Preset \"" + title + "\" was successfully exported.", {width: "50%"});
-
-		this._oExportDialog.close();
+		Fragment.byId(Constants.EXPORT_FRAGMENT_ID, "exportDialog").close();
 	};
 
 	/**
@@ -649,7 +662,7 @@ sap.ui.define([
 		aSelectedPresets.push(oPresetOptions);
 
 		// keep the original version of the preset
-		aCustomPresets.push(jQuery.extend(true, {}, oPresetOptions));
+		aCustomPresets.push(deepExtend({}, oPresetOptions));
 
 		if (PresetsUtils.isPersistingAllowed()) {
 			PresetsUtils.persistCustomPresets();

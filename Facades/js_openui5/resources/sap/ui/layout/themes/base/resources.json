@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
@@ -14,31 +14,31 @@
 		},
 		{
 			"name": "BlockLayout.less",
-			"size": 4812,
+			"size": 5863,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BlockLayoutCell.less",
-			"size": 1423,
+			"size": 1375,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BlockLayoutRow.less",
-			"size": 979,
+			"size": 905,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "CSSGrid.less",
-			"size": 3192,
+			"size": 2081,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ColumnLayout.less",
-			"size": 11118,
+			"size": 10886,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -56,13 +56,13 @@
 		},
 		{
 			"name": "Form.less",
-			"size": 624,
+			"size": 629,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 2151,
+			"size": 2891,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -74,13 +74,13 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 6657,
+			"size": 5933,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "HorizontalLayout.less",
-			"size": 2030,
+			"size": 2035,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -92,54 +92,37 @@
 		},
 		{
 			"name": "ResponsiveGridLayout.less",
-			"size": 16819,
+			"size": 16329,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 8827,
+			"size": 8499,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ResponsiveSplitter.less",
-			"size": 3139,
+			"size": 3849,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "SimpleForm.less",
-			"size": 694,
+			"size": 488,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Splitter.less",
-			"size": 8056,
+			"size": 8108,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "VerticalLayout.less",
-			"size": 1577,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 5525,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 86081,
+			"size": 1677,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -150,40 +133,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 161401,
+			"size": 157399,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2427,
+			"module": "sap/ui/layout/themes/base/library-parameters.json",
+			"size": 3329,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 160946,
+			"size": 156930,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 88955,
+			"size": 88400,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 866,
+			"size": 861,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 161170,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 160715,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 2741
 		}
 	]
 }

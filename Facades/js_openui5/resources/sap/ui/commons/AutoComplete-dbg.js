@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,14 +32,13 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.10.0
-	 * @deprecated Since version 1.38.
+	 * @deprecated As of version 1.38, replaced by {@link sap.m.Input}.
 	 * @alias sap.ui.commons.AutoComplete
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var AutoComplete = ComboBox.extend("sap.ui.commons.AutoComplete", /** @lends sap.ui.commons.AutoComplete.prototype */ { metadata : {
 
@@ -47,6 +46,7 @@ sap.ui.define([
 			"sap.ui.commons.ToolbarItem"
 		],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -105,7 +105,6 @@ sap.ui.define([
 	 *
 	 * @param {function} [fFilter] The filter function. If not set the default filter function will be used.
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	AutoComplete.prototype.setFilterFunction = function(fFilter) {
 		if (typeof (fFilter) == "function") {
@@ -409,12 +408,15 @@ sap.ui.define([
 	 * @public
 	 * @name sap.ui.commons.AutoComplete#getListBox
 	 * @function
+	 * @returns {string}
 	 */
 
 
 	/**
 	 * @deprecated As of version 1.10.0, NOT SUPPORTED
 	 * @public
+	 * @param {string | sap.ui.commons.ListBox} oListBox
+	 * @returns {this}
 	 */
 	AutoComplete.prototype.setListBox = function(){
 		return this;
@@ -426,12 +428,15 @@ sap.ui.define([
 	 * @public
 	 * @name sap.ui.commons.AutoComplete#getSelectedKey
 	 * @function
+	 * @returns {string}
 	 */
 
 
 	/**
 	 * @deprecated As of version 1.10.0, NOT SUPPORTED
 	 * @public
+	 * @param {string} sSelectedKey
+	 * @returns {this}
 	 */
 	AutoComplete.prototype.setSelectedKey = function(){
 		return this;
@@ -443,12 +448,15 @@ sap.ui.define([
 	 * @public
 	 * @name sap.ui.commons.AutoComplete#getSelectedItemId
 	 * @function
+	 * @returns {string}
 	 */
 
 
 	/**
 	 * @deprecated As of version 1.10.0, NOT SUPPORTED
 	 * @public
+	 * @param {string} sSelectedItemId
+	 * @returns {this}
 	 */
 	AutoComplete.prototype.setSelectedItemId = function(){
 		return this;

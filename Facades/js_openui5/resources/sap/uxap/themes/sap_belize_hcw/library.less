@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.less";
 @import "../../../../../Base/baseLib/sap_belize_hcw/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/sap_belize_hcw/base.less" */
 
 @import "../../../../sap/ui/core/themes/sap_belize_hcw/global.less";
@@ -223,12 +232,12 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 					background: @sapUiButtonHoverBackground;
 				}
 
-				&:focus {
+				&.sapMSltFocused {
 					background: transparent;
 				}
 			}
 
-			&:focus {
+			&.sapMSltFocused {
 				outline: none;
 
 				> .sapMSltIcon {
@@ -336,9 +345,24 @@ html[data-sap-ui-browser^="cr4"].sap-phone {
 /* TODO remove after the end of support for Internet Explorer */
 html[data-sap-ui-browser^="ie"].sap-desktop,
 html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapUxAPHierarchicalSelect.sapMSltHoverable.sapMSltIconOnly.sapMSlt:not(.sapMSltPressed):focus {
-		> .sapMSltIcon:after {
-			border: 0.125rem dashed @sapUiContentFocusColor;
+	.sapUxAPHierarchicalSelect.sapMSltHoverable.sapMSltIconOnly.sapMSlt {
+		border: none;
+		position: absolute;
+		 .sapMSltIcon {
+			line-height: 1.5rem;
+			&::before {
+				position: relative;
+			}
+		}
+		&.sapMSltFocused:not(.sapMSltPressed) {
+			&::before {
+				border: none;
+			}
+			&> .sapMSltIcon {
+				line-height: 1.375rem;
+				outline: none;
+				border: 0.125rem dashed @sapUiContentFocusColor;
+			}
 		}
 	}
 }
@@ -523,6 +547,10 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 	border-radius: 0;
 }
 
+.sapUxAPObjectPageLayoutNoAnchorBar .sapUxAPObjectPageSection:first-of-type > .sapUxAPObjectPageSectionHeader {
+	border-top: 0;
+}
+
 .sapUxAPObjectPageSectionTitle {
 	line-height: 2.9rem;
 }
@@ -546,7 +574,7 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 /* Belize High Contrast White theme               */
 /* ============================================== */
 
-.sapUxAPObjectPageSubSection:focus {
+.sapUxAPObjectPageSubSectionFocusable:focus {
 	outline: 0.125rem dotted @sapUiContentFocusColor;
 	outline-offset: -0.125rem;
 	border-color: transparent;
@@ -556,8 +584,17 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 /* IE ignores outline-offset. Use an overlay: */
 /* TODO remove after the end of support for Internet Explorer */
 html[data-sap-ui-browser^="ie"].sap-desktop {
-	.sapUxAPObjectPageSubSection:focus:before {
+	.sapUxAPObjectPageSubSectionFocusable:focus:before {
 		border-width: 0.125rem;
 	}
+}
+
+.sapUxAPObjectPageSubSectionHeader {
+	padding: 0 3rem 0 3rem;
+}
+
+.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSubSectionHeader,
+html .sapUiContainer-Medium .sapUxAPObjectPageSubSectionHeader {
+	padding: 0 2rem 0 2rem;
 }
 /* END "ObjectPageSubSection.less" */

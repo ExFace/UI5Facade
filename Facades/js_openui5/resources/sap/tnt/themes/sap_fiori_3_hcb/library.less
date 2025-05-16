@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,36 +21,32 @@
 // Variables overriding
 // ==========================================================================
 
-@_sap_tnt_InfoLabel_Margin: 0.8125rem;
-@_sap_tnt_InfoLabel_NoTextPadding: 0.5rem;
-@_sap_tnt_InfoLabel_NoTextDisplayOnlyPadding: 0.4375rem;
-@_sap_tnt_InfoLabel_LineHeight: 1rem;
 @_sap_tnt_InfoLabel_LineHeightDisplayOnly: 0.875rem;
 
 .sapTntInfoLabel {
 	background: @sapUiGroupContentBackground;
-	border: solid 1px @sapUiGroupContentBorderColor;
+	border: solid 0.0625rem @sapUiGroupContentBorderColor;
 
 	.sapTntInfoLabelInner {
-		color: @sapUiContentForegroundTextColor;
+		color: @sapUiBaseText;
+	}
+
+	&.sapTntInfoLabelDisplayOnly {
+		background: @sapUiGroupContentBackground;
+		border: solid 1px @sapUiGroupContentBorderColor;
+
+		.sapTntInfoLabelInner {
+			color: @sapUiBaseText;
+			line-height: 0.875rem;
+		}
+
+		&.sapTntInfoLabelWithIcon .sapUiIcon {
+			line-height: 0.875rem;
+		}
 	}
 }
 
 /* END "InfoLabel.less" */
-
-/* START "NavigationList.less" */
-/* ======================================= */
-/* CSS for control sap.tnt/NavigationList  */
-/* Quartz High Contrast Black theme        */
-/* ======================================= */
-
-@_sap_tnt_NavigationList_ItemHeight: 2.75rem;
-@_sap_tnt_NavigationList_NoIconsNestedItemPadding: 2rem;
-@_sap_tnt_NavigationList_ItemFocusBorder: 0.125rem dotted @sapUiContentFocusColor;
-@_sap_tnt_NavigationList_ItemFocusBorderIE: 0.125rem dashed @sapUiContentFocusColor;
-@_sap_tnt_NavigationList_GroupBottomBorderColor: transparent;
-@_sap_tnt_NavigationList_Collapsed_GroupBorderColor: transparent;
-/* END "NavigationList.less" */
 
 /* START "SideNavigation.less" */
 /* ====================================== */
@@ -63,6 +59,21 @@
 
 /* END "SideNavigation.less" */
 
+/* START "NavigationList.less" */
+/* ======================================= */
+/* CSS for control sap.tnt/NavigationList  */
+/* Quartz High Contrast Black theme        */
+/* ======================================= */
+
+@_sap_tnt_NavigationList_ItemHeight: 2.75rem;
+@_sap_tnt_NavigationList_NoIconsNestedItemPadding: 2rem;
+@_sap_tnt_NavigationList_GroupExpandedBorderWidth: 0;
+@_sap_tnt_NavigationList_Collapsed_SelectedItemBackground: @sapUiListSelectionBackgroundColor;
+@_sap_tnt_NavigationList_HoverBorderStyleColor: solid @sapUiListBorderColor;
+@_sap_tnt_NavigationList_HoverBorderWidth: 0 0 0.0625rem 0;
+@_sap_tnt_NavigationList_PaddingInlineEnd: 0;
+/* END "NavigationList.less" */
+ // keep this order, it reuses variable @_sap_tnt_SideNavigation_BoxShadow defined in SideNavigation.less
 /* START "ToolHeader.less" */
 /* =================================== */
 /* CSS for control sap.tnt/ToolHeader  */
@@ -70,16 +81,17 @@
 /* =================================== */
 
 @_sap_tnt_ToolHeader_Height: 2.75rem;
-@_sap_tnt_ToolHeader_Icon_Height: 0.75rem;
+@_sap_tnt_ToolHeader_IconHeight: 0.75rem;
 
+// ==========================================================================
+// sap.m.Avatar / sap.f.Avatar overriding
+// ==========================================================================
+
+.sapTntToolHeader .sapFAvatar {
+	background-color: @_sap_tnt_ToolHeader_AvatarBackground;
+	.sapFAvatarInitialsHolder,
+	.sapUiIcon.sapFAvatarTypeIcon  {
+		color: @_sap_tnt_ToolHeader_AvatarColor;
+	}
+}
 /* END "ToolHeader.less" */
-
-/* START "ToolPage.less" */
-/* =================================== */
-/* CSS for control sap.tnt/ToolPage  */
-/* Quartz HCB theme                   */
-/* =================================== */
-
-@_sap_tnt_ToolPage_HeaderHeight : 2.75rem;
-@_sap_tnt_ToolPage_CompactHeaderHeight : 2.75rem;
-/* END "ToolPage.less" */

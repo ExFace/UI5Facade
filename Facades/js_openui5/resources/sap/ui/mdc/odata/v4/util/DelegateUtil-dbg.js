@@ -1,121 +1,114 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // ------------------------------------------------------------------------------------------
 // Utility class used by mdc v4 delegates for parameter handling
 // ------------------------------------------------------------------------------------------
-sap.ui.define(['sap/ui/mdc/util/FilterUtil', "sap/ui/mdc/condition/ConditionConverter", 'sap/base/Log', 'sap/base/util/merge', "sap/ui/model/odata/v4/ODataUtils"],
-		function(FilterUtil, ConditionConverter, Log, merge, ODataUtils) {
-	"use strict";
+sap.ui.define(['sap/ui/mdc/util/FilterUtil',
+		"sap/ui/mdc/condition/ConditionConverter",
+		'sap/base/Log',
+		'sap/base/util/merge',
+		"sap/ui/model/FilterOperator",
+		"sap/ui/model/odata/v4/ODataUtils"
+	],
+	(FilterUtil, ConditionConverter, Log, merge, FilterOperator, ODataUtils) => {
+		"use strict";
 
-	/**
-	 * Utility class used by mdc v4 delegates for parameter handling
-	 *
-	 * @private
-	 * @experimental This module is only for internal/experimental use!
-	 */
-	var DelegateUtil = {
+		/**
+		 * Utility class used by mdc v4 delegates for parameter handling
+		 *
+		 * @private
+		 */
+		const DelegateUtil = {
 
-		_getParameters: function(oMDCFilterBar) {
-			var oParameters = null;
+			_getParameters: function(oMDCFilterBar) {
+				let oParameters = null;
 
-			if (oMDCFilterBar && oMDCFilterBar.getDelegate() && oMDCFilterBar.getDelegate().payload && oMDCFilterBar.getDelegate().payload.collectionName) {
-				var sEntitySetName = oMDCFilterBar.getDelegate().payload.collectionName;
+				if (oMDCFilterBar && oMDCFilterBar.getDelegate() && oMDCFilterBar.getDelegate().payload && oMDCFilterBar.getDelegate().payload.collectionName) {
+					const sEntitySetName = oMDCFilterBar.getDelegate().payload.collectionName;
 
-				if (window[oMDCFilterBar.getId() + '->' + sEntitySetName + "-Parameters"]) {
-					oParameters = window[oMDCFilterBar.getId() + '->' + sEntitySetName + "-Parameters"];
-				}
-			}
-
-			return oParameters;
-		},
-
-		_getParameterPath: function(oMDCFilterBar, mConditions, oParameters) {
-
-			var i, sFieldPath,  mInternalParameterConditions = {}, oConditionInternal;
-			var aParams, sEdmType;
-
-			if (!oParameters || (oParameters.parameters.length <= 0)) {
-				return null;
-			}
-
-			var aPropertiesMetadata = oMDCFilterBar.getPropertyInfoSet ? oMDCFilterBar.getPropertyInfoSet() : null;
-			if (!aPropertiesMetadata) {
-				return null;
-			}
-
-			var sEntitySetName = oMDCFilterBar.getDelegate().payload.collectionName;
-
-			for (sFieldPath in mConditions) {
-				var oProperty = FilterUtil.getPropertyByKey(aPropertiesMetadata, sFieldPath);
-				if (oProperty && (oParameters.parameters.indexOf(sFieldPath) >= 0)) {
-
-					mInternalParameterConditions[sFieldPath] = [];
-					//convert from externalized to model-specific value representation
-					for (i = 0; i < mConditions[sFieldPath].length; i++) {
-						oConditionInternal = merge({}, mConditions[sFieldPath][i]);
-						mInternalParameterConditions[sFieldPath].push(ConditionConverter.toType(oConditionInternal, oProperty.typeConfig, oMDCFilterBar.getTypeUtil()));
+					if (window[oMDCFilterBar.getId() + '->' + sEntitySetName + "-Parameters"]) {
+						oParameters = window[oMDCFilterBar.getId() + '->' + sEntitySetName + "-Parameters"];
 					}
-				} else if (!oProperty) {
-					Log.error("no such property: " + sFieldPath);
-				}
-			}
-
-			aParams = [];
-			for (i = 0; i < oParameters.parameters.length; i++) {
-				sFieldPath = oParameters.parameters[i];
-				if (mInternalParameterConditions[sFieldPath] && (mInternalParameterConditions[sFieldPath].length > 0)) {
-					sEdmType = oParameters.parameterTypes[sFieldPath];
-					aParams.push(sFieldPath + '=' + encodeURIComponent(ODataUtils.formatLiteral(mInternalParameterConditions[sFieldPath][0].values[0], sEdmType)));
-				} else {
-					Log.error("no value found parameter '" + sFieldPath + "'");
 				}
 
+				return oParameters;
+			},
+
+			/**
+			 * Determines the parameter path
+			 *
+			 * @param {sap.ui.mdc.FilterBar} oMDCFilterBar - instance of the filter bar
+			 * @returns {string | null} path information
+			 * @protected
+			 */
+			getParametersInfo: function(oMDCFilterBar) {
+				const oParameters = DelegateUtil._getParameters(oMDCFilterBar);
+
+				return DelegateUtil._getParameterPath(oMDCFilterBar, oParameters);
+			},
+
+			_getParametersListUrl: function(oMDCFilterBar, aParameterNames) {
+				const aParams = [];
+				const mConditionsMap = FilterUtil.getConditionsMap(oMDCFilterBar, aParameterNames);
+				const aPropertyInfos = oMDCFilterBar.getPropertyInfoSet();
+
+				aParameterNames.forEach((sParameterName) => {
+					const oProperty = FilterUtil.getPropertyByKey(aPropertyInfos, sParameterName);
+
+					if (oProperty && (oProperty.maxConditions === 1)) { // only single valued parameters are considered
+						mConditionsMap[sParameterName].forEach((oCondition) => {
+							if (oCondition.operator === FilterOperator.EQ) { // only the EQ operators are considered
+								aParams.push(sParameterName + '=' + encodeURIComponent(ODataUtils.formatLiteral(oCondition.values[0], oProperty.typeConfig.className)));
+							}
+						});
+					}
+				});
+
+				return aParams;
+			},
+
+			_getParameterPath: function(oMDCFilterBar, oParameters) {
+
+				if (!oMDCFilterBar || !oMDCFilterBar.isA("sap.ui.mdc.FilterBar")) {
+					return null;
+				}
+
+				if (!oParameters || (oParameters.parameters.length <= 0)) {
+					return null;
+				}
+
+				const sEntitySetName = oMDCFilterBar.getDelegate().payload.collectionName;
+
+				const aParams = DelegateUtil._getParametersListUrl(oMDCFilterBar, oParameters.parameters);
+
+				// create parameter context
+				return '/' + sEntitySetName + '(' + aParams.toString() + ")/" + oParameters.parameterNavigationName;
+			},
+
+			/**
+			 * Static function that returns the parameter names..
+			 *
+			 * @param {sap.ui.mdc.FilterBar} oMDCFilterBar - instance of the filter bar
+			 * @returns {array | null} list of parameter names
+			 * @protected
+			 */
+			getParameterNames: function(oMDCFilterBar) {
+				let aParameterNames = null;
+				const oParameters = DelegateUtil._getParameters(oMDCFilterBar);
+
+				if (oParameters) {
+					aParameterNames = oParameters.parameters;
+				}
+
+				return aParameterNames;
 			}
-
-
-			// create parameter context
-			return '/' + sEntitySetName + '(' + aParams.toString() + ")/" + oParameters.parameterNavigationName;
-		},
-
-		/**
-		 * Determines the parameter path
-		 *
-		 * @param {sap.ui.mdc.FilterBar} oMDCFilterBar - instance of the filter bar
-		 * @param {map} mConditions - map with externalized conditions
-		 * @returns {string} path information
-		 * @protected
-		 */
-		getParametersInfo : function(oMDCFilterBar, mConditions) {
-			var oParameters = DelegateUtil._getParameters(oMDCFilterBar);
-
-			return DelegateUtil._getParameterPath(oMDCFilterBar, mConditions, oParameters);
-		},
-
-
-		/**
-		 * Static function that replaces special characters with a underscore.<br>
-		 *
-		 * @param {sap.ui.mdc.FilterBar} oMDCFilterBar - instance of the filter bar
-		 * @param {map} mConditions - map with externalized conditions
-		 * @returns {string} path information
-		 * @protected
-		 */
-		getParameterNames : function(oMDCFilterBar) {
-			var aParameterNames = null, oParameters = DelegateUtil._getParameters(oMDCFilterBar);
-
-			if (oParameters) {
-				aParameterNames = oParameters.parameters;
-			}
-
-			return aParameterNames;
-		}
-	};
+		};
 
 
 
-	return DelegateUtil;
-}, /* bExport= */true);
+		return DelegateUtil;
+	});

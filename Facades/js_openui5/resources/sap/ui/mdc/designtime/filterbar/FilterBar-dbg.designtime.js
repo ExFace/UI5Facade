@@ -1,21 +1,50 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Provides the Design Time Metadata for the sap.ui.mdc.FilterBar control
-sap.ui.define([], function() {
+sap.ui.define([
+	"sap/m/p13n/Engine"
+], (Engine) => {
 	"use strict";
 
 	return {
 		actions: {
-			settings: function () {
-				return {
-					handler: function (oControl, mPropertyBag) {
-						return oControl.getRTASettingsActionHandler(mPropertyBag, "Filter");
-					}
-				};
+			settings: {
+				"sap.ui.mdc": function(oControl) {
+					return Engine.getInstance()._runWithPersistence(oControl, (bIsGlobal) => ({
+						name: "filterbar.ADAPT_TITLE",
+						handler: function (oControl, mPropertyBag) {
+							//CHECK: move metadata finalizing to Engine?
+							return oControl.initializedWithMetadata().then(() => {
+								return Engine.getInstance().getRTASettingsActionHandler(oControl, mPropertyBag, "Item");
+							});
+						},
+						CAUTION_variantIndependent: bIsGlobal
+					}));
+				}
+			}
+		},
+		aggregations: {
+			layout: {
+				ignore: true
+			},
+			basicSearchField: {
+				ignore: true
+			},
+			filterItems: {
+				ignore: true
+			}
+		},
+		properties: {
+			showAdaptFiltersButton: {
+				ignore: false
+			},
+			showClearButton: {
+				ignore: false
+			},
+			p13nMode: {
+				ignore: false
 			}
 		}
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.SelectionDetails.
@@ -10,10 +10,12 @@ sap.ui.define([
 	'sap/m/Button',
 	'sap/ui/base/Interface',
 	'sap/ui/Device',
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'./SelectionDetailsRenderer',
-	"sap/base/util/uid",
-	"sap/ui/thirdparty/jquery"
+	'sap/base/util/uid',
+	"sap/ui/core/Configuration"
 ],
 function(
 	library,
@@ -21,10 +23,12 @@ function(
 	Button,
 	Interface,
 	Device,
+	ControlBehavior,
+	Library,
 	CoreLibrary,
 	SelectionDetailsRenderer,
 	uid,
-	jQuery
+	Configuration
 ) {
 	"use strict";
 
@@ -39,105 +43,108 @@ function(
 	 * <b><i>Note:</i></b>It is protected and should only be used within the framework itself.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
 	 * @protected
 	 * @since 1.48.0
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 * @alias sap.m.SelectionDetails
 	 */
-	var SelectionDetails = Control.extend("sap.m.SelectionDetails", /** @lends sap.m.SelectionDetails.prototype */ { metadata: {
-		library: "sap.m",
-		defaultAggregation: "items",
-		aggregations: {
-			/**
-			 * Contains {@link sap.m.SelectionDetailsItem items} that are displayed on the first page.
-			 */
-			"items": {type: "sap.m.SelectionDetailsItem", multiple: true, bindable: "bindable"},
+	var SelectionDetails = Control.extend("sap.m.SelectionDetails", /** @lends sap.m.SelectionDetails.prototype */ {
+		metadata: {
+			library: "sap.m",
+			defaultAggregation: "items",
+			aggregations: {
+				/**
+				 * Contains {@link sap.m.SelectionDetailsItem items} that are displayed on the first page.
+				 */
+				"items": {type: "sap.m.SelectionDetailsItem", multiple: true, bindable: "bindable"},
 
-			/**
-			 * Contains custom actions shown in the responsive toolbar below items on the first page.
-			 */
-			"actions": {type: "sap.ui.core.Item", multiple: true},
+				/**
+				 * Contains custom actions shown in the responsive toolbar below items on the first page.
+				 */
+				"actions": {type: "sap.ui.core.Item", multiple: true},
 
-			/**
-			 * Contains actions that are rendered as a dedicated {@link sap.m.StandardListItem item}.
-			 * In case an action group is pressed, a navigation should be triggered via <code>navTo</code> method.
-			 * A maximum of 5 actionGroups is displayed inside the popover, though more can be added to the aggregation.
-			 */
-			"actionGroups": {type: "sap.ui.core.Item", multiple: true},
+				/**
+				 * Contains actions that are rendered as a dedicated {@link sap.m.StandardListItem item}.
+				 * In case an action group is pressed, a navigation should be triggered via <code>navTo</code> method.
+				 * A maximum of 5 actionGroups is displayed inside the popover, though more can be added to the aggregation.
+				 */
+				"actionGroups": {type: "sap.ui.core.Item", multiple: true},
 
-			/**
-			 * Hidden aggregation that contains the popover.
-			 */
-			"_popover": {type: "sap.m.ResponsivePopover", multiple: false, visibility: "hidden"},
+				/**
+				 * Hidden aggregation that contains the popover.
+				 */
+				"_popover": {type: "sap.m.ResponsivePopover", multiple: false, visibility: "hidden"},
 
-			/**
-			 * Hidden aggregation that contains the button.
-			 */
-			"_button": {type: "sap.m.Button", multiple: false, visibility: "hidden"}
-		},
-		events: {
-			/**
-			 * Event is triggered before the popover is open.
-			 */
-			beforeOpen: {},
-
-			/**
-			 * Event is triggered before the popover is closed.
-			 */
-			beforeClose: {},
-
-			/**
-			 * Event is triggered after a list item of {@link sap.m.SelectionDetailsItem} is pressed.
-			 */
-			navigate: {
-				parameters: {
-					/**
-					 * The item on which the action has been pressed.
-					 * Can be null in case a navigation was done without item context, e.g. action press.
-					 */
-					item: {type: "sap.m.SelectionDetailsItem"},
-
-					/**
-					 * Direction of the triggered navigation, possible values are "to" and "back".
-					 */
-					direction: {type: "string"},
-					/**
-					 * The content of the currently viewed page that was previously added via {@link sap.m.SelectionDetailsFacade#navTo}.
-					 * This contains the content of the page before the navigation was triggered.
-					 * Can be null in case of first event triggering.
-					 */
-					content: {type: "sap.ui.core.Control"}
-				}
+				/**
+				 * Hidden aggregation that contains the button.
+				 */
+				"_button": {type: "sap.m.Button", multiple: false, visibility: "hidden"}
 			},
+			events: {
+				/**
+				 * Event is triggered before the popover is open.
+				 */
+				beforeOpen: {},
 
-			/**
-			 * Event is triggered when a custom action is pressed.
-			 */
-			actionPress: {
-				parameters: {
+				/**
+				 * Event is triggered before the popover is closed.
+				 */
+				beforeClose: {},
 
-					/**
-					 * The action that has to be processed once the action has been pressed
-					 */
-					action: {type: "sap.ui.core.Item"},
+				/**
+				 * Event is triggered after a list item of {@link sap.m.SelectionDetailsItem} is pressed.
+				 */
+				navigate: {
+					parameters: {
+						/**
+						 * The item on which the action has been pressed.
+						 * Can be null in case a navigation was done without item context, e.g. action press.
+						 */
+						item: {type: "sap.m.SelectionDetailsItem"},
 
-					/**
-					 * If the action is pressed on one of the {@link sap.m.SelectionDetailsItem items}, the parameter contains a reference to the pressed {@link sap.m.SelectionDetailsItem item}. If a custom action or action group of the SelectionDetails popover is pressed, this parameter refers to all {@link sap.m.SelectionDetailsItem items}
-					 */
-					items: {type: "sap.m.SelectionDetailsItem"},
+						/**
+						 * Direction of the triggered navigation, possible values are "to" and "back".
+						 */
+						direction: {type: "string"},
+						/**
+						 * The content of the currently viewed page that was previously added via {@link sap.m.SelectionDetailsFacade#navTo}.
+						 * This contains the content of the page before the navigation was triggered.
+						 * Can be null in case of first event triggering.
+						 */
+						content: {type: "sap.ui.core.Control"}
+					}
+				},
 
-					/**
-					 * The action level of action buttons. The available levels are Item, List and Group
-					 */
-					level: {type: "sap.m.SelectionDetailsActionLevel"}
+				/**
+				 * Event is triggered when a custom action is pressed.
+				 */
+				actionPress: {
+					parameters: {
+
+						/**
+						 * The action that has to be processed once the action has been pressed
+						 */
+						action: {type: "sap.ui.core.Item"},
+
+						/**
+						 * If the action is pressed on one of the {@link sap.m.SelectionDetailsItem items}, the parameter contains a reference to the pressed {@link sap.m.SelectionDetailsItem item}. If a custom action or action group of the SelectionDetails popover is pressed, this parameter refers to all {@link sap.m.SelectionDetailsItem items}
+						 */
+						items: {type: "sap.m.SelectionDetailsItem"},
+
+						/**
+						 * The action level of action buttons. The available levels are Item, List and Group
+						 */
+						level: {type: "sap.m.SelectionDetailsActionLevel"}
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: SelectionDetailsRenderer
+	});
 
 	/**
 	 * The maximum number of actionGroups that are shown in the actionGroup list.
@@ -154,7 +161,7 @@ function(
 		// Indicates whether the labels are wrapped
 		this._bWrapLabels = false;
 
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 		this.setAggregation("_button", new Button({
 			id: this.getId() + "-button",
 			type: library.ButtonType.Transparent,
@@ -165,6 +172,10 @@ function(
 
 	SelectionDetails.prototype.onBeforeRendering = function() {
 		this._updateButton();
+	};
+
+	SelectionDetails.prototype.onAfterRendering = function() {
+		document.getElementById(this.getAggregation("_button").getId()).setAttribute("aria-haspopup", "dialog");
 	};
 
 	SelectionDetails.prototype.exit = function() {
@@ -201,7 +212,7 @@ function(
 
 	/**
 	 * Closes SelectionDetails if open.
-	 * @returns {sap.m.SelectionDetails} To ensure method chaining, return the SelectionDetails.
+	 * @returns {this} To ensure method chaining, return the SelectionDetails.
 	 * @public
 	 * @function
 	 * @name sap.m.SelectionDetailsFacade#close
@@ -221,7 +232,7 @@ function(
 	 *
 	 * @param {string} title The title property of the {@link sap.m.Page page} control to which the navigation should occur.
 	 * @param {sap.ui.core.Control} content The content of the control to which the navigation should occur.
-	 * @returns {sap.m.SelectionDetails} To ensure method chaining, return the SelectionDetails.
+	 * @returns {this} To ensure method chaining, return the SelectionDetails.
 	 * @public
 	 * @function
 	 * @name sap.m.SelectionDetailsFacade#navTo
@@ -250,7 +261,7 @@ function(
 	/**
 	 * Enables line wrapping for the labels of the of the {@link sap.m.SelectionDetailsItemLine} elements.
 	 * @param {boolean} bWrap True to apply wrapping to the labels of the {@link sap.m.SelectionDetailsItemLine} elements.
-	 * @returns {sap.m.SelectionDetails} To ensure method chaining, returns SelectionDetails.
+	 * @returns {this} To ensure method chaining, returns SelectionDetails.
 	 * @public
 	 * @function
 	 * @name sap.m.SelectionDetailsFacade#setWrapLabels
@@ -272,7 +283,7 @@ function(
 	 * Sets the popover to modal or non-modal based on the given parameter. This only takes effect on desktop or tablet.
 	 * Please see the documentation {@link sap.m.ResponsivePopover#modal}.
 	 * @param {boolean} modal New value for property modal of the internally used popover.
-	 * @returns {sap.m.SelectionDetails} To ensure method chaining, return the SelectionDetails.
+	 * @returns {this} To ensure method chaining, return the SelectionDetails.
 	 * @protected
 	 */
 	SelectionDetails.prototype.setPopoverModal = function(modal) {
@@ -292,7 +303,7 @@ function(
 	 * @param {function} Button The constructor for sap.m.Button.
 	 * @private
 	 */
-	SelectionDetails.prototype._handleNavLazy = function(pageTitle, content, Page, Toolbar, ToolbarSpacer, Title, Button) {
+	SelectionDetails.prototype._handleNavLazy = function(pageTitle, content, Page, Toolbar, ToolbarSpacer, Title) {
 		var sPageId = this.getId() + "-page-for-" + content.getId() + "-uid-" + uid();
 
 		this._setPopoverHeight(SelectionDetails._POPOVER_MAX_HEIGHT);
@@ -326,7 +337,8 @@ function(
 		if (showBackButton) {
 			var oBackButton = new Button({
 				icon: "sap-icon://nav-back",
-				press: this._onBackButtonPress.bind(this)
+				press: this._onBackButtonPress.bind(this),
+				tooltip: this._oRb.getText("SELECTIONDETAILS_BACK_BUTTON")
 			});
 			oToolbar.addAggregation("content", oBackButton, true);
 		}
@@ -362,10 +374,10 @@ function(
 
 			height = Math.min(SelectionDetails._POPOVER_MAX_HEIGHT, height);
 			oPopover._oControl._deregisterContentResizeHandler();
-
+			var bAnimationMode = ControlBehavior.getAnimationMode() !== Configuration.AnimationMode.none;
 			$PopoverContent.animate({
 				"height": Math.min(height, iMaxHeight)
-			}, sap.ui.getCore().getConfiguration().getAnimation() ? 100 : 0, function() {
+			}, bAnimationMode ? 100 : 0, function() {
 				oPopover.setProperty("contentHeight", height + "px", true);
 				oPopover._oControl._registerContentResizeHandler();
 			});
@@ -485,7 +497,7 @@ function(
 	 * @private
 	 */
 	SelectionDetails.prototype._updateButton = function() {
-		var sText, iCount, oButton = this.getAggregation("_button");
+		var sText, iCount, oButton = this.getAggregation("_button"), bEnabled;
 		if (this._oSelectionData && this._oSelectionData.length >= 0) {
 			iCount = this._oSelectionData.length;
 		} else {
@@ -494,15 +506,14 @@ function(
 
 		if (iCount > 0) {
 			sText = this._oRb.getText("SELECTIONDETAILS_BUTTON_TEXT_WITH_NUMBER", [ iCount ]);
-			oButton.setProperty("text", sText, true);
-			oButton.setProperty("enabled", true, true);
-			oButton.setAggregation("tooltip", sText, true);
+			bEnabled = true;
 		} else {
 			sText = this._oRb.getText("SELECTIONDETAILS_BUTTON_TEXT");
-			oButton.setProperty("text", sText, true);
-			oButton.setProperty("enabled", false, true);
-			oButton.setAggregation("tooltip", sText, true);
+			bEnabled = false;
 		}
+		oButton.setText(sText);
+		oButton.setEnabled(bEnabled);
+		oButton.setTooltip(sText);
 	};
 
 	/**
@@ -613,7 +624,10 @@ function(
 	 * @private
 	 */
 	SelectionDetails.prototype._getNavContainer = function(NavContainer) {
-		return this._oNavContainer || (this._oNavContainer = new NavContainer(this.getId() + "-nav-container"));
+		if (!this._oNavContainer) {
+			this._oNavContainer = new NavContainer(this.getId() + "-nav-container");
+		}
+		return this._oNavContainer;
 	};
 
 	/**
@@ -668,12 +682,6 @@ function(
 			oNavContainer.addPage(oPage);
 			oPopover.addAggregation("content", oNavContainer, true);
 
-			if (!Device.system.phone) {
-				oPopover.addEventDelegate({
-					onAfterRendering: this._updatePopoverContentHeight.bind(this)
-				});
-			}
-
 			oPopover.addEventDelegate({
 				onBeforeRendering: function () {
 					this.getWrapLabels() ? oPopover.addStyleClass("sapMSDWrapLabels") : oPopover.removeStyleClass("sapMSDWrapLabels");
@@ -701,28 +709,6 @@ function(
 			this._oControl.setProperty.apply(this._oControl, arguments);
 		}
 		return Control.prototype.setProperty.apply(this, arguments);
-	};
-
-	/**
-	 * Adds an event delegate to the popover instance in order to minimize white space inside its contents.
-	 * @private
-	 * @static
-	 */
-	SelectionDetails.prototype._updatePopoverContentHeight = function() {
-		var iContentHeight = this._getInitialPageHeight(),
-			oPopover = this._getPopover();
-
-		if (Device.browser.edge && this._oMainList.getDomRef() && this._oMainList.getDomRef().getBoundingClientRect().height === 0) {
-			// Force rendering if for some reason the main list has not been rendered in MS Edge
-			oPopover.setContentHeight(SelectionDetails._POPOVER_MAX_HEIGHT + "px");
-			return;
-		}
-
-		if (this._oNavContainer.getCurrentPage() === this._oInitialPage && iContentHeight < SelectionDetails._POPOVER_MAX_HEIGHT) {
-			oPopover.setProperty("contentHeight", iContentHeight + "px", true);
-		} else {
-			oPopover.setProperty("contentHeight", SelectionDetails._POPOVER_MAX_HEIGHT + "px", true);
-		}
 	};
 
 	/**
@@ -911,7 +897,6 @@ function(
 		if (Array.isArray(oEventParams)) {
 			this._oSelectionData = oEventParams;
 			this._updateButton();
-			this.getAggregation("_button").rerender();
 		}
 	};
 
@@ -928,7 +913,7 @@ function(
 	 * @protected
 	 * @param {any} data Data to be passed to the factory function
 	 * @param {function} factory The item factory function that returns SelectionDetailsItems
-	 * @returns {sap.m.SelectionDetails} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	SelectionDetails.prototype.registerSelectionDetailsItemFactory = function(data, factory) {
 		if (typeof (data) === "function") {
@@ -949,7 +934,7 @@ function(
 	 * @protected
 	 * @param {string} eventId The identifier of the event to listen for
 	 * @param {object} listener The object which triggers the event to register on
-	 * @returns {sap.m.SelectionDetails} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	SelectionDetails.prototype.attachSelectionHandler = function(eventId, listener) {
 		// only create change handler once + check for argument validity
@@ -967,7 +952,7 @@ function(
 	/**
 	 * Detaches the event which was attached by <code>attachSelectionHandler</code>.
 	 * @protected
-	 * @returns {sap.m.SelectionDetails} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	SelectionDetails.prototype.detachSelectionHandler = function() {
 		if (this._oChangeHandler) {

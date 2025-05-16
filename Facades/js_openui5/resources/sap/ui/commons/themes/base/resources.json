@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "AccordionSection.less",
-			"size": 3451,
+			"size": 2990,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -80,7 +80,7 @@
 		},
 		{
 			"name": "ControlsInUITable.less",
-			"size": 2796,
+			"size": 2726,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -92,7 +92,7 @@
 		},
 		{
 			"name": "Dialog.less",
-			"size": 3205,
+			"size": 2811,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -230,13 +230,13 @@
 		},
 		{
 			"name": "RadioButton.less",
-			"size": 1402,
+			"size": 709,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "RadioButtonGroup.less",
-			"size": 1379,
+			"size": 873,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -314,7 +314,7 @@
 		},
 		{
 			"name": "TabStrip.less",
-			"size": 2408,
+			"size": 2305,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -367,23 +367,6 @@
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 1574,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 81908,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
 			"name": "img-RTL/ColorPicker/Alphaslider_BG.png",
 			"size": 81,
 			"theme": "base"
@@ -415,227 +398,7 @@
 		},
 		{
 			"name": "img-RTL/applicationheader/SAPLogo.png",
-			"size": 1176,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/icon_cal.png",
-			"size": 311,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/icon_cal_disabled.png",
-			"size": 253,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/v_add.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/v_add_dsbl.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/v_remove.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/datepicker/v_remove_dsbl.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_flat_0_aaaaaa_40x100.png",
-			"size": 149,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_flat_75_ffffff_40x100.png",
-			"size": 146,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_glass_55_fbf9ee_1x400.png",
-			"size": 117,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_glass_65_ffffff_1x400.png",
-			"size": 95,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_glass_75_dadada_1x400.png",
-			"size": 133,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_glass_75_e6e6e6_1x400.png",
-			"size": 120,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_glass_95_fef1ec_1x400.png",
-			"size": 122,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-bg_highlight-soft_75_cccccc_1x100.png",
-			"size": 141,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-icons_222222_256x240.png",
-			"size": 6127,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-icons_2e83ff_256x240.png",
-			"size": 6127,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-icons_454545_256x240.png",
-			"size": 6127,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-icons_888888_256x240.png",
-			"size": 6127,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/jQuery/ui-icons_cd0a0a_256x240.png",
-			"size": 6127,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/layout/separationLarge.gif",
-			"size": 46,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/layout/separationMedium.gif",
-			"size": 45,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/layout/separationSmall.gif",
-			"size": 44,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/menu/menuitem-sub-dis.gif",
-			"size": 64,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/menu/menuitem-sub-hov.gif",
-			"size": 846,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/menu/menuitem-sub.gif",
-			"size": 846,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/collapsed.gif",
-			"size": 108,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/collapsedRTL.gif",
-			"size": 67,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/expanded.gif",
-			"size": 107,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/float_backgr.gif",
-			"size": 825,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/iconError.gif",
-			"size": 142,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/iconSuccess.gif",
-			"size": 111,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/iconWarning.gif",
-			"size": 141,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/re-dock.gif",
-			"size": 56,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/re-dockRTL.gif",
-			"size": 834,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Error.gif",
-			"size": 123,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Success.gif",
-			"size": 123,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Warning.gif",
-			"size": 119,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_multi.gif",
-			"size": 121,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/critical.gif",
-			"size": 293,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/error.gif",
-			"size": 271,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/information.gif",
-			"size": 226,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/question.gif",
-			"size": 522,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/success.gif",
-			"size": 233,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/messagebox/warning.gif",
-			"size": 273,
+			"size": 1310,
 			"theme": "base"
 		},
 		{
@@ -645,107 +408,27 @@
 		},
 		{
 			"name": "img-RTL/paginator/arrow_last.gif",
-			"size": 852,
+			"size": 847,
 			"theme": "base"
 		},
 		{
 			"name": "img-RTL/paginator/arrow_next.gif",
-			"size": 62,
+			"size": 1113,
 			"theme": "base"
 		},
 		{
 			"name": "img-RTL/paginator/arrow_previous.gif",
-			"size": 62,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/panel/collapsed.gif",
-			"size": 108,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/panel/expanded.gif",
-			"size": 107,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/rating/star_hover.png",
-			"size": 79,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/rating/star_selected.png",
-			"size": 76,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/rating/star_unselected.png",
-			"size": 77,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/richtooltip/ValueState_Error.png",
-			"size": 94,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/richtooltip/ValueState_Success.png",
-			"size": 409,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/richtooltip/ValueState_Warning.png",
-			"size": 167,
+			"size": 1112,
 			"theme": "base"
 		},
 		{
 			"name": "img-RTL/search/search.png",
-			"size": 909,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/splitter/checkerboard.png",
-			"size": 71,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/splitter/resize_horizontal.png",
-			"size": 146,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/splitter/resize_vertical.png",
-			"size": 145,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/splitter/splitter_horiz_grip.gif",
-			"size": 121,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/splitter/splitter_vert_grip.gif",
-			"size": 863,
+			"size": 203,
 			"theme": "base"
 		},
 		{
 			"name": "img-RTL/toolbar/overflow.png",
 			"size": 93,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_dsbl.png",
-			"size": 122,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_hover.png",
-			"size": 114,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_regular.png",
-			"size": 123,
 			"theme": "base"
 		},
 		{
@@ -791,26 +474,6 @@
 		{
 			"name": "img/datepicker/icon_cal_disabled.png",
 			"size": 253,
-			"theme": "base"
-		},
-		{
-			"name": "img/datepicker/v_add.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img/datepicker/v_add_dsbl.gif",
-			"size": 60,
-			"theme": "base"
-		},
-		{
-			"name": "img/datepicker/v_remove.gif",
-			"size": 61,
-			"theme": "base"
-		},
-		{
-			"name": "img/datepicker/v_remove_dsbl.gif",
-			"size": 61,
 			"theme": "base"
 		},
 		{
@@ -891,21 +554,6 @@
 		{
 			"name": "img/layout/separationSmall.gif",
 			"size": 44,
-			"theme": "base"
-		},
-		{
-			"name": "img/menu/menuitem-sub-dis.gif",
-			"size": 64,
-			"theme": "base"
-		},
-		{
-			"name": "img/menu/menuitem-sub-hov.gif",
-			"size": 1613,
-			"theme": "base"
-		},
-		{
-			"name": "img/menu/menuitem-sub.gif",
-			"size": 1613,
 			"theme": "base"
 		},
 		{
@@ -1099,21 +747,6 @@
 			"theme": "base"
 		},
 		{
-			"name": "img/valuehelpfield/F4-Help_icon_dsbl.png",
-			"size": 2865,
-			"theme": "base"
-		},
-		{
-			"name": "img/valuehelpfield/F4-Help_icon_hover.png",
-			"size": 1050,
-			"theme": "base"
-		},
-		{
-			"name": "img/valuehelpfield/F4-Help_icon_regular.png",
-			"size": 1075,
-			"theme": "base"
-		},
-		{
 			"name": "jQueryUiBase.less",
 			"size": 18382,
 			"designtime": true,
@@ -1133,40 +766,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 77743,
+			"size": 76917,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/commons/themes/base/library-parameters.json",
 			"size": 523,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 77495,
+			"size": 76872,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 122496,
+			"size": 120264,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 2021,
+			"size": 2016,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 84140,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 83892,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 13776
 		}
 	]
 }

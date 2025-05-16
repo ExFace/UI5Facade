@@ -1,54 +1,72 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
-*/
+ */
 sap.ui.define([
-	"sap/ui/mdc/condition/FilterOperatorUtil",
-	"sap/ui/model/Filter",
-	"sap/base/Log"
-],
+		"sap/ui/mdc/condition/FilterOperatorUtil",
+		"sap/ui/mdc/enums/BaseType",
+		"sap/ui/model/Filter",
+		"sap/ui/model/FilterOperator",
+		"sap/base/Log"
+	],
 
-function(
-	FilterOperatorUtil,
-	Filter,
-	Log
-) {
-	"use strict";
+	(
+		FilterOperatorUtil,
+		BaseType,
+		Filter,
+		FilterOperator,
+		Log
+	) => {
+		"use strict";
 
-	/**
-	 *
-	 * @class Utility to convert ConditionModel conditions into sap.ui.model.Filter
-	 * @extends sap.ui.base.Object
-	 *
-	 * @author SAP SE
-	 * @version 1.82.0
-	 * @since 1.78.0
-	 * @alias sap.ui.mdc.condition.FilterConverter
-	 *
-	 * @private
-	 * @experimental
-	 * @ui5-restricted
-	 */
-	var FilterConverter = {
+		/**
+		 *
+		 * Utility to convert {@link sap.ui.mdc.condition.ConditionObject conditions} of a {@link sap.ui.mdc.condition.ConditionModel ConditionModel} into {@link sap.ui.model.Filter Filter}
+		 *
+		 * @namespace
+		 * @author SAP SE
+		 * @version 1.136.0
+		 * @since 1.78.0
+		 * @alias sap.ui.mdc.condition.FilterConverter
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		const FilterConverter = {
 
 			/**
 			 * creates a map with the types of the conditions.
 			 *
-			 * @param {object} oConditions map of conditions
+			 * @param {object} oConditions map of {@link sap.ui.mdc.condition.ConditionObject conditions}
 			 * @param {sap.ui.mdc.FilterBar} oFilterBar <code>FilterBar</code> control
 			 * @returns {object} aConditionTypes map containing the types of the condition.
 			 *
-			 * @public
+			 * @private
+			 * @ui5-restricted sap.ui.mdc
 			 */
-			createConditionTypesMapFromFilterBar: function (oConditions, oFilterBar) {
-				var oResult = {};
+			createConditionTypesMapFromFilterBar: function(oConditions, oFilterBar) {
+				const oResult = {};
 
-				for (var sFieldPath in oConditions) {
+				for (const sFieldPath in oConditions) {
 					if (oFilterBar) {
-						var oPropertyInfo = oFilterBar._getPropertyByName(sFieldPath);
-						var oDataType = oPropertyInfo && oPropertyInfo.typeConfig && oPropertyInfo.typeConfig.typeInstance;
-						oResult[sFieldPath] = {type : oDataType};
+						const oPropertyInfo = oFilterBar._getPropertyByName(sFieldPath);
+						let oDataType;
+						if (oPropertyInfo && oPropertyInfo.typeConfig) {
+							oDataType = oPropertyInfo.typeConfig.typeInstance;
+						} else {
+							// try to find missing type from FilterField
+							const oFilterField = oFilterBar._getFilterField(sFieldPath); // TODO: use official API
+							if (oFilterField) {
+								const oFormatOptions = oFilterField.getFormatOptions();
+								if (oFormatOptions.originalDateType) {
+									oDataType = oFormatOptions.originalDateType;
+								} else {
+									oDataType = oFormatOptions.valueType;
+								}
+							}
+						}
+						oResult[sFieldPath] = { type: oDataType };
 					}
 				}
 
@@ -56,63 +74,136 @@ function(
 			},
 
 			/**
-			 * Converts all conditions given in a oConditions map into a Filter statement.
+			 * Converts all conditions given in a oConditions map into a {@link sap.ui.model.Filter Filter} object.
 			 *
-			 * @param {object} oConditions map of conditions
+			 * @param {object} oConditions map of {@link sap.ui.mdc.condition.ConditionObject conditions}
 			 * @param {object} oConditionTypes map containing the types of the condition. Will be used to convert the values of a condition.
-			 * @param {function} [fConvert2FilterCallback] callback function
-			 * @returns {sap.ui.model.Filter} Filter object for filtering a listbinding
+			 * @param {function} [fConvert2FilterCallback] deprecated (since 1.113) and not called anymore.
+			 * @param {boolean} [bCaseSensitive] If <code>true</code>, the filtering for search strings is case-sensitive
+			 * @returns {sap.ui.model.Filter} Filter object for filtering a {@link sap.ui.model.ListBinding ListBinding}
 			 *
-			 * @public
+			 * @private
+			 * @ui5-restricted sap.ui.mdc
 			 */
-			createFilters: function (oConditions, oConditionTypes, fConvert2FilterCallback) {
-				var i, aLocalIncludeFilters, aLocalExcludeFilters, aOverallFilters = [],
-					oOperator, oFilter, oNewFilter, oCondition,	oAnyOrAllFilterParam;
+			createFilters: function(oConditions, oConditionTypes, fConvert2FilterCallback, bCaseSensitive) {
+				let i, aLocalIncludeFilters, aLocalExcludeFilters, oOperator, oFilter, oNewFilter, oCondition;
+				const aOverallFilters = [];
 
-				var convertAnyAllFilter = function(oFilter, sOperator, sPattern) {
-					// var sOperator = sap.ui.model.FilterOperator.Any;
-					// var sPattern = "*/";
-					var sVariable = "L1";
-					var aSections, sNavPath, sPropertyPath;
+				const convertAnyAllFilter = function(oFilter, sFieldPath, sPropertyPath) {
+					if ([FilterOperator.Any,FilterOperator.All].includes(oFilter.getOperator())) {
+						// existing Any/All filters are not changed
+						return {filter: null, anyAllFilters: [oFilter]};
+					} else if (!oFilter.getPath() && oFilter.getFilters()) {
+						// in case of nested inner filters call the convertAnyAllFilters for all sub filters.
+						const aFilters = [];
+						let aAnyAllFilters = [];
+						oFilter.getFilters().forEach((oFilter) => {
+							// aFilters.push(convertAnyAllFilter(oFilter, sFieldPath, sPropertyPath));
+							const oConverted = convertAnyAllFilter(oFilter, sFieldPath, sPropertyPath);
+							if (oConverted.filter) {
+								aFilters.push(oConverted.filter);
+							}
+							if (oConverted.anyAllFilters.length > 0) {
+								aAnyAllFilters = aAnyAllFilters.concat(oConverted.anyAllFilters);
+							}
+						});
 
-					if (oFilter.sPath && oFilter.sPath.indexOf(sPattern) > -1) {
-						aSections = oFilter.sPath.split(sPattern);
+						let oNewFilter;
+						if (aFilters.length === 1) {
+							[oNewFilter] = aFilters;
+						} else if (aFilters.length > 1){
+							oNewFilter = new Filter({filters: aFilters, and: oFilter.isAnd()});
+						}
+						return {filter: oNewFilter, anyAllFilters: aAnyAllFilters};
+					} else if (oFilter.getPath() === sFieldPath) {
+						oFilter.sPath = sPropertyPath;
+						return {filter: oFilter, anyAllFilters: []};
+					}
+					return oFilter;
+				};
 
-						if (aSections.length === 2) {
-							sNavPath = aSections[0];
-							sPropertyPath = aSections[1];
-							oFilter.sPath = sVariable + "/" + sPropertyPath;
+				// Include-filters are combined in an OR-filter put into an All or A-filter
+				// Exclude-filters are combined in an AND-filter and put into an All-filter (As the searched entry must be in none of the targets.)
+				// Special case "empty", here the filter is created in the operator to allow custom empty-operators.
+				const convertToAnyOrAllFilter = function(aFilters, sFieldPath, bExclude) {
+					const [sNavPath, sPattern, sPropertyPath, sWrongPart] = sFieldPath.split(/([\*\+]\/)/);
+					if (sPattern && aFilters.length > 0) {
+						let oFilter;
 
-							return {
-								path: sNavPath,
-								operator: sOperator,
-								variable: sVariable
-							};
-						} else {
-							throw new Error("FilterConverter: not supported binding " + oFilter.sPath);
+						if (aFilters.length === 1) {
+							[oFilter] = aFilters;
+						} else if (aFilters.length > 1) {
+							oFilter = new Filter({ filters: aFilters, and: bExclude });
+						}
+
+						if (oFilter) {
+							const sVariable = "L1";
+
+							if (!sWrongPart) { // only one occurence of pattern allowed
+								const oConverted = convertAnyAllFilter(oFilter, sFieldPath, sVariable + "/" + sPropertyPath);
+								let oNewFilter;
+								if (oConverted.filter) {
+									// the Any/All filter parameter for all filters of one FieldPath
+									oNewFilter = new Filter({
+										path: sNavPath,
+										operator: sPattern === "*/" && !bExclude ? FilterOperator.Any : FilterOperator.All, // exclude filters are All-filters, even in Any case
+										variable: sVariable,
+										condition: oConverted.filter
+									});
+								}
+								if (oConverted.anyAllFilters.length > 0) {
+									if (oNewFilter) {
+										oConverted.anyAllFilters.push(oNewFilter);
+										oNewFilter = new Filter({
+											filters: oConverted.anyAllFilters,
+											and: bExclude
+										});
+									} else if (oConverted.anyAllFilters.length === 1) {
+										[oNewFilter] = oConverted.anyAllFilters;
+									} else {
+										oNewFilter = new Filter({
+											filters: oConverted.anyAllFilters,
+											and: bExclude
+										});
+									}
+								}
+
+								return [oNewFilter];
+							} else {
+								throw new Error("FilterConverter: not supported binding " + sFieldPath);
+							}
 						}
 					}
-					return false;
-				};
 
-				var convertToAnyOrAllFilter = function(oFilter) {
-					// ANY condition handling e.g. fieldPath "navPath*/propertyPath"
-					var oFilterParam = convertAnyAllFilter(oFilter, sap.ui.model.FilterOperator.Any, "*/");
-					if (oFilterParam) {
-						return oFilterParam;
-					} else {
-						// ALL condition handling e.g. fieldPath "navPath+/propertyPath"
-						return convertAnyAllFilter(oFilter, sap.ui.model.FilterOperator.All, "+/");
-					}
+					return aFilters; // just use unchanged Filter
 				};
-
 
 				// OR-combine filters for each property
-				for (var sFieldPath in oConditions) {
+				for (const sFieldPath in oConditions) {
 					aLocalIncludeFilters = [];
 					aLocalExcludeFilters = [];
-					oAnyOrAllFilterParam = null;
-					var aConditions = oConditions[sFieldPath];
+					const aConditions = oConditions[sFieldPath];
+
+					if (sFieldPath === "$search") {
+						continue;
+					}
+
+					let oDataType;
+					let bCaseSensitiveType = true;
+					let sBaseType = BaseType.String; // String is always default
+
+					if (oConditionTypes) {
+						if (oConditionTypes[sFieldPath]) {
+							oDataType = oConditionTypes[sFieldPath].type;
+							bCaseSensitiveType = oConditionTypes[sFieldPath].caseSensitive;
+							sBaseType = oConditionTypes[sFieldPath].baseType || BaseType.String;
+
+							if (!oDataType) {
+								// We only shown a warning, because the oDataType might not be required for creating the Filter.
+								Log.warning("FilterConverter", "Not able to retrieve the type of path '" + sFieldPath + "!");
+							}
+						}
+					}
 
 					for (i = 0; i < aConditions.length; i++) {
 						oCondition = aConditions[i];
@@ -122,30 +213,16 @@ function(
 							continue; // ignore unknown operators
 						}
 
-						var oDataType;
-						if (oConditionTypes) {
-							if (oConditionTypes[sFieldPath]) {
-								oDataType = oConditionTypes[sFieldPath].type;
-								if (!oDataType) {
-									// We only shown a warning, because the oDataType might not be required for creating the Filter.
-									Log.warning("FilterConverter", "Not able to retrieve the type of path '" + sFieldPath + "!");
-								}
-							}
-						}
-
 						try {
-							oFilter = oOperator.getModelFilter(oCondition, sFieldPath, oDataType);
+							oFilter = oOperator.getModelFilter(oCondition, sFieldPath, oDataType, bCaseSensitiveType, sBaseType);
 						} catch (error) {
-							// in case the getModelFilter fails - because the oDataType is missing - we show a console error.
-							Log.error("FilterConverter", "Not able to convert the condition for path '" + sFieldPath + "' into a filter! The type is missing!");
-							continue;
-						}
-
-						if (fConvert2FilterCallback) {
-							oFilter = fConvert2FilterCallback(oCondition, sFieldPath, oDataType, oFilter);
-							if (!oFilter) {
-								continue;
+							if (error) {
+								Log.error("FilterConverter", error);
+							} else {
+								// in case the getModelFilter fails - because the oDataType is missing - we show a console error.
+								Log.error("FilterConverter", "Not able to convert the condition for path '" + sFieldPath + "' into a filter! The type is missing!");
 							}
+							continue;
 						}
 
 						if (!oOperator.exclude) {
@@ -158,34 +235,26 @@ function(
 							// basic search condition handling split the oFilter with sPath == "*xxx,yyy*" into multiple filter
 							// e.g. fieldPath "*title,year*" - such fieldPath only works with type string and an operation with a single value (e.g. contains)
 							//TODO this should be removed. Only $search will be supported as sPath. This mapping of a *fieldPath1,FieldPath2* is currently only used on the mockServer
-							var $searchfilters = /^\*(.+)\*$/.exec(oFilter.sPath);
+							const $searchfilters = /^\*(.+)\*$/.exec(oFilter.sPath);
 							if ($searchfilters) {
 								// $search mapping
-								var aFieldPath = $searchfilters[1].split(',');
-								for (var j = 0; j < aFieldPath.length; j++) {
-									aLocalIncludeFilters.push(new Filter(aFieldPath[j], oFilter.sOperator, oFilter.oValue1));
+								const aFieldPath = $searchfilters[1].split(',');
+								for (let j = 0; j < aFieldPath.length; j++) {
+									aLocalIncludeFilters.push(new Filter({ path: aFieldPath[j], operator: oFilter.sOperator, value1: oFilter.oValue1, caseSensitive: bCaseSensitive }));
 								}
 								continue;
 							}
 
-							// support for Any/all filters for include operations
-							// Any/All condition handling e.g. fieldPath "navPath*/propertyPath" or "navPath+/propertyPath"
-							oAnyOrAllFilterParam = convertToAnyOrAllFilter(oFilter);
 							aLocalIncludeFilters.push(oFilter);
 						} else {
-
-							// support for Any/All filters for exclude operations
-							// Any/All condition handling e.g. fieldPath "navPath*/propertyPath" or "navPath+/propertyPath"
-							oAnyOrAllFilterParam = convertToAnyOrAllFilter(oFilter);
 							aLocalExcludeFilters.push(oFilter);
 						}
 					}
 
-					// if (fHandleFiltersOfSameFieldPathCallback) {
-					// 	if (!fHandleFiltersOfSameFieldPathCallback(aLocalIncludeFilters, aLocalExcludeFilters, aOverallFilters) {
-					// 		continue;
-					// 	}
-					// }
+					// support for Any or All filters - update the Any/All Filter in the include and exclude-filters
+					// Any/All condition handling e.g. fieldPath "navPath*/propertyPath" or "navPath+/propertyPath"
+					aLocalIncludeFilters = convertToAnyOrAllFilter(aLocalIncludeFilters, sFieldPath, false);
+					aLocalExcludeFilters = convertToAnyOrAllFilter(aLocalExcludeFilters, sFieldPath, true);
 
 					// take the single Filter or combine all with OR
 					oFilter = undefined;
@@ -195,9 +264,9 @@ function(
 						oFilter = new Filter({ filters: aLocalIncludeFilters, and: false });
 					}
 
-					// merge Include-filter and all NE-filter into the Overallfilter, they will be AND added to the result
+					// merge include-filter and all exclude-filter into the Overallfilter, they will be AND added to the result
 					if (oFilter) {
-						aLocalExcludeFilters.unshift(oFilter); // add in-filters to the beginning (better to read)
+						aLocalExcludeFilters.unshift(oFilter); // add include-filters to the beginning (better to read)
 					}
 
 					oNewFilter = undefined;
@@ -207,27 +276,11 @@ function(
 						oNewFilter = new Filter({ filters: aLocalExcludeFilters, and: true }); // to have all filters for differents path AND grouped
 					}
 
-					// support for Any or All filters - update the Any/ALl Filter in the OverAllFilters array
-					if (oAnyOrAllFilterParam) {
-						// oAnyOrAllFilterParam.path = NavPath,
-						// oAnyOrAllFilterParam.operator = "Any/All",
-						// oAnyOrAllFilterParam.variable = "L1"
-						oAnyOrAllFilterParam.condition = oNewFilter;
-						oNewFilter = new Filter(oAnyOrAllFilterParam);
-					}
-
 					if (oNewFilter) {
 						aOverallFilters.push(oNewFilter);
 					}
 
 				}
-
-				// if (fHandleAllFiltersCallback) {
-				// 	var oFilter = fHandleAllFiltersCallback(aOverallFilters);
-				// 	if (oFilter) {
-				// 		return oFilter;
-				// 	}
-				// }
 
 				// AND-combine filters for different properties and apply filters
 				if (aOverallFilters.length === 1) {
@@ -243,15 +296,15 @@ function(
 				return oFilter;
 			},
 
-			prettyPrintFilters: function (oFilter) {
-				var sRes;
+			prettyPrintFilters: function(oFilter) {
+				let sRes;
 				if (!oFilter) {
-					return "";
+					return "no filters set";
 				}
 				if (oFilter._bMultiFilter) {
 					sRes = "";
-					var bAnd = oFilter.bAnd;
-					oFilter.aFilters.forEach(function (oFilter, index, aFilters) {
+					const { bAnd } = oFilter;
+					oFilter.aFilters.forEach((oFilter, index, aFilters) => {
 						sRes += FilterConverter.prettyPrintFilters(oFilter);
 						if (aFilters.length - 1 != index) {
 							sRes += bAnd ? " and " : " or ";
@@ -259,19 +312,25 @@ function(
 					}, this);
 					return "(" + sRes + ")";
 				} else {
-					if ( oFilter.sOperator === sap.ui.model.FilterOperator.Any || oFilter.sOperator === sap.ui.model.FilterOperator.All ) {
-						sRes = oFilter.sPath + " " + oFilter.sOperator + " " + FilterConverter.prettyPrintFilters(oFilter.oCondition);
+					if (oFilter.sOperator === FilterOperator.Any || oFilter.sOperator === FilterOperator.All) {
+						sRes = oFilter.sVariable ? oFilter.sVariable + ":" : "";
+						sRes = sRes + oFilter.sPath + " " + oFilter.sOperator + " " + FilterConverter.prettyPrintFilters(oFilter.oCondition);
 					} else {
-						sRes = oFilter.sPath + " " + oFilter.sOperator + " '" + oFilter.oValue1 + "'";
-						if (oFilter.sOperator === "BT") {
+						if (oFilter.bCaseSensitive === false) {
+							sRes = "tolower(" + oFilter.sPath + ") " + oFilter.sOperator + " tolower('" + oFilter.oValue1 + "')";
+						} else {
+							sRes = oFilter.sPath + " " + oFilter.sOperator + " '" + oFilter.oValue1 + "'";
+						}
+						if ([FilterOperator.BT, FilterOperator.NB].indexOf(oFilter.sOperator) >= 0) {
 							sRes += "...'" + oFilter.oValue2 + "'";
 						}
 					}
 					return sRes;
 				}
 			}
-	};
+		};
 
-	return FilterConverter;
+		return FilterConverter;
 
-}, /* bExport= */ true);
+	}, /* bExport= */
+	true);

@@ -1,17 +1,16 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.mdc.filterbar.p13n.FilterColumnLayout.
-sap.ui.define(['sap/m/ColumnListItem', 'sap/m/ColumnListItemRenderer', 'sap/m/Label'
-], function(ColumnListItem, ColumnListItemRenderer, Label) {
+sap.ui.define(['sap/m/ColumnListItem', 'sap/m/ColumnListItemRenderer', 'sap/m/Label'], (ColumnListItem, ColumnListItemRenderer, Label) => {
 	"use strict";
 
 	/**
 	 * Constructor for a new filterBar/p13n/FilterColumnLayout.
-     * Displays FilterFields with labels as cells
+	 * Displays FilterFields with labels as cells
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new control
 	 * @class Represents a filter item on the UI.
@@ -20,26 +19,27 @@ sap.ui.define(['sap/m/ColumnListItem', 'sap/m/ColumnListItemRenderer', 'sap/m/La
 	 * @private
 	 * @since 1.80.0
 	 * @alias sap.ui.mdc.filterbar.p13n.FilterColumnLayout
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FilterColumnLayout = ColumnListItem.extend("sap.ui.mdc.filterbar.p13n.FilterColumnLayout", {
+	const FilterColumnLayout = ColumnListItem.extend("sap.ui.mdc.filterbar.p13n.FilterColumnLayout", {
+		metadata: {
+			library: "sap.ui.mdc"
+		},
 		renderer: ColumnListItemRenderer
 	});
 
-	FilterColumnLayout.prototype._getFieldPath = function () {
-		return this._sFieldPath;
+	FilterColumnLayout.prototype._getFieldPath = function() {
+		return this._oFilterField ? this._oFilterField.getPropertyKey() : null;
 	};
 
-	FilterColumnLayout.prototype.setFilterField = function (oFilterField) {
-		this._sLabel = oFilterField.getLabel();
+	FilterColumnLayout.prototype.setFilterField = function(oFilterField) {
 		this._oFilterField = oFilterField;
-		this._sFieldPath = oFilterField.getFieldPath();
+		this._sLabel = oFilterField.getLabel();
 	};
 
 	FilterColumnLayout.prototype.getCells = function() {
-		var aContent = [];
+		const aContent = [];
 
-		var oLabel = new Label({
+		const oLabel = new Label({
 			text: this._sLabel
 		});
 
@@ -52,11 +52,10 @@ sap.ui.define(['sap/m/ColumnListItem', 'sap/m/ColumnListItemRenderer', 'sap/m/La
 		return aContent;
 	};
 
-	FilterColumnLayout.prototype.exit = function () {
+	FilterColumnLayout.prototype.exit = function() {
+		ColumnListItem.prototype.exit.apply(this, arguments);
 		this._oFilterField = null;
-		this._sFieldPath = null;
 	};
 
 	return FilterColumnLayout;
-
 });

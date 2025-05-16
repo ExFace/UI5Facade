@@ -1,0 +1,90 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 166,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "AnchorBar.less",
+			"size": 10488,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "BreadCrumbs.less",
+			"size": 1533,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "HierarchicalSelect.less",
+			"size": 4422,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ObjectPageHeader.less",
+			"size": 10844,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ObjectPageHeaderContent.less",
+			"size": 9056,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ObjectPageLayout.less",
+			"size": 6317,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ObjectPageSection.less",
+			"size": 3221,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ObjectPageSubSection.less",
+			"size": 6409,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 52622,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/uxap/themes/sap_bluecrystal_base/library-parameters.json",
+			"size": 165,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.css",
+			"size": 52618,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.less",
+			"size": 53321,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.source.less",
+			"size": 528,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "resources.json",
+			"size": 1728
+		}
+	]
+}

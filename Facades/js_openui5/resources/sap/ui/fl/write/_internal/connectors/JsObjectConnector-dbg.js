@@ -1,12 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/util/merge",
-	"sap/ui/fl/write/_internal/connectors/ObjectStorageConnector"
+	"sap/ui/fl/write/api/connectors/ObjectStorageConnector"
 ], function(
 	merge,
 	ObjectStorageConnector
@@ -16,19 +16,19 @@ sap.ui.define([
 	var oMyStorage = {
 		_itemsStoredAsObjects: true,
 		_items: {},
-		setItem: function(sKey, vValue) {
+		setItem(sKey, vValue) {
 			oMyStorage._items[sKey] = vValue;
 		},
-		removeItem: function(sKey) {
+		removeItem(sKey) {
 			delete oMyStorage._items[sKey];
 		},
-		clear: function() {
+		clear() {
 			oMyStorage._items = {};
 		},
-		getItem: function(sKey) {
+		getItem(sKey) {
 			return oMyStorage._items[sKey];
 		},
-		getItems: function() {
+		getItems() {
 			return oMyStorage._items;
 		}
 	};
@@ -37,14 +37,23 @@ sap.ui.define([
 	 * Connector that saves the data in an internal object.
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.JsObjectConnector
-	 * @experimental Since 1.70
 	 * @since 1.70
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.Connector
 	 */
 	var JsObjectConnector = merge({}, ObjectStorageConnector, /** @lends sap.ui.fl.write._internal.connectors.JsObjectConnector */ {
-		oStorage: oMyStorage
+		storage: oMyStorage
 	});
 
+	JsObjectConnector.loadFeatures = function(...aArgs) {
+		return ObjectStorageConnector.loadFeatures.apply(this, aArgs)
+		.then(function(oFeatures) {
+			return merge({
+				isPublicLayerAvailable: true,
+				isVariantAdaptationEnabled: true
+			}, oFeatures);
+		});
+	};
+
 	return JsObjectConnector;
-}, true);
+});

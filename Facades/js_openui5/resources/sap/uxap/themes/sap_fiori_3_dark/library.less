@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -88,10 +88,18 @@ Common compact/cozy
 	}
 }
 
+.sapUxAPObjectPageLayout:not(.sapUxAPObjectPageLayout-Std-Phone) {
+    .sapUxAPAnchorBar.sapMTB > .sapMSlt.sapMSltFocused {
+        &:not(.sapMSltExpanded):not(.sapMSltDisabled):not(.sapMSltState):before {
+            outline: none;
+        }
+    }
+}
+
 /* L fullscreen paddings */
 html .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPAnchorBar.sapMTB
 {
-	padding-left: 2rem;
+	padding-left: 1rem;
 }
 
 /* visual in anchor bar */
@@ -267,7 +275,7 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 			background: transparent;
 		}
 
-		&.sapMSltIconOnly.sapMSlt:focus  {
+		&.sapMSltIconOnly.sapMSlt.sapMSltFocused  {
 			outline: none;
 			> .sapMSltIcon {
 					outline: 1px dotted @sapUiContentFocusColor;
@@ -275,7 +283,7 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 				}
 		}
 
-		&.sapMSltIconOnly.sapMSltPressed.sapMSlt:focus > .sapMSltIcon {
+		&.sapMSltIconOnly.sapMSltPressed.sapMSlt.sapMSltFocused > .sapMSltIcon {
 			outline: none;
 		}
 
@@ -360,26 +368,29 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 			line-height: @sapUiFiori3HSArrowDimensions;
 			height: @sapUiFiori3HSArrowDimensions;
 			width: @sapUiFiori3HSArrowDimensions;
-			margin: 0.1875rem; // 3px needed in order not to overlap the focus of the parent
+			margin: 0.1875rem 0.1875rem 0.1875rem auto; // 3px needed in order not to overlap the focus of the parent
 		}
 
 		& .sapMSltLabel {
-			line-height: @sapElement_LineHeight;
+			line-height: 3rem;
+			box-sizing: border-box;
 
 			&::after {
 				content: "";
 				position: absolute;
 				width: 100%;
-				top: 1.6rem;
+				bottom: 0;
+				height: 0;
+				right: -@sapUiFiori3HSUnderlineOffsetAndHeight;
 				left: -@sapUiFiori3HSUnderlineOffsetAndHeight;
 				padding: (@sapUiFiori3HSUnderlineOffsetAndHeight / 2) @sapUiFiori3HSUnderlineOffsetAndHeight;
 				border-top-left-radius: @sapUiFiori3HSUnderlineTopRadius;
 				border-top-right-radius: @sapUiFiori3HSUnderlineTopRadius;
-				background-color: @sapUiActive;
+				background-color: @sapUiContentSelectedForegroundColor;
 			}
 
 			& .sapMSelectListItemText {
-				color: @sapUiSelected;
+				color: @sapUiContentSelectedForegroundColor;
 			}
 		}
 	}
@@ -397,7 +408,9 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 /* OVERVIEW BUTTON */
 .sapUxAPObjectPageLayout-Std-Tablet,
 .sapUxAPObjectPageLayout-Std-Desktop,
-.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop {
+.sapUxAPObjectPageLayout-Std-Desktop-XL,
+.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop,
+.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop-XL {
 	.sapUxAPHierarchicalSelect.sapMSltIconOnly {
 		height: @sapElement_LineHeight;
 	}
@@ -409,6 +422,20 @@ html[data-sap-ui-browser^="cr4"].sapUxAPObjectPageLayout-Std-Phone,
 html[data-sap-ui-browser^="cr4"].sap-phone {
 	.sapUxAPHierarchicalSelect .sapMSltLabel {
 		box-shadow: inset 0 -0.0625rem @sapUiSelected;
+	}
+}
+
+html[data-sap-ui-browser^="ie"].sap-desktop,
+html[data-sap-ui-browser^="ed"].sap-desktop {
+	.sapUxAPHierarchicalSelect.sapMSltHoverable.sapMSltIconOnly.sapMSlt.sapMSltFocused:not(.sapMSltPressed) {
+		&::before {
+			border: none;
+		}
+		&> .sapMSltIcon {
+			top: 0.5rem;
+			outline: none;
+			border: 0.0625rem dashed @sapUiContentFocusColor;
+		}
 	}
 }
 /* END "HierarchicalSelect.less" */
@@ -464,6 +491,10 @@ html[data-sap-ui-browser^="cr4"].sap-phone {
 	color: @sapUiGroupTitleTextColor;
 }
 
+.sapUxAPObjectPageHeaderIdentifierTitle.sapUxAPObjectPageHeaderIdentifierTitleForce {
+	padding-top: 0.3125rem;
+}
+
 .sapUxAPObjectPageHeaderIdentifierDescription {
 	font-family: @sapUiFontFamily;
 	font-size: @sapMFontMediumSize;
@@ -501,13 +532,13 @@ html[data-sap-ui-browser^="cr4"].sap-phone {
 }
 
 html .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageHeaderIdentifier,
-html .sapUiContainer-Wide .sapUxAPObjectPageHeaderIdentifier {
-	padding: 0.5rem 3rem;
-}
-
 html .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageHeaderIdentifier,
 html .sapUiContainer-Medium .sapUxAPObjectPageHeaderIdentifier {
 	padding: 0.5rem 2rem;
+}
+
+html .sapUxAPObjectPageLayout-Std-Desktop-XL .sapUxAPObjectPageHeaderIdentifier {
+	padding: 0.5rem 3rem;
 }
 
 html .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageHeaderIdentifier,
@@ -533,14 +564,6 @@ html .sapUiContainer-Narrow .sapUiSizeCompact.sapUxAPObjectPageHeaderLockBtn .sa
 
 .sapUxAPObjectPageHeaderTitle.sapUxAPObjectPageHeaderSnappedTitleOnMobile > .sapFDynamicPageTitle {
 	box-shadow: @sapUiShadowHeader;
-}
-
-.sapUiSizeCompact .sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnIconFirst.sapMBtnText {
-	padding: 0;
-
-	&> .sapMBtnCustomIcon.sapMBtnIcon.sapMBtnIconLeft.sapUiIcon.sapUiIconMirrorInRTL {
-		padding: 0 0.4375rem;
-	}
 }
 
 /* Phone Size */
@@ -602,16 +625,8 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 	border-radius: 0.25rem;
 }
 
+.sapUxAPObjectPageLayout-Std-Tablet,
 .sapUxAPObjectPageLayout-Std-Desktop {
-	.sapUxAPObjectPageHeaderContentCellRight {
-		padding-right: 3rem;
-	}
-	.sapUxAPObjectPageHeaderContent:only-child {
-		padding: 1rem 3rem;
-	}
-}
-
-.sapUxAPObjectPageLayout-Std-Tablet {
 	.sapUxAPObjectPageHeaderContentCellRight {
 		padding-right: 2rem;
 	}
@@ -652,13 +667,6 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 /* Quartz Dark theme                          */
 /* ========================================== */
 
-/* background color for the sections of the page below the header: */
-.sapUxAPObjectPageContainer, /* (1) the sections container */
-.sapUxAPObjectPageContainer + div, /* (2) the spacer */
-.sapUxAPObjectPageHeaderDetailsHidden /* (3) the placeholder for the headerContent is also part of the page content bellow the header */ {
-  background-color: @sapUiGlobalBackgroundColor;
-}
-
 .sapUxAPObjectPageNavigation {
 	background: @sapUiObjectHeaderBackground;
 
@@ -672,18 +680,6 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 }
 
 .sapUxAPObjectPageHeaderDetails {
-	.sapMObjectNumberEmph.sapMObjectNumber {
-		> .sapMObjectNumberText {
-			font-family: @sapUiFontHeaderFamily;
-			font-size: 1.375rem;
-			font-weight: @sapUiFontHeaderWeight;
-		}
-		> .sapMObjectNumberUnit {
-			font-family: @sapUiFontFamily;
-			font-size: @sapMFontSmallSize;
-		}
-	}
-
 	.sapMOHTitle .sapMText {
 		color: @sapUiContentLabelColor;
 	}
@@ -749,21 +745,39 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 /* Quartz Dark theme                           */
 /* =========================================== */
 
+.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageSubSectionHeader {
+	padding-left: 2rem;
+	padding-right: 2rem;
+}
+
+.sapUxAPObjectPageSection {
+	border-top: 0.0625rem solid @sapUiGroupTitleBorderColor;
+}
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionHeader,
 .sapUxAPObjectPageSectionHeader {
-	border-bottom: 0.0625rem solid @sapUiGroupTitleBorderColor;
 	height: 2.75rem;
 	line-height: 2.25rem;
+}
+
+.sapUiSizeCompact .sapUxAPObjectPageSectionHeading + .sapUxAPObjectPageSectionHeader,
+.sapUxAPObjectPageSectionHeading + .sapUxAPObjectPageSectionHeader {
+	border-top: none;
+}
+
+.sapUxAPObjectPageSectionHeading {
+	border-top: 0.0625rem solid @sapUiGroupTitleBorderColor;
+}
+
+.sapUxAPObjectPageLayoutNoAnchorBar .sapUxAPObjectPageSection:first-of-type > .sapUxAPObjectPageSectionHeader,
+.sapUxAPObjectPageSection:first-of-type > .sapUxAPObjectPageSectionHeading {
+	border-top: 0;
 }
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionTitle,
 .sapUxAPObjectPageSectionTitle {
 	height: 2.75rem;
 	line-height: 2.25rem;
-	color: @sapUiGroupTitleTextColor;
-	font-size: @sapMFontHeader4Size;
-	border-bottom: 0.0625rem solid @sapUiSelected;
 }
 
 .sapUxAPObjectPageSection:focus {
@@ -772,20 +786,25 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 }
 
 .sapUxAPObjectPageSectionHeader,
+.sapUxAPObjectPageSectionHeading,
 .sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
-	padding-right: 3rem;
+	padding-right: 2.25rem;
 }
 
+.sapUxAPObjectPageLayout-Std-Desktop,
 .sapUxAPObjectPageLayout-Std-Tablet {
+	.sapUxAPObjectPageSectionHeading,
 	.sapUxAPObjectPageSectionHeader,
 	html .sapUiContainer-Medium .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
-		padding-right: 2rem;
+		padding-right: 1.25rem;
+		padding-left: 2rem;
 	}
 }
 
 .sapUxAPObjectPageLayout-Std-Phone {
 	.sapUxAPObjectPageSectionHeader,
+	.sapUxAPObjectPageSectionHeading,
 	html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
 		padding-right: 1rem;
@@ -799,32 +818,53 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 /* Quartz Dark theme                              */
 /* ============================================== */
 
-.sapUxAPObjectPageSubSectionHeaderTitle {
-	font-size: @sapMFontHeader5Size;
-	color: @sapUiGroupTitleTextColor;
-	padding-bottom: 0.5rem;
-}
-
-.sapUxAPObjectPageSubSectionHeaderTitleUppercase {
+.sapUxAPObjectPageSubSectionTitleUppercase {
 	text-transform: uppercase;
 }
 
-.sapUxAPObjectPageSubSection:focus {
+.sapUxAPObjectPageSubSectionFocusable:focus {
 	outline: 1px dotted @sapUiContentFocusColor;
 	outline-offset: -1px;
 }
 
-.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer,
+.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
+	padding: 1rem 1rem 2rem 1rem;
+}
+
 .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPBlockContainer {
 	padding-bottom: 1rem;
 }
 
+/* responsive paddings */
+.sapUxAPObjectPageLayout.sapUiResponsiveContentPadding {
+	&.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPBlockContainer,
+	&.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
+		padding-left: 2rem;
+		padding-right: 2rem;
+	}
+	&.sapUxAPObjectPageLayout-Std-Desktop-XL .sapUxAPBlockContainer {
+		padding-left: 3rem;
+		padding-right: 3rem;
+	}
+}
+
 /* compact size */
 .sapUiSizeCompact {
-	.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer,
+	.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
+		padding: 1rem 1rem 2rem 1rem;
+	}
 	.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPBlockContainer,
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer{
 		padding-bottom: 1rem;
 	}
+}
+
+.sapUxAPObjectPageSubSectionHeaderActions .sapMIBar .sapMBtnInner:not(.sapMBtnTransparent):not(.sapMToggleBtnPressed):not(.sapMBtnEmphasized):not(.sapMBtnAccept):not(.sapMBtnAttention):not(.sapMBtnReject):not(.sapMBtnActive):not(.sapMBtnGhost) {
+	border-color: @sapUiButtonBorderColor;
+}
+
+.sapUxAPObjectPageSubSectionHeaderActions .sapMIBar .sapMBtn:not(:hover) .sapMBtnInner.sapMBtnDefault:not(.sapMToggleBtnPressed),
+.sapUxAPObjectPageSubSectionHeaderActions .sapMIBar .sapMBtn:not(:hover) .sapMBtnInner.sapMBtnDefault {
+	background-color: @sapUiButtonBackground;
 }
 /* END "ObjectPageSubSection.less" */

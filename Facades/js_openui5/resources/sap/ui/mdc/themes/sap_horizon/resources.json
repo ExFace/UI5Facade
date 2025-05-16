@@ -1,0 +1,78 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 90,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "Chart.less",
+			"size": 213,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "FieldBase.less",
+			"size": 270,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "Table.less",
+			"size": 470,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "TokenDisplay.less",
+			"size": 1044,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "TokenizerDisplay.less",
+			"size": 306,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "ValueHelpDialog.less",
+			"size": 643,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 17486,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/ui/mdc/themes/sap_horizon/library-parameters.json",
+			"size": 744,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "library.css",
+			"size": 17481,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "library.less",
+			"size": 3819,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "library.source.less",
+			"size": 486,
+			"designtime": true,
+			"theme": "sap_horizon"
+		},
+		{
+			"name": "resources.json",
+			"size": 1328
+		}
+	]
+}

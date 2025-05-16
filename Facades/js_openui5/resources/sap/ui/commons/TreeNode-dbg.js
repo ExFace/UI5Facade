@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.TreeNode.
-sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyleClassSupport', 'sap/ui/core/Element', './Tree'],
-	function(jQuery, library, CustomStyleClassSupport, Element, Tree) {
+sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyleClassSupport', 'sap/ui/core/Element', './Tree', 'sap/ui/core/Configuration'],
+	function(jQuery, library, CustomStyleClassSupport, Element, Tree, Configuration) {
 	"use strict";
 
 
@@ -23,17 +23,17 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * @class
 	 * Tree node element
 	 * @extends sap.ui.core.Element
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Tree}
 	 * @alias sap.ui.commons.TreeNode
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var TreeNode = Element.extend("sap.ui.commons.TreeNode", /** @lends sap.ui.commons.TreeNode.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -133,7 +133,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * @param {boolean} bExpandChildren Propagates expand to node's children
 	 * @param {boolean} bDisableExpandFinishedHandler Disables the expand finished handler
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TreeNode.prototype.expand = function(bExpandChildren, bDisableExpandFinishedHandler){
 		//Change property anyway. (Even if node has no expander)
@@ -183,7 +182,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * @param {boolean} bCollapseChildren Propagates collapse to node's children
 	 * @param {boolean} bDisableCollapseFinishedHandler Disables the collapse finished handler
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TreeNode.prototype.collapse = function(bCollapseChildren, bDisableCollapseFinishedHandler){
 		//Change property anyway. (Even if node has no expander)
@@ -229,7 +227,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * Select the node, and if any, deselects the previously selected node
 	 * @param {boolean} bSuppressEvent
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TreeNode.prototype.select = function(bSuppressEvent) {
 		var oTree = this.getTree();
@@ -326,7 +323,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * Default value is empty/<code>undefined</code>
 	 *
 	 * @param {boolean} bIsSelected  new value for property <code>isSelected</code>
-	 * @return {sap.ui.commons.TreeNode} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	TreeNode.prototype.setIsSelected = function(bIsSelected) {
@@ -355,7 +352,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	 * Default value is <code>true</code>
 	 *
 	 * @param {boolean} bSelectable  new value for property <code>selectable</code>
-	 * @return {sap.ui.commons.TreeNode} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	TreeNode.prototype.setSelectable = function(bSelectable) {
@@ -466,7 +463,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	* @param {Object} oEvent Browser event
 	*/
 	TreeNode.prototype.onsapleft = function(oEvent){
-		if (sap.ui.getCore().getConfiguration().getRTL()) {
+		if (Configuration.getRTL()) {
 			this.expand();
 		} else {
 			this.collapse();
@@ -481,7 +478,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './library', 'sap/ui/core/CustomStyle
 	* @param {Object} oEvent Browser event
 	*/
 	TreeNode.prototype.onsapright = function(oEvent){
-		if (sap.ui.getCore().getConfiguration().getRTL()) {
+		if (Configuration.getRTL()) {
 			this.collapse();
 		} else {
 			this.expand();

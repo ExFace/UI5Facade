@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -15,7 +15,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.integration.designtime.baseEditor.validator.IsSelectedKey
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @static
 	 * @since 1.81
@@ -38,9 +38,24 @@ sap.ui.define([
 		 * @name sap.ui.integration.designtime.baseEditor.validator.IsSelectedKey.validate
 		 */
 		validate: function (sValue, oConfig) {
-			return sValue === undefined
+			if (Array.isArray(sValue)) {
+				var isValid = true;
+				if (sValue.length > 0) {
+					for (var i = 0; i < sValue.length; i++) {
+						if (!(sValue[i] === undefined
+							|| (oConfig.keys || []).includes(sValue[i])
+							|| IsValidBinding.validate(sValue[i], { allowPlainStrings: false }))) {
+								isValid = false;
+								break;
+							}
+					}
+				}
+				return isValid;
+			} else {
+				return sValue === undefined
 				|| (oConfig.keys || []).includes(sValue)
 				|| IsValidBinding.validate(sValue, { allowPlainStrings: false });
+			}
 		}
 	};
 });

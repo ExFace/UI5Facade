@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,10 @@ sap.ui.define([
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/Device',
 	"sap/base/Log",
+	"sap/ui/core/Element",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(BaseObject, EventProvider, ManagedObjectObserver, Device, Log, jQuery) {
+	function(BaseObject, EventProvider, ManagedObjectObserver, Device, Log, Element, jQuery) {
 	"use strict";
 
 	var oEventProvider = new EventProvider(),
@@ -27,7 +28,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @class text
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @since 1.38
 	 * @alias HeaderAdapter
@@ -175,21 +176,42 @@ sap.ui.define([
 		}
 	};
 
-	HeaderAdapter.prototype._detectBackButton = function() {
+	HeaderAdapter.prototype._detectBackButton = function () {
 		var aBeginContent, oBackButton;
 
-		if (HeaderAdapter._isAdaptableHeader(this._oHeader)) {
-			aBeginContent = this._oHeader.getContentLeft();
-			if (aBeginContent.length > 0 && isInstanceOf(aBeginContent[0], "sap/m/Button") &&
-				(aBeginContent[0].getType() === "Back" || aBeginContent[0].getType() === "Up" || aBeginContent[0].getIcon() === "sap-icon://nav-back")) {
-				oBackButton = aBeginContent[0];
-				return {
-					id: oBackButton.getId(),
-					oControl: oBackButton,
-					sChangeEventId: "_change",
-					sPropertyName: "visible"
-				};
-			}
+		// Check if the header is adaptable
+		if (!HeaderAdapter._isAdaptableHeader(this._oHeader)) {
+			return;
+		}
+
+		aBeginContent = this._oHeader.getContentLeft();
+
+		// Check if the begin content is empty
+		if (aBeginContent.length === 0) {
+			return;
+		}
+
+		// Check if the first element in the begin content is a button
+		if (!isInstanceOf(aBeginContent[0], "sap/m/Button")) {
+			return;
+		}
+
+		// Check if the button is a navigation button, has the back icon, or is of type Back/Up
+		if (aBeginContent[0].getId().includes("-navButton") ||
+			aBeginContent[0]._getAppliedIcon() === "sap-icon://nav-back" ||
+			aBeginContent[0].getType() === "Back" ||
+			aBeginContent[0].getType() === "Up") {
+
+			oBackButton = aBeginContent[0];
+
+			// Return the back button details
+			// eslint-disable-next-line consistent-return
+			return {
+				id: oBackButton.getId(),
+				oControl: oBackButton,
+				sChangeEventId: "_change",
+				sPropertyName: "visible"
+			};
 		}
 	};
 
@@ -214,9 +236,9 @@ sap.ui.define([
 			bMiddleContentHidden = (aMiddleContent.length === 1) && (isHiddenFromAPI(aMiddleContent[0]) || bTitleHidden);
 			bEndContentHidden = (aEndContent.length === 1) && isHiddenFromAPI(aEndContent[0]);
 
-			bAllContentHidden = (aBeginContent.length === 0 || bBeginContentHidden) &&
-				(aMiddleContent.length === 0 || bMiddleContentHidden) &&
-				((aEndContent.length === 0) || bEndContentHidden);
+			bAllContentHidden = (aBeginContent.length === 0 || bBeginContentHidden)
+				&& (aMiddleContent.length === 0 || bMiddleContentHidden)
+				&& (aEndContent.length === 0 || bEndContentHidden);
 
 			this._toggleStyle("sapF2CollapsedHeader", bAllContentHidden, true);
 		}
@@ -227,7 +249,7 @@ sap.ui.define([
 	 * Constructor for an sap.m.Fiori20Adapter.
 	 *
 	 * @class text
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @since 1.38
 	 * @alias sap.m.Fiori20Adapter
@@ -261,8 +283,9 @@ sap.ui.define([
 			oAdaptOptions: oAdaptOptions
 		}]);
 
-		if (this._getCurrentlyAdaptedTopViewId()) {
-			this._fireViewChange(this._getCurrentlyAdaptedTopViewId(), oAdaptOptions);
+		var sCurrentViewId = this._getCurrentlyAdaptedTopViewId();
+		if (sCurrentViewId && Element.getElementById(sCurrentViewId)) {
+			this._fireViewChange(sCurrentViewId, oAdaptOptions);
 		}
 	};
 
@@ -393,7 +416,7 @@ sap.ui.define([
 	// attaches listener for changes in the adaptable content
 	Fiori20Adapter._attachAdaptableContentChange = function(oControl, oAdaptOptions) {
 
-		if (!oControl._getAdaptableContent || !jQuery.isFunction(oControl._getAdaptableContent)) {
+		if (typeof oControl._getAdaptableContent !== "function") {
 			return;
 		}
 
@@ -401,7 +424,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oOwnerViewId = this._getCurrentlyAdaptedTopViewId();
+		var oOwnerViewId = this._getCurrentlyAdaptedTopViewId(), sCurrentViewId;
 		var fnOnAdaptableContentChange = function(oEvent) {
 			var oChangedContent = oEvent.getParameter("adaptableContent");
 			this._setAsCurrentlyAdaptedTopViewId(oOwnerViewId); // restore the view context (so that any findings are saved as belonging to that view)
@@ -409,8 +432,9 @@ sap.ui.define([
 				oNode: oChangedContent,
 				oAdaptOptions: oAdaptOptions
 			}]);
-			if (this._getCurrentlyAdaptedTopViewId()) {
-				this._fireViewChange(this._getCurrentlyAdaptedTopViewId(), oAdaptOptions);
+			sCurrentViewId = this._getCurrentlyAdaptedTopViewId();
+			if (sCurrentViewId && Element.getElementById(sCurrentViewId)) {
+				this._fireViewChange(sCurrentViewId, oAdaptOptions);
 			}
 		}.bind(this);
 
@@ -431,15 +455,17 @@ sap.ui.define([
 		}
 
 		var fnOnNavigate = function(oEvent){
-			var oNode = oEvent.getParameter("to");
+			var sCurrentViewId,
+				oNode = oEvent.getParameter("to");
 			oAdaptOptions = this._applyRules(oAdaptOptions, oNode); //update the context-specific options
 
 			this._doBFS([{ // scan [for adaptable content] the newly added subtree
 				oNode: oNode,
 				oAdaptOptions: oAdaptOptions
 			}]);
-			if (this._getCurrentlyAdaptedTopViewId()) {
-				this._fireViewChange(this._getCurrentlyAdaptedTopViewId(), oAdaptOptions);
+			sCurrentViewId = this._getCurrentlyAdaptedTopViewId();
+			if (sCurrentViewId && Element.getElementById(sCurrentViewId)) {
+				this._fireViewChange(sCurrentViewId, oAdaptOptions);
 			}
 		}.bind(this);
 
@@ -455,6 +481,7 @@ sap.ui.define([
 		}
 
 		var oOwnerViewId = this._getCurrentlyAdaptedTopViewId(),
+			sCurrentViewId,
 			fnOnModifyAggregation = function(oChanges) {
 				var sMutation = oChanges.mutation,
 					oChild = oChanges.object;
@@ -466,8 +493,9 @@ sap.ui.define([
 							oNode: oControlToRescan ? oControlToRescan : oChild,
 							oAdaptOptions: oAdaptOptions
 						}]);
-						if (this._getCurrentlyAdaptedTopViewId()) {
-							this._fireViewChange(this._getCurrentlyAdaptedTopViewId(), oAdaptOptions);
+						sCurrentViewId = this._getCurrentlyAdaptedTopViewId();
+						if (sCurrentViewId && Element.getElementById(sCurrentViewId)) {
+							this._fireViewChange(sCurrentViewId, oAdaptOptions);
 						}
 				}
 			}.bind(this),
@@ -538,7 +566,7 @@ sap.ui.define([
 
 	Fiori20Adapter._getNodeChildren = function(oControl) {
 
-		if (oControl._getAdaptableContent && jQuery.isFunction(oControl._getAdaptableContent)) {
+		if (typeof oControl._getAdaptableContent === "function") {
 			var aChildren = [oControl._getAdaptableContent()];
 			if (isInstanceOf(oControl, "sap/m/Page")) {
 				aChildren = aChildren.concat(oControl.getContent()); //page content can contain other pages that are subject to adaptation
@@ -576,7 +604,7 @@ sap.ui.define([
 	};
 
 	Fiori20Adapter._getTotalCachedInfoToMerge = function(sViewId) {
-		var oView = sap.ui.getCore().byId(sViewId),
+		var oView = Element.getElementById(sViewId),
 			oCachedViewInfo = this._getCachedViewInfoToMerge(sViewId),
 			isMasterView,
 			isDetailView,
@@ -850,7 +878,7 @@ sap.ui.define([
 	}
 
 	function isListBasedControl (oControl) {
-		return isInstanceOfGroup(oControl, ["sap/m/List", "sap/m/Table", "sap/ui/table/Table", "sap/ui/table/TreeTable"]);
+		return isInstanceOfGroup(oControl, ["sap/m/List", "sap/m/SelectList", "sap/m/Table", "sap/ui/table/Table", "sap/ui/table/TreeTable", "sap/ui/comp/variants/VariantManagement"]);
 	}
 
 	function isInstanceOfGroup(oControl, aTypes) {

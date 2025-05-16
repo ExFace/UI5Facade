@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/fl/changeHandler/condenser/Classification"
 ], function(
-	Log
+	Log,
+	CondenserClassification
 ) {
 	"use strict";
 
@@ -16,10 +18,9 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.PropertyBindingChange
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.38
 	 * @private
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var PropertyBindingChange = {};
 
@@ -32,15 +33,17 @@ sap.ui.define([
 	/**
 	 * @param {object} oChange - change object with instructions to be applied on the control
 	 * @param {object} oControl - the control which has been determined by the selector id
-	 * @param {object} mPropertyBag
+	 * @param {object} mPropertyBag - property bag
 	 * @param {object} mPropertyBag.modifier - modifier for the controls
-	 * @public
+	 * @returns {Promise} Promise that resolves with setting the property binding
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Applyer
 	 * @name sap.ui.fl.changeHandler.PropertyBindingChange#applyChange
 	 */
 	PropertyBindingChange.applyChange = function(oChange, oControl, mPropertyBag) {
-		var oDef = oChange.getDefinition();
-		var sPropertyName = oDef.content.property;
-		var vPropertyValue = oDef.content.newBinding;
+		var oContent = oChange.getContent();
+		var sPropertyName = oContent.property;
+		var vPropertyValue = oContent.newBinding;
 		var oModifier = mPropertyBag.modifier;
 
 		// TODO: enable again when apps have adapted
@@ -48,28 +51,31 @@ sap.ui.define([
 		// 	throw new Error(sNoBindingError);
 		// }
 
-		var vOriginalValue = oModifier.getPropertyBindingOrProperty(oControl, sPropertyName);
-		oChange.setRevertData({
-			originalValue: vOriginalValue
+		return Promise.resolve()
+		.then(oModifier.getPropertyBindingOrProperty.bind(oModifier, oControl, sPropertyName))
+		.then(function(vOriginalValue) {
+			oChange.setRevertData({
+				originalValue: vOriginalValue
+			});
+			oModifier.setPropertyBinding(oControl, sPropertyName, vPropertyValue);
 		});
-
-		oModifier.setPropertyBinding(oControl, sPropertyName, vPropertyValue);
 	};
 
 	/**
 	 * @param {object} oChange - change object with instructions to be applied on the control
 	 * @param {object} oControl - the control which has been determined by the selector id
-	 * @param {object} mPropertyBag
+	 * @param {object} mPropertyBag - property bag
 	 * @param {object} mPropertyBag.modifier - modifier for the controls
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Reverter
 	 * @name sap.ui.fl.changeHandler.PropertyBindingChange#revertChange
 	 */
 	PropertyBindingChange.revertChange = function(oChange, oControl, mPropertyBag) {
 		var mRevertData = oChange.getRevertData();
 
 		if (mRevertData) {
-			var oDef = oChange.getDefinition();
-			var sPropertyName = oDef.content.property;
+			var oContent = oChange.getContent();
+			var sPropertyName = oContent.property;
 			var vPropertyValue = mRevertData.originalValue;
 			var oModifier = mPropertyBag.modifier;
 
@@ -77,10 +83,7 @@ sap.ui.define([
 			oChange.resetRevertData();
 		} else {
 			Log.error("Attempt to revert an unapplied change.");
-			return false;
 		}
-
-		return true;
 	};
 
 	/**
@@ -89,12 +92,11 @@ sap.ui.define([
 	 * @param {object} oChange change object to be completed
 	 * @param {object} oSpecificChangeInfo with attribute property which contains an array which holds objects which have attributes
 	 * 				   id and index - id is the id of the field to property and index the new position of the field in the smart form group
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.write._internal
 	 * @name sap.ui.fl.changeHandler.PropertyBindingChange#completeChangeContent
 	 */
 	PropertyBindingChange.completeChangeContent = function(oChange, oSpecificChangeInfo) {
-		var oChangeJson = oChange.getDefinition();
-
 		if (!oSpecificChangeInfo.content) {
 			throw new Error("oSpecificChangeInfo attribute required");
 		}
@@ -103,20 +105,20 @@ sap.ui.define([
 		// 	throw new Error(sNoBindingError);
 		// }
 
-		oChangeJson.content = oSpecificChangeInfo.content;
+		oChange.setContent(oSpecificChangeInfo.content);
 	};
 
 	/**
 	 * Retrieves the condenser-specific information.
 	 *
-	 * @param {sap.ui.fl.Change} oChange - Change object with instructions to be applied on the control map
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object with instructions to be applied on the control map
 	 * @returns {object} - Condenser-specific information
 	 * @public
 	 */
 	PropertyBindingChange.getCondenserInfo = function(oChange) {
 		return {
 			affectedControl: oChange.getSelector(),
-			classification: sap.ui.fl.condenser.Classification.LastOneWins,
+			classification: CondenserClassification.LastOneWins,
 			uniqueKey: oChange.getContent().property
 		};
 	};

@@ -1,56 +1,56 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 (function (window) {
 	"use strict";
-	var coreInstance;
-	//identify the own script include
-	var scriptTag = document.currentScript || document.querySelector("script[src*='/sap-ui-integration.js']");
+	var Core;
+	var Lib;
 
 	//initialize the loader
 	function boot() {
-		if (window.sap && window.sap.ui && window.sap.ui.getCore) {
-			coreInstance = window.sap.ui.getCore();
-			return initTags();
+		if (window.sap.ui.require("sap/ui/core/Core") && window.sap.ui.require("sap/ui/core/Lib")) {
+			Core = window.sap.ui.require("sap/ui/core/Core");
+			Lib = window.sap.ui.require("sap/ui/core/Lib");
+			initTags();
+			return;
 		}
-		window.sap.ui.require(['sap/ui/core/Core'],
-			function (Core) {
-				Core.boot();
-				coreInstance = Core;
-				Core.attachInit(function () {
-					initTags();
-				});
-			});
 
+		window.sap.ui.require(["sap/ui/core/Core", "sap/ui/core/Lib"],
+			function (_Core, _Lib) {
+				Core = _Core;
+				Lib = _Lib;
+
+				/**
+				 * @deprecated As of version 1.120
+				 */
+				Core.boot();
+
+				Core.ready().then(initTags);
+			});
 	}
 
-	function registerLibraryTags(sLibrary) {
-		var oLibrary = coreInstance.getLoadedLibraries()[sLibrary];
-		//collect the prefix and the relevant tags
-		var	aTags = Object.keys(oLibrary.customElements),
-			sTags = scriptTag.getAttribute("tags");
-		if (sTags) {
-			aTags = sTags.split(",");
-		}
+	function registerLibraryTags(oIntegrationLib) {
+		var mCustomElements = oIntegrationLib.extensions["sap.ui.integration"].customElements,
+			aTags = Object.keys(mCustomElements);
+
 		//collect all the implementation classes and require them
 		window.sap.ui.require(
 			aTags.map(
 				function (o, i) {
-					return oLibrary.customElements[aTags[i]];
+					return mCustomElements[aTags[i]];
 				}
 			)
 		);
 	}
 
 	function initTags() {
-		coreInstance.loadLibraries(["sap/ui/integration"], {
-			async: true
-		}).then(function () {
-			//register the tags for this library
-			registerLibraryTags("sap.ui.integration");
-		});
+		Lib.load({ name: "sap.ui.integration" })
+			.then(function (oIntegrationLib) {
+				//register the tags for this library
+				registerLibraryTags(oIntegrationLib);
+			});
 	}
 
 	boot();

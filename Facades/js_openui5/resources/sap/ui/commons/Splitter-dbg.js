@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,8 @@ sap.ui.define([
     'sap/ui/core/ResizeHandler',
     'sap/ui/core/delegate/ItemNavigation',
     './SplitterRenderer',
-    'sap/ui/core/library'
+    'sap/ui/core/library',
+    'sap/ui/core/Configuration'
 ],
 	function(
 	    jQuery,
@@ -23,7 +24,8 @@ sap.ui.define([
 		ResizeHandler,
 		ItemNavigation/* , jQuerySap, jQuerySap1 */,
 		SplitterRenderer,
-		coreLibrary
+		coreLibrary,
+		Configuration
 	) {
 	"use strict";
 
@@ -43,17 +45,17 @@ sap.ui.define([
 	 * @class
 	 * Allows to split the screen into two areas. Make sure that the container for the splitter has an absolute height or set an absolute height for the splitter using the height property. Otherwise the height of the splitter is calculated by the height of its contents.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.ui.layout.Splitter</code> control.
 	 * @alias sap.ui.commons.Splitter
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Splitter = Control.extend("sap.ui.commons.Splitter", /** @lends sap.ui.commons.Splitter.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -154,7 +156,7 @@ sap.ui.define([
 		this.sBarPosition = parseFloat(this.sBarPosition);
 
 		// in hcb mode set splitter bar width to 6 px
-		if (sap.ui.getCore().getConfiguration().getTheme() == "sap_hcb") {
+		if (Configuration.getTheme() == "sap_hcb") {
 			this.sbSize = 6;
 		} else {
 			this.sbSize = 4;
@@ -436,7 +438,7 @@ sap.ui.define([
 
 		var newSbPosition, spHeight, spWidth;
 		var splitterBarGhost = document.getElementById(this.getId() + "_ghost");
-		var rtl = sap.ui.getCore().getConfiguration().getRTL();
+		var rtl = Configuration.getRTL();
 
 		if ( this.spOrientation == Orientation.Vertical) {
 
@@ -481,7 +483,7 @@ sap.ui.define([
 		var splitterBarGhost = document.getElementById(this.getId() + "_ghost");
 		var max;
 		var min;
-		var rtl = sap.ui.getCore().getConfiguration().getRTL();
+		var rtl = Configuration.getRTL();
 
 		var leftFirstPane = jQuery(this.firstPane).offset().left;
 		var w = jQuery(this.splitterDIV).width();
@@ -648,7 +650,7 @@ sap.ui.define([
 		if (this.checkModifierKey(oEvent, false, false, true)) {
 			if (oEvent.target == this.splitterBar) {
 				if (this.spOrientation == Orientation.Vertical) {
-					var rtl = sap.ui.getCore().getConfiguration().getRTL();
+					var rtl = Configuration.getRTL();
 					if (rtl) {
 						this.onArrowKeys(oEvent,"true");
 					} else {
@@ -673,7 +675,7 @@ sap.ui.define([
 		if (this.checkModifierKey(oEvent, false, false, true)) {
 			if (oEvent.target == this.splitterBar) {
 				if (this.spOrientation == Orientation.Vertical) {
-					var rtl = sap.ui.getCore().getConfiguration().getRTL();
+					var rtl = Configuration.getRTL();
 					if (rtl) {
 						this.onArrowKeys(oEvent,"false");
 					} else {

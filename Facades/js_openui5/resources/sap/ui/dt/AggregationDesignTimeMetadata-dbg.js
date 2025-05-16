@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/dt/DesignTimeMetadata"
 ],
-function (
+function(
 	DesignTimeMetadata
 ) {
 	"use strict";
@@ -23,15 +23,15 @@ function (
 	 * @extends sap.ui.dt.DesignTimeMetadata
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.30
 	 * @alias sap.ui.dt.AggregationDesignTimeMetadata
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
-	var AggregationDesignTimeMetadata = DesignTimeMetadata.extend("sap.ui.dt.AggregationDesignTimeMetadata", /** @lends sap.ui.dt.AggregationDesignTimeMetadata.prototype */ {
+	var AggregationDesignTimeMetadata = DesignTimeMetadata
+	.extend("sap.ui.dt.AggregationDesignTimeMetadata", /** @lends sap.ui.dt.AggregationDesignTimeMetadata.prototype */ {
 		metadata: {
 			library: "sap.ui.dt"
 		}
@@ -45,8 +45,9 @@ function (
 	 * @return {string|undefined} Returns the label as string or undefined
 	 * @public
 	 */
-	AggregationDesignTimeMetadata.prototype.getLabel = function(oElement, sAggregationName) {
-		return DesignTimeMetadata.prototype.getLabel.apply(this, arguments) || sAggregationName;
+	AggregationDesignTimeMetadata.prototype.getLabel = function(...aArgs) {
+		const [, sAggregationName] = aArgs;
+		return DesignTimeMetadata.prototype.getLabel.apply(this, aArgs) || sAggregationName;
 	};
 
 	return AggregationDesignTimeMetadata;

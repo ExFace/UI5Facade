@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/util/findClosestInstance",
 	"sap/ui/integration/designtime/baseEditor/util/createPromise",
 	"sap/ui/integration/designtime/baseEditor/util/isTemplate",
@@ -16,8 +17,9 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/base/ManagedObjectObserver"
-], function (
+], function(
 	Control,
+	Element,
 	findClosestInstance,
 	createPromise,
 	isTemplate,
@@ -67,13 +69,14 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.PropertyEditors
 	 * @author SAP SE
 	 * @since 1.73.0
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @experimental since 1.73.0
 	 * @ui5-restricted
 	 */
 	var PropertyEditors = Control.extend("sap.ui.integration.designtime.baseEditor.PropertyEditors", {
 		metadata: {
+			library: "sap.ui.integration",
 			properties: {
 				/**
 				 * List of tags to render, e.g. <code>"header,content"</code>. Only the properties that contain both tags will be rendered.
@@ -212,6 +215,19 @@ sap.ui.define([
 				 * Fires when the nested editors are ready
 				 */
 				ready: {},
+
+				/**
+				 * Fires when the error state of one of the nested property editors changes
+				 */
+				 validationErrorChange: {
+					parameters: {
+						/**
+						 * Whether there is an error in one of the nested editors
+						 * @since 1.96.0
+						 */
+						hasError: { type: "boolean" }
+					}
+				},
 
 				/**
 				 * Fires when <code>layout</code> changes.
@@ -383,7 +399,7 @@ sap.ui.define([
 	};
 
 	PropertyEditors.prototype.getEditor = function () {
-		return sap.ui.getCore().byId(this.getAssociation("editor"));
+		return Element.getElementById(this.getAssociation("editor"));
 	};
 
 	PropertyEditors.prototype.setConfig = function (mConfig) {
@@ -421,7 +437,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype.setEditor = function (vEditor) {
 		var oPreviousEditor = this.getEditor();
-		var oEditor = typeof vEditor === "string" ? sap.ui.getCore().byId(vEditor) : vEditor;
+		var oEditor = typeof vEditor === "string" ? Element.getElementById(vEditor) : vEditor;
 		if (oPreviousEditor !== oEditor) {
 			this.setAssociation("editor", vEditor);
 			var oEditor = this.getEditor();
@@ -434,7 +450,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype._removePropertyEditors = function () {
 		var aPropertyEditors = this.removeAllAssociation("propertyEditors").map(function (sPropertyEditorId) {
-			return sap.ui.getCore().byId(sPropertyEditorId);
+			return Element.getElementById(sPropertyEditorId);
 		});
 
 		this._iExpectedWrapperCount = 0;
@@ -544,7 +560,7 @@ sap.ui.define([
 			};
 		}
 
-		var mDefaultConfig = mLayouts[this.getLayout()].defaultConfig;
+		var mDefaultConfig = mLayouts[this.getLayout()] && mLayouts[this.getLayout()].defaultConfig || {};
 
 		// Prioritization (bottom wins):
 		// - default config
@@ -647,6 +663,12 @@ sap.ui.define([
 		return !!this._bIsReady;
 	};
 
+	PropertyEditors.prototype.hasError = function () {
+		return this._aEditorWrappers.some(function (oWrapper) {
+			return oWrapper.hasError();
+		});
+	};
+
 	PropertyEditors.prototype._setReady = function (readyState) {
 		var bPreviousReadyState = this._bIsReady;
 		this._bIsReady = readyState;
@@ -663,6 +685,11 @@ sap.ui.define([
 		}
 		if (!this._bInitFinished) {
 			// The editor itself is not ready yet, no need to check nested editors
+			this._setReady(false);
+			return;
+		}
+		if (!this._bLayoutReady) {
+			// Layout is not ready, therefore expected wrapper count is unknown
 			this._setReady(false);
 			return;
 		}
@@ -725,6 +752,13 @@ sap.ui.define([
 			this._setReady(false);
 			this._checkReadyState();
 		}.bind(this));
+
+		oWrapper.attachValidationErrorChange(function() {
+			this.fireValidationErrorChange({
+				hasError: this.hasError()
+			});
+		}.bind(this));
+
 		// If the editor contains nested editors and setValue is called for the first time
 		// an observer is created to handle the destruction of nested wrappers
 		if (!this._oWrapperObserver) {
@@ -746,7 +780,7 @@ sap.ui.define([
 
 	PropertyEditors.prototype._getPropertyEditors = function () {
 		var aPropertyEditors = (this.getAssociation("propertyEditors") || []).map(function (sId) {
-			return sap.ui.getCore().byId(sId);
+			return Element.getElementById(sId);
 		});
 
 		return aPropertyEditors.length && aPropertyEditors || null; // returning null when empty array — backwards compatibility

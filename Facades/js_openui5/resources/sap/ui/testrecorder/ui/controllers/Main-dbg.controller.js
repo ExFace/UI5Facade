@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	"sap/ui/Device",
 	"sap/ui/util/Storage",
 	"sap/ui/core/mvc/Controller",
+	"sap/ui/dom/includeStylesheet",
 	"sap/ui/testrecorder/ui/models/SharedModel",
 	"sap/ui/testrecorder/CommunicationBus",
 	"sap/ui/testrecorder/CommunicationChannels",
@@ -22,17 +23,17 @@ sap.ui.define([
 	"sap/m/VBox",
 	"sap/ui/support/supportRules/ui/external/ElementTree",
 	"sap/ui/testrecorder/interaction/ContextMenu"
-], function ($, Device, Storage, Controller, SharedModel, CommunicationBus, CommunicationChannels, JSONModel, ResourceModel,
+], function ($, Device, Storage, Controller, includeStylesheet, SharedModel, CommunicationBus, CommunicationChannels, JSONModel, ResourceModel,
 		Binding, MessageToast, Dialog, CheckBox, Button, VBox, ElementTree, ContextMenu) {
 	"use strict";
 
 	return Controller.extend("sap.ui.testrecorder.ui.controllers.Main", {
 		onInit: function () {
 			this._minimized = false;
-			this._treeSelectionId = null;
+			this._selectionId = null;
 			this._localStorage = new Storage(Storage.Type.local, "sap-ui-test-recorder");
 
-			$.sap.includeStyleSheet("sap/ui/testrecorder/ui/styles/overlay.css");
+			includeStylesheet("sap/ui/testrecorder/ui/styles/overlay.css");
 
 			this.elementTree = new ElementTree(null, {
 				filter: {
@@ -40,7 +41,8 @@ sap.ui.define([
 					search: true
 				},
 				onSelectionChanged: this._onTreeSelectionChanged.bind(this),
-				onContextMenu: this._onTreeContextMenu.bind(this)
+				onContextMenu: this._onTreeContextMenu.bind(this),
+				onInitialRendering: this._onElementTreeInitialRendering.bind(this)
 			});
 
 			this._setupModels();
@@ -143,6 +145,22 @@ sap.ui.define([
 				this.settingsDialog.close();
 			}
 		},
+		handlePropertyIconPress: function (oEvent) {
+			var oIcon = oEvent.getSource();
+			var oItem = oIcon.getParent().getParent();
+			var propertyName = oItem.getCells()[0].getItems()[1].getText();
+			var propertyValue = oItem.getCells()[1].getText();
+			var propertyType = oItem.getCells()[2].getText();
+			CommunicationBus.publish(CommunicationChannels.ASSERT_PROPERTY, {
+				domElementId: this._selectionId,
+				assertion: {
+					propertyName: propertyName,
+					expectedValue: propertyValue,
+					propertyType: propertyType
+				}
+			});
+		},
+
 		_setupModels: function () {
 			this.model = SharedModel;
 			this.getView().setModel(this.model);
@@ -224,26 +242,33 @@ sap.ui.define([
 			if (mData.codeSnippet !== undefined) {
 				this.getView().getModel("controls").setProperty("/codeSnippet", mData.codeSnippet);
 			} else if (mData.error) {
-				var sNotFoundText = this.getView().getModel("i18n").getResourceBundle().getText("TestRecorder.Inspect.Snippet.NotFound.Text", "#" + mData.domElementId);
+				var sNotFoundText = this.getView().getModel("i18n").getResourceBundle().getText("TestRecorder.Inspect.Snippet.NotFound.Text", ["#" + mData.domElementId]);
 				this.getView().getModel("controls").setProperty("/codeSnippet", sNotFoundText);
 			}
 		},
 		_onUpdateSelection: function (mData) {
 			// request data for a control that was selected in the app
+			this._selectionId = mData.rootElementId;
 			this.elementTree.setSelectedElement(mData.rootElementId, false);
 			this._clearControlData();
 
 			// domElementId is the ID of the control focus ref *in the app*,
 			// interactionElementId is the ID of the right-clicked element *in the app*
-			CommunicationBus.publish(CommunicationChannels.REQUEST_CONTROL_DATA, {domElementId: mData.rootElementId });
+			CommunicationBus.publish(CommunicationChannels.REQUEST_CONTROL_DATA, {
+				domElementId: mData.rootElementId
+			});
 			CommunicationBus.publish(CommunicationChannels.REQUEST_CODE_SNIPPET, {
 				domElementId: mData.interactionElementId,
-				action: mData.action
+				action: mData.action,
+				assertion: mData.assertion
 			});
-			CommunicationBus.publish(CommunicationChannels.HIGHLIGHT_CONTROL, {domElementId: mData.rootElementId });
+			CommunicationBus.publish(CommunicationChannels.HIGHLIGHT_CONTROL, {
+				domElementId: mData.rootElementId
+			});
 		},
 		_onTreeSelectionChanged: function (domElementId) {
 			// request data for a control that was selected in the tree - via left click
+			this._selectionId = domElementId;
 			this._clearControlData();
 
 			// here domElementId is the ID of the element *in the app*
@@ -260,6 +285,35 @@ sap.ui.define([
 				highlight: false
 			};
 			ContextMenu.show(mData);
+		},
+		_onElementTreeInitialRendering: function () {
+			var oFilterContainer = this.elementTree._filterContainer;
+			var fnOnSearchInput = oFilterContainer.onkeyup;
+			var fnOnOptionsChange = oFilterContainer.onchange;
+			var aOptions = ["filter", "attributes", "namespaces"];
+			var oModel = this.model;
+
+			aOptions.forEach(function (sOption) {
+				var elem = oFilterContainer.querySelector("[" + sOption + "]");
+				elem.checked = oModel.getProperty("/elementTree/" + sOption);
+				$(elem).change();
+			});
+			var searchInput = oFilterContainer.querySelector("[search]");
+			searchInput.value = oModel.getProperty("/elementTree/search");
+			$(searchInput).keyup();
+
+			oFilterContainer.onchange = function (event) {
+				aOptions.forEach(function (sOption) {
+					if (event.target.getAttribute(sOption) !== null) {
+						oModel.setProperty("/elementTree/" + sOption, event.target.checked);
+					}
+				});
+				fnOnOptionsChange.apply(this, arguments);
+			};
+			oFilterContainer.onkeyup = function (event) {
+				oModel.setProperty("/elementTree/search", event.target.value);
+				fnOnSearchInput.apply(this, arguments);
+			};
 		},
 		_clearControlData: function () {
 			this.getView().getModel("controls").setProperty("/properties", {});

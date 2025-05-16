@@ -1,23 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.uxap.ObjectPageLayout control
 sap.ui.define([
-	"sap/uxap/library",
-	"sap/ui/core/Core"
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/uxap/library"
 ],
 function(
-	library,
-	Core
+	Element,
+	Library,
+	library
 ) {
 	"use strict";
 
 	function getSectionForAnchorBarButton (oAnchorButton) {
-		var sSectionId = oAnchorButton.data("sectionId");
-		return Core.byId(sSectionId);
+		if (oAnchorButton) {
+			var sSectionId = oAnchorButton.getKey();
+			return Element.getElementById(sSectionId);
+		}
 	}
 
 	function isHeaderInTitleArea(oPage) {
@@ -31,10 +35,10 @@ function(
 	return {
 		name : {
 			singular : function(){
-				return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("LAYOUT_CONTROL_NAME");
+				return Library.getResourceBundleFor("sap.uxap").getText("LAYOUT_CONTROL_NAME");
 			},
 			plural : function(){
-				return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("LAYOUT_CONTROL__PLURAL");
+				return Library.getResourceBundleFor("sap.uxap").getText("LAYOUT_CONTROL_NAME_PLURAL");
 			}
 		},
 		aggregations : {
@@ -44,24 +48,25 @@ function(
 				},
 				childNames : {
 					singular : function(){
-						return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("SECTION_CONTROL_NAME");
+						return Library.getResourceBundleFor("sap.uxap").getText("SECTION_CONTROL_NAME");
 					},
 					plural : function(){
-						return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("SECTION_CONTROL_NAME_PLURAL");
+						return Library.getResourceBundleFor("sap.uxap").getText("SECTION_CONTROL_NAME_PLURAL");
 					}
 				},
 				actions : {
 					move : "moveControls",
 					addIFrame: {
 						changeType: "addIFrame",
+						text: Library.getResourceBundleFor("sap.uxap").getText("ADD_IFRAME_AS_SECTION"),
 						getCreatedContainerId : function(sNewControlID) {
-							var oObjectPageSection = sap.ui.getCore().byId(sNewControlID);
+							var oObjectPageSection = Element.getElementById(sNewControlID);
 							var oObjectPageLayout = oObjectPageSection.getParent();
 							var oAnchorBar = oObjectPageLayout.getAggregation("_anchorBar");
 							var oSectionButton;
 							if (oAnchorBar) {
-								oSectionButton = oAnchorBar.getContent().filter(function (oButton) {
-									return oButton.data("sectionId") === sNewControlID;
+								oSectionButton = oAnchorBar.getItems().filter(function (oButton) {
+									return oButton.getKey() === sNewControlID;
 								})[0];
 							}
 							if (oSectionButton) {
@@ -93,21 +98,21 @@ function(
 				},
 				propagateRelevantContainer: true,
 				propagateMetadata : function(oElement) {
-					if (oElement.isA("sap.uxap.AnchorBar")) {
+					if (oElement.isA("sap.m.IconTabHeader")) {
 						return {
 							aggregations : {
-								content : {
+								items : {
 									childNames : {
 										singular : function(){
-											return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("SECTION_CONTROL_NAME");
+											return Library.getResourceBundleFor("sap.uxap").getText("SECTION_CONTROL_NAME");
 										},
 										plural : function(){
-											return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("SECTION_CONTROL_NAME_PLURAL");
+											return Library.getResourceBundleFor("sap.uxap").getText("SECTION_CONTROL_NAME_PLURAL");
 										}
 									},
 									actions : {
 										move : function(oElement){
-											if (oElement.isA("sap.m.Button") || oElement.isA("sap.m.MenuButton")) {
+											if (oElement.isA("sap.m.IconTabFilter")) {
 												return "moveControls";
 											}
 										}
@@ -115,13 +120,13 @@ function(
 								}
 							}
 						};
-					} else if (oElement.isA("sap.m.Button") || oElement.isA("sap.m.MenuButton")) {
+					} else if (oElement.isA("sap.m.IconTabFilter")) {
 						// getResponsibleElement() replaces with the responsible element, which is then asked for:
 						// the action in the context menu and the handler
 						return {
 							actions: {
 								getResponsibleElement: getSectionForAnchorBarButton,
-								actionsFromResponsibleElement: ["remove", "rename", "reveal", "addIFrame"],
+								actionsFromResponsibleElement: ["remove", "rename", "reveal", "addIFrame", "settings"],
 								combine: null,
 								split: null
 							}
@@ -141,18 +146,24 @@ function(
 				},
 				childNames : {
 					singular : function(){
-						return sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("HEADER_CONTROL_NAME");
+						return Library.getResourceBundleFor("sap.uxap").getText("HEADER_CONTROL_NAME");
 					}
 				},
 				actions : {
 					move : function(oElement){
-						if (oElement && oElement.getParent() && (oElement.getParent().isA(["sap.uxap.ObjectPageHeaderContent", "sap.uxap.ObjectPageDynamicHeaderContent"]))){
+						var oParent = oElement && oElement.getParent();
+						if (oParent && oParent.isA("sap.uxap.ObjectPageLayout")
+							&& oParent.indexOfHeaderContent(oElement) > -1){
 							//only allow move inside the header
 							return "moveControls";
 						}
 					},
 					addIFrame: {
+						text: Library.getResourceBundleFor("sap.uxap").getText("ADD_IFRAME_IN_HEADER"),
 						changeType: "addIFrame"
+					},
+					remove : {
+						removeLastElement: true
 					}
 				}
 			},
@@ -171,18 +182,20 @@ function(
 		},
 		scrollContainers : [{
 			domRef : "> .sapUxAPObjectPageWrapper",
-			aggregations : function(oElement) {
+			aggregations : function(oElement, fnUpdateFunction) {
+				oElement.attachEventOnce("_snapChange", function() {
+					fnUpdateFunction({
+						index: 0
+					});
+				});
+
 				if (isHeaderInTitleArea(oElement)) {
 					return ["sections"];
 				} else if (oElement._bStickyAnchorBar){
 					return ["sections", "headerContent"];
 				} else {
-					return ["sections", "anchorBar", "headerContent"];
+					return ["sections", "_anchorBar", "headerContent"];
 				}
-			}
-		}, {
-			domRef : function(oElement) {
-				return oElement.$("vertSB-sb").get(0);
 			}
 		}],
 		templates: {

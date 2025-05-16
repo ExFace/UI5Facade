@@ -1,23 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.MessageListItem.
 sap.ui.define([
-	"sap/ui/core/library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/InvisibleText",
+	"sap/ui/core/message/MessageType",
 	"./library",
 	'./StandardListItem',
 	'./Link',
 	"./MessageListItemRenderer"
 ],
-	function (coreLibrary, InvisibleText, library, StandardListItem, Link, MessageListItemRenderer) {
+	function(Library, InvisibleText, MessageType, library, StandardListItem, Link, MessageListItemRenderer) {
 		"use strict";
 
-		// shortcut for sap.ui.core.MessageType
-		var MessageType = coreLibrary.MessageType;
+		// shortcut for sap.m.ListType
+		var ListType = library.ListType;
+
+		// shortcut for sap.m.ReactiveAreaMode
+		var ReactiveAreaMode = library.ReactiveAreaMode;
 
 		/**
 		 * Constructor for a new MessageListItem.
@@ -30,19 +34,18 @@ sap.ui.define([
 		 * @extends sap.m.StandardListItem
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
 		 * @alias sap.m.MessageListItem
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var MessageListItem = StandardListItem.extend("sap.m.MessageListItem", /** @lends sap.m.MessageListItem.prototype */ {
 			metadata: {
 				library: "sap.m",
 				properties: {
 					activeTitle: { type: "boolean", group: "Misc", defaultValue: false},
-					messageType: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Error }
+					messageType: { type: "sap.ui.core.message.MessageType", group: "Appearance", defaultValue: MessageType.Error }
 				},
 				aggregations: {
 					link: { type: "sap.m.Link", group: "Misc", multiple: false },
@@ -51,7 +54,9 @@ sap.ui.define([
 				events: {
 					activeTitlePress: {}
 				}
-			}
+			},
+
+			renderer: MessageListItemRenderer
 		});
 
 		MessageListItem.prototype.onBeforeRendering = function () {
@@ -60,8 +65,9 @@ sap.ui.define([
 
 			if (!oLink && this.getActiveTitle()) {
 				oLink = new Link({
-					press: [this.fireActiveTitlePress, this]
-
+					wrapping: true,
+					press: [this.fireActiveTitlePress, this],
+					reactiveAreaMode: ReactiveAreaMode.Overlay
 				});
 				this.setLink(oLink);
 			}
@@ -70,15 +76,14 @@ sap.ui.define([
 			if (oLink && !oLink.getAriaDescribedBy().length) {
 				oDescribedByText = this._getLinkAriaDescribedBy();
 
-				oLink.setProperty("text", this.getTitle(), true);
-				oLink.addAssociation('ariaDescribedBy', oDescribedByText.getId(), true);
-
-				this.setAggregation("linkAriaDescribedBy", oDescribedByText, true);
+				oLink.setText(this.getTitle());
+				oLink.addAriaDescribedBy(oDescribedByText.getId());
+				this.setLinkAriaDescribedBy(oDescribedByText);
 			}
 		};
 
 		MessageListItem.prototype._getLinkAriaDescribedBy = function () {
-			var sAccessibilityText = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("MESSAGE_VIEW_LINK_FOCUS_TEXT", [this.getMessageType()]);
+			var sAccessibilityText = Library.getResourceBundleFor("sap.m").getText("MESSAGE_VIEW_LINK_FOCUS_TEXT_" + this.getMessageType().toUpperCase());
 
 			return new InvisibleText(this.getId() + "-link", {
 				text: sAccessibilityText
@@ -98,15 +103,37 @@ sap.ui.define([
 
 		MessageListItem.prototype.getContentAnnouncement = function(oBundle) {
 			var sAnnouncement = StandardListItem.prototype.getContentAnnouncement.apply(this, arguments),
-				sAdditionalText, sMessageType;
+				sAdditionalTextLocation, sAdditionalTextDescription, sMessageType;
 
 			if (this.getActiveTitle()) {
-				sMessageType = oBundle.getText("MESSAGEVIEW_BUTTON_TOOLTIP_" + this.getMessageType().toUpperCase());
-				sAdditionalText = oBundle.getText("MESSAGE_LIST_ITEM_FOCUS_TEXT", [sMessageType]);
+				sMessageType = this.getMessageType().toUpperCase();
+				sAdditionalTextLocation = oBundle.getText("MESSAGE_LIST_ITEM_FOCUS_TEXT_LOCATION_" + sMessageType);
+				sAdditionalTextDescription = this.getType() === ListType.Navigation ? oBundle.getText("MESSAGE_LIST_ITEM_FOCUS_TEXT_DESCRIPTION") : "";
 
-				sAnnouncement += " ".concat(sAdditionalText);
+				sAnnouncement += ". ".concat(sAdditionalTextLocation, ". ", sAdditionalTextDescription);
 			}
 			return sAnnouncement;
+		};
+
+		/**
+		 * Returns item's title dom ref
+		 *
+		 * @returns {HTMLElement} Dom Ref of the list item's title
+		 * @public
+		 */
+		MessageListItem.prototype.getTitleRef = function () {
+			var bActiveTitle = this.getActiveTitle();
+			var sDescription = this.getDescription();
+
+			if (bActiveTitle) {
+				return this.getDomRef().querySelector(".sapMLnkText");
+			}
+
+			if (sDescription) {
+				return this.getDomRef().querySelector(".sapMSLITitle");
+			}
+
+			return this.getDomRef().querySelector(".sapMSLITitleOnly");
 		};
 
 		return MessageListItem;

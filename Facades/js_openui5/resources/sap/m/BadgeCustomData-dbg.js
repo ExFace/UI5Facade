@@ -1,14 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides element sap.m.BadgeCustomData.
 sap.ui.define([
 	'sap/ui/core/CustomData',
-	'sap/base/Log'
-], function(CustomData, Log) {
+	'sap/base/Log',
+	'sap/m/library'
+], function(CustomData, Log, library) {
 	"use strict";
 
 	/**
@@ -29,10 +30,18 @@ sap.ui.define([
 	 * @public
 	 * @alias sap.m.BadgeCustomData
 	 */
+
+	var BadgeAnimationType = library.BadgeAnimationType;
+
 	var BadgeCustomData = CustomData.extend("sap.m.BadgeCustomData", {
 		metadata: {
 			properties: {
-				visible: {type: "boolean", group: "Appearance", defaultValue: true}
+				visible: {type: "boolean", group: "Appearance", defaultValue: true},
+				/**
+				 * Determines the type of animation to be performed by the Badge DOM element.
+				 * @since 1.87
+				 */
+				animation: {type: "sap.m.BadgeAnimationType", group: "Appearance", defaultValue: BadgeAnimationType.Full}
 			}
 		}
 	});
@@ -48,15 +57,22 @@ sap.ui.define([
 	 * Sets the value of BadgeCustomData and updates the Badge DOM element.
 	 *
 	 * @private
-	 * @param {string} Value to be.
-	 * @return {sap.m.BadgeCustomData} this BadgeCustomData reference for chaining.
+	 * @param {string} sValue Value to be.
+	 * @returns {this} this BadgeCustomData reference for chaining.
+	 * @override
 	 */
 	BadgeCustomData.prototype.setValue =  function (sValue) {
 		if (this.getValue() === sValue) { return this; }
+
+		if (sValue === null || sValue === undefined) {
+			sValue = "";
+		}
+
 		var oParent = this.getParent();
+		sValue = sValue.toString();
 
 		CustomData.prototype.setValue.call(this, sValue);
-		if (oParent && typeof sValue === "string") {
+		if (oParent) {
 			oParent.updateBadgeValue(sValue);
 		}
 
@@ -66,13 +82,30 @@ sap.ui.define([
 	BadgeCustomData.prototype.setVisible =  function (bVisible) {
 		if (this.getVisible() === bVisible) { return this; }
 
+		this.setProperty("visible", bVisible, true);
+
 		var oParent = this.getParent();
 
 		if (oParent) {
 			oParent.updateBadgeVisibility(bVisible);
 		}
 
-		this.setProperty("visible", bVisible, true);
+
+		return this;
+	};
+
+	BadgeCustomData.prototype.setAnimation =  function (sAnimationType) {
+		if (this.getAnimation() === sAnimationType) { return this; }
+
+		this.setProperty("animation", sAnimationType, true);
+
+		var oParent = this.getParent();
+
+		if (oParent) {
+			oParent.updateBadgeAnimation(sAnimationType);
+		}
+
+
 		return this;
 	};
 
@@ -80,8 +113,9 @@ sap.ui.define([
 	 * Sets the key property of BadgeCustomData as it can be only 'badge'.
 	 *
 	 * @private
-	 * @param {string} Key to be.
-	 * @return {sap.m.BadgeCustomData} this BadgeCustomData reference for chaining.
+	 * @param {string} sKey Key to be.
+	 * @returns {this} this BadgeCustomData reference for chaining.
+	 * @override
 	 */
 	BadgeCustomData.prototype.setKey = function () {
 		return this;

@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,6 @@
 @import "../../../../../../Base/baseLib/sap_fiori_3_hcw/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_fiori_3_hcw/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_fiori_3_hcw/global.less";
-
-/* shared local library less parameters */
-@_sap_ui_table_FocusOutlineWidth: 2px;
 
 /* START "Table.less" */
 /* =================================== */
@@ -23,17 +20,17 @@
 @_sap_ui_table_Table_FocusOutlineOffset: -3px;
 @_sap_ui_table_Table_TableHeaderBorderWidth: 3px;
 
-._sap_ui_table_Table_Header() {
-	border-bottom: 3px solid @sapUiListHeaderBorderColor;
+._sap_ui_table_Table_TitleContainer() {
+	border-bottom: 3px solid var(--sapList_HeaderBorderColor);
 }
 
-._sap_ui_table_Table_Extension() {
-	border-bottom: @_sap_ui_table_BaseBorderWidth solid @sapUiListHeaderBorderColor;
+._sap_ui_table_Table_ExtensionContainer() {
+	border-bottom: @_sap_ui_table_BaseBorderWidth solid var(--sapList_HeaderBorderColor);
 	padding: 0.125rem;
 }
 
-._sap_ui_table_Table_Table() {
-	border: @_sap_ui_table_BaseBorderWidth solid @sapUiListBorderColor;
+._sap_ui_table_Table_GridContainer() {
+	border: @_sap_ui_table_BaseBorderWidth solid var(--sapList_BorderColor);
 }
 /* END "Table.less" */
 
@@ -43,8 +40,8 @@
 /* Quartz High Contrast White theme  */
 /* ================================= */
 
-@_sap_ui_table_Row_ColorHovered: @sapUiContentContrastTextColor;
-@_sap_ui_table_Row_NavigationIndicatorColor: @sapUiListSelectionBorderColor;
+@_sap_ui_table_Row_ColorHovered: var(--sapContent_ContrastTextColor);
+@_sap_ui_table_Row_NavigationIndicatorColor: var(--sapList_SelectionBorderColor);
 /* END "Row.less" */
 
 /* START "Cell.less" */
@@ -53,8 +50,7 @@
 /* Quartz High Contrast White theme  */
 /* ================================= */
 
-@_sap_ui_table_Cell_FocusOutlineOffset: -2px;
-@_sap_ui_table_Cell_BorderColorSelected: @sapUiListSelectionBorderColor;
+@_sap_ui_table_Cell_BorderColorSelected: var(--sapList_SelectionBorderColor);
 /* END "Cell.less" */
 
 /* START "RowHighlight.less" */
@@ -63,7 +59,7 @@
 /* Quartz High Contrast White theme   */
 /* ================================== */
 
-@_sap_ui_table_RowHighlight_InformationColor: @sapUiAccent6;
+@_sap_ui_table_RowHighlight_InformationColor: var(--sapAccentColor6);
 /* END "RowHighlight.less" */
 
 /* START "RowSelection.less" */
@@ -72,7 +68,10 @@
 /* Quartz High Contrast White theme   */
 /* ================================== */
 
-@_sap_ui_table_RowSelection_CheckBoxIconColor: @sapUiContentIconColor;
+@_sap_ui_table_RowSelection_CheckBoxIconColor: var(--sapContent_IconColor);
+@_sap_ui_table_RowSelection_CheckBoxBorderWidth: var(--sapField_BorderWidth);
+@_sap_ui_table_RowSelection_CheckBoxBorderRadius: var(--sapField_BorderCornerRadius);
+@_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy: var(--sapField_BorderCornerRadius);
 /* END "RowSelection.less" */
 
 /* START "Scrolling.less" */
@@ -82,6 +81,7 @@
 /* ================================= */
 
 ._sap_ui_table_Scrolling_NativeScrollbarDesktop() {
+
 	&::-webkit-scrollbar {
 		border: none !important;
 	}
@@ -99,7 +99,7 @@
 /* Quartz High Contrast White theme  */
 /* ================================= */
 
-@_sap_ui_table_DragDrop_ColumnDnDHighlightColor: @sapUiContentDragAndDropActiveColor;
+@_sap_ui_table_DragDrop_ColumnDnDHighlightColor: var(--sapContent_DragAndDropActiveColor);
 /* END "DragDrop.less" */
 
 /* START "Grouping.less" */

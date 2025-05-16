@@ -1,16 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-    "sap/ui/thirdparty/jquery",
+    "sap/base/util/extend",
     "sap/ui/base/ManagedObject",
     "sap/ui/test/_OpaLogger",
-    'sap/ui/test/_ControlFinder'
-], function ($, ManagedObject, _OpaLogger, _ControlFinder) {
-	"use strict";
+    'sap/ui/test/_ControlFinder',
+    'sap/ui/core/ElementRegistry',
+    'sap/ui/core/mvc/View',
+    'sap/ui/base/ManagedObjectMetadata'
+], function (extend, ManagedObject, _OpaLogger, _ControlFinder, UI5ElementRegistry, View, ManagedObjectMetadata) {
+    "use strict";
 
     /**
      * Selector generator for controls. This class should be extended by all other generators.
@@ -23,8 +26,8 @@ sap.ui.define([
     var _Selector = ManagedObject.extend("sap.ui.test.selectors._Selector", {
 
         constructor: function () {
-			this._oLogger = _OpaLogger.getLogger(this.getMetadata().getName());
-			return ManagedObject.prototype.constructor.apply(this, arguments);
+            ManagedObject.prototype.constructor.apply(this, arguments);
+            this._oLogger = _OpaLogger.getLogger(this.getMetadata().getName());
         },
 
         /**
@@ -41,24 +44,24 @@ sap.ui.define([
             var vResult = this._generate.apply(this, arguments);
 
             if (vResult) {
-                if ($.isArray(vResult)) {
+                if (Array.isArray(vResult)) {
                     // result is a list of selectors (e.g.: bindings for several properties)
                     return vResult.filter(function (vSelector) {
                         // filter out empty results
-                        return vSelector && (!$.isArray(vSelector) || vSelector.length);
+                        return vSelector && (!Array.isArray(vSelector) || vSelector.length);
                     }).map(function (vItem) {
-                        if ($.isArray(vItem)) {
+                        if (Array.isArray(vItem)) {
                             // selector has multiple parts (e.g.: composite binding)
                             return vItem.map(function (mItemPart) {
-                                return $.extend({}, this._createSelectorBase(oControl, mItemPart), mItemPart);
+                                return extend({}, this._createSelectorBase(oControl, mItemPart), mItemPart);
                             }.bind(this));
                         } else {
-                            return $.extend({}, this._createSelectorBase(oControl, vItem), vItem);
+                            return extend({}, this._createSelectorBase(oControl, vItem), vItem);
                         }
                     }.bind(this));
                 } else {
                     // result is a single selector
-                    return $.extend(this._createSelectorBase(oControl, vResult), vResult);
+                    return extend(this._createSelectorBase(oControl, vResult), vResult);
                 }
             }
         },
@@ -92,7 +95,7 @@ sap.ui.define([
                 };
                 var oView = this._getControlView(oControl);
                 if (oView) {
-                    mBasic.viewName = oView.getViewName();
+                    extend(mBasic, this._getViewIdOrName(oView));
                 }
                 return mBasic;
             }
@@ -126,6 +129,28 @@ sap.ui.define([
                         return this._findAncestor(oParent, fnCheck);
                     }
                 }
+            }
+        },
+
+        // returns the viewId or viewName - the first one which is unique - or empty object if neither is unique
+        _getViewIdOrName: function (oView) {
+            var sViewId = oView.getId();
+            var sViewName = oView.getViewName();
+
+            if (ManagedObjectMetadata.isGeneratedId(sViewId)) {
+                var aViewsWithSameName = UI5ElementRegistry.filter(function (oElement) {
+                    return oElement instanceof View;
+                }).filter(function (oElement) {
+                    return oElement.getViewName() === sViewName;
+                });
+                return aViewsWithSameName.length > 1 ? {} : {
+                    viewName: sViewName
+                };
+            } else {
+                return {
+                    viewName: sViewName,
+                    viewId: sViewId
+                };
             }
         }
     });

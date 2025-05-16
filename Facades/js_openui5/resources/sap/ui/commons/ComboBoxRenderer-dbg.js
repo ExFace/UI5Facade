@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.ComboBox
-sap.ui.define(['./TextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/library'],
-	function(TextFieldRenderer, Renderer, coreLibrary) {
+sap.ui.define(['./TextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Configuration'],
+	function(TextFieldRenderer, Renderer, coreLibrary, Configuration) {
 	"use strict";
 
 
@@ -49,7 +49,7 @@ sap.ui.define(['./TextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/libra
 		rm.write("<div");
 		rm.writeAttributeEscaped('id', oCmb.getId() + '-icon');
 		rm.writeAttribute('unselectable', 'on');
-		if ( sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if ( Configuration.getAccessibility()) {
 			rm.writeAttribute("role", "presentation");
 		}
 		rm.addClass("sapUiTfComboIcon");

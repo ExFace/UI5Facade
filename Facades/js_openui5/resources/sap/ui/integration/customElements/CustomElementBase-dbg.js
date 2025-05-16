@@ -1,27 +1,19 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 /* global Reflect, HTMLElement, CustomEvent */
 
 sap.ui.define([
-	"sap/base/Log",
 	"sap/ui/integration/util/Utils",
 	"sap/base/strings/hyphenate",
-	"sap/base/strings/camelize",
-	// polyfills
-	"sap/ui/integration/thirdparty/customElements",
-	"sap/ui/integration/thirdparty/customEvent"
+	"sap/base/strings/camelize"
 ], function (
-	Log,
 	Utils,
 	hyphenate,
-	camelize,
-	// polyfills
-	customElements,
-	customEvent
+	camelize
 ) {
 	"use strict";
 
@@ -32,7 +24,7 @@ sap.ui.define([
 	 * @abstract
 	 * @private
 	 */
-	function CustomElementBase () {
+	function CustomElementBase() {
 
 		if (this.constructor === CustomElementBase) {
 			throw new TypeError('Abstract class "CustomElementBase" cannot be instantiated directly.');
@@ -90,7 +82,7 @@ sap.ui.define([
 		} else if (this._mAllAssociations[sCamelizedAttributeName]) {
 			var element = document.getElementById(vNewValue);
 			if (element instanceof CustomElementBase) {
-				vNewValue =  document.getElementById(vNewValue)._getControl();
+				vNewValue = document.getElementById(vNewValue)._getControl();
 			}
 
 			this._mAllAssociations[sCamelizedAttributeName].set(this._oControlInstance, vNewValue);
@@ -165,7 +157,7 @@ sap.ui.define([
 	 *
 	 * @static
 	 * @param {Object} oPrototype The prototype on which setters and getters will be added.
-	 * @param {string[]} aProperties Array of properties for will setters and getter will be defined.
+	 * @param {string[]} aProperties Array of properties for which setters and getters will be defined.
 	 */
 	CustomElementBase.generateAccessors = function (oPrototype, aProperties) {
 
@@ -183,7 +175,7 @@ sap.ui.define([
 						vValue = JSON.stringify(vValue);
 					}
 
-					return this.setAttribute(hyphenate(sPropertyName), vValue);
+					this.setAttribute(hyphenate(sPropertyName), vValue);
 				}
 			});
 		});
@@ -198,6 +190,9 @@ sap.ui.define([
 	 * @param {string[]} aDependencies Array of all dependencies for the current class.
 	 */
 	CustomElementBase.define = function (sCustomElementName, CustomElementClass, aDependencies) {
+
+		aDependencies = aDependencies || [];
+
 		CustomElementBase.awaitDependencies(aDependencies)
 			.then(function () {
 				window.customElements.define(sCustomElementName, CustomElementClass);
@@ -211,7 +206,7 @@ sap.ui.define([
 	 * @param {string[]} aDependencies Array of custom elements names that the current custom element needs to be loaded.
 	 * @returns {Promise} Promise
 	 */
-	CustomElementBase.awaitDependencies = function(aDependencies) {
+	CustomElementBase.awaitDependencies = function (aDependencies) {
 		var aPromises = aDependencies.map(function (sCustomElementName) {
 			return window.customElements.whenDefined(sCustomElementName);
 		});
@@ -265,7 +260,7 @@ sap.ui.define([
 		}
 
 		Object.defineProperty(CustomElementSubClass, "observedAttributes", {
-			get: function() {
+			get: function () {
 				var aAllAttributes = oPrototype._aAllProperties.map(hyphenate); // all properties and associations in "dashed-case"
 				return aAllAttributes;
 			}

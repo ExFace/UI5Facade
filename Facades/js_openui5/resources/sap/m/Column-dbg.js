@@ -1,21 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Column.
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Element',
-	'sap/ui/core/Renderer',
-	'sap/ui/core/library',
-	'sap/ui/Device',
-	"sap/ui/thirdparty/jquery"
+	"./library",
+	"sap/ui/core/Element",
+	"sap/ui/core/Renderer",
+	"sap/ui/core/library",
+	"sap/ui/Device",
+	"sap/ui/core/InvisibleText"
 ],
-	function(library, Element, Renderer, coreLibrary, Device, jQuery) {
+	function(library, Element, Renderer, coreLibrary, Device, InvisibleText) {
 	"use strict";
-
 
 
 	// shortcut for sap.m.PopinDisplay
@@ -46,13 +45,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12
 	 * @alias sap.m.Column
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Column = Element.extend("sap.m.Column", /** @lends sap.m.Column.prototype */ { metadata : {
 
@@ -135,8 +133,7 @@ sap.ui.define([
 			 * Merging only happens when rendering the <code>sap.m.Table</code> control, subsequent changes on the cell or item do not have any
 			 * effect on the merged state of the cells, therefore this feature should not be used together with two-way binding.
 			 * This property is ignored if any column is configured to be shown as a pop-in.
-			 * Merging is not supported if the <code>items</code> aggregation of the <code>sap.m.Table</code> control is
-			 * bound to an {@link sap.ui.model.odata.v4.ODataModel OData V4 model}.
+			 * Don't set this property for cells for which the content provides a user interaction, such as <code>sap.m.Link</code>.
 			 *
 			 * @since 1.16
 			 */
@@ -195,7 +192,22 @@ sap.ui.define([
 			/**
 			 * Control to be displayed in the column footer.
 			 */
-			footer : {type : "sap.ui.core.Control", multiple : false}
+			footer : {type : "sap.ui.core.Control", multiple : false},
+
+			/**
+			 * Control to be displayed as an action in the column header.
+			 * @since 1.136
+			 */
+			_action: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
+		},
+		associations: {
+			/**
+			 * Provides a menu that is used by the column.
+			 * The given menu has to follow the same pattern as the <code>sap.ui.core.IColumnHeaderMenu</code> interface.
+			 *
+			 * @since 1.98.0
+			 */
+			headerMenu: {type: "sap.ui.core.IColumnHeaderMenu", multiple: false}
 		},
 		designtime: "sap/m/designtime/Column.designtime"
 	}});
@@ -203,9 +215,6 @@ sap.ui.define([
 
 	// default index
 	Column.prototype._index = -1;
-
-	// predefined screen size
-	Column.prototype._screen = "";
 
 	// default media value
 	Column.prototype._media = null;
@@ -215,6 +224,15 @@ sap.ui.define([
 
 	Column.prototype.exit = function() {
 		this._clearMedia();
+	};
+
+	Column.prototype.setParent = function(oParent) {
+		Element.prototype.setParent.apply(this, arguments);
+		if (!oParent) {
+			delete this._initialOrder;
+		}
+
+		return this;
 	};
 
 	Column.prototype.getTable = function() {
@@ -253,13 +271,19 @@ sap.ui.define([
 
 	Column.prototype.onsapenter = Column.prototype.onsapspace;
 
+	Column.prototype.oncontextmenu = function (oEvent) {
+		var oMenu = this.getHeaderMenuInstance();
+		if (oMenu) {
+			oMenu.openBy(this);
+			oEvent.preventDefault();
+		}
+	};
+
 	Column.prototype.invalidate = function() {
 		var oParent = this.getParent();
-		if (!oParent || !oParent.bOutput) {
-			return;
+		if (oParent && oParent.bOutput) {
+			Element.prototype.invalidate.apply(this, arguments);
 		}
-
-		Element.prototype.invalidate.apply(this, arguments);
 	};
 
 	Column.prototype._clearMedia = function() {
@@ -283,8 +307,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Notify parent to re-render
-	 * Also fire media event for listeners
+	 * Notify table to re-render
 	 *
 	 * @private
 	 */
@@ -298,11 +321,9 @@ sap.ui.define([
 		this._media = oMedia;
 		this._media.matches = !!oMedia.from;
 
-		// inform parent delayed
-		setTimeout(function() {
-			this.fireEvent("media", this);
+		if (this.getVisible()) {
 			this.informTable("Resize");
-		}.bind(this), 0);
+		}
 	};
 
 	Column.prototype._validateMinWidth = function(sWidth) {
@@ -320,41 +341,12 @@ sap.ui.define([
 		}
 	};
 
-
-	// Checks the given width(px or em), if it is a predefined screen value
-	Column.prototype._isWidthPredefined = function(sWidth) {
-		var that = this,
-			unit = sWidth.replace(/[^a-z]/ig, ""),
-			baseFontSize = parseFloat(library.BaseFontSize) || 16;
-
-		jQuery.each(library.ScreenSizes, function(screen, size) {
-			if (unit != "px") {
-				size /= baseFontSize;
-			}
-			if (size + unit == sWidth) {
-				that._minWidth = this + "px";
-				that._screen = screen;
-				return false;
-			}
-		});
-
-		if (this._minWidth) {
-			return true;
-		}
-
-		if (unit == "px") {
-			this._minWidth = sWidth;
-		} else {
-			this._minWidth = parseFloat(sWidth) * baseFontSize + "px";
-		}
-	};
-
 	/**
 	 * Returns CSS alignment according to column hAlign setting or given parameter
 	 * for Begin/End values checks the locale settings
 	 *
-	 * @param {String} [sAlign] TextAlign enumeration
-	 * @return {String} left|center|right
+	 * @param {string} [sAlign] TextAlign enumeration
+	 * @return {string} left|center|right
 	 * @protected
 	 */
 	Column.prototype.getCssAlign = function(sAlign) {
@@ -365,21 +357,6 @@ sap.ui.define([
 		}
 
 		return sAlign.toLowerCase();
-	};
-
-
-	// Returns styleClass property with extra responsive class if second parameter is set true
-	Column.prototype.getStyleClass = function(bResponsive) {
-		var cls = this.getProperty("styleClass");
-		if (!bResponsive) {
-			return cls;
-		}
-		if (this._screen && (!this.getDemandPopin() || !window.matchMedia)) {
-			cls += " sapMSize-" + this._screen;
-		} else if (this._media && !this._media.matches) {
-			cls += " sapMListTblNone";
-		}
-		return cls.trim();
 	};
 
 	/**
@@ -393,6 +370,14 @@ sap.ui.define([
 		this._index = +nIndex;
 	};
 
+	/**
+	 * Gets the rendering index of the column
+	 *
+	 * @protected
+	 */
+	Column.prototype.getIndex = function() {
+		return this._index;
+	};
 
 	/**
 	 * Sets the order of the column
@@ -445,134 +430,27 @@ sap.ui.define([
 		return oTable.indexOfColumn(this);
 	};
 
-	/**
-	 * Display or hide the column from given table
-	 * This does not set the visibility property of the column
-	 *
-	 * @param {Object} oTableDomRef Table DOM reference
-	 * @param {boolean} [bDisplay] whether visible or not
-	 * @protected
-	 */
-	Column.prototype.setDisplay = function(oTableDomRef, bDisplay) {
-		if (!oTableDomRef || this._index < 0) {
-			return;
-		}
-
-		// go with native we need speed
-		var i = this._index + 1,
-			parent =  this.getParent(),
-			display = bDisplay ? "table-cell" : "none",
-			header = oTableDomRef.querySelector("tr > th:nth-child(" + i + ")"),
-			cells = oTableDomRef.querySelectorAll("tr > td:nth-child(" + i + ")"),
-			length = cells.length;
-
-		// set display and aria
-		header.style.display = display;
-		header.setAttribute("aria-hidden", !bDisplay);
-		for (i = 0; i < length; i++) {
-			cells[i].style.display = display;
-			cells[i].setAttribute("aria-hidden", !bDisplay);
-		}
-
-		// let the parent know the visibility change
-		if (parent && parent.setTableHeaderVisibility) {
-			// make it sure rendering phase is done with timeout
-			setTimeout(function() {
-				parent.setTableHeaderVisibility(bDisplay);
-			}, 0);
-		}
-	};
-
-	Column.prototype.setWidth = function(sWidth) {
-		var oTable = this.getTable();
-		if (!oTable) {
-			return this.setProperty("width", sWidth);
-		}
-
-		if (this.getWidth() === sWidth) {
-			return this;
-		}
-
-		// inform the table when width changed, in case dummy column should be rendered or not
-		var bOldShouldRenderDummyCol = oTable.shouldRenderDummyColumn();
-		this.informTable("WidthChanged", sWidth);
-
-		if (bOldShouldRenderDummyCol !== oTable.shouldRenderDummyColumn()) {
-			return this.setProperty("width", sWidth);
-		}
-
-		var bAutoPopinMode = oTable.getAutoPopinMode();
-
-		// suppress invalidation if autoPopinMode is set to true
-		// avoids multiple calling of function _configureAutoPopin in Table control
-		this.setProperty("width", sWidth, bAutoPopinMode);
-		if (bAutoPopinMode) {
-			var $this = this.$();
-			$this.css("width", sWidth);
-			$this.attr("data-sap-width", sWidth);
-		}
-		this.informTable("RecalculateAutoPopin", true);
-		return this;
-	};
-
-	Column.prototype.setImportance = function(sImportance) {
-		if (this.getImportance() === sImportance) {
-			return this;
-		}
-
-		this.setProperty("importance", sImportance, true);
-		this.informTable("RecalculateAutoPopin", true);
-		return this;
-	};
-
-	Column.prototype.setAutoPopinWidth = function(fWidth) {
-		if (this.getAutoPopinWidth() === fWidth) {
-			return this;
-		}
-
-		this.setProperty("autoPopinWidth", fWidth, true);
-		this.informTable("RecalculateAutoPopin", true);
-		return this;
-	};
-
-	Column.prototype.setVisible = function(bVisible) {
-		if (bVisible == this.getVisible()) {
-			return this;
-		}
-
-		var oParent = this.getParent(),
-			oTableDomRef = oParent && oParent.getTableDomRef && oParent.getTableDomRef(),
-			bSupressInvalidate = oTableDomRef && this._index >= 0;
-
-		this.setProperty("visible", bVisible, bSupressInvalidate);
-		if (bSupressInvalidate) {
-			this.informTable("RecalculateAutoPopin", true);
-			this.setDisplay(oTableDomRef, bVisible);
-		}
-
-		return this;
-	};
-
 	// sets the internals for the minScreenWidth property
 	Column.prototype._setMinScreenWidth = function(sWidth) {
 		// initialize
 		this._clearMedia();
 		this._minWidth = 0;
-		this._screen = "";
 
 		if (sWidth) {
 			// check given width is known screen-size
 			sWidth = sWidth.toLowerCase();
-			var width = library.ScreenSizes[sWidth];
-			if (width) {
-				this._screen = sWidth;
-				this._minWidth = width + "px";
+			var sPredefinedWidth = library.ScreenSizes[sWidth];
+			if (sPredefinedWidth) {
+				this._minWidth = sPredefinedWidth + "px";
+			} else if (sWidth.endsWith("px")) {
+				this._minWidth = sWidth;
 			} else {
-				this._isWidthPredefined(sWidth);
+				var fBaseFontSize = parseFloat(library.BaseFontSize);
+				this._minWidth = parseFloat(sWidth) * fBaseFontSize + "px";
 			}
 
-			var parent = this.getTable();
-			if (parent && parent.isActive()) {
+			var oTable = this.getTable();
+			if (oTable && oTable.isActive()) {
 				this._addMedia();
 			} else {
 				this._bShouldAddMedia = true;
@@ -585,6 +463,8 @@ sap.ui.define([
 	 * Checks the given width is known screen size
 	 */
 	Column.prototype.setMinScreenWidth = function(sWidth) {
+		sWidth = sWidth || "";
+
 		// check if setting the old value
 		if (sWidth == this.getMinScreenWidth()) {
 			return this;
@@ -596,33 +476,7 @@ sap.ui.define([
 		// set internal values
 		this._setMinScreenWidth(sWidth);
 
-		var oTable = this.getTable();
-		if (!oTable) {
-			return this.setProperty("minScreenWidth", sWidth);
-		}
-
-		// suppress invalidation if autoPopinMode is set to true
-		// avoids multiple calling of function _configureAutoPopin in Table control
-		return this.setProperty("minScreenWidth", sWidth, oTable.getAutoPopinMode());
-	};
-
-	/*
-	 * Decides if we need media query or not according to given settings
-	 * if pop-in is demanded then we always need JS media queries
-	 * if not demanded but if screen size is known CSS media query can handle
-	 */
-	Column.prototype.setDemandPopin = function(bValue) {
-		// check if setting the old value
-		if (bValue == this.getDemandPopin()) {
-			return this;
-		}
-
-		// minimum width should have been set
-		if (!this.getMinScreenWidth()) {
-			return this.setProperty("demandPopin", bValue, true);
-		}
-
-		return this.setProperty("demandPopin", bValue);
+		return this.setProperty("minScreenWidth", sWidth);
 	};
 
 	Column.prototype.setSortIndicator = function(sSortIndicator) {
@@ -632,7 +486,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines whether the column will be shown as pop-in or not
+	 * Determines whether the column is shown as pop-in or not
 	 *
 	 * @protected
 	 */
@@ -644,56 +498,41 @@ sap.ui.define([
 		var oTable = this.getTable();
 		if (oTable) {
 			var aHiddenInPopin = oTable.getHiddenInPopin() || [];
-			var bHideColumn = aHiddenInPopin.some(function(sImportance) {
-				return this.getImportance() === sImportance;
-			}, this);
-
+			var bHideColumn = aHiddenInPopin.includes(this.getImportance());
 			if (bHideColumn) {
 				return false;
 			}
 		}
 
-		if (this._media) {
-			return !this._media.matches;
-		}
-		return false;
+		return this.isHidden();
 	};
 
 	/**
-	 * Determines whether the column will be hidden via media queries or not
+	 * Determines whether the column is hidden without being in the popin area
 	 *
 	 * @protected
 	 */
 	Column.prototype.isHidden = function() {
-		if (this._media) {
-			return !this._media.matches;
-		}
-
-		if (this._screen && this._minWidth) {
-			return parseFloat(this._minWidth) > window.innerWidth;
-		}
-		return false;
+		return (this._media) ? !this._media.matches : false;
 	};
 
 	/**
 	 * Sets the last value of the column if mergeDuplicates property is true
 	 *
 	 * @param {any} value Any Value
-	 * @returns {sap.m.Column}
+	 * @returns {this}
 	 * @since 1.16
 	 * @protected
 	 */
 	Column.prototype.setLastValue = function(value) {
-		if (this.getMergeDuplicates()) {
-			this._lastValue = value;
-		}
+		this._lastValue = value;
 		return this;
 	};
 
 	/**
 	 * Clears the last value of the column if mergeDuplicates property is true
 	 *
-	 * @returns {sap.m.Column}
+	 * @returns {this}
 	 * @since 1.20.4
 	 * @protected
 	 */
@@ -721,17 +560,11 @@ sap.ui.define([
 		this.clearLastValue();
 	};
 
-	// when the popover opens and later closed, the focus is lost
-	// hence overwriting the getFocusDomRef to restore the focus on the active column header
-	Column.prototype.getFocusDomRef = function() {
-		var oParent = this.getParent();
-		if (oParent && oParent.bActiveHeaders) {
-			var oColumnDomRef = this.getDomRef();
-			if (oColumnDomRef) {
-				return oColumnDomRef.firstChild;
-			}
+	Column.prototype.onTableRendering = function() {
+		this.clearLastValue();
+		if (this._bShouldAddMedia) {
+			this._addMedia();
 		}
-		return Element.prototype.getFocusDomRef.apply(this, arguments);
 	};
 
 	// returns the minScreenWidth property in pixel as integer
@@ -747,6 +580,55 @@ sap.ui.define([
 
 		this._bForcedColumn = bForcedColumn;
 		this._setMinScreenWidth(bForcedColumn ? "" : this.getMinScreenWidth());
+	};
+
+	/**
+	 * Returns the column header menu instance that this column is associated with via the <code>headerMenu</code> association.
+	 *
+	 * @returns {sap.ui.core.IColumnHeaderMenu | undefined} The column header menu instance
+	 * @private
+	 */
+	Column.prototype.getHeaderMenuInstance = function () {
+		return Element.getElementById(this.getHeaderMenu());
+	};
+
+	Column.prototype.setHeader = function (oControl) {
+		var oOldHeader = this.getHeader();
+		if (oOldHeader) {
+			if (oOldHeader.isA("sap.m.Label")) {
+				oOldHeader.detachEvent("_change", this._onLabelPropertyChange, this);
+			}
+			oOldHeader.setIsInColumnHeaderContext?.(false);
+		}
+
+		this.setAggregation("header", oControl);
+
+		var oNewHeader = this.getHeader();
+		if (oNewHeader) {
+			if (oNewHeader.isA("sap.m.Label")) {
+				oNewHeader.attachEvent("_change", this._onLabelPropertyChange, this);
+			}
+			oNewHeader.setIsInColumnHeaderContext?.(true);
+		}
+
+		return this;
+	};
+
+	Column.prototype._onLabelPropertyChange = function (oEvent) {
+		var oTable = this.getTable();
+		if (!oTable || oEvent.getParameter("name") != "required") {
+			return;
+		}
+
+		if (oTable.bActiveHeaders || this.getHeaderMenuInstance()) {
+			this.$()[oEvent.getSource().getRequired() ? "addAriaDescribedBy" : "removeAriaDescribedBy"](InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
+		}
+	};
+
+	Column.prototype.getFieldHelpInfo = function() {
+		return {
+			label: this.getHeader()?.getText?.() || ""
+		};
 	};
 
 	return Column;

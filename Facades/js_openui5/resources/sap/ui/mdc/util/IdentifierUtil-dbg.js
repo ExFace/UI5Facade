@@ -1,38 +1,39 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // ------------------------------------------------------------------------------------------
 // Utility class used by smart controls for creating stable ids.
 // ------------------------------------------------------------------------------------------
-sap.ui.define(['sap/ui/base/DataType'], function(DataType) {
+sap.ui.define(['sap/ui/base/DataType'], (DataType) => {
 	"use strict";
 
 	/**
 	 * Utility class used by smart controls for creating stable ids
 	 *
+	 * @namespace
 	 * @private
-	 * @experimental This module is only for internal/experimental use!
+	 * @since 1.61.0
+	 * @alias sap.ui.mdc.util.IdentifierUtil
 	 */
-	var IdentifierUtil = {
+	const IdentifierUtil = {
 
 		/**
 		 * Static function that replaces special characters with a underscore.<br>
 		 *
-		 * @param {String} sName - String whose special characters shall be replaced.
-		 * @returns {String} Cleaned up String
+		 * @param {string} sName - String whose special characters shall be replaced.
+		 * @returns {string} Cleaned up String
 		 * @protected
 		 */
 		replace: function(sName) {
-
-			var t = DataType.getType("sap.ui.core.ID");
+			const uid = function(){
+				return "_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 12).padStart(12, 0) + "_";
+			};
+			const t = DataType.getType("sap.ui.core.ID");
 			if (!t.isValid(sName)) {
-				sName = sName.replace(/[^A-Za-z0-9_.:]+/g, "__mdc__");
-				if (!t.isValid(sName)) {
-					sName = "__mdc__" + sName;
-				}
+				sName = sName.replace(/[^A-Za-z0-9_.:]+/g, uid());
 			}
 			return sName;
 		},
@@ -41,23 +42,27 @@ sap.ui.define(['sap/ui/base/DataType'], function(DataType) {
 		 * Static function that creates the id for a FilterField, dependant on the FilterBar control<br>
 		 *
 		 * @param {sap.ui.mdc.FilterBar} oFilterBar - based on it, the id will be determined
-		 * @param {String} sKey - the property path/name
-		 * @returns {String} the calculated id
+		 * @param {string} sKey - the property path/name
+		 * @returns {string} the calculated id
 		 * @protected
 		 */
-		getFilterFieldId : function(oFilterBar, sKey) {
+		getFilterFieldId: function(oFilterBar, sKey) {
 			return oFilterBar.getId() + "--filter--" + IdentifierUtil.replace(sKey);
 		},
 
 		/**
 		 * Static function that determines the key of the property<br>
 		 *
-		 * @param {Object} oProperty - contains the meta dada
-		 * @returns {String} the key of the property path/name
+		 * @param {Object} oProperty - contains the metadata
+		 * @returns {string} the key of the property name
 		 * @protected
 		 */
-		getPropertyKey:  function(oProperty) {
-			return oProperty.name;
+		getPropertyKey: function(oProperty) {
+			return oProperty.key || oProperty.name;
+		},
+
+		getPropertyPath: function(oProperty) {
+			return oProperty.path;
 		},
 
 		/**
@@ -67,10 +72,10 @@ sap.ui.define(['sap/ui/base/DataType'], function(DataType) {
 		 * @returns {sap.ui.core.mvc.View} the enclosing view
 		 * @protected
 		 */
-		getView :  function(oControl) {
-			var oView = null;
+		getView: function(oControl) {
+			let oView = null;
 			if (oControl) {
-				var oObj = oControl.getParent();
+				let oObj = oControl.getParent();
 				while (oObj) {
 					if (oObj.isA("sap.ui.core.mvc.View")) {
 						oView = oObj;
@@ -83,4 +88,4 @@ sap.ui.define(['sap/ui/base/DataType'], function(DataType) {
 		}
 	};
 	return IdentifierUtil;
-}, /* bExport= */true);
+});

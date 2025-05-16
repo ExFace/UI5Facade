@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,15 @@ sap.ui.define([
 	"sap/m/Image",
 	"./Adaptation",
 	"../Utils",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/rta/toolbar/AdaptationRenderer"
 ],
 function(
 	Image,
 	Adaptation,
 	Utils,
-	Log
+	Log,
+	AdaptationRenderer
 ) {
 	"use strict";
 
@@ -22,7 +24,7 @@ function(
 	 * This class is being assigned to the original Fiori Header Toolbar when RTA Toolbar shows
 	 * @type {string}
 	 */
-	var FIORI_HIDDEN_CLASS = 'sapUiRtaFioriHeaderInvisible';
+	const FIORI_HIDDEN_CLASS = "sapUiRtaFioriHeaderInvisible";
 
 	/**
 	 * Constructor for a new sap.ui.rta.toolbar.Fiori control
@@ -32,55 +34,64 @@ function(
 	 * @extends sap.ui.rta.toolbar.Adaptation
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.48
 	 * @alias sap.ui.rta.toolbar.Fiori
-	 * @experimental Since 1.48. This class is experimental. API might be changed in future.
 	 */
-	var Fiori = Adaptation.extend("sap.ui.rta.toolbar.Fiori", {
-		renderer: 'sap.ui.rta.toolbar.AdaptationRenderer',
-		type: 'fiori'
+	const Fiori = Adaptation.extend("sap.ui.rta.toolbar.Fiori", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				ushellApi: {
+					type: "any", // sap.ushell.api.RTA
+					defaultValue: null
+				}
+			}
+		},
+		renderer: AdaptationRenderer,
+		type: "fiori"
 	});
 
-	Fiori.prototype.init = function () {
+	Fiori.prototype.init = function(...aArgs) {
 		this._oRenderer = Utils.getFiori2Renderer();
-		this._oFioriHeader = this._oRenderer.getRootControl().getOUnifiedShell().getHeader();
-		Adaptation.prototype.init.apply(this, arguments);
+		this._oFioriHeader = this._oRenderer.getRootControl().getShellHeader();
+		Adaptation.prototype.init.apply(this, aArgs);
 	};
 
-	Fiori.prototype.show = function () {
+	Fiori.prototype.show = function(...aArgs) {
 		this._oFioriHeader.addStyleClass(FIORI_HIDDEN_CLASS);
-
-		return Adaptation.prototype.show.apply(this, arguments);
+		return Adaptation.prototype.show.apply(this, aArgs);
 	};
 
-	Fiori.prototype.buildControls = function () {
-		return Adaptation.prototype.buildControls.apply(this, arguments).then(function (aControls) {
-			var sLogoPath = this._oFioriHeader.getLogo();
+	Fiori.prototype.buildControls = function(...aArgs) {
+		return Adaptation.prototype.buildControls.apply(this, aArgs).then(function(aControls) {
+			const sLogoPath = this.getUshellApi().getLogo();
 
-			if (this._oFioriHeader.getShowLogo() && sLogoPath) {
+			if (sLogoPath) {
 				// Unstable: if FLP changes ID of <img> element, logo could be not found
-				var $logo = this._oFioriHeader.$().find('#shell-header-icon');
-				var iWidth;
-				var iHeight;
+				const oLogo = this._oFioriHeader.getDomRef().querySelector("#shell-header-icon");
+				let iWidth;
+				let iHeight;
 
-				if ($logo.length) {
-					iWidth = $logo.width();
-					iHeight = $logo.height();
-					this._checkLogoSize($logo, iWidth, iHeight);
+				if (oLogo) {
+					iWidth = oLogo.getBoundingClientRect().width;
+					iHeight = oLogo.getBoundingClientRect().height;
+					this._checkLogoSize(oLogo, iWidth, iHeight);
 				}
 
-				this.getControl("iconSpacer").setWidth("10%");
+				this.getControl("iconSpacer").setWidth("8px");
+				this._iLogoWidth = iWidth + 8;
 
 				// first control is the left HBox
 				this.getControl("iconBox").addItem(
-					new Image(this.getId() + "_fragment--sapUiRta_icon", {
+					new Image(`${this.getId()}_fragment--sapUiRta_icon`, {
 						src: sLogoPath,
-						width: iWidth ? iWidth + 'px' : iWidth,
-						height: iHeight ? iHeight + 'px' : iHeight
+						// type check required cause of image could have zero width and height
+						width: typeof iWidth === "number" ? `${iWidth}px` : iWidth,
+						height: typeof iHeight === "number" ? `${iHeight}px` : iHeight
 					})
 				);
 			}
@@ -88,35 +99,77 @@ function(
 		}.bind(this));
 	};
 
-	Fiori.prototype.hide = function () {
-		return Adaptation.prototype.hide.apply(this, arguments)
-		.then(function () {
+	/**
+	 * @inheritDoc
+	 */
+	Fiori.prototype.hide = function(...aArgs) {
+		return Adaptation.prototype.hide.apply(this, aArgs)
+		.then(function() {
 			this._oFioriHeader.removeStyleClass(FIORI_HIDDEN_CLASS);
 		}.bind(this));
 	};
 
-	Fiori.prototype._checkLogoSize = function($logo, iWidth, iHeight) {
-		var iNaturalWidth = $logo.get(0).naturalWidth;
-		var iNaturalHeight = $logo.get(0).naturalHeight;
+	Fiori.prototype._checkLogoSize = function(oLogo, iWidth, iHeight) {
+		const iNaturalWidth = oLogo.naturalWidth;
+		const iNaturalHeight = oLogo.naturalHeight;
 
-		if (iWidth !== iNaturalWidth || iHeight !== iNaturalHeight) {
+		if (Math.round(iWidth) !== iNaturalWidth || Math.round(iHeight) !== iNaturalHeight) {
 			Log.error([
 				"sap.ui.rta: please check Fiori Launchpad logo, expected size is",
-				iWidth + "x" + iHeight + ",",
-				"but actual is " + iNaturalWidth + "x" + iNaturalHeight
-			].join(' '));
+				`${iWidth}x${iHeight},`,
+				`but actual is ${iNaturalWidth}x${iNaturalHeight}`
+			].join(" "));
 		}
 	};
 
-	Fiori.prototype.destroy = function () {
-		// In case of destroy() without normal hide() call.
+	Fiori.prototype._restoreHiddenElements = function() {
+		if (this._iLogoVisibilityLimit && window.innerWidth > this._iLogoVisibilityLimit) {
+			this._setLogoVisibility(true);
+			delete this._iLogoVisibilityLimit;
+		}
+		Adaptation.prototype._restoreHiddenElements.apply(this);
+	};
+
+	Fiori.prototype._hideElementsOnIntersection = function(...aArgs) {
+		const [sSectionName, aEntries] = aArgs;
+		let bWiderThanLogo;
+
+		if (aEntries[0].intersectionRatio === 0) {
+			this.adjustToolbarSectionWidths();
+			this._observeIntersections();
+			return;
+		}
+		if (aEntries[0].intersectionRatio < 1) {
+			if (
+				!this._iLogoVisibilityLimit
+				&& sSectionName === Adaptation.LEFT_SECTION
+			) {
+				const iHiddenWidth = aEntries[0].boundingClientRect.width - aEntries[0].intersectionRect.width;
+				bWiderThanLogo = iHiddenWidth > this._iLogoWidth;
+				this._iLogoVisibilityLimit = this._calculateWindowWidth(aEntries);
+				this._setLogoVisibility(false);
+				if (bWiderThanLogo) {
+					Adaptation.prototype._hideElementsOnIntersection.apply(this, aArgs);
+				}
+				return;
+			}
+		}
+		Adaptation.prototype._hideElementsOnIntersection.apply(this, aArgs);
+	};
+
+	Fiori.prototype._setLogoVisibility = function(bVisible) {
+		const oIconBox = this.getControl("iconBox");
+		const oIconSpacer = this.getControl("iconSpacer");
+		oIconBox.setVisible(bVisible);
+		oIconSpacer.setVisible(bVisible);
+	};
+
+	Fiori.prototype.destroy = function(...aArgs) {
+		// In case of destroy() without normal hide() call
 		this._oFioriHeader.removeStyleClass(FIORI_HIDDEN_CLASS);
 
-		delete this._oRenderer;
-		delete this._oFioriHeader;
-
-		Adaptation.prototype.destroy.apply(this, arguments);
+		Adaptation.prototype.destroy.apply(this, aArgs);
 	};
 
 	return Fiori;
-}, true);
+});

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -10,13 +10,13 @@ sap.ui.define([
 ], function(SupportHelper, SupportLibrary, Log) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	/*
 	 * Checks for No Deviating units issue in AnalyticalBinding
 	 */
-	var oAnalyticsNoDeviatingUnits = SupportHelper.normalizeRule({
+	const oAnalyticsNoDeviatingUnits = SupportHelper.normalizeRule({
 		id: "AnalyticsNoDeviatingUnits",
 		minversion: "1.38",
 		categories: [Categories.Bindings],
@@ -25,25 +25,25 @@ sap.ui.define([
 					 + "expects to receive just one record",
 		resolution: "Adjust the service implementation.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.AnalyticalTable");
-			var sAnalyticalErrorId = "NO_DEVIATING_UNITS";
-			var oIssues = {};
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.AnalyticalTable");
+			const sAnalyticalErrorId = "NO_DEVIATING_UNITS";
+			const oIssues = {};
 
 			SupportHelper.checkLogEntries(function(oLogEntry) {
 				// Filter out totally irrelevant issues
-				if (oLogEntry.level != Log.Level.ERROR && oLogEntry.level != Log.Level.FATAL) {
+				if (oLogEntry.level !== Log.Level.ERROR && oLogEntry.level !== Log.Level.FATAL) {
 					return false;
 				}
-				var oInfo = oLogEntry.supportInfo;
+				const oInfo = oLogEntry.supportInfo;
 				return oInfo && oInfo.type === "sap.ui.model.analytics.AnalyticalBinding" && oInfo.analyticalError === sAnalyticalErrorId;
 
 			}, function(oLogEntry) {
 				// Check the remaining Issues
-				var sBindingId = oLogEntry.supportInfo.analyticalBindingId;
+				const sBindingId = oLogEntry.supportInfo.analyticalBindingId;
 				if (sBindingId && !oIssues[sAnalyticalErrorId + "-" + sBindingId]) {
-					var oBinding;
-					for (var i = 0; i < aTables.length; i++) {
-						oBinding = aTables[i].getBinding("rows");
+					let oBinding;
+					for (let i = 0; i < aTables.length; i++) {
+						oBinding = aTables[i].getBinding();
 						if (oBinding && oBinding.__supportUID === sBindingId) {
 							oIssues[sAnalyticalErrorId + "-" + sBindingId] = true; // Ensure is only reported once
 							SupportHelper.reportIssue(oIssueManager, "Analytical Binding reports 'No deviating units found...'",

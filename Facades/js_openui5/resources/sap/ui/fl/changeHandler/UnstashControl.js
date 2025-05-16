@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log"],function(L){"use strict";var U={};U.applyChange=function(c,C,p){var m=c.getContent();var M=p.modifier;var s=false;c.setRevertData({originalValue:p.modifier.getStashed(C)});var u=M.setStashed(C,s,p.appComponent)||C;if(m.parentAggregationName){var t=m.parentAggregationName;var T=M.getParent(u);M.removeAggregation(T,t,u);M.insertAggregation(T,t,u,m.index,p.view);}return u;};U.revertChange=function(c,C,p){var r=c.getRevertData();if(r){p.modifier.setStashed(C,r.originalValue);c.resetRevertData();}else{L.error("Attempt to revert an unapplied change.");return false;}return true;};U.completeChangeContent=function(c,s){var C=c.getDefinition();if(s.content){C.content=s.content;}};U.getCondenserInfo=function(c){return{affectedControl:c.getSelector(),classification:sap.ui.fl.condenser.Classification.Reverse,uniqueKey:"stashed"};};return U;},true);
+sap.ui.define(["sap/ui/fl/changeHandler/condenser/Classification"],function(e){"use strict";const t={};t.applyChange=async function(e,t,n){const a=e.getContent();const o=n.modifier;const i=await o.getStashed(t);e.setRevertData({originalValue:i});const s=await o.setStashed(t,false,n.appComponent)||t;if(a.parentAggregationName){const e=a.parentAggregationName;const t=o.getParent(s);await o.moveAggregation(t,e,t,e,s,a.index,n.view)}return s};t.revertChange=async function(e,t,n){const a=e.getRevertData();await n.modifier.setStashed(t,a.originalValue);e.resetRevertData()};t.completeChangeContent=function(e,t){if(t.content){e.setContent(t.content)}};t.getCondenserInfo=function(t){return{affectedControl:t.getSelector(),classification:e.Reverse,uniqueKey:"stashed"}};return t});
+//# sourceMappingURL=UnstashControl.js.map

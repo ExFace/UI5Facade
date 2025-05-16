@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,10 +8,11 @@
 sap.ui.define([
 	'sap/ui/core/Element',
 	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/core/Lib",
 	'sap/ui/core/theming/Parameters',
-	'sap/ui/layout/library',
-	"sap/base/Log"
-	], function(Element, ManagedObjectObserver, Parameters, library, Log) {
+	'./FormHelper',
+	'sap/base/Log'
+], function(Element, ManagedObjectObserver, Library, Parameters, FormHelper, Log) {
 	"use strict";
 
 
@@ -28,13 +29,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.0
 	 * @alias sap.ui.layout.form.FormContainer
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var FormContainer = Element.extend("sap.ui.layout.form.FormContainer", /** @lends sap.ui.layout.form.FormContainer.prototype */ { metadata : {
 
@@ -83,6 +83,10 @@ sap.ui.define([
 			 * If a <code>Title</code> element is used, the style of the title can be set.
 			 *
 			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+			 *
+			 * <b>Note:</b> If the title is provided as a string, the title is rendered with a theme-dependent default level.
+			 * As the <code>Form</code> control cannot know the structure of the page, this might not fit the page structure.
+			 * In this case provide the title using a <code>Title</code> element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
 			 */
 			title : {type : "sap.ui.core.Title", altTypes : ["string"], multiple : false},
 
@@ -92,6 +96,7 @@ sap.ui.define([
 			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
 			 * If a title is needed inside the <code>Toolbar</code> it must be added at content to the <code>Toolbar</code>.
 			 * In this case add the <code>Title</code> to the <code>ariaLabelledBy</code> association.
+			 * Use the right title level to meet the visual requirements. This might be theme-dependent.
 			 * @since 1.36.0
 			 */
 			toolbar : {type : "sap.ui.core.Toolbar", multiple : false},
@@ -108,6 +113,10 @@ sap.ui.define([
 			 *
 			 * <b>Note:</b> This attribute is only rendered if the <code>FormContainer</code> has it's own
 			 * DOM representation in the used <code>FormLayout</code>.
+			 *
+			 * <b>Note:</b> If there is more than one <code>FormContainers</code>, every <code>FormContainer</code> needs to have some title or label
+			 * (at least for screen reader support).
+			 * If no <code>Title</code> is set, a label or title needs to be assigned using the <code>ariaLabelledBy</code> association.
 			 * @since 1.36.0
 			 */
 			ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
@@ -117,7 +126,10 @@ sap.ui.define([
 
 	FormContainer.prototype.init = function(){
 
-		this._rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.layout");
+		this._oInitPromise = FormHelper.init(); // check for used library and request needed controls
+
+
+		this._rb = Library.getResourceBundleFor("sap.ui.layout");
 
 		this._oObserver = new ManagedObjectObserver(this._observeChanges.bind(this));
 
@@ -144,9 +156,14 @@ sap.ui.define([
 
 		if (bExpandable) {
 			if (!this._oExpandButton) {
-				if (!this._bExpandButtonRequired) {
-					this._bExpandButtonRequired = true;
-					library.form.FormHelper.createButton.call(this, this.getId() + "--Exp", _handleExpButtonPress, _expandButtonCreated);
+				if (this._oInitPromise) {
+					// module needs to be loaded -> create Button async
+					this._oInitPromise.then(function () {
+						delete this._oInitPromise; // not longer needed as resolved
+						_expandButtonCreated.call(this, FormHelper.createButton(this.getId() + "--Exp", _handleExpButtonPress, this));
+					}.bind(this));
+				} else {
+					_expandButtonCreated.call(this, FormHelper.createButton(this.getId() + "--Exp", _handleExpButtonPress, this));
 				}
 			} else {
 				_setExpanderIcon.call(this);
@@ -178,10 +195,20 @@ sap.ui.define([
 
 	FormContainer.prototype.setToolbar = function(oToolbar) {
 
-		// for sap.m.Toolbar Auto-design must be set to transparent
-		oToolbar = library.form.FormHelper.setToolbar.call(this, oToolbar);
+		const oOldToolbar = this.getToolbar();
 
-		this.setAggregation("toolbar", oToolbar);
+		this.setAggregation("toolbar", oToolbar); // set Toolbar synchronously as later on only the design might be changed (set it first to check validity)
+
+		// for sap.m.Toolbar Auto-design must be set to transparent
+		if (this._oInitPromise) {
+			// module needs to be loaded -> create Button async
+			this._oInitPromise.then(function () {
+				delete this._oInitPromise; // not longer needed as resolved
+				oToolbar = FormHelper.setToolbar(oToolbar, oOldToolbar); // Toolbar is only changes, so no late set is needed.
+			}.bind(this));
+		} else {
+			oToolbar = FormHelper.setToolbar(oToolbar, oOldToolbar);
+		}
 
 		return this;
 
@@ -236,7 +263,7 @@ sap.ui.define([
 	 * As Elements must not have a DOM reference it is not sure if one exists
 	 * If the FormContainer has a DOM representation this function returns it,
 	 * independent from the ID of this DOM element
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	FormContainer.prototype.getRenderedDomRef = function(){
@@ -246,7 +273,7 @@ sap.ui.define([
 
 		if (oForm && oForm.getContainerRenderedDomRef) {
 			return oForm.getContainerRenderedDomRef(that);
-		}else {
+		} else  {
 			return null;
 		}
 
@@ -257,7 +284,7 @@ sap.ui.define([
 	 * If the FormElement has a DOM representation this function returns it,
 	 * independent from the ID of this DOM element
 	 * @param {sap.ui.layout.form.FormElement} oElement FormElement
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	FormContainer.prototype.getElementRenderedDomRef = function(oElement){
@@ -266,7 +293,7 @@ sap.ui.define([
 
 		if (oForm && oForm.getElementRenderedDomRef) {
 			return oForm.getElementRenderedDomRef(oElement);
-		}else {
+		} else  {
 			return null;
 		}
 
@@ -338,6 +365,17 @@ sap.ui.define([
 
 	};
 
+	FormContainer.prototype.onThemeChanged = function() {
+		_setExpanderIcon.call(this);
+	};
+
+	function _getIconUrl(sParamName) {
+		return Parameters.get({
+			name: [sParamName],
+			_restrictedParseUrls: true
+		});
+	}
+
 	function _setExpanderIcon(){
 
 		if (!this._oExpandButton) {
@@ -347,13 +385,13 @@ sap.ui.define([
 		var sIcon, sIconHovered, sText, sTooltip;
 
 		if (this.getExpanded()) {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageDownURL');
 			sText = "-";
 			sTooltip = this._rb.getText("FORM_COLLAPSE");
 		} else {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageDownURL');
 			sText = "+";
 			sTooltip = this._rb.getText("FORM_EXPAND");
 		}
@@ -362,7 +400,7 @@ sap.ui.define([
 			sText = "";
 		}
 
-		library.form.FormHelper.setButtonContent(this._oExpandButton, sText, sTooltip, sIcon, sIconHovered);
+		FormHelper.setButtonContent(this._oExpandButton, sText, sTooltip, sIcon, sIconHovered);
 
 	}
 

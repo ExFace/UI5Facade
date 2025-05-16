@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,8 +16,7 @@ sap.ui.define(function() {
 	 * @namespace
 	 * @name sap.ui.dt.SelectionMode
 	 * @author SAP SE
-	 * @version 1.82.0
-	 * @experimental This class is experimental and provides only limited functionality. Also the API might be changed in future.
+	 * @version 1.136.0
 	 * @private
 	 */
 	return {
@@ -25,13 +24,13 @@ sap.ui.define(function() {
 		 * Select multiple overlays at a time.
 		 * @public
 		 */
-		Multi : "Multi",
+		Multi: "Multi",
 
 		/**
 		 * Select one overlay at a time.
 		 * @public
 		 */
-		Single : "Single"
+		Single: "Single"
 
 	};
 }, /* bExport= */ true);

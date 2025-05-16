@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,8 @@ sap.ui.define([
     'sap/ui/dom/containsOrEquals',
     'sap/ui/events/ControlEvents',
     'sap/ui/Device',
-    'sap/base/security/encodeXML'
+    'sap/base/security/encodeXML',
+    'sap/ui/core/Configuration'
 ],
 	function(
 	    jQuery,
@@ -40,7 +41,8 @@ sap.ui.define([
 		containsOrEquals,
 		ControlEvents,
 		Device,
-		encodeXML
+		encodeXML,
+		Configuration
 	) {
 	"use strict";
 
@@ -62,16 +64,16 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38.
 	 * @alias sap.ui.ux3.ExactList
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ExactList = Control.extend("sap.ui.ux3.ExactList", /** @lends sap.ui.ux3.ExactList.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -135,6 +137,9 @@ sap.ui.define([
 
 	//Private extension of the ListBox control
 	ListBox.extend("sap.ui.ux3.ExactList.LB", {
+		metadata: {
+			library: "sap.ui.ux3"
+		},
 		init : function() {
 			ListBox.prototype.init.apply(this, arguments);
 			this.setAllowMultiSelect(true);
@@ -317,7 +322,7 @@ sap.ui.define([
 			return;
 		}
 
-		this._bRTL = sap.ui.getCore().getConfiguration().getRTL();
+		this._bRTL = Configuration.getRTL();
 
 		//Init the open animation (like expand, no Open Animation when the control is the top list)
 		if (!this._isTop()) {
@@ -1486,7 +1491,7 @@ sap.ui.define([
 	 *             a negative value of <code>iIndex</code>, the subList is inserted at position 0; for a value
 	 *             greater than the current size of the aggregation, the subList is inserted at
 	 *             the last position
-	 * @return {sap.ui.ux3.ExactList} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 
@@ -1496,7 +1501,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.ux3.ExactList}
 	 *            oSubList the subList to add; if empty, nothing is inserted
-	 * @return {sap.ui.ux3.ExactList} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 
@@ -1528,7 +1533,7 @@ sap.ui.define([
 	/**
 	 * Destroys all the subLists in the aggregation
 	 * named <code>subLists</code>.
-	 * @return {sap.ui.ux3.ExactList} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 

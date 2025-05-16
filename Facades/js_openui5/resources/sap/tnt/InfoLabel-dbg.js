@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.tnt.InfoLabel
 sap.ui.define([
 	"./library",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
 	"./InfoLabelRenderer"
-], function (library, CoreLibrary, Control, Core, InfoLabelRenderer) {
+], function(library, ControlBehavior, Library, CoreLibrary, Control, InfoLabelRenderer) {
 	"use strict";
 
 	// shortcut for library.RenderMode
@@ -31,7 +32,7 @@ sap.ui.define([
 	 *
 	 * <h3>Overview</h3>
 	 *
-	 * The control visualizes text information without user interaction. The text inside the control is always in upper case. It can have smaller or larger side paddings which can be specified by the <code>renderMode</code> property.
+	 * The control visualizes text information without user interaction.
 	 * The  text-background color pair can be changed by setting a number between 1 and 10 that corresponds to the 10 predefined color combinations of the <code>colorScheme</code> property.
 	 * The control is designed to be vertically aligned with UI5 Input and Button control families.
 	 * When using <code>InfoLabel</code> in non-editable <code>Forms</code>, <code>Tables</code>, etc., set <code>displayOnly=true</code> for best visual results.
@@ -40,20 +41,19 @@ sap.ui.define([
 	 * <ul>
 	 * <li>If the text is longer than the width of the control, it doesn’t wrap. Instead, it’s represented as ellipsis. </li>
 	 * <li>When truncated, the full text in the control is not visible. Therefore, it’s recommended to make more space for longer items to be fully displayed.</li>
-	 * <li>Colors are not semantic and have no visual representation in sap_belize_hcb and sap_belize_hcw themes.</li>
+	 * <li>Colors are not semantic and have no visual representation in sap_belize_hcb, sap_belize_hcw, sap_fiori_3_hcb and sap_fiori_3_hcw themes.</li>
 	 * <li>The control shows plain text only, formatting is not visualized.</li>
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.54
 	 * @alias sap.tnt.InfoLabel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var InfoLabel = Control.extend("sap.tnt.InfoLabel", /** @lends sap.tnt.InfoLabel.prototype */ {
 		metadata: {
@@ -65,17 +65,18 @@ sap.ui.define([
 				/**
 				 * Specifies the text inside the <code>InfoLabel</code> control.
 				 */
-				text: { type: "string", defaultValue: "", bindable: "bindable" },
+				text: { type: "string", group: "Data", defaultValue: "", bindable: "bindable" },
 				/**
 				 * Specifies the type of the <code>InfoLabel</code> paddings - loose or narrow.
 				 * <b>Note:</b> By default the padding is loose. It is recommended to use narrow (smaller) paddings for numeric texts.
+				 * <b>Note:</b> In Horizon theme there is only one mode and setting this property will not have effect.
 				 */
 				renderMode: { type: "sap.tnt.RenderMode", defaultValue: RenderMode.Loose, group: "Appearance" },
 				/**
 				 * Specifies the fill and text color of the control. Accepts a number between 1 and 10 as a value.
 				 * You can choose from 10 predefined background and text color combinations.
 				 * The color schemes are non-semantic, you can select them according to your own preferences.
-				 * <b>Note:</b> ColorScheme 10 is available only in Fiori 3 theme.
+				 * <b>Note:</b> ColorScheme 10 is available only in Fiori 3 and Horizon themes.
 				 * The default <code>colorScheme</code> is 7.
 				 */
 				colorScheme: { type: "int", group: "Misc", defaultValue: 7 },
@@ -104,13 +105,15 @@ sap.ui.define([
 				icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue: "" }
 
 			}
-		}
+		},
+
+		renderer: InfoLabelRenderer
 	});
 
 	InfoLabel.prototype.init = function () {
 		// Init static text for ARIA
-		if (Core.getConfiguration().getAccessibility() && !InfoLabelRenderer._sAriaText) {
-			var oRB = Core.getLibraryResourceBundle("sap.tnt");
+		if (ControlBehavior.isAccessibilityEnabled() && !InfoLabelRenderer._sAriaText) {
+			var oRB = Library.getResourceBundleFor("sap.tnt");
 			InfoLabelRenderer._sAriaText = oRB.getText("INFOLABEL_DEFAULT");
 			InfoLabelRenderer._sAriaTextEmpty = oRB.getText("INFOLABEL_EMPTY");
 		}

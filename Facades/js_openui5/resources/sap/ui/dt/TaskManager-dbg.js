@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,13 +21,12 @@ function(
 	 * The TaskManager keeps list of task and allows to manage them via simple API.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.54
 	 * @alias sap.ui.dt.TaskManager
-	 * @experimental Since 1.54. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var TaskManager = ManagedObject.extend("sap.ui.dt.TaskManager", {
 		metadata: {
@@ -51,8 +50,9 @@ function(
 				}
 			}
 		},
-		constructor: function () {
-			ManagedObject.apply(this, arguments);
+		// eslint-disable-next-line object-shorthand
+		constructor: function(...aArgs) {
+			ManagedObject.apply(this, aArgs);
 			this._mQueuedTasks = {};
 			this._mPendingTasks = {};
 		},
@@ -65,7 +65,7 @@ function(
 		_iTaskCounter: 0
 	});
 
-	TaskManager.prototype._validateTask = function(mTask) {
+	function validateTask(mTask) {
 		if (
 			!isPlainObject(mTask)
 			|| !mTask.type
@@ -73,41 +73,55 @@ function(
 		) {
 			throw new Error("Invalid task specified");
 		}
-	};
+	}
 
-	TaskManager.prototype._removeOutdatedTasks = function(mTask, vDoubleIdentifier) {
-		if (vDoubleIdentifier) {
-			var fnDoubleIdentifier;
-			if (typeof vDoubleIdentifier === "string") {
-				fnDoubleIdentifier = function (mTask) { return mTask[vDoubleIdentifier]; };
-			} else if (typeof vDoubleIdentifier === "function") {
-				fnDoubleIdentifier = vDoubleIdentifier;
-			} else {
-				throw new Error("Validator needs to be a function or a string");
-			}
-			var aTaskList = this._mQueuedTasks[mTask.type];
-			var sNewTaskIdentifier = fnDoubleIdentifier(mTask);
-			if (
-				aTaskList
-				&& sNewTaskIdentifier
-			) {
-				this._mQueuedTasks[mTask.type] = aTaskList.filter(function (oTask) {
-					if (fnDoubleIdentifier(oTask) === sNewTaskIdentifier) {
-						this._iTaskCounter--;
-						return false;
-					}
-					return true;
-				}.bind(this));
+	function getTaskIdentifierFunction(vTaskIdentifier) {
+		var fnTaskIdentifier;
+		if (typeof vTaskIdentifier === "string") {
+			fnTaskIdentifier = function(mTask) { return mTask[vTaskIdentifier]; };
+		} else if (typeof vTaskIdentifier === "function") {
+			fnTaskIdentifier = vTaskIdentifier;
+		} else {
+			throw new Error("Validator needs to be a function or a string");
+		}
+		return fnTaskIdentifier;
+	}
+
+	function filterTasks(fnTaskIdentifier, sNewTaskIdentifier, oTask) {
+		if (fnTaskIdentifier(oTask) === sNewTaskIdentifier) {
+			this._iTaskCounter--;
+			return false;
+		}
+		return true;
+	}
+
+	TaskManager.prototype._removeTasksByIdentifier = function(mTask, vTaskIdentifier, sListName) {
+		if (vTaskIdentifier) {
+			var fnTaskIdentifier = getTaskIdentifierFunction(vTaskIdentifier);
+			var sNewTaskIdentifier = fnTaskIdentifier(mTask);
+			if (this[sListName][mTask.type] && sNewTaskIdentifier) {
+				this[sListName][mTask.type] = this[sListName][mTask.type]
+				.filter(filterTasks.bind(this, fnTaskIdentifier, sNewTaskIdentifier));
 			}
 		}
 	};
 
+	TaskManager.prototype._removeTaskById = function(iTaskId, sListName) {
+		Object.keys(this[sListName]).forEach(function(sTypeName) {
+			this[sListName][sTypeName] = this[sListName][sTypeName].filter(function(mTask) {
+				if (mTask.id === iTaskId) {
+					this._iTaskCounter--;
+					return false;
+				}
+				return true;
+			}.bind(this));
+		}, this);
+	};
+
 	TaskManager.prototype._addTask = function(mTask) {
 		var iTaskId = this._iNextId++;
-		this._mQueuedTasks[mTask.type] = this._mQueuedTasks[mTask.type] || [];
-		this._mQueuedTasks[mTask.type].push(Object.assign({}, mTask, {
-			id: iTaskId
-		}));
+		this._mQueuedTasks[mTask.type] ||= [];
+		this._mQueuedTasks[mTask.type].push({ ...mTask, id: iTaskId });
 		this._iTaskCounter++;
 		if (!this.getSuppressEvents()) {
 			this.fireAdd({
@@ -126,30 +140,17 @@ function(
 	 * by <code>vDoubleIdentifier</code> are removed before adding the new task.
 	 * @return {number} Task ID
 	 */
-	TaskManager.prototype.add = function (mTask, vDoubleIdentifier) {
-		this._validateTask(mTask);
-		this._removeOutdatedTasks(mTask, vDoubleIdentifier);
+	TaskManager.prototype.add = function(mTask, vDoubleIdentifier) {
+		validateTask(mTask);
+		this._removeTasksByIdentifier(mTask, vDoubleIdentifier, "_mQueuedTasks");
 		return this._addTask(mTask);
-	};
-
-	TaskManager.prototype._removeTaskById = function (iTaskId, sListName) {
-		Object.keys(this[sListName]).forEach(function (sTypeName) {
-			this[sListName][sTypeName] = this[sListName][sTypeName].filter(function (mTask) {
-				if (mTask.id === iTaskId) {
-					this._iTaskCounter--;
-					return false;
-				}
-				return true;
-			}.bind(this));
-		}, this);
 	};
 
 	/**
 	 * Completes the task by its ID
 	 * @param {number} iTaskId - Task ID
 	 */
-	TaskManager.prototype.complete = function (iTaskId) {
-		// TODO: performance improvements?
+	TaskManager.prototype.complete = function(iTaskId) {
 		this._removeTaskById(iTaskId, "_mQueuedTasks");
 		this._removeTaskById(iTaskId, "_mPendingTasks");
 		if (!this.getSuppressEvents()) {
@@ -165,12 +166,12 @@ function(
 	 * @param {object} mTask - Task definition map
 	 * @param {object} mTask.type - Task type
 	 */
-	TaskManager.prototype.completeBy = function (mTask) {
-		this._validateTask(mTask);
+	TaskManager.prototype.completeBy = function(mTask) {
+		validateTask(mTask);
 		var aCompledTaskIds = [];
 		// TODO: get rid of filtering other task parameters then type for performance reasons
-		var _removeTasksByDefinition = function (aTasks) {
-			return (aTasks || []).filter(function (mLocalTask) {
+		var _removeTasksByDefinition = function(aTasks) {
+			return (aTasks || []).filter(function(mLocalTask) {
 				var bCompleteTask = Object.keys(mTask).every(function(sKey) {
 					return mLocalTask[sKey] && mLocalTask[sKey] === mTask[sKey];
 				});
@@ -195,15 +196,28 @@ function(
 	 * Cancels the task by its ID
 	 * @param {number} iTaskId - Task ID
 	 */
-	TaskManager.prototype.cancel = function (iTaskId) {
+	TaskManager.prototype.cancel = function(iTaskId) {
 		this.complete(iTaskId);
+	};
+
+	/**
+	 * Cancels the task typespecific by its parameters defined by the callbackfunction
+	 *
+	 * @param {object} mTask - Task definition map
+	 * @param {string} mTask.type - Task type
+	 * @param {string} sTaskIdentifier - Identifier for tasks in <code>TaskManager</code> related to the specific task type.
+	 *  The existing tasks that are identified by <code>sTaskIdentifier</code> are removed
+	 */
+	TaskManager.prototype.cancelBy = function(mTask, sTaskIdentifier) {
+		this._removeTasksByIdentifier(mTask, sTaskIdentifier, "_mQueuedTasks");
+		this._removeTasksByIdentifier(mTask, sTaskIdentifier, "_mPendingTasks");
 	};
 
 	/**
 	 * Checks if the queue is empty
 	 * @return {boolean} <code>true</code> if there is no pending task
 	 */
-	TaskManager.prototype.isEmpty = function () {
+	TaskManager.prototype.isEmpty = function() {
 		return this._iTaskCounter === 0;
 	};
 
@@ -212,16 +226,16 @@ function(
 	 * @param {string} [sType] - type of pending tasks to be counted. When <code>undefined</code> the count will be returned for all tasks
 	 * @return {number} Amount of tasks
 	 */
-	TaskManager.prototype.count = function (sType) {
+	TaskManager.prototype.count = function(sType) {
 		return this.getList(sType).length;
 	};
 
-	TaskManager.prototype._markAsPending = function (sType, aTasks) {
+	TaskManager.prototype._markAsPending = function(sType, aTasks) {
 		this._mPendingTasks[sType] = (this._mPendingTasks[sType] || []).concat(aTasks);
 		this._mQueuedTasks[sType] = [];
 	};
 
-	TaskManager.prototype._getTypedList = function (sTaskType, bMarkAsPending) {
+	TaskManager.prototype._getTypedList = function(sTaskType, bMarkAsPending) {
 		var aTasks = [];
 		if (this._mQueuedTasks[sTaskType]) {
 			aTasks = this._mQueuedTasks[sTaskType].slice(0);
@@ -234,7 +248,7 @@ function(
 		return aTasks;
 	};
 
-	TaskManager.prototype._getAllTasks = function (bMarkAsPending) {
+	TaskManager.prototype._getAllTasks = function(bMarkAsPending) {
 		var aAllTasks = [];
 		aAllTasks = Object.keys(this._mQueuedTasks).reduce(function(aResult, _sType) {
 			aResult = aResult.concat(this._mQueuedTasks[_sType]);
@@ -258,7 +272,7 @@ function(
 	 * @param {string} [sType] - type of tasks to be returned. When <code>undefined</code> all tasks will be returned
 	 * @return {array} List copy of pending tasks
 	 */
-	TaskManager.prototype.getList = function (sType) {
+	TaskManager.prototype.getList = function(sType) {
 		if (sType) {
 			return this._getTypedList(sType, false);
 		}
@@ -271,7 +285,7 @@ function(
 	 * @param {string} [sType] - type of tasks to be returned. When <code>undefined</code> all open (queued) tasks will be returned
 	 * @return {array} List copy of open (queued) tasks
 	 */
-	TaskManager.prototype.getQueuedTasks = function (sType) {
+	TaskManager.prototype.getQueuedTasks = function(sType) {
 		if (sType) {
 			return this._getTypedList(sType, true);
 		}
@@ -281,12 +295,12 @@ function(
 	/**
 	 * @override
 	 */
-	TaskManager.prototype.destroy = function () {
+	TaskManager.prototype.destroy = function(...aArgs) {
 		this.setSuppressEvents(true);
-		this.getList().forEach(function (oTask) {
+		this.getList().forEach(function(oTask) {
 			this.cancel(oTask.id);
 		}, this);
-		ManagedObject.prototype.destroy.apply(this, arguments);
+		ManagedObject.prototype.destroy.apply(this, aArgs);
 	};
 
 	return TaskManager;

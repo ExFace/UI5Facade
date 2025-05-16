@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,10 @@ sap.ui.define([
     './library',
     'sap/ui/core/Control',
     'sap/ui/core/Popup',
-    './MessageListRenderer'
+    './MessageListRenderer',
+    'sap/ui/core/Configuration'
 ],
-	function(jQuery, library, Control, Popup, MessageListRenderer) {
+	function(jQuery, library, Control, Popup, MessageListRenderer, Configuration) {
 	"use strict";
 
 
@@ -26,14 +27,13 @@ sap.ui.define([
 	 * @class
 	 * Instantiated by the "MessageBar" Control if the user requests to generate the corresponding "MessageList".
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.4.0.
 	 * A new messaging concept will be created in future. Therefore this control might be removed in one of the next versions.
 	 * @alias sap.ui.commons.MessageList
-	 * @ui5-metamodel This control/element also will be described in the UI5 design-time metamodel
 	 */
 	var MessageList = Control.extend("sap.ui.commons.MessageList", /** @lends sap.ui.commons.MessageList.prototype */ { metadata : {
 
@@ -131,7 +131,7 @@ sap.ui.define([
 	 * @private
 	 */
 	MessageList.prototype.open = function() {
-		var rtl = sap.ui.getCore().getConfiguration().getRTL();
+		var rtl = Configuration.getRTL();
 
 		// Defining or fetching the Popup attributes:
 		var animationDuration = 200;
@@ -166,7 +166,6 @@ sap.ui.define([
 	 * @param {sap.ui.commons.Message[]} aMessages Message list.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 design-time metamodel
 	 */
 	MessageList.prototype.setMessages = function(aMessages) {
 		// Storing the Messages:
@@ -194,7 +193,7 @@ sap.ui.define([
 	 * in order to invoke the open() and close() of the MessageList Popup.
 	 *
 	 * @param {boolean} bVisible New value for property <code>visible</code>
-	 * @return {sap.ui.commons.MessageList} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	MessageList.prototype.setVisible = function(bVisible) {

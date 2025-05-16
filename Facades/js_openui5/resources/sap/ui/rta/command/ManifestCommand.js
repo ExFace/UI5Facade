@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/rta/command/BaseCommand","sap/ui/fl/descriptorRelated/api/DescriptorChange","sap/ui/fl/write/api/ChangesWriteAPI"],function(e,t,a){"use strict";const r=e.extend("sap.ui.rta.command.ManifestCommand",{metadata:{library:"sap.ui.rta",properties:{reference:{type:"string"},appComponent:{type:"object"},layer:{type:"string"},changeType:{type:"string"},parameters:{type:"object"},texts:{type:"object"}},events:{}}});r.prototype.needsReload=true;r.prototype.prepare=function(e){this.setLayer(e.layer);return true};r.prototype.getPreparedChange=function(){return this._oPreparedChange};r.prototype.setCompositeId=function(e){this._sCompositeId=e};r.prototype.createAndStoreChange=async function(){const e=await a.create({changeSpecificData:{changeType:this.getChangeType(),content:this.getParameters(),texts:this.getTexts(),support:{compositeCommand:this._sCompositeId||""},reference:this.getReference(),layer:this.getLayer()},selector:this.getAppComponent(),generator:"sap.ui.rta.ManifestCommand"});if(!(e instanceof t)){throw new Error(`With the given changeSpecificData, no manifest change could be created. Provided change content: ${JSON.stringify(this.getParameters())} and change type: ${this.getChangeType()}.`)}const r=e.store();this._oPreparedChange=r};return r});
+//# sourceMappingURL=ManifestCommand.js.map

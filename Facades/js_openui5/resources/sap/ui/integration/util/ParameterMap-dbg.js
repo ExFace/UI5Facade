@@ -1,13 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/core/Core'
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Locale",
+	'sap/ui/core/date/UI5Date'
 ], function(
-	Core
+	Localization,
+	Locale,
+	UI5Date
 ) {
 	"use strict";
 
@@ -32,7 +36,7 @@ sap.ui.define([
 	 */
 	function getTimeIso() {
 
-		return new Date().toISOString();
+		return UI5Date.getInstance().toISOString();
 	}
 
 	/**
@@ -42,7 +46,7 @@ sap.ui.define([
 	 */
 	function getDateIso () {
 
-		return new Date().toISOString().slice(0, 10);
+		return UI5Date.getInstance().toISOString().slice(0, 10);
 	}
 
 	/**
@@ -52,7 +56,7 @@ sap.ui.define([
 	 */
 	function getLocale() {
 
-		return Core.getConfiguration().getLocale().toString();
+		return new Locale(Localization.getLanguageTag()).toString();
 	}
 
 	/**
@@ -73,6 +77,20 @@ sap.ui.define([
 		});
 
 		return sPlaceholder;
+	};
+
+	ParameterMap.getParamsForModel = function () {
+
+		var oParameters = {};
+
+		for (var parameter in mParameters) {
+
+			var iIndexStart = parameter.indexOf("."),
+			iIndexEnd = parameter.indexOf("}");
+			oParameters[parameter.substring(iIndexStart + 1, iIndexEnd)] = mParameters[parameter]();
+		}
+
+		return oParameters;
 	};
 
 	return ParameterMap;

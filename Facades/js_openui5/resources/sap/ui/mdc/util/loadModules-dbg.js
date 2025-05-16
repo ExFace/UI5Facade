@@ -1,21 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/base/SyncPromise",
-	"sap/base/assert"
-], function(
+	"sap/ui/base/SyncPromise", "sap/base/assert"
+], (
 	SyncPromise,
 	assert
-) {
+) => {
 	"use strict";
 
 	/* global Map */
 
 	/**
-	 * Loads the given module(s).
+	 * @class Loads the given module(s).
 	 *
 	 * @example <caption>Example usage of <code>loadModules</code> module</caption>
 	 *	sap.ui.define(["sap/ui/mdc/util/loadModules"], function(loadModules) {
@@ -46,7 +45,7 @@ sap.ui.define([
 	 *
 	 *	});
 	 *
-	 * @alias module:sap/ui/mdc/util/loadModules
+	 * @alias sap.ui.mdc.util.loadModules
 	 * @param {string|string[]} vModulePaths Pathname(s) of the module(s) to be loaded
 	 * @returns {SyncPromise<function[]>} A <code>Promise</code> object to be fulfilled
 	 * by an array of modules export functions.
@@ -60,43 +59,43 @@ sap.ui.define([
 	 */
 	return function loadModules(vModulePaths) {
 		assert(typeof vModulePaths === "string" || Array.isArray(vModulePaths), "vModulePaths" +
-		" param either must be a single string or an array of strings. - sap.ui.mdc.util.loadModules");
+			" param either must be a single string or an array of strings. - sap.ui.mdc.util.loadModules");
 
-		var aModulesPaths;
+		let aModulesPaths;
 
 		if (typeof vModulePaths === "string") {
-			aModulesPaths = [ vModulePaths ];
+			aModulesPaths = [vModulePaths];
 		} else {
 			aModulesPaths = vModulePaths;
 		}
 
-		var oModulesMap = new Map();
+		const oModulesMap = new Map();
 
-		aModulesPaths.forEach(function(sModulePath) {
-			var vModule = sap.ui.require(sModulePath);
+		aModulesPaths.forEach((sModulePath) => {
+			const vModule = sap.ui.require(sModulePath);
 			oModulesMap.set(sModulePath, vModule);
 		});
 
-		var aNotLoadedModulePaths = aModulesPaths.filter(function(sModulePath) {
+		const aNotLoadedModulePaths = aModulesPaths.filter((sModulePath) => {
 			return oModulesMap.get(sModulePath) === undefined;
 		});
 
 		// all required modules are already loaded
 		if (aNotLoadedModulePaths.length === 0) {
-			var aModules = Array.from(oModulesMap.values());
+			const aModules = Array.from(oModulesMap.values());
 			return SyncPromise.resolve(aModules);
 		}
 
-		return new SyncPromise(function(resolve, reject) {
+		return new SyncPromise((resolve, reject) => {
 
 			function onModulesLoadedSuccess() {
-				var aNewLoadedModules = Array.from(arguments);
+				const aNewLoadedModules = Array.from(arguments);
 
-				aNotLoadedModulePaths.forEach(function(sModulePath, iIndex) {
+				aNotLoadedModulePaths.forEach((sModulePath, iIndex) => {
 					oModulesMap.set(sModulePath, aNewLoadedModules[iIndex]);
 				});
 
-				var aModules = Array.from(oModulesMap.values());
+				const aModules = Array.from(oModulesMap.values());
 				resolve(aModules);
 			}
 

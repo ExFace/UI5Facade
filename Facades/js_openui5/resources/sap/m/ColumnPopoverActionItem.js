@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ColumnPopoverItem','sap/m/Button'],function(C,B){"use strict";var a=C.extend("sap.m.ColumnPopoverActionItem",{library:"sap.m",metadata:{properties:{icon:{type:"sap.ui.core.URI",group:"Misc",defaultValue:null},text:{type:"string",group:"Misc",defaultValue:null}},events:{press:{}}}});a.prototype._createButton=function(i,c){return new B(i,{icon:this.getIcon(),type:"Transparent",tooltip:this.getText(),visible:this.getVisible(),press:[function(e){if(c._oShownCustomContent){c._oShownCustomContent.setVisible(false);c._oShownCustomContent=null;c._cleanSelection(this);}var p=c.getAggregation("_popover");p.close();this.firePress();},this]});};return a;});
+sap.ui.define(["./ColumnPopoverItem","sap/m/Button"],function(t,e){"use strict";var o=t.extend("sap.m.ColumnPopoverActionItem",{metadata:{library:"sap.m",properties:{icon:{type:"sap.ui.core.URI",group:"Misc",defaultValue:null},text:{type:"string",group:"Misc",defaultValue:null}},events:{press:{}}}});o.prototype._createButton=function(t,o){return new e(t,{icon:this.getIcon(),type:"Transparent",tooltip:this.getText(),visible:this.getVisible(),press:[function(t){if(o._oShownCustomContent){o._oShownCustomContent.setVisible(false);o._oShownCustomContent=null;o._cleanSelection(this)}var e=o.getAggregation("_popover");e.close();this.firePress()},this]})};return o});
+//# sourceMappingURL=ColumnPopoverActionItem.js.map

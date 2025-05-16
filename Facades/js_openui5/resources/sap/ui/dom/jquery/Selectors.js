@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/thirdparty/jquery'],function(q){"use strict";function g(t,p){var d=Object.getOwnPropertyDescriptor(t,p);return d&&d.value;}
+sap.ui.define(["sap/ui/thirdparty/jquery"],function(jQuery){"use strict";function e(e,t){var r=Object.getOwnPropertyDescriptor(e,t);return r&&r.value}
 /*!
 	 * The following functions are taken from jQuery UI 1.8.17 but modified
 	 *
@@ -12,8 +12,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery'],function(q){"use strict";function g(t
 	 * http://jquery.org/license
 	 *
 	 * http://docs.jquery.com/UI
-	 */
-function v(e){var o=q(e).offsetParent();var O=false;var $=q(e).parents().filter(function(){if(this===o){O=true;}return O;});return!q(e).add($).filter(function(){return q.css(this,"visibility")==="hidden"||q.expr.pseudos.hidden(this);}).length;}function f(e,i){var n=e.nodeName.toLowerCase();if(n==="area"){var m=e.parentNode,a=m.name,b;if(!e.href||!a||m.nodeName.toLowerCase()!=="map"){return false;}b=q("img[usemap='#"+a+"']")[0];return!!b&&v(b);}return(/input|select|textarea|button|object/.test(n)?!e.disabled:n=="a"?e.href||i:i)&&v(e);}if(!g(q.expr.pseudos,"focusable")){
+	 */function t(e){var t=jQuery(e).offsetParent();var r=false;var a=jQuery(e).parents().filter(function(){if(this===t){r=true}return r});return!jQuery(e).add(a).filter(function(){return jQuery.css(this,"visibility")==="hidden"||jQuery.expr.pseudos.hidden(this)}).length}function r(e,r){var a=e.nodeName.toLowerCase();if(a==="area"){var s=e.parentNode,n=s.name,i;if(!e.href||!n||s.nodeName.toLowerCase()!=="map"){return false}i=jQuery("img[usemap='#"+n+"']")[0];return!!i&&t(i)}return(/input|select|textarea|button|object/.test(a)?!e.disabled:a=="a"?e.href||r:r)&&t(e)}if(!e(jQuery.expr.pseudos,"focusable")){
 /*!
 		 * The following function is taken from jQuery UI 1.8.17
 		 *
@@ -23,9 +22,9 @@ function v(e){var o=q(e).offsetParent();var O=false;var $=q(e).parents().filter(
 		 *
 		 * http://docs.jquery.com/UI
 		 *
-		 * But since visible is modified, focusable is different too the jQuery UI version too.
+		 * But since visible is modified, focusable is different from the jQuery UI version too.
 		 */
-q.expr.pseudos.focusable=function(e){return f(e,!isNaN(q.attr(e,"tabindex")));};}if(!g(q.expr.pseudos,"sapTabbable")){
+jQuery.expr.pseudos.focusable=function(e){return r(e,!isNaN(jQuery.attr(e,"tabindex")))}}if(!e(jQuery.expr.pseudos,"sapTabbable")){
 /*!
 		 * The following function is taken from
 		 * jQuery UI Core 1.11.1
@@ -37,4 +36,5 @@ q.expr.pseudos.focusable=function(e){return f(e,!isNaN(q.attr(e,"tabindex")));};
 		 *
 		 * http://api.jqueryui.com/category/ui-core/
 		 */
-q.expr.pseudos.sapTabbable=function(e){var t=q.attr(e,"tabindex"),i=isNaN(t);return(i||t>=0)&&f(e,!i);};}if(!g(q.expr.pseudos,"sapFocusable")){q.expr.pseudos.sapFocusable=function(e){return f(e,!isNaN(q.attr(e,"tabindex")));};}return q;});
+jQuery.expr.pseudos.sapTabbable=function(e){var t=jQuery.attr(e,"tabindex"),a=isNaN(t);return(a||t>=0)&&r(e,!a)}}if(!e(jQuery.expr.pseudos,"sapFocusable")){jQuery.expr.pseudos.sapFocusable=function(e){return r(e,!isNaN(jQuery.attr(e,"tabindex")))}}return jQuery});
+//# sourceMappingURL=Selectors.js.map

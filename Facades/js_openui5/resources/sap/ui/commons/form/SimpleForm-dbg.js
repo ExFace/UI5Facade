@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.form.SimpleForm.
 sap.ui.define([
  'sap/ui/commons/library',
+ 'sap/ui/layout/library',
  'sap/ui/layout/form/SimpleForm',
  './SimpleFormRenderer'
 ],
-	function(library, LayoutSimpleForm, SimpleFormRenderer) {
+	function(library, layoutLibrary, LayoutSimpleForm, SimpleFormRenderer) {
 	"use strict";
 
-
+	var SimpleFormLayout = layoutLibrary.form.SimpleFormLayout;
 
 	/**
 	 * Constructor for a new form/SimpleForm.
@@ -24,7 +25,7 @@ sap.ui.define([
 	 * @class
 	 * Use the SimpleForm to create a form based on title, label and fields that are stacked in the content aggregation. Add Title to start a new FormContainer(Group). Add Label to start a new row in the container. Add Input/Display controls as needed. Use LayoutData to influence the layout for special cases in the Input/Display controls.
 	 * @extends sap.ui.layout.form.SimpleForm
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -32,40 +33,26 @@ sap.ui.define([
 	 * @deprecated Since version 1.16.0.
 	 * moved to sap.ui.layout library. Please use this one.
 	 * @alias sap.ui.commons.form.SimpleForm
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SimpleForm = LayoutSimpleForm.extend("sap.ui.commons.form.SimpleForm", /** @lends sap.ui.commons.form.SimpleForm.prototype */ { metadata : {
 
 		deprecated : true,
-		library : "sap.ui.commons"
-	}});
-
-	/* Overwrite to have right "since" in there */
-
-	/**
-	* Getter for property <code>layout</code>.
-	* The FormLayout that is used to render the SimpleForm
-	*
-	* Default value is <code>ResponsiveLayout</code>
-	*
-	* @return {sap.ui.commons.form.SimpleFormLayout} the value of property <code>layout</code>
-	* @public
-	* @since 1.14
-	* @name sap.ui.commons.form.SimpleForm#getLayout
-	* @function
-	*/
-	/**
-	* Setter for property <code>layout</code>.
-	*
-	* Default value is <code>ResponsiveLayout</code>
-	*
-	* @param {sap.ui.commons.form.SimpleFormLayout} oLayout new value for property <code>layout</code>
-	* @return {sap.ui.commons.form.SimpleForm} <code>this</code> to allow method chaining
-	* @public
-	* @since 1.14
-	* @name sap.ui.commons.form.SimpleForm#setLayout
-	* @function
-	*/
+		library : "sap.ui.commons",
+		properties : {
+			/**
+			 * The <code>FormLayout</code> that is used to render the <code>SimpleForm</code>.
+			 *
+			 * We recommend using the <code>GridLayout</code> for rendering a <code>SimpleForm</code> in <code>sap.ui.commons</code> library,
+			 * as responsive layouts are not designed for this library.
+			 *
+			 * <b>Note</b> If possible, set the <code>layout</code> before adding content to prevent calculations for the default layout.
+			 *
+			 * <b>Note</b> The <code>ResponsiveLayout</code> has been deprecated and must no longer be used.
+			 * @since 1.14
+			 */
+			layout : {type : "sap.ui.layout.form.SimpleFormLayout", group : "Misc", defaultValue : SimpleFormLayout.ResponsiveLayout} // overwrite to keep old default and @since
+		}
+		}});
 
 	return SimpleForm;
 

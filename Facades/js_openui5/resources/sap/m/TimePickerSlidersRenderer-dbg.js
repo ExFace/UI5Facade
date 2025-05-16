@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device"], function(Device) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/Device", "sap/ui/core/Lib"], function(Localization, Device, Library) {
 	"use strict";
 
 	/**
@@ -19,14 +19,14 @@ sap.ui.define(["sap/ui/Device"], function(Device) {
 	 * Renders the HTML for the given {@link sap.m.TimePickerSliders} control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.TimePickerSliders} oControl An object representation of the control that should be rendered
 	 */
 	TimePickerSlidersRenderer.render = function(oRM, oControl) {
 		var aSliders = oControl.getAggregation("_columns"),
 			sLabelText = oControl.getLabelText() || "",
-			oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oRb = Library.getResourceBundleFor("sap.m"),
 			iSliderIndex,
-			bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			bRtl = Localization.getRTL();
 
 		oRM.openStart("div", oControl);
 		oRM.class("sapMTimePickerContainer");
@@ -44,7 +44,6 @@ sap.ui.define(["sap/ui/Device"], function(Device) {
 			oRM.openStart("div", oControl.getId() + "-label");
 			oRM.class("sapMTimePickerContainerLabel");
 			oRM.openEnd();
-			oRM.style("display", "block");
 			oRM.text(sLabelText);
 			oRM.close("div");
 		}

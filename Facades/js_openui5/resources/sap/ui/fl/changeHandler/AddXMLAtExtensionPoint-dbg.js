@@ -1,12 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/fl/apply/api/ExtensionPointRegistryAPI",
 	"sap/ui/fl/changeHandler/BaseAddXml"
 ], function(
+	ExtensionPointRegistryAPI,
 	BaseAddXml
 ) {
 	"use strict";
@@ -16,12 +18,19 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddXMLAtExtensionPoint
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.75
 	 * @private
-	 * @experimental Since 1.75. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
-	var AddXMLAtExtensionPoint = {};
+	const AddXMLAtExtensionPoint = {};
+
+	function calculateExtensionPointIndex(mExtensionPointInfo) {
+		let iIndex = mExtensionPointInfo.index;
+		if (mExtensionPointInfo.referencedExtensionPoint) {
+			iIndex += calculateExtensionPointIndex(mExtensionPointInfo.referencedExtensionPoint);
+		}
+		return iIndex;
+	}
 
 	/**
 	 * Adds the content of the XML fragment to the parent control of the Extension Ponint right behind the ExtensionPoint.
@@ -31,36 +40,50 @@ sap.ui.define([
 	 * @param {object} mPropertyBag Property bag
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.view Root view
-	 * @returns {boolean} <true> if the change got applied successfully
-	 * @public
+	 * @param {string} [mPropertyBag.viewId] View ID (XML Processing)
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Applyer
 	 * @name sap.ui.fl.changeHandler.AddXMLAtExtensionPoint#applyChange
 	 */
-	AddXMLAtExtensionPoint.applyChange = function (oChange, oControl, mPropertyBag) {
-		var oView = mPropertyBag.view;
-		var oModifier = mPropertyBag.modifier;
-		var oSelector = oChange.getDefinition().selector;
-		var mExtensionPointInfo = (oChange.getExtensionPointInfo && oChange.getExtensionPointInfo())
-			|| oModifier.getExtensionPointInfo(oSelector.name, oView);
+	AddXMLAtExtensionPoint.applyChange = async function(oChange, oControl, mPropertyBag) {
+		const oView = mPropertyBag.view;
+		const oModifier = mPropertyBag.modifier;
+		// during JS processing the viewId is not in the propertyBag (and should not be, as this would lead to wrong ID calculation)
+		const sViewId = mPropertyBag.viewId || oModifier.getId(oView);
+		const oSelector = oChange.getSelector();
+		const mExtensionPointInfo = oChange.getExtensionPointInfo && oChange.getExtensionPointInfo()
+			|| await oModifier.getExtensionPointInfo(oSelector.name, oView);
+
 		if (!mExtensionPointInfo) {
-			throw new Error("AddXMLAtExtensionPoint-Error: Either no Extension-Point found by name '"
-				 + (oSelector && oSelector.name)
-				 + "' or multiple Extension-Points available with the given name in the view (view.id='"
-				 + (oView && oModifier.getId(oView))
-				 + "'). Multiple Extension-points with the same name in one view are not supported!");
+			throw new Error(`AddXMLAtExtensionPoint-Error: Either no Extension-Point found by name '${
+				oSelector && oSelector.name
+			}' or multiple Extension-Points available with the given name in the view (view.id='${
+				sViewId
+			}'). Multiple Extension-points with the same name in one view are not supported!`);
 		}
-		(mExtensionPointInfo.defaultContent || []).forEach(function (vControl) {
-			// Remove default implementation of extension points in async apply (xml-preprocessing) and create (via action handler) sceanrios
+		(mExtensionPointInfo.defaultContent || []).forEach(function(vControl) {
+			// Remove default implementation of extension points in async apply (xml-preprocessing)
+			// and create (via action handler) scenarios
 			if (vControl) {
 				oModifier.destroy(vControl);
 			}
 		});
 		mExtensionPointInfo.defaultContent = [];
-		var aNewControls = BaseAddXml.applyChange(oChange, oControl, mPropertyBag, mExtensionPointInfo);
+		// calculate index from nested extension points
+		mExtensionPointInfo.index = calculateExtensionPointIndex(mExtensionPointInfo);
+		if (oModifier.targets === "xmlTree") {
+			mExtensionPointInfo.skipAdjustIndex = true;
+		}
+		const aNewControls = await BaseAddXml.applyChange(oChange, oControl, mPropertyBag, mExtensionPointInfo);
 		if (mExtensionPointInfo.ready) {
 			// Confirm with ready function in sync apply scenario (preprocessing with JSView)
 			mExtensionPointInfo.ready(aNewControls);
 		}
-		return true;
+		ExtensionPointRegistryAPI.addCreatedControlsToExtensionPointInfo({
+			name: oSelector.name,
+			viewId: sViewId,
+			createdControlsIds: aNewControls.map((oNewControl) => oModifier.getId(oNewControl))
+		});
 	};
 
 	/**
@@ -74,7 +97,8 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.appComponent App component
 	 * @param {object} mPropertyBag.view Root view
 	 * @return {boolean} <true> if change has been reverted successfully
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Reverter
 	 * @name sap.ui.fl.changeHandler.AddXMLAtExtensionPoint#revertChange
 	 */
 	AddXMLAtExtensionPoint.revertChange = BaseAddXml.revertChange;
@@ -84,14 +108,15 @@ sap.ui.define([
 	 *
 	 * @param {object} oChange Change object to be completed
 	 * @param {object} oSpecificChangeInfo Additional information needed to complete the change
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.write._internal
 	 * @name sap.ui.fl.changeHandler.AddXMLAtExtensionPoint#completeChangeContent
 	 */
 	AddXMLAtExtensionPoint.completeChangeContent = function(oChange, oSpecificChangeInfo) {
 		// Complete change content could be called with a third parameter. That would override the
-		// optional changeDefinition parameter of the BaseAddXml used in e.g. addxml usecase
-		BaseAddXml.completeChangeContent(oChange, oSpecificChangeInfo/*, oChangeDefinition*/);
+		// optional changeDefinition parameter of the BaseAddXml used in e.g. add xml use case
+		BaseAddXml.completeChangeContent(oChange, oSpecificChangeInfo/* , oContent */);
 	};
 
 	return AddXMLAtExtensionPoint;
-}, /* bExport= */true);
+});

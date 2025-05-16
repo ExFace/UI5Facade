@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library', "sap/base/Log"],
 	 * @extends sap.ui.core.LayoutData
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -36,7 +36,6 @@ sap.ui.define(['sap/ui/core/LayoutData', './library', "sap/base/Log"],
 	 * @see {@link topic:43ae317cf39640a88bc8be979d2671df Grid}
 	 * @see {@link topic:32d4b9c2b981425dbc374d3e9d5d0c2e Grid Controls}
 	 * @alias sap.ui.layout.GridData
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var GridData = LayoutData.extend("sap.ui.layout.GridData", /** @lends sap.ui.layout.GridData.prototype */ { metadata : {
 
@@ -46,7 +45,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library', "sap/base/Log"],
 			/**
 			 * A string type that represents the span values of the <code>Grid</code> for large, medium and small screens.
 			 *
-			 * Allowed values are separated by space Letters L, M or S followed by number of columns from 1 to 12
+			 * Allowed values are separated by space with case insensitive Letters XL, L, M or S followed by number of columns from 1 to 12
 			 * that the container has to take, for example: <code>L2 M4 S6</code>, <code>M12</code>,
 			 * <code>s10</code> or <code>l4 m4</code>.
 			 *
@@ -81,7 +80,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library', "sap/base/Log"],
 			/**
 			 * A string type that represents the indent values of the <code>Grid</code> for large, medium and small screens.
 			 *
-			 * Allowed values are separated by space Letters L, M or S followed by number of columns from 1 to 11
+			 * Allowed values are separated by space with case insensitive Letters XL, L, M or S followed by number of columns from 1 to 11
 			 * that the container has to take, for example, <code>L2 M4 S6</code>, <code>M11</code>, <code>s10</code>
 			 * or <code>l4 m4</code>.
 			 *

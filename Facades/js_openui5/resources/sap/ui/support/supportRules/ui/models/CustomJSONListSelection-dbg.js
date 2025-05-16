@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,7 +21,6 @@ sap.ui.define([
 		_updateModelAfterSelectionChange: function(oEvent) {
 			var oBinding = this._getBinding();
 			var oModel = oBinding.getModel();
-			var oData = oModel.getData();
 			var aChangedIndices = oEvent.getParameter("rowIndices") || [];
 			var oSelectionModel = this._getSelectionModel();
 
@@ -35,7 +34,7 @@ sap.ui.define([
 						for (var j = 0; j < aNodes.length; j++) {
 							setSelection(sPath + "/nodes/" + j + "", bSelected, true);
 							//Update Model of tree table
-							that.updateModelAfterChangedSelection(oData, sPath, bSelected);
+							that.updateModelAfterChangedSelection(oModel, sPath, bSelected);
 						}
 					} else { // leaf
 						if (!bSelected && !bSkipUpdateParent) {
@@ -49,7 +48,7 @@ sap.ui.define([
 					}
 				}
 				//Update Model of tree table
-				that.updateModelAfterChangedSelection(oData, sPath, bSelected);
+				that.updateModelAfterChangedSelection(oModel, sPath, bSelected);
 
 				that._setSelectionForContext(oModel, oModel.createBindingContext(sPath), bSelected);
 
@@ -64,9 +63,7 @@ sap.ui.define([
 
 			}
 
-			//Sync parent notes with children
-			this.syncParentNoteWithChildrenNotes(oData);
-
+			this.syncParentNodeSelectionWithChildren(oBinding.getModel("ruleSets"));
 			this._finalizeSelectionUpdate();
 
 			SelectionUtils.getSelectedRules();

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,25 +17,43 @@ sap.ui.define([
 		 *
 		 * @param {Map} mUIReconstructions - Map of UI reconstructions
 		 * @param {object} oCondenserInfo - Condenser specific information
+		 * @returns {Promise} resolves when a create change is added to UI Reconstruction Map
 		 */
-		addToReconstructionMap: function(mUIReconstructions, oCondenserInfo) {
-			var aSourceContainerElementIds = CondenserUtils.getContainerElementIds(oCondenserInfo.sourceContainer, oCondenserInfo.sourceAggregation);
-			var aTargetContainerElementIds = CondenserUtils.getContainerElementIds(oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation);
+		async addToReconstructionMap(mUIReconstructions, oCondenserInfo) {
+			const [aSourceContainerElementIds, aTargetContainerElementIds] = await Promise.all([
+				CondenserUtils.getContainerElementIds(
+					oCondenserInfo.sourceContainer, oCondenserInfo.sourceAggregation,
+					oCondenserInfo.customAggregation, oCondenserInfo.affectedControlIdProperty
+				),
+				CondenserUtils.getContainerElementIds(
+					oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation,
+					oCondenserInfo.customAggregation, oCondenserInfo.affectedControlIdProperty
+				)
+			]);
 
-			var aContainerElementIds;
-			var iTargetIndex;
+			let aContainerElementIds;
+			let iTargetIndex;
 			if (
 				oCondenserInfo.targetContainer === oCondenserInfo.sourceContainer
 				&& oCondenserInfo.targetAggregation === oCondenserInfo.sourceAggregation
 			) {
-				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(mUIReconstructions, oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation, aTargetContainerElementIds);
+				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(
+					mUIReconstructions, oCondenserInfo.targetContainer,
+					oCondenserInfo.targetAggregation, aTargetContainerElementIds
+				);
 				iTargetIndex = aContainerElementIds.indexOf(oCondenserInfo.affectedControl);
 				CondenserUtils.shiftElement(aContainerElementIds, iTargetIndex, oCondenserInfo.sourceIndex);
 			} else {
-				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(mUIReconstructions, oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation, aTargetContainerElementIds);
+				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(
+					mUIReconstructions, oCondenserInfo.targetContainer,
+					oCondenserInfo.targetAggregation, aTargetContainerElementIds
+				);
 				iTargetIndex = aContainerElementIds.indexOf(oCondenserInfo.affectedControl);
 				aContainerElementIds.splice(iTargetIndex, 1);
-				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(mUIReconstructions, oCondenserInfo.sourceContainer, oCondenserInfo.sourceAggregation, aSourceContainerElementIds);
+				aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(
+					mUIReconstructions, oCondenserInfo.sourceContainer,
+					oCondenserInfo.sourceAggregation, aSourceContainerElementIds
+				);
 				aContainerElementIds.splice(oCondenserInfo.sourceIndex, 0, oCondenserInfo.affectedControl);
 			}
 		},
@@ -47,10 +65,27 @@ sap.ui.define([
 		 * @param {object} oCondenserInfo - Condenser specific information
 		 * @param {string[]} aInitialUIElementIds - Array with the Ids of the initial elements in the container
 		 */
-		simulate: function(aContainerElements, oCondenserInfo, aInitialUIElementIds) {
-			var sAffectedControlId = oCondenserInfo.affectedControl;
-			var iSourceIndex = aInitialUIElementIds.indexOf(sAffectedControlId);
-			CondenserUtils.extendElementsArray(aContainerElements, iSourceIndex, undefined, sAffectedControlId);
+		simulate(aContainerElements, oCondenserInfo, aInitialUIElementIds) {
+			const sAffectedControlId = oCondenserInfo.affectedControl;
+			const iInitialSourceIndex = aInitialUIElementIds.indexOf(sAffectedControlId);
+			// the move itself should not extend the array, just replace the placeholder
+			CondenserUtils.extendElementsArray(aContainerElements, iInitialSourceIndex, undefined, sAffectedControlId);
+
+			const iCurrentSourceIndex = aContainerElements.indexOf(sAffectedControlId);
+			const iTargetIndex = oCondenserInfo.getTargetIndex(oCondenserInfo.change);
+
+			// if the move was done from a different container the element can't be found
+			if (iInitialSourceIndex === -1) {
+				aContainerElements.splice(iTargetIndex, 0, sAffectedControlId);
+			} else {
+				aContainerElements.splice(iTargetIndex, 0, aContainerElements.splice(iCurrentSourceIndex, 1)[0]);
+			}
+
+			// changes with the same current source and target can be deleted, if the simulation is successful
+			oCondenserInfo.sameIndex = iCurrentSourceIndex === iTargetIndex;
+
+			// to enable a revert in the same session the previous index has to be saved during the simulation
+			oCondenserInfo.revertIndex = iCurrentSourceIndex;
 		}
 	};
 });

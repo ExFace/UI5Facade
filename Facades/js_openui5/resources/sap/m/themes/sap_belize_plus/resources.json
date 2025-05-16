@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 611,
+			"size": 688,
 			"theme": "sap_belize_plus"
 		},
 		{
@@ -20,13 +20,13 @@
 		},
 		{
 			"name": "ColorPalette.less",
-			"size": 400,
+			"size": 470,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
 		{
 			"name": "Dialog.less",
-			"size": 644,
+			"size": 685,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
@@ -50,7 +50,7 @@
 		},
 		{
 			"name": "IconTabBar.less",
-			"size": 360,
+			"size": 402,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
@@ -63,6 +63,12 @@
 		{
 			"name": "ListItemBase.less",
 			"size": 224,
+			"designtime": true,
+			"theme": "sap_belize_plus"
+		},
+		{
+			"name": "MessageBox.less",
+			"size": 338,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
@@ -176,7 +182,7 @@
 		},
 		{
 			"name": "ViewSettingsDialog.less",
-			"size": 280,
+			"size": 720,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
@@ -193,58 +199,36 @@
 			"theme": "sap_belize_plus"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 55424,
-			"theme": "sap_belize_plus"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 142734,
-			"designtime": true,
-			"theme": "sap_belize_plus"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 142364,
-			"designtime": true,
-			"theme": "sap_belize_plus"
-		},
-		{
 			"name": "library-RTL.css",
-			"size": 1073753,
+			"size": 1273878,
 			"theme": "sap_belize_plus"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 23340,
+			"module": "sap/m/themes/sap_belize_plus/library-parameters.json",
+			"size": 32212,
 			"theme": "sap_belize_plus"
 		},
 		{
 			"name": "library.css",
-			"size": 1073655,
+			"size": 1273857,
 			"theme": "sap_belize_plus"
 		},
 		{
 			"name": "library.less",
-			"size": 12312,
+			"size": 13298,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
 		{
 			"name": "library.source.less",
-			"size": 1146,
+			"size": 1168,
 			"designtime": true,
 			"theme": "sap_belize_plus"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 1137170,
-			"theme": "sap_belize_plus"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 1137072,
-			"theme": "sap_belize_plus"
+			"name": "resources.json",
+			"size": 4222
 		}
 	]
 }

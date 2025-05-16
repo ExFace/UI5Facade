@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,17 +16,21 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.dt.Plugin
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.61
 	 * @alias sap.ui.dt.plugin.ToolHooks
-	 * @experimental Since 1.61. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var ToolHooks = Plugin.extend("sap.ui.dt.plugin.ToolHooks", /** @lends sap.ui.dt.plugin.ToolHooks.prototype */ {
 		metadata: {
 			library: "sap.ui.dt",
-			properties: {},
+			properties: {
+				versionWasActivated: {
+					type: "boolean",
+					defaultValue: false
+				}
+			},
 			associations: {},
 			events: {}
 		}
@@ -38,7 +42,7 @@ sap.ui.define([
 	 * @param {sap.ui.dt.Overlay} oOverlay overlay object
 	 * @override
 	 */
-	ToolHooks.prototype.registerElementOverlay = function (oOverlay) {
+	ToolHooks.prototype.registerElementOverlay = function(oOverlay) {
 		oOverlay.getDesignTimeMetadata().getToolHooks().start(oOverlay.getElement());
 	};
 
@@ -48,7 +52,10 @@ sap.ui.define([
 	 * @override
 	 */
 	ToolHooks.prototype.deregisterElementOverlay = function(oOverlay) {
-		oOverlay.getDesignTimeMetadata().getToolHooks().stop(oOverlay.getElement());
+		oOverlay
+		.getDesignTimeMetadata()
+		.getToolHooks()
+		.stop(oOverlay.getElement(), {versionWasActivated: this.getVersionWasActivated()});
 	};
 
 	return ToolHooks;

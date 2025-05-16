@@ -1,25 +1,28 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-
 sap.ui.define([
+	"sap/base/util/merge",
 	"sap/ui/fl/apply/_internal/connectors/ObjectStorageUtils",
-	"sap/ui/fl/initial/_internal/StorageUtils"
+	"sap/ui/fl/initial/_internal/StorageUtils",
+	"sap/ui/fl/interfaces/BaseLoadConnector"
 ], function(
+	merge,
 	ObjectStorageUtils,
-	StorageUtils
+	StorageUtils,
+	BaseConnector
 ) {
 	"use strict";
 
-	function loadDataFromStorage (mPropertyBag) {
+	function loadDataFromStorage(mPropertyBag) {
 		var aFlexObjects = [];
 
 		return ObjectStorageUtils.forEachObjectInStorage(mPropertyBag, function(mFlexObject) {
 			aFlexObjects.push(mFlexObject.changeDefinition);
-		}).then(function () {
+		}).then(function() {
 			return aFlexObjects;
 		});
 	}
@@ -29,11 +32,12 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.connectors.ObjectStorageConnector
 	 * @implements {sap.ui.fl.interfaces.BaseLoadConnector}
+	 * @deprecated
 	 * @since 1.70
 	 * @private
-	 * @ui5-restricted sap.ui.fl.apply._internal.Storage, sap.ui.fl.write._internal.Storage, WebIDE
+	 * @ui5-restricted sap.ui.fl.apply._internal.Storage, sap.ui.fl.write._internal.Storage, SAP Web IDE
 	 */
-	return {
+	var ObjectStorageConnector = merge({}, BaseConnector, {
 		/**
 		 * can be either window.sessionStorage or window.localStorage
 		 */
@@ -50,14 +54,18 @@ sap.ui.define([
 		 * @param {string} mPropertyBag.reference reference of the application
 		 * @returns {Promise<Object>} resolving with an object containing a data contained in the changes-bundle
 		 */
-		loadFlexData: function (mPropertyBag) {
+		loadFlexData(mPropertyBag) {
 			return loadDataFromStorage({
 				storage: this.oStorage,
 				reference: mPropertyBag.reference
-			}).then(function (aFlexObjects) {
+			}).then(function(aFlexObjects) {
 				var mGroupedFlexObjects = StorageUtils.getGroupedFlexObjects(aFlexObjects);
 				return StorageUtils.filterAndSortResponses(mGroupedFlexObjects);
 			});
 		}
-	};
+	});
+
+	ObjectStorageConnector.storage = ObjectStorageConnector.oStorage;
+
+	return ObjectStorageConnector;
 });

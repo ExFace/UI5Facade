@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,11 +19,13 @@ sap.ui.define([
 	 * @param {object} mData data from which to generate a snippet
 	 * @param {object} mData.controlSelector control selector in string format
 	 * @param {string} mData.action name of the action to record for the control
+	 * @param {object} mData.assertion assertion details - property name, type and expected value
 	 * @returns {string} a stringified code snippet
 	 */
 	UIVeri5ControlSnippetGenerator.prototype._generate = function (mData) {
-		var sElement = "element(by.control(" + this._getSelectorAsString(mData.controlSelector) + "))";
-		return sElement + this._getActionAsString(mData.action) + ";";
+		var sBasicSelector = "element(by.control(" + this._getSelectorAsString(mData.controlSelector) + "))";
+		var sSelectorWithAssertion = this._getSelectorWithAssertion(sBasicSelector, mData.assertion);
+		return sSelectorWithAssertion + this._getActionAsString(mData.action) + ";";
 	};
 
 	UIVeri5ControlSnippetGenerator.prototype._getActionAsString = function (sAction) {
@@ -31,6 +33,24 @@ sap.ui.define([
 			case Commands.PRESS: return ".click()";
 			case Commands.ENTER_TEXT: return '.sendKeys("test")';
 			default: return "";
+		}
+	};
+
+	UIVeri5ControlSnippetGenerator.prototype._getSelectorWithAssertion = function (sSelector, mAssertion) {
+		if (mAssertion) {
+			var sMatcher;
+			if (!mAssertion.expectedValue || mAssertion.expectedValue === "false") {
+				sMatcher = ".toBeFalsy()";
+			} else if (mAssertion.propertyType === "boolean") {
+				sMatcher = ".toBeTruthy()";
+			} else {
+				var sExpectedValue = this._escapeQuotes(mAssertion.expectedValue);
+				sMatcher = '.toEqual("' + sExpectedValue + '")';
+			}
+
+			return 'expect(' + sSelector + '.asControl().getProperty("' + mAssertion.propertyName + '"))' + sMatcher;
+		} else {
+			return sSelector;
 		}
 	};
 

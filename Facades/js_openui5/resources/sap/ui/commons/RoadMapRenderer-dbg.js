@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.RoadMap
-sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/encodeXML', 'sap/ui/thirdparty/jqueryui/jquery-ui-position'],
-	function(jQuery, Device, encodeXML) {
+sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/encodeXML', 'sap/ui/core/Configuration', 'sap/ui/thirdparty/jqueryui/jquery-ui-position'],
+	function(jQuery, Device, encodeXML, Configuration) {
 	"use strict";
 
 
@@ -53,7 +53,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 		rm.writeClasses();
 
 		//ARIA
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			rm.writeAttribute("role", "group");
 			rm.writeAttributeEscaped("aria-label", getText("RDMP_DEFAULT_TOOLTIP", []));
 			if (sTooltip) {
@@ -97,7 +97,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 		if (sId) {
 			jQueryById(sId).addClass("sapUiRoadMapSelected");
 		}
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			if (sCurrentId) {
 				jQueryById(sCurrentId + "-box").removeAttr("aria-checked");
 			}
@@ -181,7 +181,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 			//Change the expand state of the step immediately
 			jDomRef.toggleClass("sapUiRoadMapExpanded");
 
-			if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+			if (Configuration.getAccessibility()) {
 				var bExp = jDomRef.hasClass("sapUiRoadMapExpanded");
 				oStep.$("box").attr("aria-expanded", bExp);
 				oStep.$("expandend-box").attr("aria-expanded", bExp);
@@ -321,7 +321,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 		oStep.$("label").html(l);
 		oStep.$("expandend-label").html(l);
 
-		if (!sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (!Configuration.getAccessibility()) {
 			return;
 		}
 
@@ -345,7 +345,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 		if (bEnabled) {
 			jRef.removeClass("sapUiRoadMapDisabled");
 			jRef2.removeClass("sapUiRoadMapDisabled");
-			if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+			if (Configuration.getAccessibility()) {
 				oStep.$("box").removeAttr("aria-disabled");
 				oStep.$("expandend-box").removeAttr("aria-disabled");
 			}
@@ -357,7 +357,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 			}
 			jRef.addClass("sapUiRoadMapDisabled");
 			jRef2.addClass("sapUiRoadMapDisabled");
-			if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+			if (Configuration.getAccessibility()) {
 				var jRefBox = oStep.$("box");
 				jRefBox.attr("aria-disabled", true);
 				if (bSelected) {
@@ -512,7 +512,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 	 * @private
 	 */
 	RoadMapRenderer.updateStepAria = function(oStep){
-		if (!sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (!Configuration.getAccessibility()) {
 			return;
 		}
 		var bIsTopLevel = oStep.getParent() instanceof sap.ui.commons.RoadMap;
@@ -629,7 +629,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 	//Returns the tooltip of the given step
 	var getStepTooltip = function(oStep){
 		var sTooltip = oStep.getTooltip_AsString();
-		if (!sTooltip && !oStep.getTooltip() && sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (!sTooltip && !oStep.getTooltip() && Configuration.getAccessibility()) {
 			sTooltip = getText("RDMP_DEFAULT_STEP_TOOLTIP", [oStep.__stepName]);
 		}
 		return sTooltip || "";
@@ -648,7 +648,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 
 	//Writes the ARIA properties of a step
 	var writeStepAria = function(rm, oRoadMap, oStep, bIsExpandable){
-		if (!sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (!Configuration.getAccessibility()) {
 			return;
 		}
 
@@ -832,7 +832,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 	//Returns the position left attribute of the given step within the scroll area
 	var getPositionLeft = function(jStepArea, jStep){
 		var iPos = jStep.position().left;
-		if (sap.ui.getCore().getConfiguration().getRTL()) { //Recompute in RTL case
+		if (Configuration.getRTL()) { //Recompute in RTL case
 			iPos = jStepArea.width() - iPos - jStep.outerWidth();
 		}
 		return iPos;
@@ -845,14 +845,14 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 	//  -IE:      right side has scrollleft=0, scrolling is indicated with positive values
 	//  -Safari:  left side has scrollleft=0, scrolling is indicated with positive values
 	var getRTLFactor = function(){
-		return sap.ui.getCore().getConfiguration().getRTL() && !Device.browser.msie ? -1 : 1;
+		return Configuration.getRTL() ? -1 : 1;
 	};
 
 
 	//Calculates the scroll left attribute (with fix for Safari in RTL mode) to make the position and scroll calculations running
 	//(see comment on getRTLFactor for RTL behavior)
 	var getScrollLeft = function(jStepArea){
-		if (sap.ui.getCore().getConfiguration().getRTL() && Device.browser.webkit) {
+		if (Configuration.getRTL() && Device.browser.webkit) {
 			return ( -1) * (jStepArea.get(0).scrollWidth - jStepArea.scrollLeft() - jStepArea.width());
 		}
 		return jStepArea.scrollLeft();
@@ -863,7 +863,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/Device', 'sap/base/security/e
 	//(see comment on getRTLFactor for RTL behavior)
 	var getStepEndPosition = function(oRoadMap, bLast){
 		var iScrollWidth = oRoadMap.$("steparea").get(0).scrollWidth;
-		if (sap.ui.getCore().getConfiguration().getRTL() && Device.browser.webkit) {
+		if (Configuration.getRTL() && Device.browser.webkit) {
 			return bLast ? 0 : ( -1) * iScrollWidth;
 		}
 		return bLast ? iScrollWidth : 0;

@@ -1,11 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
+sap.ui.define([
+	"sap/ui/core/Renderer",
+	"sap/ui/integration/library"
+], function (Renderer, library) {
 	"use strict";
+
+	var CardPreviewMode = library.CardPreviewMode;
 
 	/**
 	 * BaseContent renderer.
@@ -13,8 +18,8 @@ sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
 	 * @namespace
 	 */
 	var BaseContentRenderer = Renderer.extend("sap.ui.integration.cards.BaseContentRenderer", {
-			apiVersion: 2
-		});
+		apiVersion: 2
+	});
 
 	/**
 	 * Default min height for all content types.
@@ -30,11 +35,11 @@ sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
 	BaseContentRenderer.render = function (oRm, oCardContent) {
 		// Add class the simple way. Add renderer hooks only if needed.
 		var sClass = "sapFCard",
-			sLibrary = oCardContent.getMetadata().getLibraryName(),
 			sName = oCardContent.getMetadata().getName(),
-			sType = sName.slice(sLibrary.length + 1, sName.length),
-			oCard = oCardContent.getParent(),
-			bIsCardValid = oCard && oCard.isA("sap.f.ICard");
+			sType = sName.slice(sName.lastIndexOf(".") + 1),
+			oCard = oCardContent.getCardInstance(),
+			oMessageContainer = oCardContent.getAggregation("_messageContainer"),
+			oBlockingMessage = oCardContent.getAggregation("_blockingMessage");
 
 		sClass += sType;
 
@@ -42,28 +47,30 @@ sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
 			.class(sClass)
 			.class("sapFCardBaseContent");
 
-		if (oCardContent.hasListeners("press")) {
-			oRm.class("sapFCardClickable");
+		if (oCardContent.isInteractive()) {
+			oRm.class("sapFCardSectionClickable");
 		}
 
-		if (bIsCardValid && oCard.getHeight() === "auto") { // if there is no height specified the default value is "auto"
-			var sHeight = this.getMinHeight(oCardContent.getConfiguration(), oCardContent);
+		if (oCard && oCard.getHeight() === "auto" && !oCardContent.getOverflowWithShowMore()) { // if there is no height specified the default value is "auto"
+			var sHeight = this.getMinHeight(oCardContent.getParsedConfiguration(), oCardContent, oCard);
 			oRm.style("min-height", sHeight);
 		}
 
+		this.renderLoadingClass(oRm, oCardContent);
+
 		oRm.openEnd();
 
-		// render placeholder and hide content
-		if (sType !== "AdaptiveContent" && bIsCardValid && oCardContent.isLoading()) {
-			oRm.renderControl(oCardContent._oLoadingPlaceholder);
+		this.renderLoadingPlaceholder(oRm, oCardContent);
 
-			//Removing content from the tab chain
-			if (sType !== "AnalyticalContent" && sType !== "TimelineContent") {
-				this.hideContent(oCardContent);
-			}
+		if (oMessageContainer) {
+			oRm.renderControl(oMessageContainer);
 		}
 
-		this.renderContent(oRm, oCardContent);
+		if (oBlockingMessage) {
+			oRm.renderControl(oBlockingMessage);
+		} else {
+			this.renderContent(oRm, oCardContent);
+		}
 
 		oRm.close("div");
 	};
@@ -79,19 +86,36 @@ sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
 
 	/**
 	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
 	 * @param {sap.ui.integration.cards.BaseContent} oCardContent an object representation of the control that should be rendered
 	 */
-	BaseContentRenderer.hideContent = function (oCardContent) {
+	BaseContentRenderer.renderLoadingClass = function (oRm, oCardContent) {
+		const oCard = oCardContent.getCardInstance();
+		const bIsAbstractPreviewMode =  oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract;
 
-		if (oCardContent.isLoading()) {
-			oCardContent.getAggregation("_content").addStyleClass("sapFCardContentHidden");
+		if (oCardContent.isLoading() || bIsAbstractPreviewMode) {
+			oRm.class("sapFCardContentLoading");
+		}
+	};
+
+	/**
+	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {sap.ui.integration.cards.BaseContent} oCardContent an object representation of the control that should be rendered
+	 */
+	BaseContentRenderer.renderLoadingPlaceholder = function (oRm, oCardContent) {
+		const oCard = oCardContent.getCardInstance();
+		const bIsAbstractPreviewMode = oCard && oCard.getPreviewMode() === CardPreviewMode.Abstract;
+
+		if (oCardContent.isLoading() || bIsAbstractPreviewMode) {
+			oRm.renderControl(oCardContent.getAggregation("_loadingPlaceholder"));
 		}
 	};
 
 	/**
 	 * @protected
 	 * @param {object} oConfiguration The manifest configuration of the content
-	 * @param {sap.ui.core.Control} oContent The content
+	 * @param {sap.ui.integration.cards.BaseContent} oContent The content
 	 * @returns {string} Min height in Rems.
 	 */
 	BaseContentRenderer.getMinHeight = function (oConfiguration, oContent) {
@@ -107,7 +131,7 @@ sap.ui.define(["sap/ui/core/Renderer"], function (Renderer) {
 		}
 
 		// check if there is an element up the DOM which enables compact density
-		return oReferenceElement.$().closest(".sapUiSizeCompact").hasClass("sapUiSizeCompact");
+		return oReferenceElement.getDomRef()?.closest(".sapUiSizeCompact")?.classList.contains("sapUiSizeCompact");
 	};
 
 	return BaseContentRenderer;

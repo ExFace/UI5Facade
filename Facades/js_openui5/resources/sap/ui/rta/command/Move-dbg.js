@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -17,30 +17,31 @@ function(
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.rta.command.Move
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
 	var Move = FlexCommand.extend("sap.ui.rta.command.Move", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				movedElements : {
-					type : "any[]"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				movedElements: {
+					type: "any[]",
+					group: "content"
 				},
-				target : {
-					type : "any"
+				target: {
+					type: "any",
+					group: "content"
 				},
-				source : {
-					type : "any"
+				source: {
+					type: "any",
+					group: "content"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
@@ -61,17 +62,19 @@ function(
 			delete mTarget.parent;
 		}
 		var mSpecificInfo = {
-			changeType : this.getChangeType(),
-			source : mSource,
-			target : mTarget,
-			movedElements : []
+			changeType: this.getChangeType(),
+			content: {
+				source: mSource,
+				target: mTarget,
+				movedElements: []
+			}
 		};
 
 		this.getMovedElements().forEach(function(mMovedElement) {
-			mSpecificInfo.movedElements.push({
-				id : mMovedElement.id || (mMovedElement.element && mMovedElement.element.getId()),
-				sourceIndex : mMovedElement.sourceIndex,
-				targetIndex : mMovedElement.targetIndex
+			mSpecificInfo.content.movedElements.push({
+				id: mMovedElement.id || (mMovedElement.element && mMovedElement.element.getId()),
+				sourceIndex: mMovedElement.sourceIndex,
+				targetIndex: mMovedElement.targetIndex
 			});
 		});
 		return mSpecificInfo;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -20,7 +20,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -33,8 +33,8 @@ sap.ui.define([
 			library: "sap.ui.integration"
 		},
 		constructor: function (mSettings) {
-			ManagedObject.apply(this, []);
-			this.settings = mSettings;
+			ManagedObject.apply(this);
+			this.settings = mSettings || (this.create && this.create()) || {};
 		}
 	});
 
@@ -74,6 +74,10 @@ sap.ui.define([
 	 */
 	Designtime.prototype.getCard = function () {
 		return this._oCard;
+	};
+
+	Designtime.prototype.getSettings = function () {
+		return this.settings;
 	};
 
 	return Designtime;

@@ -1,9 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
+sap.ui.define([
+	"sap/ui/integration/thirdparty/adaptivecards",
+	"sap/ui/integration/cards/adaptivecards/overwrites/inputsGeneralOverwrites"
+], function (AdaptiveCards, InputsOverwrites) {
 	"use strict";
 	function UI5InputNumber() {
 		AdaptiveCards.NumberInput.apply(this, arguments);
@@ -13,36 +16,68 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 	 *
 	 * @class
 	 * An object that overwrites Microsoft's AdaptiveCard <code>Input.Number</code> element by replacing it with
-	 * <code>ui5-input</code> web component with type Number.
+	 * <code>ui5-step-input</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @since 1.74
 	 */
 	UI5InputNumber.prototype = Object.create(AdaptiveCards.NumberInput.prototype);
-	UI5InputNumber.prototype.internalRender = function () {
-		this._numberInputElement = document.createElement("ui5-input");
 
-		this._numberInputElement.type = "Number";
+	UI5InputNumber.prototype.overrideInternalRender = function () {
+		var oInput = AdaptiveCards.TextInput.prototype.overrideInternalRender.call(this, arguments);
+
+		InputsOverwrites.overwriteLabel(this);
+		InputsOverwrites.overwriteRequired(this);
+
+		return oInput;
+	};
+
+	UI5InputNumber.prototype.internalRender = function () {
+		this._numberInputElement = document.createElement("ui5-step-input");
+
 		this._numberInputElement.id = this.id;
 		this._numberInputElement.placeholder = this.placeholder || "";
 		this._numberInputElement.value = this.defaultValue || "";
+		this._numberInputElement.min = this.min;
+		this._numberInputElement.max = this.max;
+		this._numberInputElement.style.width = "13.125rem"; // the default width of the ui5-input web component
 
-		this._numberInputElement.addEventListener("change", function (oEvent) {
-			// the logic for min and max value from the native number input is handled here, since there are no similar properties in the ui5-input web component
-			if (oEvent.target.value > this._max) {
-				oEvent.target.value = this._max;
-			}
-			if (oEvent.target.value < this._min) {
-				oEvent.target.value = this._min;
-			}
+		InputsOverwrites.createValueStateElement(this, this._numberInputElement);
+
+		this._numberInputElement.addEventListener("input", function (oEvent) {
 			this.valueChanged();
 		}.bind(this));
 
 		return this._numberInputElement;
 
 	};
+
+	Object.defineProperty(UI5InputNumber.prototype, "value", {
+		get: function () {
+			return this._numberInputElement ? this._numberInputElement.value : undefined;
+		}
+	});
+
+	UI5InputNumber.prototype.updateInputControlAriaLabelledBy = function () {
+		InputsOverwrites.overwriteAriaLabelling(this, "accessible-name-ref");
+	};
+
+	UI5InputNumber.prototype.showValidationErrorMessage = function () {
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "Error";
+		}
+	};
+
+	UI5InputNumber.prototype.resetValidationFailureCue = function () {
+		AdaptiveCards.TextInput.prototype.resetValidationFailureCue.call(this, arguments);
+
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "None";
+		}
+	};
+
 	return UI5InputNumber;
 });

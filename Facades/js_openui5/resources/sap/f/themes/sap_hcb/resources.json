@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 128,
+			"size": 162,
 			"theme": "sap_hcb"
 		},
 		{
@@ -19,58 +19,168 @@
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 3002,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 74307,
+			"name": "base_AvatarGroup.less",
+			"size": 4688,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 74010,
+			"name": "base_CalendarPlaceholder.less",
+			"size": 1656,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_Card.less",
+			"size": 12714,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_CardLoading.less",
+			"size": 6460,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_CardNumericIndicators.less",
+			"size": 850,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_DynamicPage.less",
+			"size": 9990,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_DynamicPageHeader.less",
+			"size": 1643,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_DynamicPageTitle.less",
+			"size": 9097,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_FlexibleColumnLayout.less",
+			"size": 6142,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_GridContainer.less",
+			"size": 880,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_GridDragAndDrop.less",
+			"size": 172,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_GridList.less",
+			"size": 2552,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_GridListItem.less",
+			"size": 2665,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ListPlaceholder.less",
+			"size": 1028,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPlaceholder.less",
+			"size": 893,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ProductSwitch.less",
+			"size": 74,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ProductSwitchItem.less",
+			"size": 3086,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_SemanticPage.less",
+			"size": 740,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ShellBar.less",
+			"size": 9624,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_SidePanel.less",
+			"size": 16797,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_TablePlaceholder.less",
+			"size": 767,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_TimelinePlaceholder.less",
+			"size": 1439,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 64560,
+			"size": 103733,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 1203,
+			"module": "sap/f/themes/sap_hcb/library-parameters.json",
+			"size": 2420,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 64559,
+			"size": 103736,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 1860,
+			"size": 98231,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 318,
+			"size": 1726,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 66369,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 66366,
-			"theme": "sap_hcb"
+			"name": "resources.json",
+			"size": 3296
 		}
 	]
 }

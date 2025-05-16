@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,12 +10,9 @@ sap.ui.define([
     './library',
     'sap/ui/core/Control',
     './RadioButtonRenderer',
-    'sap/ui/core/library',
-    'sap/ui/Device',
-    // jQuery custom selectors ":sapFocusable"
-    "sap/ui/dom/jquery/Selectors"
+    'sap/ui/core/library'
 ],
-	function(jQuery, library, Control, RadioButtonRenderer, coreLibrary, Device) {
+	function(jQuery, library, Control, RadioButtonRenderer, coreLibrary) {
 	"use strict";
 
 
@@ -45,18 +42,18 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.RadioButton</code> control.
 	 * @alias sap.ui.commons.RadioButton
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var RadioButton = Control.extend("sap.ui.commons.RadioButton", /** @lends sap.ui.commons.RadioButton.prototype */ { metadata : {
 
 		interfaces : ["sap.ui.core.IFormContent"],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -154,12 +151,6 @@ sap.ui.define([
 			this.focus();
 		}
 
-		if (Device.browser.msie && (/*!this.getEditable() ||*/ !this.getEnabled())) { //According to CSN2581852 2012 a readonly CB should be in the tabchain
-			// in IE tabindex = -1 hides focus, so in readOnly case tabindex must be set to 0 // TODO remove after the end of support for Internet Explorer
-			// as long as RadioButton is clicked on
-			this.$().attr("tabindex", 0).toggleClass("sapUiRbFoc");
-		}
-
 		this.userSelect(oEvent);
 	};
 
@@ -179,70 +170,18 @@ sap.ui.define([
 		this.userSelect(oEvent);
 	};
 
-	// TODO remove after the end of support for Internet Explorer
-	/**
-	 * Event handler, called when the focus is set on a RadioButton.
-	 * Problem in HCB: Focus is set in IE8 to bullet, and not to the whole control.
-	 *
-	 * @param {jQuery.Event} oEvent
-	 * @private
-	 */
-	RadioButton.prototype.onsaptabnext = function(oEvent) {
-
-		if (Device.browser.msie) {
-			this.bTabPressed = true;
-			var that = this;
-			window.setTimeout(function(){that.bTabPressed = false;}, 100);
-		}
-	};
-
 	/**
 	 * Event handler called when the radio button is focused.
-	 * Problem in HCB: Focus is sometimes set in IE8 to bullet, and not to the whole control.
 	 *
 	 * @param {jQuery.Event} oEvent
 	 * @private
 	 */
 	RadioButton.prototype.onfocusin = function(oEvent) {
-
 		if (this.getEnabled() && oEvent.target.id == (this.getId() + "-RB")) {
-			if (this.bTabPressed) {
-				// this only occurs in IE in HCB mode // TODO remove after the end of support for Internet Explorer
-				// jQuery custom selectors ":sapFocusable"
-				var aFocusableElements = jQuery(":sapFocusable"),
-					bFound = false;
-				for (var i = 0; i < aFocusableElements.length; i++) {
-					if (bFound && aFocusableElements[i].parentNode != oEvent.target && aFocusableElements[i].tabIndex != "-1") {
-						aFocusableElements[i].focus();
-						oEvent.preventDefault();
-						break;
-					}
-					if (oEvent.target == aFocusableElements[i]) {
-						bFound = true;
-					}
-				}
-			} else {
-				this.focus();
-			}
+			this.focus();
 		}
 	};
 
-	/**
-	 * Event handler, called when the focus is moved out of the RadioButton.
-	 * Problem in IE: Tabindex must be set back to -1.
-	 *
-	 * @param {jQuery.Event} oEvent
-	 * @private
-	 */
-	RadioButton.prototype.onfocusout = function(oEvent) {
-
-		if (Device.browser.msie && (/*!this.getEditable() ||*/ !this.getEnabled())) { //According to CSN2581852 2012 a readonly CB should be in the tabchain
-			// in IE tabindex = -1 hides focus, so in readOnly case tabindex must be set to 0 // TODO remove after the end of support for Internet Explorer
-			// as long as RadioButton is clicked on
-			this.$().attr("tabindex", -1).toggleClass("sapUiRbFoc");
-		}
-
-	};
 	/**
 	 * Handles event cancellation and fires the select event.
 	 * Used only internally, whenever the user selects the RadioButton.

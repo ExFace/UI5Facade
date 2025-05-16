@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,17 +10,16 @@ sap.ui.define([
 ], function (Expression) {
 	"use strict";
 
-	var rBadChars = /[\\\{\}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
+	var rBadChars = /[\\{}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
 		rCount = /\/\$count$/,
 		rPaths = /\$(?:(?:Annotation)|(?:(?:Navigation)?Property))?Path/,
 		rSplitPathSegment = /^(.+?\/(\$(?:Annotation)?Path))(\/?)(.*)$/,
 		rUnsupportedPathSegments = /\$(?:Navigation)?PropertyPath/,
-
 		/**
 		 * @classdesc
-		 * A collection of methods which help to consume
-		 * <a href="http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html">
-		 * OData V4 annotations</a> in XML template views. Every context argument must belong to a
+		 * A collection of methods which help to consume <a href=
+		 * "https://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html#_Vocabulary_and_Annotation"
+		 * >OData V4 annotations</a> in XML template views. Every context argument must belong to an
 		 * {@link sap.ui.model.odata.v4.ODataMetaModel} instance.
 		 *
 		 * @alias sap.ui.model.odata.v4.AnnotationHelper
@@ -64,6 +63,9 @@ sap.ui.define([
 			 *         binding to encode the parameter at runtime.
 			 *       <li> Apply functions may be nested arbitrarily.
 			 *     </ul>
+			 *   <li> dynamic "14.5.5 Expression edm:Collection": This is turned into an expression
+			 *     binding to be evaluated at runtime. Elements can be conditionally added to the
+			 *     collection when using dynamic "14.5.6 Expression edm:If" as a direct child.
 			 *   <li> dynamic "14.5.6 Expression edm:If": This is turned into an expression
 			 *     binding to be evaluated at runtime. The expression is a conditional expression
 			 *     like <code>"{=condition ? expression1 : expression2}"</code>.
@@ -97,6 +99,8 @@ sap.ui.define([
 			 *     Since 1.78.0, both "edm:Path" and "edm:PropertyPath" are also supported if
 			 *     <code>vRawValue</code> is the path itself, and not the object wrapping it.
 			 * </ul>
+			 * <b>Note: Import the <code>sap/ui/model/odata/ODataExpressionAddons</code> module when
+			 * using 14.5.1 or 14.5.3</b>
 			 *
 			 * <h3>$AnnotationPath and $Path</h3>
 			 * If <code>oDetails.context.getPath()</code> contains a single "$AnnotationPath" or
@@ -110,16 +114,16 @@ sap.ui.define([
 			 * Example for "$AnnotationPath" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
-			 *				&lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
+			 *         &lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>
@@ -131,16 +135,16 @@ sap.ui.define([
 			 * Example for "$Path" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
-			 *				&lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
+			 *         &lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product/Name">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>
@@ -246,7 +250,7 @@ sap.ui.define([
 			 *   "14.5.12 Expression edm:Path" and "14.5.13 Expression edm:PropertyPath" where it
 			 *   might be used as a first segment (since 1.71.0). This does not apply to annotations
 			 *   on a parameter (since 1.76.0).
-			 * @returns {string|Promise}
+			 * @returns {string|Promise<string>}
 			 *   A data binding, or a fixed text, or a sequence thereof, or a <code>Promise</code>
 			 *   resolving with that string, for example if not all type information is already
 			 *   available
@@ -293,7 +297,7 @@ sap.ui.define([
 				if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}
@@ -317,14 +321,14 @@ sap.ui.define([
 					}
 
 					return oModel.fetchObject(aMatches[1]).then(function (sPathValue) {
-						var i,
-							bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
+						var bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
 							sPrefix = bIsAnnotationPath
 								? sPathValue.split("@")[0]
-								: sPathValue;
+								: sPathValue,
+							i;
 
 						if (!bIsAnnotationPath && aMatches[3]) {
-							sPrefix = sPrefix + "/";
+							sPrefix += "/";
 						} else if (!sPrefix.endsWith("/")) {
 							i = sPrefix.lastIndexOf("/");
 							sPrefix = i < 0 ? "" : sPrefix.slice(0, i + 1);
@@ -405,10 +409,10 @@ sap.ui.define([
 					sPath = sPath.slice(0, -1);
 				}
 
-				if (sPath.indexOf(".") > -1) {
+				if (sPath.includes(".")) {
 					sPath = sPath.split("/")
 						.filter(function (sSegment) { // remove type casts
-							return sSegment.indexOf(".") < 0;
+							return !sSegment.includes(".");
 						}).join("/");
 				}
 
@@ -432,7 +436,7 @@ sap.ui.define([
 			 * @param {string} oDetails.schemaChildName
 			 *   The qualified name of the schema child where the computed annotation has been
 			 *   found, for example "name.space.EntityType"
-			 * @returns {sap.ui.model.odata.v4.ValueListType|Promise}
+			 * @returns {sap.ui.model.odata.v4.ValueListType|Promise<sap.ui.model.odata.v4.ValueListType>}
 			 *   The type of the value list or a <code>Promise</code> resolving with the type of the
 			 *   value list or rejected, if the property cannot be found in the metadata
 			 * @throws {Error}
@@ -486,7 +490,7 @@ sap.ui.define([
 			 * @param {string} oDetails.schemaChildName
 			 *   The qualified name of the schema child where the computed annotation has been
 			 *   found, for example "name.space.EntityType"
-			 * @returns {boolean|Promise}
+			 * @returns {boolean|Promise<boolean>}
 			 *   <code>true</code> if the given path ends with "$count" or with a multi-valued
 			 *   structural or navigation property, <code>false</code> otherwise. If
 			 *   <code>oDetails.$$valueAsPromise</code> is <code>true</code> a <code>Promise</code>
@@ -499,7 +503,7 @@ sap.ui.define([
 				var iIndexOfAt;
 
 				// Whether the given value is exactly <code>true</code>
-				function isTrue (vValue) {
+				function isTrue(vValue) {
 					return vValue === true;
 				}
 
@@ -546,7 +550,7 @@ sap.ui.define([
 			 * @param {sap.ui.model.Context} oDetails.context
 			 *   Points to the given raw value, that is
 			 *   <code>oDetails.context.getProperty("") === vRawValue</code>
-			 * @returns {string|Promise}
+			 * @returns {string|Promise<string|undefined>|undefined}
 			 *   A data binding or a fixed text or a sequence thereof or <code>undefined</code>. If
 			 *   <code>oDetails.$$valueAsPromise</code> is <code>true</code> a <code>Promise</code>
 			 *   may be returned resolving with the value for the label.
@@ -673,6 +677,9 @@ sap.ui.define([
 			 *         binding to encode the parameter at runtime.
 			 *       <li> Apply functions may be nested arbitrarily.
 			 *     </ul>
+			 *   <li> dynamic "14.5.5 Expression edm:Collection": This is turned into an expression
+			 *     binding to be evaluated at runtime. Elements can be conditionally added to the
+			 *     collection when using dynamic "14.5.6 Expression edm:If" as a direct child.
 			 *   <li> dynamic "14.5.6 Expression edm:If": This is turned into an expression
 			 *     binding to be evaluated at runtime. The expression is a conditional expression
 			 *     like <code>"{=condition ? expression1 : expression2}"</code>.
@@ -796,7 +803,7 @@ sap.ui.define([
 				} else if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}

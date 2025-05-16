@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
@@ -19,7 +19,13 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		buttonElement.style.display = "flex";
 		buttonElement.style.alignItems = "center";
 		buttonElement.style.justifyContent = "center";
-		var hasTitle = !AdaptiveCards.isNullOrEmpty(this.title);
+		var style = this.style;
+		if (style === "positive") {
+			buttonElement.setAttribute("design", "Positive");
+		} else if (style === "destructive") {
+			buttonElement.setAttribute("design", "Negative");
+		}
+		var hasTitle = this.title;
 		var titleElement = document.createElement("div");
 		titleElement.style.overflow = "hidden";
 		titleElement.style.textOverflow = "ellipsis";
@@ -29,7 +35,7 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		if (hasTitle) {
 			titleElement.innerText = this.title;
 		}
-		if (AdaptiveCards.isNullOrEmpty(this.iconUrl)) {
+		if (!this.iconUrl) {
 			buttonElement.classList.add("noIcon");
 			buttonElement.appendChild(titleElement);
 		} else {

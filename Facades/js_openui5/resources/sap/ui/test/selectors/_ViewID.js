@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/test/selectors/_Selector","sap/ui/base/ManagedObjectMetadata"],function(_,M){"use strict";var a=_.extend("sap.ui.test.selectors._ViewID",{_generate:function(c){var C=c.getId();var v=this._getControlView(c);var r;if(v){var V=v.getId();var s=v.getViewName();var b;var d=V+"--";var i=C.indexOf(d);if(i>-1){b=C.substring(i+d.length);if(b.indexOf("-")===-1&&!b.match(/[0-9]$/)){this._oLogger.debug("Control with ID "+C+" has view-relative ID "+b);r={id:b,skipBasic:true};if(M.isGeneratedId(V)){this._oLogger.debug("Control "+c+" has view with viewName "+s);r.viewName=s;}else{this._oLogger.debug("Control "+c+" has view with stable ID "+V);r.viewId=V;}}}}else{this._oLogger.debug("Control "+c+" does not belong to a view");}return r;}});return a;});
+sap.ui.define(["sap/ui/test/selectors/_Selector","sap/ui/base/ManagedObjectMetadata"],function(e,t){"use strict";var i=e.extend("sap.ui.test.selectors._ViewID",{_generate:function(e){var i=e.getId();var a=this._getControlView(e);var r;if(a){var s=a.getId();var o=a.getViewName();var n;var g=s+"--";var d=i.indexOf(g);if(d>-1){n=i.substring(d+g.length);if(n.indexOf("-")===-1&&!n.match(/[0-9]$/)){this._oLogger.debug("Control with ID "+i+" has view-relative ID "+n);r={id:n,skipBasic:true};if(t.isGeneratedId(s)){this._oLogger.debug("Control "+e+" has view with viewName "+o);r.viewName=o}else{this._oLogger.debug("Control "+e+" has view with stable ID "+s);r.viewId=s}}}}else{this._oLogger.debug("Control "+e+" does not belong to a view")}return r}});return i});
+//# sourceMappingURL=_ViewID.js.map

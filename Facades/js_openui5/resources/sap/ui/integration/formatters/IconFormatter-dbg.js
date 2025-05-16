@@ -1,59 +1,70 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/base/Object",
+	"sap/ui/base/ManagedObject",
+	"sap/ui/core/Element",
 	"sap/ui/core/IconPool"
-], function (BaseObject, IconPool) {
+], function (ManagedObject, Element, IconPool) {
 	"use strict";
 
 	/**
 	 * @private
 	 */
-	var IconFormatter = BaseObject.extend("sap.ui.integration.util.Destinations", {
-		constructor: function (oDestinations) {
-			BaseObject.call(this);
-			this._oDestinations = oDestinations;
+	var IconFormatter = ManagedObject.extend("sap.ui.integration.formatters.IconFormatter", {
+		metadata: {
+			library: "sap.ui.integration",
+			associations : {
+				/**
+				 * The card.
+				 */
+				card: {
+					type : "sap.ui.integration.widgets.Card",
+					multiple: false
+				}
+			}
 		}
 	});
+
+	/**
+	 * Use that value for icon src to determine if the icon should be hidden.
+	 * @const
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	IconFormatter.SRC_FOR_HIDDEN_ICON = "SRC_FOR_HIDDEN_ICON";
 
 	/**
 	 * Format relative icon sources to be relative to the provided sap.app/id.
 	 *
 	 * @private
 	 * @param {string} sUrl The URL to format.
-	 * @param {string} sAppId The ID in the "sap.app" namespace of the manifest.
-	 * @returns {string|Promise} The formatted URL or a Promise which resolves with the formatted url.
+	 * @returns {string} The formatted URL.
 	 */
-	IconFormatter.prototype.formatSrc = function (sUrl, sAppId) {
-		var iIndex = 0;
-
-		if (!sUrl || !sAppId) {
+	IconFormatter.prototype.formatSrc = function (sUrl) {
+		if (!sUrl || !sUrl.trim()) {
 			return sUrl;
 		}
 
-		if (sUrl.startsWith("data:")) {
+		if (sUrl === IconFormatter.SRC_FOR_HIDDEN_ICON) {
+			return IconFormatter.SRC_FOR_HIDDEN_ICON;
+		}
+
+		if (sUrl.startsWith("data:") || IconPool.isIconURI(sUrl)) {
 			return sUrl;
 		}
 
-		if (this._oDestinations.hasDestination(sUrl)) {
-			return this._oDestinations.processString(sUrl);
-		}
+		return this._format(sUrl);
+	};
 
-		// Do not format absolute icon sources.
-		if (IconPool.isIconURI(sUrl) || sUrl.startsWith("http://") || sUrl.startsWith("https://") || sUrl.startsWith("//")) {
-			return sUrl;
-		}
+	IconFormatter.prototype._format = function (sUrl) {
+		return this._getCardInstance().getRuntimeUrl(sUrl);
+	};
 
-		if (sUrl.startsWith("..")) {
-			iIndex = 2;
-		} else if (sUrl.startsWith(".")) {
-			iIndex = 1;
-		}
-
-		return sap.ui.require.toUrl(sAppId.replace(/\./g, "/") + sUrl.slice(iIndex, sUrl.length));
+	IconFormatter.prototype._getCardInstance = function () {
+		return Element.getElementById(this.getCard());
 	};
 
 	return IconFormatter;

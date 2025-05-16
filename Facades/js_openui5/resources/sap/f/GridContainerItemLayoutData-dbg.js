@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,16 +21,14 @@ sap.ui.define(['sap/ui/core/LayoutData'],
 		 * @see {@link topic:32d4b9c2b981425dbc374d3e9d5d0c2e Grid Controls}
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @extends sap.ui.core.LayoutData
 		 *
-		 * @experimental Since 1.65 This class is experimental. The API may change.
 		 * @since 1.65
 		 * @public
 		 * @constructor
 		 * @alias sap.f.GridContainerItemLayoutData
-		 * @ui5-metamodel This control/element will also be described in the UI5 (legacy) designtime metamodel
 		 */
 		var GridContainerItemLayoutData = LayoutData.extend("sap.f.GridContainerItemLayoutData", /** @lends sap.f.GridContainerItemLayoutData.prototype */ {
 			metadata: {
@@ -48,12 +46,12 @@ sap.ui.define(['sap/ui/core/LayoutData'],
 					/**
 					 * Specifies the minimum number of rows, which the item should take.
 					 */
-					minRows: {type: "int", group: "Misc"},
+					minRows: { type: "int", group: "Misc" },
 					/**
 					 * Specifies the number of rows, which the item should take.
-					 * @experimental Since 1.65 this property may soon be removed, use minRows instead
+					 * For more flexible layout in which the number of rows is determined by the item's height it is recommended to use the "minRows" property instead
 					 */
-					rows: {type: "int", group: "Misc"}
+					rows: { type: "int", group: "Misc" }
 				}
 			}
 		});

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var S={apiVersion:2};S.render=function(r,c){var i=c._getInput(),w=c.getWidth(),e=c.getEnabled(),E=c.getEditable(),v=c.getValueState();r.openStart("div",c);if(e&&E){r.attr("tabindex","-1");}r.style("width",w);r.class("sapMStepInput");r.class("sapMStepInput-CTX");!e&&r.class("sapMStepInputReadOnly");!E&&r.class("sapMStepInputNotEditable");if(v==="Error"||v==="Warning"){r.class("sapMStepInput"+v);}r.openEnd();r.renderControl(i);r.close("div");};return S;},true);
+sap.ui.define([],function(){"use strict";var t={apiVersion:2};t.render=function(t,e){var n=e._getInput(),a=e.getWidth(),s=e.getEnabled(),p=e.getEditable(),r=e.getValueState();t.openStart("div",e);t.style("width",a);t.class("sapMStepInput");t.class("sapMStepInput-CTX");!s&&t.class("sapMStepInputReadOnly");!p&&t.class("sapMStepInputNotEditable");if(r==="Error"||r==="Warning"){t.class("sapMStepInput"+r)}t.openEnd();t.renderControl(n);t.close("div")};return t},true);
+//# sourceMappingURL=StepInputRenderer.js.map

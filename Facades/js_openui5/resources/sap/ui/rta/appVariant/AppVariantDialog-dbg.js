@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,15 +18,20 @@ sap.ui.define([
 	"sap/m/TextArea",
 	"sap/m/TileContent",
 	"sap/m/VBox",
+	"sap/ui/core/Element",
+	"sap/ui/core/library",
+	"sap/ui/core/Lib",
+	"sap/ui/core/IconPool",
 	"sap/ui/core/Title",
 	"sap/ui/layout/form/SimpleForm",
+	"sap/ui/layout/library",
 	"sap/ui/model/Filter",
+	"sap/ui/model/FilterOperator",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/rta/Utils",
 	// needs to be preloaded for the test to work
 	"sap/ui/layout/form/ResponsiveGridLayout"
-],
-function(
+], function(
 	Button,
 	Dialog,
 	DialogRenderer,
@@ -39,15 +44,26 @@ function(
 	TextArea,
 	TileContent,
 	VBox,
+	Element,
+	coreLibrary,
+	Lib,
+	IconPool,
 	Title,
 	SimpleForm,
+	layoutLibrary,
 	Filter,
+	FilterOperator,
 	JSONModel,
 	RtaUtils
 ) {
 	"use strict";
 
-	var oResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
+	// shortcut for sap.ui.layout.form.SimpleFormLayout
+	var {SimpleFormLayout} = layoutLibrary.form;
+
+	var {ValueState} = coreLibrary;
+
+	var oResources = Lib.getResourceBundleFor("sap.ui.rta");
 	var oDataSet;
 	var oTitleLabel;
 	var oTitleInput;
@@ -81,7 +97,7 @@ function(
 
 	function _handleSearch(oEvent) {
 		var sValue = oEvent.getParameter("value");
-		var oFilter = new Filter("name", sap.ui.model.FilterOperator.Contains, sValue);
+		var oFilter = new Filter("name", FilterOperator.Contains, sValue);
 		var oBinding = oEvent.getSource().getBinding("items");
 		oBinding.filter([oFilter]);
 	}
@@ -101,26 +117,24 @@ function(
 	}
 
 	function _handleSelectDialog() {
-		if (!oSelectDialog) {
-			oSelectDialog = new SelectDialog("selectDialog", {
-				noDataText: oResources.getText("APP_VARIANT_ICON_NO_DATA"),
-				title: oResources.getText("APP_VARIANT_ICON_SELECT_ICON"),
-				search: function(oEvent) {
-					_handleSearch(oEvent);
-				},
-				confirm: function(oEvent) {
-					_handleClose(oEvent);
-				},
-				cancel: function(oEvent) {
-					_handleClose(oEvent);
-				}
-			});
-		}
+		oSelectDialog ||= new SelectDialog("selectDialog", {
+			noDataText: oResources.getText("APP_VARIANT_ICON_NO_DATA"),
+			title: oResources.getText("APP_VARIANT_ICON_SELECT_ICON"),
+			search(oEvent) {
+				_handleSearch(oEvent);
+			},
+			confirm(oEvent) {
+				_handleClose(oEvent);
+			},
+			cancel(oEvent) {
+				_handleClose(oEvent);
+			}
+		});
 
 		oSelectDialog.addStyleClass(RtaUtils.getRtaStyleClassName());
 
 		oSelectDialog.bindAggregation("items", {
-			path:"/icons",
+			path: "/icons",
 			template: new StandardListItem({
 				title: "{name}",
 				description: "",
@@ -131,13 +145,14 @@ function(
 			})
 		});
 
-		var aUI5Icons = sap.ui.core.IconPool.getIconNames();
+		var aUI5Icons = IconPool.getIconNames();
 		var aIcons = [];
 
 		aUI5Icons.forEach(function(sName) {
+			var iconInfo = IconPool.getIconInfo(sName);
 			aIcons.push({
-				icon: sap.ui.core.IconPool.getIconInfo(sName).uri,
-				name : sName.toLowerCase()
+				icon: iconInfo.uri,
+				name: (iconInfo.text === "") ? sName.toLowerCase() : iconInfo.text
 			});
 		});
 
@@ -160,13 +175,13 @@ function(
 			value: "{/title}",
 			valueLiveUpdate: true,
 			placeholder: oResources.getText("SAVE_AS_DIALOG_PLACEHOLDER_TITLE_TEXT"),
-			liveChange: function() {
-				var oSaveButton = sap.ui.getCore().byId("saveButton");
+			liveChange() {
+				var oSaveButton = Element.getElementById("saveButton");
 				if (this.getValue() === "") {
-					this.setValueState(sap.ui.core.ValueState.Error);  // if the field is empty after change, it will go red
+					this.setValueState(ValueState.Error); // if the field is empty after change, it will go red
 					oSaveButton.setEnabled(false);
 				} else {
-					this.setValueState(sap.ui.core.ValueState.None); // if the field is not empty after change, the value state (if any) is removed
+					this.setValueState(ValueState.None); // if the field is not empty after change, the value state (if any) is removed
 					oSaveButton.setEnabled(true);
 				}
 			}
@@ -198,10 +213,10 @@ function(
 
 		oIconInput = new Input("selectInput", {
 			showValueHelp: true,
-			liveChange: function(oEvent) {
+			liveChange(oEvent) {
 				_handleSelectDialog(oEvent);
 			},
-			valueHelpRequest: function(oEvent) {
+			valueHelpRequest(oEvent) {
 				_handleSelectDialog(oEvent);
 			},
 			value: "{/iconname}",
@@ -212,7 +227,7 @@ function(
 	function _createSimpleForm() {
 		oSimpleForm = new SimpleForm({
 			editable: true,
-			layout: "ResponsiveGridLayout",
+			layout: SimpleFormLayout.ResponsiveGridLayout,
 			labelSpanXL: 4,
 			labelSpanL: 4,
 			labelSpanM: 4,
@@ -255,27 +270,27 @@ function(
 	}
 
 	var AppVariantDialog = Dialog.extend("sap.ui.rta.appVariant.AppVariantDialog", {
-		metadata : {
-			library : "sap.ui.rta",
-			events : {
+		metadata: {
+			library: "sap.ui.rta",
+			events: {
 
 				/**
 				 * This event will be fired when the user clicks the Create button on the dialog.
 				 */
-				create : {},
+				create: {},
 
 				/**
 				 * This event will be fired when the user clicks the Cancel button on the dialog.
 				 */
-				cancel : {}
+				cancel: {}
 			}
 		},
-		init: function() {
+		init() {
 			Dialog.prototype.init.apply(this);
 
 			// initialize dialog and create member variables.
 			this.setTitle(oResources.getText("CREATE_APP_VARIANT_DIALOG_TITLE"));
-			this.setContentWidth("620px");
+			this.setContentWidth("860px");
 			this.setContentHeight("250px");
 
 			oCustomTileModel = new JSONModel({
@@ -289,7 +304,7 @@ function(
 				icons: null
 			});
 
-			sap.ui.getCore().setModel(oCustomTileModel);
+			this.setModel(oCustomTileModel);
 
 			_createTile();
 			_createTileAttributes();
@@ -300,17 +315,17 @@ function(
 			this._createButtons();
 			this.addStyleClass(RtaUtils.getRtaStyleClassName());
 		},
-		onAfterRendering: function() {
-			document.getElementById('title1').style.height = "0px";
-			document.getElementById('title2').style.height = "0px";
-			document.getElementById('tile').style.float = "left";
+		onAfterRendering() {
+			document.getElementById("title1").style.height = "0px";
+			document.getElementById("title2").style.height = "0px";
+			document.getElementById("tile").style.float = "left";
 		},
-		_onCreate: function() {
+		_onCreate() {
 			var sTitle = oTitleInput.getValue() || " ";
 			var sSubTitle = oSubTitleInput.getValue() || " ";
 			var sDescription = oDescriptionText.getValue() || " ";
 
-			var sIconValue = oIconInput.getValue() ? sap.ui.core.IconPool.getIconInfo(oIconInput.getValue()).uri : " ";
+			var sIconValue = oIconInput.getValue() ? IconPool.getIconInfo(oIconInput.getValue()).uri : " ";
 
 			this.fireCreate({
 				title: sTitle,
@@ -322,7 +337,7 @@ function(
 			this.close();
 			this.destroy();
 		},
-		_createButtons: function() {
+		_createButtons() {
 			this.addButton(new Button("saveButton", {
 				text: oResources.getText("APP_VARIANT_DIALOG_SAVE"),
 				tooltip: oResources.getText("TOOLTIP_APP_VARIANT_DIALOG_SAVE"),
@@ -342,13 +357,13 @@ function(
 				}.bind(this)
 			}));
 		},
-		destroy: function() {
+		destroy(...aArgs) {
 			if (oCustomTileModel) {
 				oCustomTileModel.destroy();
 			}
-			Dialog.prototype.destroy.apply(this, arguments);
+			Dialog.prototype.destroy.apply(this, aArgs);
 		},
-		renderer: DialogRenderer.render
+		renderer: DialogRenderer
 	});
 
 	return AppVariantDialog;

@@ -1,9 +1,12 @@
 	/*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
+sap.ui.define([
+	"sap/ui/integration/thirdparty/adaptivecards",
+	"sap/ui/integration/cards/adaptivecards/overwrites/inputsGeneralOverwrites"
+], function (AdaptiveCards, InputsOverwrites) {
 	"use strict";
 	function UI5InputDate() {
 		AdaptiveCards.DateInput.apply(this, arguments);
@@ -16,14 +19,25 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 	 * <code>ui5-datepicker</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @since 1.74
 	 */
 	UI5InputDate.prototype = Object.create(AdaptiveCards.DateInput.prototype);
+
+
+	UI5InputDate.prototype.overrideInternalRender = function () {
+		var oInput = AdaptiveCards.TextInput.prototype.overrideInternalRender.call(this, arguments);
+
+		InputsOverwrites.overwriteLabel(this);
+		InputsOverwrites.overwriteRequired(this);
+
+		return oInput;
+	};
+
 	UI5InputDate.prototype.internalRender = function () {
-		this._dateInputElement = document.createElement("ui5-datepicker");
+		this._dateInputElement = document.createElement("ui5-date-picker");
 
 		this._dateInputElement.id = this.id;
 		this._dateInputElement.placeholder = this.placeholder;
@@ -32,12 +46,33 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		this._dateInputElement.minDate = this.min || "";
 		this._dateInputElement.maxDate = this.max || "";
 
-		this._dateInputElement.addEventListener("change", function () {
+		InputsOverwrites.createValueStateElement(this, this._dateInputElement);
+
+		this._dateInputElement.addEventListener("input", function () {
 			this.valueChanged();
 		}.bind(this));
 
 		return this._dateInputElement;
 
 	};
+
+	UI5InputDate.prototype.updateInputControlAriaLabelledBy = function () {
+		InputsOverwrites.overwriteAriaLabelling(this, "accessible-name-ref");
+	};
+
+	UI5InputDate.prototype.showValidationErrorMessage = function () {
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "Error";
+		}
+	};
+
+	UI5InputDate.prototype.resetValidationFailureCue = function () {
+		AdaptiveCards.TextInput.prototype.resetValidationFailureCue.call(this, arguments);
+
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "None";
+		}
+	};
+
 	return UI5InputDate;
 });

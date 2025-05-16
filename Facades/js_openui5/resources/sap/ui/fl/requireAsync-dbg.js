@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,6 @@ sap.ui.define([
 	 * @param {string} sModuleName Name of the required module
 	 * @returns {Promise} Returns a promise.
 	 *
-	 * @experimental since 1.78
 	 * @function
 	 * @since 1.78
 	 * @private
@@ -23,7 +22,13 @@ sap.ui.define([
 	 * @alias module:sap/ui/fl/requireAsync
 	 */
 	return function(sModuleName) {
-		//TODO: get rid of require async as soon as sap.ui.require has learned Promises as return value
+		// shortcut needed because the requireAsync does a setTimeout if the module is already loaded
+		// this setTimeout will affect our promise chains in a bad way
+		var oAlreadyLoadedModule = sap.ui.require(sModuleName);
+		if (oAlreadyLoadedModule) {
+			return Promise.resolve(oAlreadyLoadedModule);
+		}
+		// TODO: get rid of require async as soon as sap.ui.require has learned Promises as return value
 		return new Promise(function(fnResolve, fnReject) {
 			sap.ui.require([sModuleName], function(oModule) {
 				fnResolve(oModule);

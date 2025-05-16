@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/thirdparty/jquery'],function(q){"use strict";var c=function cursorPos(p){var l=arguments.length,t,T;t=this.prop("tagName");T=this.prop("type");if(this.length===1&&((t=="INPUT"&&(T=="text"||T=="password"||T=="search"))||t=="TEXTAREA")){var d=this.get(0);if(l>0){if(typeof(d.selectionStart)=="number"){d.focus();d.selectionStart=p;d.selectionEnd=p;}return this;}else{if(typeof(d.selectionStart)=="number"){return d.selectionStart;}return-1;}}else{return this;}};q.fn.cursorPos=c;return q;});
+sap.ui.define(["sap/ui/thirdparty/jquery"],function(jQuery){"use strict";var t=function t(e){var r=arguments.length,s,i;s=this.prop("tagName");i=this.prop("type");if(this.length===1&&(s=="INPUT"&&(i=="text"||i=="password"||i=="search")||s=="TEXTAREA")){var n=this.get(0);if(r>0){if(typeof n.selectionStart=="number"){n.focus();n.selectionStart=e;n.selectionEnd=e}return this}else{if(typeof n.selectionStart=="number"){return n.selectionStart}return-1}}else{return this}};jQuery.fn.cursorPos=t;return jQuery});
+//# sourceMappingURL=cursorPos.js.map

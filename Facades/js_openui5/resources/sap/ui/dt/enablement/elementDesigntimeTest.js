@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/dt/enablement/report/QUnitReport","sap/ui/dt/enablement/ElementEnablementTest"],function(Q,E){"use strict";var e=function(p){var o=new E(p);return o.run().then(function(d){var q=new Q({data:d});o.destroy();q.destroy();});};return e;});
+sap.ui.define(["sap/ui/dt/enablement/report/QUnitReport","sap/ui/dt/enablement/ElementEnablementTest"],function(e,n){"use strict";var t=function(t){var r=new n(t);return r.run().then(function(n){var t=new e({data:n});r.destroy();t.destroy()})};return t});
+//# sourceMappingURL=elementDesigntimeTest.js.map

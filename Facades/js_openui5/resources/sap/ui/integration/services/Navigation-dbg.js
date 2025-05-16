@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./Service'], function (Service) {
@@ -29,9 +29,18 @@ sap.ui.define(['./Service'], function (Service) {
 	 * @param {Object} oContext an object that gives the service information about the target.
 	 * @param {Object} oContext.parameters A map with parameters.
 	 * @returns {Promise} A promise that resolves with true if the navigation target can be resolved.
-	 * @abstract
 	 */
-	Service.prototype.enabled = function (oContext) {
+	Navigation.prototype.enabled = function (oContext) {
+		return Promise.resolve(false);
+	};
+
+	/**
+	 * Expected by a consumer of a Navigation Service to check if a navigation item must be hidden.
+	 * @param {Object} oContext an object that gives the service information about the target.
+	 * @param {Object} oContext.parameters A map with parameters.
+	 * @returns {Promise} A promise that resolves with true if the item must be hidden.
+	 */
+	Navigation.prototype.hidden = function (oContext) {
 		return Promise.resolve(false);
 	};
 

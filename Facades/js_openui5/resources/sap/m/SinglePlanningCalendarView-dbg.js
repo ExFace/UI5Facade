@@ -1,15 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
 	'sap/base/Log',
+	'sap/base/i18n/date/CalendarWeekNumbering',
 	'sap/ui/core/Element'
 ],
-function (library, Log, Element) {
+function (library, Log, _CalendarWeekNumbering, Element) {
 	"use strict";
 
 	/**
@@ -26,7 +27,7 @@ function (library, Log, Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -48,7 +49,26 @@ function (library, Log, Element) {
 				/**
 				 * Adds a title for the view
 				 */
-				title : { type : "string", group : "Appereance" }
+				title : { type : "string", group : "Appearance" },
+
+				/**
+				 * If set, the first day of the displayed week is this day. Valid values are 0 to 6 starting on Sunday.
+				 * If there is no valid value set, the default of the used locale is used.
+				 *
+				 * Note: This property will only have effect in Week view and Month view of the SinglePlanningCalendar,
+				 * but it wouldn't have effect in WorkWeek view.
+				 *
+				 * @since 1.98
+				 */
+				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1},
+
+				/**
+			 	 * If set, the calendar week numbering is used for display.
+				 * If not set, the calendar week numbering of the global configuration is used.
+				 * Note: This property should not be used with firstDayOfWeek property.
+				 * @since 1.110.0
+				 */
+				calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 			}
 		}
@@ -57,11 +77,12 @@ function (library, Log, Element) {
 	/**
 	 * Should return the number of columns to be displayed in the grid of the <code>sap.m.SinglePlanningCalendar</code>.
 	 *
+	 * @returns {int} the number of columns to be displayed
 	 * @public
 	 * @abstract
 	 */
 	SinglePlanningCalendarView.prototype.getEntityCount = function () {
-		Log.warning("This method should be implemented in one of the inherited classes.", this);
+		throw new Error("This method should be implemented in one of the inherited classes.");
 	};
 
 	/**
@@ -70,23 +91,25 @@ function (library, Log, Element) {
 	 * pressing the forward button inside the work week view, the next startDate of a work week will be 7 entities
 	 * (days) away from the current one.
 	 *
+	 * @returns {int} the number of entities to be skipped by scrolling
 	 * @public
 	 * @abstract
 	 */
 	SinglePlanningCalendarView.prototype.getScrollEntityCount = function () {
-		Log.warning("This method should be implemented in one of the inherited classes.", this);
+		throw new Error("This method should be implemented in one of the inherited classes.");
 	};
 
 	/**
 	 * Should calculate the startDate which will be displayed in the <code>sap.m.SinglePlanningCalendar</code>
 	 * based on a given date.
 	 *
-	 * @param {object} oDate the given date
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate The given date
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} The startDate of the view
 	 * @public
 	 * @abstract
 	 */
 	SinglePlanningCalendarView.prototype.calculateStartDate = function (oDate) {
-		Log.warning("This method should be implemented in one of the inherited classes.", this);
+		throw new Error("This method should be implemented in one of the inherited classes.");
 	};
 
 	return SinglePlanningCalendarView;

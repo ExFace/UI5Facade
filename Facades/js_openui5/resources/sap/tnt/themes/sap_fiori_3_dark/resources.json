@@ -8,93 +8,59 @@
 		},
 		{
 			"name": "InfoLabel.less",
-			"size": 2158,
+			"size": 1486,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 415,
+			"size": 606,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "SideNavigation.less",
-			"size": 359,
+			"size": 358,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "ToolHeader.less",
-			"size": 18687,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "ToolPage.less",
-			"size": 253,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 5594,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 90187,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 89815,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "global.less",
-			"size": 1385,
+			"size": 19019,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 38469,
+			"size": 54598,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2772,
+			"module": "sap/tnt/themes/sap_fiori_3_dark/library-parameters.json",
+			"size": 7044,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 38463,
+			"size": 54583,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 24139,
+			"size": 22343,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 494,
+			"size": 546,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 40685,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 40679,
-			"theme": "sap_fiori_3_dark"
+			"name": "resources.json",
+			"size": 1181
 		}
 	]
 }

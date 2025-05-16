@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,39 +15,44 @@ function(
 	"use strict";
 
 	/**
-	 * Class for storing changes in local storage
+	 * Utility for storing changes in local storage.
 	 *
-	 * @class
+	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
-	 * @static
 	 * @since 1.48
 	 * @alias sap.ui.fl.FakeLrepConnectorLocalStorage
+	 *
+	 * @private
+	 * @ui5-restricted
+	 * @deprecated since 1.70. Configure the <code>sap.ui.core.Configuration.flexibilityServices</code> to use a test connector
+	 * like <code>["LocalStorageConnector"]</code>, <code>["SessionStorageConnector"]</code> or <code>["JsObjectConnector"]</code>.
+	 * @see {@link https://ui5.sap.com/#/topic/642dab291a7b47ec9d46c39b3c482aba|Boostrapping UI5 Flexibility}
 	 */
 
 	return {
-		enableFakeConnector : function (mPropertyBag) {
+		enableFakeConnector(mPropertyBag) {
 			var sJsonPath = mPropertyBag ? mPropertyBag.sInitialComponentJsonPath : undefined;
 			FakeLrepConnector.setFlexibilityServicesAndClearCache("LocalStorageConnector", sJsonPath);
 		},
-		disableFakeConnector : function () {
+		disableFakeConnector() {
 			FakeLrepConnector.disableFakeConnector();
 		},
 		forTesting: {
-			spyWrite: function (sandbox, assert) {
+			spyWrite(sandbox, assert) {
 				return FakeLrepConnector.forTesting.spyMethod(sandbox, assert, LocalStorageConnector, "write");
 			},
-			getNumberOfChanges: function (sReference) {
+			getNumberOfChanges(sReference) {
 				return FakeLrepConnector.forTesting.getNumberOfChanges(LocalStorageConnector, sReference);
 			},
 			synchronous: {
-				clearAll: function () {
+				clearAll() {
 					FakeLrepConnector.forTesting.synchronous.clearAll(window.localStorage);
 				},
-				store: function (sKey, oItem) {
+				store(sKey, oItem) {
 					FakeLrepConnector.forTesting.synchronous.store(window.localStorage, sKey, oItem);
 				}
 			}

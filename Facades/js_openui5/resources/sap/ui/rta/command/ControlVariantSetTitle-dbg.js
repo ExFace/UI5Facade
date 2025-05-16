@@ -1,13 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/rta/command/BaseCommand",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
-	"sap/ui/fl/Utils"
-], function(BaseCommand, JsControlTreeModifier, flUtils) {
+	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/variants/VariantManager",
+	"sap/ui/fl/Utils",
+	"sap/ui/rta/command/BaseCommand",
+	"sap/ui/rta/library"
+], function(
+	JsControlTreeModifier,
+	ControlVariantApplyAPI,
+	VariantManager,
+	flUtils,
+	BaseCommand,
+	rtaLibrary
+) {
 	"use strict";
 
 	/**
@@ -16,25 +26,25 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.50
 	 * @alias sap.ui.rta.command.ControlVariantSetTitle
 	 */
 	var ControlVariantSetTitle = BaseCommand.extend("sap.ui.rta.command.ControlVariantSetTitle", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				oldText : {
-					type : "string"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				oldText: {
+					type: "string"
 				},
-				newText : {
-					type : "string"
+				newText: {
+					type: "string"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
@@ -61,29 +71,28 @@ sap.ui.define([
 	 */
 	ControlVariantSetTitle.prototype.execute = function() {
 		var oVariantManagementControl = this.getElement();
-		var oVariantManagementControlBinding = oVariantManagementControl.getTitle().getBinding("text");
 
 		this.oAppComponent = flUtils.getAppComponentForControl(oVariantManagementControl);
-		this.oModel = this.oAppComponent.getModel(flUtils.VARIANT_MODEL_NAME);
+		this.oModel = this.oAppComponent.getModel(ControlVariantApplyAPI.getVariantModelName());
 		this.sVariantManagementReference = JsControlTreeModifier.getSelector(oVariantManagementControl, this.oAppComponent).id;
 		this.sCurrentVariant = this.oModel.getCurrentVariantReference(this.sVariantManagementReference);
 
-		var sCurrentTitle = this.oModel.getVariantProperty(this.sCurrentVariant, "title");
+		var sCurrentTitle = this.oModel.getVariantTitle(this.sCurrentVariant, this.sVariantManagementReference);
 		this.setOldText(sCurrentTitle);
 
 		var mPropertyBag = {
-			appComponent : this.oAppComponent,
-			variantReference : this.sCurrentVariant,
-			changeType : "setTitle",
-			title : this.getNewText(),
-			layer : this.sLayer
+			appComponent: this.oAppComponent,
+			variantReference: this.sCurrentVariant,
+			changeType: "setTitle",
+			title: this.getNewText(),
+			layer: this.sLayer,
+			generator: rtaLibrary.GENERATOR_NAME
 		};
 
-		return Promise.resolve(this.oModel.setVariantProperties(this.sVariantManagementReference, mPropertyBag, true))
-						.then(function(oChange) {
-							this._oVariantChange = oChange;
-							oVariantManagementControlBinding.checkUpdate(true); /*Force Update as binding key stays same*/
-						}.bind(this));
+		return Promise.resolve(VariantManager.addVariantChange(this.sVariantManagementReference, mPropertyBag))
+		.then(function(oChange) {
+			this._oVariantChange = oChange;
+		}.bind(this));
 	};
 
 	/**
@@ -92,19 +101,18 @@ sap.ui.define([
 	 * @returns {Promise} Returns resolve after undo
 	 */
 	ControlVariantSetTitle.prototype.undo = function() {
-		var oVariantManagementControlBinding = this.getElement().getTitle().getBinding("text");
 		var mPropertyBag = {
-			variantReference : this.sCurrentVariant,
-			changeType : "setTitle",
-			title : this.getOldText(),
-			change: this._oVariantChange
+			variantReference: this.sCurrentVariant,
+			changeType: "setTitle",
+			title: this.getOldText(),
+			appComponent: this.oAppComponent
 		};
+		var oChange = this._oVariantChange;
 
-		return Promise.resolve(this.oModel.setVariantProperties(this.sVariantManagementReference, mPropertyBag, false))
-						.then(function(oChange) {
-							this._oVariantChange = oChange;
-							oVariantManagementControlBinding.checkUpdate(true); /*Force Update as binding key stays same*/
-						}.bind(this));
+		return Promise.resolve(VariantManager.deleteVariantChange(this.sVariantManagementReference, mPropertyBag, oChange))
+		.then(function() {
+			this._oVariantChange = null;
+		}.bind(this));
 	};
 
 	return ControlVariantSetTitle;

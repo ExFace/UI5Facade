@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,36 +21,32 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent App component
 	 * @param {object} mPropertyBag.view Root view
-	 * @return {boolean} Returns true if change has been reverted successfully
+	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
-	return function(oChange, oControl, mPropertyBag) {
-		var oModifier = mPropertyBag.modifier;
-		var oChangeDefinition = oChange.getDefinition();
-		var sAggregationName = oChangeDefinition.content.targetAggregation;
-		var oView = mPropertyBag.view || Utils.getViewForControl(oControl);
-		var oAppComponent = mPropertyBag.appComponent;
-		var aRevertData = oChange.getRevertData() || [];
-		var aControlsToRemove = aRevertData.map(function (vRevert) {
-			var sControlId;
-			if (typeof vRevert === "string") {
-				sControlId = vRevert;
-			} else {
-				sControlId = vRevert.id;
-				sAggregationName = sAggregationName || vRevert.aggregationName;
-			}
-			// when we apply the change in XML and revert in JS, the saved ID is not yet concatinated with the view
-			return oModifier.bySelector(sControlId, oAppComponent, oView) || oView && oView.createId && oModifier.bySelector(oView.createId(sControlId));
-		});
+	return async function(oChange, oControl, mPropertyBag) {
+		const oModifier = mPropertyBag.modifier;
+		let sAggregationName = oChange.getContent().targetAggregation;
+		const oView = mPropertyBag.view || Utils.getViewForControl(oControl);
+		const oAppComponent = mPropertyBag.appComponent;
+		const aRevertData = oChange.getRevertData() || [];
 
-		aControlsToRemove.forEach(function(oControlToRemove) {
-			oModifier.removeAggregation(oControl, sAggregationName, oControlToRemove);
+		for (const vRevertData of aRevertData) {
+			let sControlId;
+			if (typeof vRevertData === "string") {
+				sControlId = vRevertData;
+			} else {
+				sControlId = vRevertData.id;
+				sAggregationName ||= vRevertData.aggregationName;
+			}
+			// when we apply the change in XML and revert in JS, the saved ID is not yet concatenated with the view
+			const oControlToRemove = oModifier.bySelector(sControlId, oAppComponent, oView)
+				|| (oView?.createId && oModifier.bySelector(oView.createId(sControlId)));
 			if (oControlToRemove.destroy) {
 				oControlToRemove.destroy();
 			}
-		});
-
+			await oModifier.removeAggregation(oControl, sAggregationName, oControlToRemove);
+		}
 		oChange.resetRevertData();
-		return true;
 	};
 });

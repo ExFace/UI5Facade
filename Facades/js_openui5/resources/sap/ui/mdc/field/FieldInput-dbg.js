@@ -1,47 +1,46 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/m/Input',
-	'sap/ui/mdc/field/FieldInputRenderer'
-	], function(
-		Input,
-		FieldInputRenderer
-	) {
+	'sap/ui/mdc/field/FieldInputRenderer',
+	'sap/ui/base/ManagedObjectObserver'
+], (
+	Input,
+	FieldInputRenderer,
+	ManagedObjectObserver
+) => {
 	"use strict";
 
 	/**
 	 * Constructor for a new <code>FieldInput</code>.
 	 *
-	 * The <code>FieldInput</code> enhances the <code>sap.m.Input</code> control to add ARIA attributes
-	 * and other <code>sap.ui.mdc.field.FieldBase</code>-specific logic.
-	 *
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new control
-	 * @class Base type for <code>FieldInput</code> control.
+	 * @class
+	 * The <code>FieldInput</code> control is used to render an input field inside a control based on {@link sap.ui.mdc.field.FieldBase FieldBase}.
+	 * It enhances the {@link sap.m.Input Input} control to add ARIA attributes and other {@link sap.ui.mdc.field.FieldBase FieldBase}-specific logic.
 	 * @extends sap.m.Input
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @abstract
 	 * @private
 	 * @ui5-restricted sap.ui.mdc.field.FieldBase
 	 * @since 1.81.0
 	 * @alias sap.ui.mdc.field.FieldInput
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FieldInput = Input.extend("sap.ui.mdc.field.FieldInput", /** @lends sap.ui.mdc.field.FieldInput */
-	{
+	const FieldInput = Input.extend("sap.ui.mdc.field.FieldInput", /** @lends sap.ui.mdc.field.FieldInput.prototype */ {
 		metadata: {
 			library: "sap.ui.mdc",
 			properties: {
 				/**
 				 * Sets the ARIA attributes added to the <code>Input</code> control.
 				 *
-				 * The object contains ARIA attribudes in an <code>aria</code> node.
-				 * Additional attributes, such as <code>role</code> or <code>autocomplete</code>, are added on root level.
+				 * The object contains ARIA attributes in an <code>aria</code> node.
+				 * Additional attributes, such as <code>role</code>, <code>autocomplete</code> or <code>valueHelpEnabled</code>, are added on root level.
 				 */
 				ariaAttributes: {
 					type: "object",
@@ -49,8 +48,46 @@ sap.ui.define([
 					byValue: true
 				}
 			}
-		}
+		},
+		renderer: FieldInputRenderer
 	});
+
+	FieldInput.prototype.init = function() {
+
+		Input.prototype.init.apply(this, arguments);
+
+		this._oObserver = new ManagedObjectObserver(_observeChanges.bind(this));
+
+		this._oObserver.observe(this, {
+			properties: ["ariaAttributes"]
+		});
+
+	};
+
+	FieldInput.prototype.exit = function() {
+
+		Input.prototype.exit.apply(this, arguments);
+
+		this._oObserver.disconnect();
+		this._oObserver = undefined;
+
+	};
+
+	function _observeChanges(oChanges) {
+
+		if (oChanges.name === "ariaAttributes") {
+			// set aria-activedescendant directly to prevent anouncement of old one
+			if (oChanges.current.aria?.activedescendant !== oChanges.old.aria?.activedescendant) {
+				const oDomRef = this.getFocusDomRef();
+				if (!oChanges.current.aria?.activedescendant) {
+					oDomRef.removeAttribute("aria-activedescendant");
+				} else {
+					oDomRef.setAttribute("aria-activedescendant", oChanges.current.aria.activedescendant);
+				}
+			}
+		}
+
+	}
 
 	return FieldInput;
 

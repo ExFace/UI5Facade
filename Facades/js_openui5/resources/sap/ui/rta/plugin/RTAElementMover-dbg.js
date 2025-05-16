@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,20 +8,20 @@
 sap.ui.define([
 	"sap/ui/dt/plugin/ElementMover",
 	"sap/ui/dt/OverlayUtil",
+	"sap/ui/dt/ElementUtil",
 	"sap/ui/rta/Utils",
 	"sap/ui/rta/command/CommandFactory",
 	"sap/ui/rta/plugin/Plugin",
-	"sap/ui/dt/OverlayRegistry",
-	"sap/ui/dt/MetadataPropagationUtil"
+	"sap/ui/dt/OverlayRegistry"
 ],
 function(
 	ElementMover,
 	OverlayUtil,
+	ElementUtil,
 	Utils,
 	CommandFactory,
 	Plugin,
-	OverlayRegistry,
-	MetadataPropagationUtil
+	OverlayRegistry
 ) {
 	"use strict";
 
@@ -35,37 +35,36 @@ function(
 	 * The RTAElementMover is responsible for the RTA specific adaptation of element movements.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.rta.plugin.RTAElementMover
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var RTAElementMover = ElementMover.extend("sap.ui.rta.plugin.RTAElementMover", /** @lends sap.ui.rta.plugin.RTAElementMover.prototype */ {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				commandFactory : {
-					type : "any",
-					defaultValue : CommandFactory
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				commandFactory: {
+					type: "any",
+					defaultValue: CommandFactory
 				},
-				movableTypes : {
-					type : "string[]",
-					defaultValue : ["sap.ui.core.Element"]
+				movableTypes: {
+					type: "string[]",
+					defaultValue: ["sap.ui.core.Element"]
 				}
 			},
-			associations : {
+			associations: {
 			},
-			events : {
+			events: {
 			}
 		}
 	});
 
 	RTAElementMover.prototype.init = function() {
 		this.oBasePlugin = new Plugin({
-			commandFactory : this.getCommandFactory()
+			commandFactory: this.getCommandFactory()
 		});
 	};
 
@@ -84,10 +83,10 @@ function(
 			return Promise.resolve(false);
 		}
 		return this.checkMovable(oOverlay, bOnRegistration)
-			.then(function(bMovable) {
-				oOverlay.setMovable(bMovable);
-				return bMovable;
-			});
+		.then(function(bMovable) {
+			oOverlay.setMovable(bMovable);
+			return bMovable;
+		});
 	};
 
 	/**
@@ -106,6 +105,13 @@ function(
 			return Promise.resolve(false);
 		}
 
+		// Direct children of template aggregations should not be movable
+		// because their order is defined based on the underlying data
+		var oElement = oOverlay.getElement();
+		if (oElement.isDestroyStarted() || ElementUtil.isElementDirectTemplateChild(oElement)) {
+			return Promise.resolve(false);
+		}
+
 		var oRelevantContainer = oOverlay.getRelevantContainer();
 		var oRelevantContainerOverlay = OverlayRegistry.getOverlay(oRelevantContainer);
 		if (!oRelevantContainerOverlay) {
@@ -113,21 +119,19 @@ function(
 		}
 
 		return this.isMoveAvailableOnRelevantContainer(oOverlay)
-			.then(function(bValid) {
-				if (bValid) {
-					bValid = this.oBasePlugin.hasStableId(oOverlay) &&
+		.then(function(bValid) {
+			bValid &&= this.oBasePlugin.hasStableId(oOverlay) &&
 					this.oBasePlugin.hasStableId(oParentElementOverlay) &&
 					this.oBasePlugin.hasStableId(oRelevantContainerOverlay);
-				}
-				return bValid;
-			}.bind(this))
-			.then(function(bValid) {
-				// element is only valid for move if it can be moved to somewhere else
-				if (bValid) {
-					return fnCheckForValidTargetZones.call(this, oOverlay, oRelevantContainerOverlay, bOnRegistration);
-				}
-				return bValid;
-			}.bind(this));
+			return bValid;
+		}.bind(this))
+		.then(function(bValid) {
+			// element is only valid for move if it can be moved to somewhere else
+			if (bValid) {
+				return fnCheckForValidTargetZones.call(this, oOverlay, oRelevantContainerOverlay, bOnRegistration);
+			}
+			return bValid;
+		}.bind(this));
 	}
 
 	function fnCheckForValidTargetZones(oOverlay, oRelevantContainerOverlay, bOnRegistration) {
@@ -135,43 +139,33 @@ function(
 
 		var aValidAggregationOverlayPromises = aOverlays.map(function(oAggregationOverlay) {
 			return this.checkTargetZone(oAggregationOverlay, oOverlay, bOnRegistration)
-				.then(function(bValid) {
-					return bValid ? oAggregationOverlay : undefined;
-				});
+			.then(function(bValid) {
+				return bValid ? oAggregationOverlay : undefined;
+			});
 		}.bind(this));
 
 		return Promise.all(aValidAggregationOverlayPromises)
-			.then(function(aValidAggregationOverlays) {
-				aValidAggregationOverlays = aValidAggregationOverlays.filter(function(aValidAggregationOverlay) {
-					return !!aValidAggregationOverlay;
-				});
-				if (aValidAggregationOverlays.length < 1) {
-					return false;
-				} else if (aValidAggregationOverlays.length === 1) {
-					var aVisibleOverlays = aValidAggregationOverlays[0].getChildren().filter(function(oChildOverlay) {
-						var oChildElement = oChildOverlay.getElement();
-						// At least one sibling has to be visible and still attached to the parent
-						// In some edge cases, the child element is not available anymore (element already got destroyed)
-						return (oChildElement && oChildElement.getVisible() && oChildElement.getParent());
-					});
-					return aVisibleOverlays.length > 1;
-				}
-				return true;
+		.then(function(aValidAggregationOverlays) {
+			aValidAggregationOverlays = aValidAggregationOverlays.filter(function(aValidAggregationOverlay) {
+				return !!aValidAggregationOverlay;
 			});
-	}
-
-	function fnHasMoveAction(oAggregationOverlay, oElement, oRelevantContainer) {
-		var oAggregationDTMetadata = oAggregationOverlay.getDesignTimeMetadata();
-		var oMoveAction = oAggregationDTMetadata.getAction("move", oElement);
-		if (!oMoveAction) {
-			return Promise.resolve(false);
-		}
-		// moveChangeHandler information is always located on the relevant container
-		return this.oBasePlugin.hasChangeHandler(oMoveAction.changeType, oRelevantContainer);
+			if (aValidAggregationOverlays.length < 1) {
+				return false;
+			} else if (aValidAggregationOverlays.length === 1) {
+				var aVisibleOverlays = aValidAggregationOverlays[0].getChildren().filter(function(oChildOverlay) {
+					var oChildElement = oChildOverlay.getElement();
+					// At least one sibling has to be visible and still attached to the parent
+					// In some edge cases, the child element is not available anymore (element already got destroyed)
+					return (oChildElement && oChildElement.getVisible() && oChildElement.getParent());
+				});
+				return aVisibleOverlays.length > 1;
+			}
+			return true;
+		});
 	}
 
 	/**
-	 * @param	{sap.ui.dt.Overlay} oOverlay overlay object
+	 * @param {sap.ui.dt.Overlay} oOverlay overlay object
 	 * @return {sap.ui.dt.DesignTimeMetadata} oDesignTimeMetadata
 	 * @private
 	 */
@@ -191,7 +185,7 @@ function(
 	 * @return {boolean} true if type is movable, false otherwise
 	 */
 	ElementMover.prototype.isMovableType = function() {
-		//real check is part of checkMovable which has the overlay
+		// real check is part of checkMovable which has the overlay
 		return true;
 	};
 
@@ -206,55 +200,15 @@ function(
 
 	/**
 	 * Checks drop ability for aggregation overlays
-	 * @param  {sap.ui.dt.Overlay} oAggregationOverlay aggregation overlay object
-	 * @return {Promise.<boolean>} Promise with true value if aggregation overlay is droppable or false value if not.
+	 * @param {sap.ui.dt.Overlay} oAggregationOverlay Aggregation overlay object
+	 * @param {sap.ui.dt.ElementOverlay} [oOverlay] Overlay being moved/added
+	 * @param {boolean} [bOverlayNotInDom] Flag defining if overlay is not in DOM
+	 * @return {Promise.<boolean>} Promise with true value if overlay can be added to the aggregation overlay or false value if not.
 	 * @override
 	 */
 	RTAElementMover.prototype.checkTargetZone = function(oAggregationOverlay, oOverlay, bOverlayNotInDom) {
 		var oMovedOverlay = oOverlay || this.getMovedOverlay();
-		return ElementMover.prototype.checkTargetZone.call(this, oAggregationOverlay, oMovedOverlay, bOverlayNotInDom)
-			.then(function(bTargetZone) {
-				if (!bTargetZone) {
-					return false;
-				}
-
-				var oMovedElement = oMovedOverlay.getElement();
-				var oTargetOverlay = oAggregationOverlay.getParent();
-				var oMovedRelevantContainer = oMovedOverlay.getRelevantContainer();
-
-				// the element or the parent overlay might be destroyed or not available
-				if (!oMovedElement || !oTargetOverlay) {
-					return false;
-				}
-
-				var oTargetElement = oTargetOverlay.getElement();
-				var oAggregationDtMetadata = oAggregationOverlay.getDesignTimeMetadata();
-
-				// determine target relevantContainer
-				var vTargetRelevantContainerAfterMove = MetadataPropagationUtil.getRelevantContainerForPropagation(oAggregationDtMetadata.getData(), oMovedElement);
-				vTargetRelevantContainerAfterMove = vTargetRelevantContainerAfterMove || oTargetElement;
-
-				// check for same relevantContainer
-				if (
-					!oMovedRelevantContainer
-					|| !vTargetRelevantContainerAfterMove
-					|| !this.oBasePlugin.hasStableId(oTargetOverlay)
-					|| oMovedRelevantContainer !== vTargetRelevantContainerAfterMove
-				) {
-					return false;
-				}
-
-				// Binding context is not relevant if the element is being moved inside its parent
-				if (oMovedOverlay.getParent().getElement() !== oTargetElement) {
-					// check if binding context is the same
-					if (!Utils.checkSourceTargetBindingCompatibility(oMovedElement, oTargetElement)) {
-						return false;
-					}
-				}
-
-				// check if movedOverlay is movable into the target aggregation
-				return fnHasMoveAction.call(this, oAggregationOverlay, oMovedElement, vTargetRelevantContainerAfterMove);
-			}.bind(this));
+		return Utils.checkTargetZone(oAggregationOverlay, oMovedOverlay, this.oBasePlugin, bOverlayNotInDom);
 	};
 
 	/**
@@ -298,11 +252,11 @@ function(
 			}
 		}.bind(this));
 		return Promise.all(aAggregationWithMoveActionPromises)
-			.then(function(aMoveAvailableResults) {
-				return aMoveAvailableResults.some(function(aMoveAvailable) {
-					return aMoveAvailable;
-				});
+		.then(function(aMoveAvailableResults) {
+			return aMoveAvailableResults.some(function(aMoveAvailable) {
+				return aMoveAvailable;
 			});
+		});
 	};
 
 	/**
@@ -330,13 +284,13 @@ function(
 		var sVariantManagementReference = this.oBasePlugin.getVariantManagementReference(oMovedOverlay);
 
 		return this.getCommandFactory().getCommandFor(oRelevantContainer, "Move", {
-			movedElements : [{
-				element : oMovedElement,
-				sourceIndex : iSourceIndex,
-				targetIndex : iTargetIndex
+			movedElements: [{
+				element: oMovedElement,
+				sourceIndex: iSourceIndex,
+				targetIndex: iTargetIndex
 			}],
-			source : oSource,
-			target : oTarget
+			source: oSource,
+			target: oTarget
 		}, oParentAggregationOverlay.getDesignTimeMetadata(), sVariantManagementReference);
 	};
 

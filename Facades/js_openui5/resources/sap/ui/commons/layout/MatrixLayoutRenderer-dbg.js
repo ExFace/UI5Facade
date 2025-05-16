@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.layout.MatrixLayout
-sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
-	function(assert, Device, commonsLibrary) {
+sap.ui.define(['sap/base/assert', 'sap/ui/commons/library', 'sap/ui/core/Configuration'],
+	function(assert, commonsLibrary, Configuration) {
     "use strict";
 
 
@@ -43,7 +43,7 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 	 */
 	MatrixLayoutRenderer.render = function(rm, oMatrixLayout) {
 		// some convenience variables.
-		var bRTL = sap.ui.getCore().getConfiguration().getRTL();
+		var bRTL = Configuration.getRTL();
 		var i = 0;
 		var j = 0;
 		var index = 0;
@@ -55,7 +55,6 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 		var oRowHeight;
 		var sSpanHeight;
 		var sVAlign;
-		var bBrowserIEorEdge;
 
 		//ARIA
 		rm.write("<table role=\"presentation\"");
@@ -122,12 +121,6 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 			rm.write("</colgroup>");
 		}
 
-		// in IE9 there is a problem with column width if too much colspans are used and not
-		// at least one cell per columns has colspan 1
-		// to keep the check simple just check if in every row colspans are used
-		var bDummyRow = true;
-		var bColspanInRow = false;
-
 		rm.write('<tbody style="width: 100%; height: 100%">');
 
 		// for each row
@@ -155,16 +148,6 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 				rm.writeAttributeEscaped('title', oMatrixLayoutRow.getTooltip_AsString());
 			}
 
-			bBrowserIEorEdge = Device.browser.edge || Device.browser.msie && Device.browser.version >= 9;
-
-			if (bBrowserIEorEdge && sRowHeight) {
-				// for IE9 and IE10 in some cases the height is needed on TR, so it's added here.
-				// Other browsers don't need it here
-				// TD must have the same height even it looks wrong
-				// (e.g. TR must have 30% and TD must have 30% to show a 30% height row)
-				rm.addStyle("height", sRowHeight);
-				rm.writeStyles();
-			}
 			rm.write(">");
 
 			// for each cell
@@ -176,12 +159,9 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 				iColumns = aCells.length;
 			}
 
-			bColspanInRow = false;
 			var iColSpans = 0;
 			if (!oMatrixLayoutRow.RowSpanCells) {
 				oMatrixLayoutRow.RowSpanCells = 0;
-			} else {
-				bColspanInRow = true; // not really but ok for this case
 			}
 
 			for (j = 0; j < iColumns; j++) {
@@ -227,7 +207,6 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 					if (oMatrixLayoutCell.getColSpan() > 1) {
 						rm.writeAttribute("colspan", oMatrixLayoutCell.getColSpan());
 						iColSpans = iColSpans + oMatrixLayoutCell.getColSpan() - 1;
-						bColspanInRow = true;
 					}
 					if (oMatrixLayoutCell.getRowSpan() > 1) {
 						rm.writeAttribute("rowspan", oMatrixLayoutCell.getRowSpan());
@@ -419,19 +398,7 @@ sap.ui.define(['sap/base/assert', 'sap/ui/Device', 'sap/ui/commons/library'],
 			// initialize RowSpanCounter after Row is rendered
 			oMatrixLayoutRow.RowSpanCells = undefined;
 
-			if (!bColspanInRow) {
-				bDummyRow = false;
-			}
 		} // end of rows-rendering
-
-		if (bDummyRow && Device.browser.msie && Device.browser.version >= 9) {
-			// render dummy row to help IE9 to calculate column sizes
-			rm.write("<tr style='height:0;'>");
-			for (i = 0; i < iCols; i++) {
-				rm.write("<td></td>");
-			}
-			rm.write("</tr>");
-		}
 
 		// close tbody, close table
 		rm.write("</tbody></table>");

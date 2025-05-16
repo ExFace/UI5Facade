@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./BaseContentRenderer"],function(B){"use strict";var A=B.extend("sap.ui.integration.cards.AnalyticalContentRenderer");A.getMinHeight=function(c,C){var M="14rem";return M;};return A;});
+sap.ui.define(["./BaseContentRenderer"],function(e){"use strict";var n=e.extend("sap.ui.integration.cards.AnalyticalContentRenderer",{apiVersion:2,MIN_ANALYTICAL_CONTENT_HEIGHT:"14rem"});n.getMinHeight=function(e,t){if(e.minHeight){return e.minHeight}return n.MIN_ANALYTICAL_CONTENT_HEIGHT};return n});
+//# sourceMappingURL=AnalyticalContentRenderer.js.map

@@ -1,10 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./MessageStripUtilities"],
+sap.ui.define([
+	"./MessageStripUtilities",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
+],
 	function (MSUtils) {
 	"use strict";
 
@@ -20,7 +23,7 @@ sap.ui.define(["./MessageStripUtilities"],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.MessageStrip} oControl an object representation of the control that should be rendered
 	 */
 	MessageStripRenderer.render = function(oRm, oControl) {
 		this.startMessageStrip(oRm, oControl);
@@ -50,7 +53,7 @@ sap.ui.define(["./MessageStripUtilities"],
 	};
 
 	MessageStripRenderer.renderAriaTypeText = function (oRm, oControl) {
-		oRm.openStart("span");
+		oRm.openStart("span", oControl.getId() + "-info");
 		oRm.class("sapUiPseudoInvisibleText");
 		oRm.openEnd();
 		oRm.text(MSUtils.getAriaTypeText.call(oControl));
@@ -71,7 +74,7 @@ sap.ui.define(["./MessageStripUtilities"],
 	MessageStripRenderer.renderTextAndLink = function (oRm, oControl) {
 		var oFormattedText = oControl.getAggregation("_formattedText");
 
-		oRm.openStart("div");
+		oRm.openStart("div", oControl.getId() + "-content");
 		oRm.class(MSUtils.CLASSES.MESSAGE);
 		oRm.openEnd();
 

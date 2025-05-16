@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.numberEditor.NumberEditor
 	 * @author SAP SE
 	 * @since 1.72
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.72
@@ -36,6 +36,9 @@ sap.ui.define([
 	 */
 	var NumberEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.numberEditor.NumberEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.numberEditor.NumberEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		invalidInputError: "BASE_EDITOR.NUMBER.INVALID_BINDING_OR_NUMBER",
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
@@ -52,7 +55,15 @@ sap.ui.define([
 		);
 	};
 
-	NumberEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata);
+	NumberEditor.configMetadata = Object.assign(
+		{},
+		BasePropertyEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.NUMBER"
+			}
+		}
+	);
 
 	NumberEditor.prototype.formatValue = function (sValue) {
 		if (_isNil(sValue) || isValidBindingString(sValue, false)) {

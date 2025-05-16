@@ -3,17 +3,23 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 659,
+			"size": 655,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "BrowserScrollbar.less",
 			"size": 431,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "Icon.less",
+			"size": 275,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -31,113 +37,101 @@
 		},
 		{
 			"name": "base.less",
-			"size": 57840,
+			"size": 237011,
 			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 150140,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 166158,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 165784,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "fonts/72-Bold-full.woff",
-			"size": 65960,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "fonts/72-Bold-full.woff2",
-			"size": 57472,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "fonts/72-Bold.woff",
-			"size": 37584,
+			"size": 58556,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "fonts/72-Bold.woff2",
-			"size": 26732,
+			"size": 23684,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "fonts/72-Regular-full.woff",
-			"size": 68984,
+			"name": "fonts/72-Light-full.woff2",
+			"size": 60048,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "fonts/72-Light.woff2",
+			"size": 24296,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "fonts/72-Regular-full.woff2",
-			"size": 57136,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "fonts/72-Regular.woff",
-			"size": 38944,
+			"size": 57984,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "fonts/72-Regular.woff2",
-			"size": 27844,
+			"size": 23756,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "fonts/72Mono-Bold-full.woff2",
+			"size": 53272,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "fonts/72Mono-Bold.woff2",
+			"size": 21408,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "fonts/72Mono-Regular-full.woff2",
+			"size": 52156,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "fonts/72Mono-Regular.woff2",
+			"size": 21112,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "global.less",
-			"size": 50149,
+			"size": 109673,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 94698,
+			"size": 231198,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 54356,
+			"module": "sap/ui/core/themes/sap_belize_hcw/library-parameters.json",
+			"size": 150741,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 94684,
+			"size": 231185,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 3926,
+			"size": 7554,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 350,
+			"size": 960,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 22917,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 22904,
-			"theme": "sap_belize_hcw"
+			"name": "resources.json",
+			"size": 2505
 		},
 		{
 			"name": "shared.less",
-			"size": 2049,
+			"size": 4765,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		}

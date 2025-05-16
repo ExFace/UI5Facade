@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/test/selectors/_Selector","sap/ui/core/LabelEnablement"],function(_,L){"use strict";var a=_.extend("sap.ui.test.selectors._LabelFor",{_generate:function(c){var l=L.getReferencingLabels(c);if(l.length){var o=sap.ui.getCore().byId(l[0]);this._oLogger.debug("Control "+c+" has an associated label with ID "+l[0]);return{labelFor:{text:o.getText()}};}else{this._oLogger.debug("Control "+c+" has no associated labels");}}});return a;});
+sap.ui.define(["sap/ui/test/selectors/_Selector","sap/ui/core/Element","sap/ui/core/LabelEnablement"],function(e,t,s){"use strict";var a=e.extend("sap.ui.test.selectors._LabelFor",{_generate:function(e){var a=s.getReferencingLabels(e);if(a.length){var r=t.getElementById(a[0]);this._oLogger.debug("Control "+e+" has an associated label with ID "+a[0]);return{labelFor:{text:r.getText()}}}else{this._oLogger.debug("Control "+e+" has no associated labels")}}});return a});
+//# sourceMappingURL=_LabelFor.js.map

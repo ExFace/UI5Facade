@@ -1,22 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'./delegate/ValueStateMessage',
 	'sap/ui/core/message/MessageMixin',
+	'sap/ui/core/InvisibleMessage',
 	'sap/ui/core/library',
 	'sap/ui/Device',
+	'sap/ui/core/Popup',
+	"sap/ui/dom/containsOrEquals",
 	'./InputBaseRenderer',
 	'sap/base/Log',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Lib",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos",
 	// jQuery Plugin "getSelectedText"
@@ -27,16 +32,21 @@ sap.ui.define([
 function(
 	library,
 	Control,
+	Element,
 	EnabledPropagator,
 	IconPool,
 	ValueStateMessage,
 	MessageMixin,
+	InvisibleMessage,
 	coreLibrary,
 	Device,
+	Popup,
+	containsOrEquals,
 	InputBaseRenderer,
 	log,
 	KeyCodes,
-	jQuery
+	jQuery,
+	Library
 ) {
 	"use strict";
 
@@ -59,143 +69,169 @@ function(
 	 * The <code>sap.m.InputBase</code> control provides a basic functionality for input controls.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IFormContent
+	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.ui.core.ILabelable
+	 *
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
+	 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12.0
 	 * @alias sap.m.InputBase
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var InputBase = Control.extend("sap.m.InputBase", /** @lends sap.m.InputBase.prototype */ { metadata: {
+	var InputBase = Control.extend("sap.m.InputBase", /** @lends sap.m.InputBase.prototype */ {
+		metadata: {
 
-		interfaces : ["sap.ui.core.IFormContent"],
-		library: "sap.m",
-		properties: {
+			interfaces : [
+				"sap.ui.core.IFormContent",
+				"sap.ui.core.ISemanticFormContent",
+				"sap.m.IToolbarInteractiveControl",
+				"sap.ui.core.ILabelable"
+			],
+			library: "sap.m",
+			properties: {
 
-			/**
-			 * Defines the value of the control.
-			 */
-			value: { type: "string", group: "Data", defaultValue: null, bindable: "bindable" },
+				/**
+				 * Defines the value of the control.
+				 */
+				value: { type: "string", group: "Data", defaultValue: null, bindable: "bindable" },
 
-			/**
-			 * Defines the width of the control.
-			 *
-			 * <b>Note:</b> If the provided width is too small, the control gets stretched to
-			 * its min width, which is needed in order for the control to be usable and well aligned.
-			 */
-			width: { type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue: null },
+				/**
+				 * Defines the width of the control.
+				 *
+				 * <b>Note:</b> If the provided width is too small, the control gets stretched to
+				 * its min width, which is needed in order for the control to be usable and well aligned.
+				 */
+				width: { type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue: null },
 
-			/**
-			 * Indicates whether the user can interact with the control or not.
-			 * <b>Note:</b> Disabled controls cannot be focused and they are out of the tab-chain.
-			 */
-			enabled: { type: "boolean", group: "Behavior", defaultValue: true },
+				/**
+				 * Indicates whether the user can interact with the control or not.
+				 * <b>Note:</b> Disabled controls cannot be focused and they are out of the tab-chain.
+				 */
+				enabled: { type: "boolean", group: "Behavior", defaultValue: true },
 
-			/**
-			 * Visualizes the validation state of the control, e.g. <code>Error</code>, <code>Warning</code>, <code>Success</code>.
-			 */
-			valueState: { type: "sap.ui.core.ValueState", group: "Appearance", defaultValue: ValueState.None },
+				/**
+				 * Visualizes the validation state of the control, e.g. <code>Error</code>, <code>Warning</code>, <code>Success</code>.
+				 */
+				valueState: { type: "sap.ui.core.ValueState", group: "Appearance", defaultValue: ValueState.None },
 
-			/**
-			 * The name to be used in the HTML code (for example, for HTML forms that send data to the server via submission).
-			 */
-			name: { type: "string", group: "Misc", defaultValue: null },
+				/**
+				 * The name to be used in the HTML code (for example, for HTML forms that send data to the server via submission).
+				 */
+				name: { type: "string", group: "Misc", defaultValue: null },
 
-			/**
-			 * Defines a short hint intended to aid the user with data entry when the control has no value.
-			 */
-			placeholder: { type: "string", group: "Misc", defaultValue: null },
+				/**
+				 * Defines a short hint intended to aid the user with data entry when the control has no value.
+				 */
+				placeholder: { type: "string", group: "Misc", defaultValue: null },
 
-			/**
-			 * Defines whether the control can be modified by the user or not.
-			 * <b>Note:</b> A user can tab to non-editable control, highlight it, and copy the text from it.
-			 * @since 1.12.0
-			 */
-			editable: { type: "boolean", group: "Behavior", defaultValue: true },
+				/**
+				 * Defines whether the control can be modified by the user or not.
+				 * <b>Note:</b> A user can tab to non-editable control, highlight it, and copy the text from it.
+				 * @since 1.12.0
+				 */
+				editable: { type: "boolean", group: "Behavior", defaultValue: true },
 
-			/**
-			 * Defines the text that appears in the value state message pop-up. If this is not specified, a default text is shown from the resource bundle.
-			 * @since 1.26.0
-			 */
-			valueStateText: { type: "string", group: "Misc", defaultValue: null },
+				/**
+				 * Defines the text that appears in the value state message pop-up. If this is not specified, a default text is shown from the resource bundle.
+				 * @since 1.26.0
+				 */
+				valueStateText: { type: "string", group: "Misc", defaultValue: null },
 
-			/**
-			 * Indicates whether the value state message should be shown or not.
-			 * @since 1.26.0
-			 */
-			showValueStateMessage: { type: "boolean", group: "Misc", defaultValue: true },
+				/**
+				 * Indicates whether the value state message should be shown or not.
+				 * @since 1.26.0
+				 */
+				showValueStateMessage: { type: "boolean", group: "Misc", defaultValue: true },
 
-			/**
-			 * Defines the horizontal alignment of the text that is shown inside the input field.
-			 * @since 1.26.0
-			 */
-			textAlign: { type: "sap.ui.core.TextAlign", group: "Appearance", defaultValue: TextAlign.Initial },
+				/**
+				 * Defines the horizontal alignment of the text that is shown inside the input field.
+				 * @since 1.26.0
+				 */
+				textAlign: { type: "sap.ui.core.TextAlign", group: "Appearance", defaultValue: TextAlign.Initial },
 
-			/**
-			 * Defines the text directionality of the input field, e.g. <code>RTL</code>, <code>LTR</code>
-			 * @since 1.28.0
-			 */
-			textDirection: { type: "sap.ui.core.TextDirection", group: "Appearance", defaultValue: TextDirection.Inherit },
+				/**
+				 * Defines the text directionality of the input field, e.g. <code>RTL</code>, <code>LTR</code>
+				 * @since 1.28.0
+				 */
+				textDirection: { type: "sap.ui.core.TextDirection", group: "Appearance", defaultValue: TextDirection.Inherit },
 
-			/**
-			 * Indicates that user input is required. This property is only needed for accessibility purposes when a single relationship between
-			 * the field and a label (see aggregation <code>labelFor</code> of <code>sap.m.Label</code>) cannot be established
-			 * (e.g. one label should label multiple fields).
-			 * @since 1.38.4
-			 */
-			required : {type : "boolean", group : "Misc", defaultValue : false}
-		},
-		associations: {
+				/**
+				 * Indicates that user input is required. This property is only needed for accessibility purposes when a single relationship between
+				 * the field and a label (see aggregation <code>labelFor</code> of <code>sap.m.Label</code>) cannot be established
+				 * (e.g. one label should label multiple fields).
+				 * @since 1.38.4
+				 */
+				required : {type : "boolean", group : "Misc", defaultValue : false}
+			},
+			associations: {
 
-			/**
-			 * Association to controls / IDs that label this control (see WAI-ARIA attribute aria-labelledby).
-			 * @since 1.27.0
-			 */
-			ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
-		},
-		events: {
+				/**
+				 * Association to controls / IDs that label this control (see WAI-ARIA attribute aria-labelledby).
+				 * @since 1.27.0
+				 */
+				ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" },
 
-			/**
-			 * Is fired when the text in the input field has changed and the focus leaves the input field or the enter key is pressed.
-			 */
-			change: {
-				parameters: {
+				/**
+				 * Association to controls / IDs that describe this control (see WAI-ARIA attribute aria-describedby).
+				 * @since 1.90
+				 */
+				ariaDescribedBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy" }
+			},
+			events: {
 
-					/**
-					 * The new <code>value</code> of the <code>control</code>.
-					 */
-					value: { type: "string" }
+				/**
+				 * Is fired when the text in the input field has changed and the focus leaves the input field or the enter key is pressed.
+				 */
+				change: {
+					parameters: {
+
+						/**
+						 * The new <code>value</code> of the <code>control</code>.
+						 */
+						value: { type: "string" }
+					}
 				}
-			}
-		},
-		aggregations: {
-			/**
-			 * Defines the formatted text that appears in the value state message pop-up.
-			 * It can include links. If both <code>valueStateText</code> and <code>formattedValueStateText</code>
-			 * are set - the latter is shown.
-			 * @experimental Since 1.78. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
-			 * @since 1.78
-			 */
-			formattedValueStateText: { type: "sap.m.FormattedText", multiple: false, defaultValue: null },
+			},
+			aggregations: {
+				/**
+				 * Defines the formatted text that appears in the value state message pop-up.
+				 * It can include links. If both <code>valueStateText</code> and <code>formattedValueStateText</code>
+				 * are set - the latter is shown.
+				 * @since 1.78
+				 */
+				formattedValueStateText: { type: "sap.m.FormattedText", multiple: false },
 
-			/**
-			 * Icons that will be placed after the input field
-			 * @since 1.58
-			*/
-			_endIcon: { type: "sap.ui.core.Icon", multiple: true, visibility: "hidden" },
+				/**
+				 * Clone of the <code>formattedValueStateText</code> aggregation created for the accessibility elements used
+				 * by screen readers.
+				 * @since 1.84
+				 */
+				_invisibleFormattedValueStateText: { type: "sap.m.FormattedText", multiple: false, visibility: "hidden" },
 
-			/**
-			 * Icons that will be placed before the input field
-			 * @since 1.58
-			*/
-			_beginIcon: { type: "sap.ui.core.Icon", multiple: true, visibility: "hidden" }
+				/**
+				 * Icons that will be placed after the input field
+				 * @since 1.58
+				*/
+				_endIcon: { type: "sap.ui.core.Icon", multiple: true, visibility: "hidden" },
+
+				/**
+				 * Icons that will be placed before the input field
+				 * @since 1.58
+				*/
+				_beginIcon: { type: "sap.ui.core.Icon", multiple: true, visibility: "hidden" }
+			},
+			designtime: "sap/m/designtime/InputBase.designtime"
 		},
-		designtime: "sap/m/designtime/InputBase.designtime"
-	}});
+
+		renderer: InputBaseRenderer
+	});
 
 	EnabledPropagator.call(InputBase.prototype);
 	IconPool.insertFontFaceStyle();
@@ -222,6 +258,7 @@ function(
 	 * https://html.spec.whatwg.org/multipage/forms.html#input-type-attr-summary
 	 *
 	 * @see sap.m.InputBase#oninput
+	 * @type boolean
 	 * @protected
 	 */
 	InputBase.prototype.bShowLabelAsPlaceholder = !Device.support.input.placeholder;
@@ -229,48 +266,6 @@ function(
 	/* ----------------------------------------------------------- */
 	/* Private methods                                             */
 	/* ----------------------------------------------------------- */
-
-
-	/**
-	 * Handles the input event of the control
-	 * @param {jQuery.Event} oEvent The event object.
-	 * @protected
-	 */
-
-	InputBase.prototype.handleInput = function(oEvent) {
-
-		// IE 10+ fires the input event when an input field with a native placeholder is focused
-		// IE fires the input event when it is put (rendered) in the dom and it has a non-ASCII character
-		if (this._bIgnoreNextInput ||
-			this._bIgnoreNextInputNonASCII) {
-
-			this._bIgnoreNextInput = false;
-			this._bIgnoreNextInputNonASCII = false;
-
-			oEvent.setMarked("invalid");
-
-			return;
-		}
-
-		this._bIgnoreNextInput = false;
-		this._bIgnoreNextInputNonASCII = false;
-
-		// IE fires input event from read-only fields
-		if (!this.getEditable()) {
-			oEvent.setMarked("invalid");
-			return;
-		}
-
-		// IE fires input event whenever placeholder attribute is changed
-		if (document.activeElement !== oEvent.target &&
-			Device.browser.msie && this.getValue() === this.getLastValue()) {
-			oEvent.setMarked("invalid");
-			return;
-		}
-
-		// dom value updated other than value property
-		this._bCheckDomValue = true;
-	};
 
 	/**
 	 * To allow setting of default placeholder e.g. in DatePicker
@@ -283,19 +278,12 @@ function(
 	};
 
 	/**
-	 * Returns the DOM value respect to maxLength
 	 * When parameter is set chops the given parameter
 	 *
 	 * TODO: write two different functions for two different behaviour
 	 */
 	InputBase.prototype._getInputValue = function(sValue) {
-		sValue = (sValue === undefined) ? this.$("inner").val() || "" : sValue.toString();
-
-		if (this.getMaxLength && this.getMaxLength() > 0) {
-			sValue = sValue.substring(0, this.getMaxLength());
-		}
-
-		return sValue;
+		return (sValue === undefined) ? this.$("inner").val() || "" : sValue.toString();
 	};
 
 	/**
@@ -326,17 +314,65 @@ function(
 		/**
 		 * Indicates whether the input field is in the rendering phase.
 		 *
+		 * @type boolean
 		 * @protected
 		 */
 		this.bRenderingPhase = false;
 
 		this._oValueStateMessage = new ValueStateMessage(this);
+		this._aValueStateLinks = [];
+
 		// handle composition events & validation of composition symbols
 		this._bIsComposingCharacter = false;
 
-		this.fnCloseValueStateOnClick = function() {
-			this.closeValueStateMessage();
-		};
+		this.setLastValueStateText("");
+		this.setErrorMessageAnnouncementState(false);
+
+		this.fnCloseValueStateOnClick = this.closeValueStateMessage.bind(this);
+	};
+
+	InputBase.prototype._oLinkDelegate = {
+		onfocusout: function (oEvent) {
+			var oRelTarget = oEvent.relatedTarget || (oEvent.relatedControlId && Element.getElementById(oEvent.relatedControlId).getDomRef());
+			const bFocusGoesInInput = oRelTarget && containsOrEquals(this.getDomRef(), oRelTarget);
+			const bFocusGoesToValueState = oRelTarget && containsOrEquals(this._oValueStateMessage.getDomRef(), oRelTarget);
+			if (!bFocusGoesInInput && !bFocusGoesToValueState) {
+				this.closeValueStateMessage();
+			}
+		},
+		onsapup: function(oEvent) {
+			// When focus is on the link, arrow keys should do nothing
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+		},
+		onsapdown: function(oEvent) {
+			// When focus is on the link, arrow keys should do nothing
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+		}
+	};
+
+	InputBase.prototype._oFirstLinkDelegate = {
+		onsaptabprevious: function(oEvent){
+			oEvent.preventDefault();
+			oEvent.stopImmediatePropagation();
+			this.getFocusDomRef().focus();
+		}
+	};
+
+	InputBase.prototype._oLastLinkDelegate = {
+		onsaptabnext: function(oEvent) {
+			this.onsapfocusleave(oEvent);
+			// Return focus to the input because the links in the value state message are rendered in the
+			// static area and TAB will focus something rendered before the input
+			this._oPreviousFocus && Popup.applyFocusInfo(this._oPreviousFocus);
+			// Value state message should be closed with delay because Popup.applyfocusInfo returns the focus
+			// to the input in order to proceed with focusing the next element in the tab chain on TAB
+			// If closeValueStateMessage is called without a delay, the next control is focused and the popup remains open
+			setTimeout(() => {
+				this.closeValueStateMessage();
+			}, 0);
+		}
 	};
 
 	/**
@@ -359,8 +395,9 @@ function(
 
 		// In Firefox and Edge the events are fired correctly
 		// http://blog.evanyou.me/2014/01/03/composition-event/
-		if (!Device.browser.edge && !Device.browser.firefox) {
-			this.handleInput(oEvent);
+		if (!Device.browser.firefox) {
+			// dom value updated other than value property
+			this._bCheckDomValue = true;
 		}
 	};
 
@@ -376,17 +413,41 @@ function(
 	};
 
 	InputBase.prototype.onBeforeRendering = function() {
-		// Ignore the input event which is raised by MS Internet Explorer when it has a non-ASCII character
-		if (Device.browser.msie && Device.browser.version > 9 && !/^[\x00-\x7F]*$/.test(this.getValue())){// TODO remove after the end of support for Internet Explorer
-			this._bIgnoreNextInputNonASCII = true;
-			this._oDomRefBeforeRendering = this.getDomRef();
+		var oFocusDomRef = this.getFocusDomRef();
+		var oFormattedVSText = this.getFormattedValueStateText();
+		var bFormattedValueStateUpdated;
+
+		if (!this._oInvisibleMessage) {
+			this._oInvisibleMessage = InvisibleMessage.getInstance();
 		}
 
 		if (this._bCheckDomValue && !this.bRenderingPhase) {
-
 			// remember dom value in case of invalidation during keystrokes
 			// so the following should only be used onAfterRendering
-			this._sDomValue = this._getInputValue();
+			if (this.isActive()) {
+				this._sDomValue = this._getInputValue();
+			} else {
+				this._bCheckDomValue = false;
+			}
+		}
+
+		if (!oFormattedVSText) {
+			bFormattedValueStateUpdated = false;
+		} else {
+			var oFormattedVSTextAcc = this.getAggregation("_invisibleFormattedValueStateText");
+			bFormattedValueStateUpdated = oFormattedVSText.getHtmlText() !== (oFormattedVSTextAcc && oFormattedVSTextAcc.getHtmlText());
+		}
+
+		// The value state error should be announced, when there are dynamic changes
+		// to value state error or value state error message, due to user interaction
+		if (this.getValueState() === ValueState.Error && oFocusDomRef) {
+			var bValueStateUpdated = bFormattedValueStateUpdated || this.getValueStateText() !== this.getLastValueStateText();
+			this.setErrorMessageAnnouncementState(!oFocusDomRef.hasAttribute('aria-invalid') || bValueStateUpdated);
+		}
+
+		if (bFormattedValueStateUpdated) {
+			oFormattedVSTextAcc && oFormattedVSTextAcc.destroy();
+			this.setAggregation("_invisibleFormattedValueStateText", oFormattedVSText.clone());
 		}
 
 		// mark the rendering phase
@@ -397,6 +458,7 @@ function(
 		var sValueState = this.getValueState();
 		var bIsFocused = this.getFocusDomRef() === document.activeElement;
 		var bClosedValueState = sValueState === ValueState.None;
+		var sValueStateMessageHiddenText = document.getElementById(this.getValueStateMessageId() + '-sr');
 
 		// maybe control is invalidated on keystrokes and
 		// even the value property did not change
@@ -408,13 +470,16 @@ function(
 			this.$("inner").val(this._sDomValue);
 		}
 
-		this.$("message").text(this.getValueStateText());
-
-		// IE fires the input event when it is put (rendered) in the dom and it has a non-ASCII character
-		//
-		// If the semantic rendering is used and the input is invalidated, the input DOM element might be kept.
-		// In this case don't make the next oninput event invalid
-		this._bIgnoreNextInputNonASCII = this._bIgnoreNextInputNonASCII && this._oDomRefBeforeRendering !== this.getDomRef();
+		// Announce error value state update, only when the visual focus is in the input field
+		if (this.getErrorMessageAnnouncementState() && this.hasStyleClass("sapMFocus")) {
+			if (sValueStateMessageHiddenText) {
+				const sValueStateMessageHiddenTextLinks = document.getElementById(this.getValueStateLinksShortcutsId());
+				const sLinksAnnouncement = sValueStateMessageHiddenTextLinks ? sValueStateMessageHiddenTextLinks.textContent : "";
+				const sTextToAnnounce = `${sValueStateMessageHiddenText.textContent} ${sLinksAnnouncement}`;
+				this._oInvisibleMessage.announce(sTextToAnnounce);
+			}
+			this.setErrorMessageAnnouncementState(false);
+		}
 
 		// now dom value is up-to-date
 		this._bCheckDomValue = false;
@@ -425,6 +490,18 @@ function(
 		if (bIsFocused) {
 			this[bClosedValueState ? "closeValueStateMessage" : "openValueStateMessage"]();
 		}
+
+		if (bClosedValueState) {
+			this.closeValueStateMessage();
+		}
+
+		if (this.getAggregation("_invisibleFormattedValueStateText")) {
+			this.getAggregation("_invisibleFormattedValueStateText").getControls().forEach(function(oControl){
+				oControl.getDomRef() && oControl.getDomRef().setAttribute("tabindex", -1);
+			});
+		}
+
+		this.setLastValueStateText(this.getValueStateText());
 	};
 
 	InputBase.prototype.exit = function() {
@@ -433,8 +510,12 @@ function(
 			this._oValueStateMessage.destroy();
 		}
 
+		if (this._oInvisibleMessage) {
+			this._oInvisibleMessage.destroy();
+			this._oInvisibleMessage = null;
+		}
+
 		this._oValueStateMessage = null;
-		this._oDomRefBeforeRendering = null;
 	};
 
 	/* =========================================================== */
@@ -459,14 +540,6 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.onfocusin = function(oEvent) {
-		// iE10+ fires the input event when an input field with a native placeholder is focused// TODO remove after the end of support for Internet Explorer
-		this._bIgnoreNextInput = !this.bShowLabelAsPlaceholder &&
-			Device.browser.msie &&
-			Device.browser.version > 9 &&
-			!!this.getPlaceholder() &&
-			!this._getInputValue() &&
-			this._getInputElementTagName() === "INPUT"; // Make sure that we are applying this fix only for input html elements
-
 		this.addStyleClass("sapMFocus");
 
 		// open value state message popup when focus is in the input
@@ -529,6 +602,10 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.ontap = function(oEvent) {
+		if (!this.isMobileDevice()) {
+			this.openValueStateMessage();
+		}
+
 		// in order to stay backward compatible - we need to implement the tap
 		return;
 	};
@@ -537,18 +614,17 @@ function(
 	 * Handles the change event.
 	 *
 	 * @protected
-	 * @param {object} oEvent
+	 * @param {jQuery.Event} oEvent The event
 	 * @param {object} [mParameters] Additional event parameters to be passed in to the change event handler if the
 	 * value has changed
 	 * @param {string} sNewValue Passed value on change
 	 * @returns {boolean|undefined} true when change event is fired
 	 */
 	InputBase.prototype.onChange = function(oEvent, mParameters, sNewValue) {
-
 		mParameters = mParameters || this.getChangeEventParams();
 
 		// check the control is editable or not
-		if (!this.getEditable() || !this.getEnabled()) {
+		if (this.getDomRef() && (!this.getEditable() || !this.getEnabled())) {
 			return;
 		}
 
@@ -582,8 +658,8 @@ function(
 	 * Fires the change event for the listeners
 	 *
 	 * @protected
-	 * @param {String} sValue value of the input.
-	 * @param {Object} [oParams] extra event parameters.
+	 * @param {string} sValue value of the input.
+	 * @param {object} [oParams] extra event parameters.
 	 * @since 1.22.1
 	 */
 	InputBase.prototype.fireChangeEvent = function(sValue, oParams) {
@@ -604,7 +680,7 @@ function(
 	 * It may require to re-implement this method from sub classes for control specific behaviour.
 	 *
 	 * @protected
-	 * @param {String} sValue Reverted value of the input.
+	 * @param {string} sValue Reverted value of the input.
 	 * @since 1.26
 	 */
 	InputBase.prototype.onValueRevertedByEscape = function(sValue, sPreviousValue) {
@@ -624,6 +700,16 @@ function(
 		});
 	};
 
+	/**
+	 * Indicates whether the control should use <code>sap.m.Dialog</code> or not.
+	 *
+	 * @returns {boolean} Boolean.
+	 * @protected
+	 */
+	InputBase.prototype.isMobileDevice = function () {
+		return Device.system.phone;
+	};
+
 	/* ----------------------------------------------------------- */
 	/* Keyboard handling                                           */
 	/* ----------------------------------------------------------- */
@@ -635,11 +721,9 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.onsapenter = function(oEvent) {
-
 		// Ignore the change event in IE & Safari when value is selected from IME popover via Enter keypress
-		if ((Device.browser.safari || Device.browser.msie) && this.isComposingCharacter()) {
+		if (Device.browser.safari && this.isComposingCharacter()) {
 			oEvent.setMarked("invalid");
-
 			return;
 		}
 
@@ -690,7 +774,8 @@ function(
 	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	InputBase.prototype.oninput = function(oEvent) {
-		this.handleInput(oEvent);
+		// dom value updated other than value property
+		this._bCheckDomValue = true;
 	};
 
 	/**
@@ -702,10 +787,20 @@ function(
 	InputBase.prototype.onkeydown = function(oEvent) {
 
 		// Prevents browser back to previous page in IE // TODO remove after the end of support for Internet Explorer
-		if (this.getDomRef("inner").getAttribute("readonly") && oEvent.keyCode == KeyCodes.BACKSPACE) {
+		if (this.getDomRef("inner") && this.getDomRef("inner").getAttribute("readonly") && oEvent.keyCode == KeyCodes.BACKSPACE) {
 			oEvent.preventDefault();
 		}
 	};
+
+	InputBase.prototype.areHotKeysPressed = function (oEvent) {
+		return (oEvent.ctrlKey || oEvent.metaKey) && oEvent.altKey && oEvent.which === KeyCodes.F8;
+	};
+
+	InputBase.prototype._handleValueStateLinkNav = function() {
+		const aLinks =  this._getValueStateLinks();
+		aLinks.length && aLinks[0].focus();
+	};
+
 
 	/**
 	 * Handle cut event.
@@ -729,7 +824,7 @@ function(
 	 *
 	 * @param {int} iSelectionStart The index into the text at which the first selected character is located.
 	 * @param {int} iSelectionEnd The index into the text at which the last selected character is located.
-	 * @returns {sap.m.InputBase} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 * @protected
 	 * @since 1.22.1
 	 */
@@ -750,9 +845,9 @@ function(
 		return this.$("inner").getSelectedText();
 	};
 
-	/**
-	 * Overwrite setProperty function to know value property changes via API
-	 * @overwrite
+	/*
+	 * Override setProperty function to know value property changes via API
+	 * @override
 	 */
 	InputBase.prototype.setProperty = function(sPropertyName, oValue, bSuppressInvalidate) {
 		if (sPropertyName == "value") {
@@ -768,7 +863,7 @@ function(
 	 * Returns an object representing the serialized focus information.
 	 * To be overwritten by subclasses.
 	 *
-	 * @returns {object} An object representing the serialized focus information.
+	 * @returns {sap.ui.core.FocusInfo} An object representing the serialized focus information.
 	 * @protected
 	 */
 	InputBase.prototype.getFocusInfo = function() {
@@ -800,7 +895,8 @@ function(
 	 * Applies the focus info.
 	 * To be overwritten by subclasses.
 	 *
-	 * @param {object} oFocusInfo
+	 * @param {sap.ui.core.FocusInfo} oFocusInfo An object representing the serialized focus information.
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	InputBase.prototype.applyFocusInfo = function(oFocusInfo) {
@@ -814,7 +910,7 @@ function(
 	 * Sets the DOM value of the input field and handles placeholder visibility.
 	 *
 	 * @param {string} sValue value of the input field.
-	 * @return {sap.m.InputBase} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @since 1.22
 	 * @protected
 	 */
@@ -840,7 +936,7 @@ function(
 		// if set to true, handle the user input and data
 		// model updates concurrency in order to not overwrite
 		// values coming from the user
-		if (this._bPreferUserInteraction) {
+		if (this._getPreferUserInteraction()) {
 			this.handleInputValueConcurrency(sValue);
 		} else {
 			oInnerDomRef.value = sValue;
@@ -849,21 +945,25 @@ function(
 		return this;
 	};
 
+	InputBase.prototype._setValueStateLinks = function(aLinks) {
+		if (this.getFormattedValueStateText() && this.getFormattedValueStateText().getHtmlText() && this.getFormattedValueStateText().getControls().length) {
+			this._aValueStateLinks = this.getFormattedValueStateText().getControls();
+			return;
+		}
+
+		this._aValueStateLinks = aLinks;
+	};
+
 	/**
-	 * If there is <code>sap.m.FormattedText</code> aggragation for value state message
+	 * If there is <code>sap.m.FormattedText</code> aggregation for value state message
 	 * return the links in it, if any.
 	 *
-	 * @param {jQuery.Event} oEvent The event object.
-	 * @returns {array} Links in a value state message containing <code>sap.m.FormattedText</code>
+	 * @returns {sap.m.Link[]|HTMLAnchorElement[]|Array} Links in a value state message containing <code>sap.m.FormattedText</code>
 	 * @private
 	 */
-	InputBase.prototype._aValueStateLinks = function() {
-		if (this.getFormattedValueStateText() && this.getFormattedValueStateText().getHtmlText() && this.getFormattedValueStateText().getControls().length) {
-			return this.getFormattedValueStateText().getControls();
-		} else {
-			return [];
-		}
-	};
+		InputBase.prototype._getValueStateLinks = function() {
+			return this._aValueStateLinks;
+		};
 
 	/**
 	 * @param {jQuery.Event} oEvent The event object.
@@ -871,31 +971,66 @@ function(
 	 * @private
 	 */
 	InputBase.prototype._bClickOnValueStateLink = function(oEvent) {
-		var aValueStateLinks = this._aValueStateLinks();
+		const aValueStateLinks = this._getValueStateLinks();
+		const oRelTarget = oEvent && oEvent.relatedTarget;
 
-		return aValueStateLinks.some(function(oLink) {
-			return oEvent.relatedTarget === oLink.getDomRef();
-		});
+		// if the links are declared as aggregation of the sap.m.FormattedText
+		if (aValueStateLinks.length) {
+			return aValueStateLinks.some(function(oLink) {
+				return !!oLink.getDomRef && oRelTarget === oLink.getDomRef();
+			});
+		}
+
+		// links can be passed directly to a sap.m.FormattedText control as part of a HTML message (not as an aggregation)
+		if (oRelTarget && oRelTarget.tagName === "A" && oRelTarget.parentElement.classList.contains("sapMFT")) {
+			this._setValueStateLinks([oRelTarget]);
+			this._attachValueStateLinkActions();
+
+			return true;
+		}
+
+		return false;
 	};
 
 	/**
 	 * If ValueStateText is sap.m.FormattedText containing
 	 * link(s) - close ValueStateMessage after press on <code>sap.m.Link</code>
 	 *
-	 * @param {jQuery.Event} oEvent The event object.
 	 * @private
 	 */
-	InputBase.prototype._attachValueStateLinkPress = function() {
-		this._aValueStateLinks().forEach(
-			function(oLink) {
-				oLink.attachPress(this.fnCloseValueStateOnClick, this);
+	InputBase.prototype._attachValueStateLinkActions = function () {
+		const aLinks = this._getValueStateLinks();
+		aLinks.forEach(
+			function (oLink, nIndex) {
+				if (oLink.attachPress) {
+					oLink.attachPress(this.fnCloseValueStateOnClick, this);
+					oLink.addDelegate(this._oLinkDelegate, this);
+					if (nIndex === 0) {
+						oLink.addDelegate(this._oFirstLinkDelegate, this);
+					}
+					if (nIndex === this._aValueStateLinks.length - 1) {
+						oLink.addDelegate(this._oLastLinkDelegate, this);
+					}
+				} else {
+					oLink.addEventListener("click", this.fnCloseValueStateOnClick);
+				}
 			}, this);
 	};
 
-	InputBase.prototype._detachValueStateLinkPress = function() {
-		this._aValueStateLinks().forEach(
-			function(oLink) {
-				oLink.detachPress(this.fnCloseValueStateOnClick, this);
+	InputBase.prototype._detachValueStateLinkActions = function () {
+		const aLinks = this._getValueStateLinks();
+		aLinks.forEach(
+			function (oLink, nIndex) {
+				if (oLink.detachPress) {
+					oLink.detachPress(this.fnCloseValueStateOnClick, this);
+					oLink.removeDelegate(this._oLinkDelegate, this);
+					if (nIndex === 0) {
+						oLink.removeDelegate(this._oFirstLinkDelegate, this);
+					}
+					if (nIndex === this._aValueStateLinks.length - 1) {
+						oLink.removeDelegate(this._oLastLinkDelegate, this);
+					}
+				}
 			}, this);
 	};
 
@@ -911,7 +1046,7 @@ function(
 			sInputDOMValue = oInnerDomRef && this._getInputValue(),
 			sInputPropertyValue = this.getProperty("value"),
 			bInputFocused = document.activeElement === oInnerDomRef,
-			bBindingUpdate = this.isBound("value") && this.getBindingInfo("value").skipModelUpdate;
+			bBindingUpdate = this.isBound("value") && this.isPropertyBeingUpdated("value");
 
 		// if the user is currently in the field and he has typed a value,
 		// the changes from the model should not overwrite the user input
@@ -930,17 +1065,41 @@ function(
 	};
 
 	/**
-	 * Sets the preferred user interaction. If set to true, overwriting the
-	 * user input with model updates will be prevented.
+	 * Sets the behavior of the control to prioritize user interaction over later model updates. When set to <code>true</code>, it prevents the model from overwriting user input.
+	 * Example:
+	 * Input's value property is bound to a model
+	 * The user starts typing and due to this action, the model receives update from the backend, thus forwarding it to the bound control property
+	 * Result when <code>false</code>: User input is overwritten by the incoming model update.
+	 * Result when <code>true</code>: User input is not overwritten by the incoming model update - the model update is skipped and the value remains unchanged.
 	 *
-	 * @param {boolean} bPrefer True, if the user interaction is prefered
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
 	 *
+	 * @public
+	 */
+	InputBase.prototype.setPreferUserInteraction = function(bPrefer) {
+		this._setPreferUserInteraction(bPrefer);
+	};
+
+	/** This  method is left temporary for backward compatibility. The public setPreferUserInteraction() should be used.
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
 	 * @private
-	 * @restricted sap.ui.mdc
 	 */
 	InputBase.prototype._setPreferUserInteraction = function(bPrefer) {
 		this._bPreferUserInteraction = bPrefer;
 	};
+
+	/**
+	 * Gets the preferred interaction.
+	 *
+	 * @param {boolean} bPrefer True, if the user interaction is preferred
+	 *
+	 * @private
+	 */
+
+	InputBase.prototype._getPreferUserInteraction = function() {
+		return this._bPreferUserInteraction;
+	};
+
 
 	/**
 	 * Close value state message popup.
@@ -952,12 +1111,19 @@ function(
 		// To avoid execution of the opening logic after the closing one,
 		// when closing the suggestions dialog on mobile devices, due to race condition,
 		// the value state message should be closed with timeout because it's opened that way
-		setTimeout(function() {
-			if (this._oValueStateMessage) {
-				this._detachValueStateLinkPress();
-				this._oValueStateMessage.close();
-			}
-		}.bind(this), 0);
+		if (Device.system.phone) {
+			setTimeout(function () {
+				if (this._oValueStateMessage){
+					this._detachValueStateLinkActions();
+					this._oValueStateMessage.close();
+					this._oPreviousFocus = null;
+				}
+			}.bind(this), 0);
+		} else if (this._oValueStateMessage) {
+			this._detachValueStateLinkActions();
+			this._oValueStateMessage.close();
+			this._oPreviousFocus = null;
+		}
 	};
 
 	/**
@@ -994,6 +1160,74 @@ function(
 	};
 
 	/**
+	 * Gets the ID of the hidden value state message related to value state links
+	 *
+	 * @returns {string} The ID of the hidden value state message related to value state links
+	 * @protected
+	 */
+	InputBase.prototype.getValueStateLinksShortcutsId = function() {
+		return this.getValueStateMessageId() + "-shortcuts";
+	};
+
+	/**
+	 * Returns the keyboard shortcuts announcement for the value state links
+	 *
+	 * @returns {string} The text for value state links shortcuts
+	 * @protected
+	 */
+	InputBase.prototype.getValueStateLinksShortcutsTextAcc = function () {
+		const aLinks = this.getValueStateLinksForAcc();
+		if (!aLinks.length) {
+			return "";
+		}
+
+		let sSingleLinkShortcutKey = "INPUTBASE_VALUE_STATE_LINK";
+		let sMultipleLinksShortcutKey = "INPUTBASE_VALUE_STATE_LINKS";
+
+		if (Device.os.macintosh){
+			sSingleLinkShortcutKey += "_MAC";
+			sMultipleLinksShortcutKey += "_MAC";
+		}
+		return Library.getResourceBundleFor("sap.m").getText(aLinks.length === 1 ? sSingleLinkShortcutKey : sMultipleLinksShortcutKey);
+	};
+
+	/**
+	 * Gets the state of the value state message announcemnt.
+	 *
+	 * @returns {boolean} True, if the error value state should be announced.
+	 */
+	InputBase.prototype.getErrorMessageAnnouncementState = function() {
+		return this._bErrorStateShouldBeAnnounced;
+	};
+
+	/**
+	 * Sets the state of the value state message announcemnt.
+	 *
+	 * @param {boolean} bAnnounce Determines, if the error value state message should be announced.
+	 */
+	InputBase.prototype.setErrorMessageAnnouncementState = function(bAnnounce) {
+		this._bErrorStateShouldBeAnnounced = bAnnounce;
+	};
+
+	/**
+	 * Sets the last value state text.
+	 *
+	 * @param {string} sValueStateText The Last Value State Text to be set
+	 */
+	InputBase.prototype.setLastValueStateText = function(sValueStateText) {
+		this._sLastValueStateText = sValueStateText;
+	};
+
+	/**
+	 * Gets the last stored value state text.
+	 *
+	 * @returns {string} The value state text
+	 */
+	InputBase.prototype.getLastValueStateText = function() {
+		return this._sLastValueStateText;
+	};
+
+	/**
 	 * Gets the labels referencing this control.
 	 *
 	 * @returns {sap.m.Label[]} Array of objects which are the current targets of the <code>ariaLabelledBy</code>
@@ -1003,14 +1237,14 @@ function(
 	 */
 	InputBase.prototype.getLabels = function() {
 		var aLabelIDs = this.getAriaLabelledBy().map(function(sLabelID) {
-			return sap.ui.getCore().byId(sLabelID);
+			return Element.getElementById(sLabelID);
 		});
 
 		var oLabelEnablement = sap.ui.require("sap/ui/core/LabelEnablement");
 
 		if (oLabelEnablement) {
 			aLabelIDs = aLabelIDs.concat(oLabelEnablement.getReferencingLabels(this).map(function(sLabelID) {
-				return sap.ui.getCore().byId(sLabelID);
+				return Element.getElementById(sLabelID);
 			}));
 		}
 
@@ -1025,6 +1259,7 @@ function(
 	 */
 	InputBase.prototype.openValueStateMessage = function() {
 		if (this._oValueStateMessage && this.shouldValueStateMessageBeOpened()) {
+			this._oPreviousFocus = Popup.getCurrentFocusInfo();
 			// Render the value state message after closing of the popover
 			// is complete and the FormattedText aggregation is finished the parent
 			// switch from the ValueStateHeader to the InputBase.
@@ -1032,8 +1267,8 @@ function(
 			// in IE we should wait until the scroll ends
 			setTimeout(function () {
 				if (!this.bIsDestroyed) {
-					this._detachValueStateLinkPress();
-					this._attachValueStateLinkPress();
+					this._setValueStateLinks([]);
+					this._attachValueStateLinkActions();
 					this._oValueStateMessage.open();
 				}
 			}.bind(this), 0);
@@ -1057,12 +1292,14 @@ function(
 		var oEndIcon = this.getAggregation("_endIcon") || [],
 			oBeginIcon = this.getAggregation("_beginIcon") || [],
 			aIcons = oEndIcon.concat(oBeginIcon),
+			iIconMargin,
 			iIconWidth;
 
 		return aIcons.reduce(function(iAcc, oIcon){
+			iIconMargin = oIcon && oIcon.getDomRef() ? parseFloat(getComputedStyle(oIcon.getDomRef()).marginRight) : 0;
 			iIconWidth = oIcon && oIcon.getDomRef() ? oIcon.getDomRef().offsetWidth : 0;
 
-			return iAcc + iIconWidth;
+			return iAcc + iIconWidth + iIconMargin;
 		}, 0);
 	};
 
@@ -1076,7 +1313,7 @@ function(
 	 * Default value is empty/<code>undefined</code>.
 	 *
 	 * @param {string} sValue New value for property <code>value</code>.
-	 * @return {sap.m.InputBase} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	InputBase.prototype.setValue = function(sValue) {
@@ -1111,17 +1348,29 @@ function(
 	};
 
 	/**
+	 * Returns if the control can be bound to a label
+	 *
+	 * @returns {boolean} <code>true</code> if the control can be bound to a label
+	 * @public
+	 */
+	InputBase.prototype.hasLabelableHTMLElement = function () {
+		return true;
+	};
+
+	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility information for this <code>InputBase</code>
 	 * @protected
 	 */
 	InputBase.prototype.getAccessibilityInfo = function() {
-		var sRequired = this.getRequired() ? 'Required' : '',
+		var oRb = Library.getResourceBundleFor("sap.m"),
+			sRequired = this.getRequired() ? oRb.getText("ELEMENT_REQUIRED") : '',
 			oRenderer = this.getRenderer();
 
 		return {
 			role: oRenderer.getAriaRole(this),
-			type: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_INPUT"),
-			description: [this.getValue() || "", oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim(),
+			type: oRb.getText("ACC_CTR_TYPE_INPUT"),
+			description: [this.getValueDescriptionInfo(), oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim(),
 			focusable: this.getEnabled(),
 			enabled: this.getEnabled(),
 			editable: this.getEnabled() && this.getEditable()
@@ -1129,20 +1378,36 @@ function(
 	};
 
 	/**
+	 * Gets the value of the accessibility description info field.
+	 *
+	 * @protected
+	 * @returns {string} The value of the accessibility description info
+	 */
+	InputBase.prototype.getValueDescriptionInfo = function () {
+		return this.getValue() || Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_EMPTY");
+	};
+
+	/**
 	 * Adds an icon to be rendered
 	 * @param {string} sIconPosition a position for the icon to be rendered - begin or end
 	 * @param {object} oIconSettings settings for creating an icon
+	 * @param {int} iPosition position to be inserted in the aggregation
 	 * @see sap.ui.core.IconPool.createControlByURI
 	 * @private
 	 * @returns {null|sap.ui.core.Icon}
 	 */
-	InputBase.prototype._addIcon = function (sIconPosition, oIconSettings) {
+	InputBase.prototype._addIcon = function (sIconPosition, oIconSettings, iPosition) {
 		if (["begin", "end"].indexOf(sIconPosition) === -1) {
 			log.error('icon position is not "begin", neither "end", please check again the passed setting');
 			return null;
 		}
 		var oIcon = IconPool.createControlByURI(oIconSettings).addStyleClass(InputBase.ICON_CSS_CLASS);
-		this.addAggregation("_" + sIconPosition + "Icon", oIcon);
+
+		if (iPosition !== undefined) {
+			this.insertAggregation("_" + sIconPosition + "Icon", oIcon, iPosition);
+		} else {
+			this.addAggregation("_" + sIconPosition + "Icon", oIcon);
+		}
 
 		return oIcon;
 	};
@@ -1161,12 +1426,13 @@ function(
 	/**
 	 * Adds an icon to the end of the input
 	 * @param {object} oIconSettings settings for creating an icon
+	 * @param {int} iPosition position to be inserted in the aggregation. If not provided, the icon gets inserted on last position.
 	 * @see sap.ui.core.IconPool.createControlByURI
 	 * @protected
 	 * @returns {null|sap.ui.core.Icon}
 	 */
-	InputBase.prototype.addEndIcon = function (oIconSettings) {
-		return this._addIcon("end", oIconSettings);
+	InputBase.prototype.addEndIcon = function (oIconSettings, iPosition) {
+		return this._addIcon("end", oIconSettings, iPosition);
 	};
 
 	// do not cache jQuery object and define _$input for compatibility reasons
@@ -1180,7 +1446,7 @@ function(
 	 * Sets the last value of the InputBase
 	 *
 	 * @param {string} sValue
-	 * @returns {sap.m.InputBase}
+	 * @returns {this}
 	 * @since 1.78
 	 * @protected
 	 */
@@ -1198,6 +1464,44 @@ function(
 	 */
 	InputBase.prototype.getLastValue = function () {
 		return this._lastValue;
+	};
+
+	// support for SemanticFormElement
+	InputBase.prototype.getFormFormattedValue = function() {
+		return this.getValue();
+	};
+
+	InputBase.prototype.getFormValueProperty = function () {
+		return "value";
+	};
+
+	InputBase.prototype.getFormObservingProperties = function() {
+		return ["value"];
+	};
+
+	InputBase.prototype.getFormRenderAsControl = function () {
+		return false;
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	InputBase.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
+	/**
+	 * Hook function
+	 * @returns {Array} Array of links for the value state message acc
+	 */
+	InputBase.prototype.getValueStateLinksForAcc = function(){
+		return [];
 	};
 
 	return InputBase;

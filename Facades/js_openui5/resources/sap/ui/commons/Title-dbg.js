@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,14 +22,13 @@ sap.ui.define(['./library', 'sap/ui/core/Title'],
 	 * @extends sap.ui.core.Title
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.16.0.
 	 * moved to sap.ui.core library. Please use this one.
 	 * @alias sap.ui.commons.Title
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Title = CoreTitle.extend("sap.ui.commons.Title", /** @lends sap.ui.commons.Title.prototype */ { metadata : {
 
@@ -59,7 +58,7 @@ sap.ui.define(['./library', 'sap/ui/core/Title'],
 	* Default value is <code>Auto</code>
 	*
 	* @param {sap.ui.core.TitleLevel} oLevel new value for property <code>level</code>
-	* @return {sap.ui.commons.Title} <code>this</code> to allow method chaining
+	* @return {this} <code>this</code> to allow method chaining
 	* @public
 	* @since 1.9.1
 	* @name sap.ui.commons.Title#setLevel

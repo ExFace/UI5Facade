@@ -1,14 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/m/library",
-	"sap/ui/core/Core",
-	"sap/ui/core/theming/Parameters"
-], function(mLibrary, Core, Parameters) {
+	"sap/ui/core/Element"
+], function(mLibrary, Element) {
 	"use strict";
 
 	var ValueColor = mLibrary.ValueColor;
@@ -22,7 +21,7 @@ sap.ui.define([
 	};
 
 	MicrochartLegendRenderer.render = function (oRm, oMicrochartLegend) {
-		var oChart = Core.byId(oMicrochartLegend.getChart()),
+		var oChart = Element.getElementById(oMicrochartLegend.getChart()),
 			aLegendColors = [],
 			aTexts = oMicrochartLegend.getAggregation("_titles");
 
@@ -31,16 +30,16 @@ sap.ui.define([
 		}
 
 		oRm.openStart("div", oMicrochartLegend)
-			.class("sapUiIntegrationMicrochartLegend")
+			.class("sapUiIntMicrochartLegend")
 			.openEnd();
 
 		aLegendColors.forEach(function (sColor, i) {
 			oRm.openStart("div")
-				.class("sapUiIntegrationMicrochartLegendItem")
+				.class("sapUiIntMicrochartLegendItem")
 				.openEnd();
 
 			oRm.openStart("div");
-			MicrochartLegendRenderer.addColor(oRm, sColor);
+			MicrochartLegendRenderer.addColor(oRm, oMicrochartLegend, sColor);
 			oRm.openEnd().close("div");
 
 			oRm.renderControl(aTexts[i]);
@@ -51,11 +50,11 @@ sap.ui.define([
 		oRm.close("div");
 	};
 
-	MicrochartLegendRenderer.addColor = function (oRm, sColor) {
+	MicrochartLegendRenderer.addColor = function (oRm, oMicrochartLegend, sColor) {
 		if (ValueColor[sColor]) {
-			oRm.class("sapUiIntegrationMicrochartLegendItem" + sColor);
+			oRm.class("sapUiIntMicrochartLegendItem" + sColor);
 		} else {
-			var sColorAsCSSValue = Parameters.get(sColor) || sColor; // A value from the chart palette OR any CSS value.
+			var sColorAsCSSValue = oMicrochartLegend._mLegendColors[sColor] || sColor; // A value from the chart palette OR any CSS value.
 			oRm.style("background", sColorAsCSSValue);
 		}
 	};

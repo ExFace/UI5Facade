@@ -8,37 +8,37 @@
 		},
 		{
 			"name": "Card.less",
-			"size": 247,
+			"size": 179,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "DynamicPage.less",
-			"size": 3437,
+			"size": 3940,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "DynamicPageHeader.less",
-			"size": 605,
+			"size": 715,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "DynamicPageTitle.less",
-			"size": 2174,
+			"size": 2264,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "FlexibleColumnLayout.less",
-			"size": 488,
+			"size": 539,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "GridListItem.less",
-			"size": 437,
+			"size": 357,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -50,63 +50,41 @@
 		},
 		{
 			"name": "ShellBar.less",
-			"size": 8154,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 3158,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 87021,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 86659,
+			"size": 8089,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 83270,
+			"size": 131555,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 1283,
+			"module": "sap/f/themes/sap_fiori_3/library-parameters.json",
+			"size": 3060,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 83269,
+			"size": 131556,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 16503,
+			"size": 17039,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.source.less",
-			"size": 528,
+			"size": 523,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 84658,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 84655,
-			"theme": "sap_fiori_3"
+			"name": "resources.json",
+			"size": 1558
 		}
 	]
 }

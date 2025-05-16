@@ -3,12 +3,12 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 647,
+			"size": 643,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": ".theming",
-			"size": 137,
+			"size": 187,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -31,24 +31,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 60189,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 173477,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 198179,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 197803,
+			"size": 124650,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -59,13 +42,8 @@
 		},
 		{
 			"name": "global.less",
-			"size": 77814,
+			"size": 136543,
 			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "img-RTL/Busy.png",
-			"size": 824,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -111,16 +89,6 @@
 		{
 			"name": "img-RTL/bg_white_transparent.png",
 			"size": 91,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "img-RTL/scrollbar_grip_horizontal.png",
-			"size": 78,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "img-RTL/scrollbar_grip_vertical.png",
-			"size": 81,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -185,39 +153,30 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 115173,
+			"size": 214640,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 65853,
+			"module": "sap/ui/core/themes/sap_bluecrystal/library-parameters.json",
+			"size": 138978,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.css",
-			"size": 115144,
+			"size": 214612,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.less",
-			"size": 17330,
+			"size": 17814,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.source.less",
-			"size": 372,
+			"size": 980,
 			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "library_skeleton-RTL.css",
-			"size": 28569,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 28540,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -227,8 +186,12 @@
 			"theme": "sap_bluecrystal"
 		},
 		{
+			"name": "resources.json",
+			"size": 3633
+		},
+		{
 			"name": "shared.less",
-			"size": 15114,
+			"size": 14990,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		}

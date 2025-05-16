@@ -1,15 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/util/includes",
-	"sap/base/util/values"
 ], function (
-	includes,
-	values
 ) {
 	"use strict";
 
@@ -19,7 +15,7 @@ sap.ui.define([
 	 * @namespace sap.ui.integration.designtime.baseEditor.propertyEditor.PropertyEditorFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @static
 	 * @since 1.75
@@ -59,7 +55,7 @@ sap.ui.define([
 			}
 		});
 
-		return Promise.all(values(oLoadingPromisses)).then(function() {
+		return Promise.all(Object.values(oLoadingPromisses)).then(function() {
 			return oPropertyEditorClasses;
 		});
 	};
@@ -98,10 +94,12 @@ sap.ui.define([
 	PropertyEditorFactory.create = function (sPropertyType) {
 		return new Promise(function (resolve, reject) {
 			if (!sPropertyType) {
-				return reject("No editor type was specified in the property configuration.");
+				reject("No editor type was specified in the property configuration.");
+				return;
 			}
 			if (!oLoadingPromisses[sPropertyType]) {
-				return reject("Editor type was not registered");
+				reject("Editor type was not registered");
+				return;
 			}
 			oLoadingPromisses[sPropertyType]
 				.then(function (PropertyEditorClass) {
@@ -113,7 +111,7 @@ sap.ui.define([
 		});
 	};
 
-	PropertyEditorFactory.getType = function(sType) {
+	PropertyEditorFactory.getByClassName = function(sType) {
 		return oPropertyEditorClasses[sType];
 	};
 
@@ -131,8 +129,7 @@ sap.ui.define([
 	 * @returns {boolean} <code>true</code> if the specified type is registered
 	 */
 	PropertyEditorFactory.hasType = function (sPropertyType) {
-		return includes(
-			Object.keys(PropertyEditorFactory.getTypes()),
+		return Object.keys(PropertyEditorFactory.getTypes()).includes(
 			sPropertyType
 		);
 	};

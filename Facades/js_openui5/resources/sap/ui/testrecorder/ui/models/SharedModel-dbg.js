@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,12 +26,21 @@ sap.ui.define([
 		}, {
 			key: Dialects.UIVERI5,
 			label: oI18nModel.getProperty("TestRecorder.Inspect.Snippet.Dialect.UIVeri5")
+		}, {
+			key: Dialects.WDI5,
+			label: oI18nModel.getProperty("TestRecorder.Inspect.Snippet.Dialect.WDI5")
 		}],
-		selectedDialect: Dialects.UIVERI5,
+		selectedDialect: Dialects.OPA5,
 		settings: {
 			preferViewId: false,
 			formatAsPOMethod: true,
 			multipleSnippets: false
+		},
+		elementTree: {
+			search: "",
+			filter: false,
+			attributes: false,
+			namespaces: true
 		}
 	});
 

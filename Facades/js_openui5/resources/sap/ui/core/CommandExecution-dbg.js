@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,12 @@ sap.ui.define([
 	 * the <code>execute</code> event is fired.
 	 *
 	 * When using commands, the component will create a model named <code>$cmd</code>.
-	 * The model data provides the enabled state of all CommandExecution.
+	 * The model data provides the enabled and visible state of all CommandExecutions.
+	 * With that, action-triggering controls (e.g. a button) can be bound to the enable/visible property
+	 * of the CommandExecution to centrally control their state.
+	 *
+	 * <b>Note: The usage of the <code>$cmd</code> model is restricted to <code>sap.suite.ui.generic</code></b>
+	 *
 	 * When binding a button's enabled state to this model, it follows the
 	 * enabled state of the CommandExecution. The binding path must be relative
 	 * like <code>myCommand/enabled</code>:
@@ -47,7 +52,21 @@ sap.ui.define([
 	 * &lt;Button press="cmd:MyCommand" enabled="$cmd&gt;MyCommand/enabled" /&gt;
 	 * </pre>
 	 *
-	 * <b>Note: The usage of the <code>$cmd</code> model is restricted to <code>sap.suite.ui.generic</code></b>
+	 * A CommandExecution can have three states:
+	 * <ul>
+	 *  <li>the CommandExecution is visible and enabled. If the configured shortcut is executed,
+	 *  the configured event handler of this CommandExecution is called
+	 *  </li>
+	 *  <li>the CommandExecution is visible but not enabled. If the configured shortcut is executed,
+	 *  neither the configured event handler of this CommandExecution nor any event handler configured on CommandExecutions
+	 *  in the ancestor chain is called
+	 *  </li>
+	 *  <li>the CommandExecution is not visible. If the configured shortcut is executed,
+	 *  the configured event handler of this CommandExecution is not called, but the event is propagated
+	 *  to its parent, which can then handle the event by a configured CommandExecution or propagate the event to its parent,
+	 *  until no parent exits anymore and the browser can handle the executed shortcut
+	 *  </li>
+	 * </ul>
 	 *
 	 * @class
 	 * @alias sap.ui.core.CommandExecution
@@ -65,12 +84,19 @@ sap.ui.define([
 				 */
 				command: { type: "string" },
 				/**
-				 * Whether the CommandExecution is enabled or not. By default, it is enabled
+				 * Whether the CommandExecution is enabled or not. By default, it is enabled.
+				 * If the CommandExecution is disabled, the CommandExecution processes the event,
+				 * but the event handler for it will not be called.
+				 * Therefore, also no event handler configured on CommandExecutions on ancestors is called.
 				 */
 				enabled: { type: "boolean" , defaultValue: true},
 				/**
 				 * Whether the CommandExecution is visible, or not. By default, it is visible.
-				 * If not visible, the CommandExecution will not be triggered even if it is enabled.
+				 * If not visible, the CommandExecution won't process the event, and
+				 * the event handler for it will not be called, regardless of the enabled state.
+				 * Therefore, the configured event handler on the next CommandExecution in the ancestor chain or,
+				 * if no ancestor in the ancestor chain has any CommandExecutions configured for this shortcut,
+				 * the event handler of the browser is called.
 				 */
 				visible: { type: "boolean" , defaultValue: true}
 			},
@@ -102,7 +128,7 @@ sap.ui.define([
 		 * This property can only be applied initially.
 		 *
 		 * @param {string} sCommand New value for property <code>command</code>
-		 * @return {sap.ui.core.CommandExecution} Reference to <code>this</code> in order to allow method chaining
+		 * @return {this} Reference to <code>this</code> in order to allow method chaining
 		 * @private
 		 */
 		setCommand: function(sCommand) {
@@ -125,20 +151,23 @@ sap.ui.define([
 		 * @private
 		 */
 		_getCommandInfo: function () {
-			var oCommand,
-				oControl = this.getParent(),
-				oComponent = Component.getOwnerComponentFor(this);
+			if (!this.oCommand) {
+				var oCommand,
+					oControl = this.getParent(),
+					oComponent = Component.getOwnerComponentFor(this);
 
-			//if no owner found check the parent chain to find the next owner component...
-			while (!oComponent && oControl && oControl.getParent()) {
-				oComponent = Component.getOwnerComponentFor(oControl);
-				oControl = oControl.getParent();
-			}
+				//if no owner found check the parent chain to find the next owner component...
+				while (!oComponent && oControl && oControl.getParent()) {
+					oComponent = Component.getOwnerComponentFor(oControl);
+					oControl = oControl.getParent();
+				}
 
-			if (oComponent) {
-				oCommand = oComponent.getCommand(this.getCommand());
+				if (oComponent) {
+					oCommand = oComponent.getCommand(this.getCommand());
+				}
+				this.oCommand = oCommand ? Object.assign({}, oCommand) : null;
 			}
-			return oCommand ? Object.assign({}, oCommand) : null;
+			return this.oCommand;
 		},
 
 		/**
@@ -216,51 +245,55 @@ sap.ui.define([
 
 			oCommand = this._getCommandInfo();
 
-			if (oCommand && this.getVisible()) {
-				if (oParent && oParent !== oOldParent) {
-					//register Shortcut
-					sShortcut = oCommand.shortcut;
-					bIsRegistered = Shortcut.isRegistered(this.getParent(), sShortcut);
-					if (!bIsRegistered) {
-						Shortcut.register(oParent, sShortcut, this.trigger.bind(this));
-					}
+			if (oCommand) {
+				if (this.getVisible()) {
+					if (oParent && oParent !== oOldParent) {
+						//register Shortcut
+						sShortcut = oCommand.shortcut;
+						bIsRegistered = Shortcut.isRegistered(this.getParent(), sShortcut);
+						if (!bIsRegistered) {
+							Shortcut.register(oParent, sShortcut, this.trigger.bind(this));
+						}
 
-					if (oParent.getModel("$cmd")) {
-						oParentData = getParentData();
-						this._createCommandData(oParentData);
-					} else {
-						oParent.attachModelContextChange(fnModelChange);
-					}
+						if (oParent.getModel("$cmd")) {
+							oParentData = getParentData();
+							this._createCommandData(oParentData);
+						} else {
+							oParent.attachModelContextChange(fnModelChange);
+						}
 
-					if (!oParent._propagateProperties._sapui_fnOrig) {
-						var fnOriginalPropagate = oParent._propagateProperties;
-						oParent._propagateProperties = function(vName, oObject, oProperties, bUpdateAll, sName, bUpdateListener) {
-							//call orig propagate first, as we need the model for createCommandData
-							fnOriginalPropagate.apply(oParent, arguments);
-							var oActualContext = oParent.getBindingContext("$cmd");
-							// check update of model data for any CommandExecution
-							var oControl = arguments[1];
-							if (oActualContext && oControl.isA("sap.ui.core.CommandExecution")) {
-								var oActualData = oActualContext.getObject();
-								var oOldParentData = Object.getPrototypeOf(oActualData);
-								oParentData = getParentData();
-								if (oOldParentData !== oParentData) {
-									that._createCommandData.apply(oControl, [oParentData]);
+						if (!oParent._propagateProperties._sapui_fnOrig) {
+							var fnOriginalPropagate = oParent._propagateProperties;
+							oParent._propagateProperties = function(vName, oObject, oProperties, bUpdateAll, sName, bUpdateListener) {
+								//call orig propagate first, as we need the model for createCommandData
+								fnOriginalPropagate.apply(oParent, arguments);
+								var oActualContext = oParent.getBindingContext("$cmd");
+								// check update of model data for any CommandExecution
+								var oControl = arguments[1];
+								if (oActualContext && oControl.isA("sap.ui.core.CommandExecution")) {
+									var oActualData = oActualContext.getObject();
+									var oOldParentData = Object.getPrototypeOf(oActualData);
+									oParentData = getParentData();
+									if (oOldParentData !== oParentData) {
+										that._createCommandData.apply(oControl, [oParentData]);
+									}
 								}
-							}
-						};
-						oParent._propagateProperties._sapui_fnOrig = fnOriginalPropagate;
+							};
+							oParent._propagateProperties._sapui_fnOrig = fnOriginalPropagate;
+						}
+					}
+					if (oOldParent && oOldParent != oParent) {
+						//unregister shortcut
+						sShortcut = oCommand.shortcut;
+						bIsRegistered = Shortcut.isRegistered(oOldParent, sShortcut);
+						if (bIsRegistered) {
+							Shortcut.unregister(oOldParent, oCommand.shortcut);
+						}
+						this._cleanupContext(oOldParent);
 					}
 				}
-				if (oOldParent && oOldParent != oParent) {
-					//unregister shortcut
-					sShortcut = oCommand.shortcut;
-					bIsRegistered = Shortcut.isRegistered(oOldParent, sShortcut);
-					if (bIsRegistered) {
-						Shortcut.unregister(oOldParent, oCommand.shortcut);
-					}
-					this._cleanupContext(oOldParent);
-				}
+			} else {
+				Log.error(`${this}: Command '${this.getCommand()}' is not defined in component manifest. No shortcut will be registered.`);
 			}
 			return this;
 		},
@@ -331,7 +364,7 @@ sap.ui.define([
 		/**
 		 * Sets whether the <code>CommandExecution</code> is enabled, or not. If set to
 		 * false, the <code>CommandExecution</code> will still register the shortcut.
-		 * This will block the default behavior for that shortcut.
+		 * This will block any configured CommandExecutions on any ancestors for that shortcut.
 		 *
 		 * @param {boolean} bValue Whether the CommandExecution is enabled, or not.
 		 * @returns {sap.ui.core.Element} The CommandExecution
@@ -354,8 +387,8 @@ sap.ui.define([
 		/** @inheritdoc */
 		destroy: function () {
 			var oParent = this.getParent();
-			if (oParent) {
-				var oCommand = this._getCommandInfo();
+			var oCommand = this._getCommandInfo();
+			if (oParent && oCommand) {
 				Shortcut.unregister(this.getParent(), oCommand.shortcut);
 				this._cleanupContext(oParent);
 			}

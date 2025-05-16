@@ -1,12 +1,12 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.app.MockServer for mocking a server
-sap.ui.define(['jquery.sap.global', 'sap/ui/core/util/MockServer'],
-	function(jQuery, MockServer1) {
+sap.ui.define(['sap/ui/core/util/MockServer'],
+	function(MockServer1) {
 	"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/util/MockServer'],
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @public
 	 * @name sap.ui.app.MockServer
 	 * @experimental Since 1.13.0. The mock server is still under construction, so some implementation details can be changed in future.

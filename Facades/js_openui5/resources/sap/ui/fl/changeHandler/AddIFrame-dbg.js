@@ -1,17 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/fl/changeHandler/common/revertAddedControls",
 	"sap/ui/fl/changeHandler/common/getTargetAggregationIndex",
-	"sap/ui/fl/changeHandler/common/createIFrame"
+	"sap/ui/fl/changeHandler/common/createIFrame",
+	"sap/ui/fl/changeHandler/condenser/Classification"
 ], function(
 	revertAddedControls,
 	getTargetAggregationIndex,
-	createIFrame
+	createIFrame,
+	Classification
 ) {
 	"use strict";
 
@@ -20,40 +22,41 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddIFrame
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.72
 	 * @private
 	 */
-	var AddIFrame = {};
+	const AddIFrame = {};
 
 	/**
 	 * Add the IFrame control to the target control within the target aggregation.
 	 *
-	 * @param {sap.ui.fl.Change} oChange Change object with instructions to be applied on the control map
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange Change object with instructions to be applied on the control map
 	 * @param {sap.ui.core.Control} oControl Control that matches the change selector for applying the change
 	 * @param {object} mPropertyBag Map of properties
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
+	 * @returns {Promise} Promise resolving when the change is successfully applied
 	 * @ui5-restricted sap.ui.fl
 	 */
-	AddIFrame.applyChange = function(oChange, oControl, mPropertyBag) {
-		var oModifier = mPropertyBag.modifier;
-		var oChangeDefinition = oChange.getDefinition();
-		var oView = mPropertyBag.view;
-		var sAggregationName = oChangeDefinition.content.targetAggregation;
-		var oAggregationDefinition = oModifier.findAggregation(oControl, sAggregationName);
+	AddIFrame.applyChange = async function(oChange, oControl, mPropertyBag) {
+		const oModifier = mPropertyBag.modifier;
+		const oChangeContent = oChange.getContent();
+		const oView = mPropertyBag.view;
+		const sAggregationName = oChangeContent.targetAggregation;
+		const oAggregationDefinition = await oModifier.findAggregation(oControl, sAggregationName);
 		if (!oAggregationDefinition) {
-			throw new Error("The given Aggregation is not available in the given control: " + oModifier.getId(oControl));
+			throw new Error(`The given Aggregation is not available in the given control: ${oModifier.getId(oControl)}`);
 		}
-		var iIndex = getTargetAggregationIndex(oChange, oControl, mPropertyBag);
-		var oIFrame = createIFrame(oChange, mPropertyBag, oChangeDefinition.content.selector);
-		oModifier.insertAggregation(oControl, sAggregationName, oIFrame, iIndex, oView);
+		const iIndex = await getTargetAggregationIndex(oChange, oControl, mPropertyBag);
+		const oIFrame = await createIFrame(oChange, mPropertyBag, oChangeContent.selector);
+		await oModifier.insertAggregation(oControl, sAggregationName, oIFrame, iIndex, oView);
 		oChange.setRevertData([oModifier.getId(oIFrame)]);
 	};
 
 	/**
 	 * Reverts previously applied change.
 	 *
-	 * @param {sap.ui.fl.Change} oChange Change object with instructions to be applied on the control map
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange Change object with instructions to be applied on the control map
 	 * @param {sap.ui.core.Control} oControl Control that matches the change selector for applying the change
 	 * @param {object} mPropertyBag Map of properties
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
@@ -64,7 +67,7 @@ sap.ui.define([
 	/**
 	 * Completes the change by adding change handler specific content.
 	 *
-	 * @param {sap.ui.fl.Change} oChange Change object to be completed
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange Change object to be completed
 	 * @param {object} oSpecificChangeInfo Specific change information
 	 * @param {object} oSpecificChangeInfo.content Must contain UI extension settings
 	 * @param {string} oSpecificChangeInfo.content.targetAggregation Aggregation to add the extension to
@@ -78,19 +81,45 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.view Application view
 	 * @ui5-restricted sap.ui.fl
 	 */
-	AddIFrame.completeChangeContent = function (oChange, oSpecificChangeInfo, mPropertyBag) {
-		var oChangeJson = oChange.getDefinition();
-		var oModifier = mPropertyBag.modifier;
-		var oAppComponent = mPropertyBag.appComponent;
+	AddIFrame.completeChangeContent = function(oChange, oSpecificChangeInfo, mPropertyBag) {
+		const oModifier = mPropertyBag.modifier;
+		const oAppComponent = mPropertyBag.appComponent;
 		// Required settings
-		["targetAggregation", "baseId", "url"].forEach(function (sRequiredProperty) {
-			if (!Object.prototype.hasOwnProperty.call(oSpecificChangeInfo.content, sRequiredProperty)) {
-				throw new Error("Attribute missing from the change specific content '" + sRequiredProperty + "'");
+		["targetAggregation", "baseId", "url"].forEach(function(sRequiredProperty) {
+			if (!Object.hasOwn(oSpecificChangeInfo.content, sRequiredProperty)) {
+				throw new Error(`Attribute missing from the change specific content '${sRequiredProperty}'`);
 			}
 		});
-		oChangeJson.content = Object.assign(oChangeJson.content || {}, oSpecificChangeInfo.content);
-		oChangeJson.content.selector = oModifier.getSelector(oChangeJson.content.baseId, oAppComponent);
+		const oContent = { ...oSpecificChangeInfo.content };
+		oContent.selector = oModifier.getSelector(oContent.baseId, oAppComponent);
+		oChange.setContent(oContent);
+	};
+
+	AddIFrame.getChangeVisualizationInfo = function(oChange) {
+		return {
+			affectedControls: [oChange.getContent().selector]
+		};
+	};
+
+	AddIFrame.getCondenserInfo = function(oChange) {
+		const oContent = oChange.getContent();
+		return {
+			classification: Classification.Create,
+			uniqueKey: "iFrame",
+			affectedControl: oContent.selector,
+			targetContainer: oChange.getSelector(),
+			targetAggregation: oContent.targetAggregation,
+			setTargetIndex(oChange, iNewTargetIndex) {
+				oChange.getContent().index = iNewTargetIndex;
+			},
+			getTargetIndex(oChange) {
+				return oChange.getContent().index;
+			},
+			update(oChange, oNewContent) {
+				Object.assign(oChange.getContent(), oNewContent);
+			}
+		};
 	};
 
 	return AddIFrame;
-}, /* bExport= */true);
+});

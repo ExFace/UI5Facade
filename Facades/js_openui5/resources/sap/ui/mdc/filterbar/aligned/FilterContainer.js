@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/mdc/filterbar/IFilterContainer','sap/ui/layout/AlignedFlowLayout'],function(I,A){"use strict";var F=I.extend("sap.ui.mdc.filterbar.aligned.FilterContainer");F.prototype.init=function(){this.oLayout=new A();};F.prototype.addButton=function(c){this.oLayout.addEndContent(c);};F.prototype.insertFilterField=function(c,i){this.oLayout.insertContent(c,i);};F.prototype.removeFilterField=function(c){this.oLayout.removeContent(c);};F.prototype.getFilterFields=function(){return this.oLayout.getContent();};return F;});
+sap.ui.define(["sap/base/i18n/Localization","sap/ui/mdc/filterbar/IFilterContainer","sap/ui/layout/AlignedFlowLayout","sap/ui/layout/VerticalLayout","sap/ui/layout/HorizontalLayout","sap/m/Text"],(t,o,i,e,a,n)=>{"use strict";const s=o.extend("sap.ui.mdc.filterbar.aligned.FilterContainer",{metadata:{library:"sap.ui.mdc"}});s.prototype.init=function(){o.prototype.init.apply(this,arguments);this.oLayout=new i};s.prototype.exit=function(){o.prototype.exit.apply(this,arguments);if(this._oButtonsLayout){this._oButtonsLayout=null}};s.prototype.addButton=function(o){if(!this._oButtonsLayout){this._oButtonsLayout=new e;if(t.getRTL()){this._oButtonsLayout.addStyleClass("sapUiMdcFilterBarBaseFloatLeft")}else{this._oButtonsLayout.addStyleClass("sapUiMdcFilterBarBaseFloatRight")}this._oButtonsLayout.addContent(new n);this._oButtonsLayout.addContent(new a);this.oLayout.addEndContent(this._oButtonsLayout)}this._oButtonsLayout.getContent()[1].addContent(o)};s.prototype.insertFilterField=function(t,o){this.oLayout.insertContent(t,o)};s.prototype.removeFilterField=function(t){this.oLayout.removeContent(t)};s.prototype.getFilterFields=function(){return this.oLayout.getContent()};return s});
+//# sourceMappingURL=FilterContainer.js.map

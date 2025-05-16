@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,13 +12,12 @@
 @import "../../../../sap/ui/core/themes/sap_fiori_3/global.less";
 
 /* START "Card.less" */
-/* ============================= */
-/* CSS for control sap.f/Card    */
-/* Fiori 3 theme                 */
-/* ============================= */
+/* =========================== */
+/* CSS for control sap.f/Card  */
+/* Quartz Light theme          */
+/* =========================== */
 
-@_sap_f_Card_HeaderIconColor: @sapUiContentIconColor;
-@_sap_f_Card_HeaderFocusBorderBottomOffset: 2px;
+@_sap_f_Card_FocusBorderBottomOffset: 2px;
 /* END "Card.less" */
 
 /* START "DynamicPage.less" */
@@ -27,25 +26,56 @@
 /* Fiori 3 theme                      */
 /* ================================== */
 
+.sapFDynamicPageContent,
+.sapFDynamicPageContentFitContainer {
+	padding: 1rem 2rem 0 2rem;
+}
+
+.sapFDynamicPage-Std-Desktop-XL {
+	.sapFDynamicPageContent,
+	.sapFDynamicPageContentFitContainer {
+		padding: 1rem 3rem 0 3rem;
+	}
+}
+
+.sapFDynamicPage.sapUiResponsiveContentPadding {
+	&.sapFDynamicPage-Std-Phone {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Tablet {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 2rem;
+			padding-right: 2rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Desktop-XL {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 3rem;
+			padding-right: 3rem;
+		}
+	}
+}
+
 .sapFDynamicPage {
 	.sapFDynamicPageContentWrapperSolid>.sapFDynamicPageContent {
 		background: @sapUiShellBackground;
 	}
 
 	// DynamicPageTitle and Toggle Header Visual Indicator hover state
-	&.sapFDynamicPageTitleClickEnabled {
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
-			.title-hover(@sapUiObjectHeaderBackground);
+	&.sapFDynamicPageTitleClickEnabled.sapFDynamicPageTitleForceHovered {
+		.sapFDynamicPageTitle,
+		.sapFDynamicPageTitleTranslucent,
+		.sapFDynamicPageTitleTransparent {
+			background-color: @sapUiObjectHeaderHoverBackground;
 		}
-
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTranslucent {
-			.title-hover(@sapUiObjectHeaderBackground);
-		}
-
-		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitleTransparent {
-			.title-hover(transparent);
-		}
-
 	}
 }
 
@@ -54,7 +84,7 @@
 }
 
 .sapFDynamicPageToggleHeaderIndicator,
-.sapFDynamicPage:not(.sapFDynamicPageTitleClickEnabled) .sapFDynamicPageHeaderPinButton {
+.sapFDynamicPageToggleHeaderIndicator.sapUiHidden ~ .sapFDynamicPageHeaderPinButton {
 	margin-left: -0.75rem;
 }
 
@@ -138,10 +168,6 @@ html[data-sap-ui-browser^="cr"] .sapFDynamicPageHeaderPinButton {
 	border: none;
 }
 
-.title-hover(@backgroundColor) {
-	background-color: darken(@backgroundColor, 4);
-}
-
 /* Vertically align items in the table-like view with the items in the sap.m.Carousel control.
 To be used in Comparison pattern scenario. */
 .sapUiComparisonContainer .sapFDynamicPageTitleSnapped + .sapFDynamicPageContentWrapper .sapUiComparisonContent  {
@@ -155,6 +181,9 @@ To be used in Comparison pattern scenario. */
 /* Fiori 3 theme                            */
 /* ======================================== */
 
+.sapFDynamicPage-Std-Desktop .sapFDynamicPageHeader.sapFDynamicPageHeaderWithContent {
+	padding: 1rem 2rem;
+}
 
 .sapFDynamicPageHeader.sapFDynamicPageHeaderTranslucent {
 	background: @sapUiObjectHeaderBackground;
@@ -177,29 +206,34 @@ To be used in Comparison pattern scenario. */
 /* START "DynamicPageTitle.less" */
 /* ======================================= */
 /* CSS for control sap.f/DynamicPageTitle  */
-/* Fiori 3 theme                           */
+/* Quartz Light theme                      */
 /* ======================================= */
 
-
 .sapFDynamicPageTitle {
-	padding: 0.5rem 3rem;
+	padding: 0.5rem 2rem;
 	word-wrap: break-word;
 }
 
+.sapFDynamicPage-Std-Desktop-XL .sapFDynamicPageTitle {
+	padding: 0.5rem 3rem;
+}
+
 .sapFDynamicPage-Std-Tablet {
+
 	.sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped > .sapFDynamicPageTitle {
 		padding: 0.5rem 2rem;
 	}
 
-	// Needed because on some high-end phones in landscape mode,
-	// the width of the viewport is bigger than 600 (Tablet breakpoint).
+	/* Needed because on some high-end phones in landscape mode,
+	the width of the viewport is bigger than 600 (Tablet breakpoint). */
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnappedTitleOnMobile > .sapFDynamicPageTitle {
 		padding: 0 2rem;
 	}
 }
 
 .sapFDynamicPage-Std-Phone {
+
 	.sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleOnly > .sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped > .sapFDynamicPageTitle {
@@ -212,7 +246,7 @@ To be used in Comparison pattern scenario. */
 }
 
 .sapFDynamicPageTitle.sapFDynamicPageTitleTranslucent {
-	background: @sapUiObjectHeaderBackground;
+	background: var(--sapObjectHeader_Background);
 }
 
 .sapFDynamicPageTitle.sapFDynamicPageTitleTransparent {
@@ -224,8 +258,10 @@ To be used in Comparison pattern scenario. */
 }
 
 .sapFDynamicPageNavigation .sapFDynamicPageTitleWrapper {
+
 	&.sapFDynamicPageTitleSnapped,
 	&.sapFDynamicPageTitleOnly {
+
 		& > .sapFDynamicPageTitle {
 			box-shadow: none;
 		}
@@ -257,35 +293,38 @@ To be used in Comparison pattern scenario. */
 /* START "FlexibleColumnLayout.less" */
 /* =========================================== */
 /* CSS for control sap.f/FlexibleColumnLayout  */
-/* Fiori 3 theme                               */
+/* Quartz Light theme                          */
 /* =========================================== */
 
 .sapFFCL {
+
 	&.sapFFCLBackgroundDesignSolid {
-		background: @sapUiShellBackground;
+		background: var(--sapShell_Background);
 	}
+
 	&.sapFFCLBackgroundDesignTranslucent {
-		background: @sapUiGroupContentBackground;
+		background: var(--sapGroup_ContentBackground);
 	}
 }
+
 .sapFFCLNavigationButton,
 .sapUiSizeCompact .sapFFCLNavigationButton {
+
+	/* Reflection: styles overwritten */
 	.sapMBtnInner {
 		height: 1.625rem;
 	}
 }
-
 /* END "FlexibleColumnLayout.less" */
 
 /* START "GridListItem.less" */
 /* =================================== */
 /* CSS for control sap.f/GridListItem  */
-/* Fiori 3 theme                       */
+/* Quartz Light theme                  */
 /* =================================== */
 
-@_sap_f_GridListItem_Header_BoxShadow: 0 0 0.25rem 0 fade(@sapUiContentShadowColor, 15), inset 0 -0.0625rem 0 0 @sapUiPageHeaderBorderColor;
+@_sap_f_GridListItem_HeaderBoxShadow: 0 0 0.25rem 0 fade(@sapUiContentShadowColor, 15), inset 0 -0.0625rem 0 0 var(--sapPageHeader_BorderColor);
 @_sap_f_GridListItem_HeaderHeight: 2.75rem;
-@_sap_f_GridListItem_BorderSelected: 0 0 0 0.125rem @sapUiListSelectionBorderColor;
 /* END "GridListItem.less" */
 
 /* START "ShellBar.less" */
@@ -411,7 +450,7 @@ To be used in Comparison pattern scenario. */
 				padding-left: 0.5625rem;
 			}
 			.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner:not(.sapMBtnText) {
-				padding-right: 1.25rem;
+				padding-right: 1.625rem;
 			}
 			.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner {
 				padding-right: 2rem;
@@ -432,7 +471,6 @@ To be used in Comparison pattern scenario. */
 					height: 2.25rem;
 					line-height: 2.125rem;
 					padding-left: 0.625rem;
-					padding-right: 2.375rem;
 				}
 				.sapMSFR:not(.sapMSFNS) {
 					right: 2.375rem;
@@ -445,8 +483,6 @@ To be used in Comparison pattern scenario. */
 					text-align: center;
 					margin: 0;
 					padding: 0;
-					right: 0;
-					top: 0;
 				}
 			}
 			// sap.m.Select
@@ -547,7 +583,7 @@ To be used in Comparison pattern scenario. */
 		}
 
 		//sap.m.Label
-		.sapMLabel.sapMLabelTBHeader {
+		.sapMTB > .sapMLabel {
 			color: @sapUiShellTextColor;
 		}
 

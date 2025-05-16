@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,9 +19,13 @@ sap.ui.define([
     'sap/ui/core/Title',
     './Tab',
     'sap/ui/events/KeyCodes',
-    'sap/ui/dom/jquery/parentByAttribute', // jQuery.fn.parentByAttribute
-    'sap/ui/dom/jquery/zIndex', // jQuery.fn.zIndex
-    'sap/ui/thirdparty/jqueryui/jquery-ui-position' // jQuery.fn.position
+    'sap/ui/core/Configuration',
+    // jQuery.fn.parentByAttribute
+    'sap/ui/dom/jquery/parentByAttribute',
+    // jQuery.fn.zIndex
+    'sap/ui/dom/jquery/zIndex',
+    // jQuery.fn.position
+    'sap/ui/thirdparty/jqueryui/jquery-ui-position'
 ],
 	function(
 	    jQuery,
@@ -36,7 +40,8 @@ sap.ui.define([
 		ResizeHandler,
 		Title,
 		Tab,
-		KeyCodes
+		KeyCodes,
+		Configuration
 	) {
 	"use strict";
 
@@ -55,17 +60,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.TabContainer</code> control.
 	 * @alias sap.ui.commons.TabStrip
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var TabStrip = Control.extend("sap.ui.commons.TabStrip", /** @lends sap.ui.commons.TabStrip.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -135,14 +140,14 @@ sap.ui.define([
 	}});
 
 	TabStrip.SCROLL_SIZE = 320;
-	TabStrip.ANIMATION_DURATION = sap.ui.getCore().getConfiguration().getAnimation() ? 200 : 0;
-	TabStrip.SCROLL_ANIMATION_DURATION = sap.ui.getCore().getConfiguration().getAnimation() ? 500 : 0;
+	TabStrip.ANIMATION_DURATION = Configuration.getAnimation() ? 200 : 0;
+	TabStrip.SCROLL_ANIMATION_DURATION = Configuration.getAnimation() ? 500 : 0;
 
 	TabStrip.prototype.init = function() {
 
 		this._bInitialized = true;
 
-		this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		this._bRtl = Configuration.getRTL();
 		this._iCurrentScrollLeft = 0;
 		this._iMaxOffsetLeft = null;
 		this._scrollable = null;
@@ -160,7 +165,7 @@ sap.ui.define([
 	 * Sets whether tab reordering is enabled.
 	 *
 	 * @param {boolean} bValue The value.
-	 * @returns {sap.ui.commons.TabStrip} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	TabStrip.prototype.setEnableTabReordering = function (bValue) {
@@ -228,7 +233,6 @@ sap.ui.define([
 	 * @returns {sap.ui.commons.Tab} oTab
 	 *         The created tab control
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TabStrip.prototype.createTab = function(sText,oContent) {
 		var oTitle = new Title({text:sText}),
@@ -386,7 +390,7 @@ sap.ui.define([
 	 * Default value is <code>0</code>
 	 *
 	 * @param {int} iSelectedIndex New value for property <code>selectedIndex</code>
-	 * @return {sap.ui.commons.TabStrip} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	TabStrip.prototype.setSelectedIndex = function(iSelectedIndex) {
@@ -450,7 +454,6 @@ sap.ui.define([
 	 *         The index of the tab that should be closed
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TabStrip.prototype.closeTab = function(iIndex) {
 
@@ -675,12 +678,10 @@ sap.ui.define([
 	/*
 	 * Overwrites the Invalidate function to set the invalidate flag.
 	 */
-	TabStrip.prototype._originalInvalidate = TabStrip.prototype.invalidate;
-
 	TabStrip.prototype.invalidate = function() {
 
 		this.invalidated = true;
-		TabStrip.prototype._originalInvalidate.apply(this,arguments);
+		Control.prototype.invalidate.apply(this, arguments);
 
 	};
 
@@ -817,7 +818,7 @@ sap.ui.define([
 			bReorder,
 			$children = this.$().find('.sapUiTabBarCnt').children(),
 			aMovedTabIndexes = this._aMovedTabIndexes,
-			bRTL = sap.ui.getCore().getConfiguration().getRTL();
+			bRTL = Configuration.getRTL();
 
 		for (var i = 0; i < $children.length; i++) {
 

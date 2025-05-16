@@ -1,16 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.source.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.source.less";
 @import "../../../../sap/ui/core/themes/sap_belize_hcw/base.less";
 @import "../../../../sap/ui/core/themes/sap_belize_hcw/global.less";
 @import "shared.less";
 
 @import "ActionListItem.less";
 @import "ActionSelect.less";
+@import "ActionTile.less";
 @import "Avatar.less";
 @import "BrowserScrollbar.less";
 @import "Breadcrumbs.less";
@@ -22,7 +32,6 @@
 @import "DateRangeSelection.less";
 @import "DateTimePicker.less";
 @import "Dialog.less";
-@import "FeedContent.less";
 @import "FeedInput.less";
 @import "FeedListItem.less";
 @import "GenericTag.less";
@@ -32,11 +41,14 @@
 @import "IconTabBarSelectList.less";
 @import "Image.less";
 @import "ImageContent.less";
+@import "Input.less";
 @import "InputBase.less";
+@import "MessageBox.less";
 
 /* note: the following three files are not in alphabetical order and should be imported after InputBase.less */
 @import "ComboBoxTextField.less";
 @import "ComboBoxBase.less";
+@import "ComboBox.less";
 
 @import "LightBox.less";
 @import "Link.less";
@@ -46,15 +58,15 @@
 @import "MenuListItem.less";
 @import "MessageView.less";
 @import "MessageStrip.less";
+@import "MultiComboBox.less";
 @import "MultiInput.less";
-@import "NewsContent.less";
 @import "NotificationListBase.less";
 @import "NotificationListGroup.less";
-@import "NumericContent.less";
 @import "ObjectAttribute.less";
 @import "ObjectHeader.less";
 @import "ObjectIdentifier.less";
 @import "ObjectListItem.less";
+@import "ObjectNumber.less";
 @import "ObjectStatus.less";
 @import "OverflowToolbarAssociativePopover.less";
 @import "Page.less";
@@ -65,7 +77,6 @@
 @import "PullToRefresh.less";
 @import "QuickView.less";
 @import "RadioButton.less";
-@import "RangeSlider.less";
 @import "RatingIndicator.less";
 @import "ResponsivePopover.less";
 @import "SearchField.less";
@@ -81,7 +92,6 @@
 @import "SplitButton.less";
 @import "SplitContainer.less";
 @import "StepInput.less";
-@import "SuggestionsPopover.less";
 @import "Switch.less";
 @import "TabContainer.less";
 @import "Table.less";
@@ -91,6 +101,7 @@
 @import "TileContainer.less";
 @import "TileContent.less";
 @import "TimePicker.less";
+@import "TimePickerClocks.less";
 @import "TimePickerSliders.less";
 @import "ToggleButton.less";
 @import "Token.less";
@@ -98,6 +109,7 @@
 @import "Toolbar.less";
 @import "ToolbarSeparator.less";
 @import "UploadCollection.less";
+@import "ValueStateHeader.less";
 @import "ValueStateMessage.less";
 @import "ViewSettingsDialog.less";
 @import "WheelSlider.less";

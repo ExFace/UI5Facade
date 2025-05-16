@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 @import "../sap_belize/library.less";
@@ -13,6 +13,10 @@
 /******************************************************************
 	Style of the RTA Overlays - Belize Plus Theme
 *******************************************************************/
-@_sap_ui_rta_Overlay_BaseBG: @sapBackgroundColor;
+@_sap_ui_rta_Overlay_ShellBG: transparent;
+
+.sapUiRtaMode .sapUiShellBackgroundImage.sapUiGlobalBackgroundImageForce.sapUshellShellBG {
+	background-image: linear-gradient(to bottom, #2a4863, #9dc0de);
+}
 /* END "Overlay.less" */
 

@@ -1,109 +1,39 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.fl.variants.VariantManagement.
 sap.ui.define([
 	"sap/ui/model/Context",
-	"sap/ui/model/PropertyBinding",
-	"sap/ui/model/json/JSONModel",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
-	"sap/ui/Device",
-	"sap/ui/core/InvisibleText",
+	"sap/m/VariantItem",
+	"sap/m/VariantManagement",
+	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/registry/Settings",
 	"sap/ui/core/Control",
-	"sap/ui/core/Icon",
-	"sap/ui/layout/HorizontalLayout",
-	"sap/ui/layout/Grid",
-	"sap/m/SearchField",
-	"sap/m/RadioButton",
-	"sap/m/ColumnListItem",
-	"sap/m/Column",
-	"sap/m/Text",
-	"sap/m/Bar",
-	"sap/m/Table",
-	"sap/m/Page",
-	"sap/m/Toolbar",
-	"sap/m/ToolbarSpacer",
-	"sap/m/Button",
-	"sap/m/CheckBox",
-	"sap/m/Dialog",
-	"sap/m/Input",
-	"sap/m/Label",
-	"sap/m/Title",
-	"sap/m/ResponsivePopover",
-	"sap/m/SelectList",
-	"sap/m/ObjectIdentifier",
-	"sap/m/OverflowToolbar",
-	"sap/m/OverflowToolbarLayoutData",
-	"sap/m/VBox",
-	"sap/ui/events/KeyCodes",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-	"sap/m/library",
-	"sap/ui/fl/Utils"
+	"sap/base/Log"
 ], function(
 	Context,
-	PropertyBinding,
-	JSONModel,
 	Filter,
 	FilterOperator,
-	Device,
-	InvisibleText,
+	VariantItem,
+	MVariantManagement,
+	ControlVariantApplyAPI,
+	flSettings,
 	Control,
-	Icon,
-	HorizontalLayout,
-	Grid,
-	SearchField,
-	RadioButton,
-	ColumnListItem,
-	Column,
-	Text,
-	Bar,
-	Table,
-	Page,
-	Toolbar,
-	ToolbarSpacer,
-	Button,
-	CheckBox,
-	Dialog,
-	Input,
-	Label,
-	Title,
-	ResponsivePopover,
-	SelectList,
-	ObjectIdentifier,
-	OverflowToolbar,
-	OverflowToolbarLayoutData,
-	VBox,
-	KeyCodes,
+	Lib,
 	coreLibrary,
-	mobileLibrary,
-	flUtils
+	Log
 ) {
 	"use strict";
 
-	// shortcut for sap.m.OverflowToolbarPriority
-	var OverflowToolbarPriority = mobileLibrary.OverflowToolbarPriority;
-
-	// shortcut for sap.m.ButtonType
-	var ButtonType = mobileLibrary.ButtonType;
-
-	// shortcut for sap.m.PlacementType
-	var PlacementType = mobileLibrary.PlacementType;
-
-	// shortcut for sap.m.PopinDisplay
-	var PopinDisplay = mobileLibrary.PopinDisplay;
-
-	// shortcut for sap.m.ScreenSize
-	var ScreenSize = mobileLibrary.ScreenSize;
-
-	// shortcut for sap.ui.core.ValueState
-	var ValueState = coreLibrary.ValueState;
-
-	// shortcut for sap.ui.core.TextAlign
-	var TextAlign = coreLibrary.TextAlign;
+	// shortcut for sap.ui.core.TitleLevel
+	var { TitleLevel } = coreLibrary;
 
 	/**
 	 * Constructor for a new <code>VariantManagement</code>.
@@ -120,14 +50,56 @@ sap.ui.define([
 	 */
 	var VariantManagement = Control.extend("sap.ui.fl.variants.VariantManagement", /** @lends sap.ui.fl.variants.VariantManagement.prototype */ {
 		metadata: {
-			interfaces : [
-				"sap.m.IOverflowToolbarContent"
+			interfaces: [
+				"sap.ui.core.IShrinkable",
+				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			library: "sap.ui.fl",
 			designtime: "sap/ui/fl/designtime/variants/VariantManagement.designtime",
 			properties: {
 				/**
-				 * Indicates that <i>Set as Default</i> is visible in the <i>Save View</i> and the <i>Manage Views</i> dialogs.
+				 * Indicates whether the current variant is updated based on the passed information in the URL.
+				 * <p>
+				 * <b>Note:</b> The <code>VariantManagement</code> control itself is not affected by this property.
+				 * It is only used internally by the SAPUI5 flexibility layer.
+				 */
+				updateVariantInURL: {
+					type: "boolean",
+					group: "Misc",
+					defaultValue: false
+				},
+				/**
+				 * If set to <code>false</code>, it does not reset the <code>VariantManagement</code> control to the default variant
+				 * if its binding context is changed.
+				 * <p>
+				 * <b>Note:</b> The <code>VariantManagement</code> control itself is not affected by this property.
+				 * It is only used internally by the SAPUI5 flexibility layer.
+				 */
+				resetOnContextChange: {
+					type: "boolean",
+					group: "Misc",
+					defaultValue: true
+				},
+				/**
+				 * The name of the model containing the data.
+				 */
+				modelName: {
+					type: "string",
+					group: "Misc",
+					defaultValue: ""
+				},
+				/**
+				 * Indicates whether the buttons on My Views are visible.
+				 */
+				editable: {
+					type: "boolean",
+					group: "Misc",
+					defaultValue: true
+				},
+				/**
+				 * Indicates whether the functionality of setting a default variant is enabled.
+				 * The Default column in Manage Views and the Set as Default checkbox in Save View will be disabled if set to <code>false</code>.
 				 */
 				showSetAsDefault: {
 					type: "boolean",
@@ -136,18 +108,8 @@ sap.ui.define([
 				},
 
 				/**
-				 * If set to <code>true</code>, the key for a vendor variant will be added manually.<br>
-				 * <b>Note:</b>This flag is only used internally in the app variant scenarios.
-				 */
-				manualVariantKey: {
-					type: "boolean",
-					group: "Misc",
-					defaultValue: false
-				},
-
-				/**
-				 * Indicates that the control is in error state. If set to <code>true</code>, an error message will be displayed whenever the variant is
-				 * opened.
+				 * Indicates whether the control is in error state.
+				 * If set to <code>true</code>, an error message will be displayed when the variant is opened.
 				 */
 				inErrorState: {
 					type: "boolean",
@@ -156,69 +118,69 @@ sap.ui.define([
 				},
 
 				/**
-				 * Indicates that the control is in edit state. If set to <code>false</code>, the footer of the <i>Views</i> list will be hidden.
-				 */
-				editable: {
-					type: "boolean",
-					group: "Misc",
-					defaultValue: true
-				},
-
-				/**
-				 * Determines the name of the model. The binding context will be defined by the current ID.
-				 * <p>
-				 * <b>Note:</b> In a UI adaptation scenario, this property is not used at all, because the model name is <code>$FlexVariants</code>.
-				 */
-				modelName: {
-					type: "string",
-					group: "Misc",
-					defaultValue: null
-				},
-
-				/**
-				 * Determines the intention of setting the current variant based on passed information.
-				 * <p>
-				 * <b>Note:</b> The <code>VariantManagement</code> control does not react in any way to this property.
-				 */
-				updateVariantInURL: {
-					type: "boolean",
-					group: "Misc",
-					defaultValue: false
-				},
-				/**
-				 * When set to false, doesn't reset the <code>VariantManagement</code> control to the default variant, when its binding context is changed.
-				 */
-				resetOnContextChange: {
-					type: "boolean",
-					group: "Misc",
-					defaultValue: true
-				},
-
-				/**
 				 * Determines the behavior for Apply Automatically if the standard variant is marked as the default variant.
-				 *
-				 * @since 1.80
 				 */
 				executeOnSelectionForStandardDefault: {
 					type: "boolean",
 					group: "Misc",
 					defaultValue: false
-				}
-			},
-			associations: {
+				},
 
 				/**
-				 * Contains the controls for which the variant management is responsible.
+				 * Defines the Apply Automatically text for the standard variant in the Manage Views dialog
+				 * if the application controls this behavior.
+				 * <p>
+				 * <b>Note:</b> The usage of this property is restricted to <code>sap.fe</code> components only.
 				 */
-				"for": {
-					type: "sap.ui.core.Control",
-					multiple: true
+				displayTextForExecuteOnSelectionForStandardVariant: {
+					type: "string",
+					group: "Misc",
+					defaultValue: ""
+				},
+
+				/**
+								 * Semantic level of the header.
+								 * For more information, see {@link sap.m.Title#setLevel}.
+								 *
+								 * @since 1.104
+								 */
+				headerLevel: {
+					type: "sap.ui.core.TitleLevel",
+					group: "Appearance",
+					defaultValue: TitleLevel.Auto
+				},
+
+				/**
+				 * Defines the style of the title.
+				 * For more information, see {@link sap.m.Title#setTitleStyle}.
+				 *
+				 * @since 1.109
+				 */
+				titleStyle: {
+					type: "sap.ui.core.TitleLevel",
+					group: "Appearance",
+					defaultValue: TitleLevel.Auto
+				},
+
+				/**
+				 * Sets the maximum width of the control.
+				 *
+				 * @since 1.109
+				 */
+				maxWidth: {
+					type: "sap.ui.core.CSSSize",
+					group: "Dimension",
+					defaultValue: "100%"
 				}
 			},
 			events: {
+				/**
+				 * This event is fired when the model and context are set.
+				 */
+				initialized: {},
 
 				/**
-				 * This event is fired when the <i>Save View</i> dialog is closed with <i>OK</i> for a variant.
+				 * This event is fired when the Save View dialog or the Save As dialog is closed with the Save button.
 				 */
 				save: {
 					parameters: {
@@ -230,23 +192,30 @@ sap.ui.define([
 						},
 
 						/**
-						 * Indicates if an existing variant is overwritten or if a new variant is created.
+						 * Indicates whether an existing variant is overwritten or whether a new variant is created
 						 */
 						overwrite: {
 							type: "boolean"
 						},
 
 						/**
-						 * Variant key
+						 * Variant key. This property is set if <code>overwrite</code> is set to <code>true</code>.
 						 */
 						key: {
 							type: "string"
 						},
 
 						/**
-						 * <i>Apply Automatically</i> indicator
+						 * Apply Automatically indicator
 						 */
 						execute: {
+							type: "boolean"
+						},
+
+						/**
+						 * Indicates the checkbox state for Public
+						 */
+						"public": {
 							type: "boolean"
 						},
 
@@ -255,19 +224,85 @@ sap.ui.define([
 						 */
 						def: {
 							type: "boolean"
+						},
+
+						/**
+						 * Array describing the contexts.
+						 * <b>Note:</b> It is only used internally by the SAPUI5 flexibility layer.
+						 */
+						contexts: {
+							type: "object[]"
+						},
+
+						/**
+						 * Indicates the checkbox state for Create Tile
+						 * <b>Note:</b> This event parameter is used only internally.
+						 */
+						tile: {
+							type: "boolean"
 						}
 					}
 				},
 
 				/**
-				 * This event is fired when users apply changes to variants in the <i>Manage Views</i> dialog.
+				 * This event is fired when users press the Cancel button inside the Save As dialog.
 				 */
-				manage: {},
+				cancel: {},
 
 				/**
-				 * This event is fired when the model and context are set.
+				 * This event is fired when users apply changes to variants in the Manage Views dialog.
 				 */
-				initialized: {},
+
+				manage: {
+					parameters: {
+						/**
+						 * List of changed variants.
+						 * Each entry contains a <code>key</code> (the variant key)  and a <code>name</code> (the new title of the variant).
+						 */
+						renamed: {
+							type: "object[]"
+						},
+
+						/**
+						 * List of deleted variant keys
+						 */
+						deleted: {
+							type: "string[]"
+						},
+
+						/**
+						 * List of variant keys and the associated Execute on Selection indicator.
+						 * Each entry contains a <code>key</code> (the variant key) and an <code>exe</code> flag describing the intention.
+						 */
+						exe: {
+							type: "object[]"
+						},
+
+						/**
+						 * List of variant keys and the associated favorite indicator.
+						 * Each entry contains a <code>key</code> (the variant key) and a <code>visible</code> flag describing the intention.
+						 */
+						fav: {
+							type: "object[]"
+						},
+
+						/**
+						 * The default variant key
+						 */
+						def: {
+							type: "string"
+						},
+
+						/**
+						 * List of variant keys and the associated contexts array.
+						 * Each entry contains a <code>key</code> (the variant key) and a <code>contexts</code> array describing the contexts.
+						 * <b>Note:</b> It is only used internally by the SAPUI5 flexibility layer.
+						 */
+						contexts: {
+							type: "object[]"
+						}
+					}
+				},
 
 				/**
 				 * This event is fired when a new variant is selected.
@@ -282,341 +317,648 @@ sap.ui.define([
 						}
 					}
 				}
+			},
+			associations: {
+
+				/**
+				 * Contains the IDs of the relevant controls for which the variant management is used.
+				 */
+				"for": {
+					type: "sap.ui.core.Control",
+					multiple: true
+				}
+			},
+			aggregations: {
+				/**
+				 * Used for embedded variant managment.
+				 */
+				_embeddedVM: {
+					type: "sap.m.VariantManagement",
+					multiple: false,
+					visibility: "hidden"
+				}
 			}
 		},
-
-		/**
-		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
-		 * @param {sap.ui.core.RenderManager} oRm - <code>RenderManager</code> that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl - Object representation of the control that should be rendered
-		 */
 		renderer: {
 			apiVersion: 2,
-			render: function(oRm, oControl) {
-				oRm.openStart("div", oControl)
-					.class("sapUiFlVarMngmt")
-					.attr("title", oControl._oRb.getText("VARIANT_MANAGEMENT_TRIGGER_TT"))
-					.openEnd();
-
-				oRm.renderControl(oControl.oVariantLayout);
-
+			render(oRm, oControl) {
+				oRm.openStart("div", oControl);
+				oRm.style("max-width", oControl.getMaxWidth());
+				oRm.openEnd();
+				oRm.renderControl(oControl._oVM);
 				oRm.close("div");
 			}
 		}
 	});
 
-	VariantManagement.INNER_MODEL_NAME = "$sapUiFlVariants";
-	VariantManagement.MAX_NAME_LEN = 100;
-	VariantManagement.COLUMN_FAV_IDX = 0;
-	VariantManagement.COLUMN_NAME_IDX = 1;
-
-	/*
+	/**
 	 * Constructs and initializes the <code>VariantManagement</code> control.
 	 */
 	VariantManagement.prototype.init = function() {
-		this._sModelName = flUtils.VARIANT_MODEL_NAME;
+		Control.prototype.init.apply(this); // Call base class
+
+		this.addStyleClass("sapUiFlVarMngmt"); // required for finding the control by RTA/FL
+		this._oRb = Lib.getResourceBundleFor("sap.ui.fl");
+
+		this.setModelName(ControlVariantApplyAPI.getVariantModelName());
 
 		this.attachModelContextChange(this._setModel, this);
 
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.fl");
+		this._oVM = new MVariantManagement(`${this.getId()}-vm`);
+		this.setAggregation("_embeddedVM", this._oVM, true);
 
-		this._createInnerModel();
+		this._aCancelEventHandlers = [];
+		this._aSaveEventHandlers = [];
+		this._aManageEventHandlers = [];
+		this._aSelectEventHandlers = [];
 
-		this.oVariantInvisibleText = new InvisibleText();
+		this._oVM.attachManage(this._fireManage, this);
+		this._oVM.attachCancel(this._fireCancel, this);
+		this._oVM.attachSave(this._fireSave, this);
+		this._oVM.attachSelect(this._fireSelect, this);
 
-		this.oVariantText = new Title(this.getId() + "-text", {
-			text: {
-				path: 'currentVariant',
-				model: this._sModelName,
-				formatter: function(sKey) {
-					var sText = "";
-					if (sKey) {
-						sText = this.getSelectedVariantText(sKey);
-						this._setInvisibleText(sText, this.getModified());
-					}
-
-					return sText;
-				}.bind(this)
-			}
-		});
-
-		this.oVariantText.addStyleClass("sapUiFlVarMngmtClickable");
-		this.oVariantText.addStyleClass("sapUiFlVarMngmtTitle");
-		if (Device.system.phone) {
-			this.oVariantText.addStyleClass("sapUiFlVarMngmtTextPhoneMaxWidth");
-		} else {
-			this.oVariantText.addStyleClass("sapUiFlVarMngmtTextMaxWidth");
-		}
-
-		var oVariantModifiedText = new Label(this.getId() + "-modified", {
-			text: "*",
-			visible: {
-				path: "modified",
-				model: this._sModelName,
-				formatter: function(bValue) {
-					var sKey = this.getCurrentVariantKey();
-
-					if (sKey) {
-						this._setInvisibleText(this.getSelectedVariantText(sKey), bValue);
-					}
-
-					return ((bValue === null) || (bValue === undefined)) ? false : bValue;
-				}.bind(this)
-			}
-		});
-		oVariantModifiedText.setVisible(false);
-		oVariantModifiedText.addStyleClass("sapUiFlVarMngmtModified");
-		oVariantModifiedText.addStyleClass("sapUiFlVarMngmtClickable");
-		oVariantModifiedText.addStyleClass("sapMTitleStyleH4");
-
-		this.oVariantPopoverTrigger = new Button(this.getId() + "-trigger", {
-			icon: "sap-icon://slim-arrow-down",
-			type: ButtonType.Transparent
-		});
-
-		this.oVariantPopoverTrigger.addAriaLabelledBy(this.oVariantInvisibleText);
-		this.oVariantPopoverTrigger.addStyleClass("sapUiFlVarMngmtTriggerBtn");
-		this.oVariantPopoverTrigger.addStyleClass("sapMTitleStyleH4");
-
-		this.oVariantLayout = new HorizontalLayout({
-			content: [
-				this.oVariantText, oVariantModifiedText, this.oVariantPopoverTrigger
-			]
-		});
-		this.oVariantLayout.addStyleClass("sapUiFlVarMngmtLayout");
-
-		oVariantModifiedText.setVisible(false);
-
-		this.oVariantInvisibleText.toStatic();
-
-		this.addDependent(this.oVariantLayout);
+		this._updateWithSettingsInfo();
 	};
 
 	/**
-	 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
-	 * Registers invalidations event which is fired when width of the control is changed.
+	 * Registers an invalidation event that is fired when the width of the control is changed.
+	 * <b>Note:</b> This is required by the {@link sap.m.IOverflowToolbarContent} interface.
 	 *
 	 * @protected
-	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+	 * @returns {{canOverflow: boolean, invalidationEvents: string[]}} Configuration information for the {@link sap.m.IOverflowToolbarContent} interface
 	 */
 	VariantManagement.prototype.getOverflowToolbarConfig = function() {
-		var oConfig = {
+		return {
 			canOverflow: false,
 			invalidationEvents: ["save", "manage", "select"]
 		};
-
-		return oConfig;
 	};
 
-	/**
-	 * Returns the title control of the <code>VariantManagement</code>. This is used in the key user scenario.
-	 * @protected
-	 * @returns {sap.m.Title} Title part of the <code>VariantManagement</code> control.
-	 */
-	VariantManagement.prototype.getTitle = function() {
-		return this.oVariantText;
+	// / <EVENT FORWARDING>
+	VariantManagement.prototype.attachCancel = function(mProps, fnCallback, oObj) {
+		this.attachEvent("cancel", mProps, fnCallback, oObj);
+		return this;
 	};
 
-	VariantManagement.prototype._setInvisibleText = function(sText, bFlag) {
-		var sInvisibleTextKey;
-		if (sText) {
-			if (bFlag) {
-				sInvisibleTextKey = "VARIANT_MANAGEMENT_SEL_VARIANT_MOD";
-			} else {
-				sInvisibleTextKey = "VARIANT_MANAGEMENT_SEL_VARIANT";
+	VariantManagement.prototype._findCallback = function(aArray, fnCallback, oObj) {
+		var mCallbackIdx = -1;
+		aArray.some(function(oEntry, nIdx) {
+			if ((oEntry.fCallback === fnCallback) && (oEntry.oObj === oObj)) {
+				mCallbackIdx = nIdx;
 			}
 
-			this.oVariantInvisibleText.setText(this._oRb.getText(sInvisibleTextKey, [sText]));
-		}
-	};
-
-	VariantManagement.prototype._createInnerModel = function() {
-		var oModel = new JSONModel({
-			showExecuteOnSelection: false,
-			showSetAsDefault: true,
-			editable: true,
-			popoverTitle: this._oRb.getText("VARIANT_MANAGEMENT_VARIANTS")
+			return (mCallbackIdx >= 0);
 		});
-		this.setModel(oModel, VariantManagement.INNER_MODEL_NAME);
 
-		this._bindProperties();
+		return mCallbackIdx;
 	};
 
-	VariantManagement.prototype._bindProperties = function() {
-		this.bindProperty("showSetAsDefault", {
-			path: "/showSetAsDefault",
-			model: VariantManagement.INNER_MODEL_NAME
-		});
-		this.bindProperty("editable", {
-			path: "/editable",
-			model: VariantManagement.INNER_MODEL_NAME
-		});
-	};
+	VariantManagement.prototype.detachCancel = function(fnCallback, oObj) {
+		var nCancelEntryIdx = this._findCallback(this._aCancelEventHandlers, fnCallback, oObj);
 
-	VariantManagement.prototype._getShowExecuteOnSelection = function() {
-		var oModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
-		if (oModel) {
-			return oModel.getProperty("/showExecuteOnSelection");
-		}
+		if (nCancelEntryIdx >= 0) {
+			this.detachEvent("cancel", fnCallback, oObj);
 
-		return false;
-	};
-
-	VariantManagement.prototype._setShowExecuteOnSelection = function(bValue) {
-		var oInnerModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
-		if (oInnerModel) {
-			oInnerModel.setProperty("/showExecuteOnSelection", bValue);
-		}
-	};
-
-
-	VariantManagement.prototype.setExecuteOnSelection = function(bValue) {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			oModel.setProperty(this.oContext + "/executeOnSelection", bValue);
-		}
-	};
-
-	VariantManagement.prototype.getOriginalDefaultVariantKey = function() {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			return oModel.getProperty(this.oContext + "/originalDefaultVariant");
-		}
-		return null;
-	};
-
-	VariantManagement.prototype.setDefaultVariantKey = function(sKey) {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			oModel.setProperty(this.oContext + "/defaultVariant", sKey);
-		}
-	};
-
-	VariantManagement.prototype.getDefaultVariantKey = function() {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			return oModel.getProperty(this.oContext + "/defaultVariant");
-		}
-		return null;
-	};
-
-	/**
-	 * Sets the new selected variant.
-	 * @public
-	 * @param {String} sKey - Key of the variant that should be selected.
-	 * @returns {sap.ui.fl.variants.VariantManagement} Current instance of {@link sap.ui.fl.variants.VariantManagement}.
-	 */
-	VariantManagement.prototype.setCurrentVariantKey = function(sKey) {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			oModel.setProperty(this.oContext + "/currentVariant", sKey);
+			this._aCancelEventHandlers.splice(nCancelEntryIdx, 1);
 		}
 
 		return this;
 	};
 
-	/**
-	 * Gets the currently selected variant key.
-	 * @public
-	 * @returns {String} Key of the currently selected variant. In case the model is not yet set <code>null</code> will be returned.
-	 */
-	VariantManagement.prototype.getCurrentVariantKey = function() {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			return oModel.getProperty(this.oContext + "/currentVariant");
+	VariantManagement.prototype.fireManage = function(oEvent) {
+		this._oVM.fireManage(oEvent);
+	};
+
+	VariantManagement.prototype.fireSave = function(oEvent) {
+		this._oVM.fireSave(oEvent);
+	};
+
+	VariantManagement.prototype._fireCancel = function(oEvent) {
+		for (var i = 0; i < this._aCancelEventHandlers.length; i++) {
+			oEvent.oSource = this;
+			this._aCancelEventHandlers[i].fCallbackBound(oEvent, this._aCancelEventHandlers[i].mProps);
+		}
+	};
+
+	VariantManagement.prototype.attachSave = function(mProps, fnCallback, oObj) {
+		this.attachEvent("save", mProps, fnCallback, oObj);
+		return this;
+	};
+
+	VariantManagement.prototype.detachSave = function(fnCallback, oObj) {
+		var nSaveEntryIdx = this._findCallback(this._aSaveEventHandlers, fnCallback, oObj);
+
+		if (nSaveEntryIdx > -1) {
+			this.detachEvent("save", fnCallback, oObj);
+
+			this._aSaveEventHandlers.splice(nSaveEntryIdx, 1);
+		}
+
+		return this;
+	};
+
+	VariantManagement.prototype._fireSave = function(oEvent) {
+		this._handleAllListeners(oEvent, this._aSaveEventHandlers);
+	};
+
+	VariantManagement.prototype.hasListeners = function(...aArgs) {
+		const [sEvent] = aArgs;
+		const aInnerEvents = ["save", "select", "cancel", "manage"];
+		if (aInnerEvents.indexOf(sEvent) > -1) {
+			var aEventHandler = null;
+
+			if (sEvent === "select") {
+				aEventHandler = this._aSelectEventHandlers;
+			} else if (sEvent === "save") {
+				aEventHandler = this._aSaveEventHandlers;
+			} else if (sEvent === "manage") {
+				aEventHandler = this._aManageEventHandlers;
+			} else if (sEvent === "cancel") {
+				aEventHandler = this._aCancelEventHandlers;
+			}
+
+			return (aEventHandler.length > 0);
+		}
+		return Control.prototype.hasListeners.apply(this, aArgs);
+	};
+
+	VariantManagement.prototype.attachEvent = function(...aArgs) {
+		const [sEvent, , fnCallback] = aArgs;
+		let [, mProps, , oObj] = aArgs;
+		const aInnerEvents = ["save", "select", "cancel", "manage"];
+
+		if (aInnerEvents.indexOf(sEvent) > -1) {
+			var aEventHandler = null;
+			var fnFunction = fnCallback;
+			if (typeof (mProps) === "function") {
+				fnFunction = mProps;
+				oObj = fnCallback;
+				mProps = undefined;
+			}
+
+			oObj = oObj === this ? undefined : oObj;
+
+			if (sEvent === "select") {
+				aEventHandler = this._aSelectEventHandlers;
+			} else if (sEvent === "save") {
+				aEventHandler = this._aSaveEventHandlers;
+			} else if (sEvent === "manage") {
+				aEventHandler = this._aManageEventHandlers;
+			} else if (sEvent === "cancel") {
+				aEventHandler = this._aCancelEventHandlers;
+			}
+
+			aEventHandler.push({
+				fCallback: fnFunction,
+				fCallbackBound: oObj ? fnFunction.bind(oObj) : fnFunction,
+				oObj,
+				mProps
+			});
+		} else {
+			Control.prototype.attachEvent.apply(this, aArgs);
+		}
+	};
+
+	VariantManagement.prototype.attachEventOnce = function(...aArgs) {
+		const [sEvent, mPros, fnCallback, oObj] = aArgs;
+		var nIdx;
+		if (sEvent === "manage") {
+			nIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
+			if ((nIdx > -1) && this._aManageEventHandlers[nIdx].bOnce) {
+				this._aManageEventHandlers.splice(nIdx, 1);
+			}
+
+			this.attachManage(mPros, fnCallback, oObj);
+			nIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
+			if (nIdx > -1) {
+				this._aManageEventHandlers[nIdx].bOnce = true;
+			}
+		} else if (sEvent === "save") {
+			nIdx = this._findCallback(this._aSaveEventHandlers, fnCallback, oObj);
+			if ((nIdx > -1) && this._aSaveEventHandlers[nIdx].bOnce) {
+				this._aSaveEventHandlers.splice(nIdx, 1);
+			}
+
+			this.attachSave(mPros, fnCallback, oObj);
+			nIdx = this._findCallback(this._aSaveEventHandlers, fnCallback, oObj);
+			if (nIdx > -1) {
+				this._aSaveEventHandlers[nIdx].bOnce = true;
+			}
+		} else if (sEvent === "select") {
+			nIdx = this._findCallback(this._aSelectEventHandlers, fnCallback, oObj);
+			if ((nIdx > -1) && this._aSelectEventHandlers[nIdx].bOnce) {
+				this._aSelectEventHandlers.splice(nIdx, 1);
+			}
+
+			this.attachSelect(mPros, fnCallback, oObj);
+			nIdx = this._findCallback(this._aSelectEventHandlers, fnCallback, oObj);
+			if (nIdx > -1) {
+				this._aSelectEventHandlers[nIdx].bOnce = true;
+			}
+		} else {
+			Control.prototype.attachEventOnce.apply(this, aArgs);
+		}
+	};
+
+	VariantManagement.prototype.attachManage = function(mProps, fnCallback, oObj) {
+		this.attachEvent("manage", mProps, fnCallback, oObj);
+		return this;
+	};
+
+	VariantManagement.prototype._handleAllListeners = function(oEvent, aEventHandler) {
+		var i = 0;
+		var aOnlyOnce = [];
+
+		while (i < aEventHandler.length) {
+			oEvent.oSource = this;
+			aEventHandler[i].fCallbackBound(oEvent, aEventHandler[i].mProps);
+
+			if (aEventHandler[i]) {
+				if (aEventHandler[i].hasOwnProperty("bOnce") && aEventHandler[i].bOnce) {
+					aOnlyOnce.push(i);
+				}
+				i += 1;
+			}
+		}
+
+		for (i = aOnlyOnce.length - 1; i > -1; i--) {
+			aEventHandler.splice(aOnlyOnce[i], 1);
+		}
+	};
+
+	VariantManagement.prototype._fireManage = function(oEvent) {
+		this._handleAllListeners(oEvent, this._aManageEventHandlers);
+	};
+
+	VariantManagement.prototype.detachManage = function(fnCallback, oObj) {
+		var nManageEntryIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
+
+		if (nManageEntryIdx > -1) {
+			this.detachEvent("manage", fnCallback, oObj);
+
+			this._aManageEventHandlers.splice(nManageEntryIdx, 1);
+		}
+
+		return this;
+	};
+
+	VariantManagement.prototype.attachSelect = function(mProps, fnCallback, oObj) {
+		this.attachEvent("select", mProps, fnCallback, oObj);
+		return this;
+	};
+
+	VariantManagement.prototype._fireSelect = function(oEvent) {
+		this._handleAllListeners(oEvent, this._aSelectEventHandlers);
+	};
+
+	VariantManagement.prototype.detachSelect = function(fnCallback, oObj) {
+		var nSelectEntryIdx = this._findCallback(this._aSelectEventHandlers, fnCallback, oObj);
+
+		if (nSelectEntryIdx > -1) {
+			this.detachEvent("select", fnCallback, oObj);
+
+			this._aSelectEventHandlers.splice(nSelectEntryIdx, 1);
+		}
+
+		return this;
+	};
+	// / </EVENT FORWARDING>
+
+	// /<OVERWRITES>
+	VariantManagement.prototype._createSaveAsDialog = function() {
+		this._oVM._createSaveAsDialog();
+	};
+
+	VariantManagement.prototype._handleVariantSaveAs = function(sNewVariantName) {
+		this._oVM._handleVariantSaveAs(sNewVariantName);
+	};
+
+	VariantManagement.prototype.getFocusDomRef = function() {
+		if (this._oVM) {
+			return this._oVM.oVariantPopoverTrigger.getFocusDomRef();
+		}
+
+		return null;
+	};
+
+	VariantManagement.prototype.getManageDialog = function() {
+		if (this._oVM) {
+			return this._oVM.oManagementDialog;
 		}
 
 		return null;
 	};
 
 	/**
-	 * Sets the popover title.
+	 * Gets all variants.
+	 * @public
+	 * @returns {Array} All variants; if the model is not yet set, an empty array will be returned.
 	 */
-	VariantManagement.prototype._assignPopoverTitle = function() {
-		var sTitle;
-		var oInnerModel;
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			sTitle = oModel.getProperty(this.oContext + "/popoverTitle");
-		}
+	VariantManagement.prototype.getVariants = function() {
+		return this._oVM ? this._oVM.getItems() : [];
+	};
 
-		if (sTitle !== undefined) {
-			oInnerModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
-			if (oInnerModel) {
-				oInnerModel.setProperty("/popoverTitle", sTitle);
+	VariantManagement.prototype.getVariantByKey = function(sKey) {
+		return this._oVM ? this._oVM._getItemByKey(sKey) : null;
+	};
+
+	VariantManagement.prototype.getTitle = function() {
+		return this._oVM.getTitle();
+	};
+
+	VariantManagement.prototype.refreshTitle = function() {
+		this._oVM.refreshTitle();
+	};
+
+	VariantManagement.prototype.setPopoverTitle = function(sTitle) {
+		this._oVM.setPopoverTitle(sTitle);
+		return this;
+	};
+
+	VariantManagement.prototype.setHeaderLevel = function(sValue) {
+		this.setProperty("headerLevel", sValue);
+		this._oVM.setLevel(sValue);
+		return this;
+	};
+
+	VariantManagement.prototype.setTitleStyle = function(sValue) {
+		this.setProperty("titleStyle", sValue);
+		this._oVM.setTitleStyle(sValue);
+		return this;
+	};
+
+	/**
+		 * Special handling of the rendering of this control.
+	 * @param {boolean} bValue Defines the intended rendering
+	 * @returns {sap.ui.fl.variants.VariantManagement} The current instance
+	 * @private
+	 * @restricted sap.ui.mdc
+		 */
+	VariantManagement.prototype.setShowAsText = function(bValue) {
+		this._oVM.setShowAsText(bValue);
+		return this;
+	};
+
+	/**
+		 * Special handling of the rendering of this control.
+	 * @returns {boolean} The current intent
+	 * @private
+	 * @restricted sap.ui.mdc
+		 */
+	VariantManagement.prototype.getShowAsText = function() {
+		return this._oVM.getShowAsText();
+	};
+
+	VariantManagement.prototype.setEditable = function(bValue) {
+		this.setProperty("editable", bValue);
+		this._oVM.setShowFooter(bValue);
+		return this;
+	};
+
+	VariantManagement.prototype.setShowExecuteOnSelection = function(bValue) {
+		// this.setProperty("showExecuteOnSelection", bValue);
+		this._oVM.setSupportApplyAutomatically(bValue);
+		return this;
+	};
+
+	VariantManagement.prototype.setShowSetAsDefault = function(bValue) {
+		this.setProperty("showSetAsDefault", bValue);
+		this._oVM.setSupportDefault(bValue);
+		return this;
+	};
+
+	VariantManagement.prototype.setDisplayTextForExecuteOnSelectionForStandardVariant = function(sValue) {
+		this.setProperty("displayTextForExecuteOnSelectionForStandardVariant", sValue);
+		this._oVM.setDisplayTextForExecuteOnSelectionForStandardVariant(sValue);
+		return this;
+	};
+
+	VariantManagement.prototype.setInErrorState = function(bValue) {
+		this.setProperty("inErrorState", bValue);
+		this._oVM.setInErrorState(bValue);
+		return this;
+	};
+
+	VariantManagement.prototype._setStandardVariantKey = function(sKey) {
+		this._oVM.setStandardVariantKey(sKey);
+	};
+
+	VariantManagement.prototype.openManagementDialog = function(bCreateAlways, sClass, oRolesComponentContainer) {
+		this._oVM.openManagementDialog(bCreateAlways, sClass, oRolesComponentContainer);
+	};
+
+	VariantManagement.prototype.openSaveAsDialogForKeyUser = function(sClass, oRolesComponentContainer) {
+		this._oVM.openSaveAsDialog(sClass, oRolesComponentContainer);
+	};
+
+	VariantManagement.prototype.setEditable = function(bValue) {
+		this._oVM.setProperty("showFooter", bValue);
+		return this;
+	};
+
+	/**
+	 * Sets the new selected variant.
+	 * @public
+	 * @param {string} sKey Key of the variant that is selected
+	 */
+	VariantManagement.prototype.setCurrentVariantKey = function(sKey) {
+		this._oVM.setCurrentVariantKey(sKey);
+	};
+
+	/**
+	 * Gets the currently selected variant key.
+	 * @public
+	 * @returns {string|null} Key of the currently selected variant. In case the model is not yet set <code>null</code> will be returned
+	 */
+	VariantManagement.prototype.getCurrentVariantKey = function() {
+		return this._oVM.getSelectedKey();
+	};
+
+	VariantManagement.prototype.setDefaultVariantKey = function(sKey) {
+		this._oVM.setDefaultKey(sKey);
+	};
+
+	VariantManagement.prototype.getDefaultVariantKey = function() {
+		return this._oVM.getDefaultKey();
+	};
+
+	/**
+	 * Indicates that the design mode was entered.
+	 * @private
+	 * @ui5-restricted sap.ui.fl, sap.ui.rta
+	 */
+	VariantManagement.prototype.enteringDesignMode = function() {
+		this._oVM.setDesignMode(true);
+	};
+
+	/**
+	 * Indicates that the design mode was left.
+	 * @private
+	 * @ui5-restricted sap.ui.fl, sap.ui.rta
+	 */
+	VariantManagement.prototype.leavingDesignMode = function() {
+		this._oVM.setDesignMode(false);
+	};
+
+	/**
+	 * Determines whether the current variant is modified.
+	 * @public
+	 * @returns {boolean} Returns <code>true</code>, if the current variant is modified, otherwise <code>false</code>
+	 */
+	VariantManagement.prototype.getModified = function() {
+		return this._oVM.getModified();
+	};
+
+	VariantManagement.prototype.setModified = function(bFlag) {
+		this._oVM.setModified(bFlag);
+	};
+
+	VariantManagement.prototype.getStandardVariantKey = function() {
+		return this._oVM.getStandardVariantKey();
+	};
+
+	// / </OVERWRITES>
+
+	VariantManagement.prototype._getEmbeddedVM = function() {
+		return this._oVM;
+	};
+
+	VariantManagement.prototype._updateWithSettingsInfo = function() {
+		flSettings.getInstance().then(function(oSettings) {
+			if (this._oVM) {
+				this._oVM.setShowSaveAs(oSettings.isVariantPersonalizationEnabled());
+				this._oVM.setSupportPublic(oSettings.isPublicFlVariantEnabled());
+			}
+		}.bind(this)).catch(function(oEx) {
+			Log.error(oEx);
+		});
+	};
+
+	VariantManagement.prototype.getModelName = function() {
+		return this.getProperty("modelName");
+	};
+
+	VariantManagement.prototype.setModelName = function(sModelName) {
+		if (this.getModelName()) {
+			this.oContext = null;
+			this._aCancelEventHandlers = [];
+			this._aSaveEventHandlers = [];
+			this._aManageEventHandlers = [];
+			this._aSelectEventHandlers = [];
+		}
+		this.setProperty("modelName", sModelName);
+
+		return this;
+	};
+
+	VariantManagement.prototype._setModel = function() {
+		this._setBindingContext();
+	};
+
+	VariantManagement.prototype._setBindingContext = function() {
+		var oModel;
+		var sLocalId;
+
+		var sModelName = this.getModelName();
+
+		if (!this.oContext) {
+			oModel = this.getModel(sModelName);
+			if (oModel) {
+				sLocalId = this._getLocalId(oModel);
+
+				if (sLocalId) {
+					this.oContext = new Context(oModel, `/${sLocalId}`);
+					this.setBindingContext(this.oContext, sModelName);
+
+					if (oModel.registerToModel) { // Relevant for key user adaptation
+						oModel.registerToModel(this);
+					}
+
+					this.fireInitialized();
+
+					this._oVM.setModel(oModel, sModelName);
+
+					this._oVM.setSupportDefault(true);
+
+					this._createItemsModel(sModelName);
+
+					this._oVM.bindProperty("selectedKey", {
+						path: `${this.oContext}/currentVariant`,
+						model: sModelName
+					});
+
+					this._oVM.bindProperty("defaultKey", {
+						path: `${this.oContext}/defaultVariant`,
+						model: sModelName
+					});
+
+					this._oVM.bindProperty("modified", {
+						path: `${this.oContext}/modified`,
+						model: sModelName
+					});
+
+					this._oVM.bindProperty("supportFavorites", {
+						path: `${this.oContext}/showFavorites`,
+						model: sModelName
+					});
+
+					this._oVM.bindProperty("supportApplyAutomatically", {
+						path: `${this.oContext}/showExecuteOnSelection`,
+						model: sModelName
+					});
+
+					this._oVM.bindProperty("showFooter", {
+						path: `${this.oContext}/variantsEditable`,
+						model: sModelName
+					});
+
+					this._oVM.setPopoverTitle(this._oRb.getText("VARIANT_MANAGEMENT_VARIANTS"));
+					this._setStandardVariantKey(sLocalId);
+				}
 			}
 		}
 	};
 
-	/**
-	 * Retrieves all variants.
-	 * @public
-	 * @returns {array} All variants. In case the model is not yet set, an empty array will be returned.
-	 */
-	VariantManagement.prototype.getVariants = function() {
-		return this._getItems();
+	VariantManagement.prototype._createItemsModel = function(sModelName) {
+		this._oItemsTemplate = new VariantItem({
+			key: `{${sModelName}>key}`,
+			title: `{${sModelName}>title}`,
+			sharing: `{${sModelName}>sharing}`,
+			remove: `{${sModelName}>remove}`,
+			favorite: `{${sModelName}>favorite}`,
+			executeOnSelect: `{${sModelName}>executeOnSelect}`,
+			rename: `{${sModelName}>rename}`,
+			visible: `{${sModelName}>visible}`,
+			changeable: `{${sModelName}>change}`,
+			author: `{${sModelName}>author}`,
+			contexts: `{${sModelName}>contexts}`
+		});
+
+		this._oVM.bindAggregation("items", {
+			path: `${this.oContext}/variants`,
+			model: sModelName,
+			template: this._oItemsTemplate,
+			filters: new Filter({
+				path: "visible",
+				operator: FilterOperator.EQ,
+				value1: true
+			})
+		});
 	};
 
-	VariantManagement.prototype.setModified = function(bFlag) {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			oModel.setProperty(this.oContext + "/modified", bFlag);
+	VariantManagement.prototype._getLocalId = function(oModel) {
+		var sModelName = this.getModelName();
+		if (!sModelName) {
+			return null;
 		}
-	};
-
-	/**
-	 * Determines if the current variant is modified.
-	 * @public
-	 * @returns {boolean} If the current variant is modified <code>true</code>, otherwise <code>false</code>
-	 */
-	VariantManagement.prototype.getModified = function() {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			return oModel.getProperty(this.oContext + "/modified");
-		}
-		return false;
-	};
-
-	VariantManagement.prototype.getSelectedVariantText = function(sKey) {
-		var oItem = this._getItemByKey(sKey);
-
-		if (oItem) {
-			return oItem.title;
-		}
-
-		return "";
-	};
-
-	VariantManagement.prototype.getStandardVariantKey = function() {
-		var aItems = this._getItems();
-		if (aItems && aItems[0]) {
-			return aItems[0].key;
+		if (sModelName !== ControlVariantApplyAPI.getVariantModelName()) {
+			return this.getId();
 		}
 
-		return null;
+		return oModel.getVariantManagementReferenceForControl(this);
 	};
 
-	VariantManagement.prototype.getShowFavorites = function() {
-		var oModel = this.getModel(this._sModelName);
-		if (oModel && this.oContext) {
-			return oModel.getProperty(this.oContext + "/showFavorites");
-		}
-		return false;
-	};
-
-	VariantManagement.prototype._clearDeletedItems = function() {
-		this._aDeletedItems = [];
-	};
-
-	VariantManagement.prototype._addDeletedItem = function(oItem) {
-		this._aDeletedItems.push(oItem);
-	};
-
-	VariantManagement.prototype._getDeletedItems = function() {
-		return this._aDeletedItems;
-	};
-
-	VariantManagement.prototype._getItems = function() {
+	VariantManagement.prototype._getInnerItems = function() {
 		var aItems = [];
 		if (this.oContext && this.oContext.getObject()) {
 			aItems = this.oContext.getObject().variants.filter(function(oItem) {
@@ -631,9 +973,9 @@ sap.ui.define([
 		return aItems;
 	};
 
-	VariantManagement.prototype._getItemByKey = function(sKey) {
+	VariantManagement.prototype._getInnerItemByKey = function(sKey) {
 		var oItem = null;
-		var aItems = this._getItems();
+		var aItems = this._getInnerItems();
 		aItems.some(function(oEntry) {
 			if (oEntry.key === sKey) {
 				oItem = oEntry;
@@ -645,1300 +987,99 @@ sap.ui.define([
 		return oItem;
 	};
 
-	VariantManagement.prototype._rebindControl = function() {
-		this.oVariantText.unbindProperty("text");
-		this.oVariantText.bindProperty("text", {
-			path: 'currentVariant',
-			model: this._sModelName,
-			formatter: function(sKey) {
-				var sText = this.getSelectedVariantText(sKey);
-				return sText;
-			}.bind(this)
-		});
-
-		this.oVariantText.unbindProperty("visible");
-		this.oVariantText.bindProperty("visible", {
-			path: "modified",
-			model: this._sModelName,
-			formatter: function(bValue) {
-				return (bValue === null || bValue === undefined) ? false : bValue;
-			}
-		});
-	};
-
-	VariantManagement.prototype.setModelName = function(sValue) {
-		if (this.getModelName()) {
-			this.oContext = null;
-		}
-
-		this.setProperty("modelName", sValue);
-
-		this._sModelName = sValue;
-
-		this._rebindControl();
+	/**
+	 * Registration of a callback function.
+	 * The provided callback function is executed to check if Apply Automatically on standard variant should be considered.
+	 * @private
+	 * @ui5-restricted sap.fe
+	 * @since 1.103
+	 * @param {function} fCallBack Called when standard variant must be applied. It determines if Apply Automatically on standard variant should be considered.
+	 * As a convenience the current variant will be passed to the callback.
+	 * This variant instance may not be changed in any ways. It is only intended to provide certain variant information.
+	 * @returns {this} Reference to this in order to allow method chaining
+	 */
+	VariantManagement.prototype.registerApplyAutomaticallyOnStandardVariant = function(fCallBack) {
+		this._fRegisteredApplyAutomaticallyOnStandardVariant = fCallBack;
 
 		return this;
 	};
 
-	VariantManagement.prototype._setBindingContext = function() {
-		var oModel;
-		var sLocalId;
-
-		if (!this.oContext) {
-			oModel = this.getModel(this._sModelName);
-			if (oModel) {
-				sLocalId = this._getLocalId(oModel);
-				if (sLocalId) {
-					this.oContext = new Context(oModel, "/" + sLocalId);
-					this.setBindingContext(this.oContext, this._sModelName);
-
-					if (!this.getModelName() && oModel.registerToModel) { // Relevant for key user adaptation
-						oModel.registerToModel(this);
-					}
-
-					this._assignPopoverTitle();
-
-					this._registerPropertyChanges(oModel);
-
-					this.fireInitialized();
-				}
-			}
-		}
-	};
-
-	VariantManagement.prototype._getLocalId = function(oModel) {
-		if (this.getModelName() && (this._sModelName !== flUtils.VARIANT_MODEL_NAME)) {
-			return this.getId();
-		}
-		return oModel.getVariantManagementReferenceForControl(this);
-	};
-
-	VariantManagement.prototype._setModel = function() {
-		this._setBindingContext();
-	};
-
-	VariantManagement.prototype._registerPropertyChanges = function(oModel) {
-		var oBinding = new PropertyBinding(oModel, this.oContext + "/showExecuteOnSelection");
-		oBinding.attachChange(function(oData) {
-			if (oData && oData.oSource && oData.oSource.oModel && oData.oSource.sPath) {
-				var bFlag = oData.oSource.oModel.getProperty(oData.oSource.sPath);
-				if (bFlag !== undefined) {
-					this._setShowExecuteOnSelection(bFlag);
-				}
-			}
-		}.bind(this));
-
-		oBinding = new PropertyBinding(oModel, this.oContext + "/variantsEditable");
-		oBinding.attachChange(function(oData) {
-			if (oData && oData.oSource && oData.oSource.oModel && oData.oSource.sPath) {
-				var oInnerModel;
-				var bFlag = oData.oSource.oModel.getProperty(oData.oSource.sPath);
-				oInnerModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
-				if (oInnerModel && (bFlag !== undefined)) {
-					oInnerModel.setProperty("/editable", bFlag);
-				}
-			}
-		}.bind(this));
-
-//		var oBindingBusy = new PropertyBinding(oModel, this.oContext + "/variantBusy");
-//		oBindingBusy.attachChange(function(oData) {
-//			if (oData && oData.oSource && oData.oSource.oModel && oData.oSource.sPath) {
-//				var bFlag = oData.oSource.oModel.getProperty(oData.oSource.sPath);
-//				this._handleBusy(bFlag);
-//			}
-//		}.bind(this));
-	};
-
-	// clickable area
-//	VariantManagement.prototype._handleBusy = function(bFlag) {
-//		if (bFlag !== undefined) {
-//			this.getAssociation("for", []).forEach(function(sControlId) {
-//				var oControl = sap.ui.getCore().byId(sControlId);
-//				if (oControl && oControl.setBusy) {
-//					oControl.setBusy(bFlag);
-//				}
-//			});
-//		}
-//	};
-
-
-	// clickable area
-	VariantManagement.prototype.handleOpenCloseVariantPopover = function() {
-		if (!this.bPopoverOpen) {
-			this._openVariantList();
-		} else if (this.oVariantPopOver && this.oVariantPopOver.isOpen()) {
-			this.oVariantPopOver.close();
-		} else if (this.getInErrorState() && this.oErrorVariantPopOver && this.oErrorVariantPopOver.isOpen()) {
-			this.oErrorVariantPopOver.close();
-		}
-	};
-
-	VariantManagement.prototype.getFocusDomRef = function() {
-		if (this.oVariantPopoverTrigger) {
-			return this.oVariantPopoverTrigger.getFocusDomRef();
-		}
-	};
-
-	VariantManagement.prototype.onclick = function() {
-		if (this.oVariantPopoverTrigger && !this.bPopoverOpen) {
-			this.oVariantPopoverTrigger.focus();
-		}
-		this.handleOpenCloseVariantPopover();
-	};
-
-	VariantManagement.prototype.onkeyup = function(oEvent) {
-		if (oEvent.which === KeyCodes.F4 || oEvent.which === KeyCodes.SPACE || oEvent.altKey === true && oEvent.which === KeyCodes.ARROW_UP || oEvent.altKey === true && oEvent.which === KeyCodes.ARROW_DOWN) {
-			this._openVariantList();
-		}
-	};
-
-	VariantManagement.prototype.onAfterRendering = function() {
-		this.oVariantText.$().off("mouseover").on("mouseover", function() {
-			this.oVariantPopoverTrigger.addStyleClass("sapUiFlVarMngmtTriggerBtnHover");
-		}.bind(this));
-		this.oVariantText.$().off("mouseout").on("mouseout", function() {
-			this.oVariantPopoverTrigger.removeStyleClass("sapUiFlVarMngmtTriggerBtnHover");
-		}.bind(this));
-	};
-
-	// ERROR LIST
-	VariantManagement.prototype._openInErrorState = function() {
-		var oVBox;
-
-		if (!this.oErrorVariantPopOver) {
-			oVBox = new VBox({
-				fitContainer: true,
-				alignItems: sap.m.FlexAlignItems.Center,
-				items: [
-					new Icon({
-						size: "4rem",
-						color: "lightgray",
-						src: "sap-icon://message-error"
-					}), new Title({
-						titleStyle: sap.ui.core.TitleLevel.H2,
-						text: this._oRb.getText("VARIANT_MANAGEMENT_ERROR_TEXT1")
-					}), new Text({
-						textAlign: sap.ui.core.TextAlign.Center,
-						text: this._oRb.getText("VARIANT_MANAGEMENT_ERROR_TEXT2")
-					})
-				]
-			});
-
-			oVBox.addStyleClass("sapUiFlVarMngmtErrorPopover");
-
-			this.oErrorVariantPopOver = new ResponsivePopover(this.getId() + "-errorpopover", {
-				title: {
-					path: "/popoverTitle",
-					model: VariantManagement.INNER_MODEL_NAME
-				},
-				contentWidth: "400px",
-				placement: PlacementType.VerticalPreferredBottom,
-				content: [
-					new Page(this.getId() + "-errorselpage", {
-						showSubHeader: false,
-						showNavButton: false,
-						showHeader: false,
-						content: [
-							oVBox
-						]
-					})
-				],
-				afterOpen: function() {
-					this.bPopoverOpen = true;
-				}.bind(this),
-				afterClose: function() {
-					if (this.bPopoverOpen) {
-						setTimeout(function() {
-							this.bPopoverOpen = false;
-						}.bind(this), 200);
-					}
-				}.bind(this),
-				contentHeight: "300px"
-			});
-
-			this.oErrorVariantPopOver.attachBrowserEvent("keyup", function(e) {
-				if (e.which === 32) { // UP
-					this.oErrorVariantPopOver.close();
-				}
-			}.bind(this));
-		}
-
-		if (this.bPopoverOpen) {
-			return;
-		}
-
-		this.oErrorVariantPopOver.openBy(this.oVariantLayout);
-	};
-
-	// My Views List
-	VariantManagement.prototype._createVariantList = function() {
-		if (this.oVariantPopOver) {
-			return;
-		}
-
-		this.oVariantManageBtn = new Button(this.getId() + "-manage", {
-			text: this._oRb.getText("VARIANT_MANAGEMENT_MANAGE"),
-			enabled: true,
-			press: function() {
-				this._openManagementDialog();
-			}.bind(this),
-			layoutData: new OverflowToolbarLayoutData({
-				priority: OverflowToolbarPriority.Low
-			})
-		});
-
-		this.oVariantSaveBtn = new Button(this.getId() + "-mainsave", {
-			text: this._oRb.getText("VARIANT_MANAGEMENT_SAVE"),
-			press: function() {
-				this._handleVariantSave();
-			}.bind(this),
-			visible: {
-				path: "modified",
-				model: this._sModelName,
-				formatter: function(bValue) {
-					return bValue;
-				}
-			},
-			type: sap.m.ButtonType.Emphasized,
-			layoutData: new OverflowToolbarLayoutData({
-				priority: OverflowToolbarPriority.Low
-			})
-		});
-
-		this.oVariantSaveAsBtn = new Button(this.getId() + "-saveas", {
-			text: this._oRb.getText("VARIANT_MANAGEMENT_SAVEAS"),
-			press: function() {
-				this._openSaveAsDialog();
-			}.bind(this),
-			layoutData: new OverflowToolbarLayoutData({
-				priority: OverflowToolbarPriority.Low
-			})
-		});
-
-		this._oVariantList = new SelectList(this.getId() + "-list", {
-			selectedKey: {
-				path: "currentVariant",
-				model: this._sModelName
-			},
-			itemPress: function(oEvent) {
-				var sSelectionKey = null;
-				if (oEvent && oEvent.getParameters()) {
-					var oItemPressed = oEvent.getParameters().item;
-					if (oItemPressed) {
-						sSelectionKey = oItemPressed.getKey();
-					}
-				}
-				if (sSelectionKey) {
-					// this.setModified(false);
-					this.setCurrentVariantKey(sSelectionKey);
-
-					this.fireEvent("select", {
-						key: sSelectionKey
-					});
-					this.oVariantPopOver.close();
-				}
-			}.bind(this)
-		});
-		this._oVariantList.setNoDataText(this._oRb.getText("VARIANT_MANAGEMENT_NODATA"));
-
-		var oItemTemplate = new sap.ui.core.Item({
-			key: '{' + this._sModelName + ">key}",
-			text: '{' + this._sModelName + ">title}"
-		});
-
-		this._oVariantList.bindAggregation("items", {
-			path: "variants",
-			model: this._sModelName,
-			template: oItemTemplate
-		});
-
-		this._oSearchField = new SearchField(this.getId() + "-search");
-		this._oSearchField.attachLiveChange(function(oEvent) {
-			this._triggerSearch(oEvent, this._oVariantList);
-		}.bind(this));
-
-		this.oVariantSelectionPage = new Page(this.getId() + "-selpage", {
-			subHeader: new Toolbar({
-				content: [
-					this._oSearchField
-				]
-			}),
-			content: [
-				this._oVariantList
-			],
-			footer: new OverflowToolbar({
-				content: [
-					new ToolbarSpacer(this.getId() + "-spacer"), this.oVariantSaveBtn, this.oVariantSaveAsBtn, this.oVariantManageBtn
-				]
-			}),
-			showNavButton: false,
-			showHeader: false,
-			showFooter: {
-				path: "/editable",
-				model: VariantManagement.INNER_MODEL_NAME
-			}
-		});
-
-		this.oVariantPopOver = new ResponsivePopover(this.getId() + "-popover", {
-			title: {
-				path: "/popoverTitle",
-				model: VariantManagement.INNER_MODEL_NAME
-			},
-			titleAlignment: "Auto",
-			contentWidth: "400px",
-			placement: PlacementType.VerticalPreferredBottom,
-			content: [
-				this.oVariantSelectionPage
-			],
-			afterOpen: function() {
-				this.bPopoverOpen = true;
-			}.bind(this),
-			afterClose: function() {
-				if (this.bPopoverOpen) {
-					setTimeout(function() {
-						this.bPopoverOpen = false;
-					}.bind(this), 200);
-				}
-			}.bind(this),
-			contentHeight: "300px"
-		});
-
-		this.oVariantPopOver.addStyleClass("sapUiFlVarMngmtPopover");
-		if (this.oVariantLayout.$().closest(".sapUiSizeCompact").length > 0) {
-			this.oVariantPopOver.addStyleClass("sapUiSizeCompact");
-		}
-		this.addDependent(this.oVariantPopOver);
-
-		// this._oVariantList.getBinding("items").filter(this._getFilters());
-	};
-
 	/**
-	 * Hide or show <i>Save</i> button and emphasize "most positive action" - either <i>Save</i> button if it is visible, or <i>Save As</i> button if <i>Save</i> is hidden.
-	 * @param bShow - Indicator if <i>Save</i> button should be visible
+	 * Gets the Apply Automatically state for a variant.
 	 * @private
+	 * @ui5-restricted sap.ui.mdc
+	 * @param {object} oVariant The fl-variant object
+	 * @returns {boolean} Apply Automatically state
 	 */
-	VariantManagement.prototype.showSaveButton = function(bShow) {
-		if (bShow === false) {
-			this.oVariantSaveAsBtn.setType(sap.m.ButtonType.Emphasized);
-			this.oVariantSaveBtn.setVisible(false);
-		} else {
-			this.oVariantSaveAsBtn.setType(sap.m.ButtonType.Default);
-			this.oVariantSaveBtn.setVisible(true);
-		}
-	};
-
-	VariantManagement.prototype._openVariantList = function() {
-		var oItem;
-
-		if (this.getInErrorState()) {
-			this._openInErrorState();
-			return;
-		}
-
-		if (this.bPopoverOpen) {
-			return;
-		}
-
-		// proceed only if context is available
-		if (!this.oContext) {
-			return;
-		}
-
-		this._createVariantList();
-		this._oSearchField.setValue("");
-
-		this._oVariantList.getBinding("items").filter(this._getFilters());
-
-		this.oVariantSelectionPage.setShowSubHeader(this._oVariantList.getItems().length > 9);
-
-		this.showSaveButton(false);
-
-		if (this.getModified()) {
-			oItem = this._getItemByKey(this.getCurrentVariantKey());
-			if (oItem && oItem.change) {
-				this.showSaveButton(true);
-			}
-		}
-
-		this.oVariantPopOver.openBy(this.oVariantLayout);
-	};
-
-	VariantManagement.prototype._triggerSearch = function(oEvent, oVariantList) {
-		if (!oEvent) {
-			return;
-		}
-
-		var parameters = oEvent.getParameters();
-		if (!parameters) {
-			return;
-		}
-
-		var sValue = parameters.newValue ? parameters.newValue : "";
-
-		var oFilter = new Filter({
-			path: "title",
-			operator: FilterOperator.Contains,
-			value1: sValue
-		});
-
-		oVariantList.getBinding("items").filter(this._getFilters(oFilter));
-	};
-
-	// Save View dialog
-
-	VariantManagement.prototype._createSaveAsDialog = function() {
-		if (!this.oSaveAsDialog) {
-			this.oInputName = new Input(this.getId() + "-name", {
-				liveChange: function() {
-					this._checkVariantNameConstraints(this.oInputName, this.oSaveSave);
-				}.bind(this)
-			});
-
-			var oLabelName = new Label(this.getId() + "-namelabel", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_NAME")
-			});
-			oLabelName.setLabelFor(this.oInputName);
-			oLabelName.addStyleClass("sapUiFlVarMngmtSaveDialogLabel");
-
-			this.oDefault = new CheckBox(this.getId() + "-default", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_SETASDEFAULT"),
-				visible: {
-					path: "/showSetAsDefault",
-					model: VariantManagement.INNER_MODEL_NAME
-				},
-				width: "100%"
-			});
-
-			this.oExecuteOnSelect = new CheckBox(this.getId() + "-execute", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_EXECUTEONSELECT"),
-				visible: {
-					path: "/showExecuteOnSelection",
-					model: VariantManagement.INNER_MODEL_NAME
-				},
-				width: "100%"
-			});
-
-			this.oInputManualKey = new Input(this.getId() + "-key", {
-				liveChange: function() {
-					this._checkVariantNameConstraints(this.oInputManualKey);
-				}.bind(this)
-			});
-
-			this.oLabelKey = new Label(this.getId() + "-keylabel", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_KEY"),
-				required: true
-			});
-			this.oLabelKey.setLabelFor(this.oInputManualKey);
-
-			this.oSaveSave = new Button(this.getId() + "-variantsave", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_SAVE"),
-				press: function() {
-					if (!this._bSaveOngoing) {
-						this._bSaveOngoing = true;
-						this._bSaveCanceled = false;
-						this._handleVariantSaveAs(this.oInputName.getValue());
-					}
-				}.bind(this),
-				enabled: true
-			});
-			var oSaveAsDialogOptionsGrid = new Grid({
-				defaultSpan: "L12 M12 S12"
-			});
-
-			if (this.getShowSetAsDefault()) {
-				oSaveAsDialogOptionsGrid.addContent(this.oDefault);
-			}
-
-			if (this._getShowExecuteOnSelection()) {
-				oSaveAsDialogOptionsGrid.addContent(this.oExecuteOnSelect);
-			}
-
-			this.oSaveAsDialog = new Dialog(this.getId() + "-savedialog", {
-				title: this._oRb.getText("VARIANT_MANAGEMENT_SAVEDIALOG"),
-				afterClose: function() {
-					this._bSaveOngoing = false;
-				}.bind(this),
-				beginButton: this.oSaveSave,
-				endButton: new Button(this.getId() + "-variantcancel", {
-					text: this._oRb.getText("VARIANT_MANAGEMENT_CANCEL"),
-					press: function() {
-						this._bSaveCanceled = true;
-						this.oSaveAsDialog.close();
-					}.bind(this)
-				}),
-				content: [
-					oLabelName, this.oInputName, this.oLabelKey, this.oInputManualKey, oSaveAsDialogOptionsGrid
-				],
-				stretch: Device.system.phone
-			});
-
-			this.oSaveAsDialog.addStyleClass("sapUiPopupWithPadding");
-			this.oSaveAsDialog.addStyleClass("sapUiFlVarMngmtSaveDialog");
-
-			if (this.oVariantLayout.$().closest(".sapUiSizeCompact").length > 0) {
-				this.oSaveAsDialog.addStyleClass("sapUiSizeCompact");
-			}
-
-			this.addDependent(this.oSaveAsDialog);
-		}
-	};
-
-	VariantManagement.prototype._openSaveAsDialog = function() {
-		this._createSaveAsDialog();
-
-		this.oInputName.setValue(this.getSelectedVariantText(this.getCurrentVariantKey()));
-		this.oSaveSave.setEnabled(false);
-
-		this.oInputName.setEnabled(true);
-		this.oInputName.setValueState(ValueState.None);
-		this.oInputName.setValueStateText(null);
-
-		this._checkVariantNameConstraints(this.oInputName, this.oSaveSave);
-
-		this.oDefault.setSelected(false);
-		this.oExecuteOnSelect.setSelected(false);
-
-		if (this.oVariantPopOver) {
-			this.oVariantPopOver.close();
-		}
-
-		if (this.getManualVariantKey()) {
-			this.oInputManualKey.setVisible(true);
-			this.oInputManualKey.setEnabled(true);
-			this.oInputManualKey.setValueState(ValueState.None);
-			this.oInputManualKey.setValueStateText(null);
-			this.oLabelKey.setVisible(true);
-		} else {
-			this.oInputManualKey.setVisible(false);
-			this.oLabelKey.setVisible(false);
-		}
-
-		this.oSaveAsDialog.open();
-	};
-
-	VariantManagement.prototype._handleVariantSaveAs = function(sNewVariantName) {
-		var sKey = null;
-		var sName = sNewVariantName.trim();
-		var sManualKey = this.oInputManualKey.getValue().trim();
-
-		if (sName === "") {
-			this.oInputName.setValueState(ValueState.Error);
-			this.oInputName.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_ERROR_EMPTY"));
-			return;
-		}
-
-		if (this.getManualVariantKey()) {
-			if (sManualKey === "") {
-				this.oInputManualKey.setValueState(ValueState.Error);
-				this.oInputManualKey.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_ERROR_EMPTY"));
-				return;
-			}
-			sKey = sManualKey;
-		}
-
-		if (this.oSaveAsDialog) {
-			this.oSaveAsDialog.close();
-		}
-
-		if (this.oDefault.getSelected()) {
-			this.setDefaultVariantKey(sKey);
-		}
-
-		this.setModified(false);
-
-		this.fireSave({
-			key: sKey, // is null
-			name: sName,
-			overwrite: false,
-			def: this.oDefault.getSelected(),
-			execute: this.oExecuteOnSelect.getSelected()
-		});
-	};
-
-	VariantManagement.prototype._handleVariantSave = function() {
-		var oItem = this._getItemByKey(this.getCurrentVariantKey());
-
-		var bDefault = false;
-		if (this.getDefaultVariantKey() === oItem.key) {
-			bDefault = true;
-		}
-
-		if (this.oVariantPopOver) {
-			this.oVariantPopOver.close();
-		}
-
-		this.fireSave({
-			name: oItem.title,
-			overwrite: true,
-			key: oItem.key,
-			def: bDefault
-		});
-
-		this.setModified(false);
-	};
-
-	// Manage Views dialog
-
-	/**
-	 * Opens the <i>Manage Views</i> dialog.
-	 * @public
-	 * @param {boolean} bCreateAlways - Indicates that if this is set to <code>true</code>, the former dialog will be destroyed before a new one is created
-	 */
-	VariantManagement.prototype.openManagementDialog = function(bCreateAlways, sClass) {
-		if (bCreateAlways && this.oManagementDialog) {
-			this.oManagementDialog.destroy();
-			this.oManagementDialog = undefined;
-		}
-		this._openManagementDialog(sClass);
-	};
-
-	VariantManagement.prototype._triggerSearchInManageDialog = function(oEvent, oManagementTable) {
-		if (!oEvent) {
-			return;
-		}
-
-		var parameters = oEvent.getParameters();
-		if (!parameters) {
-			return;
-		}
-
-		var sValue = parameters.newValue ? parameters.newValue : "";
-
-		var aFilters = [
-			this._getVisibleFilter(), new Filter({
-				filters: [
-					new Filter({
-						path: "title",
-						operator: FilterOperator.Contains,
-						value1: sValue
-					}), new Filter({
-						path: "author",
-						operator: FilterOperator.Contains,
-						value1: sValue
-					})
-				],
-				and: false
-			})
-		];
-
-		oManagementTable.getBinding("items").filter(aFilters);
-
-		this._bDeleteOccured = true;
-	};
-
-	VariantManagement.prototype.getManageDialog = function() {
-		return this.oManagementDialog;
-	};
-
-	VariantManagement.prototype._createManagementDialog = function() {
-		if (!this.oManagementDialog || this.oManagementDialog.bIsDestroyed) {
-			this.oManagementTable = new Table(this.getId() + "-managementTable", {
-				growing: true,
-				columns: [
-					new Column({
-						width: "3rem",
-						visible: {
-							path: "showFavorites",
-							model: this._sModelName
-						}
-					}), new Column({
-						header: new Text({
-							text: this._oRb.getText("VARIANT_MANAGEMENT_NAME")
-						}),
-						width: "14rem"
-					}), new Column({
-						header: new Text({
-							text: this._oRb.getText("VARIANT_MANAGEMENT_DEFAULT"),
-							wrappingType: "Hyphenated"
-						}),
-						width: "4rem",
-						demandPopin: true,
-						popinDisplay: PopinDisplay.Inline,
-						minScreenWidth: ScreenSize.Tablet,
-						visible: {
-							path: "/showSetAsDefault",
-							model: VariantManagement.INNER_MODEL_NAME
-						}
-					}), new Column({
-						header: new Text({
-							text: this._oRb.getText("VARIANT_MANAGEMENT_EXECUTEONSELECT"),
-							wrappingType: "Hyphenated"
-						}),
-						width: "6rem",
-						hAlign: TextAlign.Center,
-						demandPopin: true,
-						popinDisplay: PopinDisplay.Inline,
-						minScreenWidth: "800px",
-						visible: {
-							path: "/showExecuteOnSelection",
-							model: VariantManagement.INNER_MODEL_NAME
-						}
-					}), new Column({
-						header: new Text({
-							text: this._oRb.getText("VARIANT_MANAGEMENT_AUTHOR")
-						}),
-						width: "8rem",
-						demandPopin: true,
-						popinDisplay: PopinDisplay.Inline,
-						minScreenWidth: "900px"
-					}), new Column({
-						width: "2rem",
-						hAlign: TextAlign.Center
-					}), new Column({
-						visible: false
-					})
-				]
-			});
-
-			this.oManagementSave = new Button(this.getId() + "-managementsave", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_OK"),
-				enabled: true,
-				type: sap.m.ButtonType.Emphasized,
-				press: function() {
-					this._handleManageSavePressed();
-				}.bind(this)
-			});
-
-			this.oManagementCancel = new Button(this.getId() + "-managementcancel", {
-				text: this._oRb.getText("VARIANT_MANAGEMENT_CANCEL"),
-				press: function() {
-					this._resumeManagementTableBinding();
-					this.oManagementDialog.close();
-					this._handleManageCancelPressed();
-				}.bind(this)
-			});
-
-			this.oManagementDialog = new Dialog(this.getId() + "-managementdialog", {
-				resizable: true,
-				draggable: true,
-//				customHeader: new Bar(this.getId() + "-managementHeader", {
-//					contentMiddle: [
-//						new Text(this.getId() + "-managementHeaderText", {
-//							text: this._oRb.getText("VARIANT_MANAGEMENT_MANAGEDIALOG")
-//						})
-//					]
-//				}),
-				title: this._oRb.getText("VARIANT_MANAGEMENT_MANAGEDIALOG"),
-				beginButton: this.oManagementSave,
-				endButton: this.oManagementCancel,
-				content: [
-					this.oManagementTable
-				],
-				stretch: Device.system.phone
-			});
-
-			// add marker
-			this.oManagementDialog.isPopupAdaptationAllowed = function() {
-				return false;
-			};
-
-			this._oSearchFieldOnMgmtDialog = new SearchField();
-			this._oSearchFieldOnMgmtDialog.attachLiveChange(function(oEvent) {
-				this._triggerSearchInManageDialog(oEvent, this.oManagementTable);
-			}.bind(this));
-
-			var oSubHeader = new Bar(this.getId() + "-mgmHeaderSearch", {
-				contentMiddle: [
-					this._oSearchFieldOnMgmtDialog
-				]
-			});
-			this.oManagementDialog.setSubHeader(oSubHeader);
-
-			if (this.oVariantLayout.$().closest(".sapUiSizeCompact").length > 0) {
-				this.oManagementDialog.addStyleClass("sapUiSizeCompact");
-			}
-			this.addDependent(this.oManagementDialog);
-
-			this.oManagementTable.bindAggregation("items", {
-				path: "variants",
-				model: this._sModelName,
-				factory: this._templateFactoryManagementDialog.bind(this),
-				filters: this._getVisibleFilter()
-			});
-
-			this._bDeleteOccured = false;
-		}
-	};
-
-	VariantManagement.prototype._setFavoriteIcon = function(oIcon, bFlagged) {
-		if (oIcon) {
-			oIcon.setSrc(bFlagged ? "sap-icon://favorite" : "sap-icon://unfavorite");
-			oIcon.setTooltip(this._oRb.getText(bFlagged ? "VARIANT_MANAGEMENT_FAV_DEL_TOOLTIP" : "VARIANT_MANAGEMENT_FAV_ADD_TOOLTIP"));
-			oIcon.setAlt(this._oRb.getText(bFlagged ? "VARIANT_MANAGEMENT_FAV_DEL_ACC" : "VARIANT_MANAGEMENT_FAV_ADD_ACC"));
-		}
-	};
-
-	VariantManagement.prototype._templateFactoryManagementDialog = function(sId, oContext) {
-		var sTooltip = null;
-		var oDeleteButton;
-		var sBindingPath;
-		var oNameControl;
-		var oItem = oContext.getObject();
-		if (!oItem) {
-			return undefined;
-		}
-
-		var fLiveChange = function(oEvent) {
-			this._checkVariantNameConstraints(oEvent.oSource, this.oManagementSave, oEvent.oSource.getBindingContext(this._sModelName).getObject().key);
-		}.bind(this);
-
-		var fChange = function(oEvent) {
-			this._handleManageTitleChanged(oEvent.oSource.getBindingContext(this._sModelName).getObject());
-		}.bind(this);
-
-		var fSelectRB = function(oEvent) {
-			if (oEvent.getParameters().selected === true) {
-				this._handleManageDefaultVariantChange(oEvent.oSource, oEvent.oSource.getBindingContext(this._sModelName).getObject());
-			}
-		}.bind(this);
-
-		var fSelectCB = function(oEvent) {
-			this._handleManageExecuteOnSelectionChanged(oEvent.oSource.getBindingContext(this._sModelName).getObject());
-		}.bind(this);
-
-		var fPress = function(oEvent) {
-			this._handleManageDeletePressed(oEvent.oSource.getBindingContext(this._sModelName).getObject());
-			var oListItem = oEvent.oSource.getParent();
-			if (oListItem) {
-				oListItem.setVisible(false);
-			}
-		}.bind(this);
-
-		var fSelectFav = function(oEvent) {
-			this._handleManageFavoriteChanged(oEvent.oSource, oEvent.oSource.getBindingContext(this._sModelName).getObject());
-		}.bind(this);
-
-		if (oItem.rename) {
-			oNameControl = new Input({
-				liveChange: fLiveChange,
-				change: fChange,
-				value: '{' + this._sModelName + ">title}"
-			});
-		} else {
-			oNameControl = new ObjectIdentifier({
-				title: '{' + this._sModelName + ">title}"
-			});
-			if (sTooltip) {
-				oNameControl.setTooltip(sTooltip);
-			}
-		}
-
-		oDeleteButton = new Button({
-			icon: "sap-icon://sys-cancel",
-			enabled: true,
-			type: ButtonType.Transparent,
-			press: fPress,
-			tooltip: this._oRb.getText("VARIANT_MANAGEMENT_DELETE"),
-			// visible: "{:= ${remove} ? true : false }}"
-			visible: oItem.remove
-		});
-
-		this._assignColumnInfoForDeleteButton(oDeleteButton);
-
-		sBindingPath = this.oContext.getPath();
-
-		var oFavoriteIcon = new Icon({
-			src: {
-				path: "favorite",
-				model: this._sModelName,
-				formatter: function(bFlagged) {
-					return bFlagged ? "sap-icon://favorite" : "sap-icon://unfavorite";
-				}
-			},
-			tooltip: {
-				path: 'favorite',
-				model: this._sModelName,
-				formatter: function(bFlagged) {
-					return this._oRb.getText(bFlagged ? "VARIANT_MANAGEMENT_FAV_DEL_TOOLTIP" : "VARIANT_MANAGEMENT_FAV_ADD_TOOLTIP");
-				}.bind(this)
-			},
-			press: fSelectFav
-		});
-
-		oFavoriteIcon.addStyleClass("sapUiFlVarMngmtFavColor");
-
-		var oTemplate = new ColumnListItem({
-			cells: [
-				oFavoriteIcon, oNameControl, new RadioButton({
-					groupName: this.getId(),
-					select: fSelectRB,
-					// selected: (oItem.key === sDefaultVariantKey) ? true : false
-					selected: {
-						path: sBindingPath + "/defaultVariant",
-						model: this._sModelName,
-						formatter: function(sKey) {
-							return oItem.key === sKey;
-						}
-					}
-				}), new CheckBox({
-					// enabled: oItem.rename,
-					select: fSelectCB,
-					selected: '{' + this._sModelName + ">executeOnSelect}"
-				}), new Text({
-					text: '{' + this._sModelName + ">author}",
-					textAlign: "Begin"
-				}), oDeleteButton, new Text({
-					text: '{' + this._sModelName + ">key}"
-				})
-
-			]
-		});
-
-		return oTemplate;
-	};
-
-	VariantManagement.prototype._openManagementDialog = function(sClass) {
-		this._createManagementDialog();
-
-		if (this.oVariantPopOver) {
-			this.oVariantPopOver.close();
-		}
-
-		this._suspendManagementTableBinding();
-
-		this._clearDeletedItems();
-		this.oManagementSave.setEnabled(false);
-		this._oSearchFieldOnMgmtDialog.setValue("");
-
-		// Ideally, this should be done only once in <code>_createtManagementDialog</code>. However, the binding does not recognize a change if filtering is involved.
-		// After a deletion on the UI, the item is filtered out <code>.visible=false</code>. The real deletion will occur only when <i>OK</i> is pressed.
-		// Since the filterd items and the result after the real deletion are identical, no change is detected. Based on this, the context on the table is
-		// not invalidated....
-		// WA: Always do the binding while opening the dialog.
-		if (this._bDeleteOccured) {
-			this._bDeleteOccured = false;
-			this.oManagementTable.bindAggregation("items", {
-				path: "variants",
-				model: this._sModelName,
-				factory: this._templateFactoryManagementDialog.bind(this),
-				filters: this._getVisibleFilter()
-			});
-		}
-		if (sClass) {
-			this.oManagementDialog.addStyleClass(sClass);
-		}
-		this.oManagementDialog.open();
-	};
-
-	VariantManagement.prototype._assignColumnInfoForDeleteButton = function(oDeleteButton) {
-		if (!this._oInvisibleDeleteColumnName) {
-			this._oInvisibleDeleteColumnName = new InvisibleText({
-				text: this._oRb.getText("VARIANT_MANAGEMENT_ACTION_COLUMN")
-			});
-
-			this.oManagementDialog.addContent(this._oInvisibleDeleteColumnName);
-		}
-
-		if (this._oInvisibleDeleteColumnName) {
-			oDeleteButton.addAriaLabelledBy(this._oInvisibleDeleteColumnName);
-		}
-	};
-
-	VariantManagement.prototype._handleManageDefaultVariantChange = function(oRadioButton, oItem) {
-		var sKey = oItem.key;
-
-		if (!this._anyInErrorState(this.oManagementTable)) {
-			this.oManagementSave.setEnabled(true);
-		}
-
-		if (this.getShowFavorites() && !oItem.favorite && oRadioButton) {
-			oItem.favorite = true;
-			this._setFavoriteIcon(oRadioButton.getParent().getCells()[VariantManagement.COLUMN_FAV_IDX], true);
-		}
-
-		this.setDefaultVariantKey(sKey);
-	};
-
-	VariantManagement.prototype._handleManageCancelPressed = function() {
-		var sDefaultVariantKey;
-		var oModel;
-		this._getDeletedItems().forEach(function(oItem) {
-			oItem.visible = true;
-		});
-
-		this._getItems().forEach(function(oItem) {
-			oItem.title = oItem.originalTitle;
-			oItem.favorite = oItem.originalFavorite;
-			oItem.executeOnSelection = oItem.originalExecuteOnSelection;
-		});
-
-		sDefaultVariantKey = this.getOriginalDefaultVariantKey();
-		if (sDefaultVariantKey !== this.getDefaultVariantKey()) {
-			this.setDefaultVariantKey(sDefaultVariantKey);
-		}
-
-		oModel = this.getModel(this._sModelName);
-		if (oModel) {
-			oModel.checkUpdate();
-		}
-	};
-
-	VariantManagement.prototype._handleManageFavoriteChanged = function(oIcon, oItem) {
-		if (!this._anyInErrorState(this.oManagementTable)) {
-			this.oManagementSave.setEnabled(true);
-		}
-
-		if ((this.getDefaultVariantKey() === oItem.key) && oItem.favorite) {
-			return;
-		}
-
-		oItem.favorite = !oItem.favorite;
-		this._setFavoriteIcon(oIcon, oItem.favorite);
-	};
-
-	VariantManagement.prototype._getRowForKey = function(sKey) {
-		var oRowForKey = null;
-		if (this.oManagementTable) {
-			this.oManagementTable.getItems().some(function(oRow) {
-				if (sKey === oRow.getCells()[0].getBindingContext(this._sModelName).getObject().key) {
-					oRowForKey = oRow;
-				}
-
-				return oRowForKey !== null;
-			}.bind(this));
-		}
-
-		return oRowForKey;
-	};
-
-	VariantManagement.prototype._handleManageDeletePressed = function(oItem) {
-		var oModel;
-		var sKey = oItem.key;
-
-		// do not allow the deletion of the last entry
-		if (this.oManagementTable.getItems().length === 1) {
-			return;
-		}
-
-		if (!this._anyInErrorState(this.oManagementTable)) {
-			this.oManagementSave.setEnabled(true);
-		}
-
-		oItem.visible = false;
-		this._addDeletedItem(oItem);
-
-		if ((sKey === this.getDefaultVariantKey())) {
-			this.setDefaultVariantKey(this.getStandardVariantKey());
-			if (this.getShowFavorites()) {
-				var oNewDefaultItem = this._getItemByKey(this.getStandardVariantKey());
-				if (oNewDefaultItem && !oNewDefaultItem.favorite) {
-					var oRow = this._getRowForKey(this.getStandardVariantKey());
-					if (oRow) {
-						oNewDefaultItem.favorite = true;
-						this._setFavoriteIcon(oRow.getCells()[VariantManagement.COLUMN_FAV_IDX], true);
-					}
+	VariantManagement.prototype.getApplyAutomaticallyOnVariant = function(oVariant) {
+		var bExecuteOnSelection = false;
+		if (oVariant) {
+			bExecuteOnSelection = oVariant.executeOnSelect;
+
+			if (this._fRegisteredApplyAutomaticallyOnStandardVariant && this.getDisplayTextForExecuteOnSelectionForStandardVariant() && (oVariant.key === this._oVM.getStandardVariantKey())) {
+				try {
+					bExecuteOnSelection = this._fRegisteredApplyAutomaticallyOnStandardVariant(oVariant);
+				} catch (ex) {
+					Log.error("callback for determination of apply automatically on standard variant failed");
 				}
 			}
 		}
 
-		oModel = this.getModel(this._sModelName);
-		if (oModel) {
-			oModel.checkUpdate();
-		}
-
-		this.oManagementCancel.focus();
-	};
-
-	VariantManagement.prototype._handleManageExecuteOnSelectionChanged = function() {
-		if (!this._anyInErrorState(this.oManagementTable)) {
-			this.oManagementSave.setEnabled(true);
-		}
-	};
-
-	VariantManagement.prototype._handleManageTitleChanged = function() {
-		if (!this._anyInErrorState(this.oManagementTable)) {
-			this.oManagementSave.setEnabled(true);
-		}
-	};
-
-	VariantManagement.prototype._handleManageSavePressed = function() {
-		this._getDeletedItems().some(function(oItem) {
-			if (oItem.key === this.getCurrentVariantKey()) {
-				var sKey = this.getStandardVariantKey();
-
-				this.setModified(false);
-				this.setCurrentVariantKey(sKey);
-
-				this.fireEvent("select", {
-					key: sKey
-				});
-				return true;
-			}
-
-			return false;
-		}.bind(this));
-
-		this.fireManage();
-
-		this._resumeManagementTableBinding();
-		this.oManagementDialog.close();
-	};
-
-	VariantManagement.prototype._resumeManagementTableBinding = function() {
-		if (this.oManagementTable) {
-			var oListBinding = this.oManagementTable.getBinding("items");
-			if (oListBinding) {
-				oListBinding.resume();
-			}
-		}
-	};
-
-	VariantManagement.prototype._suspendManagementTableBinding = function() {
-		if (this.oManagementTable) {
-			var oListBinding = this.oManagementTable.getBinding("items");
-			if (oListBinding) {
-				oListBinding.suspend();
-			}
-		}
-	};
-
-	VariantManagement.prototype._anyInErrorState = function(oManagementTable) {
-		var aItems;
-		var oInput;
-		var bInError = false;
-
-		if (oManagementTable) {
-			aItems = oManagementTable.getItems();
-			aItems.some(function(oItem) {
-				oInput = oItem.getCells()[VariantManagement.COLUMN_NAME_IDX];
-				if (oInput && oInput.getValueState && (oInput.getValueState() === ValueState.Error)) {
-					bInError = true;
-				}
-
-				return bInError;
-			});
-		}
-
-		return bInError;
-	};
-
-	// UTILS
-
-	VariantManagement.prototype._getFilters = function(oFilter) {
-		var aFilters = [];
-
-		if (oFilter) {
-			aFilters.push(oFilter);
-		}
-
-		aFilters.push(this._getVisibleFilter());
-
-		if (this.getShowFavorites()) {
-			aFilters.push(this._getFilterFavorites());
-		}
-
-		return aFilters;
-	};
-
-	VariantManagement.prototype._getVisibleFilter = function() {
-		return new Filter({
-			path: "visible",
-			operator: FilterOperator.EQ,
-			value1: true
-		});
-	};
-
-	VariantManagement.prototype._getFilterFavorites = function() {
-		return new Filter({
-			path: "favorite",
-			operator: FilterOperator.EQ,
-			value1: true
-		});
-	};
-
-
-	VariantManagement.prototype._checkVariantNameConstraints = function(oInputField, oSaveButton, sKey) {
-		if (!oInputField) {
-			return;
-		}
-
-		var sValue = oInputField.getValue();
-		sValue = sValue.trim();
-
-		if (!this._checkIsDuplicate(sValue, sKey)) {
-			if (sValue === "") {
-				oInputField.setValueState(ValueState.Error);
-				oInputField.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_ERROR_EMPTY"));
-			} else if (sValue.indexOf('{') > -1) {
-				oInputField.setValueState(ValueState.Error);
-				oInputField.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_NOT_ALLOWED_CHAR", [
-					"{"
-				]));
-			} else if (sValue.length > VariantManagement.MAX_NAME_LEN) {
-				oInputField.setValueState(ValueState.Error);
-				oInputField.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_MAX_LEN", [
-					VariantManagement.MAX_NAME_LEN
-				]));
-			} else {
-				oInputField.setValueState(ValueState.None);
-				oInputField.setValueStateText(null);
-			}
-		} else {
-			oInputField.setValueState(ValueState.Error);
-			oInputField.setValueStateText(this._oRb.getText("VARIANT_MANAGEMENT_ERROR_DUPLICATE"));
-		}
-
-		if (oSaveButton) {
-			if (oInputField.getValueState() === ValueState.Error) {
-				oSaveButton.setEnabled(false);
-			} else {
-				oSaveButton.setEnabled(true);
-			}
-		}
-	};
-
-	VariantManagement.prototype._checkIsDuplicate = function(sValue, sKey) {
-		var bDublicate = false;
-		var aItems = this._getItems();
-		var sLowerCaseValue = sValue.toLowerCase();
-		aItems.some(function(oItem) {
-			if (oItem.title.toLowerCase() === sLowerCaseValue) {
-				if (sKey && (sKey === oItem.key)) {
-					return false;
-				}
-				bDublicate = true;
-			}
-
-			return bDublicate;
-		});
-
-		return bDublicate;
+		return bExecuteOnSelection;
 	};
 
 	// exit destroy all controls created in init
-	VariantManagement.prototype.exit = function() {
-		var oModel;
+	VariantManagement.prototype.exit = function(...aArgs) {
+		this._oVM.detachManage(this._fireManage, this);
+		this._oVM.detachCancel(this._fireCancel, this);
+		this._oVM.detachSelect(this._fireSelect, this);
+		this._oVM.detachSave(this._fireSave, this);
 
-		if (this.oVariantInvisibleText) {
-			this.oVariantInvisibleText.destroy(true);
-			this.oVariantInvisibleText = undefined;
+		if (this._oVM) {
+			this._oVM.destroy();
+			this._oVM = undefined;
 		}
 
-		if (this.oDefault && !this.oDefault._bIsBeingDestroyed) {
-			this.oDefault.destroy();
+		if (this._oItemsTemplate) {
+			this._oItemsTemplate.destroy();
+			this._oItemsTemplate = undefined;
 		}
-		this.oDefault = undefined;
 
-		if (this.oExecuteOnSelect && !this.oExecuteOnSelect._bIsBeingDestroyed) {
-			this.oExecuteOnSelect.destroy();
-		}
-		this.oExecuteOnSelect = undefined;
+		this._fRegisteredApplyAutomaticallyOnStandardVariant = null;
+		this.oContext = undefined;
 		this._oRb = undefined;
 
-		this.oContext = undefined;
+		this._aCancelEventHandlers = undefined;
+		this._aSaveEventHandlers = undefined;
+		this._aManageEventHandlers = undefined;
+		this._aSelectEventHandlers = undefined;
 
-		this._oVariantList = undefined;
-		this.oVariantSelectionPage = undefined;
-		this.oVariantLayout = undefined;
-		this.oVariantText = undefined;
-		this.oVariantPopoverTrigger = undefined;
-		this._oSearchField = undefined;
-		this._oSearchFieldOnMgmtDialog = undefined;
+		Control.prototype.exit.apply(this, aArgs);
+	};
 
-		oModel = this.getModel(VariantManagement.INNER_MODEL_NAME);
-		if (oModel) {
-			oModel.destroy();
-		}
+	// <overwrite for docu>
+	/**
+	 * Adds a control to the association {@link #for for}.
+	 * @public
+	 * @param {sap.ui.core.ID | sap.ui.core.Control} vFor The control to add; if empty, nothing is inserted
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+	 */
+	VariantManagement.prototype.addFor = function(vFor) {
+		this.addAssociation("for", vFor);
+		return this;
+	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines whether the control is interactive.
+	 *
+	 * @returns {boolean} Indicates whether the control is interactive
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	VariantManagement.prototype._getToolbarInteractive = function() {
+		return true;
 	};
 
 	return VariantManagement;

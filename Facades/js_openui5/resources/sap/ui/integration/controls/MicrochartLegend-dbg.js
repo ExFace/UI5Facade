@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -8,11 +8,15 @@ sap.ui.define([
 	"./MicrochartLegendRenderer",
 	"sap/m/Text",
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
+	"sap/ui/core/theming/Parameters",
 	"sap/ui/integration/util/BindingHelper"
 ], function (
 	MicrochartLegendRenderer,
 	Text,
 	Control,
+	Element,
+	Parameters,
 	BindingHelper
 ) {
 	"use strict";
@@ -28,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -48,17 +52,28 @@ sap.ui.define([
 				 * Chart from the <code>sap.suite.ui.microchart</code> library.
 				 */
 				chart: { type: "sap.ui.core.Control", multiple: false }
+			},
+			events: {
+				/**
+				 * Fires when the colors from the theme are loaded.
+				 */
+				colorsLoad: {}
 			}
 		},
 		renderer: MicrochartLegendRenderer
 	});
+
+	MicrochartLegend.prototype.onBeforeRendering = function () {
+		this._mLegendColors = {};
+		this._loadLegendColors();
+	};
 
 	MicrochartLegend.prototype.onAfterRendering = function () {
 		this._equalizeWidths();
 	};
 
 	MicrochartLegend.prototype._equalizeWidths = function () {
-		var $items = this.$().children(".sapUiIntegrationMicrochartLegendItem"),
+		var $items = this.$().children(".sapUiIntMicrochartLegendItem"),
 			fMaxWidth = 0;
 
 		$items.css("width", "");
@@ -97,6 +112,48 @@ sap.ui.define([
 
 			this.addAggregation("_titles", oText);
 		}.bind(this));
+	};
+
+	MicrochartLegend.prototype._loadLegendColors = function () {
+		var oChart = Element.getElementById(this.getChart()),
+			aNames = [],
+			vParams;
+
+		if (oChart) {
+			aNames = oChart._calculateChartData()
+				.filter(function (oData) {
+					return oData.color?.startsWith("sapUi");
+				})
+				.map(function (oData) {
+					return oData.color;
+				});
+		}
+
+		if (aNames.length > 0) {
+			vParams = Parameters.get({
+				name: aNames,
+				callback: function (_vParams) {
+					this._handleColorsLoad(aNames, _vParams);
+				}.bind(this)
+			});
+		}
+
+		// colors available synchronously or no colors at all
+		if (this._mLegendColors !== undefined) {
+			this._handleColorsLoad(aNames, vParams);
+		}
+	};
+
+	MicrochartLegend.prototype._handleColorsLoad = function (aNames, vParams) {
+		// single param
+		if (typeof vParams === "string") {
+			this._mLegendColors = { };
+			this._mLegendColors[aNames[0]] = vParams;
+		} else if (vParams) { // map of parameters
+			this._mLegendColors = vParams;
+		}
+
+		this.fireColorsLoad();
 	};
 
 	return MicrochartLegend;

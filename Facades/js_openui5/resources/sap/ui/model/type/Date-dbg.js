@@ -1,30 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
-	'sap/ui/core/format/DateFormat',
-	'sap/ui/model/SimpleType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		DateFormat,
-		SimpleType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/Lib",
+	"sap/ui/core/date/UI5Date",
+	"sap/ui/core/format/DateFormat",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(each, isEmptyObject, Library, UI5Date, DateFormat, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a Date type.
@@ -35,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -89,10 +81,11 @@ sap.ui.define([
 				if (oValue === "") {
 					return null;
 				}
-				var oResult = this.oOutputFormat.parse(oValue);
+				oResult = this.oOutputFormat.parse(oValue);
 				if (!oResult) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
-					throw new ParseException(oBundle.getText(this.sName + ".Invalid"));
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
+					throw new ParseException(oBundle.getText("Enter" + this.getName(),
+						[this.oOutputFormat.format(this.oOutputFormat.getSampleValue()[0])]));
 				}
 				if (this.oInputFormat) {
 					if (this.oFormatOptions.source.pattern == "timestamp") {
@@ -109,7 +102,7 @@ sap.ui.define([
 
 	Date1.prototype.validateValue = function(oValue) {
 		if (this.oConstraints) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			var oBundle = Library.getResourceBundleFor("sap.ui.core"),
 				aViolatedConstraints = [],
 				aMessages = [],
 				oInputFormat = this.oInputFormat,
@@ -121,7 +114,7 @@ sap.ui.define([
 				oValue = oInputFormat.parse(oValue);
 			}
 
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				if (oInputFormat) {
 					oContent = oInputFormat.parse(oContent);
 				}
@@ -140,6 +133,7 @@ sap.ui.define([
 							aMessages.push(oBundle.getText(that.sName + ".Maximum", [sContent]));
 						}
 						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {
@@ -163,7 +157,7 @@ sap.ui.define([
 					oValue = parseInt(oValue);
 				}
 			}
-			oValue = new Date(oValue);
+			oValue = UI5Date.getInstance(oValue);
 			return oValue;
 		}
 	};
@@ -185,6 +179,11 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the output pattern.
+	 *
+	 * @returns {string} The output pattern
+	 *
+	 * @see sap.ui.core.format.DateFormat.getDateInstance
 	 * @protected
 	 */
 	Date1.prototype.getOutputPattern = function() {
@@ -215,6 +214,19 @@ sap.ui.define([
 			}
 			this.oInputFormat = DateFormat.getInstance(oSourceOptions);
 		}
+	};
+
+	/**
+	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
+	 * using this type.
+	 *
+	 * @returns {string|undefined}
+	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
+	 *
+	 * @public
+	 */
+	Date1.prototype.getPlaceholderText = function () {
+		return this.oOutputFormat.getPlaceholderText();
 	};
 
 	return Date1;

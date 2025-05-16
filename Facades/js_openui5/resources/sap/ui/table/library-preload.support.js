@@ -1,13 +1,13 @@
 //@ui5-bundle sap/ui/table/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Adds support rules of the sap.ui.table library to the support infrastructure.
  */
-sap.ui.predefine('sap/ui/table/library.support',[
+sap.ui.predefine("sap/ui/table/library.support", [
 	"./rules/Accessibility.support",
 	"./rules/Binding.support",
 	"./rules/ColumnTemplate.support",
@@ -31,35 +31,34 @@ sap.ui.predefine('sap/ui/table/library.support',[
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine('sap/ui/table/rules/Accessibility.support',[
+sap.ui.predefine("sap/ui/table/rules/Accessibility.support", [
 	"./TableHelper.support",
 	"sap/ui/support/library",
-	"sap/ui/core/library"
-], function(SupportHelper, SupportLibrary, CoreLibrary) {
+	"sap/ui/core/message/MessageType"
+], function(SupportHelper, SupportLibrary, MessageType) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
-	var MessageType = CoreLibrary.MessageType;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	/*
-	 * Validates whether title or aria-labelledby is correctly set
+	 * Validates whether aria-labelledby is correctly set
 	 */
-	var oAccessibleLabel = SupportHelper.normalizeRule({
+	const oAccessibleLabel = SupportHelper.normalizeRule({
 		id: "AccessibleLabel",
 		minversion: "1.38",
 		categories: [Categories.Accessibility],
 		title: "Accessible Label",
 		description: "Checks whether 'sap.ui.table.Table' controls have an accessible label.",
-		resolution: "Use the 'title' aggregation or the 'ariaLabelledBy' association of the 'sap.ui.table.Table' control "
+		resolution: "Use the 'ariaLabelledBy' association of the 'sap.ui.table.Table' control "
 					+ "to define a proper accessible labeling.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
-			for (var i = 0; i < aTables.length; i++) {
-				if (!aTables[i].getTitle() && aTables[i].getAriaLabelledBy().length == 0) {
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			for (let i = 0; i < aTables.length; i++) {
+				if (!aTables[i].getTitle() && aTables[i].getAriaLabelledBy().length === 0) {
 					SupportHelper.reportIssue(oIssueManager, "The table does not have an accessible label.",
 						Severity.High, aTables[i].getId());
 				}
@@ -70,7 +69,7 @@ sap.ui.predefine('sap/ui/table/rules/Accessibility.support',[
 	/*
 	 * Validates sap.ui.core.Icon column templates.
 	 */
-	var oAccessibleRowHighlight = SupportHelper.normalizeRule({
+	const oAccessibleRowHighlight = SupportHelper.normalizeRule({
 		id: "AccessibleRowHighlight",
 		minversion: "1.62",
 		categories: [Categories.Accessibility],
@@ -84,13 +83,13 @@ sap.ui.predefine('sap/ui/table/rules/Accessibility.support',[
 				"#/api/sap.ui.table.RowSettings/methods/getHighlightText")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
 
 			function checkRowHighlight(oRow) {
-				var oRowSettings = oRow.getAggregation("_settings");
-				var sHighlight = oRowSettings ? oRowSettings.getHighlight() : null;
-				var sHighlightText = oRowSettings ? oRowSettings.getHighlightText() : null;
-				var sRowId = oRow.getId();
+				const oRowSettings = oRow.getAggregation("_settings");
+				const sHighlight = oRowSettings ? oRowSettings.getHighlight() : null;
+				const sHighlightText = oRowSettings ? oRowSettings.getHighlightText() : null;
+				const sRowId = oRow.getId();
 
 				if (oRowSettings && !(sHighlight in MessageType) && sHighlightText === "") {
 					SupportHelper.reportIssue(oIssueManager,
@@ -98,7 +97,7 @@ sap.ui.predefine('sap/ui/table/rules/Accessibility.support',[
 				}
 			}
 
-			for (var i = 0; i < aTables.length; i++) {
+			for (let i = 0; i < aTables.length; i++) {
 				aTables[i].getRows().forEach(checkRowHighlight);
 			}
 		}
@@ -109,23 +108,23 @@ sap.ui.predefine('sap/ui/table/rules/Accessibility.support',[
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine('sap/ui/table/rules/Binding.support',[
+sap.ui.predefine("sap/ui/table/rules/Binding.support", [
 	"./TableHelper.support",
 	"sap/ui/support/library",
 	"sap/base/Log"
 ], function(SupportHelper, SupportLibrary, Log) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	/*
 	 * Checks for No Deviating units issue in AnalyticalBinding
 	 */
-	var oAnalyticsNoDeviatingUnits = SupportHelper.normalizeRule({
+	const oAnalyticsNoDeviatingUnits = SupportHelper.normalizeRule({
 		id: "AnalyticsNoDeviatingUnits",
 		minversion: "1.38",
 		categories: [Categories.Bindings],
@@ -134,25 +133,25 @@ sap.ui.predefine('sap/ui/table/rules/Binding.support',[
 					 + "expects to receive just one record",
 		resolution: "Adjust the service implementation.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.AnalyticalTable");
-			var sAnalyticalErrorId = "NO_DEVIATING_UNITS";
-			var oIssues = {};
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.AnalyticalTable");
+			const sAnalyticalErrorId = "NO_DEVIATING_UNITS";
+			const oIssues = {};
 
 			SupportHelper.checkLogEntries(function(oLogEntry) {
 				// Filter out totally irrelevant issues
-				if (oLogEntry.level != Log.Level.ERROR && oLogEntry.level != Log.Level.FATAL) {
+				if (oLogEntry.level !== Log.Level.ERROR && oLogEntry.level !== Log.Level.FATAL) {
 					return false;
 				}
-				var oInfo = oLogEntry.supportInfo;
+				const oInfo = oLogEntry.supportInfo;
 				return oInfo && oInfo.type === "sap.ui.model.analytics.AnalyticalBinding" && oInfo.analyticalError === sAnalyticalErrorId;
 
 			}, function(oLogEntry) {
 				// Check the remaining Issues
-				var sBindingId = oLogEntry.supportInfo.analyticalBindingId;
+				const sBindingId = oLogEntry.supportInfo.analyticalBindingId;
 				if (sBindingId && !oIssues[sAnalyticalErrorId + "-" + sBindingId]) {
-					var oBinding;
-					for (var i = 0; i < aTables.length; i++) {
-						oBinding = aTables[i].getBinding("rows");
+					let oBinding;
+					for (let i = 0; i < aTables.length; i++) {
+						oBinding = aTables[i].getBinding();
 						if (oBinding && oBinding.__supportUID === sBindingId) {
 							oIssues[sAnalyticalErrorId + "-" + sBindingId] = true; // Ensure is only reported once
 							SupportHelper.reportIssue(oIssueManager, "Analytical Binding reports 'No deviating units found...'",
@@ -169,17 +168,17 @@ sap.ui.predefine('sap/ui/table/rules/Binding.support',[
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
+sap.ui.predefine("sap/ui/table/rules/ColumnTemplate.support", [
 	"./TableHelper.support",
 	"sap/ui/support/library"
 ], function(SupportHelper, SupportLibrary) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	/**
 	 * Loops over all columns of all visible tables and calls the given callback with the following parameters:
@@ -192,13 +191,13 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 	 * @param {string} [sType] If given an additional type check is performed.
 	 */
 	function checkColumnTemplate(fnDoCheck, oScope, sType) {
-		var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
-		var aColumns, oTemplate;
+		const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+		let aColumns; let oTemplate;
 
-		for (var i = 0; i < aTables.length; i++) {
+		for (let i = 0; i < aTables.length; i++) {
 			aColumns = aTables[i].getColumns();
 
-			for (var k = 0; k < aColumns.length; k++) {
+			for (let k = 0; k < aColumns.length; k++) {
 				oTemplate = aColumns[k].getTemplate();
 
 				if (oTemplate && oTemplate.isA(sType)) {
@@ -211,7 +210,7 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 	/*
 	 * Validates sap.m.Text column templates.
 	 */
-	var oTextWrapping = SupportHelper.normalizeRule({
+	const oTextWrapping = SupportHelper.normalizeRule({
 		id: "ColumnTemplateTextWrapping",
 		minversion: "1.38",
 		categories: [Categories.Usage],
@@ -222,7 +221,7 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 					+ "control is used as a column template.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			checkColumnTemplate(function(oTable, oColumn, oMTextTemplate) {
-				var sColumnId = oColumn.getId();
+				const sColumnId = oColumn.getId();
 
 				if (oMTextTemplate.isBound("wrapping") || (!oMTextTemplate.isBound("wrapping") && oMTextTemplate.getWrapping())) {
 					SupportHelper.reportIssue(oIssueManager, "Column '" + sColumnId + "' of table '" + oTable.getId() + "' uses an "
@@ -237,7 +236,7 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 		}
 	});
 
-	var oLinkWrapping = SupportHelper.normalizeRule({
+	const oLinkWrapping = SupportHelper.normalizeRule({
 		id: "ColumnTemplateLinkWrapping",
 		minversion: "1.38",
 		categories: [Categories.Usage],
@@ -247,7 +246,7 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			checkColumnTemplate(function(oTable, oColumn, oMLinkTemplate) {
 				if (oMLinkTemplate.isBound("wrapping") || (!oMLinkTemplate.isBound("wrapping") && oMLinkTemplate.getWrapping())) {
-					var sColumnId = oColumn.getId();
+					const sColumnId = oColumn.getId();
 					SupportHelper.reportIssue(oIssueManager, "Column '" + sColumnId + "' of table '" + oTable.getId() + "' uses an "
 															 + "'sap.m.Link' control with wrapping enabled.", Severity.High, sColumnId);
 				}
@@ -260,71 +259,83 @@ sap.ui.predefine('sap/ui/table/rules/ColumnTemplate.support',[
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine('sap/ui/table/rules/Plugins.support',[
+sap.ui.predefine("sap/ui/table/rules/Plugins.support", [
 	"./TableHelper.support",
-	"sap/ui/support/library"
-], function(SupportHelper, SupportLibrary) {
+	"sap/ui/support/library",
+	"sap/m/plugins/PluginBase"
+], function(SupportHelper, SupportLibrary, PluginBase) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
-	/*
+	/**
 	 * Checks the number and type of plugins which are applied to the table.
 	 */
-	var oPlugins = SupportHelper.normalizeRule({
+	const oSelectionPlugins = SupportHelper.normalizeRule({
 		id: "Plugins",
 		minversion: "1.64",
 		categories: [Categories.Usage],
-		title: "Plugins validation",
-		description: "Checks the number and type of plugins which are applied to the table. Only one MultiSelectionPlugin can be applied. "
-					 + "No other plugins are allowed.",
-		resolution: "Check if multiple MultiSelectionPlugins are applied, or a plugin of another type is applied to the table.",
+		title: "Single selection plugin",
+		description: "Only one selection plugin should be applied to avoid potential conflicts.",
+		resolution: "Only apply a single selection plugin.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
 
-			for (var i = 0; i < aTables.length; i++) {
-				var oTable = aTables[i];
-				var aPlugins = oTable.getPlugins();
-				if (aPlugins.length > 1) {
-					SupportHelper.reportIssue(oIssueManager,
-						"Only one plugin can be applied to the table",
-						Severity.High, oTable.getId());
-				} else if (aPlugins.length == 1) {
-					var oPlugin = aPlugins[0];
-					if (!oPlugin.isA("sap.ui.table.plugins.MultiSelectionPlugin")) {
-						SupportHelper.reportIssue(oIssueManager,
-							"Only one MultiSelectionPlugin can be applied to the table",
-							Severity.High, oTable.getId());
-					}
+			for (let i = 0; i < aTables.length; i++) {
+				const oTable = aTables[i];
+				const aSelectionPlugins = oTable.getDependents().filter((oPlugin) => oPlugin.isA("sap.ui.table.plugins.SelectionPlugin"));
+
+				/**
+				 * @deprecated As of version 1.120
+				 */
+				aSelectionPlugins.concat(oTable.getPlugins());
+
+				if (aSelectionPlugins.length > 1) {
+					SupportHelper.reportIssue(
+						oIssueManager,
+						"Only one selection plugin should be applied to the table",
+						Severity.High,
+						oTable.getId()
+					);
 				}
 			}
 		}
 	});
 
-	return [oPlugins];
+	return [oSelectionPlugins];
 
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine('sap/ui/table/rules/Rows.support',[
+sap.ui.predefine("sap/ui/table/rules/Rows.support", [
+	"sap/ui/core/Lib",
+	"sap/ui/table/rowmodes/Type",
 	"./TableHelper.support",
 	"sap/ui/support/library",
-	"sap/ui/Device"
-], function(SupportHelper, SupportLibrary, Device) {
+	"sap/ui/Device",
+	"sap/ui/thirdparty/jquery"
+], function(
+	Lib,
+	RowModeType,
+	SupportHelper,
+	SupportLibrary,
+	Device,
+	jQuery
+) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	function checkDensity($Source, sTargetClass, sMessage, oIssueManager) {
-		var bFound = false;
+		let bFound = false;
 		$Source.each(function() {
 			if (jQuery(this).closest(sTargetClass).length) {
 				bFound = true;
@@ -339,7 +350,7 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 	/*
 	 * Checks whether content densities are used correctly.
 	 */
-	var oContentDensity = SupportHelper.normalizeRule({
+	const oContentDensity = SupportHelper.normalizeRule({
 		id: "ContentDensity",
 		minversion: "1.38",
 		categories: [Categories.Usage],
@@ -348,13 +359,13 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 		resolution: "Ensure that either only the 'Cozy' or 'Compact' content density is used, or the 'Condensed' and 'Compact' content densities"
 					+ " are used in combination.",
 		resolutionurls: [
-			SupportHelper.createDocuRef("Documentation: Content Densities", "#docs/guide/e54f729da8e3405fae5e4fe8ae7784c1.html")
+			SupportHelper.createDocuRef("Documentation: Content Densities", "topic/e54f729da8e3405fae5e4fe8ae7784c1")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var $Document = jQuery("html");
-			var $Cozy = $Document.find(".sapUiSizeCozy");
-			var $Compact = $Document.find(".sapUiSizeCompact");
-			var $Condensed = $Document.find(".sapUiSizeCondensed");
+			const $Document = jQuery("html");
+			const $Cozy = $Document.find(".sapUiSizeCozy");
+			const $Compact = $Document.find(".sapUiSizeCompact");
+			const $Condensed = $Document.find(".sapUiSizeCondensed");
 
 			checkDensity($Compact, ".sapUiSizeCozy", "'Compact' content density is used within 'Cozy' area.", oIssueManager);
 			checkDensity($Cozy, ".sapUiSizeCompact", "'Cozy' content density is used within 'Compact' area.", oIssueManager);
@@ -362,14 +373,14 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 			checkDensity($Cozy, ".sapUiSizeCondensed", "'Cozy' content density is used within 'Condensed' area.", oIssueManager);
 
 			if ($Condensed.length > 0) {
-				var bFound = checkDensity($Condensed, ".sapUiSizeCompact", oIssueManager);
+				const bFound = checkDensity($Condensed, ".sapUiSizeCompact", oIssueManager);
 				if (!bFound) {
 					SupportHelper.reportIssue(oIssueManager, "'Condensed' content density must be used in combination with 'Compact'.",
 						Severity.High);
 				}
 			}
 
-			if (sap.ui.getCore().getLoadedLibraries()["sap.m"] && $Cozy.length === 0 && $Compact.length === 0 && $Condensed.length === 0) {
+			if (Lib.all()["sap.m"] && $Cozy.length === 0 && $Compact.length === 0 && $Condensed.length === 0) {
 				SupportHelper.reportIssue(oIssueManager,
 					"If the sap.ui.table and the sap.m libraries are used together, a content density must be specified.",
 					Severity.High
@@ -379,14 +390,14 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 	});
 
 	/*
-	 * Checks whether the currently visible rows have the expected height.
+	 * Checks whether the currently rendered rows have the expected height.
 	 */
-	var oRowHeights = SupportHelper.normalizeRule({
+	const oRowHeights = SupportHelper.normalizeRule({
 		id: "RowHeights",
 		minversion: "1.38",
 		categories: [Categories.Usage],
 		title: "Row heights",
-		description: "Checks whether the currently visible rows have the expected height.",
+		description: "Checks whether the currently rendered rows have the expected height.",
 		resolution: "Check whether content densities are correctly used, and only the supported controls are used as column templates, with their"
 					+ " wrapping property set to \"false\"",
 		resolutionurls: [
@@ -396,26 +407,26 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 			SupportHelper.createFioriGuidelineResolutionEntry()
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
-			var bIsZoomedInChrome = Device.browser.chrome && window.devicePixelRatio != 1;
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const bIsZoomedInChrome = Device.browser.chrome && window.devicePixelRatio !== 1;
 
-			for (var i = 0; i < aTables.length; i++) {
-				var aVisibleRows = aTables[i].getRows();
-				var iExpectedRowHeight = aTables[i]._getBaseRowHeight();
-				var bUnexpectedRowHeightDetected = false;
+			for (let i = 0; i < aTables.length; i++) {
+				const aVisibleRows = aTables[i].getRows();
+				const iExpectedRowHeight = aTables[i]._getBaseRowHeight();
+				let bUnexpectedRowHeightDetected = false;
 
-				for (var j = 0; j < aVisibleRows.length; j++) {
-					var oRowElement = aVisibleRows[j].getDomRef();
-					var oRowElementFixedPart = aVisibleRows[j].getDomRef("fixed");
+				for (let j = 0; j < aVisibleRows.length; j++) {
+					const oRowElement = aVisibleRows[j].getDomRef();
+					const oRowElementFixedPart = aVisibleRows[j].getDomRef("fixed");
 
 					if (oRowElement) {
-						var nActualRowHeight = oRowElement.getBoundingClientRect().height;
-						var nActualRowHeightFixedPart = oRowElementFixedPart ? oRowElementFixedPart.getBoundingClientRect().height : null;
-						var nHeightToReport = nActualRowHeight;
+						const nActualRowHeight = oRowElement.getBoundingClientRect().height;
+						const nActualRowHeightFixedPart = oRowElementFixedPart ? oRowElementFixedPart.getBoundingClientRect().height : null;
+						let nHeightToReport = nActualRowHeight;
 
 						if (bIsZoomedInChrome) {
-							var nHeightDeviation = Math.abs(iExpectedRowHeight - nActualRowHeight);
-							var nHeightDeviationFixedPart = Math.abs(nActualRowHeightFixedPart - nActualRowHeight);
+							const nHeightDeviation = Math.abs(iExpectedRowHeight - nActualRowHeight);
+							const nHeightDeviationFixedPart = Math.abs(nActualRowHeightFixedPart - nActualRowHeight);
 
 							// If zoomed in Chrome, the actual height may deviate from the expected height by less than 1 pixel. Any higher
 							// deviation shall be considered as defective.
@@ -446,22 +457,22 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 	});
 
 	/*
-	 * Checks the configuration of the sap.f.DynamicPage. If the DynamicPage contains a table with <code>visibleRowCountMode=Auto</code>, the
+	 * Checks the configuration of the sap.f.DynamicPage. If the DynamicPage contains a table with row mode <code>Auto</code>, the
 	 * <code>fitContent</code> property of the DynamicPage should be set to true, otherwise false.
 	 */
-	var oDynamicPageConfoguration = SupportHelper.normalizeRule({
+	const oDynamicPageConfiguration = SupportHelper.normalizeRule({
 		id: "DynamicPageConfiguration",
 		minversion: "1.38",
 		categories: [Categories.Usage],
 		title: "Table environment validation - 'sap.f.DynamicPage'",
 		description: "Verifies that the DynamicPage is configured correctly from the table's perspective.",
-		resolution: "If a table with visibleRowCountMode=Auto is placed inside a sap.f.DynamicPage, the fitContent property of the DynamicPage"
+		resolution: "If a table with row mode 'Auto' is placed inside a sap.f.DynamicPage, the fitContent property of the DynamicPage"
 					+ " should be set to true, otherwise false.",
 		resolutionurls: [
 			SupportHelper.createDocuRef("API Reference: sap.f.DynamicPage#getFitContent", "#/api/sap.f.DynamicPage/methods/getFitContent")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
 
 			function checkAllParentDynamicPages(oControl, fnCheck) {
 				if (oControl) {
@@ -473,44 +484,57 @@ sap.ui.predefine('sap/ui/table/rules/Rows.support',[
 			}
 
 			function checkConfiguration(oTable, oDynamicPage) {
-				if (oTable._getRowMode().isA("sap.ui.table.rowmodes.AutoRowMode") && !oDynamicPage.getFitContent()) {
+				const vRowMode = oTable.getRowMode();
+				let bIsTableInAutoMode = false;
+
+				/**
+				 * @deprecated As of version 1.119
+				 */
+				if (!vRowMode) {
+					bIsTableInAutoMode = oTable.getVisibleRowCountMode() === "Auto";
+				}
+
+				if (vRowMode) {
+					bIsTableInAutoMode = vRowMode === RowModeType.Auto || vRowMode.isA("sap.ui.table.rowmodes.Auto");
+				}
+
+				if (bIsTableInAutoMode && !oDynamicPage.getFitContent()) {
 					SupportHelper.reportIssue(oIssueManager,
 						"A table with an auto row mode is placed inside a sap.f.DynamicPage with fitContent=\"false\"",
 						Severity.High, oTable.getId());
-				} else if ((oTable._getRowMode().isA("sap.ui.table.rowmodes.FixedRowMode")
-							|| oTable._getRowMode().isA("sap.ui.table.rowmodes.InteractiveRowMode"))
-						   && oDynamicPage.getFitContent()) {
+				} else if (!bIsTableInAutoMode && oDynamicPage.getFitContent()) {
 					SupportHelper.reportIssue(oIssueManager,
 						"A table with a fixed or interactive row mode is placed inside a sap.f.DynamicPage with fitContent=\"true\"",
 						Severity.Low, oTable.getId());
 				}
 			}
 
-			for (var i = 0; i < aTables.length; i++) {
+			for (let i = 0; i < aTables.length; i++) {
 				checkAllParentDynamicPages(aTables[i], checkConfiguration.bind(null, aTables[i]));
 			}
 		}
 	});
 
-	return [oContentDensity, oRowHeights, oDynamicPageConfoguration];
+	return [oContentDensity, oRowHeights, oDynamicPageConfiguration];
 
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Helper functionality for table, list and tree controls for the Support Tool infrastructure.
  */
-sap.ui.predefine('sap/ui/table/rules/TableHelper.support',[
+sap.ui.predefine("sap/ui/table/rules/TableHelper.support", [
 	"sap/ui/support/library", "sap/base/Log"
 ], function(SupportLib, Log) {
 	"use strict";
 
-	var Severity = SupportLib.Severity;
+	const Severity = SupportLib.Severity;
+	const Audiences = SupportLib.Audiences; // Control, Internal, Application
 
-	var TableSupportHelper = {
+	const TableSupportHelper = {
 		DOCU_REF: "https://ui5.sap.com/",
 
 		/**
@@ -535,6 +559,10 @@ sap.ui.predefine('sap/ui/table/rules/TableHelper.support',[
 		normalizeRule: function(oRuleDef) {
 			if (oRuleDef.id && oRuleDef.id !== "") {
 				oRuleDef.id = "gridTable" + oRuleDef.id;
+			}
+
+			if (!oRuleDef.audiences) {
+				oRuleDef.audiences = [Audiences.Application];
 			}
 
 			return oRuleDef;
@@ -588,10 +616,10 @@ sap.ui.predefine('sap/ui/table/rules/TableHelper.support',[
 		 * @returns {sap.ui.core.Element[]} All existing control instances
 		 */
 		find: function(oScope, bVisibleOnly, sType) {
-			var mElements = oScope.getElements();
-			var aResult = [];
-			for (var n in mElements) {
-				var oElement = mElements[n];
+			const mElements = oScope.getElements();
+			const aResult = [];
+			for (const n in mElements) {
+				const oElement = mElements[n];
 				if (oElement.isA(sType)) {
 					if (bVisibleOnly && oElement.getDomRef() || !bVisibleOnly) {
 						aResult.push(oElement);
@@ -621,9 +649,9 @@ sap.ui.predefine('sap/ui/table/rules/TableHelper.support',[
 		 *                         otherwise the next entry is passed for checking.
 		 */
 		checkLogEntries: function(fnFilter, fnCheck) {
-			var aLog = Log.getLogEntries(); //oScope.getLoggedObjects(); /*getLoggedObjects returns only log entries with supportinfo*/
-			var oLogEntry;
-			for (var i = 0; i < aLog.length; i++) {
+			const aLog = Log.getLogEntries(); //oScope.getLoggedObjects(); /*getLoggedObjects returns only log entries with supportinfo*/
+			let oLogEntry;
+			for (let i = 0; i < aLog.length; i++) {
 				oLogEntry = aLog[i];
 				if (fnFilter(oLogEntry)) {
 					if (fnCheck(oLogEntry)) {

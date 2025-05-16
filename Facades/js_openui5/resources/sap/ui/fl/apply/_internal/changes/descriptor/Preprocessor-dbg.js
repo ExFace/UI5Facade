@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,9 +26,8 @@ sap.ui.define([
 	 * Flex hook for preprocessing manifest early. Merges descriptor changes if needed.
 	 *
 	 * @namespace sap.ui.fl.apply._internal.changes.descriptor.Preprocessor
-	 * @experimental
 	 * @since 1.74
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
@@ -43,7 +42,7 @@ sap.ui.define([
 		 * @param {object} oConfig.componentData - Component Data from the Component processing
 		 * @returns {Promise<object>} - Processed manifest
 		 */
-		preprocessManifest: function(oManifest, oConfig) {
+		preprocessManifest(oManifest, oConfig) {
 			// stop processing if the component is not of the type application or component ID is missing
 			if (!Utils.isApplication(oManifest, true) || !oConfig.id) {
 				return Promise.resolve(oManifest);
@@ -51,14 +50,15 @@ sap.ui.define([
 
 			Measurement.start("flexStateInitialize", "Initialization of flex state", ["sap.ui.fl"]);
 
-			var oComponentData = oConfig.componentData || {};
-			var sReference = ManifestUtils.getFlexReference({
+			const oComponentData = oConfig.componentData || {};
+			const sReference = ManifestUtils.getFlexReference({
 				manifest: oManifest,
 				componentData: oComponentData
 			});
 
 			// in case the asyncHints already mention that there is no change for the manifest, just trigger the loading
-			if (!ManifestUtils.getChangeManifestFromAsyncHints(oConfig.asyncHints)) {
+			// partialFlexState has to be true as there is no guarantee that the flex bundle is already available at this point
+			if (!ManifestUtils.getChangeManifestFromAsyncHints(oConfig.asyncHints, sReference)) {
 				FlexState.initialize({
 					componentData: oComponentData,
 					asyncHints: oConfig.asyncHints,
@@ -71,6 +71,7 @@ sap.ui.define([
 				return Promise.resolve(oManifest);
 			}
 
+			// partialFlexState has to be true as there is no guarantee that the flex bundle is already available at this point
 			return FlexState.initialize({
 				componentData: oComponentData,
 				asyncHints: oConfig.asyncHints,
@@ -81,10 +82,9 @@ sap.ui.define([
 			}).then(function() {
 				Measurement.end("flexStateInitialize");
 				Measurement.start("flexAppDescriptorMerger", "Client side app descriptor merger", ["sap.ui.fl"]);
-				return ApplyStrategyFactory.getRuntimeStrategy();
-			}).then(function(RuntimeStrategy) {
-				var aAppDescriptorChanges = FlexState.getAppDescriptorChanges(sReference);
-				return Applier.applyChanges(oManifest, aAppDescriptorChanges, RuntimeStrategy);
+				const oUpdatedManifest = { ...oManifest };
+				const aAppDescriptorChanges = FlexState.getAppDescriptorChanges(sReference);
+				return Applier.applyChanges(oUpdatedManifest, aAppDescriptorChanges, ApplyStrategyFactory.getRuntimeStrategy());
 			}).then(function(oManifest) {
 				Measurement.end("flexAppDescriptorMerger");
 				return oManifest;
@@ -93,4 +93,4 @@ sap.ui.define([
 	};
 
 	return Preprocessor;
-}, true);
+});

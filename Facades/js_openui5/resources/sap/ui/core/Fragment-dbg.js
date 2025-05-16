@@ -1,28 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'../base/ManagedObject',
 	'./Element',
 	'./DeclarativeSupport',
 	'./XMLTemplateProcessor',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/base/util/LoaderExtensions',
-	'sap/base/util/merge'
+	'sap/base/util/merge',
+	'sap/ui/util/XMLHelper',
+	'sap/ui/core/Component',
+	'sap/ui/core/mvc/XMLProcessingMode'
 ],
 function(
-	jQuery,
 	ManagedObject,
 	Element,
 	DeclarativeSupport,
 	XMLTemplateProcessor,
+	future,
 	Log,
 	LoaderExtensions,
-	merge
+	merge,
+	XMLHelper,
+	Component,
+	XMLProcessingMode
 ) {
 	"use strict";
 
@@ -39,11 +45,48 @@ function(
 	 * they are not a Control, they are not part of the UI tree and they have no representation in HTML.
 	 * By default, in contrast to declarative Views, they do not do anything to guarantee ID uniqueness.
 	 *
-	 * But like Views they can be defined in several Formats (XML, declarative HTML, JavaScript; support for other types can be plugged in),
+	 * But like Views they can be defined in several Formats (XML and JavaScript; support for other types can be plugged in),
 	 * the declaration syntax is the same as in declarative Views and the name and location of the Fragment files is similar to Views.
 	 * Controller methods can also be referenced in the declarations, but as Fragments do not have their own controllers,
 	 * this requires the Fragments to be used within a View which does have a controller.
 	 * That controller is used, then.
+	 *
+	 * A JS Fragment can be defined in a dedicated module named "*.fragment.js". This module must return an object with a <code>createContent</code> method which has to return a control.
+	 * JS Fragments are also capable of asynchronously creating content. To do so, the <code>createContent</code> function must return a Promise
+	 * resolving with the content controls.
+	 *
+	 * <b>Example:</b> Defining a JS Fragment
+	 * <pre>
+	 * // e.g. module "my/sample/Button.fragment.js"
+	 * sap.ui.define(["sap/m/Button"], function(Button) {
+	 *  return {
+	 *    createContent: (oController) => {
+	 *      const oButton  = new Button({
+	 *        text: "Hello World" ,
+	 *        press: oController.doSomething
+	 *      });
+	 *      return oButton;
+	 *    }
+	 *  };
+	 * });
+	 * </pre>
+	 *
+	 * <b>Example:</b> Defining a JS Fragment with a async 'createContent' method
+	 * <pre>
+	 * // e.g. module "my/sample/AsyncButton.fragment.js"
+	 * sap.ui.define(["sap/m/Button", "sap/base/i18n/ResourceBundle"], function(Button, ResourceBundle) {
+	 *  return {
+	 *    createContent: async (oController) => {
+     *      // loading a resource bundle async to retrieve button text
+	 *      const myBundle  = await ResourceBundle.create({ bundleName: "...", async: true });
+	 *      return new Button({ text: myBundle.getText("...") });
+	 *    }
+	 *  };
+	 * });
+	 * </pre>
+	 *
+	 * Fragments can be instantiated with {@link sap.ui.core.Fragment.load Fragment.load} or the
+	 * {@link sap.ui.core.mvc.Controller.loadFragment loadFragment} function from a controller.
 	 *
 	 * Do not call the Fragment constructor directly!
 	 *
@@ -56,7 +99,7 @@ function(
 	 * @class
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @public
 	 * @alias sap.ui.core.Fragment
 	 */
@@ -67,10 +110,15 @@ function(
 				/*
 				 * The Fragment type. Types "XML", "HTML" and JS" are built-in and always available.
 				 */
-				type: "string"
+				type: 'string'
 			},
 			specialSettings: {
 
+				/**
+				 * Whether to load and parse the fragment asynchronous
+				 * @private
+				 */
+				async: { type: 'boolean', visibility: 'hidden' },
 				/*
 				 * Name of the fragment to load
 				 */
@@ -97,21 +145,32 @@ function(
 				sId : { type: 'sap.ui.core.ID', visibility: 'hidden' },
 
 				/**
+				 * The ID of the owner component (optional)
+				 */
+				sOwnerId : { type: 'sap.ui.core.ID', visibility: 'hidden' },
+
+				/**
+				 * @deprecated because only the "Sequential" processing mode will be supported
+				 * in the next major release
+				 *
 				 * The processing mode is not used by the Fragment itself.
 				 * It is only relevant for XMLViews nested within the Fragment.
 				 */
-				processingMode: { type: "string", visibility: "hidden" }
+				processingMode: { type: 'sap.ui.core.mvc.XMLProcessingMode', visibility: 'hidden' }
 			}
 		},
 
 		constructor: function(sId, mSettings) {
 			ManagedObject.apply(this, arguments);
 
-			// in case of only one control, return it directly
-			if (this._aContent && this._aContent.length == 1) {
-				return this._aContent[0];
-			} else {
-				return this._aContent;
+			// When async, the fragment content is already passed to the constructor
+			if (!this._bAsync) {
+				if (this._aContent && this._aContent.length == 1) {
+					// in case of only one control, return it directly
+					return this._aContent[0];
+				} else {
+					return this._aContent;
+				}
 			}
 		}
 	});
@@ -121,12 +180,14 @@ function(
 	 * Registers a new Fragment type
 	 *
 	 * @param {string} sType the Fragment type. Types "XML", "HTML" and JS" are built-in and always available.
-	 * @param {object} oFragmentImpl an object having a property "init" of type "function" which is called on Fragment instantiation with the settings map as argument
+	 * @param {object} oFragmentImpl an object having the properties "init" and "load".
+	 * @param {function} oFragmentImpl.init Called on Fragment instantiation with the settings map as argument. Function needs to return a promise which resolves with sap.ui.core.Control|sap.ui.core.Control[]
+	 * @param {function} oFragmentImpl.load Called to load the fragment content. Must return a Promise which resolves with the loaded resource. This resource is passed as 'fragmentContent' to the init() function via a parameter object.
 	 * @public
 	 */
 	Fragment.registerType = function(sType, oFragmentImpl) {
-		if (!typeof (sType) === "string") {
-			Log.error("Ignoring non-string Fragment type: " + sType);
+		if (typeof (sType) !== "string") {
+			future.errorThrows("Invalid non-string Fragment type: '" + sType + "'.", { suffix: "It will be ignored." });
 			return;
 		}
 
@@ -148,16 +209,30 @@ function(
 			this.oController = mSettings.oController;
 		}
 
+		this._bAsync = mSettings.async || false;
+
 		// remember the ID which has been explicitly given in the factory function
 		this._sExplicitId = mSettings.sId || mSettings.id;
 
 		// remember the name of this Fragment
 		this._sFragmentName = mSettings.fragmentName;
 
-		var oFragmentImpl = mTypes[mSettings.type];
-		if (oFragmentImpl) {
-			oFragmentImpl.init.apply(this, [mSettings]);
+		// if the containing view (or fragment) has a scoped runWithOnwer function we need to propagate this to the nested Fragment (only for async case)
+		this.fnScopedRunWithOwner = mSettings.containingView && mSettings.containingView.fnScopedRunWithOwner;
 
+		if (!this.fnScopedRunWithOwner && this._sOwnerId) {
+			var oOwnerComponent = Component.getComponentById(this._sOwnerId);
+			this.fnScopedRunWithOwner = function(fnCallbackToBeScoped) {
+				return oOwnerComponent.runAsOwner(fnCallbackToBeScoped);
+			};
+		}
+
+		var oFragmentImpl = Fragment.getType(mSettings.type);
+		if (oFragmentImpl) {
+			this._pContentPromise = oFragmentImpl.init.apply(this, [mSettings]);
+			if (!this._pContentPromise) { // TODO Remove this if after sap.fe changed there custom fragment implementation
+				this._pContentPromise = Promise.resolve(this._aContent);
+			}
 		} else { // Fragment type not found
 			throw new Error("No type for the fragment has been specified: " + mSettings.type);
 		}
@@ -177,7 +252,7 @@ function(
 
 	/**
 	 *
-	 * @returns {sap.ui.core.mvc.Controller} the Controller connected to this Fragment, or null
+	 * @returns {sap.ui.core.mvc.Controller|null} the Controller connected to this Fragment, or <code>null</code>
 	 * @private
 	 */
 	Fragment.prototype.getController = function() { // required for the parsers to find the specified Controller methods
@@ -197,10 +272,10 @@ function(
 	 */
 	Fragment.byId = function(sFragmentId, sId) {
 		if (!(typeof (sFragmentId) === "string" && typeof (sId) === "string")) {
-			Log.error("sap.ui.core.Fragment.byId: two strings must be given as parameters, but are: " + sFragmentId + " and " + sId);
+			future.errorThrows("sap.ui.core.Fragment.byId: two strings must be given as parameters, but are: " + sFragmentId + " and " + sId);
 			return undefined;
 		}
-		return sap.ui.getCore().byId(sFragmentId + "--" + sId);
+		return Element.getElementById(sFragmentId + "--" + sId);
 	};
 
 	/**
@@ -215,7 +290,7 @@ function(
 	 */
 	Fragment.createId = function(sFragmentId, sId) {
 		if (!(typeof (sFragmentId) === "string" && typeof (sId) === "string")) {
-			Log.error("sap.ui.core.Fragment.createId: two strings must be given as parameters, but are: " + sFragmentId + " and " + sId);
+			future.errorThrows("sap.ui.core.Fragment.createId: two strings must be given as parameters, but are: " + sFragmentId + " and " + sId);
 			return undefined;
 		}
 		return sFragmentId + "--" + sId;
@@ -227,8 +302,8 @@ function(
 	 * This method only adds a prefix when an ID was explicitly given when instantiating this Fragment.
 	 * If the ID was generated, it returns the unmodified given ID.
 	 *
-	 * @param {string} sId
-	 * @return {string} prefixed id
+	 * @param {string} sId The given id
+	 * @return {string} prefixed id The prefixed id or the given id
 	 */
 	Fragment.prototype.createId = function(sId) {
 		var id = this._sExplicitId ? this._sExplicitId + "--" + sId : sId; // no ID Prefixing by Fragments! This is called by the template parsers, but only if there is not a View which defines the prefix.
@@ -246,7 +321,7 @@ function(
 	/**
 	 * Always return true in case of fragment
 	 *
-	 * @returns {boolean}
+	 * @returns {boolean} <code>true</code>
 	 * @private
 	 */
 	Fragment.prototype.isSubView = function(){
@@ -258,69 +333,101 @@ function(
 	// ###   Factory functions   ###
 
 	/**
-	 * Instantiate a Fragment - this method loads the Fragment content, instantiates it, and returns this content.
-	 * The Fragment object itself is not an entity which has further significance beyond this constructor.
+	 * Loads and instantiates a fragment.
+	 * The fragment object itself is not an entity that has any further significance beyond this factory function.
 	 *
-	 * To instantiate an existing Fragment, call this method as:
-	 *    sap.ui.fragment(sName, sType, [oController]);
-	 * The sName must correspond to a Fragment module which can be loaded
-	 * via the module system (fragmentName + suffix ".fragment.[typeextension]") and which defines the Fragment content.
-	 * If oController is given, the (event handler) methods referenced in the Fragment will be called on this controller.
-	 * Note that Fragments may require a Controller to be given and certain methods to be available.
+	 * To instantiate a fragment that is already defined separately, call:
+	 * <pre>
+	 * sap.ui.fragment(sName, sType, oController?);
+	 * </pre>
 	 *
-	 * The Fragment types "XML", "JS" and "HTML" are available by default; additional Fragment types can be implemented
-	 * and added using the sap.ui.core.Fragment.registerType() function.
+	 * Advanced usage to give further configuration options:
+	 * <pre>
+	 * sap.ui.fragment(oFragmentConfig, oController?);
+	 * </pre>
+	 * In addition to <code>id</code> and <code>type</code>, the <code>oFragmentConfig</code> object
+	 * can have either a <code>fragmentName</code> or a <code>fragmentContent</code> property, but not both.
 	 *
+	 * To define a fragment ID, which can be used as a prefix for the created control IDs,
+	 * you must use either the above advanced version with an <code>id</code> or one of the typed factory functions
+	 * like {@link sap.ui.xmlfragment} or {@link sap.ui.jsfragment}.
 	 *
-	 * Advanced usage:
-	 * To instantiate a Fragment and give further configuration options, call this method as:
-	 *     sap.ui.fragment(oFragmentConfig, [oController]);
-	 * The oFragmentConfig object can have the following properties:
-	 * - "fragmentName": the name of the Fragment, as above
-	 * - "fragmentContent": the definition of the Fragment content itself. When this property is given, any given name is ignored.
-	 *         The type of this property depends on the Fragment type, e.g. it could be a string for XML Fragments.
-	 * - "type": the type of the Fragment, as above (mandatory)
-	 * - "id": the ID of the Fragment (optional)
-	 * Further properties may be supported by future or custom Fragment types. Any given properties
-	 * will be forwarded to the Fragment implementation.
+	 * A fragment type must be given in all cases. The fragment types <code>"XML"</code>, <code>"JS"</code>, and <code>"HTML"</code> (type <code>"HTML"</code> is deprecated)
+	 * are available by default. Additional fragment types can be implemented and added using the {@link sap.ui.core.Fragment.registerType} function.
 	 *
-	 * If you want to give a fixed ID for the Fragment, please use the advanced version of this method call with the
-	 * configuration object or use the typed factories like sap.ui.xmlfragment(...) or sap.ui.jsfragment(...).
-	 * Otherwise the Fragment ID is generated. In any case, the Fragment ID will be used as prefix for the ID of
-	 * all contained controls.
+	 * Custom fragment types can support further properties. Any given properties will be forwarded to the fragment implementation.
 	 *
-	 * @param {string} sName the Fragment name
-	 * @param {string} sType the Fragment type, e.g. "XML", "JS", or "HTML"
-	 * @param {sap.ui.core.mvc.Controller|Object} [oController] the Controller or Object which should be used by the controls in the Fragment.
-	 *     Note that some Fragments may not need a Controller and other may need one - and even rely on certain methods implemented in the Controller.
+	 * The optional <code>oController</code> can be either the controller of an enclosing view,
+	 * a new controller instance, or a simple object with the necessary methods attached.
+	 * Note that a fragment has no runtime representation besides its contained controls. Therefore, there is no API to retrieve the controller from the return value.
+	 * Note also that fragments may require a controller to be given and certain methods to be available.
+	 *
+	 * <b>Note:</b>
+	 * In case you are embedding a Fragment into an existing View, please also have a look at the
+	 * {@link sap.ui.core.mvc.Controller.loadFragment loadFragment} factory for a closer coupling to the corresponding Controller instance.
+	 *
+	 * @param {string|object} vName
+	 *         resource name of the fragment module in dot notation without the <code>.fragment.<i>&lt;typeExtension></i></code> suffix from the file name.
+	 *         Alternatively, a configuration object as specified below
+	 * @param {string} [vName.id]
+	 *         optional ID of the created fragment
+	 * @param {string|object} [vName.fragmentContent]
+	 *         definition of the fragment content that will be used instead of loading the content from a separate file.
+	 *         The type of this property depends on the fragment type. For example, it could be a string for XML fragments or an object for JS fragments
+	 * @param {string} [vName.fragmentName]
+	 *         recource name of the fragment module as specified above
+	 * @param {string} vName.type
+	 *         type of the fragment, for example, <code>"XML"</code>, <code>"JS"</code>, <code>"HTML"</code>, or any other type that has been implemented additionally
+	 * @param {string|sap.ui.core.mvc.Controller|object} vType
+	 *         type of the fragment as specified by <code>vName.type</code> or, in the advanced usage case, an optional <code>oController</code>
+	 * @param {sap.ui.core.mvc.Controller|object} [oController]
+	 *         controller object to be used for methods or event handlers referenced in the fragment
 	 * @public
 	 * @static
-	 * @deprecated since 1.58, use {@link sap.ui.core.Fragment.load} instead
-	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} the root Control(s) of the Fragment content
+	 * @deprecated As of version 1.58. Refer to {@link topic:04129b2798c447368f4c8922c3c33cd7 Instantiation of Fragments}.
+	 * @returns {sap.ui.core.Control|sap.ui.core.Control[]} the instantiated root control(s) from the fragment content
 	 * @ui5-global-only
 	 */
-	sap.ui.fragment = function (sName, sType, oController) {
+	sap.ui.fragment = function (vName, vType, oController) {
 
 		var sFragmentType;
-		if (typeof (sType) === "string") {
-			sFragmentType = sType.toLowerCase();
-		} else if (typeof (sType) === "object" && typeof (sType.fragmentName) === "string") {
-			sFragmentType = sType.fragmentName.toLowerCase();
+		if (typeof vType === "string") {
+			sFragmentType = vType.toLowerCase();
+		} else if (typeof vName === "object" && typeof vName.type === "string") {
+			sFragmentType = vName.type.toLowerCase();
 		} else {
 			sFragmentType = "";
 		}
-		Log.info("Do not use deprecated factory function 'sap.ui." + sFragmentType + "fragment'. Require 'sap/ui/core/Fragment' and use 'load()' instead", "sap.ui." + sFragmentType + "fragment", null, function () {
-			return {
+		Log.info("Do not use deprecated factory function 'sap.ui." + sFragmentType + "fragment'.", "sap.ui." + sFragmentType + "fragment", null, function () {
+			var oSupportInfo = {
 				type: "sap.ui." + sFragmentType + "fragment",
-				name: sFragmentType ? sName + ".fragment." + sFragmentType : sName
+				name: ( vName.fragmentName || vName ) + ".fragment." + sFragmentType
 			};
+			if (vName.fragmentContent) {
+				oSupportInfo.content = vName.fragmentContent;
+				oSupportInfo.name = "";
+			}
+			return oSupportInfo;
 		});
 
-		return fragmentFactory(sName, sType, oController);
+		if ((typeof vName === "object" && vName.fragmentName?.startsWith("module:")) || (typeof vName === "string" && vName.startsWith("module:"))) {
+			throw new Error(`sap.ui.fragment(): module name syntax '${vName.fragmentName || vName}' is not supported.`);
+		}
+
+		return fragmentFactory(vName, vType, oController);
 	};
 
 	/**
 	 * @see sap.ui.core.Fragment.load
+	 *
+	 * @private
+	 * @param {string|object} vName The fragment name or the fragment config
+	 * @param {string|sap.ui.core.mvc.Controller} vType The type of the fragment or the controller
+	 * @param {sap.ui.core.mvc.Controller|object} oController the Controller or object which should be used by the controls in the Fragment.
+	 * @returns {Promise<sap.ui.core.Control|sap.ui.core.Control[]>|sap.ui.core.Fragment} If fragment is created asynchronoulsy
+	 *  a Promise is returned which resolves with the resulting {sap.ui.core.Control|sap.ui.core.Control[]}
+	 *  after fragment parsing and instantiation.
+	 *  If the fragment is created synchronoulsy the newly created fragment instance is returned
 	 */
 	function fragmentFactory(vName, vType, oController) {
 		var mSettings = {};
@@ -331,9 +438,48 @@ function(
 
 		} else if (typeof (vName) === "object") { // advanced call with config object
 			mSettings = vName; // pass all config parameters to the implementation
+
+			// mSettings.async could be undefined when fragmentFactory is triggered by old sap.ui.fragment api
+			mSettings.async = mSettings.async === true ? mSettings.async : false;
+
 			if (vType) { // second parameter "vType" is in this case the optional Controller
 				mSettings.oController = vType;
 			}
+
+			if (mSettings.async) {
+				var fnCreateInstance = function () {
+					// owner-id is either available because the async factory was called in a sync block
+					// or: the containing view carries the owner id for us
+					var sOwnerId = mSettings.sOwnerId || mSettings.containingView && mSettings.containingView._sOwnerId;
+					var oOwnerComponent = Component.getComponentById(sOwnerId);
+					if (oOwnerComponent) {
+						return oOwnerComponent.runAsOwner(function () {
+							return new Fragment(mSettings);
+						});
+					}
+					return new Fragment(mSettings);
+				};
+
+				var oType = Fragment.getType(mSettings.type);
+
+				if (mSettings.fragmentName && mSettings.fragmentContent) {
+					delete mSettings.fragmentName;
+				}
+
+				if (mSettings.fragmentName && typeof oType.load == "function") {
+					return new Promise(function(resolve, reject) {
+						oType.load(mSettings).then(function (vContent) {
+							mSettings.fragmentContent = vContent;
+							resolve(fnCreateInstance());
+						}).catch(function (oError) {
+							reject(oError);
+						});
+					});
+				} else { // in case there is no 'fragmentName' but a 'definition' for the fragment provided or in case there is no load function available (sync use case)
+					return Promise.resolve(fnCreateInstance());
+				}
+			}
+
 		} else {
 			Log.error("sap.ui.fragment() must be called with Fragment name or config object as first parameter, but is: " + vName);
 		}
@@ -342,204 +488,239 @@ function(
 	}
 
 	/**
-	 * Loads and instantiates a Fragment.
-	 * A Promise is returned, which resolves with the Fragments content.
+	 * Loads and instantiates a fragment.
+	 * Also refer to {@link topic:04129b2798c447368f4c8922c3c33cd7 Instantiation of Fragments}.
 	 *
-	 * The Fragment object itself is not an entity with significance beyond this factory.
+	 * The fragment object itself is not an entity that has any further significance beyond this factory function.
 	 *
-	 * The Fragment types "XML", "JS" and "HTML" are available by default; additional Fragment types can be added using
-	 * the sap.ui.core.Fragment.registerType() function.
+	 * A Promise is returned, which resolves with the fragment's content.
+	 *
+	 * The Fragment types <code>"XML"</code>, <code>"JS"</code>, and <code>"HTML"</code> (type <code>"HTML"</code> is deprecated) are available by default.
+	 * Additional Fragment types can be implemented and added using the {@link sap.ui.core.Fragment.registerType} function.
 	 *
 	 * Further properties may be supported by future or custom Fragment types. Any given properties
 	 * will be forwarded to the Fragment implementation.
 	 *
-	 * If no fixed ID is given, the Fragment ID is generated. In any case, the Fragment ID will be used as prefix for the IDs of
+	 * If no fixed ID is given, the fragment ID is generated. In any case, the fragment ID will be used as prefix for the IDs of
 	 * all contained controls.
 	 *
+	 * <b>Note:</b>
+	 * In case you are embedding a Fragment into an existing View, please also have a look at the
+	 * {@link sap.ui.core.mvc.Controller.loadFragment loadFragment} factory for a closer coupling to the corresponding Controller instance.
+	 *
 	 * @example <caption>Loading an XML fragment (default type)</caption>
-	 * sap.ui.require(["sap/ui/core/Fragment"], function(Fragment){
-	 *  Fragment.load({
-	 *      name: "my.useful.VerySimpleUiPart"
-	 *  }).then(function(myButton){
-	 *     // ...
+	 * sap.ui.require(["sap/ui/core/Fragment"], async (Fragment) => {
+	 *  const myFrag = await Fragment.load({
+	 *    name: "my.useful.VerySimpleUiPart"
 	 *  });
 	 * });
 	 *
-	 * @example <caption>Creating an XML fragments</caption>
-	 * sap.ui.require(["sap/ui/core/Fragment"], function(Fragment){
-	 *     Fragment.load({
-	 *         type: "XML",
-	 *         definition: '&lt;Button xmlns=&quot;sap.m&quot; id=&quot;xmlfragbtn&quot; text=&quot;This is an XML Fragment&quot; press=&quot;doSomething&quot;&gt;&lt;/Button&gt;'
-	 *     }).then(function(oButton){
-	 *         // ...
-	 *     });
+	 * @example <caption>Creating an XML fragment</caption>
+	 * sap.ui.require(["sap/ui/core/Fragment"], async (Fragment) => {
+	 *  const myFrag = await Fragment.load({
+	 *    type: "XML",
+	 *    definition: '&lt;Button xmlns=&quot;sap.m&quot; id=&quot;xmlfragbtn&quot; text=&quot;This is an XML Fragment&quot; press=&quot;doSomething&quot;&gt;&lt;/Button&gt;'
+	 *  });
+	 * });
+     *
+	 * @example <caption>Creating a JS fragment</caption>
+	 * sap.ui.require(["sap/ui/core/Fragment"], async (Fragment) => {
+	 *  const myFrag = await Fragment.load({
+     *    name: "module:my/sample/AsyncButton",
+	 *    type: "JS",
+	 *  });
 	 * });
 	 *
-	 * @example <caption>Creating an HTML fragments</caption>
-	 * sap.ui.require(["sap/ui/core/Fragment"], function(Fragment){
-	 *     Fragment.load({
-	 *         type: "HTML",
-	 *         definition: '&lt;div id=&quot;htmlfragbtn&quot; data-sap-ui-type=&quot;sap.m.Button&quot; data-text=&quot;This is an HTML Fragment&quot;&gt;&lt;/div&gt;'
-	 *     }).then(function(oButton){
-	 *         // ...
-	 *     });
+	 * @example <caption>Creating an HTML fragment (deprecated)</caption>
+	 * sap.ui.require(["sap/ui/core/Fragment"], async (Fragment) => {
+	 *  const myFrag = await Fragment.load({
+	 *    type: "HTML",
+	 *    definition: '&lt;div id=&quot;htmlfragbtn&quot; data-sap-ui-type=&quot;sap.m.Button&quot; data-text=&quot;This is an HTML Fragment&quot;&gt;&lt;/div&gt;'
+	 *  });
 	 * });
+	 *
+	 * <b>Note:</b> If the fragment contains <code>ExtensionPoint</code>s, you have to pass the parameter <code>containingView</code>.
+	 * The containing view should be the View instance into which the fragment content will be inserted manually.
 	 *
 	 * @param {object} mOptions options map
-	 * @param {string} [mOptions.name] must be supplied if no "definition" parameter is given. The Fragment name must correspond to an XML Fragment which
-	 *    can be loaded via the module system
-	 *    (fragmentName + suffix ".fragment.[typeextension]") and which contains the Fragment definition.
-	 *    If "mOptions.controller" is supplied, the (event handler-) methods referenced in the Fragment will be called on this Controller.
-	 *    Note that Fragments may require a Controller to be given and certain methods to be implemented by it.
-	 * @param {string} [mOptions.type=XML] the Fragment type, e.g. "XML", "JS", or "HTML" (see above). Default is "XML"
-	 * @param {string} [mOptions.definition] definition of the Fragment content. When this property is supplied, the "name" parameter must not be used.
-	 * Please see the above example on how to use the 'definition' parameter.
-	 * @param {string} [mOptions.id] the ID of the Fragment
-	 * @param {sap.ui.core.mvc.Controller|Object} [mOptions.controller] the Controller or Object which should be used by the controls in the Fragment.
-	 *    Note that some Fragments may not need a Controller while others may need one and certain methods to be implemented by it.
+	 * @param {string} [mOptions.name] Must be provided if no <code>definition</code> parameter is given. The fragment name must correspond to an XML fragment which
+	 *    can be loaded via the module system and must contain the fragment definition. It can be specified either in dot notation
+	 *    (fragmentName + suffix <code>.fragment.<i>&lt;typeExtension></i></code>) or, for JS fragments, in module name syntax (<code>module:my/sample/AsyncButton</code>).
+	 *    If <code>mOptions.controller</code> is supplied, the (event handler) methods referenced in the fragment will be called on that controller.
+	 *    Note that fragments may require a controller to be given and certain methods to be implemented by it.
+	 * @param {string} [mOptions.type=XML] the fragment type, e.g. <code>"XML"</code>, <code>"JS"</code>, or <code>"HTML"</code> (type <code>"HTML"</code> is deprecated). Default is <code>"XML"</code>.
+	 * If the fragment name is given in module name syntax (e.g., <code>module:my/sample/AsyncButton</code>) the type must be omitted.
+	 * @param {string} [mOptions.definition] definition of the fragment content. When this property is supplied, the <code>name</code> parameter must not be used. If both are supplied, the definition has priority.
+	 * Please see the above example on how to use the <code>definition</code> parameter.
+	 * @param {string} [mOptions.id] the ID of the fragment
+	 * @param {sap.ui.core.mvc.Controller|object} [mOptions.controller] the controller or object which should be used by the controls in the fragment.
+	 *    Note that some fragments may not need a controller while others may need one and certain methods to be implemented by it.
+	 * @param {sap.ui.core.mvc.View} [mOptions.containingView] The view containing the fragment content. If the fragment content contains <code>ExtensionPoint</code>s, this parameter must be given.
 	 * @public
 	 * @static
 	 * @since 1.58
-	 * @returns {Promise} resolves with the resulting {sap.ui.core.Control|sap.ui.core.Control[]} after fragment parsing and instantiation
+	 * @returns {Promise<sap.ui.core.Control|sap.ui.core.Control[]>} a <code>Promise</code> resolving with the resulting control (array) after fragment parsing and instantiation
+	 * @throws {TypeError}  If the fragment name is given in module name syntax and a fragment type is provided.
 	 */
 	Fragment.load = function(mOptions) {
 		var mParameters = Object.assign({}, mOptions);
 
-		mParameters.type = mParameters.type || "XML";
+		if (mParameters.name && mParameters.definition) {
+			Log.error("The properties 'name' and 'definition' shouldn't be provided at the same time. The fragment definition will be used instead of the name. Fragment name was: " + mParameters.name);
+			delete mParameters.name;
+		}
+
+		// Sanity check and default fragment type handling
+		if (mParameters.name?.startsWith("module:")) {
+			if (mParameters.type) {
+				throw new TypeError(`Invalid arguments: If the fragment name is given in module name syntax the type must be omitted. Found type: '${mParameters.type}'.`);
+			} else {
+				mParameters.type = "JS";
+			}
+		} else {
+			mParameters.type ??= "XML";
+		}
+
+		mParameters.async = true;
+
+		/**
+		 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+		 * in the next major release
+		 */
+		mParameters.processingMode = mParameters.processingMode || XMLProcessingMode.Sequential;
 
 		// map new parameter names to classic API, delete new names to avoid assertion failures
-		mParameters.fragmentName = mParameters.name;
-		mParameters.fragmentContent = mParameters.definition;
+		mParameters.fragmentName = mParameters.fragmentName || mParameters.name;
+		mParameters.fragmentContent = mParameters.fragmentContent || mParameters.definition;
 		mParameters.oController = mParameters.controller;
+		mParameters.sOwnerId = ManagedObject._sOwnerId;
 		delete mParameters.name;
 		delete mParameters.definition;
 		delete mParameters.controller;
 
-		return Promise.resolve(fragmentFactory(mParameters));
+		var pFragment = fragmentFactory(mParameters);
+
+		return pFragment.then(function(oFragment) {
+			return oFragment._pContentPromise;
+		});
 	};
 
 	/**
-	 * Instantiates an XML-based Fragment.
+	 * Get the implementation of the init and the load function for the requested fragment type.
+	 * @param {string} sType Name of the fragment type
+	 * @returns {object} returns an object containing the init and the load function of requested fragment type
+	 * @since 1.86
+	 * @static
+	 * @private
+	 * @ui5-restricted sap.fe
+	 */
+	Fragment.getType = function (sType) {
+		return mTypes[sType];
+	};
+
+	/**
+	 * Loads and instantiates an XML-based fragment.
 	 *
-	 * To instantiate a fragment, call:
+	 * To instantiate a fragment that is already defined separately, call:
 	 * <pre>
-	 *    sap.ui.xmlfragment([sId], sFragmentName, [oController]);
+	 * sap.ui.xmlfragment(sId?, sFragmentName, oController?);
 	 * </pre>
-	 * The fragment instance ID is optional and will be used as prefix for the ID of all contained controls.
-	 * If no ID is passed, controls will not be prefixed. The <code>sFragmentName</code> must correspond to an
-	 * XML fragment which can be loaded via the module system (fragmentName + ".fragment.xml") and which defines
-	 * the fragment. If <code>oController</code> is given, the methods referenced in the fragment will be called
-	 * on this controller.
 	 *
-	 * Note that fragments may require a controller to be given and certain methods to be available.
-	 *
-	 *
-	 * <h3>Advanced usage:</h3>
-	 * To instantiate a fragment and optionally directly give the XML definition instead of loading it from a file,
-	 * call:
+	 * Advanced usage:
 	 * <pre>
-	 *     sap.ui.xmlfragment(oFragmentConfig, [oController]);
+	 * sap.ui.xmlfragment(oFragmentConfig, oController?);
 	 * </pre>
-	 * The <code>oFragmentConfig</code> object can either have a <code>fragmentName</code> or a <code>fragmentContent</code>
-	 * property, but not both. <code>fragmentContent</code> can hold the fragment definition as XML string; if not given,
-	 * <code>fragmentName</code> must be given and the fragment content definition is loaded via the module system.
-	 * Again, if <code>oController</code> is given, the methods referenced in the fragment will be called on this controller.
+	 * In addition to an <code>id</code>, the <code>oFragmentConfig</code> object can have either a <code>fragmentName</code>
+	 * or a <code>fragmentContent</code> property, but not both.
 	 *
-	 * @param {string} [sId]
-	 *            ID of the newly created fragment
-	 * @param {string | object} vFragment
-	 *            Resource name of the fragment; a module name in dot notation without the '.fragment.xml' suffix.
-	 *            Alternatively, a configuration object can be given with the properties described below. In this case,
-	 *            no <code>sId</code> may be given as first parameter, but as property <code>id</code> in the configuration
-	 *            object.
-	 * @param {string} [vFragment.id]
-	 *            ID of the newly created fragment; will be used as a prefix to all contained control IDs
-	 * @param {string} [vFragment.fragmentName]
-	 *            Resource name of the fragment; a module name in dot notation without the '.fragment.html' suffix
-	 * @param {string} [vFragment.fragmentContent]
-	 *            Definition of the fragment as an XML string
+	 * @param {string|object} [vId]
+	 *            ID of the created fragment which will be used as prefix to all contained control IDs.
+	 *            If the first argument is not an ID, it must be either the fragment name (<code>sFragmentName</code>)
+	 *            or a configuration object (<code>oFragmentConfig</code>) as specified below
+	 * @param {string} [vId.id]
+	 *            ID of the created fragment which will be used as prefix to all contained control IDs
+	 * @param {string} [vId.fragmentContent]
+	 *            definition of the fragment content as an XML string that will be used
+	 *            instead of loading the content from a separate <code>.fragment.xml</code> file.
+	 *            When this property is given, any given fragment name is ignored
+	 * @param {string} [vId.fragmentName]
+	 *            resource name of the fragment module in dot notation without the <code>.fragment.xml</code> suffix from the file name
+	 * @param {string|sap.ui.core.mvc.Controller|object} vFragment
+	 *            resource name of the fragment module as specified by <code>vId.fragmentName</code> or,
+	 *            in the advanced usage case, an optional <code>oController</code>
 	 * @param {sap.ui.core.mvc.Controller|object} [oController]
-	 *            A controller to be used for event handlers in the fragment; can either be the controller of an
+	 *            controller object to be used for methods or event handlers. Can be either the controller of an
 	 *            enclosing view, a new controller instance, or a simple object with the necessary methods attached.
-	 *            Note that a fragment has no runtime representation besides its contained controls. There's
-	 *            therefore no API to retrieve the controller after creating a fragment
+	 *            Note that a fragment has no runtime representation besides its contained controls. Therefore, there is
+	 *            no API to retrieve the controller from the return value.
+	 *            Note also that fragments may require a controller to be given and certain methods to be available
 	 * @public
 	 * @static
-	 * @deprecated since 1.58, use {@link sap.ui.core.Fragment.load} instead
-	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} the root Control(s) of the created fragment instance
+	 * @deprecated As of version 1.58. Refer to {@link topic:04129b2798c447368f4c8922c3c33cd7 Instantiation of Fragments}.
+	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} the instantiated root control(s) from the fragment content
 	 * @ui5-global-only
 	 */
-	sap.ui.xmlfragment = function(sId, vFragment, oController) {
+	sap.ui.xmlfragment = function(vId, vFragment, oController) {
 
-		if (typeof (sId) === "string") { // basic call
+		if (typeof (vId) === "string") { // basic call
 			if (typeof (vFragment) === "string") { // with ID
-				return sap.ui.fragment({fragmentName: vFragment, sId: sId, type: "XML"}, oController);
+				return sap.ui.fragment({fragmentName: vFragment, sId: vId, type: "XML"}, oController); // legacy-relevant
 
 			} else { // no ID, sId is actually the name and vFragment the optional Controller
-				return sap.ui.fragment(sId, "XML", vFragment);
+				return sap.ui.fragment(vId, "XML", vFragment); // legacy-relevant
 			}
 		} else { // advanced call
-			sId.type = "XML";
-			return sap.ui.fragment(sId, vFragment); // second parameter "vFragment" is the optional Controller
+			vId.type = "XML";
+			 // second parameter "vFragment" is the optional Controller
+			return sap.ui.fragment(vId, vFragment); // legacy-relevant
 		}
 	};
 
 
 	/**
-	 * Defines OR instantiates an HTML-based fragment.
+	 * Defines <strong>or</strong> instantiates a JS-based fragment.
 	 *
 	 * To define a JS fragment, call:
 	 * <pre>
-	 *    sap.ui.jsfragment(sName, oFragmentDefinition)
+	 * sap.ui.jsfragment(sName, oFragmentDefinition);
 	 * </pre>
-	 * where:
-	 * <ul>
-	 * <li><code>sName</code> is the name by which this fragment later can be found and instantiated. If defined in
-	 *   its own file, in order to be found by the module loading system, the file location and name must correspond
-	 *   to <code>sName</code> (path + file name must be: fragmentName + ".fragment.js"). </li>
-	 * <li><code>oFragmentDefinition</code> is an object at least holding the <code>createContent(oController)</code>
-	 *   method which defines the fragment content. If given during instantiation, the <code>createContent</code>
-	 *   method receives a controller instance (otherwise, parameter <code>oController</code> will be undefined)
-	 *   and the return value must be one <code>sap.ui.core.Control</code> (which could have any number of children).</li>
-	 * </ul>
 	 *
-	 * To instantiate a JS fragment, call:
+	 * To instantiate a JS fragment that is already defined, call:
 	 * <pre>
-	 *    sap.ui.jsfragment([sId], sFragmentName, [oController]);
+	 * sap.ui.jsfragment(sId?, sFragmentName, oController?);
 	 * </pre>
-	 * The fragment ID is optional (generated if not given) and the fragment implementation <i>can</i> use it
-	 * to make contained controls unique (this depends on the implementation: some JS fragments may choose
-	 * not to support multiple instances within one application and not use the ID prefixing).
-	 * The <code>sFragmentName</code> must correspond to a JS fragment which can be loaded via the module system
-	 * (<code>sFragmentName</code> converted to a path + ".fragment.js" suffix) and which defines the fragment.
-	 * Or it can be a name that has been used earlier to define a fragment of that name.
-	 * If <code>oController</code> is given, the methods referenced in the fragment will be called on this controller.
-	 * Note that fragments may require a controller to be given and certain methods to be available.
+	 * Advanced usage:
+	 * <pre>
+	 * sap.ui.jsfragment(oFragmentConfig, oController?);
+	 * </pre>
 	 *
 	 *
 	 * @param {string|object} vName
-	 *            Name of the fragment when defining a fragment; ID or name or configuration object when instantiating
-	 *            a fragment
+	 *            when defining a fragment: name of the fragment.<br>
+	 *            When loading a fragment: fragment ID (optional), fragment name, or configuration object as specified below
 	 * @param {string} [vName.id]
-	 *            ID of the newly created fragment; will be used as a prefix to all contained control IDs
-	 * @param {string} [vName.fragmentName]
-	 *            Name of the fragment. When no fragment has been defined with that name, the name will be converted
-	 *            to a path by replacing dots with slashes and appending '.fragment.js'. The corresponding resource will
-	 *            be loaded and is expected to define a fragment with the <code>fragmentName</code>
-	 * @param {object|string} [vFragmentDefinition]
-	 *            When defining a fragment, this parameter must be a factory object that will be used to create new
-	 *            instances of the fragment; it must at least contain a <code>createContent</code> method.
-	 *            When creating an instance of a fragment and when <code>vName</code> was an ID, this parameter
-	 *            must be the name of the fragment. When the first parameter was a name, this parameter must be omitted.
+	 *            ID of the newly created fragment which <i>can</i> be used as a prefix
+	 *            when creating the IDs in the JS fragment content. Even if an <code>id</code> is given, some JS fragments may choose
+	 *            not to use the ID prefixing, for example, in order to prevent the fragment from being instantiated multiple times
+	 *            within the lifecycle of the existing fragment
+	 * @param {string} vName.fragmentName
+	 *            resource name of the fragment module in dot notation without the <code>.fragment.js</code> suffix from the file name.
+	 *            When no fragment has been defined with that name, the name will be converted
+	 *            to a path by replacing dots with slashes and appending <code>.fragment.js</code>. The corresponding resource to load
+	 *            is expected to have a fragment defined with the same <code>fragmentName</code>
+	 * @param {object|string} vFragmentDefinition
+	 *            when defining a fragment: object holding at least the <code>createContent(oController?)</code>
+	 *            method that returns an instance of <code>sap.ui.core.Control</code> or an array thereof.<br>
+	 *            When loading a fragment and the first argument is an ID: the <code>fragmentName</code>
 	 * @param {sap.ui.core.mvc.Controller|object} [oController]
-	 *            A controller to be used for event handlers in the fragment; can either be the controller of an
+	 *            controller object to be used for methods or event handlers. Can be either the controller of an
 	 *            enclosing view, a new controller instance, or a simple object with the necessary methods attached.
-	 *            Note that a fragment has no runtime representation besides its contained controls. There's therefore
-	 *            no API to retrieve the controller after creating a fragment
+	 *            Note that a fragment has no runtime representation besides its contained controls. Therefore, there is
+	 *            no API to retrieve the controller from the return value
 	 * @public
 	 * @static
-	 * @deprecated since 1.58, use {@link sap.ui.core.Fragment.load} instead
-	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} The root control(s) of the created fragment instance
+	 * @deprecated As of version 1.58. Refer to {@link topic:04129b2798c447368f4c8922c3c33cd7 Instantiation of Fragments}.
+	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} the instantiated root control(s) from the fragment content
 	 * @ui5-global-only
 	 */
 	sap.ui.jsfragment = function(vName, vFragmentDefinition, oController) { // definition of a JS Fragment
@@ -554,90 +735,84 @@ function(
 
 			} else {
 				// plain instantiation: name[+oController]
-				return sap.ui.fragment(vName, "JS", vFragmentDefinition);
+				return sap.ui.fragment(vName, "JS", vFragmentDefinition); // legacy-relevant
 			}
 
 		} else if (typeof vName === "string" && vFragmentDefinition === undefined) {
 			// plain instantiation: name only
-			return sap.ui.fragment(vName, "JS");
+			return sap.ui.fragment(vName, "JS"); // legacy-relevant
 
-		} else { // ID+name[+Controller]  or  oConfig+[oController]
-			if (typeof vName === "object") {
-				// advanced mode: oConfig+[oController]
-				vName.type = "JS";
-				return sap.ui.fragment(vName, vFragmentDefinition);
+		} else if (typeof vName === "object") {
+			// advanced mode: oConfig+[oController]
+			vName.type = "JS";
+			return sap.ui.fragment(vName, vFragmentDefinition); // legacy-relevant
 
-			} else if (arguments.length >= 3) {
-				// must be plain instantiation mode: ID+Name[+Controller]
-				return sap.ui.fragment({id: vName, fragmentName: vFragmentDefinition, type: "JS"}, oController);
-			} else {
-				Log.error("sap.ui.jsfragment() was called with wrong parameter set: " + vName + " + " + vFragmentDefinition);
-			}
+		} else if (arguments.length >= 3) {
+			// must be plain instantiation mode: ID+Name[+Controller]
+			return sap.ui.fragment({id: vName, fragmentName: vFragmentDefinition, type: "JS"}, oController);  // legacy-relevant
+
+		} else {
+			Log.error("sap.ui.jsfragment() was called with wrong parameter set: " + vName + " + " + vFragmentDefinition);
 		}
 	};
 
 
 	/**
-	 * Instantiates an HTML-based Fragment.
+	 * Loads and instantiates an HTML-based fragment.
 	 *
-	 * To instantiate a fragment, call:
+	 * To instantiate a fragment that is already defined separately, call:
 	 * <pre>
-	 *    sap.ui.htmlfragment([sId], sFragmentName, [oController]);
+	 * sap.ui.htmlfragment(sId?, sFragmentName, oController?);
 	 * </pre>
-	 * The fragment instance ID is optional and will be used as prefix for the ID of all
-	 * contained controls. If no ID is passed, controls will not be prefixed.
-	 * The <code>sFragmentName</code> must correspond to an HTML fragment which can be loaded
-	 * via the module system (fragmentName + ".fragment.html") and which defines the fragment.
-	 * If <code>oController</code> is given, the methods referenced in the fragment will be called on this controller.
-	 * Note that fragments may require a controller to be given and certain methods to be available.
 	 *
-	 * <h3>Advanced usage:</h3>
-	 * To instantiate a fragment and optionally directly give the HTML definition instead of loading it from a file,
-	 * call:
+	 * Advanced usage:
 	 * <pre>
-	 *     sap.ui.htmlfragment(oFragmentConfig, [oController]);
+	 * sap.ui.htmlfragment(oFragmentConfig, oController?);
 	 * </pre>
-	 * The <code>oFragmentConfig</code> object can either have a <code>fragmentName</code> or a <code>fragmentContent</code>
-	 * property, but not both of them. <code>fragmentContent</code> can hold the fragment definition as XML string; if not
-	 * given, <code>fragmentName</code> must be given and the fragment content definition is loaded by the module system.
-	 * Again, if <code>oController</code> is given, any methods referenced in the fragment will be called on this controller.
+	 * In addition to an <code>id</code>, the <code>oFragmentConfig</code> object can have either a <code>fragmentName</code>
+	 * or a <code>fragmentContent</code> property, but not both.
 	 *
-	 * @param {string} [sId]
-	 *            ID of the newly created fragment
-	 * @param {string | object} vFragment
-	 *            Resource name of the fragment, a module name in dot notation without the '.fragment.html' suffix.
-	 *            Alternatively, a configuration object can be given with the properties described below. In this case,
-	 *            no <code>sId</code> may be given as first parameter, but as property <code>id</code> in the configuration
-	 *            object.
-	 * @param {string} [vFragment.id]
-	 *            ID of the newly created fragment; will be used as a prefix to all contained control IDs
-	 * @param {string} [vFragment.fragmentName]
-	 *            Resource name of the Fragment; a module name in dot notation without the '.fragment.html' suffix
-	 * @param {string} [vFragment.fragmentContent]
-	 *            Definition of the fragment as an HTML string
+	 * @param {string|object} [vId]
+	 *            ID of the created fragment which will be used as prefix to all contained control IDs.
+	 *            If the first argument is not an ID, it must be either the fragment name (<code>sFragmentName</code>)
+	 *            or a configuration object (<code>oFragmentConfig</code>) as specified below
+	 * @param {string} [vId.id]
+	 *            ID of the created fragment which will be used as prefix to all contained control IDs
+	 * @param {string} [vId.fragmentContent]
+	 *            definition of the fragment content as an HTML string that will be used
+	 *            instead of loading the content from a separate <code>.fragment.html</code> file.
+	 *            When this property is given, any given fragment name is ignored
+	 * @param {string} [vId.fragmentName]
+	 *            resource name of the fragment module in dot notation without the <code>.fragment.html</code> suffix from the file name
+	 * @param {string|sap.ui.core.mvc.Controller|object} vFragment
+	 *            resource name of the fragment module as specified by <code>vId.fragmentName</code> or,
+	 *            in the advanced usage case, an optional <code>oController</code>
 	 * @param {sap.ui.core.mvc.Controller|object} [oController]
-	 *            A controller to be used for event handlers in the fragment; can either be the controller of an
+	 *            controller object to be used for methods or event handlers. Can be either the controller of an
 	 *            enclosing view, a new controller instance, or a simple object with the necessary methods attached.
-	 *            Note that a fragment has no runtime representation besides its contained controls. There's therefore
-	 *            no API to retrieve the controller after creating a fragment
+	 *            Note that a fragment has no runtime representation besides its contained controls. Therefore, there is
+	 *            no API to retrieve the controller from the return value.
+	 *            Note also that fragments may require a controller to be given and certain methods to be available
 	 * @public
 	 * @static
-	 * @deprecated since 1.58, use {@link sap.ui.core.Fragment.load} instead
-	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} Root control or controls of the created fragment instance
+	 * @deprecated As of version 1.58. Additionally, use of fragments based on type <code>"HTML"</code> is deprecated since 1.108.
+	 *    If you need declarative fragments, use XML fragments instead. Refer to {@link topic:04129b2798c447368f4c8922c3c33cd7 Instantiation of Fragments}.
+	 * @return {sap.ui.core.Control|sap.ui.core.Control[]} the instantiated root control(s) from the fragment content
 	 * @ui5-global-only
 	 */
-	sap.ui.htmlfragment = function(sId, vFragment, oController) {
+	sap.ui.htmlfragment = function(vId, vFragment, oController) {
 
-		if (typeof (sId) === "string") { // basic call
+		if (typeof (vId) === "string") { // basic call
 			if (typeof (vFragment) === "string") { // with ID
-				return sap.ui.fragment({fragmentName: vFragment, sId: sId, type: "HTML"}, oController);
+				return sap.ui.fragment({fragmentName: vFragment, sId: vId, type: "HTML"}, oController);  // legacy-relevant
 
-			} else { // no ID, sId is actually the name and vFragment the optional Controller
-				return sap.ui.fragment(sId, "HTML", vFragment);
+			} else { // no ID, vId is actually the name and vFragment the optional Controller
+				return sap.ui.fragment(vId, "HTML", vFragment); // legacy-relevant
 			}
 		} else { // advanced call
-			sId.type = "HTML";
-			return sap.ui.fragment(sId, vFragment); // second parameter "vFragment" is the optional Controller
+			vId.type = "HTML";
+			// second parameter "vFragment" is the optional Controller
+			return sap.ui.fragment(vId, vFragment); // legacy-relevant
 		}
 	};
 
@@ -648,27 +823,29 @@ function(
 
 
 	// ###   XML Fragments   ###
-
 	Fragment.registerType("XML" , {
+		load: function(mSettings) {
+			// type "XML"
+			return XMLTemplateProcessor.loadTemplatePromise(mSettings.fragmentName, "fragment").then(function(documentElement) {
+				return documentElement;
+			});
+		},
 		init: function(mSettings) {
+			this._aContent = [];
 			// use specified content or load the content definition
 			if (mSettings.fragmentContent) {
 				if (typeof (mSettings.fragmentContent) === "string") {
-					this._xContent = jQuery.parseXML(mSettings.fragmentContent).documentElement;
+					this._xContent = XMLHelper.parse(mSettings.fragmentContent).documentElement;
 				} else {
 					this._xContent = mSettings.fragmentContent;
 				}
 			} else {
-				/*
-				// TO-BE-ACTIVATED:
-				// Logging currently disabled because of missing async path
 				Log.warning("Synchronous loading of fragment, due to Fragment.init() call for '" + mSettings.fragmentName + "'. Use 'sap/ui/core/Fragment' module with Fragment.load() instead.", "SyncXHR", null, function() {
 					return {
 						type: "SyncXHR",
 						name: "Fragment"
 					};
 				});
-				*/
 				this._xContent = XMLTemplateProcessor.loadTemplate(mSettings.fragmentName, "fragment");
 			}
 
@@ -677,28 +854,39 @@ function(
 				this._oContainingView.oController = (mSettings.containingView && mSettings.containingView.oController) || mSettings.oController;
 			}
 
-			var that = this;
 
+			/**
+			 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+			 * in the next major release
+			 *
 			// If given, processingMode will be passed down to nested subviews in XMLTemplateProcessor
-			that._sProcessingMode = mSettings.processingMode;
+			 */
+			this._sProcessingMode = mSettings.processingMode;
 
-			// unset any preprocessors (e.g. from an enclosing JSON view)
-			ManagedObject.runWithPreprocessors(function() {
-				// parse the XML tree
+			// take the settings preprocessor from the containing view (if any)
+			var fnSettingsPreprocessor = this._oContainingView._fnSettingsPreprocessor;
 
-				//var xmlNode = that._xContent;
-				// if sub ID is given, find the node and parse it
-				// TODO: for sub-fragments   if () {
-				//	xmlNode = jQuery(that._xContent).find("# ")
-				//}
-				that._aContent = XMLTemplateProcessor.parseTemplate(that._xContent, that);
+			// similar to the XMLView we need to have a scoped runWithPreprocessors function
+			var oParseConfig = {
+				fnRunWithPreprocessor: function(fn) {
+					return ManagedObject.runWithPreprocessors(fn, {
+						settings: fnSettingsPreprocessor
+					});
+				}
+			};
 
+			// finally trigger the actual XML processing and control creation
+			// IMPORTANT:
+			// this call can be triggered with both "async = true" and "async = false"
+			// In case of sync processing, the XMLTemplateProcessor makes sure to only use SyncPromises.
+			var pContentPromise = XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, this._bAsync, oParseConfig).then(function(aContent) {
+				this._aContent = aContent;
 				/*
 				 * If content was parsed and an objectBinding at the fragment was defined
 				 * the objectBinding must be forwarded to the created controls
 				 */
-				if (that._aContent && that._aContent.length && mSettings.objectBindings) {
-					that._aContent.forEach(function(oContent, iIndex) {
+				if (this._aContent && this._aContent.length && mSettings.objectBindings) {
+					this._aContent.forEach(function (oContent, iIndex) {
 						if (oContent instanceof Element) {
 							for (var sModelName in mSettings.objectBindings) {
 								oContent.bindObject(mSettings.objectBindings[sModelName]);
@@ -706,9 +894,24 @@ function(
 						}
 					});
 				}
-			}, {
-				settings: that._oContainingView._fnSettingsPreprocessor
-			});
+
+				return this._aContent.length > 1 ? this._aContent : this._aContent[0];
+			}.bind(this));
+			// in sync case we must get a SyncPromise and need to unwrap for error logging
+			if (!this._bAsync) {
+				try {
+					pContentPromise.unwrap();
+				} catch (e) {
+					future.errorThrows(this.getMetadata().getName() +
+							": An Error occured during XML processing of '" +
+							(mSettings.fragmentName || mSettings.fragmentContent) +
+							"' with id '" +
+							this.getId() +
+							"'",
+							{ cause: e });
+				}
+			}
+			return pContentPromise;
 		}
 	});
 
@@ -717,26 +920,68 @@ function(
 	// ###   JS Fragments   ###
 
 	Fragment.registerType("JS", {
-		init: function(mSettings) {
-			/*** require fragment definition if not yet done... ***/
-			if (!mRegistry[mSettings.fragmentName]) {
-				sap.ui.requireSync(mSettings.fragmentName.replace(/\./g, "/") + ".fragment");
+		load: function(mSettings) {
+			let sFragmentPath;
+			// Handle module: syntax
+			if (mSettings.fragmentName.startsWith("module:")) {
+				sFragmentPath = mSettings.fragmentName.substring(7);
+			} else {
+				// Handle dot-separated syntax
+				sFragmentPath = mSettings.fragmentName.replace(/\./g, "/") + ".fragment";
 			}
-			/*** Step 2: merge() ***/
-			merge(this, mRegistry[mSettings.fragmentName]);
+			return new Promise(function(resolve, reject) {
+				sap.ui.require([sFragmentPath], function(content) {
+					resolve(content);
+				}, reject);
+			});
+		},
+		init: function(mSettings) {
+			this._aContent = [];
 
+			if (mSettings.fragmentContent) {
+				// Mixin fragmentContent into Fragment instance
+				merge(this, mSettings.fragmentContent);
+			} else {
+				/**
+				 * @deprecated
+				 */
+				(() => {
+					/*** require fragment definition if not yet done... ***/
+					if (!mRegistry[mSettings.fragmentName]) {
+						sap.ui.requireSync(mSettings.fragmentName.replace(/\./g, "/") + ".fragment"); // legacy-relevant: Sync path
+					}
+				})();
+				/*** Step 2: merge() ***/
+				merge(this, mRegistry[mSettings.fragmentName]);
+			}
 			this._oContainingView = mSettings.containingView || this;
 
-			var that = this;
 			// unset any preprocessors (e.g. from an enclosing JSON view)
-			ManagedObject.runWithPreprocessors(function() {
+			return ManagedObject.runWithPreprocessors(function() {
+				var vContent;
+				if (this.fnScopedRunWithOwner) {
+					this.fnScopedRunWithOwner(function () {
+						vContent = this.createContent(mSettings.oController || this._oContainingView.oController);
+					}.bind(this));
+				} else {
+					vContent = this.createContent(mSettings.oController || this._oContainingView.oController);
+				}
 
-				var content = that.createContent(mSettings.oController || that._oContainingView.oController);
-				that._aContent = [];
-				that._aContent = that._aContent.concat(content);
-
-			}, {
-				settings: that._oContainingView._fnSettingsPreprocessor
+				// createContent might return a Promise too
+				if (vContent instanceof Promise) {
+					return vContent.then(function(aContent) {
+						this._aContent = this._aContent.concat(aContent);
+						return this._aContent.length > 1 ? this._aContent : this._aContent[0];
+					}.bind(this));
+				} else {
+					// vContent is not a Promise, but a synchronously processed array of controls
+					return new Promise(function (resolve, reject) {
+						this._aContent = this._aContent.concat(vContent);
+						resolve(this._aContent.length > 1 ? this._aContent : this._aContent[0]);
+					}.bind(this));
+				}
+			}.bind(this), {
+				settings: this._oContainingView._fnSettingsPreprocessor
 			});
 		}
 	});
@@ -744,7 +989,10 @@ function(
 
 
 	// ###   HTML Fragments   ###
-
+	/**
+	 * @deprecated As of version 1.108, together with the HTMLView. If you need declarative fragments,
+	 *    use XML fragments instead.
+	 */
 	(function() {
 
 		/**
@@ -779,6 +1027,12 @@ function(
 		};
 
 		Fragment.registerType("HTML", {
+			load: function(mSettings) {
+				var sFragmentPath = mSettings.fragmentName.replace(/\./g, "/") + ".fragment";
+				return LoaderExtensions.loadResource(sFragmentPath + ".html", {async: true}).then(function(oContent) {
+					return oContent;
+				});
+			},
 			init: function(mSettings) {
 				// DeclarativeSupport automatically uses set/getContent, but Fragment should not have such an aggregation and should not be parent of any control
 				// FIXME: the other aggregation methods are not implemented. They are currently not used, but who knows...
@@ -802,11 +1056,11 @@ function(
 					this._oTemplate.innerHTML = vHTML;
 				} else {
 					var oNodeList = vHTML;
-					var oFragment = document.createDocumentFragment();
-					for (var i = 0; i < oNodeList.length;i++) {
-						oFragment.appendChild(oNodeList.item(i));
+					var oDocumentFragment = document.createDocumentFragment();
+					for (var i = 0; i < oNodeList.length; i++) {
+						oDocumentFragment.appendChild(oNodeList.item(i));
 					}
-					this._oTemplate.appendChild(oFragment);
+					this._oTemplate.appendChild(oDocumentFragment);
 				}
 
 				var oMetaElement = this._oTemplate.getElementsByTagName("template")[0];
@@ -814,18 +1068,21 @@ function(
 
 				if (oMetaElement) {
 					var that = this;
-					jQuery.each(oMetaElement.attributes, function(iIndex, oAttr) {
-						var sName = DeclarativeSupport.convertAttributeToSettingName(oAttr.name, that.getId());
-						var sValue = oAttr.value;
-						var oProperty = oProperties[sName];
-						if (!mSettings[sName]) {
+					var aAttributes = oMetaElement.getAttributeNames();
+					for (var i = 0; i < aAttributes.length - 1; i++) {
+						var sAttributeName = aAttributes[i];
+						var sSettingName = DeclarativeSupport.convertAttributeToSettingName(sAttributeName, that.getId());
+						var sValue = oMetaElement.getAttribute(sAttributeName);
+
+						var oProperty = oProperties[sSettingName];
+						if (!mSettings[sSettingName]) {
 							if (oProperty) {
-								mSettings[sName] = DeclarativeSupport.convertValueToType(DeclarativeSupport.getPropertyDataType(oProperty),sValue);
-							} else if (sap.ui.core.mvc.HTMLView._mAllowedSettings[sName]) {
-								mSettings[sName] = sValue;
+								mSettings[sSettingName] = DeclarativeSupport.convertValueToType(DeclarativeSupport.getPropertyDataType(oProperty),sValue);
+							} else if (sap.ui.core.mvc.HTMLView._mAllowedSettings[sSettingName]) {
+								mSettings[sSettingName] = sValue;
 							}
 						}
-					});
+					}
 					this._oTemplate = oMetaElement;
 				}
 				// This is a fix for browsers that support web components
@@ -838,19 +1095,27 @@ function(
 				}
 
 				// unset any preprocessors (e.g. from an enclosing HTML view)
-				var that = this;
-				ManagedObject.runWithPreprocessors(function() {
-					DeclarativeSupport.compile(that._oTemplate, that);
+				return ManagedObject.runWithPreprocessors(function() {
+					if (this.fnScopedRunWithOwner) {
+						this.fnScopedRunWithOwner(function () {
+							DeclarativeSupport.compile(this._oTemplate, this);
+						}.bind(this));
+					} else {
+						DeclarativeSupport.compile(this._oTemplate, this);
+					}
 
-					// FIXME declarative support automatically inject the content into that through "that.addContent()"
-					var content = that.getContent();
+					// FIXME declarative support automatically inject the content into this through "this.addContent()"
+					var content = this.getContent();
 					if (content && content.length === 1) {
-						that._aContent = [content[0]];
+						this._aContent = [content[0]];
+						return new Promise(function(resolve, reject) {
+							resolve(this._aContent[0]);
+						}.bind(this));
 					}// else {
 						// TODO: error
 					//}
-				}, {
-					settings: that._oContainingView._fnSettingsPreprocessor
+				}.bind(this), {
+					settings: this._oContainingView._fnSettingsPreprocessor
 				});
 			}
 		});

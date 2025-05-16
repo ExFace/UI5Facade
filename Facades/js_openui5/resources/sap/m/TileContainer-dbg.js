@@ -1,29 +1,33 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.TileContainer.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
+	"sap/ui/core/RenderManager",
 	'sap/ui/core/ResizeHandler',
 	'./TileContainerRenderer',
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control",
 	// jQuery custom selectors ':sapTabbable'
 	"sap/ui/dom/jquery/Selectors"
 ],
 function(
 	library,
+	Localization,
 	Control,
+	Element,
 	IconPool,
 	Device,
+	RenderManager,
 	ResizeHandler,
 	TileContainerRenderer,
 	Log,
@@ -44,92 +48,96 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12
 	 * @deprecated as of version 1.50, replaced by a container of your choice with {@link sap.m.GenericTile} instances
 	 * @alias sap.m.TileContainer
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TileContainer = Control.extend("sap.m.TileContainer", /** @lends sap.m.TileContainer.prototype */ { metadata : {
+	var TileContainer = Control.extend("sap.m.TileContainer", /** @lends sap.m.TileContainer.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			deprecated: true,
+			properties : {
 
-			/**
-			 * Defines the width of the TileContainer in px.
-			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : '100%'},
+				/**
+				 * Defines the width of the TileContainer in px.
+				 */
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : '100%'},
 
-			/**
-			 * Defines the height of the TileContainer in px.
-			 */
-			height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : '100%'},
+				/**
+				 * Defines the height of the TileContainer in px.
+				 */
+				height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : '100%'},
 
-			/**
-			 * Determines whether the TileContainer is editable so you can move, delete or add tiles.
-			 */
-			editable : {type : "boolean", group : "Misc", defaultValue : null},
+				/**
+				 * Determines whether the TileContainer is editable so you can move, delete or add tiles.
+				 */
+				editable : {type : "boolean", group : "Misc", defaultValue : null},
 
-			/**
-			 * Determines whether the user is allowed to add Tiles in Edit mode (editable = true).
-			 */
-			allowAdd : {type : "boolean", group : "Misc", defaultValue : null}
-		},
-		defaultAggregation : "tiles",
-		aggregations : {
-
-			/**
-			 * The Tiles to be displayed by the TileContainer.
-			 */
-			tiles : {type : "sap.m.Tile", multiple : true, singularName : "tile"}
-		},
-		events : {
-
-			/**
-			 * Fires if a Tile is moved.
-			 */
-			tileMove : {
-				parameters : {
-
-					/**
-					 * The Tile that has been moved.
-					 */
-					tile : {type : "sap.m.Tile"},
-
-					/**
-					 * The new index of the Tile in the tiles aggregation.
-					 */
-					newIndex : {type : "int"}
-				}
+				/**
+				 * Determines whether the user is allowed to add Tiles in Edit mode (editable = true).
+				 */
+				allowAdd : {type : "boolean", group : "Misc", defaultValue : null}
 			},
+			defaultAggregation : "tiles",
+			aggregations : {
 
-			/**
-			 * Fires if a Tile is deleted in Edit mode.
-			 */
-			tileDelete : {
-				parameters : {
-
-					/**
-					 * The deleted Tile.
-					 */
-					tile : {type : "sap.m.Tile"}
-				}
+				/**
+				 * The Tiles to be displayed by the TileContainer.
+				 */
+				tiles : {type : "sap.m.Tile", multiple : true, singularName : "tile"}
 			},
+			events : {
 
-			/**
-			 * Fires when a Tile is added.
-			 */
-			tileAdd : {}
-		}
-	}});
+				/**
+				 * Fires if a Tile is moved.
+				 */
+				tileMove : {
+					parameters : {
+
+						/**
+						 * The Tile that has been moved.
+						 */
+						tile : {type : "sap.m.Tile"},
+
+						/**
+						 * The new index of the Tile in the tiles aggregation.
+						 */
+						newIndex : {type : "int"}
+					}
+				},
+
+				/**
+				 * Fires if a Tile is deleted in Edit mode.
+				 */
+				tileDelete : {
+					parameters : {
+
+						/**
+						 * The deleted Tile.
+						 */
+						tile : {type : "sap.m.Tile"}
+					}
+				},
+
+				/**
+				 * Fires when a Tile is added.
+				 */
+				tileAdd : {}
+			}
+		},
+
+		renderer: TileContainerRenderer
+	});
 
 
 	IconPool.insertFontFaceStyle();
 
-	TileContainer.prototype._bRtl  = sap.ui.getCore().getConfiguration().getRTL();
+	TileContainer.prototype._bRtl = Localization.getRTL();
 
 	/**
 	 * Initializes the control.
@@ -182,7 +190,7 @@ function(
 
 					var oFirstTile = this._getVisibleTiles()[iTargetTileIndex];
 
-					if (!!oFirstTile) {
+					if (oFirstTile) {
 						this._findTile(oFirstTile.$()).trigger("focus");
 						// event should not trigger any further actions
 						oEvent.stopPropagation();
@@ -219,7 +227,7 @@ function(
 
 					var oNextTile = aTiles[iNextIndex];
 
-					if (!!oNextTile) {
+					if (oNextTile) {
 						this._renderTilesInTheSamePage(iNextIndex, aTiles);
 						this._findTile(oNextTile.$()).trigger("focus");
 						// event should not trigger any further actions
@@ -238,7 +246,7 @@ function(
 
 					var oNextTile = aTiles[iNextIndex];
 
-					if (!!oNextTile) {
+					if (oNextTile) {
 						this._renderTilesInTheSamePage(iNextIndex, aTiles);
 						this._findTile(oNextTile.$()).trigger("focus");
 						// event should not trigger any further actions
@@ -256,7 +264,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = aTiles[iNextIndex];
 
-						if (!!oNextTile) {
+						if (oNextTile) {
 							if (iNextIndex < this._iCurrentTileStartIndex + this._iMaxTiles) { // tile on same page?
 								this._findTile(oNextTile.$()).trigger("focus");
 							} else {
@@ -288,7 +296,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = aTiles[iNextIndex];
 
-						if (!!oNextTile) {
+						if (oNextTile) {
 							if (iNextIndex >= this._iCurrentTileStartIndex) { // tile on same page?
 								this._findTile(oNextTile.$()).trigger("focus");
 							} else {
@@ -322,7 +330,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = oTiles[iNextIndex];
 
-						if ((iModNext > iModCurr) && !!oNextTile) {
+						if ((iModNext > iModCurr) && oNextTile) {
 							// '(iModNext > iModCurr)' means: still on same page
 							this._findTile(oNextTile.$()).trigger("focus");
 						}
@@ -347,7 +355,7 @@ function(
 
 					if (!oEvent.ctrlKey) {
 						var oNextTile = oTiles[iNextIndex];
-						if ((iModNext < iModCurr) && !!oNextTile) {
+						if ((iModNext < iModCurr) && oNextTile) {
 							// '(iModNext < iModCurr)' means: still on same page
 							this._findTile(oNextTile.$()).trigger("focus");
 						}
@@ -418,7 +426,7 @@ function(
 		}
 		this._oTileDimensionCalculator = new TileDimensionCalculator(this);
 
-		this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		this._bRtl = Localization.getRTL();
 		//Keeps info about the current page and total page count. In addition the old(previous) values of the same are kept.
 		this._oPagesInfo = (function (bRightToLeftMode) {
 			var iCurrentPage, iCount,
@@ -598,7 +606,7 @@ function(
 	 * This is currently also set with a long tap.
 	 *
 	 * @param {boolean} bValue Whether the container is in edit mode or not
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @public
 	 */
 	TileContainer.prototype.setEditable = function(bValue) {
@@ -612,7 +620,7 @@ function(
 		for (var i = 0;i < aTiles.length; i++) {
 			var oTile = aTiles[i];
 
-			if (oTile instanceof sap.m.Tile) {
+			if (oTile.isA("sap.m.Tile")) {
 				oTile.isEditable(bEditable);
 			}
 		}
@@ -773,7 +781,6 @@ function(
 	 *
 	 * @returns {int} The index of the first Tile that is visible in the current page
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TileContainer.prototype.getPageFirstTileIndex = function() {
 		return this._iCurrentTileStartIndex || 0;
@@ -784,9 +791,8 @@ function(
 	 *
 	 * @param {sap.m.Tile} vTile The tile to move
 	 * @param {int} iNewIndex The new Tile position in the tiles aggregation
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TileContainer.prototype.moveTile = function(vTile, iNewIndex) {
 		if (!isNaN(vTile)) {
@@ -808,7 +814,7 @@ function(
 	 * Adds a Tile to the end of the tiles collection.
 	 *
 	 * @param {sap.m.Tile} oTile The tile to add
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */
@@ -822,7 +828,7 @@ function(
 	 *
 	 * @param {sap.m.Tile} oTile The Tile to insert
 	 * @param {int} iIndex The new Tile position in the tiles aggregation
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */
@@ -931,7 +937,7 @@ function(
 	 * To be used within jQuery.filter function.
 	 * @param {int} index Index of the element within an array
 	 * @param {Element} element DOM element to check
-	 * @returns {Boolean} If a DOM element is focusable
+	 * @returns {boolean} If a DOM element is focusable
 	 * @private
 	 */
 	TileContainer.prototype._isFocusable = function(index, element) {
@@ -960,7 +966,7 @@ function(
 	 * Deletes a Tile.
 	 *
 	 * @param {sap.m.Tile} oTile The tile to move
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */
@@ -1024,9 +1030,9 @@ function(
 		return this;
 	};
 
-	TileContainer.prototype.rerender = function() {
+	TileContainer.prototype.invalidate = function() {
 		if (!this._oDragSession || this._oDragSession.bDropped) {
-			Control.prototype.rerender.apply(this);
+			Control.prototype.invalidate.apply(this);
 		}
 	};
 
@@ -1119,7 +1125,6 @@ function(
 	 * @param {boolean} bAnimated Whether the scroll should be animated
 	 * @param {sap.m.Tile[]} [aVisibleTiles] optional list of visible tiles in order to avoid filtering them again.
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TileContainer.prototype.scrollIntoView = function(vTile, bAnimated, aVisibleTiles) {
 
@@ -1606,7 +1611,7 @@ function(
 			 oEvent.srcControl =  oEvent.srcControl.getParent();
 		}
 
-		if (oEvent.srcControl instanceof sap.m.Tile && this.getEditable()) {
+		if (oEvent.srcControl && oEvent.srcControl.isA("sap.m.Tile") && this.getEditable()) {
 
 			if (oEvent.target.className != "sapMTCRemove") {
 				this._initDragSession(oEvent);
@@ -1974,8 +1979,8 @@ function(
 	 * @private
 	 */
 	TileContainer.prototype._handleAriaActiveDescendant = function () {
-		var oActiveElement = jQuery(document.activeElement).control(0);
-		if (oActiveElement instanceof sap.m.Tile && oActiveElement.getParent() === this) {
+		var oActiveElement = Element.closestTo(document.activeElement);
+		if (oActiveElement && oActiveElement.isA("sap.m.Tile") && oActiveElement.getParent() === this) {
 			this.getDomRef().setAttribute("aria-activedescendant", oActiveElement.getId());
 		}
 	};
@@ -1987,7 +1992,7 @@ function(
 	 * @private
 	 */
 	TileContainer.prototype._renderTile = function(oTile, iIndex) {
-		var oRm = sap.ui.getCore().createRenderManager(),
+		var oRm = new RenderManager().getInterface(),
 			oContent = this.$("cnt")[0];
 
 		oRm.renderControl(oTile);
@@ -2004,7 +2009,7 @@ function(
 
 	/**
 	 * Calculates the dimension of TileContainer root DOM element.
-	 * @return {{width, height: *, outerheight: *, outerwidth: *}}
+	 * @return {{width: any, height: any, outerheight: any, outerwidth: any}}
 	 * @private
 	 */
 	TileContainer.prototype._calculateDimension = function(){
@@ -2098,7 +2103,7 @@ function(
 	};
 	/**
 	 * Calculates the dimension (width and height) of a Tile.
-	 * @returns {object} Width and height of a tile or undefined if no DOM yet.
+	 * @returns {object|undefined} Width and height of a tile or <code>undefined</code> if no DOM yet.
 	 * @protected
 	 */
 	TileDimensionCalculator.prototype.calc = function(visibleTiles) {

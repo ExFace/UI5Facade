@@ -1,37 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
+	"sap/ui/integration/designtime/baseEditor/propertyEditor/PropertyEditorFactory",
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
 	"sap/ui/model/json/JSONModel",
 	"sap/base/util/restricted/_merge",
 	"sap/base/util/restricted/_omit",
 	"sap/base/util/isPlainObject",
-	"sap/base/util/includes"
+	"sap/base/strings/formatMessage"
 ], function (
 	BasePropertyEditor,
+	PropertyEditorFactory,
 	deepClone,
 	deepEqual,
 	JSONModel,
 	_merge,
 	_omit,
 	isPlainObject,
-	includes
+	formatMessage
 ) {
 	"use strict";
-
-	var SUPPORTED_TYPE_LABELS = {
-		"string": "BASE_EDITOR.MAP.TYPES.STRING",
-		"boolean": "BASE_EDITOR.MAP.TYPES.BOOLEAN",
-		"number": "BASE_EDITOR.MAP.TYPES.NUMBER",
-		"integer": "BASE_EDITOR.MAP.TYPES.INTEGER",
-		"date": "BASE_EDITOR.MAP.TYPES.DATE",
-		"datetime": "BASE_EDITOR.MAP.TYPES.DATETIME"
-	};
 
 	/**
 	 * @class
@@ -83,13 +76,25 @@ sap.ui.define([
 	 * 	<td><code>true</code></td>
 	 * 	<td>Whether to allow changing the order of items.</td>
 	 * </tr>
+	 * <tr>
+	 * 	<td><code>addItemLabelI18n</code></td>
+	 *  <td><code>string</code></td>
+	 * 	<td><code>BASE_EDITOR.MAP.DEFAULT_TYPE</code></td>
+	 * 	<td>I18n key for the item in the "Add: Item" label, e.g. "Add: Parameter" by default</td>
+	 * </tr>
+	 * <tr>
+	 * 	<td><code>defaultType</code></td>
+	 *  <td><code>string</code></td>
+	 * 	<td><code>null</code></td>
+	 * 	<td>Default type for all map items. If <code>null</code>, the editor will try to derive the type from the value or fall back to "string"</td>
+	 * </tr>
 	 * </table>
 	 *
 	 * @extends sap.ui.integration.designtime.baseEditor.propertyEditor.BasePropertyEditor
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.mapEditor.MapEditor
 	 * @author SAP SE
 	 * @since 1.74
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.74
@@ -97,24 +102,20 @@ sap.ui.define([
 	 */
 	var MapEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.mapEditor.MapEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.mapEditor.MapEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 
 		init: function() {
 			BasePropertyEditor.prototype.init.apply(this, arguments);
 			this._itemsModel = new JSONModel();
 			this._itemsModel.setDefaultBindingMode("OneWay");
 			this.setModel(this._itemsModel, "itemsModel");
-			this._supportedTypesModel = new JSONModel();
+			this._supportedTypesModel = new JSONModel([]);
 			this._supportedTypesModel.setDefaultBindingMode("OneWay");
 			this.setModel(this._supportedTypesModel, "supportedTypes");
 			this.attachModelContextChange(function () {
 				if (this.getModel("i18n")) {
-					var oResourceBundle = this.getModel("i18n").getResourceBundle();
-					this._aSupportedTypes = Object.keys(SUPPORTED_TYPE_LABELS).map(function (sKey) {
-						return {
-							key: sKey,
-							label: oResourceBundle.getText(SUPPORTED_TYPE_LABELS[sKey])
-						};
-					});
 					this._setSupportedTypesModel();
 				}
 			}, this);
@@ -189,9 +190,15 @@ sap.ui.define([
 		_prepareInputValue: function(oValue, sKey) {
 			var mFormattedValue = this.processInputValue(deepClone(oValue), sKey);
 			if (!mFormattedValue.type) {
-				mFormattedValue.type = this._mTypes[sKey] || this._getDefaultType(mFormattedValue.value);
+				mFormattedValue.type = this._mTypes[sKey] || this._getDesigntimeMetadataValue(sKey).type || this._getDefaultType(mFormattedValue.value);
 			}
 			return mFormattedValue;
+		},
+
+		_getDesigntimeMetadataValue: function (sKey) {
+			var oDesigntimeMetadata = (this.getConfig() || {}).designtime || {};
+			var oDesigntimeMetadataValue = oDesigntimeMetadata[sKey] || {};
+			return oDesigntimeMetadataValue.__value || {};
 		},
 
 		/**
@@ -203,34 +210,61 @@ sap.ui.define([
 		 */
 		_isValidItem: function(oItem) {
 			var sType = oItem.value.type;
-			return sType && includes(this._getAllowedTypes(), sType);
+			return sType && this._getAllowedTypes().includes(sType);
 		},
 
 		_getDefaultType: function (vValue) {
+			var sDefaultType = this.getConfig().defaultType;
+			if (sDefaultType) {
+				return sDefaultType;
+			}
+
 			var aAllowedTypes = this._getAllowedTypes();
 			var sType = typeof vValue;
-			var sChosenType = includes(aAllowedTypes, sType) ? sType : undefined;
-			if (!sChosenType && includes(aAllowedTypes, "string")) {
+			var sChosenType = aAllowedTypes.includes(sType) ? sType : undefined;
+			if (!sChosenType && aAllowedTypes.includes("string")) {
 				sChosenType = "string";
 			}
 			return sChosenType;
 		},
 
 		_getAllowedTypes: function () {
-			return (this.getConfig() || MapEditor.configMetadata).allowedTypes;
+			var oConfig = this.getConfig();
+			return (
+				(oConfig && oConfig.allowedTypes)
+				|| MapEditor.configMetadata.allowedTypes.defaultValue
+			);
 		},
 
 		_setSupportedTypesModel: function () {
 			var aAllowedTypes = this._getAllowedTypes();
-			this._supportedTypesModel.setData(this._aSupportedTypes.filter(function (oSupportedType) {
-				return includes(aAllowedTypes, oSupportedType.key);
-			}));
+			var aRegisteredTypes = PropertyEditorFactory.getTypes();
+			Promise.all(aAllowedTypes.map(function(sType) {
+				return (aRegisteredTypes[sType] || Promise.resolve(BasePropertyEditor))
+					.then(function(oEditor) {
+						return {
+							key: sType,
+							editor: oEditor
+						};
+					});
+			}))
+				.then(function(aEditorInfos){
+					var aItems = aEditorInfos.map(function(oEditorInfo) {
+						var sLabelKey = oEditorInfo.editor.configMetadata.typeLabel.defaultValue;
+						return {
+							key: oEditorInfo.key,
+							title: this.getI18nProperty(sLabelKey)
+						};
+					}.bind(this));
+					this._supportedTypesModel.setData(aItems);
+				}.bind(this));
 		},
 
 		/**
 		 * Formatter function which is called for every item config
 		 * @param {object} oConfigValue - Original map item config
 		 * @param {string} oConfigValue.key - Item key
+		 * @param {object} oConfigValue.designtime - Item designtime metadata
 		 * @param {object} oConfigValue.value - Formatted item value
 		 * @param {string} oConfigValue.value.type - Property type
 		 * @param {any} oConfigValue.value.value - Property value
@@ -240,6 +274,10 @@ sap.ui.define([
 			var sKey = oConfigValue.key;
 			var sType = oConfigValue.value.type;
 			var vValue = oConfigValue.value.value;
+			if (sType === "boolean") {
+				vValue = oConfigValue.value.value !== false;
+			}
+			var oDesigntime = (oConfigValue.designtime || {}).__value;
 			var oConfig = this.getConfig();
 
 			return [
@@ -270,12 +308,7 @@ sap.ui.define([
 					path: "type",
 					value: sType,
 					type: "select",
-					items: this._getAllowedTypes().map(function (sKey) {
-						return {
-							key: sKey,
-							title: this.getI18nProperty(SUPPORTED_TYPE_LABELS[sKey])
-						};
-					}.bind(this)),
+					items: this._supportedTypesModel.getData(),
 					visible: oConfig.allowTypeChange,
 					itemKey: sKey,
 					allowBindings: false
@@ -284,8 +317,10 @@ sap.ui.define([
 					label: this.getI18nProperty("BASE_EDITOR.MAP.VALUE"),
 					path: "value",
 					value: vValue,
-					type: sType,
-					itemKey: sKey
+					type: sType && this._getAllowedTypes().includes(sType) ? sType : this._getDefaultType(vValue),
+					visible: sType !== "group" && sType !== "separator",
+					itemKey: sKey,
+					designtime: (oDesigntime || {}).value
 				}
 			];
 		},
@@ -395,11 +430,13 @@ sap.ui.define([
 			if (Array.isArray(aPreviousPropertyEditors)) {
 				aPreviousPropertyEditors.forEach(function (oPreviousPropertyEditor) {
 					oPreviousPropertyEditor.detachValueChange(this._onItemChange, this);
+					oPreviousPropertyEditor.detachDesigntimeMetadataChange(this._onDesigntimeValueChange, this);
 				}, this);
 			}
 			if (Array.isArray(aPropertyEditors)) {
 				aPropertyEditors.forEach(function (oPropertyEditor) {
 					oPropertyEditor.attachValueChange(this._onItemChange, this);
+					oPropertyEditor.attachDesigntimeMetadataChange(this._onDesigntimeValueChange, this);
 				}, this);
 			}
 		},
@@ -415,6 +452,35 @@ sap.ui.define([
 			}
 
 			fnHandler.call(this, sKey, oEvent);
+		},
+
+		_onDesigntimeValueChange: function (oEvent) {
+			var sKey = oEvent.getSource().getConfig().itemKey;
+			var sChangeType = oEvent.getParameter("path");
+
+			// Only consider designtime metadata changes of the value field
+			// to avoid conflicts with designtime metadata coming from value
+			// changes directly, e.g. label change
+			if (sChangeType !== "value") {
+				return;
+			}
+
+			this._onDesigntimeChange(sKey, oEvent);
+		},
+
+		_onDesigntimeChange: function (sKey, oEvent) {
+			var oDesigntime = _merge({}, this.getConfig().designtime);
+			var newDesigntimeValue = { __value: {} };
+
+			newDesigntimeValue.__value[oEvent.getParameter("path")] = oEvent.getParameter("value");
+
+			oDesigntime[sKey] = _merge(
+				{},
+				oDesigntime[sKey],
+				newDesigntimeValue
+			);
+			this.setDesigntimeMetadata(oDesigntime);
+			this.setValue(this.getValue());
 		},
 
 		getItemChangeHandlers: function () {
@@ -440,6 +506,13 @@ sap.ui.define([
 					var sNewItemKey = sItemKey === sOldKey ? sNewKey : sItemKey;
 					oNewValue[sNewItemKey] = oEditorValue[sItemKey];
 				});
+				if (oNewValue[sNewKey]
+					&& oNewValue[sNewKey].type !== "group"
+					&& oNewValue[sNewKey].type !== "separator"
+					&& oNewValue[sNewKey].manifestpath
+					&& oNewValue[sNewKey].manifestpath.startsWith("/sap.card/configuration/parameters/")) {
+						oNewValue[sNewKey].manifestpath = "/sap.card/configuration/parameters/" + sNewKey + "/value";
+				}
 
 				this._mTypes[sNewKey] = this._mTypes[sOldKey];
 				delete this._mTypes[sOldKey];
@@ -449,6 +522,13 @@ sap.ui.define([
 				var oDesigntime = _merge({}, this.getConfig().designtime);
 				if (oDesigntime.hasOwnProperty(sOldKey)) {
 					oDesigntime[sNewKey] = oDesigntime[sOldKey];
+					if (oDesigntime[sNewKey].__value
+						&& oDesigntime[sNewKey].__value.type
+						&& oDesigntime[sNewKey].__value.type !== "group"
+						&& oDesigntime[sNewKey].__value.type !== "separator"
+						&& oDesigntime[sNewKey].__value.manifestpath) {
+						oDesigntime[sNewKey].__value.manifestpath = oDesigntime[sNewKey].__value.manifestpath.replace(sOldKey, sNewKey);
+					}
 					delete oDesigntime[sOldKey];
 					this.setDesigntimeMetadata(oDesigntime);
 				}
@@ -462,14 +542,60 @@ sap.ui.define([
 			}
 
 			var oEditorValue = _merge({}, this.getValue());
-			var sNewType =  oEvent.getParameter("value");
+			var sNewType = oEvent.getParameter("value");
+			var sOldType = oEvent.getParameter("previousValue");
 
-			var oItemToEdit = this.processInputValue(oEditorValue[sKey]);
-			oItemToEdit.type = sNewType;
-			oEditorValue[sKey] = this.processOutputValue(oItemToEdit);
+			if (sNewType !== sOldType) {
+				var oItemToEdit = this.processInputValue(oEditorValue[sKey]);
+				oItemToEdit.type = sNewType;
+				oEditorValue[sKey] = this.processOutputValue(oItemToEdit);
+				if (sNewType === "simpleicon") {
+					oEditorValue[sKey].visualization = {
+						"type": "IconSelect",
+						"settings": {
+							"value": "{currentSettings>value}",
+							"editable": "{currentSettings>editable}"
+						}
+					};
+				} else {
+					delete oEditorValue[sKey].visualization;
+				}
 
-			this._mTypes[sKey] = sNewType;
-			this.setValue(oEditorValue);
+				if (sNewType !== "array" && sNewType !== "string" && sNewType !== "object" && sNewType !== "objectArray") {
+					delete oEditorValue[sKey].values;
+				}
+
+				if (sNewType === "object" && typeof oEditorValue[sKey].value !== "object") {
+					delete oEditorValue[sKey].value;
+				}
+
+				if (sNewType === "objectArray" && !(oEditorValue[sKey].value instanceof Array)) {
+					delete oEditorValue[sKey].value;
+				}
+
+				this._mTypes[sKey] = sNewType;
+				this.setValue(oEditorValue);
+
+				var oDesigntime = _merge({}, this.getConfig().designtime);
+				if (oDesigntime.hasOwnProperty(sKey)) {
+					if (sNewType === "simpleicon") {
+						oDesigntime[sKey].__value.visualization = {
+							"type": "IconSelect",
+							"settings": {
+								"value": "{currentSettings>value}",
+								"editable": "{currentSettings>editable}"
+							}
+						};
+					} else {
+						delete oDesigntime[sKey].__value.visualization;
+					}
+					if (sNewType !== "array" && sNewType !== "string" && sNewType !== "object" && sNewType !== "objectArray") {
+						delete oDesigntime[sKey].__value.values;
+					}
+					oDesigntime[sKey].__value.type = sNewType;
+					this.setDesigntimeMetadata(oDesigntime);
+				}
+			}
 		},
 
 		// Generic field change
@@ -483,6 +609,11 @@ sap.ui.define([
 			oEditorValue[sKey] = this.processOutputValue(oItemToEdit);
 
 			this.setValue(oEditorValue);
+		},
+
+		formatAddItemText: function(sAddText, sItemLabelI18n) {
+			var sItemLabel = this.getI18nProperty(sItemLabelI18n);
+			return formatMessage(sAddText, [sItemLabel]);
 		},
 
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
@@ -505,6 +636,9 @@ sap.ui.define([
 			defaultValue: ["string"],
 			mergeStrategy: "intersection"
 		},
+		defaultType: {
+			defaultValue: null
+		},
 		allowSorting: {
 			defaultValue: true,
 			mergeStrategy: "mostRestrictiveWins"
@@ -512,6 +646,9 @@ sap.ui.define([
 		includeInvalidEntries: {
 			defaultValue: true,
 			mergeStrategy: "mostRestrictiveWins"
+		},
+		addItemLabelI18n: {
+			defaultValue: "BASE_EDITOR.MAP.DEFAULT_TYPE"
 		}
 	});
 

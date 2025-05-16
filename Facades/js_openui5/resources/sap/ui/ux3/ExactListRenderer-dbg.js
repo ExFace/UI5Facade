@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for the sap.ui.ux3.ExactListRenderer
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Configuration"],
+	function(Configuration) {
 	"use strict";
 
 
@@ -171,7 +171,7 @@ sap.ui.define([],
 	 */
 	ExactListRenderer.getExpanderSymbol = function(bExpanded, bHorizontal){
 		if (bHorizontal) {
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Configuration.getRTL()) {
 				return bExpanded ? "&#9654;" : "&#9664;";
 			} else {
 				return bExpanded ? "&#9664;" : "&#9654;";

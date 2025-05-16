@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
@@ -21,15 +21,14 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.Tokenizer} oControl an object representation of the control that should be rendered
 	 */
 	TokenizerRenderer.render = function(oRm, oControl){
+		var aTokens = oControl.getTokens();
+
 		//write the HTML into the render manager
-		if (oControl.getParent() && (oControl.getParent() instanceof sap.m.MultiInput || oControl.getParent() instanceof sap.m.MultiComboBox)) {
-			oRm.openStart("div", oControl);
-		} else {
-			oRm.openStart("div", oControl).attr("tabindex", "0");
-		}
+		oRm.openStart("div", oControl);
+
 
 		oRm.class("sapMTokenizer");
 
@@ -39,11 +38,12 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 
 		if (!oControl.getEnabled()) {
 			oRm.class("sapMTokenizerDisabled");
+
 		}
 
-		var aTokens = oControl.getTokens();
 		if (!aTokens.length) {
 			oRm.class("sapMTokenizerEmpty");
+			oRm.attr("aria-hidden", "true");
 		}
 
 		oRm.style("max-width", oControl.getMaxWidth());
@@ -86,12 +86,17 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 
 		oRm.openStart("div", oControl.getId() + "-scrollContainer");
 		oRm.class("sapMTokenizerScrollContainer");
+
+		if (oControl.getHiddenTokensCount() === oControl.getTokens().length) {
+			oRm.class("sapMTokenizerScrollContainerNoVisibleTokens");
+		}
+
 		oRm.openEnd();
 
-		TokenizerRenderer._renderTokens(oRm, oControl);
+		this._renderTokens(oRm, oControl);
 
 		oRm.close("div");
-		TokenizerRenderer._renderIndicator(oRm, oControl);
+		this._renderIndicator(oRm, oControl);
 		oRm.close("div");
 	};
 
@@ -99,7 +104,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 	 * renders the tokens
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.Tokenizer} oControl an object representation of the control that should be rendered
 	 */
 	TokenizerRenderer._renderTokens = function(oRm, oControl){
 		var i = 0,
@@ -115,15 +120,44 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 	 * Renders the N-more indicator
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.Tokenizer} oControl an object representation of the control that should be rendered
 	 */
 	TokenizerRenderer._renderIndicator = function(oRm, oControl){
+		var bExpanded = !!oControl._oPopup && oControl._oPopup.isOpen();
+		var sPopoverId = oControl._oPopup && oControl._oPopup.getId();
+
 		oRm.openStart("span");
 		oRm.class("sapMTokenizerIndicator");
+
+		this._renderIndicatorTabIndex(oRm, oControl);
+
 		if (oControl.getHiddenTokensCount() === 0) {
 			oRm.class("sapUiHidden");
 		}
+
+		oRm.attr("role", "button")
+			.attr("aria-haspopup", "dialog")
+			.attr("aria-expanded", bExpanded);
+
+		if (sPopoverId) {
+			oRm.attr("aria-controls", sPopoverId);
+		}
+
 		oRm.openEnd().close("span");
+	};
+
+	/**
+	 * Callback for specific rendering of Tokenizer N-more indicator tabindex attribute.
+	 *
+	 * @param {sap.ui.core.RenderManager}
+	 *            oRm the RenderManager currently rendering this control
+	 * @param {sap.m.Tokenizer}
+	 *            oControl the Tokenizer that should be rendered
+	 * @private
+	 *
+	 * @ui5-restricted sap.ui.mdc.field.TokenizerDisplayRenderer
+	 */
+	TokenizerRenderer._renderIndicatorTabIndex = function(oRm, oControl) {
 	};
 
 	return TokenizerRenderer;

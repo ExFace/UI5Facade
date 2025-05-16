@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -9,8 +9,9 @@
  */
 sap.ui.define([
 	'sap/ui/thirdparty/jquery',
-	'sap/ui/dom/jquery/Selectors'
-], function(jQuery/*, sapTabbable */) {
+	'sap/ui/events/PseudoEvents',
+	'sap/ui/dom/findTabbable'
+], function (jQuery, PseudoEvents, findTabbable) {
 	"use strict";
 
 	/**
@@ -40,6 +41,42 @@ sap.ui.define([
 	 */
 	F6Navigation.fastNavigationKey = "sap-ui-fastnavgroup";
 
+	function getFastNavGroup(oElement) {
+		var oHtmlElement = document.querySelector("html");
+		var oFastNavGroup, oCustomFastNavGroup;
+
+		while (oElement && oElement !== oHtmlElement) {
+			if (oElement.getAttribute("data-sap-ui-customfastnavgroup") === "true") {
+				oCustomFastNavGroup = oElement;
+			}
+			if (oElement.getAttribute("data-sap-ui-fastnavgroup") === "true") {
+				oFastNavGroup = oFastNavGroup || oElement;
+			}
+			if (oCustomFastNavGroup) {
+				break;
+			}
+			oElement = oElement.assignedSlot || oElement.parentElement || oElement.parentNode.host;
+		}
+
+		return oCustomFastNavGroup || oFastNavGroup;
+	}
+
+	function getActiveElement(oRoot) {
+		if (oRoot.activeElement && oRoot.activeElement.shadowRoot) {
+			return getActiveElement(oRoot.activeElement.shadowRoot);
+		}
+
+		return oRoot.activeElement;
+	}
+
+	function isContainedIn(oTarget, oScope) {
+		var oParentElement = oTarget.parentElement || oTarget.parentNode || oTarget.host;
+		if (oParentElement && oParentElement !== oScope) {
+			return isContainedIn(oParentElement, oScope);
+		}
+		return oTarget !== document;
+	}
+
 	/**
 	 * Handles the F6 key event.
 	 *
@@ -51,182 +88,16 @@ sap.ui.define([
 	 * @param {Element} [oSettings.target=document.activeElement] the DOMNode which should be used as starting point to find the next DOMNode in the F6 chain.
 	 * @param {Element[]} [oSettings.scope=[document]] the DOMNodes(s) which are used for the F6 chain search
 	 */
-	F6Navigation.handleF6GroupNavigation = function(oEvent, oSettings) {
+	F6Navigation.handleF6GroupNavigation = function (oEvent, oSettings) {
+		// Use PseudoEvent check in order to verify validity of shortcuts
+		var oSapSkipForward = PseudoEvents.events.sapskipforward,
+			oSapSkipBack = PseudoEvents.events.sapskipback,
+			bSapSkipForward = oSapSkipForward.aTypes.includes(oEvent.type) && oSapSkipForward.fnCheck(oEvent),
+			bIsValidShortcut = bSapSkipForward || (oSapSkipBack.aTypes.includes(oEvent.type) && oSapSkipBack.fnCheck(oEvent)),
+			oFastNavEvent = null,
+			oNextTabbable;
 
-		// Returns the nearest parent DomRef of the given DomRef with attribute data-sap-ui-customfastnavgroup="true".
-		function findClosestCustomGroup(oRef) {
-			var $Group = jQuery(oRef).closest('[data-sap-ui-customfastnavgroup="true"]');
-			return $Group[0];
-		}
-
-		// Returns the nearest parent DomRef of the given DomRef with attribute data-sap-ui-fastnavgroup="true" or
-		// (if available) the nearest parent with attribute data-sap-ui-customfastnavgroup="true".
-		function findClosestGroup(oRef) {
-			var oGroup = findClosestCustomGroup(oRef);
-			if (oGroup) {
-				return oGroup;
-			}
-
-			var $Group = jQuery(oRef).closest('[data-' + F6Navigation.fastNavigationKey + '="true"]');
-			return $Group[0];
-		}
-
-		// Returns a jQuery object which contains all next/previous (bNext) tabbable DOM elements of the given starting point (oRef) within the given scopes (DOMRefs)
-		function findTabbables(oRef, aScopes, bNext) {
-			var $Ref = jQuery(oRef),
-				$All, $Tabbables;
-
-			if (bNext) {
-				$All = jQuery.merge($Ref.find("*"), jQuery.merge($Ref.nextAll(), $Ref.parents().nextAll()));
-				$Tabbables = $All.find(':sapTabbable').addBack(':sapTabbable');
-			} else {
-				$All = jQuery.merge($Ref.prevAll(), $Ref.parents().prevAll());
-				$Tabbables = jQuery.merge($Ref.parents(':sapTabbable'), $All.find(':sapTabbable').addBack(':sapTabbable'));
-			}
-
-			var $Tabbables = jQuery.uniqueSort($Tabbables);
-			return $Tabbables.filter(function() {
-				return isContained(aScopes, this);
-			});
-		}
-
-		// Filters all elements in the given jQuery object which are in the static UIArea and which are not in the given scopes.
-		function filterStaticAreaContent($Refs, aScopes) {
-			var oStaticArea = window.document.getElementById("sap-ui-static");
-			if (!oStaticArea) {
-				return $Refs;
-			}
-
-			var aScopesInStaticArea = [];
-			for (var i = 0; i < aScopes.length; i++) {
-				if (jQuery.contains(oStaticArea, aScopes[i])) {
-					aScopesInStaticArea.push(aScopes[i]);
-				}
-			}
-
-			return $Refs.filter(function() {
-				if (aScopesInStaticArea.length && isContained(aScopesInStaticArea, this)) {
-					return true;
-				}
-				return !jQuery.contains(oStaticArea, this);
-			});
-		}
-
-		// Checks whether the given DomRef is contained or equals (in) one of the given container
-		function isContained(aContainers, oRef) {
-			for (var i = 0; i < aContainers.length; i++) {
-				if (aContainers[i] === oRef || jQuery.contains(aContainers[i], oRef)) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		//see navigate() (bForward = false)
-		function findFirstTabbableOfPreviousGroup($FirstTabbableInScope, $Tabbables, oSouceGroup, bFindPreviousGroup) {
-			var oGroup, $Target;
-
-			for (var i = $Tabbables.length - 1; i >= 0; i--) {
-				oGroup = findClosestGroup($Tabbables[i]);
-				if (oGroup != oSouceGroup) {
-					if (bFindPreviousGroup) {
-						//First find last tabbable of previous group and remember this new group (named "X" in the following comments)
-						oSouceGroup = oGroup;
-						bFindPreviousGroup = false;
-					} else {
-						//Then starting from group X and try to find again the last tabbable of previous group (named "Y")
-						//-> Jump one tabbable back to get the first tabbable of X
-						$Target = jQuery($Tabbables[i + 1]);
-						break;
-					}
-				}
-			}
-
-			if (!$Target && !bFindPreviousGroup) {
-				//Group X found but not group Y -> X is the first group -> Focus the first tabbable scope (e.g. page) element
-				$Target = $FirstTabbableInScope;
-			}
-
-			return $Target;
-		}
-
-		// Finds the next/previous (bForward) element in the F6 chain starting from the given source element within the given scopes and focus it
-		function navigate(oSource, aScopes, bForward) {
-			if (!aScopes || aScopes.length == 0) {
-				aScopes = [document];
-			}
-
-			if (!isContained(aScopes, oSource)) {
-				return;
-			}
-
-			var oSouceGroup = findClosestGroup(oSource),
-				$AllTabbables = filterStaticAreaContent(jQuery(aScopes).find(':sapTabbable').addBack(':sapTabbable'), aScopes),
-				$FirstTabbableInScope = $AllTabbables.first(),
-				$Tabbables = filterStaticAreaContent(findTabbables(oSource, aScopes, bForward), aScopes),
-				oGroup, $Target;
-
-			if (bForward) {
-				//Find the first next tabbable within another group
-				for (var i = 0; i < $Tabbables.length; i++) {
-					oGroup = findClosestGroup($Tabbables[i]);
-					if (oGroup != oSouceGroup) {
-						$Target = jQuery($Tabbables[i]);
-						break;
-					}
-				}
-
-				//If not found, end of scope (e.g. page) is reached -> Focus the first tabbable scope (e.g. page) element
-				if (!$Target || !$Target.length) {
-					$Target = $FirstTabbableInScope;
-				}
-			} else {
-				$Target = findFirstTabbableOfPreviousGroup($FirstTabbableInScope, $Tabbables, oSouceGroup, true);
-
-				if (!$Target || !$Target.length) {
-					//No other group found before -> find first element of last group in the scope (e.g. page)
-
-					if ($AllTabbables.length == 1) {
-						//Only one tabbable element -> use it
-						$Target = jQuery($AllTabbables[0]);
-					} else if ($AllTabbables.length > 1) {
-						oSouceGroup = findClosestGroup($AllTabbables.eq(-1));
-						oGroup = findClosestGroup($AllTabbables.eq(-2));
-						if (oSouceGroup != oGroup) {
-							//Last tabbable scope (e.g. page) element and the previous tabbable scope (e.g. page) element have different groups -> last tabbable scope (e.g. page) element is first tabbable element of its group
-							$Target = $AllTabbables.eq(-1);
-						} else {
-							//Take last tabbable scope (e.g. page) element as reference and start search for first tabbable of the same group
-							$Target = findFirstTabbableOfPreviousGroup($FirstTabbableInScope, $AllTabbables, oSouceGroup, false);
-						}
-					}
-				}
-			}
-
-			if ($Target && $Target.length) {
-				var oTarget = $Target[0],
-					oEvent = null,
-					oCustomGroup = findClosestCustomGroup(oTarget);
-
-				if (oCustomGroup && oCustomGroup.id) {
-					var oControl = sap.ui.getCore().byId(oCustomGroup.id);
-					if (oControl) {
-						oEvent = jQuery.Event("BeforeFastNavigationFocus");
-						oEvent.target = oTarget;
-						oEvent.source = oSource;
-						oEvent.forward = bForward;
-						oControl._handleEvent(oEvent);
-					}
-				}
-
-				if (!oEvent || !oEvent.isDefaultPrevented()) {
-					oTarget.focus();
-				}
-			}
-		}
-
-		if (oEvent.type != "keydown" ||
-			oEvent.key != 'F6' ||
+		if (!bIsValidShortcut ||
 			oEvent.isMarked("sapui5_handledF6GroupNavigation") ||
 			oEvent.isMarked() ||
 			oEvent.isDefaultPrevented()) {
@@ -241,14 +112,62 @@ sap.ui.define([
 			return;
 		}
 
-		var oTarget = oSettings && oSettings.target ? oSettings.target : document.activeElement,
-			aScopes = null;
+		var oTarget = oSettings && oSettings.target ? oSettings.target : getActiveElement(document);
+		var oScope;
 
 		if (oSettings && oSettings.scope) {
-			aScopes = Array.isArray(oSettings.scope) ? oSettings.scope : [oSettings.scope];
+			oScope = oSettings.scope;
+		} else {
+			oScope = document.documentElement;
 		}
 
-		navigate(oTarget, aScopes, !oEvent.shiftKey);
+		if (!isContainedIn(oTarget, oScope)) {
+			return;
+		}
+
+		// Determine currently selected fast navigation group
+		var oCurrentSelectedGroup = getFastNavGroup(oTarget);
+		var oNextFastNavGroup;
+		var oTabbableInfo;
+		oNextTabbable = oTarget;
+
+		do {
+			oTabbableInfo = findTabbable(oNextTabbable, {
+				scope: oScope,
+				forward: bSapSkipForward
+			});
+			oNextTabbable = oTabbableInfo.element;
+			oNextFastNavGroup = getFastNavGroup(oNextTabbable);
+		} while ((!oTabbableInfo.startOver && (oCurrentSelectedGroup === oNextFastNavGroup)));
+
+		if (!bSapSkipForward) {
+			var oPreviousTabbable, oPreviousFastNavGroup;
+			do {
+				oNextTabbable = oPreviousTabbable || oNextTabbable;
+				oTabbableInfo = findTabbable(oNextTabbable, {
+					scope: oScope,
+					forward: bSapSkipForward
+				});
+				oPreviousTabbable = oTabbableInfo.element;
+				oPreviousFastNavGroup = getFastNavGroup(oPreviousTabbable);
+			} while (oPreviousFastNavGroup === oNextFastNavGroup && !oTabbableInfo.startOver);
+		}
+
+		if (oNextFastNavGroup && oNextFastNavGroup.getAttribute("data-sap-ui-customfastnavgroup") === "true" && oNextFastNavGroup.id) {
+			var Element = sap.ui.require("sap/ui/core/Element");
+			var oControl = Element?.getElementById(oNextFastNavGroup.id);
+			if (oControl) {
+				oFastNavEvent = jQuery.Event("BeforeFastNavigationFocus");
+				oFastNavEvent.target = oNextTabbable;
+				oFastNavEvent.source = oTarget;
+				oFastNavEvent.forward = bSapSkipForward;
+				oControl._handleEvent(oFastNavEvent);
+			}
+		}
+
+		if (!oFastNavEvent || !oFastNavEvent.isDefaultPrevented()) {
+			oNextTabbable.focus();
+		}
 	};
 
 	return F6Navigation;

@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Element","sap/ui/core/Lib","sap/ui/core/util/reflection/JsControlTreeModifier","sap/ui/dt/ElementUtil","sap/ui/rta/util/changeVisualization/ChangeVisualizationUtils"],function(e,t,i,r,n){"use strict";var o=t.getResourceBundleFor("sap.ui.rta");var a={};a.getDescription=function(t,a,T){var l=(t.originalSelectors||[]).length;if(l<2){return{descriptionText:o.getText("TXT_CHANGEVISUALIZATION_CHANGE_COMBINE",[n.shortenString(a)]),descriptionTooltip:o.getText("TXT_CHANGEVISUALIZATION_CHANGE_COMBINE",[a])}}var s=T.appComponent;var u=t.originalSelectors;var p=u.map(function(t){var n=i.getControlIdBySelector(t,s);var o=e.getElementById(n);return o?r.getLabelForElement(o):n});var I=p.map(n.shortenString);if(l===2){return{descriptionText:o.getText("TXT_CHANGEVISUALIZATION_CHANGE_COMBINE_TWO",I),descriptionTooltip:o.getText("TXT_CHANGEVISUALIZATION_CHANGE_COMBINE_TWO",p)}}return{descriptionText:o.getText("TXT_CHANGEVISUALIZATION_CHANGE_COMBINE_MANY",[p.length]),descriptionTooltip:p.map(function(e){return`"${e}"`}).join(",\n")}};return a});
+//# sourceMappingURL=CombineVisualization.js.map

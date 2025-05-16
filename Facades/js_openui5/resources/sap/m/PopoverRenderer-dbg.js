@@ -1,18 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/m/library',
-	"sap/ui/dom/getScrollbarSize"
+	'sap/ui/core/library',
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/dom/getScrollbarSize",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
 ],
-	function(Device, library, getScrollbarSize) {
+	function(Device, library, coreLibrary, ControlBehavior, getScrollbarSize) {
 		"use strict";
 
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
+
+		// shortcut for sap.ui.core.OpenState
+		var OpenState = coreLibrary.OpenState;
+
 
 		/**
 		 * Popover renderer.
@@ -26,11 +33,17 @@ sap.ui.define([
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the Render-Output-Buffer
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+		 * @param {sap.m.Popover} oControl An object representation of the control that should be rendered
 		 */
 		PopoverRenderer.render = function(oRm, oControl) {
 			oRm.openStart("div", oControl);
-			var aClassNames = this.generateRootClasses(oControl);
+			var aClassNames = this.generateRootClasses(oControl),
+				sContentWidth = oControl._getActualContentWidth();
+
+			if (!oControl.isOpen() && oControl.oPopup?.eOpenState !== OpenState.OPENING) {
+				oRm.class("sapMPopoverHidden");
+			}
+
 			aClassNames.forEach(function(sClassName) {
 				oRm.class(sClassName);
 			});
@@ -48,12 +61,16 @@ sap.ui.define([
 				oRm.attr("title", sTooltip);
 			}
 
+			if (oControl.isResized() && sContentWidth) {
+				oRm.style("width", sContentWidth);
+			}
+
 			oRm.attr("tabindex", "-1")
 				.accessibilityState(oControl, oControl._getAccessibilityOptions()) // ARIA
 				.openEnd();
 
 			if (oControl.getResizable()) {
-				oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandle"], { "title" : ""});
+				PopoverRenderer.renderResizeHandle(oRm);
 			}
 
 			this.renderContent(oRm, oControl);
@@ -61,7 +78,7 @@ sap.ui.define([
 		};
 
 		PopoverRenderer.isButtonFooter = function(footer) {
-			if (footer instanceof sap.m.Bar) {
+			if (footer && footer.isA("sap.m.Bar")) {
 				var aContentLeft = footer.getContentLeft(),
 					aContentRight = footer.getContentRight(),
 					aContentMiddle = footer.getContentMiddle(),
@@ -70,7 +87,7 @@ sap.ui.define([
 					bMiddleTwoButtons = false;
 
 				if (aContentMiddle && aContentMiddle.length === 2) {
-					if ((aContentMiddle[0] instanceof sap.m.Button) && (aContentMiddle[1] instanceof sap.m.Button)) {
+					if ((aContentMiddle[0] && aContentMiddle[0].isA("sap.m.Button")) && (aContentMiddle[1] && aContentMiddle[1].isA("sap.m.Button"))) {
 						bMiddleTwoButtons = true;
 					}
 				}
@@ -88,18 +105,23 @@ sap.ui.define([
 				contents = oControl._getAllContent(),
 				oFooter = oControl.getFooter(),
 				oSubHeader = oControl.getSubHeader(),
-				sContentWidth = oControl.getContentWidth(),
+				sContentWidth = oControl._getActualContentWidth(),
 				sContentMinWidth = oControl.getContentMinWidth(),
-				sContentHeight = oControl.getContentHeight();
+				sContentHeight = oControl._getActualContentHeight();
 
 			if (Device.system.desktop) {
 				// invisible element for cycling keyboard navigation
 				oRm.openStart("span", oControl.getId() + "-firstfe")
 					.class("sapMPopoverHiddenFocusable")
 					.attr("tabindex", "0")
+					.attr("role", "presentation")
 					.openEnd()
 					.close("span");
 			}
+
+			oRm.openStart("div")
+				.class("sapMPopoverWrapper")
+				.openEnd();
 
 			// Header
 			if (oHeader) {
@@ -147,7 +169,7 @@ sap.ui.define([
 
 			// Note: If this property should become public in the future, the property will have to be set on a level
 			// that will encapsulate the header and the footer of the popover as well.
-			if (sap.ui.getCore().getConfiguration().getAccessibility()
+			if (ControlBehavior.isAccessibilityEnabled()
 				&& oControl.getProperty("ariaRoleApplication")) {
 				oRm.attr("role", "application");
 			}
@@ -157,10 +179,6 @@ sap.ui.define([
 			// scroll area
 			oRm.openStart("div", oControl.getId() + "-scroll")
 				.class("sapMPopoverScroll");
-
-			if (!oControl.getHorizontalScrolling()) {
-				oRm.style(sap.ui.getCore().getConfiguration().getRTL() ? "margin-left" : "margin-right", getScrollbarSize().width + "px");
-			}
 
 			oRm.openEnd();
 
@@ -192,6 +210,7 @@ sap.ui.define([
 
 				oRm.close("footer");
 			}
+			oRm.close("div");	// wrapper
 
 			// Arrow
 			if (oControl.getShowArrow()) {
@@ -213,6 +232,7 @@ sap.ui.define([
 				oRm.openStart("span", oControl.getId() + "-lastfe")
 					.class("sapMPopoverHiddenFocusable")
 					.attr("tabindex", "0")
+					.attr("role", "presentation")
 					.openEnd()
 					.close("span");
 			}
@@ -273,6 +293,18 @@ sap.ui.define([
 
 			// add custom classes set by the application as well
 			return aClassNames.concat(oControl.aCustomStyleClasses);
+		};
+
+		PopoverRenderer.renderResizeHandle = function(oRm) {
+			oRm.openStart("div")
+				.class("sapMPopoverResizeHandle")
+				.openEnd();
+
+			oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandleIcon"], {
+				"aria-hidden": true
+			});
+
+			oRm.close("div");
 		};
 
 		return PopoverRenderer;

@@ -1,10 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function () {
+sap.ui.define([
+	'./library',
+	'sap/ui/core/InvisibleText',
+	"sap/ui/core/Lib"],
+		function (
+			library,
+			InvisibleText,
+			Library) {
 	"use strict";
 
 	/**
@@ -15,11 +22,24 @@ sap.ui.define([], function () {
 		apiVersion: 2
 	};
 
+	// shortcut for sap.m.TabsOverflowMode
+	var TabsOverflowMode = library.TabsOverflowMode;
+
+	IconTabHeaderRenderer.getInvisibleSplitTabDescriptionText = function() {
+		if (!this.oInvisibleSplitTabDescriptionText) {
+			this.oInvisibleSplitTabDescriptionText = new InvisibleText({
+				text: Library.getResourceBundleFor("sap.m").getText("ICONTABHEADER_SPLIT_TAB_DESCRIPTION")
+			}).toStatic();
+		}
+
+		return this.oInvisibleSplitTabDescriptionText;
+	};
+
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.m.IconTabHeader} oControl an object representation of the control that should be rendered
 	 */
 	IconTabHeaderRenderer.render = function (oRM, oControl) {
 		if (!oControl.getVisible()) {
@@ -44,10 +64,6 @@ sap.ui.define([], function () {
 			.class("sapContrastPlus")
 			.class("sapMITHBackgroundDesign" + oControl.getBackgroundDesign());
 
-		if (aItems.length) {
-			oRM.class("sapMITHOverflowList");
-		}
-
 		// Check for upperCase property on IconTabBar
 		if (bUpperCase) {
 			oRM.class("sapMITBTextUpperCase");
@@ -63,6 +79,7 @@ sap.ui.define([], function () {
 
 		if (bInLine) {
 			oRM.class("sapMITBInLine");
+			oRM.class("sapMITBTextOnly");
 		}
 
 		oRM.accessibilityState(oControl, {
@@ -76,6 +93,16 @@ sap.ui.define([], function () {
 		}
 
 		oRM.openEnd();
+
+		if (aItems.length && oControl.getTabsOverflowMode() === TabsOverflowMode.StartAndEnd) {
+			oRM.openStart("div")
+				.class("sapMITHStartOverflow")
+				.openEnd();
+
+			oControl._getStartOverflow().render(oRM);
+
+			oRM.close("div");
+		}
 
 		if (mAriaTexts.headerDescription) {
 			oRM.renderControl(oControl._getInvisibleHeadText());
@@ -91,7 +118,13 @@ sap.ui.define([], function () {
 
 		if (mAriaTexts.headerDescription) {
 			oRM.accessibilityState({
-				describedby: oControl._getInvisibleHeadText().getId()
+				describedby: {value: oControl._getInvisibleHeadText().getId(), append: true}
+			});
+		}
+
+		if (oControl._hasSubItems()) {
+			oRM.accessibilityState({
+				describedby: {value: IconTabHeaderRenderer.getInvisibleSplitTabDescriptionText().getId(), append: true}
 			});
 		}
 
@@ -112,7 +145,7 @@ sap.ui.define([], function () {
 
 		if (aItems.length) {
 			oRM.openStart("div")
-				.class("sapMITHOverflow")
+				.class("sapMITHEndOverflow")
 				.openEnd();
 
 			oControl._getOverflow().render(oRM);

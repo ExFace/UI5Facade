@@ -1,67 +1,139 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 // Provides object sap.ui.fl.apply._internal.extensionPoint.Processor
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/changes/Applier",
-	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/flexState/changes/ExtensionPointState",
-	"sap/ui/fl/Utils",
+	"sap/base/util/merge",
+	"sap/ui/base/DesignTime",
+	"sap/ui/base/SyncPromise",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
-	"sap/base/util/merge"
-],
-function(
-	Applier,
-	FlexState,
-	ExtensionPointState,
-	Utils,
+	"sap/ui/fl/apply/_internal/changes/Applier",
+	"sap/ui/fl/apply/_internal/extensionPoint/Registry",
+	"sap/ui/fl/apply/_internal/flexState/changes/ExtensionPointState",
+	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/Utils"
+], function(
+	merge,
+	DesignTime,
+	SyncPromise,
 	JsControlTreeModifier,
-	merge
+	Applier,
+	ExtensionPointRegistry,
+	ExtensionPointState,
+	ManifestUtils,
+	Utils
 ) {
 	"use strict";
 
 	/**
-	 * Implements the <code>Extension Points</code> provider by SAPUI5 flexibility that can be hooked in the <code>sap.ui.core.ExtensionPoint</code> life cycle.
+	 * Implements the <code>Extension Points</code> provider by SAPUI5 flexibility that can be hooked
+	 * in the <code>sap.ui.core.ExtensionPoint</code> life cycle.
 	 *
 	 * @name sap.ui.fl.apply._internal.extensionPoint.Processor
 	 * @class
 	 * @constructor
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 */
-	var Processor = {
+	var Processor;
+
+	function executeNestedExtensionPoint(oControl, aResolvedControls, iControlIndex, iNestedEPAdditionalContentCounter, fnNestedCallback) {
+		return fnNestedCallback(oControl, true)
+		.then(function(aNestedControls) {
+			aNestedControls.forEach(function(oNestedControl, iNestedControlIndex) {
+				aResolvedControls.splice(iControlIndex + iNestedControlIndex + iNestedEPAdditionalContentCounter, 0, oNestedControl);
+			});
+			oControl.index += iNestedEPAdditionalContentCounter;
+			// the iControlIndex counts the extensionpoint as 1 control. when the EP is replaced by content with more than one  control
+			// then we need to have an additional content counter for correct index calculations for the following extension points
+			return aNestedControls.length - 1;
+		});
+	}
+
+	function checkForExtensionPoint(oExtensionPoint, fnNestedCallback, aControls) {
+		var aNestedExtensionPointPromises = [];
+		var aResolvedControls = [];
+		var iNestedEPAdditionalContentCounter = 0;
+		var oLastExtensionPoint;
+		// aControls is a list of controls and extension points
+		aControls.forEach(function(oControl, iControlIndex) {
+			if (oControl._isExtensionPoint) {
+				oControl.targetControl = oExtensionPoint.targetControl;
+				oControl.aggregationName = oExtensionPoint.aggregationName;
+				oControl.fragmentId = oExtensionPoint.fragmentId;
+				oControl.index = iControlIndex;
+				if (oLastExtensionPoint) {
+					oLastExtensionPoint._nextSibling = oControl;
+				}
+				oLastExtensionPoint = oControl;
+
+				// is required to calculate the index into the changehandler
+				oControl.referencedExtensionPoint = oExtensionPoint;
+				aNestedExtensionPointPromises.push(function() {
+					return executeNestedExtensionPoint(
+						oControl,
+						aResolvedControls,
+						iControlIndex,
+						iNestedEPAdditionalContentCounter,
+						fnNestedCallback
+					// eslint-disable-next-line max-nested-callbacks
+					).then(function(iNestedCounter) {
+						iNestedEPAdditionalContentCounter += iNestedCounter;
+					});
+				}
+				);
+			} else {
+				aResolvedControls.push(oControl);
+			}
+		});
+		if (aNestedExtensionPointPromises.length > 0) {
+			return aNestedExtensionPointPromises.reduce(function(oPreviousPromise, oCurrentPromise) {
+				return oPreviousPromise.then(oCurrentPromise);
+			}, SyncPromise.resolve())
+			.then(function() {
+				return aResolvedControls;
+			});
+		}
+		return SyncPromise.resolve(aResolvedControls);
+	}
+
+	function applyExtensionPoint(oExtensionPoint, bSkipInsertContent) {
+		var oAppComponent = Utils.getAppComponentForControl(oExtensionPoint.targetControl);
+		var mPropertyBag = {};
+		var mExtensionPointInfo = merge({defaultContent: []}, oExtensionPoint);
+		mPropertyBag.appComponent = oAppComponent;
+		mPropertyBag.modifier = JsControlTreeModifier;
+		mPropertyBag.viewId = oExtensionPoint.view.getId();
+		mPropertyBag.componentId = oAppComponent.getId();
+		mPropertyBag.reference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
+
+		return Processor.registerExtensionPoint(mExtensionPointInfo)
+		// enhance existing extension point changes with mExtensionPointInfo
+		.then(ExtensionPointState.enhanceExtensionPointChanges.bind(ExtensionPointState, mPropertyBag, oExtensionPoint))
+		.then(Processor.createDefaultContent.bind(this, oExtensionPoint, bSkipInsertContent, applyExtensionPoint))
+		.then(Processor.addDefaultContentToExtensionPointInfo.bind(this, mExtensionPointInfo, bSkipInsertContent));
+	}
+
+	Processor = {
 		oExtensionPointRegistry: undefined,
 		oRegistryPromise: Promise.resolve(),
 
-		registerExtensionPoint: function (mExtensionPointInfo) {
-			Processor.oRegistryPromise = Processor.oRegistryPromise.then(function () {
-				return new Promise(function (resolve, reject) {
-					if (Processor.oExtensionPointRegistry) {
-						Processor.oExtensionPointRegistry.registerExtensionPoint(mExtensionPointInfo);
-						return resolve();
-					} else if (sap.ui.getCore().getConfiguration().getDesignMode()) {
-						sap.ui.require(["sap/ui/fl/write/_internal/extensionPoint/Registry"], function (ExtensionPointRegistry) {
-							Processor.oExtensionPointRegistry = ExtensionPointRegistry;
-							ExtensionPointRegistry.registerExtensionPoint(mExtensionPointInfo);
-							resolve();
-						}, function (oError) {
-							reject(oError);
-						});
-					} else {
-						resolve();
-					}
-				});
-			});
-			return Processor.oRegistryPromise;
+		registerExtensionPoint(mExtensionPointInfo) {
+			if (DesignTime.isDesignModeEnabled()) {
+				ExtensionPointRegistry.registerExtensionPoint(mExtensionPointInfo);
+			}
+			return SyncPromise.resolve();
 		},
 
-		createDefaultContent: function (oExtensionPoint, aChanges) {
+		createDefaultContent(oExtensionPoint, bSkipInsertContent, fnNestedCallback, aChanges) {
 			if (aChanges.length === 0) {
 				return oExtensionPoint.createDefault()
-					.then(function (aControls) {
+				.then(checkForExtensionPoint.bind(undefined, oExtensionPoint, fnNestedCallback))
+				.then(function(aControls) {
+					if (!bSkipInsertContent) {
 						aControls.forEach(function(oNewControl, iIterator) {
 							JsControlTreeModifier.insertAggregation(
 								oExtensionPoint.targetControl,
@@ -72,32 +144,30 @@ function(
 							);
 						});
 						oExtensionPoint.ready(aControls);
-						return aControls;
-					});
+					}
+					return aControls;
+				});
 			}
-			return Promise.resolve([]);
+			return SyncPromise.resolve([]);
 		},
 
-		addDefaultContentToExtensionPointInfo: function (mExtensionPointInfo, aControls) {
-			mExtensionPointInfo.defaultContent = mExtensionPointInfo.defaultContent.concat(aControls);
+		addDefaultContentToExtensionPointInfo(mRegsteredExtensionPoint, bSkipInsertContent, aControls) {
+			if (!bSkipInsertContent) {
+				mRegsteredExtensionPoint.defaultContent = mRegsteredExtensionPoint.defaultContent.concat(aControls);
+			}
+			return aControls;
 		},
 
-		applyExtensionPoint: function(oExtensionPoint) {
-			var oAppComponent = Utils.getAppComponentForControl(oExtensionPoint.targetControl);
-			var mPropertyBag = {};
-			var mExtensionPointInfo = merge({defaultContent: []}, oExtensionPoint);
-			mPropertyBag.appComponent = oAppComponent;
-			mPropertyBag.modifier = JsControlTreeModifier;
-			mPropertyBag.viewId = oExtensionPoint.view.getId();
-			mPropertyBag.componentId = oAppComponent.getId();
-
-			var oPromise = Processor.registerExtensionPoint(mExtensionPointInfo)
-				.then(FlexState.initialize.bind(FlexState, mPropertyBag))
-				// enhance exiting extension point changes with mExtensionPointInfo
-				.then(ExtensionPointState.enhanceExtensionPointChanges.bind(ExtensionPointState, mPropertyBag, mExtensionPointInfo))
-				.then(Processor.createDefaultContent.bind(this, oExtensionPoint))
-				.then(Processor.addDefaultContentToExtensionPointInfo.bind(this, mExtensionPointInfo));
-
+		/**
+		 * Registration of extension points for the creation process in designtime.
+		 * As well as creation of default content of extension point or preparation of flex changes
+		 * based on the extension points to be able to be applied.
+		 *
+		 * @param {sap.ui.core.ExtensionPoint} oExtensionPoint - info object with extension point information
+		 * @returns {Promise} resolves when default content is created or related changes are prepared for application
+		 */
+		applyExtensionPoint(oExtensionPoint) {
+			var oPromise = applyExtensionPoint(oExtensionPoint, false);
 			Applier.addPreConditionForInitialChangeApplying(oPromise);
 			return oPromise;
 		}

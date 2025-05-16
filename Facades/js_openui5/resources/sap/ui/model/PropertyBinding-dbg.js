@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstract property binding.
 sap.ui.define([
-	'./Binding',
-	'./SimpleType',
-	'./DataState',
+	"./Binding",
 	"sap/ui/base/SyncPromise",
+	"sap/ui/model/ChangeReason",
 	"sap/base/Log",
-	"sap/base/assert"
+	"sap/base/assert",
+	"./SimpleType", // convenience dependency for legacy code that uses global names
+	"./DataState" // convenience dependency for legacy code that uses global names
 ],
-	function(Binding, SimpleType, DataState, SyncPromise, Log, assert) {
+	function(Binding, SyncPromise, ChangeReason, Log, assert) {
 	"use strict";
 
 	/**
@@ -37,6 +38,16 @@ sap.ui.define([
 
 		constructor : function (oModel, sPath, oContext, mParameters) {
 			Binding.apply(this, arguments);
+			// The formatter providing the external representation of this binding's value
+			this.fnFormatter = undefined;
+			// The internal type of this binding, cf. #setType and
+			// sap.ui.base.ManagedObject.PropertyBindingInfo.targetType
+			this.sInternalType = undefined;
+			// The binding's sap.ui.model.BindingMode, cf. #setBindingMode and
+			// sap.ui.base.ManagedObject.PropertyBindingInfo.mode
+			this.sMode = undefined;
+			// The binding's sap.ui.model.SimpleType, cf. #setType
+			this.oType = undefined;
 		},
 		metadata : {
 			"abstract" : true,
@@ -60,8 +71,9 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Sets the value for this binding. A model implementation should check if the current default binding mode permits
-	 * setting the binding value and if so set the new value also in the model.
+	 * Sets the value for this binding. A model implementation should check if the current default
+	 * binding mode permits setting the binding value, and if so, set the new value in the model,
+	 * too.
 	 *
 	 * @function
 	 * @name sap.ui.model.PropertyBinding.prototype.setValue
@@ -71,9 +83,10 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Returns a value, after it has formatted using the given function
+	 * Returns a value formatted using the given function.
 	 *
-	 * @param {function} fnFormat the function to format the value
+	 * @param {function} fnFormat The function to format the value
+	 * @returns {any} The formatted value
 	 *
 	 * @private
 	 */
@@ -85,43 +98,66 @@ sap.ui.define([
 	/**
 	 * Sets a value, after it has been parsed and validated using the given function
 	 *
-	 * @param {any} vValue the value to set for this binding
-	 * @param {function} fnParse the function to parse the value
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @param {function} fnParse
+	 *   The function to parse the value
+	 * @param {sap.ui.model.Context} [oUpdateContext]
+	 *   If given the value will be set for this context instead of the binding's context
+	 * @returns {Promise|undefined}
+	 *   In case of a type that parses or validates asynchronously, a promise that resolves with <code>undefined</code>
+	 *   if the value is set or rejects with an <code>sap.ui.model.ParseException</code>,
+	 *   an <code>sap.ui.model.ValidateException</code>, or an error if the value cannot be set because there is no
+	 *   entry in the model data for the context to be updated; otherwise <code>undefined</code>.
 	 *
-	 * @throws sap.ui.model.ParseException
-	 * @throws sap.ui.model.ValidateException
+	 * @throws {sap.ui.model.ParseException}
+	 *   If the value cannot be parsed
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
 	 *
 	 * @private
 	 */
-	PropertyBinding.prototype._setBoundValue = function(vValue, fnParse) {
+	PropertyBinding.prototype._setBoundValue = function(vValue, fnParse, oUpdateContext) {
 		var oDataState = this.getDataState(),
 			that = this;
 
 		if (this.oType) {
+			oUpdateContext ||= this.getContext();
 			return SyncPromise.resolve(vValue).then(function(vValue) {
 				return fnParse(vValue);
 			}).then(function(vValue) {
 				return SyncPromise.all([vValue, that.oType.validateValue(vValue)]);
-			}).then(function(aResult) {
-				return aResult[0];
-			}).then(function(vValue) {
+			}).then(function([vValue]) {
+				if (that.getContext() !== oUpdateContext) {
+					oUpdateContext.setProperty(that.sPath, vValue, /*sGroupId*/ undefined, /*bRetry*/ true);
+					return; // Only store the value for the update context
+				}
 				oDataState.setInvalidValue(undefined);
 				that.setValue(vValue);
 			}).catch(function(oException) {
-				oDataState.setInvalidValue(vValue);
-				that.checkDataState(); //data ui state is dirty inform the control
+				if (that.getContext() === oUpdateContext) {
+					oDataState.setInvalidValue(vValue);
+					that.checkDataState(); //data ui state is dirty inform the control
+				}
 				throw oException;
 			}).unwrap();
+		}
+		if (oUpdateContext) {
+			oUpdateContext.setProperty(this.sPath, vValue);
 		} else {
 			oDataState.setInvalidValue(undefined);
-			that.setValue(vValue);
+			this.setValue(vValue);
 		}
+
+		return undefined;
 	};
 
-	/** Convert raw to external representation
-	 *  @param vValue raw value
-	 * 	@return external value
-	 * 	@private
+	/**
+	 * Convert raw to external representation.
+	 *
+	 * @param {any} vValue Raw value
+	 * @return {any} External value
+	 * @private
 	 */
 	PropertyBinding.prototype._rawToExternal = function(vValue) {
 		if (this.oType) {
@@ -133,10 +169,12 @@ sap.ui.define([
 		return vValue;
 	};
 
-	/** Convert external to raw representation
-	 *  @param vValue external value
-	 * 	@return raw value
-	 * 	@private
+	/**
+	 * Convert external to raw representation.
+	 *
+	 * @param {any} vValue External value
+	 * @return {any} Raw value
+	 * @private
 	 */
 	PropertyBinding.prototype._externalToRaw = function(vValue) {
 		// formatter doesn't support two way binding
@@ -146,38 +184,36 @@ sap.ui.define([
 		return vValue;
 	};
 
-	/** Convert raw to internal representation
-	 *  @param vValue raw value
-	 * 	@return internal value
-	 * 	@private
+	/**
+	 * Convert raw to internal representation.
+	 *
+	 * @param {any} vValue Raw value
+	 * @return {any} Internal value
+	 * @private
 	 */
 	PropertyBinding.prototype._rawToInternal = function(vValue) {
-		var oFormat;
 		if (this.oType && vValue !== null && vValue !== undefined) {
-			oFormat = this.oType.getModelFormat();
-			assert(oFormat && typeof oFormat.parse === "function", "The input format of " + this.oType + " should be an object with the 'parse' method");
-			vValue = oFormat.parse(vValue);
-		}
-		return vValue;
-	};
-
-	/** Convert internal to raw representation
-	 *  @param vValue internal value
-	 * 	@return raw value
-	 * 	@private
-	 */
-	PropertyBinding.prototype._internalToRaw = function(vValue) {
-		var oFormat;
-		if (vValue !== null && vValue !== undefined) {
-			oFormat = this.oType.getModelFormat();
-			assert(oFormat && typeof oFormat.format === "function", "The model format of " + this.oType + " should be an object with the 'format' method");
-			vValue = oFormat.format(vValue);
+			return this.oType.getModelFormat().parse(vValue);
 		}
 		return vValue;
 	};
 
 	/**
-	 * Returns the current external value of the bound target which is formatted via a type or formatter function.
+	 * Convert internal to raw representation
+	 * @param {any} vValue Internal value
+	 * @return {any} Raw value
+	 * @private
+	 */
+	PropertyBinding.prototype._internalToRaw = function(vValue) {
+		if (vValue !== null && vValue !== undefined) {
+			return this.oType.getModelFormat().format(vValue);
+		}
+		return vValue;
+	};
+
+	/**
+	 * Returns the current external value of the bound target which is formatted via a type or
+	 * formatter function.
 	 *
 	 * @throws sap.ui.model.FormatException
 	 *
@@ -197,40 +233,72 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the value for this binding. The value is parsed and validated against its type and then set to the binding.
-	 * A model implementation should check if the current default binding mode permits
-	 * setting the binding value and if so set the new value also in the model.
+	 * Sets the value for this binding. The value is parsed and validated against its type and then
+	 * set to the binding. A model implementation should check if the current default binding mode
+	 * permits setting the binding value, and if so, set the new value in the model, too.
 	 *
-	 * @param {any} vValue the value to set for this binding
-	 * @return {undefined|Promise} a Promise in case asynchronous parsing/validation is done
-	 * @throws sap.ui.model.ParseException
-	 * @throws sap.ui.model.ValidateException
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @returns {undefined|Promise}
+	 *   A promise in case of asynchronous type parsing or validation
+	 *
+	 * @throws {sap.ui.model.ParseException}
+	 *   If the value cannot be parsed
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
 	 *
 	 * @public
 	 */
 	PropertyBinding.prototype.setExternalValue = function(vValue) {
+		return this._setExternalValue(vValue);
+	};
+
+	/**
+	 * Sets the value for this binding. The value is parsed and validated against its type and then
+	 * set to the binding. A model implementation should check if the current default binding mode
+	 * permits setting the binding value, and if so, set the new value in the model, too.
+	 *
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @param {sap.ui.model.Context} [oUpdateContext]
+	 *   If given the value will be set for this context instead of the binding's context
+	 * @returns {undefined|Promise}
+	 *   A promise in case of asynchronous type parsing or validation
+	 *
+	 * @throws {sap.ui.model.ParseException}
+	 *   If the value cannot be parsed
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
+	 *
+	 * @private
+	 */
+	PropertyBinding.prototype._setExternalValue = function(vValue, oUpdateContext) {
 		switch (this.sInternalType) {
 			case "raw":
-				return this.setRawValue(vValue);
+				return this._setRawValue(vValue, oUpdateContext);
 			case "internal":
-				return this.setInternalValue(vValue);
+				return this._setInternalValue(vValue, oUpdateContext);
 			default:
 				if (this.fnFormatter) {
 					Log.warning("Tried to use twoway binding, but a formatter function is used");
-					return;
+					return undefined;
 				}
-				return this._setBoundValue(vValue, this._externalToRaw.bind(this));
+				return this._setBoundValue(vValue, this._externalToRaw.bind(this), oUpdateContext);
 		}
 	};
 
 	/**
-	 * Returns the related JavaScript primitive value of the bound target which is parsed by the {@link sap.ui.model.SimpleType#getModelFormat model format} of this binding's type.
-	 * If this binding doesn't have a type, the original value which is stored in the model is returned.
+	 * Returns the related JavaScript primitive value of the bound target which is parsed by the
+	 * {@link sap.ui.model.SimpleType#getModelFormat model format} of this binding's type. If this
+	 * binding doesn't have a type, the original value which is stored in the model is returned.
 	 *
-	 * This method will be used when targetType if set to "internal" or it's included in a {@link sap.ui.model.CompositeBinding CompositeBinding} and the CompositeBinding needs to have the related
-	 * JavaScript primitive values for its type or formatter.
+	 * This method will be used when targetType is set to "internal" or when it's included in a
+	 * {@link sap.ui.model.CompositeBinding CompositeBinding} and the CompositeBinding needs to have
+	 * the related JavaScript primitive values for its type or formatter.
 	 *
-	 * @return {any} the value which is parsed by the model format of the bound target or the original value in case of no type.
+	 * @return {any}
+	 *   The value which is parsed by the model format of the bound target, or the original value in
+	 *   case of no type.
 	 *
 	 * @public
 	 */
@@ -239,25 +307,55 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the value for this binding with the related JavaScript primitive type. The value is formatted with the {@link sap.ui.model.SimpleType#getModelFormat model format} and validated against its type and then set to the model.
+	 * Sets the value for this binding with the related JavaScript primitive type. The value is
+	 * formatted with the {@link sap.ui.model.SimpleType#getModelFormat model format} and validated
+	 * against its type and then set to the model.
 	 *
-	 * @param {any} vValue the value to set for this binding
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @returns {Promise|undefined}
+	 *   A promise in case of asynchronous type validation
 	 *
-	 * @throws sap.ui.model.ValidateException
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
 	 *
 	 * @public
 	 */
 	PropertyBinding.prototype.setInternalValue = function(vValue) {
-		return this._setBoundValue(vValue, this._internalToRaw.bind(this));
+		return this._setInternalValue(vValue);
 	};
 
 	/**
-	 * Returns the raw model value, as it exists in the model dataset
+	 * Sets the value for this binding with the related JavaScript primitive type. The value is
+	 * formatted with the {@link sap.ui.model.SimpleType#getModelFormat model format} and validated
+	 * against its type and then set to the model.
 	 *
-	 * This method will be used when targetType of a binding is set to "raw" or it's included in a {@link sap.ui.model.CompositeBinding CompositeBinding} and the CompositeBinding needs to have the related
-	 * JavaScript primitive values for its type or formatter.
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @param {sap.ui.model.Context} [oUpdateContext]
+	 *   If given the value will be set for this context instead of the binding's context
+	 * @returns {Promise|undefined}
+	 *   A promise in case of asynchronous type validation
 	 *
-	 * @return {any} the value which is parsed by the model format of the bound target or the original value in case of no type.
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
+	 *
+	 * @private
+	 */
+	PropertyBinding.prototype._setInternalValue = function(vValue, oUpdateContext) {
+		return this._setBoundValue(vValue, this._internalToRaw.bind(this), oUpdateContext);
+	};
+
+	/**
+	 * Returns the raw model value, as it exists in the model dataset.
+	 *
+	 * This method will be used when targetType of a binding is set to "raw" or when it's include
+	 * in a {@link sap.ui.model.CompositeBinding CompositeBinding} and the CompositeBinding needs to
+	 * have the related JavaScript primitive values for its type or formatter.
+	 *
+	 * @return {any}
+	 *   The value which is parsed by the model format of the bound target, or the original value in
+	 *   case of no type.
 	 *
 	 * @public
 	 */
@@ -271,35 +369,65 @@ sap.ui.define([
 	 * Sets the value for this binding with the raw model value. This setter will perform type
 	 * validation, in case a type is defined on the binding.
 	 *
-	 * @param {any} vValue the value to set for this binding
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @returns {Promise|undefined}
+	 *   A promise in case of asynchronous type validation
 	 *
-	 * @throws sap.ui.model.ValidateException
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
 	 *
 	 * @public
 	 */
 	PropertyBinding.prototype.setRawValue = function(vValue) {
-		return this._setBoundValue(vValue, function(vValue) {
-			return vValue;
-		});
+		return this._setRawValue(vValue);
 	};
 
 	/**
-	 * Sets the optional type and internal type for the binding. The type and internal type are used to do the parsing/formatting correctly.
-	 * The internal type is the property type of the element which the value is formatted to.
+	 * Sets the value for this binding with the raw model value. This setter will perform type
+	 * validation, in case a type is defined on the binding.
 	 *
-	 * @param {sap.ui.model.Type} oType the type for the binding
-	 * @param {string} sInternalType the internal type of the element property which this binding is bound against.
+	 * @param {any} vValue
+	 *   The value to set for this binding
+	 * @param {sap.ui.model.Context} [oUpdateContext]
+	 *   If given the value will be set for this context instead of the binding's context
+	 * @returns {Promise|undefined}
+	 *   A promise in case of asynchronous type validation
+	 *
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the value is invalid
+	 *
+	 * @private
+	 */
+	PropertyBinding.prototype._setRawValue = function(vValue, oUpdateContext) {
+		return this._setBoundValue(vValue, (vValue) => vValue, oUpdateContext);
+	};
+
+	/**
+	 * Sets the optional type and internal type for the binding. The type and internal type are used
+	 * to do the parsing/formatting correctly. The internal type is the property type of the element
+	 * which the value is formatted to.
+	 *
+	 * @param {sap.ui.model.Type} oType
+	 *   The type for the binding
+	 * @param {string} sInternalType
+	 *   The internal type of the element property which this binding is bound against.
 	 *
 	 * @public
 	 */
 	PropertyBinding.prototype.setType = function(oType, sInternalType) {
+		const oOldType = this.oType;
 		this.oType = oType;
 		this.sInternalType = sInternalType;
+		if (this.fnTypeChangedCallback && oType && oOldType !== oType) {
+			this.fnTypeChangedCallback();
+			this._fireChange({reason: ChangeReason.Change});
+		}
 	};
 
 	/**
-	 *  Returns the type if any for the binding.
-	 *  @returns {sap.ui.model.Type} the binding type
+	 *  Returns the type (if any) for the binding.
+	 *  @returns {sap.ui.model.Type} The binding type
 	 *  @public
 	 */
 	PropertyBinding.prototype.getType = function() {
@@ -308,8 +436,8 @@ sap.ui.define([
 
 	/**
 	 * Sets the optional formatter function for the binding.
-
-	 * @param {function} fnFormatter the formatter function for the binding
+	 *
+	 * @param {function} fnFormatter The formatter function for the binding
 	 *
 	 * @public
 	 */
@@ -318,8 +446,8 @@ sap.ui.define([
 	};
 
 	/**
-	 *  Returns the formatter function
-	 *  @returns {Function} the formatter function
+	 *  Returns the formatter function.
+	 *  @returns {Function} The formatter function
 	 *  @public
 	 */
 	PropertyBinding.prototype.getFormatter = function() {
@@ -327,8 +455,8 @@ sap.ui.define([
 	};
 
 	/**
-	 *  Returns the binding mode
-	 *  @returns {sap.ui.model.BindingMode} the binding mode
+	 *  Returns the binding mode.
+	 *  @returns {sap.ui.model.BindingMode} The binding mode
 	 *  @public
 	 */
 	PropertyBinding.prototype.getBindingMode = function() {
@@ -336,8 +464,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the binding mode
-	 * @param {sap.ui.model.BindingMode} sBindingMode the binding mode
+	 * Sets the binding mode.
+	 * @param {sap.ui.model.BindingMode} sBindingMode The binding mode
 	 * @protected
 	 */
 	PropertyBinding.prototype.setBindingMode = function(sBindingMode) {
@@ -345,10 +473,21 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets the callback which is called when the type of the binding is changed, if not supplied a
+	 * former callback is deregistered.
+	 *
+	 * @param {function} [fnTypeChangedCallback]
+	 *   The function to be called, if this binding's type changes
+	 */
+	PropertyBinding.prototype.registerTypeChanged = function (fnTypeChangedCallback) {
+		this.fnTypeChangedCallback = fnTypeChangedCallback;
+	};
+
+	/**
 	 * Resumes the binding update. Change events will be fired again.
 	 *
-	 * When the binding is resumed and the control value was changed in the meantime, the control value will be set to the
-	 * current value from the model and a change event will be fired.
+	 * When the binding is resumed and the control value was changed in the meantime, the control
+	 * value will be set to the current value from the model and a change event will be fired.
 	 * @public
 	 */
 	PropertyBinding.prototype.resume = function() {

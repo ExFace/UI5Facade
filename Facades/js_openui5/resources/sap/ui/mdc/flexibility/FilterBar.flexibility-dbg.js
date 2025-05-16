@@ -1,10 +1,10 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./FilterItemFlex', './ConditionFlex'], function(FilterItemFlex, ConditionFlex) {
+sap.ui.define(['./FilterItemFlex', './ConditionFlex', './PropertyInfoFlex'], (FilterItemFlex, ConditionFlex, PropertyInfoFlex) => {
 	"use strict";
 
 	/**
@@ -12,7 +12,7 @@ sap.ui.define(['./FilterItemFlex', './ConditionFlex'], function(FilterItemFlex, 
 	 *
 	 * @alias sap.ui.mdc.flexibility.FilterBar
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 */
 
 	return {
@@ -20,6 +20,10 @@ sap.ui.define(['./FilterItemFlex', './ConditionFlex'], function(FilterItemFlex, 
 		"removeFilter": FilterItemFlex.createRemoveChangeHandler(),
 		"moveFilter": FilterItemFlex.createMoveChangeHandler(),
 		"addCondition": ConditionFlex.addCondition,
-		"removeCondition": ConditionFlex.removeCondition
+		"removeCondition": ConditionFlex.removeCondition,
+                /**
+                 * @deprecated since 1.100
+                 */
+		"addPropertyInfo": PropertyInfoFlex.addPropertyInfo
 	};
-}, /* bExport= */true);
+}, /* bExport= */ true);

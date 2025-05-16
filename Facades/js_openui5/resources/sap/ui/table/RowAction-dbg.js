@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,15 +35,14 @@ sap.ui.define([
 	 * If more action items are available as the available space allows to display an overflow mechanism is provided.
 	 * This control must only be used in the context of the <code>sap.ui.table.Table</code> control to define row actions.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.45
 	 * @alias sap.ui.table.RowAction
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var RowAction = Control.extend("sap.ui.table.RowAction", /** @lends sap.ui.table.RowAction.prototype */ {
+	const RowAction = Control.extend("sap.ui.table.RowAction", /** @lends sap.ui.table.RowAction.prototype */ {
 		metadata: {
 			library: "sap.ui.table",
 			properties: {
@@ -70,7 +69,8 @@ sap.ui.define([
 				_menu: {type: "sap.ui.unified.Menu", multiple: false, visibility: "hidden"}
 			},
 			events: {}
-		}
+		},
+		renderer: RowActionRenderer
 	});
 
 	RowAction.prototype.init = function() {
@@ -92,10 +92,10 @@ sap.ui.define([
 			.addStyleClass("sapUiTableActionIcon"))
 			.addDelegate({
 				onAfterRendering: function() {
-					var oIconDomRef = this.getAggregation("_icons")[0].getDomRef();
+					const oIconDomRef = this.getAggregation("_icons")[0].getDomRef();
 
 					if (this._aActions[0] === "menu") {
-						oIconDomRef.setAttribute("aria-haspopup", true);
+						oIconDomRef.setAttribute("aria-haspopup", "menu");
 					} else {
 						oIconDomRef.removeAttribute("aria-haspopup");
 					}
@@ -109,10 +109,10 @@ sap.ui.define([
 			.addStyleClass("sapUiTableActionIcon"))
 			.addDelegate({
 				onAfterRendering: function() {
-					var oIconDomRef = this.getAggregation("_icons")[1].getDomRef();
+					const oIconDomRef = this.getAggregation("_icons")[1].getDomRef();
 
 					if (this._aActions[1] === "menu") {
-						oIconDomRef.setAttribute("aria-haspopup", true);
+						oIconDomRef.setAttribute("aria-haspopup", "menu");
 					} else {
 						oIconDomRef.removeAttribute("aria-haspopup");
 					}
@@ -121,14 +121,14 @@ sap.ui.define([
 	};
 
 	RowAction.prototype.onBeforeRendering = function() {
-		var oRow = this.getRow();
-		var oTable = oRow ? oRow.getTable() : null;
-		var aIcons = this.getAggregation("_icons");
-		var aItems = this.getItems();
-		var aVisibleItems = this._getVisibleItems();
-		var iVisibleItems = aVisibleItems.length;
-		var iSize = this._getSize();
-		var sHeaderLabelId = oTable ? oTable.getId() + "-rowacthdr" : "";
+		const oRow = this.getRow();
+		const oTable = oRow ? oRow.getTable() : null;
+		const aIcons = this.getAggregation("_icons");
+		const aItems = this.getItems();
+		const aVisibleItems = this._getVisibleItems();
+		const iVisibleItems = aVisibleItems.length;
+		const iSize = this._getSize();
+		const sHeaderLabelId = oTable ? oTable.getId() + "-rowacthdr" : "";
 
 		if (this._bFixedLayout && iVisibleItems === 1 && iSize === 2 && aItems.length > 1 && aVisibleItems[0] === aItems[1]) {
 			aVisibleItems[0]._syncIcon(aIcons[1]);
@@ -167,20 +167,20 @@ sap.ui.define([
 		}.bind(this));
 	};
 
-	/**
+	/*
 	 * @override
 	 * @inheritDoc
 	 */
 	RowAction.prototype.getAccessibilityInfo = function() {
-		var oRow = this.getRow();
-		var iVisibleItems = this._getVisibleItems().length;
-		var iSize = this._getSize();
-		var bActive = this.getVisible() && iVisibleItems > 0 && iSize > 0
+		const oRow = this.getRow();
+		const iVisibleItems = this._getVisibleItems().length;
+		const iSize = this._getSize();
+		const bActive = this.getVisible() && iVisibleItems > 0 && iSize > 0
 					  && (!oRow || (!oRow.isContentHidden() && !oRow.isGroupHeader() && !oRow.isSummary()));
-		var sText;
+		let sText;
 
 		if (bActive) {
-			sText = TableUtils.getResourceText(iVisibleItems == 1
+			sText = TableUtils.getResourceText(iVisibleItems === 1
 											   ? "TBL_ROW_ACTION_SINGLE_ACTION"
 											   : "TBL_ROW_ACTION_MULTIPLE_ACTION", [iVisibleItems]);
 		} else {
@@ -213,7 +213,7 @@ sap.ui.define([
 	 * @private
 	 */
 	RowAction.prototype.getRow = function() {
-		var oParent = this.getParent();
+		const oParent = this.getParent();
 		return TableUtils.isA(oParent, "sap.ui.table.Row") ? oParent : null;
 	};
 
@@ -224,8 +224,8 @@ sap.ui.define([
 	 * @private
 	 */
 	RowAction.prototype._getSize = function() {
-		var oRow = this.getRow();
-		var oTable = oRow ? oRow.getTable() : null;
+		const oRow = this.getRow();
+		const oTable = oRow ? oRow.getTable() : null;
 		return oTable ? oTable.getRowActionCount() : 2;
 	};
 
@@ -236,16 +236,16 @@ sap.ui.define([
 	 * @private
 	 */
 	RowAction.prototype._onIconPress = function(oEvent) {
-		var oIcon = oEvent.getSource();
-		var iIconIndex = this.indexOfAggregation("_icons", oIcon);
-		var sAction = this._aActions[iIconIndex];
+		const oIcon = oEvent.getSource();
+		const iIconIndex = this.indexOfAggregation("_icons", oIcon);
+		const sAction = this._aActions[iIconIndex];
 
 		if (sAction === "action") {
 			this._getVisibleItems()[iIconIndex]._firePress();
 		} else if (sAction === "action_fixed") {
 			this._getVisibleItems()[0]._firePress();
 		} else if (sAction === "menu") {
-			var oMenu = this.getAggregation("_menu");
+			let oMenu = this.getAggregation("_menu");
 			if (!oMenu) {
 				oMenu = new Menu();
 				this.setAggregation("_menu", oMenu, true);
@@ -260,8 +260,8 @@ sap.ui.define([
 				return;
 			}
 
-			var aItems = this.getItems();
-			for (var i = iIconIndex; i < aItems.length; i++) {
+			const aItems = this.getItems();
+			for (let i = iIconIndex; i < aItems.length; i++) {
 				oMenu.addItem(aItems[i]._getMenuItem());
 			}
 

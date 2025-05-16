@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,11 +16,13 @@
  * @sample
  * Ensures a control can be used afterwards but does not load immediately
  * sap.ui.lazyRequire("sap.ui.core.Control");
- * sap.ui.lazyRequire("sap.ui.commons.Button");
+ * sap.ui.lazyRequire("sap.m.Button");
  *
- * @version 1.82.0
+ * @version 1.136.0
  * @author  SAP SE
  * @public
+ * @fileoverview
+ * @deprecated Version and buildtime information can be retrieved via sap/ui/core/Core.versionInfo
  */
 
 /*global OpenAjax */
@@ -35,7 +37,7 @@ sap.ui.define([
 	"use strict";
 
 	// Register to the OpenAjax Hub if it exists
-	if (window.OpenAjax && window.OpenAjax.hub) {
+	if (globalThis.OpenAjax && globalThis.OpenAjax.hub) {
 		OpenAjax.hub.registerLibrary("sap", "http://www.sap.com/", "0.1", {});
 	}
 
@@ -43,51 +45,36 @@ sap.ui.define([
 	var BaseObject;
 
 	/**
-	 * Root namespace for JavaScript functionality provided by SAP SE.
-	 *
-	 * The <code>sap</code> namespace is automatically registered with the
-	 * OpenAjax hub if it exists.
-	 *
-	 * @version 1.82.0
-	 * @namespace
-	 * @public
-	 * @name sap
-	 */
-	if ( typeof window.sap !== "object" && typeof window.sap !== "function"  ) {
-	  window.sap = {};
-	}
-
-	/**
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @namespace
 	 * @name sap.ui
 	 * @public
 	 */
-	if ( typeof window.sap.ui !== "object") {
-		window.sap.ui = {};
-	}
 
-	sap.ui = Object.assign(sap.ui, {
+	let Global = {
 		/**
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.82.0",
-		buildinfo : { lastchange : "", buildtime : "20200915-0759" }
-	});
+		version: "1.136.0",
+		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
+		buildinfo : { lastchange : "", buildtime : "20250513-1245" }
+	};
 
-	var oCfgData = window["sap-ui-config"] || {};
+	/**
+	 * Module export must be the global sap.ui namespace in UI5 v1.
+	 * In UI5 v2, the export is a plain object containing the version and buildinfo.
+	 * @deprecated since 1.120
+	 */
+	Global = Object.assign(sap.ui, Global);
 
-	var syncCallBehavior = 0; // ignore
-	if ( oCfgData['xx-nosync'] === 'warn' || /(?:\?|&)sap-ui-xx-nosync=(?:warn)/.exec(window.location.search) ) {
-		syncCallBehavior = 1;
-	}
-	if ( oCfgData['xx-nosync'] === true || oCfgData['xx-nosync'] === 'true' || /(?:\?|&)sap-ui-xx-nosync=(?:x|X|true)/.exec(window.location.search) ) {
-		syncCallBehavior = 2;
-	}
+	/**
+	 * @deprecated As of version 1.120
+	 */
+	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 
 	/**
 	 * Loads the version info file (resources/sap-ui-version.json) and returns
@@ -127,7 +114,7 @@ sap.ui.define([
 
 	/**
 	 * Ensures that a given a namespace or hierarchy of nested namespaces exists in the
-	 * current <code>window</code>.
+	 * current <code>globalThis</code>.
 	 *
 	 * @param {string} sNamespace
 	 * @return {object} the innermost namespace of the hierarchy
@@ -206,7 +193,7 @@ sap.ui.define([
 					} else {
 						Log.debug("lazy stub for constructor '" + sFullClass + "' called.");
 					}
-					sap.ui.requireSync(sModuleName.replace(/\./g, "/"));
+					sap.ui.requireSync(sModuleName.replace(/\./g, "/")); // legacy-relevant: 'sap.ui.lazyRequire' is deprecated
 					var oRealClass = oPackage[sClass];
 					assert(typeof oRealClass === "function", "lazyRequire: oRealClass must be a function after loading");
 					if ( oRealClass._sapUiLazyLoader ) {
@@ -267,7 +254,7 @@ sap.ui.define([
 					} else {
 						Log.debug("lazy stub for method '" + sFullClass + "." + sMethod + "' called.");
 					}
-					sap.ui.requireSync(sModuleName.replace(/\./g, "/"));
+					sap.ui.requireSync(sModuleName.replace(/\./g, "/")); // legacy-relevant: 'sap.ui.lazyRequire' is deprecated
 					var oRealClass = oPackage[sClass];
 					assert(typeof oRealClass === "function" || typeof oRealClass === "object", "lazyRequire: oRealClass must be a function or object after loading");
 					assert(typeof oRealClass[sMethod] === "function", "lazyRequire: method must be a function");
@@ -305,18 +292,18 @@ sap.ui.define([
 	/**
 	 * Returns the URL of a resource that belongs to the given library and has the given relative location within the library.
 	 * This is mainly meant for static resources like images that are inside the library.
-	 * It is NOT meant for access to JavaScript modules or anything for which a different URL has been registered with jQuery.sap.registerModulePath(). For
-	 * these cases use jQuery.sap.getModulePath().
+	 * It is NOT meant for access to JavaScript modules or anything for which a different URL has been registered with
+	 * sap.ui.loader.config({paths:...}). For these cases use sap.ui.require.toUrl().
 	 * It DOES work, however, when the given sResourcePath starts with "themes/" (= when it is a theme-dependent resource). Even when for this theme a different
 	 * location outside the normal library location is configured.
 	 *
-	 * @param {string} sLibraryName the name of a library, like "sap.ui.commons"
+	 * @param {string} sLibraryName the name of a library, like "sap.ui.layout"
 	 * @param {string} sResourcePath the relative path of a resource inside this library, like "img/mypic.png" or "themes/my_theme/img/mypic.png"
 	 * @returns {string} the URL of the requested resource
 	 *
 	 * @static
 	 * @public
-	 * @deprecated since 1.56.0, use <code>sap.ui.require.toUrl</code> instead.
+	 * @deprecated since 1.56.0, use {@link sap.ui.require.toUrl} instead.
 	 */
 	sap.ui.resource = function(sLibraryName, sResourcePath) {
 		assert(typeof sLibraryName === "string", "sLibraryName must be a string");
@@ -336,8 +323,8 @@ sap.ui.define([
 	 * is assumed to represent an individual folder. In other words: when a resource name is
 	 * converted to a URL, any dots ('.') are converted to slashes ('/').
 	 *
-	 * <b>Limitation:</b> For the time being, the <b>application root folder</b> is assumed to be
-	 * the same as the folder where the current page resides in.
+	 * <b>Note:</b> The <b>application root folder</b> is assumed to be the same as the folder
+	 * where the current page resides in.
 	 *
 	 * Usage sample:
 	 * <pre>
@@ -353,17 +340,12 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * When applications need a more flexible mapping between resource names and their location,
-	 * they can use {@link jQuery.sap.registerModulePath}.
-	 *
-	 * It is intended to make this configuration obsolete in future releases, but for the time
-	 * being, applications must call this method when they want to store resources relative to
-	 * the assumed application root folder.
+	 * they can use {@link sap.ui.loader.config} with option <code>paths</code>.
 	 *
 	 * @param {string} sNamespace Namespace prefix for which to load resources relative to the application root folder
 	 * @public
 	 * @static
-	 * @see jQuery.sap.registerModulePath
-	 * @deprecated since 1.56, use <code>sap.ui.loader.config</code> instead.
+	 * @deprecated since 1.56, use {@link sap.ui.loader.config} and its <code>paths</code> option instead.
 	 */
 	sap.ui.localResources = function(sNamespace) {
 		assert(sNamespace, "sNamespace must not be empty");
@@ -372,6 +354,6 @@ sap.ui.define([
 		sap.ui.loader.config({paths:mPaths});
 	};
 
-	return sap.ui;
+	return Global;
 
 });

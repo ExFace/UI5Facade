@@ -1,8 +1,9 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
 
 // Provides TablePersoDialog
 sap.ui.define([
@@ -19,16 +20,18 @@ sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/ui/base/ManagedObjectRegistry',
 	'sap/base/Log',
+	'sap/base/util/deepExtend',
 	'sap/m/library',
 	'sap/ui/Device',
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	'sap/ui/model/Sorter',
 	'sap/ui/model/Filter',
 	'sap/ui/model/FilterOperator',
 	'sap/ui/model/json/JSONModel',
-	'sap/m/CheckBox',
 	'sap/m/SearchField',
-	'sap/m/ScrollContainer',
-	"sap/ui/thirdparty/jquery"
+	'sap/ui/core/Configuration',
+	'sap/ui/core/library'
 ],
 	function(
 		Text,
@@ -44,16 +47,18 @@ sap.ui.define([
 		ManagedObject,
 		ManagedObjectRegistry,
 		Log,
+		deepExtend,
 		library,
 		Device,
+		Element,
+		Library,
 		Sorter,
 		Filter,
 		FilterOperator,
 		JSONModel,
-		CheckBox,
 		SearchField,
-		ScrollContainer,
-		jQuery
+		Configuration,
+		coreLibrary
 	) {
 	"use strict";
 
@@ -65,7 +70,11 @@ sap.ui.define([
 	// shortcut for sap.m.ListMode
 	var ListMode = library.ListMode;
 
+	// shortcut for sap.m.WrappingType
+	var WrappingType = library.WrappingType;
 
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	/**
 	 * The TablePersoDialog can be used to display and allow modification of personalization settings relating to a Table. It displays the columns of the table that it refers to by using
@@ -73,6 +82,8 @@ sap.ui.define([
 	 * <li>the column header control's 'text' property if no caption property is available</li>
 	 * <li>the column header control's 'title' property if neither 'text' nor 'caption' property are available</li>
 	 * <li>the column id is displayed as last fallback, if none of the above is at hand. In that case, a warning is logged. </li></ul>
+	 *
+	 * @deprecated since 1.115. Please use the {@link sap.m.p13n.Popup Popup} for personalization instead.
 	 *
 	 * @param {string}
 	 *			[sId] optional id for the new control; generated automatically if
@@ -82,14 +93,13 @@ sap.ui.define([
 	 *			[mSettings] optional map/JSON-object with initial settings for the
 	 *			new component instance
 	 * @public
-	 *
 	 * @class Table Personalization Dialog
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @alias sap.m.TablePersoDialog
 	 */
-	var TablePersoDialog = ManagedObject.extend("sap.m.TablePersoDialog", /** @lends sap.m.TablePersoDialog */
+	var TablePersoDialog = ManagedObject.extend("sap.m.TablePersoDialog", /** @lends sap.m.TablePersoDialog.prototype */
 
 	{
 		constructor : function(sId, mSettings) {
@@ -99,6 +109,7 @@ sap.ui.define([
 		},
 
 		metadata : {
+			deprecated: true,
 			properties: {
 				"contentWidth": {type: "sap.ui.core.CSSSize"},
 				"contentHeight": {type: "sap.ui.core.CSSSize", since: "1.22"},
@@ -147,7 +158,7 @@ sap.ui.define([
 			} else {
 				var sMsg = "adding TablePersoDialog with duplicate id '" + sId + "'";
 				// duplicate ID detected => fail or at least log a warning
-				if (sap.ui.getCore().getConfiguration().getNoDuplicateIds()) {
+				if (Configuration.getNoDuplicateIds()) {
 					Log.error(sMsg);
 					throw new Error("Error: " + sMsg);
 				} else {
@@ -167,7 +178,7 @@ sap.ui.define([
 			iLiveChangeTimer = 0;
 
 		// Resource bundle, for texts
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 
 		// To store the column settings
 		this._oP13nModel = new JSONModel();
@@ -182,6 +193,8 @@ sap.ui.define([
 			type: "Active",
 			cells: [
 				new Label({
+					wrapping: true,
+					wrappingType: WrappingType.Hyphenated,
 					text: "{Personalization>text}"
 				})
 			],
@@ -215,17 +228,19 @@ sap.ui.define([
 				return;
 			}
 			// Initialisation of the enabled property
-			var aFields = this._oInnerTable.getModel("Personalization").getProperty("/aColumns");
+			var aItems = this._oInnerTable.getItems();
 			var bButtonUpEnabled,bButtonDownEnabled;
 
-			if (!this._oSelectedItem){
+			if (!this._oSelectedItem || this._oInnerTable.getItems().length == 0){
 				//no item yet selected
 				bButtonUpEnabled = false;
 				bButtonDownEnabled = false;
+
+				this._oSelectedItem = null;
 			} else {
-				var iItemIndex = aFields.indexOf(this._oSelectedItem.getBindingContext("Personalization").getObject());
+				var iItemIndex = aItems.indexOf(this._oSelectedItem);
 				bButtonUpEnabled = iItemIndex > 0 ? true : false;
-				bButtonDownEnabled = iItemIndex < aFields.length - 1 ? true : false;
+				bButtonDownEnabled = iItemIndex < aItems.length - 1 ? true : false;
 			}
 			this._updateMarkedItem();
 			that._oButtonUp.setEnabled(bButtonUpEnabled);
@@ -235,11 +250,6 @@ sap.ui.define([
 		this._fnAfterDialogOpen = function () {
 			// Make sure that arrow buttons are updated when dialog is opened
 			that._fnUpdateArrowButtons.call(that);
-		};
-
-		this._fnAfterScrollContainerRendering = function () {
-			// Scroll container gets focused in Firefox
-			that._oScrollContainer.$().attr('tabindex', '-1');
 		};
 
 		this._oInnerTable =  new Table(this.getId() + "-colTable",{
@@ -280,7 +290,6 @@ sap.ui.define([
 
 		this._resetAllButton = new Button(this.getId() + "-buttonUndo", {
 			text: this._oRb.getText("VIEWSETTINGS_RESET"),
-			tooltip: this._oRb.getText('PERSODIALOG_UNDO'),
 			press : function () {
 				this._resetAll();
 			}.bind(this)
@@ -289,7 +298,8 @@ sap.ui.define([
 		var oHeader = new Bar({
 			contentLeft:
 				new Title(this.getId() + "-Dialog-title",{
-					text: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE")
+					text: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE"),
+					level: TitleLevel.H1
 				}),
 			contentRight: this._resetAllButton
 		});
@@ -311,7 +321,7 @@ sap.ui.define([
 			initialFocus: (Device.system.desktop ? this._oInnerTable : null),
 			content : [this._oInnerTable ],
 			subHeader : oSubHeader,
-			leftButton : new Button(this.getId() + "-buttonOk", {
+			beginButton : new Button(this.getId() + "-buttonOk", {
 				text : this._oRb.getText("PERSODIALOG_OK"),
 				press : function () {
 					that._oDialog.close();
@@ -321,7 +331,7 @@ sap.ui.define([
 				},
 				type : ButtonType.Emphasized
 			}),
-			rightButton : new Button(this.getId() + "-buttonCancel", {
+			endButton : new Button(this.getId() + "-buttonCancel", {
 				text: this._oRb.getText("PERSODIALOG_CANCEL"),
 				press: function () {
 					that._oDialog.close();
@@ -482,7 +492,7 @@ sap.ui.define([
 			// Deep copy of Initial Data, otherwise initial data will be changed
 			// and can only be used once to restore the initial state
 
-			var aInitialStateCopy = jQuery.extend(true, [], this.getInitialColumnState()),
+			var aInitialStateCopy = deepExtend([], this.getInitialColumnState()),
 				that = this;
 			// CSN 0120031469 0000184938 2014
 			// Remember last selected row, so it can be selected again after
@@ -529,31 +539,44 @@ sap.ui.define([
 		var aItems = this._oInnerTable.getItems();
 		var aFields = this._oInnerTable.getModel("Personalization").getProperty("/aColumns");
 
-		// index of the item in the model not the index in the aggregation
-		var iOldIndex = aFields.indexOf(oSelectedItem.getBindingContext("Personalization").getObject());
+		var iOldItemIndex = aItems.indexOf(oSelectedItem);
+		var iNewItemIndex = iOldItemIndex + iDirection;
 
-		// limit the minumum and maximum index
-		var iNewIndex = iOldIndex + iDirection;
-
-		// new index of the item in the model
-		iNewIndex = aFields.indexOf(aItems[iNewIndex].getBindingContext("Personalization").getObject());
-		if (iNewIndex == iOldIndex) {
+		iNewItemIndex = (iNewItemIndex <= 0) ? 0 : Math.min(iNewItemIndex, aItems.length - 1);
+		if (iOldItemIndex === iNewItemIndex) {
 			return;
 		}
 
+		var iOldFieldIndex = aFields.indexOf(aItems[iOldItemIndex].getBindingContext("Personalization").getObject());
+		var iNewFieldIndex = aFields.indexOf(aItems[iNewItemIndex].getBindingContext("Personalization").getObject());
+
 		// remove data from old position and insert it into new position
-		aFields.splice(iNewIndex, 0, aFields.splice(iOldIndex, 1)[0]);
+		aFields.splice(iNewFieldIndex, 0, aFields.splice(iOldFieldIndex, 1)[0]);
 		aFields.forEach(function(oItem, iIndex){
 			oItem.order = iIndex;
 		});
 		this._oInnerTable.getModel("Personalization").setProperty("/aColumns", aFields);
 
 		// store the moved item again due to binding
-		this._oSelectedItem = aItems[iNewIndex];
+		this._oSelectedItem = aItems[iNewItemIndex];
 		this._scrollToItem(this._oSelectedItem);
 
 		this._fnUpdateArrowButtons.call(this);
 
+		if (this._oButtonDown.getEnabled() || this._oButtonUp.getEnabled()) {
+			if (!this._oButtonDown.getEnabled()) {
+				setTimeout(function() { // when button was disable, we need a timeout before setting the focus
+					this._oButtonUp && this._oButtonUp.focus();
+				}.bind(this), 0);
+			}
+			if (!this._oButtonUp.getEnabled()) {
+				setTimeout(function() { // when button was disable, we need a timeout before setting the focus
+					this._oButtonDown && this._oButtonDown.focus();
+				}.bind(this), 0);
+			}
+		} else {
+			this._oSearchField.focus();
+		}
 	};
 
 	/**
@@ -591,7 +614,7 @@ sap.ui.define([
 	 * @private
 	 */
 	TablePersoDialog.prototype._readCurrentSettingsFromTable = function() {
-		var oTable = sap.ui.getCore().byId(this.getPersoDialogFor()),
+		var oTable = Element.getElementById(this.getPersoDialogFor()),
 			that = this,
 			aCurrentColumns = this.getColumnInfoCallback().call(this, oTable, this.getPersoMap());
 		this._oP13nModel.setData({
@@ -626,7 +649,7 @@ sap.ui.define([
 	/**
 	 * Setter to turn on/ switch off TablePersoDialog's grouping mode.
 	 * @param {boolean} bHasGrouping groping mode on or off.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setHasGrouping = function (bHasGrouping) {
@@ -649,7 +672,7 @@ sap.ui.define([
 	/**
 	 * Setter to show/hide TablePersoDialog's 'selectAll' checkbox.
 	 * @param {boolean} bShowSelectAll selectAll checkbox visible or not.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setShowSelectAll = function (bShowSelectAll) {
@@ -665,7 +688,7 @@ sap.ui.define([
 	/**
 	 * Setter to show/hide TablePersoDialog's 'Undo Personalization' button.
 	 * @param {boolean} bShowResetAll 'undo Personalization' button visible or not.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setShowResetAll = function (bShowResetAll) {

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.82.0"
+      "version": "1.136.0"
     },
     "title": "Unified controls intended for both, mobile and desktop scenarios",
     "description": "Unified controls intended for both, mobile and desktop scenarios",
@@ -22,10 +22,10 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.82",
+      "minUI5Version": "1.136",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         }
       }
     },
@@ -37,20 +37,27 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
           "en",
+          "en-GB",
           "en-US-sappsd",
+          "en-US-saprigi",
           "en-US-saptrc",
           "es",
+          "es-MX",
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -58,17 +65,19 @@
           "ko",
           "lt",
           "lv",
+          "mk",
           "ms",
           "nl",
           "no",
           "pl",
           "pt",
-          "rigi",
+          "pt-PT",
           "ro",
           "ru",
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -115,9 +124,13 @@
           "sap.ui.unified.FileUploaderXHRSettings",
           "sap.ui.unified.MenuItem",
           "sap.ui.unified.MenuItemBase",
+          "sap.ui.unified.MenuItemGroup",
           "sap.ui.unified.MenuTextFieldItem",
+          "sap.ui.unified.NonWorkingPeriod",
+          "sap.ui.unified.RecurringNonWorkingPeriod",
           "sap.ui.unified.ShellHeadItem",
-          "sap.ui.unified.ShellHeadUserItem"
+          "sap.ui.unified.ShellHeadUserItem",
+          "sap.ui.unified.TimeRange"
         ],
         "types": [
           "sap.ui.unified.CalendarAppointmentVisualization",
@@ -133,6 +146,7 @@
           "sap.ui.unified.StandardCalendarLegendItem"
         ],
         "interfaces": [
+          "sap.ui.unified.IMenuItem",
           "sap.ui.unified.IProcessableBlobs"
         ]
       }

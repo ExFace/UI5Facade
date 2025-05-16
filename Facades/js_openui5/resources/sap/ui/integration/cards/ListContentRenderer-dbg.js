@@ -1,10 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
+sap.ui.define([
+	"./BaseListContentRenderer",
+	"../controls/ListContentItem",
+	"../controls/ActionsStrip"
+], function (
+	BaseListContentRenderer,
+	ListContentItem,
+	ActionsStrip
+) {
 	"use strict";
 
 	/**
@@ -12,7 +20,9 @@ sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
 	 * @author SAP SE
 	 * @namespace
 	 */
-	var ListContentRenderer = BaseContentRenderer.extend("sap.ui.integration.cards.ListContentRenderer");
+	var ListContentRenderer = BaseListContentRenderer.extend("sap.ui.integration.cards.ListContentRenderer", {
+		apiVersion: 2
+	});
 
 	/**
 	 * @override
@@ -23,45 +33,63 @@ sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
 		if (oListContent.getAggregation("_legend")) {
 			oRm.renderControl(oListContent.getAggregation("_legend"));
 		}
+
+		oListContent.getPaginator()?.render(oRm);
 	};
 
 	/**
 	 * @override
 	 */
-	ListContentRenderer.hideContent = function (oListContent) {
-		BaseContentRenderer.hideContent(oListContent);
-
-		if (oListContent.getAggregation("_legend")) {
-			oListContent.getAggregation("_legend").addStyleClass("sapFCardContentHidden");
+	ListContentRenderer.getMinHeight = function (oConfiguration, oContent, oCard) {
+		if (oContent._fMinHeight) {
+			return oContent._fMinHeight + "px";
 		}
+
+		var iMinItems = oCard.getContentMinItems(oConfiguration),
+			fItemHeight;
+
+		if (!oConfiguration ||
+			!oConfiguration.item ||
+			iMinItems == null) {
+			return this.DEFAULT_MIN_HEIGHT;
+		}
+
+		fItemHeight = this.getItemMinHeight(oConfiguration, oContent);
+
+		return (iMinItems * fItemHeight) + "rem";
 	};
 
-	/**
-	 * @override
-	 */
-	ListContentRenderer.getMinHeight = function (oConfiguration, oContent) {
-		if (!oConfiguration) {
-			return this.DEFAULT_MIN_HEIGHT;
-		}
-
-		if (!oConfiguration.maxItems || !oConfiguration.item) {
-			return this.DEFAULT_MIN_HEIGHT;
+	ListContentRenderer.getItemMinHeight = function (oConfiguration, oContent) {
+		if (!oConfiguration || !oConfiguration.item) {
+			return 0;
 		}
 
 		var bIsCompact = this.isCompact(oContent),
-			iCount = parseInt(oConfiguration.maxItems) || 0,
 			oTemplate = oConfiguration.item,
-			iItemHeight = bIsCompact ? 2 : 2.75; // list item height in "rem"
+			fItemHeight = bIsCompact ? 2 : 2.75, // single line item height in "rem",
+			fVerticalPadding = 0,
+			iLines = ListContentItem.getLinesCount(oTemplate, oContent);
 
-		if (oTemplate.description || oTemplate.chart) {
-			iItemHeight = 5; // list item height with description or chart in "rem"
+		if (iLines === 2) {
+			fItemHeight = 5;
+		} else if (iLines > 2) {
+			fItemHeight = iLines + (iLines - 1) * 0.5; // lines + gaps
+			fVerticalPadding = 2;
 		}
 
-		if (oTemplate.description && oTemplate.chart) {
-			iItemHeight = 6; // list item height with description and chart in "rem"
+		if (oTemplate.actionsStrip && ActionsStrip.hasVisibleTemplateItems(oTemplate.actionsStrip,oContent)) {
+			fItemHeight += bIsCompact ? 2 : 2.75; // actions strip height in "rem"
+			fVerticalPadding += 0.5;
+
+			if (iLines > 2) {
+				fItemHeight += 0.5; // top margin of the actions strip
+				fVerticalPadding = 1.5;
+			}
 		}
 
-		return (iCount * iItemHeight) + "rem";
+		fItemHeight += fVerticalPadding;
+
+		return fItemHeight;
 	};
 
 	return ListContentRenderer;

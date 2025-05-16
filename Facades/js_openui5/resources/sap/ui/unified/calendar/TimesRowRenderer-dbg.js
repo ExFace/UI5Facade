@@ -1,12 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/UniversalDate', 'sap/ui/unified/CalendarLegendRenderer',
-		'sap/ui/unified/library', "sap/base/Log"],
-	function(CalendarUtils, UniversalDate, CalendarLegendRenderer, library, Log) {
+sap.ui.define([
+	"sap/ui/core/Element",
+	'sap/ui/unified/calendar/CalendarUtils',
+	'sap/ui/core/date/UniversalDate',
+	'sap/ui/unified/CalendarLegendRenderer',
+	"sap/ui/core/date/UI5Date",
+	'sap/ui/unified/library',
+	"sap/base/Log"
+],
+	function(
+		Element,
+		CalendarUtils,
+		UniversalDate,
+		CalendarLegendRenderer,
+		UI5Date,
+		library,
+		Log
+	) {
 		"use strict";
 
 
@@ -33,7 +48,6 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 		var oDate = oTimesRow._getStartDate();
 		var sTooltip = oTimesRow.getTooltip_AsString();
 		var sId = oTimesRow.getId();
-		var oAriaLabel = {value: sId + "-Descr", append: true};
 
 		oRm.openStart("div", oTimesRow);
 		oRm.class("sapUiCalTimesRow");
@@ -43,23 +57,14 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 			oRm.attr("title", sTooltip);
 		}
 
-		if (oTimesRow._getShowHeader()) {
-			oAriaLabel.value = oAriaLabel.value + " " + sId + "-Head";
-		}
-
 		oRm.accessibilityState(oTimesRow, {
 			role: "grid",
 			readonly: "true",
 			multiselectable: !oTimesRow.getSingleSelection() || oTimesRow.getIntervalSelection(),
-			labelledby: oAriaLabel
+			labelledby: oTimesRow._getShowHeader() ? {value: sId + "-Head", append: true} : undefined
 		});
 
-		oRm.openEnd(); // div element
-		oRm.openStart("span", sId + "-Descr");
-		oRm.style("display", "none");
 		oRm.openEnd();
-		oRm.text(oTimesRow._rb.getText("CALENDAR_DIALOG"));
-		oRm.close("span");
 
 		if (oTimesRow.getIntervalSelection()) {
 			oRm.openStart("span", sId + "-Start");
@@ -126,7 +131,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 			sDay = oFormatDate.format(oItemDate, true);
 			if (aDayIntervals.length > 0 && aDayIntervals[aDayIntervals.length - 1].sDay == sDay) {
 				aDayIntervals[aDayIntervals.length - 1].iItems++;
-			}else {
+			} else  {
 				aDayIntervals.push({sDay: sDay, iItems: 1});
 			}
 			oItemDate.setUTCMinutes(oItemDate.getUTCMinutes() + iMinutes);
@@ -175,7 +180,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 
 		oHelper.sLocale = oTimesRow._getLocale();
 		oHelper.oLocaleData = oTimesRow._getLocaleData();
-		oHelper.oNow = CalendarUtils._createUniversalUTCDate(new Date(), undefined, true);
+		oHelper.oNow = CalendarUtils._createUniversalUTCDate(UI5Date.getInstance(), undefined, true);
 		oHelper.sCurrentTime = oTimesRow._rb.getText("CALENDAR_CURRENT_TIME");
 		oHelper.sId = oTimesRow.getId();
 		oHelper.oFormatLong = oTimesRow._getFormatLong();
@@ -185,7 +190,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 
 		var sLegendId = oTimesRow.getLegend();
 		if (sLegendId) {
-			var oLegend = sap.ui.getCore().byId(sLegendId);
+			var oLegend = Element.getElementById(sLegendId);
 			if (oLegend) {
 				if (!(oLegend instanceof sap.ui.unified.CalendarLegend)) {
 					throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + oTimesRow);
@@ -207,7 +212,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/core/date/Univer
 				// aria-selected isn't valid for role="button"
 				selected: sRole !== "gridcell" ? null : false,
 				label: "",
-				describedby: ""
+				describedby: oTimesRow._getTimeDescription()
 			};
 
 		var sYyyyMMddHHmm = oTimesRow._oFormatYyyyMMddHHmm.format(oDate.getJSDate(), true);

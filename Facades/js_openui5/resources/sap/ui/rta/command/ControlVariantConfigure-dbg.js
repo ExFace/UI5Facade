@@ -1,44 +1,57 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/rta/command/BaseCommand",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
+	"sap/ui/fl/variants/VariantManager",
+	"sap/ui/fl/write/api/ChangesWriteAPI",
+	"sap/ui/fl/Utils",
+	"sap/ui/rta/command/BaseCommand",
+	"sap/ui/rta/library"
 ], function(
-	BaseCommand,
 	JsControlTreeModifier,
-	flUtils
+	ControlVariantApplyAPI,
+	FlexRuntimeInfoAPI,
+	VariantManager,
+	ChangesWriteAPI,
+	FlUtils,
+	BaseCommand,
+	rtaLibrary
 ) {
 	"use strict";
 
 	/**
-	 * Switch control variants
+	 * Configure control variants
 	 *
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.52
-	 * @alias sap.ui.rta.command.ControlVariantDuplicate
+	 * @alias sap.ui.rta.command.ControlVariantConfigure
 	 */
 	var ControlVariantConfigure = BaseCommand.extend("sap.ui.rta.command.ControlVariantConfigure", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				control : {
-					type : "any"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				control: {
+					type: "any"
 				},
-				changes : {
-					type : "array"
+				changes: {
+					type: "array"
+				},
+				deletedVariants: {
+					type: "array"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
@@ -62,21 +75,42 @@ sap.ui.define([
 	 * @public
 	 * @returns {Promise} Returns resolve after execution
 	 */
-	ControlVariantConfigure.prototype.execute = function() {
+	ControlVariantConfigure.prototype.execute = async function() {
 		var oVariantManagementControl = this.getControl();
-		this.oAppComponent = flUtils.getAppComponentForControl(oVariantManagementControl);
-		this.oModel = this.oAppComponent.getModel(flUtils.VARIANT_MODEL_NAME);
+		this.oAppComponent = FlUtils.getAppComponentForControl(oVariantManagementControl);
+		this.oModel = this.oAppComponent.getModel(ControlVariantApplyAPI.getVariantModelName());
 		this.sVariantManagementReference = JsControlTreeModifier.getSelector(oVariantManagementControl, this.oAppComponent).id;
 
 		this._aPreparedChanges = [];
+		if (this.getChanges().some((oChange) => {
+			if (
+				oChange.visible === false
+				&& oChange.variantReference === this.oModel.getCurrentVariantReference(this.sVariantManagementReference)
+			) {
+				this._sOldVReference = oChange.variantReference;
+				return true;
+			}
+			return false;
+		})) {
+			await this.oModel.updateCurrentVariant({
+				variantManagementReference: this.sVariantManagementReference,
+				newVariantReference: this.sVariantManagementReference
+			});
+		}
+
 		this.getChanges().forEach(function(mChangeProperties) {
 			mChangeProperties.appComponent = this.oAppComponent;
-			this._aPreparedChanges.push(this.oModel.setVariantProperties(this.sVariantManagementReference, mChangeProperties, true));
+			mChangeProperties.generator = rtaLibrary.GENERATOR_NAME;
+			this._aPreparedChanges.push(VariantManager.addVariantChange(this.sVariantManagementReference, mChangeProperties));
 		}.bind(this));
 
-		return Promise.resolve().then(function() {
-			this.oModel.checkUpdate(true);
-		}.bind(this));
+		this._aDeletedFlexObjects = ChangesWriteAPI.deleteVariantsAndRelatedObjects({
+			variantManagementControl: oVariantManagementControl,
+			layer: this.sLayer,
+			variants: this.getDeletedVariants()
+		});
+
+		return Promise.resolve();
 	};
 
 	/**
@@ -84,14 +118,22 @@ sap.ui.define([
 	 * @public
 	 * @returns {Promise} Returns resolve after undo
 	 */
-	ControlVariantConfigure.prototype.undo = function() {
-		var mPropertyBag;
+	ControlVariantConfigure.prototype.undo = async function() {
+		const sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: this.getControl() });
+		ChangesWriteAPI.restoreDeletedFlexObjects({
+			reference: sFlexReference,
+			flexObjects: this._aDeletedFlexObjects
+		});
+		delete this._aDeletedFlexObjects;
+
 		this.getChanges().forEach(function(mChangeProperties, index) {
-			mPropertyBag = {};
+			const mPropertyBag = {
+				appComponent: this.oAppComponent
+			};
 			Object.keys(mChangeProperties).forEach(function(sProperty) {
-				var sOriginalProperty = "original" + sProperty.charAt(0).toUpperCase() + sProperty.substr(1);
+				var sOriginalProperty = `original${sProperty.charAt(0).toUpperCase()}${sProperty.substr(1)}`;
 				if (sProperty === "visible") {
-					mPropertyBag[sProperty] = true; /*visibility of the variant always set back to true on undo*/
+					mPropertyBag[sProperty] = true; /* visibility of the variant always set back to true on undo */
 				} else if (mChangeProperties[sOriginalProperty]) {
 					mPropertyBag[sProperty] = mChangeProperties[sOriginalProperty];
 					mPropertyBag[sOriginalProperty] = mChangeProperties[sProperty];
@@ -99,14 +141,19 @@ sap.ui.define([
 					mPropertyBag[sProperty] = mChangeProperties[sProperty];
 				}
 			});
-			mPropertyBag.change = this._aPreparedChanges[index];
-			this.oModel.setVariantProperties(this.sVariantManagementReference, mPropertyBag, false);
+			var oChange = this._aPreparedChanges[index];
+			VariantManager.deleteVariantChange(this.sVariantManagementReference, mPropertyBag, oChange);
 		}.bind(this));
 
-		return Promise.resolve().then(function() {
-			this.oModel.checkUpdate(true);
-			this._aPreparedChanges = null;
-		}.bind(this));
+		this._aPreparedChanges = null;
+		if (this._sOldVReference) {
+			await this.oModel.updateCurrentVariant({
+				variantManagementReference: this.sVariantManagementReference,
+				newVariantReference: this._sOldVReference
+			}).then(() => {
+				delete this._sOldVReference;
+			});
+		}
 	};
 
 	return ControlVariantConfigure;

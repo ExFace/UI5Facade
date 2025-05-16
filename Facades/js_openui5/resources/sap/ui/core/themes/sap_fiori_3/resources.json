@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 634,
+			"size": 630,
 			"theme": "sap_fiori_3"
 		},
 		{
@@ -13,7 +13,7 @@
 		},
 		{
 			"name": "BrowserScrollbar.less",
-			"size": 348,
+			"size": 376,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -25,133 +25,101 @@
 		},
 		{
 			"name": "base.less",
-			"size": 60625,
+			"size": 180460,
 			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 147488,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 167693,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 167325,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Bold-full.woff",
-			"size": 65960,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Bold-full.woff2",
-			"size": 57472,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Bold.woff",
-			"size": 37584,
+			"size": 58556,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Bold.woff2",
-			"size": 26732,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Light-full.woff",
-			"size": 71368,
+			"size": 23684,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Light-full.woff2",
-			"size": 61768,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Light.woff",
-			"size": 36172,
+			"size": 60048,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Light.woff2",
-			"size": 31756,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Regular-full.woff",
-			"size": 68984,
+			"size": 24296,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Regular-full.woff2",
-			"size": 57136,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "fonts/72-Regular.woff",
-			"size": 38944,
+			"size": 57984,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "fonts/72-Regular.woff2",
-			"size": 27844,
+			"size": 23756,
+			"theme": "sap_fiori_3"
+		},
+		{
+			"name": "fonts/72Mono-Bold-full.woff2",
+			"size": 53272,
+			"theme": "sap_fiori_3"
+		},
+		{
+			"name": "fonts/72Mono-Bold.woff2",
+			"size": 21408,
+			"theme": "sap_fiori_3"
+		},
+		{
+			"name": "fonts/72Mono-Regular-full.woff2",
+			"size": 52156,
+			"theme": "sap_fiori_3"
+		},
+		{
+			"name": "fonts/72Mono-Regular.woff2",
+			"size": 21112,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "global.less",
-			"size": 50551,
+			"size": 118112,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 99525,
+			"size": 300054,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 55838,
+			"module": "sap/ui/core/themes/sap_fiori_3/library-parameters.json",
+			"size": 153523,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 99511,
+			"size": 300041,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 7840,
+			"size": 10094,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.source.less",
-			"size": 319,
+			"size": 314,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 26231,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 26218,
-			"theme": "sap_fiori_3"
+			"name": "resources.json",
+			"size": 2224
 		},
 		{
 			"name": "shared.less",
-			"size": 6633,
+			"size": 8864,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		}

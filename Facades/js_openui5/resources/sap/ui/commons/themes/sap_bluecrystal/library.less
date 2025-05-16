@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_bluecrystal with SAPUI5 version 1.44 the             */
+/* inheritance of the base theme is now updated to an inheritance of a static     */
+/* copy of the base theme named sap_bluecrystal_base. The respective              */
+/* control css files of base are copied to the sap_bluecrystal_base theme folder. */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.124.     */
+/* ============================================================================== */
+
+
+@import "../sap_bluecrystal_base/library.less";
 @import "../../../../../../Base/baseLib/sap_bluecrystal/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_bluecrystal/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_bluecrystal/global.less";
@@ -100,7 +109,7 @@
 .sapUiAcdSectionHdr:hover .sapUiAcdSectionMinArrow,
 .sapUiAcdSectionMinArrow:hover {
 	/* the 'collapse' icon on the left-hand side of the panel header */
-	background-image: url(img/arrow_down_hover.png);
+	background-image: url(arrow_down_hover.png);
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionMinArrow {
@@ -1323,29 +1332,9 @@ html[data-sap-ui-browser^="cr"] .sapUiGrid td > .sapUiLbl.sapUiLblReq {
 	box-sizing: border-box;
 }
 
-html[data-sap-ui-browser^=ie] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer:first-child > .sapUiRFLContainerContent > .sapUiLbl,// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^=ed] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer:first-child > .sapUiRFLContainerContent > .sapUiLbl{
-	text-align: right !important; /* to overwrite setting on label */
-}
-
-html[dir=rtl][data-sap-ui-browser^=ie] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer:first-child > .sapUiRFLContainerContent > .sapUiLbl,// TODO remove after the end of support for Internet Explorer
-html[dir=rtl][data-sap-ui-browser^=ed] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer:first-child > .sapUiRFLContainerContent > .sapUiLbl{
-	text-align: left !important; /* to overwrite setting on label */
-}
-
 .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer.sapUiRFLFullLength > .sapUiRFLContainerContent > .sapUiLbl{
 	text-align: start !important; /* to overwrite setting on label */
 	padding-bottom: 2px;
-}
-
-html[data-sap-ui-browser^=ie] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer.sapUiRFLFullLength > .sapUiRFLContainerContent > .sapUiLbl,// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^=ed] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer.sapUiRFLFullLength > .sapUiRFLContainerContent > .sapUiLbl{
-	text-align: left !important; /* to overwrite setting on label */
-}
-
-html[dir=rtl][data-sap-ui-browser^=ie] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer.sapUiRFLFullLength > .sapUiRFLContainerContent > .sapUiLbl,// TODO remove after the end of support for Internet Explorer
-html[dir=rtl][data-sap-ui-browser^=ed] .sapUiFormResLayout .sapUiRFLRow:first-child > .sapUiRFLContainer.sapUiRFLFullLength > .sapUiRFLContainerContent > .sapUiLbl{
-	text-align: right !important; /* to overwrite setting on label */
 }
 
 /* ResponsiveGridLayout */
@@ -2075,10 +2064,6 @@ html[data-sap-ui-browser^="ie"] .sapUiProgInd:focus{ /* IE only */
 
 .sapUiRb:focus{
 	outline-color: @sapUiKeyboardFocus;
-}
-
-html[data-sap-ui-browser^="ie"] .sapUiRb:focus:after { // TODO remove after the end of support for Internet Explorer
-	border-color: @sapUiKeyboardFocus;
 }
 
 .sapUiRb > input { /* make the real radiobutton vanish from the screen */
@@ -2989,14 +2974,6 @@ html[data-sap-ui-browser^="ie"] .sapUiRb:focus:after { // TODO remove after the 
 	border-radius: @_sap_ui_commons_TabStrip_BorderRadius @_sap_ui_commons_TabStrip_BorderRadius 0 0;
 }
 
-html[data-sap-ui-browser^="ie"] .sapUiTab,// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^="ie"] .sapUiTabSel,
-html[data-sap-ui-browser^="ie"] .sapUiTabDsbl {
-	/*in IE outline-offset not works, so use border instead*/
-	border-bottom-width: 1px;
-	padding-bottom: 1px;
-}
-
 .sapUiTab:hover,
 .sapUiTabSel:hover {
 	background-color: @sapUiHighlight;
@@ -3023,22 +3000,9 @@ html[data-sap-ui-browser^="ie"] .sapUiTabDsbl {
 	outline-offset: -1px;
 }
 
-html[data-sap-ui-browser^="ie"] .sapUiTab:focus,// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^="ie"] .sapUiTabDsbl:focus{
-	/*in IE outline-offset not works, so use border instead*/
-	outline: none;
-	border: 1px dashed @sapUiHighlight;
-}
-
 .sapUiTabSel:focus {
 	outline: 1px dashed @sapUiHighlight;
 	outline-offset: -1px;
-}
-
-html[data-sap-ui-browser^="ie"] .sapUiTabSel:focus{// TODO remove after the end of support for Internet Explorer
-	/*in IE outline-offset not works, so use border instead*/
-	outline: none;
-	border: 1px dashed @sapUiHighlight;
 }
 
 .sapUiTabSel {

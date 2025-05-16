@@ -1,28 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.ComboBox.
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
-    './TextField',
-    './library',
-    'sap/ui/core/Popup',
-    './ComboBoxRenderer',
-    'sap/ui/core/library',
-    'sap/ui/Device',
-    './ListBox',
-    'sap/ui/base/Event',
-    'sap/ui/dom/containsOrEquals',
-    'sap/ui/events/KeyCodes',
-    'sap/ui/events/jquery/EventExtension',
-    'sap/ui/dom/jquery/rect', // jQuery Plugin "rect"
-    'sap/ui/dom/jquery/selectText', // jQuery.fn.selectText
-    'jquery.sap.strings' // jQuery.sap.startsWithIgnoreCase
+	'sap/ui/thirdparty/jquery',
+	'./TextField',
+	'./library',
+	'sap/ui/Device',
+	'sap/ui/core/Popup',
+	'./ComboBoxRenderer',
+	'sap/ui/core/library',
+	'./ListBox',
+	'sap/ui/base/Event',
+	'sap/ui/dom/containsOrEquals',
+	'sap/ui/events/KeyCodes',
+	'sap/ui/events/jquery/EventExtension',
+	'sap/ui/dom/jquery/rect', // jQuery Plugin "rect"
+	'sap/ui/dom/jquery/selectText', // jQuery.fn.selectText
+	'jquery.sap.strings' // jQuery.sap.startsWithIgnoreCase
 ],
-	function(jQuery, TextField, library, Popup, ComboBoxRenderer, coreLibrary, Device, ListBox, Event, containsOrEquals, KeyCodes, EventExtension) {
+	function(jQuery, TextField, library, Device, Popup, ComboBoxRenderer, coreLibrary, ListBox, Event, containsOrEquals, KeyCodes, EventExtension) {
 	"use strict";
 
 
@@ -44,13 +44,12 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.ComboBox}
 	 * @alias sap.ui.commons.ComboBox
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ComboBox = TextField.extend("sap.ui.commons.ComboBox", /** @lends sap.ui.commons.ComboBox.prototype */ { metadata : {
 
@@ -58,6 +57,7 @@ sap.ui.define([
 			"sap.ui.commons.ToolbarItem"
 		],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -498,7 +498,7 @@ sap.ui.define([
 		oValue = jQuery(oDomRef).val();
 
 		var i = this._prepareUpDown(aItems, oValue);
-		i = this._updateIdx(aItems, oDomRef, i - 1, i, oEvent);
+		i = this._updateIdx(aItems, oDomRef, i - 1, i, oEvent); // eslint-disable-line
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation(); // prevent itemNavigation if ComboBox is in toolbar
@@ -534,7 +534,7 @@ sap.ui.define([
 			oValue = jQuery(oDomRef).val();
 
 		var i = this._prepareUpDown(aItems, oValue);
-		i = this._updateIdx(aItems, oDomRef, i + 1, i, oEvent);
+		i = this._updateIdx(aItems, oDomRef, i + 1, i, oEvent); // eslint-disable-line
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation(); // prevent itemNavigation if ComboBox is in toolbar
@@ -597,7 +597,7 @@ sap.ui.define([
 			oDomRef = this.getInputDomRef();
 
 		var i = aItems.length - 1;
-		i = this._updateIdx(aItems, oDomRef, i, undefined, oEvent);
+		i = this._updateIdx(aItems, oDomRef, i, undefined, oEvent); // eslint-disable-line
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -735,7 +735,7 @@ sap.ui.define([
 	 * Selects the text of the InputDomRef in the given range
 	 * @param {int} [iStart=0] start position of the text selection
 	 * @param {int} [iEnd=<length of text>] end position of the text selection
-	 * @return {sap.ui.commons.ComboBox} this DropdownBox instance
+	 * @return {this} this ComboBox instance
 	 * @private
 	 */
 	ComboBox.prototype._doSelect = function(iStart, iEnd){
@@ -759,10 +759,10 @@ sap.ui.define([
 	//***********************************************************
 
 	/**
-	 * Returns the DomRef which represents the icon for value help.
-	 * Could be overwritten in child-classes
+	 * Returns the DOM element which represents the icon for value help.
+	 * Could be overwritten in child-classes.
 	 *
-	 * @return {Element} The F4-element's DOM reference or null
+	 * @returns {Element|null} The F4-element's DOM reference or <code>null</code>
 	 * @protected
 	 */
 	ComboBox.prototype.getF4ButtonDomRef = function() {
@@ -1003,14 +1003,6 @@ sap.ui.define([
 		oListBox.attachSelect(this._handleSelect, this);
 		// and also ensure we get to know it closes / gets closed via automatic-close again
 		this.oPopup.attachClosed(this._handleClosed, this);
-
-		if (Device.browser.msie) {
-			// as IE just ignores syncron focus() called from popup by opening it must be called asynchron
-			// otherwise onfocusin is not executed.
-			setTimeout(function(){
-				jQuery(this.getInputDomRef()).trigger("focus");
-			}.bind(this), 0);
-		}
 
 		// if ComboBox is open -> switch to action mode
 		if (jQuery(this.getFocusDomRef()).data("sap.InNavArea")) {
@@ -1369,6 +1361,7 @@ sap.ui.define([
 
 	/*
 	 * Ensure that handed in ListBoxes are taken from the visible UI immediately.
+	 * @param {jQuery.Event} oEvent The event object.
 	 * @protected
 	 */
 	ComboBox.prototype.onAfterRendering = function(oEvent){
@@ -1782,6 +1775,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility info
 	 * @protected
 	 */
 	ComboBox.prototype.getAccessibilityInfo = function() {
@@ -1803,7 +1797,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {object} [mArguments] the arguments to pass along with the event.
-	 * @return {sap.ui.commons.ComboBox} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 * @name sap.ui.commons.ComboBox#fireChange
 	 * @function

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -56,17 +56,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.7.0
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.MessagePopover</code> control.
 	 * @alias sap.ui.ux3.NotificationBar
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var NotificationBar = Control.extend("sap.ui.ux3.NotificationBar", /** @lends sap.ui.ux3.NotificationBar.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -82,11 +82,12 @@ sap.ui.define([
 
 			/**
 			 * This property defines if the toggler should be displayed the whole time when the NotificationBar is shown.
+			 *
+			 * @since 1.24.5
 			 */
 			alwaysShowToggler : {
 				type : "boolean",
-				defaultValue : false,
-				since : "1.24.5"
+				defaultValue : false
 			}
 		},
 		aggregations : {
@@ -186,6 +187,7 @@ sap.ui.define([
 		},
 
 		metadata : {
+			library: "sap.ui.ux3",
 			properties : {
 				"title" : "string",
 				"visibleItems" : "int",
@@ -290,6 +292,7 @@ sap.ui.define([
 	 */
 	Control.extend("sap.ui.ux3.NotificationBar.MessageView", {
 		metadata : {
+			library: "sap.ui.ux3",
 			properties : {
 				"text" : "string",
 				"timestamp" : "string",
@@ -1059,7 +1062,6 @@ sap.ui.define([
 		 *
 		 * @type boolean
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		NotificationBar.prototype.hasItems = function() {
 			// Checking all notifiers if any has items
@@ -1114,8 +1116,8 @@ sap.ui.define([
 				display = "block";
 				break;
 
-			default:
 			case NotificationBarStatus.Default:
+			default:
 				/*
 				 * If bar should be resized from maximized to default a re-rendering
 				 * is needed. Otherwise a simple animation and CSS exchange is
@@ -1256,44 +1258,55 @@ sap.ui.define([
 		};
 
 		NotificationBar.prototype.getHeightOfStatus = function(sStatus) {
-			var sParam = "";
-
-			if (sStatus == NotificationBarStatus.Min) {
-				sParam = "sapUiNotificationBarHeightMinimized";
-			} else if (sStatus == NotificationBarStatus.Default) {
-				sParam = "sapUiNotificationBarHeight";
-			} else if (sStatus == NotificationBarStatus.Max) {
-				sParam = "sapUiNotificationBarHeightMaximized";
-				sParam = Parameters.get(sParam);
-
-				var iIndex = sParam.indexOf("%");
-				if (iIndex != -1) {
-					var iPercentage = sParam.substring(0, iIndex);
-					var iHeight = jQuery(window).height();
-					iHeight = parseInt(iHeight / 100 * iPercentage);
-
-					// Ensure that the MaxHeight is at least 1 px larger than the
-					// Default
-					// Maybe disabling the resize feature would be the better
-					// approach in this case
-					var _iHeight = parseInt(this.getHeightOfStatus(NotificationBarStatus.Default));
-					if (iHeight < _iHeight) {
-						iHeight = _iHeight + 1;
-					}
-				} else {
-					var sMessage = "No valid percantage value given for maximized size. 400px is used";
-					Log.warning(sMessage);
-
-					iHeight = 400;
-				}
-				return iHeight + "px";
-			} else {
-				// sStatus == sap.ui.ux3.NotificationBarStatus.None
+			if (sStatus == NotificationBarStatus.None) {
 				return "0px";
 			}
 
-			sParam = Parameters.get(sParam);
-			return sParam;
+			var mParamеters = Object.assign({
+				// add base styles as default
+				"sapUiNotificationBarHeightMinimized": "0px",
+				"sapUiNotificationBarHeight": "40px",
+				"sapUiNotificationBarHeightMaximized": "40%"
+			}, Parameters.get({
+				name: ["sapUiNotificationBarHeightMinimized", "sapUiNotificationBarHeight", "sapUiNotificationBarHeightMaximized"],
+				callback: this.invalidate.bind(this)
+			}));
+
+			switch (sStatus) {
+				case NotificationBarStatus.Min:
+					return mParamеters["sapUiNotificationBarHeightMinimized"];
+
+				case NotificationBarStatus.Max:
+					return this.calculateStatusHeightMax(mParamеters["sapUiNotificationBarHeightMaximized"]);
+
+				case NotificationBarStatus.Default:
+				default:
+					return mParamеters["sapUiNotificationBarHeight"];
+			}
+		};
+
+		NotificationBar.prototype.calculateStatusHeightMax = function(sParam) {
+			var iIndex = sParam.indexOf("%");
+			if (iIndex !== -1) {
+				var iPercentage = parseInt(sParam),
+					iHeight = jQuery(window).height();
+
+				iHeight = parseInt(iHeight / 100 * iPercentage);
+
+				// Ensure that the MaxHeight is at least 1 px larger than the
+				// Default
+				// Maybe disabling the resize feature would be the better
+				// approach in this case
+				var _iHeight = parseInt(this.getHeightOfStatus(NotificationBarStatus.Default));
+				if (iHeight < _iHeight) {
+					iHeight = _iHeight + 1;
+				}
+			} else {
+				Log.warning("No valid percantage value given for maximized size. 400px is used");
+
+				iHeight = 400;
+			}
+			return iHeight + "px";
 		};
 
 		NotificationBar.prototype.setVisibleStatus = function(toStatus) {

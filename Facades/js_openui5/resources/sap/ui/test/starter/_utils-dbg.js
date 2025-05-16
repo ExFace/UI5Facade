@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,10 @@
  * Code other than the Core tests must not yet introduce dependencies to this module.
  */
 
-/*global sap */
 sap.ui.define([
+	"sap/base/util/isPlainObject",
 	"sap/base/util/merge"
-], function(merge) {
+], function(isPlainObject, merge) {
 	"use strict";
 
 	// ---- helpers ----
@@ -28,6 +28,18 @@ sap.ui.define([
 	function getAttribute(name) {
 		var tag = document.querySelector("[" + name + "]");
 		return tag ? tag.getAttribute(name) : null;
+	}
+
+	function getDefaultSuiteName() {
+		var sName = sap.ui.loader._.guessResourceName(window.location.href);
+
+		// special handling for karma runner: paths starting with /base/test/ should be /base/test-resources/
+		if ( sName == null && window.location.pathname.startsWith("/base/test/") ) {
+			const altPath = window.location.origin + window.location.pathname.replace("/base/test/", "/base/test-resources/");
+			sName = sap.ui.loader._.guessResourceName(altPath);
+		}
+
+		return sName ? sName.replace(/\.html$/, "") : null;
 	}
 
 	/**
@@ -66,11 +78,57 @@ sap.ui.define([
 	/**
 	 * Very basic HTML escaping, not bullet proof.
 	 *
-	 * @param {strin} str HTML string to encode
+	 * @param {string} str HTML string to encode
 	 * @returns {string} Encoded HTML string.
 	 */
 	function encode(str) {
 		return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+	}
+
+	// assume the document.baseURI to be constant
+	const [baseOrigin, baseURL] = (() => {
+		const url = new URL(document.baseURI);
+		return [url.origin, url.origin + url.pathname];
+	})();
+
+	function createEffectivePageURL(sUrl, oParams, sName) {
+		// check for ui5 scheme
+		if (sUrl.startsWith("ui5:")) {
+			// check for authority
+			if (!sUrl.startsWith("ui5://")) {
+				throw new TypeError(`Test '${sName}': Page URLs using the 'ui5' protocol must be absolute. Relative and server absolute URLs are reserved for future use.`);
+			}
+
+			const sNoScheme = sUrl.slice(6 /* "ui5://".length */);
+			sUrl = sap.ui.require.toUrl(sNoScheme);
+		} else {
+			// not a ui5:// URL
+			// in the context of the test starter, it then by convention is relative to the UI5 baseUrl (parent of "resources/")
+			sUrl = sap.ui.require.toUrl("") + "/../" + sUrl;
+		}
+
+		const url = new URL(sUrl, baseURL);
+
+		// add URL parameters if given
+		if ( oParams != null ) {
+			if ( typeof oParams !== "object" ) {
+				throw new TypeError(`Test '${sName}': Option 'uriParams' must be an object.`);
+			}
+			const urlParams = url.searchParams;
+			for (const name in oParams) {
+				if ( Object.hasOwn(oParams, name) ) {
+					const value = oParams[name];
+					if ( Array.isArray(value) ) {
+						value.forEach((singleValue) => urlParams.append(name, singleValue));
+					} else {
+						urlParams.append(name, value);
+					}
+				}
+			}
+		}
+
+		// for same origin URLs, return a URL w/o origin, otherwise the full URL
+		return url.origin === baseOrigin ? url.pathname + url.search + url.hash : url.href;
 	}
 
 	// ---- Suite Configuration ----
@@ -82,9 +140,33 @@ sap.ui.define([
 		page: "resources/sap/ui/test/starter/Test.qunit.html?testsuite={suite}&test={name}",
 		title: "QUnit tests '{name}' of suite '{suite}'",
 		qunit: {
+			versions: {
+				1: {
+					module: "sap/ui/thirdparty/qunit",
+					css: "sap/ui/thirdparty/qunit.css"
+				},
+				2: {
+					module: "sap/ui/thirdparty/qunit-2",
+					css: "sap/ui/thirdparty/qunit-2.css"
+				},
+				edge: 2,
+				"true": "edge"
+			},
 			version: "edge"
 		},
 		sinon: {
+			versions: {
+				1: {
+					module: "sap/ui/thirdparty/sinon",
+					bridge: "sap/ui/thirdparty/sinon-qunit"
+				},
+				4: {
+					module: "sap/ui/thirdparty/sinon-4",
+					bridge: "sap/ui/qunit/sinon-qunit-bridge"
+				},
+				edge: 4,
+				"true": "edge"
+			},
 			version: "edge",
 			qunitBridge: true,
 			useFakeTimers: false,
@@ -93,13 +175,14 @@ sap.ui.define([
 		coverage: {
 			only: null,
 			never: null,
-			branchTracking: false
+			branchTracking: false,
+			// "auto" checks for istanbul middleware and loads istanbul instrumentation, otherwise blanket is used.
+			// The other options set explicitly the desired instrumenter.
+			instrumenter: "auto" // blanket, istanbul, auto (default)
 		},
 		ui5: {
 			bindingSyntax: 'complex',
-			noConflict: true,
-			libs: [],
-			theme: "sap_belize"
+			libs: []
 		},
 		bootCore: true,
 		autostart: true
@@ -137,7 +220,6 @@ sap.ui.define([
 	}
 
 	function mergeWithDefaults(oSuiteConfig, sTestSuite) {
-		window.console.log("[DEBUG] mergeWithDefaults for testsuite: " + sTestSuite);
 		function resolvePlaceholders(str, name) {
 			return str == null ? str : str.replace(/\{suite\}/g, sTestSuite).replace(/\{name\}/g, name);
 		}
@@ -157,7 +239,22 @@ sap.ui.define([
 				oTestDefaults = {
 					name: name
 				};
-			oTestConfig = merge({}, oSuiteDefaults, oTestDefaults, oTestConfig);
+
+			const mergeConfigObjects = (...aConfigs) => {
+				const oResult = merge({}, aConfigs.shift());
+
+				while (aConfigs.length) {
+					const oTmp = aConfigs.shift();
+					for (const sKey in oTmp) {
+						oResult[sKey] = isPlainObject(oResult[sKey]) ? mergeConfigObjects(oResult[sKey], oTmp[sKey]) : oTmp[sKey];
+					}
+				}
+
+				return oResult;
+			};
+
+			oTestConfig = mergeConfigObjects(oSuiteDefaults, oTestDefaults, oTestConfig);
+
 			if ( Array.isArray(oTestConfig.module) ) {
 				oTestConfig.module  = oTestConfig.module.map(function(sModule) {
 					return resolvePackage(resolvePlaceholders(sModule, name));
@@ -166,8 +263,8 @@ sap.ui.define([
 				oTestConfig.module = resolvePackage(resolvePlaceholders(oTestConfig.module, name));
 			}
 			oTestConfig.beforeBootstrap = resolvePackage(resolvePlaceholders(oTestConfig.beforeBootstrap, name));
-			oTestConfig.page = resolvePlaceholders(oTestConfig.page, name);
-			window.console.log("[DEBUG] mergeWithDefaults test page: " + oTestConfig.page);
+			oTestConfig.page = createEffectivePageURL(resolvePlaceholders(oTestConfig.page, name), oTestConfig.uriParams, name);
+
 			oTestConfig.title = resolvePlaceholders(oTestConfig.title, name);
 			oSuiteConfig.tests[name] = oTestConfig;
 		});
@@ -200,7 +297,7 @@ sap.ui.define([
 	 *
 	 * The pattern is so restrictive to limit the locations where code will be loaded from.
 	 */
-	var VALID_TESTSUITE = /^test-resources\/([a-zA-Z_$\-][a-zA-Z_$0-9\-\.]*\/)*testsuite(?:\.[a-z][a-z0-9]*)*\.qunit$/;
+	var VALID_TESTSUITE = /^test-resources\/([a-zA-Z_$\-][a-zA-Z_$0-9\-\.]*\/)*testsuite(?:\.[a-z][a-z0-9\-]*)*\.qunit$/;
 	//var VALID_TEST = /^([a-zA-Z_$\-][a-zA-Z_$0-9\-]*\/)*[a-zA-Z_$\-][a-zA-Z_$0-9\-]*$/;
 
 	/**
@@ -228,12 +325,29 @@ sap.ui.define([
 			}
 
 			sap.ui.require([sTestSuite], function(oSuiteConfig) {
-				resolve( mergeWithDefaults(oSuiteConfig, sTestSuite) );
+				try {
+					resolve( mergeWithDefaults(oSuiteConfig, sTestSuite) );
+				} catch (oErr) {
+					reject(oErr);
+				}
 			}, function(oErr) {
 				reject(oErr);
 			});
 		});
 
+	}
+
+	function registerResourceRoots(oScriptTag) {
+		const sResourceRoots = getAttribute("data-sap-ui-resource-roots");
+		if (!sResourceRoots) {
+			return;
+		}
+		const oResourceRoots = JSON.parse(sResourceRoots);
+		const paths = {};
+		for (const n in oResourceRoots) {
+			paths[n.replace(/\./g, "/")] = oResourceRoots[n] || ".";
+		}
+		sap.ui.loader.config({ paths });
 	}
 
 	sap.ui.loader.config({
@@ -247,8 +361,10 @@ sap.ui.define([
 		addStylesheet: addStylesheet,
 		encode: encode,
 		getAttribute: getAttribute,
+		getDefaultSuiteName: getDefaultSuiteName,
 		getSuiteConfig: getSuiteConfig,
-		whenDOMReady: whenDOMReady
+		whenDOMReady: whenDOMReady,
+		registerResourceRoots: registerResourceRoots
 	};
 
 });

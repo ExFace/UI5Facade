@@ -3,24 +3,24 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 650,
+			"size": 738,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "Calendar.less",
-			"size": 15933,
+			"size": 14496,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "CalendarLegend.less",
-			"size": 5071,
+			"size": 471,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 11308,
+			"size": 2969,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -48,7 +48,7 @@
 		},
 		{
 			"name": "Menu.less",
-			"size": 482,
+			"size": 1024,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -71,58 +71,36 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 31485,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 109488,
-			"designtime": true,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 109122,
-			"designtime": true,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "library-RTL.css",
-			"size": 256746,
+			"size": 266068,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 13851,
+			"module": "sap/ui/unified/themes/sap_belize/library-parameters.json",
+			"size": 14157,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.css",
-			"size": 256536,
+			"size": 265918,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.less",
-			"size": 39043,
+			"size": 25798,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.source.less",
-			"size": 572,
+			"size": 1161,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 266121,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 265911,
-			"theme": "sap_belize"
+			"name": "resources.json",
+			"size": 1828
 		}
 	]
 }

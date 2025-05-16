@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,25 +10,31 @@ sap.ui.define([
 	'./Link',
 	'./Text',
 	'sap/ui/core/Control',
+	"sap/ui/core/ControlBehavior",
 	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	'sap/ui/base/ManagedObject',
-	'./ObjectIdentifierRenderer'
+	'./ObjectIdentifierRenderer',
+	"sap/ui/events/KeyCodes"
 ],
 function(
 	library,
 	Link,
 	Text,
 	Control,
+	ControlBehavior,
 	IconPool,
 	InvisibleText,
+	Library,
 	coreLibrary,
 	Device,
 	ManagedObject,
-	ObjectIdentifierRenderer
-	) {
+	ObjectIdentifierRenderer,
+	KeyCodes
+) {
 	"use strict";
 
 
@@ -36,7 +42,11 @@ function(
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
 
 	/**
 	 * Constructor for a new ObjectIdentifier.
@@ -45,110 +55,134 @@ function(
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * The ObjectIdentifier is a display control that enables the user to easily identify a specific object. The ObjectIdentifier title is the key identifier of the object and additional text and icons can be used to further distinguish it from other objects.
+	 * The ObjectIdentifier is a display control that enables the user to easily identify a specific object. The ObjectIdentifier title is the key identifier of the object and additional text can be used to further distinguish it from other objects.
 	 *
-         * <b>Note:</b> This control should not be used with {@link sap.m.Label} or in Forms along with {@link sap.m.Label}.
+	* <b>Note:</b> This control should not be used with {@link sap.m.Label} or in Forms along with {@link sap.m.Label}.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.12
 	 * @alias sap.m.ObjectIdentifier
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/object-display-elements/#-object-status Object Identifier}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ObjectIdentifier = Control.extend("sap.m.ObjectIdentifier", /** @lends sap.m.ObjectIdentifier.prototype */ { metadata : {
+	var ObjectIdentifier = Control.extend("sap.m.ObjectIdentifier", /** @lends sap.m.ObjectIdentifier.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		designtime: "sap/m/designtime/ObjectIdentifier.designtime",
-		properties : {
+			library : "sap.m",
+			designtime: "sap/m/designtime/ObjectIdentifier.designtime",
+			properties : {
 
-			/**
-			 * Defines the object title.
-			 */
-			title : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the object title.
+				 */
+				title : {type : "string", group : "Data", defaultValue : null},
 
-			/**
-			 * Defines the object text.
-			 */
-			text : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Defines the object text.
+				 */
+				text : {type : "string", group : "Data", defaultValue : null},
 
-			/**
-			 * Indicates whether or not the notes icon is displayed.
-			 * @deprecated as of version 1.24.0. There is no replacement for the moment.
-			 */
-			badgeNotes : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
+				/**
+				 * Indicates whether or not the notes icon is displayed.
+				 * @deprecated as of version 1.24.0. There is no replacement for the moment.
+				 */
+				badgeNotes : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
 
-			/**
-			 * Indicates whether or not the address book icon is displayed.
-			 * @deprecated as of version 1.24.0. There is no replacement for the moment.
-			 */
-			badgePeople : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
+				/**
+				 * Indicates whether or not the address book icon is displayed.
+				 * @deprecated as of version 1.24.0. There is no replacement for the moment.
+				 */
+				badgePeople : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
 
-			/**
-			 * Indicates whether or not the attachments icon is displayed.
-			 * @deprecated as of version 1.24.0. There is no replacement for the moment.
-			 */
-			badgeAttachments : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
+				/**
+				 * Indicates whether or not the attachments icon is displayed.
+				 * @deprecated as of version 1.24.0. There is no replacement for the moment.
+				 */
+				badgeAttachments : {type : "boolean", group : "Misc", defaultValue : null, deprecated: true},
 
-			/**
-			 * Indicates if the ObjectIdentifier is visible. An invisible ObjectIdentifier is not being rendered.
-			 */
-			visible : {type : "boolean", group : "Appearance", defaultValue : true},
+				/**
+				 * Indicates if the ObjectIdentifier is visible. An invisible ObjectIdentifier is not being rendered.
+				 */
+				visible : {type : "boolean", group : "Appearance", defaultValue : true},
 
-			/**
-			 * Indicates if the ObjectIdentifier's title is clickable.
-			 * @since 1.26
-			 */
-			titleActive : {type : "boolean", group : "Misc", defaultValue : false},
+				/**
+				 * Indicates if the ObjectIdentifier's title is clickable.
+				 * @since 1.26
+				 */
+				titleActive : {type : "boolean", group : "Misc", defaultValue : false},
 
-			/**
-			 * Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
-			 * @since 1.28.0
-			 */
-			textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit}
-		},
-		aggregations : {
+				/**
+				 * Defines the size of the reactive area of the link:<ul>
+				 * <li><code>ReactiveAreaMode.Inline</code> - The link is displayed as part of a sentence.</li>
+				 * <li><code>ReactiveAreaMode.Overlay</code> - The link is displayed as an overlay on top of other interactive parts of the page.</li></ul>
+				 *
+				 * <b>Note:</b>It is designed to make links easier to activate and helps meet the WCAG 2.2 Target Size requirement. It is applicable only for the SAP Horizon themes.
+				 * <b>Note:</b>The Reactive area size is sufficiently large to help users avoid accidentally selecting (clicking or tapping) on unintented UI elements.
+				 * UI elements positioned over other parts of the page may need an invisible active touch area.
+				 * This will ensure that no elements beneath are activated accidentally when the user tries to interact with the overlay element.
+				 *
+				 * @since 1.133.0
+				 */
+				reactiveAreaMode : {type : "sap.m.ReactiveAreaMode", group : "Appearance", defaultValue : ReactiveAreaMode.Inline},
 
-			/**
-			 * Control to display the object title (can be either Text or Link).
-			 *
-			 * @private
-			 */
-			_titleControl : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"},
+				/**
+				 * Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
+				 * @since 1.28.0
+				 */
+				textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
 
-			/**
-			 * Text control to display the object text.
-			 *
-			 * @private
-			 */
-			_textControl : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"}
-		},
-		events : {
+				/**
+				 * Specifies if an empty indicator should be displayed when there is no text.
+				 *
+				 * @since 1.89
+				 */
+				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
+			},
+			aggregations : {
 
-			/**
-			 * Fires when the title is active and the user taps/clicks on it.
-			 * @since 1.26
-			 */
-			titlePress : {
-				parameters : {
+				/**
+				 * Control to display the object title (can be either Text or Link).
+				 *
+				 * @private
+				 */
+				_titleControl : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"},
 
-					/**
-					 * DOM reference of the object identifier's title.
-					 */
-					domRef : {type : "object"}
+				/**
+				 * Text control to display the object text.
+				 *
+				 * @private
+				 */
+				_textControl : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"}
+			},
+			events : {
+
+				/**
+				 * Fires when the title is active and the user taps/clicks on it.
+				 * @since 1.26
+				 */
+				titlePress : {
+					parameters : {
+
+						/**
+						 * DOM reference of the object identifier's title.
+						 */
+						domRef : {type : "object"}
+					}
 				}
-			}
+			},
+			associations: {
+				/**
+				 * Association to controls / IDs, which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
+			},
+			dnd: { draggable: true, droppable: false }
 		},
-		associations: {
-			/**
-			 * Association to controls / IDs, which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
-		},
-		dnd: { draggable: true, droppable: false }
-	}});
+
+		renderer: ObjectIdentifierRenderer
+	});
 
 
 	/**
@@ -157,10 +191,17 @@ function(
 	 * @private
 	 */
 	ObjectIdentifier.prototype.init = function() {
-		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oLibraryResourceBundle = Library.getResourceBundleFor("sap.m");
 
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			ObjectIdentifier.OI_ARIA_ROLE = oLibraryResourceBundle.getText("OI_ARIA_ROLE");
+		}
+	};
+
+	ObjectIdentifier.prototype.onBeforeRendering = function() {
+		var oTitleControl = this._getTitleControl();
+		if (oTitleControl.isA("sap.m.Link")) {
+			oTitleControl.setProperty("reactiveAreaMode", this.getReactiveAreaMode());
 		}
 	};
 
@@ -191,6 +232,7 @@ function(
 	 * Lazy loads attachments icon.
 	 * @returns {object} The attachments icon
 	 * @private
+	 * @deprecated as of version 1.24.0
 	 */
 	ObjectIdentifier.prototype._getAttachmentsIcon = function() {
 
@@ -205,6 +247,7 @@ function(
 	 * Lazy loads people icon.
 	 * @returns {object} The people icon
 	 * @private
+	 * @deprecated as of version 1.24.0
 	 */
 	ObjectIdentifier.prototype._getPeopleIcon = function() {
 
@@ -219,6 +262,7 @@ function(
 	 * Lazy loads notes icon.
 	 * @returns {object} The notes icon
 	 * @private
+	 * @deprecated as of version 1.24.0
 	 */
 	ObjectIdentifier.prototype._getNotesIcon = function() {
 
@@ -255,24 +299,28 @@ function(
 
 	/**
 	 * Gets the proper control for the title.
-	 * @returns {sap.m.Control} The control for the title
+	 * @returns {sap.ui.core.Control} The control for the title
 	 * @private
 	 */
 	ObjectIdentifier.prototype._getTitleControl = function() {
 		var oTitleControl = this.getAggregation("_titleControl"),
 			sId = this.getId(),
-			sTitle = ManagedObject.escapeSettingsValue(this.getProperty("title"));
+			sTitle = ManagedObject.escapeSettingsValue(this.getProperty("title")),
+			addAriaLabelledBy;
 
 		if (!oTitleControl) {
 			// Lazy initialization
 			if (this.getProperty("titleActive")) {
+				addAriaLabelledBy = this.getAriaLabelledBy().slice();
+				addAriaLabelledBy.push(InvisibleText.getStaticId("sap.m", "OI_ARIA_ROLE"));
 				oTitleControl = new Link({
 					id : sId + "-link",
 					text: sTitle,
+					reactiveAreaMode: this.getReactiveAreaMode(),
 					//Add a custom hidden role "ObjectIdentifier" with hidden text
-					ariaLabelledBy: InvisibleText.getStaticId("sap.m", "OI_ARIA_ROLE")
+					ariaLabelledBy: addAriaLabelledBy
 				});
-				oTitleControl.addAssociation("ariaLabelledBy", sId + "-text", true);
+				oTitleControl.addAriaLabelledBy(sId + "-text");
 			} else {
 				oTitleControl = new Text({
 					id : sId + "-txt",
@@ -286,8 +334,35 @@ function(
 	};
 
 	/**
+	 * Sets title control.
+	 *
+	 * Possible controls are Link, SmartLink, Text.
+	 * @param {sap.ui.core.Control} oTitleControl the control placed as title.
+	 * @returns {sap.m.ObjectIdentifier} <code>this</code> for chaining
+	 * @private
+	 * @ui5-restricted sap.ui.comp
+	 */
+	ObjectIdentifier.prototype.setTitleControl = function(oTitleControl) {
+		this.setAggregation("_titleControl", oTitleControl);
+
+		return this;
+	};
+
+	/**
+	 * Returns the title control.
+	 *
+	 * Possible controls are Link, SmartLink, Text.
+	 * @returns {sap.ui.core.Control} oTitleControl the control placed as title.
+	 * @private
+	 * @ui5-restricted sap.ui.comp
+	 */
+	ObjectIdentifier.prototype.getTitleControl = function() {
+		return this._getTitleControl();
+	};
+
+	/**
 	 * Lazy loads _textControl aggregation.
-	 * @returns {sap.m.Control} The control for the text
+	 * @returns {sap.ui.core.Control} The control for the text
 	 * @private
 	 */
 	ObjectIdentifier.prototype._getTextControl = function() {
@@ -312,7 +387,7 @@ function(
 	 * Default value is empty/undefined.
 	 * @public
 	 * @param {string} sTitle New value for property title
-	 * @returns {sap.m.ObjectIdentifier} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	ObjectIdentifier.prototype.setTitle = function (sTitle) {
 		if (sTitle) {
@@ -327,7 +402,7 @@ function(
 	 * Default value is empty/undefined.
 	 * @public
 	 * @param {string} sText New value for property text
-	 * @returns {sap.m.ObjectIdentifier} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	ObjectIdentifier.prototype.setText = function(sText) {
 		if (sText) {
@@ -342,7 +417,7 @@ function(
 	 * Default value is false.
 	 * @public
 	 * @param {boolean} bValue new value for property titleActive
-	 * @returns {sap.m.ObjectIdentifier} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	ObjectIdentifier.prototype.setTitleActive = function(bValue) {
 		var bPrevValue = this.getTitleActive();
@@ -364,10 +439,17 @@ function(
 	 * @private
 	 */
 	ObjectIdentifier.prototype._handlePress = function(oEvent) {
-		var oClickedItem = oEvent.target;
-		if (this.getTitleActive() && this.$("title")[0].firstChild == oClickedItem) { // checking if the title is clicked
+		if (!this.getTitleActive()) {
+			return;
+		}
+
+		const oPressedItem = oEvent.target;
+		const oLinkDomRef = this.getTitleControl().getDomRef();
+		const bTitlePressed = oPressedItem.parentElement.id === oLinkDomRef.id || oPressedItem.id === oLinkDomRef.id;
+
+		if (bTitlePressed) {
 			this.fireTitlePress({
-				domRef: oClickedItem
+				domRef: oLinkDomRef
 			});
 
 			// mark the event that it is handled by the control
@@ -391,8 +473,10 @@ function(
 	 * @param {jQuery.Event} oEvent The fired event
 	 * @private
 	 */
-	ObjectIdentifier.prototype.onsapspace = function(oEvent) {
-		ObjectIdentifier.prototype._handlePress.apply(this, arguments);
+	ObjectIdentifier.prototype.onkeyup = function(oEvent) {
+		if (oEvent && oEvent.which === KeyCodes.SPACE) {
+			ObjectIdentifier.prototype._handlePress.apply(this, arguments);
+		}
 	};
 
 	/**
@@ -410,8 +494,8 @@ function(
 		var oTitle = this.getAggregation("_titleControl");
 
 		if (sAssociationName === "ariaLabelledBy") {
-			if (this.getTitleActive() && oTitle instanceof sap.m.Link) {
-				oTitle.addAssociation("ariaLabelledBy", sId, true);
+			if (this.getTitleActive() && oTitle instanceof Link) {
+				oTitle.addAriaLabelledBy(sId);
 			}
 		}
 
@@ -423,7 +507,7 @@ function(
 		var oTitle = this.getAggregation("_titleControl");
 
 		if (sAssociationName === "ariaLabelledBy") {
-			if (this.getTitleActive() && oTitle instanceof sap.m.Link) {
+			if (this.getTitleActive() && oTitle instanceof Link) {
 				oTitle.removeAssociation("ariaLabelledBy", vObject, true);
 			}
 		}
@@ -433,7 +517,7 @@ function(
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	ObjectIdentifier.prototype.getAccessibilityInfo = function() {
@@ -447,7 +531,9 @@ function(
 			oType = (ObjectIdentifier.OI_ARIA_ROLE + " " + (oTitleInfo.type || "")).trim();
 
 		// add ObjectIdentifier type to the title type
-		oTitleInfo.type = oType;
+		if (this.getTitle() || this.getText()) {
+			oTitleInfo.type = oType;
+		}
 		// add ObjectIdentifier text to the description of the title
 		oTitleInfo.description = oTitleInfo.description + " " + this.getText();
 

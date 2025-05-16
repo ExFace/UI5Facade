@@ -1,18 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
 	"sap/base/util/restricted/_omit",
 	"sap/base/util/restricted/_merge",
-	"sap/base/util/deepClone"
+	"sap/base/util/deepClone",
+	"sap/ui/integration/cards/filters/DateRangeFilter"
 ], function (
 	BasePropertyEditor,
 	_omit,
 	_merge,
-	deepClone
+	deepClone,
+	DateRangeFilter
 ) {
 	"use strict";
 
@@ -53,7 +55,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.complexMapEditor.ComplexMapEditor
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.76
@@ -61,6 +63,9 @@ sap.ui.define([
 	 */
 	var ComplexMapEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.cardEditor.propertyEditor.complexMapEditor.ComplexMapEditor", {
 		xmlFragment: "sap.ui.integration.designtime.cardEditor.propertyEditor.complexMapEditor.ComplexMapEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
@@ -77,6 +82,10 @@ sap.ui.define([
 			defaultValue: "{i18n>CARD_EDITOR.COMPLEX_MAP.KEY}"//this.getI18nProperty("CARD_EDITOR.COMPLEX_MAP.KEY")
 		}
 	});
+
+	ComplexMapEditor.prototype.getExpectedWrapperCount = function () {
+		return 1;
+	};
 
 	ComplexMapEditor.prototype.onFragmentReady = function () {
 		this._oNestedArrayEditor = this.getContent();
@@ -148,6 +157,48 @@ sap.ui.define([
 
 			return oFormattedValue;
 		}.bind(this));
+
+		//handle card filters input data
+		if (this.getConfig().type === "filters") {
+			for (var i = 0; i < aFormattedValues.length; i++) {
+				if (!aFormattedValues[i].options) {
+					var oDefaultOptions = this._getDefaultFilterOptions();
+					aFormattedValues[i].options = oDefaultOptions;
+				}
+				if (aFormattedValues[i].type === undefined) {
+					aFormattedValues[i].selectedOptions = [];
+				}
+				if (aFormattedValues[i].type === "Select") {
+					aFormattedValues[i].sValue = aFormattedValues[i].value;
+					delete aFormattedValues[i].value;
+					aFormattedValues[i].selectedOptions = [];
+				} else if (aFormattedValues[i].type === "DateRange") {
+					// aFormattedValues[i].dValue = aFormattedValues[i].value;
+					// delete aFormattedValues[i].value;
+					//add required properties for new filter
+					if (!aFormattedValues[i].value) {
+						aFormattedValues[i].value = {option: 'today', values: []};
+					}
+					aFormattedValues[i].dValue = aFormattedValues[i].value;
+					delete aFormattedValues[i].value;
+					//construct values for selected date range option
+					var oSelectedOptions = [];
+					for (var j = 0; j < aFormattedValues[i].options.length; j++) {
+						oSelectedOptions.push({
+							key: aFormattedValues[i].options[j],
+							title: aFormattedValues[i].options[j]
+						});
+					}
+					aFormattedValues[i].selectedOptions = oSelectedOptions;
+				} else if (aFormattedValues[i].type === "Search") {
+					delete aFormattedValues[i].options;
+					delete aFormattedValues[i].selectedOptions;
+					aFormattedValues[i].sValue = aFormattedValues[i].value;
+					delete aFormattedValues[i].value;
+				}
+			}
+		}
+
 		return aFormattedValues;
 	};
 
@@ -196,13 +247,11 @@ sap.ui.define([
 			}
 		);
 
-		if (this.isReady()) {
-			this._oNestedArrayEditor.setConfig(oArrayConfig);
-		} else {
-			this.ready().then(function (oArrayConfig) {
-				this._oNestedArrayEditor.setConfig(oArrayConfig);
-			}.bind(this, oArrayConfig));
-		}
+		this._oDefaultModel.setData(
+			Object.assign({}, this._oDefaultModel.getData(), {
+				nestedConfig: oArrayConfig
+			})
+		);
 
 		return oConfig;
 	};
@@ -210,23 +259,44 @@ sap.ui.define([
 	ComplexMapEditor.prototype.setValue = function (oValue) {
 		var oFormattedValue = this._processInputValue(oValue);
 
-		if (this.isReady()) {
-			this._oNestedArrayEditor.setValue(oFormattedValue);
-		} else {
-			this.ready().then(function (oFormattedValue) {
-				this._oNestedArrayEditor.setValue(oFormattedValue);
-			}.bind(this, oFormattedValue));
-		}
+		this._oDefaultModel.setData(
+			Object.assign({}, this._oDefaultModel.getData(), {
+				nestedValue: oFormattedValue
+			})
+		);
 
 		BasePropertyEditor.prototype.setValue.call(this, oValue);
 	};
 
 	ComplexMapEditor.prototype._processOutputValue = function(aValue) {
+		//handle filters value path conflict issue
+		if (this.getConfig().type === "filters") {
+			for (var i = 0; i < aValue.length; i++) {
+				if (aValue[i].type === "Select") {
+					aValue[i].value = aValue[i].sValue;
+					delete aValue[i].sValue;
+				} else if (aValue[i].type === "DateRange" && aValue[i].selectedOptions) {
+					aValue[i].value = aValue[i].dValue;
+					delete aValue[i].dValue;
+					delete aValue[i].selectedOptions;
+				} else if (aValue[i].type === "Search") {
+					aValue[i].value = aValue[i].sValue;
+					delete aValue[i].sValue;
+					delete aValue[i].dValue;
+				}
+			}
+		}
 		var oFormattedValue = {};
 		aValue.forEach(function (oValue) {
 			oFormattedValue[oValue.key] = _omit(oValue, "key");
 		});
 		return oFormattedValue;
+	};
+
+	ComplexMapEditor.prototype._getDefaultFilterOptions = function() {
+		var dateRangeFilter = new DateRangeFilter();
+		var oDefaultFilterOptions = dateRangeFilter._getDefaultOptions();
+		return oDefaultFilterOptions;
 	};
 
 	return ComplexMapEditor;

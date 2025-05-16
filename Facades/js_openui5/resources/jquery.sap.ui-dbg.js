@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,10 @@
 sap.ui.define([
 	'jquery.sap.global',
 	'sap/base/util/ObjectPath',
+	'sap/ui/core/UIArea',
 	'sap/ui/dom/jquery/control'
 	/* cyclic: 'sap/ui/core/Core' */
-], function(jQuery, ObjectPath /* jQueryControl */) {
+], function(jQuery, ObjectPath, UIArea /* jQueryControl */) {
 	"use strict";
 
 	function fgetUIAreaOfCtrl(oCtrl){
@@ -18,13 +19,11 @@ sap.ui.define([
 	}
 
 	function fUIAreaFilter(){
-		// @evo-todo: remove this global access (for now requiring the Core module would introduce a circular dependency)
-		return sap.ui.getCore().getUIArea(this.id) != null;
+		return UIArea.registry.get(this.id) != null;
 	}
 
 	function fgetUIArea(){
-		// @evo-todo: remove this global access (for now requiring the Core module would introduce a circular dependency)
-		return sap.ui.getCore().getUIArea(this.id);
+		return UIArea.registry.get(this.id).getInterface();
 	}
 
 	/**
@@ -33,7 +32,7 @@ sap.ui.define([
 	 * @name jQuery#root
 	 * @function
 	 * @public
-	 * @deprecated since 1.58
+	 * @deprecated as of version 1.58. Use {@link sap.ui.core.Control#placeAt Control#placeAt} instead for adding a control, or use {@link sap.ui.core.UIArea#getContent} to retrieve a content control.
 	 */
 	jQuery.fn.root = function(oRootControl) {
 		// handle 'setRoot'
@@ -59,8 +58,7 @@ sap.ui.define([
 
 		// create UIAreas
 		this.each(function(){
-			// @evo-todo: remove this global access (for now requiring the Core module would introduce a circular dependency)
-			sap.ui.getCore().createUIArea(this);
+			UIArea.create(this);
 		});
 		return this;
 	};
@@ -73,7 +71,11 @@ sap.ui.define([
 	 * @name jQuery#uiarea
 	 * @function
 	 * @public
-	 * @deprecated since 1.58
+	 * @deprecated As of version 1.58. Applications should
+	 *    not be interested in a certain <code>UIArea</code>. They should only
+	 *    assign controls by using {@link sap.ui.core.Control.prototype.placeAt
+	 *    Control.prototype.placeAt} or by the API of a <code>UIArea</code> as reachable
+	 *    via {@link sap.ui.core.Control.prototype.getUIArea Control.prototype.getUIArea}.
 	 */
 	jQuery.fn.uiarea = function(iIdx) {
 		// UIAreas need to have IDs... so reduce to those elements first

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,17 +20,17 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/model/SelectionModel', './library'
 	 * @class
 	 * Collection
 	 * @extends sap.ui.core.Element
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.9.0
 	 * @deprecated Since version 1.38.
 	 * @alias sap.ui.ux3.Collection
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Collection = Element.extend("sap.ui.ux3.Collection", /** @lends sap.ui.ux3.Collection.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -129,7 +129,7 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/model/SelectionModel', './library'
 	 * @param {string | sap.ui.core.Item} vSelectedItem
 	 *    Id of a selectedItem which becomes an additional target of this <code>selectedItems</code> association.
 	 *    Alternatively, a selectedItem instance may be given.
-	 * @return {sap.ui.ux3.Collection} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Collection.prototype.addSelectedItem = function(vSelectedItem) {
@@ -156,8 +156,8 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/model/SelectionModel', './library'
 	};
 
 	/**
-	 * @param {int | string | sap.ui.core.Item} vSelectedItem the selectedItem to remove or its index or id
-	 * @return {string} the id of the removed selectedItem or null
+	 * @param {int | string | sap.ui.core.Item} vSelectedItem the selected item to remove or its index or ID
+	 * @returns {string|null|undefined} the ID of the removed selected item or <code>null</code>
 	 * @public
 	 */
 	Collection.prototype.removeSelectedItem = function(vSelectedItem) {

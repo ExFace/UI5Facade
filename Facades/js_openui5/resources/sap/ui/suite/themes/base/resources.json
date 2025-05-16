@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
@@ -19,58 +19,36 @@
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 116,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 79704,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
 			"name": "library-RTL.css",
-			"size": 634,
+			"size": 703,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/suite/themes/base/library-parameters.json",
 			"size": 2,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 634,
+			"size": 703,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 1546,
+			"size": 1541,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 367,
+			"size": 362,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 604,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 604,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 949
 		},
 		{
 			"name": "shared.less",

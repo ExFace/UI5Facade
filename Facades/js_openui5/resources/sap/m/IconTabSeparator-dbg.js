@@ -1,27 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.IconTabSeparator.
 sap.ui.define([
-	"./library",
-	"sap/ui/core/Core",
 	"sap/ui/core/Element",
 	"sap/ui/core/Item",
-	"sap/m/IconTabFilter"
+	"sap/m/IconTabFilter",
+	"sap/m/ImageHelper",
+	"sap/ui/core/Lib"
 ], function (
-	library,
-	Core,
 	Element,
 	Item,
-	IconTabFilter
+	IconTabFilter,
+	ImageHelper,
+	Library
 ) {
 	"use strict";
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	/**
 	 * Constructor for a new IconTabSeparator.
@@ -36,12 +33,11 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.IconTabSeparator
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var IconTabSeparator = Element.extend("sap.m.IconTabSeparator", /** @lends sap.m.IconTabSeparator.prototype */ {
 		metadata: {
@@ -105,9 +101,7 @@ sap.ui.define([
 			this._oImageControl.destroy();
 		}
 
-		if (Item.prototype.exit) {
-			Item.prototype.exit.call(this, oEvent);
-		}
+		Element.prototype.exit.call(this, oEvent);
 	};
 
 	/**
@@ -138,7 +132,7 @@ sap.ui.define([
 
 		var sIcon = this.getIcon(),
 			oIconTabHeader = this.getParent(),
-			oRB = Core.getLibraryResourceBundle('sap.m'),
+			oRB = Library.getResourceBundleFor('sap.m'),
 			mAriaParams = {};
 
 		if (sIcon) {
@@ -182,7 +176,7 @@ sap.ui.define([
 
 		var sIcon = this.getIcon(),
 			oIconTabHeader = oSelectList._oIconTabHeader,
-			oRB = Core.getLibraryResourceBundle('sap.m'),
+			oRB = Library.getResourceBundleFor('sap.m'),
 			mAriaParams = {};
 
 		if (sIcon) {

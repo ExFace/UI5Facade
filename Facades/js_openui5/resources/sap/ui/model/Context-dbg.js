@@ -1,28 +1,36 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstraction for model bindings
-sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
-	function(BaseObject, isPlainObject) {
+sap.ui.define([
+	"sap/base/util/isPlainObject",
+	"sap/ui/base/Object"
+], function (isPlainObject, BaseObject) {
 	"use strict";
 
 
 	/**
-	 * Constructor for Context class.
+	 * Constructor for Context class. The constructor must only be called by model-internal methods.
 	 *
 	 * @class
-	 * The Context is a pointer to an object in the model data, which is used to
-	 * allow definition of relative bindings, which are resolved relative to the
-	 * defined object.
-	 * Context elements are created either by the ListBinding for each list entry
-	 * or by using createBindingContext.
+	 * The Context is a pointer to an object in the model data. A relative binding needs a context
+	 * as a reference point in order to resolve its path; without a context, a relative binding is
+	 * unresolved and does not point to model data. Context instances can, for example, be created
+	 * in the following ways:
+	 * <ul>
+	 * <li>by a {@link sap.ui.model.ListBinding} for each list entry,</li>
+	 * <li>as the single context associated with a {@link sap.ui.model.ContextBinding},</li>
+	 * <li>by calling {@link sap.ui.model.Model#createBindingContext}.</li>
+	 * </ul>
+	 *
+	 * For more information on the concept of data binding and binding contexts, see
+	 * {@link topic:e2e6f4127fe4450ab3cf1339c42ee832 documentation on binding syntax}.
 	 *
 	 * @param {sap.ui.model.Model} oModel the model
 	 * @param {string} sPath the binding path
-	 * @abstract
 	 * @public
 	 * @alias sap.ui.model.Context
 	 * @extends sap.ui.base.Object
@@ -40,7 +48,6 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 		},
 
 		metadata : {
-			"abstract" : true,
 		  publicMethods : [
 				"getModel", "getPath", "getProperty", "getObject"
 			]
@@ -79,6 +86,28 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	};
 
 	/**
+	 * Sets the given value for the property with the given binding path relative to this context in the model.
+	 *
+	 * @param {string} sPath
+	 *   The binding path
+	 * @param {any} vValue
+	 *   The value to set
+	 * @param {string} [sGroupId]
+	 *   Not used in default implementation; may be used by sub classes
+	 * @param {boolean} [bRetry]
+	 *   Not used in default implementation; may be used by sub classes
+	 * @throws {Error}
+	 *   If the value cannot be set because this context does not refer to an entry in the model data
+	 * @private
+	 */
+	Context.prototype.setProperty = function(sPath, vValue, sGroupId, bRetry) {
+		if (!this.oModel.setProperty(sPath, vValue, this, /*bAsyncUpdate*/ true)) {
+			throw new Error("Cannot set the value " + vValue + " for the property " + sPath + " as the context path "
+				+ this.getPath() + " does not refer to an entry in the model data.");
+		}
+	};
+
+	/**
 	 * Gets the (model dependent) object the context points to or the object with the given relative binding path
 	 * @public
 	 * @param {string} [sPath] the binding path
@@ -96,6 +125,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	/**
 	 * Sets the force refresh flag of the context. If this is set, the context will force a refresh of dependent
 	 * bindings, when the context is propagated.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @param {boolean} bForceRefresh the force refresh flag
 	 */
@@ -105,6 +137,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 
 	/**
 	 * This method returns, whether dependent bindings need to be refreshed.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @return {boolean} the force refresh flag
 	 */
@@ -116,6 +151,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	 * Sets the preliminary flag of the context. If this is set, the context is not yet linked to actual model
 	 * data, but does just contain path information. This can be used by dependent bindings to send their request
 	 * in parallel to the request of the context binding.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @param {boolean} bPreliminary the preliminary flag
 	 */
@@ -125,6 +163,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 
 	/**
 	 * This method returns, whether the context is preliminary.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @ui5-restricted sap.suite.ui.generic
 	 * @return {boolean} the preliminary flag
@@ -136,6 +177,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	/**
 	 * Sets the updated flag of the context. If this is set, the context was updated. E.g. the path changed from
 	 * a preliminary path to the canonical one.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @param {boolean} bUpdated the preliminary flag
 	 */
@@ -145,11 +189,26 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 
 	/**
 	 * This method returns, whether the context is updated.
+	 *
+	 * @deprecated since 1.93.0; only supported by the OData V2 Model; use V2 specific Context
+	 *   instead
 	 * @private
 	 * @return {boolean} the updated flag
 	 */
 	Context.prototype.isUpdated = function() {
 		return this.bUpdated;
+	};
+
+	/**
+	 * Whether this context has changed. By default this context cannot be changed but subclasses
+	 * can override this behaviour.
+	 *
+	 * @return {boolean} Whether this context has changed
+	 * @private
+	 * @ui5-restricted sap.ui.base.ManagedObject
+	 */
+	Context.prototype.hasChanged = function() {
+		return false;
 	};
 
 	/**
@@ -162,21 +221,17 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	 * @private
 	 */
 	Context.hasChanged = function(oOldContext, oNewContext) {
-		var bChanged = false;
-
-		if (oOldContext !== oNewContext) {
-			bChanged = true;
-		} else if (oNewContext && oNewContext.isUpdated()) {
-			bChanged = true;
-		} else if (oNewContext && oNewContext.isRefreshForced()) {
-			bChanged = true;
-		}
-
-		return bChanged;
+		// The check below is used in ManagedObject.setBindingContext as well to avoid
+		// a dependency to Context (ManagedObject should be databinding free).
+		// Both places must kept in sync!
+		return oOldContext !== oNewContext
+			|| !!oNewContext && !!oNewContext.hasChanged();
 	};
 
 	/**
-	 * toString method returns path for compatibility
+	 * Returns the path of this Context instance.
+	 *
+	 * @returns {string} The path
 	 */
 	Context.prototype.toString = function() {
 		return this.sPath;

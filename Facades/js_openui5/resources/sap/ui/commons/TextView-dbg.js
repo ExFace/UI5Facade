@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,13 +39,12 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem, sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
-	 * @deprecated Since version 1.38.
+	 * @deprecated As of version 1.38, replaced by {@link sap.m.Text}.
 	 * @alias sap.ui.commons.TextView
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var TextView = Control.extend("sap.ui.commons.TextView", /** @lends sap.ui.commons.TextView.prototype */ { metadata : {
 
@@ -54,6 +53,7 @@ sap.ui.define([
 			"sap.ui.core.IFormContent"
 		],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -134,7 +134,7 @@ sap.ui.define([
 			oDomRef.innerHTML = encodeXML(sText).replace(/&#xa;/g, "<br>");
 			// when no tooltip is applied use the text as tooltip
 			if (!this.getTooltip_AsString()) {
-				oDomRef.title = sText; // IE8 doesn't like HTML encoded attribute values// TODO remove after the end of support for Internet Explorer
+				oDomRef.title = sText;
 			}
 		}
 
@@ -143,6 +143,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility info
 	 * @protected
 	 */
 	TextView.prototype.getAccessibilityInfo = function() {

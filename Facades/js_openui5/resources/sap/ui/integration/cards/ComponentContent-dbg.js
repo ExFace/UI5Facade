@@ -1,17 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/integration/cards/BaseContent",
-	"sap/ui/core/ComponentContainer"
+	"./BaseContent",
+	"./ComponentContentRenderer",
+	"sap/ui/integration/library",
+	"sap/m/IllustratedMessageType",
+	"sap/ui/core/ComponentContainer",
+	"sap/ui/core/ComponentHooks"
 ], function (
 	BaseContent,
-	ComponentContainer
+	ComponentContentRenderer,
+	library,
+	IllustratedMessageType,
+	ComponentContainer,
+	ComponentHooks
 ) {
 	"use strict";
+
+	const CardPreviewMode = library.CardPreviewMode;
+
+	const CardDataMode = library.CardDataMode;
 
 	/**
 	 * Constructor for a new <code>Component</code> Card Content.
@@ -25,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @experimental
 	 * @constructor
@@ -33,38 +45,96 @@ sap.ui.define([
 	 * @alias sap.ui.integration.cards.ComponentContent
 	 */
 	var ComponentContent = BaseContent.extend("sap.ui.integration.cards.ComponentContent", {
-		renderer: {}
+		metadata: {
+			library: "sap.ui.integration"
+		},
+		renderer: ComponentContentRenderer
 	});
 
-	ComponentContent.prototype.setConfiguration = function (oConfiguration) {
-		BaseContent.prototype.setConfiguration.apply(this, arguments);
+	/**
+	 * Global hook when a new component instance of any kind is created.
+	 * @param {sap.ui.core.Component} oInstance The created component instance.
+	 */
+	ComponentHooks.onInstanceCreated.register(function (oInstance) {
+		var oCompData = oInstance.getComponentData();
+		if (oCompData && oCompData["__sapUiIntegration_card"] && oInstance.onCardReady) {
+			oInstance.onCardReady(oCompData["__sapUiIntegration_card"]);
+		}
+	});
+
+	ComponentContent.prototype.onAfterRendering = function () {
+		if (this._oComponent?.tileSetVisible) {
+			const oCard = this.getCardInstance();
+			const isActive = oCard?._getActualDataMode() === CardDataMode.Active;
+
+			// custom tiles temporary: pass the active/visible state
+			this._oComponent.tileSetVisible(isActive);
+		}
+	};
+
+	ComponentContent.prototype.refreshData = function () {
+		BaseContent.prototype.refreshData.apply(this, arguments);
+
+		if (this._oComponent?.tileRefresh) {
+			// custom tiles temporary: pass refresh data
+			this._oComponent.tileRefresh();
+		}
+	};
+
+	ComponentContent.prototype.exit = function () {
+		BaseContent.prototype.exit.apply(this, arguments);
+		this._oComponent = null;
+	};
+
+	ComponentContent.prototype.applyConfiguration = function () {
+		const oCard = this.getCardInstance();
+		const oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
 			return;
 		}
 
-		var oContainer = new ComponentContainer({
-			manifest: oConfiguration,
-			async: true,
-			componentCreated: function (oEvent) {
-				var oComponent = oEvent.getParameter("component"),
-					oCard = this.getParent();
+		if (oCard.getPreviewMode() === CardPreviewMode.Abstract) {
+			// TODO _updated event is always needed, so that the busy indicator knows when to stop. We should review this for contents which do not have data.
+			this.fireEvent("_actionContentReady");
+			return;
+		}
 
-				if (oComponent.onCardReady) {
-					oComponent.onCardReady(oCard);
-				}
+		const oContainer = new ComponentContainer({
+			manifest: oConfiguration.componentManifest,
+			async: true,
+			settings: {
+				componentData: this._prepareComponentData()
+			},
+			componentCreated: (oEvent) => {
+				this._oComponent = oEvent.getParameter("component");
 
 				// TODO _updated event is always needed, so that the busy indicator knows when to stop. We should review this for contents which do not have data.
 				this.fireEvent("_actionContentReady");
 				this.fireEvent("_updated");
-			}.bind(this),
-			componentFailed: function () {
+			},
+			componentFailed: () => {
 				this.fireEvent("_actionContentReady");
-				this._handleError("Card content failed to create component");
-			}.bind(this)
+				this.handleError({
+					illustrationType: IllustratedMessageType.ErrorScreen,
+					title: oCard.getTranslatedText("CARD_DATA_LOAD_ERROR"),
+					description: "Card content failed to create component"
+				});
+			}
 		});
 
 		this.setAggregation("_content", oContainer);
+	};
+
+	ComponentContent.prototype._prepareComponentData = function () {
+		const oCard = this.getCardInstance();
+		const oManifestComponentData = oCard.getManifestEntry("/sap.card/configuration/componentData");
+
+		const oComponentData = oManifestComponentData || {};
+
+		oComponentData["__sapUiIntegration_card"] = oCard;
+
+		return oComponentData;
 	};
 
 	return ComponentContent;

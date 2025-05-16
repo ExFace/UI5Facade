@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,18 +35,18 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.RadioButtonGroup</code> control.
 	 * @alias sap.ui.commons.RadioButtonGroup
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var RadioButtonGroup = Control.extend("sap.ui.commons.RadioButtonGroup", /** @lends sap.ui.commons.RadioButtonGroup.prototype */ { metadata : {
 
 		interfaces : ["sap.ui.core.IFormContent"],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -254,7 +254,6 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.Item} oSelectedItem Selected item
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RadioButtonGroup.prototype.setSelectedItem = function(oSelectedItem) {
 
@@ -277,7 +276,6 @@ sap.ui.define([
 	 *
 	 * @returns {sap.ui.core.Item} Selected Item
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RadioButtonGroup.prototype.getSelectedItem = function() {
 
@@ -519,9 +517,9 @@ sap.ui.define([
 		if (iSelectedIndex === undefined && aItems.length > 0) {
 			// if not defined -> select first one
 			this.setSelectedIndex(0);
-		}else if (iSelectedIndex >= 0 && aItems.length == 0) {
+		} else if (iSelectedIndex >= 0 && aItems.length == 0) {
 			this.setSelectedIndex(undefined);
-		}else if (iSelectedIndex >= aItems.length) {
+		} else if (iSelectedIndex >= aItems.length) {
 			// if less items than before -> select last one
 			this.setSelectedIndex(aItems.length - 1);
 		}
@@ -533,7 +531,7 @@ sap.ui.define([
 	 * Creates a new instance of RadioButtonGroup, with the same settings as the RadioButtonGroup
 	 * on which the method is called.
 	 * Event handlers are not cloned.
-	 * @returns {sap.ui.commons.RadioButtonGroup} New instance of RadioButtonGroup
+	 * @returns {this} New instance of RadioButtonGroup
 	 * @public
 	 */
 	RadioButtonGroup.prototype.clone = function(){

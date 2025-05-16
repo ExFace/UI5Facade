@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,21 +10,21 @@ sap.ui.define([],
 	"use strict";
 
 	return {
-		aggregations : {
-			columns : {
-				domRef : ".sapUiTableCHA"
+		aggregations: {
+			columns: {
+				domRef: ".sapUiTableCHA"
 			},
 			// fake aggregations with a dom ref pointing to scrollbars
 			// since scrollbars aren't part of columns aggregation dom ref, this is needed to allow overlay scrolling
-			hScroll : {
+			hScroll: {
 				ignore: false,
-				domRef : function(oElement) {
+				domRef: function(oElement) {
 					return oElement.$("hsb").get(0);
 				}
 			},
-			vScroll : {
+			vScroll: {
 				ignore: false,
-				domRef : function(oElement) {
+				domRef: function(oElement) {
 					return oElement.$("vsb").get(0);
 				}
 			}

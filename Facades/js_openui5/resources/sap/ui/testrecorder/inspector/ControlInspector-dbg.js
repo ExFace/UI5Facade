@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/Object",
-	"sap/ui/thirdparty/jquery",
+	"sap/base/util/extend",
+	"sap/ui/core/Element",
 	"sap/ui/testrecorder/CommunicationBus",
 	"sap/ui/testrecorder/CommunicationChannels",
 	"sap/ui/testrecorder/mutationObservers/AppMutationObserver",
@@ -23,8 +24,7 @@ sap.ui.define([
 	"sap/ui/testrecorder/codeSnippets/RawSnippetUtil",
 	"sap/ui/testrecorder/codeSnippets/CodeSnippetProvider",
 	"sap/ui/testrecorder/ui/models/SharedModel"
-], function (BaseObject, $, CommunicationBus, CommunicationChannels, AppMutationObserver, ElementMutationObserver, Highlighter, _ControlFinder, ControlAPI, ControlInspectorRepo, constants,
-	DialectRegistry, Dialects, ControlSelectorGenerator, POMethodUtil, RawSnippetUtil, CodeSnippetProvider, SharedModel) {
+], function(BaseObject, extend, Element, CommunicationBus, CommunicationChannels, AppMutationObserver, ElementMutationObserver, Highlighter, _ControlFinder, ControlAPI, ControlInspectorRepo, constants, DialectRegistry, Dialects, ControlSelectorGenerator, POMethodUtil, RawSnippetUtil, CodeSnippetProvider, SharedModel) {
 	"use strict";
 
 	var oControlInspector = null;
@@ -39,7 +39,7 @@ sap.ui.define([
 		constructor: function () {
 			// better to be singleton because of the mutation observer
 			if (!oControlInspector) {
-				Object.apply(this, arguments);
+				BaseObject.apply(this, arguments);
 				this._appObserver = new AppMutationObserver(this.getAllControlData.bind(this));
 				this._selectedElementObserver = new ElementMutationObserver(this.getControlData.bind(this));
 			} else {
@@ -83,7 +83,7 @@ sap.ui.define([
 	 * @param {string} mData.domElementId ID of a dom element from which the control is found (e.g. dom ref)
 	 */
 	ControlInspector.prototype.getControlData = function (mData) {
-		var oDomElement = mData.domElementId ? document.getElementById(mData.domElementId) : sap.ui.getCore().byId(mData.controlId).getDomRef();
+		var oDomElement = mData.domElementId ? document.getElementById(mData.domElementId) : Element.getElementById(mData.controlId).getDomRef();
 		this._selectedElementObserver.stop();
 		this._selectedElementObserver.start(oDomElement); // observe future updates in the control's properties
 
@@ -97,6 +97,7 @@ sap.ui.define([
 	 * @param {object} mData object containing control identifiers and actions
 	 * @param {string} mData.domElementId ID of a dom element from which the control is found (e.g. dom ref)
 	 * @param {string} mData.action name of an action to record in the snippet (e.g. press, enter text)
+	 * @param {object} mData.assertion assertion details - property name, type and expected value
 	 */
 	ControlInspector.prototype.getCodeSnippet = function (mData) {
 		var mDataForGenerator = Object.assign({}, mData, {
@@ -112,6 +113,7 @@ sap.ui.define([
 			return CodeSnippetProvider.getSnippet({
 				controlSelector: mSelector,
 				action: mDataForGenerator.action,
+				assertion: mDataForGenerator.assertion,
 				settings: mSelectorSettings
 			});
 		}).then(function (sSnippet) {
@@ -124,7 +126,10 @@ sap.ui.define([
 			if (DialectRegistry.getActiveDialect() === Dialects.RAW) {
 				return RawSnippetUtil.getJSON(aSnippets, mSelectorSettings);
 			} else {
-				return POMethodUtil.getPOMethod(aSnippets, mSelectorSettings);
+				return POMethodUtil.getPOMethod(aSnippets, extend({
+					action: mData.action,
+					assertion: mData.assertion
+				}, mSelectorSettings), DialectRegistry.getActiveDialect() === Dialects.WDI5);
 			}
 		}).then(function (sSnippet) {
 			// here sSnippet contains the snippets for one or multiple controls
@@ -224,7 +229,7 @@ sap.ui.define([
 
 	function _isAnySet(mData, vKey) {
 		// are the vKey properties defined in the mData object
-		var aKey = $.isArray(vKey) ? vKey : [vKey];
+		var aKey = Array.isArray(vKey) ? vKey : [vKey];
 		return aKey.filter(function (sKey) {
 			return mData[sKey] !== null && mData[sKey] !== undefined;
 		}).length;

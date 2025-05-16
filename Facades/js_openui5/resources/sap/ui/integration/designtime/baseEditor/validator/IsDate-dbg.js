@@ -1,12 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/integration/designtime/baseEditor/validator/IsValidBinding"
+	"sap/ui/integration/designtime/baseEditor/validator/IsValidBinding",
+	"sap/ui/core/date/UI5Date"
 ], function (
-	IsValidBinding
+	IsValidBinding,
+	UI5Date
 ) {
 	"use strict";
 
@@ -15,7 +17,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.integration.designtime.baseEditor.validator.IsDate
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @static
 	 * @since 1.81
@@ -35,11 +37,12 @@ sap.ui.define([
 		 * @function
 		 * @name sap.ui.integration.designtime.baseEditor.validator.IsDate.validate
 		 */
-		validate: function (sDateString) {
-			var sDate = new Date(sDateString);
+		validate: function (sDateString, oConfig) {
+			var formatterInstance = oConfig.formatterInstance;
+			var oDate = (formatterInstance && formatterInstance.parse(sDateString)) || UI5Date.getInstance(sDateString);
 			return sDateString === undefined
 				|| IsValidBinding.validate(sDateString, { allowPlainStrings: false })
-				|| (sDate && !isNaN(new Date(sDate).getTime()));
+				|| (oDate && !isNaN(UI5Date.getInstance(oDate).getTime()));
 		}
 	};
 });

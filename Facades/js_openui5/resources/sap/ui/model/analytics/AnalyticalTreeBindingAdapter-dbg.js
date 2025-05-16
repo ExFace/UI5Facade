@@ -1,34 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.odata.ODataAnnotations
 sap.ui.define([
-	'sap/ui/model/TreeBinding',
-	'./AnalyticalBinding',
-	'sap/ui/model/TreeAutoExpandMode',
-	'sap/ui/model/ChangeReason',
-	'sap/ui/model/odata/ODataTreeBindingAdapter',
-	'sap/ui/model/TreeBindingAdapter',
-	'sap/ui/model/TreeBindingUtils',
+	"./AnalyticalBinding",
 	"sap/base/assert",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
-],
-	function(
-		TreeBinding,
-		AnalyticalBinding,
-		TreeAutoExpandMode,
-		ChangeReason,
-		ODataTreeBindingAdapter,
-		TreeBindingAdapter,
-		TreeBindingUtils,
-		assert,
-		Log,
-		jQuery
-	) {
+	"sap/base/util/each",
+	"sap/ui/model/ChangeReason",
+	"sap/ui/model/TreeAutoExpandMode",
+	"sap/ui/model/TreeBinding",
+	"sap/ui/model/TreeBindingAdapter",
+	"sap/ui/model/odata/ODataTreeBindingAdapter"
+], function(AnalyticalBinding, assert, Log, each, ChangeReason, TreeAutoExpandMode, TreeBinding,
+		TreeBindingAdapter, ODataTreeBindingAdapter) {
 	"use strict";
 
 	/**
@@ -58,16 +46,15 @@ sap.ui.define([
 
 		//set the default auto expand mode
 		this.setAutoExpandMode(this.mParameters.autoExpandMode || TreeAutoExpandMode.Bundled);
-	};
+	},
+	sClassName = "sap.ui.model.analytics.AnalyticalTreeBindingAdapter";
 
 	/*
 	 * Returns the Root context of our tree, which is actually the context for the Grand Total
 	 * Used by the AnalyticalTable to display the sum row.
 	 */
 	AnalyticalTreeBindingAdapter.prototype.getGrandTotalContext = function () {
-		if (this._oRootNode) {
-			return this._oRootNode.context;
-		}
+		return this._oRootNode && this._oRootNode.context;
 	};
 
 	/*
@@ -75,9 +62,7 @@ sap.ui.define([
 	 * Used by the AnalyticalTable to display the sum row.
 	 */
 	AnalyticalTreeBindingAdapter.prototype.getGrandTotalNode = function () {
-		if (this._oRootNode) {
-			return this._oRootNode;
-		}
+		return this._oRootNode;
 	};
 
 	/*
@@ -92,21 +77,10 @@ sap.ui.define([
 			return 0;
 		}
 
-		//in the autoExpand mode the length of the binding is defined by the watermark's position in the tree
-		if (this._oRootNode && this._oWatermark && this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled)) {
-
-			//if the root length is not final -> we have to return the root node magnitude instead of the absolute index of the watermark
-			if (this._oWatermark.groupID === this._oRootNode.groupID) {
-				return this._oRootNode.magnitude + this._oRootNode.numberOfTotals;
-			}
-
-			// +1 because we have at least one node more after the watermark
-			// this is important for the table's scrollbar calculation
-			return this._oWatermark.absoluteNodeIndex + this._oRootNode.numberOfTotals + 1;
-		}
-
 		// The length is the sum of the trees magnitue + all sum rows (from expanded nodes)
-		return this._oRootNode.magnitude + this._oRootNode.numberOfTotals;
+		return this._oRootNode.magnitude + this._oRootNode.numberOfTotals
+			// with a watermark, there is missing data -> add 1 to be able to scroll into that area
+			+ (this._oWatermark ? 1 : 0);
 	};
 
 	AnalyticalTreeBindingAdapter.prototype.getContextByIndex = function (iIndex) {
@@ -120,7 +94,6 @@ sap.ui.define([
 
 		// if the node was not found in the current tree snapshot -> rebuild the tree, and if necessary request the node
 		if (!oNode || !oNode.context) {
-			//@TODO: Maybe preserve the Row Index Cache, before calling getContexts, and restore it afterwards
 			//Beware: getContexts might return nothing, if the context was not yet loaded!
 			oNode = {context: this.getContexts(iIndex, 1, 0)[0]};
 		}
@@ -154,19 +127,37 @@ sap.ui.define([
 		return oNode.isLeaf && !oNode.isArtificial;
 	};
 
-	/*
-	 * Retrieves the requested part from the tree.
-	 * @param {int} iStartIndex the first index to be retrieved
-	 * @param {int} iLength the number of entries to be retrieved, starting at iStartIndex
-	 * @param {int} iThreshold the number of additional entries, which will be loaded after (iStartIndex + iLength) as a buffer
+	/**
+	 * Gets an array of either node objects or contexts for the requested part of the tree.
+	 *
+	 * @param {boolean} bReturnNodes
+	 *   Whether to return node objects or contexts
+	 * @param {number} [iStartIndex=0]
+	 *   The index of the first requested node or context
+	 * @param {number} [iLength]
+	 *   The maximum number of returned nodes or contexts; if not given the model's size limit is
+	 *   used; see {@link sap.ui.model.Model#setSizeLimit}
+	 * @param {number} [iThreshold=0]
+	 *   The maximum number of nodes or contexts to read additionally as buffer
+	 * @return {object[]|sap.ui.model.Context[]}
+	 *   The requested tree nodes or contexts
+	 *
+	 * @private
 	 */
-	AnalyticalTreeBindingAdapter.prototype.getContexts = function(iStartIndex, iLength, iThreshold, bReturnNodes) {
-		if (!iLength) {
-			iLength = this.oModel.iSizeLimit;
+	AnalyticalTreeBindingAdapter.prototype._getContextsOrNodes = function (bReturnNodes,
+			iStartIndex, iLength, iThreshold) {
+		var i, mMissingSections, oNode, oParentNode,
+			aContexts = [],
+			aNodes = [],
+			that = this;
+
+		if (!this.isResolved()) {
+			return aNodes;
 		}
-		if (!iThreshold) {
-			iThreshold = 0;
-		}
+
+		iStartIndex = iStartIndex || 0;
+		iLength = iLength || this.oModel.iSizeLimit;
+		iThreshold = iThreshold || 0;
 
 		this._iPageSize = iLength;
 		this._iThreshold = Math.max(this._iThreshold, iThreshold);
@@ -177,7 +168,6 @@ sap.ui.define([
 		this._buildTree(iStartIndex, iLength);
 
 		// retrieve the requested/visible section of nodes from the tree
-		var aNodes = [];
 		if (this._oRootNode) {
 			aNodes = this._retrieveNodeSection(this._oRootNode, iStartIndex, iLength);
 		}
@@ -185,25 +175,30 @@ sap.ui.define([
 		// keep a map between Table.RowIndex and tree nodes
 		this._updateRowIndexMap(aNodes, iStartIndex);
 
-		var aContexts = [];
-		//find missing spots in our visible section
-		var mMissingSections;
-		for (var i = 0; i < aNodes.length; i++) {
-			var oNode = aNodes[i];
-
-			//user scrolled into the water mark node, which is the last of the guaranteed loaded page (length + threshold)
-			if (this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled) && this._oWatermark) {
-				if (oNode.groupID === this._oWatermark.groupID ||
-						(this._oWatermark.groupID === this._oRootNode.groupID && (iStartIndex + i + 1) == this.getLength() - 1)) {
-					this._autoExpandPaging();
+		if (this._oWatermark) {
+			// check whether the user scrolled into the area of the watermark node, which is the
+			// last guaranteed node of the loaded page; remove nodes that are after the last element
+			// of the watermark node (that means their absolute node indices are greater than the
+			// absolute node index of the last known element below the watermark node), because
+			// there are missing nodes in between -> avoids jumping rows
+			for (i = 0; i < aNodes.length; i += 1) {
+				if (aNodes[i].absoluteNodeIndex > this._oWatermark.lastWatermarkNodeIndex) {
+					aNodes.length = i + 1;
+					break;
 				}
 			}
-
+			if (aNodes.length < iLength) {
+				this._autoExpandPaging();
+			}
+		}
+		//find missing spots in our visible section
+		for (i = 0; i < aNodes.length; i++) {
+			oNode = aNodes[i];
 			// we found a gap because the node is empty (context is undefined)
 			if (!oNode.context) {
 				mMissingSections = mMissingSections || {};
 				// check if we already build a missing section
-				var oParentNode = oNode.parent;
+				oParentNode = oNode.parent;
 
 				mMissingSections[oParentNode.groupID] = oParentNode;
 
@@ -215,10 +210,8 @@ sap.ui.define([
 
 		// trigger load for nodes with missing sections
 		if (mMissingSections) {
-			var that = this;
-
 			//if we have a missing section inside a subtree, we need to reload this subtree
-			jQuery.each(mMissingSections, function (sGroupID, oNode) {
+			each(mMissingSections, function (sGroupID, oNode) {
 				// reset the root of the subtree
 				oNode.magnitude = 0;
 				oNode.numberOfTotals = 0;
@@ -228,8 +221,8 @@ sap.ui.define([
 
 			// try to fill gaps in our return array if we already have new data (thanks to thresholding)
 			aContexts = [];
-			for (var j = 0; j < aNodes.length; j++) {
-				var oNode = aNodes[j];
+			for (i = 0; i < aNodes.length; i += 1) {
+				oNode = aNodes[i];
 				aContexts.push(oNode.context);
 			}
 		}
@@ -277,6 +270,8 @@ sap.ui.define([
 				aResults.push(oNode.sumNode);
 			}
 		}
+
+		return undefined;
 	};
 
 	/*
@@ -386,6 +381,7 @@ sap.ui.define([
 	 */
 	AnalyticalTreeBindingAdapter.prototype._loadChildContexts = function (oNode, oRecursionDetails) {
 		var oNodeState = oNode.nodeState;
+		const bBundledMode = this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled);
 
 		// make sure the children array gets at least the requested length
 		var iMaxGroupSize = this.getGroupSize(oNode.context, oNode.level);
@@ -424,7 +420,7 @@ sap.ui.define([
 			//if we are in the autoexpand mode "bundled", suppress additional requests during the tree traversal
 			//paging is handled differently
 			var bSupressRequest = false;
-			if (oNode.autoExpand >= 0 && this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled)) {
+			if (oNode.autoExpand >= 0 && bBundledMode) {
 				bSupressRequest = true;
 				iRequestedLength = Math.max(0, iMaxGroupSize);
 			}
@@ -540,10 +536,10 @@ sap.ui.define([
 
 		// add up the sum of all sub-tree magnitudes
 		// if we run in autoexpand mode, we need to take the full length of the children array
-		iMaxGroupSize = this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled) ? oNode.children.length : iMaxGroupSize;
+		iMaxGroupSize = bBundledMode ? oNode.children.length : iMaxGroupSize;
 		oNode.magnitude += Math.max(iMaxGroupSize || 0, 0);
 
-		if (!iMaxGroupSize && !this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled)) {
+		if (!iMaxGroupSize && !bBundledMode) {
 			Log.warning("AnalyticalTreeBindingAdapter: iMaxGroupSize(" + iMaxGroupSize + ") is undefined for node '" + oNode.groupID + "'!");
 		}
 
@@ -557,20 +553,54 @@ sap.ui.define([
 		// Determine a Watermark node for auto expand paging:
 		// Find the first node for which the group length is not final.
 		// ONLY consider nodes with an autoExpand level to become a watermark node (autoExpand != -1)
-		if (this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled) && oNode.autoExpand != -1) {
+		if (bBundledMode && oNode.autoExpand != -1) {
 			if (!this._oWatermark && !oNode.isLeaf && !this.mFinalLength[oNode.groupID]) {
-				//this._oWatermark = oNode;
+				const iLastWatermarkNodeIndex = this._getIndexBeforeFirstMissingNode(oNode);
+				let iStartIndex = oNode.children.length;
+				let sNodeInfo = "WATERMARK: at '" + oNode.groupID  + "' (" + oNode.absoluteNodeIndex
+					+ ") and start index " + iStartIndex + " with last complete node index " + iLastWatermarkNodeIndex;
+				if (iStartIndex === 0) {
+					// if there are no children loaded yet, move the watermark to the parent node to avoid
+					// many requests, for this node and its following siblings, fetching the node's content with
+					// single requests with $top > 10000
+					iStartIndex = oNode.positionInParent;
+					oNode = oNode.parent;
+					sNodeInfo += " --> moved to '" + oNode.groupID + "' (" + oNode.absoluteNodeIndex
+						+ ") and start index " + iStartIndex;
+				}
 				this._oWatermark = {
 					groupID: oNode.groupID,
 					context: oNode.context,
 					absoluteNodeIndex: oNode.absoluteNodeIndex,
-					startIndex: oNode.children.length,
+					startIndex: iStartIndex,
 					level: oNode.level,
-					autoExpand: oNode.autoExpand
+					autoExpand: oNode.autoExpand,
+					lastWatermarkNodeIndex: iLastWatermarkNodeIndex
 				};
+				Log.debug(sNodeInfo, undefined, sClassName);
 			}
 		}
+	};
 
+	/**
+	 * Gets the absolute node index of the node in the subtree of the given node that is just before the first missing
+	 * node.
+	 *
+	 * @param {Object} oNode The current node
+	 * @returns {int} The absolute node index of the node just before the first missing node
+	 * @private
+	 */
+	AnalyticalTreeBindingAdapter.prototype._getIndexBeforeFirstMissingNode = function (oNode) {
+		let iIndex = oNode.absoluteNodeIndex;
+		oNode.children.some((oChildNode) => {
+			iIndex = oChildNode.isLeaf
+				? oChildNode.absoluteNodeIndex
+				: this._getIndexBeforeFirstMissingNode(oChildNode);
+
+			return !oChildNode.isLeaf && !this.mFinalLength[oChildNode.groupID];
+		});
+
+		return iIndex;
 	};
 
 	/*
@@ -585,17 +615,15 @@ sap.ui.define([
 		// in case we have no grouping at all, the "groupID" for each node is based on its position as the roots child
 		if (!this.isGrouped() && oNode && oNode.positionInParent) {
 			sGroupID = "/" + oNode.positionInParent + "/";
-		} else {
+		} else if (oNode.level > iMaxLevel) {
 			// if the level of the node exceeds the maximum level (in the analytical case, this is the aggregation level),
 			// the group id is also appended with the relative parent position
-			if (oNode.level > iMaxLevel) {
-				sGroupID = this._getGroupIdFromContext(oNode.context, iMaxLevel);
-				assert(oNode.positionInParent != undefined, "If the node level is greater than the number of grouped columns, the position of the node to its parent must be defined!");
-				sGroupID +=  oNode.positionInParent + "/";
-			} else {
-				//this is the best case, the node sits on a higher level than the aggregation level
-				sGroupID = this._getGroupIdFromContext(oNode.context, oNode.level);
-			}
+			sGroupID = this._getGroupIdFromContext(oNode.context, iMaxLevel);
+			assert(oNode.positionInParent != undefined, "If the node level is greater than the number of grouped columns, the position of the node to its parent must be defined!");
+			sGroupID +=  oNode.positionInParent + "/";
+		} else {
+			//this is the best case, the node sits on a higher level than the aggregation level
+			sGroupID = this._getGroupIdFromContext(oNode.context, oNode.level);
 		}
 		return sGroupID;
 	};
@@ -638,13 +666,15 @@ sap.ui.define([
 			if (this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled) && this._oWatermark && (typeof sGroupIDforCollapsingNode == "string" && sGroupIDforCollapsingNode.length > 0 && this._oWatermark.groupID.startsWith(sGroupIDforCollapsingNode))) {
 				// move the watermark node to the parent of the collapsed node, because the auto-expand paging starting point needs to be moved
 				if (oNode && oNode.parent) {
+					const oSiblingNode = oNode.parent.children[oNode.positionInParent + 1]; // may not yet be available
 					this._oWatermark = {
 						groupID: oNode.parent.groupID,
 						context: oNode.parent.context,
 						absoluteNodeIndex: oNode.parent.absoluteNodeIndex,
 						startIndex: oNode.positionInParent + 1, //+1 is the next (right) sibling of the collapsed node
 						level: oNode.parent.level,
-						autoExpand: oNode.parent.autoExpand
+						autoExpand: oNode.parent.autoExpand,
+						lastWatermarkNodeIndex: this._getIndexBeforeFirstMissingNode(oSiblingNode ?? oNode)
 					};
 				}
 
@@ -655,7 +685,7 @@ sap.ui.define([
 			// Collapse all subsequent child nodes, this is determined by a common groupID prefix, e.g.: "/A100-50/" is the parent of "/A100-50/Finance/"
 			// All expanded nodes which start with 'sGroupIDforCollapsingNode', are basically children of it and also need to be collapsed
 			var that = this;
-			jQuery.each(this._mTreeState.expanded, function (sGroupID, oNodeState) {
+			each(this._mTreeState.expanded, function (sGroupID, oNodeState) {
 				if (typeof sGroupIDforCollapsingNode == "string" && sGroupIDforCollapsingNode.length > 0 && sGroupID.startsWith(sGroupIDforCollapsingNode)) {
 					that._updateTreeState({groupID: sGroupID, expanded: false});
 				}
@@ -663,7 +693,7 @@ sap.ui.define([
 
 			var aDeselectedNodeIds = [];
 			// also remove selections from child nodes of the collapsed node
-			jQuery.each(this._mTreeState.selected, function (sGroupID, oNodeState) {
+			each(this._mTreeState.selected, function (sGroupID, oNodeState) {
 				if (typeof sGroupIDforCollapsingNode == "string" && sGroupIDforCollapsingNode.length > 0 && sGroupID.startsWith(sGroupIDforCollapsingNode)) {
 					oNodeState.selectAllMode = false;
 					that.setNodeSelection(oNodeState, false);
@@ -770,11 +800,13 @@ sap.ui.define([
 	 */
 	AnalyticalTreeBindingAdapter.prototype.hasTotaledMeasures = function() {
 		var bHasMeasures = false;
-		jQuery.each(this.getMeasureDetails() || [], function(iIndex, oMeasure) {
+		each(this.getMeasureDetails() || [], function(iIndex, oMeasure) {
 			if (oMeasure.analyticalInfo.total) {
 				bHasMeasures = true;
 				return false;
 			}
+
+			return true;
 		});
 		return bHasMeasures;
 	};
@@ -810,10 +842,20 @@ sap.ui.define([
 	 */
 	// @see sap.ui.table.AnalyticalTable#_getGroupHeaderMenu
 	AnalyticalTreeBindingAdapter.prototype.setNumberOfExpandedLevels = function(iLevels, bSupressResetData) {
+		var iNumberOfAggregationLevels;
+
 		iLevels = iLevels || 0;
 		if (iLevels < 0) {
-			Log.warning("AnalyticalTreeBindingAdapter: numberOfExpanded levels was set to 0. Negative values are prohibited.");
+			Log.warning("Number of expanded levels was set to 0. Negative values are prohibited",
+				this, sClassName);
 			iLevels = 0;
+		}
+		iNumberOfAggregationLevels = this.aAggregationLevel.length;
+		if (iLevels > iNumberOfAggregationLevels) {
+			Log.warning("Number of expanded levels was reduced from " + iLevels + " to "
+					+ iNumberOfAggregationLevels + " which is the number of grouped dimensions",
+				this, sClassName);
+			iLevels = iNumberOfAggregationLevels;
 		}
 
 		if (!bSupressResetData) {

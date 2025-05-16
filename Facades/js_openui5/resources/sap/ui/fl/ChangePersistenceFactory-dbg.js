@@ -1,19 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Component",
-	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/ChangePersistence",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/ChangePersistence"
 ], function(
-	Component,
-	FlexState,
-	ChangePersistence,
-	Utils
+	ManifestUtils,
+	ChangePersistence
 ) {
 	"use strict";
 
@@ -21,37 +17,28 @@ sap.ui.define([
 	 * Factory to get or create a new instances of {sap.ui.fl.ChangePersistence}
 	 * @constructor
 	 * @alias sap.ui.fl.ChangePersistenceFactory
-	 * @experimental Since 1.27.0
+	 * @since 1.27.0
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
+	 * @private
+	 * @ui5-restricted sap.ui.fl
 	 */
 	var ChangePersistenceFactory = {};
-
 	ChangePersistenceFactory._instanceCache = {};
 
 	/**
 	 * Creates or returns an instance of the ChangePersistence
-	 * @param {String} sComponentName - Name of the component
-	 * @param {String} sAppVersion - Current running version of application
+	 * @param {string} sComponentName - Name of the component
 	 * @returns {sap.ui.fl.ChangePersistence} <code>ChangePersistence</code> instance
-	 *
-	 * @public
 	 */
-	ChangePersistenceFactory.getChangePersistenceForComponent = function(sComponentName, sAppVersion) {
-		var oChangePersistence;
-		sAppVersion = sAppVersion || Utils.DEFAULT_APP_VERSION;
-
-		if (!ChangePersistenceFactory._instanceCache[sComponentName]) {
-			ChangePersistenceFactory._instanceCache[sComponentName] = {};
-		}
-		oChangePersistence = ChangePersistenceFactory._instanceCache[sComponentName][sAppVersion];
+	ChangePersistenceFactory.getChangePersistenceForComponent = function(sComponentName) {
+		var oChangePersistence = ChangePersistenceFactory._instanceCache[sComponentName];
 		if (!oChangePersistence) {
 			var oComponent = {
-				name : sComponentName,
-				appVersion : sAppVersion
+				name: sComponentName
 			};
 			oChangePersistence = new ChangePersistence(oComponent);
-			ChangePersistenceFactory._instanceCache[sComponentName][sAppVersion] = oChangePersistence;
+			ChangePersistenceFactory._instanceCache[sComponentName] = oChangePersistence;
 		}
 
 		return oChangePersistence;
@@ -62,50 +49,12 @@ sap.ui.define([
 	 * The control needs to be embedded into a component.
 	 * @param {sap.ui.core.Control} oControl The control for example a SmartField, SmartGroup or View
 	 * @returns {sap.ui.fl.ChangePersistence} instance
-	 *
-	 * @public
 	 */
 	ChangePersistenceFactory.getChangePersistenceForControl = function(oControl) {
 		var sComponentId;
-		sComponentId = Utils.getComponentClassName(oControl);
-		var sAppVersion = Utils.getAppVersionFromManifest(Utils.getAppComponentForControl(oControl).getManifest());
-		return ChangePersistenceFactory.getChangePersistenceForComponent(sComponentId, sAppVersion);
-	};
-
-	/**
-	 * Registers the ChangePersistenceFactory._onLoadComponent to the Component loading functionality
-	 *
-	 * @since 1.38
-	 * @private
-	 */
-	ChangePersistenceFactory.registerLoadComponentEventHandler = function () {
-		Component._fnLoadComponentCallback = this._onLoadComponent.bind(this);
-	};
-
-	/**
-	 * Callback which is called within the early state of Component processing.
-	 * Already triggers the loading of the flexibility changes if the loaded manifest is an application variant.
-	 * The processing is only done for components of the type "application"
-	 *
-	 * @param {object} oConfig - Copy of the configuration of loaded component
-	 * @param {object} oConfig.asyncHints - Async hints passed from the app index to the core Component processing
-	 * @param {object} oManifest - Copy of the manifest of loaded component
-	 * @since 1.38
-	 * @private
-	 */
-	ChangePersistenceFactory._onLoadComponent = function (oConfig, oManifest) {
-		// stop processing if the component is not of the type application or component ID is missing
-		if (!Utils.isApplication(oManifest) || !oConfig.id) {
-			return;
-		}
-
-		FlexState.initialize({
-			componentData: oConfig.componentData,
-			asyncHints: oConfig.asyncHints,
-			manifest: oManifest,
-			componentId: oConfig.id
-		});
+		sComponentId = ManifestUtils.getFlexReferenceForControl(oControl);
+		return ChangePersistenceFactory.getChangePersistenceForComponent(sComponentId);
 	};
 
 	return ChangePersistenceFactory;
-}, true);
+});

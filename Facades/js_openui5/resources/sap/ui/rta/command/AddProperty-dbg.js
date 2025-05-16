@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/rta/command/FlexCommand"
-], function (FlexCommand) {
+], function(FlexCommand) {
 	"use strict";
 
 	/**
@@ -14,48 +14,56 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.78
 	 * @alias sap.ui.rta.command.AddProperty
-	 * @experimental Since 1.78. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
 	var AddProperty = FlexCommand.extend("sap.ui.rta.command.AddProperty", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				index : {
-					type : "int"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				index: {
+					type: "int",
+					group: "content"
 				},
-				newControlId : {
-					type : "string"
+				newControlId: {
+					type: "string",
+					group: "content"
 				},
-				//the name "bindingPath" conflicts with getBindingPath() method from ManagedObject
-				bindingString : {
-					type : "string"
-				},
-				entityType : {
-					type : "string"
-				},
-				parentId : {
-					type : "string"
-				},
-				oDataServiceVersion : {
-					type : "string"
-				},
-				oDataServiceUri: {
-					type: "string"
+				// the name "bindingPath" conflicts with getBindingPath() method from ManagedObject
+				bindingString: {
+					type: "string",
+					group: "content"
 				},
 				modelType: {
-					type: "string"
+					type: "string",
+					group: "content"
 				},
 				relevantContainerId: {
-					type: "string"
+					type: "string",
+					group: "content"
+				},
+				parentId: {
+					type: "string",
+					group: "content"
+				},
+				oDataServiceVersion: {
+					type: "string",
+					group: "content"
+				},
+				oDataServiceUri: {
+					type: "string",
+					group: "oDataInformation"
 				},
 				propertyName: {
-					type: "string"
+					type: "string",
+					group: "oDataInformation"
+				},
+				entityType: {
+					type: "string",
+					group: "oDataInformation"
 				}
 			}
 		}
@@ -65,17 +73,19 @@ sap.ui.define([
 		// general format
 		return {
 			changeType: this.getChangeType(),
-			index: this.getIndex(),
-			newControlId: this.getNewControlId(),
-			bindingPath: this.getBindingString(),
-			parentId: this.getParentId(),
-			//used to connect to default delegate
-			modelType: this.getModelType(),
-			//allow change handlers to access delegates if the change is not done on the relevant container
-			relevantContainerId: this.getRelevantContainerId(),
-			//used to connect to change handler mediator
-			oDataServiceVersion: this.getODataServiceVersion(),
-			//necessary for custom fields support tools
+			content: {
+				index: this.getIndex(),
+				newControlId: this.getNewControlId(),
+				bindingPath: this.getBindingString(),
+				parentId: this.getParentId(),
+				// used to connect to default delegate
+				modelType: this.getModelType(),
+				// allow change handlers to access delegates if the change is not done on the relevant container
+				relevantContainerId: this.getRelevantContainerId(),
+				// used to connect to change handler mediator
+				oDataServiceVersion: this.getODataServiceVersion()
+			},
+			// necessary for custom fields support tools
 			oDataInformation: {
 				oDataServiceUri: this.getODataServiceUri(),
 				propertyName: this.getPropertyName(),

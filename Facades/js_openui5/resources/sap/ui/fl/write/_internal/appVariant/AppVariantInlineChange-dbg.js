@@ -1,19 +1,19 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/fl/descriptorRelated/internal/Utils",
-	"sap/base/Log"
-], function (
-	jQuery,
+	"sap/ui/fl/descriptorRelated/Utils",
+	"sap/base/Log",
+	"sap/base/util/isPlainObject"
+], function(
 	ManagedObject,
 	Utils,
-	Log
+	Log,
+	isPlainObject
 ) {
 	"use strict";
 
@@ -28,14 +28,18 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariantInlineChange
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
 	var AppVariantInlineChange = ManagedObject.extend("sap.ui.fl.write._internal.appVariant.AppVariantInlineChange", /** @lends sap.ui.fl.write._internal.appVariant.AppVariantInlineChange */ {
-		constructor : function(mPropertyBag) {
+		metadata: {
+			library: "sap.ui.fl"
+		},
+		// eslint-disable-next-line object-shorthand
+		constructor: function(mPropertyBag) {
 			ManagedObject.apply(this);
-			if (!jQuery.isPlainObject(mPropertyBag)) {
+			if (!isPlainObject(mPropertyBag)) {
 				Log.error("Constructor : sap.ui.fl.write._internal.appVariant.AppVariantInlineChange: mPropertyBag is not defined");
 			}
 			Utils.checkTexts(mPropertyBag.texts);
@@ -79,7 +83,7 @@ sap.ui.define([
 					this._oDefinition.texts[sTextKeyNew] = this._oDefinition.texts[sTextKey];
 					delete this._oDefinition.texts[sTextKey];
 
-					sContent = sContent.split("{{" + sTextKey + "}}").join("{{" + sTextKeyNew + "}}");
+					sContent = sContent.split(`{{${sTextKey}}}`).join(`{{${sTextKeyNew}}}`);
 				}
 			}, this);
 
@@ -98,4 +102,4 @@ sap.ui.define([
 	};
 
 	return AppVariantInlineChange;
-}, true);
+});

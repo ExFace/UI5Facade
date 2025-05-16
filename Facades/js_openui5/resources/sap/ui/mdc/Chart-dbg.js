@@ -1,75 +1,101 @@
 /*!
- * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+* OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
+*/
+
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/Lib",
 	"sap/ui/mdc/Control",
-	"./chart/ChartSettings",
-	"sap/ui/base/SyncPromise",
-	"sap/ui/mdc/util/loadModules",
 	"./ChartRenderer",
-	"sap/ui/base/ManagedObjectObserver",
-	"sap/ui/model/json/JSONModel",
-	"sap/ui/mdc/library",
-	"sap/ui/model/base/ManagedObjectModel",
-	"sap/ui/model/Sorter",
 	"sap/base/Log",
-	"sap/base/util/deepEqual",
-	"sap/ui/Device",
-	"sap/ui/mdc/chart/ToolbarHandler",
-	"sap/ui/mdc/mixin/FilterIntegrationMixin"
+	"./chart/ToolbarControlFactory",
+	"sap/ui/mdc/ActionToolbar",
+	"./chart/PropertyHelper",
+	"sap/ui/mdc/mixin/FilterIntegrationMixin",
+	"sap/ui/model/base/ManagedObjectModel",
+	"sap/ui/mdc/p13n/subcontroller/ChartItemController",
+	"sap/ui/mdc/p13n/subcontroller/FilterController",
+	"sap/ui/mdc/p13n/subcontroller/SortController",
+	"sap/ui/mdc/p13n/subcontroller/ChartTypeController",
+	"sap/ui/base/ManagedObjectObserver",
+	"sap/ui/mdc/actiontoolbar/ActionToolbarAction",
+	"sap/ui/core/library",
+	"sap/ui/events/KeyCodes",
+	"sap/ui/mdc/util/InfoBar",
+	"sap/ui/core/format/ListFormat",
+	"sap/ui/mdc/enums/ProcessingStrategy",
+	"sap/ui/mdc/enums/ChartP13nMode",
+	"sap/ui/mdc/enums/ChartToolbarActionType",
+	"sap/ui/mdc/chart/SelectionButtonItem",
+	"sap/ui/core/InvisibleMessage",
+	"sap/m/library",
+	"sap/ui/core/theming/Parameters"
 ],
-	function (
-		Core,
+	(
+		Library,
 		Control,
-		ChartSettings,
-		SyncPromise,
-		loadModules,
 		ChartRenderer,
-		ManagedObjectObserver,
-		JSONModel,
-		MDCLib,
-		ManagedObjectModel,
-		Sorter,
 		Log,
-		deepEqual,
-		Device,
-		ToolbarHandler,
-		FilterIntegrationMixin
-	) {
+		ToolbarControlFactory,
+		ActionToolbar,
+		PropertyHelper,
+		FilterIntegrationMixin,
+		ManagedObjectModel,
+		ChartItemController,
+		FilterController,
+		SortController,
+		ChartTypeController,
+		ManagedObjectObserver,
+		ActionToolbarAction,
+		coreLibrary,
+		KeyCodes,
+		InfoBar,
+		ListFormat,
+		ProcessingStrategy,
+		ChartP13nMode,
+		ChartToolbarActionType,
+		SelectionButtonItem,
+		InvisibleMessage,
+		MLibrary,
+		ThemeParameters
+	) => {
 		"use strict";
 
-		var ChartClass,
-			SelectionHandler,
-			DrillStackHandler,
-			ChartTypeButton,
-			MeasureItemClass,
-			FILTER_INTERFACE = "sap.ui.mdc.IFilter";
+		const { TitleLevel } = coreLibrary;
 
 		/**
-		 /**
 		 * Constructor for a new Chart.
 		 *
-		 * @param {string} [sId] id for the new control, generated automatically if no id is given
-		 * @param {object} [mSettings] initial settings for the new control
-		 * @class The Chart control creates a chart based on metadata and the configuration specified.
+		 * @param {string} [sId] ID for the new control, generated automatically if no id is given
+		 * @param {object} [mSettings] Initial settings for the new control
+		 *
+		 * @class The <code>Chart</code> control creates a chart based on metadata and the configuration specified.<br>
+		 *
+		 * <b>Note:</b> The <code>Chart</code> control acts as a wrapper that is used to enhance
+		 * an instance of a given chart control framework (in the following texts referred to as inner chart) with functionalities, such as a <code>toolbar</code>, <code>p13n</code>, and <code>VariantManagement</code>.
+		 * The inner chart instance and its configuration must be provided via an implementation of a <code>ChartDelegate</code> module.
+		 *
 		 * @extends sap.ui.mdc.Control
+		 * @borrows sap.ui.mdc.mixin.FilterIntegrationMixin.rebind as #rebind
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 * @constructor
-		 * @experimental
-		 * @private
-		 * @since 1.61
+		 *
+		 * @public
+		 *
+		 * @since 1.88
 		 * @alias sap.ui.mdc.Chart
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+		 * @see {@link topic:1dd2aa91115d43409452a271d11be95b sap.ui.mdc}
+		 * @see {@link topic:52d065ab8bb740c58c834a0c985e3b9e Chart Building Block (OData V4)}
+		 * @experimental As of version 1.88
 		 */
-		var Chart = Control.extend("sap.ui.mdc.Chart", /** @lends sap.ui.mdc.Chart.prototype */ {
+		const Chart = Control.extend("sap.ui.mdc.Chart", /** @lends sap.ui.mdc.Chart.prototype */ {
 			metadata: {
 				library: "sap.ui.mdc",
+				designtime: "sap/ui/mdc/designtime/chart/Chart.designtime",
 				interfaces: [
-					"sap.ui.mdc.IxState"
+					"sap.ui.mdc.IFilterSource", "sap.ui.mdc.IxState"
 				],
 				defaultAggregation: "items",
 				properties: {
@@ -83,6 +109,7 @@ sap.ui.define([
 						defaultValue: "100%",
 						invalidate: true
 					},
+
 					/**
 					 * Defines the height of the chart.
 					 */
@@ -94,18 +121,32 @@ sap.ui.define([
 					},
 
 					/**
-					 * Defines the module path of the metadata delegate.
+					 * Object related to the <code>Delegate</code> module that provides the required APIs to execute model-specific logic.<br>
+					 * The object has the following properties:
+					 * <ul>
+					 * 	<li><code>name</code> defines the path to the <code>Delegate</code> module</li>
+					 * 	<li><code>payload</code> (optional) defines application-specific information that can be used in the given delegate</li>
+					 * </ul>
+					 * <i>Sample delegate object:</i>
+					 * <pre><code>{
+					 * 	name: "sap/ui/mdc/BaseDelegate",
+					 * 	payload: {}
+					 * }</code></pre>
+					 * <b>Note:</b> Ensure that the related file can be requested (any required library has to be loaded before that).<br>
+					 * Do not bind or modify the module. This property can only be configured during control initialization.
+					 * @experimental
 					 */
 					delegate: {
 						type: "object",
 						group: "Data",
 						defaultValue: {
-							name: "sap/ui/mdc/ChartDelegate"
+							name: "sap/ui/mdc/ChartDelegate",
+							payload: {}
 						}
 					},
 
 					/**
-					 * Specifies header text that is shown in chart
+					 * Specifies header text that is shown in the chart.
 					 */
 					header: {
 						type: "string",
@@ -115,44 +156,29 @@ sap.ui.define([
 
 					/**
 					 * Defines the no data text shown in the chart.
-					 * @since 1.78
+					 * @since 1.88
 					 */
 					noDataText: {
-						type: "string"
-					},
-
-					/**
-					 * Specifies the type of chart to be created by the SmartChart control.
-					 */
-					chartType: {
 						type: "string",
-						group: "Misc",
-						defaultValue: "column"
-					},
-
-					/**
-					 * the selection mode of the chart
-					 */
-					selectionMode: {
-						type: "string",
-						group: "Misc",
-						defaultValue: "MULTIPLE"
+						defaultValue: "No data"
 					},
 
 					/**
 					 * Specifies the personalization options available for the chart.<br>
 					 * <b>Note:</b> The order of the provided options does not influence the arrangement of the icons on the UI.
 					 *
-					 * @since 1.75
+					 * @since 1.88
 					 */
 					p13nMode: {
-						type: "sap.ui.mdc.ChartP13nMode[]"
+						type: "sap.ui.mdc.enums.ChartP13nMode[]",
+						defaultValue: []
 					},
 
 					/**
-					 * Set chart's legend properties.
+					 * Enables the legend of the chart.<br>
+					 * <b>Note:</b> The setter calls <code>setLegendVisible</code> of the delegate class.
 					 *
-					 * @since 1.62
+					 * @since 1.88
 					 */
 					legendVisible: {
 						type: "boolean",
@@ -161,38 +187,18 @@ sap.ui.define([
 					},
 
 					/**
-					 * The vizProperties
+					 * Specifies which actions must not be available in the chart's toolbar.
 					 *
-					 * @since 1.62
-					 */
-					vizProperties: {
-						type: "object",
-						group: "Misc"
-					},
-
-					/**
-					 * The coloring
-					 *
-					 * @since 1.64
-					 */
-					_colorings: {
-						type: "object",
-						visibility: "_hidden",
-						byValue: true
-					},
-
-					/**
-					 * Specifies which actions should not be available in the chart's toolbar.
-					 *
-					 * @since 1.64
+					 * @since 1.88
 					 */
 					ignoreToolbarActions: {
-						type: "sap.ui.mdc.ChartToolbarActionType[]",
+						type: "sap.ui.mdc.enums.ChartToolbarActionType[]",
 						defaultValue: []
 					},
 
+					//TODO: Do we really need this? Should be avoided.
 					/**
-					 * The minimal width
+					 * Defines the minimum width of the chart.
 					 */
 					minWidth: {
 						type: "sap.ui.core.CSSSize",
@@ -201,8 +207,9 @@ sap.ui.define([
 						invalidate: true
 					},
 
+					//TODO: Do we really need this? Should be avoided.
 					/**
-					 * The minimal height
+					 * Defines the minimum height of the chart.
 					 */
 					minHeight: {
 						type: "sap.ui.core.CSSSize",
@@ -210,63 +217,216 @@ sap.ui.define([
 						defaultValue: "400px",
 						invalidate: true
 					},
+
 					/**
-					 * Defines the sort conditions.
+					 * Defines the sort conditions.<br>
+					 * <b>Note:</b> This property must not be bound.<br>
+					 * <b>Note:</b> This property is exclusively used for handling SAPUI5 flexibility changes. Do not use it for anything else.
 					 *
-					 * <b>Note:</b> This property is exclusively used for handling flexibility changes. Do not use it for anything else.
-					 *
-					 * @since 1.74
+					 * @since 1.88
 					 */
 					sortConditions: {
 						type: "object"
+					},
+
+					/**
+					 * Defines the filter conditions.<br>
+					 * <b>Note:</b> This property must not be bound.<br>
+					 * <b>Note:</b> This property is exclusively used for handling SAPUI5 flexibility changes. Do not use it for anything else.
+					 *
+					 * @since 1.99
+					 */
+					filterConditions: {
+						type: "object",
+						defaultValue: {}
+					},
+
+					/**
+					 * Controls the visibility of the chart tooltip.<br>
+					 * <b>Note:</b> If set to <code>true</code>, a call of the <code>delegate.setChartTooltipVisibility</code> is triggered and can be used to make the <code>Chart</code> tooltip visible.
+					 *
+					 * @since 1.88
+					 */
+					showChartTooltip: {
+						type: "boolean",
+						group: "Misc",
+						defaultValue: true
+					},
+
+					/**
+					 * If set to <code>true</code>, the chart is automatically bound after initialization.<br>
+					 * If set to <code>false</code>, the chart is bound after the first call to <code>rebind</code>.
+					 */
+					autoBindOnInit: {
+						type: "boolean",
+						group: "Misc",
+						defaultValue: true
+					},
+
+					/**
+					 * Specifies the type of chart to be created by the <code>Chart</code> control.
+					 */
+					chartType: {
+						type: "string",
+						group: "Misc",
+						defaultValue: "column"
+					},
+
+					/**
+					 * Enables the Details button in the chart toolbar.
+					 */
+					showSelectionDetails: {
+						type: "boolean",
+						group: "Misc",
+						defaultValue: true
+					},
+
+					/**
+					 * Specifies the chart metadata.<br>
+					 * <b>Note:</b> This property must not be bound.<br>
+					 * <b>Note:</b> This property is exclusively used for handling SAPUI5 flexibility changes. Do not use it otherwise.<br>
+					 * <b>Note</b>: Existing properties (set via <code>sap.ui.mdc.Chart#setPropertyInfo</code>) must not be removed and their attributes must not be changed during the {@link module:sap/ui/mdc/ChartDelegate.fetchProperties fetchProperties} callback. Otherwise validation errors might occur whenever personalization-related control features (such as the opening of any personalization dialog) are activated.
+					 * <b>Note</b>: For more information about the supported inner elements, see {@link sap.ui.mdc.chart.PropertyInfo PropertyInfo}.
+					 *
+					 * @since 1.99
+					 */
+					propertyInfo: {
+						type: "object",
+						defaultValue: []
+					},
+
+					/**
+					 * Semantic level of the header.<br>
+					 * For more information, see {@link sap.m.Title#setLevel}.
+					 *
+					 * @since 1.104
+					 */
+					headerLevel: {
+						type: "sap.ui.core.TitleLevel",
+						group: "Appearance",
+						defaultValue: TitleLevel.Auto
+					},
+
+					/**
+					 * Defines style of the header.
+					 * For more information, see {@link sap.m.Title#setTitleStyle}.
+					 * @since 1.120
+					 */
+					headerStyle: {
+						type: "sap.ui.core.TitleLevel",
+						group: "Appearance"
+						// defaultValue : TitleLevel.Auto
+					},
+
+					/**
+					 * Determines whether the header text is shown in the chart. Regardless of its value, the given header text is used to label the chart
+					 * correctly for accessibility purposes.
+					 *
+					 * @since 1.111
+					 */
+					headerVisible: {
+						type: "boolean",
+						group: "Misc",
+						defaultValue: true
 					}
 				},
 				aggregations: {
-					data: {
-						multiple: true
-					},
+					/**
+					 * This property describes the measures and dimensions visible in the chart.
+					 * Changes in the personalization are also reflected here.
+					 *
+					 * <b>Note:</b>
+					 * This aggregation is managed by the control, can only be populated during the definition in the XML view, and is not bindable.
+					 * Any changes of the initial aggregation content might result in undesired effects.
+					 * Changes of the aggregation have to be made with the {@link sap.ui.mdc.p13n.StateUtil StateUtil}.
+					 */
 					items: {
 						type: "sap.ui.mdc.chart.Item",
 						multiple: true
 					},
+					/**
+					 * This aggregation describes actions that are added to the chart toolbar.<br>
+					 * For more information, see {@link sap.ui.mdc.actiontoolbar.ActionToolbarAction}.
+					 *
+					 * <b>Note:</b>
+					 * This aggregation is managed by the control, can only be populated during the definition in the XML view, and is not bindable.
+					 * Any changes of the initial aggregation content might result in undesired effects.
+					 * Changes of the aggregation have to be made with the {@link sap.ui.mdc.p13n.StateUtil StateUtil}.
+					 */
 					actions: {
 						type: "sap.ui.core.Control",
 						multiple: true,
 						forwarding: {
-							idSuffix: "--toolbar",
+							getter: "_getToolbar",
 							aggregation: "actions"
 						}
 					},
-					_chart: {
-						type: "sap.chart.Chart",
+					/**
+					 * Feeds details popover actions for data point selection in the chart.<br>
+					 * For more information, see {@link sap.ui.mdc.chart.SelectionDetailsActions SelectionDetailsActions}.
+					 */
+					selectionDetailsActions: {
+						type: "sap.ui.mdc.chart.SelectionDetailsActions",
 						multiple: false
 					},
 					_toolbar: {
 						type: "sap.ui.mdc.ActionToolbar",
-						multiple: false
+						multiple: false,
+						visibility: "hidden"
 					},
 					_breadcrumbs: {
 						type: "sap.m.Breadcrumbs",
+						multiple: false,
+						visibility: "hidden"
+					},
+					_innerChart: {
+						type: "sap.ui.core.Control",
+						multiple: false,
+						visibility: "hidden"
+					},
+					_infoToolbar: {
+						type: "sap.ui.mdc.util.InfoBar",
+						multiple: false,
+						visibility: "hidden"
+					},
+					/**
+					 * Reference to a {@link sap.ui.fl.variants.VariantManagement} control for the chart.
+					 */
+					variant: {
+						type: "sap.ui.fl.variants.VariantManagement",
 						multiple: false
 					},
-					selectionDetailsActions: {
-						type: "sap.ui.mdc.chart.SelectionDetailsActions",
+					/**
+					 * Defines the custom visualization if there is no data available.<br>
+					 * This control will be displayed on top of the chart when no data is visible inside the chart.<br>
+					 * <b>Note:</b> If both a <code>noDataText</code> property and a <code>noData</code> aggregation are provided, the <code>noData</code> aggregation takes priority.<br>
+					 * If the <code>noData</code> aggregation is undefined or set to null, the <code>noDataText</code> property is used instead.
+					 *
+					 * @since 1.107
+					 */
+					noData: {
+						type: "sap.ui.core.Control",
 						multiple: false
 					}
 				},
 				associations: {
 					/**
-				 	* Control or object which enables the chart to do filtering, such as {@link sap.ui.mdc.FilterBar}.
-					* Also see {@link sap.ui.mdc.IFilter}.
-					*
-					* @since 1.78
-				 	*/
+					 * Control or object that enables the chart to do filtering, such as {@link sap.ui.mdc.FilterBar}. See also
+					 * {@link sap.ui.mdc.IFilter}.
+					 *
+					 * Automatic filter generation only works in combination with a <code>sap.ui.mdc.FilterBar</code>.
+					 *
+					 * @since 1.88
+					 */
 					filter: {
-						type: FILTER_INTERFACE,
+						type: "sap.ui.mdc.IFilter",
 						multiple: false
 					}
 				},
 				events: {
+					/**
+					 * This event is fired when a <code>SelectionDetailsAction</code> is pressed.
+					 */
 					selectionDetailsActionPressed: {
 						parameters: {
 
@@ -280,7 +440,7 @@ sap.ui.define([
 							/**
 							 * If the action is pressed on one of the {@link sap.m.SelectionDetailsItem items}, the parameter contains the
 							 * {@link sap.ui.model.Context context} of the pressed {@link sap.m.SelectionDetailsItem item}. If a custom action or action
-							 * group of the SelectionDetails popover is pressed, this parameter contains all {@link sap.ui.model.Context contexts} of the
+							 * group of the <code>SelectionDetails</code> popover is pressed, this parameter contains all {@link sap.ui.model.Context contexts} of the
 							 * {@link sap.m.SelectionDetailsItem items}.
 							 */
 							itemContexts: {
@@ -294,1008 +454,1543 @@ sap.ui.define([
 								type: "sap.m.SelectionDetailsActionLevel"
 							}
 						}
-					},
-                    dataPointsSelected:{
-					    parameters: {
-                            /**
-                             * The context of selected / deselected data points
-                             */
-					        dataContext: {
-					            type: "object"
-                            }
-                        }
-                    }
+					}
 				}
-			}
+			},
+
+			renderer: ChartRenderer
 		});
 
-		var _onSelectionMode = function(vValue) {
-			this.oChartPromise.then(function (oChart) {
-				if (this.bIsDestroyed) {
-					return;
-				}
-				vValue = vValue || this.getSelectionMode();
-				oChart.setSelectionMode(vValue);
-				if (vValue !== "NONE") {
-					this._prepareSelection();
-				}
-			}.bind(this));
-		};
+		const MDCRb = Library.getResourceBundleFor("sap.ui.mdc");
+		const { ToolbarDesign } = MLibrary;
 
 		FilterIntegrationMixin.call(Chart.prototype);
 
-		Chart.prototype.init = function () {
-			this._oObserver = new ManagedObjectObserver(this.update.bind(this));
-			this._oAdaptationController = null;
+		/**
+		 * An object literal describing a data property in the context of a {@link sap.ui.mdc.Chart}.
+		 *
+		 * When specifying the <code>PropertyInfo</code> objects in the {@link sap.ui.mdc.Chart#getPropertyInfo propertyInfo} property, the following
+		 * attributes need to be specified:
+		 * <ul>
+		 *   <li><code>key</code></li>
+		 *   <li><code>label</code></li>
+		 *   <li><code>groupable</code></li>
+		 *   <li><code>aggregatable</code></li>
+		 *   <li><code>role</code></li>
+		 *   <li><code>dataType</code></li>
+		 * </ul>
+		 *
+		 * @typedef {sap.ui.mdc.util.PropertyInfo} sap.ui.mdc.chart.PropertyInfo
+		 *
+		 * @property {boolean} groupable
+		 * 	Defines whether the property is groupable and is selectable as a dimension in the chart
+		 * @property {boolean} aggregatable
+		 *  Defines whether the property is aggregatable and is selectable as a measure in the chart
+		 * @property {string} role
+		 * 	Defines the role that the property visualizes inside the chart
+		 * @public
+		 * @experimental As of version 1.80
+		 */
 
-			this._oObserver.observe(this, {
-				aggregations: [
-					"items", "_chart"
-				],
-				properties: [
-					"ignoreToolbarActions", "p13nMode"
-				]
-			});
 
+		/**
+		 * Initializes the chart.
+		 *
+		 * @private
+		 */
+		Chart.prototype.init = function() {
 			this._oManagedObjectModel = new ManagedObjectModel(this);
 			this.setModel(this._oManagedObjectModel, "$mdcChart");
-
 			Control.prototype.init.apply(this, arguments);
 
-			var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.mdc");
-			this.setProperty("adaptationConfig", {
-				itemConfig: {
-					changeOperations: {
-						add: "addItem",
-						remove: "removeItem",
-						move: "moveItem"
-					},
-					containerSettings: {
-						title: oResourceBundle.getText("chart.PERSONALIZATION_DIALOG_TITLE")
-					},
-					adaptationUI: "sap/ui/mdc/p13n/panels/ChartItemPanel",
-					additionalDeltaAttributes: ["role"]
-				}
-			});
+			this._setPropertyHelperClass(PropertyHelper);
+			this._setupPropertyInfoStore("propertyInfo");
 		};
 
-		Chart.prototype.initModules = function(aModules) {
-			this.initControlDelegate(aModules[0]);
-			ChartClass = aModules[1];
-			ChartTypeButton = aModules[2];
-			MeasureItemClass = aModules[3];
-		};
+		Chart.prototype.setP13nMode = function(aModes) {
+			let aSortedKeys = null;
+			if (aModes && aModes.length >= 1) {
+				aSortedKeys = [];
+				const mKeys = aModes.reduce((mMap, sKey, iIndex) => {
+					mMap[sKey] = true;
+					return mMap;
+				}, {});
 
-		function getModulesPaths() {
-			return [
-				"sap/chart/Chart",
-				"sap/ui/mdc/chart/ChartTypeButton",
-				"sap/ui/mdc/chart/MeasureItem"
-			];
-		}
-
-		Chart.prototype.applySettings = function(mSettings, oScope) {
-			var aActions;
-
-			// Note: In the mdc.Chart control metadata, the "action" aggregation
-			// is defined as a forwarded aggregation.
-			// However, the automatic forwarding of aggregations only works when
-			// the target aggregation exists.
-			// So, the actions are removed from the settings argument to prevent
-			// an exception to happen when an aggregation is forwarded to a
-			// target control that has not been created.
-			if (mSettings) {
-				aActions = mSettings.actions;
-				delete mSettings.actions;
-			}
-
-			var oDelegateSettings = (mSettings && mSettings.delegate) || this.getDelegate();
-			var sDelegatePath = oDelegateSettings && oDelegateSettings.name;
-			var aModulesPaths = [ sDelegatePath ].concat(getModulesPaths());
-
-			this.oChartPromise = loadModules(aModulesPaths)
-
-			.then(function onModulesLoaded(aModules) {
-				this.initModules(aModules);
-
-				// If the Chart control is destroyed before this async callback is
-				// invoked, return a rejected promise object to suppress unnecessary
-				// work (e.g. creation of the inner Chart) and further invocation
-				// of .then() handlers.
-				if (this.bIsDestroyed) {
-					return SyncPromise.reject();
+				//as the p13nMode has no strict order we need to ensure the order of tabs here
+				if (mKeys.Item) {
+					aSortedKeys.push(ChartP13nMode.Item);
 				}
-
-				return this.getControlDelegate().fetchProperties(this);
-			}.bind(this))
-			.then(function (aProperties) {
-				return this.retrieveAdaptationController().then(function () {
-					return aProperties;
-				});
-			}.bind(this))
-
-			.then(function createInnerChart(aProperties) {
-
-				if (this.bIsDestroyed) {
-					return SyncPromise.reject();
+				if (mKeys.Sort) {
+					aSortedKeys.push(ChartP13nMode.Sort);
 				}
-
-				ToolbarHandler.createToolbar(this, aActions);
-				this._createDrillBreadcrumbs();
-
-				var mItems = {};
-				aProperties.forEach(function(oProperty) {
-					mItems[oProperty.name] = oProperty;
-				});
-
-				return this._createInnerChart(mSettings, mItems);
-			}.bind(this))
-
-			.catch(function applySettingsHandleException(oError) {
-
-				// only log an error in the console if the promise was not intentionally rejected
-				// by calling Promise.reject()
-				if (oError) {
-					Log.error("The control could not be initialized.", oError, this.getMetadata().getName());
+				if (mKeys.Filter) {
+					aSortedKeys.push(ChartP13nMode.Filter);
 				}
-
-			}.bind(this));
-
-			if (!mSettings || mSettings.selectionMode === undefined) {
-				_onSelectionMode.apply(this);
-			}
-
-			return Control.prototype.applySettings.apply(this, arguments);
-		};
-
-		Chart.prototype.bindAggregation = function (sName, oBindingInfo, sSearchText) {
-
-			if (sName == "data") {
-
-				this.oDataInfo = oBindingInfo;
-				var oChart = this.getAggregation("_chart");
-
-				if (oChart && this.bDelegateInitialized) {
-					this.getControlDelegate().rebindChart(this, oBindingInfo, sSearchText);
-
-				} else if (this.oChartPromise) {
-					this.oChartPromise.then(function (oChart) {
-						this.getControlDelegate().rebindChart(this, oBindingInfo, sSearchText);
-					}.bind(this));
-				}
-				return this;
-			}
-			return Control.prototype.bindAggregation.apply(this, arguments);
-		};
-
-		Chart.prototype.getBindingInfo = function (sName) {
-
-			if (sName == "data") {
-				return this.oDataInfo;
-			}
-
-			return Control.prototype.getBindingInfo.apply(this, arguments);
-		};
-
-		Chart.prototype.setLegendVisible = function (bVisible) {
-
-			// inherited from vizFrame
-			this.setVizProperties({
-				'legend': {
-					'visible': bVisible
-				},
-				'sizeLegend': {
-					'visible': bVisible
-				}
-			});
-
-			return this.setProperty("legendVisible", bVisible);
-		};
-
-		Chart.prototype._createInnerChart = function (mSettings, mItems) {
-			mSettings = mSettings || {};
-
-			var mInitialChartSettings = {},
-				oItem,
-				aVizItems = [],
-				aColMeasures = [],
-				aInSettings = [],
-				mVizItemSettings = {};
-
-			mInitialChartSettings.chartType = '{$mdcChart>/chartType}';
-			mInitialChartSettings.dimensions = [];
-			mInitialChartSettings.measures = [];
-			mInitialChartSettings.id = this.getId() + "--innerChart";
-			mInitialChartSettings.height = '100%';
-			mInitialChartSettings.width = '100%';
-			mInitialChartSettings.vizProperties = '{$mdcChart>/vizProperties}';
-
-			mSettings.items = mSettings.items || [];
-
-			function moveToSettings(oVizItem) {
-				if (this && this.getVizItemType() == "Dimension") {
-					mInitialChartSettings.dimensions.push(oVizItem);
+				if (mKeys.Type) {
+					this._typeBtnActive = true;
+					aSortedKeys.push(ChartP13nMode.Type);
 				} else {
-					mInitialChartSettings.measures.push(oVizItem);
+					this._typeBtnActive = false;
 				}
-			}
-
-			function prepareColoring(oItem, oChart) {
-				//COLORING
-				if (oItem.getCriticality()) {
-					oChart._addCriticality(oItem);
-				}
-
-				aInSettings.push(oItem.getKey());
-
-				if (oItem.getAdditionalColoringMeasures) {
-
-					for (var j = 0; j < oItem.getAdditionalColoringMeasures().length; j++) {
-
-						if (aColMeasures.indexOf(oItem.getAdditionalColoringMeasures()[j]) == -1) {
-							aColMeasures.push(oItem.getAdditionalColoringMeasures()[j]);
-						}
-					}
-				}
-			}
-
-			function addAdditionalColoringMeasures() {
-				var sKey, mColorItem;
-
-				for (var i = 0; i < aColMeasures.length; i++) {
-					sKey = aColMeasures[i];
-
-					if (aInSettings.indexOf(sKey) == -1) {
-						mColorItem = this.getControlDelegate().retrieveAggregationItem("items", mItems[sKey]);
-						mColorItem = MeasureItemClass.getVizItemSettings(mColorItem.settings);
-						//only add the measure to the vizFrame not to the mdc chart
-						aVizItems.push(MeasureItemClass.createVizChartItem(mColorItem).then(moveToSettings));
-					}
-				}
-			}
-
-			for (var i = 0; i < mSettings.items.length; i++) {
-				oItem = mSettings.items[i];
-				prepareColoring(oItem, this);
-
-				if (mItems[oItem.getKey()]) {
-					mVizItemSettings = this.getControlDelegate().retrieveAggregationItem("items", mItems[oItem.getKey()]).settings;
-				} else {
-					mVizItemSettings = undefined;
-				}
-
-				aVizItems.push(oItem.toVizChartItem(mVizItemSettings).then(moveToSettings.bind(oItem)));
-			}
-
-			//After collecting all additional measure names for coloring we need to add them
-			addAdditionalColoringMeasures();
-
-			// We have to wait until all flex changes have been applied to the mdc.Chart
-			var oWaitForChangesPromise = new Promise(function (resolve) {
-				sap.ui.require([
-					"sap/ui/fl/apply/api/FlexRuntimeInfoAPI"
-				], function (FlexRuntimeInfoAPI) {
-
-					// If the condition, that a control is assigned to a AppComponent is not fulfilled, we can go ahead
-					if (!FlexRuntimeInfoAPI.isFlexSupported({ element: this })) {
-						return Promise.resolve();
-					}
-
-					// Otherwise we wait until the changes are applied
-					FlexRuntimeInfoAPI.waitForChanges({ element: this }).then(function () {
-						return resolve();
-					});
-				}.bind(this));
-			}.bind(this));
-
-			return Promise.all(aVizItems, oWaitForChangesPromise).then(function () {
-				var oChart = new ChartClass(mInitialChartSettings);
-				//initial setup
-				oChart.setVisibleDimensions([]);
-				oChart.setVisibleMeasures([]);
-				oChart.setInResultDimensions([]);
-
-                //attach dataPointsSelected event to inner charts selection/deselection events
-                var fireDataPointsSelectedEvent = function(oEvent){
-                    this.fireDataPointsSelected({
-                        dataContext: oEvent.getParameters()
-                    });
-                };
-
-                oChart.attachSelectData(function(oEvent){
-                    fireDataPointsSelectedEvent.call(this, oEvent);
-                }.bind(this));
-
-                oChart.attachDeselectData(function(oEvent){
-                    fireDataPointsSelectedEvent.call(this, oEvent);
-                }.bind(this));
-
-				this._oObserver.observe(oChart, {
-					bindings: [
-						"data"
-					],
-					aggregations: [
-						"dimensions", "measures"
-					]
-				});
-
-				this.setAggregation("_chart", oChart);
-				return oChart;
-			}.bind(this));
-		};
-
-		Chart.prototype.setSelectionMode = function (vValue) {
-			_onSelectionMode.call(this, vValue);
-			return this.setProperty("selectionMode", vValue, true);
-		};
-
-		/**
-		 * Adds a Item to the chart
-		 *
-		 * @param {sap.ui.mdc.chart.Item} oItem a chart Item
-		 * @param bSuppressInvalidate Suppress invalidation of the control
-		 * @returns {sap.ui.mdc.Chart} the chart
-		 */
-		Chart.prototype.addItem = function (oItem, bSuppressInvalidate) {
-			var oChart = this.getAggregation("_chart");
-
-			if (oChart) {
-				oItem.toChart(oChart);
-			} else if (this.oChartPromise) {
-				this.oChartPromise.then(function(oChart) {
-
-					if (oChart) {
-						this.toChart(oChart);
-					}
-				}.bind(oItem));
-			}
-
-			this._oObserver.observe(oItem, {
-				properties: [
-					"visible", "inResult", "role"
-				]
-			});
-
-			return this.addAggregation("items", oItem, bSuppressInvalidate);
-		};
-
-		/**
-		 * Inserts a Item into the chart+
-		 * @param {sap.ui.mdc.chart.Item} oItem a chart Item
-		 * @param {int} iIndex the index
-		 * @param bSuppressInvalidate Suppress invalidation of the control
-		 * @returns {sap.ui.mdc.Chart} the chart
-		 */
-		Chart.prototype.insertItem = function (oItem, iIndex, bSuppressInvalidate) {
-
-			if (oItem.getCriticality()) {
-				this._addCriticality(oItem);
-			}
-
-			var oChart = this.getAggregation("_chart");
-
-			if (oChart) {
-				oItem.toChart(oChart);
-			} else if (this.oChartPromise) {
-				this.oChartPromise.then(function (oChart) {
-
-					if (oChart) {
-						this.toChart(oChart);
-					}
-				}.bind(oItem));
-			}
-
-			this._oObserver.observe(oItem, {
-				properties: [
-					"visible", "inResult", "role"
-				]
-			});
-
-			return this.insertAggregation("items", oItem, iIndex, bSuppressInvalidate);
-		};
-
-		/**
-		 * Removes the chart item
-		 *
-		 * @param oItem {sap.ui.mdc.chart.Item} oItem a chart Item
-		 * @param bSuppressInvalidate Suppress invalidation of the control
-		 * @returns {*}
-		 */
-		Chart.prototype.removeItem = function (oItem, bSuppressInvalidate) {
-			this._oObserver.unobserve(oItem);
-			return this.removeAggregation("items", oItem, bSuppressInvalidate);
-		};
-
-		Chart.prototype.exit = function() {
-			Control.prototype.exit.apply(this, arguments);
-
-			this.oChartPromise = null;
-			this._oSelectionHandlerPromise = null;
-
-			var oChart = this.getAggregation("_chart");
-
-			if (oChart) {
-				oChart.destroy();
-			}
-		};
-
-		/**
-		 * Gets the item from the aggregation named <code>items</code> that
-		 * matches the given <code>aItemKeys</code>.
-		 *
-		 * @param {array} aItemKeys The item keys that specify the item to be retrieved
-		 * @returns {array} Array containing the matching items
-		 */
-		Chart.prototype.getItemsByKeys = function(aItemKeys) {
-			var aFilteredItems = [],
-				aItems = this.getItems();
-
-			aItemKeys.forEach(function(sItemName) {
-				for (var i = aItems.length - 1; i >= 0; i--) {
-					if (aItems[i].getKey() == sItemName /*&& is of type DimensionItem*/) {
-						aFilteredItems.push(aItems[i]);
-						break;
-					}
-				}
-			});
-
-			return aFilteredItems;
-		};
-
-		/**
-		 * shows the drill-down popover for selection a dimension to drill down to.
-		 * @private
-		 */
-		Chart.prototype._showDrillDown = function() {
-
-			if (DrillStackHandler) {
-
-				if (!this._oDrillDownPopover) {
-					DrillStackHandler.createDrillDownPopover(this);
-				}
-
-				return DrillStackHandler.showDrillDownPopover(this);
-			}
-
-			return new Promise(function(resolve, reject) {
-				sap.ui.require([
-					"sap/ui/mdc/chart/DrillStackHandler"
-				], function(DrillStackHandlerLoaded) {
-					DrillStackHandler = DrillStackHandlerLoaded;
-					DrillStackHandler.createDrillDownPopover(this);
-					DrillStackHandler.showDrillDownPopover(this)
-					.then(function(oDrillDownPopover) {
-						resolve(oDrillDownPopover);
-					});
-				}.bind(this));
-			}.bind(this));
-		};
-
-		/**
-		 * shows the Breadcrumbs for current drill-path and drilling up.
-		 * @private
-		 */
-		Chart.prototype._createDrillBreadcrumbs = function() {
-
-			if (DrillStackHandler) {
-
-				if (!this._oDrillBreadcrumbs) {
-					return DrillStackHandler.createDrillBreadcrumbs(this);
-				}
-
-				return Promise.resolve(this._oDrillBreadcrumbs);
-			}
-
-			return new Promise(function(resolve, reject) {
-				sap.ui.require([
-					"sap/ui/mdc/chart/DrillStackHandler"
-				], function(DrillStackHandlerLoaded) {
-					DrillStackHandler = DrillStackHandlerLoaded;
-					DrillStackHandler.createDrillBreadcrumbs(this).then(function() {
-						resolve();
-					});
-				}.bind(this));
-			}.bind(this));
-		};
-
-		Chart.prototype._getPropertyData = function () {
-			return new Promise(function (resolve, reject) {
-
-				// check if the data already has been retrieved
-				if (!this.aFetchedProperties) {
-					//retrieve the data
-					return this.oChartPromise.then(function() {
-						return this.getControlDelegate().fetchProperties(this);
-					}.bind(this))
-					.then(function(aFetchedProperties) {
-						this.aFetchedProperties = aFetchedProperties;
-						resolve(aFetchedProperties);
-					}.bind(this));
-
-				} else {
-					//take the already instantiated data
-					resolve(this.aFetchedProperties);
-				}
-			}.bind(this));
-		};
-
-		Chart.prototype.getAvailableChartTypes = function () {
-			var aChartTypes = [];
-			var oChart = this.getAggregation("_chart");
-
-			if (oChart) {
-				var aAvailableChartTypes = oChart.getAvailableChartTypes().available;
-
-				if (aChartTypes) {
-
-					var oChartResourceBundle = Core.getLibraryResourceBundle("sap.chart.messages");
-
-					for (var i = 0; i < aAvailableChartTypes.length; i++) {
-						var sType = aAvailableChartTypes[i].chart;
-						aChartTypes.push({
-							key: sType,
-							icon: ChartTypeButton.mMatchingIcon[sType],
-							text: oChartResourceBundle.getText("info/" + sType),
-							selected: (sType == this.getChartType())
-						});
-					}
-				}
-			}
-
-			return aChartTypes;
-		};
-
-		Chart.prototype.getTypeInfo = function() {
-			var sType = this.getChartType(),
-				oMDCResourceBundle = Core.getLibraryResourceBundle("sap.ui.mdc");
-
-			var mInfo = {
-				icon: ChartTypeButton.mMatchingIcon[sType],
-				text: oMDCResourceBundle.getText("chart.CHART_TYPE_TOOLTIP", [
-					sType
-				])
-			};
-
-			return mInfo;
-		};
-
-		/**
-		 *
-		 * @return {oModel} the managed object model
-		 */
-		Chart.prototype.getManagedObjectModel = function () {
-			return this._oManagedObjectModel;
-		};
-
-		Chart.prototype.update = function (oChanges) {
-			var oChart = this.getAggregation("_chart");
-
-			if (oChart) {
-				this._update(oChart, oChanges);
-			} else if (this.oChartPromise) {
-				this.oChartPromise.then(function (oChart) {
-
-					if (oChart) {
-						this._update(oChart, oChanges);
-					}
-				}.bind(this));
-			}
-		};
-
-		Chart.prototype._update = function (oChart, oChanges) {
-			var aItems = this.getItems(),
-				oVizItem,
-				oChartItem,
-				aVisibleMeasures = [],
-				aVisibleDimensions = [],
-				aInResultDimensions = [],
-				mDataPoints = {};
-
-			if (oChanges.name === "ignoreToolbarActions" || oChanges.name === "p13nMode") {
-				ToolbarHandler.updateToolbar(this);
-				return;
-			}
-
-			if (oChanges.name === "data" && oChanges.type === "binding" && oChanges.mutation === "prepare" && oChanges.object.isA("sap.chart.Chart")) {
-				oChanges.bindingInfo.sorter = this._getSorters();
-			}
-
-			this._aInResultProperties = [];
-
-			for (var i = 0; i < aItems.length; i++) {
-				oChartItem = aItems[i];
-				oVizItem = oChartItem.getVizItemType() == "Measure" ? oChart.getMeasureByName(oChartItem.getKey()) : oChart.getDimensionByName(oChartItem.getKey());
-
-				if (!oVizItem) {
-					continue;
-				}
-
-				if (oChartItem.getVisible()) {
-
-					if (oChartItem.getVizItemType() == "Measure") {
-						aVisibleMeasures.push(oVizItem.getName());
-
-						if (oChartItem.getDataPoint()) {
-							mDataPoints[oVizItem.getName()] = oChartItem.getDataPoint();
-						}
-					} else {
-						aVisibleDimensions.push(oVizItem.getName());
-					}
-
-					this._aInResultProperties.push(oVizItem.getName());
-				}
-
-				//inResult only possible for dimensions
-				if (oChartItem.getVizItemType() == "Dimension") {
-
-					if (oChartItem.getInResult()) {
-						aInResultDimensions.push(oVizItem.getName());
-						this._aInResultProperties.push(oVizItem.getName());
-					}
-				}
-			}
-
-			var bRebind = false;
-
-			if (!deepEqual(aVisibleDimensions, oChart.getVisibleDimensions())) {
-				oChart.setVisibleDimensions(aVisibleDimensions);
-				bRebind = true;
-			}
-
-			if (!deepEqual(aVisibleMeasures, oChart.getVisibleMeasures())) {
-				oChart.setVisibleMeasures(aVisibleMeasures);
-				bRebind = true;
-			}
-
-			if (!deepEqual(aInResultDimensions, oChart.getInResultDimensions())) {
-				oChart.setInResultDimensions(aInResultDimensions);
-				bRebind = true;
-			}
-
-			// Update binding with sorters
-			if (bRebind) {
-				this.rebind();
-				this._updateSemanticalPattern(oChart, aVisibleMeasures, mDataPoints);
-				this._updateColoring(oChart, aVisibleDimensions, aVisibleMeasures);
-			}
-
-			//TODO: Temporary Workaround
-			//TODO: Investigate for a onUpdate event. Could save us effort in attaching to inner chart events
-			if (DrillStackHandler && this.getAggregation("_breadcrumbs")) {
-				DrillStackHandler._updateDrillBreadcrumbs(this, this.getAggregation("_breadcrumbs"));
-			}
-
-		};
-
-		Chart.prototype._updateSemanticalPattern = function (oChart, aVisibleMeasures, mDataPoints) {
-
-			for (var k = 0; k < aVisibleMeasures.length; k++) {
-				//first draft only with semantic pattern
-				var oDataPoint = mDataPoints[aVisibleMeasures[k]];
-
-				if (oDataPoint) {
-
-					if (oDataPoint.targetValue || oDataPoint.foreCastValue) {
-						var oActualMeasure = oChart.getMeasureByName(aVisibleMeasures[k]);
-
-						oActualMeasure.setSemantics("actual");
-
-						if (oDataPoint.targetValue != null) {
-							var oReferenceMeasure = oChart.getMeasureByName(oDataPoint.targetValue);
-
-							if (oReferenceMeasure) {
-								oReferenceMeasure.setSemantics("reference");
-							} else {
-								Log.error("sap.ui.mdc.Chart: " + oDataPoint.targetValue + " is not a valid measure");
-							}
-						}
-
-						if (oDataPoint.foreCastValue) {
-							var oProjectionMeasure = oChart.getMeasureByName(oDataPoint.foreCastValue);
-
-							if (oProjectionMeasure) {
-								oProjectionMeasure.setSemantics("projected");
-							} else {
-								Log.error("sap.ui.comp.SmartChart: " + oDataPoint.ForecastValue.Path + " is not a valid measure");
-							}
-						}
-
-						oActualMeasure.setSemanticallyRelatedMeasures({
-							referenceValueMeasure: oDataPoint.targetValue,
-							projectedValueMeasure: oDataPoint.foreCastValue
-						});
-					}
-				}
-			}
-		};
-
-		Chart.prototype._updateColoring = function (oChart, aVisibleDimensions, aVisibleMeasures, mDataPoints) {
-			var oColoring = this.getProperty("_colorings"), k;
-
-			if (oColoring && oColoring.Criticality) {
-				var oActiveColoring;
-
-				//dimensions overrule
-				for (k = 0; k < aVisibleDimensions.length; k++) {
-
-					if (oColoring.Criticality.DimensionValues[aVisibleDimensions[k]]) {
-						oActiveColoring = {
-							coloring: "Criticality",
-							parameters: {
-								dimension: aVisibleDimensions[k]
-							}
-						};
-
-						delete oColoring.Criticality.MeasureValues;
-						break;
-					}
-				}
-
-				if (!oActiveColoring) {
-					delete oColoring.Criticality.DimensionValues;
-
-					for (var sMeasure in oColoring.Criticality.MeasureValues) {
-
-						if (aVisibleMeasures.indexOf(sMeasure) == -1) {
-							delete oColoring.Criticality.MeasureValues[sMeasure];
-						}
-					}
-
-					oActiveColoring = {
-						coloring: "Criticality",
-						parameters: {
-							measure: aVisibleMeasures
-						}
-					};
-				}
-
-				if (oActiveColoring) {
-					oChart.setColorings(oColoring);
-					oChart.setActiveColoring(oActiveColoring);
-				}
-			}
-		};
-
-		Chart.prototype._prepareSelection = function () {
-			if (SelectionHandler) {
-				SelectionHandler.prepareChart(this);
 			} else {
-				this._oSelectionHandlerPromise = loadModules(["sap/ui/mdc/chart/SelectionHandler"]).then(function (aModules) {
-					SelectionHandler = aModules[0];
-
-					if (this.bIsDestroyed) {
-						return;
-					}
-
-					SelectionHandler.prepareChart(this);
-				}.bind(this));
-			}
-		};
-
-		Chart.prototype._getSorters = function () {
-			var aSorters;
-            var aSorterProperties = this.getSortConditions() ? this.getSortConditions().sorters : [];
-
-            aSorterProperties.forEach(function(oSortProp){
-                if (this._aInResultProperties.indexOf(oSortProp.name) != -1) {
-                    var oSorter = new Sorter(oSortProp.name, oSortProp.descending);
-
-                    if (aSorters) {
-                        aSorters.push(oSorter);
-                    } else {
-                        aSorters = [
-                            oSorter
-                        ];//[] has special meaning in sorting
-                    }
-                }
-            }.bind(this));
-
-            return aSorters;
-
-		};
-
-		Chart.prototype.rebind = function() {
-
-			if (!this.bDelegateInitialized) {
-				return;
+				aSortedKeys = aModes;
 			}
 
-			var oBindingInfo = this.oDataInfo,
-				oDelegate = this.getControlDelegate();
+			this.setProperty("p13nMode", aSortedKeys, true);
 
-			if (oDelegate) {
-				oDelegate.updateBindingInfo(this, oBindingInfo);
-			}
+			this._updateAdaptation(this.getP13nMode());
 
-			if (!this.isInnerChartBound()) {
-				return;
-			}
-
-			if (oBindingInfo) {
-
-				//BindingInfo.filters = this._getFilterInfo().filters;
-				oBindingInfo.sorter = this._getSorters();
-				//TODO: Clarify why sap.ui.model.odata.v4.ODataListBinding.destroy this.bHasAnalyticalInfo is false
-				//TODO: on second call, as it leads to issues when changing layout options within the settings dialog.
-				//TODO: bHasAnalyticalInfo of inner chart binding should be true and in fact is true initially.
-				oBindingInfo.binding.bHasAnalyticalInfo = true;
-			}
-
-			this.bindAggregation("data", oBindingInfo);
-			this._updateInnerChartNoDataText();
-			this._renderOverlay(false);
-		};
-
-		Chart.prototype.isInnerChartBound = function() {
-			return this.getAggregation("_chart") ? this.getAggregation("_chart").isBound("data") : false;
-		};
-
-		Chart.prototype._onFiltersChanged = function(oEvent) {
-			if (this.isInnerChartBound() && oEvent.getParameter("conditionsBased")) {
-				this._renderOverlay(true);
-			}
-		};
-
-		Chart.prototype._renderOverlay = function(bShow) {
-
-			if (this.getAggregation("_chart")) {
-
-				var $this = this.getAggregation("_chart").$(), $overlay = $this.find(".sapUiMdcChartOverlay");
-				if (bShow && $overlay.length === 0) {
-					$overlay = jQuery("<div>").addClass("sapUiOverlay sapUiMdcChartOverlay").css("z-index", "1");
-					$this.append($overlay);
-				} else if (!bShow) {
-					$overlay.remove();
-				}
-			}
-		};
-
-		Chart.prototype.setNoDataText = function(sNoData) {
-			this.setProperty("noDataText", sNoData, true);
-			this._updateInnerChartNoDataText();
 			return this;
 		};
 
-		//method provided via FilterIntegrationMixin
-		Chart.prototype._onFilterProvided = function() {
-			this._updateInnerChartNoDataText();
-		};
-
-		Chart.prototype._updateInnerChartNoDataText = function() {
-
-			var oInnerChart = this.getAggregation("_chart");
-
-			if (!oInnerChart) {
-				return;
-			}
-
-			oInnerChart.setCustomMessages({
-				'NO_DATA': this._getNoDataText()
-			});
-		};
-
-		Chart.prototype._getNoDataText = function() {
-			var sNoDataText = this.getNoDataText();
-			if (sNoDataText) {
-				return sNoDataText;
-			}
-
-			var oRb = Core.getLibraryResourceBundle("sap.ui.mdc");
-
-			if (!this.isInnerChartBound()) {
-				if (this.getFilter()) {
-					return oRb.getText("chart.NO_DATA_WITH_FILTERBAR");
-				}
-				return oRb.getText("chart.NO_DATA");
-			}
-
-			return oRb.getText("chart.NO_RESULTS");
-		};
-
-		Chart.prototype._addCriticality = function (oItem) {
-			var oColoring = this.getProperty("_colorings");
-
-			oColoring = oColoring || {
-				Criticality: {
-					DimensionValues: {},
-					MeasureValues: {}
-				}
+		Chart.prototype._updateAdaptation = function(aMode) {
+			const oRegisterConfig = {
+				controller: {}
 			};
 
-			var mCrit = oItem.getCriticality(), mChartCrit = {};
+			const mRegistryOptions = {
+				Item: new ChartItemController({ control: this }),
+				Sort: new SortController({ control: this }),
+				Filter: new FilterController({ control: this }),
+				Type: new ChartTypeController({ control: this })
+			};
 
-			if (oItem.getVizItemType() == "Dimension") {
+			if (aMode && aMode.length > 0) {
+				aMode.forEach((sMode) => {
+					const sKey = sMode;
+					const oController = mRegistryOptions[sMode];
+					if (oController) {
+						oRegisterConfig.controller[sKey] = oController;
+					}
+				});
 
-				for (var sKey in mCrit) {
-
-					mChartCrit[sKey] = {
-						Values: mCrit[sKey]
-					};
-				}
-
-				oColoring.Criticality.DimensionValues[oItem.getKey()] = mChartCrit;
-			} else {
-
-				for (var sKey in mCrit) {
-					mChartCrit[sKey] = mCrit[sKey];
-				}
-
-				oColoring.Criticality.MeasureValues[oItem.getKey()] = mChartCrit;
+				this.getEngine().register(this, oRegisterConfig);
 			}
 
-			this.setProperty("_colorings", oColoring);
 		};
 
-		Chart.prototype.getCollectionModel = function () {
-			var oBindingInfo = this.getBindingInfo("data");
-			return oBindingInfo ? this.getModel(oBindingInfo.model) : null;
-		};
+		Chart.prototype.setFilterConditions = function(mConditions) {
+			this.setProperty("filterConditions", mConditions, true);
 
-		Chart.prototype.getCollectionPath = function () {
-			var oBindingInfo = this.getBindingInfo("data");
-			return oBindingInfo ? oBindingInfo.path : null;
-		};
+			const oP13nFilter = this.getInbuiltFilter();
+			if (oP13nFilter) {
+				oP13nFilter.setFilterConditions(mConditions);
+			}
 
-		Chart.prototype.done = function () {
-			return this.oChartPromise;
+			this._updateInfoToolbar();
+
+			return this;
 		};
 
 		/**
-		 * Returns a Promise that resolves after the chart has been initialized after being created and after changing the type.
+		 * Getter for <code>Conditions</code> set in the personalization settings.
+		 * @returns {object} Filters set in the chart
 		 *
-		 * @returns {Promise} A Promise that resolves after the chart has been initialized
 		 * @public
 		 */
-		Chart.prototype.initialized = function() {
-			return this.oChartPromise;
+		// Part of sap.ui.mdc.IFilterSource
+		Chart.prototype.getConditions = function() {
+			//may only return conditions if the inner FilterBar has already been initialized
+			return this.getInbuiltFilter() ? this.getInbuiltFilter().getConditions() : [];
+		};
+		/**
+		 * Registers the chart rebind function call to the filter bar search event.
+		 *
+		 * @param {sap.ui.mdc.filterbar.p13n.AdaptionFilterBar} oFilter The FilterBar instance
+		 * @private
+		 */
+		Chart.prototype._registerInnerFilter = function(oFilter) {
+			oFilter.attachSearch(function() {
+				this._rebind();
+			}, this);
 		};
 
-		var _getVisibleProperties = function (oChart) {
-			var aProperties = [];
-			if (oChart) {
-				oChart.getItems().forEach(function (oChartItem, iIndex) {
-					aProperties.push({
-						name: oChartItem.getKey(),
-						role: oChartItem.getRole()
+		/**
+		 * Applies the given settings to the chart, loads the delegate, and initializes the chart.
+		 *
+		 * @param {*} mSettings settings to apply
+		 *
+		 * @private
+		 */
+		Chart.prototype.applySettings = function(mSettings, oScope) {
+			Control.prototype.applySettings.apply(this, arguments);
+
+			this.initializedPromise = new Promise((resolve, reject) => {
+				this._fnResolveInitialized = resolve;
+				this._fnRejectInitialized = reject;
+			});
+
+			this.innerChartBoundPromise = new Promise((resolve, reject) => {
+				this._fnResolveInnerChartBound = resolve;
+				this._fnRejectInnerChartBound = reject;
+			});
+
+			const pLoadDelegate = this.initControlDelegate();
+
+			const aInitPromises = [pLoadDelegate];
+
+			if (this.isFilteringEnabled()) {
+				aInitPromises.push(this.retrieveInbuiltFilter());
+			}
+
+			//TODO: Refactor this so we use awaitPropertyHelper
+			Promise.all(aInitPromises).then(() => {
+				if (!this.isDestroyed()) {
+					this._initInnerControls();
+				}
+			});
+
+		};
+
+		/**
+		 * Initializes the inner controls of the chart (toolbar, inner chart).
+		 * The inner chart is initialized via the delegate.
+		 */
+		Chart.prototype._initInnerControls = function() {
+
+			this.getControlDelegate().initializeInnerChart(this).then((oInnerChart) => {
+
+				this.setBusyIndicatorDelay(0);
+
+				this.getControlDelegate().createInitialChartContent(this);
+				this._renderOverlay(true);
+
+				if (this.getAutoBindOnInit()) {
+					this.setBusy(true);
+					this._createContentfromPropertyInfos(oInnerChart);
+				}
+
+				this.setAggregation("_innerChart", oInnerChart);
+
+				if (this.getP13nMode().includes("Filter")) {
+					this._initInfoToolbar();
+				}
+
+				this._bInnerChartReady = true;
+				this._fnResolveInitialized();
+				this.invalidate();
+
+			}).catch((error) => {
+				this._fnRejectInitialized(error);
+			});
+
+			//independent from fetchProperties
+
+			this._createToolbarContent();
+		};
+		/**
+		 * Creates the content for the chart toolbar.
+		 * @private
+		 */
+		Chart.prototype._createToolbarContent = function() {
+			const aP13nMode = this.getP13nMode() || [];
+			const aIgnoreToolbarActions = this.getIgnoreToolbarActions();
+
+			const bShowSelectionDetails = this.getShowSelectionDetails();
+			const bShowDrillDown = (aP13nMode.includes("Item") && !(aIgnoreToolbarActions.length && aIgnoreToolbarActions.includes(ChartToolbarActionType.DrillDownUp)));
+			const bShowLegend = !(aIgnoreToolbarActions.length && aIgnoreToolbarActions.includes(ChartToolbarActionType.Legend));
+			const bShowZoom = !(aIgnoreToolbarActions.length && aIgnoreToolbarActions.includes(ChartToolbarActionType.ZoomInOut));
+			const bShowSettings = aP13nMode.includes("Sort") || aP13nMode.includes("Item") || aP13nMode.includes("Filter");
+			const bShowChartType = this._getTypeBtnActive();
+
+			const header = this.getHeader();
+			const headerStyle = this.getHeaderStyle();
+			const headerLevel = this.getHeaderLevel();
+			const headerVisible = this.getHeaderVisible();
+
+			const beforeOpenDrillDown = function(oEvent) {
+				const oViewByBtn = oEvent.getSource();
+				oViewByBtn.removeAllItems();
+				oViewByBtn.setSelectedItemKey("");
+
+				const fnGetDrillStackDimensions = function(oChart) {
+					const aDrillStack = oChart.getControlDelegate().getDrillStack(oChart);
+					const aStackDimensions = [];
+
+					aDrillStack.forEach((oStackEntry) => {
+						// loop over nested dimension arrays
+						oStackEntry.dimension.forEach((sDimension) => {
+							if (sDimension != null && sDimension != "" && aStackDimensions.indexOf(sDimension) == -1) {
+								aStackDimensions.push(sDimension);
+							}
+						});
+					});
+
+					return aStackDimensions;
+				};
+
+				const pSortedDimensionsPromise = this.getControlDelegate().getSortedDimensions(this);
+				return pSortedDimensionsPromise.then((aSortedDimensionsProperties) => {
+					// Ignore currently applied dimensions from drill-stack for selection
+					const aIgnoreDimensions = fnGetDrillStackDimensions(this);
+					aSortedDimensionsProperties = aSortedDimensionsProperties.filter((oDimensionProperty) => { return aIgnoreDimensions.indexOf(oDimensionProperty.key) < 0; });
+
+					aSortedDimensionsProperties.forEach((oDimensionProperty) => {
+						oViewByBtn.addItem(new SelectionButtonItem({ key: oDimensionProperty.key, text: oDimensionProperty.label }));
+					});
+					oViewByBtn.setSearchEnabled(aSortedDimensionsProperties.length >= 7);
+					oViewByBtn._openPopover(); // in this case the beforeOpen is not able to provide all item syncron
+				});
+			}.bind(this);
+
+			const itemSelectedDrillDown = function(oEvent) {
+				const sDimensionName = oEvent.getParameter("item").key;
+
+				this._bDrillDown = true;
+				//Call flex to capture current state before adding an item to the chart aggregation
+				this.getEngine().createChanges({
+					control: this,
+					key: "Item",
+					state: [{
+						name: sDimensionName,
+						position: this.getItems().length
+					}]
+				});
+			}.bind(this);
+
+			const pressSettings = function() {
+				const aP13nMode = this.getP13nMode();
+				const iIdx = aP13nMode.indexOf("Type");
+				if (iIdx > -1) {
+					aP13nMode.splice(iIdx, 1);
+				}
+
+				//TODO: Move this to p13n functionality?
+				if (this.isPropertyHelperFinal()) {
+					this.getEngine().show(this, aP13nMode);
+				} else {
+					this.finalizePropertyHelper().then(() => {
+						this.getEngine().show(this, aP13nMode);
+					});
+				}
+			}.bind(this);
+
+			const chartType = this.getChartType();
+
+			const beforeOpenChartType = function(oEvent) {
+				const oChartTypeBtn = oEvent.getSource();
+				// use this to update the available ChartTypes
+				const aAvailableChartTypes = this.getAvailableChartTypes();
+				oChartTypeBtn.removeAllItems();
+				aAvailableChartTypes.forEach((oChartType) => {
+					oChartTypeBtn.addItem(
+						new SelectionButtonItem({ key: oChartType.key, text: oChartType.text, icon: oChartType.icon })
+					);
+				});
+				oChartTypeBtn.setSearchEnabled(aAvailableChartTypes.length >= 7);
+			}.bind(this);
+
+			const itemSelectedChartType = function(oEvent) {
+				const oChartTypeBtn = oEvent.getSource();
+				const sChartType = oEvent.getParameter("item").key;
+
+				const oChartTypeInfo = this.getChartTypeInfo();
+				const aAvailableChartTypes = this.getAvailableChartTypes();
+				const [oChartType] = aAvailableChartTypes.filter((o) => { return o.key === sChartType; });
+
+				oChartTypeBtn.setText(oChartType.text);
+				oChartTypeBtn.setTooltip(oChartTypeInfo.text);
+				oChartTypeBtn.setIcon(oChartType.icon);
+
+				//TODO should be done in the chart, the control should only raise an event
+				sap.ui.require([
+					"sap/ui/mdc/flexibility/Chart.flexibility"
+				], (ChartFlex) => {
+
+					this.getEngine().createChanges({
+						control: this,
+						key: "Type",
+						state: {
+							properties: {
+								chartType: sChartType
+							}
+						}
+					}).then((vResult) => {
+						if (this.getControlDelegate().requestToolbarUpdate) {
+							this.getControlDelegate().requestToolbarUpdate(this);
+						} else {
+							this._updateToolbar();
+						}
 					});
 
 				});
+
+			}.bind(this);
+
+
+			const sId = this.getId();
+			const oToolbar = this._getToolbar();
+
+			/** add beginning **/
+			this._oTitle = ToolbarControlFactory.createTitle(sId, { header: header, headerStyle: headerStyle, headerLevel: headerLevel, headerVisible: headerVisible }, oToolbar);
+			oToolbar.addBegin(this._oTitle);
+
+			/** variant management **/
+			const oVariantManagement = this.getAggregation("variant");
+			if (oVariantManagement && oToolbar) {
+				const oCurrentVariantManagement = this.getVariant();
+				if (oCurrentVariantManagement) {
+					oToolbar.removeBetween(oCurrentVariantManagement);
+				}
+				oToolbar.addBetween(oVariantManagement);
+				this._updateVariantManagementStyle();
 			}
-			return aProperties;
-		};
 
-		var _getSortedProperties = function(oChart) {
-			return oChart.getSortConditions() ? oChart.getSortConditions().sorters : [];
-		};
+			if (bShowSelectionDetails) {
+				this._oSelectionDetailsBtn = this._createSelectionDetails(sId);
+				oToolbar.addEnd(this._oSelectionDetailsBtn);
+			}
 
-		Chart.prototype.isFilteringEnabled = function() {
-			var aP13nMode = this.getP13nMode() || [];
-			return aP13nMode.indexOf("Filter");
+			if (bShowDrillDown) {
+				this._oDrillDownBtn = ToolbarControlFactory.createDrillDownBtn(sId, { beforeOpen: beforeOpenDrillDown, itemSelected: itemSelectedDrillDown });
+				// this._oDrillDownBtn.attachBeforeOpen(beforeOpenDrillDown);
+				// this._oDrillDownBtn.attachItemSelected(itemSelectedDrillDown);
+				oToolbar.addEnd(this._oDrillDownBtn);
+			}
+
+			if (bShowLegend) {
+				this._oLegendBtn = ToolbarControlFactory.createLegendBtn(sId, { pressed: "{$mdcChart>/legendVisible}" });
+				// this._oLegendBtn.bindProperty("pressed", {path: "$mdcChart>/legendVisible"});
+				oToolbar.addEnd(this._oLegendBtn);
+			}
+
+			if (bShowZoom) {
+				this._oZoomInBtn = ToolbarControlFactory.createZoomInBtn(sId, { press: this.zoomIn.bind(this) });
+				oToolbar.addEnd(this._oZoomInBtn);
+
+				this._oZoomOutBtn = ToolbarControlFactory.createZoomOutBtn(sId, { press: this.zoomOut.bind(this) });
+				oToolbar.addEnd(this._oZoomOutBtn);
+			}
+
+			if (bShowSettings) {
+				this._oSettingsBtn = ToolbarControlFactory.createSettingsBtn(sId, { press: pressSettings });
+				oToolbar.addEnd(this._oSettingsBtn);
+			}
+
+			if (bShowChartType) {
+				this._oChartTypeBtn = ToolbarControlFactory.createChartTypeBtn(sId, { selectedItemKey: chartType, beforeOpen: beforeOpenChartType, itemSelected: itemSelectedChartType });
+				oToolbar.addEnd(this._oChartTypeBtn);
+			}
+
+			this._updateVariantManagementStyle();
+		};
+		/**
+		 * Creates the <code>SelectionDetails</code> control used in the toolbar.
+		 *
+		 * @param {string} sId ID of the chart
+		 * @returns {sap.m.SelectionDetails} The <code>SelectionDetails</code> instance
+		 * @private
+		 */
+		Chart.prototype._createSelectionDetails = function(sId) {
+			const fnActionPress = function(oEvent) {
+				// extract binding information of each item
+				const aItemContexts = [];
+				oEvent.getParameter("items").forEach((oItem) => {
+					aItemContexts.push(oItem.getBindingContext());
+				});
+				// Re-arrange event object and navigate to outer press handler
+				this.fireSelectionDetailsActionPressed({
+					id: oEvent.getParameter("id"),
+					action: oEvent.getParameter("action"),
+					itemContexts: aItemContexts,
+					level: oEvent.getParameter("level")
+				});
+			}.bind(this);
+
+			const oSelectionDetailsBtn = ToolbarControlFactory.createSelectionDetailsBtn(sId, {
+				actionPress: fnActionPress,
+				getSelectionDetailsActions: this.getSelectionDetailsActions.bind(this),
+				enableNavCallback: (mData, oContext) => {
+					return this.getControlDelegate().determineEnableNavForDetailsItem(this, mData, oContext);
+				},
+				fetchFieldInfosCallback: (oSelectionDetails, oBindingContext) => {
+					return this.getControlDelegate().fetchFieldInfos(this, oSelectionDetails, oBindingContext);
+				}
+			});
+
+			return oSelectionDetailsBtn;
+		};
+		/**
+		 * Creates the info toolbar.
+		 * @private
+		 */
+		Chart.prototype._initInfoToolbar = function() {
+			this.setAggregation("_infoToolbar", new InfoBar(this.getId() + "--infoToolbar", {
+				infoText: this._getFilterInfoText(),
+				press: function() {
+					this.finalizePropertyHelper().then(() => {
+						return this.getEngine().show(this, "Filter");
+					}).then((oP13nDialog) => {
+
+						oP13nDialog.attachEventOnce("close", () => {
+
+							const aConditions = this.getFilterConditions();
+							const bNoConditions = !Object.keys(aConditions).find((oKey) => {
+								return aConditions[oKey] && aConditions[oKey].length > 0;
+							});
+
+							if (bNoConditions && this.getAggregation("_toolbar")) {
+								//TODO this.getAggregation("_toolbar").getSettingsButton().focus();
+							}
+
+						});
+					});
+				}.bind(this),
+				removeAllFilters: function(oEvent) {
+					//this will only reset to the last variant and not clear all filters. this.getEngine().reset(this, ["Filter"]);
+					this.getEngine().createChanges({
+						control: this,
+						key: "Filter",
+						state: {},
+						applyAbsolute: ProcessingStrategy.FullReplace
+					});
+					//Focus handling, setting the focus back to the setting button
+					//TODO this._getToolbar().getSettingsButton().focus();
+				}.bind(this)
+			}));
+
+			if (this.getDomRef()) {
+				this.getDomRef().setAttribute("aria-labelledby", this.getAggregation("_infoToolbar").getACCTextId());
+			}
+		};
+		/**
+		 * Updates the info toolbar instance.
+		 * @private
+		 */
+		Chart.prototype._updateInfoToolbar = function() {
+			if (this.getP13nMode().includes("Filter") && this.getAggregation("_infoToolbar")) {
+				this.getAggregation("_infoToolbar").setInfoText(this._getFilterInfoText());
+			}
+		};
+		/**
+		 * Gets the filter info text used to update the info toolbar.
+		 *
+		 * @returns {string} The info text
+		 * @private
+		 */
+		Chart.prototype._getFilterInfoText = function() {
+			if (this.getInbuiltFilter()) {
+				let sText;
+				const aFilterNames = this._getLabelsFromFilterConditions();
+				const oListFormat = ListFormat.getInstance();
+
+				if (aFilterNames.length > 0) {
+
+					if (aFilterNames.length > 1) {
+						sText = MDCRb.getText("chart.MULTIPLE_FILTERS_ACTIVE", [aFilterNames.length, oListFormat.format(aFilterNames)]);
+					} else {
+						sText = MDCRb.getText("chart.ONE_FILTER_ACTIVE", [aFilterNames[0]]);
+					}
+				}
+
+				return sText;
+			}
+
+			return undefined;
 		};
 
 		/**
-		 * Fetches the current state of the chart (as a JSON)
+		 * This iterates over all items of the chart to make sure all necessary information is available on them.
+		 * If something is missing, this method updates the item accordingly. This is the last check before the inner chart is rendered.
+		 * @returns {Promise} Resolves once check is complete
 		 *
-		 * @protected
+		 * @private
+		 */
+		Chart.prototype.checkAndUpdateItems = function() {
+			return new Promise((resolve, reject) => {
+				const aPropPromises = [];
+
+				const fnCheckAndUpdateItemProperty = function(oItem, oPropertyInfoProValue, sPropertyName, sDefaultValue) {
+					const value = oItem.getProperty(sPropertyName);
+					if (!value || value !== oPropertyInfoProValue) {
+						if (value !== oPropertyInfoProValue) {
+							Log.error("sap.ui.mdc.Chart", `the propertyInfo.${sPropertyName} for Item '${oItem.getId()}' has a different value! new value = ${ oPropertyInfoProValue || sDefaultValue }`);
+						}
+						oItem.setProperty(sPropertyName, oPropertyInfoProValue || sDefaultValue);
+					}
+				};
+
+				this.getItems().forEach((oItem) => {
+					aPropPromises.push(this._getPropertyByNameAsync(oItem.getPropertyKey()).then((oPropertyInfo) => {
+						if (oPropertyInfo) {
+							fnCheckAndUpdateItemProperty(oItem, oPropertyInfo.label, "label");
+							fnCheckAndUpdateItemProperty(oItem, oPropertyInfo.groupable ? "groupable" : "aggregatable", "type");
+							fnCheckAndUpdateItemProperty(oItem, oPropertyInfo.role, "role", oPropertyInfo.groupable ? "category" : "axis1");
+						}
+					}));
+				});
+
+				Promise.all(aPropPromises).then(() => {
+					resolve();
+				});
+			});
+		};
+
+		/**
+		 * Creates the content for the inner chart from properties.
+		 * The properties are given via the PropertyHelper which is initialized here.
+		 * The rest of the creation of the content for the inner chart is done in the delegate.
+		 * Also creates the breadcrumbs.
+		 *
+		 * Is called during init when autoBindOnInit = "true", if "false" then this is called by _rebind()
+		 */
+		Chart.prototype._createContentfromPropertyInfos = function(oInnerChart) {
+			//Make sure all MDC Items have the necessary information to create a chart
+			this.checkAndUpdateItems().then(() => {
+				//Create content on inner chart instance
+				if (!this._oInnerChartContentPromise) {
+					this._oInnerChartContentPromise = this.getControlDelegate().createInnerChartContent(this, this._innerChartDataLoadComplete.bind(this));
+					this._oInnerChartContentPromise.then(() => {
+						this._createBreadcrumbs();
+						//From now on, listen to changes on Items Aggregation and sync them with inner chart
+						this._oObserver?.disconnect();
+						this._oObserver?.destroy();
+						this._oObserver = new ManagedObjectObserver(this._propagateItemChangeToInnerChart.bind(this));
+						this._oObserver.observe(this, {
+							aggregations: [
+								"items"
+							]
+						});
+
+						//Sync MDC chart properties with inner chart
+						this._propagatePropertiesToInnerChart();
+
+						this._fnResolveInnerChartBound();
+					});
+				}
+			});
+		};
+		/**
+		 * Creates the <code>Breadcrumbs</code> control to visualize the drilling depth of the chart.
+		 * @private
+		 */
+		Chart.prototype._createBreadcrumbs = function() {
+			let _oBreadcrumbs = this.getAggregation("_breadcrumbs");
+			if (!_oBreadcrumbs && !this._bIsDestroyed) {
+				_oBreadcrumbs = ToolbarControlFactory.createDrillBreadcrumbs(this.getId(), {
+					linkPressed: function(oEvent) {
+						const index = oEvent.getParameter("index") + 1;
+
+						// get drill-path which was drilled-up and needs to be removed from mdc chart
+						const aCurrentDrillStack = this.getControlDelegate().getDrillableItems(this);
+						const aDrilledItems = aCurrentDrillStack.slice(index);
+						const aFlexItemChanges = aDrilledItems.map((oDrillItem) => {
+							return {
+								name: oDrillItem.getPropertyKey(),
+								visible: false
+							};
+						});
+
+						this._iDrillUpIndex = index;
+						this.getEngine().createChanges({
+							control: this,
+							key: "Item",
+							state: aFlexItemChanges
+						});
+
+					}.bind(this)
+				});
+
+				const aItems = this.getControlDelegate().getDrillableItems(this).map((oItem) => { return { key: oItem.getPropertyKey(), text: oItem.getLabel() }; });
+				_oBreadcrumbs.update(aItems);
+				this.setAggregation("_breadcrumbs", _oBreadcrumbs);
+			}
+		};
+
+		/**
+		 * Loads the delegate for the MDC chart
+		 * @returns {Promise} resolved when delegate is loaded
+		 */
+		Chart.prototype._loadDelegate = function() {
+
+			return new Promise((resolve) => {
+				const aNotLoadedModulePaths = [this.getDelegate().name];
+
+				function onModulesLoadedSuccess(oDelegate) {
+					resolve(oDelegate);
+				}
+
+				sap.ui.require(aNotLoadedModulePaths, onModulesLoadedSuccess);
+			});
+
+		};
+		/**
+		 * Gets whether filtering is enabled in the personalization dialog.
+		 * @returns {boolean} <code>true</code> if filtering enabled, <code>false</code> if otherwise
+		 *
+		 * @private
+		 */
+		Chart.prototype.isFilteringEnabled = function() {
+			return this.getP13nMode().indexOf("Filter") > -1;
+		};
+
+		/**
+		 * Gets the adaptation panel for the p13n dialog.
+		 * <b>Note:</b> This is only used for  personalization, do not use it otherwise.
+		 * @returns {Promise} <code>Promise</code> that resolves with the adaptation panel control
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Chart.prototype.getAdaptationUI = function() {
+			return this.getControlDelegate().getAdaptionUI(this);
+		};
+
+		/**
+		 * Propagates a change on the "item" aggregation to the inner chart via the delegate
+		 * The delegate must then update the inner chart accordingly
+		 *
+		 * @param {object} oChange the change object from the ManagedObjectModel observer
+		 */
+		Chart.prototype._propagateItemChangeToInnerChart = function(oChange) {
+
+			if (this._bIsDestroyed) {
+				return; //Don't propagate changes when CHart is destroyed
+			}
+
+			this.setBusy(true);
+			let iIndex;
+			switch (oChange.mutation) {
+
+				case "insert":
+
+					if (oChange.child && oChange.child.getType()) {
+						iIndex = this.getItems().filter((oItem) => { return oItem.getType() === oChange.child.getType(); }).indexOf(oChange.child);
+					} else {
+						iIndex = this.getItems().indexOf(oChange.child);
+					}
+
+					this.getControlDelegate().insertItemToInnerChart(this, oChange.child, iIndex);
+					break;
+				case "remove":
+					this.getControlDelegate().removeItemFromInnerChart(this, oChange.child);
+					break;
+				default:
+					Log.error("Unknown mutation on MDC Chart Item Aggregation. This will not sync to inner chart!");
+					break;
+			}
+
+			//Update the breadcrumbs after an MDC Item change
+			const aItems = this.getControlDelegate().getDrillableItems(this).map((oItem) => { return { key: oItem.getPropertyKey(), text: oItem.getLabel() }; });
+			this.getAggregation("_breadcrumbs").update(aItems);
+		};
+
+		/**
+		 * Rebinds the inner chart instance by calling oDelegate.rebind
+		 *
+		 * @param {boolean} [bForceRefresh] Indicates that the binding must be refreshed regardless of any <code>bindingInfo</code> change
+		 * @returns {Promise} A <code>Promise</code> that resolves after rebind is executed
+		 * @private
+		 */
+		Chart.prototype._rebind = async function(bForceRefresh) {
+
+			if (!this._bInnerChartReady) {
+				//TODO: This can lead to a race conditition when the "Go" button is pressed while the inner chart still intializes
+				//TODO: Check whether we really need this since we insantiate the inner chart right away
+				//this._initInnerControls();
+
+				//Wait with rebind until inner chart is ready
+				await this.initialized();
+			}
+
+			this.setBusy(true);
+
+			if (!this.getControlDelegate().getInnerChartBound(this)) {
+				this._createContentfromPropertyInfos();
+				return;
+			}
+
+			const oChartDelegate = this.getControlDelegate();
+			let oBindingInfo;
+			if (oChartDelegate._getBindingInfo) {
+				oBindingInfo = oChartDelegate._getBindingInfo(this);
+				Log.warning("mdc Chart", "calling the private delegate._getBindingInfo. Please make the function public!");
+			} else {
+				oBindingInfo = oChartDelegate.getBindingInfo(this);
+			}
+			oChartDelegate.updateBindingInfo(this, oBindingInfo); //Applies filters
+			oChartDelegate.rebind(this, oBindingInfo);
+		};
+
+		Chart.prototype._onFilterSearch = function(oEvent) {
+			this._bAnnounceUpdate = true;
+		};
+
+		/**
+		 * Provides an additional announcement for the screen reader to inform the user that the chart
+		 * has been updated.
+		 *
+		 * @param {string} sChartType The current chart type to be announced
+		 * @param {string} sHeader The header text to be announced
+		 * @param {int} [iDimensions] The dimension count
+		 * @param {int} [iMeasures] The measure count
+		 * @private
+		 * @since 1.123
+		 */
+		Chart.prototype._announceUpdate = function(sChartType, sHeader, iDimensions, iMeasures) {
+			if (!this._bAnnounceUpdate) {
+				return;
+			}
+			this._bAnnounceUpdate = false;
+			const oInvisibleMessage = InvisibleMessage.getInstance();
+
+			if (oInvisibleMessage) {
+				const oResourceBundle = MDCRb;
+				const aAvailableChartTypes = this.getAvailableChartTypes();
+				const [oChartType] = aAvailableChartTypes.filter((o) => { return o.key === sChartType; });
+				sChartType = oChartType?.text || sChartType;
+
+				let sMsg = oResourceBundle.getText("chart.ANNOUNCEMENT_UPDATED", [sHeader, sChartType]);
+				let sResourceKey;
+
+				if (iDimensions && iMeasures) {
+					if (iDimensions === 1 && iMeasures === 1) {
+						sResourceKey = "chart.ANNOUNCEMENT_DIMMEA_11_UPDATED";
+					} else if (iDimensions > 1 && iMeasures === 1) {
+						sResourceKey = "chart.ANNOUNCEMENT_DIMMEA_N1_UPDATED";
+					} else if (iDimensions === 1 && iMeasures > 1) {
+						sResourceKey = "chart.ANNOUNCEMENT_DIMMEA_1N_UPDATED";
+					} else {
+						sResourceKey = "chart.ANNOUNCEMENT_DIMMEA_NN_UPDATED";
+					}
+
+					sMsg += " " + oResourceBundle.getText(sResourceKey, [iDimensions, iMeasures]);
+				}
+				oInvisibleMessage.announce(sMsg);
+			}
+		};
+
+		/**
+		 * Creates a new instance of a toolbar or, if already set, returns the existing one.
+		 *
+		 * @returns {sap.m.Toolbar|sap.ui.mdc.ActionToolbar} The toolbar instance
+		 * @private
+		 */
+		Chart.prototype._getToolbar = function() {
+			if (this.getAggregation("_toolbar")) {
+				return this.getAggregation("_toolbar");
+			} else if (!this._bIsDestroyed) {
+				const oToolbar = new ActionToolbar(this.getId() + "--toolbar", {
+					design: ToolbarDesign[ThemeParameters.get({ name: "_sap_ui_mdc_Chart_ToolbarDesign" })], //"Transparent",
+					enabled: false
+				});
+
+				this.setAggregation("_toolbar", oToolbar);
+				return oToolbar;
+			}
+		};
+
+		/**
+		 * Handler for theme changes
+		 */
+		Chart.prototype.onThemeChanged = function() {
+			const oToolbar = this._getToolbar();
+			if (oToolbar) {
+				const sToolBarDesign = ToolbarDesign[ThemeParameters.get({ name: "_sap_ui_mdc_Chart_ToolbarDesign" })];
+				oToolbar.setDesign(sToolBarDesign);
+			}
+		};
+
+		/**
+		 * Calls the update function for the toolbar if a toolbar exists.
+		 *
+		 * @private
+		 */
+		Chart.prototype._updateToolbar = function() {
+			const oToolbar = this.getAggregation("_toolbar");
+			if (oToolbar) {
+				if (!oToolbar.getEnabled()) {
+					oToolbar.setEnabled(true);
+				}
+				this._updateZoomButtons();
+
+				// this must be called only once from the delegate
+				this._initSelectionDetails();
+			} else {
+				Log.warning("Trying to update Chart Toolbar, but toolbar is not yet initialized. This will not work!");
+			}
+		};
+
+		/**
+		 * Checks the enablement of the zoom buttons in the toolbar.
+		 * <b>Note:</b> Buttons will be disabled if no zoom state is available or if it is disabled.
+		 *
+		 * @experimental
+		 * @private
+		 */
+		Chart.prototype._updateZoomButtons = function() {
+			const oZoomInBtn = this._oZoomInBtn;
+			const oZoomOutBtn = this._oZoomOutBtn;
+
+			if (!oZoomInBtn || !oZoomOutBtn) {
+				return;
+			}
+
+			const oZoomState = this.getControlDelegate().getZoomState(this);
+
+			if (oZoomState?.enabled) {
+				const bInFocused = document.activeElement === oZoomInBtn.getDomRef();
+				const bOutFocused = document.activeElement === oZoomOutBtn.getDomRef();
+
+				oZoomInBtn.setEnabled(oZoomState.enabledZoomIn);
+				oZoomOutBtn.setEnabled(oZoomState.enabledZoomOut);
+
+				// toggle the focus between zoom buttons when the currecnt is disabled
+				if (!oZoomState.enabledZoomIn && bInFocused) {
+					oZoomOutBtn.focus();
+				}
+				if (!oZoomState.enabledZoomOut && bOutFocused) {
+					oZoomInBtn.focus();
+				}
+			} else {
+				oZoomInBtn.setEnabled(false);
+				oZoomOutBtn.setEnabled(false);
+			}
+
+		};
+
+		/**
+		 * Initializes the <code>SelectionDetails</code> control by attaching it to the provided chart selection handler.
+		 * @private
+		 */
+		Chart.prototype._initSelectionDetails = function() {
+			const oSelectionDetailsBtn = this._oSelectionDetailsBtn;
+			if (oSelectionDetailsBtn && !oSelectionDetailsBtn._oChangeHandler) {
+				const oSelectionHandler = this.getSelectionHandler();
+				if (oSelectionHandler) {
+					//This can be called multiple times, but only the first will be used
+					oSelectionDetailsBtn.attachSelectionHandler(oSelectionHandler.eventId, oSelectionHandler.listener);
+				}
+			}
+		};
+
+		/**
+		 * Returns the instance of the inner chart from the delegate
+		 * @returns {sap.core.Control} the instance of the inner chart
+		 *
+		 * @private
+		 */
+		Chart.prototype._getInnerChart = function() {
+			if (this._bInnerChartReady) {
+				return this.getControlDelegate().getInnerChart(this);
+			} else {
+				Log.error("Trying to acces inner chart while inner chart is not yet initialized!");
+			}
+		};
+
+		/**
+		 * Checks whether the chart is initialized.
+		 * After initialization the delegate is loaded and (in case of <code>autoBindOnInit=true</code>) the inner chart is created.
+		 * The inner chart is not bound yet. Use <code>innerChartBound</code> for it.
+		 * @returns {Promise} <code>Promise</code> that resolves once MDC chart is initialized. Contains reference to MDC chart
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.fe
+		 */
+		Chart.prototype.initialized = function() {
+			return this.initializedPromise;
+		};
+
+		/**
+		 * Can be used to check whether the inner chart is initialized and bound.
+		 * @returns {Promise} Promise that resolves once MDC chart is bound
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.fe
+		 */
+		Chart.prototype.innerChartBound = function() {
+			return this.innerChartBoundPromise;
+		};
+
+		/**
+		 * Zooms in from the inner chart.
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Chart.prototype.zoomIn = function() {
+			this.getControlDelegate().zoomIn(this);
+			this._updateZoomButtons();
+		};
+
+		/**
+		 * Zooms out from the inner chart.
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Chart.prototype.zoomOut = function() {
+			this.getControlDelegate().zoomOut(this);
+			this._updateZoomButtons();
+		};
+
+
+		/**
+		 * Retrieves the selection handler of the inner chart.
+		 * @returns {object} Selection handler of the inner chart
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Chart.prototype.getSelectionHandler = function() {
+			return this.getControlDelegate().getInnerChartSelectionHandler(this);
+		};
+
+		/**
+		 * Retrieves the chart type layout configuration.
+		 * <b>Note:</b> This is only used inside personalization.
+		 *
+		 * @returns {object} Layout configuration
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Chart.prototype.getChartTypeLayoutConfig = function() {
+			return this.getControlDelegate().getChartTypeLayoutConfig();
+		};
+
+		/**
+		 * Retrieves the allowed chart roles for the chart types.
+		 * <b>Note:</b> This is only used inside the personalization.
+		 *
+		 * @returns {object} Allowed roles
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		//TODO is this function used?
+		Chart.prototype.getAllowedRolesForKinds = function() {
+			return this.getControlDelegate().getAllowedRolesForKinds();
+		};
+
+		Chart.prototype.setLegendVisible = function(bVisible) {
+			this.setProperty("legendVisible", bVisible);
+
+			//Skip if no control delegate; gets propagated by _propagatePropertiesToInnerChart after init
+			try {
+				this.getControlDelegate().setLegendVisible(this, bVisible);
+			} catch (e) {
+				Log.info("Trying to set legend visiblity for Chart before delegate was initialized");
+			}
+
+
+			return this;
+		};
+
+		Chart.prototype.setShowChartTooltip = function(bValue) {
+			this.setProperty("showChartTooltip", bValue);
+
+			//Skip if no control delegate; gets propagated by _propagatePropertiesToInnerChart after init
+			try {
+				this.getControlDelegate().setChartTooltipVisibility(this, bValue);
+			} catch (e) {
+				Log.info("Trying to set tooltip visibility before delegate was initialized");
+			}
+
+			return this;
+		};
+
+		Chart.prototype.destroy = function() {
+			this._bIsDestroyed = true;
+
+			Control.prototype.destroy.apply(this, arguments);
+		};
+
+		/**
+		 * If some properties are set on the MDC chart while the inner chart is not yet initialized, they need to eb set after initialaization.
+		 * This methods gets called after inner chart is ready and takes care of that
+		 *
+		 * @private
+		 */
+		Chart.prototype._propagatePropertiesToInnerChart = function() {
+			//TODO: Can this be set by constructor of inner chart?
+			this.setLegendVisible(this.getLegendVisible());
+			this.setShowChartTooltip(this.getShowChartTooltip());
+			this.setChartType(this.getChartType());
+		};
+
+		/**
+		 * Gets the information about the current chart type.
+		 *
+		 * @returns {object} object containing information about the chart type
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.fe
+		 *
+		 */
+		Chart.prototype.getChartTypeInfo = function() {
+			return this.getControlDelegate().getChartTypeInfo(this);
+		};
+
+		/**
+		 * Gets the available chart types of the inner chart based on its current state.
+		 *
+		 * @returns {sap.ui.mdc.chart.ChartTypeObject[]} Array containing the currently available chart types
+		 *
+		 * @private
+		 */
+		Chart.prototype.getAvailableChartTypes = function() {
+			return this.getControlDelegate().getAvailableChartTypes(this);
+		};
+
+
+		/**
+		 * Sets the MDC chart to a specific chart type
+		 * @param {string} sChartType the name of the new chart type
+		 * @returns {sap.ui.mdc.Chart} reference to <code>this</code> in order to allow method chaining
+		 */
+		Chart.prototype.setChartType = function(sChartType) {
+			this.setProperty("chartType", sChartType);
+
+			const oChartTypeButton = this._oChartTypeBtn;
+			if (oChartTypeButton) {
+				oChartTypeButton.setSelectedItemKey(sChartType);
+				const oChartTypeInfo = this.getChartTypeInfo();
+				oChartTypeButton.setTooltip(oChartTypeInfo.text);
+				oChartTypeButton.setIcon(oChartTypeInfo.icon);
+			}
+
+			try {
+				this.getControlDelegate().setChartType(this, sChartType);
+			} catch (e) {
+				Log.info("Trying to set chart type for Chart before delegate was initialized");
+			}
+
+			return this;
+		};
+
+		Chart.prototype.setNoData = function(oControl) {
+			this.setAggregation("noData", oControl);
+
+			try {
+				this.getControlDelegate().changedNoDataStruct(this, oControl);
+			} catch (err) {
+				//This fails when the delegate instance is not yet available.
+				//It is not a problem as the delegate will use getNoData() on init of the chart, thus using the correct noData struct.
+				//This error primerely happens as the setter is called on init of the Chart from framework side.
+			}
+
+			return this;
+		};
+
+		/**
+		 * Gets the managed object model.
+		 * @returns {sap.ui.model.base.ManagedObjectModel} the managed object model
+		 *
+		 * @private
+		 */
+		Chart.prototype.getManagedObjectModel = function() {
+			return this._oManagedObjectModel;
+		};
+
+		/**
+		 * This is a callback function which is called from the delegate once the inner chart finished loading data
+		 * Updates the Toolbar
+		 *
+		 * @private
+		 */
+		Chart.prototype._innerChartDataLoadComplete = function() {
+			this._checkStyleClassesForDimensions();
+			this.setBusy(false);
+			this._renderOverlay(false);
+
+			if (this.getControlDelegate().requestToolbarUpdate) {
+				this.getControlDelegate().requestToolbarUpdate(this);
+			} else {
+				this._updateToolbar();
+			}
+		};
+
+		Chart.prototype._checkStyleClassesForDimensions = function() {
+			const _oBreadcrumbs = this.getAggregation("_breadcrumbs");
+			const bHasDimension = _oBreadcrumbs?.getVisible() && // breadcrump must be visible and dimension exist
+				this.getItems().some((oItem) => { return oItem.getType() === "groupable"; });
+
+			if (!bHasDimension && this.hasStyleClass("sapUiMDCChartGrid")) {
+				this.removeStyleClass("sapUiMDCChartGrid");
+				this.addStyleClass("sapUiMDCChartGridNoBreadcrumbs");
+			} else if (bHasDimension && this.hasStyleClass("sapUiMDCChartGridNoBreadcrumbs")) {
+				this.removeStyleClass("sapUiMDCChartGridNoBreadcrumbs");
+				this.addStyleClass("sapUiMDCChartGrid");
+			}
+		};
+
+		/**
+		 * Fetches the current state of the chart (as a JSON)<br>
+		 * Needed for P13n to fetch current state
+		 *
 		 * @returns {Object} Current state of the chart
+		 *
+		 * @private
 		 */
 		Chart.prototype.getCurrentState = function() {
-			var oState = {};
-			var aP13nMode = this.getP13nMode();
+			const oState = {};
+			const aP13nMode = this.getP13nMode();
 
 			if (aP13nMode) {
-
 				if (aP13nMode.indexOf("Item") > -1) {
-					oState.items = _getVisibleProperties(this);
+					oState.items = this._getVisibleProperties();
 				}
 
 				if (aP13nMode.indexOf("Sort") > -1) {
-					oState.sorters = _getSortedProperties(this);
+					oState.sorters = this._getSortedProperties();
+				}
+
+				if (aP13nMode.indexOf("Filter") > -1) {
+					oState.filter = this.getFilterConditions();
+				}
+
+				if (aP13nMode.indexOf("Type") > -1) {
+					oState.chartType = this.getChartType();
 				}
 			}
 
 			return oState;
 		};
 
+		/**
+		 * Returns the currently visible Properties
+		 * Needed for P13n
+		 * @returns {array} Array containing the currently visible properties
+		 *
+		 * @private
+		 */
+		Chart.prototype._getVisibleProperties = function() {
+			const aProperties = [];
+			this.getItems().forEach((oItem) => {
+				const sPropertyKey = oItem.getPropertyKey();
+				aProperties.push({
+					key: sPropertyKey,
+					name: sPropertyKey,
+					role: oItem.getRole() // TODO: not part of sap.ui.mdc.State?
+				});
+
+			});
+			return aProperties;
+		};
+
+		/**
+		 * Returns the currently sorted Properties
+		 * Needed for P13n
+		 * @returns {array} Array containing the currently sorted properties
+		 *
+		 * @private
+		 */
+		Chart.prototype._getSortedProperties = function() {
+			const oSortConditions = this.getSortConditions();
+			return oSortConditions ? oSortConditions.sorters : [];
+		};
+
+		Chart.prototype._getTypeBtnActive = function() {
+			return !!this._typeBtnActive;
+		};
+
+		/**
+		 * Sets the <code>noDataText</code> property.
+		 * <code>noDataText</code> is displayed if the chart has no data to show.
+		 * @param {string} sText New value for <code>noDataText</code>
+		 * @returns {sap.ui.mdc.Chart} Reference to the <code>Chart</code>
+		 */
+		Chart.prototype.setNoDataText = function(sText) {
+			this.setProperty("noDataText", sText);
+
+			try {
+				this.getControlDelegate().setNoDataText(this, sText);
+			} catch (error) {
+				//Nothing to do here as this is done during init
+			}
+
+			return this;
+		};
+
+		/**
+		 * Callback for when filters changed<br>
+		 * Activates the overlay on the MDC chart
+		 *
+		 * @param oEvent filter changed event
+		 *
+		 * @private
+		 */
+		Chart.prototype._onFiltersChanged = function(oEvent) {
+			if (this._bInnerChartReady && this.getControlDelegate() && this.getControlDelegate().getInnerChartBound(this) && oEvent.getParameter("conditionsBased")) {
+				this._renderOverlay(true);
+			}
+		};
+
+		const fCheckIfRebindIsRequired = function(aAffectedP13nControllers) {
+			let bRebindRequired = false;
+			if (
+				aAffectedP13nControllers && (
+					aAffectedP13nControllers.indexOf("Sort") > -1 ||
+					aAffectedP13nControllers.indexOf("Item") > -1 ||
+					aAffectedP13nControllers.indexOf("Filter") > -1
+				)
+			) {
+				bRebindRequired = true;
+			}
+
+			return bRebindRequired;
+		};
+
+		Chart.prototype._onModifications = async function(aAffectedP13nControllers) {
+			if (fCheckIfRebindIsRequired(aAffectedP13nControllers)) {
+				await this.rebind();
+			}
+		};
+
+		Chart.prototype.setVariant = function(oVariantManagement) {
+			this.setAggregation("variant", oVariantManagement);
+
+			//Only add VM directly when Toolbar already exists; otherwise VM will be added during init of toolbar
+			const oToolbar = this.getAggregation("_toolbar");
+			if (oVariantManagement && oToolbar) {
+				const oCurrentVariantManagement = this.getVariant();
+				if (oCurrentVariantManagement) {
+					oToolbar.removeBetween(oCurrentVariantManagement);
+				}
+				oToolbar.addBetween(oVariantManagement);
+				this._updateVariantManagementStyle();
+			}
+
+			return this;
+		};
+		/**
+		 * Returns the <code>VariantManagement</code> control of the chart.
+		 * @returns {sap.ui.fl.variants.VariantManagement} The variant management instance
+		 */
+		Chart.prototype.getVariant = function() {
+			let oVariantManagement;
+			const oToolbar = this.getAggregation("_toolbar");
+			if (oToolbar) {
+				[oVariantManagement] = oToolbar.getBetween().filter((oControl) => oControl.isA("sap.ui.fl.variants.VariantManagement"));
+			} else {
+				oVariantManagement = this.getAggregation("variant");
+			}
+			return oVariantManagement;
+		};
+
+
+		/**
+		 * Adds/Removes the overlay shown above the inner chart.
+		 *
+		 * @param {boolean} bShow true to show overlay, false to hide
+		 *
+		 * @private
+		 */
+		Chart.prototype._renderOverlay = function(bShow) {
+			try {
+				this.getControlDelegate().showOverlay(this, bShow);
+			} catch (err) {
+				//If this is called too early, no delegate is availabloe.
+				//This should never happen!
+				Log.error("sap.ui.mdc.Chart: Tried to render overlay on not initiailized chart. This will not work!");
+			}
+		};
+
+		Chart.prototype.addAction = function(oControl) {
+			if (oControl.getMetadata().getName() !== "sap.ui.mdc.actiontoolbar.ActionToolbarAction") {
+				oControl = new ActionToolbarAction(oControl.getId() + "-action", {
+					action: oControl
+				});
+			}
+
+			return Control.prototype.addAggregation.apply(this, ["actions", oControl]);
+		};
+
+		Chart.prototype.setHeader = function(sHeader) {
+			this.setProperty("header", sHeader);
+
+			const oToolbar = this.getAggregation("_toolbar");
+
+			this._oTitle?.setText(sHeader);
+			oToolbar?._oInvTitle?.setText(sHeader);
+
+			return this;
+		};
+
+		Chart.prototype.setHeaderLevel = function(sHeaderLevel) {
+			this.setProperty("headerLevel", sHeaderLevel);
+
+			this._oTitle?.setLevel(sHeaderLevel);
+			this._updateVariantManagementStyle();
+
+			return this;
+		};
+
+		Chart.prototype.setHeaderStyle = function(sHeaderStyle) {
+			this.setProperty("headerStyle", sHeaderStyle);
+
+			this._oTitle?.setTitleStyle(sHeaderStyle);
+			this._updateVariantManagementStyle();
+
+			return this;
+		};
+
+		Chart.prototype.setHeaderVisible = function(bVisible) {
+			this.setProperty("headerVisible", bVisible, true);
+
+			this._oTitle?.setVisible(bVisible);
+			this._updateVariantManagementStyle();
+
+			return this;
+		};
+
+
+		Chart.prototype._updateVariantManagementStyle = function() {
+			const oVariantManagement = this.getVariant();
+
+			if (oVariantManagement) {
+				oVariantManagement.setShowAsText(this.getHeaderVisible());
+				oVariantManagement.setTitleStyle(this.getHeaderStyle());
+				oVariantManagement.setHeaderLevel(this.getHeaderLevel());
+			}
+		};
+
+
+		Chart.prototype.onkeydown = function(oEvent) {
+			if (oEvent.isMarked()) {
+				return;
+			}
+
+			if ((oEvent.metaKey || oEvent.ctrlKey) && oEvent.which === KeyCodes.COMMA) {
+				// CTRL (or Cmd) + COMMA key combination to open the table personalisation dialog
+				const oSettingsBtn = this._oSettingsBtn;
+				if (oSettingsBtn && oSettingsBtn.getVisible() && oSettingsBtn.getEnabled()) {
+					oSettingsBtn.firePress();
+
+					// Mark the event to ensure that parent handlers (e.g. FLP) can skip their processing if needed. Also prevent potential browser defaults
+					// (e.g. Cmd+, opens browser settings on Mac).
+					oEvent.setMarked();
+					oEvent.preventDefault();
+				}
+			}
+
+		};
+
+		Chart.prototype.exit = function() {
+			delete this._oTitle;
+			delete this._oSelectionDetailsBtn;
+			delete this._oDrillDownBtn;
+			delete this._oLegendBtn;
+			delete this._oZoomInBtn;
+			delete this._oZoomOutBtn;
+			delete this._oSettingsBtn;
+			delete this._oChartTypeBtn;
+
+			delete this.innerChartBoundPromise;
+			delete this._fnResolveInnerChartBound;
+			delete this._fnRejectInnerChartBound;
+
+			delete this.initializedPromise;
+			delete this._fnResolveInitialized;
+			delete this._fnRejectInitialized;
+
+			delete this._oInnerChartContentPromise;
+
+			const oToolbar = this.getAggregation("_toolbar");
+			oToolbar?._oInvTitle?.destroy();
+
+			Control.prototype.exit.apply(this, arguments);
+
+			this._oObserver?.destroy();
+			delete this._oObserver;
+		};
+
+		/**
+		 * @name sap.ui.mdc.Chart#addAction
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#destroyActions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#insertAction
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#removeAction
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#removeAllActions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#addItem
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#destroyItems
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#insertItem
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#removeItem
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#removeAllItems
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#setSortConditions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#getSortConditions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#setFilterConditions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#getFilterConditions
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#setPropertyInfo
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
+		/**
+		 * @name sap.ui.mdc.Chart#getPropertyInfo
+		 * @private
+		 * @ui5-restricted sap.ui.mdc, sap.ui.fl
+		 */
+
 		return Chart;
-	}, true);
+	});

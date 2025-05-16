@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.descriptorRelated.api.DescriptorInlineChangeFactory
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @deprecated Since version 1.76
 	 * @ui5-restricted sap.ui.rta, smart business
@@ -63,7 +63,7 @@ sap.ui.define([
 		return AppVariantInlineChangeFactory.createNew(mPropertyBag);
 	};
 
-	//public static factory methods
+	// public static factory methods
 	/**
 	 * Creates an inline change
 	 *
@@ -385,7 +385,7 @@ sap.ui.define([
 	DescriptorInlineChangeFactory.create_app_setTitle = function(mParameters, mTexts) {
 		if (!mTexts) {
 			mTexts = {
-				"" : mParameters //property name = text key set when adding to descriptor variant
+				"": mParameters // property name = text key set when adding to descriptor variant
 			};
 			mParameters = {};
 		}
@@ -412,7 +412,7 @@ sap.ui.define([
 	DescriptorInlineChangeFactory.create_app_setSubTitle = function(mParameters, mTexts) {
 		if (!mTexts) {
 			mTexts = {
-				"" : mParameters //property name = text key set when adding to descriptor variant
+				"": mParameters // property name = text key set when adding to descriptor variant
 			};
 			mParameters = {};
 		}
@@ -440,7 +440,7 @@ sap.ui.define([
 	DescriptorInlineChangeFactory.create_app_setShortTitle = function(mParameters, mTexts) {
 		if (!mTexts) {
 			mTexts = {
-				"" : mParameters //property name = text key set when adding to descriptor variant
+				"": mParameters // property name = text key set when adding to descriptor variant
 			};
 			mParameters = {};
 		}
@@ -468,7 +468,7 @@ sap.ui.define([
 	DescriptorInlineChangeFactory.create_app_setDescription = function(mParameters, mTexts) {
 		if (!mTexts) {
 			mTexts = {
-				"" : mParameters //property name = text key set when adding to descriptor variant
+				"": mParameters // property name = text key set when adding to descriptor variant
 			};
 			mParameters = {};
 		}
@@ -496,7 +496,7 @@ sap.ui.define([
 	DescriptorInlineChangeFactory.create_app_setInfo = function(mParameters, mTexts) {
 		if (!mTexts) {
 			mTexts = {
-				"" : mParameters //property name = text key set when adding to descriptor variant
+				"": mParameters // property name = text key set when adding to descriptor variant
 			};
 			mParameters = {};
 		}
@@ -522,7 +522,6 @@ sap.ui.define([
 		return AppVariantInlineChangeFactory.create_app_setAch(mPropertyBag);
 	};
 
-
 	/**
 	 * Creates an inline change of change type appdescr_app_setDestination
 	 *
@@ -539,7 +538,6 @@ sap.ui.define([
 		var mPropertyBag = _preparePropertyBag("appdescr_app_setDestination", mParameters);
 		return AppVariantInlineChangeFactory.create_app_setDestination(mPropertyBag);
 	};
-
 
 	/**
 	 * Creates an inline change of change type appdescr_app_setKeywords
@@ -879,12 +877,29 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @deprecated Since version 1.78
-	 * @ui5-restricted WebIDE
+	 * @ui5-restricted SAP Web IDE
 	 */
 	DescriptorInlineChangeFactory.create_ui5_setFlexExtensionPointEnabled = function(mParameters) {
 		var mPropertyBag = _preparePropertyBag("appdescr_ui5_setFlexExtensionPointEnabled", mParameters);
 		return AppVariantInlineChangeFactory.create_ui5_setFlexExtensionPointEnabled(mPropertyBag);
 	};
 
+	/**
+	 * Creates an inline change of change type <code>appdescr_fiori_setAbstract</code>
+	 *
+	 * @param {object} mParameters - Parameters of the change type
+	 * @param {boolean} mParameters.abstract - Abstract property
+	 *
+	 * @return {Promise} Resolving when the descriptor inline change was created successfully (without back-end access)
+	 *
+	 * @private
+	 * @deprecated Since version 1.78
+	 * @ui5-restricted SAP Web IDE
+	 */
+	 DescriptorInlineChangeFactory.create_fiori_setAbstract = function(mParameters) {
+		var mPropertyBag = _preparePropertyBag("appdescr_fiori_setAbstract", mParameters);
+		return AppVariantInlineChangeFactory.create_fiori_setAbstract(mPropertyBag);
+	};
+
 	return DescriptorInlineChangeFactory;
-}, true);
+});

@@ -1,20 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Lib",
+	"sap/ui/table/rowmodes/Type",
 	"./TableHelper.support",
 	"sap/ui/support/library",
-	"sap/ui/Device"
-], function(SupportHelper, SupportLibrary, Device) {
+	"sap/ui/Device",
+	"sap/ui/thirdparty/jquery"
+], function(
+	Lib,
+	RowModeType,
+	SupportHelper,
+	SupportLibrary,
+	Device,
+	jQuery
+) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	function checkDensity($Source, sTargetClass, sMessage, oIssueManager) {
-		var bFound = false;
+		let bFound = false;
 		$Source.each(function() {
 			if (jQuery(this).closest(sTargetClass).length) {
 				bFound = true;
@@ -29,7 +39,7 @@ sap.ui.define([
 	/*
 	 * Checks whether content densities are used correctly.
 	 */
-	var oContentDensity = SupportHelper.normalizeRule({
+	const oContentDensity = SupportHelper.normalizeRule({
 		id: "ContentDensity",
 		minversion: "1.38",
 		categories: [Categories.Usage],
@@ -38,13 +48,13 @@ sap.ui.define([
 		resolution: "Ensure that either only the 'Cozy' or 'Compact' content density is used, or the 'Condensed' and 'Compact' content densities"
 					+ " are used in combination.",
 		resolutionurls: [
-			SupportHelper.createDocuRef("Documentation: Content Densities", "#docs/guide/e54f729da8e3405fae5e4fe8ae7784c1.html")
+			SupportHelper.createDocuRef("Documentation: Content Densities", "topic/e54f729da8e3405fae5e4fe8ae7784c1")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var $Document = jQuery("html");
-			var $Cozy = $Document.find(".sapUiSizeCozy");
-			var $Compact = $Document.find(".sapUiSizeCompact");
-			var $Condensed = $Document.find(".sapUiSizeCondensed");
+			const $Document = jQuery("html");
+			const $Cozy = $Document.find(".sapUiSizeCozy");
+			const $Compact = $Document.find(".sapUiSizeCompact");
+			const $Condensed = $Document.find(".sapUiSizeCondensed");
 
 			checkDensity($Compact, ".sapUiSizeCozy", "'Compact' content density is used within 'Cozy' area.", oIssueManager);
 			checkDensity($Cozy, ".sapUiSizeCompact", "'Cozy' content density is used within 'Compact' area.", oIssueManager);
@@ -52,14 +62,14 @@ sap.ui.define([
 			checkDensity($Cozy, ".sapUiSizeCondensed", "'Cozy' content density is used within 'Condensed' area.", oIssueManager);
 
 			if ($Condensed.length > 0) {
-				var bFound = checkDensity($Condensed, ".sapUiSizeCompact", oIssueManager);
+				const bFound = checkDensity($Condensed, ".sapUiSizeCompact", oIssueManager);
 				if (!bFound) {
 					SupportHelper.reportIssue(oIssueManager, "'Condensed' content density must be used in combination with 'Compact'.",
 						Severity.High);
 				}
 			}
 
-			if (sap.ui.getCore().getLoadedLibraries()["sap.m"] && $Cozy.length === 0 && $Compact.length === 0 && $Condensed.length === 0) {
+			if (Lib.all()["sap.m"] && $Cozy.length === 0 && $Compact.length === 0 && $Condensed.length === 0) {
 				SupportHelper.reportIssue(oIssueManager,
 					"If the sap.ui.table and the sap.m libraries are used together, a content density must be specified.",
 					Severity.High
@@ -69,14 +79,14 @@ sap.ui.define([
 	});
 
 	/*
-	 * Checks whether the currently visible rows have the expected height.
+	 * Checks whether the currently rendered rows have the expected height.
 	 */
-	var oRowHeights = SupportHelper.normalizeRule({
+	const oRowHeights = SupportHelper.normalizeRule({
 		id: "RowHeights",
 		minversion: "1.38",
 		categories: [Categories.Usage],
 		title: "Row heights",
-		description: "Checks whether the currently visible rows have the expected height.",
+		description: "Checks whether the currently rendered rows have the expected height.",
 		resolution: "Check whether content densities are correctly used, and only the supported controls are used as column templates, with their"
 					+ " wrapping property set to \"false\"",
 		resolutionurls: [
@@ -86,26 +96,26 @@ sap.ui.define([
 			SupportHelper.createFioriGuidelineResolutionEntry()
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
-			var bIsZoomedInChrome = Device.browser.chrome && window.devicePixelRatio != 1;
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const bIsZoomedInChrome = Device.browser.chrome && window.devicePixelRatio !== 1;
 
-			for (var i = 0; i < aTables.length; i++) {
-				var aVisibleRows = aTables[i].getRows();
-				var iExpectedRowHeight = aTables[i]._getBaseRowHeight();
-				var bUnexpectedRowHeightDetected = false;
+			for (let i = 0; i < aTables.length; i++) {
+				const aVisibleRows = aTables[i].getRows();
+				const iExpectedRowHeight = aTables[i]._getBaseRowHeight();
+				let bUnexpectedRowHeightDetected = false;
 
-				for (var j = 0; j < aVisibleRows.length; j++) {
-					var oRowElement = aVisibleRows[j].getDomRef();
-					var oRowElementFixedPart = aVisibleRows[j].getDomRef("fixed");
+				for (let j = 0; j < aVisibleRows.length; j++) {
+					const oRowElement = aVisibleRows[j].getDomRef();
+					const oRowElementFixedPart = aVisibleRows[j].getDomRef("fixed");
 
 					if (oRowElement) {
-						var nActualRowHeight = oRowElement.getBoundingClientRect().height;
-						var nActualRowHeightFixedPart = oRowElementFixedPart ? oRowElementFixedPart.getBoundingClientRect().height : null;
-						var nHeightToReport = nActualRowHeight;
+						const nActualRowHeight = oRowElement.getBoundingClientRect().height;
+						const nActualRowHeightFixedPart = oRowElementFixedPart ? oRowElementFixedPart.getBoundingClientRect().height : null;
+						let nHeightToReport = nActualRowHeight;
 
 						if (bIsZoomedInChrome) {
-							var nHeightDeviation = Math.abs(iExpectedRowHeight - nActualRowHeight);
-							var nHeightDeviationFixedPart = Math.abs(nActualRowHeightFixedPart - nActualRowHeight);
+							const nHeightDeviation = Math.abs(iExpectedRowHeight - nActualRowHeight);
+							const nHeightDeviationFixedPart = Math.abs(nActualRowHeightFixedPart - nActualRowHeight);
 
 							// If zoomed in Chrome, the actual height may deviate from the expected height by less than 1 pixel. Any higher
 							// deviation shall be considered as defective.
@@ -136,22 +146,22 @@ sap.ui.define([
 	});
 
 	/*
-	 * Checks the configuration of the sap.f.DynamicPage. If the DynamicPage contains a table with <code>visibleRowCountMode=Auto</code>, the
+	 * Checks the configuration of the sap.f.DynamicPage. If the DynamicPage contains a table with row mode <code>Auto</code>, the
 	 * <code>fitContent</code> property of the DynamicPage should be set to true, otherwise false.
 	 */
-	var oDynamicPageConfoguration = SupportHelper.normalizeRule({
+	const oDynamicPageConfiguration = SupportHelper.normalizeRule({
 		id: "DynamicPageConfiguration",
 		minversion: "1.38",
 		categories: [Categories.Usage],
 		title: "Table environment validation - 'sap.f.DynamicPage'",
 		description: "Verifies that the DynamicPage is configured correctly from the table's perspective.",
-		resolution: "If a table with visibleRowCountMode=Auto is placed inside a sap.f.DynamicPage, the fitContent property of the DynamicPage"
+		resolution: "If a table with row mode 'Auto' is placed inside a sap.f.DynamicPage, the fitContent property of the DynamicPage"
 					+ " should be set to true, otherwise false.",
 		resolutionurls: [
 			SupportHelper.createDocuRef("API Reference: sap.f.DynamicPage#getFitContent", "#/api/sap.f.DynamicPage/methods/getFitContent")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
 
 			function checkAllParentDynamicPages(oControl, fnCheck) {
 				if (oControl) {
@@ -163,25 +173,37 @@ sap.ui.define([
 			}
 
 			function checkConfiguration(oTable, oDynamicPage) {
-				if (oTable._getRowMode().isA("sap.ui.table.rowmodes.AutoRowMode") && !oDynamicPage.getFitContent()) {
+				const vRowMode = oTable.getRowMode();
+				let bIsTableInAutoMode = false;
+
+				/**
+				 * @deprecated As of version 1.119
+				 */
+				if (!vRowMode) {
+					bIsTableInAutoMode = oTable.getVisibleRowCountMode() === "Auto";
+				}
+
+				if (vRowMode) {
+					bIsTableInAutoMode = vRowMode === RowModeType.Auto || vRowMode.isA("sap.ui.table.rowmodes.Auto");
+				}
+
+				if (bIsTableInAutoMode && !oDynamicPage.getFitContent()) {
 					SupportHelper.reportIssue(oIssueManager,
 						"A table with an auto row mode is placed inside a sap.f.DynamicPage with fitContent=\"false\"",
 						Severity.High, oTable.getId());
-				} else if ((oTable._getRowMode().isA("sap.ui.table.rowmodes.FixedRowMode")
-							|| oTable._getRowMode().isA("sap.ui.table.rowmodes.InteractiveRowMode"))
-						   && oDynamicPage.getFitContent()) {
+				} else if (!bIsTableInAutoMode && oDynamicPage.getFitContent()) {
 					SupportHelper.reportIssue(oIssueManager,
 						"A table with a fixed or interactive row mode is placed inside a sap.f.DynamicPage with fitContent=\"true\"",
 						Severity.Low, oTable.getId());
 				}
 			}
 
-			for (var i = 0; i < aTables.length; i++) {
+			for (let i = 0; i < aTables.length; i++) {
 				checkAllParentDynamicPages(aTables[i], checkConfiguration.bind(null, aTables[i]));
 			}
 		}
 	});
 
-	return [oContentDensity, oRowHeights, oDynamicPageConfoguration];
+	return [oContentDensity, oRowHeights, oDynamicPageConfiguration];
 
 }, true);

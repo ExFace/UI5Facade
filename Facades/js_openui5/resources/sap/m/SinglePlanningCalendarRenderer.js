@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var S={apiVersion:2};S.render=function(r,c){var h=c._getHeader(),g=c._getCurrentGrid();r.openStart("div",c);r.accessibilityState({role:"region",roledescription:c._oRB.getText("SPC_CONTROL_NAME"),labelledby:{value:h.getId()+"-Title "+g.getId()+"-nowMarkerText",append:true}});r.class("sapMSinglePC");r.openEnd();r.renderControl(h);r.renderControl(g);r.close("div");};return S;},true);
+sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,r){var t=r._getHeader(),n=r._getCurrentGrid(),i=`${t.getId()}-Title`;e.openStart("div",r);e.accessibilityState({role:"region",roledescription:r._oRB.getText("SPC_CONTROL_NAME"),labelledby:{value:`${i}`,append:true}});e.class("sapMSinglePC");e.openEnd();e.renderControl(t);e.renderControl(n);e.close("div")};return e},true);
+//# sourceMappingURL=SinglePlanningCalendarRenderer.js.map

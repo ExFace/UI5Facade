@@ -1,17 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"jquery.sap.global",
+	"sap/base/Log",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/support/supportRules/CommunicationBus",
 	"sap/ui/support/supportRules/WCBChannels",
-	"sap/ui/support/supportRules/Constants"
+	"sap/ui/support/supportRules/Constants",
+	"sap/ui/thirdparty/URI",
+	"sap/ui/core/date/UI5Date"
 ],
-function (jQuery, ManagedObject, CommunicationBus, channelNames, constants) {
+function (Log, ManagedObject, CommunicationBus, channelNames, constants, URI, UI5Date) {
 	"use strict";
 
 	var oIFrameController = null;
@@ -23,7 +25,7 @@ function (jQuery, ManagedObject, CommunicationBus, channelNames, constants) {
 	var sFrameUrl;
 
 	function computeFrameOrigin(sUrl) {
-		var frameURI = new window.URI(sUrl);
+		var frameURI = new URI(sUrl);
 		var sOrigin = ( frameURI.protocol() || window.location.protocol.replace(':', '') ) +
 						'://' +
 						( frameURI.host() || window.location.host );
@@ -32,7 +34,7 @@ function (jQuery, ManagedObject, CommunicationBus, channelNames, constants) {
 	}
 
 	function generateIdentifier() {
-		return '' + +new Date();
+		return '' + +UI5Date.getInstance();
 	}
 
 	function openFrame(sUrl) {
@@ -86,7 +88,7 @@ function (jQuery, ManagedObject, CommunicationBus, channelNames, constants) {
 			if (!oIFrameController) {
 				ManagedObject.apply(this, arguments);
 			} else {
-				jQuery.sap.log.warning("Only one support tool allowed");
+				Log.warning("Only one support tool allowed");
 				return oIFrameController;
 			}
 		}
@@ -108,10 +110,10 @@ function (jQuery, ManagedObject, CommunicationBus, channelNames, constants) {
 	IFrameController.prototype.injectFrame = function (supportModeConfig) {
 		sFrameIdentifier = generateIdentifier();
 
-		sFrameUrl = jQuery.sap.getModulePath("sap.ui.support.supportRules.ui",
-			"/overlay.html?sap-ui-xx-formfactor=compact&sap-ui-xx-support-origin=" +
+		sFrameUrl = sap.ui.require.toUrl("sap/ui/support/supportRules/ui/overlay.html") +
+			"?sap-ui-xx-formfactor=compact&sap-ui-xx-support-origin=" +
 			window.location.protocol + "//" + window.location.host + "&" +
-			"sap-ui-xx-frame-identifier=" + sFrameIdentifier);
+			"sap-ui-xx-frame-identifier=" + sFrameIdentifier;
 
 		sFrameOrigin = computeFrameOrigin(sFrameUrl);
 

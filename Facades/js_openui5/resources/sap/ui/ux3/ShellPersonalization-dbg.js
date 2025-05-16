@@ -1,27 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the class sap.ui.ux3.ShellPersonalization
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
-    'sap/ui/base/EventProvider',
-    'sap/ui/commons/Button',
-    'sap/ui/commons/Dialog',
-    'sap/ui/core/theming/Parameters',
-    './ShellColorPicker',
-    'sap/ui/commons/library',
-    'sap/ui/core/HTML',
-    'sap/ui/core/Popup',
-    'sap/ui/commons/Tab',
-    'sap/ui/core/Item',
-    'sap/ui/Device',
-    'sap/base/security/encodeXML'
+	'sap/ui/thirdparty/jquery',
+	'sap/ui/base/EventProvider',
+	'sap/ui/commons/Button',
+	'sap/ui/commons/Dialog',
+	'sap/ui/core/theming/Parameters',
+	'./ShellColorPicker',
+	'sap/ui/commons/library',
+	'sap/ui/core/HTML',
+	'sap/ui/core/Popup',
+	'sap/ui/commons/Tab',
+	'sap/ui/core/Item',
+	'sap/ui/Device',
+	'sap/base/security/encodeXML',
+	'sap/ui/core/Configuration'
 ],
 	function(
-	    jQuery,
+		jQuery,
 		EventProvider,
 		Button,
 		Dialog,
@@ -33,7 +34,8 @@ sap.ui.define([
 		Tab,
 		Item,
 		Device,
-		encodeXML
+		encodeXML,
+		Configuration
 	) {
 	"use strict";
 
@@ -127,35 +129,50 @@ sap.ui.define([
 	ShellPersonalization.TRANSPARENT_1x1 = sap.ui.resource('sap.ui.core', 'themes/base/img/1x1.gif');
 
 	ShellPersonalization.IMAGE_FOLDER_PATH = sap.ui.require.toUrl(
-		"sap/ui/ux3/themes/" + sap.ui.getCore().getConfiguration().getTheme() + "/img/shell/");
+		"sap/ui/ux3/themes/" + Configuration.getTheme() + "/img/shell/");
 
 	ShellPersonalization.getOriginalSettings = function() {
 		// buffer the settings
 		if (!ShellPersonalization._bOriginalSettingsInitialized) {
 			ShellPersonalization._bOriginalSettingsInitialized = true;
 
-			var mAllParameters = Parameters.get();
-			var gradientTop = mAllParameters["sap.ui.ux3.Shell:sapUiUx3ShellGradientTop"];
-			var gradientBottom = mAllParameters["sap.ui.ux3.Shell:sapUiUx3ShellGradientBottom"];
+			var sGradientColorTop,
+				sGradientColorBottom,
+				mParams = Object.assign({
+					// add base styles as default
+					"sapUiUx3ShellGradientTop": "#000000",
+					"sapUiUx3ShellGradientBottom": "#000000"
+				}, Parameters.get({
+					name: ["sapUiUx3ShellGradientTop", "sapUiUx3ShellGradientBottom"],
+					callback: function (_mParams) {
+						this._calcGradient(_mParams["sapUiUx3ShellGradientTop"], _mParams["sapUiUx3ShellGradientBottom"]);
+						this.invalidate();
+					}.bind(this)
+				}));
 
-			if (Device.browser.firefox) {
-				ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "-moz-linear-gradient(top, " + gradientTop + " 0, " + gradientBottom + " 108px, " + gradientBottom + ")";
-			} else if (Device.browser.msie) {
-				if (Device.browser.version == 9) {
-					ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "url("
-						+ ShellPersonalization.IMAGE_FOLDER_PATH
-						+ "Workset_bg.png)";
-				} else { // IE10+
-					ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "-ms-linear-gradient(top, " + gradientTop + " 0, " + gradientBottom + " 108px, " + gradientBottom + ")";
-				}
-			} else if (Device.browser.webkit) {
-				ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "-webkit-linear-gradient(top, " + gradientTop + " 0, " + gradientBottom + " 108px, " + gradientBottom + ")";
-			}
+			sGradientColorTop = mParams["sapUiUx3ShellGradientTop"];
+			sGradientColorBottom = mParams["sapUiUx3ShellGradientBottom"];
+
+			this._calcGradient(sGradientColorTop, sGradientColorBottom);
 		}
 
 		return ShellPersonalization.ORIGINAL_SETTINGS;
 	};
 
+	/**
+	 * Calculates the gradient style setting.
+	 *
+	 * @param {string} sGradientColorTop The top setting
+	 * @param {string} sGradientColorBottom The bottom setting
+	 * @private
+	 */
+	ShellPersonalization.prototype._calcGradient = function(sGradientColorTop, sGradientColorBottom) {
+		if (Device.browser.firefox) {
+			ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "-moz-linear-gradient(top, " + sGradientColorTop + " 0, " + sGradientColorBottom + " 108px, " + sGradientColorBottom + ")";
+		} else if (Device.browser.webkit) {
+			ShellPersonalization.ORIGINAL_SETTINGS.sBgCssImg = "-webkit-linear-gradient(top, " + sGradientColorTop + " 0, " + sGradientColorBottom + " 108px, " + sGradientColorBottom + ")";
+		}
+	};
 
 
 	/**
@@ -631,7 +648,7 @@ sap.ui.define([
 	};
 	ShellPersonalization.prototype.applyLogoAlign = function(sLogoAlign) {
 		var sRealAlign = sLogoAlign;
-		if (sap.ui.getCore().getConfiguration().getRTL() && (sRealAlign == "right")) {
+		if (Configuration.getRTL() && (sRealAlign == "right")) {
 			sRealAlign = "left"; // need to use left/right, as "begin" is not supported by IE8
 		}
 		this.shell.$("hdr").css("text-align", sRealAlign);

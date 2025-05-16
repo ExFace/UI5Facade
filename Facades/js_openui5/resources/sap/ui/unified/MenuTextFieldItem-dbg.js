@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.MenuTextFieldItem.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
 	'sap/ui/core/ValueStateSupport',
 	'./MenuItemBase',
 	'./library',
@@ -13,16 +15,21 @@ sap.ui.define([
 	'sap/ui/Device',
 	'sap/base/Log',
 	'sap/ui/events/PseudoEvents',
-	'sap/ui/dom/jquery/cursorPos' // jQuery Plugin "cursorPos"
+	'sap/ui/core/InvisibleText',
+	'sap/ui/core/IconPool', // required by RenderManager#icon
+	'sap/ui/dom/jquery/cursorPos' // provides jQuery.fn.cursorPos
 ],
 	function(
+		Localization,
+		Library,
 		ValueStateSupport,
 		MenuItemBase,
 		library,
 		coreLibrary,
 		Device,
 		Log,
-		PseudoEvents
+		PseudoEvents,
+		InvisibleText
 	) {
 	"use strict";
 
@@ -43,18 +50,21 @@ sap.ui.define([
 	 * Special menu item which contains a label and a text field. This menu item is e.g. helpful for filter implementations.
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 * @extends sap.ui.unified.MenuItemBase
+	 * @implements sap.ui.unified.IMenuItem
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.unified.MenuTextFieldItem
-	 * @ui5-metamodel This control/element will also be described in the UI5 (legacy) design time meta model
 	 */
 	var MenuTextFieldItem = MenuItemBase.extend("sap.ui.unified.MenuTextFieldItem", /** @lends sap.ui.unified.MenuTextFieldItem.prototype */ { metadata : {
 
+		interfaces: [
+			"sap.ui.unified.IMenuItem"
+		],
 		library : "sap.ui.unified",
 		properties : {
 
@@ -81,101 +91,104 @@ sap.ui.define([
 	}});
 
 
-	(function() {
 
 	MenuTextFieldItem.prototype.render = function(oRenderManager, oItem, oMenu, oInfo){
 		var rm = oRenderManager,
 			bIsEnabled = oMenu.checkEnabled(oItem),
-			itemId = oItem.getId();
+			itemId = oItem.getId(),
+			oIcon;
 
-		var sClass = "sapUiMnuItm sapUiMnuTfItm";
-		if (oInfo.iItemNo == 1) {
-			sClass += " sapUiMnuItmFirst";
-		} else if (oInfo.iItemNo == oInfo.iTotalItems) {
-			sClass += " sapUiMnuItmLast";
+		rm.openStart("li", oItem);
+		if (oItem.getVisible()) {
+			rm.attr("tabindex", "0");
 		}
-		if (!oMenu.checkEnabled(oItem)) {
-			sClass += " sapUiMnuItmDsbl";
+		rm.class("sapUiMnuItm").class("sapUiMnuTfItm");
+
+		if (oInfo.iItemNo == 1) {
+			rm.class("sapUiMnuItmFirst");
+		} else if (oInfo.iItemNo == oInfo.iTotalItems) {
+			rm.class("sapUiMnuItmLast");
+		}
+		if (!bIsEnabled) {
+				rm.class("sapUiMnuItmDsbl");
 		}
 		if (oItem.getStartsSection()) {
-			sClass += " sapUiMnuItmSepBefore";
+			rm.class("sapUiMnuItmSepBefore");
 		}
-
-		rm.write("<li ");
-		rm.writeAttribute("class", sClass);
-
-		if (!bIsEnabled) {
-			rm.writeAttribute("disabled", "disabled");
-		}
-
-		rm.writeElementData(oItem);
 
 		// ARIA
 		if (oInfo.bAccessible) {
-			rm.writeAttribute("role", "menuitem");
-			rm.writeAttribute("aria-posinset", oInfo.iItemNo);
-			rm.writeAttribute("aria-setsize", oInfo.iTotalItems);
+			rm.attr("role", "menuitem");
+			rm.attr("aria-posinset", oInfo.iItemNo);
+			rm.attr("aria-setsize", oInfo.iTotalItems);
+			rm.attr("aria-disabled", !bIsEnabled);
 		}
 
-		// Left border
-		rm.write("><div class=\"sapUiMnuItmL\"></div>");
+		rm.openEnd();
 
-		// icon/check column
-		rm.write("<div class=\"sapUiMnuItmIco\">");
 		if (oItem.getIcon()) {
-			rm.writeIcon(oItem.getIcon(), null, {title: null});
+			// icon/check column
+			rm.openStart("div").class("sapUiMnuItmIco").openEnd();
+
+			oIcon = oItem._getIcon();
+
+			rm.renderControl(oIcon);
+
+			rm.close("div");
 		}
-		rm.write("</div>");
 
 		// Text filed column
-		rm.write("<div id=\"" + itemId + "-txt\" class=\"sapUiMnuItmTxt\">");
-		rm.write("<label id=\"" + itemId + "-lbl\" class=\"sapUiMnuTfItemLbl\">");
-		rm.writeEscaped(oItem.getLabel() || "");
-		rm.write("</label>");
-		rm.write("<div id=\"" + itemId + "-str\" class=\"sapUiMnuTfItmStretch\"></div>"); // Helper to strech the width if needed
-		rm.write("<div class=\"sapUiMnuTfItemWrppr\">");
-		rm.write("<input id=\"" + itemId + "-tf\" tabindex=\"-1\"");
-		rm.writeAttributeEscaped("value", oItem.getValue() || "");
-		rm.writeAttribute("class", bIsEnabled ? "sapUiMnuTfItemTf sapUiMnuTfItemTfEnbl" : "sapUiMnuTfItemTf sapUiMnuTfItemTfDsbl");
+		rm.openStart("div", itemId + "-txt").class("sapUiMnuItmTxt").openEnd();
+		rm.openStart("label", itemId + "-lbl").class("sapUiMnuTfItemLbl").openEnd();
+		rm.text(oItem.getLabel());
+		rm.close("label");
+		rm.openStart("div", itemId + "-str").class("sapUiMnuTfItmStretch").openEnd().close("div"); // Helper to strech the width if needed
+		rm.openStart("div").class("sapUiMnuTfItemWrppr").openEnd();
+		rm.voidStart("input", itemId + "-tf").attr("tabindex", "-1");
+		rm.attr("role", "textbox");
+		if (oItem.getValue()) {
+			rm.attr("value", oItem.getValue());
+		}
+		rm.class("sapUiMnuTfItemTf").class(bIsEnabled ? "sapUiMnuTfItemTfEnbl" : "sapUiMnuTfItemTfDsbl");
 		if (!bIsEnabled) {
-			rm.writeAttribute("disabled", "disabled");
+			rm.attr("disabled", "disabled");
 		}
 		if (oInfo.bAccessible) {
-			rm.writeAccessibilityState(oItem, {
-				role: "textbox",
+			rm.accessibilityState(oItem, {
 				disabled: null, // Prevent aria-disabled as a disabled attribute is enough
-				multiline: false,
-				autocomplete: "none",
-				labelledby: {value: /*oMenu.getId() + "-label " + */itemId + "-lbl", append: true}
+				describedby: oItem._fnInvisibleDescriptionFactory(oInfo).getId(),
+				labelledby: itemId + "-lbl"
 			});
 		}
-		rm.write("></div></div>");
+		rm.voidEnd().close("div").close("div");
 
-		// Right border
-		rm.write("<div class=\"sapUiMnuItmR\"></div>");
-
-		rm.write("</li>");
+		rm.close("li");
 	};
 
+	MenuTextFieldItem.prototype.exit = function() {
+		if (this._invisibleDescription) {
+			this._fnInvisibleDescriptionFactory().destroy();
+			this._invisibleDescription = null;
+		}
+	};
 
 	MenuTextFieldItem.prototype.hover = function(bHovered, oMenu){
 		this.$().toggleClass("sapUiMnuItmHov", bHovered);
 
-		if (bHovered && oMenu.checkEnabled(this)) {
+		if (bHovered) {
 			oMenu.closeSubmenu(false, true);
 		}
 	};
 
 	MenuTextFieldItem.prototype.focus = function(oMenu){
-		if (this.getEnabled() && this.getVisible()) {
+		if (this.getVisible() && this.getEnabled()) {
 			this.$("tf").get(0).focus();
 		} else {
-			oMenu.focus();
+			this.$().trigger("focus");
 		}
 	};
 
 	MenuTextFieldItem.prototype.onAfterRendering = function(){
-		this._adaptSizes();
 		this.setValueState(this.getValueState());
 	};
 
@@ -229,7 +242,7 @@ sap.ui.define([
 
 	MenuTextFieldItem.prototype.onclick = function(oEvent){
 		this.getParent().closeSubmenu(false, true);
-		if (!Device.system.desktop && this.getParent().checkEnabled(this)) {
+		if (!Device.system.desktop) {
 			this.focus();
 		}
 		oEvent.stopPropagation();
@@ -259,15 +272,17 @@ sap.ui.define([
 	 * @name sap.ui.unified.MenuTextFieldItem#getSubmenu
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 * @function
+	 * @ui5-not-supported
 	 */
 
 	/**
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 *
-	 * @return {sap.ui.unified.MenuTextFieldItem} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @name sap.ui.unified.MenuTextFieldItem#destroySubmenu
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
+	 * @ui5-not-supported
 	 * @function
 	 */
 
@@ -275,9 +290,10 @@ sap.ui.define([
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 *
 	 * @param {sap.ui.unified.Menu} oMenu The menu to which the sap.ui.unified.Submenu should be set
-	 * @return {sap.ui.unified.MenuTextFieldItem} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
+	 * @ui5-not-supported
 	 */
 	MenuTextFieldItem.prototype.setSubmenu = function(oMenu){
 		Log.warning("The aggregation 'submenu' is not supported for this type of menu item.", "", "sap.ui.unified.MenuTextFieldItem");
@@ -288,7 +304,6 @@ sap.ui.define([
 	MenuTextFieldItem.prototype.setLabel = function(sLabel){
 		this.setProperty("label", sLabel, true);
 		this.$("lbl").text(sLabel);
-		this._adaptSizes();
 		return this;
 	};
 
@@ -307,7 +322,9 @@ sap.ui.define([
 		$tf.toggleClass("sapUiMnuTfItemTfErr", sValueState == ValueState.Error);
 		$tf.toggleClass("sapUiMnuTfItemTfWarn", sValueState == ValueState.Warning);
 		var sTooltip = ValueStateSupport.enrichTooltip(this, this.getTooltip_AsString());
-		this.$().attr("title", sTooltip ? sTooltip : "");
+		if (sTooltip) {
+			this.$().attr("title", sTooltip);
+		}
 		return this;
 	};
 
@@ -320,22 +337,8 @@ sap.ui.define([
 		return $FocusRef.length ? $FocusRef.get(0) : null;
 	};
 
-
-	MenuTextFieldItem.prototype._adaptSizes = function(){
-		var $tf = this.$("tf");
-		var $lbl = this.$("lbl");
-		var offsetLeft = $lbl.length ? $lbl.get(0).offsetLeft : 0;
-
-		if (sap.ui.getCore().getConfiguration().getRTL()) {
-			$tf.parent().css({"width": "auto", "right": (this.$().outerWidth(true) - offsetLeft + ($lbl.outerWidth(true) - $lbl.outerWidth())) + "px"});
-		} else {
-			$tf.parent().css({"width": "auto", "left": (offsetLeft + $lbl.outerWidth(true)) + "px"});
-		}
-	};
-
-
 	MenuTextFieldItem.prototype._checkCursorPosForNav = function(bForward) {
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Localization.getRTL();
 		var bBack = bForward ? bRtl : !bRtl;
 		var $input = this.$("tf");
 		var iPos = $input.cursorPos();
@@ -349,9 +352,20 @@ sap.ui.define([
 		return true;
 	};
 
+	MenuTextFieldItem.prototype._fnInvisibleDescriptionFactory = function(oInfo) {
+		var sCountInfo, sTypeInfo, oUnifiedBundle;
 
-	}());
+		if (!this._invisibleDescription) {
+			oUnifiedBundle = Library.getResourceBundleFor("sap.ui.unified");
+			sCountInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_COUNT_TEXT", [oInfo.iItemNo, oInfo.iTotalItems]);
+			sTypeInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_HINT_TEXT");
+			this._invisibleDescription = new InvisibleText({
+				text: sCountInfo + " " + sTypeInfo
+			}).toStatic();
+		}
 
+		return this._invisibleDescription;
+	};
 
 	return MenuTextFieldItem;
 

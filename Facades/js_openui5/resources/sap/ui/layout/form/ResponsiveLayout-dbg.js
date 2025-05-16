@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.layout.form.ResponsiveLayout.
 sap.ui.define([
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/layout/library',
 	'sap/ui/layout/ResponsiveFlowLayout',
 	'sap/ui/layout/ResponsiveFlowLayoutData',
@@ -18,6 +19,7 @@ sap.ui.define([
 ],
 	function(
 		Control,
+		Element,
 		library,
 		ResponsiveFlowLayout,
 		ResponsiveFlowLayoutData,
@@ -50,18 +52,22 @@ sap.ui.define([
 	 * @extends sap.ui.layout.form.FormLayout
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.0
+	 * @deprecated As of version 1.93, replaced by {@link sap.ui.layout.form.ColumnLayout ColumnLayout}
 	 * @alias sap.ui.layout.form.ResponsiveLayout
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ResponsiveLayout = FormLayout.extend("sap.ui.layout.form.ResponsiveLayout", /** @lends sap.ui.layout.form.ResponsiveLayout.prototype */ { metadata : {
+	var ResponsiveLayout = FormLayout.extend("sap.ui.layout.form.ResponsiveLayout", /** @lends sap.ui.layout.form.ResponsiveLayout.prototype */ {
+		metadata : {
 
-		library : "sap.ui.layout"
-	}});
+			library : "sap.ui.layout"
+		},
+
+		renderer: ResponsiveLayoutRenderer
+	});
 
 	/*
 	 * The ResponsiveLayout for forms inside is using ResponsiveFlowLayouts to render the form.
@@ -116,8 +122,8 @@ sap.ui.define([
 		getLayoutData :  function(){
 
 			// only ResponsiveFlowLayoutData are interesting
-			var oContainer = sap.ui.getCore().byId(this.getContainer());
-			var oLayout    = sap.ui.getCore().byId(this.getLayout());
+			var oContainer = Element.getElementById(this.getContainer());
+			var oLayout    = Element.getElementById(this.getLayout());
 			var oLD;
 			if (oLayout && oContainer) {
 				oLD = oLayout.getLayoutDataForElement(oContainer, "sap.ui.layout.ResponsiveFlowLayoutData");
@@ -128,7 +134,7 @@ sap.ui.define([
 
 		getCustomData :  function(){
 
-			var oContainer = sap.ui.getCore().byId(this.getContainer());
+			var oContainer = Element.getElementById(this.getContainer());
 			if (oContainer) {
 				return oContainer.getCustomData();
 			}
@@ -137,7 +143,7 @@ sap.ui.define([
 
 		refreshExpanded :  function(){
 
-			var oContainer = sap.ui.getCore().byId(this.getContainer());
+			var oContainer = Element.getElementById(this.getContainer());
 			if (oContainer) {
 				if (oContainer.getExpanded()) {
 					this.$().removeClass("sapUiRLContainerColl");
@@ -151,8 +157,8 @@ sap.ui.define([
 			apiVersion: 2,
 			render: function(oRm, oPanel) {
 
-				var oContainer = sap.ui.getCore().byId(oPanel.getContainer());
-				var oLayout    = sap.ui.getCore().byId(oPanel.getLayout());
+				var oContainer = Element.getElementById(oPanel.getContainer());
+				var oLayout    = Element.getElementById(oPanel.getLayout());
 				var oContent   = oPanel.getContent();
 
 				if (!oContainer || !oLayout) {
@@ -180,12 +186,12 @@ sap.ui.define([
 					oRm.attr('title', sTooltip);
 				}
 
-				oLayout.getRenderer().writeAccessibilityStateContainer(oRm, oContainer);
+				oLayout.getRenderer().writeAccessibilityStateContainer(oRm, oContainer, "form"); // if Container-Panel used render always a role
 
 				oRm.openEnd();
 
 				// container header
-				oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, false, oContainer.getId());
+				oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, oLayout._sFormSubTitleSize, oContainer.getId());
 
 				if (oContent) {
 					oRm.openStart("div");
@@ -204,6 +210,8 @@ sap.ui.define([
 	/* eslint-disable no-lonely-if */
 
 	ResponsiveLayout.prototype.init = function(){
+
+		FormLayout.prototype.init.apply(this, arguments);
 
 		this.mContainers = {}; //association of container to panel and ResponsiveFlowLayout
 		this._defaultLayoutData = new ResponsiveFlowLayoutData({margin: false});
@@ -229,6 +237,8 @@ sap.ui.define([
 	};
 
 	ResponsiveLayout.prototype.onBeforeRendering = function( oEvent ){
+
+		FormLayout.prototype.onBeforeRendering.apply(this, arguments);
 
 		var oForm = this.getParent();
 		if (!oForm || !(oForm instanceof Form)) {
@@ -307,7 +317,7 @@ sap.ui.define([
 	 * In this case, the panel's DOM reference is returned, otherwise the DOM reference
 	 * of the <code>ResponsiveFlowLayout</code> rendering the container's content.
 	 * @param {sap.ui.layout.form.FormContainer} oContainer <code>FormContainer</code>
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	ResponsiveLayout.prototype.getContainerRenderedDomRef = function(oContainer) {
@@ -318,7 +328,7 @@ sap.ui.define([
 				if (this.mContainers[sContainerId][0]) {
 					var oPanel = this.mContainers[sContainerId][0];
 					return oPanel.getDomRef();
-				}else if (this.mContainers[sContainerId][1]){
+				} else if (this.mContainers[sContainerId][1]){
 					// no panel used -> return RFLayout
 					var oRFLayout = this.mContainers[sContainerId][1];
 					return oRFLayout.getDomRef();
@@ -335,7 +345,7 @@ sap.ui.define([
 	 * In this Layout each <code>FormElement</code> is represented by an own ResponsiveFlowLayout.
 	 * So the DOM of this <code>ResponsiveFlowLayout</code> is returned
 	 * @param {sap.ui.layout.form.FormElement} oElement <code>FormElement</code>
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	ResponsiveLayout.prototype.getElementRenderedDomRef = function(oElement) {
@@ -567,7 +577,7 @@ sap.ui.define([
 			// to not change parent assignment of controls
 			if (!bElementContent) {
 				oRFLayout.getContent = function(){
-					var oElement = sap.ui.getCore().byId(this.__myParentElementId);
+					var oElement = Element.getElementById(this.__myParentElementId);
 					if (oElement) {
 						var aContent = [];
 						var oLabel = oElement.getLabelControl();
@@ -602,7 +612,7 @@ sap.ui.define([
 
 					if (iIndex == 0) {
 						// check if it's the label of the FormElement
-						var oElement = sap.ui.getCore().byId(this.__myParentElementId);
+						var oElement = Element.getElementById(this.__myParentElementId);
 						if (oElement) {
 							var oLabel = oElement.getLabelControl();
 							if (oControl == oLabel) {
@@ -616,7 +626,7 @@ sap.ui.define([
 				};
 			} else {
 				oRFLayout.getContent = function(){
-					var oElement = sap.ui.getCore().byId(this.__myParentElementId);
+					var oElement = Element.getElementById(this.__myParentElementId);
 					if (oElement) {
 						return oElement.getFieldsForRendering();
 					} else {
@@ -624,10 +634,10 @@ sap.ui.define([
 					}
 				};
 			}
-		}else if (oContainer) {
+		} else if (oContainer) {
 			oRFLayout._getAccessibleRole = function() {
 
-				var oContainer = sap.ui.getCore().byId(this.__myParentContainerId);
+				var oContainer = Element.getElementById(this.__myParentContainerId);
 				var oLayout = this.__myParentLayout;
 				if (oLayout._mainRFLayout && !oContainer.getToolbar() && !oContainer.getTitle() &&
 						!oContainer.getExpandable() && oContainer.getAriaLabelledBy().length > 0) {
@@ -638,7 +648,7 @@ sap.ui.define([
 			};
 
 			oRFLayout.getAriaLabelledBy = function(){
-				var oContainer = sap.ui.getCore().byId(this.__myParentContainerId);
+				var oContainer = Element.getElementById(this.__myParentContainerId);
 				if (oContainer && !oContainer.getToolbar() && !oContainer.getTitle() && !oContainer.getExpandable()) {
 					return oContainer.getAriaLabelledBy();
 				}
@@ -672,8 +682,8 @@ sap.ui.define([
 			oRFLayout.__originalGetLayoutData = oRFLayout.getLayoutData;
 			oRFLayout.getLayoutData = function(){
 				var oLayout = this.__myParentLayout;
-				var oContainer = sap.ui.getCore().byId(this.__myParentContainerId);
-				var oElement = sap.ui.getCore().byId(this.__myParentElementId);
+				var oContainer = Element.getElementById(this.__myParentContainerId);
+				var oElement = Element.getElementById(this.__myParentElementId);
 
 				var oLD;
 				if (oElement) {
@@ -781,7 +791,7 @@ sap.ui.define([
 		// so the ResponsiveFlowLayouts must be updated and the control object must be adjusted
 		var sElementId = oElement.getId();
 		var sId = sElementId + "--RFLayout";
-		var oRFLayout = sap.ui.getCore().byId(sId);
+		var oRFLayout = Element.getElementById(sId);
 
 		if (!mRFLayouts[sElementId] && oRFLayout) {
 			// Element not maintained in control object of container but already has a RFLayout
@@ -807,7 +817,7 @@ sap.ui.define([
 		var aVisibleContainers = oForm.getVisibleFormContainers();
 		var oContainer;
 		var iLength = aVisibleContainers.length;
-		var iContentLenght = 0;
+		var iContentLength = 0;
 		var i = 0;
 		var j = 0;
 
@@ -818,18 +828,18 @@ sap.ui.define([
 			} else {
 				// update containers
 				var aLayoutContent = this._mainRFLayout.getContent();
-				iContentLenght = aLayoutContent.length;
+				iContentLength = aLayoutContent.length;
 				var bExchangeContent = false;
 				// check if content has changed
-				for ( i = 0; i < iContentLenght; i++) {
+				for ( i = 0; i < iContentLength; i++) {
 					var oContentElement = aLayoutContent[i];
 					oContainer = undefined;
 					if (oContentElement.getContainer) {
 						// it's a panel
-						oContainer = sap.ui.getCore().byId(oContentElement.getContainer());
+						oContainer = Element.getElementById(oContentElement.getContainer());
 					} else {
 						// it's a RFLayout
-						oContainer = sap.ui.getCore().byId(oContentElement.__myParentContainerId);
+						oContainer = Element.getElementById(oContentElement.__myParentContainerId);
 					}
 					if (oContainer && oContainer.isVisible()) {
 						var oVisibleContainer = aVisibleContainers[j];
@@ -859,14 +869,14 @@ sap.ui.define([
 				if (bExchangeContent) {
 					// remove all content and add it new.
 					this._mainRFLayout.removeAllContent();
-					iContentLenght = 0;
+					iContentLength = 0;
 				}
 			}
-			if (iContentLenght < iLength) {
+			if (iContentLength < iLength) {
 				// new containers added
 				var iStartIndex = 0;
-				if (iContentLenght > 0) {
-					iStartIndex = iContentLenght--;
+				if (iContentLength > 0) {
+					iStartIndex = iContentLength--;
 				}
 				for ( i = iStartIndex; i < iLength; i++) {
 					oContainer = aVisibleContainers[i];

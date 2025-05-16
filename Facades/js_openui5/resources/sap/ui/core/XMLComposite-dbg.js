@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,10 +18,8 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/XMLCompositeMetadata',
 	'sap/ui/model/base/ManagedObjectModel',
-	'sap/ui/model/json/JSONModel',
+	'sap/ui/core/Element',
 	'sap/ui/core/Fragment',
-	'sap/ui/base/ManagedObject',
-	'sap/ui/base/DataType',
 	'sap/ui/model/resource/ResourceModel',
 	'sap/base/Log',
 	'sap/ui/performance/Measurement'
@@ -30,10 +28,8 @@ sap.ui.define([
 		Control,
 		XMLCompositeMetadata,
 		ManagedObjectModel,
-		JSONModel,
+		Element,
 		Fragment,
-		ManagedObject,
-		DataType,
 		ResourceModel,
 		Log,
 		Measurement
@@ -142,6 +138,9 @@ sap.ui.define([
 		 *    }
 		 * </pre>
 		 *
+		 * <b>Note:</b> {@link topic:b11d853a8e784db6b2d210ef57b0f7d7 Requiring modules in XML} will result in side effects that might cause the XMLComposite to not work properly.
+		 * We suggest you require the needed modules inside the JavaScript coding of the class extending the XMLComposite.
+		 *
 		 * @see sap.ui.core.Control
 		 * @see sap.ui.core.Fragment
 		 *
@@ -149,13 +148,14 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 * @since 1.56.0
 		 * @alias sap.ui.core.XMLComposite
 		 * @see {@link topic:b83a4dcb7d0e46969027345b8d32fd44 XML Composite Controls}
 		 *
 		 * @abstract
-		   * @public
+		 * @public
+		 * @deprecated As of version 1.88, use {@link topic:c1512f6ce1454ff1913e3857bad56392 Standard Composite Controls}
 		 * @experimental Since 1.56.0
 		 */
 		var XMLComposite = Control.extend("sap.ui.core.XMLComposite", {
@@ -233,11 +233,11 @@ sap.ui.define([
 		 * May only be used by the implementation of a specific XMLComposite, not by an application using a XMLComposite.
 		 *
 		 * @param {string} sId XMLComposite-local ID of the inner element
-		 * @returns {sap.ui.core.Element} element by its ID or <code>undefined</code>
+		 * @returns {sap.ui.core.Element|undefined} element by its ID or <code>undefined</code>
 		 * @protected
 		 */
 		XMLComposite.prototype.byId = function (sId) {
-			return sap.ui.getCore().byId(Fragment.createId(this.getId(), sId));
+			return Element.getElementById(Fragment.createId(this.getId(), sId));
 		};
 
 		/**
@@ -355,7 +355,7 @@ sap.ui.define([
 		/**
 		 * Destroys the internal composite aggregation
 		 *
-		 * @returns {sap.ui.core.XMLComposite} Returns <code>this</code> to allow method chaining
+		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 *
 		 * @private
 		 */
@@ -400,7 +400,7 @@ sap.ui.define([
 		/**
 		 * Sets the internal composite aggregation
 		 *
-		 * @returns {sap.ui.core.XMLComposite} Returns <code>this</code> to allow method chaining
+		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 *
 		 * @private
 		 */
@@ -524,7 +524,7 @@ sap.ui.define([
 			var sFragment = oFragmentContent ? (new XMLSerializer()).serializeToString(oFragmentContent) : undefined;
 			this.bUsesI18n = sFragment ? (sFragment.indexOf("$" + this.alias + ".i18n") != -1) : true;
 
-			this._setCompositeAggregation(sap.ui.xmlfragment({
+			this._setCompositeAggregation(sap.ui.xmlfragment({ // legacy-relevant: can lead to follow-up sync XHRs for controls
 				sId: this.getId(),
 				fragmentContent: oFragmentContent,
 				oController: this
@@ -540,7 +540,7 @@ sap.ui.define([
 		 * those controls.
 		 *
 		 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-		 * @param {Object} mAriaProps - The mapping of "aria-" prefixed attributes
+		 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
 		 * @protected
 		 */
 		XMLComposite.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
@@ -548,10 +548,8 @@ sap.ui.define([
 
 			if (oParent && oParent.enhanceAccessibilityState) {
 				// use XMLComposite as control, but aria properties of rendered inner controls.
-				return oParent.enhanceAccessibilityState(this, mAriaProps);
+				oParent.enhanceAccessibilityState(this, mAriaProps);
 			}
-
-			return mAriaProps;
 		};
 
 		/**

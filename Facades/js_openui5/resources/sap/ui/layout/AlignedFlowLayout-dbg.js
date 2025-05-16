@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/base/i18n/Localization",
 	"sap/ui/core/Control",
 	"./library",
 	"sap/ui/core/ResizeHandler",
@@ -13,7 +13,7 @@ sap.ui.define([
 	"sap/ui/dom/units/Rem"
 ],
 	function(
-		Core,
+		Localization,
 		Control,
 		library,
 		ResizeHandler,
@@ -40,15 +40,13 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
-		 * @experimental This control is only for internal/experimental use and the API will change!
 		 *
 		 * @since 1.48
 		 * @alias sap.ui.layout.AlignedFlowLayout
-		 * @ui5-metamodel This control will also be described in the UI5 (legacy) design time meta model.
 		 */
 		var AlignedFlowLayout = Control.extend("sap.ui.layout.AlignedFlowLayout", {
 			metadata: {
@@ -96,7 +94,9 @@ sap.ui.define([
 						multiple: true
 					}
 				}
-			}
+			},
+
+			renderer: AlignedFlowLayoutRenderer
 		});
 
 		/**
@@ -161,7 +161,7 @@ sap.ui.define([
 						mEndItemStyle = oEndItemDomRef.style;
 
 					// adapt the position of the absolute-positioned end item in case a standard CSS class is added
-					if (Core.getConfiguration().getRTL()) {
+					if (Localization.getRTL()) {
 						mEndItemStyle.left = oLayoutComputedStyle.getPropertyValue("padding-left");
 					} else {
 						mEndItemStyle.right = oLayoutComputedStyle.getPropertyValue("padding-right");
@@ -221,18 +221,22 @@ sap.ui.define([
 			var oEndItemDomRef,
 				oObserverEntry = aObserverEntries[0],
 				bWidthChangedSignificantly = hasWidthChangedSignificantly(this.fLayoutWidth, oObserverEntry, oDomRef),
-				fNewWidth = oObserverEntry.contentRect.width;
+				fNewWidth = oObserverEntry.contentRect.width,
+				fNewHeight = oObserverEntry.contentRect.height;
 
 			if (bWidthChangedSignificantly) {
 				this.fLayoutWidth = fNewWidth;
+				this.fLayoutHeight = fNewHeight;
 			} else {
 				oEndItemDomRef = this.getDomRef("endItem");
 				bWidthChangedSignificantly = hasWidthChangedSignificantly(this.fEndItemWidth, oObserverEntry, oEndItemDomRef);
 
 				if (bWidthChangedSignificantly) {
 					this.fEndItemWidth = fNewWidth;
+					this.fLayoutHeight = fNewHeight;
+				} else if (this.fLayoutHeight !== fNewHeight) {	// we may still have relevant height changes
+					this.fLayoutHeight = fNewHeight;
 				} else {
-
 					// avoid cyclic dependencies and/or infinite resizing callback loops
 					return;
 				}
@@ -316,15 +320,21 @@ sap.ui.define([
 				iEndItemOffsetLeft,
 				iAvailableWidthForEndItem;
 
-			if (Core.getConfiguration().getRTL()) {
-				iAvailableWidthForEndItem = iLastItemOffsetLeft;
+			var oLastItemComputedStyle = window.getComputedStyle(oLastItemDomRef);
+			if (Localization.getRTL()) {
+				var iLastItemMarginLeft = Number.parseFloat(oLastItemComputedStyle.marginLeft);
+				iAvailableWidthForEndItem = iLastItemOffsetLeft - iLastItemMarginLeft;
 			} else {
-				var iLastItemMarginRight = Number.parseFloat(window.getComputedStyle(oLastItemDomRef).marginRight);
-				var iRightBorderOfLastItem = iLastItemOffsetLeft + oLastItemDomRef.offsetWidth + iLastItemMarginRight;
+				var iLastItemMarginRight = Number.parseFloat(oLastItemComputedStyle.marginRight);
+				var iRightBorderOfLastItem = iLastItemOffsetLeft + oLastItemDomRef.offsetWidth + iLastItemMarginRight; // iLastItemOffsetLeft includes marginLeft
+
 				iAvailableWidthForEndItem = oDomRef.offsetWidth - iRightBorderOfLastItem;
 			}
 
-			var bEnoughSpaceForEndItem = iAvailableWidthForEndItem >= iEndItemWidth;
+			var oEndItemComputedStyle = window.getComputedStyle(oEndItemDomRef);
+			var iEndItemMarginLeft = Number.parseFloat(oEndItemComputedStyle.marginLeft);
+			var iEndItemMarginRight = Number.parseFloat(oEndItemComputedStyle.marginRight);
+			var bEnoughSpaceForEndItem = iAvailableWidthForEndItem >= iEndItemMarginLeft + iEndItemWidth + iEndItemMarginRight;
 
 			// if the end item fits into the line
 			if (bEnoughSpaceForEndItem) {
@@ -381,6 +391,8 @@ sap.ui.define([
 			var sEndItemWidth = iEndItemWidth + "px";
 			mLastSpacerStyle.width = sEndItemWidth;
 			mLastSpacerStyle.minWidth = sEndItemWidth;
+			mLastSpacerStyle.marginLeft = iEndItemMarginLeft + "px";
+			mLastSpacerStyle.marginRight = iEndItemMarginRight + "px";
 			this.toggleDisplayOfSpacers(oDomRef);
 		};
 
@@ -412,6 +424,8 @@ sap.ui.define([
 				mLastSpacerStyle.width = "";
 				mLastSpacerStyle.height = "";
 				mLastSpacerStyle.display = "";
+				mLastSpacerStyle.marginLeft = "";
+				mLastSpacerStyle.marginRight = "";
 			}
 
 			oDomRef.classList.remove(oDomRef.classList.item(0) + "OneLine");
@@ -559,7 +573,7 @@ sap.ui.define([
 		};
 
 		AlignedFlowLayout.prototype.unobserveSizeChanges = function(oDomRef) {
-			if (this.oResizeObserver) {
+			if (this.oResizeObserver && oDomRef) {
 				this.oResizeObserver.unobserve(oDomRef);
 			}
 		};

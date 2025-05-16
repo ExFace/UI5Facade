@@ -1,19 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.ux3.FacetFilterList.
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
     'sap/ui/commons/ListBox',
     'sap/ui/core/Control',
     './library',
     './FacetFilterListRenderer',
     'sap/ui/core/ListItem'
 ],
-	function(jQuery, ListBox, Control, library, FacetFilterListRenderer, ListItem) {
+	function(ListBox, Control, library, FacetFilterListRenderer, ListItem) {
 	"use strict";
 
 
@@ -29,16 +28,16 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.FacetFilter}
 	 * @alias sap.ui.ux3.FacetFilterList
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var FacetFilterList = Control.extend("sap.ui.ux3.FacetFilterList", /** @lends sap.ui.ux3.FacetFilterList.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -162,7 +161,7 @@ sap.ui.define([
 
 	FacetFilterList.prototype.addItem = function(oItem) {
 		this._oListBox.addItem(oItem);
-		if (!oItem.getKey() || jQuery.trim(oItem.getKey()) == "" ) {
+		if (!oItem.getKey() || oItem.getKey().trim() == "" ) {
 			oItem.setKey("generatedkey" + this.indexOfItem(oItem));
 		}
 		this.updateText4All();
@@ -171,7 +170,7 @@ sap.ui.define([
 
 	FacetFilterList.prototype.insertItem = function(oItem, iIndex) {
 		this._oListBox.insertItem(oItem, iIndex + 1); // +1 because of entry "all" on the fist position.
-		if (!oItem.getKey() || jQuery.trim(oItem.getKey()) == "" ) {
+		if (!oItem.getKey() || oItem.getKey().trim() == "" ) {
 			oItem.setKey("generatedkey" + this.indexOfItem(oItem));
 		}
 		this.updateText4All();

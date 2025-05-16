@@ -1,20 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.RatingIndicator.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
+	'sap/ui/core/StaticArea',
 	'sap/ui/core/theming/Parameters',
 	'./RatingIndicatorRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	'sap/ui/core/LabelEnablement'
 ],
-	function(library, Control, Parameters, RatingIndicatorRenderer, KeyCodes, Log, jQuery) {
+	function(library, Localization, Control, Library, StaticArea, Parameters, RatingIndicatorRenderer, KeyCodes, Log, jQuery, LabelEnablement) {
 	"use strict";
 
 
@@ -43,121 +47,132 @@ sap.ui.define([
 	 * You can display icons in 4 recommended sizes:
 	 * <ul>
 	 * <li>large - 32px</li>
-	 * <li>medium(default) - 22px</li>
-	 * <li>small - 16px</li>
+	 * <li>medium(default) - 24px</li>
+	 * <li>small - 22px</li>
 	 * <li>XS - 12px</li>
 	 * </ul>
+	 * <b>Note:</b> It is not recommended to use the XS size as an editable rating indicator. If an editable rating indicator is needed then it is recommended to set the size S or above to be compliant with minimum touch size.</h4>
 	 * <b>Note:</b> If no icon size is set, the rating indicator will set it according to the content density.</h4>
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.14
 	 * @alias sap.m.RatingIndicator
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/rating-indicator/ Rating Indicator}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var RatingIndicator = Control.extend("sap.m.RatingIndicator", /** @lends sap.m.RatingIndicator.prototype */ { metadata: {
+	var RatingIndicator = Control.extend("sap.m.RatingIndicator", /** @lends sap.m.RatingIndicator.prototype */ {
+		metadata: {
 
-		interfaces: ["sap.ui.core.IFormContent"],
-		library: "sap.m",
-		properties: {
-			/**
-			 * Value "true" is required to let the user rate with this control. It is recommended to set this parameter to "false" for the "Small" size which is meant for indicating a value only
-			 */
-			enabled: {type: "boolean", group: "Behavior", defaultValue: true},
+			interfaces: ["sap.ui.core.IFormContent"],
+			library: "sap.m",
+			properties: {
+				/**
+				 * Value "true" is required to let the user rate with this control. It is recommended to set this parameter to "false" for the "Small" size which is meant for indicating a value only
+				 */
+				enabled: {type: "boolean", group: "Behavior", defaultValue: true},
 
-			/**
-			 * The number of displayed rating symbols
-			 */
-			maxValue: {type: "int", group: "Behavior", defaultValue: 5},
+				/**
+				 * The number of displayed rating symbols
+				 */
+				maxValue: {type: "int", group: "Behavior", defaultValue: 5},
 
-			/**
-			 * The indicated value of the rating
-			 */
-			value: {type: "float", group: "Behavior", defaultValue: 0, bindable: "bindable"},
+				/**
+				 * The indicated value of the rating
+				 */
+				value: {type: "float", group: "Behavior", defaultValue: 0, bindable: "bindable"},
 
-			/**
-			 * The Size of the image or icon to be displayed. The default value depends on the theme. Please be sure that the size is corresponding to a full pixel value as some browsers don't support subpixel calculations. Recommended size is 1.375rem (22px) for normal, 1rem (16px) for small, and 2rem (32px) for large icons correspondingly.
-			 */
-			iconSize: {type: "sap.ui.core.CSSSize", group: "Behavior", defaultValue: null},
+				/**
+				 * The Size of the image or icon to be displayed. The default value depends on the theme. Please be sure that the size is corresponding to a full pixel value as some browsers don't support subpixel calculations. Recommended size is 1.5rem (24px) for normal, 1.375rem (22px) for small, and 2rem (32px) for large icons correspondingly.
+				 */
+				iconSize: {type: "sap.ui.core.CSSSize", group: "Behavior", defaultValue: null},
 
-			/**
-			 * The URI to the icon font icon or image that will be displayed for selected rating symbols. A star icon will be used if the property is not set
-			 */
-			iconSelected: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
+				/**
+				 * The URI to the icon font icon or image that will be displayed for selected rating symbols. A star icon will be used if the property is not set
+				 */
+				iconSelected: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
 
-			/**
-			 * The URI to the icon font icon or image that will be displayed for all unselected rating symbols. A star icon will be used if the property is not set
-			 */
-			iconUnselected: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
+				/**
+				 * The URI to the icon font icon or image that will be displayed for all unselected rating symbols. A star icon will be used if the property is not set
+				 */
+				iconUnselected: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
 
-			/**
-			 * The URI to the icon font icon or image that will be displayed for hovered rating symbols. A star icon will be used if the property is not set
-			 */
-			iconHovered: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
+				/**
+				 * The URI to the icon font icon or image that will be displayed for hovered rating symbols. A star icon will be used if the property is not set
+				 */
+				iconHovered: {type: "sap.ui.core.URI", group: "Behavior", defaultValue: null},
 
-			/**
-			 * Defines how float values are visualized: Full, Half (see enumeration RatingIndicatorVisualMode)
-			 */
-			visualMode: {type: "sap.m.RatingIndicatorVisualMode", group: "Behavior", defaultValue: RatingIndicatorVisualMode.Half},
+				/**
+				 * Defines how float values are visualized: Full, Half (see enumeration RatingIndicatorVisualMode)
+				 */
+				visualMode: {type: "sap.m.RatingIndicatorVisualMode", group: "Behavior", defaultValue: RatingIndicatorVisualMode.Half},
 
-			/**
-			 * The RatingIndicator in displayOnly mode is not interactive, not editable, not focusable, and not in the tab chain. This setting is used for forms in review mode.
-			 * @since 1.50.0
-			 */
-			displayOnly : {type : "boolean", group : "Behavior", defaultValue : false},
+				/**
+				 * The RatingIndicator in displayOnly mode is not interactive, not editable, not focusable, and not in the tab chain. This setting is used for forms in review mode.
+				 * @since 1.50.0
+				 */
+				displayOnly : {type : "boolean", group : "Behavior", defaultValue : false},
 
-			/**
-			 * Defines whether the user is allowed to edit the RatingIndicator. If editable is false the control is focusable, and in the tab chain but not interactive.
-			 * @since 1.52.0
-			 */
-			editable : {type : "boolean", group : "Behavior", defaultValue : true}
-		},
-		associations: {
-			/**
-			 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
-			 */
-			ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
+				/**
+				 * Defines whether the user is allowed to edit the RatingIndicator. If editable is false the control is focusable, and in the tab chain but not interactive.
+				 * @since 1.52.0
+				 */
+				editable : {type : "boolean", group : "Behavior", defaultValue : true},
+				/**
+				 * Indicates that the control is required. This property is only needed for accessibility purposes when a single relationship between
+				 * the control and a label (see aggregation <code>labelFor</code> of <code>sap.m.Label</code>) cannot be established
+				 * (e.g. one label should label multiple controls).
+				 * @since 1.116
+				 */
+				required : {type : "boolean", group : "Misc", defaultValue : false}
+			},
+			associations: {
+				/**
+				 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
+				 */
+				ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
 
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
-		},
-		events: {
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
+			},
+			events: {
 
-			/**
-			 * The event is fired when the user has done a rating.
-			 */
-			change: {
-				parameters: {
+				/**
+				 * The event is fired when the user has done a rating.
+				 */
+				change: {
+					parameters: {
 
-					/**
-					 * The rated value
-					 */
-					value: {type: "int"}
+						/**
+						 * The rated value
+						 */
+						value: {type: "int"}
+					}
+				},
+
+				/**
+				 * This event is triggered during the dragging period, each time the rating value changes.
+				 */
+				liveChange: {
+					parameters: {
+
+						/**
+						 * The current value of the rating after a live change event.
+						 */
+						value: {type: "float"}
+					}
 				}
 			},
-
-			/**
-			 * This event is triggered during the dragging period, each time the rating value changes.
-			 */
-			liveChange: {
-				parameters: {
-
-					/**
-					 * The current value of the rating after a live change event.
-					 */
-					value: {type: "float"}
-				}
-			}
+			designtime: "sap/m/designtime/RatingIndicator.designtime"
 		},
-		designtime: "sap/m/designtime/RatingIndicator.designtime"
-	}});
+
+		renderer: RatingIndicatorRenderer
+	});
 
 	/* =========================================================== */
 	/*           temporary flags for jslint syntax check           */
@@ -184,18 +199,21 @@ sap.ui.define([
 		this._iIconCounter = 0;
 		this._fHoverValue = 0;
 
-		this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle('sap.m');
+		this._oResourceBundle = Library.getResourceBundleFor('sap.m');
 	};
 
 	/**
 	 * Sets the rating value. The method is automatically checking whether the value is in the valid range of 0-{@link #getMaxValue maxValue} and if it is a valid number. Calling the setter with null or undefined will reset the value to it's default.
 	 *
-	 * @param {float} fValue The rating value to be set.
-	 * @returns {sap.m.RatingIndicator} Returns <code>this</code> to facilitate method chaining.
+	 * @param {float|string} vValue The rating value to be set.
+	 * @returns {this} Returns <code>this</code> to facilitate method chaining.
 	 * @override
 	 * @public
 	 */
-	RatingIndicator.prototype.setValue = function (fValue) {
+	RatingIndicator.prototype.setValue = function (vValue) {
+		// Allow passing float values as strings to support oData v2. Edm.Double type format
+		var fValue = typeof vValue !== "string" ? vValue : Number(vValue);
+
 		// validates the property and sets null/undefined values to the default
 		fValue = this.validateProperty("value", fValue);
 
@@ -206,7 +224,7 @@ sap.ui.define([
 
 		// check for valid numbers
 		if (isNaN(fValue)) {
-			Log.warning('Ignored new rating value "' + fValue + '" because it is NAN');
+			Log.warning('Ignored new rating value "' + vValue + '" because it is NAN');
 
 		// check if the number is in the range 0-maxValue (only if control is rendered)
 		// if control is not rendered it is handled by onBeforeRendering()
@@ -239,7 +257,6 @@ sap.ui.define([
 	RatingIndicator.prototype.onBeforeRendering = function () {
 		var fVal = this.getValue();
 		var iMVal = this.getMaxValue();
-		var oSizes = {};
 
 		if (fVal > iMVal) {
 			this.setValue(iMVal);
@@ -252,56 +269,101 @@ sap.ui.define([
 		var sIconSize = this.getIconSize();
 
 		if (sIconSize) {
-			oSizes = this._getRegularSizes(sIconSize);
+			this._setRegularSizes(sIconSize);
 		} else if (this.getDisplayOnly()) {
-			oSizes = this._getDisplayOnlySizes();
+			this._setDisplayOnlySizes();
 		} else {
-			oSizes = this._getContentDensitySizes();
+			this._setContentDensitySizes();
+		}
+	};
+
+	RatingIndicator.prototype._isRequired = function () {
+		return this.getRequired() || LabelEnablement.isRequired(this);
+	};
+
+	RatingIndicator.prototype._setDisplayOnlySizes = function () {
+		var sIconSize = "sapUiRIIconSizeDisplayOnly",
+			sIconPaddingSize = "sapUiRIIconPaddingDisplayOnly";
+
+		if (RatingIndicator.sizeMapppings[sIconSize] && RatingIndicator.paddingValueMappping[sIconPaddingSize]) {
+			this._iPxIconSize = RatingIndicator.sizeMapppings[sIconSize];
+			this._iPxPaddingSize = RatingIndicator.paddingValueMappping[sIconPaddingSize];
+
+			return;
 		}
 
-		this._iPxIconSize = oSizes.icon;
-		this._iPxPaddingSize = oSizes.padding;
+		var mParamеters = Object.assign({
+				// add global styles as default
+				"sapUiRIIconSizeDisplayOnly": "1.5rem",
+				"sapUiRIIconPaddingDisplayOnly": "0.1875rem"
+			}, Parameters.get({
+				name: [sIconSize, sIconPaddingSize],
+				callback: function(mParams) {
+					this.setIconAndPaddingSizes(sIconSize, sIconPaddingSize, mParams[sIconSize], mParams[sIconPaddingSize]);
+				}.bind(this)
+			}));
+
+		this.setIconAndPaddingSizes(sIconSize, sIconPaddingSize, mParamеters[sIconSize], mParamеters[sIconPaddingSize]);
 	};
 
-	RatingIndicator.prototype._getDisplayOnlySizes = function () {
-		RatingIndicator.sizeMapppings["displayOnly"] = RatingIndicator.sizeMapppings["displayOnly"] || this._toPx(Parameters.get("sapUiRIIconSizeDisplayOnly"));
-		RatingIndicator.paddingValueMappping["displayOnlyPadding"] = RatingIndicator.paddingValueMappping["displayOnlyPadding"] || this._toPx(Parameters.get("sapUiRIIconPaddingDisplayOnly"));
-
-		return {
-			icon: RatingIndicator.sizeMapppings["displayOnly"],
-			padding: RatingIndicator.paddingValueMappping["displayOnlyPadding"]
-		};
-	};
-
-	RatingIndicator.prototype._getContentDensitySizes = function () {
+	RatingIndicator.prototype._setContentDensitySizes = function () {
 		var sDensityMode = this._getDensityMode();
 		var sSizeKey = "sapUiRIIconSize" + sDensityMode;
 		var sPaddingKey = "sapUiRIIconPadding" + sDensityMode;
 
-		RatingIndicator.sizeMapppings[sSizeKey] = RatingIndicator.sizeMapppings[sSizeKey] || this._toPx(Parameters.get(sSizeKey));
-		RatingIndicator.paddingValueMappping[sPaddingKey] = RatingIndicator.paddingValueMappping[sPaddingKey] || this._toPx(Parameters.get(sPaddingKey));
+		if (RatingIndicator.sizeMapppings[sSizeKey] && RatingIndicator.paddingValueMappping[sPaddingKey]) {
+			this._iPxIconSize = RatingIndicator.sizeMapppings[sSizeKey];
+			this._iPxPaddingSize = RatingIndicator.paddingValueMappping[sPaddingKey];
 
-		return {
-			icon: RatingIndicator.sizeMapppings[sSizeKey],
-			padding: RatingIndicator.paddingValueMappping[sPaddingKey]
-		};
+			return;
+		}
+
+		var mParamеters = Parameters.get({
+			name: [sSizeKey, sPaddingKey],
+			callback: function(mParams) {
+				this.setIconAndPaddingSizes(sSizeKey, sPaddingKey, mParams[sSizeKey], mParams[sPaddingKey]);
+			}.bind(this)
+		});
+
+		if (mParamеters) {
+			this.setIconAndPaddingSizes(sSizeKey, sPaddingKey, mParamеters[sSizeKey], mParamеters[sPaddingKey]);
+		}
 	};
 
-	RatingIndicator.prototype._getRegularSizes = function (sIconSize) {
+	RatingIndicator.prototype._setRegularSizes = function (sIconSize) {
 		RatingIndicator.sizeMapppings[sIconSize] = RatingIndicator.sizeMapppings[sIconSize] || this._toPx(sIconSize);
 
 		var iPxIconSize = RatingIndicator.sizeMapppings[sIconSize];
 
 		RatingIndicator.iconPaddingMappings[iPxIconSize] = RatingIndicator.iconPaddingMappings[iPxIconSize] || "sapUiRIIconPadding" + this._getIconSizeLabel(iPxIconSize);
 
-		var paddingClass = RatingIndicator.iconPaddingMappings[iPxIconSize];
+		var sPaddingClass = RatingIndicator.iconPaddingMappings[iPxIconSize];
 
-		RatingIndicator.paddingValueMappping[paddingClass] = RatingIndicator.paddingValueMappping[paddingClass] || this._toPx(Parameters.get(paddingClass));
+		if (RatingIndicator.paddingValueMappping[sPaddingClass]) {
+			this._iPxIconSize = RatingIndicator.sizeMapppings[sIconSize];
+			this._iPxPaddingSize = RatingIndicator.paddingValueMappping[sPaddingClass];
 
-		return {
-			icon: RatingIndicator.sizeMapppings[sIconSize],
-			padding: RatingIndicator.paddingValueMappping[paddingClass]
-		};
+			return;
+		}
+
+		var sParam = Parameters.get({
+			name: sPaddingClass,
+			callback: function (sPadding) {
+				this.setIconAndPaddingSizes(sIconSize, sPaddingClass, RatingIndicator.sizeMapppings[sIconSize], sPadding);
+			}.bind(this)
+		});
+
+		if (sParam) {
+			this.setIconAndPaddingSizes(sIconSize, sPaddingClass, RatingIndicator.sizeMapppings[sIconSize], sParam);
+		}
+	};
+
+	RatingIndicator.prototype.setIconAndPaddingSizes = function (sSizeKey, sPaddingKey, sSize, sPadding) {
+		RatingIndicator.sizeMapppings[sSizeKey] = this._toPx(sSize);
+		RatingIndicator.paddingValueMappping[sPaddingKey] = this._toPx(sPadding);
+
+		this._iPxIconSize = RatingIndicator.sizeMapppings[sSizeKey];
+		this._iPxPaddingSize = RatingIndicator.paddingValueMappping[sPaddingKey];
 	};
 
 	/**
@@ -367,9 +429,9 @@ sap.ui.define([
 		switch (true) {
 			case (iPxIconSize >= 32):
 				return "L";
-			case (iPxIconSize >= 22):
+			case (iPxIconSize >= 24):
 				return "M";
-			case (iPxIconSize >= 16):
+			case (iPxIconSize >= 22):
 				return "S";
 			case (iPxIconSize >= 12):
 				return "XS";
@@ -379,19 +441,21 @@ sap.ui.define([
 	};
 
 	RatingIndicator.prototype._toPx = function (cssSize) {
-		var scopeVal = Math.round(cssSize),
-			scopeTest;
+		var vScopeVal = Math.round(cssSize),
+			oScopeTest;
 
-		if (isNaN(scopeVal)) {
+		if (isNaN(vScopeVal)) {
 			if (RegExp("^(auto|0)$|^[+-\.]?[0-9].?([0-9]+)?(px|em|rem|ex|%|in|cm|mm|pt|pc)$").test(cssSize)) {
-				scopeTest = jQuery('<div style="display: none; width: ' + cssSize + '; margin: 0; padding:0; height: auto; line-height: 1; font-size: 1; border:0; overflow: hidden">&nbsp;</div>').appendTo(sap.ui.getCore().getStaticAreaRef());
-				scopeVal = scopeTest.width();
-				scopeTest.remove();
+				oScopeTest = jQuery('<div>&nbsp;</div>')
+					.css({"display": "none", "width": cssSize, "margin": 0, "padding": 0, "height": "auto", "line-height": 1, "border": 0, "overflow": "hidden"})
+					.appendTo(StaticArea.getDomRef());
+				vScopeVal = oScopeTest.width();
+				oScopeTest.remove();
 			} else {
 				return false;
 			}
 		}
-		return Math.round(scopeVal);
+		return Math.round(vScopeVal);
 	};
 
 	/**
@@ -402,7 +466,6 @@ sap.ui.define([
 	 * @private
 	 */
 	RatingIndicator.prototype._updateUI = function (fValue, bHover) {
-
 		// save a reference on all needed DOM elements
 		var $SelectedDiv = this.$("sel"),
 			$UnselectedContainerDiv = this.$("unsel-wrapper"),
@@ -478,12 +541,12 @@ sap.ui.define([
 	 * @private
 	 */
 	RatingIndicator.prototype._calculateSelectedValue = function (oEvent) {
-		var selectedValue = -1.0,
+		var selectedValue = 0,
 			percentageWidth = 0.0,
 			oControlRoot = this.$(),
 			fControlPadding = (oControlRoot.innerWidth() - oControlRoot.width()) / 2,
 			oEventPosition,
-			bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			bRtl = Localization.getRTL();
 
 		if (oEvent.targetTouches) {
 			oEventPosition = oEvent.targetTouches[0];
@@ -688,6 +751,7 @@ sap.ui.define([
 				this._updateUI(fValue, true);
 				if (this._fStartValue !== fValue) {	// if the value if not the same
 					this.fireLiveChange({value: fValue});
+					this._fStartValue = fValue; // update the start value to the new one
 				}
 			}
 		}
@@ -888,12 +952,12 @@ sap.ui.define([
 	/* =========================================================== */
 
 	/**
- 	 * @returns {sap.m.RatingIndicator} this instance for method chaining
+ 	 * @returns {{role: string, type: string, description: string, focusable: boolean, enabled: boolean, editable: boolean}} Current accessibility state of the control
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
 	 */
 	RatingIndicator.prototype.getAccessibilityInfo = function () {
-		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oBundle = Library.getResourceBundleFor("sap.m");
 		return {
 			role: "slider",
 			type: oBundle.getText("ACC_CTR_TYPE_RATING"),

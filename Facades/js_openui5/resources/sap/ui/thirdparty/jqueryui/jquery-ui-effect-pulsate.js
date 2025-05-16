@@ -11,4 +11,5 @@
  * Depends:
  *	jquery.ui.effect.js
  */
-(function($,u){$.effects.effect.pulsate=function(o,d){var e=$(this),m=$.effects.setMode(e,o.mode||"show"),s=m==="show",h=m==="hide",a=(s||m==="hide"),b=((o.times||5)*2)+(a?1:0),c=o.duration/b,f=0,q=e.queue(),g=q.length,i;if(s||!e.is(":visible")){e.css("opacity",0).show();f=1;}for(i=1;i<b;i++){e.animate({opacity:f},c,o.easing);f=1-f;}e.animate({opacity:f},c,o.easing);e.queue(function(){if(h){e.hide();}d();});if(g>1){q.splice.apply(q,[1,0].concat(q.splice(g,b+1)));}e.dequeue();};})(jQuery);
+(function(e,i){e.effects.effect.pulsate=function(i,t){var s=e(this),a=e.effects.setMode(s,i.mode||"show"),c=a==="show",o=a==="hide",f=c||a==="hide",n=(i.times||5)*2+(f?1:0),u=i.duration/n,h=0,p=s.queue(),d=p.length,l;if(c||!s.is(":visible")){s.css("opacity",0).show();h=1}for(l=1;l<n;l++){s.animate({opacity:h},u,i.easing);h=1-h}s.animate({opacity:h},u,i.easing);s.queue(function(){if(o){s.hide()}t()});if(d>1){p.splice.apply(p,[1,0].concat(p.splice(d,n+1)))}s.dequeue()}})(jQuery);
+//# sourceMappingURL=jquery-ui-effect-pulsate.js.map

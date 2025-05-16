@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function(){"use strict";return function(m){return new Promise(function(r,R){var M=sap.ui.getCore().getLoadedLibraries().hasOwnProperty('sap.m');if(M){sap.ui.require(['sap/m/MessageBox'],function(a){a.confirm(m,{actions:[a.Action.YES,a.Action.NO],onClose:function(A){if(A===a.Action.YES){r();}else{R();}}});},R);}else{var c=window.confirm(m);if(c){r();}else{R();}}});};});
+sap.ui.define(["sap/ui/core/Lib"],function(i){"use strict";return function(n){return new Promise(function(e,o){var s=i.isLoaded("sap.m");if(s){sap.ui.require(["sap/m/MessageBox"],function(i){i.confirm(n,{actions:[i.Action.YES,i.Action.NO],onClose:function(n){if(n===i.Action.YES){e()}else{o()}}})},o)}else{var c=window.confirm(n);if(c){e()}else{o()}}})}});
+//# sourceMappingURL=confirmationDialog.js.map

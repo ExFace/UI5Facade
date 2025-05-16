@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,27 +8,36 @@
  * Initialization Code and shared classes of library sap.uxap.
  */
 sap.ui.define([
-	"sap/ui/core/Core",
-	"sap/ui/base/DataType",
 	"sap/ui/Device",
-	"sap/ui/core/library", // library dependency
-	"sap/m/library", // library dependency
-	"sap/ui/layout/library" // library dependency
-], function(Core, DataType, Device) {
+	"sap/ui/base/DataType",
+	"sap/ui/base/Object",
+	"sap/ui/core/Lib",
+	"sap/ui/thirdparty/jquery",
+	// library dependency
+	"sap/ui/core/library",
+	// library dependency
+	"sap/f/library",
+	// library dependency
+	"sap/m/library",
+	// library dependency
+	"sap/ui/layout/library"
+], function(Device, DataType, BaseObject, Library, jQuery) {
 	"use strict";
 
 	/**
 	 * SAP UxAP
 	 *
 	 * @namespace
-	 * @name sap.uxap
+	 * @alias sap.uxap
+	 * @author SAP SE
+	 * @version 1.136.0
+	 * @since 1.36
 	 * @public
 	 */
-		// library dependencies
-		// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	var thisLib = Library.init({
 		name: "sap.uxap",
-		dependencies: ["sap.ui.core", "sap.m", "sap.ui.layout"],
+		apiVersion: 2,
+		dependencies: ["sap.ui.core", "sap.f", "sap.m", "sap.ui.layout"],
 		designtime: "sap/uxap/designtime/library.designtime",
 		types: [
 			"sap.uxap.BlockBaseColumnLayout",
@@ -65,7 +74,10 @@ sap.ui.define([
 			"sap.uxap.ObjectPageHeaderLayoutData",
 			"sap.uxap.ObjectPageLazyLoader"
 		],
-		version: "1.82.0",
+		version: "1.136.0",
+		...{
+			interactionDocumentation: true
+		},
 		extensions: {
 			flChangeHandlers: {
 				"sap.uxap.ObjectPageHeader": "sap/uxap/flexibility/ObjectPageHeader",
@@ -97,15 +109,14 @@ sap.ui.define([
 	});
 
 	/**
-	 * @class Used by the <code>BlockBase</code> control to define how many columns should it be assigned by the <code>objectPageSubSection</code>.
+	 * Used by the <code>BlockBase</code> control to define how many columns should it be assigned by the <code>objectPageSubSection</code>.
 	 *     The allowed values can be auto (subsection assigned a number of columns based on the parent objectPageLayout subsectionLayout property), 1, 2, 3 or 4
 	 *     (This may not be a valid value for some <code>subSectionLayout</code>, for example, asking for 3 columns in a 2 column layout would raise warnings).
 	 *
-	 * @static
+	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.BlockBaseColumnLayout = DataType.createType('sap.uxap.BlockBaseColumnLayout', {
+	thisLib.BlockBaseColumnLayout = DataType.createType('sap.uxap.BlockBaseColumnLayout', {
 			isValid: function (vValue) {
 				return /^(auto|[1-4]{1})$/.test(vValue);
 			}
@@ -121,9 +132,8 @@ sap.ui.define([
 	 * @enum {string}
 	 * @static
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.BlockBaseFormAdjustment = {
+	thisLib.BlockBaseFormAdjustment = {
 
 		/**
 		 * Any form within the block will be automatically adjusted to have as many columns as the colspan of its parent block.
@@ -142,15 +152,16 @@ sap.ui.define([
 		None: "None"
 	};
 
+	DataType.registerEnum("sap.uxap.BlockBaseFormAdjustment", thisLib.BlockBaseFormAdjustment);
+
 	/**
 	 * Used by the <code>sap.uxap.component.Component</code> how to initialize the <code>ObjectPageLayout</code> sections and subsections.
 	 *
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.ObjectPageConfigurationMode = {
+	thisLib.ObjectPageConfigurationMode = {
 
 		/**
 		 * Determines the JSON URL.
@@ -165,15 +176,18 @@ sap.ui.define([
 		JsonModel: "JsonModel"
 
 	};
+
+	DataType.registerEnum("sap.uxap.ObjectPageConfigurationMode", thisLib.ObjectPageConfigurationMode);
+
 	/**
 	 * Used by the <code>ObjectPageHeader</code> control to define which design to use.
 	 *
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.ObjectPageHeaderDesign = {
+
+	thisLib.ObjectPageHeaderDesign = {
 
 		/**
 		 * Light theme for the <code>ObjectPageHeader</code>.
@@ -188,15 +202,17 @@ sap.ui.define([
 		Dark: "Dark"
 
 	};
+
+	DataType.registerEnum("sap.uxap.ObjectPageHeaderDesign", thisLib.ObjectPageHeaderDesign);
+
 	/**
 	 * Used by the <code>ObjectPageHeader</code> control to define which shape to use for the image.
 	 *
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.ObjectPageHeaderPictureShape = {
+	thisLib.ObjectPageHeaderPictureShape = {
 
 		/**
 		 * Circle shape for the images in the <code>ObjectPageHeader</code>.
@@ -211,15 +227,17 @@ sap.ui.define([
 		Square: "Square"
 
 	};
+
+	DataType.registerEnum("sap.uxap.ObjectPageHeaderPictureShape", thisLib.ObjectPageHeaderPictureShape);
+
 	/**
 	 * Used by the <code>ObjectPagSubSection</code> control to define which layout to apply.
 	 *
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.ObjectPageSubSectionLayout = {
+	thisLib.ObjectPageSubSectionLayout = {
 
 		/**
 		 * Title and actions on top of the block area.
@@ -234,15 +252,17 @@ sap.ui.define([
 		TitleOnLeft: "TitleOnLeft"
 
 	};
+
+	DataType.registerEnum("sap.uxap.ObjectPageSubSectionLayout", thisLib.ObjectPageSubSectionLayout);
+
 	/**
 	 * Used by the <code>ObjectPageLayout</code> control to define which layout to use (either Collapsed or Expanded).
 	 *
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.ObjectPageSubSectionMode = {
+	thisLib.ObjectPageSubSectionMode = {
 
 		/**
 		 * Collapsed mode of display of the <code>ObjectPageLayout</code>.
@@ -258,6 +278,8 @@ sap.ui.define([
 
 	};
 
+	DataType.registerEnum("sap.uxap.ObjectPageSubSectionMode", thisLib.ObjectPageSubSectionMode);
+
 	/**
 	 * Used by the <code>ObjectSectionBase</code> control to define the importance of the content contained in it.
 	 *
@@ -265,9 +287,8 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.32.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.uxap.Importance = {
+	thisLib.Importance = {
 
 		/**
 		 * Low importance of the content.
@@ -288,23 +309,28 @@ sap.ui.define([
 		High: "High"
 	};
 
+	DataType.registerEnum("sap.uxap.Importance", thisLib.Importance);
+
 	/**
 	 *
 	 * @type {{getClosestOPL: Function}}
 	 */
-	sap.uxap.Utilities = {
+	thisLib.Utilities = {
 
 		/**
 		 * Returns the reference to the <code>ObjectPageLayout</code> for a given control.
 		 * @static
 		 * @param {sap.ui.core.Control} oControl - the control to find ObjectPageLayout for
+ 		 * @param {sap.ui.core.Control} oParentSubSection (optional) - the parent ObjectPageSubSection
 		 * @private
 		 * @returns {*} Object Page layout referance
 		 */
-		getClosestOPL: function (oControl) {
+		getClosestOPL: function (oControl, oParentSubSection) {
 
-			while (oControl && !(oControl instanceof sap.uxap.ObjectPageLayout)) {
-				oControl = oControl.getParent();
+			while (oControl && !(BaseObject.isObjectA(oControl, "sap.uxap.ObjectPageLayout"))) {
+				oControl = oControl.getParent() || oParentSubSection;
+				// using oParentSubSection (if any) only the first time, otherwise if no OPL is found up the tree, loop will be infinite
+				oParentSubSection = null;
 			}
 
 			return oControl;
@@ -314,10 +340,10 @@ sap.ui.define([
 				return true;
 			}
 
-			return sap.uxap.Utilities._isCurrentMediaSize("Phone", oRange);
+			return thisLib.Utilities._isCurrentMediaSize("Phone", oRange);
 		},
 		isTabletScenario: function (oRange) {
-			return sap.uxap.Utilities._isCurrentMediaSize("Tablet", oRange);
+			return thisLib.Utilities._isCurrentMediaSize("Tablet", oRange);
 		},
 		_isCurrentMediaSize: function (sMedia, oRange) {
 			return oRange && oRange.name === sMedia;
@@ -370,9 +396,135 @@ sap.ui.define([
 	 * @name sap.uxap.IHeaderTitle
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 * @see {@link topic:d2ef0099542d44dc868719d908e576d0 Object Page Headers}
 	 */
+
+	/**
+	 *  Method for checking if the header title is <code>{@link sap.uxap.ObjectPageDynamicHeaderTitle}</code>.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.isDynamic
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not the header title is dynamic.
+	*/
+
+	/**
+	 * Getter method for getting the compatible header title class (being <code>{@link sap.uxap.ObjectPageDynamicHeaderTitle}</code> or <code>{@link sap.uxap.ObjectPageHeader}</code>).
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.getCompatibleHeaderContentClass
+	 * @ui5-restricted
+	 * @private
+	 * @returns {sap.uxap.ObjectPageHeaderContent} The header content.
+	*/
+
+	/**
+	 * Method for checking if the header title can be toggled on click.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.supportsToggleHeaderOnTitleClick
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not the header title can be toggled on click.
+	*/
+
+	/**
+	 * Method for checking if header title is supported in header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.supportsTitleInHeaderContent
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not header title is supported in header content.
+	*/
+
+	/**
+	 * Method for checking if header title supports adapt layout for DOM element.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.supportsAdaptLayoutForDomElement
+	 * @ui5-restricted
+	 * @param {boolean} bToggle Whether or not header title supports adapt layout for DOM element.
+	 * @private
+	*/
+
+	/**
+	 * Method for checking if header title supports background design.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.supportsBackgroundDesign
+	 * @ui5-restricted
+	 * @param {boolean} bToggle Whether or not header title supports background design.
+	 * @private
+	*/
+
+	/**
+	 * Getter method for getting the header title text.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.getTitleText
+	 * @ui5-restricted
+	 * @private
+	 * @returns {string} The header title text.
+	*/
+
+	/**
+	 * Method for snapping/collapsing the header title.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.snap
+	 * @ui5-restricted
+	 * @private
+	*/
+
+	/**
+	 * Method for unsnapping/expanding the header title.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle.unSnap
+	 * @ui5-restricted
+	 * @private
+	*/
+
+	/**
+	 * Method toggling .the visibility of the expand button of the header title
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle._toggleExpandButton
+	 * @ui5-restricted
+	 * @param {boolean} bToggle Whether or not header title expand button should be shown.
+	 * @private
+	*/
+
+	/**
+	 * Setter method for toggling .the visibility of the expand button of the header title
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle._setShowExpandButton
+	 * @ui5-restricted
+	 * @param {boolean} bVisible Whether or not header title expand button should be shown.
+	 * @private
+	*/
+
+	/**
+	 * Method for focusing the expand button of the header title.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle._focusExpandButton
+	 * @ui5-restricted
+	 * @private
+	*/
+
+	/**
+	 * Method for toggling the focusing ability of the header title.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderTitle._toggleFocusableState
+	 * @ui5-restricted
+	 * @param {boolean} bFocusable Whether or not header title should be focusable.
+	 * @private
+	*/
 
 	/**
 	 *
@@ -395,10 +547,90 @@ sap.ui.define([
 	 * @name sap.uxap.IHeaderContent
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 * @see {@link topic:d2ef0099542d44dc868719d908e576d0 Object Page Headers}
 	 */
 
-	return sap.uxap;
+	/**
+	 * Static method for creating an instance of the header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent.createInstance
+	 * @ui5-restricted
+	 * @param {array} aContent The content array for the instance
+	 * @param {boolean} bVisible Whether the instance should be visible
+	 * @param {string} sContentDesign The content design
+	 * @param {boolean} bPinnable Whether the instance is pinnable
+	 * @param {string} sStableId Stable ID text
+	 * @private
+	*/
 
+	/**
+	 * Method for checking if the header content supports pin button.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent.supportsPinUnpin
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not the header content supports pin button.
+	*/
+
+	/**
+	 * Method for checking if the header content supports child page design (ObjectPageLayout related).
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent.supportsChildPageDesign
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not the header content supports child page design (ObjectPageLayout related).
+	*/
+
+	/**
+	 * Method for checking if always expanded header content is supported.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent.supportsAlwaysExpanded
+	 * @ui5-restricted
+	 * @private
+	 * @returns {boolean} Whether or not supports always expanded header content.
+	*/
+
+	/**
+	 * Toggles the collapse button's visibility of the header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent._toggleCollapseButton
+	 * @ui5-restricted
+	 * @param {boolean} bToggle Whether the collapse button should be shown or not
+	 * @private
+	*/
+
+	/**
+	 * Internal setter for the collapse button's visibility of the header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent._setShowCollapseButton
+	 * @ui5-restricted
+	 * @param {boolean} bToggle Whether the collapse button should be shown or not
+	 * @private
+	*/
+
+	/**
+	 * Focuses the collapse button of the header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent._focusCollapseButton
+	 * @ui5-restricted
+	 * @private
+	*/
+
+	/**
+	 * Focuses the pin button of the header content.
+	 *
+	 * @function
+	 * @name sap.uxap.IHeaderContent._focusPinButton
+	 * @ui5-restricted
+	 * @private
+	*/
+
+	return thisLib;
 });

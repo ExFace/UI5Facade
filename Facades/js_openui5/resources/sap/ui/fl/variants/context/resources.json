@@ -1,0 +1,467 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": "Component-dbg.js",
+			"module": "sap/ui/fl/variants/context/Component.js",
+			"size": 3489,
+			"isDebug": true,
+			"required": [
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/library.js",
+				"sap/ui/fl/variants/context/view/ContextVisibility.view.xml",
+				"sap/ui/model/json/JSONModel.js",
+				"sap/ui/model/resource/ResourceModel.js"
+			]
+		},
+		{
+			"name": "Component.js",
+			"module": "sap/ui/fl/variants/context/Component.js",
+			"size": 1266,
+			"required": [
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/library.js",
+				"sap/ui/fl/variants/context/view/ContextVisibility.view.xml",
+				"sap/ui/model/json/JSONModel.js",
+				"sap/ui/model/resource/ResourceModel.js"
+			]
+		},
+		{
+			"name": "Component.js.map",
+			"size": 1539,
+			"isDebug": true
+		},
+		{
+			"name": "controller/ContextVisibility-dbg.controller.js",
+			"module": "sap/ui/fl/variants/context/controller/ContextVisibility.controller.js",
+			"size": 7147,
+			"isDebug": true,
+			"required": [
+				"sap/base/util/restricted/_isEqual.js",
+				"sap/ui/core/Fragment.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/write/_internal/Storage.js"
+			]
+		},
+		{
+			"name": "controller/ContextVisibility.controller.js",
+			"module": "sap/ui/fl/variants/context/controller/ContextVisibility.controller.js",
+			"size": 3815,
+			"required": [
+				"sap/base/util/restricted/_isEqual.js",
+				"sap/ui/core/Fragment.js",
+				"sap/ui/core/mvc/Controller.js",
+				"sap/ui/fl/Layer.js",
+				"sap/ui/fl/write/_internal/Storage.js"
+			]
+		},
+		{
+			"name": "controller/ContextVisibility.controller.js.map",
+			"size": 4855,
+			"isDebug": true
+		},
+		{
+			"name": "i18n/i18n.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n.properties",
+			"size": 1513,
+			"locale": "",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ar.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ar.properties",
+			"size": 1436,
+			"locale": "ar",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_bg.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_bg.properties",
+			"size": 1710,
+			"locale": "bg",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ca.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ca.properties",
+			"size": 583,
+			"locale": "ca",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_cnr.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_cnr.properties",
+			"size": 523
+		},
+		{
+			"name": "i18n/i18n_cs.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_cs.properties",
+			"size": 643,
+			"locale": "cs",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_cy.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_cy.properties",
+			"size": 527,
+			"locale": "cy",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_da.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_da.properties",
+			"size": 551,
+			"locale": "da",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_de.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_de.properties",
+			"size": 639,
+			"locale": "de",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_el.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_el.properties",
+			"size": 1813,
+			"locale": "el",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_en.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_en.properties",
+			"size": 504,
+			"locale": "en",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_en_GB.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_en_GB.properties",
+			"size": 504,
+			"locale": "en_GB",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_en_US_sappsd.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_en_US_sappsd.properties",
+			"size": 2246,
+			"locale": "en_US_sappsd",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_en_US_saprigi.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_en_US_saprigi.properties",
+			"size": 3834,
+			"locale": "en_US_saprigi",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_en_US_saptrc.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_en_US_saptrc.properties",
+			"size": 780,
+			"locale": "en_US_saptrc",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_es.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_es.properties",
+			"size": 601,
+			"locale": "es",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_es_MX.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_es_MX.properties",
+			"size": 574,
+			"locale": "es_MX",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_et.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_et.properties",
+			"size": 531,
+			"locale": "et",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_fi.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_fi.properties",
+			"size": 626,
+			"locale": "fi",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_fr.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_fr.properties",
+			"size": 657,
+			"locale": "fr",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_fr_CA.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_fr_CA.properties",
+			"size": 672,
+			"locale": "fr_CA",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_hi.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_hi.properties",
+			"size": 1784,
+			"locale": "hi",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_hr.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_hr.properties",
+			"size": 525,
+			"locale": "hr",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_hu.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_hu.properties",
+			"size": 775,
+			"locale": "hu",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_id.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_id.properties",
+			"size": 547,
+			"locale": "id",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_it.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_it.properties",
+			"size": 561,
+			"locale": "it",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_iw.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_iw.properties",
+			"size": 1367,
+			"locale": "iw",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ja.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ja.properties",
+			"size": 1098,
+			"locale": "ja",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_kk.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_kk.properties",
+			"size": 1734,
+			"locale": "kk",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ko.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ko.properties",
+			"size": 890,
+			"locale": "ko",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_lt.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_lt.properties",
+			"size": 612,
+			"locale": "lt",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_lv.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_lv.properties",
+			"size": 592,
+			"locale": "lv",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_mk.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_mk.properties",
+			"size": 1645,
+			"locale": "mk",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ms.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ms.properties",
+			"size": 553,
+			"locale": "ms",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_nl.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_nl.properties",
+			"size": 583,
+			"locale": "nl",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_no.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_no.properties",
+			"size": 536,
+			"locale": "no",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_pl.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_pl.properties",
+			"size": 584,
+			"locale": "pl",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_pt.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_pt.properties",
+			"size": 718,
+			"locale": "pt",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_pt_PT.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_pt_PT.properties",
+			"size": 697,
+			"locale": "pt_PT",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ro.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ro.properties",
+			"size": 590,
+			"locale": "ro",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_ru.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_ru.properties",
+			"size": 1576,
+			"locale": "ru",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_sh.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_sh.properties",
+			"size": 517,
+			"locale": "sh",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_sk.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_sk.properties",
+			"size": 673,
+			"locale": "sk",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_sl.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_sl.properties",
+			"size": 485,
+			"locale": "sl",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_sr.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_sr.properties",
+			"size": 1587,
+			"locale": "sr",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_sv.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_sv.properties",
+			"size": 582,
+			"locale": "sv",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_th.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_th.properties",
+			"size": 1589,
+			"locale": "th",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_tr.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_tr.properties",
+			"size": 679,
+			"locale": "tr",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_uk.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_uk.properties",
+			"size": 1589,
+			"locale": "uk",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_vi.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_vi.properties",
+			"size": 897,
+			"locale": "vi",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_zh_CN.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_zh_CN.properties",
+			"size": 717,
+			"locale": "zh_CN",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "i18n/i18n_zh_TW.properties",
+			"module": "sap/ui/fl/variants/context/i18n/i18n_zh_TW.properties",
+			"size": 723,
+			"locale": "zh_TW",
+			"raw": "i18n/i18n.properties"
+		},
+		{
+			"name": "index.html",
+			"size": 656
+		},
+		{
+			"name": "manifest.json",
+			"module": "sap/ui/fl/variants/context/manifest.json",
+			"size": 3066
+		},
+		{
+			"name": "resources.json",
+			"size": 12236
+		},
+		{
+			"name": "view/ContextVisibility.view.xml",
+			"module": "sap/ui/fl/variants/context/view/ContextVisibility.view.xml",
+			"size": 1611,
+			"required": [
+				"sap/m/Button.js",
+				"sap/m/Label.js",
+				"sap/m/List.js",
+				"sap/m/MessageStrip.js",
+				"sap/m/Panel.js",
+				"sap/m/StandardListItem.js",
+				"sap/m/Toolbar.js",
+				"sap/m/ToolbarSpacer.js",
+				"sap/ui/fl/variants/context/controller/ContextVisibility.controller.js"
+			]
+		},
+		{
+			"name": "view/fragment/AddContextDialog.fragment.xml",
+			"module": "sap/ui/fl/variants/context/view/fragment/AddContextDialog.fragment.xml",
+			"size": 638,
+			"required": [
+				"sap/m/SelectDialog.js",
+				"sap/m/StandardListItem.js"
+			]
+		}
+	]
+}

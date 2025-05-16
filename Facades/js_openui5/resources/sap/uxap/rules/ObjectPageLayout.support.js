@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the ObjectPageHeader control of sap.uxap library.
  */
-sap.ui.define(["sap/ui/support/library"],
-	function (SupportLib) {
+sap.ui.define(["sap/ui/support/library", "sap/ui/base/Object"],
+	function (SupportLib, BaseObject) {
 		"use strict";
 
 		// shortcuts
@@ -44,7 +44,7 @@ sap.ui.define(["sap/ui/support/library"],
 
 						var parent = oControl.getParent();
 						while (parent) {
-							if (parent instanceof sap.ui.core.Component) {
+							if (BaseObject.isObjectA(parent, "sap.ui.core.Component")) {
 								return parent;
 							} else {
 								parent = parent.getParent();
@@ -115,16 +115,16 @@ sap.ui.define(["sap/ui/support/library"],
 							sHeaderId = oHeaderTitle.getId();
 
 						if (bShowTitleInHeaderContent) {
-							if (!!oHeaderTitle.getObjectImageURI() && bIsObjectIconAlwaysVisible) {
+							if (oHeaderTitle.getObjectImageURI() && bIsObjectIconAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "Icon");
 
 							}
 
-							if (!!oHeaderTitle.getObjectTitle() && bIsObjectTitleAlwaysVisible) {
+							if (oHeaderTitle.getObjectTitle() && bIsObjectTitleAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "Title");
 							}
 
-							if (!!oHeaderTitle.getObjectSubtitle() && bIsObjectSubtitleAlwaysVisible) {
+							if (oHeaderTitle.getObjectSubtitle() && bIsObjectSubtitleAlwaysVisible) {
 								addIssueBuilder(sHeaderName, sHeaderId, "SubTitle");
 							}
 						}

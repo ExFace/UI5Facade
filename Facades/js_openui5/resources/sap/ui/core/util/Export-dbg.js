@@ -1,13 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global Promise */// declare unusual global vars for JSLint/SAPUI5 validation
 
 // Provides class sap.ui.core.util.Export
-sap.ui.define(['sap/ui/core/Control', './ExportColumn', './ExportRow', './ExportType', './File', "sap/base/Log"],
-	function(Control, ExportColumn, ExportRow, ExportType, File, Log) {
+sap.ui.define([
+	'sap/ui/core/Control',
+	'./ExportRow',
+	'./File',
+	'sap/base/Log',
+	'./ExportColumn', // convenience dependency for legacy code that uses global names
+	'./ExportType' // convenience dependency for legacy code that uses global names
+],
+	function(Control, ExportRow, File, Log) {
 	'use strict';
 
 	// Utility functions to add jQuery Promise methods to a standard ES6 Promise object for compatibility reasons
@@ -134,11 +141,11 @@ sap.ui.define(['sap/ui/core/Control', './ExportColumn', './ExportRow', './Export
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.22.0
 	 *
 	 * @public
-	 * @deprecated Since version 1.73
+	 * @deprecated As of version 1.73, replaced by the export functionality of the <code>sap.ui.export</code> library.
 	 * @alias sap.ui.core.util.Export
 	 */
 	var Export = Control.extend('sap.ui.core.util.Export', {

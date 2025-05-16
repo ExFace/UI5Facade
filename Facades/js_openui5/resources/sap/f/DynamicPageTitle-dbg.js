@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.f.DynamicPageTitle.
 sap.ui.define([
 	"./library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
 	"sap/ui/core/Control",
 	"sap/ui/base/ManagedObjectObserver",
@@ -18,13 +19,14 @@ sap.ui.define([
 	"sap/ui/core/InvisibleText",
 	"./DynamicPageTitleRenderer",
 	"sap/base/Log",
-	"sap/ui/core/HTML",
 	"sap/ui/core/Icon",
 	"sap/ui/Device",
-    "sap/ui/events/KeyCodes",
+	"sap/ui/core/RenderManager",
+	"sap/ui/events/KeyCodes",
 	"sap/ui/core/InvisibleMessage"
 ], function(
 	library,
+	Library,
 	CoreLibrary,
 	Control,
 	ManagedObjectObserver,
@@ -36,19 +38,22 @@ sap.ui.define([
 	InvisibleText,
 	DynamicPageTitleRenderer,
 	Log,
-	HTML,
 	Icon,
 	Device,
+	RenderManager,
 	KeyCodes,
 	InvisibleMessage
 ) {
 	"use strict";
 
-	// shortcut for sap.f.DynamicPageTitleArea
-	var DynamicPageTitleArea = library.DynamicPageTitleArea,
-		ToolbarStyle = mobileLibrary.ToolbarStyle,
-		InvisibleMessageMode = CoreLibrary.InvisibleMessageMode;
-	var oCore = sap.ui.getCore();
+	/**
+	 * @deprecated As of version 1.54
+	 */
+	var DynamicPageTitleArea = library.DynamicPageTitleArea;
+
+	var	ToolbarStyle = mobileLibrary.ToolbarStyle;
+
+	var	InvisibleMessageMode = CoreLibrary.InvisibleMessageMode;
 
 	/**
 	 * Constructor for a new <code>DynamicPageTitle</code>.
@@ -90,13 +95,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.42
 	 * @alias sap.f.DynamicPageTitle
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DynamicPageTitle = Control.extend("sap.f.DynamicPageTitle", /** @lends sap.f.DynamicPageTitle.prototype */ {
 		metadata: {
@@ -119,7 +123,7 @@ sap.ui.define([
 				* <code>primaryArea=Middle</code> can be achieved by setting a low number for the Content area to
 				* <code>areaShrinkRatio</code>, for example <code>1.6:1:1.6</code>.
 				*/
-				primaryArea : {type: "sap.f.DynamicPageTitleArea", group: "Appearance", defaultValue: DynamicPageTitleArea.Begin},
+				primaryArea : {type: "sap.f.DynamicPageTitleArea", group: "Appearance", defaultValue: DynamicPageTitleArea.Begin, deprecated: true},
 
 				/**
 				 * Assigns shrinking ratio to the <code>DynamicPageTitle</code> areas (Heading, Content, Actions).
@@ -171,7 +175,7 @@ sap.ui.define([
 				 * the <code>DynamicPageHeader</code> is in its collapsed (snapped) state.</li>
 				 * </ul>
 				 */
-				heading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				heading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>snappedHeading</code> is positioned in the <code>DynamicPageTitle</code> left area
@@ -191,7 +195,7 @@ sap.ui.define([
 				 *
 				 * @since 1.52
 				 */
-				snappedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				snappedHeading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>expandedHeading</code> is positioned in the <code>DynamicPageTitle</code> left area
@@ -204,7 +208,7 @@ sap.ui.define([
 				 * <code>snappedHeading</code> to switch content when the header switches state.
 				 * @since 1.52
 				 */
-				expandedHeading: {type: "sap.ui.core.Control", multiple: false, defaultValue: null},
+				expandedHeading: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The <code>DynamicPageTitle</code> actions.
@@ -342,7 +346,9 @@ sap.ui.define([
 				}
 			},
 			designtime: "sap/f/designtime/DynamicPageTitle.designtime"
-		}
+		},
+
+		renderer: DynamicPageTitleRenderer
 	});
 
 	function exists(vObject) {
@@ -372,6 +378,21 @@ sap.ui.define([
 	DynamicPageTitle.TOGGLE_HEADER_TEXT_ID = InvisibleText.getStaticId("sap.f", "TOGGLE_HEADER");
 	DynamicPageTitle.DEFAULT_HEADER_TEXT_ID = InvisibleText.getStaticId("sap.f", "DEFAULT_HEADER_TEXT");
 
+	DynamicPageTitle.KNOWN_HEADING_CONTROL_CLASS_NAMES = ["sap.m.Title", "sap.m.Text", "sap.m.FormattedText", "sap.m.Label"];
+
+	/**
+	 * Retrieves the resource bundle for the <code>sap.f</code> library.
+	 * @returns {Object} the resource bundle object
+	 * @private
+	 */
+	DynamicPageTitle._getResourceBundle = function () {
+		return Library.getResourceBundleFor("sap.f");
+	};
+
+	DynamicPageTitle.ARIA = {
+		TOOLBAR_HEADER_ACTIONS: DynamicPageTitle._getResourceBundle().getText("ARIA_LABEL_TOOLBAR_HEADER_ACTIONS")
+	};
+
 	/**
 	 * Flushes the given control into the given container.
 	 * @param {Element} oContainerDOM
@@ -385,29 +406,42 @@ sap.ui.define([
 			return;
 		}
 
-		oRenderManager = oCore.createRenderManager();
+		oRenderManager = new RenderManager().getInterface();
 		oRenderManager.renderControl(oControlToRender);
 		oRenderManager.flush(oContainerDOM);
 		oRenderManager.destroy();
 	};
 
-
 	function isFunction(oObject) {
 		return typeof oObject === "function";
 	}
 
-	/* ========== LIFECYCLE METHODS  ========== */
+	function findTitleInFlexBox(oHeading) {
+		var oTitle = null;
 
+		for (var item of oHeading.getItems()) {
+			if (item.isA("sap.m.Title")) {
+				return item;
+			} else if (item.isA("sap.m.FlexBox")) {
+				oTitle = findTitleInFlexBox(item);
+			}
+		}
+
+		return oTitle;
+	}
+
+	/* ========== LIFECYCLE METHODS  ========== */
 	DynamicPageTitle.prototype.init = function () {
 		this._bExpandedState = true;
 		this._bShowExpandButton = false;
 		this._bIsFocusable = true;
+		this._bNavigationActionsInTopArea = false;
+		this._oInvisibleMessage = null;
+		this._aCachedInvisibleTexts = [];
+
 		this._fnActionSubstituteParentFunction = function () {
 			return this;
 		}.bind(this);
-
-		this._bNavigationActionsInTopArea = false;
-		this._oRB = oCore.getLibraryResourceBundle("sap.f");
 
 		this._oObserver = new ManagedObjectObserver(DynamicPageTitle.prototype._observeChanges.bind(this));
 		this._oObserver.observe(this, {
@@ -416,9 +450,6 @@ sap.ui.define([
 				"_actionsToolbar"
 			]
 		});
-
-		this._oRB = sap.ui.getCore().getLibraryResourceBundle("sap.f");
-		this._oInvisibleMessage = null;
 	};
 
 	DynamicPageTitle.prototype.onBeforeRendering = function () {
@@ -436,6 +467,10 @@ sap.ui.define([
 		// Needs update in order to determine its visibility by visibility of its content.
 		this._updateTopAreaVisibility();
 
+		if (this._getFocusSpan().is(":focus")) {
+			this._addFocusClass();
+		}
+
 		if (!this._oInvisibleMessage) {
 			this._oInvisibleMessage = InvisibleMessage.getInstance();
 		}
@@ -446,6 +481,8 @@ sap.ui.define([
 			this._oObserver.disconnect();
 			this._oObserver = null;
 		}
+
+		this._destroyInvisibleTexts();
 	};
 
 	/* ========== PUBLIC METHODS  ========== */
@@ -481,7 +518,7 @@ sap.ui.define([
 	 * Sets the value of the <code>areaShrinkRatio</code> property.
 	 *
 	 * @param {sap.f.DynamicPageTitleShrinkRatio} sAreaShrinkRatio - new value of the <code>areaShrinkRatio</code>
-	 * @return {sap.f.DynamicPageTitle} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @since 1.54
 	 */
@@ -493,6 +530,9 @@ sap.ui.define([
 
 		var oShrinkFactorsInfo = this._getShrinkFactorsObject();
 
+		/**
+		 * @deprecated As of version 1.54
+		 */
 		if (this.getPrimaryArea() === DynamicPageTitleArea.Middle) {
 			Log.warning("DynamicPageTitle :: Property primaryArea is disregarded when areaShrinkRatio is set.", this);
 		}
@@ -680,11 +720,57 @@ sap.ui.define([
 
 	/* ========== PRIVATE METHODS  ========== */
 
+	DynamicPageTitle.prototype._getTitleText = function() {
+		var oHeading = this.getHeading(),
+			sClassName = oHeading && oHeading.getMetadata().getName(),
+			oTitle,
+			sTitleText;
+
+		if (DynamicPageTitle.KNOWN_HEADING_CONTROL_CLASS_NAMES.indexOf(sClassName) > -1) {
+			sTitleText = oHeading.getText();
+		} else if (oHeading?.isA("sap.m.FlexBox")) {
+			oTitle = findTitleInFlexBox(oHeading);
+			sTitleText = oTitle?.getText();
+		}
+
+		return sTitleText;
+	};
+
+
+	/**
+	 * Creates and caches an instance of the {@link sap.ui.core.InvisibleText} control for the specified aria label.
+	 * @param {string} sId The ID for the invisible text control.
+	 * @param {string} sAriaLabel The aria label to set for the invisible text control.
+	 * @returns {sap.ui.core.InvisibleText} The created invisible text control.
+	 * @private
+	 */
+	DynamicPageTitle.prototype._getInvisibleText = function(sId, sAriaLabel) {
+		var oInvisibleText = new InvisibleText({
+			id: sId + "-InvisibleText",
+			text: sAriaLabel
+		}).toStatic();
+
+		this._aCachedInvisibleTexts.push(oInvisibleText);
+		return oInvisibleText;
+	};
+
+	/**
+ 	 * Destroys all cached instances of the {@link sap.ui.core.InvisibleText} control.
+	 * @private
+ 	 */
+	DynamicPageTitle.prototype._destroyInvisibleTexts = function () {
+		this._aCachedInvisibleTexts.forEach(function (oInvisibleText) {
+			oInvisibleText.destroy();
+		});
+
+		this._aCachedInvisibleTexts = [];
+	};
+
 	/**
 	 * Checks if an action already exists in <code>DynamicPageTitle</code> actions/navigationActions.
 	 * @param {sap.ui.core.Control} oAction
-	 * @param {String} sAggregationName
-	 * @returns {Boolean}
+	 * @param {string} sAggregationName
+	 * @returns {boolean}
 	 * @private
 	 */
 	DynamicPageTitle.prototype._actionExists = function (oAction, sAggregationName) {
@@ -716,10 +802,13 @@ sap.ui.define([
 	 * @private
 	 */
 	DynamicPageTitle.prototype._getActionsToolbar = function () {
+		var sId = this.getId() + "-_actionsToolbar";
+
 		if (!this.getAggregation("_actionsToolbar")) {
 			this.setAggregation("_actionsToolbar", new OverflowToolbar({
-				id: this.getId() + "-_actionsToolbar",
-				style: ToolbarStyle.Clear
+				id: sId,
+				style: ToolbarStyle.Clear,
+				ariaLabelledBy: this._getInvisibleText(sId, DynamicPageTitle.ARIA.TOOLBAR_HEADER_ACTIONS)
 			}).addStyleClass("sapFDynamicPageTitleActionsBar"), true); // suppress invalidate, as this is always called onBeforeRendering
 		}
 
@@ -732,10 +821,13 @@ sap.ui.define([
 	 * @private
 	 */
 	DynamicPageTitle.prototype._getNavigationActionsToolbar = function () {
+		var sId = this.getId() + "-navActionsToolbar";
+
 		if (!this.getAggregation("_navActionsToolbar")) {
 			this.setAggregation("_navActionsToolbar", new Toolbar({
-				id: this.getId() + "-navActionsToolbar",
-				style: ToolbarStyle.Clear
+				id: sId,
+				style: ToolbarStyle.Clear,
+				ariaLabelledBy: this._getInvisibleText(sId, DynamicPageTitle.ARIA.TOOLBAR_HEADER_ACTIONS)
 			}).addStyleClass("sapFDynamicPageTitleActionsBar"), true);
 		}
 
@@ -759,7 +851,7 @@ sap.ui.define([
 
 	/**
 	 * Toggles the <code>DynamicPageTitle</code>'s <code>tabindex</code> according to the provided state.
-	 * @param {Boolean} bFocusable
+	 * @param {boolean} bFocusable
 	 * @private
 	 */
 	DynamicPageTitle.prototype._toggleFocusableState = function (bFocusable) {
@@ -821,6 +913,28 @@ sap.ui.define([
 		oAction._sOriginalParentAggregationName = null;
 	};
 
+	DynamicPageTitle.prototype.onfocusfail = function (oEvent) {
+		var oSourceControl = oEvent.srcControl;
+
+		if (oSourceControl.sParentAggregationName === "actions") {
+			this.getAggregation("_actionsToolbar")?.onfocusfail(oEvent);
+		} else {
+			Control.prototype.onfocusfail.apply(this, arguments);
+		}
+	};
+
+	/**
+	 * Called when LayoutData of actions/content buttons is changed
+	 */
+	DynamicPageTitle.prototype.onLayoutDataChange = function(oEvent) {
+		var oEventSource = oEvent.srcControl,
+			oOverflowToolbar = oEventSource && typeof oEventSource._fnOriginalGetParent === "function" && oEventSource._fnOriginalGetParent();
+
+		if (oOverflowToolbar) {
+			oOverflowToolbar.onLayoutDataChange(oEvent);
+		}
+	};
+
 	/**
 	 * Starts observing the <code>visible</code> property.
 	 * @param {sap.ui.core.Control} oControl
@@ -879,7 +993,7 @@ sap.ui.define([
 	/**
 	 * Toggles navigation actions placement change if certain preconditions are met.
 	 *
-	 * @param {Number} iCurrentWidth
+	 * @param {number} iCurrentWidth
 	 * @private
 	 */
 	DynamicPageTitle.prototype._updateTopAreaVisibility = function (iCurrentWidth) {
@@ -888,9 +1002,13 @@ sap.ui.define([
 			bHasVisibleBreadcrumbs = this.getBreadcrumbs() && this.getBreadcrumbs().getVisible(),
 			bHasVisibleSnappedTitleOnMobile = Device.system.phone && this.getSnappedTitleOnMobile() && !this._bExpandedState,
 			bShouldShowTopArea = (bHasVisibleBreadcrumbs || bNavigationActionsShouldBeInTopArea) && !bHasVisibleSnappedTitleOnMobile,
-			bShouldChangeNavigationActionsPlacement = this.getNavigationActions().length > 0 && (bNavigationActionsShouldBeInTopArea ^ bNavigationActionsAreInTopArea);
+			bShouldChangeNavigationActionsPlacement = this.getNavigationActions().length > 0 && (bNavigationActionsShouldBeInTopArea ^ bNavigationActionsAreInTopArea),
+			$topArea = this.$topArea;
 
 		this._toggleTopAreaVisibility(bShouldShowTopArea);
+
+		$topArea && $topArea.toggleClass("sapFDynamicPageTitleTopBreadCrumbsOnly",
+			bHasVisibleBreadcrumbs && !bNavigationActionsShouldBeInTopArea);
 
 		if (bShouldChangeNavigationActionsPlacement) {
 			this._toggleNavigationActionsPlacement(bNavigationActionsShouldBeInTopArea);
@@ -902,7 +1020,7 @@ sap.ui.define([
 	/**
 	 * Handles control re-sizing.
 	 * <b>Note:</b> The method is called by the parent <code>DynamicPage</code>.
-	 * @param {Number} iCurrentWidth
+	 * @param {number} iCurrentWidth
 	 * @private
 	 */
 	DynamicPageTitle.prototype._onResize = function (iCurrentWidth) {
@@ -972,7 +1090,7 @@ sap.ui.define([
 	/**
 	 * Updates the top title area visibility.
 	 *
-	 * @param {Boolean} bShoudShowTopArea
+	 * @param {boolean} bShoudShowTopArea
 	 * @private
 	 */
 	DynamicPageTitle.prototype._toggleTopAreaVisibility = function(bShoudShowTopArea) {
@@ -983,7 +1101,7 @@ sap.ui.define([
 
 	/**
 	 * Determines if the <code>ToolbarSeparator</code> should be displayed.
-	 * @returns {Boolean}
+	 * @returns {boolean}
 	 * @private
 	 */
 	DynamicPageTitle.prototype._shouldShowSeparator = function() {
@@ -1024,9 +1142,9 @@ sap.ui.define([
 
 	/**
 	 * Sets flex-shrink CSS style to the Heading, Content and Actions areas
-	 * @param {Number} fHeadingFactor - Heading shrink factor
-	 * @param {Number} fContentFactor - Content shrink factor
-	 * @param {Number} fActionsFactor - Actions shrink factor
+	 * @param {number} fHeadingFactor - Heading shrink factor
+	 * @param {number} fContentFactor - Content shrink factor
+	 * @param {number} fActionsFactor - Actions shrink factor
 	 * @private
 	 */
 	DynamicPageTitle.prototype._setShrinkFactors = function(fHeadingFactor, fContentFactor, fActionsFactor) {
@@ -1037,8 +1155,8 @@ sap.ui.define([
 
 	/**
 	 * Determines if the <code>navigationActions</code> should be rendered in the top area.
-	 * @param {Number} iCurrentWidth
-	 * @returns {Boolean}
+	 * @param {number} iCurrentWidth
+	 * @returns {boolean}
 	 * @private
 	 */
 	DynamicPageTitle.prototype._shouldRenderNavigationActionsInTopArea = function (iCurrentWidth) {
@@ -1122,7 +1240,7 @@ sap.ui.define([
 				id: this.getId() + "-expandBtn",
 				icon: "sap-icon://slim-arrow-down",
 				press: this._onExpandButtonPress.bind(this),
-				tooltip: this._oRB.getText("EXPAND_HEADER_BUTTON_TOOLTIP")
+				tooltip: DynamicPageTitle._getResourceBundle().getText("EXPAND_HEADER_BUTTON_TOOLTIP")
 			}).addStyleClass("sapFDynamicPageToggleHeaderIndicator sapUiHidden");
 			this.setAggregation("_expandButton", oExpandButton, true);
 		}
@@ -1163,7 +1281,7 @@ sap.ui.define([
 	 */
 	DynamicPageTitle.prototype._toggleExpandButton = function (bToggle) {
 		this._setShowExpandButton(bToggle);
-		this._getExpandButton().$().toggleClass("sapUiHidden", !bToggle);
+		this._getExpandButton().toggleStyleClass("sapUiHidden", !bToggle);
 	};
 
 	/**
@@ -1189,8 +1307,9 @@ sap.ui.define([
 	 * @private
 	 */
 	DynamicPageTitle.prototype._focusExpandButton = function () {
+		var sTextToAnnounce = DynamicPageTitle._getResourceBundle().getText("SNAPPED_HEADER");
 		this._getExpandButton().$().trigger("focus");
-		this._oInvisibleMessage.announce(this._getExpandButton().getTooltip(), InvisibleMessageMode.Polite);
+		this._oInvisibleMessage.announce(sTextToAnnounce, InvisibleMessageMode.Polite);
 	};
 
 	/**
@@ -1200,6 +1319,10 @@ sap.ui.define([
 	 */
 	DynamicPageTitle.prototype._getWidth = function () {
 		return this.$().outerWidth();
+	};
+
+	DynamicPageTitle.prototype.getFocusDomRef = function() {
+		return this._getFocusSpan()[0] || null;
 	};
 
 	/**
@@ -1225,11 +1348,17 @@ sap.ui.define([
 			bHasTopContent = oBreadcrumbs || bHasNavigationActions,
 			bHasOnlyBreadcrumbs = !!(oBreadcrumbs && !bHasNavigationActions),
 			bHasOnlyNavigationActions = bHasNavigationActions && !oBreadcrumbs,
-			sAreaShrinkRatioDefaultValue = this.getMetadata().getProperty("areaShrinkRatio").getDefaultValue();
+			sAreaShrinkRatioDefaultValue = this.getMetadata().getProperty("areaShrinkRatio").getDefaultValue(),
+			bAriaShrinkRatioDefault = this.getAreaShrinkRatio() === sAreaShrinkRatioDefaultValue;
 
-		// if areaShrinkRatio is set to default value (or not set at all) and primaryArea is set,
+		/**
+		 * @deprecated As of version 1.54
+		 */
+		bAriaShrinkRatioDefault = bAriaShrinkRatioDefault && this.getPrimaryArea() === DynamicPageTitleArea.Middle;
+
+		// if areaShrinkRatio is set to default value (or not set at all)
 		// use shrink factors defined for primaryArea
-		if (this.getAreaShrinkRatio() === sAreaShrinkRatioDefaultValue && this.getPrimaryArea() === DynamicPageTitleArea.Middle) {
+		if (bAriaShrinkRatioDefault) {
 			oShrinkFactorsInfo.headingAreaShrinkFactor = DynamicPageTitle.PRIMARY_AREA_MIDDLE_SHRINK_FACTORS.headingAreaShrinkFactor;
 			oShrinkFactorsInfo.contentAreaShrinkFactor = DynamicPageTitle.PRIMARY_AREA_MIDDLE_SHRINK_FACTORS.contentAreaShrinkFactor;
 			oShrinkFactorsInfo.actionsAreaShrinkFactor = DynamicPageTitle.PRIMARY_AREA_MIDDLE_SHRINK_FACTORS.actionsAreaShrinkFactor;
@@ -1267,9 +1396,11 @@ sap.ui.define([
 			hasTopContent: bHasTopContent,
 			hasOnlyBreadcrumbs: bHasOnlyBreadcrumbs,
 			hasOnlyNavigationActions: bHasOnlyNavigationActions,
-			contentAreaFlexBasis: this._sContentAreaFlexBasis,
-			actionsAreaFlexBasis: this._sActionsAreaFlexBasis,
-			isFocusable: this._bIsFocusable
+			contentAreaHasContent: this._bContentAreaHasContent,
+			actionsAreaHasContent: this._bActionsAreaHasContent,
+			isFocusable: this._bIsFocusable,
+			actionsAreaMinWidth: this._sActionsAreaMinWidth,
+			contentAreaMinWidth: this._sContentAreaMinWidth
 		};
 	};
 
@@ -1317,7 +1448,8 @@ sap.ui.define([
 	*/
 	DynamicPageTitle.prototype._observeContentChanges = function (oChanges) {
 		var oControl = oChanges.child,
-			sMutation = oChanges.mutation;
+			sMutation = oChanges.mutation,
+			$node =  oControl.$().parent();
 
 		// Only overflow toolbar is supported as of now
 		if (!(oControl instanceof OverflowToolbar)) {
@@ -1326,9 +1458,12 @@ sap.ui.define([
 
 		if (sMutation === "insert") {
 			oControl.attachEvent("_contentSizeChange", this._onContentSizeChange, this);
+			oControl.attachEvent("_minWidthChange", this._onContentMinWidthChange, this);
 		} else if (sMutation === "remove") {
 			oControl.detachEvent("_contentSizeChange", this._onContentSizeChange, this);
-			this._setContentAreaFlexBasis(0, oControl.$().parent());
+			oControl.detachEvent("_minWidthChange", this._onContentMinWidthChange, this);
+			this._setContentAreaFlexBasis(0, $node);
+			$node.css({ "min-width": "" });
 		}
 	};
 
@@ -1340,7 +1475,27 @@ sap.ui.define([
 	 */
 	DynamicPageTitle.prototype._onContentSizeChange = function (oEvent) {
 		var iContentSize = oEvent.getParameter("contentSize");
-			this._setContentAreaFlexBasis(iContentSize, oEvent.getSource().$().parent());
+		this._setContentAreaFlexBasis(iContentSize, oEvent.getSource().$().parent());
+	};
+
+	/**
+	 * Called whenever the required min-width of an overflow toolbar's content, used in the content aggregation, changes.
+	 * Min-width is defined as the total width of the content, which never overflows, and the overflow button.
+	 * @param oEvent
+	 * @private
+	 */
+		DynamicPageTitle.prototype._onContentMinWidthChange = function (oEvent) {
+		var iMinWidth = oEvent.getParameter("minWidth"),
+			sMinWidth = iMinWidth > 0 ? iMinWidth + "px" : "",
+			$node = oEvent.getSource().$().parent();
+
+		$node.css({ "min-width": sMinWidth });
+
+		if ($node.hasClass("sapFDynamicPageTitleMainContent")) {
+			this._sContentAreaMinWidth = sMinWidth;
+		} else if ($node.hasClass("sapFDynamicPageTitleMainActions")) {
+			this._sActionsAreaMinWidth = sMinWidth;
+		}
 	};
 
 	/**
@@ -1351,25 +1506,22 @@ sap.ui.define([
 	 * @private
 	 */
 	DynamicPageTitle.prototype._setContentAreaFlexBasis = function (iContentSize, $node) {
-		var sFlexBasis,
-			sFlexBasisCachedValue;
+		var bAreaHasContent;
 
 		iContentSize = parseInt(iContentSize);
-		sFlexBasis = iContentSize ? iContentSize + "px" : "auto";
-
-		sFlexBasisCachedValue = sFlexBasis !== "auto" ? sFlexBasis : undefined;
-
-		$node.css({ "flex-basis": sFlexBasis });
+		bAreaHasContent = iContentSize && iContentSize > 1;
 
 		if ($node.hasClass("sapFDynamicPageTitleMainContent")) {
-			this._sContentAreaFlexBasis = sFlexBasisCachedValue;
+			this._bContentAreaHasContent = bAreaHasContent;
+			$node.toggleClass("sapFDynamicPageTitleMainContentHasContent", bAreaHasContent);
 		} else if ($node.hasClass("sapFDynamicPageTitleMainActions")) {
-			this._sActionsAreaFlexBasis = sFlexBasisCachedValue;
+			this._bActionsAreaHasContent = bAreaHasContent;
+			$node.toggleClass("sapFDynamicPageTitleMainActionsHasContent", bAreaHasContent);
 		}
 	};
 
 	DynamicPageTitle.prototype._updateARIAState = function (bExpanded) {
-		var sARIAText = this._getARIALabelReferences(bExpanded) || DynamicPageTitle.DEFAULT_HEADER_TEXT_ID,
+		var sARIAText = this._getARIALabelReferences(bExpanded),
 			$oFocusSpan = this._getFocusSpan();
 
 		if ($oFocusSpan) {
@@ -1381,13 +1533,21 @@ sap.ui.define([
 
 	DynamicPageTitle.prototype._getARIALabelReferences = function (bExpanded) {
 		var sReferences = "",
+			oTitle,
+			sTitleId,
 			oHeading = this.getHeading() || (bExpanded ? this.getExpandedHeading() : this.getSnappedHeading());
 
 		if (oHeading) {
-			sReferences += oHeading.getId();
+			oTitle = oHeading.getTitle && oHeading.getTitle();
+
+			if (oTitle && oTitle.getId) {
+				sTitleId = oTitle.getId();
+			}
+
+			sReferences += sTitleId || oHeading.getId();
 		}
 
-		return sReferences;
+		return sReferences || DynamicPageTitle.DEFAULT_HEADER_TEXT_ID;
 	};
 
 	DynamicPageTitle.prototype._focus = function () {

@@ -1,73 +1,86 @@
 /* global QUnit */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/UIComponent",
-	"sap/ui/core/ComponentContainer",
 	"sap/ui/core/mvc/XMLView",
-	"sap/ui/rta/command/CommandFactory",
+	"sap/ui/core/ComponentContainer",
+	"sap/ui/core/UIComponent",
+	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/dt/DesignTime",
 	"sap/ui/dt/DesignTimeStatus",
 	"sap/ui/dt/OverlayRegistry",
-	"sap/ui/fl/ChangePersistence",
-	"sap/ui/model/Model",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/apply/_internal/changes/Utils",
+	"sap/ui/fl/changeHandler/condenser/Classification",
 	"sap/ui/fl/write/api/PersistenceWriteAPI",
-	"sap/ui/fl/Cache",
 	"sap/ui/fl/Layer",
+	"sap/ui/model/Model",
+	"sap/ui/rta/command/CommandFactory",
+	"sap/ui/rta/util/changeVisualization/ChangeCategories",
+	"sap/ui/rta/util/changeVisualization/ChangeVisualization",
+	"sap/ui/qunit/utils/nextUIUpdate",
 	"sap/ui/thirdparty/sinon-4",
-	"sap/ui/fl/library" //we have to ensure to load fl, so that change handler gets registered
+	"test-resources/sap/ui/fl/api/FlexTestAPI",
+	"test-resources/sap/ui/fl/qunit/FlQUnitUtils",
+	"sap/ui/fl/library" // we have to ensure to load fl, so that change handler gets registered
 ], function(
-	UIComponent,
-	ComponentContainer,
 	XMLView,
-	CommandFactory,
+	ComponentContainer,
+	UIComponent,
+	JsControlTreeModifier,
 	DesignTime,
 	DesignTimeStatus,
 	OverlayRegistry,
-	ChangePersistence,
-	Model,
-	Settings,
+	ChangesUtils,
+	CondenserClassification,
 	PersistenceWriteAPI,
-	Cache,
 	Layer,
-	sinon
+	Model,
+	CommandFactory,
+	ChangeCategories,
+	ChangeVisualization,
+	nextUIUpdate,
+	sinon,
+	FlexTestAPI,
+	FlQUnitUtils
 ) {
 	"use strict";
 
 	/**
 	 * Utility function which builds and registers QUnit tests to check if a SAPUI5 control is ready for UI adaptation at runtime (RTA)
 	 *
-	 * See <code>RTAControlEnabling.qunit.html</code> and <code>RTAControlEnabling.qunit.js</code> as an example on how to use.
+	 * See <code>elementActionTest.qunit.js</code> as an example on how to use.
 	 *
 	 * During development you may insert ".skip" to omit processing of a specific control enabling check:
-	 * <code>controlEnablingCheck.skip(...);</code> instead of <code>controlEnablingCheck(...);</code>.
+	 * <code>elementActionTest.skip(...);</code> instead of <code>elementActionTest(...);</code>.
 	 *
-	 * Use <code>controlEnablingCheck.only( sMsgSubstring );</code> to specify that only some tests are to be executed:
-	 * E.g. <code>controlEnablingCheck.only("Remove");</code>
+	 * Use <code>elementActionTest.only( sMsgSubstring );</code> to specify that only some tests are to be executed:
+	 * E.g. <code>elementActionTest.only("Remove");</code>
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @static
 	 * @since 1.42
 	 * @alias sap.ui.rta.enablement.elementActionTest
 	 *
 	 * @param {string} sMsg - Name of QUnit test - e.g. Checking the move action for a VerticalLayout control
-	 * @param {object} mOptions - Configuration for this controlEnablingCheck
+	 * @param {object} mOptions - Configuration for this elementActionTest
 	 * @param {string} [mOptions.layer] - Flex layer used during testing, use it in case actions are enabled for other layers then CUSTOMER
 	 * @param {string|object} mOptions.xmlView - XML view content or all settings available to sap.ui.xmlView, to have a view to apply the action
 	 * @param {sap.ui.model.Model} [mOptions.model] - Any model to be assigned on the view
 	 * @param {string} [mOptions.placeAt="qunit-fixture"] - Id of tag to place view at runtime
 	 * @param {boolean} [mOptions.jsOnly] - Set to true, if change handler cannot work on xml view
+	 * @param {string} [mOptions.label] - Check the result of "getLabel" function from the control designtime metadata
 	 * @param {object} mOptions.action - Action to operate on <code>mOptions.xmlView</code>
 	 * @param {string} mOptions.action.name - Name of the action - e.g. 'remove', 'move', 'rename'
 	 * @param {string} [mOptions.action.controlId] - Id of the control the action is executed with - may be the parent of the control being 'touched'
 	 * @param {function():sap.ui.core.Control} [mOptions.action.control] - Function returning the control instance on which the change is being applied
+	 * @param {function():sap.ui.core.Control} [mOptions.action.designtimeActionControl] - Function returning the control where the designtime action is defined
+	 * @param {string} [mOptions.action.label] - Check the result of "getLabel" function from the action in the control designtime metadata
 	 * @param {function} mOptions.action.parameter - Function(oView) returning the parameter object of the action to be executed
 	 * @param {function} [mOptions.before] - Function(assert) hook before test execution is started
 	 * @param {function} [mOptions.after] - Function(assert) hook after test execution is finished
@@ -76,66 +89,75 @@ sap.ui.define([
 	 * @param {function} mOptions.afterAction - Function(oUiComponent, oView, assert) which checks the outcome of the action
 	 * @param {function} mOptions.afterUndo - Function(oUiComponent, oView, assert) which checks the execution of the action and an immediate undo
 	 * @param {function} mOptions.afterRedo - Function(oUiComponent, oView, assert) which checks the outcome of action with immediate undo and redo
+	 * @param {object|function} [mOptions.changeVisualization] - Change visualization information or function(oView) that returns the information
+	 * @param {string} [mOptions.changeVisualization.displayElementId] - ID of the element where the change indicator should be displayed
+	 * @param {object} [mOptions.changeVisualization.info] - Change visualization specific information from the change handler
+	 * @param {string[]} [mOptions.changeVisualization.info.affectedControls] - IDs of affected controls
+	 * @param {string[]} [mOptions.changeVisualization.info.dependentControls] - IDs of dependent controls
+	 * @param {string[]} [mOptions.changeVisualization.info.displayControls] - IDs of the elements where the change indicator will be displayed
+	 * @param {object} [mOptions.changeVisualization.info.descriptionPayload] - Payload with additional data for the change visualization
 	 */
-	var controlEnablingCheck = function(sMsg, mOptions) {
-		// Return if controlEnablingCheck.only() has been used to exclude this call
-		if (controlEnablingCheck._only && (sMsg.indexOf(controlEnablingCheck._only) < 0)) { return; }
+	function elementActionTest(sMsg, mOptions) {
+		// Return if elementActionTest.only() has been used to exclude this call
+		if (elementActionTest._only && (sMsg.indexOf(elementActionTest._only) < 0)) { return; }
 
 		if (typeof mOptions.xmlView === "string") {
 			mOptions.xmlView = {
-				viewContent : mOptions.xmlView
+				viewContent: mOptions.xmlView
 			};
 		}
-		var sandbox = sinon.sandbox.create();
+		const sandbox = sinon.createSandbox();
 
-		mOptions.before = mOptions.before || function() {};
-		mOptions.after = mOptions.after || function() {};
+		mOptions.before ||= function() {};
+		mOptions.after ||= function() {};
 
 		// Do QUnit tests
 		QUnit.module(sMsg, function() {
-			QUnit.test("When using the 'controlEnablingCheck' function to test if your control is ready for UI adaptation at runtime", function(assert) {
-				assert.ok(mOptions.afterAction, "then you implement a function to check if your action has been successful: See the afterAction parameter.");
-				assert.ok(mOptions.afterUndo, "then you implement a function to check if the undo has been successful: See the afterUndo parameter.");
-				assert.ok(mOptions.afterRedo, "then you implement a function to check if the redo has been successful: See the afterRedo parameter.");
-				assert.ok(mOptions.xmlView, "then you provide an XML view to test on: See the.xmlView parameter.");
+			QUnit.test("When using the 'elementActionTest' function to test if your control is ready for UI adaptation at runtime", function(assert) {
+				assert.ok(mOptions.afterAction,
+					"then you implement a function to check if your action has been successful: See the afterAction parameter.");
+				assert.ok(mOptions.afterUndo,
+					"then you implement a function to check if the undo has been successful: See the afterUndo parameter.");
+				assert.ok(mOptions.afterRedo,
+					"then you implement a function to check if the redo has been successful: See the afterRedo parameter.");
+				assert.ok(mOptions.xmlView,
+					"then you provide an XML view to test on: See the.xmlView parameter.");
 
-				var oXmlView = new DOMParser().parseFromString(mOptions.xmlView.viewContent, "application/xml").documentElement;
+				const oXmlView = new DOMParser().parseFromString(mOptions.xmlView.viewContent, "application/xml").documentElement;
 				assert.ok(oXmlView.tagName.match("View$"), "then you use the sap.ui.core.mvc View tag as the first tag in your view");
 
 				assert.ok(mOptions.action, "then you provide an action: See the action parameter.");
 				assert.ok(mOptions.action.name, "then you provide an action name: See the action.name parameter.");
-				assert.ok(mOptions.action.controlId || mOptions.action.control, "then you provide the control or control's id to operate the action on: See the action.controlId.");
+				assert.ok(mOptions.action.controlId || mOptions.action.control,
+					"then you provide the control or control's id to operate the action on: See the action.controlId.");
 			});
 		});
 
-
-		var UI_COMPONENT_NAME = "sap.ui.rta.control.enabling.comp";
-		var SYNC = false;
-		var ASYNC = true;
-		var Comp = UIComponent.extend(UI_COMPONENT_NAME, {
+		const UI_COMPONENT_NAME = "sap.ui.rta.control.enabling.comp";
+		const SYNC = false;
+		const ASYNC = true;
+		const Comp = UIComponent.extend(UI_COMPONENT_NAME, {
 			metadata: {
-				manifest : {
+				interfaces: ["sap.ui.core.IAsyncContentCreation"],
+				manifest: {
 					"sap.app": {
 						id: UI_COMPONENT_NAME,
 						type: "application"
-					},
-					getEntry: function() {
-						return {
-							type: "application"
-						};
 					}
 				}
 			},
-			createContent : function() {
-				var mViewSettings = Object.assign({}, mOptions.xmlView);
+			createContent() {
+				const mViewSettings = { ...mOptions.xmlView };
 				mViewSettings.id = this.createId("view");
 
 				if (mViewSettings.async === undefined) {
-					// async = true will trigger the xml preprocessors on the xml view, but if defined preprocessors need async, we will always trigger async
+					// async = true will trigger the xml preprocessors on the xml view,
+					// but if defined preprocessors need async, we will always trigger async
 					mViewSettings.async = this.getComponentData().async;
 				}
-				var oView = new XMLView(mViewSettings);
-				return oView;
+				mViewSettings.definition = mViewSettings.viewContent;
+				this.oViewPromise = XMLView.create(mViewSettings);
+				return this.oViewPromise;
 			}
 		});
 
@@ -147,129 +169,244 @@ sap.ui.define([
 					async: bAsync
 				}
 			});
+			return this.oUiComponent.oViewPromise.then(async function() {
+				// Place component in container and display
+				this.oUiComponentContainer = new ComponentContainer({
+					component: this.oUiComponent,
+					height: "100%"
+				});
+				this.oUiComponentContainer.placeAt(mOptions.placeAt || "qunit-fixture");
 
-			// Place component in container and display
-			this.oUiComponentContainer = new ComponentContainer({
-				component: this.oUiComponent,
-				height: '100%'
-			});
-			this.oUiComponentContainer.placeAt(mOptions.placeAt || "qunit-fixture");
+				this.oView = this.oUiComponent.getRootControl();
 
-			this.oView = this.oUiComponent.getRootControl();
+				if (mOptions.model instanceof Model) {
+					this.oView.setModel(mOptions.model);
+				}
 
-			if (mOptions.model instanceof Model) {
-				this.oView.setModel(mOptions.model);
-			}
+				await nextUIUpdate();
 
-			sap.ui.getCore().applyChanges();
-
-			return Promise.all([
-				this.oView.loaded(),
-				mOptions.model && mOptions.model.getMetaModel() && mOptions.model.getMetaModel().loaded()
-			]);
+				return mOptions.model && mOptions.model.getMetaModel() && mOptions.model.getMetaModel().loaded();
+			}.bind(this));
 		}
 
-		function buildCommands(assert) {
-			var aActions = [];
-			if (mOptions.previousActions) {
-				aActions = aActions.concat(mOptions.previousActions);
-			}
-			aActions.push(mOptions.action);
-			var aCommands = [];
-			return aActions.reduce(function(oLastPromise, oAction) {
-				return oLastPromise
-				.then(buildCommand.bind(this, assert, oAction))
-				.then(function(oCommand) {
-					aCommands.push(oCommand);
-				});
-			}.bind(this), Promise.resolve())
+		function buildAndExecuteCommands(assert, mCreateCasePropertyBag) {
+			const aActions = [].concat(
+				mOptions.previousActions || [],
+				mOptions.action
+			);
+			const aCommands = [];
 
+			async function fnReduce(oAction, bLastAction) {
+				const oCommand = await buildCommand.call(this, assert, oAction);
+				aCommands.push(oCommand);
+				await oCommand.execute();
+
+				if (
+					bLastAction // exclude previous actions from duplicate change check
+					&& mCreateCasePropertyBag?.relevantForDuplicateChangeCheck
+					&& await isCreateCaseAvailable.call(this, oCommand, oAction)
+				) {
+					await waitForDtSync(this.oDesignTime);
+					mCreateCasePropertyBag.duplicateChangeCheckActive = true;
+					const oSecondCommand = await buildCommand.call(this, assert, oAction);
+					aCommands.push(oSecondCommand);
+					try {
+						await oSecondCommand.execute();
+					} catch (oError) {
+						assert.strictEqual(
+							oSecondCommand.getPreparedChange()?.hasApplyProcessFailed(),
+							true,
+							`then on second application of the same action returns the following error message: ${oError.message || oError}`
+						);
+					}
+				}
+				await waitForDtSync(this.oDesignTime);
+			}
+
+			return aActions.reduce(function(oLastPromise, oAction, iIndex) {
+				return oLastPromise.then(fnReduce.bind(this, oAction, (iIndex === aActions.length - 1)));
+			}.bind(this), Promise.resolve())
 			.then(function() {
 				return aCommands;
 			});
 		}
 
-		function buildCommand(assert, oAction) {
-			return Promise.resolve().then(function() {
-				var oControl;
-				var mParameter;
-				var oElementDesignTimeMetadata;
-				if (typeof oAction.control === "function") {
-					oControl = oAction.control(this.oView);
-				} else {
-					oControl = this.oView.byId(oAction.controlId);
+		function getControlFromActionMap(mAction) {
+			if (typeof mAction.control === "function") {
+				return mAction.control(this.oView);
+			}
+			return this.oView.byId(mAction.controlId);
+		}
+
+		function getDesigntimeActionControl(mAction) {
+			return mAction.designtimeActionControl
+				? mAction.designtimeActionControl(this.oView)
+				: undefined;
+		}
+
+		function startDesigntime() {
+			this.oDesignTime = new DesignTime({
+				rootElements: [
+					this.oView
+				]
+			});
+			return new Promise(function(resolve) {
+				this.oDesignTime.attachEventOnce("synced", resolve);
+			}.bind(this));
+		}
+
+		function getParameterMap(vParameter) {
+			if (vParameter) {
+				return typeof vParameter === "function" ? vParameter(this.oView) : vParameter;
+			}
+			return {};
+		}
+
+		/**
+		 * Checks if the provided action can be found in the calculated designtime metadata. According to the
+		 * action.name sometimes the elementdesigntime metadata or the aggregationdesigntime metadata is required
+		 * for the check.
+		 *
+		 * @param {object} assert - QUnit Assert
+		 * @param {object} oAction - Test action parameters
+		 * @param {sap.ui.core.Control} oControl - Targeting control
+		 * @param {sap.ui.core.Control} oMovedElement - Moved element, only available with action.name move
+		 * @param {object} oElementDesignTimeMetadata - Element designtime metadata
+		 * @param {object} oAggregationDesignTimeMetadata - Aggregation designtime metadata
+		 */
+		function checkDesigntimeMetadata(
+			assert,
+			oAction,
+			oControl,
+			oMovedElement,
+			oElementDesignTimeMetadata,
+			oAggregationDesignTimeMetadata
+		) {
+			if (Array.isArray(oAction.name)) {
+				const oAddAction = oElementDesignTimeMetadata.getAction(
+					oAction.name[0],
+					oControl,
+					oAction.name[1]
+				);
+				assert.ok(oAddAction,
+					`the ${oAction[0]} via ${oAction.name[1]} action is available in the designtime`
+				);
+			} else if (oAction.name === "createContainer" || oAction.name === "addIFrame") {
+				assert.ok(oAggregationDesignTimeMetadata.getAction(oAction.name, oControl),
+					`the ${oAction.name} action is available in the calculated designtime metadata during execution`);
+			} else if (oAction.name === "move") {
+				assert.ok(oElementDesignTimeMetadata.getAction(oAction.name, oMovedElement),
+					`the ${oAction.name} action is available in the calculated designtime metadata during execution`);
+			} else {
+				assert.ok(oElementDesignTimeMetadata.getAction(oAction.name, oControl),
+					`the ${oAction.name} action is available in the calculated designtime metadata during execution`);
+			}
+		}
+
+		async function buildCommand(assert, oAction) {
+			try {
+				let sCommandName = oAction.name;
+				let oAggregationDesignTimeMetadata;
+				let oMovedElement;
+				let oTargetControl = await getControlFromActionMap.call(this, oAction);
+				const mParameter = getParameterMap.call(this, oAction.parameter);
+				const oControlWithDesigntimeActionDefinition = await getDesigntimeActionControl.call(this, oAction);
+
+				await startDesigntime.call(this);
+
+				// gather data for the designtime check and the command factory
+				let oControlOverlay = OverlayRegistry.getOverlay(oControlWithDesigntimeActionDefinition || oTargetControl);
+				if (!oControlOverlay) {
+					throw new Error(
+						`The provided control ${oTargetControl.getId()}does not have any overlay existing during test execution. `
+						+ "With this testsetup it is no possible to check for designtime action definition. In some cases it is not "
+						+ "possible to identify the control with the designtime metadata automatically just by the given 'action.control'. "
+						+ "In this case please provide the 'action.designtimeActionControl' property with a valid control containing "
+						+ "the designtime metadata definition for this check."
+					);
 				}
-				var sCommandName = oAction.name;
-				return oControl.getMetadata().loadDesignTime(oControl).then(function() {
-					if (oAction.parameter) {
-						if (typeof oAction.parameter === "function") {
-							mParameter = oAction.parameter(this.oView);
-						} else {
-							mParameter = oAction.parameter;
+				let oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
+				const oResponsibleElement = oElementDesignTimeMetadata.getResponsibleElement(oTargetControl);
+				if (mOptions.label) {
+					assert.strictEqual(
+						oElementDesignTimeMetadata.getLabel(oTargetControl),
+						mOptions.label,
+						"then the control label is correct"
+					);
+				}
+				if (oAction.name === "move") {
+					oMovedElement = mParameter.movedElements[0].element || mParameter.movedElements[0].id;
+					const oElementOverlay = OverlayRegistry.getOverlay(oMovedElement);
+					const oRelevantContainer = oElementOverlay.getRelevantContainer();
+					oTargetControl = oRelevantContainer;
+					oElementDesignTimeMetadata = oElementOverlay.getParentAggregationOverlay().getDesignTimeMetadata();
+				} else if (Array.isArray(oAction.name)) {
+					const aAddActions = oElementDesignTimeMetadata.getActionDataFromAggregations(
+						oAction.name[0],
+						oTargetControl,
+						undefined,
+						oAction.name[1]
+					);
+					const oAggregationOverlay = oControlOverlay.getAggregationOverlay(aAddActions[0].aggregation);
+					oElementDesignTimeMetadata = oAggregationOverlay.getDesignTimeMetadata();
+					sCommandName = "addDelegateProperty";
+				} else if (oAction.name === "createContainer" || oAction.name === "addIFrame") {
+					const aCreateContainerActions = oElementDesignTimeMetadata.getActionDataFromAggregations(
+						oAction.name,
+						oControlWithDesigntimeActionDefinition || oTargetControl
+					);
+					const oAggregationOverlay = oControlOverlay.getAggregationOverlay(aCreateContainerActions[0].aggregation);
+					oAggregationDesignTimeMetadata = oAggregationOverlay.getDesignTimeMetadata();
+				} else if (oResponsibleElement) {
+					if (oAction.name === "reveal") {
+						oTargetControl = oAction.revealedElement(this.oView);
+						oControlOverlay = OverlayRegistry.getOverlay(oAction.revealedElement(this.oView));
+						oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
+						if (oAction.label) {
+							const oRevealAction = oElementDesignTimeMetadata.getAction("reveal");
+							assert.strictEqual(oRevealAction.getLabel(oTargetControl), oAction.label,
+								"then the control label is correct");
 						}
 					} else {
-						mParameter = {};
+						oTargetControl = oResponsibleElement;
+						oControlOverlay = OverlayRegistry.getOverlay(oTargetControl);
+						oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
+						oTargetControl.getMetadata().loadDesignTime(oTargetControl);
 					}
+				}
 
-					sap.ui.getCore().applyChanges();
-					this.oDesignTime = new DesignTime({
-						rootElements: [
-							this.oView
-						]
-					});
-					return new Promise(function(resolve) {
-						this.oDesignTime.attachEventOnce("synced", function() {
-							var oControlOverlay = OverlayRegistry.getOverlay(oControl);
-							oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
-							var oResponsibleElement = oElementDesignTimeMetadata.getAction("getResponsibleElement", oControl);
-							var oAggregationOverlay;
+				// additional check if the required action definition exists
+				// into the responsible control designtime metadata
+				checkDesigntimeMetadata(
+					assert,
+					oAction,
+					oTargetControl,
+					oMovedElement,
+					oElementDesignTimeMetadata,
+					oAggregationDesignTimeMetadata
+				);
 
-							if (oAction.name === "move") {
-								var oElementOverlay = OverlayRegistry.getOverlay(mParameter.movedElements[0].element);
-								var oRelevantContainer = oElementOverlay.getRelevantContainer();
-								oControl = oRelevantContainer;
-								oElementDesignTimeMetadata = oElementOverlay.getParentAggregationOverlay().getDesignTimeMetadata();
-							} else if (oAction.name === "addODataProperty") {
-								assert.ok(false, "addODataProperty action is deprecated. Use addViaDelegate action instead.");
-							} else if (Array.isArray(oAction.name)) {
-								var aAddActions = oElementDesignTimeMetadata.getActionDataFromAggregations(oAction.name[0], oControl, undefined, oAction.name[1]);
-								assert.equal(aAddActions.length, 1, "there should be only one aggregation with the possibility to do an add " + oAction.name[1] + " action");
-								oAggregationOverlay = oControlOverlay.getAggregationOverlay(aAddActions[0].aggregation);
-								oElementDesignTimeMetadata = oAggregationOverlay.getDesignTimeMetadata();
-								sCommandName = "addDelegateProperty";
-							} else if (oResponsibleElement) {
-								if (oAction.name === "reveal") {
-									oControl = oAction.revealedElement(this.oView);
-									oControlOverlay = OverlayRegistry.getOverlay(oAction.revealedElement(this.oView));
-									oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
-								} else {
-									oControl = oResponsibleElement;
-									oControlOverlay = OverlayRegistry.getOverlay(oControl);
-									oElementDesignTimeMetadata = oControlOverlay.getDesignTimeMetadata();
-									resolve(oControl.getMetadata().loadDesignTime(oControl));
-								}
-							}
-							resolve();
-						}.bind(this));
-					}.bind(this));
-				}.bind(this))
-				.then(function() {
-					var oCommandFactory = new CommandFactory({
-						flexSettings: {
-							layer: mOptions.layer || Layer.CUSTOMER
-						}
-					});
-					return oCommandFactory.getCommandFor(oControl, sCommandName, mParameter, oElementDesignTimeMetadata);
-				})
-				.then(function(oCommand) {
-					assert.ok(oCommand, "then the registration for action to change type, the registration for change and control type to change handler is available and " + mOptions.action.name + " is a valid action");
-					return oCommand;
+				const oCommandFactory = new CommandFactory({
+					flexSettings: {
+						layer: mOptions.layer || Layer.CUSTOMER
+					}
 				});
-			}.bind(this))
+				const oCommand = await oCommandFactory.getCommandFor(
+					oTargetControl,
+					sCommandName,
+					mParameter,
+					oElementDesignTimeMetadata
+				);
 
-			.catch(function(oMessage) {
+				assert.ok(
+					oCommand,
+					"then the registration for action to change type, the registration for change and " +
+					`control type to change handler is available and ${mOptions.action.name} is a valid action`
+				);
+				return oCommand;
+			} catch (oMessage) {
 				throw new Error(oMessage);
-			});
+			}
 		}
 
 		function executeCommands(aCommands) {
@@ -280,21 +417,28 @@ sap.ui.define([
 		}
 
 		function undoCommands(aCommands) {
-			var aUndoCommands = aCommands.slice().reverse();
+			const aUndoCommands = aCommands.slice().reverse();
 			return aUndoCommands.reduce(function(oLastPromise, oCommand) {
 				return oLastPromise
 				.then(oCommand.undo.bind(oCommand));
 			}, Promise.resolve());
 		}
 
+		async function undoDuplicateCommand(aCommands, mCreateCasePropertyBag) {
+			if (mCreateCasePropertyBag?.duplicateChangeCheckActive) {
+				const oLastCommand = aCommands[aCommands.length - 1];
+				await oLastCommand.undo();
+			}
+		}
+
 		function destroyCommands(aCommands) {
-			aCommands.forEach(function(oCommand) {
+			aCommands.forEach((oCommand) => {
 				oCommand.destroy();
 			});
 		}
 
-		function condenseCommands(oView, aCommands, assert) {
-			var oReturn = {
+		async function condenseCommands(oView, aCommands, assert) {
+			const oReturn = {
 				remainingCommands: [],
 				deletedCommands: []
 			};
@@ -305,26 +449,88 @@ sap.ui.define([
 				return Promise.resolve(oReturn);
 			}
 
-			var aChanges = aCommands.map(function(oCommand) {
-				return oCommand.getPreparedChange();
-			});
-			return PersistenceWriteAPI._condense({
+			const aChanges = aCommands.map((oCommand) => oCommand.getPreparedChange());
+			const aCondensedChanges = await PersistenceWriteAPI._condense({
 				selector: oView,
 				changes: aChanges
-			}).then(function(aCondensedChanges) {
-				if (mOptions.changesAfterCondensing !== undefined) {
-					assert.equal(mOptions.changesAfterCondensing, aCondensedChanges.length, "after condensing the amount of changes is correct");
-				}
-				var aChangeIds = aCondensedChanges.map(function(oChange) {return oChange.getId();});
-				aCommands.forEach(function(oCommand) {
-					if (aChangeIds.indexOf(oCommand.getPreparedChange().getId()) > -1) {
-						oReturn.remainingCommands.push(oCommand);
-					} else {
-						oReturn.deletedCommands.push(oCommand);
-					}
-				});
-				return oReturn;
 			});
+			if (mOptions.changesAfterCondensing !== undefined) {
+				assert.equal(
+					aCondensedChanges.length,
+					mOptions.changesAfterCondensing,
+					"after condensing the amount of changes is correct"
+				);
+			}
+			const aChangeIds = aCondensedChanges.map((oChange) => oChange.getId());
+			aCommands.forEach((oCommand) => {
+				if (aChangeIds.indexOf(oCommand.getPreparedChange().getId()) > -1) {
+					oReturn.remainingCommands.push(oCommand);
+				} else {
+					oReturn.deletedCommands.push(oCommand);
+				}
+			});
+			return oReturn;
+		}
+
+		async function checkChangeVisualization(oView, aCommands, assert) {
+			if (!mOptions.changeVisualization) {
+				return;
+			}
+
+			let oChangeVisualizationInput;
+			if (typeof mOptions.changeVisualization === "function") {
+				oChangeVisualizationInput = mOptions.changeVisualization(oView);
+			} else {
+				oChangeVisualizationInput = mOptions.changeVisualization;
+			}
+
+			const oChangeVisualization = new ChangeVisualization({
+				rootControlId: oView.getId(),
+				isActive: true
+			});
+
+			sandbox.stub(oChangeVisualization, "_updateChangeIndicators");
+			const aChanges = aCommands.map((oCommand) => oCommand.getPreparedChange());
+			sandbox.stub(oChangeVisualization, "_collectChanges").resolves(aChanges);
+
+			await oChangeVisualization._updateChangeRegistry();
+			await oChangeVisualization._selectChangeCategory(ChangeCategories.ALL);
+			const oChangeIndicatorRegistry = oChangeVisualization._oChangeIndicatorRegistry;
+			const oData = oChangeIndicatorRegistry.getSelectorsWithRegisteredChanges();
+			const sDisplayElementId = oChangeVisualizationInput.displayElementId;
+			const sSelector = sDisplayElementId ? oView.createId(sDisplayElementId) : oView.getId();
+			assert.ok(oData[sSelector] && oData[sSelector].length, "there is a change indicator at the correct element");
+			const aRegisteredChanges = oChangeIndicatorRegistry.getAllRegisteredChanges();
+			// Compare the visualization info for the last change
+			const aRelevantChange = aChanges[aChanges.length - 1];
+			const oRegisteredChange = aRegisteredChanges.find((oChange) => oChange.change.getId() === aRelevantChange.getId());
+			const mVisualizationInfo = oChangeVisualizationInput.info;
+
+			function mapIds(aIds) {
+				return aIds.map((sId) => oView.createId(sId));
+			}
+
+			if (mVisualizationInfo) {
+				if (mVisualizationInfo.affectedControls) {
+					const aAffectedControlIds = mapIds(mVisualizationInfo.affectedControls);
+					assert.deepEqual(aAffectedControlIds, oRegisteredChange.visualizationInfo.affectedElementIds,
+						"then the affected control ids are correct");
+				}
+				if (mVisualizationInfo.dependentControls) {
+					const aDependentControlIds = mapIds(mVisualizationInfo.dependentControls);
+					assert.deepEqual(aDependentControlIds, oRegisteredChange.visualizationInfo.dependentElementIds,
+						"then the dependent control ids are correct");
+				}
+				if (mVisualizationInfo.displayControls) {
+					const aDisplayControlIds = mapIds(mVisualizationInfo.displayControls);
+					assert.deepEqual(aDisplayControlIds, oRegisteredChange.visualizationInfo.displayElementIds,
+						"then the display control ids are correct");
+				}
+				if (mVisualizationInfo.descriptionPayload) {
+					assert.deepEqual(mVisualizationInfo.descriptionPayload, oRegisteredChange.visualizationInfo.descriptionPayload,
+						"then the descriptionPayload is correct");
+				}
+			}
 		}
 
 		/**
@@ -333,111 +539,160 @@ sap.ui.define([
 		 * The original Change doesn't get deleted there, and therefore can't be applied again without this
 		 *
 		 * @param {sap.ui.rta.command.BaseCommand[]} aCommands Commands whose change should be cleaned up
+		 * @return {Promise} resolves when cleanup after undo is done
 		 */
 		function cleanUpAfterUndo(aCommands) {
+			const aPromises = [];
 			aCommands.forEach(function(oCommand) {
-				var oChange = oCommand.getPreparedChange();
+				const oChange = oCommand.getPreparedChange();
 				if (oCommand.getAppComponent) {
-					PersistenceWriteAPI.remove({change: oChange, selector: oCommand.getAppComponent()});
+					aPromises.push(PersistenceWriteAPI.remove({change: oChange, selector: oCommand.getAppComponent()}));
 				}
 			});
+			return Promise.all(aPromises);
 		}
 
-		function applyChangeOnXML(assert) {
-			// Stub LREP access to have the command as UI change (needs the view to build the correct ids)
-			var aChanges = [];
-			sandbox.stub(ChangePersistence.prototype, "getChangesForComponent").resolves(aChanges);
-			sandbox.stub(ChangePersistence.prototype, "getCacheKey").resolves("etag-123");
+		async function isCreateCaseAvailable(oCommand, mAction) {
+			let oCondenserInfo;
+			const oControl = await getControlFromActionMap.call(this, mAction);
+			const oChange = oCommand.getPreparedChange();
+			oChange.setRevertData(oChange.getRevertData() || {});
 
-			return createViewInComponent.call(this, SYNC)
-			.then(function() {
-				return buildCommands.call(this, assert);
-			}.bind(this))
+			try {
+				const oChangeHandler = await ChangesUtils.getChangeHandler(
+					{
+						flexObject: oChange,
+						control: oControl,
+						controlType: oControl.getMetadata().getName(),
+						modifier: JsControlTreeModifier
+					}
+				);
+				if (oChangeHandler && typeof oChangeHandler.getCondenserInfo === "function") {
+					oCondenserInfo = await oChangeHandler.getCondenserInfo(oChange, {
+						modifier: JsControlTreeModifier,
+						appComponent: oCommand.getAppComponent()
+					});
+				}
+				return oCondenserInfo?.classification === CondenserClassification.Create;
+			} catch (oError) {
+				return false;
+			}
+		}
 
-			.then(function(aCommands) {
-				this.aCommands = aCommands;
-				aCommands.forEach(function(oCommand) {
-					aChanges.push(oCommand.getPreparedChange());
-				});
+		async function applyChangeOnXML(assert, mCreateCasePropertyBag) {
+			await createViewInComponent.call(this, SYNC);
+			await buildCommandsAndApplyChangesOnXML.call(this, assert, mCreateCasePropertyBag);
+		}
 
-				//destroy and recreate component and view to get the changes applied
+		function buildCommandsAndApplyChangesOnXML(assert, mCreateCasePropertyBag) {
+			const aActions = [].concat(
+				mOptions.previousActions || [],
+				mOptions.action
+			);
+			const aCommands = [];
+			let oAppComponent;
+
+			async function fnReduce(oAction, bLastAction) {
+				const oCommand = await buildCommand.call(this, assert, oAction);
+				aCommands.push(oCommand);
+				oAppComponent = oCommand.getAppComponent();
+				let oSecondCommand;
+
+				// Check for duplicate change errors when applying change with creation case
+				if (
+					bLastAction // exclude previous actions from duplicate change check
+					&& mCreateCasePropertyBag?.relevantForDuplicateChangeCheck // Activates duplicate change checks
+					&& await isCreateCaseAvailable.call(this, oCommand, oAction)
+				) {
+					mCreateCasePropertyBag.duplicateChangeCheckActive = true;
+					oSecondCommand = await buildCommand.call(this, assert, oAction);
+					aCommands.push(oSecondCommand);
+				}
+
+				// Destroy and recreate component and view to get the changes applied
+				// Wait for each change to be applied individually to allow dependencies
+				// between changes of different actions
 				this.oUiComponentContainer.destroy();
-				return createViewInComponent.call(this, ASYNC);
+				PersistenceWriteAPI.add({
+					change: oCommand.getPreparedChange(),
+					selector: oAppComponent
+				});
+				if (oSecondCommand) {
+					PersistenceWriteAPI.add({
+						change: oSecondCommand.getPreparedChange(),
+						selector: oAppComponent
+					});
+				}
+				return await createViewInComponent.call(this, ASYNC);
+			}
+
+			return aActions.reduce(function(oLastPromise, oAction, iIndex) {
+				return oLastPromise.then(fnReduce.bind(this, oAction, (iIndex === aActions.length - 1)));
+			}.bind(this), Promise.resolve())
+			.then(function() {
+				this.aCommands = aCommands;
+				const aChanges = aCommands.map((oCommand) => oCommand.getPreparedChange());
+				return PersistenceWriteAPI.remove({flexObjects: aChanges, selector: oAppComponent});
 			}.bind(this));
 		}
 
 		// XML View checks
 		if (!mOptions.jsOnly) {
-			QUnit.module(sMsg + " on async views", {
-				before: function(assert) {
+			QUnit.module(`${sMsg} on async views`, {
+				before(assert) {
 					this.hookContext = {};
 					return mOptions.before.call(this.hookContext, assert);
 				},
-				after: function(assert) {
+				after(assert) {
 					return mOptions.after.call(this.hookContext, assert);
 				},
-				beforeEach: function() {
-					sandbox.stub(Settings, "getInstance").resolves({_oSettings: {}});
+				async beforeEach() {
+					await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, {changes: []});
 				},
-				afterEach: function() {
+				afterEach() {
 					this.oUiComponentContainer.destroy();
 					this.oDesignTime.destroy();
 					destroyCommands(this.aCommands);
+					FlexTestAPI.reset();
 					sandbox.restore();
 				}
 			}, function() {
-				QUnit.test("When applying the change directly on the XMLView", function(assert) {
-					return applyChangeOnXML.call(this, assert).then(function(args) {
-						var oView = args[0];
-						// Verify that UI change has been applied on XML view
-						return mOptions.afterAction(this.oUiComponent, oView, assert);
-					}.bind(this));
+				QUnit.test("When applying the change directly on the XMLView", async function(assert) {
+					await applyChangeOnXML.call(this, assert);
+					await checkChangeVisualization(this.oView, this.aCommands, assert);
+					// Verify that UI change has been applied on XML view
+					await mOptions.afterAction(this.oUiComponent, this.oView, assert);
 				});
 
-				QUnit.test("When executing on XML and reverting the change in JS (e.g. variant switch)", function(assert) {
-					return applyChangeOnXML.call(this, assert)
-
-					.then(function() {
-						return undoCommands(this.aCommands);
-					}.bind(this))
-
-					.then(function() {
-						cleanUpAfterUndo(this.aCommands);
-					}.bind(this))
-
-					.then(function() {
-						sap.ui.getCore().applyChanges();
-						mOptions.afterUndo(this.oUiComponent, this.oView, assert);
-					}.bind(this));
+				QUnit.test("When executing on XML and reverting the change in JS (e.g. variant switch)", async function(assert) {
+					await applyChangeOnXML.call(this, assert);
+					await undoCommands(this.aCommands);
+					await cleanUpAfterUndo(this.aCommands);
+					await nextUIUpdate();
+					await mOptions.afterUndo(this.oUiComponent, this.oView, assert);
 				});
 
-				QUnit.test("When executing on XML, reverting the change in JS (e.g. variant switch) and applying again", function(assert) {
-					return applyChangeOnXML.call(this, assert)
+				QUnit.test("When executing on XML, reverting the change in JS (e.g. variant switch) and applying again", async function(assert) {
+					await applyChangeOnXML.call(this, assert);
+					// condensing has to be done before the changes are reverted
+					const mCommands = await condenseCommands(this.oView, this.aCommands, assert);
+					this.aRemainingCommands = mCommands.remainingCommands;
 
-					.then(function() {
-						// condensing has to be done before the changes are reverted
-						return condenseCommands(this.oView, this.aCommands, assert);
-					}.bind(this))
+					await undoCommands(this.aCommands);
+					await cleanUpAfterUndo(this.aCommands);
+					// this should have the same effect as executing all the commands
+					await executeCommands(this.aRemainingCommands);
+					await nextUIUpdate();
+					await mOptions.afterRedo(this.oUiComponent, this.oView, assert);
+				});
 
-					.then(function(mCommands) {
-						this.aRemainingCommands = mCommands.remainingCommands;
-
-						return undoCommands(this.aCommands);
-					}.bind(this))
-
-					.then(function() {
-						cleanUpAfterUndo(this.aCommands);
-					}.bind(this))
-
-					.then(function() {
-						// this should have the same effect as executing all the commands
-						return executeCommands(this.aRemainingCommands);
-					}.bind(this))
-
-					.then(function() {
-						sap.ui.getCore().applyChanges();
-						mOptions.afterRedo(this.oUiComponent, this.oView, assert);
-					}.bind(this));
+				QUnit.test("When executing on XML and applying the create change twice (check for duplicate change errors) and reverting just one change in JS", async function(assert) {
+					const mCreateCasePropertyBag = { relevantForDuplicateChangeCheck: true };
+					await applyChangeOnXML.call(this, assert, mCreateCasePropertyBag);
+					await undoDuplicateCommand(this.aCommands, mCreateCasePropertyBag);
+					await cleanUpAfterUndo(this.aCommands);
+					nextUIUpdate();
+					await mOptions.afterAction(this.oUiComponent, this.oView, assert);
 				});
 			});
 		}
@@ -445,96 +700,86 @@ sap.ui.define([
 		function waitForDtSync(oDesignTime) {
 			if (oDesignTime.getStatus() !== DesignTimeStatus.SYNCED) {
 				return new Promise(function(fnResolve) {
-					this.oDesignTime.attachEventOnce("synced", fnResolve);
-				}.bind(this));
+					oDesignTime.attachEventOnce("synced", fnResolve);
+				});
 			}
 			return Promise.resolve();
 		}
 
 		QUnit.module(sMsg, {
-			before: function(assert) {
+			before(assert) {
 				this.hookContext = {};
 				return mOptions.before.call(this.hookContext, assert);
 			},
-			after: function(assert) {
+			after(assert) {
 				return mOptions.after.call(this.hookContext, assert);
 			},
-			beforeEach: function(assert) {
-				//no LREP response needed
-				sandbox.stub(ChangePersistence.prototype, "getChangesForComponent").returns(Promise.resolve([]));
-				sandbox.stub(ChangePersistence.prototype, "getCacheKey").returns(Cache.NOTAG); //no cache key => no xml view processing
-				sandbox.stub(Settings, "getInstance").returns(Promise.resolve({_oSettings: {}}));
+			async beforeEach(assert) {
+				await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, {changes: []});
 
 				return createViewInComponent.call(this, SYNC)
-				.then(buildCommands.bind(this, assert))
+				.then(buildAndExecuteCommands.bind(this, assert))
 				.then(function(aCommands) {
 					this.aCommands = aCommands;
 				}.bind(this));
 			},
-			afterEach: function() {
+			afterEach() {
 				this.oDesignTime.destroy();
 				this.oUiComponentContainer.destroy();
 				destroyCommands(this.aCommands);
+				FlexTestAPI.reset();
 				sandbox.restore();
 			}
 		}, function() {
-			QUnit.test("When executing the underlying command on the control at runtime", function(assert) {
-				return executeCommands(this.aCommands)
-
-				.then(waitForDtSync.bind(this, this.oDesignTime))
-
-				.then(function() {
-					sap.ui.getCore().applyChanges();
-					return mOptions.afterAction(this.oUiComponent, this.oView, assert);
-				}.bind(this));
+			QUnit.test("When executing the underlying command on the control at runtime", async function(assert) {
+				await waitForDtSync(this.oDesignTime);
+				await checkChangeVisualization(this.oView, this.aCommands, assert);
+				await nextUIUpdate();
+				await mOptions.afterAction(this.oUiComponent, this.oView, assert);
 			});
 
-			QUnit.test("When executing and undoing the command", function(assert) {
-				return executeCommands(this.aCommands)
-
-				.then(waitForDtSync.bind(this, this.oDesignTime))
-
-				.then(undoCommands.bind(null, this.aCommands))
-
-				.then(cleanUpAfterUndo.bind(null, this.aCommands))
-
-				.then(function() {
-					sap.ui.getCore().applyChanges();
-					return mOptions.afterUndo(this.oUiComponent, this.oView, assert);
-				}.bind(this));
+			QUnit.test("When executing and undoing the command", async function(assert) {
+				await waitForDtSync(this.oDesignTime);
+				await undoCommands(this.aCommands);
+				await cleanUpAfterUndo(this.aCommands);
+				await nextUIUpdate();
+				await mOptions.afterUndo(this.oUiComponent, this.oView, assert);
 			});
 
-			QUnit.test("When executing, undoing and redoing the command", function(assert) {
-				return executeCommands(this.aCommands)
-
-				.then(waitForDtSync.bind(this, this.oDesignTime))
+			QUnit.test("When executing, undoing and redoing the command", async function(assert) {
+				await waitForDtSync(this.oDesignTime);
 
 				// condensing has to be done before the changes are reverted
-				.then(condenseCommands.bind(this, this.oView, this.aCommands, assert))
+				const mCommands = await condenseCommands(this.oView, this.aCommands, assert);
+				this.aRemainingCommands = mCommands.remainingCommands;
 
-				.then(function(mCommands) {
-					this.aRemainingCommands = mCommands.remainingCommands;
+				await undoCommands(this.aCommands);
+				await cleanUpAfterUndo(this.aCommands);
 
-					return undoCommands(this.aCommands);
-				}.bind(this))
+				// this should have the same effect as executing all the commands
+				await executeCommands(this.aRemainingCommands);
 
-				.then(cleanUpAfterUndo.bind(null, this.aCommands))
+				await nextUIUpdate();
+				await mOptions.afterRedo(this.oUiComponent, this.oView, assert);
+			});
 
-				.then(function() {
-					// this should have the same effect as executing all the commands
-					return executeCommands(this.aRemainingCommands);
-				}.bind(this))
-
-				.then(function() {
-					sap.ui.getCore().applyChanges();
-					return mOptions.afterRedo(this.oUiComponent, this.oView, assert);
-				}.bind(this));
+			QUnit.test("When executing and applying the create change twice (check for duplicate change errors) and undoing just one command", async function(assert) {
+				this.oUiComponentContainer.destroy();
+				await createViewInComponent.call(this, SYNC);
+				const mCreateCasePropertyBag = { relevantForDuplicateChangeCheck: true };
+				const aCommands = await buildAndExecuteCommands.call(this, assert, mCreateCasePropertyBag);
+				this.aCommands = aCommands;
+				await waitForDtSync(this.oDesignTime);
+				await undoDuplicateCommand(this.aCommands, mCreateCasePropertyBag);
+				await cleanUpAfterUndo(this.aCommands);
+				nextUIUpdate();
+				await mOptions.afterAction(this.oUiComponent, this.oView, assert);
 			});
 		});
-	};
+	}
 
-	controlEnablingCheck.skip = function() {};
-	controlEnablingCheck.only = function(sMsgSubstring) { controlEnablingCheck._only = sMsgSubstring; };
+	elementActionTest.skip = function() {};
+	elementActionTest.only = function(sMsgSubstring) { elementActionTest._only = sMsgSubstring; };
 
-	return controlEnablingCheck;
+	return elementActionTest;
 });

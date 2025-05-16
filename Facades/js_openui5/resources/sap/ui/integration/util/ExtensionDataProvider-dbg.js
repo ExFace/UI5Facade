@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/integration/util/DataProvider"], function (DataProvider) {
@@ -17,7 +17,7 @@ sap.ui.define(["sap/ui/integration/util/DataProvider"], function (DataProvider) 
 	 * @extends sap.ui.integration.util.DataProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -25,8 +25,11 @@ sap.ui.define(["sap/ui/integration/util/DataProvider"], function (DataProvider) 
 	 * @alias sap.ui.integration.util.ExtensionDataProvider
 	 */
 	var ExtensionDataProvider = DataProvider.extend("sap.ui.integration.util.ExtensionDataProvider", {
-		constructor: function (oExtension) {
-			DataProvider.call(this);
+		metadata: {
+			library: "sap.ui.integration"
+		},
+		constructor: function (oConfig, oExtension) {
+			DataProvider.call(this, oConfig);
 			this._oExtension = oExtension;
 		}
 	});
@@ -41,17 +44,24 @@ sap.ui.define(["sap/ui/integration/util/DataProvider"], function (DataProvider) 
 	 * @returns {Promise} A promise resolved when the data is available and rejected in case of an error.
 	 */
 	ExtensionDataProvider.prototype.getData = function () {
-		var oExtensionSettings = this.getSettings().extension;
+		const oConfiguration = this.getResolvedConfiguration().extension;
 
 		if (!this._oExtension) {
 			return Promise.reject("The extension module is not loaded properly or doesn't export a correct value.");
 		}
 
-		if (!this._oExtension[oExtensionSettings.method]) {
-			return Promise.reject("Extension doesn't implement " + oExtensionSettings.method + " method.");
+		if (!this._oExtension[oConfiguration.method]) {
+			return Promise.reject("Extension doesn't implement " + oConfiguration.method + " method.");
 		}
 
-		return this._oExtension[oExtensionSettings.method].apply(this._oExtension, oExtensionSettings.args);
+		return this._oExtension[oConfiguration.method].apply(this._oExtension, oConfiguration.args);
+	};
+
+	/**
+ 	 * @override
+ 	 */
+	ExtensionDataProvider.prototype.getDetails = function () {
+		return "Load data from Extension. Method: " + this.getResolvedConfiguration().extension.method;
 	};
 
 	return ExtensionDataProvider;

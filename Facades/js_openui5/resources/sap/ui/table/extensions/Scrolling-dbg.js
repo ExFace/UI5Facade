@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,12 +12,14 @@ sap.ui.define([
 	"sap/ui/Device",
 	"sap/ui/performance/trace/Interaction",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/dom/jquery/scrollLeftRTL" // provides jQuery.fn.scrollLeftRTL
 ], function(ExtensionBase, TableUtils, library, Device, Interaction, Log, jQuery) {
 	"use strict";
 
-	var SharedDomRef = library.SharedDomRef;
-	var Hook = TableUtils.Hook.Keys;
+	const SharedDomRef = library.SharedDomRef;
+	const Hook = TableUtils.Hook.Keys;
+	const _private = TableUtils.createWeakMapFacade();
 
 	/*
 	 * Maximum width/height of elements in pixel:
@@ -26,8 +28,6 @@ sap.ui.define([
 	 *                             Width      Height
 	 * Chrome (63.0.3239.84)  33.554.428  33.554.428
 	 * Firefox (57.0.3)       17.895.698  17.895.696
-	 * EdgeHTML (14.14393)     1.533.917   1.533.917
-	 * Internet Explorer 11    1.533.917   1.533.917
 	 */
 
 	/**
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @constant
 	 * @type {int}
 	 */
-	var MAX_VERTICAL_SCROLL_HEIGHT = 1000000;
+	const MAX_VERTICAL_SCROLL_HEIGHT = 1000000;
 
 	/**
 	 * The amount of default row heights reserved to scroll the final vertical overflow.
@@ -46,7 +46,15 @@ sap.ui.define([
 	 * @constant
 	 * @type {int}
 	 */
-	var VERTICAL_OVERFLOW_BUFFER_LENGTH = 2; // Must be >= 1! A buffer is always required, because at least one row is always in the buffer.
+	const VERTICAL_OVERFLOW_BUFFER_LENGTH = 2; // Must be >= 1! A buffer is always required, because at least one row is always in the buffer.
+
+	/**
+	 * The timeout for blocking scroll events when the table is scrolled to the beginning or the end (milliseconds).
+	 *
+	 * @constant
+	 * @type {int}
+	 */
+	const SCROLL_BLOCK_TIMEOUT = 500;
 
 	/**
 	 * Scroll directions.
@@ -54,7 +62,7 @@ sap.ui.define([
 	 * @enum {string}
 	 * @memberOf sap.ui.table.extensions.Scrolling
 	 */
-	var ScrollDirection = {
+	const ScrollDirection = {
 		HORIZONAL: "HORIZONTAL",
 		VERTICAL: "VERTICAL",
 		/** Both horizontal and vertical scroll direction. */
@@ -64,7 +72,7 @@ sap.ui.define([
 	/**
 	 * The configuration options for event listeners.
 	 *
-	 * @typedef {Object} sap.ui.table.extensions.Scrolling.EventListenerOptions
+	 * @typedef {object} sap.ui.table.extensions.Scrolling.EventListenerOptions
 	 * @property {sap.ui.table.extensions.Scrolling.ScrollDirection} scrollDirection The scroll direction.
 	 * @private
 	 */
@@ -80,19 +88,9 @@ sap.ui.define([
 	}
 
 	/**
-	 * Checks whether an element is connected with the DOM.
-	 *
-	 * @param {HTMLElement} oElement The element to check.
-	 * @returns {boolean} Whether the element is connected with the DOM.
-	 */
-	function isConnected(oElement) {
-		return typeof oElement.isConnected === "boolean" && oElement.isConnected || /* IE */ document.body.contains(oElement);
-	}
-
-	/**
 	 * The interface of a process.
 	 *
-	 * @typedef {Object} ProcessInterface
+	 * @typedef {object} ProcessInterface
 	 * @property {function} cancel Cancels the process.
 	 * @property {function():boolean} isCancelled Whether the process is cancelled.
 	 * @property {function(function)} addCancelListener Adds a listener that is called when the process is cancelled.
@@ -104,7 +102,7 @@ sap.ui.define([
 	/**
 	 * Information about a process.
 	 *
-	 * @typedef {Object} ProcessInfo
+	 * @typedef {object} ProcessInfo
 	 * @property {string} id The id.
 	 * @property {int} rank The rank.
 	 * @property {boolean} cancellable Whether the process can be cancelled.
@@ -128,10 +126,10 @@ sap.ui.define([
 	 * @constructor
 	 */
 	function Process(fnExecutor, oProcessInfo) {
-		var bRunning = true;
-		var bCancelled = false;
-		var aCancelListeners = [];
-		var oProcessInterface = {
+		let bRunning = true;
+		let bCancelled = false;
+		const aCancelListeners = [];
+		const oProcessInterface = {
 			cancel: function() {
 				if (this.isCancelled() || !this.isRunning()) {
 					return;
@@ -139,7 +137,7 @@ sap.ui.define([
 
 				bCancelled = true;
 
-				for (var i = 0; i < aCancelListeners.length; i++) {
+				for (let i = 0; i < aCancelListeners.length; i++) {
 					aCancelListeners[i]();
 				}
 
@@ -159,7 +157,7 @@ sap.ui.define([
 			},
 			onPromiseCreated: function(oPromise) {}
 		};
-		var pCancellablePromise;
+		let pCancellablePromise;
 
 		log("Process started: " + oProcessInfo.id);
 
@@ -210,8 +208,8 @@ sap.ui.define([
 		Pixel: "Pixel",
 		/** The offset is specified in percentage of the row. */
 		Percentage: "Percentage",
-		/** The offset is specified in percentage of the buffer. */
-		PercentageOfBuffer: "PercentageOfBuffer"
+		/** The offset is specified in percentage of the viewport. */
+		PercentageOfViewport: "PercentageOfViewport"
 	};
 
 	/**
@@ -331,8 +329,8 @@ sap.ui.define([
 	 * @param {int} iRows The number of rows to scroll.
 	 */
 	ScrollPosition.prototype.scrollRows = function(iRows) {
-		var iNewIndex = this.getIndex() + iRows;
-		var iNewOffset = this.getOffset();
+		const iNewIndex = this.getIndex() + iRows;
+		let iNewOffset = this.getOffset();
 
 		if (!this.isOffsetInPixel() || iNewIndex < 0) {
 			iNewOffset = 0;
@@ -346,48 +344,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Static object to store internal instance information that should not be exposed but be hidden in this extension.
-	 */
-	var internalMap = new window.WeakMap();
-	var internal = function(oTable) {
-		if (!oTable) {
-			return {};
-		}
-
-		if (!internalMap.has(oTable)) {
-			internalMap.set(oTable, {
-				// Horizontal scrolling
-				oHorizontalScrollbar: null,
-				iHorizontalScrollPosition: null,
-
-				// Vertical scrolling
-				oVerticalScrollbar: null,
-				oVerticalScrollPosition: new ScrollPosition(oTable),
-				pVerticalScrollUpdateProcess: null,
-
-				// External vertical scrolling
-				oExternalVerticalScrollbar: null,
-				bIsVerticalScrollbarExternal: false,
-
-				// Timers
-				mTimeouts: {},
-				mAnimationFrames: {},
-
-				mTouchSessionData: null,
-				aOnRowsUpdatedPreprocessors: []
-			});
-		}
-
-		return internalMap.get(oTable);
-	};
-	internal.destroy = function(oTable) {
-		delete internalMap.delete(oTable);
-	};
-
-	/**
 	 * Helper for vertical scroll update processes.
 	 */
-	var VerticalScrollProcess = {
+	const VerticalScrollProcess = {
 		UpdateFromFirstVisibleRow: {id: "UpdateFromFirstVisibleRow", rank: 6},
 		UpdateFromScrollPosition: {id: "UpdateFromScrollPosition", rank: 5},
 		RestoreScrollPosition: {id: "RestoreScrollPosition", rank: 4},
@@ -397,8 +356,8 @@ sap.ui.define([
 		UpdateFromViewport: {id: "UpdateFromViewport", rank: 1},
 
 		canStart: function(oTable, oProcessInfo) {
-			var pCurrentProcess = internal(oTable).pVerticalScrollUpdateProcess;
-			var oCurrentProcessInfo = pCurrentProcess ? pCurrentProcess.getInfo() : null;
+			const pCurrentProcess = _private(oTable).pVerticalScrollUpdateProcess;
+			const oCurrentProcessInfo = pCurrentProcess ? pCurrentProcess.getInfo() : null;
 
 			if (pCurrentProcess && pCurrentProcess.isRunning() && oCurrentProcessInfo.rank > oProcessInfo.rank) {
 				log("Cannot start update process " + oProcessInfo.id
@@ -413,11 +372,11 @@ sap.ui.define([
 				return;
 			}
 
-			if (internal(oTable).pVerticalScrollUpdateProcess) {
-				internal(oTable).pVerticalScrollUpdateProcess.cancel();
+			if (_private(oTable).pVerticalScrollUpdateProcess) {
+				_private(oTable).pVerticalScrollUpdateProcess.cancel();
 			}
 
-			internal(oTable).pVerticalScrollUpdateProcess = new Process(fnProcessExecutor, oProcessInfo);
+			_private(oTable).pVerticalScrollUpdateProcess = new Process(fnProcessExecutor, oProcessInfo);
 		}
 	};
 
@@ -429,27 +388,27 @@ sap.ui.define([
 	 * @see ExtensionDelegate#onAfterRendering
 	 * @private
 	 */
-	var HorizontalScrollingHelper = {
+	const HorizontalScrollingHelper = {
 		/**
 		 * The scrollbar's scroll event handler.
 		 *
 		 * @param {jQuery.Event} oEvent The event object.
 		 */
 		onScrollbarScroll: function(oEvent) {
-			var iNewScrollLeft = oEvent.target.scrollLeft;
-			var iOldScrollLeft = oEvent.target._scrollLeft;
+			const iNewScrollLeft = oEvent.target.scrollLeft;
+			const iOldScrollLeft = oEvent.target._scrollLeft;
 
 			// For interaction detection.
 			Interaction.notifyScrollEvent && Interaction.notifyScrollEvent(oEvent);
 
 			if (iNewScrollLeft !== iOldScrollLeft) {
-				var aScrollAreas = HorizontalScrollingHelper.getScrollAreas(this);
+				const aScrollAreas = HorizontalScrollingHelper.getScrollAreas(this);
 
 				oEvent.target._scrollLeft = iNewScrollLeft;
 
 				// Synchronize the scroll positions.
-				for (var i = 0; i < aScrollAreas.length; i++) {
-					var oScrollArea = aScrollAreas[i];
+				for (let i = 0; i < aScrollAreas.length; i++) {
+					const oScrollArea = aScrollAreas[i];
 
 					if (oScrollArea !== oEvent.target && oScrollArea.scrollLeft !== iNewScrollLeft) {
 						oScrollArea.scrollLeft = iNewScrollLeft;
@@ -457,7 +416,7 @@ sap.ui.define([
 					}
 				}
 
-				internal(this).iHorizontalScrollPosition = iNewScrollLeft;
+				_private(this).iHorizontalScrollPosition = iNewScrollLeft;
 			}
 		},
 
@@ -468,23 +427,90 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		restoreScrollPosition: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var oHSb = oScrollExtension.getHorizontalScrollbar();
+			const oScrollExtension = oTable._getScrollExtension();
+			const oHSb = oScrollExtension.getHorizontalScrollbar();
 
-			if (oHSb && internal(oTable).iHorizontalScrollPosition !== null) {
-				var aScrollTargets = HorizontalScrollingHelper.getScrollAreas(oTable);
+			if (oHSb && _private(oTable).iHorizontalScrollPosition !== null) {
+				const aScrollTargets = HorizontalScrollingHelper.getScrollAreas(oTable);
 
-				for (var i = 0; i < aScrollTargets.length; i++) {
-					var oScrollTarget = aScrollTargets[i];
+				for (let i = 0; i < aScrollTargets.length; i++) {
+					const oScrollTarget = aScrollTargets[i];
 					delete oScrollTarget._scrollLeft;
 				}
 
-				if (oHSb.scrollLeft !== internal(oTable).iHorizontalScrollPosition) {
-					oHSb.scrollLeft = internal(oTable).iHorizontalScrollPosition;
+				if (oHSb.scrollLeft !== _private(oTable).iHorizontalScrollPosition) {
+					oHSb.scrollLeft = _private(oTable).iHorizontalScrollPosition;
 				} else {
-					var oEvent = jQuery.Event("scroll");
+					const oEvent = jQuery.Event("scroll");
 					oEvent.target = oHSb;
 					HorizontalScrollingHelper.onScrollbarScroll.call(oTable, oEvent);
+				}
+			}
+		},
+
+		/**
+		 * Updates the visibility, position and scroll range of the horizontal scrollbar.
+		 *
+		 * @param {sap.ui.table.Table} oTable Instance of the table.
+		 */
+		updateScrollbar: function(oTable) {
+			const oScrollExtension = oTable._getScrollExtension();
+			const oHSb = oScrollExtension.getHorizontalScrollbar();
+
+			if (!oHSb) {
+				return;
+			}
+
+			const mTableSizes = oTable._collectTableSizes();
+			const $Table = oTable.$();
+			let iColsWidth = mTableSizes.tableCtrlScrollWidth;
+
+			if (Device.browser.safari) {
+				iColsWidth = Math.max(iColsWidth, oTable._getColumnsWidth(oTable.getComputedFixedColumnCount()));
+			}
+
+			const bHorizontalScrollbarRequired = iColsWidth > mTableSizes.tableCtrlScrWidth;
+			_private(oTable).bHorizontalScrollbarRequired = bHorizontalScrollbarRequired;
+
+			if (bHorizontalScrollbarRequired) {
+				// Show the horizontal scrollbar, if it is not already visible.
+				if (!oScrollExtension.isHorizontalScrollbarVisible()) {
+					$Table.addClass("sapUiTableHScr");
+					oHSb.classList.remove("sapUiTableHidden");
+
+					if (Device.browser.safari) {
+						const $sapUiTableColHdr = $Table.find(".sapUiTableCtrlScroll, .sapUiTableColHdrScr > .sapUiTableColHdr");
+						// min-width on table elements does not work for safari
+						$sapUiTableColHdr.outerWidth(iColsWidth);
+					}
+				}
+
+				let iScrollPadding = mTableSizes.tableCtrlFixedWidth;
+				if ($Table.find(".sapUiTableRowHdrScr").length > 0) {
+					iScrollPadding += mTableSizes.tableRowHdrScrWidth;
+				}
+
+				if (oTable._bRtlMode) {
+					oHSb.style.marginRight = iScrollPadding + "px";
+					oHSb.style.marginLeft = "";
+				} else {
+					oHSb.style.marginLeft = iScrollPadding + "px";
+					oHSb.style.marginRight = "";
+				}
+
+				const oHSbContent = oTable.getDomRef("hsb-content");
+				if (oHSbContent) {
+					oHSbContent.style.width = iColsWidth + "px";
+				}
+			}
+
+			if (!bHorizontalScrollbarRequired && oScrollExtension.isHorizontalScrollbarVisible()) {
+				// Hide the horizontal scrollbar, if it is visible.
+				$Table.removeClass("sapUiTableHScr");
+				oHSb.classList.add("sapUiTableHidden");
+				if (Device.browser.safari) {
+					// min-width on table elements does not work for safari
+					$Table.find(".sapUiTableCtrlScroll, .sapUiTableColHdr").css("width", "");
 				}
 			}
 		},
@@ -504,15 +530,15 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		addEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var oHSb = oScrollExtension.getHorizontalScrollbar();
-			var aScrollAreas = HorizontalScrollingHelper.getScrollAreas(oTable);
+			const oScrollExtension = oTable._getScrollExtension();
+			const oHSb = oScrollExtension.getHorizontalScrollbar();
+			const aScrollAreas = HorizontalScrollingHelper.getScrollAreas(oTable);
 
 			if (!oScrollExtension._onHorizontalScrollEventHandler) {
 				oScrollExtension._onHorizontalScrollEventHandler = HorizontalScrollingHelper.onScrollbarScroll.bind(oTable);
 			}
 
-			for (var i = 0; i < aScrollAreas.length; i++) {
+			for (let i = 0; i < aScrollAreas.length; i++) {
 				aScrollAreas[i].addEventListener("scroll", oScrollExtension._onHorizontalScrollEventHandler);
 			}
 
@@ -530,12 +556,12 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		removeEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var oHSb = oScrollExtension.getHorizontalScrollbar();
-			var aScrollAreas = HorizontalScrollingHelper.getScrollAreas(oTable);
+			const oScrollExtension = oTable._getScrollExtension();
+			const oHSb = oScrollExtension.getHorizontalScrollbar();
+			const aScrollAreas = HorizontalScrollingHelper.getScrollAreas(oTable);
 
 			if (oScrollExtension._onHorizontalScrollEventHandler) {
-				for (var i = 0; i < aScrollAreas.length; i++) {
+				for (let i = 0; i < aScrollAreas.length; i++) {
 					aScrollAreas[i].removeEventListener("scroll", oScrollExtension._onHorizontalScrollEventHandler);
 					delete aScrollAreas[i]._scrollLeft;
 				}
@@ -556,14 +582,14 @@ sap.ui.define([
 		 * @private
 		 */
 		getScrollAreas: function(oTable) {
-			var oDomRef = oTable.getDomRef();
-			var aScrollableColumnAreas;
+			const oDomRef = oTable.getDomRef();
+			let aScrollableColumnAreas;
 
 			if (oDomRef) {
 				aScrollableColumnAreas = Array.prototype.slice.call(oTable.getDomRef().querySelectorAll(".sapUiTableCtrlScr"));
 			}
 
-			var aScrollAreas = [
+			const aScrollAreas = [
 				oTable._getScrollExtension().getHorizontalScrollbar()
 			].concat(aScrollableColumnAreas);
 
@@ -581,7 +607,7 @@ sap.ui.define([
 	 * @see ExtensionDelegate#onAfterRendering
 	 * @private
 	 */
-	var VerticalScrollingHelper = {
+	const VerticalScrollingHelper = {
 		/**
 		 * Performs all necessary steps to scroll the table based on the table's <code>firstVisibleRow</code> property.
 		 *
@@ -600,7 +626,7 @@ sap.ui.define([
 				};
 
 				if (bExpectRowsUpdatedEvent === true) {
-					var fnOnRowsUpdatedPreprocessor = function() {
+					const fnOnRowsUpdatedPreprocessor = function() {
 						log("VerticalScrollingHelper.performUpdateFromFirstVisibleRow (async: rows update)", oTable);
 						VerticalScrollingHelper._performUpdateFromFirstVisibleRow(oTable, oProcessInterface).then(resolve);
 						return false;
@@ -609,7 +635,7 @@ sap.ui.define([
 					VerticalScrollingHelper.addOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 
 					oProcessInterface.addCancelListener(function() {
-						var bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
+						const bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 						if (bRemoved) {
 							resolve();
 						}
@@ -622,10 +648,9 @@ sap.ui.define([
 
 		_performUpdateFromFirstVisibleRow: function(oTable, oProcessInterface) {
 			return VerticalScrollingHelper.adjustScrollPositionToFirstVisibleRow(oTable, oProcessInterface).then(function() {
-				if (VerticalScrollingHelper.isIndexInBuffer(oTable, oTable.getFirstVisibleRow())) {
-					return VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer(oTable, null, oProcessInterface);
-				}
-				return Promise.resolve();
+				return VerticalScrollingHelper.fixTemporaryFirstVisibleRow(oTable, null, oProcessInterface);
+			}).then(function() {
+				return VerticalScrollingHelper.fixScrollPosition(oTable, oProcessInterface);
 			}).then(function() {
 				return Promise.all([
 					VerticalScrollingHelper.scrollViewport(oTable, oProcessInterface),
@@ -655,7 +680,7 @@ sap.ui.define([
 						return;
 					}
 
-					var oScrollPosition = internal(oTable).oVerticalScrollPosition;
+					const oScrollPosition = _private(oTable).oVerticalScrollPosition;
 
 					log("VerticalScrollingHelper.performUpdateFromScrollPosition (async: firstVisibleRow update)", oTable);
 
@@ -669,6 +694,8 @@ sap.ui.define([
 							oScrollPosition.setOffset(0);
 						}
 					}
+				}).then(function() {
+					return VerticalScrollingHelper.fixScrollPosition(oTable, oProcessInterface);
 				}).then(function() {
 					return Promise.all([
 						VerticalScrollingHelper.scrollViewport(oTable, oProcessInterface),
@@ -684,11 +711,9 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		performUpdateFromScrollbar: function(oTable) {
-			var _internal = internal(oTable);
-
 			log("VerticalScrollingHelper.performUpdateFromScrollbar", oTable);
-			clearTimeout(_internal.mTimeouts.largeDataScrolling);
-			delete _internal.mTimeouts.largeDataScrolling;
+			clearTimeout(_private(oTable).mTimeouts.largeDataScrolling);
+			delete _private(oTable).mTimeouts.largeDataScrolling;
 
 			VerticalScrollProcess.start(oTable, VerticalScrollProcess.UpdateFromScrollbar, function(resolve, reject, oProcessInterface) {
 				TableUtils.Hook.call(oTable, Hook.Signal, "StartTableUpdate");
@@ -702,8 +727,8 @@ sap.ui.define([
 				oTable._getKeyboardExtension().setActionMode(false);
 
 				if (oTable._bLargeDataScrolling) {
-					_internal.mTimeouts.largeDataScrolling = setTimeout(function() {
-						delete _internal.mTimeouts.largeDataScrolling;
+					_private(oTable).mTimeouts.largeDataScrolling = setTimeout(function() {
+						delete _private(oTable).mTimeouts.largeDataScrolling;
 
 						if (oTable._getScrollExtension().getVerticalScrollbar() != null) {
 							log("VerticalScrollingHelper.performUpdateFromScrollbar (async: large data scrolling)", oTable);
@@ -714,9 +739,9 @@ sap.ui.define([
 					}, 300);
 
 					oProcessInterface.addCancelListener(function() {
-						if (_internal.mTimeouts.largeDataScrolling != null) {
-							clearTimeout(_internal.mTimeouts.largeDataScrolling);
-							delete _internal.mTimeouts.largeDataScrolling;
+						if (_private(oTable).mTimeouts.largeDataScrolling != null) {
+							clearTimeout(_private(oTable).mTimeouts.largeDataScrolling);
+							delete _private(oTable).mTimeouts.largeDataScrolling;
 							resolve();
 						}
 					});
@@ -730,31 +755,9 @@ sap.ui.define([
 			return VerticalScrollingHelper.adjustScrollPositionToScrollbar(oTable, oProcessInterface).then(function() {
 				return VerticalScrollingHelper.adjustFirstVisibleRowToScrollPosition(oTable, null, oProcessInterface);
 			}).then(function() {
-				if (TableUtils.isVariableRowHeightEnabled(oTable)) {
-					return VerticalScrollingHelper.scrollViewport(oTable, oProcessInterface);
-				}
-
-				if (oProcessInterface.isCancelled()) {
-					return Promise.resolve();
-				}
-
-				var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-				var iIndex = oScrollPosition.getIndex();
-				var iMaxFirstRenderedRowIndex = oTable._getMaxFirstRenderedRowIndex();
-				var aRowHeights = oTable._aRowHeights;
-
-				switch (oScrollPosition.getOffsetType()) {
-					case ScrollPosition.OffsetType.Percentage:
-						var iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - iMaxFirstRenderedRowIndex));
-						oScrollPosition.setOffset(aRowHeights[iTargetRowIndex] * oScrollPosition.getOffset());
-						break;
-					case ScrollPosition.OffsetType.PercentageOfBuffer:
-						oScrollPosition.setOffset(0);
-						break;
-					default:
-				}
-
-				return Promise.resolve();
+				return VerticalScrollingHelper.fixScrollPosition(oTable, oProcessInterface);
+			}).then(function() {
+				return VerticalScrollingHelper.scrollViewport(oTable, oProcessInterface);
 			});
 		},
 
@@ -792,13 +795,13 @@ sap.ui.define([
 			// For interaction detection.
 			Interaction.notifyScrollEvent && Interaction.notifyScrollEvent(oEvent);
 
-			var nNewScrollTop = oEvent.target.scrollTop; // Can be a float if zoomed in Chrome.
-			var nOldScrollTop = oEvent.target._scrollTop; // This is set in VerticalScrollingHelper.scrollScrollbar.
-			var bScrollWithScrollbar = nNewScrollTop !== nOldScrollTop;
+			const nNewScrollTop = oEvent.target.scrollTop; // Can be a float if zoomed in Chrome.
+			const nOldScrollTop = oEvent.target._scrollTop; // This is set in VerticalScrollingHelper.scrollScrollbar.
+			const bScrollWithScrollbar = nNewScrollTop !== nOldScrollTop;
 
 			delete oEvent.target._scrollTop;
 
-			if (nNewScrollTop === 0 && !isConnected(oEvent.target)) {
+			if (nNewScrollTop === 0 && !oEvent.target.isConnected) {
 				log("VerticalScrollingHelper.onScrollbarScroll: Scrollbar is not connected with the DOM", this);
 			} else if (bScrollWithScrollbar) {
 				log("VerticalScrollingHelper.onScrollbarScroll: Scroll position changed to " + nNewScrollTop + " by interaction", this);
@@ -819,8 +822,8 @@ sap.ui.define([
 				return;
 			}
 
-			var nNewScrollTop = oEvent.target.scrollTop; // Can be a float if zoomed in Chrome.
-			var nOldScrollTop = oEvent.target._scrollTop; // This is set in VerticalScrollingHelper.scrollViewport.
+			const nNewScrollTop = oEvent.target.scrollTop; // Can be a float if zoomed in Chrome.
+			const nOldScrollTop = oEvent.target._scrollTop; // This is set in VerticalScrollingHelper.scrollViewport.
 
 			delete oEvent.target._scrollTop;
 
@@ -847,36 +850,38 @@ sap.ui.define([
 
 			bSuppressRendering = bSuppressRendering === true;
 
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var iNewIndex = oScrollPosition.getIndex();
-			var iOldIndex = oTable.getFirstVisibleRow();
-			var bNewIndexIsInBuffer = VerticalScrollingHelper.isIndexInBuffer(oTable, iNewIndex);
-			var bSuppressFirstVisibleRowChangedEvent = bNewIndexIsInBuffer;
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const bOffsetIsInPercentageOfViewport = oScrollPosition.getOffsetType() === ScrollPosition.OffsetType.PercentageOfViewport;
+			const iNewIndex = oScrollPosition.getIndex();
+			const iOldIndex = oTable.getFirstVisibleRow();
+			const bNewIndexIsInBuffer = VerticalScrollingHelper.isIndexInBuffer(oTable, iNewIndex);
+			const bNewIndexIsTemporary = bNewIndexIsInBuffer || bOffsetIsInPercentageOfViewport;
 
-			// If the index is in the buffer, it might happen that it needs to be corrected to a lower index, depending on the row heights.
-			// Therefore, prevent the firstVisibleRowChanged event in this case. It will be fired later in
-			// VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer.
+			// Depending on the row heights, it can happen that the index needs to be decreased if it is in the buffer, or it needs to be
+			// increased if the offset is specified in percentage of the viewport.
+			// The firstVisibleRowChanged event needs to be prevented in these cases. It will be fired later in
+			// VerticalScrollingHelper.fixTemporaryFirstVisibleRow.
 			log("VerticalScrollingHelper.adjustFirstVisibleRowToScrollPosition:"
 				+ " Set \"firstVisibleRow\" from " + iOldIndex + " to " + iNewIndex, oTable);
-			var bExpectRowsUpdatedEvent = oTable._setFirstVisibleRowIndex(iNewIndex, {
+			const bExpectRowsUpdatedEvent = oTable._setFirstVisibleRowIndex(iNewIndex, {
 				onScroll: true,
-				suppressEvent: bSuppressFirstVisibleRowChangedEvent,
+				suppressEvent: bNewIndexIsTemporary,
 				suppressRendering: bSuppressRendering
 			});
 
 			if (!bExpectRowsUpdatedEvent) {
-				if (bNewIndexIsInBuffer) {
-					return VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer(oTable, true, oProcessInterface);
+				if (bNewIndexIsTemporary) {
+					return VerticalScrollingHelper.fixTemporaryFirstVisibleRow(oTable, true, oProcessInterface);
 				}
 				return Promise.resolve();
 			}
 
 			return new Promise(function(resolve) {
-				var fnOnRowsUpdatedPreprocessor = function(oEvent) {
+				const fnOnRowsUpdatedPreprocessor = function(oEvent) {
 					log("VerticalScrollingHelper.adjustFirstVisibleRowToScrollPosition (async: rows updated):"
 						+ " Reason " + oEvent.getParameters().reason, this);
-					if (bNewIndexIsInBuffer) {
-						VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer(oTable, true, oProcessInterface).then(resolve);
+					if (bNewIndexIsTemporary) {
+						VerticalScrollingHelper.fixTemporaryFirstVisibleRow(oTable, true, oProcessInterface).then(resolve);
 					} else {
 						resolve();
 					}
@@ -887,7 +892,7 @@ sap.ui.define([
 
 				if (oProcessInterface) {
 					oProcessInterface.addCancelListener(function() {
-						var bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
+						const bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 						if (bRemoved) {
 							resolve();
 						}
@@ -897,46 +902,50 @@ sap.ui.define([
 		},
 
 		/**
-		 * Adjusts the first visible row to the current scroll position if it is in the buffer. The buffer is reserved to scroll the final
-		 * overflow whose actual size is only known when the table is scrolled to the bottom. In this case, this method completes adjusting the
-		 * <code>firstVisibleRow</code> property of the table to the scroll position.
+		 * Adjusts the first visible row index to the current scroll position if it is in the buffer, or the offset is specified in percentage of the
+		 * viewport. The buffer is reserved to scroll the final overflow, whose actual size is only known when the table is scrolled to the bottom.
+		 * In these cases, this method completes adjusting the <code>firstVisibleRow</code> property of the table to the scroll position.
 		 *
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 * @param {boolean} [bForceFirstVisibleRowChangedEvent=false] Whether to fire the <code>firstVisibleRowChanged</code> event of the table,
 		 * @param {ProcessInterface} [oProcessInterface] The interface to the process.
 		 * @returns {Promise} A Promise that resolves when the first visible row of the table is set to the correct value.
 		 */
-		adjustFirstVisibleRowToScrollPositionInBuffer: function(oTable, bForceFirstVisibleRowChangedEvent, oProcessInterface) {
+		fixTemporaryFirstVisibleRow: function(oTable, bForceFirstVisibleRowChangedEvent, oProcessInterface) {
 			if (oProcessInterface && oProcessInterface.isCancelled()) {
 				return Promise.resolve();
 			}
 
 			bForceFirstVisibleRowChangedEvent = bForceFirstVisibleRowChangedEvent === true;
 
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var iIndex = oScrollPosition.getIndex();
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const bOffsetIsInPercentageOfViewport = oScrollPosition.getOffsetType() === ScrollPosition.OffsetType.PercentageOfViewport;
+			const iIndex = oScrollPosition.getIndex();
+			const bIndexIsInBuffer = VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex);
+			const bIndexIsTemporary = bIndexIsInBuffer || bOffsetIsInPercentageOfViewport;
 
-			if (!VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
-				log("VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer:"
-					+ " Aborted - Scroll position is not in buffer", oTable);
+			if (!bIndexIsTemporary) {
+				log("VerticalScrollingHelper.fixTemporaryFirstVisibleRow: Aborted - The index is already final", oTable);
 				return Promise.resolve();
 			}
 
-			var iNewIndex = iIndex;
-			var iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
-			var iMaxFirstRenderedRowIndex = oTable._getMaxFirstRenderedRowIndex();
-			var aRowHeights = oTable._aRowHeights;
-			var iRowIndex;
+			let iNewIndex = iIndex;
+			const iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
+			const iMaxFirstRenderedRowIndex = oTable._getMaxFirstRenderedRowIndex();
+			const aRowHeights = oTable._aRowHeights;
+			let iRowIndex;
 
-			log("VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer");
+			log("VerticalScrollingHelper.fixTemporaryFirstVisibleRow", oTable);
 
-			if (oScrollPosition.getOffsetType() === ScrollPosition.OffsetType.PercentageOfBuffer) {
-				var nRemaining = iViewportScrollRange * oScrollPosition.getOffset();
+			if (bOffsetIsInPercentageOfViewport) {
+				let nRemaining = iViewportScrollRange * oScrollPosition.getOffset();
 
-				iNewIndex = iMaxFirstRenderedRowIndex;
+				if (bIndexIsInBuffer) {
+					iNewIndex = iMaxFirstRenderedRowIndex;
+				}
 
 				for (iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
-					var nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
+					const nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
 
 					if (nRemainingTemp >= 0) {
 						nRemaining = nRemainingTemp;
@@ -945,9 +954,9 @@ sap.ui.define([
 						break;
 					}
 				}
-			} else {
-				var iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - iMaxFirstRenderedRowIndex));
-				var iViewportVirtualScrollTop = 0;
+			} else if (bIndexIsInBuffer) {
+				const iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - iMaxFirstRenderedRowIndex));
+				let iViewportVirtualScrollTop = 0;
 
 				for (iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
 					iViewportVirtualScrollTop += aRowHeights[iRowIndex];
@@ -961,7 +970,7 @@ sap.ui.define([
 			}
 
 			if (iIndex !== iNewIndex || bForceFirstVisibleRowChangedEvent) {
-				log("VerticalScrollingHelper.adjustFirstVisibleRowToScrollPositionInBuffer: Set \"firstVisibleRow\" to " + iNewIndex, oTable);
+				log("VerticalScrollingHelper.fixTemporaryFirstVisibleRow: Set \"firstVisibleRow\" to " + iNewIndex, oTable);
 				oTable._setFirstVisibleRowIndex(iNewIndex, {
 					onScroll: true,
 					forceEvent: bForceFirstVisibleRowChangedEvent,
@@ -985,7 +994,7 @@ sap.ui.define([
 			}
 
 			log("VerticalScrollingHelper.adjustScrollPositionToFirstVisibleRow", oTable);
-			internal(oTable).oVerticalScrollPosition.setPosition(oTable.getFirstVisibleRow());
+			_private(oTable).oVerticalScrollPosition.setPosition(oTable.getFirstVisibleRow());
 
 			return Promise.resolve();
 		},
@@ -1002,33 +1011,33 @@ sap.ui.define([
 				return Promise.resolve();
 			}
 
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var nScrollbarScrollTop = VerticalScrollingHelper.getScrollPositionOfScrollbar(oTable);
-			var iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
-			var nScrollRangeRowFraction = VerticalScrollingHelper.getScrollRangeRowFraction(oTable);
-			var iNewIndex = 0;
-			var nNewOffset = 0;
-			var sNewOffsetType = ScrollPosition.OffsetType.Percentage;
-			var nIndex;
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const nScrollbarScrollTop = VerticalScrollingHelper.getScrollPositionOfScrollbar(oTable);
+			const iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
+			const nScrollRangeRowFraction = VerticalScrollingHelper.getScrollRangeRowFraction(oTable);
+			let iNewIndex = 0;
+			let nNewOffset = 0;
+			let sNewOffsetType = ScrollPosition.OffsetType.Percentage;
+			let nIndex;
 
 			log("VerticalScrollingHelper.adjustScrollPositionToScrollbar", oTable);
 
 			if (TableUtils.isVariableRowHeightEnabled(oTable)) {
 				if (VerticalScrollingHelper.isScrollPositionOfScrollbarInBuffer(oTable)) {
-					var iBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
-					var iScrollRangeWithoutBuffer = iScrollRange - iBuffer;
-					var nScrolledBuffer = nScrollbarScrollTop - iScrollRangeWithoutBuffer;
-					var nScrolledBufferPercentage = nScrolledBuffer / iBuffer;
+					const iBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
+					const iScrollRangeWithoutBuffer = iScrollRange - iBuffer;
+					const nScrolledBuffer = nScrollbarScrollTop - iScrollRangeWithoutBuffer;
+					const nScrolledBufferPercentage = nScrolledBuffer / iBuffer;
 
 					iNewIndex = oTable._getMaxFirstRenderedRowIndex();
 
 					if (VerticalScrollingHelper.isIndexInBuffer(oTable, oScrollPosition.getIndex())) {
-						var iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
-						var nRemaining = iViewportScrollRange * nScrolledBufferPercentage;
-						var aRowHeights = oTable._aRowHeights;
+						const iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
+						let nRemaining = iViewportScrollRange * nScrolledBufferPercentage;
+						const aRowHeights = oTable._aRowHeights;
 
-						for (var iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
-							var nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
+						for (let iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
+							const nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
 
 							if (nRemainingTemp >= 0) {
 								nRemaining = nRemainingTemp;
@@ -1041,7 +1050,7 @@ sap.ui.define([
 						}
 					} else {
 						nNewOffset = nScrolledBufferPercentage;
-						sNewOffsetType = ScrollPosition.OffsetType.PercentageOfBuffer;
+						sNewOffsetType = ScrollPosition.OffsetType.PercentageOfViewport;
 					}
 				} else {
 					nIndex = nScrollbarScrollTop / nScrollRangeRowFraction;
@@ -1052,8 +1061,8 @@ sap.ui.define([
 				// Calculation of the row index can be inaccurate if scrolled to the end. This can happen due to rounding errors in case of
 				// large data or when zoomed in Chrome. In this case the table cannot be scrolled to the last row. To overcome this issue, we
 				// consider the table to be scrolled to the end if the scroll position is less than 1 pixel away from the maximum.
-				var nDistanceToMaximumScrollPosition = iScrollRange - nScrollbarScrollTop;
-				var bScrolledToBottom = nDistanceToMaximumScrollPosition < 1;
+				const nDistanceToMaximumScrollPosition = iScrollRange - nScrollbarScrollTop;
+				const bScrolledToBottom = nDistanceToMaximumScrollPosition < 1;
 
 				if (bScrolledToBottom) {
 					iNewIndex = oTable._getMaxFirstVisibleRowIndex();
@@ -1083,16 +1092,16 @@ sap.ui.define([
 				return Promise.resolve();
 			}
 
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var aRowHeights = oTable._aRowHeights;
-			var iNewIndex = oTable._iRenderedFirstVisibleRow;
-			var iNewOffset = 0;
-			var nRemaining = VerticalScrollingHelper.getScrollPositionOfViewport(oTable);
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const aRowHeights = oTable._aRowHeights;
+			let iNewIndex = oTable._getFirstRenderedRowIndex();
+			let iNewOffset = 0;
+			let nRemaining = VerticalScrollingHelper.getScrollPositionOfViewport(oTable);
 
 			log("VerticalScrollingHelper.adjustScrollPositionToViewport", oTable);
 
-			for (var iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
-				var nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
+			for (let iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
+				const nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
 
 				if (nRemainingTemp >= 0) {
 					nRemaining = nRemainingTemp;
@@ -1109,11 +1118,110 @@ sap.ui.define([
 		},
 
 		/**
+		 * If the offset is specified in percentage, index and offset are recalculated to the actual index and an offset in pixel. The current
+		 * state of the viewport including the row heights is taken into account for this correction. The offset is limited to the height of the
+		 * row at this index.
+		 *
+		 * @param {sap.ui.table.Table} oTable Instance of the table.
+		 * @param {ProcessInterface} [oProcessInterface] The interface to the process.
+		 * @returns {Promise} A Promise that resolves when the scroll position is set to the correct value.
+		 */
+		fixScrollPosition: function(oTable, oProcessInterface) {
+			if (oProcessInterface && oProcessInterface.isCancelled()) {
+				return Promise.resolve();
+			}
+
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const oViewport = oTable.getDomRef("tableCCnt");
+			const iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
+			const aRowHeights = oTable._aRowHeights;
+
+			if (!oViewport || !oTable.getBinding()) {
+				log("VerticalScrollingHelper.fixScrollPosition: Aborted - Viewport or binding not available", oTable);
+				return Promise.resolve();
+			}
+
+			log("VerticalScrollingHelper.fixScrollPosition", oTable);
+
+			let iNewIndex = oScrollPosition.getIndex();
+			let iNewOffset = oScrollPosition.getOffset();
+			let iTargetRowIndex = 0;
+			let iRowIndex;
+			const iFirstRenderedRowIndex = oTable._getFirstRenderedRowIndex();
+
+			switch (oScrollPosition.getOffsetType()) {
+				case ScrollPosition.OffsetType.Pixel:
+				case ScrollPosition.OffsetType.Percentage: {
+					const iIndex = oScrollPosition.getIndex();
+					let iVirtualViewportScrollTop = 0;
+					let iCurrentOffsetType = oScrollPosition.getOffsetType();
+
+					if (VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
+						let iVirtualScrollTop = 0;
+
+						iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - iFirstRenderedRowIndex));
+
+						for (iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
+							iVirtualScrollTop += aRowHeights[iRowIndex];
+
+							if (iVirtualScrollTop > iViewportScrollRange) {
+								// The index is too high. It is not possible to scroll down so far that the row at this index is shown on top.
+								iNewIndex = iFirstRenderedRowIndex + iRowIndex;
+								iNewOffset = iViewportScrollRange - iVirtualViewportScrollTop;
+								iCurrentOffsetType = ScrollPosition.OffsetType.Pixel;
+								iTargetRowIndex = iRowIndex;
+								break;
+							} else {
+								iVirtualViewportScrollTop = iVirtualScrollTop;
+							}
+						}
+					}
+
+					if (iCurrentOffsetType === ScrollPosition.OffsetType.Pixel) {
+						// The offset may not be larger than the row.
+						iNewOffset = Math.min(iNewOffset, aRowHeights[iTargetRowIndex]);
+					} else {
+						iNewOffset = aRowHeights[iTargetRowIndex] * iNewOffset;
+					}
+
+					iVirtualViewportScrollTop += iNewOffset;
+
+					if (iVirtualViewportScrollTop > iViewportScrollRange && TableUtils.isVariableRowHeightEnabled(oTable)) {
+						iNewOffset -= iVirtualViewportScrollTop - iViewportScrollRange;
+					}
+					break;
+				}
+				case ScrollPosition.OffsetType.PercentageOfViewport: {
+					let nRemaining = iViewportScrollRange * oScrollPosition.getOffset();
+
+					for (iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
+						const nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
+
+						if (nRemainingTemp >= 0) {
+							nRemaining = nRemainingTemp;
+							iTargetRowIndex++;
+						} else {
+							iNewIndex = iFirstRenderedRowIndex + iTargetRowIndex;
+							iNewOffset = Math.round(nRemaining);
+							break;
+						}
+					}
+					break;
+				}
+				default:
+			}
+
+			oScrollPosition.setPosition(iNewIndex, iNewOffset);
+
+			return Promise.resolve();
+		},
+
+		/**
 		 * Scrolls the viewport to match the scroll position. Adjusts the scroll position if the viewport cannot be scrolled to match the scroll
 		 * position.
 		 *
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @param {ProcessInterface} [oProcessInterface} The interface to the process.
+		 * @param {ProcessInterface} [oProcessInterface] The interface to the process.
 		 * @returns {Promise} A Promise that resolves when <code>scrollTop</code> of the viewport was set.
 		 */
 		scrollViewport: function(oTable, oProcessInterface) {
@@ -1121,102 +1229,41 @@ sap.ui.define([
 				return Promise.resolve();
 			}
 
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var oViewport = oTable.getDomRef("tableCCnt");
-			var iScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
-			var aRowHeights = oTable._aRowHeights;
-
-			if (!TableUtils.isVariableRowHeightEnabled(oTable) || !oViewport || !oTable.getBinding("rows")) {
-				log("VerticalScrollingHelper.scrollViewport: Aborted - Guard clause not passed", oTable);
+			if (!TableUtils.isVariableRowHeightEnabled(oTable)) {
+				log("VerticalScrollingHelper.scrollViewport: Aborted - Variable row height not enabled", oTable);
 				return Promise.resolve();
 			}
 
-			// Only update the scroll position of the viewport if no update is scheduled.
-			if (oTable._getFirstRenderedRowIndex() !== oTable._iRenderedFirstVisibleRow) {
-				log("VerticalScrollingHelper.scrollViewport: Aborted - Rows will be updated", oTable);
-				return Promise.resolve();
-			}
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const oViewport = oTable.getDomRef("tableCCnt");
+			const iScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
+			const aRowHeights = oTable._aRowHeights;
+			let iScrollTop = 0;
 
 			if (iScrollRange === 0) {
-				// Heights of empty rows are not included into the inner vertical scroll range. But because of them, the scroll position may be
-				// greater than 0, even though the calculated range is 0, so the browser does not automatically adjust it. Therefore, the inner scroll
-				// position should be reset.
-
-				log("VerticalScrollingHelper.scrollViewport: No overflow in viewport - Scroll to 0", oTable);
-				oTable._setFirstVisibleRowIndex(0, {onScroll: true});
-				oScrollPosition.setPosition(0);
-				oViewport.scrollTop = 0;
-
+				log("VerticalScrollingHelper.scrollViewport: Aborted - No overflow in viewport", oTable);
+				oViewport.scrollTop = iScrollTop;
+				oViewport._scrollTop = oViewport.scrollTop;
 				return Promise.resolve();
 			}
 
-			var iIndex = oScrollPosition.getIndex();
-			var iMaxFirstRenderedRowIndex = oTable._getMaxFirstRenderedRowIndex();
-			var iScrollTop = 0;
-			var iTargetRowIndex = 0;
-			var iRowIndex;
-
-			log("VerticalScrollingHelper.scrollViewport");
+			log("VerticalScrollingHelper.scrollViewport", oTable);
 
 			switch (oScrollPosition.getOffsetType()) {
-				case ScrollPosition.OffsetType.Pixel:
-				case ScrollPosition.OffsetType.Percentage:
-					if (VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
-						var iVirtualScrollTop = 0;
+				case ScrollPosition.OffsetType.Pixel: {
+					const iIndex = oScrollPosition.getIndex();
+					const iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - oTable._getFirstRenderedRowIndex()));
 
-						iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - iMaxFirstRenderedRowIndex));
-
-						for (iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
-							iVirtualScrollTop += aRowHeights[iRowIndex];
-
-							if (iVirtualScrollTop > iScrollRange) {
-								// The index is too high. It is not possible to scroll down so far that the row at this index is shown on top.
-								oScrollPosition.setPosition(iMaxFirstRenderedRowIndex + iRowIndex, iScrollRange - iScrollTop);
-								iTargetRowIndex = iRowIndex;
-								break;
-							} else {
-								iScrollTop = iVirtualScrollTop;
-							}
-						}
-					}
-
-					if (oScrollPosition.isOffsetInPixel()) {
-						// The offset may not be larger than the row.
-						oScrollPosition.setOffset(Math.min(oScrollPosition.getOffset(), aRowHeights[iTargetRowIndex]));
-					} else {
-						oScrollPosition.setOffset(aRowHeights[iTargetRowIndex] * oScrollPosition.getOffset());
+					for (let iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
+						iScrollTop += aRowHeights[iRowIndex];
 					}
 
 					iScrollTop += oScrollPosition.getOffset();
-
-					if (iScrollTop > iScrollRange) {
-						oScrollPosition.setOffset(oScrollPosition.getOffset() - (iScrollTop - iScrollRange));
-						iScrollTop = iScrollRange;
-					}
 					break;
-				case ScrollPosition.OffsetType.PercentageOfBuffer:
-					if (!VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
-						oScrollPosition.setOffset(0);
-						break;
-					}
-
-					var nRemaining = iScrollRange * oScrollPosition.getOffset();
-
-					iScrollTop = Math.round(nRemaining);
-
-					for (iRowIndex = 0; iRowIndex < aRowHeights.length; iRowIndex++) {
-						var nRemainingTemp = nRemaining - aRowHeights[iRowIndex];
-
-						if (nRemainingTemp >= 0) {
-							nRemaining = nRemainingTemp;
-							iTargetRowIndex++;
-						} else {
-							oScrollPosition.setPosition(iMaxFirstRenderedRowIndex + iTargetRowIndex, Math.round(nRemaining));
-							break;
-						}
-					}
-					break;
+				}
 				default:
+					log("VerticalScrollingHelper.scrollViewport: The viewport can only be scrolled if the offset is in pixel", oTable);
+					return Promise.resolve();
 			}
 
 			log("VerticalScrollingHelper.scrollViewport: Scroll from " + oViewport.scrollTop + " to " + iScrollTop, oTable);
@@ -1230,7 +1277,7 @@ sap.ui.define([
 		 * Scrolls the scrollbar to match the scroll position.
 		 *
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @param {ProcessInterface} [oProcessInterface} The interface to the process.
+		 * @param {ProcessInterface} [oProcessInterface] The interface to the process.
 		 * @returns {Promise} A Promise that resolves when <code>scrollTop</code> of the scrollbar was set.
 		 */
 		scrollScrollbar: function(oTable, oProcessInterface) {
@@ -1238,17 +1285,16 @@ sap.ui.define([
 				return Promise.resolve();
 			}
 
-			var _internal = internal(oTable);
-			var oScrollPosition = _internal.oVerticalScrollPosition;
-			var iIndex = oScrollPosition.getIndex();
-			var iBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
-			var iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
-			var iScrollRangeWithoutBuffer = iScrollRange - iBuffer;
-			var nScrollPosition = 0;
-			var iScrollTop = 0;
-			var iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
-			var aRowHeights = oTable._aRowHeights;
-			var iTargetRowIndex;
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const iIndex = oScrollPosition.getIndex();
+			const iBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
+			const iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
+			const iScrollRangeWithoutBuffer = iScrollRange - iBuffer;
+			let nScrollPosition = 0;
+			let iScrollTop = 0;
+			const iViewportScrollRange = VerticalScrollingHelper.getScrollRangeOfViewport(oTable);
+			const aRowHeights = oTable._aRowHeights;
+			let iTargetRowIndex;
 
 			log("VerticalScrollingHelper.scrollScrollbar", oTable);
 
@@ -1259,46 +1305,32 @@ sap.ui.define([
 
 			switch (oScrollPosition.getOffsetType()) {
 				case ScrollPosition.OffsetType.Pixel:
-				case ScrollPosition.OffsetType.Percentage:
 					if (VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
-						var iVirtualViewportScrollTop = 0;
+						let iVirtualViewportScrollTop = 0;
 
 						iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - oTable._getMaxFirstRenderedRowIndex()));
 
-						for (var iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
+						for (let iRowIndex = 0; iRowIndex < iTargetRowIndex; iRowIndex++) {
 							iVirtualViewportScrollTop += aRowHeights[iRowIndex];
 						}
 
-						if (oScrollPosition.isOffsetInPixel()) {
-							iVirtualViewportScrollTop += Math.min(aRowHeights[iTargetRowIndex], oScrollPosition.getOffset());
-						} else {
-							iVirtualViewportScrollTop += aRowHeights[iTargetRowIndex] * oScrollPosition.getOffset();
-						}
+						iVirtualViewportScrollTop += Math.min(aRowHeights[iTargetRowIndex], oScrollPosition.getOffset());
 
-						var nScrolledBufferPercentage = Math.min(iVirtualViewportScrollTop / iViewportScrollRange, 1);
-						var nScrolledBuffer = iBuffer * nScrolledBufferPercentage;
+						const nScrolledBufferPercentage = Math.min(iVirtualViewportScrollTop / iViewportScrollRange, 1);
+						const nScrolledBuffer = iBuffer * nScrolledBufferPercentage;
 
 						nScrollPosition = iScrollRangeWithoutBuffer + nScrolledBuffer;
 					} else {
-						var nScrollRangeRowFraction = VerticalScrollingHelper.getScrollRangeRowFraction(oTable);
+						const nScrollRangeRowFraction = VerticalScrollingHelper.getScrollRangeRowFraction(oTable);
 
 						nScrollPosition = iIndex * nScrollRangeRowFraction;
-
-						if (oScrollPosition.isOffsetInPixel()) {
-							iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - oTable._iRenderedFirstVisibleRow));
-							nScrollPosition += nScrollRangeRowFraction * Math.min(oScrollPosition.getOffset() / aRowHeights[iTargetRowIndex], 1);
-						} else {
-							nScrollPosition += nScrollRangeRowFraction * oScrollPosition.getOffset();
-						}
-					}
-
-					break;
-				case ScrollPosition.OffsetType.PercentageOfBuffer:
-					if (VerticalScrollingHelper.isIndexInBuffer(oTable, iIndex)) {
-						nScrollPosition = iScrollRangeWithoutBuffer + Math.round(iViewportScrollRange * oScrollPosition.getOffset());
+						iTargetRowIndex = Math.max(0, Math.min(aRowHeights.length - 1, iIndex - oTable._getFirstRenderedRowIndex()));
+						nScrollPosition += nScrollRangeRowFraction * Math.min(oScrollPosition.getOffset() / aRowHeights[iTargetRowIndex], 1);
 					}
 					break;
 				default:
+					log("VerticalScrollingHelper.scrollViewport: The scrollbar can only be scrolled if the offset is in pixel", oTable);
+					return Promise.resolve();
 			}
 
 			// As soon as the scroll position is > 0, scrollTop must be set to 1. Otherwise the user cannot scroll back to the first row with
@@ -1311,12 +1343,33 @@ sap.ui.define([
 				iScrollTop = Math.round(nScrollPosition);
 			}
 
-			var oVSb = oTable._getScrollExtension().getVerticalScrollbar();
+			const oVSb = oTable._getScrollExtension().getVerticalScrollbar();
 
 			if (oVSb) {
 				log("VerticalScrollingHelper.scrollScrollbar: Scroll from " + oVSb.scrollTop + " to " + iScrollTop, oTable);
+
+				const bScrollingForward = iScrollTop > oVSb.scrollTop;
+				let bScrolledToEnd = false;
+
 				oVSb.scrollTop = iScrollTop;
 				oVSb._scrollTop = oVSb.scrollTop;
+
+				if (bScrollingForward) {
+					bScrolledToEnd = Math.round(oVSb.scrollTop) === oVSb.scrollHeight - oVSb.offsetHeight;
+				} else {
+					bScrolledToEnd = oVSb.scrollTop === 0;
+				}
+
+				if (bScrolledToEnd && !oVSb._unblockScrolling) {
+					if (!oVSb._timeoutBlock) {
+						oVSb._timeoutBlock = setTimeout(function() {
+							oVSb._unblockScrolling = true;
+							oVSb._timeoutBlock = null;
+						}, SCROLL_BLOCK_TIMEOUT);
+					}
+				} else {
+					oVSb._unblockScrolling = false;
+				}
 			} else {
 				log("VerticalScrollingHelper.scrollScrollbar: Not scrolled - No scrollbar available", oTable);
 			}
@@ -1331,8 +1384,8 @@ sap.ui.define([
 		 * @returns {int} The vertical scroll range.
 		 */
 		getScrollRange: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var iVerticalScrollRange = oScrollExtension.getVerticalScrollHeight() - oScrollExtension.getVerticalScrollbarHeight();
+			const oScrollExtension = oTable._getScrollExtension();
+			const iVerticalScrollRange = oScrollExtension.getVerticalScrollHeight() - oScrollExtension.getVerticalScrollbarHeight();
 			return Math.max(0, iVerticalScrollRange);
 		},
 
@@ -1357,7 +1410,7 @@ sap.ui.define([
 		 * @returns {number} The vertical scroll position.
 		 */
 		getScrollPositionOfScrollbar: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
+			const oScrollExtension = oTable._getScrollExtension();
 
 			if (oScrollExtension.isVerticalScrollbarVisible()) {
 				return oScrollExtension.getVerticalScrollbar().scrollTop;
@@ -1373,7 +1426,7 @@ sap.ui.define([
 		 * @returns {number} The scroll position.
 		 */
 		getScrollPositionOfViewport: function(oTable) {
-			var oViewport = oTable ? oTable.getDomRef("tableCCnt") : null;
+			const oViewport = oTable ? oTable.getDomRef("tableCCnt") : null;
 			return oViewport ? oViewport.scrollTop : 0;
 		},
 
@@ -1385,9 +1438,9 @@ sap.ui.define([
 		 * @returns {number} The fraction of the vertical scroll range which corresponds to a row.
 		 */
 		getScrollRangeRowFraction: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var iVirtualRowCount = oTable._getTotalRowCount() - oTable._getRowCounts().count;
-			var iScrollRangeWithoutBuffer;
+			const oScrollExtension = oTable._getScrollExtension();
+			const iVirtualRowCount = oTable._getTotalRowCount() - oTable._getRowCounts()._fullsize;
+			let iScrollRangeWithoutBuffer;
 
 			if (TableUtils.isVariableRowHeightEnabled(oTable)) {
 				iScrollRangeWithoutBuffer = VerticalScrollingHelper.getScrollRange(oTable) - VerticalScrollingHelper.getScrollRangeBuffer(oTable);
@@ -1395,7 +1448,7 @@ sap.ui.define([
 				// The last row is part of the buffer. To correctly calculate the fraction of the scroll range allocated to a row, all rows must be
 				// considered. This is not the case if the scroll range is at its maximum, then the buffer must be excluded from calculation
 				// completely.
-				var bScrollRangeMaxedOut = oScrollExtension.getVerticalScrollHeight() === MAX_VERTICAL_SCROLL_HEIGHT;
+				const bScrollRangeMaxedOut = oScrollExtension.getVerticalScrollHeight() === MAX_VERTICAL_SCROLL_HEIGHT;
 				if (!bScrollRangeMaxedOut) {
 					iScrollRangeWithoutBuffer += oTable._getBaseRowHeight();
 				}
@@ -1417,9 +1470,9 @@ sap.ui.define([
 				return false;
 			}
 
-			var iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
-			var nScrollPosition = VerticalScrollingHelper.getScrollPositionOfScrollbar(oTable);
-			var iScrollRangeBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
+			const iScrollRange = VerticalScrollingHelper.getScrollRange(oTable);
+			const nScrollPosition = VerticalScrollingHelper.getScrollPositionOfScrollbar(oTable);
+			const iScrollRangeBuffer = VerticalScrollingHelper.getScrollRangeBuffer(oTable);
 
 			return iScrollRange - nScrollPosition <= iScrollRangeBuffer;
 		},
@@ -1450,15 +1503,15 @@ sap.ui.define([
 				return 0;
 			}
 
-			var aRowHeights = oTable._aRowHeights;
-			var iViewportHeight = oTable._getBaseRowHeight() * oTable._getRowCounts().count;
+			let aRowHeights = oTable._aRowHeights;
+			const iViewportHeight = oTable._getBaseRowHeight() * oTable._getRowCounts()._fullsize;
 
 			// Only sum rows filled with data, ignore empty rows.
-			if (oTable._getRowCounts().count >= oTable._getTotalRowCount()) {
+			if (oTable._getRowCounts()._fullsize >= oTable._getTotalRowCount()) {
 				aRowHeights = aRowHeights.slice(0, oTable._getTotalRowCount());
 			}
 
-			var iInnerVerticalScrollRange = aRowHeights.reduce(function(a, b) { return a + b; }, 0) - iViewportHeight;
+			let iInnerVerticalScrollRange = aRowHeights.reduce(function(a, b) { return a + b; }, 0) - iViewportHeight;
 			if (iInnerVerticalScrollRange > 0) {
 				iInnerVerticalScrollRange = Math.ceil(iInnerVerticalScrollRange);
 			}
@@ -1476,7 +1529,7 @@ sap.ui.define([
 		 * @private
 		 */
 		addOnRowsUpdatedPreprocessor: function(oTable, fnPreprocessor) {
-			internal(oTable).aOnRowsUpdatedPreprocessors.push(fnPreprocessor);
+			_private(oTable).aOnRowsUpdatedPreprocessors.push(fnPreprocessor);
 		},
 
 		/**
@@ -1491,14 +1544,14 @@ sap.ui.define([
 		 */
 		removeOnRowsUpdatedPreprocessor: function(oTable, fnPreprocessor) {
 			if (!fnPreprocessor) {
-				internal(oTable).aOnRowsUpdatedPreprocessors = [];
+				_private(oTable).aOnRowsUpdatedPreprocessors = [];
 				return false;
 			}
 
-			var iIndex = internal(oTable).aOnRowsUpdatedPreprocessors.indexOf(fnPreprocessor);
+			const iIndex = _private(oTable).aOnRowsUpdatedPreprocessors.indexOf(fnPreprocessor);
 
 			if (iIndex > -1) {
-				internal(oTable).aOnRowsUpdatedPreprocessors.splice(iIndex, 1);
+				_private(oTable).aOnRowsUpdatedPreprocessors.splice(iIndex, 1);
 				return true;
 			}
 
@@ -1514,13 +1567,13 @@ sap.ui.define([
 		onRowsUpdated: function(oEvent) {
 			log("VerticalScrollingHelper.onRowsUpdated: Reason " + oEvent.getParameters().reason, this);
 
-			this._getScrollExtension().updateVerticalScrollbarVisibility();
+			VerticalScrollingHelper.updateScrollbarVisibility(this);
 
-			if (internal(this).aOnRowsUpdatedPreprocessors.length > 0) {
+			if (_private(this).aOnRowsUpdatedPreprocessors.length > 0) {
 				log("VerticalScrollingHelper.onRowsUpdated (preprocessors)", this);
 
-				var bExecuteDefault = internal(this).aOnRowsUpdatedPreprocessors.reduce(function(bExecuteDefault, fnPreprocessor) {
-					var _bExecuteDefault = fnPreprocessor.call(this, oEvent);
+				const bExecuteDefault = _private(this).aOnRowsUpdatedPreprocessors.reduce(function(bExecuteDefault, fnPreprocessor) {
+					const _bExecuteDefault = fnPreprocessor.call(this, oEvent);
 					return !(bExecuteDefault && !_bExecuteDefault);
 				}, true);
 
@@ -1537,7 +1590,7 @@ sap.ui.define([
 				return;
 			}
 
-			var that = this;
+			const that = this;
 
 			VerticalScrollProcess.start(this, VerticalScrollProcess.OnRowsUpdated, function(resolve, reject, oProcessInterface) {
 				TableUtils.Hook.call(that, Hook.Signal, "StartTableUpdate");
@@ -1547,9 +1600,10 @@ sap.ui.define([
 					});
 				};
 
-				VerticalScrollingHelper.scrollViewport(that, oProcessInterface).then(function() {
+				VerticalScrollingHelper.fixScrollPosition(that, oProcessInterface).then(function() {
 					return Promise.all([
 						VerticalScrollingHelper.adjustFirstVisibleRowToScrollPosition(that, true, oProcessInterface),
+						VerticalScrollingHelper.scrollViewport(that, oProcessInterface),
 						VerticalScrollingHelper.scrollScrollbar(that, oProcessInterface)
 					]);
 				}).then(resolve);
@@ -1585,7 +1639,7 @@ sap.ui.define([
 					return;
 				}
 
-				var fnOnRowsUpdatedPreprocessor = function() {
+				const fnOnRowsUpdatedPreprocessor = function() {
 					log("VerticalScrollingHelper.restoreScrollPosition (async: rows updated)", oTable);
 					resolve();
 					return false;
@@ -1594,7 +1648,7 @@ sap.ui.define([
 				VerticalScrollingHelper.addOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 
 				oProcessInterface.addCancelListener(function() {
-					var bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
+					const bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 					if (bRemoved) {
 						resolve();
 					}
@@ -1603,8 +1657,8 @@ sap.ui.define([
 		},
 
 		_restoreScrollPosition: function(oTable) {
-			var oScrollPosition = internal(oTable).oVerticalScrollPosition;
-			var bScrollPositionIsInitial = oScrollPosition.isInitial();
+			const oScrollPosition = _private(oTable).oVerticalScrollPosition;
+			const bScrollPositionIsInitial = oScrollPosition.isInitial();
 
 			log("VerticalScrollingHelper.restoreScrollPosition: "
 				+ "Scroll position is" + (bScrollPositionIsInitial ? " " : " not ") + "initial", oTable);
@@ -1616,11 +1670,16 @@ sap.ui.define([
 			}
 		},
 
-		adjustToTotalRowCount: function(oTable) {
-			log("VerticalScrollingHelper.adjustToTotalRowCount", oTable);
+		onTotalRowCountChanged: function() {
+			VerticalScrollingHelper.adjustToTotalRowCount(this);
+		},
 
-			var oScrollExtension = oTable._getScrollExtension();
-			oScrollExtension.updateVerticalScrollbarVisibility();
+		adjustToTotalRowCount: function(oTable) {
+			const oScrollExtension = oTable._getScrollExtension();
+
+			log("VerticalScrollingHelper.adjustToTotalRowCount", oTable);
+			VerticalScrollingHelper.updateScrollbarVisibility(oTable);
+			HorizontalScrollingHelper.updateScrollbar(oTable);
 			oScrollExtension.updateVerticalScrollHeight();
 
 			VerticalScrollProcess.start(oTable, VerticalScrollProcess.AdjustToTotalRowCount, function(resolve, reject, oProcessInterface) {
@@ -1628,12 +1687,10 @@ sap.ui.define([
 
 				oProcessInterface.onPromiseCreated = function(oPromise) {
 					oPromise.then(function() {
-						if (oProcessInterface.isCancelled() || internal(oTable).oVerticalScrollPosition.isInitial()) {
+						if (oProcessInterface.isCancelled() || _private(oTable).oVerticalScrollPosition.isInitial()) {
 							return;
 						}
 
-						// TODO: Avoid usage of scrollViewport.
-						VerticalScrollingHelper.scrollViewport(oTable);
 						// Starts a new process.
 						VerticalScrollingHelper.performUpdateFromScrollPosition(oTable);
 					}).finally(function() {
@@ -1641,10 +1698,10 @@ sap.ui.define([
 					});
 				};
 
-				if (internal(oTable).oVerticalScrollPosition.isInitial()) {
+				if (_private(oTable).oVerticalScrollPosition.isInitial()) {
 					resolve();
 				} else {
-					var fnOnRowsUpdatedPreprocessor = function() {
+					const fnOnRowsUpdatedPreprocessor = function() {
 						log("VerticalScrollingHelper.adjustToTotalRowCount (async: rows updated)", oTable);
 						resolve();
 						return false;
@@ -1653,7 +1710,7 @@ sap.ui.define([
 					VerticalScrollingHelper.addOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 
 					oProcessInterface.addCancelListener(function() {
-						var bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
+						const bRemoved = VerticalScrollingHelper.removeOnRowsUpdatedPreprocessor(oTable, fnOnRowsUpdatedPreprocessor);
 						if (bRemoved) {
 							resolve();
 						}
@@ -1663,20 +1720,68 @@ sap.ui.define([
 		},
 
 		/**
+		 * This hook is called when the table layout is updated, for example when resizing.
+		 *
+		 * @param {sap.ui.table.utils.TableUtils.RowsUpdateReason} sReason The reason for updating the table sizes.
+		 * @private
+		 */
+		onUpdateTableSizes: function(sReason) {
+			HorizontalScrollingHelper.updateScrollbar(this);
+			VerticalScrollingHelper.updateScrollbarVisibility(this);
+			VerticalScrollingHelper.updateScrollbarPosition(this);
+		},
+
+		updateScrollbarVisibility: function(oTable) {
+			const oScrollExtension = oTable._getScrollExtension();
+			const oVSb = oScrollExtension.getVerticalScrollbar();
+			const oTableElement = oTable ? oTable.getDomRef() : null;
+
+			if (!oVSb || !oTableElement) {
+				return;
+			}
+
+			const bVerticalScrollbarRequired = oScrollExtension.isVerticalScrollbarRequired();
+
+			oTableElement.classList.toggle("sapUiTableVScr", bVerticalScrollbarRequired && !oScrollExtension.isVerticalScrollbarExternal());
+			oVSb.parentElement.classList.toggle("sapUiTableHidden", !bVerticalScrollbarRequired);
+		},
+
+		updateScrollbarPosition: function(oTable) {
+			const oScrollExtension = oTable._getScrollExtension();
+			const oVSb = oScrollExtension.getVerticalScrollbar();
+
+			if (!oVSb) {
+				return;
+			}
+
+			const oHSb = oScrollExtension.getHorizontalScrollbar();
+			const mRowCounts = oTable._getRowCounts();
+
+			let iOffsetBottom = 0;
+			if (oHSb && _private(oTable).bHorizontalScrollbarRequired && oScrollExtension.isHorizontalScrollbarVisible()) {
+				iOffsetBottom = oHSb.offsetHeight;
+			}
+			if (mRowCounts.fixedBottom > 0) {
+				iOffsetBottom += mRowCounts.fixedBottom * oTable._getBaseRowHeight();
+			}
+			oVSb.style.bottom = iOffsetBottom + "px";
+		},
+
+		/**
 		 * Adds the event listeners which are required for the vertical scrolling.
 		 *
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		addEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var aScrollAreas = VerticalScrollingHelper.getScrollAreas(oTable);
-			var oViewport = oTable.getDomRef("tableCCnt");
+			const oScrollExtension = oTable._getScrollExtension();
+			const aScrollAreas = VerticalScrollingHelper.getScrollAreas(oTable);
+			const oViewport = oTable.getDomRef("tableCCnt");
 
 			if (!oScrollExtension._onVerticalScrollEventHandler) {
 				oScrollExtension._onVerticalScrollEventHandler = VerticalScrollingHelper.onScrollbarScroll.bind(oTable);
 			}
 
-			for (var i = 0; i < aScrollAreas.length; i++) {
+			for (let i = 0; i < aScrollAreas.length; i++) {
 				aScrollAreas[i].addEventListener("scroll", oScrollExtension._onVerticalScrollEventHandler);
 			}
 
@@ -1696,12 +1801,12 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		removeEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var aScrollAreas = VerticalScrollingHelper.getScrollAreas(oTable);
-			var oViewport = oTable.getDomRef("tableCCnt");
+			const oScrollExtension = oTable._getScrollExtension();
+			const aScrollAreas = VerticalScrollingHelper.getScrollAreas(oTable);
+			const oViewport = oTable.getDomRef("tableCCnt");
 
 			if (oScrollExtension._onVerticalScrollEventHandler) {
-				for (var i = 0; i < aScrollAreas.length; i++) {
+				for (let i = 0; i < aScrollAreas.length; i++) {
 					aScrollAreas[i].removeEventListener("scroll", oScrollExtension._onVerticalScrollEventHandler);
 				}
 				delete oScrollExtension._onVerticalScrollEventHandler;
@@ -1723,7 +1828,7 @@ sap.ui.define([
 		 * @private
 		 */
 		getScrollAreas: function(oTable) {
-			var aScrollAreas = [
+			const aScrollAreas = [
 				oTable._getScrollExtension().getVerticalScrollbar()
 			];
 
@@ -1738,7 +1843,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	var ScrollingHelper = {
+	const ScrollingHelper = {
 		/**
 		 * Handles mouse wheel events.
 		 *
@@ -1746,12 +1851,12 @@ sap.ui.define([
 		 * @param {WheelEvent} oEvent The wheel event object.
 		 */
 		onMouseWheelScrolling: function(mOptions, oEvent) {
-			var oScrollExtension = this._getScrollExtension();
-			var bVerticalDelta = Math.abs(oEvent.deltaY) > Math.abs(oEvent.deltaX);
-			var iScrollDelta = bVerticalDelta ? oEvent.deltaY : oEvent.deltaX;
-			var bHorizontalScrolling = bVerticalDelta && oEvent.shiftKey || !bVerticalDelta;
-			var bScrollingForward = iScrollDelta > 0;
-			var bScrolledToEnd = false;
+			const oScrollExtension = this._getScrollExtension();
+			const bVerticalDelta = Math.abs(oEvent.deltaY) > Math.abs(oEvent.deltaX);
+			let iScrollDelta = bVerticalDelta ? oEvent.deltaY : oEvent.deltaX;
+			const bHorizontalScrolling = bVerticalDelta && oEvent.shiftKey || !bVerticalDelta;
+			const bScrollingForward = iScrollDelta > 0;
+			let bScrolledToEnd = false;
 
 			if (iScrollDelta === 0) {
 				return;
@@ -1759,13 +1864,13 @@ sap.ui.define([
 
 			if (bHorizontalScrolling && (mOptions.scrollDirection === ScrollDirection.HORIZONAL
 										 || mOptions.scrollDirection === ScrollDirection.BOTH)) {
-				var oHSb = oScrollExtension.getHorizontalScrollbar();
+				const oHSb = oScrollExtension.getHorizontalScrollbar();
 
 				if (oEvent.deltaMode !== window.WheelEvent.DOM_DELTA_PIXEL) {
 					// For simplicity and performance reasons horizontal line and page scrolling is always performed by the distance of one minimum
 					// column width. To determine the real scroll distance reading from the DOM is necessary, but this should be avoided in an
 					// event handler.
-					var iMinColumnWidth = TableUtils.Column.getMinColumnWidth();
+					const iMinColumnWidth = TableUtils.Column.getMinColumnWidth();
 					iScrollDelta = bScrollingForward ? iMinColumnWidth : -iMinColumnWidth;
 				}
 
@@ -1785,23 +1890,31 @@ sap.ui.define([
 
 			} else if (!bHorizontalScrolling && (mOptions.scrollDirection === ScrollDirection.VERTICAL
 												 || mOptions.scrollDirection === ScrollDirection.BOTH)) {
-				var oVSb = oScrollExtension.getVerticalScrollbar();
-				var oVerticalScrollPosition = internal(this).oVerticalScrollPosition;
+
+				if (oEvent.target instanceof window.HTMLTextAreaElement) {
+					const oTextAreaRef = oEvent.target;
+					if (oTextAreaRef.clientHeight < oTextAreaRef.scrollHeight) {
+						return;
+					}
+				}
+
+				const oVSb = oScrollExtension.getVerticalScrollbar();
+				const oVerticalScrollPosition = _private(this).oVerticalScrollPosition;
 
 				if (bScrollingForward) {
-					bScrolledToEnd = oVSb.scrollTop === oVSb.scrollHeight - oVSb.offsetHeight;
+					bScrolledToEnd = Math.round(oVSb.scrollTop) === oVSb.scrollHeight - oVSb.clientHeight;
 				} else {
 					bScrolledToEnd = oVSb.scrollTop === 0;
 				}
 
-				if (!oScrollExtension.isVerticalScrollbarVisible() || bScrolledToEnd) {
+				if (!oScrollExtension.isVerticalScrollbarVisible() || bScrolledToEnd && oVSb._unblockScrolling) {
 					return;
 				}
 				oEvent.preventDefault();
 				oEvent.stopPropagation();
 
 				if (oEvent.deltaMode === window.WheelEvent.DOM_DELTA_PIXEL) {
-					var nRowsToScroll = iScrollDelta / this._getDefaultRowHeight();
+					const nRowsToScroll = iScrollDelta / this._getDefaultRowHeight();
 
 					// Always scroll full rows.
 					// This is not perfect in case of variable row heights, but perfect pixel-wise scrolling requires a different DOM structure.
@@ -1813,9 +1926,9 @@ sap.ui.define([
 				} else if (oEvent.deltaMode === window.WheelEvent.DOM_DELTA_LINE) {
 					oVerticalScrollPosition.scrollRows(iScrollDelta);
 				} else if (oEvent.deltaMode === window.WheelEvent.DOM_DELTA_PAGE) {
-					// For simplicity, we assume a page is always the row count.
+					// For simplicity, we assume a page is always the scrollable row count.
 					// This is not perfect in case of variable row heights, but perfect pixel-wise scrolling requires a different DOM structure.
-					oVerticalScrollPosition.scrollRows(iScrollDelta * this._getRowCounts().count);
+					oVerticalScrollPosition.scrollRows(iScrollDelta * this._getRowCounts()._scrollSize);
 				}
 
 				this._getKeyboardExtension().setActionMode(false);
@@ -1831,12 +1944,12 @@ sap.ui.define([
 		 */
 		onTouchStart: function(mOptions, oEvent) {
 			if (oEvent.type === "touchstart" || oEvent.pointerType === "touch") {
-				var oScrollExtension = this._getScrollExtension();
-				var oHSb = oScrollExtension.getHorizontalScrollbar();
-				var oVSb = oScrollExtension.getVerticalScrollbar();
-				var oTouchObject = oEvent.touches ? oEvent.touches[0] : oEvent;
+				const oScrollExtension = this._getScrollExtension();
+				const oHSb = oScrollExtension.getHorizontalScrollbar();
+				const oVSb = oScrollExtension.getVerticalScrollbar();
+				const oTouchObject = oEvent.touches ? oEvent.touches[0] : oEvent;
 
-				internal(this).mTouchSessionData = {
+				_private(this).mTouchSessionData = {
 					initialPageX: oTouchObject.pageX,
 					initialPageY: oTouchObject.pageY,
 					initialScrollTop: oVSb ? oVSb.scrollTop : 0,
@@ -1858,17 +1971,17 @@ sap.ui.define([
 				return;
 			}
 
-			var oScrollExtension = this._getScrollExtension();
-			var mTouchSessionData = internal(this).mTouchSessionData;
+			const oScrollExtension = this._getScrollExtension();
+			const mTouchSessionData = _private(this).mTouchSessionData;
 
 			if (!mTouchSessionData) {
 				return;
 			}
 
-			var oTouchObject = oEvent.touches ? oEvent.touches[0] : oEvent;
-			var iTouchDistanceX = (oTouchObject.pageX - mTouchSessionData.initialPageX);
-			var iTouchDistanceY = (oTouchObject.pageY - mTouchSessionData.initialPageY);
-			var bScrollingPerformed = false;
+			const oTouchObject = oEvent.touches ? oEvent.touches[0] : oEvent;
+			const iTouchDistanceX = (oTouchObject.pageX - mTouchSessionData.initialPageX);
+			const iTouchDistanceY = (oTouchObject.pageY - mTouchSessionData.initialPageY);
+			let bScrollingPerformed = false;
 
 			if (!mTouchSessionData.touchMoveDirection) {
 				if (iTouchDistanceX === 0 && iTouchDistanceY === 0) {
@@ -1878,11 +1991,11 @@ sap.ui.define([
 			}
 
 			switch (mTouchSessionData.touchMoveDirection) {
-				case "horizontal":
-					var oHSb = oScrollExtension.getHorizontalScrollbar();
+				case "horizontal": {
+					const oHSb = oScrollExtension.getHorizontalScrollbar();
 
 					if (oHSb && (mOptions.scrollDirection === ScrollDirection.HORIZONAL
-								 || mOptions.scrollDirection === ScrollDirection.BOTH)) {
+						|| mOptions.scrollDirection === ScrollDirection.BOTH)) {
 						this._getKeyboardExtension().setActionMode(false);
 
 						if (mTouchSessionData.initialScrolledToEnd == null) {
@@ -1899,17 +2012,17 @@ sap.ui.define([
 						}
 					}
 					break;
-
-				case "vertical":
-					var oVSb = oScrollExtension.getVerticalScrollbar();
+				}
+				case "vertical": {
+					const oVSb = oScrollExtension.getVerticalScrollbar();
 
 					if (oVSb && (mOptions.scrollDirection === ScrollDirection.VERTICAL
-								 || mOptions.scrollDirection === ScrollDirection.BOTH)) {
+						|| mOptions.scrollDirection === ScrollDirection.BOTH)) {
 						this._getKeyboardExtension().setActionMode(false);
 
 						if (mTouchSessionData.initialScrolledToEnd == null) {
 							if (iTouchDistanceY < 0) { // Scrolling down.
-								mTouchSessionData.initialScrolledToEnd = oVSb.scrollTop === oVSb.scrollHeight - oVSb.offsetHeight;
+								mTouchSessionData.initialScrolledToEnd = oVSb.scrollTop === oVSb.scrollHeight - oVSb.clientHeight;
 							} else { // Scrolling up.
 								mTouchSessionData.initialScrolledToEnd = oVSb.scrollTop === 0;
 							}
@@ -1921,6 +2034,7 @@ sap.ui.define([
 						}
 					}
 					break;
+				}
 				default:
 			}
 
@@ -1935,8 +2049,8 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		addEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var aEventListenerTargets = ScrollingHelper.getEventListenerTargets(oTable);
+			const oScrollExtension = oTable._getScrollExtension();
+			const aEventListenerTargets = ScrollingHelper.getEventListenerTargets(oTable);
 
 			oScrollExtension._mMouseWheelEventListener = this.addMouseWheelEventListener(aEventListenerTargets, oTable, {
 				scrollDirection: ScrollDirection.BOTH
@@ -1955,9 +2069,9 @@ sap.ui.define([
 		 * @returns {{wheel: Function}} A key value map containing the event names as keys and listener functions as values.
 		 */
 		addMouseWheelEventListener: function(aEventListenerTargets, oTable, mOptions) {
-			var fnOnMouseWheelEventHandler = ScrollingHelper.onMouseWheelScrolling.bind(oTable, mOptions);
+			const fnOnMouseWheelEventHandler = ScrollingHelper.onMouseWheelScrolling.bind(oTable, mOptions);
 
-			for (var i = 0; i < aEventListenerTargets.length; i++) {
+			for (let i = 0; i < aEventListenerTargets.length; i++) {
 				aEventListenerTargets[i].addEventListener("wheel", fnOnMouseWheelEventHandler);
 			}
 
@@ -1976,14 +2090,14 @@ sap.ui.define([
 		 *            touchmove: Function}} A key value map containing the event names as keys and listener functions as values.
 		 */
 		addTouchEventListener: function(aEventListenerTargets, oTable, mOptions) {
-			var fnOnTouchStartEventHandler = ScrollingHelper.onTouchStart.bind(oTable, mOptions);
-			var fnOnTouchMoveEventHandler = ScrollingHelper.onTouchMoveScrolling.bind(oTable, mOptions);
-			var mListeners = {};
+			const fnOnTouchStartEventHandler = ScrollingHelper.onTouchStart.bind(oTable, mOptions);
+			const fnOnTouchMoveEventHandler = ScrollingHelper.onTouchMoveScrolling.bind(oTable, mOptions);
+			let mListeners = {};
 
-			for (var i = 0; i < aEventListenerTargets.length; i++) {
+			for (let i = 0; i < aEventListenerTargets.length; i++) {
 				/* Touch events */
-				// IE/Edge and Chrome on desktops and windows tablets - pointer events;
-				// other browsers and tablets - touch events.
+				// Chrome on desktops and windows tablets - pointer events.
+				// Other browsers and tablets - touch events.
 				if (Device.support.pointer && Device.system.desktop) {
 					aEventListenerTargets[i].addEventListener("pointerdown", fnOnTouchStartEventHandler);
 					aEventListenerTargets[i].addEventListener("pointermove", fnOnTouchMoveEventHandler,
@@ -2009,19 +2123,19 @@ sap.ui.define([
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 */
 		removeEventListeners: function(oTable) {
-			var oScrollExtension = oTable._getScrollExtension();
-			var aEventTargets = ScrollingHelper.getEventListenerTargets(oTable);
+			const oScrollExtension = oTable._getScrollExtension();
+			const aEventTargets = ScrollingHelper.getEventListenerTargets(oTable);
 
 			function removeEventListener(oTarget, mEventListenerMap) {
-				for (var sEventName in mEventListenerMap) {
-					var fnListener = mEventListenerMap[sEventName];
+				for (const sEventName in mEventListenerMap) {
+					const fnListener = mEventListenerMap[sEventName];
 					if (fnListener) {
 						oTarget.removeEventListener(sEventName, fnListener);
 					}
 				}
 			}
 
-			for (var i = 0; i < aEventTargets.length; i++) {
+			for (let i = 0; i < aEventTargets.length; i++) {
 				removeEventListener(aEventTargets[i], oScrollExtension._mMouseWheelEventListener);
 				removeEventListener(aEventTargets[i], oScrollExtension._mTouchEventListener);
 			}
@@ -2038,7 +2152,7 @@ sap.ui.define([
 		 * @private
 		 */
 		getEventListenerTargets: function(oTable) {
-			var aEventListenerTargets = [
+			const aEventListenerTargets = [
 				// Safari does not support touch-action:none and touch-action:pan-x/y. That means, the user can scroll by touch actions anywhere
 				// in the body of the table.
 				oTable.getDomRef("tableCCnt")
@@ -2050,31 +2164,30 @@ sap.ui.define([
 		}
 	};
 
-	var ExtensionDelegate = {
+	const ExtensionDelegate = {
 		onBeforeRendering: function(oEvent) {
 			this._getScrollExtension()._clearCache();
 		},
 
 		onAfterRendering: function(oEvent) {
-			var oScrollExtension = this._getScrollExtension();
-			var bRenderedRows = oEvent != null && oEvent.isMarked("renderRows");
+			const oScrollExtension = this._getScrollExtension();
+			const bRenderedRows = oEvent != null && oEvent.isMarked("renderRows");
 
 			if (bRenderedRows) {
 				oScrollExtension.updateVerticalScrollbarHeight();
 				oScrollExtension.updateVerticalScrollHeight();
-			} else {
-				VerticalScrollingHelper.restoreScrollPosition(this, this.getBinding("rows") != null);
 			}
 
+			VerticalScrollingHelper.restoreScrollPosition(this, this.getBinding() != null);
 			HorizontalScrollingHelper.restoreScrollPosition(this);
 		},
 
 		onfocusin: function(oEvent) {
 			// Many browsers do not scroll the focused element into the viewport if it is partially visible. With this logic we ensure that the
 			// focused cell always gets scrolled into the viewport. If the cell is wider than the row container, no action is performed.
-			var oRowContainer;
-			var oCellInfo = TableUtils.getCellInfo(oEvent.target);
-			var oHSb = this._getScrollExtension().getHorizontalScrollbar();
+			let oRowContainer;
+			const oCellInfo = TableUtils.getCellInfo(oEvent.target);
+			const oHSb = this._getScrollExtension().getHorizontalScrollbar();
 
 			if (oCellInfo.isOfType(TableUtils.CELLTYPE.DATACELL)) {
 				oRowContainer = this.getDomRef("sapUiTableCtrlScr");
@@ -2083,15 +2196,15 @@ sap.ui.define([
 			}
 
 			if (oRowContainer && oHSb && oCellInfo.columnIndex >= this.getComputedFixedColumnCount()) {
-				var $HSb = jQuery(oHSb);
-				var oCell = oCellInfo.cell[0];
-				var iCurrentScrollLeft = this._bRtlMode ? $HSb.scrollLeftRTL() : oHSb.scrollLeft;
-				var iRowContainerWidth = oRowContainer.clientWidth;
-				var iCellLeft = oCell.offsetLeft;
-				var iCellRight = iCellLeft + oCell.offsetWidth;
-				var iOffsetLeft = iCellLeft - iCurrentScrollLeft;
-				var iOffsetRight = iCellRight - iRowContainerWidth - iCurrentScrollLeft;
-				var iNewScrollLeft;
+				const $HSb = jQuery(oHSb);
+				const oCell = oCellInfo.cell;
+				const iCurrentScrollLeft = this._bRtlMode ? $HSb.scrollLeftRTL() : oHSb.scrollLeft;
+				const iRowContainerWidth = oRowContainer.clientWidth;
+				const iCellLeft = oCell.offsetLeft;
+				const iCellRight = iCellLeft + oCell.offsetWidth;
+				const iOffsetLeft = iCellLeft - iCurrentScrollLeft;
+				const iOffsetRight = iCellRight - iRowContainerWidth - iCurrentScrollLeft;
+				let iNewScrollLeft;
 
 				if (iOffsetLeft < 0 && iOffsetRight < 0) {
 					iNewScrollLeft = iCurrentScrollLeft + iOffsetLeft;
@@ -2108,16 +2221,15 @@ sap.ui.define([
 				}
 			}
 
-			// On focus, the browsers scroll elements which are not visible into the viewport (IE also scrolls if elements are partially visible).
-			// This causes scrolling inside table cells, which is not desired.
-			// Flickering of the cell content cannot be avoided, as the browser performs scrolling after the event. This behavior cannot be
+			// On focus, the browsers scroll elements which are not visible into the viewport. This causes scrolling inside table cells, which is not
+			// desired. Flickering of the cell content cannot be avoided, as the browser performs scrolling after the event. This behavior cannot be
 			// prevented, only reverted.
-			var $ParentCell = TableUtils.getParentCell(this, oEvent.target);
+			const $ParentCell = TableUtils.getParentCell(this, oEvent.target);
 
 			if ($ParentCell) {
-				var that = this;
-				var fnScrollBack = function() {
-					var $InnerCellElement = $ParentCell.find(".sapUiTableCellInner");
+				const that = this;
+				const fnScrollBack = function() {
+					const $InnerCellElement = $ParentCell.find(".sapUiTableCellInner");
 
 					if ($InnerCellElement.length > 0) {
 						if (that._bRtlMode) {
@@ -2173,7 +2285,7 @@ sap.ui.define([
 	 *   The final overflow is the content which overflows when the table is scrolled to the last set of rows which can be rendered. The last row
 	 *   is always in the buffer, so there is always an overflow.
 	 *
-	 *   <i>Currently known limitations:</i>
+	 *   <i>Currently known restrictions:</i>
 	 *   - Experimental implementation!
 	 *   - Fixed rows are not supported.
 	 *   - Keyboard navigation is not fully supported.
@@ -2184,7 +2296,7 @@ sap.ui.define([
 	 *
 	 * <b>Enables horizontal scrolling.</b>
 	 *
-	 *  <i>Currently known limitations:</i>
+	 *  <i>Currently known restrictions:</i>
 	 *   - If the total width of all scrollable columns exceeds the maximum width of an element (limited by the browser), horizontal scrolling does
 	 *     no longer work.
 	 *
@@ -2197,7 +2309,7 @@ sap.ui.define([
 	 *   When variable row heights are enabled, full rows are scrolled when the delta is at least one default row height, otherwise the rows are
 	 *   partially scrolled.
 	 *
-	 *   <i>Currently known limitations:</i>
+	 *   <i>Currently known restrictions:</i>
 	 *   - For performance reasons, horizontal line and page scrolling is performed by the distance of one minimum column width, regardless of the
 	 *     number of lines or pages.
 	 *   - When variable row heights are enabled, the scroll distance can be irregular on the transition between the final overflow and the rest
@@ -2208,18 +2320,40 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table which handles scrolling.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Scrolling
 	 */
-	var ScrollExtension = ExtensionBase.extend("sap.ui.table.extensions.Scrolling", /** @lends sap.ui.table.extensions.Scrolling.prototype */ {
+	const ScrollExtension = ExtensionBase.extend("sap.ui.table.extensions.Scrolling", /** @lends sap.ui.table.extensions.Scrolling.prototype */ {
 		/**
 		 * @override
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
 		_init: function(oTable, sTableType, mSettings) {
+			const _ = _private(oTable);
+
+			// Horizontal scrolling
+			_.oHorizontalScrollbar = null;
+			_.iHorizontalScrollPosition = null;
+
+			// Vertical scrolling
+			_.oVerticalScrollbar = null;
+			_.oVerticalScrollPosition = new ScrollPosition(oTable);
+			_.pVerticalScrollUpdateProcess = null;
+
+			// External vertical scrolling
+			_.oExternalVerticalScrollbar = null;
+			_.bIsVerticalScrollbarExternal = false;
+
+			// Timers
+			_.mTimeouts = {};
+			_.mAnimationFrames = {};
+
+			_.mTouchSessionData = null;
+			_.aOnRowsUpdatedPreprocessors = [];
+
 			TableUtils.addDelegate(oTable, ExtensionDelegate, oTable);
 			return "ScrollExtension";
 		},
@@ -2229,11 +2363,13 @@ sap.ui.define([
 		 * @inheritDoc
 		 */
 		_attachEvents: function() {
-			var oTable = this.getTable();
+			const oTable = this.getTable();
 
 			HorizontalScrollingHelper.addEventListeners(oTable);
 			VerticalScrollingHelper.addEventListeners(oTable);
 			ScrollingHelper.addEventListeners(oTable);
+			TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Table.TotalRowCountChanged, VerticalScrollingHelper.onTotalRowCountChanged, oTable);
+			TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Table.UpdateSizes, VerticalScrollingHelper.onUpdateTableSizes, oTable);
 		},
 
 		/**
@@ -2241,11 +2377,13 @@ sap.ui.define([
 		 * @inheritDoc
 		 */
 		_detachEvents: function() {
-			var oTable = this.getTable();
+			const oTable = this.getTable();
 
 			HorizontalScrollingHelper.removeEventListeners(oTable);
 			VerticalScrollingHelper.removeEventListeners(oTable);
 			ScrollingHelper.removeEventListeners(oTable);
+			TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Table.TotalRowCountChanged, VerticalScrollingHelper.onTotalRowCountChanged, oTable);
+			TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Table.UpdateSizes, VerticalScrollingHelper.onUpdateTableSizes, oTable);
 		},
 
 		/**
@@ -2253,109 +2391,71 @@ sap.ui.define([
 		 * @inheritDoc
 		 */
 		destroy: function() {
-			var oTable = this.getTable();
+			const oTable = this.getTable();
 
-			TableUtils.removeDelegate(oTable, ExtensionDelegate);
 			this._clearCache();
 
-			if (internal(oTable).pVerticalScrollUpdateProcess) {
-				internal(oTable).pVerticalScrollUpdateProcess.cancel();
-				internal(oTable).pVerticalScrollUpdateProcess = null;
+			if (oTable) {
+				TableUtils.removeDelegate(oTable, ExtensionDelegate);
+
+				if (_private(oTable).pVerticalScrollUpdateProcess) {
+					_private(oTable).pVerticalScrollUpdateProcess.cancel();
+					_private(oTable).pVerticalScrollUpdateProcess = null;
+				}
 			}
-			internal.destroy(oTable);
 
 			ExtensionBase.prototype.destroy.apply(this, arguments);
 		}
 	});
 
 	/**
-	 * Scrolls the table vertically.
+	 * Scrolls the table by a row or a page. When scrolled down, the viewport is scrolled to the end, otherwise to the top.
 	 *
 	 * @param {boolean} [bDown=false] If <code>true</code>, the table is scrolled down, otherwise up.
 	 * @param {boolean} [bPage=false] If <code>true</code>, the amount of visible scrollable rows (a page) is scrolled,
 	 *                                otherwise a single row is scrolled.
-	 * @param {boolean} [bAsync=false] Whether to set the first visible row asynchronously.
-	 * @param {function} [fnBeforeScroll] Callback that is called synchronously before the property <code>firstVisibleRow</code> is set.
-	 * @returns {boolean} Returns <code>true</code>, if scrolling was actually performed.
 	 */
-	ScrollExtension.prototype.scrollVertically = function(bDown, bPage, bAsync, fnBeforeScroll) {
-		var oTable = this.getTable();
+	ScrollExtension.prototype.scrollVertically = function(bDown, bPage) {
+		const oTable = this.getTable();
 
 		if (!oTable) {
-			return false;
+			return;
 		}
 
-		bDown = bDown === true;
-		bPage = bPage === true;
-		bAsync = bAsync === true;
+		const mRowCounts = oTable._getRowCounts();
+		const iFirstRenderedRowIndex = oTable._getFirstRenderedRowIndex();
+		const iScrollDistance = bPage === true ? mRowCounts.scrollable : 1;
 
-		var bScrolled = false;
-		var iTotalRowCount = oTable._getTotalRowCount();
-		var mRowCounts = oTable._getRowCounts();
-		var iFirstVisibleScrollableRow = oTable.getFirstVisibleRow();
-		var iSize = bPage ? mRowCounts.scrollable : 1;
-
-		if (bDown) {
-			if (iFirstVisibleScrollableRow + mRowCounts.count < iTotalRowCount) {
-				if (fnBeforeScroll) {
-					fnBeforeScroll();
-				}
-				if (bAsync) {
-					setTimeout(function() {
-						oTable.setFirstVisibleRow(Math.min(iFirstVisibleScrollableRow + iSize, iTotalRowCount - mRowCounts.count));
-					}, 0);
-				} else {
-					oTable.setFirstVisibleRow(Math.min(iFirstVisibleScrollableRow + iSize, iTotalRowCount - mRowCounts.count));
-				}
-				bScrolled = true;
-			}
-		} else if (iFirstVisibleScrollableRow > 0) {
-			if (fnBeforeScroll) {
-				fnBeforeScroll();
-			}
-			if (bAsync) {
-				setTimeout(function() {
-					oTable.setFirstVisibleRow(Math.max(iFirstVisibleScrollableRow - iSize, 0));
-				}, 0);
-			} else {
-				oTable.setFirstVisibleRow(Math.max(iFirstVisibleScrollableRow - iSize, 0));
-			}
-			bScrolled = true;
+		if (bDown === true) {
+			_private(oTable).oVerticalScrollPosition
+							.setPosition(iFirstRenderedRowIndex + iScrollDistance, 1, ScrollPosition.OffsetType.PercentageOfViewport);
+		} else {
+			_private(oTable).oVerticalScrollPosition.setPosition(Math.max(0, iFirstRenderedRowIndex - iScrollDistance));
 		}
 
-		return bScrolled;
+		VerticalScrollingHelper.performUpdateFromScrollPosition(oTable);
 	};
 
 	/**
-	 * Scrolls the table vertically to the end or to the beginning.
+	 * Scrolls the table to the end or to the beginning. When scrolled down, the viewport is scrolled to the end, otherwise to the top.
 	 *
 	 * @param {boolean} [bDown=false] If <code>true</code>, the table is scrolled down, otherwise up.
-	 * @returns {boolean} Returns <code>true</code>, if scrolling was actually performed.
 	 */
 	ScrollExtension.prototype.scrollVerticallyMax = function(bDown) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
-			return false;
+			return;
 		}
 
-		bDown = bDown === true;
-
-		var bScrolled = false;
-		var iFirstVisibleScrollableRow = oTable.getFirstVisibleRow();
-
-		if (bDown) {
-			var iFirstVisibleRow = oTable._getTotalRowCount() - TableUtils.getNonEmptyVisibleRowCount(oTable);
-			if (iFirstVisibleScrollableRow < iFirstVisibleRow) {
-				oTable.setFirstVisibleRow(iFirstVisibleRow);
-				bScrolled = true;
-			}
-		} else if (iFirstVisibleScrollableRow > 0) {
-			oTable.setFirstVisibleRow(0);
-			bScrolled = true;
+		if (bDown === true) {
+			_private(oTable).oVerticalScrollPosition
+							.setPosition(oTable._getMaxFirstRenderedRowIndex(), 1, ScrollPosition.OffsetType.PercentageOfViewport);
+		} else {
+			_private(oTable).oVerticalScrollPosition.setPosition(0);
 		}
 
-		return bScrolled;
+		VerticalScrollingHelper.performUpdateFromScrollPosition(oTable);
 	};
 
 	/**
@@ -2364,50 +2464,56 @@ sap.ui.define([
 	 * @returns {HTMLElement|null} Returns <code>null</code>, if the horizontal scrollbar does not exist.
 	 */
 	ScrollExtension.prototype.getHorizontalScrollbar = function() {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
-		if (oTable && !oTable._bInvalid && !internal(oTable).oHorizontalScrollbar) {
+		if (!oTable) {
+			return null;
+		}
+
+		if (!oTable._bInvalid && !_private(oTable).oHorizontalScrollbar) {
 			// If the table is invalid and about to be (re-)rendered, the scrollbar element will be removed from DOM. The reference to the new
 			// scrollbar element can be obtained only after rendering.
 			// Table#getDomRef (document#getElementById) returns null if the element does not exist in the DOM.
-			internal(oTable).oHorizontalScrollbar = oTable.getDomRef(SharedDomRef.HorizontalScrollBar);
+			_private(oTable).oHorizontalScrollbar = oTable.getDomRef(SharedDomRef.HorizontalScrollBar);
 		}
 
-		return internal(oTable).oHorizontalScrollbar || null;
+		return _private(oTable).oHorizontalScrollbar;
 	};
 
 	/**
 	 * Gets DOM reference of the vertical scrollbar.
 	 *
-	 * @param {boolean} [bIgnoreDOMConnection=false] Whether the scrollbar should also be returned if it is not connected with the DOM. This can
-	 *                                               happen if the table's DOM is removed without notifying the table. For example, if the parent
-	 *                                               of the table is made invisible.
 	 * @returns {HTMLElement|null} Returns <code>null</code>, if the vertical scrollbar does not exist.
 	 */
-	ScrollExtension.prototype.getVerticalScrollbar = function(bIgnoreDOMConnection) {
-		var oTable = this.getTable();
-		var bIsExternal = this.isVerticalScrollbarExternal();
+	ScrollExtension.prototype.getVerticalScrollbar = function() {
+		const oTable = this.getTable();
+		const bIsExternal = this.isVerticalScrollbarExternal();
 
-		if (oTable && !oTable._bInvalid && !internal(oTable).oVerticalScrollbar) {
-			// If the table is invalid and about to be (re-)rendered, the scrollbar element will be removed from DOM. The reference to the new
-			// scrollbar element can be obtained only after rendering.
+		if (!oTable) {
+			return null;
+		}
+
+		if (!oTable._bInvalid && !_private(oTable).oVerticalScrollbar) {
+			// The scrollbar element might not yet be in the DOM, for example if it is initially rendered, or going to be re-rendered as a child
+			// of a control that is still using the old string-based rendering engine. In these cases, the reference to the new scrollbar element
+			// can be obtained only after rendering.
 			// Table#getDomRef (document#getElementById) returns null if the element does not exist in the DOM.
-			internal(oTable).oVerticalScrollbar = oTable.getDomRef(SharedDomRef.VerticalScrollBar);
+			_private(oTable).oVerticalScrollbar = oTable.getDomRef(SharedDomRef.VerticalScrollBar);
 
-			if (!internal(oTable).oVerticalScrollbar && bIsExternal) {
-				internal(oTable).oVerticalScrollbar = internal(oTable).oExternalVerticalScrollbar;
+			if (!_private(oTable).oVerticalScrollbar && bIsExternal) {
+				_private(oTable).oVerticalScrollbar = _private(oTable).oExternalVerticalScrollbar;
 			}
 		}
 
-		var oScrollbar = internal(oTable).oVerticalScrollbar;
+		const oScrollbar = _private(oTable).oVerticalScrollbar;
 
-		if (oScrollbar && !bIsExternal && !bIgnoreDOMConnection && !isConnected(oScrollbar)) {
+		if (oScrollbar && !bIsExternal && !oScrollbar.isConnected) {
 			// The internal scrollbar was removed from DOM without notifying the table.
 			// This can be the case, for example, if the parent of the table was made invisible.
 			return null;
 		}
 
-		return oScrollbar || null;
+		return oScrollbar;
 	};
 
 	/**
@@ -2416,7 +2522,7 @@ sap.ui.define([
 	 * @returns {boolean} Returns <code>true</code>, if the horizontal scrollbar is visible.
 	 */
 	ScrollExtension.prototype.isHorizontalScrollbarVisible = function() {
-		var oHSb = this.getHorizontalScrollbar();
+		const oHSb = this.getHorizontalScrollbar();
 		return oHSb != null && !oHSb.classList.contains("sapUiTableHidden");
 	};
 
@@ -2426,8 +2532,8 @@ sap.ui.define([
 	 * @returns {boolean} Returns <code>true</code>, if the vertical scrollbar is visible.
 	 */
 	ScrollExtension.prototype.isVerticalScrollbarVisible = function() {
-		var oVSb = this.getVerticalScrollbar();
-		return oVSb != null && !oVSb.classList.contains("sapUiTableHidden");
+		const oVSb = this.getVerticalScrollbar();
+		return oVSb != null && !oVSb.parentElement.classList.contains("sapUiTableHidden");
 	};
 
 	/**
@@ -2436,7 +2542,8 @@ sap.ui.define([
 	 * @returns {boolean} Whether the vertical scrollbar is external.
 	 */
 	ScrollExtension.prototype.isVerticalScrollbarExternal = function() {
-		return internal(this.getTable()).bIsVerticalScrollbarExternal;
+		const oTable = this.getTable();
+		return oTable ? _private(oTable).bIsVerticalScrollbarExternal : false;
 	};
 
 	/**
@@ -2446,74 +2553,11 @@ sap.ui.define([
 	 * @param {HTMLElement} oScrollbarElement The reference to the external scrollbar element.
 	 */
 	ScrollExtension.prototype.markVerticalScrollbarAsExternal = function(oScrollbarElement) {
-		if (oScrollbarElement) {
-			internal(this.getTable()).bIsVerticalScrollbarExternal = true;
-			internal(this.getTable()).oExternalVerticalScrollbar = oScrollbarElement;
-		}
-	};
+		const oTable = this.getTable();
 
-	/**
-	 * Updates the visibility, position and range of the horizontal scrollbar.
-	 *
-	 * @param {Object} oTableSizes The object containing the table sizes.
-	 */
-	ScrollExtension.prototype.updateHorizontalScrollbar = function(oTableSizes) {
-		var oTable = this.getTable();
-		var oHSb = this.getHorizontalScrollbar();
-
-		if (!oTable || !oHSb || !oTableSizes) {
-			return;
-		}
-
-		// get the width of the container
-		var $Table = oTable.$();
-		var iColsWidth = oTableSizes.tableCtrlScrollWidth;
-		if (Device.browser.safari) {
-			iColsWidth = Math.max(iColsWidth, oTable._getColumnsWidth(oTable.getComputedFixedColumnCount()));
-		}
-
-		var bHorizontalScrollbarRequired = iColsWidth > oTableSizes.tableCtrlScrWidth;
-
-		if (bHorizontalScrollbarRequired) {
-			// Show the horizontal scrollbar, if it is not already visible.
-			if (!this.isHorizontalScrollbarVisible()) {
-				$Table.addClass("sapUiTableHScr");
-				oHSb.classList.remove("sapUiTableHidden");
-
-				if (Device.browser.safari) {
-					var $sapUiTableColHdr = $Table.find(".sapUiTableCtrlScroll, .sapUiTableColHdrScr > .sapUiTableColHdr");
-					// min-width on table elements does not work for safari
-					$sapUiTableColHdr.outerWidth(iColsWidth);
-				}
-			}
-
-			var iScrollPadding = oTableSizes.tableCtrlFixedWidth;
-			if ($Table.find(".sapUiTableRowHdrScr").length > 0) {
-				iScrollPadding += oTableSizes.tableRowHdrScrWidth;
-			}
-
-			if (oTable._bRtlMode) {
-				oHSb.style.marginRight = iScrollPadding + "px";
-				oHSb.style.marginLeft = "";
-			} else {
-				oHSb.style.marginLeft = iScrollPadding + "px";
-				oHSb.style.marginRight = "";
-			}
-
-			var oHSbContent = oTable.getDomRef("hsb-content");
-			if (oHSbContent) {
-				oHSbContent.style.width = iColsWidth + "px";
-			}
-		}
-
-		if (!bHorizontalScrollbarRequired && this.isHorizontalScrollbarVisible()) {
-			// Hide the horizontal scrollbar, if it is visible.
-			$Table.removeClass("sapUiTableHScr");
-			oHSb.classList.add("sapUiTableHidden");
-			if (Device.browser.safari) {
-				// min-width on table elements does not work for safari
-				$Table.find(".sapUiTableCtrlScroll, .sapUiTableColHdr").css("width", "");
-			}
+		if (oTable && oScrollbarElement) {
+			_private(oTable).bIsVerticalScrollbarExternal = true;
+			_private(oTable).oExternalVerticalScrollbar = oScrollbarElement;
 		}
 	};
 
@@ -2521,8 +2565,8 @@ sap.ui.define([
 	 * Updates the height of the vertical scrollbar.
 	 */
 	ScrollExtension.prototype.updateVerticalScrollbarHeight = function() {
-		var oTable = this.getTable();
-		var oVSb = this.getVerticalScrollbar();
+		const oTable = this.getTable();
+		const oVSb = this.getVerticalScrollbar();
 
 		if (!oTable || !oVSb) {
 			return;
@@ -2538,64 +2582,34 @@ sap.ui.define([
 	 * @returns {int} The height of the scrollbar.
 	 */
 	ScrollExtension.prototype.getVerticalScrollbarHeight = function() {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
 			return 0;
 		}
 
-		return oTable._getRowCounts().scrollable * oTable._getBaseRowHeight();
-	};
-
-	/**
-	 * Updates the position of the vertical scrollbar.
-	 */
-	ScrollExtension.prototype.updateVerticalScrollbarPosition = function() {
-		var oTable = this.getTable();
-		var oVSb = this.getVerticalScrollbar();
-
-		if (!oTable || !oVSb) {
-			return;
-		}
-
-		var oTableCCnt = oTable.getDomRef("tableCCnt");
-
-		if (oTableCCnt) {
-			var iTop = oTableCCnt.offsetTop;
-
-			var oVSbBg = oTable.getDomRef("vsb-bg");
-			if (oVSbBg) {
-				oVSbBg.style.top = iTop + "px";
-			}
-
-			if (oTable._getRowCounts().fixedTop > 0) {
-				iTop += oTable._iVsbTop;
-			}
-
-			oVSb.style.top = iTop + "px";
-		}
+		return oTable._getRowCounts()._scrollSize * oTable._getBaseRowHeight();
 	};
 
 	/**
 	 * Updates the vertical scroll position.
 	 *
-	 * @param {boolean} bExpectRowsUpdatedEvent Whether an update of the rows will happen.
+	 * @param {boolean} [bExpectRowsUpdatedEvent=false] Whether an update of the rows will happen.
 	 */
 	ScrollExtension.prototype.updateVerticalScrollPosition = function(bExpectRowsUpdatedEvent) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
 			return;
 		}
 
-		VerticalScrollingHelper.performUpdateFromFirstVisibleRow(oTable, bExpectRowsUpdatedEvent);
-	};
+		bExpectRowsUpdatedEvent = bExpectRowsUpdatedEvent === true;
 
-	/**
-	 * Adjusts the scrollbar and the scroll position to the total row count. Expects that rows will be updated.
-	 */
-	ScrollExtension.prototype.adjustToTotalRowCount = function() {
-		VerticalScrollingHelper.adjustToTotalRowCount(this.getTable());
+		if (bExpectRowsUpdatedEvent || oTable.getBinding()) {
+			VerticalScrollingHelper.performUpdateFromFirstVisibleRow(oTable, bExpectRowsUpdatedEvent);
+		} else {
+			VerticalScrollingHelper.adjustScrollPositionToFirstVisibleRow(oTable);
+		}
 	};
 
 	/**
@@ -2609,8 +2623,8 @@ sap.ui.define([
 	 * Updates the vertical scroll height. This is the content height of the vertical scrollbar.
 	 */
 	ScrollExtension.prototype.updateVerticalScrollHeight = function() {
-		var oVSb = this.getVerticalScrollbar();
-		var oVSbContent = oVSb ? oVSb.firstChild : null;
+		const oVSb = this.getVerticalScrollbar();
+		const oVSbContent = oVSb ? oVSb.firstChild : null;
 
 		if (!oVSbContent) {
 			return;
@@ -2627,24 +2641,22 @@ sap.ui.define([
 	 * @returns {int} The vertical scroll height.
 	 */
 	ScrollExtension.prototype.getVerticalScrollHeight = function(bBoundless) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
 			return 0;
 		}
 
-		var iTotalRowCount = oTable._getTotalRowCount();
-		var iVisibleRowCount = oTable._getRowCounts().count;
-		var iBaseRowHeight = oTable._getBaseRowHeight();
-		var iRowCount;
-		var iScrollHeight;
+		const iTotalRowCount = oTable._getTotalRowCount();
+		const mRowCounts = oTable._getRowCounts();
+		const iRowCount = Math.max(iTotalRowCount, mRowCounts.count);
+		const iBaseRowHeight = oTable._getBaseRowHeight();
+		let iScrollHeight;
 
 		if (TableUtils.isVariableRowHeightEnabled(oTable)) {
-			iRowCount = Math.max(iTotalRowCount, iVisibleRowCount + 1);
 			iScrollHeight = iBaseRowHeight * (iRowCount - 1 /* The last row is inside the buffer */)
 							+ VerticalScrollingHelper.getScrollRangeBuffer(oTable);
 		} else {
-			iRowCount = Math.max(iTotalRowCount, iVisibleRowCount);
 			iScrollHeight = iBaseRowHeight * iRowCount;
 		}
 
@@ -2656,48 +2668,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Updates the visibility of the vertical scrollbar.
-	 */
-	ScrollExtension.prototype.updateVerticalScrollbarVisibility = function() {
-		var oTable = this.getTable();
-		var oTableElement = oTable ? oTable.getDomRef() : null;
-		var oVSb = this.getVerticalScrollbar();
-
-		if (!oTableElement || !oVSb) {
-			return;
-		}
-
-		var bVerticalScrollbarRequired = this.isVerticalScrollbarRequired();
-
-		// Show the currently invisible scrollbar.
-		if (bVerticalScrollbarRequired && !this.isVerticalScrollbarVisible()) {
-			if (!this.isVerticalScrollbarExternal()) {
-				oTableElement.classList.add("sapUiTableVScr");
-			}
-			oVSb.classList.remove("sapUiTableHidden");
-		}
-
-		// Hide the currently visible scrollbar.
-		if (!bVerticalScrollbarRequired && this.isVerticalScrollbarVisible()) {
-			oTableElement.classList.remove("sapUiTableVScr");
-			oVSb.classList.add("sapUiTableHidden");
-		}
-	};
-
-	/**
 	 * Checks whether the vertical scrollbar is required.
 	 *
 	 * @returns {boolean} Returns <code>true</code>, if the vertical scrollbar is required.
 	 */
 	ScrollExtension.prototype.isVerticalScrollbarRequired = function() {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
 			return false;
 		}
 
 		return TableUtils.isVariableRowHeightEnabled(oTable) && VerticalScrollingHelper.getScrollRangeOfViewport(oTable) > 0
-			   || oTable._getTotalRowCount() > oTable._getRowCounts().count;
+			   || oTable._getTotalRowCount() > oTable._getRowCounts()._fullsize;
 	};
 
 	/**
@@ -2708,7 +2691,7 @@ sap.ui.define([
 	 * @returns {{wheel: Function}|null} A key value map containing the event names as keys and listener functions as values.
 	 */
 	ScrollExtension.prototype.registerForMouseWheel = function(aEventListenerTargets, mOptions) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (ExtensionBase.isEnrichedWith(oTable, "sap.ui.table.extensions.Synchronization")) {
 			return ScrollingHelper.addMouseWheelEventListener(aEventListenerTargets, oTable, mOptions);
@@ -2729,7 +2712,7 @@ sap.ui.define([
 	 *            touchmove: Function}|null} A key value map containing the event names as keys and listener functions as values.
 	 */
 	ScrollExtension.prototype.registerForTouch = function(aEventListenerTargets, mOptions) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (ExtensionBase.isEnrichedWith(oTable, "sap.ui.table.extensions.Synchronization")) {
 			return ScrollingHelper.addTouchEventListener(aEventListenerTargets, oTable, mOptions);
@@ -2745,9 +2728,15 @@ sap.ui.define([
 	 * @private
 	 */
 	ScrollExtension.prototype._clearCache = function() {
+		const oTable = this.getTable();
+
+		if (!oTable) {
+			return;
+		}
+
 		// Clear cached DOM references.
-		internal(this.getTable()).oVerticalScrollbar = null;
-		internal(this.getTable()).oHorizontalScrollbar = null;
+		_private(oTable).oVerticalScrollbar = null;
+		_private(oTable).oHorizontalScrollbar = null;
 	};
 
 	ScrollExtension.ScrollDirection = ScrollDirection;

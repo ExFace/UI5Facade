@@ -1,13 +1,14 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/testrecorder/CommunicationBus"
-], function (Log, ManagedObject, CommunicationBus) {
+	"sap/ui/testrecorder/CommunicationBus",
+	"sap/ui/core/Supportability"
+], function (Log, ManagedObject, CommunicationBus, Supportability) {
 	"use strict";
 
 	var oUIContextInjector = null;
@@ -32,8 +33,9 @@ sap.ui.define([
 		}
 
 		this._hasStarted = true;
-		this._testRecorderConfig = aTestRecorderConfig || sap.ui.getCore().getConfiguration().getTestRecorderMode();
+		this._testRecorderConfig = aTestRecorderConfig || Supportability.getTestRecorderSettings();
 
+		// eslint-disable-next-line no-unsafe-negation
 		if (this._testRecorderConfig && !this._testRecorderConfig.indexOf("silent") > -1 && !this._isInIframe()) {
 			sap.ui.require([
 				"sap/ui/testrecorder/UIContextInjector",
@@ -63,12 +65,11 @@ sap.ui.define([
 		try {
 			if (window.self !== window.top) {
 				// in our case it kind of makes sense to have a recorder per iframe, so only prevent nested recorders
-				var sTestRecorderFrameId = "#sap-ui-test-recorder-frame";
-				if (window.top.$ && window.top.$(sTestRecorderFrameId).length && window.top.$(sTestRecorderFrameId)[0].contentWindow === window.self) {
+				if (window.top.document.getElementById("sap-ui-test-recorder-frame")?.contentWindow === window.self) {
 					return true;
-				} else {
-					return false;
 				}
+
+				return false;
 			}
 		} catch (e) {
 			// Access to window.top might be blocked if so the page is inside an iframe.

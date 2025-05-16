@@ -1,23 +1,23 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/fl/descriptorRelated/internal/Utils",
+	"sap/ui/fl/descriptorRelated/Utils",
 	"sap/ui/fl/write/_internal/connectors/LrepConnector",
 	"sap/base/util/merge",
-	"sap/base/Log"
-], function (
-	jQuery,
+	"sap/base/Log",
+	"sap/base/util/isPlainObject"
+], function(
 	ManagedObject,
 	Utils,
 	LrepConnector,
 	merge,
-	Log
+	Log,
+	isPlainObject
 ) {
 	"use strict";
 
@@ -35,22 +35,24 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariant
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
 	var AppVariant = ManagedObject.extend("sap.ui.fl.write._internal.appVariant.AppVariant", /** @lends sap.ui.fl.write._internal.appVariant.AppVariant */ {
-		constructor : function(mPropertyBag) {
+		// eslint-disable-next-line object-shorthand
+		constructor: function(mPropertyBag) {
 			ManagedObject.apply(this);
-			if (!jQuery.isPlainObject(mPropertyBag)) {
+			if (!isPlainObject(mPropertyBag)) {
 				Log.error("Constructor : sap.ui.fl.write._internal.appVariant.AppVariant: mPropertyBag is not defined");
 			}
 			this._oDefinition = mPropertyBag;
 			return this;
 		},
-		metadata : {
-			properties : {
-				mode : {
+		metadata: {
+			library: "sap.ui.fl",
+			properties: {
+				mode: {
 					type: "string"
 				}
 			}
@@ -59,7 +61,7 @@ sap.ui.define([
 
 	AppVariant.modes = {
 		NEW: "NEW",
-		EXISTING : "EXISTING",
+		EXISTING: "EXISTING",
 		DELETION: "DELETION"
 	};
 
@@ -102,7 +104,7 @@ sap.ui.define([
 	 */
 	AppVariant.prototype.setTransportRequest = function(sTransportRequest) {
 		try {
-			//partial check: length le 20, alphanumeric, upper case, no space not underscore - data element in ABAP: TRKORR, CHAR20
+			// partial check: length le 20, alphanumeric, upper case, no space not underscore - data element in ABAP: TRKORR, CHAR20
 			Utils.checkTransportRequest(sTransportRequest);
 		} catch (oError) {
 			return Promise.reject(oError);
@@ -138,7 +140,7 @@ sap.ui.define([
 	 */
 	AppVariant.prototype.setPackage = function(sPackage) {
 		try {
-			//partial check: length le 30, alphanumeric, upper case, / for namespace, no space, no underscore - data element in ABAP: DEVCLASS, CHAR30
+			// partial check: length le 30, alphanumeric, upper case, / for namespace, no space, no underscore - data element in ABAP: DEVCLASS, CHAR30
 			Utils.checkPackage(sPackage);
 		} catch (oError) {
 			return Promise.reject(oError);
@@ -154,7 +156,7 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
-	AppVariant.prototype.getDefinition = function () {
+	AppVariant.prototype.getDefinition = function() {
 		return this._oDefinition;
 	};
 
@@ -258,12 +260,12 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
 	AppVariant.prototype.addDescriptorInlineChange = function(oDescriptorInlineChange) {
-		//TODO: This method will be optimized and go to other class in the follow up change
+		// TODO: This method will be optimized and go to other class in the follow up change
 		return new Promise(function(resolve) {
 			var fSetHostingIdForTextKey = function(_oDescriptorInlineChange, sId) {
-				//providing "hosting id" for appdescr_app_setTitle and similar
-				//"hosting id" is app variant id
-				if (_oDescriptorInlineChange["setHostingIdForTextKey"]) {
+				// providing "hosting id" for appdescr_app_setTitle and similar
+				// "hosting id" is app variant id
+				if (_oDescriptorInlineChange.setHostingIdForTextKey) {
 					_oDescriptorInlineChange.setHostingIdForTextKey(sId);
 				}
 			};
@@ -300,6 +302,10 @@ sap.ui.define([
 			mPropertyBag.isForSmartBusiness = this._oDefinition.isForSmartBusiness;
 		}
 
+		if (this._oDefinition.parentVersion) {
+			mPropertyBag.parentVersion = this._oDefinition.parentVersion;
+		}
+
 		if (mMap.layer) {
 			mPropertyBag.layer = mMap.layer;
 		}
@@ -331,4 +337,4 @@ sap.ui.define([
 	};
 
 	return AppVariant;
-}, true);
+});

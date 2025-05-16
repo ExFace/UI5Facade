@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/supportRules/Constants"],function(c){"use strict";return{resolutionUrl:function(u,U){var s=u.indexOf(U)===u.length-1?"":", \u00a0";return U.text+s;},hasResolutionUrls:function(u){if(u&&u.length>0){return true;}return false;},filteredText:function(s,a,b,e){var r="Filtered by: ";r+=s===c.FILTER_VALUE_ALL?"":"Severity - "+s+";";r+=a===c.FILTER_VALUE_ALL?"":" Category    - "+a+";";r+=b===c.FILTER_VALUE_ALL?"":" Audience - "+b+";";r+=e===c.FILTER_VALUE_ALL?"":" Control Element - "+e+";";return r;}};});
+sap.ui.define(["sap/ui/support/supportRules/Constants"],function(e){"use strict";return{resolutionUrl:function(e,t){var n=e.indexOf(t)===e.length-1?"":",  ";return t.text+n},hasResolutionUrls:function(e){if(e&&e.length>0){return true}return false},filteredText:function(t,n,r,u){var i="Filtered by: ";i+=t===e.FILTER_VALUE_ALL?"":"Severity - "+t+";";i+=n===e.FILTER_VALUE_ALL?"":" Category    - "+n+";";i+=r===e.FILTER_VALUE_ALL?"":" Audience - "+r+";";i+=u===e.FILTER_VALUE_ALL?"":" Control Element - "+u+";";return i}}});
+//# sourceMappingURL=formatter.js.map

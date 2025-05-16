@@ -1,11 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/base/security/encodeXML"],
-	function(encodeXML) {
+sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager.icon
+], function(Localization, Library, Locale) {
 	"use strict";
 
 
@@ -26,15 +30,19 @@ sap.ui.define(["sap/base/security/encodeXML"],
 	 * @param {sap.ui.unified.calendar.Header} oHead an object representation of the control that should be rendered
 	 */
 	HeaderRenderer.render = function(oRm, oHead){
-		var sLanguage = sap.ui.getCore().getConfiguration().getLocale().getLanguage();
+		var sLanguage = new Locale(Localization.getLanguageTag()).getLanguage();
 		var sTooltip = oHead.getTooltip_AsString();
 		var sId = oHead.getId();
-		var mAccProps = {};
-		var sLabelNext = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("CALENDAR_BTN_NEXT");
-		var sLabelPrev = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("CALENDAR_BTN_PREV");
+		var oRB = Library.getResourceBundleFor("sap.ui.unified");
+		var sLabelNext = oRB.getText("CALENDAR_BTN_NEXT");
+		var sLabelPrev = oRB.getText("CALENDAR_BTN_PREV");
+		var sLabelToday = oRB.getText("CALENDAR_BTN_TODAY");
 
 		oRm.openStart("div", oHead);
 		oRm.class("sapUiCalHead");
+		if (oHead.getVisibleCurrentDateButton()) {
+			oRm.class("sapUiCalHeaderWithTodayButton");
+		}
 
 		if (sTooltip) {
 			oRm.attr('title', sTooltip);
@@ -101,7 +109,13 @@ sap.ui.define(["sap/base/security/encodeXML"],
 				iFirst = 2;
 				iLast = 3;
 			}
-			this.renderCalendarButtons(oRm, oHead, sId, iFirst, iLast, mAccProps, iBtn);
+			this.renderCalendarButtons(oRm, oHead, sId, iFirst, iLast, iBtn);
+		}
+		if (!oHead.getVisibleButton0() && !oHead.getVisibleButton1() && !oHead.getVisibleButton2() && !oHead._getVisibleButton3() && !oHead._getVisibleButton4()) {
+			oRm.openStart("div", sId + '-B' + "-Placeholder");
+			oRm.class("sapUiCalHeadBPlaceholder");
+			oRm.openEnd(); // span element
+			oRm.close("span");
 		}
 
 		oRm.openStart("button", sId + '-next');
@@ -118,11 +132,25 @@ sap.ui.define(["sap/base/security/encodeXML"],
 		oRm.icon("sap-icon://slim-arrow-right", null, { title: null });
 		oRm.close("button");
 
+		if (oHead.getVisibleCurrentDateButton()) {
+			oRm.openStart("button", sId + '-today');
+			oRm.attr("title", sLabelToday);
+			oRm.accessibilityState(null, { label: sLabelToday});
+
+			oRm.class("sapUiCalHeadB");
+			oRm.class("sapUiCalHeadToday");
+			oRm.openEnd(); // button element
+			oRm.icon("sap-icon://appointment", null, { title: null });
+			oRm.close("button");
+		}
+
 		oRm.close("div");
 
 	};
 
-	HeaderRenderer.renderCalendarButtons = function (oRm, oHead, sId, iFirst, iLast, mAccProps, i) {
+	HeaderRenderer.renderCalendarButtons = function (oRm, oHead, sId, iFirst, iLast, i) {
+		var mAccProps = {};
+
 		if (this.getVisibleButton(oHead, i)) {
 			oRm.openStart("button", sId + '-B' + i);
 			oRm.class("sapUiCalHeadB");
@@ -133,7 +161,6 @@ sap.ui.define(["sap/base/security/encodeXML"],
 			if (iLast === i) {
 				oRm.class("sapUiCalHeadBLast");
 			}
-			oRm.attr('tabindex', "-1");
 			if (this.getAriaLabelButton(oHead, i)) {
 				mAccProps["label"] = this.getAriaLabelButton(oHead, i);
 			}

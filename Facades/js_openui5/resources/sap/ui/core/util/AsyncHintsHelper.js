@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){'use strict';var A={};A.modifyUrls=function(a,u){function _(o,U){if(U===undefined){delete o.url;}}[a.components,a.libs].forEach(function(i){if(Array.isArray(i)){i.forEach(function(v){if(typeof v!=="object"){return;}if(typeof v.url==="string"){v.url=u(v.url);_(v,v.url);}else if(typeof v.url==="object"&&typeof v.url.url==="string"){v.url.url=u(v.url.url);_(v,v.url.url);}});}});return a;};return A;});
+sap.ui.define([],function(){"use strict";var r={};r.modifyUrls=function(r,u){function e(r,u){if(u===undefined){delete r.url}}[r.components,r.libs].forEach(function(r){if(Array.isArray(r)){r.forEach(function(r){if(typeof r!=="object"){return}if(typeof r.url==="string"){r.url=u(r.url);e(r,r.url)}else if(typeof r.url==="object"&&typeof r.url.url==="string"){r.url.url=u(r.url.url);e(r,r.url.url)}})}});return r};return r});
+//# sourceMappingURL=AsyncHintsHelper.js.map

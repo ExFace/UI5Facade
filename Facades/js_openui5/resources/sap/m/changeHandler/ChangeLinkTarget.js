@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function(){"use strict";var C={};C.applyChange=function(c,o,p){var m=p.modifier,a=c.getDefinition(),t=a.content,r={target:m.getProperty(o,"target")};m.setProperty(o,"target",t);c.setRevertData(r);return true;};C.revertChange=function(c,o,p){var m=p.modifier,r=c.getRevertData(),t=r.target;m.setProperty(o,"target",t);return true;};C.completeChangeContent=function(c,s,p){return true;};return C;});
+sap.ui.define(function(){"use strict";var t={};t.applyChange=function(t,e,r){var n=r.modifier;var a=t.getContent();return Promise.resolve().then(n.getProperty.bind(n,e,"target")).then(function(r){var o={target:r};n.setProperty(e,"target",a);t.setRevertData(o)})};t.revertChange=function(t,e,r){var n=r.modifier;var a=t.getRevertData();var o=a.target;n.setProperty(e,"target",o)};t.completeChangeContent=function(t,e,r){};return t});
+//# sourceMappingURL=ChangeLinkTarget.js.map

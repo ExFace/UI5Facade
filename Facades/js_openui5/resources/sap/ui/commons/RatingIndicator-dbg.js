@@ -1,20 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.RatingIndicator.
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
-    './library',
-    'sap/ui/core/Control',
-    'sap/ui/core/theming/Parameters',
-    './RatingIndicatorRenderer',
-    'sap/ui/Device',
-    'sap/ui/events/checkMouseEnterOrLeave'
+	'sap/ui/thirdparty/jquery',
+	'./library',
+	'sap/ui/core/Control',
+	'./RatingIndicatorRenderer',
+	'sap/ui/events/checkMouseEnterOrLeave'
 ],
-	function(jQuery, library, Control, Parameters, RatingIndicatorRenderer, Device, checkMouseEnterOrLeave) {
+	function(jQuery, library, Control, RatingIndicatorRenderer, checkMouseEnterOrLeave) {
 	"use strict";
 
 
@@ -37,18 +35,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.commons.RatingIndicator
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.RatingIndicator</code> control.
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy)
-	 * designtime metamodel
 	 */
 	var RatingIndicator = Control.extend("sap.ui.commons.RatingIndicator", /** @lends sap.ui.commons.RatingIndicator.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 			/**
 			 * Determines if the rating symbols can be edited.
@@ -278,24 +275,7 @@ sap.ui.define([
 	 * @private
 	 */
 	RatingIndicator.prototype.onfocusout = function(oEvent){
-		//Do not react on focusouts of child DOM refs in IE
-		if (Device.browser.msie && oEvent.target != this.getDomRef()) {
-			return;
-		}
 		this.saveValue(oEvent, false, this.iHoveredRating);
-	};
-
-	/**
-	 * Behavior implementation which is executed when the control gets the focus.
-	 *
-	 * @param {jQuery.Event} oEvent
-	 * @private
-	 */
-	RatingIndicator.prototype.onfocusin = function(oEvent){
-		//Avoid focusing child DOM refs in IE
-		if (Device.browser.msie && oEvent.target != this.getDomRef()) {
-			this.getDomRef().focus();
-		}
 	};
 
 	/**
@@ -486,7 +466,7 @@ sap.ui.define([
 	 * Minimum value is <code>1</code>
 	 *
 	 * @param {int} iMaxValue new value for property <code>maxValue</code>
-	 * @return {sap.ui.commons.RatingIndicator} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	RatingIndicator.prototype.setMaxValue = function(iMaxValue) {
@@ -499,6 +479,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {object} The accessibility info
 	 * @protected
 	 */
 	RatingIndicator.prototype.getAccessibilityInfo = function() {

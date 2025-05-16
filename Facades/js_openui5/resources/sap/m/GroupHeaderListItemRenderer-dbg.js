@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRenderer"],
-	function(coreLibrary, Renderer, ListItemBaseRenderer) {
+sap.ui.define(["sap/ui/core/Lib", "sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRenderer", "./ColumnListItemRenderer"],
+	function(Library, coreLibrary, Renderer, ListItemBaseRenderer, ColumnListItemRenderer) {
 	"use strict";
 
 
@@ -22,55 +22,45 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 
 	GroupHeaderListItemRenderer.renderType = function(rm, oLI) {
 		var oTable = oLI.getTable();
-
-		// for table render navigation column always
-		if (oTable) {
-			if (oTable.hasPopin()) {
-				this.renderDummyCell(rm, oTable);
-			}
-
-			this.renderCell(rm, "sapMListTblNavCol");
+		if (!oTable || !oTable.doItemsNeedTypeColumn()) {
+			return;
 		}
 
-		ListItemBaseRenderer.renderType.apply(this, arguments);
-
-		if (oTable) {
-			rm.close("td");
-		}
+		rm.openStart("td", oLI.getId() + "-TypeCell");
+		rm.class("sapMListTblNavCol");
+		rm.attr("role", "presentation");
+		rm.openEnd().close("td");
 	};
 
 	GroupHeaderListItemRenderer.renderNavigated = function(rm, oLI) {
-		var oTable = oLI.getTable();
+		var oBaseRenderer = oLI.getTable() ? ColumnListItemRenderer : ListItemBaseRenderer;
+		oBaseRenderer.renderNavigated.apply(oBaseRenderer, arguments);
+	};
 
-		if (oTable) {
-			this.renderCell(rm, "sapMListTblNavigatedCol");
-		}
+	// for dummy cell rendering position inherit from ColumnListItemRenderer
+	GroupHeaderListItemRenderer.renderContentLatter = function(rm, oLI) {
+		ColumnListItemRenderer.renderContentLatter.apply(this, arguments);
+	};
 
-		ListItemBaseRenderer.renderNavigated.apply(this, arguments);
+	// GroupHeaderListItem does not respect mode and counter property of the LIB
+	GroupHeaderListItemRenderer.renderMode = function() {};
+	GroupHeaderListItemRenderer.renderCounter = function() {};
 
-		if (oTable) {
+	// Hightlist cells should be rendered to satisfy the Jaws with the colspan calculation for the correct column count
+	GroupHeaderListItemRenderer.renderHighlight = function(rm, oLI) {
+		if (oLI.getTable()) {
+			rm.openStart("td");
+			rm.class("sapMListTblHighlightCell");
+			rm.attr("role", "presentation");
+			rm.openEnd();
 			rm.close("td");
+		} else {
+			ListItemBaseRenderer.renderHighlight(rm, oLI);
 		}
 	};
 
-	GroupHeaderListItemRenderer.renderDummyCell = function(rm, oTable) {
-		if (oTable.shouldRenderDummyColumn()) {
-			this.renderCell(rm, "sapMListTblDummyCell");
-			rm.close("td");
-		}
-	};
-
-	GroupHeaderListItemRenderer.renderCell = function(rm, sClassName) {
-		rm.openStart("td");
-		rm.class(sClassName);
-		rm.attr("role", "presentation");
-		rm.attr("aria-hidden", "true");
-		rm.openEnd();
-	};
-
-	// GroupHeaderListItem does not respect counter property of the LIB
-	GroupHeaderListItemRenderer.renderCounter = function(rm, oLI) {
-	};
+	// accesibility position is only relevant for the Table case therefore use the logic of CLI
+	GroupHeaderListItemRenderer.getAccessbilityPosition = ColumnListItemRenderer.getAccessbilityPosition;
 
 	/**
 	 * Renders the attributes for the given list item, using the provided
@@ -79,7 +69,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 	 * @param {sap.ui.core.RenderManager}
 	 *          rm the RenderManager that can be used for writing to the
 	 *          Render-Output-Buffer
-	 * @param {sap.ui.core.Control}
+	 * @param {sap.m.GroupHeaderListItem}
 	 *          oLI an object representation of the list item that should be
 	 *          rendered
 	 */
@@ -90,8 +80,8 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 		}
 
 		var oTable = oLI.getTable();
-		if (oTable && oTable.shouldRenderDummyColumn()) {
-			rm.class("sapMListTblRowHasDummyCell");
+		if (oTable) {
+			rm.attr("aria-roledescription", Library.getResourceBundleFor("sap.m").getText("TABLE_GROUP_ROW"));
 		}
 	};
 
@@ -102,32 +92,35 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 	 * @param {sap.ui.core.RenderManager}
 	 *          rm the RenderManager that can be used for writing to the
 	 *          Render-Output-Buffer
-	 * @param {sap.ui.core.Control}
+	 * @param {sap.m.GroupHeaderListItem}
 	 *          oLI an object representation of the list item that should be
 	 *          rendered
 	 */
 	GroupHeaderListItemRenderer.renderLIContentWrapper = function(rm, oLI) {
 		var oTable = oLI.getTable();
-
 		if (oTable) {
-			rm.openStart("td");
+			rm.openStart("td", oLI.getId() + "-cell");
 			rm.class("sapMGHLICell");
-
-			rm.attr("colspan", oTable.getColSpan());
-
+			rm.attr("role", "gridcell");
+			ColumnListItemRenderer.makeFocusable(rm);
+			rm.attr("colspan", oTable.getColCount() - oTable.doItemsNeedTypeColumn() - oTable.shouldRenderDummyColumn() - 2 /* Navigated and Highlight cells are always rendered */);
 			rm.openEnd();
 		}
 
 		ListItemBaseRenderer.renderLIContentWrapper.apply(this, arguments);
 
 		if (oTable) {
+			// create dummy contents for the item navigation to mimic a matrix
+			for (var i = 1; i < oTable._colHeaderAriaOwns.length; i++) {
+				rm.openStart("div").class("sapMTblItemNav").openEnd().close("div");
+			}
 			rm.close("td");
 		}
 	};
 
 	GroupHeaderListItemRenderer.renderLIContent = function(rm, oLI) {
 		var sTextDir = oLI.getTitleTextDirection();
-		rm.openStart("span");
+		rm.openStart("span", `${oLI.getId()}-title`);
 		rm.class("sapMGHLITitle");
 
 		if (sTextDir != TextDirection.Inherit) {
@@ -149,17 +142,12 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRen
 	};
 
 	GroupHeaderListItemRenderer.addLegacyOutlineClass = function(rm, oLI) {
-		if (!oLI.getTable()) {
-			ListItemBaseRenderer.addLegacyOutlineClass.apply(this, arguments);
-		}
+		var fnBase = oLI.getTable() ? ColumnListItemRenderer : ListItemBaseRenderer;
+		fnBase.addLegacyOutlineClass.apply(this, arguments);
 	};
 
 	GroupHeaderListItemRenderer.getAriaRole = function(oLI) {
-		if (oLI.getTable()) {
-			return "row";
-		}
-
-		return ListItemBaseRenderer.getAriaRole.apply(this, arguments);
+		return oLI.getTable() ? "row" : "listitem";
 	};
 
 	return GroupHeaderListItemRenderer;

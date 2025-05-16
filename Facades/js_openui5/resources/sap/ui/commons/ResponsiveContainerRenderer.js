@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var R=function(){};R.render=function(r,c){var C=c.getAggregation("content");r.write("<div ");r.writeControlData(c);r.addStyle("width",c.getWidth());r.addStyle("height",c.getHeight());r.writeStyles();r.write(">");if(C){r.renderControl(C);}r.write("<div ");r.addStyle("width","0px");r.addStyle("height","0px");r.addStyle("overflow","hidden");r.writeStyles();r.write(">");c.getRanges().forEach(function(o){r.write("<div ");r.writeElementData(o);r.addStyle("width",o.getWidth());r.addStyle("height",o.getHeight());r.writeStyles();r.write("></div>");});r.write("</div>");r.write("</div>");};return R;},true);
+sap.ui.define([],function(){"use strict";var t=function(){};t.render=function(t,e){var i=e.getAggregation("content");t.write("<div ");t.writeControlData(e);t.addStyle("width",e.getWidth());t.addStyle("height",e.getHeight());t.writeStyles();t.write(">");if(i){t.renderControl(i)}t.write("<div ");t.addStyle("width","0px");t.addStyle("height","0px");t.addStyle("overflow","hidden");t.writeStyles();t.write(">");e.getRanges().forEach(function(e){t.write("<div ");t.writeElementData(e);t.addStyle("width",e.getWidth());t.addStyle("height",e.getHeight());t.writeStyles();t.write("></div>")});t.write("</div>");t.write("</div>")};return t},true);
+//# sourceMappingURL=ResponsiveContainerRenderer.js.map

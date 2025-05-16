@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,7 @@ sap.ui.define([
 	"sap/ui/fl/Utils",
 	"sap/ui/dt/ElementUtil",
 	"sap/base/util/isPlainObject"
-], function (
+], function(
 	FlUtils,
 	ElementUtil,
 	isPlainObject
@@ -16,7 +16,7 @@ sap.ui.define([
 	"use strict";
 
 	function isCloneFromAggregationBinding(oControl) {
-		var sParentAggregationName = oControl.sParentAggregationName;
+		var {sParentAggregationName} = oControl;
 		var oParent = oControl.getParent();
 
 		if (oParent && sParentAggregationName) {
@@ -52,7 +52,7 @@ sap.ui.define([
 
 			if (aStableElements.length > 0) {
 				if (isCloneFromAggregationBinding(oElementOverlay.getElement())) {
-					bUnstable = aStableElements.some(function (vStableElement) {
+					bUnstable = aStableElements.some(function(vStableElement) {
 						var vControl;
 						var oAppComponent;
 						var bUnstable = false;

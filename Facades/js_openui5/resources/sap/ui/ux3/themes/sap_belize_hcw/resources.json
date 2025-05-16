@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcw"
 		},
 		{
@@ -151,110 +151,13 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 732,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 82448,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 82074,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/exact/tophead.gif",
-			"size": 835,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/feed/ico12_click.png",
-			"size": 109,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/menu_follow.png",
-			"size": 253,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/menu_hold.png",
-			"size": 278,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/menu_unlisten.png",
-			"size": 282,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/navigationbar/facetNext.png",
-			"size": 151,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/navigationbar/facetPrev.png",
-			"size": 144,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/alert_white_24.png",
-			"size": 207,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_down.png",
-			"size": 105,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_down_hover.png",
-			"size": 101,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_up.png",
-			"size": 99,
-			"theme": "sap_belize_hcw"
-		},
-		{
 			"name": "img-RTL/notification_bar/arrows/ArrowBar_up_hover.png",
 			"size": 176,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_down.png",
-			"size": 101,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_down_hover.png",
-			"size": 97,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_up.png",
-			"size": 94,
-			"theme": "sap_belize_hcw"
-		},
-		{
 			"name": "img-RTL/notification_bar/arrows/DoubleArrow_up_hover.png",
 			"size": 192,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/notification_bar/notification_24.png",
-			"size": 193,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/shell/LogOut_icon.png",
-			"size": 211,
 			"theme": "sap_belize_hcw"
 		},
 		{
@@ -275,26 +178,6 @@
 		{
 			"name": "img-RTL/shell/tools/Search_hover.png",
 			"size": 471,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_down.png",
-			"size": 194,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_left.png",
-			"size": 186,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_right.png",
-			"size": 199,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_up.png",
-			"size": 182,
 			"theme": "sap_belize_hcw"
 		},
 		{
@@ -429,40 +312,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 65357,
+			"size": 65337,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/ux3/themes/sap_belize_hcw/library-parameters.json",
 			"size": 190,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 65159,
+			"size": 65223,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 24603,
+			"size": 25192,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 1032,
+			"size": 1621,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 72319,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 72121,
-			"theme": "sap_belize_hcw"
+			"name": "resources.json",
+			"size": 6800
 		},
 		{
 			"name": "shared.less",

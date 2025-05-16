@@ -1,13 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
 	"sap/base/Log",
-	"sap/base/util/extend"
-], function (ManagedObject, Log, extend) {
+	"sap/ui/model/Model",
+	"sap/ui/integration/util/BindingHelper",
+	"sap/base/util/extend",
+	"sap/base/util/isPlainObject"
+], function (ManagedObject, Log, Model, BindingHelper, extend, isPlainObject) {
 		"use strict";
 
 		/**
@@ -15,6 +18,7 @@ sap.ui.define([
 		 */
 		var SimpleControl = ManagedObject.extend("sap.ui.integration.util.SimpleControl", {
 			metadata: {
+				library: "sap.ui.integration",
 				properties: {
 					resolved: {
 						type: "any"
@@ -29,9 +33,10 @@ sap.ui.define([
 		 * Resolves a binding syntax based on a provided model and path.
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @private
+		 * @ui5-restricted sap.ushell
 		 * @alias sap.ui.integration.util.BindingResolver
 		 */
 		var BindingResolver = {};
@@ -41,14 +46,15 @@ sap.ui.define([
 		 * The function is pure and won't modify 'vValue' if it is object or array. It will return new one instead.
 		 *
 		 * @param {*} vValue The value to resolve.
-		 * @param {sap.ui.model.Model} oModel The model.
+		 * @param {*} vModelOrObject The model.
 		 * @param {string} [sPath] The path to take.
 		 * @param {number} iCurrentLevel The current level of recursion.
 		 * @param {number} iMaxLevel The maximum level of recursion.
+		 * @param {boolean} [bBindingInfosOnly] Set to true if it should resolve only binding infos, without resolving strings.
 		 * @private
 		 * @returns {*} The resolved value.
 		 */
-		function process(vValue, oModel, sPath, iCurrentLevel, iMaxLevel) {
+		function process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel, bBindingInfosOnly) {
 
 			if (iCurrentLevel === iMaxLevel) {
 				Log.warning("BindingResolver maximum level processing reached. Please check for circular dependencies.");
@@ -58,22 +64,27 @@ sap.ui.define([
 			// iterates arrays
 			if (Array.isArray(vValue)) {
 				return vValue.map(function(vItem) {
-					return process(vItem, oModel, sPath, iCurrentLevel + 1, iMaxLevel);
+					return process(vItem, vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel, bBindingInfosOnly);
 				});
 			}
 
 			// iterates objects
-			if (vValue && typeof vValue === "object" && !BindingResolver.isBindingInfo(vValue)) {
+			if (vValue && isPlainObject(vValue) && !BindingHelper.isBindingInfo(vValue)) {
 				var oNewObj = {};
 				for (var sProp in vValue) {
-					oNewObj[sProp] = process(vValue[sProp], oModel, sPath, iCurrentLevel + 1, iMaxLevel);
+					oNewObj[sProp] = process(vValue[sProp], vModelOrObject, sPath, iCurrentLevel + 1, iMaxLevel, bBindingInfosOnly);
 				}
 				return oNewObj;
 			}
 
-			// resolves strings that might contain binding syntax or objects that are binding infos
-			if (typeof vValue === "string" || (typeof vValue === "object" && BindingResolver.isBindingInfo(vValue))) {
-				return resolveBinding(vValue, oModel, sPath);
+			// resolves strings that might contain binding syntax
+			if (typeof vValue === "string" && !bBindingInfosOnly) {
+				return resolveBinding(vValue, vModelOrObject, sPath);
+			}
+
+			// resolve objects that are binding infos
+			if (typeof vValue === "object" && BindingHelper.isBindingInfo(vValue)) {
+				return resolveBinding(vValue, vModelOrObject, sPath);
 			}
 
 			return vValue;
@@ -84,12 +95,12 @@ sap.ui.define([
 		 * Pure function.
 		 *
 		 * @param {string|object} vBinding The value to resolve. If the value is an object, it will be copied and the real one won't be modified.
-		 * @param {sap.ui.model.Model} oModel The model.
+		 * @param {*} vModelOrObject The model.
 		 * @param {string} [sPath] The path to the referenced entity which is going to be used as a binding context.
 		 * @private
 		 * @returns {*} The resolved value.
 		 */
-		function resolveBinding(vBinding, oModel, sPath) {
+		function resolveBinding(vBinding, vModelOrObject, sPath) {
 			if (!vBinding) {
 				return vBinding;
 			}
@@ -104,15 +115,21 @@ sap.ui.define([
 				sPath = "/";
 			}
 
-			oSimpleControl.setModel(oModel);
+			// clean the object
+			oSimpleControl.unbindProperty("resolved");
+			oSimpleControl.unbindObject();
+			oSimpleControl.setModel(null);
+
+			if (vModelOrObject instanceof Model) {
+				oSimpleControl.setModel(vModelOrObject);
+			} else {
+				BindingHelper.propagateModels(vModelOrObject, oSimpleControl);
+			}
+
 			oSimpleControl.bindObject(sPath);
 			oSimpleControl.bindProperty("resolved", oBindingInfo);
 
 			var vValue = oSimpleControl.getResolved();
-
-			oSimpleControl.unbindProperty("resolved");
-			oSimpleControl.unbindObject();
-			oSimpleControl.setModel(null);
 
 			return vValue;
 		}
@@ -122,35 +139,22 @@ sap.ui.define([
 		 * NOTE: This will only work with one unnamed model.
 		 *
 		 * @param {*} vValue The value to resolve.
-		 * @param {sap.ui.model.Model} oModel The model.
+		 * @param {*} vModelOrObject The model.
 		 * @param {string} [sPath] The path to the referenced entity which is going to be used as a binding context.
+		 * @param {boolean} [bBindingInfosOnly] Set to true if it should resolve only binding infos, without resolving strings.
 		 * @private
+		 * @ui5-restricted sap.ushell
 		 * @returns {*} The resolved value.
 		 */
-		BindingResolver.resolveValue = function (vValue, oModel, sPath) {
+		BindingResolver.resolveValue = function (vValue, vModelOrObject, sPath, bBindingInfosOnly) {
 			var iCurrentLevel = 0,
 				iMaxLevel = 30;
 
-			if (oModel) {
-				return process(vValue, oModel, sPath, iCurrentLevel, iMaxLevel);
+			if (vModelOrObject) {
+				return process(vValue, vModelOrObject, sPath, iCurrentLevel, iMaxLevel, bBindingInfosOnly);
 			} else {
 				return vValue;
 			}
-		};
-
-		/**
-		 * Checks if object is a binding info.
-		 *
-		 * @param {object} oObj The object to check.
-		 * @returns {boolean} Whether the object represents a binding info.
-		 */
-		BindingResolver.isBindingInfo = function (oObj) {
-
-			if (!oObj) {
-				return false;
-			}
-
-			return oObj.hasOwnProperty("path") || (oObj.hasOwnProperty("parts") && oObj.hasOwnProperty("formatter"));
 		};
 
 		return BindingResolver;

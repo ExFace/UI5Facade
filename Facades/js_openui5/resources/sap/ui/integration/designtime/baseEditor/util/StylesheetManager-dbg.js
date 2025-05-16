@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -22,13 +22,13 @@ sap.ui.define([
 	 * @typedef {object} StoreItem
 	 * @private
 	 * @property {string} id - DOM Node ID
-	 * @property {integer} counter - Indicates how many users the loaded file has
+	 * @property {int} counter - Indicates how many users the loaded file has
 	 * @property {'SUCCESS'|'FAIL'|'PENDING'} status - Loading status
 	 */
 
 	/**
 	 * Store keeps information about loaded files and amount of users they have.
-	 * @type {StoreItem[]} - List of loaded CSS files
+	 * @type {Object<string, StoreItem>}
 	 */
 	var mStore = {};
 

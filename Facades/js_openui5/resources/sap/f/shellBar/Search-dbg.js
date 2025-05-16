@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,13 +36,12 @@ sap.ui.define(['sap/ui/core/Control',
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
 		 * @since 1.67
-		 * @alias sap.f.shallBar.Search
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+		 * @alias sap.f.shellBar.Search
 		 */
 		var Search = Control.extend("sap.f.shellBar.Search", {
 			metadata: {
@@ -91,7 +90,11 @@ sap.ui.define(['sap/ui/core/Control',
 			this._layoutDataWhenClosed = new OverflowToolbarLayoutData({
 				priority: OverflowToolbarPriority.Low
 			});
+			this._layoutDataPhoneWhenClosed = new OverflowToolbarLayoutData({
+				priority: OverflowToolbarPriority.AlwaysOverflow
+			});
 			this._oAcc = new Accessibility();
+			this._bUserOpened = false;
 		};
 
 		Search.prototype.onBeforeRendering = function () {
@@ -192,8 +195,10 @@ sap.ui.define(['sap/ui/core/Control',
 
 			if (this.getIsOpen()) {
 				oLayoutData = this._layoutDataWhenOpen;
-			} else if (!this._bInOverflow) {
+			} else if (!this._bInOverflow && !this.getPhoneMode()) {
 				oLayoutData = this._layoutDataWhenClosed;
+			} else if (this.getPhoneMode()) {
+				oLayoutData = this._layoutDataPhoneWhenClosed;
 			}
 
 			if (!oLayoutData || this.getLayoutData() === oLayoutData) {
@@ -216,12 +221,22 @@ sap.ui.define(['sap/ui/core/Control',
 					query: oSearch.getValue(),
 					clearButtonPressed: false
 				});
-			} else {
-				this.toggleVisibilityOfSearchField();
 			}
+
+			if (this.sCurrentRange === "ExtraLargeDesktop") {
+				return;
+			}
+
+			this.toggleVisibilityOfSearchField();
+			this._bUserOpened = !this._bUserOpened;
+		};
+
+		Search.prototype._setMedia = function (sMediaRange) {
+			this.sCurrentRange = sMediaRange;
 		};
 
 		Search.prototype._onPressCancelButtonHandler = function () {
+			this._bUserOpened = false;
 			this.toggleVisibilityOfSearchField();
 		};
 

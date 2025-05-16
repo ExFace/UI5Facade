@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
-	'sap/ui/test/matchers/Matcher'
-], function ($, Matcher) {
+	"sap/base/util/isPlainObject",
+	'sap/ui/test/matchers/Matcher',
+	'sap/ui/model/StaticBinding'
+], function (isPlainObject, Matcher, StaticBinding) {
 	"use strict";
 
 	/**
@@ -19,6 +20,7 @@ sap.ui.define([
 	 * <li>context path (matches children of bound controls, eg: items in a table)</li>
 	 * <li>property path (matches controls with no context and a single bound property, eg: Text with binding for property text)</li>
 	 * <li>context path + property path (matches children of bound controls, where the child has a binding for a certain property within the context)</li>
+	 * <li>as of version 1.86, static value is also accepted. Use this only for {@link sap.ui.model.StaticBinding} </li>
 	 * </ul>
 	 *
 	 * <b>Note:</b> Before version 1.60, the only available criteria is binding context path.
@@ -78,6 +80,13 @@ sap.ui.define([
 				 */
 				propertyPath: {
 					type: "any"
+				},
+				/**
+				 * value of a static binding property. Use this only for {@link sap.ui.model.StaticBinding}
+				 * @since 1.86
+				 */
+				value: {
+					type: "any"
 				}
 			}
 		},
@@ -94,14 +103,16 @@ sap.ui.define([
 			var sModelName = this.getModelName() || undefined; // ensure nameless models will be retrieved
 			var sMatcherPropertyPath = this.getPropertyPath();
 			var sMatcherContextPath = this.getPath();
+			var vMatcherStaticValue = this.getValue();
 
-			if (!sMatcherContextPath && !sMatcherPropertyPath) {
-				this._oLogger.debug("Matcher requires context path or property path but none is defined! No controls will be matched");
+			if (!sMatcherContextPath && !sMatcherPropertyPath && !vMatcherStaticValue) {
+				this._oLogger.debug("Matcher requires context path, property path or value but none is defined! No controls will be matched");
 				return false;
 			}
 
 			var bContextMatches = true;
 			var bPropertyPathMatches = true;
+			var bStaticValueMatches = true;
 			var oObjectBindingInfo = oControl.mObjectBindingInfos && oControl.mObjectBindingInfos[sModelName];
 			var oBindingContext = oControl.getBindingContext(sModelName);
 
@@ -168,12 +179,33 @@ sap.ui.define([
 				}
 			}
 
+			if (vMatcherStaticValue) {
+				var aMatchingBindingInfos = Object.keys(oControl.mBindingInfos).filter(function (sBinding) {
+					var oBinding = oControl.getBinding(sBinding);
+					var mBindingInfo = oControl.mBindingInfos[sBinding];
+					var aBindingParts = mBindingInfo.parts ? mBindingInfo.parts : [mBindingInfo];
+
+					var aMatchingParts = aBindingParts.filter(function (mPart, index) {
+						var oPartBinding = oBinding.getBindings ? oBinding.getBindings()[index] : oBinding;
+						return oPartBinding instanceof StaticBinding && oPartBinding.getValue() === vMatcherStaticValue;
+					});
+
+					return !!aMatchingParts.length;
+				});
+
+				bStaticValueMatches = !!aMatchingBindingInfos.length;
+
+				if (bStaticValueMatches) {
+					this._oLogger.debug("Control '" + oControl + "' has the expected static binding value '" + vMatcherStaticValue + "'");
+				}
+			}
+
 			return bContextMatches && bPropertyPathMatches;
 		}
 	});
 
 	function _pathMatches(sPath, vMatcherPath, bWithContext) {
-		if ($.isPlainObject(vMatcherPath) && vMatcherPath.regex && vMatcherPath.regex.source) {
+		if (isPlainObject(vMatcherPath) && vMatcherPath.regex && vMatcherPath.regex.source) {
 			// declarative syntax
 			vMatcherPath = new RegExp(vMatcherPath.regex.source, vMatcherPath.regex.flags);
 		}
@@ -189,7 +221,7 @@ sap.ui.define([
 				oMatcherRegex = vMatcherPath;
 			}
 			return oMatcherRegex.test(sPath);
-		} else {
+		} else if (sPath) {
 			var bHasDelimiter = sPath.charAt(0) === "/";
 			if (bWithContext && bHasDelimiter) {
 				vMatcherPath = vMatcherPath.substr(1);
@@ -197,6 +229,8 @@ sap.ui.define([
 				vMatcherPath = "/" + vMatcherPath;
 			}
 			return sPath === vMatcherPath;
+		} else {
+			return false;
 		}
 	}
 

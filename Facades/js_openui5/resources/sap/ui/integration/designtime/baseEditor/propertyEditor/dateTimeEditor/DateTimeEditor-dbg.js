@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.dateTimeEditor.DateTimeEditor
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.76
@@ -32,14 +32,30 @@ sap.ui.define([
 	 */
 	var DateTimeEditor = DateEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.dateTimeEditor.DateTimeEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.dateTimeEditor.DateTimeEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
-	DateTimeEditor.prototype.getFormatterInstance = function () {
-		return DateFormat.getDateTimeInstance();
+	DateTimeEditor.prototype.getFormatterInstance = function (mOptions) {
+		return DateFormat.getDateTimeInstance(mOptions || {
+			pattern: "yyyy-MM-dd'T'HH:mm:ss.SSSSZ"
+		});
 	};
 
-	DateTimeEditor.configMetadata = Object.assign({}, DateEditor.configMetadata);
+	DateTimeEditor.configMetadata = Object.assign(
+		{},
+		DateEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.DATETIME"
+			},
+			utc: {
+				defaultValue: true
+			}
+		}
+	);
 
 	return DateTimeEditor;
 });

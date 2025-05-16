@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,10 @@ sap.ui.define([
 
 	var PREFIX = "/flex/personalization";
 	var API_VERSION = "/v1";
-
+	var FEATURES = {
+		isProductiveSystem: true,
+		hasPersoConnector: true
+	};
 	/**
 	 * Connector for requesting data from SAPUI5 Flexibility Personalization service.
 	 *
@@ -31,7 +34,15 @@ sap.ui.define([
 			Layer.USER
 		],
 		ROUTES: {
-			DATA: PREFIX + API_VERSION + "/data/"
+			DATA: `${PREFIX + API_VERSION}/data/`
+		},
+		/**
+		 * Called to get the flex features.
+		 *
+		 * @returns {Promise<object>} Promise resolves with an object containing the flex features
+		 */
+		loadFeatures() {
+			return Promise.resolve(FEATURES);
 		}
 	});
 

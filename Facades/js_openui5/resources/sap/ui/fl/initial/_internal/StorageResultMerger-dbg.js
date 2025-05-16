@@ -1,44 +1,45 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/util/merge"
+	"sap/base/util/merge",
+	"sap/base/util/ObjectPath"
 ], function(
-	merge
+	merge,
+	ObjectPath
 ) {
 	"use strict";
 
-	var oStorageResultMerger = {};
+	var StorageResultMerger = {};
 
 	/**
 	 * Concatenates all flex objects from a list of flex data request responses, into a passed result array and removes duplicates.
 	 *
 	 * @param {object[]} aResponses List of responses containing flex object type properties to be concatenated
-	 * @param {string} sType Type of flex object signified by object property
+	 * @param {string} sPath Type of flex object signified by object property
 	 * @returns {object[]} Merged array of flex objects
 	 * @private
-	 * @ui5-restricted sap.ui.fl.Cache, sap.ui.fl.apply._internal.flexState.FlexState
 	 */
-	function _concatFlexObjects(aResponses, sType) {
-		var aFlexObjects = aResponses.reduce(function (aFlexObjects, oResponse) {
-			if (oResponse[sType]) {
-				return aFlexObjects.concat(oResponse[sType]);
+	function concatFlexObjects(aResponses, sPath) {
+		var aFlexObjects = aResponses.reduce(function(aFlexObjects, oResponse) {
+			if (ObjectPath.get(sPath, oResponse)) {
+				return aFlexObjects.concat(ObjectPath.get(sPath, oResponse));
 			}
 			return aFlexObjects;
 		}, []);
 
-		var aChangeIds = [];
-		return aFlexObjects.filter(function (oChange) {
-			var sFileName = oChange.fileName;
-			var bChangeAlreadyAdded = aChangeIds.indexOf(sFileName) !== -1;
-			if (bChangeAlreadyAdded) {
+		var aFlexObjectIds = [];
+		return aFlexObjects.filter(function(oFlexObject) {
+			var sFileName = oFlexObject.fileName;
+			var bObjectAlreadyAdded = aFlexObjectIds.indexOf(sFileName) !== -1;
+			if (bObjectAlreadyAdded) {
 				return false;
 			}
 
-			aChangeIds.push(sFileName);
+			aFlexObjectIds.push(sFileName);
 			return true;
 		});
 	}
@@ -50,10 +51,9 @@ sap.ui.define([
 	 * @param {object[]} aResponses.ui2personalization List of the change definitions
 	 * @returns {object[]} Merged array of ui2personalization
 	 * @private
-	 * @ui5-restricted sap.ui.fl.Cache
 	 */
-	function _concatUi2personalization(aResponses) {
-		return aResponses.reduce(function (oUi2Section, oResponse) {
+	function concatUi2personalization(aResponses) {
+		return aResponses.reduce(function(oUi2Section, oResponse) {
 			return merge({}, oUi2Section, oResponse.ui2personalization);
 		}, {});
 	}
@@ -65,10 +65,10 @@ sap.ui.define([
 	 * @param {string} [aResponses.etag] Etag value
 	 * @returns {string | null} Concatenated string of all etag values or null if no responses headers carry a etag value
 	 * @private
-	 * @ui5-restricted sap.ui.fl.Cache
 	 */
 	function _concatEtag(aResponses) {
-		return aResponses.reduce(function (sCacheKey, oResponse) {
+		return aResponses.reduce(function(sCacheKey, oResponse) {
+			// eslint-disable-next-line no-return-assign
 			return oResponse.cacheKey ? sCacheKey += oResponse.cacheKey : sCacheKey;
 		}, "") || null;
 	}
@@ -82,18 +82,30 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.Storage
 	 */
-	oStorageResultMerger.merge = function(aResponses) {
-		return {
-			appDescriptorChanges: _concatFlexObjects(aResponses, "appDescriptorChanges"),
-			changes: _concatFlexObjects(aResponses, "changes"),
-			ui2personalization: _concatUi2personalization(aResponses),
-			variants: _concatFlexObjects(aResponses, "variants"),
-			variantChanges: _concatFlexObjects(aResponses, "variantChanges"),
-			variantDependentControlChanges: _concatFlexObjects(aResponses, "variantDependentControlChanges"),
-			variantManagementChanges: _concatFlexObjects(aResponses, "variantManagementChanges"),
+	StorageResultMerger.merge = function(aResponses) {
+		var oResult = {
+			appDescriptorChanges: concatFlexObjects(aResponses, "appDescriptorChanges"),
+			annotationChanges: concatFlexObjects(aResponses, "annotationChanges"),
+			changes: concatFlexObjects(aResponses, "changes"),
+			ui2personalization: concatUi2personalization(aResponses),
+			comp: {
+				variants: concatFlexObjects(aResponses, "comp.variants"),
+				changes: concatFlexObjects(aResponses, "comp.changes"),
+				defaultVariants: concatFlexObjects(aResponses, "comp.defaultVariants"),
+				standardVariants: concatFlexObjects(aResponses, "comp.standardVariants")
+			},
+			variants: concatFlexObjects(aResponses, "variants"),
+			variantChanges: concatFlexObjects(aResponses, "variantChanges"),
+			variantDependentControlChanges: concatFlexObjects(aResponses, "variantDependentControlChanges"),
+			variantManagementChanges: concatFlexObjects(aResponses, "variantManagementChanges"),
 			cacheKey: _concatEtag(aResponses)
 		};
+		var oInfoObject = concatFlexObjects(aResponses, "info");
+		if (oInfoObject.length > 0) {
+			[oResult.info] = oInfoObject;
+		}
+		return oResult;
 	};
 
-	return oStorageResultMerger;
+	return StorageResultMerger;
 });

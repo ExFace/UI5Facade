@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./Element','./library',"sap/ui/thirdparty/jquery"],function(E,l,q){"use strict";var L=E.extend("sap.ui.core.LayoutData",{metadata:{"abstract":true,library:"sap.ui.core"}});L.prototype.invalidate=function(){var p=this.getParent();if(p&&p.getMetadata().getName()=="sap.ui.core.VariantLayoutData"){p=p.getParent();}if(p){var o=p.getParent();if(o){var e=q.Event("LayoutDataChange");e.srcControl=p;o._handleEvent(e);}}};L.prototype.setLayoutData=function(o){return this;};return L;});
+sap.ui.define(["./Element","sap/ui/thirdparty/jquery","./library"],function(t,jQuery){"use strict";var a=t.extend("sap.ui.core.LayoutData",{metadata:{abstract:true,library:"sap.ui.core"}});a.prototype.invalidate=function(){var t=this.getParent();if(t&&t.getMetadata().getName()=="sap.ui.core.VariantLayoutData"){t=t.getParent()}if(t){var a=t.getParent();if(a){var e=jQuery.Event("LayoutDataChange");e.srcControl=t;a._handleEvent(e)}}};a.prototype.setLayoutData=function(t){return this};return a});
+//# sourceMappingURL=LayoutData.js.map

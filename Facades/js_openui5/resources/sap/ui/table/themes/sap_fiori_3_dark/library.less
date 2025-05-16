@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,8 +19,8 @@
 /* Quartz Dark theme          */
 /* ========================== */
 
-@_sap_ui_table_Cell_BorderColorSelected: @sapUiListSelectionBorderColor;
-@_sap_ui_table_Cell_BorderColorFixedSelected: @sapUiListSelectionBorderColor;
+@_sap_ui_table_Cell_BorderColorSelected: var(--sapList_SelectionBorderColor);
+@_sap_ui_table_Cell_BorderColorFixedSelected: var(--sapList_SelectionBorderColor);
 @_sap_ui_table_Cell_ShadowColorFixed: @sapUiListTableFixedBorder;
 @_sap_ui_table_Cell_BorderBottomFocus: transparent;
 /* END "Cell.less" */
@@ -43,9 +43,9 @@
 /* Quartz Dark theme                  */
 /* ================================== */
 
-@_sap_ui_table_RowSelection_CheckBoxBorderWidth: 0.0625rem;
-@_sap_ui_table_RowSelection_CheckBoxBorderRadius: 0.125rem;
-@_sap_ui_table_RowSelection_CheckBoxIconColor: @sapUiContentIconColor;
+@_sap_ui_table_RowSelection_CheckBoxBorderWidth: var(--sapField_BorderWidth);
+@_sap_ui_table_RowSelection_CheckBoxBorderRadius: var(--sapField_BorderCornerRadius);
+@_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy: var(--sapField_BorderCornerRadius);
 /* END "RowSelection.less" */
 
 /* START "Table.less" */

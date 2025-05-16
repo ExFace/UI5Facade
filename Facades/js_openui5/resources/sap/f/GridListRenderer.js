@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Renderer","sap/m/ListBaseRenderer"],function(R,L){"use strict";var G=R.extend(L);G.apiVersion=2;G.renderContainerAttributes=function(r,c){L.renderContainerAttributes.apply(this,arguments);r.class("sapFGridList");};G.renderListStartAttributes=function(r,c){L.renderListStartAttributes.apply(this,arguments);this.renderGridAttributes(r,c);};G.renderGridAttributes=function(r,c){var g=c.getGridLayoutConfiguration();if(g){g.renderSingleGridLayout(r);}else{r.class("sapFGridListDefault");}if(c.isGrouped()){r.class("sapFGridListGroup");}};return G;},true);
+sap.ui.define(["sap/ui/core/Renderer","sap/m/ListBaseRenderer"],function(t,r){"use strict";var e=t.extend(r);e.apiVersion=2;e.getNoDataAriaRole=function(){return"listitem"};e.renderContainerAttributes=function(t,e){r.renderContainerAttributes.apply(this,arguments);t.class("sapFGridList")};e.renderListStartAttributes=function(t,e){r.renderListStartAttributes.apply(this,arguments);this.renderGridAttributes(t,e)};e.renderGridAttributes=function(t,r){var e=r.getGridLayoutConfiguration();if(e){e.addGridStyles(t)}else{t.class("sapFGridListDefault")}if(r.isGrouped()){t.class("sapFGridListGroup")}};return e},true);
+//# sourceMappingURL=GridListRenderer.js.map

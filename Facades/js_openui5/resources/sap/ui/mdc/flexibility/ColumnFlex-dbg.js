@@ -1,49 +1,74 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/fl/apply/api/FlexRuntimeInfoAPI', './ItemBaseFlex'
-], function(FlexRuntimeInfoAPI, ItemBaseFlex) {
+	'./ItemBaseFlex', './Util', "sap/ui/fl/changeHandler/common/ChangeCategories"
+], (ItemBaseFlex, Util, ChangeCategories) => {
 	"use strict";
 
-	var oColumnFlex = Object.assign({}, ItemBaseFlex);
+	const ColumnFlex = Object.assign({}, ItemBaseFlex);
 
-	// Rebind triggered on the Control only during runtime JS change
-	var fRebindControl = function(oControl) {
-		if (oControl && oControl.isA && oControl.isA("sap.ui.mdc.Table") && oControl.isTableBound()) {
-			if (!oControl._bWaitForBindChanges) {
-				oControl._bWaitForBindChanges = true;
-				FlexRuntimeInfoAPI.waitForChanges({
-					element: oControl
-				}).then(function() {
-					oControl.checkAndRebind();
-					delete oControl._bWaitForBindChanges;
+	ColumnFlex.findItem = function(oModifier, aColumns, sName) {
+		return aColumns.reduce((oPreviousPromise, oColumn) => {
+			return oPreviousPromise
+				.then((oFoundColumn) => {
+					if (!oFoundColumn) {
+						return Promise.all([
+								oModifier.getProperty(oColumn, "propertyKey"), oModifier.getProperty(oColumn, "dataProperty")
+							])
+							.then((aProperties) => {
+								if (aProperties[0] === sName || aProperties[1] === sName) {
+									return oColumn;
+								}
+							});
+					}
+					return oFoundColumn;
 				});
-
-			}
-		}
+		}, Promise.resolve());
 	};
 
-	oColumnFlex.findItem = function(oModifier, aColumns, sName) {
-		return aColumns.find(function(oColumn) {
-			var aDataProperties = oModifier.getProperty(oColumn, "dataProperties");
-			return aDataProperties[0] === sName;
+	ColumnFlex.getChangeVisualizationInfo = function(oChange, oAppComponent) {
+		const oContent = oChange.getContent();
+		const oTable = oAppComponent.byId(oChange.getSelector().id);
+		let sKey;
+		const aArgs = [oContent.name];
+		const mVersionInfo = { descriptionPayload: {} };
+
+		if (oChange.getChangeType() === "addColumn") {
+			mVersionInfo.descriptionPayload.category = ChangeCategories.ADD;
+			sKey = "table.ITEM_ADD_CHANGE";
+			aArgs.push(oContent.index);
+		} else if (oChange.getChangeType() === "removeColumn") {
+			mVersionInfo.descriptionPayload.category = ChangeCategories.REMOVE;
+			sKey = "table.ITEM_DEL_CHANGE";
+		} else if (oChange.getChangeType() === "moveColumn") {
+			mVersionInfo.descriptionPayload.category = ChangeCategories.MOVE;
+			sKey = "table.ITEM_MOVE_CHANGE";
+			aArgs.push(oChange.getRevertData().index);
+			aArgs.push(oContent.index);
+		}
+
+		if (oTable) {
+			const oProperty = oTable.getPropertyHelper()?.getProperty(oContent.name);
+			if (oProperty) {
+				aArgs.splice(0, 1, oProperty.label);
+			}
+		}
+
+		return Util.getMdcResourceText(sKey, aArgs).then((sText) => {
+			mVersionInfo.descriptionPayload.description = sText;
+
+			mVersionInfo.updateRequired = true;
+			return mVersionInfo;
 		});
 	};
 
-	oColumnFlex.afterApply = function(sChangeType, oTable, bIsRevert) {
-		if (sChangeType === "addColumn" && !bIsRevert || (sChangeType === "removeColumn" && bIsRevert)) {
-			fRebindControl(oTable);
-		}
-	};
+	ColumnFlex.addColumn = ColumnFlex.createAddChangeHandler();
+	ColumnFlex.removeColumn = ColumnFlex.createRemoveChangeHandler();
+	ColumnFlex.moveColumn = ColumnFlex.createMoveChangeHandler();
 
-	oColumnFlex.addColumn = oColumnFlex.createAddChangeHandler();
-	oColumnFlex.removeColumn = oColumnFlex.createRemoveChangeHandler();
-	oColumnFlex.moveColumn = oColumnFlex.createMoveChangeHandler();
-
-	return oColumnFlex;
-
+	return ColumnFlex;
 });

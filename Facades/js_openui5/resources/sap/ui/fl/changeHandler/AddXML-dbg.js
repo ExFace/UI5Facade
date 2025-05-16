@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,10 +16,9 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddXML
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.54
 	 * @private
-	 * @experimental Since 1.54. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var AddXML = {};
 
@@ -32,18 +31,18 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.view Root view
 	 * @returns {boolean} <true> if the change got applied successfully
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Applyer
 	 * @name sap.ui.fl.changeHandler.AddXML#applyChange
 	 */
 	AddXML.applyChange = function(oChange, oControl, mPropertyBag) {
-		var oChangeDefinition = oChange.getDefinition();
+		var oContent = oChange.getContent();
 		var mChangeInfo = {
-			aggregationName: oChangeDefinition.content.targetAggregation,
-			index: oChangeDefinition.content.index
+			aggregationName: oContent.targetAggregation,
+			index: oContent.index
 		};
 
-		BaseAddXml.applyChange(oChange, oControl, mPropertyBag, mChangeInfo);
-		return true;
+		return BaseAddXml.applyChange(oChange, oControl, mPropertyBag, mChangeInfo);
 	};
 
 	/**
@@ -57,7 +56,8 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.appComponent App component
 	 * @param {object} mPropertyBag.view Root view
 	 * @return {boolean} <true> if change has been reverted successfully
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Reverter
 	 * @name sap.ui.fl.changeHandler.AddXML#revertChange
 	 */
 	AddXML.revertChange = BaseAddXml.revertChange;
@@ -67,30 +67,28 @@ sap.ui.define([
 	 *
 	 * @param {object} oChange Change object to be completed
 	 * @param {object} oSpecificChangeInfo Additional information needed to complete the change
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.write._internal
 	 * @name sap.ui.fl.changeHandler.AddXML#completeChangeContent
 	 */
 	AddXML.completeChangeContent = function(oChange, oSpecificChangeInfo) {
-		var oChangeDefinition = oChange.getDefinition();
-
-		if (!oChangeDefinition.content) {
-			oChangeDefinition.content = {};
-		}
-
-		if (oSpecificChangeInfo.targetAggregation) {
-			oChangeDefinition.content.targetAggregation = oSpecificChangeInfo.targetAggregation;
-		} else {
+		// TODO: Remove assignment without content after all derived change handlers are adjusted to use content. todos#4
+		const oChangeInfoContent = oSpecificChangeInfo.content || oSpecificChangeInfo;
+		const oContent = {};
+		if (!oChangeInfoContent.targetAggregation) {
 			BaseAddXml._throwMissingAttributeError("targetAggregation");
-		}
-
-		if (oSpecificChangeInfo.index !== undefined) {
-			oChangeDefinition.content.index = oSpecificChangeInfo.index;
 		} else {
-			BaseAddXml._throwMissingAttributeError("index");
+			oContent.targetAggregation = oChangeInfoContent.targetAggregation;
 		}
 
-		BaseAddXml.completeChangeContent(oChange, oSpecificChangeInfo, oChangeDefinition);
+		if (oChangeInfoContent.index === undefined) {
+			BaseAddXml._throwMissingAttributeError("index");
+		} else {
+			oContent.index = oChangeInfoContent.index;
+		}
+
+		BaseAddXml.completeChangeContent(oChange, oSpecificChangeInfo, oContent);
 	};
 
 	return AddXML;
-}, /* bExport= */true);
+});

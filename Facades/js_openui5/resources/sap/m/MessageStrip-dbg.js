@@ -1,41 +1,42 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 // Provides control sap.m.MessageStrip.
 sap.ui.define([
 	"./library",
+	"sap/ui/core/AnimationMode",
 	"sap/ui/core/Control",
 	"./MessageStripUtilities",
 	"./Text",
 	"./Link",
 	"./FormattedText",
-	"sap/ui/core/library",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
+	"sap/ui/core/message/MessageType",
 	"./MessageStripRenderer",
 	"sap/base/Log",
 	"sap/m/Button",
-	"sap/ui/core/Core",
 	"sap/ui/core/InvisibleText"
 ], function(
 	library,
+	AnimationMode,
 	Control,
 	MSUtils,
 	Text,
 	Link,
 	FormattedText,
-	coreLibrary,
+	ControlBehavior,
+	Library,
+	MessageType,
 	MessageStripRenderer,
 	Log,
 	Button,
-	Core,
 	InvisibleText
 ) {
 	"use strict";
-
-	// shortcut for sap.ui.core.MessageType
-	var MessageType = coreLibrary.MessageType;
 
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
@@ -53,12 +54,17 @@ sap.ui.define([
 	 *
 	 * Each message can have a close button, so that it can be removed from the UI if needed.
 	 *
-	 * With version 1.50 you can use a limited set of formatting tags for the message text by setting <code>enableFormattedText</code>. The allowed tags are:
+	 * You can use a limited set of formatting tags for the message text by setting <code>enableFormattedText</code>. The allowed tags are:
+	 * With version 1.50
 	 * <ul>
 	 * <li>&lt;a&gt;</li>
 	 * <li>&lt;em&gt;</li>
 	 * <li>&lt;strong&gt;</li>
 	 * <li>&lt;u&gt;</li>
+	 * </ul>
+	 * With version 1.85
+	 * <ul>
+	 * <li>&lt;br&gt;</li>
 	 * </ul>
 	 *
 	 * <h3>Dynamically generated Message Strip</h3>
@@ -78,14 +84,13 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.30
 	 * @alias sap.m.MessageStrip
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-strip/ Message Strip}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var MessageStrip = Control.extend("sap.m.MessageStrip", /** @lends sap.m.MessageStrip.prototype */ {
 		metadata: {
@@ -96,14 +101,14 @@ sap.ui.define([
 				/**
 				 * Determines the text of the message.
 				 */
-				text: { type: "string", group: "Appearance", defaultValue: "" },
+				text: { type: "string", group: "Data", defaultValue: "" },
 
 				/**
 				 * Determines the type of messages that are displayed in the MessageStrip.
 				 * Possible values are: Information (default), Success, Warning, Error.
 				 * If None is passed, the value is set to Information and a warning is displayed in the console.
 				 */
-				type: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Information },
+				type: { type: "sap.ui.core.message.MessageType", group: "Appearance", defaultValue: MessageType.Information },
 
 				/**
 				 * Determines a custom icon which is displayed.
@@ -123,13 +128,14 @@ sap.ui.define([
 
 				/**
 				 * Determines the limited collection of HTML elements passed to the <code>text</code> property should be
-				 * evaluated.
+				 * evaluated. The <code>text</code> property value is set as <code>htmlText</code> to an internal instance of {@link sap.m.FormattedText}
 				 *
 				 * <b>Note:</b> If this property is set to true the string passed to <code>text</code> property
 				 * can evaluate the following list of limited HTML elements. All other HTML elements and their nested
 				 * content will not be rendered by the control:
 				 * <ul>
 				 *	<li><code>a</code></li>
+				 *	<li><code>br</code></li>
 				 *	<li><code>em</code></li>
 				 *	<li><code>strong</code></li>
 				 *	<li><code>u</code></li>
@@ -146,6 +152,14 @@ sap.ui.define([
 				 * Adds an sap.m.Link control which will be displayed at the end of the message.
 				 */
 				link: { type: "sap.m.Link", multiple: false, singularName: "link" },
+
+				/**
+				 * List of <code>sap.m.Link</code> controls that replace the placeholders in the text.
+				 * Placeholders are replaced according to their indexes. The first link in the aggregation replaces the placeholder with index %%0, and so on.
+				 * <b>Note:</b> Placeholders are replaced if the <code>enableFormattedText</code> property is set to true.
+				 * @since 1.129
+				 */
+				controls: { type: "sap.m.Link", multiple: true, singularName: "control", forwarding: { idSuffix: "-formattedText", aggregation: "controls" } },
 
 				/**
 				 * Hidden aggregation which is used to transform the string message into sap.m.Text control.
@@ -171,7 +185,9 @@ sap.ui.define([
 				close: {}
 			},
 			dnd: { draggable: true, droppable: false }
-		}
+		},
+
+		renderer: MessageStripRenderer
 	});
 
 	MessageStrip.prototype.init = function () {
@@ -180,12 +196,17 @@ sap.ui.define([
 		this._initCloseButton();
 	};
 
+	MessageStrip.prototype.onBeforeRendering = function () {
+		this._normalizeType(this.getType());
+		this._setButtonAriaLabelledBy(this.getType());
+	};
+
 	/**
 	 * Setter for property text.
 	 * Default value is empty/undefined
 	 * @public
 	 * @param {string} sText new value for property text
-	 * @returns {sap.m.MessageStrip} this to allow method chaining
+	 * @returns {this} this to allow method chaining
 	 */
 	MessageStrip.prototype.setText = function (sText) {
 		// Update the internal FormattedText control if needed
@@ -201,37 +222,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for property type.
-	 * Default value is sap.ui.core.MessageType.Information
-	 * @public
-	 * @param {sap.ui.core.MessageType} sType The Message type
-	 * @returns {sap.m.MessageStrip} this to allow method chaining
-	 */
-	MessageStrip.prototype.setType = function (sType) {
-		if (!sType || sType === MessageType.None) {
-			Log.warning(MSUtils.MESSAGES.TYPE_NOT_SUPPORTED);
-			sType = MessageType.Information;
-		}
-
-		this.getType() !== sType && this._setButtonAriaLabelledBy(sType);
-
-		return this.setProperty("type", sType);
-	};
-
-
-	/**
 	 * Closes the MessageStrip.
 	 * This method sets the visible property of the MessageStrip to false.
 	 * The MessageStrip can be shown again by setting the visible property to true.
 	 * @public
 	 */
 	MessageStrip.prototype.close = function () {
+		var sAnimationMode = ControlBehavior.getAnimationMode(),
+			bHasAnimations = sAnimationMode !== AnimationMode.none && sAnimationMode !== AnimationMode.minimal;
+
 		var fnClosed = function () {
 			this.setVisible(false);
 			this.fireClose();
 		}.bind(this);
 
-		if (!Core.getConfiguration().getAnimation()) {
+		if (!bHasAnimations) {
 			fnClosed();
 			return;
 		}
@@ -244,7 +249,7 @@ sap.ui.define([
 
 		if (bEnable) {
 			if (!oFormattedText) {
-				oFormattedText = new FormattedText();
+				oFormattedText = new FormattedText(this.getId() + "-formattedText");
 				oFormattedText._setUseLimitedRenderingRules(true);
 				this.setAggregation("_formattedText", oFormattedText);
 			}
@@ -257,7 +262,12 @@ sap.ui.define([
 
 	MessageStrip.prototype.setAggregation = function (sName, oControl, bSupressInvalidate) {
 		if (sName === "link" && oControl instanceof Link) {
-			oControl.addAriaDescribedBy(this.getId());
+			var sId = this._ariaReferenceId(),
+				aAriaDescribedBy = oControl.getAriaDescribedBy();
+
+			if (!aAriaDescribedBy.includes(sId)) {
+				oControl.addAriaDescribedBy(sId);
+			}
 		}
 
 		Control.prototype.setAggregation.call(this, sName, oControl, bSupressInvalidate);
@@ -272,11 +282,11 @@ sap.ui.define([
 	MessageStripRenderer.getAccessibilityState = function () {
 		var mAccessibilityState = MSUtils.getAccessibilityState.call(this),
 			oLink = this.getLink(),
-			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+			oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 
 		if (!oLink) {
-			mAccessibilityState.labelledby = this.getId();
+			mAccessibilityState.labelledby = this._ariaReferenceId();
 		}
 
 		mAccessibilityState.roledescription = oResourceBundle.getText("MESSAGE_STRIP_ARIA_ROLE_DESCRIPTION");
@@ -293,11 +303,18 @@ sap.ui.define([
 		oEvent.setMarked();
 	};
 
+	MessageStrip.prototype._normalizeType = function (sType) {
+		if (sType === MessageType.None) {
+			Log.warning(MSUtils.MESSAGES.TYPE_NOT_SUPPORTED);
+			this.setProperty("type", MessageType.Information, true);
+		}
+	};
+
 	/**
 	 * Initialize close button.
 	 */
 	MessageStrip.prototype._initCloseButton = function () {
-		var oRb = Core.getLibraryResourceBundle("sap.m"),
+		var oRb = Library.getResourceBundleFor("sap.m"),
 			oCloseButton = this.getAggregation("_closeButton");
 
 			if (!oCloseButton) {
@@ -316,11 +333,11 @@ sap.ui.define([
 
 	/**
 	 * Set Arialabelledby to the close button.
-	 * @param {sap.ui.core.MessageType} sType The Message type
+	 * @param {module:sap/ui/core/message/MessageType} sType The Message type
 	 */
 	MessageStrip.prototype._setButtonAriaLabelledBy = function (sType) {
 		var oCloseButton = this.getAggregation("_closeButton"),
-			oRb = Core.getLibraryResourceBundle("sap.m"),
+			oRb = Library.getResourceBundleFor("sap.m"),
 			sText = oRb.getText("MESSAGE_STRIP_" + sType.toUpperCase() + "_CLOSE_BUTTON");
 
 		if (!this._oInvisibleText) {
@@ -332,10 +349,15 @@ sap.ui.define([
 		}
 
 		if (oCloseButton) {
-			oCloseButton.removeAllAriaLabelledBy();
-			oCloseButton.addAriaLabelledBy(this._oInvisibleText.getId());
+			oCloseButton.removeAllAssociation("ariaLabelledBy", true);
+			oCloseButton.addAssociation("ariaLabelledBy", this._oInvisibleText.getId(), true);
 		}
 	};
+
+	MessageStrip.prototype._ariaReferenceId = function () {
+		return this.getId() + "-info" + " " + this.getAggregation("_text").getId();
+	};
+
 
 	MessageStrip.prototype.exit = function () {
 		if (this._oInvisibleText) {

@@ -1,16 +1,16 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-], function (
+], function(
 ) {
 	"use strict";
 
 	return {
-		getChangeTypes: function() {
+		getChangeTypes() {
 			return [
 				"appdescr_ovp_addNewCard",
 				"appdescr_ovp_removeCard",
@@ -39,7 +39,6 @@ sap.ui.define([
 				"appdescr_app_addCdsViews",
 				"appdescr_app_removeCdsViews",
 				"appdescr_flp_setConfig",
-				"appdescr_ui5_addNewModel",
 				"appdescr_ui5_addNewModelEnhanceWith",
 				"appdescr_ui5_removeModel",
 				"appdescr_ui5_replaceComponentUsage",
@@ -50,15 +49,23 @@ sap.ui.define([
 				"appdescr_ui_setIcon",
 				"appdescr_ui_setDeviceTypes",
 				"appdescr_ui5_addLibraries",
+				"appdescr_ui5_addNewModel",
+				"appdescr_app_addAnnotationsToOData",
+				"appdescr_ui5_addComponentUsages",
 				"appdescr_ui5_setFlexExtensionPointEnabled",
 				"appdescr_url_setUri",
 				"appdescr_fiori_setRegistrationIds",
 				"appdescr_card",
 				"appdescr_card_designtime",
-				"appdescr_widget"
+				"appdescr_fiori_setAbstract",
+				"appdescr_fe_changePageConfiguration",
+				"appdescr_ui5_changeModel",
+				"appdescr_ui_generic_app_addNewObjectPage",
+				"appdescr_ui_generic_app_changePageConfiguration",
+				"appdescr_fe_addNewPage"
 			];
 		},
-		getCondensableChangeTypes: function() {
+		getCondensableChangeTypes() {
 			return [
 				"appdescr_app_setTitle",
 				"appdescr_app_setInfo",

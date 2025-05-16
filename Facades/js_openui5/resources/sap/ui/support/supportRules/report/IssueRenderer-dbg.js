@@ -1,23 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * Renders issues
  */
-sap.ui.define(['jquery.sap.global'], function(jQuery) {
+sap.ui.define(['sap/base/Log', 'sap/base/security/encodeXML'], function(Log, encodeXML) {
 	'use strict';
-
-	var _OPARenderingInitialized = false;
 
 	function getEscapedString(value) {
 		if (value) {
-			if (jQuery.isArray(value)) {
-				return jQuery.sap.escapeHTML(value.join(', '));
+			if (Array.isArray(value)) {
+				return encodeXML(value.join(', '));
 			} else {
-				return jQuery.sap.escapeHTML(value);
+				return encodeXML(value);
 			}
 		} else {
 			return '';
@@ -100,7 +98,7 @@ sap.ui.define(['jquery.sap.global'], function(jQuery) {
 
 			content += '</table>';
 		} catch (ex) {
-			jQuery.sap.log.warning('There was a problem extracting issues info.');
+			Log.warning('There was a problem extracting issues info.');
 			content = '';
 		}
 
@@ -152,7 +150,7 @@ sap.ui.define(['jquery.sap.global'], function(jQuery) {
 			content += getSeverityFilter('Medium', severities['Medium'], false);
 			content += getSeverityFilter('Low', severities['Low'], false);
 		} catch (ex) {
-			jQuery.sap.log.warning('There was a problem creating severity filters.');
+			Log.warning('There was a problem creating severity filters.');
 			content = '';
 		}
 
@@ -164,8 +162,8 @@ sap.ui.define(['jquery.sap.global'], function(jQuery) {
 	/**
 	 * Creates an html string containing the issues.
 	 * @param {Object} issues - the issues in viewmodel format
-	 * @param {Boolean} enableFiltering - if true renders the severity filters
-	 * @returns {String}
+	 * @param {boolean} enableFiltering - if true renders the severity filters
+	 * @returns {string}
 	 */
 	function render(issues, enableFiltering) {
 		var content = '';
@@ -179,49 +177,7 @@ sap.ui.define(['jquery.sap.global'], function(jQuery) {
 		return '<div>' + content + '</div>';
 	}
 
-	/* eslint-disable no-undef */
-	/**
-	 * Creates an html string containing the issues and appends it to the OPA html page
-	 * @param {Object} issues - the issues in viewmodel format
-	 * @returns {String}
-	 */
-	function renderIssuesForOPA(issues) {
-		if (!jQuery("#qunit") || !issues) {
-			return;
-		}
-
-		// TODO: Add rendered issues to a buffer and render all of them at the same time at the end of the OPA test.
-		var element = jQuery(this.render(issues));
-		jQuery("#qunit").append(element);
-
-		if (!_OPARenderingInitialized) {
-			var styles = [
-				jQuery.sap.getResourcePath('sap/ui/support/supportRules/report/resources/styles.css'),
-				jQuery.sap.getResourcePath('sap/ui/support/supportRules/report/resources/collapseExpand.css'),
-				jQuery.sap.getResourcePath('sap/ui/support/supportRules/report/resources/filter.css')
-			];
-			var collapseExpandUrl = jQuery.sap.getResourcePath('sap/ui/support/supportRules/report/resources/collapseExpand.js');
-			var filterUrl = jQuery.sap.getResourcePath('sap/ui/support/supportRules/report/resources/filter.js');
-
-			jQuery.each(styles, function (index, value) {
-				jQuery('<link>').appendTo('head').attr({ type: 'text/css', rel: 'stylesheet', href: value });
-			});
-			jQuery.getScript(collapseExpandUrl, function () {
-				window.sapUiSupportReport.collapseExpand.init();
-			});
-			jQuery.getScript(filterUrl, function () {
-				window.sapUiSupportReport.filter.init();
-			});
-			_OPARenderingInitialized = true;
-		} else {
-			window.sapUiSupportReport.collapseExpand.init();
-			window.sapUiSupportReport.filter.init();
-		}
-	}
-	/* eslint-enable no-undef */
-
 	return {
-		render: render,
-		renderIssuesForOPA: renderIssuesForOPA
+		render: render
 	};
 }, true);

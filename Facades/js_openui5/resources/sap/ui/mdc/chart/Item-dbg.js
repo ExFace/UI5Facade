@@ -1,103 +1,78 @@
 /*
  * !OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Element"
-], function(Element) {
+	"sap/ui/core/Element", "sap/base/Log"
+], (Element, Log) => {
 	"use strict";
 
-	// Provides the Item class.
 	/**
-	 * Constructor for a new Item.
+	 * Constructor for a new <code>Item</code>.
 	 *
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] initial settings for the new control
-	 * @class The Item for the field/property metadata used within MDC controls, an instance can be created to override the default/metadata
-	 *        behavior.
-	 *        <h3><b>Note:</b></h3>
-	 *        The control is experimental and the API/behaviour is not finalised and hence this should not be used for productive usage.
+	 * @class The <code>Item</code> control for the chart/property metadata used within MDC Chart.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @constructor The API/behaviour is not finalised and hence this control should not be used for productive usage.
-	 * @private
-	 * @experimental
-	 * @since 1.61
+	 * @public
+	 * @experimental As of version 1.88
+	 * @since 1.88
 	 * @alias sap.ui.mdc.chart.Item
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Item = Element.extend("sap.ui.mdc.chart.Item", /** @lends sap.ui.mdc.chart.Item.prototype */
-	{
+	const Item = Element.extend("sap.ui.mdc.chart.Item", /** @lends sap.ui.mdc.chart.Item.prototype */ {
 		metadata: {
-			"abstract": true,
+			"abstract": false, //TODO: see comment at the end.
 			library: "sap.ui.mdc",
 			properties: {
 				/**
-				 * The unique identifier of the chart item which reflects to the name of the data property in the resulting data set
+				 * The unique identifier of the chart item that reflects the name of the property in the PropertyInfo.
+				 * @deprecated Since 1.115. Please use <code>propertyKey</code> instead.
 				 */
-				key: {
+				name: {
 					type: "string"
 				},
 				/**
-				 * Label for the item, either as a string literal or by a pointer using the binding syntax to some property containing the label.
+				 * The unique identifier of the chart item that reflects the name of property in the PropertyInfo.
 				 *
-				 * <b>NOTE:</b> This property was bound internally if automatically created via metadata of oData service and please call "unbindProperty" before setting.
+				 * @since 1.115
+				 */
+				propertyKey: {
+					type: "string"
+				},
+				/**
+				 * Label for the item, either as a string literal or by a pointer, using the binding to some property containing the label.
 				 */
 				label: {
 					type: "string"
 				},
 				/**
-				 * The visibility of the chart item
-				 */
-				visible: {
-					type: "boolean",
-					defaultValue: true
-				},
-				/**
-				 * The data type
+				 * Specifies the type of the item for the chart (groupable and aggregatable).
+				 * This is specific for the used chart library.
 				 */
 				type: {
-					type: "string",
-					defaultValue: "string"
+					type: "string"
+				},
+				/**
+				 * Specifies the role of the item for the chart (category, axis1...).
+				 * This is specific for the used chart library.<br>
+				 * <b>Note:</b> This property must not be changed after initialization.
+				 */
+				role: {
+					type: "string"
 				}
 			}
+
 		}
 	});
 
-	/**
-	 *
-	 * @param mMetadata the metadata
-	 */
-	Item.prototype.getSettings = function(mMetadata) {
-		throw new Error("sap.ui.mdc.chart.Item - getSettings not implemented see sap.ui.mdc.chart.DimensionItem or sap.ui.mdc.chart.MeasureItem");
-	};
-
-	/**
-	 * Transfer the MDC chart item to a viz Chart item
-	 * @param mMetadata the metadata
-	 */
-	Item.prototype.toVizChartItem = function(mMetadata) {
-		throw new Error("sap.ui.mdc.chart.Item - getChartVizItem not implemented see sap.ui.mdc.chart.DimensionItem or sap.ui.mdc.chart.MeasureItem");
-	};
-
-	/**
-	 * Role of the inner chart item, see @sap.ui.mdc.ChartItemRoleType
-	 * @param {string} vRole The role of the inner chart item
-	 * @return {sap.ui.mdc.chart.Item}
-	 */
-	Item.prototype.setRole = function(vRole) {
-		throw new Error("sap.ui.mdc.chart.Item - setRole not implemented see sap.ui.mdc.chart.DimensionItem or sap.ui.mdc.chart.MeasureItem");
-	};
-
-	/**
-	 *
-	 * @return {string} The type of the inner charts item which can be 'Dimension' or 'Measure'
-	 */
-	Item.prototype.getVizItemType = function() {
-		throw new Error("sap.ui.mdc.chart.Item - getVizItemType not implemented see sap.ui.mdc.chart.DimensionItem or sap.ui.mdc.chart.MeasureItem");
+	//Temporary fallback for compatibility until the dataProperty can be removed
+	Item.prototype.getPropertyKey = function() {
+		const sPropertyKey = this.getProperty("propertyKey");
+		return sPropertyKey || this.getName();
 	};
 
 	return Item;
 
-}, true);
+});

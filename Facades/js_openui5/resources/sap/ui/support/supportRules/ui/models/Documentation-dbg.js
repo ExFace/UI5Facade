@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"jquery.sap.global",
+	"sap/base/Log",
+	"sap/base/util/Version",
+	"sap/ui/thirdparty/jquery",
 	"sap/m/library",
 	"sap/ui/VersionInfo"
-], function (jQuery, mLibrary, VersionInfo) {
+], function (Log, Version, jQuery, mLibrary, VersionInfo) {
 	"use strict";
 
 	var Documentation = {
@@ -21,8 +23,8 @@ sap.ui.define([
 				var sUrl = "",
 					sVersion = "",
 					sFullVersion = oCoreLibInfo.version,
-					iMajorVersion = jQuery.sap.Version(sFullVersion).getMajor(),
-					iMinorVersion = jQuery.sap.Version(sFullVersion).getMinor(),
+					iMajorVersion = Version(sFullVersion).getMajor(),
+					iMinorVersion = Version(sFullVersion).getMinor(),
 					sOrigin = window.location.origin;
 
 				//This check is to make sure that version is even. Example: 1.53 will back down to 1.52
@@ -55,7 +57,7 @@ sap.ui.define([
 			this._pingUrl(sUrl).then(function success() {
 				mLibrary.URLHelper.redirect(sUrl, true);
 			}, function error() {
-				jQuery.sap.log.info("Support Assistant tried to load documentation link in " + sUrl + "but fail");
+				Log.info("Support Assistant tried to load documentation link in " + sUrl + "but fail");
 				sUrl = "https://ui5.sap.com/#/topic/" + sTopicId;
 				mLibrary.URLHelper.redirect(sUrl, true);
 			});

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,87 +12,161 @@ function(
 ) {
 	"use strict";
 
-	function appendComponentToReference(sComponentName) {
-		if (sComponentName && sComponentName.indexOf(".Component") < 0) {
-			sComponentName += ".Component";
+	function getFlAsyncHintRequest(oAsyncHints, sReference) {
+		if (oAsyncHints && oAsyncHints.requests && Array.isArray(oAsyncHints.requests)) {
+			return oAsyncHints.requests.find(function(oAsyncHint) {
+				return oAsyncHint.name === "sap.ui.fl.changes" && (!sReference || oAsyncHint.reference === sReference);
+			});
 		}
-		return sComponentName;
 	}
 
-	function getFlAsyncHint(oAsyncHints) {
-		var oFlAsyncHint;
+	function getFlexReference(mPropertyBag) {
+		var oManifest = mPropertyBag.manifest;
+		var oComponentData = mPropertyBag.componentData || {};
 
-		oAsyncHints.requests.some(function(oAsyncHint) {
-			if (oAsyncHint.name === "sap.ui.fl.changes") {
-				oFlAsyncHint = oAsyncHint;
+		// support of old app variants
+		if (oComponentData.startupParameters) {
+			if (Array.isArray(oComponentData.startupParameters["sap-app-id"])) {
+				return oComponentData.startupParameters["sap-app-id"][0];
 			}
-		});
+		}
 
-		return oFlAsyncHint;
+		var oSapUi5Entry = oManifest.getEntry ? oManifest.getEntry("sap.ui5") : oManifest["sap.ui5"];
+		if (oSapUi5Entry) {
+			if (oSapUi5Entry.appVariantId) {
+				return oSapUi5Entry.appVariantId;
+			}
+
+			if (oSapUi5Entry.componentName) {
+				return oSapUi5Entry.componentName;
+			}
+		}
+
+		return getAppIdFromManifest(oManifest);
+	}
+
+	function getAppIdFromManifest(oManifest) {
+		if (oManifest) {
+			var APP_ID_AT_DESIGN_TIME = "${pro" + "ject.art" + "ifactId}"; // avoid replaced by content of ${project.artifactId} placeholder at build steps
+			var oSapApp = (oManifest.getEntry) ? oManifest.getEntry("sap.app") : oManifest["sap.app"];
+			var sAppId = oSapApp && oSapApp.id;
+			if (sAppId === APP_ID_AT_DESIGN_TIME) {
+				if (oManifest.getComponentName) {
+					return oManifest.getComponentName();
+				}
+				if (oManifest.name) {
+					return oManifest.name;
+				}
+			}
+			return sAppId;
+		}
+
+		throw new Error("No Manifest received, descriptor changes are not possible");
+	}
+
+	function getAppVersionFromManifest(oManifest) {
+		if (oManifest) {
+			var oSapApp = (oManifest.getEntry) ? oManifest.getEntry("sap.app") : oManifest["sap.app"];
+			var sAppVersion = oSapApp.applicationVersion?.version;
+			return sAppVersion;
+		}
+		return undefined;
 	}
 
 	/**
 	 * Provides utility functions for handling manifests; All function work with Manifest Objects or raw manifests
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.ManifestUtils
-	 * @experimental
 	 * @since 1.74
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 */
 	var ManifestUtils = {
-		getFlexReference: function(mPropertyBag) {
-			var oManifest = mPropertyBag.manifest;
-			var oComponentData = mPropertyBag.componentData || {};
+		/**
+		 * Returns the descriptor Id, which is always the reference for descriptor changes
+		 *
+		 * @param {object|sap.ui.core.Manifest} oManifest - Manifest of the component
+		 * @returns {string} Version of application if it is available in the manifest, otherwise an empty string
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta
+		 */
+		getAppIdFromManifest,
 
-			// support of old app variants
-			if (oComponentData.startupParameters) {
-				if (Array.isArray(oComponentData.startupParameters["sap-app-id"])) {
-					return oComponentData.startupParameters["sap-app-id"][0];
-				}
+		/**
+		 * Returns the app version
+		 *
+		 * @param {object|sap.ui.core.Manifest} oManifest - Manifest of the component
+		 * @returns {string} Version of application if it is available in the manifest, otherwise an empty string
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta
+		 */
+		getAppVersionFromManifest,
+
+		getFlexReference,
+
+		/**
+		 * Determines the flex reference for a given control by
+		 * identifying the application component and analyzing the manifest of this component.
+		 *
+		 * @param {sap.ui.core.Control} oControl - Control for the application determination
+		 * @returns {string} Reference of the application
+		 */
+		getFlexReferenceForControl(oControl) {
+			var oAppComponent = Utils.getAppComponentForControl(oControl);
+			return oAppComponent && getFlexReference({
+				manifest: oAppComponent.getManifestObject(),
+				componentData: oAppComponent.getComponentData()
+			});
+		},
+
+		/**
+		 * Determines the flex reference for a given {@link sap.ui.fl.Selector} by
+		 * identifying the application component and analyzing the manifest of this component.
+		 * In case of a {@link sap.ui.fl.ComponentSelector} the appId is taken as is.
+		 *
+		 * @param {sap.ui.fl.Selector} oSelector - Selector object
+		 * @returns {string} Reference of the application
+		 */
+		getFlexReferenceForSelector(oSelector) {
+			if (oSelector.appId) {
+				return oSelector.appId;
 			}
+			return ManifestUtils.getFlexReferenceForControl(oSelector.appComponent || oSelector);
+		},
 
+		getOvpEntry(oManifest) {
+			return oManifest.getEntry ? oManifest.getEntry("sap.ovp") : oManifest["sap.ovp"];
+		},
+
+		getCacheKeyFromAsyncHints(sReference, oAsyncHints) {
+			const oFlAsyncHint = getFlAsyncHintRequest(oAsyncHints, sReference);
+			if (oFlAsyncHint) {
+				return oFlAsyncHint.cachebusterToken || "<NO CHANGES>";
+			}
+		},
+
+		getPreviewSectionFromAsyncHints(oAsyncHints) {
+			var oFlAsyncHint = getFlAsyncHintRequest(oAsyncHints);
+			if (oFlAsyncHint) {
+				return oFlAsyncHint.preview;
+			}
+		},
+
+		getChangeManifestFromAsyncHints(oAsyncHints, sReference) {
+			const oFlAsyncHint = sReference && getFlAsyncHintRequest(oAsyncHints, sReference);
+			// Request entry might indicate that no changes exist.
+			// If entry is not there, it is unknown and there might be changes
+			return !!(!oFlAsyncHint || oFlAsyncHint.cachebusterToken);
+		},
+
+		getBaseComponentNameFromManifest(oManifest) {
 			var oSapUi5Entry = oManifest.getEntry ? oManifest.getEntry("sap.ui5") : oManifest["sap.ui5"];
-			if (oSapUi5Entry) {
-				if (oSapUi5Entry.appVariantId) {
-					return oSapUi5Entry.appVariantId;
-				}
-
-				if (oSapUi5Entry.componentName) {
-					return appendComponentToReference(oSapUi5Entry.componentName);
-				}
-			}
-
-			return appendComponentToReference(Utils.getAppIdFromManifest(oManifest));
+			return oSapUi5Entry && oSapUi5Entry.componentName || getAppIdFromManifest(oManifest);
 		},
 
-		getCacheKeyFromAsyncHints: function(oAsyncHints) {
-			if (oAsyncHints && oAsyncHints.requests && Array.isArray(oAsyncHints.requests)) {
-				var oFlAsyncHint = getFlAsyncHint(oAsyncHints);
-				if (oFlAsyncHint) {
-					return oFlAsyncHint.cachebusterToken || "<NO CHANGES>";
-				}
-			}
-		},
-
-		getChangeManifestFromAsyncHints: function(oAsyncHints) {
-			// whenever there is a back end providing a fl async hint it is also not necessary to merge on client side
-			if (oAsyncHints && oAsyncHints.requests && Array.isArray(oAsyncHints.requests)) {
-				var oFlAsyncHint = getFlAsyncHint(oAsyncHints);
-				if (oFlAsyncHint) {
-					return false;
-				}
-			}
-
-			return true;
-		},
-
-		getBaseComponentNameFromManifest: function(oManifest) {
-			var oSapUi5Entry = oManifest.getEntry ? oManifest.getEntry("sap.ui5") : oManifest["sap.ui5"];
-			return oSapUi5Entry && oSapUi5Entry.componentName || Utils.getAppIdFromManifest(oManifest);
-		},
-
-		isFlexExtensionPointHandlingEnabled: function (oView) {
+		isFlexExtensionPointHandlingEnabled(oView) {
 			var oAppComponent = Utils.getAppComponentForControl(oView);
 			return !!(oAppComponent
 				&& oAppComponent.getManifestEntry("sap.ui5")
@@ -101,4 +175,4 @@ function(
 	};
 
 	return ManifestUtils;
-}, true);
+});

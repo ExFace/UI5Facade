@@ -1,26 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/base/ManagedObject",
-	"sap/ui/dt/ElementUtil",
-	"sap/ui/dt/DOMUtil",
 	"sap/base/util/merge",
 	"sap/base/util/ObjectPath",
-	"sap/base/util/includes"
-],
-function(
-	jQuery,
-	ManagedObject,
-	ElementUtil,
-	DOMUtil,
+	"sap/base/Log",
+	"sap/ui/base/ManagedObject",
+	"sap/ui/core/Lib",
+	"sap/ui/dt/DOMUtil",
+	"sap/ui/dt/ElementUtil"
+], function(
 	merge,
 	ObjectPath,
-	includes
+	Log,
+	ManagedObject,
+	Lib,
+	DOMUtil,
+	ElementUtil
 ) {
 	"use strict";
 
@@ -30,7 +29,7 @@ function(
 		}
 
 		if (typeof (vAction) === "string") {
-			return { changeType : vAction };
+			return { changeType: vAction };
 		}
 		return vAction;
 	}
@@ -46,13 +45,12 @@ function(
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.30
 	 * @alias sap.ui.dt.DesignTimeMetadata
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var DesignTimeMetadata = ManagedObject.extend("sap.ui.dt.DesignTimeMetadata", /** @lends sap.ui.dt.DesignTimeMetadata.prototype */ {
 		metadata: {
@@ -108,7 +106,6 @@ function(
 
 	/**
 	 * Returns 'not-adaptable' flag as boolean
-	 * @param {Object} oElement Element instance
 	 * @return {boolean} Returns 'true' if not adaptable
 	 * @public
 	 */
@@ -127,14 +124,15 @@ function(
 	};
 
 	/**
-	 * Returns a DOM representation for an Element or aggregation, if it can be found or undefined
-	 * @param {Object} oElement Element we need DomRef for
-	 * @param {String|Function} vDomRef Selector or Function for fetchting DomRef
-	 * @param {String} [sAggregationName] Aggregation Name
-	 * @return {jQuery} Returns associated DOM references wrapped by jQuery object
+	 * Returns a DOM representation for an Element or aggregation, if it can be found or undefined.
+	 * @param {sap.ui.core.Element} oElement Element we need DomRef for
+	 * @param {string|function} vDomRef Selector or Function for fetchting DomRef
+	 * @param {string} [sAggregationName] Aggregation Name
+	 * @return {HTMLElement|HTMLElement[]} Returns one or multiple associated DOM references
 	 * @public
 	 */
-	DesignTimeMetadata.prototype.getAssociatedDomRef = function(oElement, vDomRef, sAggregationName) {
+	DesignTimeMetadata.prototype.getAssociatedDomRef = function(...aArgs) {
+		const [oElement, vDomRef, sAggregationName] = aArgs;
 		if (oElement) {
 			var oElementDomRef = ElementUtil.getDomRef(oElement);
 			var aArguments = [];
@@ -144,21 +142,32 @@ function(
 			}
 
 			if (typeof (vDomRef) === "function") {
-				var vRes = vDomRef.apply(null, aArguments);
-
-				return vRes ? jQuery(vRes) : vRes;
+				try {
+					// TODO: replace jQuery when we know that vDomRef will always return a DOM Element
+					var vRes = vDomRef(...aArgs);
+					// convert Nodelist and jQuery-Selection to an Array
+					if ((vRes.jquery && vRes.length > 1) || vRes instanceof NodeList) {
+						vRes = Array.from(vRes);
+					}
+					// we return an Array or a Node
+					return vRes.jquery ? vRes.get(0) : vRes;
+				} catch (error) {
+					return undefined;
+				}
 			} else if (oElementDomRef && typeof (vDomRef) === "string") {
-				return DOMUtil.getDomRefForCSSSelector(oElementDomRef, vDomRef);
+				// TODO: replace jQuery when we know that getDomRefForCSSSelector will always return a DOM Element
+				return DOMUtil.getDomRefForCSSSelector(oElementDomRef, vDomRef).get(0);
 			}
 		}
+		return undefined;
 	};
 
 	/**
 	 * Returns action sAction part of designTime metadata (object or changeType string)
-	 * @param  {string} sAction action name
-	 * @param  {object} oElement element instance
+	 * @param  {string} sAction Action name
+	 * @param  {object} oElement Element instance
 	 * @param {string} [sSubAction] Sub-action
-	 * @return {map} part of designTimeMetadata, which describes sAction in a map format
+	 * @return {object} Object describing the action
 	 * @public
 	 */
 	DesignTimeMetadata.prototype.getAction = function(sAction, oElement, sSubAction) {
@@ -171,6 +180,50 @@ function(
 	};
 
 	/**
+	 * Returns the command name for the action of the given change type
+	 * @param {string} sChangeType Name of the change type
+	 * @param {object} oElement Element instance
+	 * @param {string} [sAggregationName] Aggregation to which the action belongs
+	 * @return {string} Name of the command
+	 * @public
+	 */
+	DesignTimeMetadata.prototype.getCommandName = function(sChangeType, oElement, sAggregationName) {
+		var mData = this.getData();
+		var mActions = merge(
+			{},
+			sAggregationName && mData.aggregations[sAggregationName]
+				? mData.aggregations[sAggregationName].actions
+				: {},
+			mData.actions
+		);
+		function findAction(mActionMap) {
+			return Object.keys(mActionMap)
+			.map(function(sCommandName) {
+				var vAction = mActionMap[sCommandName];
+				if (sCommandName === "add" && !vAction.changeType) {
+					// Handle nested subactions
+					return {
+						delegate: "addDelegateProperty",
+						custom: "customAdd"
+					}[findAction(vAction)];
+				}
+				try {
+					var oActionData = evaluateAction(vAction, oElement);
+					return oActionData && (oActionData.changeType === sChangeType) && sCommandName;
+				} catch (vError) {
+					// If a function action expects to be called with a certain element
+					// it might throw an error when trying with other/without elements
+					// Silently fail in such cases
+					return undefined;
+				}
+			})
+			.filter(Boolean)[0];
+		}
+
+		return findAction(mActions);
+	};
+
+	/**
 	 * Returns a locale-specific string value for the given key sKey.
 	 *
 	 * The text is searched in this resource bundle according to the fallback chain described in
@@ -179,7 +232,7 @@ function(
 	 * If text parameters are given, then any occurrences of the pattern "{<i>n</i>}" with <i>n</i> being an integer
 	 * are replaced by the parameter value with index <i>n</i>.  Note: This replacement is also applied if no text had been found (key).
 	 * For more details on this replacement mechanism refer also:
-	 * @see jQuery.sap.formatMessage
+	 * @see {@link module:sap/base/strings/formatMessage formatMessage}
 	 *
 	 * @param {sap.ui.core.Element} oElement Element for which the text is being retrieved
 	 * @param {string} sKey Key
@@ -216,17 +269,18 @@ function(
 	};
 
 	DesignTimeMetadata.prototype._getTextFromLibrary = function(sLibraryName, sKey, aArgs) {
-		var oLibResourceBundle = sap.ui.getCore().getLibraryResourceBundle(sLibraryName + ".designtime");
+		var oLibResourceBundle = Lib.getResourceBundleFor(`${sLibraryName}.designtime`);
 		if (oLibResourceBundle && oLibResourceBundle.hasText(sKey)) {
 			return oLibResourceBundle.getText(sKey, aArgs);
 		}
 
-		//Fallback to old logic that tries to get the text from the libraries resource bundle
-		//TODO: remove the fallback after all libraries have introduced a library.designtime.js that will provide the resource bundle and texts
-		oLibResourceBundle = sap.ui.getCore().getLibraryResourceBundle(sLibraryName);
+		// Fallback to old logic that tries to get the text from the libraries resource bundle
+		// TODO: remove the fallback after all libraries have introduced a library.designtime.js that will provide the resource bundle and texts
+		oLibResourceBundle = Lib.getResourceBundleFor(sLibraryName);
 		if (oLibResourceBundle && oLibResourceBundle.hasText(sKey)) {
 			return oLibResourceBundle.getText(sKey, aArgs);
 		}
+		return undefined;
 	};
 
 	/**
@@ -234,10 +288,10 @@ function(
 	 * @return {string|undefined} Returns the label calculated from getLabel() in designtime metadata
 	 * @public
 	 */
-	DesignTimeMetadata.prototype.getLabel = function() {
+	DesignTimeMetadata.prototype.getLabel = function(...aArgs) {
 		var vLabel = this.getData().getLabel;
 		return typeof vLabel === "function"
-			? vLabel.apply(this, arguments)
+			? vLabel.apply(this, aArgs)
 			: undefined;
 	};
 
@@ -257,6 +311,7 @@ function(
 		if (fnResponsibleElement) {
 			return fnResponsibleElement(oElement);
 		}
+		return undefined;
 	};
 
 	/**
@@ -269,9 +324,54 @@ function(
 		var mData = this.getData();
 		var aActionsFromResponsibleElement = ObjectPath.get(["actions", "actionsFromResponsibleElement"], mData);
 		if (aActionsFromResponsibleElement) {
-			return includes(aActionsFromResponsibleElement, sActionName);
+			return aActionsFromResponsibleElement.includes(sActionName);
 		}
 		return false;
+	};
+
+	/**
+	 * Returns the propagated action info from DesigntimeMetadata
+	 * @param {string} sActionName - Action name
+	 * @returns {object} Object with the propagating control and its name
+	 * @public
+	 */
+	DesignTimeMetadata.prototype.getPropagatedActionInfo = function(sActionName) {
+		const mData = this.getData();
+		const aActions = mData.propagatedActions;
+		if (!aActions) {
+			return undefined;
+		}
+		const oAction = aActions.find((oAction) => oAction.name === sActionName);
+		if (!oAction) {
+			return undefined;
+		}
+		return {
+			propagatingControl: oAction.propagatingControl,
+			propagatingControlName: oAction.propagatingControlName
+		};
+	};
+
+	/**
+	 * Returns the actions to be propagated (= made available also on children elements)
+	 * @param {sap.ui.core.Element} oElement - Source element
+	 * @param {function | string[]} [vPropagateActions] - Function or array of action names
+	 * @returns {string[]} Actions that should be propagated to children
+	 */
+	DesignTimeMetadata.prototype.getPropagateActions = function(oElement, vPropagateActions) {
+		const mData = this.getData();
+		const vPropagatedActions = vPropagateActions || mData.propagateActions;
+		if (vPropagatedActions) {
+			const vReturn = typeof vPropagatedActions === "function" ?
+				vPropagatedActions(oElement) :
+				vPropagatedActions;
+			if (Array.isArray(vReturn)) {
+				return vReturn;
+			}
+			Log.error(
+				"DesignTimeMetadata: propagateActions must be an array of action names or objects with action name and isActive function"
+			);
+		}
+		return [];
 	};
 
 	return DesignTimeMetadata;

@@ -1,0 +1,174 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 161,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "AvatarGroup.less",
+			"size": 4688,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "CalendarPlaceholder.less",
+			"size": 1656,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Card.less",
+			"size": 12900,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "CardLoading.less",
+			"size": 6460,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "CardNumericIndicators.less",
+			"size": 850,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "DynamicPage.less",
+			"size": 9990,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "DynamicPageHeader.less",
+			"size": 1643,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "DynamicPageTitle.less",
+			"size": 9097,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "FlexibleColumnLayout.less",
+			"size": 6267,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "GridContainer.less",
+			"size": 880,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "GridDragAndDrop.less",
+			"size": 172,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "GridList.less",
+			"size": 2552,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "GridListItem.less",
+			"size": 2665,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ListPlaceholder.less",
+			"size": 1028,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ObjectPlaceholder.less",
+			"size": 893,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ProductSwitch.less",
+			"size": 74,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ProductSwitchItem.less",
+			"size": 3086,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "SemanticPage.less",
+			"size": 740,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ShellBar.less",
+			"size": 9624,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "SidePanel.less",
+			"size": 16797,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "TablePlaceholder.less",
+			"size": 767,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "TimelinePlaceholder.less",
+			"size": 1439,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 103714,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/f/themes/sap_belize_base/library-parameters.json",
+			"size": 2426,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.css",
+			"size": 103715,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.less",
+			"size": 96209,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.source.less",
+			"size": 942,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "resources.json",
+			"size": 3205
+		}
+	]
+}

@@ -1,13 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 //Provides control sap.m.PlanningCalendarView.
 sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/library'],
@@ -30,13 +25,12 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/library'],
 	 * The <code>PlanningCalendarView</code> defines the type of the intervals (hours, days, months)
 	 * and how many intervals are displayed.
 	 * @extends sap.ui.core.Element
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.34.0
 	 * @alias sap.m.PlanningCalendarView
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var PlanningCalendarView = Element.extend("sap.m.PlanningCalendarView", /** @lends sap.m.PlanningCalendarView.prototype */ { metadata : {
 
@@ -56,6 +50,28 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/library'],
 			 * descriptions in the {@link sap.ui.unified.CalendarIntervalType CalendarIntervalType} enumeration.
 			 */
 			intervalType : {type : "sap.ui.unified.CalendarIntervalType", group : "Appearance", defaultValue : CalendarIntervalType.Hour},
+
+			/**
+			 *  An integer that defines the period size.
+			 *
+	 		 * @since 1.93
+			 * */
+			intervalSize: {type: "int", group: "Appearance", defaultValue: 1},
+
+			/**
+			 * A function that formats the interval.
+			 *
+	 		 * @since 1.93
+			 *
+			 */
+			intervalLabelFormatter: {type: "object", group: "Appearance"},
+
+			/**
+			 *  Defines if the view will be relative.
+			 *  NOTE: Relative views, can be only used with intervalType - Day and when used they need intervalSize and intervalLabelFormatter defined.
+	 		 * @since 1.93
+			 */
+			relative: {type: "boolean", group: "Appearance", defaultValue: false},
 
 			/**
 			 * Defines the description of the <code>PlanningCalendarView</code>.
@@ -98,7 +114,6 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/library'],
 
 		}
 	}});
-
 	return PlanningCalendarView;
 
 });

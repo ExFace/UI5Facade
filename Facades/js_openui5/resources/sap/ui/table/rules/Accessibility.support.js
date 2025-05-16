@@ -1,34 +1,33 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./TableHelper.support",
 	"sap/ui/support/library",
-	"sap/ui/core/library"
-], function(SupportHelper, SupportLibrary, CoreLibrary) {
+	"sap/ui/core/message/MessageType"
+], function(SupportHelper, SupportLibrary, MessageType) {
 	"use strict";
 
-	var Categories = SupportLibrary.Categories;
-	var Severity = SupportLibrary.Severity;
-	var MessageType = CoreLibrary.MessageType;
+	const Categories = SupportLibrary.Categories;
+	const Severity = SupportLibrary.Severity;
 
 	/*
-	 * Validates whether title or aria-labelledby is correctly set
+	 * Validates whether aria-labelledby is correctly set
 	 */
-	var oAccessibleLabel = SupportHelper.normalizeRule({
+	const oAccessibleLabel = SupportHelper.normalizeRule({
 		id: "AccessibleLabel",
 		minversion: "1.38",
 		categories: [Categories.Accessibility],
 		title: "Accessible Label",
 		description: "Checks whether 'sap.ui.table.Table' controls have an accessible label.",
-		resolution: "Use the 'title' aggregation or the 'ariaLabelledBy' association of the 'sap.ui.table.Table' control "
+		resolution: "Use the 'ariaLabelledBy' association of the 'sap.ui.table.Table' control "
 					+ "to define a proper accessible labeling.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
-			for (var i = 0; i < aTables.length; i++) {
-				if (!aTables[i].getTitle() && aTables[i].getAriaLabelledBy().length == 0) {
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			for (let i = 0; i < aTables.length; i++) {
+				if (!aTables[i].getTitle() && aTables[i].getAriaLabelledBy().length === 0) {
 					SupportHelper.reportIssue(oIssueManager, "The table does not have an accessible label.",
 						Severity.High, aTables[i].getId());
 				}
@@ -39,7 +38,7 @@ sap.ui.define([
 	/*
 	 * Validates sap.ui.core.Icon column templates.
 	 */
-	var oAccessibleRowHighlight = SupportHelper.normalizeRule({
+	const oAccessibleRowHighlight = SupportHelper.normalizeRule({
 		id: "AccessibleRowHighlight",
 		minversion: "1.62",
 		categories: [Categories.Accessibility],
@@ -53,13 +52,13 @@ sap.ui.define([
 				"#/api/sap.ui.table.RowSettings/methods/getHighlightText")
 		],
 		check: function(oIssueManager, oCoreFacade, oScope) {
-			var aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
+			const aTables = SupportHelper.find(oScope, true, "sap.ui.table.Table");
 
 			function checkRowHighlight(oRow) {
-				var oRowSettings = oRow.getAggregation("_settings");
-				var sHighlight = oRowSettings ? oRowSettings.getHighlight() : null;
-				var sHighlightText = oRowSettings ? oRowSettings.getHighlightText() : null;
-				var sRowId = oRow.getId();
+				const oRowSettings = oRow.getAggregation("_settings");
+				const sHighlight = oRowSettings ? oRowSettings.getHighlight() : null;
+				const sHighlightText = oRowSettings ? oRowSettings.getHighlightText() : null;
+				const sRowId = oRow.getId();
 
 				if (oRowSettings && !(sHighlight in MessageType) && sHighlightText === "") {
 					SupportHelper.reportIssue(oIssueManager,
@@ -67,7 +66,7 @@ sap.ui.define([
 				}
 			}
 
-			for (var i = 0; i < aTables.length; i++) {
+			for (let i = 0; i < aTables.length; i++) {
 				aTables[i].getRows().forEach(checkRowHighlight);
 			}
 		}

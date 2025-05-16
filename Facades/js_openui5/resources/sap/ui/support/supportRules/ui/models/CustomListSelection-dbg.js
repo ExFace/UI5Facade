@@ -1,11 +1,13 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'sap/ui/base/EventProvider', 'sap/ui/model/SelectionModel', "sap/ui/support/supportRules/ui/models/SharedModel"
-], function(EventProvider, SelectionModel, SharedModel) {
+	"sap/base/util/deepExtend",
+	'sap/ui/base/EventProvider',
+	'sap/ui/model/SelectionModel'
+], function(deepExtend, EventProvider, SelectionModel) {
 	"use strict";
 
 	function _isInstanceOf(oObject, sType) {
@@ -71,14 +73,14 @@ sap.ui.define([
 			return this.updateSelectionFromModel();
 		},
 
-		syncParentNoteWithChildrenNotes: function (oTreeTableData) {
-			return this.syncParentNoteWithChildrenNotes(oTreeTableData);
+		syncParentNodeSelectionWithChildren: function (oRuleSetsModel) {
+			return this.syncParentNodeSelectionWithChildren(oRuleSetsModel);
 		}
 	};
 
 	function doCallOnHelper(sName, oHelper) {
 		return function() {
-			//jQuery.sap.log.warning("Function called on helper: " + sName);
+			//Log.warning("Function called on helper: " + sName);
 			return TABLESELECTIONADAPTER[sName].apply(oHelper, arguments);
 		};
 	}
@@ -168,7 +170,7 @@ sap.ui.define([
 		getSelectedKeys: function() {
 			var aKeys = [];
 			for (var sKey in this._keys) {
-				if (!!this._keys[sKey]){
+				if (this._keys[sKey]){
 					aKeys.push(sKey);
 				}
 			}
@@ -194,7 +196,7 @@ sap.ui.define([
 		},
 
 		_getContextByIndex: function(iRowIndex) {
-			return this._getBinding().getContexts(iRowIndex, 1)[0];
+			return this._getBinding().getContexts(iRowIndex, 1, undefined, true)[0];
 		},
 
 		_getSelectionModel: function(bForceInit) {
@@ -367,7 +369,9 @@ sap.ui.define([
 			this.fireEvent("selectionChange", {selectedKeys: this.getSelectedKeys()});
 		},
 
-		syncParentNoteWithChildrenNotes: function(oTreeTableData) {
+		syncParentNodeSelectionWithChildren: function(oRuleSetsModel) {
+			var oTreeTableData = deepExtend({}, oRuleSetsModel.getData());
+
 			Object.keys(oTreeTableData).forEach(function(iLibrary) {
 				var flag = true;
 				oTreeTableData[iLibrary].nodes.forEach(function (oRule) {
@@ -380,17 +384,19 @@ sap.ui.define([
 				});
 			});
 
-			SharedModel.setProperty('/treeModel', oTreeTableData);
+			oRuleSetsModel.setData(oTreeTableData);
 		},
 
-		updateModelAfterChangedSelection: function(oTreeTableData, sPath, bSelected) {
-			var aPath = sPath.split("/");
-			if (aPath[2]) {
-				if (oTreeTableData[aPath[1]].nodes.length !== 0) {
-					oTreeTableData[aPath[1]].nodes[aPath[3]].selected = bSelected;
+		updateModelAfterChangedSelection: function(oModel, sPath, bSelected) {
+			var aPath = sPath.split("/"),
+				sLib = aPath[1];
+
+			if (aPath[2]) { // selecting a rule
+				if (oModel.getProperty("/" + sLib + "/nodes") !== 0) {
+					oModel.setProperty("/" + sLib + "/nodes/" + aPath[3] + "/selected", bSelected);
 				}
-			} else {
-				oTreeTableData[aPath[1]].selected = bSelected;
+			} else { // selecting a library
+				oModel.setProperty("/" + sLib + "/selected", bSelected);
 			}
 		}
 

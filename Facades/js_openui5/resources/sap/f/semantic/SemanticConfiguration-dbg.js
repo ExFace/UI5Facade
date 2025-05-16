@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,12 +12,9 @@ sap.ui.define([
 	"sap/ui/core/IconPool",
 	"sap/m/library",
 	"sap/m/OverflowToolbarLayoutData",
-	"sap/ui/core/InvisibleText"
-], function(BaseObject,
-			IconPool,
-			mobileLibrary,
-			OverflowToolbarLayoutData,
-			InvisibleText) {
+	"sap/ui/core/Messaging",
+	"sap/ui/core/Lib"
+], function(BaseObject, IconPool, mobileLibrary, OverflowToolbarLayoutData, Messaging, Library) {
 		"use strict";
 
 	// shortcut for sap.m.OverflowToolbarPriority
@@ -32,11 +29,10 @@ sap.ui.define([
 	* @class
 	* Defines the visual properties and placement for each supported semantic type.
 	*
-	* @version 1.82.0
+	* @version 1.136.0
 	* @private
 	* @since 1.46.0
 	* @alias sap.f.semantic.SemanticConfiguration
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	*/
 	var SemanticConfiguration = BaseObject.extend("sap.f.semantic.SemanticConfiguration", {
 		getInterface: function() {
@@ -58,8 +54,8 @@ sap.ui.define([
 	/**
 	* Checks and determines if the type is supported.
 	*
-	* @param {String} sType
-	* @returns {Boolean}
+	* @param {string} sType
+	* @returns {boolean}
 	*/
 	SemanticConfiguration.isKnownSemanticType = function (sType) {
 		return SemanticConfiguration.getConfiguration(sType) !== null;
@@ -68,7 +64,7 @@ sap.ui.define([
 	/**
 	* Returns the configuration of the semantic type.
 	*
-	* @param {String} sType
+	* @param {string} sType
 	* @returns {Object | null}
 	*/
 	SemanticConfiguration.getConfiguration = function (sType) {
@@ -79,7 +75,7 @@ sap.ui.define([
 	* Returns the settings (ui5 properties) of the semantic type,
 	* defined in the configuration, that will be applied.
 	*
-	* @param {String} sType
+	* @param {string} sType
 	* @returns {Object | null}
 	*/
 	SemanticConfiguration.getSettings = function (sType) {
@@ -94,8 +90,8 @@ sap.ui.define([
 	* Returns the constraints of the semantic type,
 	* defined in the configuration.
 	*
-	* @param {String} sType
-	* @returns {String | null}
+	* @param {string} sType
+	* @returns {string | null}
 	*/
 	SemanticConfiguration.getConstraints = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -109,8 +105,8 @@ sap.ui.define([
 	* Returns the placement of the semantic type,
 	* defined in the configuration.
 	*
-	* @param {String} sType
-	* @returns {String | null}
+	* @param {string} sType
+	* @returns {string | null}
 	*/
 	SemanticConfiguration.getPlacement = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -123,8 +119,8 @@ sap.ui.define([
 	* Returns the order of the semantic type,
 	* defined in the configuration.
 	*
-	* @param {String} sType
-	* @returns {Number | null}
+	* @param {string} sType
+	* @returns {int | null}
 	*/
 	SemanticConfiguration.getOrder = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -137,7 +133,7 @@ sap.ui.define([
 	/**
 	 * Determines if the <code>SemanticControl</code> should be preprocessed.
 	 *
-	 * @returns {Boolean}
+	 * @returns {boolean}
 	 */
 	SemanticConfiguration.shouldBePreprocessed = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -150,7 +146,7 @@ sap.ui.define([
 	/**
 	* Determines if the <code>SemanticControl</code> is a <code>MainAction</code>.
 	*
-	* @returns {Boolean}
+	* @returns {boolean}
 	*/
 	SemanticConfiguration.isMainAction = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -164,7 +160,7 @@ sap.ui.define([
 	* Determines if the <code>SemanticControl</code> is a <code>Navigation</code> type of action,
 	* such as <code>FullScreenAction</code> and <code>CloseAction</code>.
 	*
-	* @returns {Boolean}
+	* @returns {boolean}
 	*/
 	SemanticConfiguration.isNavigationAction = function (sType) {
 		if (SemanticConfiguration.isKnownSemanticType(sType)) {
@@ -180,7 +176,7 @@ sap.ui.define([
 	*/
 	SemanticConfiguration._oTypeConfigs = (function () {
 		var oTypeConfigs = {},
-			oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.f");
+			oBundle = Library.getResourceBundleFor("sap.f");
 
 		// Title Semantic Text Buttons
 		oTypeConfigs["sap.f.semantic.TitleMainAction"] = {
@@ -327,7 +323,6 @@ sap.ui.define([
 			order: 0,
 			mainAction : false,
 			getSettings: function() {
-				var sTooltipId = InvisibleText.getStaticId("sap.f", "SEMANTIC_CONTROL_MESSAGES_INDICATOR");
 
 				return {
 					icon: IconPool.getIconURI("message-popup"),
@@ -338,7 +333,6 @@ sap.ui.define([
 						}
 					},
 					tooltip: oBundle.getText("SEMANTIC_CONTROL_MESSAGES_INDICATOR"),
-					ariaLabelledBy: sTooltipId,
 					type: ButtonType.Emphasized,
 					visible: {
 						path: "message>/",
@@ -346,7 +340,7 @@ sap.ui.define([
 							return aMessages && aMessages.length > 0;
 						}
 					},
-					models: {message: sap.ui.getCore().getMessageManager().getMessageModel()},
+					models: {message: Messaging.getMessageModel()},
 					layoutData: new OverflowToolbarLayoutData({
 						priority: OverflowToolbarPriority.NeverOverflow
 					})
@@ -431,7 +425,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("discussion-2"),
-					text: oBundle.getText("SEMANTIC_CONTROL_DISCUSS_IN_JAM"),
+					text: oBundle.getText("SEMANTIC_CONTROL_DISCUSS_IN_WORK_ZONE"),
 					type: ButtonType.Transparent
 				};
 			}
@@ -444,7 +438,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("share-2"),
-					text: oBundle.getText("SEMANTIC_CONTROL_SHARE_IN_JAM"),
+					text: oBundle.getText("SEMANTIC_CONTROL_SHARE_ON_WORK_ZONE"),
 					type: ButtonType.Transparent
 				};
 			}

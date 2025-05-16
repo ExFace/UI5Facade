@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.getCore().loadLibrary("sap.ui.unified");sap.ui.define(['./library','./SinglePlanningCalendarView','sap/ui/unified/calendar/CalendarUtils','sap/ui/unified/calendar/CalendarDate'],function(l,S,C,a){"use strict";var b=S.extend("sap.m.SinglePlanningCalendarMonthView",{metadata:{library:"sap.m"}});b.prototype.getEntityCount=function(){return 1;};b.prototype.getScrollEntityCount=function(s,o){var n=a.fromLocalJSDate(s),m=s.getMonth()+o,i=o>0?1:-1;n.setMonth(m);while((m+12)%12!==n.getMonth()){n.setDate(n.getDate()-i);}return Math.abs(C._daysBetween(n,a.fromLocalJSDate(s)));};b.prototype.calculateStartDate=function(s){var r=C.getFirstDateOfMonth(C._createUTCDate(s,true)).getJSDate();return C._createLocalDate(r,true);};return b;});
+sap.ui.define(["./library","./SinglePlanningCalendarView","sap/ui/unified/calendar/CalendarUtils","sap/ui/unified/calendar/CalendarDate"],function(t,e,a,n){"use strict";var r=e.extend("sap.m.SinglePlanningCalendarMonthView",{metadata:{library:"sap.m"}});r.prototype.getEntityCount=function(){return 1};r.prototype.getScrollEntityCount=function(t,e){var r=n.fromLocalJSDate(t),i=r.getMonth()+e;r.setMonth(i);while((i+12)%12!==r.getMonth()){r.setDate(r.getDate()-1)}return Math.abs(a._daysBetween(r,n.fromLocalJSDate(t)))};r.prototype.calculateStartDate=function(t){var e=a.getFirstDateOfMonth(a._createUTCDate(t,true)).getJSDate();return a._createLocalDate(e,true)};return r});
+//# sourceMappingURL=SinglePlanningCalendarMonthView.js.map

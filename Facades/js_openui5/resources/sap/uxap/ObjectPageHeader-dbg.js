@@ -1,28 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.uxap.ObjectPageHeader.
 sap.ui.define([
-    "sap/ui/thirdparty/jquery",
-    "sap/ui/core/Control",
-    "sap/ui/core/IconPool",
-    "sap/ui/core/CustomData",
-    "sap/ui/Device",
-    "sap/m/Breadcrumbs",
-    "./ObjectPageHeaderActionButton",
-    "sap/ui/core/ResizeHandler",
-    "sap/m/Button",
-    "sap/m/ActionSheet",
-    "./ObjectImageHelper",
-    "./ObjectPageHeaderContent",
-    "./library",
-    "sap/m/library",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Control",
+	"sap/ui/core/IconPool",
+	"sap/ui/core/CustomData",
+	"sap/ui/Device",
+	"sap/m/Breadcrumbs",
+	"./ObjectPageHeaderActionButton",
+	"sap/ui/core/ResizeHandler",
+	"sap/m/Button",
+	"sap/m/ActionSheet",
+	"./ObjectImageHelper",
+	"./ObjectPageHeaderContent",
+	"./library",
+	"sap/m/library",
 	"./ObjectPageHeaderRenderer"
 ], function(
-    jQuery,
+	Element,
+	Library,
+	jQuery,
 	Control,
 	IconPool,
 	CustomData,
@@ -94,7 +98,6 @@ sap.ui.define([
 	 * @public
 	 * @alias sap.uxap.ObjectPageHeader
 	 * @since 1.26
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ObjectPageHeader = Control.extend("sap.uxap.ObjectPageHeader", /** @lends sap.uxap.ObjectPageHeader.prototype */ {
 		metadata: {
@@ -169,11 +172,12 @@ sap.ui.define([
 				 * Determines the design of the header - Light or Dark.
 				 * <b>Note: </b>This property is deprecated. It will continue to work in the Blue Crystal theme,
 				 * but it will not be taken into account for the Belize themes.
-				 * @deprecated Since version 1.40.1
+				 * @deprecated as of version 1.40.1 without replacement.
 				 */
 				headerDesign: {
 					type: "sap.uxap.ObjectPageHeaderDesign",
-					defaultValue: ObjectPageHeaderDesign.Light
+					defaultValue: ObjectPageHeaderDesign.Light,
+					deprecated: true
 				},
 
 				/**
@@ -234,9 +238,9 @@ sap.ui.define([
 				/**
 				 *
 				 * A list of all the active link elements in the BreadCrumbs control.
-				 * @deprecated as of version 1.50, use the <code>breadcrumbs</code> aggregation instead.
+				 * @deprecated As of version 1.50, use the <code>breadcrumbs</code> aggregation instead.
 				 */
-				breadCrumbsLinks: {type: "sap.m.Link", multiple: true, singularName: "breadCrumbLink"},
+				breadCrumbsLinks: {type: "sap.m.Link", multiple: true, singularName: "breadCrumbLink", deprecated: true},
 
 				/**
 				 *
@@ -349,7 +353,9 @@ sap.ui.define([
 				}
 			},
 			designtime: "sap/uxap/designtime/ObjectPageHeader.designtime"
-		}
+		},
+
+		renderer: ObjectPageHeaderRenderer
 	});
 
 	ObjectPageHeader.prototype._iAvailablePercentageForActions = 0.3;
@@ -358,10 +364,10 @@ sap.ui.define([
 		this._bFirstRendering = true;
 
 		if (!this.oLibraryResourceBundle) {
-			this.oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"); // get resource translation bundle
+			this.oLibraryResourceBundle = Library.getResourceBundleFor("sap.m"); // get resource translation bundle
 		}
 		if (!this.oLibraryResourceBundleOP) {
-			this.oLibraryResourceBundleOP = sap.ui.getCore().getLibraryResourceBundle("sap.uxap"); // get resource translation bundle
+			this.oLibraryResourceBundleOP = Library.getResourceBundleFor("sap.uxap"); // get resource translation bundle
 		}
 
 		// Overflow button
@@ -379,6 +385,9 @@ sap.ui.define([
 		this._oChangesIconCont = this._lazyLoadInternalAggregation("_changesIconCont", true).attachPress(this._handleChangesPress, this);
 	};
 
+	/**
+	 * @deprecated As of version 1.50, <code>breadCrumbsLinks</code> has been deprecated
+	 */
 	ObjectPageHeader.getMetadata().forwardAggregation(
 		"breadCrumbsLinks",
 		{
@@ -532,6 +541,9 @@ sap.ui.define([
 		return this;
 	};
 
+	/**
+	 * @deprecated As of version 1.40.1
+	 */
 	ObjectPageHeader.prototype.setHeaderDesign = function (sHeaderDesign) {
 		this.setProperty("headerDesign", sHeaderDesign);
 		if (this.getParent()) {
@@ -647,6 +659,7 @@ sap.ui.define([
 					oAction.setVisible = function (bVisible) {
 						oAction._setInternalVisible(bVisible, true);
 						Button.prototype.setVisible.call(this, bVisible);
+						that._adaptLayout();
 					};
 
 					oAction.onAfterRendering = function () {
@@ -667,6 +680,7 @@ sap.ui.define([
 					fnGenerateSetterProxy("text", oAction, oActionSheetButton);
 					fnGenerateSetterProxy("icon", oAction, oActionSheetButton);
 					fnGenerateSetterProxy("enabled", oAction, oActionSheetButton);
+					fnGenerateSetterProxy("type", oAction, oActionSheetButton);
 				}
 			}, this);
 		}
@@ -704,6 +718,7 @@ sap.ui.define([
 			enabled: oButton.getEnabled(),
 			text: oButton.getText(),
 			icon: oButton.getIcon(),
+			type: oButton.getType(),
 			tooltip: oButton.getTooltip(),
 			customData: new CustomData({
 				key: "originalId",
@@ -740,7 +755,7 @@ sap.ui.define([
 		this._adaptLayout();
 
 		this._clearImageNotFoundHandler();
-		$objectImage.error(this._handleImageNotFoundError.bind(this));
+		$objectImage.on("error", this._handleImageNotFoundError.bind(this));
 
 		if (!this.getObjectImageURI()){
 			this._handleImageNotFoundError();
@@ -785,7 +800,7 @@ sap.ui.define([
 
 	ObjectPageHeader.prototype._onSeeMoreContentSelect = function (oEvent) {
 		var oPressedButton = oEvent.getSource(),
-			oOriginalControl = sap.ui.getCore().byId(oPressedButton.data("originalId"));
+			oOriginalControl = Element.getElementById(oPressedButton.data("originalId"));
 
 		//forward press event
 		if (oOriginalControl.firePress) {
@@ -988,7 +1003,12 @@ sap.ui.define([
 	 * Show or hide the overflow button and action sheet according to visible buttons inside
 	 * @private
 	 */
-	ObjectPageHeader.prototype._adaptOverflow = function () {
+	ObjectPageHeader.prototype._adaptOverflow = function (oEvent) {
+		// Do not update the overflow button if _change event is fired for other properties' modifications
+		if (oEvent.getParameter("name") !== "visible") {
+			return;
+		}
+
 		var aActionSheetButtons = this._oOverflowActionSheet.getButtons();
 
 		var bHasVisible = aActionSheetButtons.some(function (oActionSheetButton) {
@@ -1042,8 +1062,8 @@ sap.ui.define([
 	 * Finds the sub-element with the given <code>sId</code> contained
 	 * within <code>$headerDomRef</code>
 	 *
-	 * @param {object} jQuery reference to the header dom element
-	 * @param {string} the id of the element to be found
+	 * @param {jQuery} $headerDomRef reference to the header dom element
+	 * @param {string} sId the id of the element to be found
 	 *
 	 * Returns the jQuery reference to the dom element with the given sId
 	 * @private
@@ -1063,11 +1083,13 @@ sap.ui.define([
 
 	/**
 	 * Determines whether to render the <code>breadcrumbs</code> or the <code>breadCrumbsLinks</code> aggregation.
-	 * If <code>breadcrumbs</code> is set, the <code>breadCrumbsLinks</code> is omitted.
 	 * @private
 	 */
 	ObjectPageHeader.prototype._getBreadcrumbsAggregation = function () {
 		var oBreadCrumbs = this.getBreadcrumbs(),
+		/**
+		 * @deprecated As of version 1.50, <code>breadCrumbsLinks</code> has been deprecated
+		 */
 		oBreadCrumbsLegacy = this._lazyLoadInternalAggregation('_breadCrumbs', true);
 
 		return oBreadCrumbs

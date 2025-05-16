@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,17 @@
  * Contains functionality that is used in sap.m.IconTabBar Drag&Drop
  */
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/dnd/DragInfo',
 	'sap/ui/core/dnd/DropInfo',
 	"sap/ui/events/KeyCodes",
-	'sap/ui/core/dnd/DropPosition'
+	'sap/ui/core/library'
 ],
-	function(DragInfo, DropInfo, KeyCodes, DropPosition) {
+	function(Localization, DragInfo, DropInfo, KeyCodes, coreLibrary) {
 		"use strict";
+
+		// shortcut for sap.ui.core.dnd.DropPosition
+		var DropPosition = coreLibrary.dnd.DropPosition;
 
 		var INSERT_POSITION_BEFORE = "Before",
 			INSERT_BEFORE = "insertBefore",
@@ -29,9 +33,10 @@ sap.ui.define([
 
 			/**
 			 * Inserts control at correct place in the DOM.
-			 * @param {String} sInsertAfterBeforePosition comes from drop event, it can be "Before" or "After"
-			 * @param {object} $DraggedControl control that is being dragged
-			 * @param {object} $DroppedControl control that the dragged control will be dropped on
+			 * @param {string} sInsertAfterBeforePosition comes from drop event, it can be "Before" or "After"
+			 * @param {object} oDraggedControl control that is being dragged
+			 * @param {object} oDroppedControl control that the dragged control will be dropped on
+			 * @param {boolean} bIsOverflow
 			 */
 			_insertControl: function(sInsertAfterBeforePosition, oDraggedControl, oDroppedControl, bIsOverflow) {
 				var $DraggedControl = oDraggedControl.$(),
@@ -79,7 +84,7 @@ sap.ui.define([
 			/**
 			 * Handles drop event.
 			 * @param {object} oContext from which context function is called (sap.m.IconTabHeader or sap.m.IconTabSelectList)
-			 * @param {String} sDropPosition comes from drop event, it can be "Before", "After", or "On"
+			 * @param {string} sDropPosition comes from drop event, it can be "Before", "After", or "On"
 			 * @param {object} oDraggedControl control that is being dragged
 			 * @param {object} oDroppedControl control that the dragged control will be dropped on
 			 * @param {boolean} bIgnoreRTL should RTL configuration be ignored for drag and drop logic
@@ -89,10 +94,11 @@ sap.ui.define([
 				var iBeginDragIndex = oContext.indexOfItem(oDraggedControl),
 					iDropIndex = oContext.indexOfItem(oDroppedControl),
 					iAggregationDropIndex = 0,
-					bRtl = sap.ui.getCore().getConfiguration().getRTL(),
+					bRtl = Localization.getRTL(),
 					bIsDropPositionBefore = sDropPosition === INSERT_POSITION_BEFORE,
 					//_getNestedLevel returns 1 there is no nesting
-					currentNestedLevel = oDroppedControl._getNestedLevel()  - 1;
+					currentNestedLevel = oDroppedControl._getNestedLevel() - 1;
+
 				// Prevent cycle
 				if (oDraggedControl._isParentOf(oDroppedControl)) {
 					return;
@@ -165,13 +171,17 @@ sap.ui.define([
 			 */
 			_handleConfigurationAfterDragAndDrop: function (oDraggedControl, iDropIndex) {
 
-				var aDraggedControlSubItems = [];
+				var aDraggedControlSubItems = [],
+					oIconTabHeader = this.isA("sap.m.IconTabHeader") ? this : this._getIconTabHeader();
 
 				if (this.isA("sap.m.IconTabBarSelectList")) {
 					aDraggedControlSubItems = this.getItems().filter(function (oItem) {
 						return oDraggedControl._getRealTab()._isParentOf(oItem._getRealTab());
 					});
 				}
+
+				oIconTabHeader._setPreserveSelection(true);
+
 				this.removeAggregation('items', oDraggedControl, true);
 				this.insertAggregation('items', oDraggedControl, iDropIndex, true);
 
@@ -185,14 +195,16 @@ sap.ui.define([
 					this.insertAggregation('items', oItem, iNewDragIndex, true);
 				}.bind(this));
 
+				oIconTabHeader._setPreserveSelection(false);
+
 				IconTabBarDragAndDropUtil._updateAccessibilityInfo.call(this);
 			},
 
 			/**
 			 * Decreases the drop index.
-			 * @param {integer} iBeginDragIndex Index of dragged control
+			 * @param {int} iBeginDragIndex Index of dragged control
 			 * @param {sap.m.IconTabFilter[]} aItems All items in the header/select list
-			 * @returns {integer} The new index of the item
+			 * @returns {int} The new index of the item
 			 * @private
 			 */
 			_decreaseDropIndex: function (iBeginDragIndex, aItems) {
@@ -217,10 +229,10 @@ sap.ui.define([
 
 			/**
 			 * Increases the drop index.
-			 * @param {integer} iBeginDragIndex Index of dragged control
+			 * @param {int} iBeginDragIndex Index of dragged control
 			 * @param {array} aItems All items in the header
-			 * @param {integer} iMaxIndex Maximum allowed index. For the header this is the end of the tab strip.
-			 * @returns {integer} The new index of the item
+			 * @param {int} iMaxIndex Maximum allowed index. For the header this is the end of the tab strip.
+			 * @returns {int} The new index of the item
 			 * @private
 			 */
 			_increaseDropIndex: function (iBeginDragIndex, aItems, iMaxIndex) {
@@ -246,13 +258,13 @@ sap.ui.define([
 			 *
 			 * @param {object} oDraggedControl Control that is going to be moved
 			 * @param {number} iKeyCode Key code
-			 * @param {integer} iMaxIndex Maximum allowed index. For the header this is the end of the tab strip.
+			 * @param {int} iMaxIndex Maximum allowed index. For the header this is the end of the tab strip.
 			 * @returns {boolean} returns true is scrolling will be needed
 			 */
 			moveItem: function (oDraggedControl, iKeyCode, iMaxIndex) {
 				var aItems = this.getItems(),
 					iBeginDragIndex = this.indexOfItem(oDraggedControl),
-					bRtl = sap.ui.getCore().getConfiguration().getRTL(),
+					bRtl = Localization.getRTL(),
 					iNewDropIndex,
 					bPrevent;
 

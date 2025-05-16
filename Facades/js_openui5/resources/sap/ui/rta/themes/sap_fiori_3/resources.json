@@ -8,105 +8,71 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 2661,
+			"size": 346,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 581,
+			"size": 352,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "FieldRepository.less",
-			"size": 1724,
+			"size": 1373,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 531,
+			"size": 763,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 332,
+			"size": 2908,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 733,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "Toolbar.personalization.less",
-			"size": 290,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "Toolbar.standalone.less",
-			"size": 262,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 5513,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 89795,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 89427,
+			"size": 432,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 27826,
+			"size": 28126,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2110,
+			"module": "sap/ui/rta/themes/sap_fiori_3/library-parameters.json",
+			"size": 4074,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 27822,
+			"size": 28101,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 8169,
+			"size": 7062,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.source.less",
-			"size": 573,
+			"size": 493,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 28473,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 28469,
-			"theme": "sap_fiori_3"
+			"name": "resources.json",
+			"size": 1338
 		}
 	]
 }

@@ -1,22 +1,38 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Control",
-	"sap/m/NumericContent",
+	"./BaseHeader",
+	"./NumericIndicators",
+	"sap/base/Log",
+	"sap/m/library",
 	"sap/m/Text",
+	"sap/m/ObjectStatus",
 	"sap/f/cards/NumericHeaderRenderer",
-	"sap/ui/core/Core"
+	"sap/ui/core/library",
+	"sap/m/Avatar",
+	"sap/ui/core/InvisibleText"
 ], function (
-	Control,
-	NumericContent,
+	BaseHeader,
+	NumericIndicators,
+	Log,
+	mLibrary,
 	Text,
+	ObjectStatus,
 	NumericHeaderRenderer,
-	Core
+	coreLibrary,
+	Avatar,
+	InvisibleText
 ) {
 	"use strict";
+
+	const ValueState = coreLibrary.ValueState;
+	const AvatarShape = mLibrary.AvatarShape;
+	const AvatarColor = mLibrary.AvatarColor;
+	const AvatarImageFitType = mLibrary.AvatarImageFitType;
+	const AvatarSize = mLibrary.AvatarSize;
 
 	/**
 	 * Constructor for a new <code>NumericHeader</code>.
@@ -28,7 +44,7 @@ sap.ui.define([
 	 * Displays general information in the header of the {@link sap.f.Card} and allows the
 	 * configuration of a numeric value visualization.
 	 *
-	 * You can configure the title, subtitle, status text and icon, using the provided properties.
+	 * You can configure the title, subtitle, and status text, using the provided properties.
 	 * To add more side number indicators, use the <code>sideIndicators</code> aggregation.
 	 *
 	 * <b>Notes:</b>
@@ -38,18 +54,18 @@ sap.ui.define([
 	 * <li>To show only basic information, use {@link sap.f.cards.Header Header} instead.</li>
 	 * </ul>
 	 *
-	 * @extends sap.ui.core.Control
+	 * @extends sap.f.cards.BaseHeader
+	 * @implements sap.f.cards.IHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.64
 	 * @alias sap.f.cards.NumericHeader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var NumericHeader = Control.extend("sap.f.cards.NumericHeader", {
+	var NumericHeader = BaseHeader.extend("sap.f.cards.NumericHeader", {
 		metadata: {
 			library: "sap.f",
 			interfaces: ["sap.f.cards.IHeader"],
@@ -61,14 +77,85 @@ sap.ui.define([
 				title: { "type": "string", group: "Appearance" },
 
 				/**
+				 * Limits the number of lines for the title.
+				 * @experimental since 1.101
+				 */
+				titleMaxLines: { type: "int", defaultValue: 3 },
+
+				/**
 				 * The subtitle of the card
 				 */
 				subtitle: { "type": "string", group: "Appearance" },
 
 				/**
+				 * Limits the number of lines for the subtitle.
+				 * @experimental since 1.101
+				 */
+				subtitleMaxLines: { type: "int", defaultValue: 2 },
+
+				/**
 				 * Defines the status text.
 				 */
 				statusText: { type: "string", defaultValue: "" },
+
+				/**
+				 * Defines the shape of the icon.
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconDisplayShape: { type: "sap.m.AvatarShape", defaultValue: AvatarShape.Circle },
+
+				/**
+				 * Defines the icon source.
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconSrc: { type: "sap.ui.core.URI", defaultValue: "" },
+
+				/**
+				 * Defines the initials of the icon.
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconInitials: { type: "string", defaultValue: "" },
+
+				/**
+				 * Defines an alt text for the avatar or icon.
+				 *
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconAlt: { type: "string", defaultValue: "" },
+
+				/**
+				 * Defines a background color for the avatar or icon.
+				 *
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconBackgroundColor: { type: "sap.m.AvatarColor", defaultValue: AvatarColor.Transparent },
+
+				/**
+				 * Defines whether the card icon is visible.
+				 *
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				iconVisible: { type: "boolean", defaultValue: true },
+
+				/**
+				 * Defines the size of the icon.
+				 *
+				 * @experimental Since 1.119 this feature is experimental and the API may change.
+				 */
+				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.S },
+
+				/**
+				 * Defines how the image fits in the icon area.
+				 *
+				 * @since 1.130
+				 */
+				iconFitType: { type: "sap.m.AvatarImageFitType", defaultValue: AvatarImageFitType.Cover },
 
 				/**
 				 * General unit of measurement for the header. Displayed as side information to the subtitle.
@@ -80,6 +167,17 @@ sap.ui.define([
 				 * If the value contains more than five characters, only the first five are displayed. Without rounding the number.
 				 */
 				number: { "type": "string", group : "Data" },
+
+				/**
+				 * The size of the of the main indicator. Possible values are "S" and "L".
+				 */
+				numberSize: { "type": "string", group : "Appearance", defaultValue: "L" },
+
+				/**
+				 * Whether the main numeric indicator is visible or not
+				 * @since 1.109
+				 */
+				numberVisible: { "type": "boolean", defaultValue : true},
 
 				/**
 				 * Defines the unit of measurement (scaling prefix) for the main indicator.
@@ -103,21 +201,48 @@ sap.ui.define([
 				/**
 				 * Additional text which adds more details to what is shown in the numeric header.
 				 */
-				details: { "type": "string", group: "Appearance" }
+				details: { "type": "string", group: "Appearance" },
+
+				/**
+				 * The semantic color which represents the state of the details text.
+				 * @experimental Since 1.118. For usage only by Work Zone.
+				 * @since 1.118
+				 */
+				detailsState: { type : "sap.ui.core.ValueState", group: "Appearance", defaultValue: ValueState.None },
+
+				/**
+				 * Limits the number of lines for the details.
+				 * @experimental since 1.101
+				 */
+				detailsMaxLines: { type: "int", defaultValue: 1 },
+
+				/**
+				 * The alignment of the side indicators.
+				 */
+				sideIndicatorsAlignment: { "type": "sap.f.cards.NumericHeaderSideIndicatorsAlignment", group: "Appearance", defaultValue : "Begin" }
 			},
 			aggregations: {
 
 				/**
-				 * Defines the toolbar.
-				 * @experimental Since 1.75
-				 * @since 1.75
-				 */
-				toolbar: { type: "sap.ui.core.Control", multiple: false },
-
-				/**
 				 * Additional side number indicators. For example "Deviation" and "Target". Not more than two side indicators should be used.
 				 */
-				sideIndicators: { type: "sap.f.cards.NumericSideIndicator", multiple: true },
+				sideIndicators: {
+					type: "sap.f.cards.NumericSideIndicator",
+					multiple: true,
+					forwarding: {
+						getter: "_getNumericIndicators",
+						aggregation: "sideIndicators"
+					}
+				},
+
+				/**
+				 * Micro Chart
+				 * @experimental since 1.124
+				 */
+				microChart: {
+					type: "sap.ui.core.Control",
+					multiple: false
+				},
 
 				/**
 				 * Used to display title text
@@ -130,6 +255,11 @@ sap.ui.define([
 				_subtitle: { type: "sap.m.Text", multiple: false, visibility: "hidden" },
 
 				/**
+				* Defines the inner avatar control.
+				*/
+				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" },
+
+				/**
 				 * Shows unit of measurement next to subtitle
 				 */
 				_unitOfMeasurement: { type: "sap.m.Text", multiple: false, visibility: "hidden" },
@@ -137,19 +267,12 @@ sap.ui.define([
 				/**
 				 * Display details
 				 */
-				_details: { type: "sap.m.Text", multiple: false, visibility: "hidden" },
+				_details: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
 
 				/**
-				 * Displays the main number indicator
+				 * Displays the main and side indicators
 				 */
-				_mainIndicator: { type: "sap.m.NumericContent", multiple: false, visibility: "hidden" }
-			},
-			events: {
-
-				/**
-				 * Fires when the user presses the control.
-				 */
-				press: {}
+				_numericIndicators: { type: "sap.f.cards.NumericIndicators", multiple: false, visibility: "hidden" }
 			}
 		},
 		renderer: NumericHeaderRenderer
@@ -160,13 +283,13 @@ sap.ui.define([
 	 * @private
 	 */
 	NumericHeader.prototype.init = function () {
-		this._oRb = Core.getLibraryResourceBundle("sap.f");
+		BaseHeader.prototype.init.apply(this, arguments);
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
 
 	NumericHeader.prototype.exit = function () {
-		this._oRb = null;
+		BaseHeader.prototype.exit.apply(this, arguments);
 	};
 
 	/**
@@ -174,111 +297,88 @@ sap.ui.define([
 	 * @private
 	 */
 	NumericHeader.prototype.onBeforeRendering = function () {
-		this._setAccessibilityAttributes();
+		BaseHeader.prototype.onBeforeRendering.apply(this, arguments);
+
+		this._getTitle()
+			.setText(this.getTitle())
+			.setMaxLines(this.getTitleMaxLines())
+			.setWrappingType(this.getWrappingType());
+
+		this._enhanceText(this._getTitle());
+
+		this._getSubtitle()
+			.setText(this.getSubtitle())
+			.setMaxLines(this.getSubtitleMaxLines())
+			.setWrappingType(this.getWrappingType());
+
+		this._enhanceText(this._getSubtitle());
+
+		this._getUnitOfMeasurement().setText(this.getUnitOfMeasurement());
+
+		this._getAvatar()
+			.setDisplayShape(this.getIconDisplayShape())
+			.setSrc(this.getIconSrc())
+			.setInitials(this.getIconInitials())
+			.setTooltip(this.getIconAlt())
+			.setBackgroundColor(this.getIconBackgroundColor())
+			.setDisplaySize(this.getIconSize())
+			.setImageFitType(this.getIconFitType());
+
+		this._getDetails()
+			.setText(this.getDetails())
+			.setMaxLines(this.getDetailsMaxLines())
+			.setWrappingType(this.getWrappingType());
+
+		if (!this.isPropertyInitial("detailsState")) {
+			Object.values(ValueState).forEach((sState) => {
+				this._getDetails().removeStyleClass(`sapFCardNumericHeaderDetailsState${sState}`);
+			});
+
+			this._getDetails().addStyleClass(`sapFCardNumericHeaderDetailsState${this.getDetailsState()}`);
+		}
+
+		this._enhanceText(this._getDetails());
+
+		this._getNumericIndicators()
+			.setNumber(this.getNumber())
+			.setNumberSize(this.getNumberSize())
+			.setScale(this.getScale())
+			.setTrend(this.getTrend())
+			.setState(this.getState())
+			.setSideIndicatorsAlignment(this.getSideIndicatorsAlignment())
+			.setNumberVisible(this.getNumberVisible());
 	};
 
 	/**
-	 * Sets the title.
-	 *
-	 * @public
-	 * @param {string} sValue The text of the title
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
+	 * @protected
+	 * @returns {boolean} If the icon should be shown.
 	 */
-	NumericHeader.prototype.setTitle = function(sValue) {
-		this.setProperty("title", sValue, true);
-		this._getTitle().setText(sValue);
-		return this;
+	NumericHeader.prototype.shouldShowIcon = function () {
+		return this.getIconVisible();
 	};
 
 	/**
-	 * Sets the subtitle.
+	 * This method is a hook for the RenderManager that gets called
+	 * during the rendering of child Controls. It allows to add,
+	 * remove and update existing accessibility attributes (ARIA) of
+	 * those controls.
 	 *
-	 * @public
-	 * @param {string} sValue The text of the subtitle
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
+	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
+	 * @param {{role: string, level: string}} mAriaProps - The mapping of "aria-" prefixed attributes
+	 * @protected
 	 */
-	NumericHeader.prototype.setSubtitle = function(sValue) {
-		this.setProperty("subtitle", sValue, true);
-		this._getSubtitle().setText(sValue);
-		return this;
+	NumericHeader.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
+		if (oElement === this.getAggregation("_title")) {
+			mAriaProps.role = this.getTitleAriaRole();
+			mAriaProps.level = this.getAriaHeadingLevel();
+		}
 	};
 
 	/**
-	 * Sets the general unit of measurement for the header. Displayed as side information to the subtitle.
-	 *
-	 * @public
-	 * @param {string} sValue The value of the unit of measurement
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
+	 * @override
 	 */
-	NumericHeader.prototype.setUnitOfMeasurement = function(sValue) {
-		this.setProperty("unitOfMeasurement", sValue, true);
-		this._getUnitOfMeasurement().setText(sValue);
-		return this;
-	};
-
-	/**
-	 * Sets additional text which adds more details to what is shown in the numeric header.
-	 *
-	 * @public
-	 * @param {string} sValue The text of the details
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
-	 */
-	NumericHeader.prototype.setDetails = function(sValue) {
-		this.setProperty("details", sValue, true);
-		this._getDetails().setText(sValue);
-		return this;
-	};
-
-	/**
-	 * Sets the value of the main number indicator.
-	 *
-	 * @public
-	 * @param {string} sValue A string representation of the number
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
-	 */
-	NumericHeader.prototype.setNumber = function(sValue) {
-		this.setProperty("number", sValue, true);
-		this._getMainIndicator().setValue(sValue);
-		return this;
-	};
-
-	/**
-	 * Sets the unit of measurement (scaling prefix) for the main indicator.
-	 *
-	 * @public
-	 * @param {string} sValue The text of the title
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
-	 */
-	NumericHeader.prototype.setScale = function(sValue) {
-		this.setProperty("scale", sValue, true);
-		this._getMainIndicator().setScale(sValue);
-		return this;
-	};
-
-	/**
-	 * Sets the direction of the trend arrow.
-	 *
-	 * @public
-	 * @param {sap.m.DeviationIndicator} sValue The direction of the trend arrow
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
-	 */
-	NumericHeader.prototype.setTrend = function(sValue) {
-		this.setProperty("trend", sValue, true);
-		this._getMainIndicator().setIndicator(sValue);
-		return this;
-	};
-
-	/**
-	 * Sets the semantic color which represents the state of the main number indicator.
-	 *
-	 * @public
-	 * @param {sap.m.ValueColor} sValue The semantic color which represents the state
-	 * @return {sap.f.cards.NumericHeader} <code>this</code> pointer for chaining
-	 */
-	NumericHeader.prototype.setState = function(sValue) {
-		this.setProperty("state", sValue, true);
-		this._getMainIndicator().setValueColor(sValue);
-		return this;
+	NumericHeader.prototype.getTitleId = function () {
+		return this._getTitle().getId();
 	};
 
 	/**
@@ -294,8 +394,9 @@ sap.ui.define([
 			oControl = new Text({
 				id: this.getId() + "-title",
 				wrapping: true,
-				maxLines: 3
-			});
+				maxLines: this.getTitleMaxLines()
+			}).addStyleClass("sapFCardTitle");
+
 			this.setAggregation("_title", oControl);
 		}
 
@@ -315,12 +416,27 @@ sap.ui.define([
 			oControl = new Text({
 				id: this.getId() + "-subtitle",
 				wrapping: true,
-				maxLines: 2
+				maxLines: this.getSubtitleMaxLines()
 			});
+
 			this.setAggregation("_subtitle", oControl);
 		}
 
 		return oControl;
+	};
+
+	/**
+	 * Lazily creates an avatar control and returns it.
+	 * @private
+	 * @returns {sap.m.Avatar} The inner avatar aggregation
+	 */
+	NumericHeader.prototype._getAvatar = function () {
+		var oAvatar = this.getAggregation("_avatar");
+		if (!oAvatar) {
+			oAvatar = new Avatar().addStyleClass("sapFCardIcon");
+			this.setAggregation("_avatar", oAvatar);
+		}
+		return oAvatar;
 	};
 
 	/**
@@ -336,7 +452,7 @@ sap.ui.define([
 			oControl = new Text({
 				id: this.getId() + "-unitOfMeasurement",
 				wrapping: false
-			});
+			}).addStyleClass("sapFCardHeaderUnitOfMeasurement");
 			this.setAggregation("_unitOfMeasurement", oControl);
 		}
 
@@ -344,8 +460,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Lazily create details and return it.
-	 *
+	 * Gets the control create for showing details.
 	 * @private
 	 * @return {sap.m.Text} The details aggregation
 	 */
@@ -353,14 +468,21 @@ sap.ui.define([
 		var oControl = this.getAggregation("_details");
 
 		if (!oControl) {
-			oControl = new Text({
-				id: this.getId() + "-details",
-				wrapping: false
-			});
+			oControl = new Text(this._getDetailsId()).addStyleClass("sapFCardHeaderDetails");
+
 			this.setAggregation("_details", oControl);
 		}
 
 		return oControl;
+	};
+
+	/**
+	 * Gets the id for details control.
+	 * @private
+	 * @return {string} The id for details control.
+	 */
+	NumericHeader.prototype._getDetailsId = function () {
+		return this.getId() + "-details";
 	};
 
 	/**
@@ -369,40 +491,15 @@ sap.ui.define([
 	 * @private
 	 * @return {sap.m.NumericContent} The main indicator aggregation
 	 */
-	NumericHeader.prototype._getMainIndicator = function () {
-		var oControl = this.getAggregation("_mainIndicator");
+	NumericHeader.prototype._getNumericIndicators = function () {
+		var oControl = this.getAggregation("_numericIndicators");
 
 		if (!oControl) {
-			oControl = new NumericContent({
-				id: this.getId() + "-mainIndicator",
-				withMargin: false,
-				nullifyValue: false,
-				animateTextChange: false,
-				truncateValueTo: 100
-			});
-			this.setAggregation("_mainIndicator", oControl);
+			oControl = new NumericIndicators();
+			this.setAggregation("_numericIndicators", oControl);
 		}
 
 		return oControl;
-	};
-
-	/**
-	 * Fires the <code>sap.f.cards.NumericHeader</code> press event.
-	 */
-	NumericHeader.prototype.ontap = function (oEvent) {
-		var srcControl = oEvent.srcControl;
-		if (srcControl && srcControl.getId().indexOf("overflowButton") > -1) { // better way?
-			return;
-		}
-
-		this.firePress();
-	};
-
-	/**
-	 * Fires the <code>sap.f.cards.NumericHeader</code> press event.
-	 */
-	NumericHeader.prototype.onsapselect = function () {
-		this.firePress();
 	};
 
 	/**
@@ -411,33 +508,48 @@ sap.ui.define([
 	 * @private
 	 * @returns {string} IDs of controls
 	 */
-	NumericHeader.prototype._getHeaderAccessibility = function () {
-		var sTitleId = this._getTitle() ? this._getTitle().getId() : "",
-			sSubtitleId = this._getSubtitle() ? this._getSubtitle().getId() : "",
-			sStatusTextId = this.getStatusText() ? this.getId() + "-status" : "",
-			sUnitOfMeasureId = this._getUnitOfMeasurement() ? this._getUnitOfMeasurement().getId() : "",
-			sSideIndicatorsId = this.getSideIndicators() ? this._getSideIndicatorIds() : "",
-			sDetailsId = this._getDetails() ? this._getDetails().getId() : "",
-			sMainIndicatorId = this._getMainIndicator() ? this._getMainIndicator().getId() : "";
+	NumericHeader.prototype._getAriaLabelledBy = function () {
+		const aIds = [];
 
-			return sTitleId + " " + sSubtitleId + " " + sStatusTextId + " " + sUnitOfMeasureId + " " + sMainIndicatorId + sSideIndicatorsId + " " + sDetailsId;
-	};
-
-	/**
-	 * Sets accessibility to the header to the header.
-	 *
-	 * @private
-	 */
-	NumericHeader.prototype._setAccessibilityAttributes = function () {
-		if (this.hasListeners("press")) {
-			this._sAriaRole = "button";
-			this._sAriaHeadingLevel = undefined;
-			this._sAriaRoleDescritoion = this._oRb.getText("ARIA_ROLEDESCRIPTION_INTERACTIVE_CARD_HEADER");
-		} else {
-			this._sAriaRole = "heading";
-			this._sAriaHeadingLevel = "3";
-			this._sAriaRoleDescritoion = this._oRb.getText("ARIA_ROLEDESCRIPTION_CARD_HEADER");
+		if (this.getParent() && this.getParent()._ariaText) {
+			aIds.push(this.getParent()._ariaText.getId());
 		}
+
+		if (this.getTitle()) {
+			aIds.push(this._getTitle().getId());
+		}
+
+		if (this.getSubtitle()) {
+			aIds.push(this._getSubtitle().getId());
+		}
+
+		if (this.getStatusText()) {
+			aIds.push(this.getId() + "-status");
+		}
+
+		if (this.getDataTimestamp()) {
+			aIds.push(this.getId() + "-dataTimestamp");
+		}
+
+		aIds.push(this._getUnitOfMeasurement().getId());
+
+		if (this.getIconSrc() || this.getIconInitials()) {
+			aIds.push(this._getAvatar().getId());
+		}
+
+		if (this.getNumber() || this.getScale()) {
+			aIds.push(this._getNumericIndicators()._getMainIndicator().getId());
+		}
+
+		aIds.push(this._getSideIndicatorIds());
+
+		if (this.getDetails()) {
+			aIds.push(this._getDetailsId());
+		}
+
+		aIds.push(this._getBannerLinesIds());
+
+		return aIds.filter((sElement) => { return !!sElement; }).join(" ");
 	};
 
 	/**
@@ -447,12 +559,9 @@ sap.ui.define([
 	 * @returns {string} IDs of controls
 	 */
 	NumericHeader.prototype._getSideIndicatorIds = function () {
-		var sSideIndicatorIds = "";
-		this.getSideIndicators().forEach(function(oSideIndicator) {
-			sSideIndicatorIds += " " + oSideIndicator.getId();
-		});
-
-		return sSideIndicatorIds;
+		return this.getSideIndicators()
+			.map(function(oSideIndicator) { return oSideIndicator.getId(); })
+			.join(" ");
 	};
 
 	NumericHeader.prototype.isLoading = function () {
@@ -463,7 +572,7 @@ sap.ui.define([
 		var aMyArgs = Array.prototype.slice.apply(arguments);
 		aMyArgs.unshift("press");
 
-		Control.prototype.attachEvent.apply(this, aMyArgs);
+		BaseHeader.prototype.attachEvent.apply(this, aMyArgs);
 
 		this.invalidate();
 
@@ -474,7 +583,7 @@ sap.ui.define([
 		var aMyArgs = Array.prototype.slice.apply(arguments);
 		aMyArgs.unshift("press");
 
-		Control.prototype.detachEvent.apply(this, aMyArgs);
+		BaseHeader.prototype.detachEvent.apply(this, aMyArgs);
 
 		this.invalidate();
 

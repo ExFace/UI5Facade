@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  *
  * @private
@@ -87,6 +87,10 @@ sap.ui.define([
 								{
 									"key": "text",
 									"title": "{i18n>CARD_EDITOR.OBJECT.GROUP.TYPE.TEXT}"
+								},
+								{
+									"key": "RatingIndicator",
+									"title": "{i18n>CARD_EDITOR.OBJECT.GROUP.TYPE.RATINGINDICATOR}"
 								}
 							],
 							"defaultValue": "text",
@@ -123,6 +127,14 @@ sap.ui.define([
 							"type": "string",
 							"path": "emailSubject",
 							"visible": "{= ${type} === 'email'}"
+						},
+						"maxValue": {
+							"tags": ["content", "objectGroupItem"],
+							"label": "{i18n>CARD_EDITOR.OBJECT.GROUP.ITEM.RATINGMAXVALUE}",
+							"type": "integer",
+							"path": "maxValue",
+							"defaultValue": 5,
+							"visible": "{= ${type} === 'RatingIndicator'}"
 						}
 					}
 				}

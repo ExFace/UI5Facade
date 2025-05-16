@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -100,7 +100,8 @@ sap.ui.define([], function() {
 						aArgs = [fnWrappedHandler, 0].concat(arguments);
 						_timeout.apply(window, aArgs);
 					} else {
-						fnHandler = typeof vHandler !== "function" ? new Function(vHandler) : vHandler; // eslint-disable-line no-new-func
+						// eslint-disable-next-line no-new-func
+						fnHandler = typeof vHandler !== "function" ? new Function(vHandler) : vHandler; // legacy-relevant
 						fnHandler.apply(window, arguments);
 					}
 				};

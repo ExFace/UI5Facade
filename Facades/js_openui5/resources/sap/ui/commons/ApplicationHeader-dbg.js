@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,17 +41,17 @@ sap.ui.define([
 	 * @class
 	 * The application header control stands on the top of any application page. It consists of 4 areas: Logo area, Function area provided by application, Search area, Logout area.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.tnt.ToolHeader</code> control.
 	 * @alias sap.ui.commons.ApplicationHeader
-	 * @ui5-metamodel This control/element also will be described in the UI5 design-time metamodel
 	 */
 	var ApplicationHeader = Control.extend("sap.ui.commons.ApplicationHeader", /** @lends sap.ui.commons.ApplicationHeader.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -142,14 +142,14 @@ sap.ui.define([
 		this.oLogoffBtn.attachPress(this.logoff,this);
 		this.oLogoffBtn.setParent(this);
 		this.oLogoffBtn.setLite(true);
-	}
+	};
 
 
 	/**
 	*  This event is fired when the user clicks on the Log Off button
 	*  @param oEvent The event triggered
 	*  @private
-	*/;
+	*/
 	ApplicationHeader.prototype.logoff = function(oEvent){
 		this.fireLogoff();
 	};

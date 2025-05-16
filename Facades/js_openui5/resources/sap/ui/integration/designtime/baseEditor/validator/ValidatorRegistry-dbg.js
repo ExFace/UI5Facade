@@ -1,16 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/util/includes",
-	"sap/base/util/values",
 	"sap/base/util/restricted/_CancelablePromise"
 ], function (
-	includes,
-	values,
 	_CancelablePromise
 ) {
 	"use strict";
@@ -21,7 +17,7 @@ sap.ui.define([
 	 * @namespace sap.ui.integration.designtime.baseEditor.validator.ValidatorRegistry
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @static
 	 * @since 1.81
@@ -38,7 +34,7 @@ sap.ui.define([
 
 	/**
 	* Registers the given validator types. If a validator type is already registered, it will be skipped and must first be deregistered using the <code>ValidatorRegistry.deregisterValidator</code> function.
-	* @param {object<string, string>} mNames - Validator types and paths to register
+	* @param {Object<string, string>} mNames - Validator types and paths to register
 	* @public
 	* @function
 	* @name sap.ui.integration.designtime.baseEditor.validator.ValidatorRegistry.registerValidators
@@ -76,7 +72,7 @@ sap.ui.define([
 	* @name sap.ui.integration.designtime.baseEditor.validator.ValidatorRegistry.ready
 	*/
 	ValidatorRegistry.ready = function () {
-		return Promise.all(values(oLoadingValidators));
+		return Promise.all(Object.values(oLoadingValidators));
 	};
 
 	/**
@@ -133,10 +129,7 @@ sap.ui.define([
 	* @name sap.ui.integration.designtime.baseEditor.validators.ValidatorRegistry.hasValidator
 	*/
 	ValidatorRegistry.hasValidator = function (sName) {
-		return includes(
-			Object.keys(oValidators),
-			sName
-		);
+		return Object.keys(oValidators).includes(sName);
 	};
 
 	/**
@@ -148,10 +141,7 @@ sap.ui.define([
 	* @name sap.ui.integration.designtime.baseEditor.validator.ValidatorRegistry.isRegistered
 	*/
 	ValidatorRegistry.isRegistered = function (sName) {
-		return includes(
-			Object.keys(oLoadingValidators),
-			sName
-		);
+		return Object.keys(oLoadingValidators).includes(sName);
 	};
 
 	return ValidatorRegistry;

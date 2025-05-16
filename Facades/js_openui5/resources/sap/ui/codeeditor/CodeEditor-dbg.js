@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,26 +26,28 @@ sap.ui.loader.config({
 
 sap.ui.define([
 	"./library",
-	"sap/ui/core/Core",
 	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/RenderManager",
 	"sap/ui/core/ResizeHandler",
-	"sap/ui/Device",
+	"sap/ui/dom/includeStylesheet",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/codeeditor/js/ace/ace",
+	"sap/base/strings/capitalize",
 	"sap/ui/codeeditor/js/ace/ext-language_tools",
 	"sap/ui/codeeditor/js/ace/ext-beautify",
 	"sap/ui/codeeditor/js/ace/mode-javascript",
 	"sap/ui/codeeditor/js/ace/mode-json"
-], function (
+], function(
 	library,
-	Core,
 	Control,
+	Library,
 	RenderManager,
 	ResizeHandler,
-	Device,
+	includeStylesheet,
 	jQuery,
-	ace
+	ace,
+	capitalize
 ) {
 	"use strict";
 
@@ -57,30 +59,29 @@ sap.ui.define([
 	 *
 	 * @class
 	 * Allows to visualize source code of various types with syntax highlighting, line numbers in editable and read only mode.
-	 * Use this controls in scenarios where the user should be able to inspect and edit source code.
-	 * NOTE: There is a known limitation where CodeEditor won't work within IconTabBar on Internet Explorer. There
-	 * is a way to achieve the same functionality - an example of IconTabHeader and a CodeEditor can be found
-	 * in the CodeEditor's samples.
+	 * Use this control in scenarios where the user should be able to inspect and edit source code.
+	 * The control currently uses the third-party code editor Ace.
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
+	 * @since 1.46
 	 * @alias sap.ui.codeeditor.CodeEditor
 	 */
 	var CodeEditor = Control.extend("sap.ui.codeeditor.CodeEditor", {
 		metadata: {
-			library: "sap.ui.core",
+			library: "sap.ui.codeeditor",
 			properties: {
 				/**
-				 * The value displayed in the code editor
+				 * The value displayed in the code editor.
 				 */
 				value: { type: "string", group: "Misc", defaultValue: "" },
 				/**
-				 * The type of the code in the editor used for syntax highlighting
+				 * The type of the code in the editor used for syntax highlighting.
 				 * Possible types are: abap, abc, actionscript, ada, apache_conf, applescript, asciidoc, assembly_x86,
 				 * autohotkey, batchfile, bro, c9search, c_cpp, cirru, clojure, cobol, coffee, coldfusion, csharp, css,
 				 * curly, d, dart, diff, django, dockerfile, dot, drools, eiffel, ejs, elixir, elm, erlang, forth, fortran,
@@ -92,11 +93,11 @@ sap.ui.define([
 				 * razor, rdoc, rhtml, rst, ruby, rust, sass, scad, scala, scheme, scss, sh, sjs, smarty, snippets,
 				 * soy_template, space, sql, sqlserver, stylus, svg, swift, swig, tcl, tex, text, textile, toml, tsx,
 				 * twig, typescript, vala, vbscript, velocity, verilog, vhdl, wollok, xml, xquery, yaml, terraform, slim, redshift,
-				 * red, puppet, php_laravel_blade, mixal, jssm, fsharp, edifact, csp, cssound_score, cssound_orchestra, cssound_document,
+				 * red, puppet, php_laravel_blade, mixal, jssm, fsharp, edifact, csp, cssound_score, cssound_orchestra, cssound_document
 				 */
 				type: { type: "string", group: "Appearance", defaultValue: "javascript" },
 				/**
-				 * The width of the code editor
+				 * The width of the code editor.
 				 */
 				width: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%" },
 				/**
@@ -105,15 +106,15 @@ sap.ui.define([
 				 */
 				height: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%" },
 				/**
-				 * Sets whether the code in the editor can be changed by the user
+				 * Sets whether the code in the editor can be changed by the user.
 				 */
 				editable: { type: "boolean", group: "Behavior", defaultValue: true },
 				/**
-				 * Sets whether line numbers should be shown
+				 * Sets whether line numbers should be shown.
 				 */
 				lineNumbers: { type: "boolean", group: "Behavior", defaultValue: true },
 				/**
-				 * Sets whether the code is automatically selected if a value is set
+				 * Sets whether the code is automatically selected if a value is set.
 				 */
 				valueSelection: { type: "boolean", group: "Behavior", defaultValue: false },
 				/**
@@ -127,17 +128,24 @@ sap.ui.define([
 				 */
 				maxLines: { type: "int", group: "Behavior", defaultValue: 0 },
 				/**
-				 * Sets the editors color theme
-				 * Possible values are: default, hcb, hcb_bright, hcb_blue,
-				 * theme-ambiance, chaos, chrome, clouds, clouds_midnight, cobalt, crimson_editor, dawn, dreamweaver, eclipse,
-				 * github, gob, gruvbox, idle_fingers, iplastic, katzenmilch, kr_theme, kuroir, merbivore, merbivore_soft,
-				 * mono_industrial, monokai, pastel_on_dark, solarized_dark, solarized_light, sqlserver, terminal, textmate,
-				 * tomorrow, tomorrow_night, tomorrow_night_blue, tomorrow_night_bright, tomorrow_night_eighties, twilight, dracula
-				 * vibrant_ink, xcode
+				 * Sets the editor color theme.
+				 * Possible values are:
+				 * <ul>
+				 * <li>default: best fitting to the current UI5 theme</li>
+				 * <li>any light theme from the list: chrome, clouds, crimson_editor, dawn, dreamweaver, eclipse, github_light_default, github, iplastic, solarized_light,
+				 * textmate, tomorrow, xcode, kuroir, katzenmilch, sqlserver, cloud_editor
+				 * </li>
+				 * <li>any dark theme from the list: hcb, hcb_bright, hcb_blue, ambiance, chaos, clouds_midnight, dracula, cobalt, gruvbox, gob, idle_fingers, kr_theme,
+				 * merbivore, merbivore_soft, mono_industrial, monokai, nord_dark, one_dark, pastel_on_dark, solarized_dark, terminal, tomorrow_night,
+				 * tomorrow_night_blue, tomorrow_night_bright, tomorrow_night_eighties, twilight, vibrant_ink, github_dark, cloud_editor_dark
+				 * </li>
+				 * </ul>
 				 */
 				colorTheme: { type: "string", group: "Behavior", defaultValue: "default" },
 				/**
-				 * Sets whether to show syntax hints the editor. This flag is only available if line numbers are shown.
+				 * Sets whether to show syntax hints in the editor. Those hints are visualized as value state icons in the line numbers area.
+				 * The hint text is shown in tooltip of those icons.
+				 * <b>Note:</b> This flag is only available if line numbers are shown.
 				 */
 				syntaxHints: { type: "boolean", group: "Behavior", defaultValue: true }
 			},
@@ -153,7 +161,7 @@ sap.ui.define([
 						 */
 						value: { type: "string" },
 						/**
-						 * The underlying change event of the Ace code editor.
+						 * The underlying change event of the third-party code editor.
 						 */
 						editorEvent: { type: "object" }
 					}
@@ -181,12 +189,17 @@ sap.ui.define([
 		renderer: {
 			apiVersion: 2,
 			render: function (oRM, oControl) {
-				oRM.openStart("div", oControl).class("sapCEd")
-					.style("width", oControl.getWidth())
+				const sColorTheme = oControl.getColorTheme();
+
+				oRM.openStart("div", oControl).class("sapCEd");
+				if (sColorTheme === "default") {
+					oRM.class("sapCEdTheme" + capitalize(sColorTheme));
+				}
+				oRM.style("width", oControl.getWidth())
 					.style("height", oControl.getHeight())
 					.attr("data-sap-ui-syntaxhints", oControl.getSyntaxHints())
 					.attr("role", "application")
-					.attr("aria-roledescription", Core.getLibraryResourceBundle("sap.ui.codeeditor").getText("CODEEDITOR_ROLE_DESCRIPTION"));
+					.attr("aria-roledescription", Library.getResourceBundleFor("sap.ui.codeeditor").getText("CODEEDITOR_ROLE_DESCRIPTION"));
 
 				var sTooltip = oControl.getTooltip_AsString();
 				if (sTooltip) {
@@ -201,6 +214,8 @@ sap.ui.define([
 	//configure the source paths
 	var sPath = sap.ui.require.toUrl("sap/ui/codeeditor/js/ace");
 	ace.config.set("basePath", sPath);
+	ace.config.set("loadWorkerFromBlob", false);
+	ace.config.set("useStrictCSP", true);
 
 	// require language tools
 	var oLangTools = ace.require("ace/ext/language_tools");
@@ -212,10 +227,18 @@ sap.ui.define([
 		this._bIsRenderingPhase = false;
 
 		this._oEditorDomRef = document.createElement("div");
+		this._oEditorDomRef.id = this.getId() + "-editor";
 		this._oEditorDomRef.style.height = "100%";
 		this._oEditorDomRef.style.width = "100%";
 
 		this._oEditor = ace.edit(this._oEditorDomRef);
+		this._oDefaultTheme = {
+			cssClass: "ace-default",
+			isDark: false,
+			cssText: ""
+		};
+		this._oEditor.setTheme(this._oDefaultTheme);
+
 		var oSession = this._oEditor.getSession();
 
 		// Ensure worker is used only when the CodeEditor has focus.
@@ -227,25 +250,19 @@ sap.ui.define([
 		oSession.setUseWrapMode(true);
 		oSession.setMode("ace/mode/javascript");
 
-		var sUiTheme = Core.getConfiguration().getTheme().toLowerCase();
-		var sEditorTheme = "tomorrow";
-		if (sUiTheme.indexOf("hcb") > -1) {
-			sEditorTheme = "chaos";
-		} else if (sUiTheme.indexOf("hcw") > -1) {
-			sEditorTheme = "github";
-		} else if (sUiTheme === "sap_fiori_3") {
-			sEditorTheme = "crimson_editor";
-		} else if (sUiTheme === "sap_fiori_3_dark") {
-			sEditorTheme = "clouds_midnight";
-		}
-		this._oEditor.setTheme("ace/theme/" + sEditorTheme);
+		includeStylesheet(
+			sap.ui.require.toUrl("sap/ui/codeeditor/js/ace/css/ace.css"),
+			"sap-ui-codeeditor-ace"
+		);
 
 		this._oEditor.setOptions({
 			enableBasicAutocompletion: true,
 			enableSnippets: true,
-			enableLiveAutocompletion: true
+			enableLiveAutocompletion: true,
+			enableKeyboardAccessibility: true
 		});
 
+		this._oEditor.textInput.getElement().id = this.getId() + "-editor-textarea";
 		this._oEditor.renderer.setShowGutter(true);
 
 		this._oEditor.addEventListener("change", function (oEvent) {
@@ -278,11 +295,6 @@ sap.ui.define([
 
 		// if editor is in dialog with transform applied, the tooltip position has to be adjusted
 		this._oEditor.addEventListener("showGutterTooltip", function (tooltip) {
-			if (Device.browser.internet_explorer) {
-				// the transform property does not effect the position of tooltip in IE
-				return;
-			}
-
 			var $tooltip = jQuery(tooltip.$element),
 				$dialog = $tooltip.parents(".sapMDialog");
 
@@ -299,6 +311,7 @@ sap.ui.define([
 	CodeEditor.prototype.exit = function() {
 		this._deregisterResizeListener();
 		this._oEditor.destroy(); // clear ace intervals
+		this._oEditor.getSession().setUseWorker(false); // explicitly disable worker usage, in case the ace mode is still loading, to avoid worker initialization after destroy
 		jQuery(this._oEditorDomRef).remove(); // remove DOM node together with all event listeners
 		this._oEditorDomRef = null;
 		this._oEditor = null;
@@ -317,13 +330,13 @@ sap.ui.define([
 		}
 
 		this._deregisterResizeListener();
+
 	};
 
 	/**
 	 * @private
 	 */
 	CodeEditor.prototype.onAfterRendering = function() {
-
 		this._bIsRenderingPhase = false;
 
 		var oDomRef = this.getDomRef(),
@@ -338,14 +351,7 @@ sap.ui.define([
 
 		oDomRef.appendChild(this._oEditorDomRef);
 
-		var bEditable = this.getEditable();
-		this._oEditor.setReadOnly(!bEditable);
-		if (bEditable) {
-			this._oEditor.renderer.$cursorLayer.element.style.display = "";
-		} else {
-			//hide the cursor
-			this._oEditor.renderer.$cursorLayer.element.style.display = "none";
-		}
+		this._oEditor.setReadOnly(!this.getEditable());
 
 		this._oEditor.getSession().setMode("ace/mode/" + this.getType());
 		this._oEditor.setOption("maxLines", this.getMaxLines());
@@ -361,6 +367,18 @@ sap.ui.define([
 		this._oEditor.resize();
 
 		this._registerResizeListener();
+	};
+
+	/**
+	 * Returns the DOMNode ID to be used for the "labelFor" attribute of the label.
+	 *
+	 * By default, this is the ID of the control itself.
+	 *
+	 * @return {string} ID to be used for the <code>labelFor</code>
+	 * @public
+	 */
+	CodeEditor.prototype.getIdForLabel = function () {
+		return this.getId() + "-editor-textarea";
 	};
 
 	/**
@@ -387,34 +405,35 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the focus to the code editor
-	 * @returns {sap.ui.codeeditor.CodeEditor} Returns <code>this</code> to allow method chaining
-	 * @public
-	 */
-	CodeEditor.prototype.focus = function() {
-		this._oEditor.focus();
-
-		return this;
-	};
-
-	/**
 	 * Sets the color theme  of the code editor
 	 * @param {string} sTheme See property documentation for accepted values
-	 * @returns {sap.ui.codeeditor.CodeEditor} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	CodeEditor.prototype.setColorTheme = function(sTheme) {
-		this.setProperty("colorTheme", sTheme, true);
+		this.setProperty("colorTheme", sTheme);
+
 		if (sTheme === "default") {
-			sTheme = "tomorrow";
-		} else if (sTheme === "hcb") {
+			this._oEditor.setTheme(this._oDefaultTheme);
+
+			return this;
+		}
+
+		if (sTheme === "hcb") {
 			sTheme = "tomorrow_night";
 		} else if (sTheme === "hcb_bright") {
 			sTheme = "tomorrow_night_bright";
 		} else if (sTheme === "hcb_blue") {
 			sTheme = "tomorrow_night_blue";
 		}
+
 		this._oEditor.setTheme("ace/theme/" + sTheme);
+
+		includeStylesheet(
+			sap.ui.require.toUrl("sap/ui/codeeditor/js/ace/css/theme/" + sTheme + ".css"),
+			"sap-ui-codeeditor-theme-" + sTheme
+		);
+
 		return this;
 	};
 	/**
@@ -429,8 +448,8 @@ sap.ui.define([
 	/**
 	 * Defines custom completer - object implementing a getCompletions method.
 	 * The method has two parameters - fnCallback method and context object.
-	 * Context object provides details about oPos and sPrefix as provided by ACE.
-	 * @param {object} oCustomCompleter Object with getCompletions method
+	 * Context object provides details about oPos and sPrefix as provided by the third-party code editor.
+	 * @param {{getCompletions: function}} oCustomCompleter Object with getCompletions method
 	 * @public
 	 * @since 1.52
 	 */
@@ -446,27 +465,40 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the internal ace editor instance
-	 * @returns {object} the internal ace editor instance
+	 * Returns the third-party code editor instance
+	 * <b>Caution:</b> Using the third-party code editor instance introduces a dependency to that internal editor. Future changes in the internal editor might lead to undefined behavior, so it should only be used in justified cases.
+	 * @returns {object} the internal third-party code editor instance
 	 * @private
 	 * @ui5-restricted
+	 * @deprecated As of version 1.121, use the public <code>CodeEditor.prototype.getAceEditor</code> instead.
 	 */
-	CodeEditor.prototype._getEditorInstance = function() {
+	CodeEditor.prototype.getInternalEditorInstance = function() {
 		return this._oEditor;
 	};
 
 	/**
-	 * Pretty-prints the content of the editor
+	 * Returns the internal instance of the third-party Ace code editor.
+	 *
+	 * <b>Note:</b> This control is based on third-party open-source software, and there might be incompatible changes introduced by the code owner in their future releases.
+	 * @returns {object} the internal third-party Ace code editor instance
+	 * @public
+	 * @since 1.121
+	 */
+	CodeEditor.prototype.getAceEditor = function() {
+		return this._oEditor;
+	};
+
+	/**
+	 * Pretty-prints the content of the editor.
+	 *
+	 * <b>Note:</b> Works well for PHP. For other editor types (modes),
+	 * the content might not be formatted well.
+	 * In such cases it is recommended to use your own formatting.
 	 * @public
 	 * @since 1.54.1
 	 */
 	CodeEditor.prototype.prettyPrint = function () {
 		ace.require("ace/ext/beautify").beautify(this._oEditor.session);
-	};
-
-	CodeEditor.prototype.destroy = function (bSuppressInvalidate) {
-		this._oEditor.destroy(bSuppressInvalidate);
-		Control.prototype.destroy.call(this, bSuppressInvalidate);
 	};
 
 	CodeEditor.prototype.onfocusout = function () {
@@ -475,6 +507,20 @@ sap.ui.define([
 
 	CodeEditor.prototype.onfocusin = function () {
 		this._oEditor.getSession().setUseWorker(true);
+	};
+
+	CodeEditor.prototype.getFocusDomRef = function () {
+		const domRef = this.getDomRef();
+
+		if (!domRef) {
+			return null;
+		}
+
+		if (document.activeElement === domRef.querySelector(".ace_text-input")) {
+			return domRef.querySelector(".ace_text-input");
+		}
+
+		return domRef.querySelector(".ace_scroller.ace_keyboard-focus");
 	};
 
 	return CodeEditor;

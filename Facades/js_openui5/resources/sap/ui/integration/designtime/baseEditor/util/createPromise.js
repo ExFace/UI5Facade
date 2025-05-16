@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function(){"use strict";return function(f){var c=false;var C;var a;var b;var p=new Promise(function(r,R){f(function(){if(!c){r.apply(this,arguments);}else if(a){a.apply(this,arguments);}},function(){if(!c){R.apply(this,arguments);}else if(b){b.apply(this,arguments);}});});return{promise:p,cancel:function(){c=true;if(!C){C=new Promise(function(r,R){a=r;b=R;});}return C;}};};});
+sap.ui.define(function(){"use strict";return function(i){var n=false;var e;var t;var r;var f=new Promise(function(e,f){i(function(){if(!n){e.apply(this,arguments)}else if(t){t.apply(this,arguments)}},function(){if(!n){f.apply(this,arguments)}else if(r){r.apply(this,arguments)}})});return{promise:f,cancel:function(){n=true;if(!e){e=new Promise(function(i,n){t=i;r=n})}return e}}}});
+//# sourceMappingURL=createPromise.js.map

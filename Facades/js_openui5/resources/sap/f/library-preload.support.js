@@ -1,13 +1,13 @@
 //@ui5-bundle sap/f/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Adds support rules of the sap.f library to the support infrastructure.
  */
-sap.ui.predefine('sap/f/library.support',[
+sap.ui.predefine("sap/f/library.support", [
 		"sap/ui/support/library",
 		"./rules/Avatar.support",
 		"./rules/DynamicPage.support"
@@ -24,13 +24,13 @@ sap.ui.predefine('sap/f/library.support',[
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Avatar control of sap.f library.
  */
-sap.ui.predefine('sap/f/rules/Avatar.support',["sap/ui/support/library", "../library"],
+sap.ui.predefine("sap/f/rules/Avatar.support", ["sap/ui/support/library", "../library"],
 	function(SupportLib, library) {
 		"use strict";
 
@@ -101,13 +101,13 @@ sap.ui.predefine('sap/f/rules/Avatar.support',["sap/ui/support/library", "../lib
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the DynamicPage control of sap.f library.
  */
-sap.ui.predefine('sap/f/rules/DynamicPage.support',["sap/ui/support/library"],
+sap.ui.predefine("sap/f/rules/DynamicPage.support", ["sap/ui/support/library"],
 	function(SupportLib) {
 		"use strict";
 
@@ -122,11 +122,9 @@ sap.ui.predefine('sap/f/rules/DynamicPage.support',["sap/ui/support/library"],
 			audiences: [Audiences.Application],
 			categories: [Categories.Usage],
 			description: "It is recommended to use DynamicPage fitContent=false, when sap.m.Table is used, " +
-				"or fitContent=true, when sap.ui.table.Table (with visibleRowCountMode=Auto) is used.",
+				"or fitContent=true, when sap.ui.table.Table (with row mode 'Auto') is used.",
 			resolution: "Set fitContent property according to recommendations.",
 			check: function (oIssueManager, oCoreFacade, oScope) {
-
-				var tableLibrary = sap.ui.require("sap/ui/table/library");
 
 				oScope.getElementsByClassName("sap.f.DynamicPage")
 					.forEach(function(oElement) {
@@ -145,18 +143,31 @@ sap.ui.predefine('sap/f/rules/DynamicPage.support',["sap/ui/support/library"],
 							});
 						}
 
-						if (oContent && oContent.isA("sap.ui.table.Table")
-							&& tableLibrary
-							&& oContent.getVisibleRowCountMode() === tableLibrary.VisibleRowCountMode.Auto
-							&& !oElement.getFitContent()) {
-							oIssueManager.addIssue({
-								severity: Severity.Medium,
-								details: "It is recommended to use DynamicPage '" + "' (" + sElementId +
-									") with fitContent=true, when sap.ui.table.Table (with visibleRowCountMode=Auto) is used.",
-								context: {
-									id: sElementId
-								}
-							});
+						if (oContent && oContent.isA("sap.ui.table.Table")) {
+							var bIsTableInAutoMode = false;
+							var vRowMode = oContent.getRowMode();
+
+							/**
+							 * @deprecated As of verion 1.118
+							 */
+							if (!vRowMode) {
+								bIsTableInAutoMode = oContent.getVisibleRowCountMode() === "Auto";
+							}
+
+							if (vRowMode) {
+								bIsTableInAutoMode = vRowMode === "Auto" || vRowMode.isA("sap.ui.table.rowmodes.Auto");
+							}
+
+							if (bIsTableInAutoMode && !oElement.getFitContent()) {
+								oIssueManager.addIssue({
+									severity: Severity.Medium,
+									details: "It is recommended to use DynamicPage '" + "' (" + sElementId +
+										") with fitContent=true, when sap.ui.table.Table (with row mode 'Auto') is used.",
+									context: {
+										id: sElementId
+									}
+								});
+							}
 						}
 				});
 			}

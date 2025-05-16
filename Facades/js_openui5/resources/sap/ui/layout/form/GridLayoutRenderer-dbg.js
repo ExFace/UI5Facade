@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/Renderer',
-	'sap/ui/core/theming/Parameters',
 	'./FormLayoutRenderer',
 	"sap/base/Log"
-	], function(Renderer, themingParameters, FormLayoutRenderer, Log) {
+	], function(Renderer, FormLayoutRenderer, Log) {
 	"use strict";
 
 
@@ -25,7 +24,7 @@ sap.ui.define([
 	 * Renders the HTML for the given form content, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oLayout an object representation of the Layout control that should be rendered
+	 * @param {sap.ui.layout.form.GridLayout} oLayout an object representation of the Layout control that should be rendered
 	 * @param {sap.ui.layout.form.Form} oForm, a form control to render its content
 	 */
 	GridLayoutRenderer.renderForm = function(rm, oLayout, oForm){
@@ -92,11 +91,7 @@ sap.ui.define([
 			rm.openStart("tr").class("sapUiGridTitle").openEnd();
 			rm.openStart("th").attr("colspan", iTitleCells).openEnd();
 
-			var sSize;
-			if (!oToolbar) {
-				sSize = themingParameters.get('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize');
-			}
-			this.renderHeader(rm, oToolbar, oTitle, undefined, false, sSize, oForm.getId());
+			this.renderHeader(rm, oToolbar, oTitle, undefined, false, oLayout._sFormTitleSize, oForm.getId());
 			rm.close("th");
 			rm.close("tr");
 		}
@@ -167,7 +162,7 @@ sap.ui.define([
 			}
 
 			rm.openEnd();
-			this.renderHeader(rm, oToolbar, oContainer.getTitle(), oContainer._oExpandButton, bExpandable, false, oContainer.getId());
+			this.renderHeader(rm, oToolbar, oContainer.getTitle(), oContainer._oExpandButton, bExpandable, oLayout._sFormSubTitleSize, oContainer.getId());
 			rm.close("td");
 			rm.close("tr");
 		}
@@ -273,7 +268,7 @@ sap.ui.define([
 			}
 			rm.openEnd();
 			if (oContainer1) {
-				this.renderHeader(rm, oToolbar1, oTitle1, oContainer1._oExpandButton, bExpandable1, false, oContainer1.getId());
+				this.renderHeader(rm, oToolbar1, oTitle1, oContainer1._oExpandButton, bExpandable1, oLayout._sFormSubTitleSize, oContainer1.getId());
 			}
 			rm.close("td");
 			rm.openStart("td").openEnd().close("td");
@@ -289,7 +284,7 @@ sap.ui.define([
 			}
 			rm.openEnd();
 			if (oContainer2) {
-				this.renderHeader(rm, oToolbar2, oTitle2, oContainer2._oExpandButton, bExpandable2, false, oContainer2.getId());
+				this.renderHeader(rm, oToolbar2, oTitle2, oContainer2._oExpandButton, bExpandable2, oLayout._sFormSubTitleSize, oContainer2.getId());
 			}
 			rm.close("td");
 			rm.close("tr");
@@ -565,7 +560,7 @@ sap.ui.define([
 
 		if (aFields.length == 1 && this.getElementData(oLayout, aFields[0]) && this.getElementData(oLayout, aFields[0]).getHCells() == "full") {
 			return true;
-		}else {
+		} else  {
 			return false;
 		}
 

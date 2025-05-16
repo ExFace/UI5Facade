@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/model/base/ManagedObjectModel"
-], function (
+], function(
 	Element,
 	ManagedObjectModel
 ) {
@@ -25,13 +25,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.64
 	 * @alias sap.ui.fl.util.ManagedObjectModel
-	 * @experimental Since 1.64. This class is experimental. The API might be changed in future.
 	 */
 	var ManagedObjectModelFantomas = Element.extend("sap.ui.fl.util.ManagedObjectModel", {
 		metadata: {
@@ -55,28 +54,32 @@ sap.ui.define([
 			},
 			associations: {
 				object: {
-					type: "sap.ui.core.Element" // Should be an element, because only elements have a `dependents` aggregation to store the object.
+					// Should be an element, because only elements have a `dependents` aggregation to store the object.
+					type: "sap.ui.core.Element"
 				}
 			}
 		},
-		constructor: function () {
-			Element.apply(this, arguments);
+		// eslint-disable-next-line object-shorthand
+		constructor: function(...aArgs) {
+			Element.apply(this, aArgs);
 
 			this._oManagedObjectModel = new ManagedObjectModel(
-				sap.ui.getCore().byId(this.getObject()),
+				Element.getElementById(this.getObject()),
 				this.getData()
 			);
 
-			["data", "name", "object"].forEach(function (sName) {
-				this["set" + capitalize(sName)] = function () {
-					throw new Error("sap.ui.fl.util.ManagedObjectModel: Can't change the value of `" + sName + "` after the object is initialized. Please recreate the object with correct values in the constructor.");
+			["data", "name", "object"].forEach(function(sName) {
+				this[`set${capitalize(sName)}`] = function() {
+					throw new Error(`sap.ui.fl.util.ManagedObjectModel: Can't change the value of \`${sName}\` after the object is `
+						+ "initialized. Please recreate the object with correct values in the constructor.");
 				};
 			}, this);
 		}
 	});
 
-	ManagedObjectModelFantomas.prototype.setParent = function (oNewParent) {
-		var oOldParent = this.getParent();
+	ManagedObjectModelFantomas.prototype.setParent = function(...aArgs) {
+		const [oNewParent] = aArgs;
+		const oOldParent = this.getParent();
 
 		if (oOldParent) {
 			oOldParent.setModel(null, this.getName());
@@ -86,12 +89,12 @@ sap.ui.define([
 			oNewParent.setModel(this._oManagedObjectModel, this.getName());
 		}
 
-		Element.prototype.setParent.apply(this, arguments);
+		Element.prototype.setParent.apply(this, aArgs);
 	};
 
-	ManagedObjectModelFantomas.prototype.exit = function () {
+	ManagedObjectModelFantomas.prototype.exit = function() {
 		this._oManagedObjectModel.destroy();
 	};
 
 	return ManagedObjectModelFantomas;
-}, true);
+});

@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_bluecrystal with SAPUI5 version 1.44 the             */
+/* inheritance of the base theme is now updated to an inheritance of a static     */
+/* copy of the base theme named sap_bluecrystal_base. The respective              */
+/* control css files of base are copied to the sap_bluecrystal_base theme folder. */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.124.     */
+/* ============================================================================== */
+
+
+@import "../sap_bluecrystal_base/library.less";
 @import "../../../../../../Base/baseLib/sap_bluecrystal/base.less"; /* ORIGINAL IMPORT PATH: "base.less" */
 
 @import "global.less";
@@ -19,7 +28,6 @@
 	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 	-webkit-touch-callout: none;
 	-webkit-text-size-adjust: none;
-	-ms-text-size-adjust: none;
 }
 
 .sapMContainerMargin {
@@ -38,16 +46,13 @@ html.sap-phone *, html.sap-tablet:not(.sap-desktop) * {   /* FIXME!!! (star rule
 	/* for phones and tablets (combi devices are excluded because they should have desktop behavior)*/
 	-webkit-user-select: none;
 	-moz-user-select: none;
-	-ms-user-select: none;
 	user-select: none;
-	-webkit-user-drag: none;
 }
 
 html.sap-phone input, html.sap-phone textarea, html.sap-phone [contenteditable=true], html.sap-phone [contenteditable=true] > *, html.sap-phone .sapUiSelectable,
 html.sap-tablet:not(.sap-desktop) input, html.sap-tablet:not(.sap-desktop) textarea, html.sap-tablet:not(.sap-desktop) [contenteditable=true], html.sap-tablet:not(.sap-desktop) [contenteditable=true] > *, html.sap-tablet:not(.sap-desktop) .sapUiSelectable {
 	-webkit-user-select: text;
 	-moz-user-select: text;
-	-ms-user-select: text;
 	user-select: text;
 }
 
@@ -420,7 +425,6 @@ html.sap-tablet:not(.sap-desktop) input, html.sap-tablet:not(.sap-desktop) texta
 
 html.sapUiSuppressBackgroundStyles {
 	background-color: transparent;
-	-ms-filter: "none";
 }
 
 html.sapUiSuppressBackgroundStyles .sapUiBody:before {

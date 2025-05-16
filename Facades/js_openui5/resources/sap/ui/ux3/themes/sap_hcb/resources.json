@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 128,
+			"size": 162,
 			"theme": "sap_hcb"
 		},
 		{
@@ -151,75 +151,159 @@
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 734,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 72034,
+			"name": "base_ActionBar.less",
+			"size": 7407,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 71734,
+			"name": "base_CollectionInspector.less",
+			"size": 3879,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/exact/tophead.gif",
-			"size": 839,
+			"name": "base_DataSet.less",
+			"size": 484,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/feed/ico12_click.png",
-			"size": 905,
+			"name": "base_DataSetSimpleView.less",
+			"size": 502,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/menu_follow.png",
-			"size": 341,
+			"name": "base_Exact.less",
+			"size": 428,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/menu_hold.png",
-			"size": 400,
+			"name": "base_ExactArea.less",
+			"size": 586,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/menu_unlisten.png",
-			"size": 408,
+			"name": "base_ExactBrowser.less",
+			"size": 694,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/navigationbar/facetNext.png",
-			"size": 159,
+			"name": "base_ExactList.less",
+			"size": 8530,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/navigationbar/facetPrev.png",
-			"size": 161,
+			"name": "base_FacetFilter.less",
+			"size": 288,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/notification_bar/alert_white_24.png",
-			"size": 235,
+			"name": "base_FacetFilterList.less",
+			"size": 1087,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_down.png",
-			"size": 105,
+			"name": "base_Feed.less",
+			"size": 448,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_down_hover.png",
-			"size": 102,
+			"name": "base_FeedChunk.less",
+			"size": 2140,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/notification_bar/arrows/ArrowBar_up.png",
-			"size": 99,
+			"name": "base_Feeder.less",
+			"size": 1338,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_NavigationBar.less",
+			"size": 4832,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_NotificationBar.less",
+			"size": 7882,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_Overlay.less",
+			"size": 1505,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_OverlayContainer.less",
+			"size": 373,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_OverlayDialog.less",
+			"size": 447,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_QuickView.less",
+			"size": 974,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_Shell.less",
+			"size": 14014,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ShellColorPicker.less",
+			"size": 782,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ShellPersonalization.less",
+			"size": 358,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ThingInspector.less",
+			"size": 4505,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ThingViewer.less",
+			"size": 4953,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ToolPopup.less",
+			"size": 2332,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_shared.less",
+			"size": 65,
+			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
@@ -228,33 +312,8 @@
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_down.png",
-			"size": 101,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_down_hover.png",
-			"size": 98,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/notification_bar/arrows/DoubleArrow_up.png",
-			"size": 94,
-			"theme": "sap_hcb"
-		},
-		{
 			"name": "img-RTL/notification_bar/arrows/DoubleArrow_up_hover.png",
 			"size": 112,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/notification_bar/notification_24.png",
-			"size": 228,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/shell/LogOut_icon.png",
-			"size": 250,
 			"theme": "sap_hcb"
 		},
 		{
@@ -275,26 +334,6 @@
 		{
 			"name": "img-RTL/shell/tools/Search_hover.png",
 			"size": 449,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_down.png",
-			"size": 191,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_left.png",
-			"size": 181,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_right.png",
-			"size": 193,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/toolpopup/arrow_up.png",
-			"size": 183,
 			"theme": "sap_hcb"
 		},
 		{
@@ -429,40 +468,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 65288,
+			"size": 65123,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/ux3/themes/sap_hcb/library-parameters.json",
 			"size": 190,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 65090,
+			"size": 65009,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 24827,
+			"size": 98271,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 955,
+			"size": 2463,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 72038,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 71840,
-			"theme": "sap_hcb"
+			"name": "resources.json",
+			"size": 9121
 		},
 		{
 			"name": "shared.less",

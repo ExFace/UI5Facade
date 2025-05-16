@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,17 +30,17 @@ sap.ui.define([
 	 * Common button control that opens a menu when clicked by the user. The control provides an API for configuring the docking position
 	 * of the menu.
 	 * @extends sap.ui.commons.Button
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.MenuButton</code> control.
 	 * @alias sap.ui.commons.MenuButton
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var MenuButton = Button.extend("sap.ui.commons.MenuButton", /** @lends sap.ui.commons.MenuButton.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -187,7 +187,7 @@ sap.ui.define([
 	/**
 	 * Setter for the aggregated <code>menu</code>.
 	 * @param {sap.ui.unified.Menu} oMenu The menu to be set to the menu aggregation
-	 * @return {sap.ui.commons.MenuButton} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	MenuButton.prototype.setMenu = function(oMenu) {
@@ -199,7 +199,7 @@ sap.ui.define([
 	/**
 	 * Destroys the menu in the aggregation
 	 * named <code>menu</code>.
-	 * @return {sap.ui.commons.MenuButton} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	MenuButton.prototype.destroyMenu = function() {
@@ -267,7 +267,7 @@ sap.ui.define([
 	 *            [oListener] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.commons.MenuButton</code> itself
 	 *
-	 * @return {sap.ui.commons.MenuButton} Reference to <code>this</code> in order to allow method chaining
+	 * @return {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 * @name sap.ui.commons.MenuButton#attachPress
 	 * @function
@@ -285,7 +285,7 @@ sap.ui.define([
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
 	 *            [oListener] Context object on which the given function had to be called
-	 * @return {sap.ui.commons.MenuButton} Reference to <code>this</code> to allow method chaining
+	 * @return {this} Reference to <code>this</code> to allow method chaining
 	 * @public
 	 * @name sap.ui.commons.MenuButton#detachPress
 	 * @function
@@ -297,7 +297,7 @@ sap.ui.define([
 	 * @see sap.ui.commons.MenuButton#fireItemSelected
 	 *
 	 * @param {object} [oParameters] Parameters to pass along with the event
-	 * @return {sap.ui.commons.MenuButton} Reference to <code>this</code> to allow method chaining
+	 * @return {this} Reference to <code>this</code> to allow method chaining
 	 * @protected
 	 * @name sap.ui.commons.MenuButton#firePress
 	 * @function

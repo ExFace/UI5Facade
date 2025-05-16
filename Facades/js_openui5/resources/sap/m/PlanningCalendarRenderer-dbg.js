@@ -1,13 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-		"sap/ui/core/InvisibleText",
 		'sap/ui/unified/library'
 	],
-	function(InvisibleText, library) {
+	function(library) {
 	"use strict";
 
 	// shortcut for sap.ui.unified.CalendarAppointmentRoundWidth
@@ -37,12 +36,9 @@ sap.ui.define([
 		oRm.class("sapMPlanCal");
 		oRm.accessibilityState({
 			role: "region",
-			labelledby: InvisibleText.getStaticId("sap.m", "PLANNINGCALENDAR")
+			roledescription: oPC._oRB.getText("PLANNINGCALENDAR")
 		});
 		this.addAdditionalClasses(oRm, oPC);
-		if (oPC._iSize !== undefined && oPC._iSize !== null) {
-			oRm.class("sapMSize" + oPC._iSize);
-		}
 
 		switch (oPC.getAppointmentRoundWidth()) {
 			case CalendarAppointmentRoundWidth.HalfColumn :

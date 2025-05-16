@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var S={apiVersion:2};S.render=function(r,s){var o=s._getSearchField(),c=s._getCancelButton(),a=s._getSearchButton(),i=s.getIsOpen(),p=s.getPhoneMode();r.openStart("div",s);if(i){r.class("sapFShellBarSearch");}if(p){r.class("sapFShellBarSearchFullWidth");}r.openEnd();r.openStart("div");r.class("sapFShellBarSearchWrap");r.openEnd();if(i){r.renderControl(o);}r.renderControl(a);if(i){r.renderControl(c);}r.close("div");r.close("div");};return S;},true);
+sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,r){var n=r._getSearchField(),t=r._getCancelButton(),a=r._getSearchButton(),o=r.getIsOpen(),l=r.getPhoneMode();e.openStart("div",r);if(o){e.class("sapFShellBarSearch")}if(l){e.class("sapFShellBarSearchFullWidth")}e.openEnd();e.openStart("div");e.class("sapFShellBarSearchWrap");e.openEnd();if(o){e.renderControl(n)}e.renderControl(a);if(o){e.renderControl(t)}e.close("div");e.close("div")};return e},true);
+//# sourceMappingURL=SearchRenderer.js.map

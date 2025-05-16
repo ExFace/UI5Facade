@@ -1,17 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 // Provides control sap.m.Menu.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'./Button',
 	'./Dialog',
@@ -19,15 +15,21 @@ sap.ui.define([
 	'./List',
 	'./Page',
 	'./MenuListItem',
+	'./MenuItem',
+	"sap/ui/core/Lib",
 	'sap/ui/unified/Menu',
 	'sap/ui/unified/MenuItem',
+	'sap/ui/unified/MenuItemGroup',
 	'sap/ui/Device',
 	'sap/ui/core/EnabledPropagator',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Popup"
+	"sap/ui/core/Popup",
+	"sap/ui/base/ManagedObject",
+	"sap/ui/core/Element"
 ],
 	function(
 		library,
+		coreLibrary,
 		Control,
 		Button,
 		Dialog,
@@ -35,12 +37,17 @@ sap.ui.define([
 		List,
 		Page,
 		MenuListItem,
+		MenuItem,
+		Library,
 		UfdMenu,
 		UfdMenuItem,
+		UfdMenuItemGroup,
 		Device,
 		EnabledPropagator,
 		jQuery,
-		Popup
+		Popup,
+		ManagedObject,
+		Element
 	) {
 		"use strict";
 
@@ -53,6 +60,9 @@ sap.ui.define([
 		// shortcut for sap.m.ListMode
 		var ListMode = library.ListMode;
 
+		// shortcut for sap.ui.core.ItemSelectionMode
+		var ItemSelectionMode = coreLibrary.ItemSelectionMode;
+
 		/**
 		 * Constructor for a new Menu.
 		 *
@@ -62,16 +72,22 @@ sap.ui.define([
 		 * @class
 		 * The <code>sap.m.Menu</code> control represents a hierarchical menu.
 		 * When opened on mobile devices it occupies the whole screen.
+		 *
+		 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code> library
+		 * on application level to ensure that the library is loaded before the module dependencies will be required.
+		 * If the <code>sap.ui.unified</code> library is not loaded in advance, this
+		 * could lead to CSP compliance issues and adds an additional waiting time.
+		 * To prevent this, ensure that the <code>sap.ui.unified</code> library is loaded in advance.
+		 *
 		 * @extends sap.ui.core.Control
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @alias sap.m.Menu
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var Menu = Control.extend("sap.m.Menu", /** @lends sap.m.Menu.prototype */ {
 			metadata : {
@@ -90,7 +106,7 @@ sap.ui.define([
 					/**
 					 * Defines the items contained within this control.
 					 */
-					items: { type: "sap.m.MenuItem", multiple: true, singularName: "item", bindable: "bindable" },
+					items: { type: "sap.m.IMenuItem", multiple: true, singularName: "item", bindable: "bindable", defaultClass: MenuItem },
 
 					/**
 					 * Internal aggregation that contains the inner <code>sap.m.Dialog</code> for mobile.
@@ -118,7 +134,17 @@ sap.ui.define([
 					/**
 					 * Fired when the menu is closed.
 					 */
-					closed: {}
+					closed: {},
+
+					/**
+					 * Fired before the menu is closed.
+					 * This event can be prevented which effectively prevents the menu from closing.
+					 * @since 1.131
+					 */
+					beforeClose : {
+						allowPreventDefault : true
+					}
+
 				}
 			},
 			renderer: null // this is a popup control without a renderer
@@ -167,12 +193,19 @@ sap.ui.define([
 				this._initDialog();
 			}
 			this._bIsInitialized = false;
+			// attach event handlers responsible for keeping sap.m.MenuItem and sap.ui.unified.MenuItem, sap.m.MenuListItem instances at sync
+			this.attachEvent("propertyChanged", this._onPropertyChanged, this);
+			this.attachEvent("aggregationChanged", this._onAggregationChanged, this);
 		};
 
 		/**
 		 * Called from parent if the control is destroyed.
 		 */
 		Menu.prototype.exit = function() {
+			var oMenu = this._getMenu(),
+				oPopup = oMenu && oMenu.getPopup(),
+				oDialog = this._getDialog();
+
 			if (this._navContainerId) {
 				this._navContainerId = null;
 			}
@@ -180,8 +213,13 @@ sap.ui.define([
 				this._bIsInitialized = null;
 			}
 
-			if (this._getMenu() && this._getMenu().getPopup()) {
-				this._getMenu().getPopup().detachClosed(this._menuClosed, this);
+			if (oPopup) {
+				oPopup.detachClosed(this._menuClosed, this);
+				oMenu.detachBeforeClose(this._handleVisualParentClose, this);
+			}
+
+			if (oDialog) {
+				oDialog.detachBeforeClose(this._handleVisualParentClose, this);
 			}
 		};
 
@@ -192,8 +230,8 @@ sap.ui.define([
 
 		/**
 		 * Sets the title of the <code>Menu</code>.
-		 * @param {String} sTitle The new title of the <code>Menu</code>
-		 * @returns {sap.m.Menu} <code>this</code> to allow method chaining
+		 * @param {string} sTitle The new title of the <code>Menu</code>
+		 * @returns {this} <code>this</code> to allow method chaining
 		 * @public
 		 */
 		Menu.prototype.setTitle = function(sTitle) {
@@ -210,11 +248,11 @@ sap.ui.define([
 
 		/**
 		 * Opens the <code>Menu</code> next to the given control.
-		 * @param {object} oControl The control that defines the position for the menu
+		 * @param {sap.ui.core.Control} oControl The control that defines the position for the menu
 		 * @param {boolean} bWithKeyboard Whether the menu is opened with a shortcut or not
-		 * @param {sap.ui.core.Dock} [sDockMy=sap.ui.core.Popup.Dock.BeginTop] The reference docking location
+		 * @param {sap.ui.core.Popup.Dock} [sDockMy=sap.ui.core.Popup.Dock.BeginTop] The reference docking location
 		 * of the <code>Menu</code> for positioning the menu on the screen
-		 * @param {sap.ui.core.Dock} [sDockAt=sap.ui.core.Popup.Dock.BeginBottom] The <code>oControl</code>
+		 * @param {sap.ui.core.Popup.Dock} [sDockAt=sap.ui.core.Popup.Dock.BeginBottom] The <code>oControl</code>
 		 * reference docking location for positioning the menu on the screen
 		 * @param {string} [sOffset="0 -2"] The offset relative to the docking point,
 		 * specified as a string with space-separated pixel values (e.g. "0 10" to move the popup 10 pixels to the right).
@@ -249,9 +287,22 @@ sap.ui.define([
 		 */
 		Menu.prototype.close = function() {
 			if (Device.system.phone) {
-				this._getDialog().close();
+				this._getDialog() && this._getDialog().close();
 			} else {
-				this._getVisualParent().close();
+				this._getVisualParent() && this._getVisualParent().close();
+			}
+		};
+
+		/**
+		 * Returns whether the <code>Menu</code> is currently open.
+		 * @returns {boolean} true if menu is open
+		 * @public
+		 */
+		Menu.prototype.isOpen = function() {
+			if (Device.system.phone) {
+				return this._getDialog() && this._getDialog().isOpen();
+			} else {
+				return this._getVisualParent() && this._getVisualParent().isOpen();
 			}
 		};
 
@@ -270,9 +321,10 @@ sap.ui.define([
 			});
 			oDialog.addStyleClass("sapMRespMenuDialog");
 			// remove padding for the menu on phone
-			oDialog.removeStyleClass("sapUiPopupWithPadding");
+			oDialog.addStyleClass("sapUiNoContentPadding");
 			this.setAggregation("_dialog", oDialog, true);
 			oDialog.attachAfterClose(this._menuClosed, this);
+			oDialog.attachBeforeClose(this._handleVisualParentClose, this);
 		};
 
 		/**
@@ -303,7 +355,7 @@ sap.ui.define([
 			this._initMenuForItems(this.getItems());
 		};
 
-		/*
+		/**
 		 * Allows for any custom function to be called back when accessibility attributes
 		 * of underlying menu are about to be rendered.
 		 * The function is called once per MenuItem
@@ -311,7 +363,7 @@ sap.ui.define([
 		 * @param {function} fn The callback function
 		 * @private
 		 * @ui5-restricted ObjectPageLayoutABHelper
-		 * @returns void
+		 * @returns {void}
 		 */
 		Menu.prototype._setCustomEnhanceAccStateFunction = function(fn) {
 			this._fnEnhanceUnifiedMenuAccState = fn;
@@ -319,6 +371,8 @@ sap.ui.define([
 
 		Menu.prototype._initMenuForItems = function(aItems, oParentMenuItem) {
 			var oMenu = new UfdMenu();
+
+			oMenu.attachBeforeClose(this._handleVisualParentClose, this);
 			oMenu._setCustomEnhanceAccStateFunction(this._fnEnhanceUnifiedMenuAccState);
 			oMenu.isCozy = this._isMenuCozy.bind(this, oMenu);
 
@@ -335,7 +389,11 @@ sap.ui.define([
 			oMenu.mCustomStyleClassMap = this.mCustomStyleClassMap;
 
 			aItems.forEach(function(oItem) {
-				this._addVisualMenuItemFromItem(oItem, oMenu);
+				if (this._isMenuItemGroup(oItem)) {
+					this._addVisualMenuItemGroupFromItemsGroup(oItem, oMenu);
+				} else {
+					this._addVisualMenuItemFromItem(oItem, oMenu);
+				}
 			}.bind(this));
 
 			if (oParentMenuItem) {
@@ -348,6 +406,12 @@ sap.ui.define([
 			oMenu.attachItemSelect(this._handleMenuItemSelect, this);
 		};
 
+		Menu.prototype._handleVisualParentClose = function(oEvent) {
+			if (!this.fireBeforeClose()) {
+				oEvent.preventDefault();
+			}
+		};
+
 		Menu.prototype._menuClosed = function() {
 			this.fireClosed();
 		};
@@ -357,7 +421,7 @@ sap.ui.define([
 		};
 
 		Menu.prototype._initCloseButton = function() {
-			var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var oRB = Library.getResourceBundleFor("sap.m");
 
 			return new Button({
 				text: oRB.getText("MENU_CLOSE"),
@@ -381,7 +445,7 @@ sap.ui.define([
 		 * @private
 		 */
 		Menu.prototype._getNavContainer = function() {
-			return sap.ui.getCore().byId(this._navContainerId);
+			return Element.getElementById(this._navContainerId);
 		};
 
 		Menu.prototype._initAllPages = function() {
@@ -424,13 +488,19 @@ sap.ui.define([
 
 		Menu.prototype._handleListItemPress = function(oEvent) {
 			var oListItem = oEvent.getParameter("listItem"),
-				oMenuItem = sap.ui.getCore().byId(oListItem.getMenuItem()),
-				pageId = oMenuItem._getVisualChild();
+				oMenuItem = Element.getElementById(oListItem.getMenuItem()),
+				pageId = oMenuItem._getItems().length ? oMenuItem._getVisualChild() : null,
+				bSelected = !oListItem.getProperty("selected");
 
 			if (pageId) {
 				this._getNavContainer().to(pageId);
 			} else {
 				this._getDialog().close();
+				if (oListItem._getItemSelectionMode() !== ItemSelectionMode.None) {
+					oListItem.setSelected(bSelected);
+					oMenuItem.setSelected(bSelected);
+				}
+
 				this.fireItemSelected({ item: oMenuItem });
 			}
 			oMenuItem.firePress();
@@ -444,7 +514,7 @@ sap.ui.define([
 		 */
 		Menu.prototype._setBackButtonTooltipForPageWithParent = function(oParent, oPage) {
 			var oParentParent = oParent.getParent(),
-				oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+				oRb = Library.getResourceBundleFor("sap.m"),
 				sParentPageTitle;
 
 			sParentPageTitle = oParentParent instanceof Menu ? oParentParent.getTitle() : oParentParent.getText();
@@ -452,80 +522,174 @@ sap.ui.define([
 			oPage.setNavButtonTooltip(sParentPageTitle);
 		};
 
+		/**
+		 * Checks if an item is a MenuItemGroup or not.
+		 * @param {sap.m.IMenuItem} oItem The item to be checked
+		 * @returns {boolean} Whether the item is a MenuItemGroup or not
+		 * @private
+		 */
+		Menu.prototype._isMenuItemGroup = function(oItem) {
+			return !!oItem.getItemSelectionMode;
+		};
+
 		Menu.prototype._createMenuListItemFromItem = function(oItem) {
-			return new MenuListItem({
-				id  : this._generateListItemId(oItem.getId()),
-				type: ListType.Active,
+			var sMenuListItemId = this._generateListItemId(oItem.getId()),
+				oListItem = Element.getElementById(sMenuListItemId),
+				oItemGroup = Element.getElementById(oItem.getAssociation("_group"));
+
+			if (oListItem) {
+				return oListItem;
+			}
+
+			oListItem = new MenuListItem({
+				id  : sMenuListItemId,
+				type: oItem.getEnabled() ? ListType.Active : ListType.Inactive,
 				icon: oItem.getIcon(),
-				title: oItem.getText(),
+				title: this._handleSettingsValue(oItem.getText()),
+				selected: oItem.getSelected(),
 				startsSection: oItem.getStartsSection(),
 				menuItem: oItem,
-				tooltip: oItem.getTooltip(),
-				visible: oItem.getVisible()
+				tooltip: this._handleSettingsValue(oItem.getTooltip()),
+				visible: oItem.getVisible(),
+				enabled: oItem.getEnabled()
 			});
+
+			oListItem.setAssociation("_group", oItemGroup);
+
+			oItem.aDelegates.forEach(function(oDelegateObject) {
+				oListItem.addEventDelegate(oDelegateObject.oDelegate, oDelegateObject.vThis);
+			});
+
+			return oListItem;
 		};
 
 		Menu.prototype._createVisualMenuItemFromItem = function(oItem) {
-			var oUfMenuItem = new UfdMenuItem({
-				id: this._generateUnifiedMenuItemId(oItem.getId()),
+			var sUfdMenuItemId = this._generateUnifiedMenuItemId(oItem.getId()),
+				oUfdMenuItem = Element.getElementById(sUfdMenuItemId),
+				aCustomData = oItem.getCustomData(),
+				aEndContent = oItem.getEndContent();
+
+			if (oUfdMenuItem) {
+				return oUfdMenuItem;
+			}
+
+			oUfdMenuItem = new UfdMenuItem({
+				id: sUfdMenuItemId,
 				icon: oItem.getIcon(),
-				text: oItem.getText(),
+				text: this._handleSettingsValue(oItem.getText()),
+				selected: oItem.getSelected(),
+				shortcutText: this._handleSettingsValue(oItem.getShortcutText()),
 				startsSection: oItem.getStartsSection(),
-				tooltip: oItem.getTooltip(),
+				tooltip: this._handleSettingsValue(oItem.getTooltip()),
 				visible: oItem.getVisible(),
 				enabled: oItem.getEnabled()
-			}),
-			i,
-			aCustomData = oItem.getCustomData();
+			});
 
-			for (i = 0; i < aCustomData.length; i++) {
-				oItem._addCustomData(oUfMenuItem, aCustomData[i]);
+			for (var i = 0; i < aCustomData.length; i++) {
+				oItem._addCustomData(oUfdMenuItem, aCustomData[i]);
 			}
 
-			return oUfMenuItem;
+			aEndContent.forEach((oEndContent) => {
+				oItem._addEndContent(oUfdMenuItem, oEndContent);
+			});
+
+			oItem.aDelegates.forEach(function(oDelegateObject) {
+				oUfdMenuItem.addEventDelegate(oDelegateObject.oDelegate, oDelegateObject.vThis);
+			});
+
+			return oUfdMenuItem;
 		};
 
-		Menu.prototype._addVisualMenuItemFromItem = function(oItem, oMenu, iIndex) {
-			var oMenuItem = this._createVisualMenuItemFromItem(oItem);
+		Menu.prototype._addVisualMenuItemFromItem = function(oItem, oMenuOrGroup, iIndex) {
+			var oMenuItem = this._createVisualMenuItemFromItem(oItem),
+				oMenuParent = this._isMenuItemGroup(oMenuOrGroup) ? oMenuOrGroup.getParent() : oMenuOrGroup,
+				aItemItems = oItem.getItems(),
+				oFirstItem;
 
-			oItem._setVisualParent(oMenu);
+			oItem._setVisualParent(oMenuParent);
 			oItem._setVisualControl(oMenuItem);
 
-			// attach event handlers responsible for keeping separate instances at sync
-			var aEvents = ['aggregationChanged', 'propertyChanged'];
-			aEvents.forEach(function (sEvent) {
-				var sEventHandlerName = '_on' + sEvent.slice(0, 1).toUpperCase() + sEvent.slice(1); // capitalize
-				oItem.attachEvent(sEvent, this[sEventHandlerName], this);
-			}, this);
-
-			if (oItem.getItems().length !== 0) {
-				this._initMenuForItems(oItem.getItems(), oMenuItem);
-				oItem._setVisualChild(oItem.getItems()[0]._getVisualParent());
+			if (aItemItems.length) {
+				oFirstItem = aItemItems[0];
+				if (this._isMenuItemGroup(oFirstItem)) {
+					var aGroupItems = oFirstItem.getItems();
+					oFirstItem = aGroupItems.length ? aGroupItems[0] : null;
+				}
+				this._initMenuForItems(aItemItems, oMenuItem);
+				oFirstItem && oItem._setVisualChild(oFirstItem._getVisualParent());
 			}
 
-			if (iIndex === undefined) {
-				oMenu.addItem(oMenuItem);
-			} else {
-				oMenu.insertItem(oMenuItem, iIndex);
+			iIndex === undefined ? oMenuOrGroup.addItem(oMenuItem) : oMenuOrGroup.insertItem(oMenuItem, iIndex);
+		};
+
+		Menu.prototype._createVisualMenuItemGroupFromItemsGroup = function(oGroup) {
+			var sUfdMenuItemGroupId = this._generateUnifiedMenuItemId(oGroup.getId()),
+				oUfdMenuItemGroup = Element.getElementById(sUfdMenuItemGroupId),
+				aCustomData = oGroup.getCustomData();
+
+			if (oUfdMenuItemGroup) {
+				return oUfdMenuItemGroup;
 			}
+
+			oUfdMenuItemGroup = new UfdMenuItemGroup({
+				id: sUfdMenuItemGroupId,
+				itemSelectionMode: oGroup.getItemSelectionMode()
+			});
+
+			oGroup._setVisualControl(oUfdMenuItemGroup);
+			oGroup._setParentMenu(this);
+
+			for (var i = 0; i < aCustomData.length; i++) {
+				oGroup._addCustomData(oUfdMenuItemGroup, aCustomData[i]);
+			}
+
+			return oUfdMenuItemGroup;
+		};
+
+		Menu.prototype._addVisualMenuItemGroupFromItemsGroup = function(oGroup, oMenu, iIndex) {
+			var oMenuItemGroup = this._createVisualMenuItemGroupFromItemsGroup(oGroup),
+				aItems = oGroup.getItems();
+
+			iIndex === undefined ? oMenu.addItem(oMenuItemGroup) : oMenu.insertItem(oMenuItemGroup, iIndex);
+
+			for (var i = 0; i < aItems.length; i++) {
+				this._addVisualMenuItemFromItem(aItems[i], oMenuItemGroup);
+			}
+
 		};
 
 		Menu.prototype._addListItemFromItem = function(oItem, oPage, iIndex) {
+			var aItemItems = oItem.getItems(),
+				bItemIsGroup = this._isMenuItemGroup(oItem),
+				oFirstItem;
+
+			if (bItemIsGroup) {
+				oItem._setParentMenu(this);
+				oItem.getItems().forEach((oItem) => {
+					this._addListItemFromItem(oItem, oPage, iIndex);
+					if (iIndex !== undefined) {
+						iIndex++;
+					}
+				});
+				return;
+			}
+
 			var oMenuListItem = this._createMenuListItemFromItem(oItem),
 				oList = oPage.getContent()[0];
 
 			oItem._setVisualParent(oPage);
 			oItem._setVisualControl(oMenuListItem);
-			// attach event handlers responsible for keeping separate instances at sync
-			var aEvents = ['aggregationChanged', 'propertyChanged'];
-			aEvents.forEach(function (sEvent) {
-				var sEventHandlerName = '_on' + sEvent.slice(0, 1).toUpperCase() + sEvent.slice(1); // capitalize
-				oItem.attachEvent(sEvent, this[sEventHandlerName], this);
-			}, this);
 
-			if (oItem.getItems().length !== 0) {
+			if (aItemItems.length) {
 				this._initPageForParent(oItem);
-				oItem._setVisualChild(oItem.getItems()[0]._getVisualParent());
+				oFirstItem = aItemItems[0];
+				if (this._isMenuItemGroup(oFirstItem)) {
+					aItemItems = oFirstItem.getItems();
+					oFirstItem = aItemItems.length ? aItemItems[0] : null;
+				}
+				if (oFirstItem) {
+					oItem._setVisualChild(oFirstItem._getVisualParent());
+				}
 			}
 
 			if (iIndex === undefined) {
@@ -534,7 +698,7 @@ sap.ui.define([
 				oList.insertItem(oMenuListItem, iIndex);
 			}
 
-			oList.rerender();
+			oList.invalidate();
 		};
 
 		/**
@@ -547,7 +711,7 @@ sap.ui.define([
 		 * @private
 		 */
 		Menu.prototype._connectVisualItem = function(oItem, oControl, iIndex) {
-			if (!oControl || sap.ui.getCore().byId(oItem._getVisualControl())) {
+			if (!oControl || (Element.getElementById(oItem._getVisualControl()) && oControl.indexOfItem(oItem) !== -1)) {
 				return;
 			}
 
@@ -579,6 +743,31 @@ sap.ui.define([
 			}
 		};
 
+		/**
+		 * Returns list of items stored in <code>items</code> aggregation. If there are group items,
+		 * the items of the group are returned instead of their group item.
+		 *
+		 * @returns {sap.ui.unified.MenuItem} List of all menu items
+		 * @private
+		 */
+		Menu.prototype._getItems = function() {
+			var aItems = [];
+
+			const findItems = (aItemItems) => {
+				aItemItems.forEach((oItem) => {
+					if (!this._isMenuItemGroup(oItem)) {
+						aItems.push(oItem);
+					} else {
+						findItems(oItem.getItems());
+					}
+				});
+			};
+
+			findItems(this.getItems());
+
+			return aItems;
+		};
+
 		Menu.prototype._handleMenuItemSelect = function(oEvent) {
 			var oUnfdItem = oEvent.getParameter("item"),
 				oMenuItem;
@@ -589,7 +778,10 @@ sap.ui.define([
 
 			oMenuItem = this._findMenuItemByUnfdMenuItem(oUnfdItem);
 
-			if (oMenuItem && !oMenuItem.getItems().length) {
+			oMenuItem.setSelected(oUnfdItem.getSelected());
+
+
+			if (oMenuItem && !oMenuItem._getItems().length) {
 				this.fireItemSelected({item: oMenuItem});
 			}
 			if (oMenuItem) {
@@ -606,33 +798,8 @@ sap.ui.define([
 		};
 
 		Menu.prototype._findMenuItemByUnfdMenuItem = function(oUnfdMenuItem) {
-			var aUnfdMenuItemStack = [],
-				oCurrentUnfdMenuItem = oUnfdMenuItem,
-				aItems,
-				iCurrentUnfdMenuItemId,
-				i;
-			do {
-				aUnfdMenuItemStack.push(oCurrentUnfdMenuItem.getId());
-				oCurrentUnfdMenuItem = oCurrentUnfdMenuItem.getParent().getParent();
-			} while (oCurrentUnfdMenuItem instanceof UfdMenuItem);
-
-			aItems = this.getItems();
-			do {
-				iCurrentUnfdMenuItemId = aUnfdMenuItemStack.pop();
-
-				for (i = 0; i < aItems.length; i++) {
-					if (aItems[i]._getVisualControl() === iCurrentUnfdMenuItemId) {
-						if (aUnfdMenuItemStack.length === 0) {
-							return aItems[i];
-						} else {
-							aItems = aItems[i].getItems();
-							break;
-						}
-					}
-				}
-			} while (aUnfdMenuItemStack.length);
-
-			return null;
+			var sId = oUnfdMenuItem.getId().slice(0, -Menu.UNIFIED_MENU_ITEMS_ID_SUFFIX.length);
+			return Element.getElementById(sId);
 		};
 
 		/**
@@ -711,7 +878,7 @@ sap.ui.define([
 		};
 
 		Menu.prototype._removeVisualItem = function(oItem, oParentItem) {
-			var oVisualItem = sap.ui.getCore().byId(oItem._getVisualControl()),
+			var oVisualItem = Element.getElementById(oItem._getVisualControl()),
 				vMenuOrList;
 
 			if (oVisualItem) {
@@ -726,12 +893,12 @@ sap.ui.define([
 						// now we need to update its parent list item - no to render its arrow and reset its visual child ref
 						if (oParentItem) {
 							oParentItem._setVisualChild(null);
-							sap.ui.getCore().byId(oParentItem._getVisualControl()).rerender();
+							Element.getElementById(oParentItem._getVisualControl()).invalidate();
 						}
 					}
 
 					if (vMenuOrList) { //if it is not destroyed already in the statement above
-						vMenuOrList.rerender();
+						vMenuOrList.invalidate();
 					}
 				}
 			}
@@ -757,7 +924,7 @@ sap.ui.define([
 			}
 
 			if (oItem._getVisualChild()) {
-				oSubMenuPage = sap.ui.getCore().byId(oItem._getVisualChild());
+				oSubMenuPage = Element.getElementById(oItem._getVisualChild());
 				if (this._getNavContainer() && oSubMenuPage) {
 					this._getNavContainer().removePage(oSubMenuPage);
 				}
@@ -782,11 +949,12 @@ sap.ui.define([
 		 * @private
 		 */
 		Menu.prototype._onPropertyChanged = function (oEvent) {
+			oEvent.cancelBubble();
 			var sPropertyKey = oEvent.getParameter("propertyKey"),
 				oPropertyValue = oEvent.getParameter("propertyValue"),
 				mTargetMenuItemProps = Device.system.phone ? Menu.MENU_LIST_ITEMS_PROPS : Menu.UNFIFIED_MENU_ITEMS_PROPS,
 				fnGenerateTargetItemId = Device.system.phone ? this._generateListItemId : this._generateUnifiedMenuItemId,
-				sTargetItemId;
+				sTargetItemId, oTargetItem;
 
 			if (Device.system.phone && sPropertyKey === 'text') {
 				sPropertyKey = 'title';
@@ -796,9 +964,13 @@ sap.ui.define([
 				return;
 			}
 			sTargetItemId = fnGenerateTargetItemId(oEvent.getSource().getId());
+			oTargetItem = Element.getElementById(sTargetItemId);
 
-			if (sTargetItemId) {
-				sap.ui.getCore().byId(sTargetItemId).setProperty(sPropertyKey, oPropertyValue);
+			if (oTargetItem) {
+				// Private aggregations are not going to get cloned if ManagedObject.prototype.clone method gets called.
+				// This would mean that it is possible to not have a sap.ui.unified.Menu instance and the corresponding
+				// sap.ui.unified.MenuItem instances at that point in time.
+				oTargetItem.setProperty(sPropertyKey, oPropertyValue);
 				if (Device.system.phone && this._getDialog().isOpen()) {
 					this._getDialog().close();
 				}
@@ -811,6 +983,7 @@ sap.ui.define([
 		* @private
 		*/
 		Menu.prototype._onAggregationChanged = function(oEvent) {
+			oEvent.cancelBubble();
 			var sAggregationname = oEvent.getParameter("aggregationName");
 
 			switch (sAggregationname) {
@@ -820,6 +993,7 @@ sap.ui.define([
 				case 'tooltip':
 					this._onTooltipAggregationChanged(oEvent);
 					break;
+				default:
 			}
 		};
 
@@ -838,7 +1012,7 @@ sap.ui.define([
 				return;
 			}
 
-			oVisualItem = sap.ui.getCore().byId(sVisualItemId);
+			oVisualItem = Element.getElementById(sVisualItemId);
 
 			if (methodName === "set") {
 				oVisualItem.setTooltip(methodParams.item);
@@ -882,16 +1056,16 @@ sap.ui.define([
 			var oLI;
 
 			if (oParentItem._getVisualChild()) { //this is not the first sub-item that is added
-				this._connectVisualItem(oNewItem, sap.ui.getCore().byId(oParentItem._getVisualChild()), iInsertIndex);
+				this._connectVisualItem(oNewItem, Element.getElementById(oParentItem._getVisualChild()), iInsertIndex);
 			} else {
 				if (Device.system.phone) {
 					this._initPageForParent(oParentItem);
 					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
-					oLI = sap.ui.getCore().byId(oParentItem._getVisualControl());
-					oLI.rerender();
+					oLI = Element.getElementById(oParentItem._getVisualControl());
+					oLI && oLI.invalidate();
 				} else {
-					this._initMenuForItems(oParentItem.getItems(), sap.ui.getCore().byId(oParentItem._getVisualControl()));
-					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
+					this._initMenuForItems(oParentItem.getItems(), Element.getElementById(oParentItem._getVisualControl()));
+					oParentItem._setVisualChild(oParentItem._getItems()[0]._getVisualParent());
 				}
 			}
 		};
@@ -901,7 +1075,7 @@ sap.ui.define([
 			//so here we receive multiple aggregationChanged events, each one for a separate item
 
 			//in the time we re-render the visual item, it's menuitem still has its subitems, so remove the ref for a while
-			var oVisualItem = sap.ui.getCore().byId(oItem._getVisualControl());
+			var oVisualItem = Element.getElementById(oItem._getVisualControl());
 			if (oVisualItem && oVisualItem.setMenuItem) {
 				oVisualItem.setMenuItem(null);
 			}
@@ -912,7 +1086,7 @@ sap.ui.define([
 			oItem._setVisualChild(null);
 
 			if (oVisualItem && oVisualItem.setMenuItem) {
-				oVisualItem.rerender();
+				oVisualItem.invalidate();
 				oVisualItem.setMenuItem(oItem);
 			}
 		};
@@ -933,7 +1107,7 @@ sap.ui.define([
 		 * Opens the menu as a context menu.
 		 * @param {jQuery.Event | object} oEvent The event object or an object containing offsetX, offsetY
 		 * values and left, top values of the element's position
-		 * @param {object} oOpenerRef The reference of the opener
+		 * @param {sap.ui.core.Element|HTMLElement} oOpenerRef The reference of the opener
 		 * @public
 		 */
 		Menu.prototype.openAsContextMenu = function(oEvent, oOpenerRef) {
@@ -968,6 +1142,36 @@ sap.ui.define([
 				return this;
 			};
 		});
+
+		/**
+		 * Returns an array containing the selected menu items.
+		 * <b>Note:</b> Only items with <code>selected</code> property set that are members of <code>MenuItemGroup</code> with <code>ItemSelectionMode</code> property
+		 * set to {@link sap.ui.core.ItemSelectionMode.SingleSelect} or {@link sap.ui.unified.ItemSelectionMode.MultiSelect}> are taken into account.
+		 * @since 1.127.0
+		 * @public
+		 * @returns {Array} Array of all selected items
+		 */
+		Menu.prototype.getSelectedItems = function() {
+			return this._getItems().filter((oItem) => oItem.getSelected && oItem.getSelected() && oItem._getItemSelectionMode() !== ItemSelectionMode.None);
+		};
+
+		/**
+		 * Checks if the given property value is binding value and if not escapes it
+		 * @param {string} sValue property value to be checked
+		 * @private
+		 * @returns {string} handled value
+		 */
+		Menu.prototype._handleSettingsValue = function(sValue) {
+			if (typeof sValue !== "string") {
+				return sValue;
+			}
+			try {
+				ManagedObject.bindingParser(sValue);
+				return sValue;
+			} catch {
+				return ManagedObject.escapeSettingsValue(sValue);
+			}
+		};
 
 		return Menu;
 	});

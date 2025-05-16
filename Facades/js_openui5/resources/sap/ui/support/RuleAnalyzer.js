@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/Bootstrap","sap/ui/support/supportRules/Main","sap/ui/support/supportRules/RuleSetLoader"],function(B,M,R){"use strict";var a={analyze:function(e,p,m){var l=new Promise(function(r){B.initSupportRules(["true","silent"],{onReady:function(){r();}});});return l.then(function(){if(R._bRulesCreated){return M.analyze(e,p,m);}return R._oMainPromise.then(function(){return M.analyze(e,p,m);});});},getLastAnalysisHistory:function(){return M.getLastAnalysisHistory();},getAnalysisHistory:function(){return M.getAnalysisHistory();},getFormattedAnalysisHistory:function(f){return M.getFormattedAnalysisHistory(f);},addRule:function(r){return M.addRule(r);}};return a;});
+sap.ui.define(["sap/ui/support/Bootstrap","sap/ui/support/supportRules/Main","sap/ui/support/supportRules/RuleSetLoader"],function(t,n,e){"use strict";var r={analyze:function(r,s,u){var i=new Promise(function(n){t.initSupportRules(["true","silent"],{onReady:function(){n()}})});return i.then(function(){if(e._bRulesCreated){return n.analyze(r,s,u)}return e._oMainPromise.then(function(){return n.analyze(r,s,u)})})},getLastAnalysisHistory:function(){return n.getLastAnalysisHistory()},getAnalysisHistory:function(){return n.getAnalysisHistory()},getFormattedAnalysisHistory:function(t){return n.getFormattedAnalysisHistory(t)},addRule:function(t){return n.addRule(t)}};return r});
+//# sourceMappingURL=RuleAnalyzer.js.map

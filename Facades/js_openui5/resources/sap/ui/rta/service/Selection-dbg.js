@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(function () {
+sap.ui.define(function() {
 	"use strict";
 
 	/**
@@ -13,22 +13,22 @@ sap.ui.define(function () {
 	 * @namespace
 	 * @name sap.ui.rta.service.Selection
 	 * @author SAP SE
-	 * @experimental Since 1.58
 	 * @since 1.58
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted
 	*/
-	return function (oRta, fnPublish) {
+
+	return function(oRta, fnPublish) {
 		var oSelectionManager = oRta._oDesignTime.getSelectionManager();
 
 		function getControlIds(aElementOverlays) {
-			return aElementOverlays.map(function (oElementOverlay) {
+			return aElementOverlays.map(function(oElementOverlay) {
 				return oElementOverlay.getElement().getId();
 			});
 		}
 
-		oSelectionManager.attachEvent("change", function (oEvent) {
+		oSelectionManager.attachEvent("change", function(oEvent) {
 			fnPublish("change", getControlIds(oEvent.getParameter("selection")));
 		});
 
@@ -47,7 +47,7 @@ sap.ui.define(function () {
 				 * @return {string[]} Selected control IDs
 				 * @public
 				 */
-				get: function () {
+				get() {
 					return getControlIds(oSelectionManager.get());
 				},
 
@@ -88,7 +88,25 @@ sap.ui.define(function () {
 				 * @returns {boolean} <code>true</code> if completed successfully (<code>false</code> if there is nothing to reset)
 				 * @public
 				 */
-				reset: oSelectionManager.reset.bind(oSelectionManager)
+				reset: oSelectionManager.reset.bind(oSelectionManager),
+
+				/**
+				 * Adds hover effect to the specified controls.
+				 *
+				 * @method sap.ui.rta.service.Selection.addHover
+				 * @param {string|string[]} vControlIds - Control IDs to which to add the hover effect
+				 * @public
+				 */
+				addHover: oSelectionManager.addHover.bind(oSelectionManager),
+
+				/**
+				 * Removes hover effect from the specified controls.
+				 *
+				 * @method sap.ui.rta.service.Selection.removeHover
+				 * @param {string|string[]} vControlIds - Control IDs from which to remove the hover effect
+				 * @public
+				 */
+				removeHover: oSelectionManager.removeHover.bind(oSelectionManager)
 			}
 		};
 	};

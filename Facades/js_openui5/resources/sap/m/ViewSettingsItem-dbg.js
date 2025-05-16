@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ViewSettingsItem.
-sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObject'],
-	function(library, Item, ManagedObject) {
+sap.ui.define(['./library', 'sap/ui/core/Item'],
+	function(library, Item) {
 	"use strict";
 
 
@@ -25,13 +25,12 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObject'],
 	 * @extends sap.ui.core.Item
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16
 	 * @alias sap.m.ViewSettingsItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ViewSettingsItem = Item.extend("sap.m.ViewSettingsItem", /** @lends sap.m.ViewSettingsItem.prototype */ { metadata : {
 
@@ -41,12 +40,20 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObject'],
 			/**
 			 * Selected state of the item. If set to "true", the item will be displayed as selected in the view settings dialog.
 			 */
-			selected : {type : "boolean", group : "Behavior", defaultValue : false}
+			selected : {type : "boolean", group : "Behavior", defaultValue : false},
+
+			/**
+			 * Defines the wrapping behavior of the title text.
+			 *
+			 * @since 1.121.0
+			 */
+			wrapping : {type : "boolean", group : "Behavior", defaultValue : false}
 		},
 		events : {
 			/**
 			 * Let the outside world know that some of its properties has changed.
 			 * @private
+			 * @ui5-restricted sap.m.ViewSettingsItem
 			 */
 			itemPropertyChanged: {
 				parameters: {
@@ -68,7 +75,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObject'],
 	}});
 
 	ViewSettingsItem.prototype.setSelected = function(bValue) {
-		ViewSettingsItem.prototype.setProperty.call(this, "selected", bValue, true);
+		this.setProperty("selected", bValue, true);
 		return this;
 	};
 
@@ -82,7 +89,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObject'],
 	 * @param {boolean} bFireEvent Whether the event must be fired
 	 */
 	ViewSettingsItem.prototype.setProperty = function (sName, vValue, bSupressInvalidation, bFireEvent) {
-		ManagedObject.prototype.setProperty.apply(this, arguments);
+		Item.prototype.setProperty.apply(this, arguments);
 
 		bFireEvent = bFireEvent === undefined ? true : bFireEvent;
 

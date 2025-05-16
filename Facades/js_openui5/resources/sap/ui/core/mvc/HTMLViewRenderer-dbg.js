@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define(['./ViewRenderer'],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for rendering the view content
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.core.mvc.HTMLView} oControl an object representation of the control that should be rendered
 	 */
 	HTMLViewRenderer.render = function(rm, oControl){
 		// write the HTML into the render manager
@@ -69,8 +69,8 @@ sap.ui.define(['./ViewRenderer'],
 			rm.unsafeHtml(sHTML);
 
 			// all controls that are not found in the template will be added at the end
-			for (var i = 0; i < aDeferred.length; i++) {
-				rm.renderControl(aDeferred[i]);
+			for (var k = 0; k < aDeferred.length; k++) {
+				rm.renderControl(aDeferred[k]);
 			}
 		}
 

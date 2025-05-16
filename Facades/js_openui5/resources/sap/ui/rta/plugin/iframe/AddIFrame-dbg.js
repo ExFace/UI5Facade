@@ -1,21 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/rta/plugin/BaseCreate",
 	"sap/ui/fl/Utils",
-	"sap/ui/rta/Utils",
 	"sap/ui/dt/Util",
 	"sap/base/util/uid",
 	"sap/ui/core/IconPool",
 	"sap/ui/rta/plugin/iframe/AddIFrameDialog"
 ], function(
+	Lib,
 	BaseCreate,
 	FlexUtils,
-	RtaUtils,
 	DtUtil,
 	uid,
 	IconPool,
@@ -23,13 +23,10 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	function getCreateMenuItemText(sAggregationName, sTextKey, oOverlay) {
+	function getCreateMenuItemText(sAggregationName, sTextKey, oTextResources, oOverlay) {
 		var bSibling = !sAggregationName;
-		var vAction = this.getCreateAction(bSibling, oOverlay, sAggregationName);
-		var oParentOverlay = this._getParentOverlay(bSibling, oOverlay);
-		var oDesignTimeMetadata = oParentOverlay.getDesignTimeMetadata();
-		var oElement = oParentOverlay.getElement();
-		return this._getText(vAction, oElement, oDesignTimeMetadata, sTextKey);
+		var oAction = this.getCreateAction(bSibling, oOverlay, sAggregationName);
+		return oTextResources.getText(sTextKey, [oAction.text]);
 	}
 
 	function getAddIFrameCommand(oModifiedElement, mSettings, oDesignTimeMetadata, sVariantManagementKey) {
@@ -53,7 +50,9 @@ sap.ui.define([
 			index: mSettings.index,
 			url: mSettings.frameUrl,
 			width: sWidth,
-			height: sHeight
+			height: sHeight,
+			title: mSettings.title,
+			advancedSettings: mSettings.advancedSettings
 		}, oDesignTimeMetadata, sVariantManagementKey);
 	}
 
@@ -74,35 +73,43 @@ sap.ui.define([
 
 		var sVariantManagementReference = this.getVariantManagementReference(oParentOverlay);
 
-		var oAddIFrameDialog = new AddIFrameDialog();
-		var mAddIFrameDialogSettings = {
-			parameters: AddIFrameDialog.buildUrlBuilderParametersFor(oParent)
-		};
-		oAddIFrameDialog.open(mAddIFrameDialogSettings)
-			.then(function(mSettings) {
-				if (!mSettings) {
-					return Promise.reject(); // Cancel
-				}
-				mSettings.index = iIndex;
-				mSettings.aggregation = oAction.aggregation;
-				return getAddIFrameCommand.call(this, oParent, mSettings, oDesignTimeMetadata, sVariantManagementReference);
-			}.bind(this))
-			.then(function(oCommand) {
-				// providing an action will trigger the rename plugin, which we only want in case of addIFrame as section
-				// in that case the function getCreatedContainerId has to be provided
-				this.fireElementModified({
-					command: oCommand,
-					newControlId: oCommand.getBaseId(),
-					action: oAction.getCreatedContainerId ? oAction : undefined
-				});
-			}.bind(this))
-			.catch(function(vError) {
-				if (vError) {
-					throw DtUtil.createError("AddIFrame#handler", vError, "sap.ui.rta");
-				}
-			});
-	}
+		// providing an action will trigger the rename plugin, which we only want in case of addIFrame as container
+		// in that case the function getCreatedContainerId has to be provided
+		var bAsContainer = !!oAction.getCreatedContainerId;
 
+		var oAddIFrameDialog = new AddIFrameDialog();
+		var sNewContainerTitle;
+		AddIFrameDialog.buildUrlBuilderParametersFor(oParent)
+		.then(function(mURLParameters) {
+			var mAddIFrameDialogSettings = {
+				parameters: mURLParameters,
+				asContainer: bAsContainer
+			};
+			return oAddIFrameDialog.open(mAddIFrameDialogSettings, oParent);
+		})
+		.then(function(mSettings) {
+			if (!mSettings) {
+				return Promise.reject(); // Cancel
+			}
+			mSettings.index = iIndex;
+			mSettings.aggregation = oAction.aggregation;
+			sNewContainerTitle = mSettings.title;
+			return getAddIFrameCommand.call(this, oParent, mSettings, oDesignTimeMetadata, sVariantManagementReference);
+		}.bind(this))
+		.then(function(oCommand) {
+			this.fireElementModified({
+				command: oCommand,
+				newControlId: oCommand.getBaseId(),
+				action: bAsContainer ? oAction : undefined,
+				title: sNewContainerTitle
+			});
+		}.bind(this))
+		.catch(function(vError) {
+			if (vError) {
+				throw DtUtil.createError("AddIFrame#handler", vError, "sap.ui.rta");
+			}
+		});
+	}
 
 	/**
 	 * Constructor for a new AddIFrame plugin.
@@ -112,12 +119,11 @@ sap.ui.define([
 	 * @class The AddIFrame allows trigger AddIFrame operations on the overlay.
 	 * @extends sap.ui.rta.plugin.BaseCreate
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.75
 	 * @alias sap.ui.rta.plugin.AddIFrame
-	 * @experimental Since 1.75. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var AddIFrame = BaseCreate.extend("sap.ui.rta.plugin.AddIFrame", /** @lends sap.ui.rta.plugin.AddIFrame.prototype */{
 		metadata: {
@@ -148,12 +154,12 @@ sap.ui.define([
 	 * @return {array} Array of context menu items
 	 * @override
 	 */
-	AddIFrame.prototype.getMenuItems = function(aElementOverlays) {
+	AddIFrame.prototype.getMenuItems = async function(aElementOverlays) {
 		function getCommonProperties(sAggregationName) {
-			var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
+			var oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
 			var sIFrameGroupText = oTextResources.getText("CTX_ADDIFRAME_GROUP");
 			return {
-				text: getCreateMenuItemText.bind(this, sAggregationName, "CTX_ADDIFRAME"),
+				text: getCreateMenuItemText.bind(this, sAggregationName, "CTX_ADDIFRAME", oTextResources),
 				handler: handleCreate.bind(this, sAggregationName),
 				enabled: this.isEnabled.bind(this, sAggregationName),
 				isSibling: !sAggregationName,
@@ -167,39 +173,47 @@ sap.ui.define([
 			collectionName: "tnt",
 			fontFamily: "SAP-icons-TNT",
 			fontURI: sap.ui.require.toUrl("sap/tnt/themes/base/fonts"),
-			lazy: true
+			lazy: false
 		});
+		await IconPool.fontLoaded("tnt");
 
-		var iBaseRank = 140;
+		var iBaseRank = this.getRank("CTX_CREATE_SIBLING_IFRAME");
 		var aMenuItems = [];
 
 		var bIsSibling = true;
-		if (this.isAvailable(bIsSibling, aElementOverlays)) {
+		if (this.isAvailable(aElementOverlays, bIsSibling)) {
 			var oAction = this.getCreateAction(bIsSibling, aElementOverlays[0]);
 			if (oAction) {
-				var oSiblingMenuItem = Object.assign({
+				var oSiblingMenuItem = {
 					id: "CTX_CREATE_SIBLING_IFRAME",
+					additionalInfo: this._getAdditionalInfo(aElementOverlays[0], oAction, {
+						additionalInfoKey: "IFRAME_RTA_CONTEXT_MENU_INFO"
+					}),
 					rank: iBaseRank,
-					action: oAction
-				}, getCommonProperties.call(this));
+					action: oAction,
+					...getCommonProperties.call(this)
+				};
 
 				aMenuItems.push(this.enhanceItemWithResponsibleElement(oSiblingMenuItem, aElementOverlays));
-				iBaseRank += 10;
 			}
 		}
 
 		bIsSibling = false;
-		if (this.isAvailable(bIsSibling, aElementOverlays)) {
+		if (this.isAvailable(aElementOverlays, bIsSibling)) {
 			aMenuItems = aMenuItems.concat(this.getCreateActions(bIsSibling, aElementOverlays[0])
-				.map(function(oAction, iIndex) {
-					var oParentMenuItem = Object.assign({
-						action: oAction,
-						id: "CTX_CREATE_CHILD_IFRAME_" + oAction.aggregation.toUpperCase(),
-						rank: iBaseRank + 10 * iIndex
-					}, getCommonProperties.call(this, oAction.aggregation));
+			.map(function(oAction) {
+				var oParentMenuItem = {
+					action: oAction,
+					id: `CTX_CREATE_CHILD_IFRAME_${oAction.aggregation.toUpperCase()}`,
+					additionalInfo: this._getAdditionalInfo(aElementOverlays[0], oAction, {
+						additionalInfoKey: "IFRAME_RTA_CONTEXT_MENU_INFO"
+					}),
+					rank: ++iBaseRank,
+					...getCommonProperties.call(this, oAction.aggregation)
+				};
 
-					return this.enhanceItemWithResponsibleElement(oParentMenuItem, aElementOverlays);
-				}, this)
+				return this.enhanceItemWithResponsibleElement(oParentMenuItem, aElementOverlays);
+			}, this)
 			);
 		}
 		return aMenuItems;

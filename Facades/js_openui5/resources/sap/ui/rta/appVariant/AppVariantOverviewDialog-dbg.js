@@ -1,18 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.rta.appVariant.AppVariantOverviewDialog.
 sap.ui.define([
 	"sap/ui/core/ComponentContainer",
+	"sap/ui/core/Lib",
+	"sap/m/Button",
 	"sap/m/Dialog",
 	"sap/m/DialogRenderer",
 	"sap/ui/rta/appVariant/manageApps/webapp/Component",
 	"sap/ui/rta/Utils"
 ], function(
 	ComponentContainer,
+	Lib,
+	Button,
 	Dialog,
 	DialogRenderer,
 	ManageAppsComponent,
@@ -21,32 +25,34 @@ sap.ui.define([
 	"use strict";
 
 	var AppVariantOverviewDialog = Dialog.extend("sap.ui.rta.appVariant.AppVariantOverviewDialog", {
-		metadata : {
+		metadata: {
+			library: "sap.ui.rta",
 			properties: {
-				idRunningApp : "string",
+				idRunningApp: "string",
 				isOverviewForKeyUser: {
 					type: "boolean"
 				},
 				layer: "string"
 			},
-			events : {
-				cancel : {}
+			events: {
+				cancel: {}
 			}
 		},
-		constructor: function() {
-			Dialog.prototype.constructor.apply(this, arguments);
-			this._oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
+		// eslint-disable-next-line object-shorthand
+		constructor: function(...aArgs) {
+			Dialog.prototype.constructor.apply(this, aArgs);
+			this._oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
 
 			// Create manage apps component
 			this.oManageAppsComponent = new ManageAppsComponent("sap.ui.rta.appVariant.manageApps", {
-				idRunningApp : this.getIdRunningApp(),
+				idRunningApp: this.getIdRunningApp(),
 				isOverviewForKeyUser: this.getIsOverviewForKeyUser(),
 				layer: this.getLayer()
 			});
 
 			// Place component in container and display
 			this.oManageAppsComponentContainer = new ComponentContainer({
-				component : this.oManageAppsComponent
+				component: this.oManageAppsComponent
 			});
 
 			this.addContent(this.oManageAppsComponentContainer);
@@ -60,14 +66,14 @@ sap.ui.define([
 
 			this.addStyleClass(RtaUtils.getRtaStyleClassName());
 		},
-		destroy: function() {
-			Dialog.prototype.destroy.apply(this, arguments);
+		destroy(...aArgs) {
+			Dialog.prototype.destroy.apply(this, aArgs);
 		},
-		renderer: DialogRenderer.render
+		renderer: DialogRenderer
 	});
 
 	AppVariantOverviewDialog.prototype._createButton = function() {
-		this.addButton(new sap.m.Button({
+		this.addButton(new Button({
 			text: this._oTextResources.getText("APP_VARIANT_DIALOG_CLOSE"),
 			press: function() {
 				this.close();

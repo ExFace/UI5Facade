@@ -1,20 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseListContent",
 	"./TimelineContentRenderer",
-	"sap/ui/core/Core",
-	"sap/ui/integration/util/BindingHelper"
+	"sap/f/cards/loading/TimelinePlaceholder",
+	"sap/ui/core/Lib",
+	"sap/ui/integration/library",
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/integration/util/BindingResolver"
 ], function (
 	BaseListContent,
 	TimelineContentRenderer,
-	Core,
-	BindingHelper
+	TimelinePlaceholder,
+	Library,
+	library,
+	BindingHelper,
+	BindingResolver
 ) {
 	"use strict";
+
+	// shortcuts for sap.ui.integration.CardActionArea
+	var ActionArea = library.CardActionArea;
 
 	// lazy dependencies, loaded on the first attempt to create TimelineContent
 	var Timeline, TimelineItem;
@@ -31,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @experimental
@@ -42,6 +51,9 @@ sap.ui.define([
 	 *
 	 */
 	var TimelineContent = BaseListContent.extend("sap.ui.integration.cards.TimelineContent", {
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: TimelineContentRenderer
 	});
 
@@ -60,9 +72,23 @@ sap.ui.define([
 	/**
 	 * @override
 	 */
-	TimelineContent.prototype.loadDependencies = function (oConfig) {
+	TimelineContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		var oCard = this.getCardInstance(),
+			iContentMinItems = oCard.getContentMinItems(oConfiguration);
+
+		return new TimelinePlaceholder({
+			minItems: iContentMinItems !== null ? iContentMinItems : 2,
+			item: oConfiguration.item,
+			itemHeight: TimelineContentRenderer.getItemMinHeight(oConfiguration, this) + "rem"
+		});
+	};
+
+	/**
+	 * @override
+	 */
+	TimelineContent.prototype.loadDependencies = function (oCardManifest) {
 		return new Promise(function (resolve, reject) {
-			Core.loadLibrary("sap.suite.ui.commons", { async: true })
+			Library.load("sap.suite.ui.commons")
 				.then(function () {
 					sap.ui.require([
 						"sap/suite/ui/commons/Timeline",
@@ -98,7 +124,9 @@ sap.ui.define([
 			oTimeline = new Timeline({
 				id: this.getId() + "-Timeline",
 				showHeaderBar: false,
-				enableScroll: false
+				enableScroll: false,
+				growingThreshold: 0,
+				ariaLabelledBy: this.getHeaderTitleId()
 			});
 			this.setAggregation("_content", oTimeline);
 		}
@@ -107,36 +135,41 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for configuring a <code>sap.ui.integration.cards.TimelineContent</code>.
-	 *
-	 * @public
-	 * @param {Object} oConfiguration Configuration object used to create the internal list.
-	 * @returns {sap.ui.integration.cards.TimelineContent} Pointer to the control instance to allow method chaining.
+	 * @override
 	 */
-	TimelineContent.prototype.setConfiguration = function (oConfiguration) {
-		BaseListContent.prototype.setConfiguration.apply(this, arguments);
+	TimelineContent.prototype.applyConfiguration = function () {
+		BaseListContent.prototype.applyConfiguration.apply(this, arguments);
+
+		var oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
-			return this;
+			return;
 		}
 
 		if (oConfiguration.items) {
 			this._setStaticItems(oConfiguration.items);
-			return this;
+			return;
 		}
 
 		if (oConfiguration.item) {
 			this._setItem(oConfiguration.item);
 		}
+	};
 
-		return this;
+	/**
+	 * @override
+	 */
+	TimelineContent.prototype.getItemsLength = function () {
+		return this._getTimeline().getContent().length;
 	};
 
 	/**
 	 * Handler for when data is changed.
 	 */
 	TimelineContent.prototype.onDataChanged = function () {
-		this._checkHiddenNavigationItems(this.getConfiguration().item);
+		BaseListContent.prototype.onDataChanged.apply(this, arguments);
+
+		this._checkHiddenNavigationItems(this.getParsedConfiguration().item);
 	};
 
 	/**
@@ -144,11 +177,11 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {Object} mItem The item template of the configuration object
-	 * @returns {sap.ui.integration.cards.TimelineContent} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 */
 	TimelineContent.prototype._setItem = function (mItem) {
 		var mSettings = {
-			userNameClickable : false,
+			userNameClickable: false,
 			title: mItem.title && mItem.title.value,
 			text: mItem.description && mItem.description.value,
 			dateTime: mItem.dateTime && mItem.dateTime.value,
@@ -159,19 +192,25 @@ sap.ui.define([
 		// settings that need a formatter
 		if (mItem.ownerImage && mItem.ownerImage.value) {
 			mSettings.userPicture = BindingHelper.formattedProperty(mItem.ownerImage.value, function (sValue) {
-				return this._oIconFormatter.formatSrc(sValue, this._sAppId);
+				return this._oIconFormatter.formatSrc(sValue);
 			}.bind(this));
 		}
 
-		this._oTimeLineItemTemplate =  new TimelineItem(mSettings);
-		this._oActions.attach(mItem, this);
+		this._oTimeLineItemTemplate = new TimelineItem(mSettings);
+
+		this._oActions.attach({
+			area: ActionArea.ContentItem,
+			actions: mItem.actions,
+			control: this,
+			actionControl: this._oTimeLineItemTemplate,
+			eventName: "select"
+		});
 
 		var oBindingInfo = {
 			template: this._oTimeLineItemTemplate
 		};
 
-		this._filterHiddenNavigationItems(mItem, oBindingInfo);
-		this._bindAggregation("content", this._getTimeline(), oBindingInfo);
+		this._bindAggregationToControl("content", this._getTimeline(), oBindingInfo);
 
 		return this;
 	};
@@ -201,11 +240,39 @@ sap.ui.define([
 	};
 
 	/**
-	 * @overwrite
+	 * @override
 	 * @returns {sap.suite.ui.commons.Timeline} The inner timeline.
 	 */
 	TimelineContent.prototype.getInnerList = function () {
 		return this._getTimeline();
+	};
+
+	/**
+	* @override
+	*/
+	TimelineContent.prototype.getStaticConfiguration = function () {
+		var aItems = this.getInnerList().getContent(),
+		oConfiguration = this.getParsedConfiguration(),
+		aResolvedItems = [];
+
+		aItems.forEach(function (oItem) {
+			var oResolvedItem = BindingResolver.resolveValue(oConfiguration.item, this, oItem.getBindingContext().getPath());
+
+			if (oResolvedItem.icon && oResolvedItem.icon.src) {
+				oResolvedItem.icon.src = this._oIconFormatter.formatSrc(oResolvedItem.icon.src);
+			}
+
+			if (oResolvedItem.ownerImage && oResolvedItem.ownerImage.value) {
+				oResolvedItem.ownerImage.value = this._oIconFormatter.formatSrc(oResolvedItem.ownerImage.value);
+			}
+
+			aResolvedItems.push(oResolvedItem);
+		}.bind(this));
+		var oStaticConfiguration = {
+			items: aResolvedItems
+		};
+
+		return oStaticConfiguration;
 	};
 
 	return TimelineContent;

@@ -1,18 +1,16 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/flexState/UI2Personalization/UI2PersonalizationState",
-	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/ChangesController",
+	"sap/ui/fl/write/_internal/flexState/UI2Personalization/UI2PersonalizationState",
+	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/base/util/restricted/_omit"
 ], function(
 	UI2PersonalizationState,
-	FlexState,
-	ChangesController,
+	ManifestUtils,
 	_omit
 ) {
 	"use strict";
@@ -21,7 +19,6 @@ sap.ui.define([
 	 * Provides an API to write UI2 personalization.
 	 *
 	 * @namespace sap.ui.fl.write.api.UI2PersonalizationWriteAPI
-	 * @experimental Since 1.71
 	 * @since 1.71
 	 * @private
 	 * @ui5-restricted
@@ -37,15 +34,13 @@ sap.ui.define([
 		 * @param {string} mPropertyBag.content The personalization content to be stored
 		 * @param {string} mPropertyBag.category The item category with which the personalization should be stored
 		 * @param {string} mPropertyBag.containerCategory The container category with which the personalization should be stored
-		 * @returns {Promise} Promise resolving with the object stored under the passed container key and item name,
-		 * or undefined in case no entry was stored for these
+		 * @returns {Promise} Promise resolving if the object is stored successfully
 		 *
 		 * @private
 		 * @ui5-restricted
 		 */
-		create: function (mPropertyBag) {
-			var oFlexController = ChangesController.getFlexControllerInstance(mPropertyBag.selector);
-			mPropertyBag.reference = oFlexController.getComponentName();
+		async create(mPropertyBag) {
+			mPropertyBag.reference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 
 			if (
 				!mPropertyBag.reference
@@ -55,14 +50,10 @@ sap.ui.define([
 				|| !mPropertyBag.category
 				|| !mPropertyBag.containerCategory
 			) {
-				return Promise.reject(new Error("not all mandatory properties were provided for the storage of the personalization"));
+				throw new Error("not all mandatory properties were provided for the storage of the personalization");
 			}
 
-			return FlexState.initialize({
-				componentId: mPropertyBag.selector.getId()
-			}).then(function() {
-				return UI2PersonalizationState.setPersonalization(_omit(mPropertyBag, ["selector"]));
-			});
+			await UI2PersonalizationState.setPersonalization(_omit(mPropertyBag, ["selector"]));
 		},
 
 		/**
@@ -78,25 +69,24 @@ sap.ui.define([
 		 * @private
 		 * @ui5-restricted
 		 */
-		deletePersonalization: function(mPropertyBag) {
-			var oFlexController = ChangesController.getFlexControllerInstance(mPropertyBag.selector);
-			mPropertyBag.reference = oFlexController.getComponentName();
+		async deletePersonalization(mPropertyBag) {
+			mPropertyBag.reference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 
 			if (
 				!mPropertyBag.reference
 				|| !mPropertyBag.containerKey
 				|| !mPropertyBag.itemName
 			) {
-				return Promise.reject(new Error("not all mandatory properties were provided for the deletion of the personalization"));
+				throw new Error("not all mandatory properties were provided for the deletion of the personalization");
 			}
 
-			return FlexState.initialize({
-				componentId: mPropertyBag.selector.getId()
-			}).then(function() {
-				return UI2PersonalizationState.deletePersonalization(mPropertyBag.reference, mPropertyBag.containerKey, mPropertyBag.itemName);
-			});
+			await UI2PersonalizationState.deletePersonalization(
+				mPropertyBag.reference,
+				mPropertyBag.containerKey,
+				mPropertyBag.itemName
+			);
 		}
 	};
 
 	return UI2PersonalizationWriteAPI;
-}, true);
+});

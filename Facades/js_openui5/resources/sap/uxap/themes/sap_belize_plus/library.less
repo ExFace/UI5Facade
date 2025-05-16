@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -94,6 +94,12 @@
 /* ======================================== */
 .sapUxAPObjectPageLayoutTitleClickEnabled > .sapUxAPObjectPageHeaderStickied > .sapFDynamicPageTitle {
 	box-shadow: @sapUiShadowHeader;
+}
+
+.sapUshellShell {
+	.sapUxAPObjectPageWrapper {
+		background-color: transparent;
+	}
 }
 
 .sapUxAPObjectPageLayout.sapUxAPObjectPageLayoutTitleClickEnabled {
@@ -207,4 +213,14 @@
 /* ============================================== */
 
 @_sap_uxap_ObjectPageSubSection_BorderColor: darken(@sapUiListBorderColor, 5);
+
+
+.sapUxAPObjectPageSubSectionHeader {
+	padding: 0 3rem 0 3rem;
+}
+
+.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSubSectionHeader,
+html .sapUiContainer-Medium .sapUxAPObjectPageSubSectionHeader {
+	padding: 0 2rem 0 2rem;
+}
 /* END "ObjectPageSubSection.less" */

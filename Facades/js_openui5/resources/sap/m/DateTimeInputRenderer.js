@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var D={};D.render=function(r,c){r.write("<div");r.writeControlData(c);r.addClass("sapMDTI");var w=c.getWidth();if(w){r.addStyle("width",w);}r.writeStyles();r.writeClasses();r.write(">");var p=c.getAggregation("_picker");if(p){r.renderControl(p);}r.write("</div>");};return D;},true);
+sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,r){e.openStart("div",r);e.class("sapMDTI");var i=r.getWidth();if(i){e.style("width",i)}e.openEnd();var t=r.getAggregation("_picker");if(t){e.renderControl(t)}e.close("div")};return e},true);
+//# sourceMappingURL=DateTimeInputRenderer.js.map

@@ -1,12 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/base/ManagedObject"], function (ManagedObject) {
+sap.ui.define(["sap/ui/base/ManagedObject", "./library"], function (ManagedObject, library) {
 	"use strict";
 
+	//shortcut for sap.m.CarouselScrollMode
+	var CarouselScrollMode = library.CarouselScrollMode;
 	/**
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new control
@@ -15,7 +17,7 @@ sap.ui.define(["sap/ui/base/ManagedObject"], function (ManagedObject) {
 	 * Applies a <code>sap.m.CarouselLayout</code> to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 *
@@ -23,7 +25,6 @@ sap.ui.define(["sap/ui/base/ManagedObject"], function (ManagedObject) {
 	 * @constructor
 	 * @public
 	 * @alias sap.m.CarouselLayout
-	 * @ui5-metamodel This simple type will also be described in the UI5 (legacy) designtime metamodel
 	 */
 	var CarouselLayout = ManagedObject.extend("sap.m.CarouselLayout", /** @lends sap.m.CarouselLayout.prototype */ {
 		metadata: {
@@ -36,14 +37,23 @@ sap.ui.define(["sap/ui/base/ManagedObject"], function (ManagedObject) {
 				 * <b>Note:</b> When this property is set to something different than the default value,
 				 * the <code>loop</code> property of <code>Carousel</code> is ignored.
 				 */
-				visiblePagesCount: {type: "int", group: "Misc", defaultValue: 1}
+				visiblePagesCount: {type: "int", group: "Misc", defaultValue: 1},
+
+				/**
+				 * Defines how the items will be scrolled through in <code>Carousel</code> control.
+				 * One at a time or depending on the <code>visiblePagesCount</code>
+				 *
+				 * NOTE: <code>visiblePagesCount</code> must be set a value larger than 1, to be able to use <code>scrollMode</code> with value "VisiblePages"
+				 * @since 1.121
+				 */
+				scrollMode: {type : "sap.m.CarouselScrollMode", group : "Appearance", defaultValue : CarouselScrollMode.SinglePage}
 			}
 		}
 	});
 
 	/*!
 	 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 	 */
 

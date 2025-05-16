@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,8 +17,10 @@ sap.ui.define([
 	"sap/m/library",
 	"sap/m/OverflowToolbarLayoutData",
 	"sap/ui/core/IconPool",
-	"sap/ui/core/InvisibleText"
-], function(BaseObject, library, OverflowToolbarLayoutData, IconPool, InvisibleText) {
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Messaging",
+	"sap/ui/core/Lib"
+], function(BaseObject, library, OverflowToolbarLayoutData, IconPool, InvisibleText, Messaging, Library) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -36,11 +38,10 @@ sap.ui.define([
 	 * Constructor for an sap.m.semantic.SemanticConfiguration.
 	 *
 	 * @class Defines the visual properties and positioning for each supported semantic type
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.SemanticConfiguration
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	var SemanticConfiguration = BaseObject.extend("sap.m.semantic.SemanticConfiguration", {
@@ -123,7 +124,7 @@ sap.ui.define([
 	SemanticConfiguration._oTypeConfigs = (function () { //TODO: set from outside?
 
 	var oTypeConfigs = {},
-			oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			oBundle = Library.getResourceBundleFor("sap.m");
 
 		oTypeConfigs["sap.m.semantic.MultiSelectAction"] = {
 			position: SemanticConfiguration.prototype._PositionInPage.headerRight,
@@ -252,8 +253,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("add"),
-					text: oBundle.getText("SEMANTIC_CONTROL_ADD"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_ADD")
+					text: oBundle.getText("SEMANTIC_CONTROL_ADD")
 				};
 			},
 			order: 0,
@@ -265,8 +265,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("favorite"),
-					text: oBundle.getText("SEMANTIC_CONTROL_FAVORITE"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_FAVORITE")
+					text: oBundle.getText("SEMANTIC_CONTROL_FAVORITE")
 				};
 			},
 			order: 1,
@@ -278,8 +277,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("flag"),
-					text: oBundle.getText("SEMANTIC_CONTROL_FLAG"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_FLAG")
+					text: oBundle.getText("SEMANTIC_CONTROL_FLAG")
 				};
 			},
 			order: 2,
@@ -306,8 +304,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("sort"),
-					text: oBundle.getText("SEMANTIC_CONTROL_SORT"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_SORT")
+					text: oBundle.getText("SEMANTIC_CONTROL_SORT")
 				};
 			},
 			constraints: "IconOnly"
@@ -338,8 +335,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("filter"),
-					text: oBundle.getText("SEMANTIC_CONTROL_FILTER"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_FILTER")
+					text: oBundle.getText("SEMANTIC_CONTROL_FILTER")
 				};
 			},
 			constraints: "IconOnly"
@@ -370,8 +366,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("group-2"),
-					text: oBundle.getText("SEMANTIC_CONTROL_GROUP"),
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_GROUP")
+					text: oBundle.getText("SEMANTIC_CONTROL_GROUP")
 				};
 			},
 			constraints: "IconOnly"
@@ -385,7 +380,8 @@ sap.ui.define([
 				return {
 					icon: IconPool.getIconURI("group-2"),
 					type: "IconOnly",
-					autoAdjustWidth: true
+					autoAdjustWidth: true,
+					tooltip: oBundle.getText("SEMANTIC_CONTROL_GROUP")
 				};
 			},
 			getEventDelegates: function(oContext) {
@@ -413,7 +409,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("discussion-2"),
-					text: oBundle.getText("SEMANTIC_CONTROL_DISCUSS_IN_JAM")
+					text: oBundle.getText("SEMANTIC_CONTROL_DISCUSS_IN_WORK_ZONE")
 				};
 			},
 			order: 1,
@@ -425,7 +421,7 @@ sap.ui.define([
 			getSettings: function() {
 				return {
 					icon: IconPool.getIconURI("share-2"),
-					text: oBundle.getText("SEMANTIC_CONTROL_SHARE_IN_JAM")
+					text: oBundle.getText("SEMANTIC_CONTROL_SHARE_ON_WORK_ZONE")
 				};
 			},
 			order: 2,
@@ -471,8 +467,6 @@ sap.ui.define([
 		oTypeConfigs["sap.m.semantic.MessagesIndicator"] = {
 			position: SemanticConfiguration.prototype._PositionInPage.footerLeft,
 			getSettings: function() {
-				var sTooltipId = InvisibleText.getStaticId("sap.m", "SEMANTIC_CONTROL_MESSAGES_INDICATOR");
-
 				return {
 					icon: IconPool.getIconURI("message-popup"),
 					text: {
@@ -481,8 +475,12 @@ sap.ui.define([
 							return aMessages.length || 0;
 						}
 					},
-					tooltip: oBundle.getText("SEMANTIC_CONTROL_MESSAGES_INDICATOR"),
-					ariaLabelledBy: sTooltipId,
+					tooltip: {
+						path: "message>/",
+						formatter: function (aMessages) {
+							return oBundle.getText("SEMANTIC_CONTROL_MESSAGES_INDICATOR", [aMessages?.length || 0]);
+						}
+					},
 					type: ButtonType.Emphasized,
 					visible: {
 						path: "message>/",
@@ -490,7 +488,7 @@ sap.ui.define([
 							return aMessages && aMessages.length > 0;
 						}
 					},
-					models: {message: sap.ui.getCore().getMessageManager().getMessageModel()},
+					models: {message: Messaging.getMessageModel()},
 					layoutData: new OverflowToolbarLayoutData({
 						priority: OverflowToolbarPriority.NeverOverflow
 					})

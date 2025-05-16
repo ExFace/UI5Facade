@@ -1,12 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/Element'
-], function(Element) {
+], (Element) => {
 	"use strict";
 
 	/**
@@ -16,18 +16,15 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class Type for <code>items</code> aggregation in <code>Panel</code> control.
 	 * @extends sap.ui.core.Element
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.54.0
 	 * @alias sap.ui.mdc.link.PanelItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var PanelItem = Element.extend("sap.ui.mdc.link.PanelItem", /** @lends sap.ui.mdc.link.PanelItem.prototype */
-	{
+	const PanelItem = Element.extend("sap.ui.mdc.link.PanelItem", /** @lends sap.ui.mdc.link.PanelItem.prototype */ {
 		metadata: {
 			library: "sap.ui.mdc",
-			designtime: "sap/ui/mdc/designtime/link/PanelItem.designtime",
 			properties: {
 				/**
 				 * Defines text of the item.
@@ -46,6 +43,14 @@ sap.ui.define([
 				 */
 				href: {
 					type: "string"
+				},
+				/**
+				 * Destination link for a navigation operation in internal format provided by FLP.
+				 * @protected
+				 */
+				internalHref: {
+					type: "string",
+					defaultValue: null
 				},
 				/**
 				 * Defines target of the item.
@@ -89,14 +94,14 @@ sap.ui.define([
 				// visibleInitial: {
 				// 	type: "boolean"
 				// }
-			// },
-			// /**
-			//  * Defines press handler of a link.
-			//  */
-			// press: {
-			// 	type: "object",
-			// 	defaultValue: null
-			// }
+				// },
+				// /**
+				//  * Defines press handler of a link.
+				//  */
+				// press: {
+				// 	type: "object",
+				// 	defaultValue: null
+				// }
 			}
 		}
 	});
@@ -107,6 +112,7 @@ sap.ui.define([
 			text: this.getText(),
 			description: this.getDescription(),
 			href: this.getHref(),
+			internalHref: this.getInternalHref(),
 			icon: this.getIcon(),
 			target: this.getTarget(),
 			visible: this.getVisible(),

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,9 +14,10 @@ sap.ui.define([
     'sap/ui/core/Control',
     'sap/ui/core/EnabledPropagator',
     'sap/ui/core/ResizeHandler',
-    './SliderRenderer'
+    './SliderRenderer',
+    'sap/ui/core/Configuration'
 ],
-	function(jQuery, Log, containsOrEquals, ControlEvents, library, Control, EnabledPropagator, ResizeHandler, SliderRenderer) {
+	function(jQuery, Log, containsOrEquals, ControlEvents, library, Control, EnabledPropagator, ResizeHandler, SliderRenderer, Configuration) {
 	"use strict";
 
 
@@ -34,18 +35,18 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Slider}
 	 * @alias sap.ui.commons.Slider
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Slider = Control.extend("sap.ui.commons.Slider", /** @lends sap.ui.commons.Slider.prototype */ { metadata : {
 
 		interfaces : ["sap.ui.core.IFormContent"],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -196,8 +197,8 @@ sap.ui.define([
 		this.oGrip = this.getDomRef("grip");
 		this.oBar  = this.getDomRef("bar");
 		this.oHiLi = this.getDomRef("hili");
-		this.bRtl  = sap.ui.getCore().getConfiguration().getRTL();
-		this.bAcc  = sap.ui.getCore().getConfiguration().getAccessibility();
+		this.bRtl  = Configuration.getRTL();
+		this.bAcc  = Configuration.getAccessibility();
 		this.bTextLabels = (this.getLabels() && this.getLabels().length > 0);
 		this.oMovingGrip = this.oGrip;
 
@@ -1255,7 +1256,7 @@ sap.ui.define([
 	 * Property setter for the editable state
 	 *
 	 * @param {boolean} bEditable Whether the Slider should be editable, or not (read-only then)
-	 * @return {sap.ui.commons.Slider} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Slider.prototype.setEditable = function(bEditable) {
@@ -1284,7 +1285,7 @@ sap.ui.define([
 	 * Property setter for the enabled state
 	 *
 	 * @param {boolean} bEnabled Whether the Slider should be ednabled, or not (disabled)
-	 * @return {sap.ui.commons.Slider} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Slider.prototype.setEnabled = function(bEnabled) {
@@ -1325,7 +1326,7 @@ sap.ui.define([
 	 * Property setter for the totalUnits state
 	 *
 	 * @param {int} iTotalUnits Number of the units (tick-spaces)
-	 * @return {sap.ui.commons.Slider} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Slider.prototype.setTotalUnits = function(iTotalUnits) {
@@ -1343,7 +1344,7 @@ sap.ui.define([
 	 * A new rendering is not necessary, only the grip must be moved.
 	 *
 	 * @param {float} fValue
-	 * @return {sap.ui.commons.Slider} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Slider.prototype.setValue = function(fValue) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,7 @@ sap.ui.define([
 	"sap/ui/dt/DesignTimeMetadata",
 	"sap/ui/dt/AggregationDesignTimeMetadata",
 	"sap/ui/dt/ElementUtil"
-],
-function(
+], function(
 	DesignTimeMetadata,
 	AggregationDesignTimeMetadata,
 	ElementUtil
@@ -28,20 +27,19 @@ function(
 	 * @extends sap.ui.dt.DesignTimeMetadata
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.30
 	 * @alias sap.ui.dt.ElementDesignTimeMetadata
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var ElementDesignTimeMetadata = DesignTimeMetadata.extend("sap.ui.dt.ElementDesignTimeMetadata", /** @lends sap.ui.dt.ElementDesignTimeMetadata.prototype */ {
-		metadata : {
+		metadata: {
 			// ---- object ----
 
 			// ---- control specific ----
-			library : "sap.ui.dt"
+			library: "sap.ui.dt"
 		}
 	});
 
@@ -50,24 +48,24 @@ function(
 	 * @return {Object} default data
 	 * @override
 	 */
-	ElementDesignTimeMetadata.prototype.getDefaultData = function() {
-		var oDefaultData = DesignTimeMetadata.prototype.getDefaultData.apply(this, arguments);
+	ElementDesignTimeMetadata.prototype.getDefaultData = function(...aArgs) {
+		var oDefaultData = DesignTimeMetadata.prototype.getDefaultData.apply(this, aArgs);
 
 		oDefaultData.aggregations = {
-			layout : {
-				ignore : true
+			layout: {
+				ignore: true
 			},
-			dependents : {
-				ignore : true
+			dependents: {
+				ignore: true
 			},
-			customData : {
-				ignore : true
+			customData: {
+				ignore: true
 			},
-			layoutData : {
-				ignore : true
+			layoutData: {
+				ignore: true
 			},
 			tooltip: {
-				ignore : true
+				ignore: true
 			},
 			dragDropConfig: {
 				ignore: true
@@ -137,7 +135,7 @@ function(
 	 */
 	ElementDesignTimeMetadata.prototype.getAggregationNamesWithAction = function(sAction) {
 		var mAggregations = this.getAggregations();
-		return Object.keys(mAggregations).filter(function (sAggregation) {
+		return Object.keys(mAggregations).filter(function(sAggregation) {
 			return mAggregations[sAggregation].actions && mAggregations[sAggregation].actions[sAction];
 		});
 	};
@@ -158,10 +156,10 @@ function(
 					if (aArgs) {
 						aActionParameters = aActionParameters.concat(aArgs);
 					}
-					vAction = vAction.apply(null, aActionParameters);
+					vAction = vAction(...aActionParameters);
 				}
 				if (typeof (vAction) === "string") {
-					vAction = { changeType : vAction };
+					vAction = { changeType: vAction };
 				}
 				if (vAction) {
 					vAction.aggregation = sAggregation;
@@ -186,8 +184,28 @@ function(
 		}
 		if (vChildNames) {
 			return {
-				singular : this._getText(oElement, vChildNames.singular),
-				plural : this._getText(oElement, vChildNames.plural)
+				singular: this._getText(oElement, vChildNames.singular),
+				plural: this._getText(oElement, vChildNames.plural)
+			};
+		}
+	};
+
+	/**
+	 * Returns the display names for an aggregation.
+	 * @param {string} sAggregationName - Technical name of the aggregation
+	 * @param {Object} oElement - Element for which the aggregation display name is being returned
+	 * @return {map} Display names of the aggregation (singular and plural)
+	 * @public
+	 */
+	ElementDesignTimeMetadata.prototype.getAggregationDisplayName = function(sAggregationName, oElement) {
+		var vDisplayNames = this.getAggregation(sAggregationName) && this.getAggregation(sAggregationName).displayName;
+		if (typeof vDisplayNames === "function") {
+			vDisplayNames = vDisplayNames(oElement);
+		}
+		if (vDisplayNames) {
+			return {
+				singular: this._getText(oElement, vDisplayNames.singular),
+				plural: this._getText(oElement, vDisplayNames.plural)
 			};
 		}
 	};
@@ -199,23 +217,23 @@ function(
 		}
 		if (vName) {
 			return {
-				singular : this._getText(oElement, vName.singular),
-				plural : this._getText(oElement, vName.plural)
+				singular: this._getText(oElement, vName.singular),
+				plural: this._getText(oElement, vName.plural)
 			};
 		}
 	};
 
 	ElementDesignTimeMetadata.prototype.getToolHooks = function() {
 		return this.getData().tool || {
-			start: function() {},
-			stop: function() {}
+			start() {},
+			stop() {}
 		};
 	};
 
 	/**
 	 * Returns property "ignore" of aggregation DT metadata
-	 * @param {Object} oElement Element whose aggregation has to be checked
-	 * @param {String} sAggregationName Name of the Aggregation
+	 * @param {sap.ui.core.Element} oElement Element whose aggregation has to be checked
+	 * @param {string} sAggregationName Name of the Aggregation
 	 * @return {boolean} if ignored
 	 * @public
 	 */
@@ -232,15 +250,21 @@ function(
 	/**
 	 * Returns the scroll containers or an empty array
 	 *
+	 * @param {object} oElement - Element
+	 * @param {boolean} bInvalidate - Indicates if the scroll container should be invalidated first
+	 * @param {function} fnUpdateFunction - Function to be called for update
 	 * @return {array} scrollContainers or empty array
 	 * @public
 	 */
-	ElementDesignTimeMetadata.prototype.getScrollContainers = function(oElement) {
+	ElementDesignTimeMetadata.prototype.getScrollContainers = function(oElement, bInvalidate, fnUpdateFunction) {
 		var aScrollContainers = this.getData().scrollContainers || [];
 
 		aScrollContainers.forEach(function(oScrollContainer) {
 			if (typeof oScrollContainer.aggregations === "function") {
-				oScrollContainer.aggregations = oScrollContainer.aggregations.call(null, oElement);
+				oScrollContainer.aggregationsFunction = oScrollContainer.aggregations;
+				oScrollContainer.aggregations = oScrollContainer.aggregations(oElement, fnUpdateFunction);
+			} else if (bInvalidate && oScrollContainer.aggregationsFunction) {
+				oScrollContainer.aggregations = oScrollContainer.aggregationsFunction(oElement, fnUpdateFunction);
 			}
 		});
 
@@ -254,8 +278,9 @@ function(
 	 * @return {string|undefined} Returns the label as string or undefined
 	 * @public
 	 */
-	ElementDesignTimeMetadata.prototype.getLabel = function(oElement) {
-		return DesignTimeMetadata.prototype.getLabel.apply(this, arguments) || ElementUtil.getLabelForElement(oElement);
+	ElementDesignTimeMetadata.prototype.getLabel = function(...aArgs) {
+		const [oElement] = aArgs;
+		return DesignTimeMetadata.prototype.getLabel.apply(this, aArgs) || ElementUtil.getLabelForElement(oElement);
 	};
 
 	/**

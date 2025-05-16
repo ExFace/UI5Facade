@@ -1,24 +1,22 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/fl/initial/api/Version",
+	"sap/ui/fl/initial/_internal/FlexInfoSession",
 	"sap/ui/fl/registry/Settings",
-	"sap/ui/fl/ChangePersistenceFactory",
 	"sap/ui/fl/write/_internal/Storage",
-	"sap/base/util/UriParameters",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/fl/Utils",
 	"sap/ui/model/BindingMode"
 ], function(
+	Version,
+	FlexInfoSession,
 	Settings,
-	ChangePersistenceFactory,
 	Storage,
-	UriParameters,
 	JSONModel,
-	Utils,
 	BindingMode
 ) {
 	"use strict";
@@ -29,50 +27,18 @@ sap.ui.define([
 	// ensure sufficient data is present even if a draft was returned and later discarded
 	var BACKEND_REQUEST_LIMIT = MODEL_SIZE_LIMIT + 1;
 
-	function createModel(mPropertyBag, bVersioningEnabled, aVersions) {
-		var bBackendDraft = _doesDraftExistInVersions(aVersions);
-
-		var nActiveVersion = sap.ui.fl.Versions.Original;
-		aVersions.forEach(function (oVersion) {
-			if (oVersion.version === sap.ui.fl.Versions.Draft) {
-				oVersion.type = "draft";
-			} else if (nActiveVersion === sap.ui.fl.Versions.Original) {
-				// no active version found yet; the first non-draft version is always the active version
-				oVersion.type = "active";
-				nActiveVersion = oVersion.version;
-			} else {
-				oVersion.type = "inactive";
-			}
-		});
-
-		var sSwitchVersionsActive = UriParameters.fromQuery(window.location.search).get("sap-ui-xx-versionSwitchActive");
-		var bSwitchVersionsActive = false;
-		if (sSwitchVersionsActive && (sSwitchVersionsActive !== "false")) {
-			bSwitchVersionsActive = true;
-		}
-
-
-		var oModel = new JSONModel({
-			versioningEnabled: bVersioningEnabled,
-			versions: aVersions,
-			activeVersion: nActiveVersion,
-			backendDraft: bBackendDraft,
-			dirtyChanges: false,
-			draftAvailable: bBackendDraft,
-			switchVersionsActive: bSwitchVersionsActive
-		});
-
+	function createModel(mPropertyBag) {
+		var oModel = _prepareVersionsModel(mPropertyBag);
 		oModel.setDefaultBindingMode(BindingMode.OneWay);
 		oModel.setSizeLimit(MODEL_SIZE_LIMIT);
-
 		// TODO: currently called by sap.ui.rta.RuntimeAuthoring but should be by a ChangesState
-		oModel.setDirtyChanges = function (bDirtyChanges) {
+		oModel.setDirtyChanges = function(bDirtyChanges) {
 			oModel.setProperty("/dirtyChanges", bDirtyChanges);
 			oModel.updateDraftVersion();
 			oModel.updateBindings(true);
 		};
 
-		oModel.updateDraftVersion = function () {
+		oModel.updateDraftVersion = function() {
 			var aVersions = oModel.getProperty("/versions");
 			var bVersioningEnabled = oModel.getProperty("/versioningEnabled");
 			var bDirtyChanges = oModel.getProperty("/dirtyChanges");
@@ -80,63 +46,112 @@ sap.ui.define([
 			var bDraftAvailable = bVersioningEnabled && (bDirtyChanges || bBackendDraft);
 			oModel.setProperty("/draftAvailable", bDraftAvailable);
 
+			if (bDirtyChanges) {
+				oModel.setProperty("/displayedVersion", Version.Number.Draft);
+			}
+
 			// add draft
 			if (!_doesDraftExistInVersions(aVersions) && bDraftAvailable) {
-				aVersions.splice(0, 0, {version: sap.ui.fl.Versions.Draft, type: "draft"});
-				oModel.updateBindings(true);
+				aVersions.splice(0, 0, {version: Version.Number.Draft, type: Version.Type.Draft, filenames: [], isPublished: false});
 			}
 
 			// remove draft
 			if (_doesDraftExistInVersions(aVersions) && !bDraftAvailable) {
 				aVersions.shift();
-				oModel.updateBindings(true);
+				oModel.setProperty("/displayedVersion", oModel.getProperty("/persistedVersion"));
 			}
-		};
 
+			var bActivateEnabled = oModel.getProperty("/displayedVersion") !== oModel.getProperty("/activeVersion");
+			oModel.setProperty("/activateEnabled", bActivateEnabled);
+		};
 		return oModel;
 	}
 
-	// TODO: the handling should move to the FlexState as soon as it is ready
-	function _removeDirtyChanges(mPropertyBag, oDirtyChangeInfo) {
-		// remove all dirty changes
-		var aDirtyChanges = [];
-		var aChangePersistences = oDirtyChangeInfo.changePersistences;
-		aChangePersistences.forEach(function (oChangePersistence) {
-			aDirtyChanges = oChangePersistence.getDirtyChanges().concat();
-			aDirtyChanges.forEach(function(oChange) {
-				oChangePersistence.deleteChange(oChange, true);
+	function _isPublishVersionEnabled(aVersions, sDisplayedVersion) {
+		if (sDisplayedVersion !== Version.Number.Original && sDisplayedVersion !== Version.Number.Draft) {
+			return aVersions.some(function(oVersion) {
+				return oVersion.version === sDisplayedVersion && oVersion.isPublished === false;
 			});
-		});
-		return aDirtyChanges.length > 0;
+		}
+		return false;
 	}
 
-	function _getDirtyChangesInfo(mPropertyBag) {
-		var oDirtyChangesInfo = {
-			dirtyChangesExist: false,
-			changePersistences: []
-		};
+	function _prepareVersionsModel(mPropertyBag) {
+		var sPersistedBasisForDisplayedVersion;
+		var sActiveVersion = Version.Number.Original;
+		var aVersions = mPropertyBag.versions;
+		var oVersionsModel = mPropertyBag.versionsModel;
+		var bBackendDraft = _doesDraftExistInVersions(aVersions);
+		var aDraftFilenames = [];
 
-		if (mPropertyBag.reference) {
-			var oChangePersistenceForAppDescriptorChanges = ChangePersistenceFactory.getChangePersistenceForComponent(mPropertyBag.reference, mPropertyBag.appVersion);
-			if (oChangePersistenceForAppDescriptorChanges.getDirtyChanges().length > 0) {
-				oDirtyChangesInfo.dirtyChangesExist = true;
-				oDirtyChangesInfo.changePersistences.push(oChangePersistenceForAppDescriptorChanges);
-			}
+		if (aVersions.length > 0) {
+			sPersistedBasisForDisplayedVersion = aVersions[0].version;
+		} else {
+			sPersistedBasisForDisplayedVersion = Version.Number.Original;
 		}
-		if (mPropertyBag.nonNormalizedReference) {
-			var oChangePersistence = ChangePersistenceFactory.getChangePersistenceForComponent(mPropertyBag.nonNormalizedReference, mPropertyBag.appVersion);
-			if (oChangePersistence.getDirtyChanges().length > 0) {
-				oDirtyChangesInfo.dirtyChangesExist = true;
-				oDirtyChangesInfo.changePersistences.push(oChangePersistence);
+
+		aVersions.forEach(function(oVersion) {
+			if (oVersion.version === Version.Number.Draft) {
+				oVersion.type = Version.Type.Draft;
+				oVersion.isPublished = false;
+				aDraftFilenames = oVersion.filenames;
+			} else if (sActiveVersion === Version.Number.Original) {
+				// no active version found yet; the first non-draft version is always the active version
+				oVersion.type = Version.Type.Active;
+				sActiveVersion = oVersion.version;
+			} else {
+				oVersion.type = Version.Type.Inactive;
 			}
+		});
+
+		if (oVersionsModel) {
+			oVersionsModel.setProperty("/publishVersionEnabled", _isPublishVersionEnabled(aVersions, sPersistedBasisForDisplayedVersion));
+			oVersionsModel.setProperty("/versioningEnabled", mPropertyBag.versioningEnabled);
+			oVersionsModel.setProperty("/versions", aVersions);
+			oVersionsModel.setProperty("/backendDraft", bBackendDraft);
+			oVersionsModel.setProperty("/dirtyChanges", false);
+			oVersionsModel.setProperty("/draftAvailable", bBackendDraft);
+			oVersionsModel.setProperty("/activateEnabled", bBackendDraft);
+			oVersionsModel.setProperty("/activeVersion", sActiveVersion);
+			oVersionsModel.setProperty("/persistedVersion", sPersistedBasisForDisplayedVersion);
+			oVersionsModel.setProperty("/displayedVersion", sPersistedBasisForDisplayedVersion);
+			oVersionsModel.setProperty("/draftFilenames", aDraftFilenames);
+			oVersionsModel.updateBindings(true);
+		} else {
+			// when a standalone app switch the version it always trigger a hard reload there the session version is needed
+			var oFlexInfoSession = FlexInfoSession.getByReference(mPropertyBag.reference);
+			return new JSONModel({
+				publishVersionEnabled: _isPublishVersionEnabled(aVersions, oFlexInfoSession.version || sPersistedBasisForDisplayedVersion),
+				versioningEnabled: mPropertyBag.versioningEnabled,
+				versions: aVersions,
+				backendDraft: bBackendDraft,
+				dirtyChanges: false,
+				draftAvailable: bBackendDraft,
+				activateEnabled: bBackendDraft,
+				activeVersion: sActiveVersion,
+				persistedVersion: oFlexInfoSession.version || sPersistedBasisForDisplayedVersion,
+				displayedVersion: oFlexInfoSession.version || sPersistedBasisForDisplayedVersion,
+				draftFilenames: aDraftFilenames
+			});
 		}
-		return oDirtyChangesInfo;
+
+		return oVersionsModel;
 	}
 
 	function _doesDraftExistInVersions(aVersions) {
 		return aVersions.some(function(oVersion) {
-			return oVersion.version === sap.ui.fl.Versions.Draft;
+			return oVersion.version === Version.Number.Draft;
 		});
+	}
+
+	function _updateVersionModelWhenDiscardOrActivate(oModel, iNewVersion) {
+		oModel.setProperty("/backendDraft", false);
+		oModel.setProperty("/dirtyChanges", false);
+		oModel.setProperty("/draftAvailable", false);
+		oModel.setProperty("/activateEnabled", false);
+		oModel.setProperty("/displayedVersion", iNewVersion);
+		oModel.setProperty("/persistedVersion", iNewVersion);
+		oModel.updateBindings(true);
 	}
 
 	/**
@@ -144,7 +159,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.Versions
 	 * @since 1.74
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -164,17 +179,26 @@ sap.ui.define([
 		mPropertyBag.limit = BACKEND_REQUEST_LIMIT;
 
 		return Settings.getInstance()
-			.then(function (oSettings) {
-				var bVersionsEnabled = oSettings.isVersioningEnabled(sLayer);
-				var aVersionsPromise = bVersionsEnabled ? Storage.versions.load(mPropertyBag) : Promise.resolve([]);
-				return aVersionsPromise
-					.then(function (aVersions) {
-						_mInstances[sReference] = _mInstances[sReference] || {};
-						_mInstances[sReference][sLayer] = _mInstances[sReference][sLayer] || {};
-						_mInstances[sReference][sLayer] = createModel(mPropertyBag, bVersionsEnabled, aVersions);
-						return _mInstances[sReference][sLayer];
-					});
+		.then(function(oSettings) {
+			var bVersionsEnabled = oSettings.isVersioningEnabled(sLayer);
+			// TODO: similar to ContextBasedAdaptationsAPI this could also be moved outside
+			if (_mInstances && _mInstances[sReference] && _mInstances[sReference][sLayer]) {
+				return _mInstances[sReference][sLayer];
+			}
+			var aVersionsPromise = bVersionsEnabled ? Storage.versions.load(mPropertyBag) : Promise.resolve([]);
+			return aVersionsPromise
+			.then(function(aVersions) {
+				mPropertyBag.versioningEnabled = bVersionsEnabled;
+				mPropertyBag.versions = aVersions;
+				return createModel(mPropertyBag);
+			})
+			.then(function(oModel) {
+				_mInstances[sReference] ||= {};
+				_mInstances[sReference][sLayer] ||= {};
+				_mInstances[sReference][sLayer] = oModel;
+				return _mInstances[sReference][sLayer];
 			});
+		});
 	};
 
 	/**
@@ -189,19 +213,43 @@ sap.ui.define([
 		var sReference = mPropertyBag.reference;
 		var sLayer = mPropertyBag.layer;
 
-		if (!_mInstances[sReference] || !_mInstances[sReference][sLayer]) {
-			throw Error("Versions Model for reference '" + sReference + "' and layer '" + sLayer + "' were not initialized.");
-		}
-
-		var oDirtyChangesInfo = _getDirtyChangesInfo(mPropertyBag);
-		if (oDirtyChangesInfo.dirtyChangesExist) {
-			_mInstances[sReference][sLayer].updateDraftVersion(mPropertyBag);
+		if (!Versions.hasVersionsModel(mPropertyBag)) {
+			throw Error(`Versions Model for reference '${sReference}' and layer '${sLayer}' were not initialized.`);
 		}
 		return _mInstances[sReference][sLayer];
 	};
 
+	Versions.hasVersionsModel = function(mPropertyBag) {
+		var sReference = mPropertyBag.reference;
+		var sLayer = mPropertyBag.layer;
+		return !!(_mInstances[sReference] && _mInstances[sReference][sLayer]);
+	};
+
 	Versions.clearInstances = function() {
 		_mInstances = {};
+	};
+
+	/**
+	 * Update version model with backend information.
+	 *
+	 * @param {object} mPropertyBag - Property Bag
+	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested
+	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
+	 * @returns {Promise<sap.ui.fl.Version>} Promise resolving with the updated version model for the application from the backend
+	 */
+	Versions.updateModelFromBackend = function(mPropertyBag) {
+		if (Versions.hasVersionsModel(mPropertyBag) && Versions.getVersionsModel(mPropertyBag).getProperty("/versioningEnabled")) {
+			mPropertyBag.limit = BACKEND_REQUEST_LIMIT;
+			return Storage.versions.load(mPropertyBag)
+			.then(function(aVersions) {
+				var oVersionsModel = Versions.getVersionsModel(mPropertyBag);
+				mPropertyBag.versioningEnabled = oVersionsModel.getProperty("/versioningEnabled");
+				mPropertyBag.versions = aVersions;
+				mPropertyBag.versionsModel = oVersionsModel;
+				return _prepareVersionsModel(mPropertyBag);
+			});
+		}
+		return undefined;
 	};
 
 	/**
@@ -210,62 +258,62 @@ sap.ui.define([
 	 * @param {object} mPropertyBag - Property Bag
 	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested (this reference must not contain the ".Component" suffix)
 	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
+	 * @param {boolean} [mPropertyBag.contextBasedAdaptation] - Parameter that indicates whether or not a new backend draft was triggered via contextBasedAdaptationsAPI
+	 * @param {array} [mPropertyBag.draftFilenames] - Array with filesnames which was saved as draft
 	 */
-	Versions.onAllChangesSaved = function (mPropertyBag) {
-		mPropertyBag.reference = Utils.normalizeReference(mPropertyBag.reference);
+	Versions.onAllChangesSaved = function(mPropertyBag) {
 		var oModel = Versions.getVersionsModel(mPropertyBag);
 		var bVersioningEnabled = oModel.getProperty("/versioningEnabled");
 		var bDirtyChanges = oModel.getProperty("/dirtyChanges");
+		var aDraftFilenames = oModel.getProperty("/draftFilenames");
+		oModel.setProperty("/draftFilenames", aDraftFilenames.concat(mPropertyBag.draftFilenames));
 		oModel.setProperty("/dirtyChanges", true);
-		oModel.setProperty("/backendDraft", bVersioningEnabled && bDirtyChanges);
+		oModel.setProperty("/backendDraft", bVersioningEnabled && bDirtyChanges || !!mPropertyBag.contextBasedAdaptation);
 		oModel.updateDraftVersion();
+		// Save can happen without a reload and the model must be kept up-to-date
+		oModel.setProperty("/persistedVersion", Version.Number.Draft);
+		oModel.updateBindings(true);
 	};
 
 	/**
-	 * Activates the draft for a given application and layer.
+	 * (Re-)activates a version.
 	 *
 	 * @param {object} mPropertyBag - Property Bag
 	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested (this reference must not contain the ".Component" suffix)
-	 * @param {string} mPropertyBag.nonNormalizedReference - ID of the application for which the versions are requested
-	 * @param {string} mPropertyBag.appVersion - Version of the app
 	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
 	 * @param {string} mPropertyBag.title - Title of the to be activated version
 	 * @param {string} mPropertyBag.appComponent - Application Component
+	 * @param {string} mPropertyBag.displayedVersion - Id of the displayed version
 	 * @returns {Promise<sap.ui.fl.Version>} Promise resolving with the updated list of versions for the application
 	 * when the version was activated;
-	 * rejects if an error occurs or the layer does not support draft handling or there is no draft to activate
+	 * rejects if an error occurs, the layer does not support draft handling, there is unsaved content, there is no draft to activate or
+	 * when the displayed version is already active
 	 */
-	Versions.activateDraft = function(mPropertyBag) {
+	Versions.activate = function(mPropertyBag) {
 		var oModel = Versions.getVersionsModel(mPropertyBag);
 		var aVersions = oModel.getProperty("/versions");
 		var bDraftExists = _doesDraftExistInVersions(aVersions);
-		if (!bDraftExists) {
-			return Promise.reject("No draft exists");
+		var sActiveVersion = oModel.getProperty("/activeVersion");
+		if (mPropertyBag.displayedVersion === sActiveVersion) {
+			return Promise.reject("Version is already active");
 		}
+		mPropertyBag.version = mPropertyBag.displayedVersion;
 
-		var aSaveDirtyChangesPromise = [];
-		if (oModel.getProperty("/dirtyChanges")) {
-			// TODO: the handling should move to the FlexState as soon as it is ready
-			var oDirtyChangeInfo = _getDirtyChangesInfo(mPropertyBag);
-			var aChangePersistences = oDirtyChangeInfo.changePersistences;
-			aSaveDirtyChangesPromise = aChangePersistences.map(function (oChangePersistence) {
-				return oChangePersistence.saveDirtyChanges(mPropertyBag.appComponent, false, undefined, true);
+		return Storage.versions.activate(mPropertyBag)
+		.then(function(oVersion) {
+			aVersions.forEach(function(oVersionEntry) {
+				oVersionEntry.type = Version.Type.Inactive;
 			});
-		}
-		return Promise.all(aSaveDirtyChangesPromise)
-		.then(Storage.versions.activate.bind(undefined, mPropertyBag))
-		.then(function (oVersion) {
-			aVersions.forEach(function (oVersionEntry) {
-				oVersionEntry.type = "inactive";
-			});
-			oVersion.type = "active";
-			aVersions.shift();
+			oVersion.type = Version.Type.Active;
+			oVersion.isPublished = false;
+			if (bDraftExists) {
+				aVersions.shift();
+			}
 			aVersions.splice(0, 0, oVersion);
-			oModel.setProperty("/backendDraft", false);
-			oModel.setProperty("/dirtyChanges", false);
-			oModel.setProperty("/draftAvailable", false);
 			oModel.setProperty("/activeVersion", oVersion.version);
-			oModel.updateBindings(true);
+			oModel.setProperty("/publishVersionEnabled", true);
+			oModel.setProperty("/draftFilenames", []);
+			_updateVersionModelWhenDiscardOrActivate(oModel, oVersion.version);
 		});
 	};
 
@@ -274,32 +322,66 @@ sap.ui.define([
 	 *
 	 * @param {object} mPropertyBag - Property Bag
 	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested (this reference must not contain the ".Component" suffix)
-	 * @param {string} mPropertyBag.nonNormalizedReference - ID of the application for which the versions are requested
 	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
-	 * @param {string} mPropertyBag.appVersion - Version of the app
-	 * @returns {Promise<object>} Promise resolving to an object to indicate if a discarding took place on backend side and/or dirtychanges were discarded;
+	 * @param {boolean} [mPropertyBag.discardDraftAndKeepActiveVersion] - discard draft and keep active version
+	 * @returns {Promise<object>} Promise resolving to an object to indicate if a discarding took place on backend side and/or dirty changes were discarded;
 	 * rejects if an error occurs or the layer does not support draft handling
 	 */
 	Versions.discardDraft = function(mPropertyBag) {
 		var oModel = Versions.getVersionsModel(mPropertyBag);
-		var aVersions = oModel.getProperty("/versions");
-		var oDirtyChangesInfo = _getDirtyChangesInfo(mPropertyBag);
 		var bBackendDraftExists = oModel.getProperty("/backendDraft");
 		var oDiscardPromise = bBackendDraftExists ? Storage.versions.discardDraft(mPropertyBag) : Promise.resolve();
 
-		return oDiscardPromise.then(function () {
+		return oDiscardPromise.then(function() {
+			var aVersions = oModel.getProperty("/versions");
 			aVersions.shift();
-			oModel.setProperty("/backendDraft", false);
-			oModel.setProperty("/dirtyChanges", false);
-			oModel.setProperty("/draftAvailable", false);
-			oModel.updateBindings(true);
-			// in case of a existing draft known by the backend;
-			// we remove dirty changes only after successful DELETE request
-			var bDirtyChangesRemoved = _removeDirtyChanges(mPropertyBag, oDirtyChangesInfo);
+			let sDisplayedVersion = oModel.getProperty("/activeVersion");
+			if (mPropertyBag.discardDraftAndKeepActiveVersion) {
+				sDisplayedVersion = oModel.getProperty("/displayedVersion");
+			}
+			_updateVersionModelWhenDiscardOrActivate(oModel, sDisplayedVersion);
 			return {
-				backendChangesDiscarded: bBackendDraftExists,
-				dirtyChangesDiscarded: bDirtyChangesRemoved
+				backendChangesDiscarded: bBackendDraftExists
 			};
+		});
+	};
+
+	/**
+	 * Publishes a version.
+	 *
+	 * @param {object} mPropertyBag - Property Bag
+	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested (this reference must not contain the ".Component" suffix)
+	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
+	 * @param {string} mPropertyBag.version - The number of the version to be published
+	 * @returns {Promise<sap.ui.fl.Version>} Promise resolving when the version was published;
+	 * rejects if an error occurs, the layer does not support draft handling, there is no version to publish or
+	 * when the displayed version is already published
+	 */
+	Versions.publish = function(mPropertyBag) {
+		var oModel = Versions.getVersionsModel({
+			reference: mPropertyBag.reference,
+			layer: mPropertyBag.layer
+		});
+		return Storage.versions.publish(mPropertyBag)
+		.then(function(sMessage) {
+			// If transport version success, disable publish version button
+			if (sMessage !== "Error" && sMessage !== "Cancel") {
+				oModel.setProperty("/publishVersionEnabled", false);
+				var aVersions = oModel.getProperty("/versions");
+				var bIsPublishedOrOlderVersion = false;
+				aVersions.forEach(function(oVersion) {
+					if (oVersion.isPublished) {
+						return;
+					}
+					if (oVersion.version === mPropertyBag.version) {
+						bIsPublishedOrOlderVersion = true;
+					}
+					if (bIsPublishedOrOlderVersion && !oVersion.isPublished) {
+						oVersion.isPublished = true;
+					}
+				});
+			}
+			return sMessage;
 		});
 	};
 

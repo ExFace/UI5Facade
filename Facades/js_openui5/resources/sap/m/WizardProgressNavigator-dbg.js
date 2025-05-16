@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
 	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/delegate/ItemNavigation",
 	"sap/ui/Device",
 	"sap/m/ActionSheet",
+	"sap/ui/core/InvisibleText",
 	"./WizardProgressNavigatorRenderer",
 	"./Button",
 	"sap/ui/thirdparty/jquery"
@@ -18,10 +20,12 @@ sap.ui.define([
 function(
 	library,
 	Control,
+	Library,
 	ResizeHandler,
 	ItemNavigation,
 	Device,
 	ActionSheet,
+	InvisibleText,
 	WizardProgressNavigatorRenderer,
 	Button,
 	jQuery
@@ -41,63 +45,66 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.30
 	 * @alias sap.m.WizardProgressNavigator
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var WizardProgressNavigator = Control.extend("sap.m.WizardProgressNavigator", { /** @lends sap.m.WizardProgressNavigator.prototype */ metadata: {
-		properties: {
+	var WizardProgressNavigator = Control.extend("sap.m.WizardProgressNavigator", /** @lends sap.m.WizardProgressNavigator.prototype */ {
+		metadata: {
+			properties: {
 
-			/**
-			 * Sets the total number of steps.
-			 * Minimum number of steps is 3.
-			 * Maximum number of steps is 8.
-			 */
-			stepCount: {type: "int", group: "Data", defaultValue: 3},
+				/**
+				 * Sets the total number of steps.
+				 * Minimum number of steps is 3.
+				 * Maximum number of steps is 8.
+				 */
+				stepCount: {type: "int", group: "Data", defaultValue: 3},
 
-			/**
-			 * Sets a title to be displayed for each step.
-			 * The title for each step is visible on hover.
-			 * <b>Note:</b> The number of titles should equal the number of steps,
-			 * otherwise no titles will be rendered.
-			 * @since 1.32
-			 */
-			stepTitles: {type: "string[]", group: "Appearance", defaultValue: []},
+				/**
+				 * Sets a title to be displayed for each step.
+				 * The title for each step is visible on hover.
+				 * <b>Note:</b> The number of titles should equal the number of steps,
+				 * otherwise no titles will be rendered.
+				 * @since 1.32
+				 */
+				stepTitles: {type: "string[]", group: "Appearance", defaultValue: []},
 
-			/**
-			 * Sets an icon to be displayed for each step.
-			 * The icon for each step is directly visible in the WizardProgressNavigator.
-			 * <b>Note:</b> The number of icons should equal the number of steps,
-			 * otherwise no icons will be rendered.
-			 * @since 1.32
-			 */
-			stepIcons: {type: "sap.ui.core.URI[]", group: "Appearance", defaultValue: []},
+				/**
+				 * Sets an icon to be displayed for each step.
+				 * The icon for each step is directly visible in the WizardProgressNavigator.
+				 * <b>Note:</b> The number of icons should equal the number of steps,
+				 * otherwise no icons will be rendered.
+				 * @since 1.32
+				 */
+				stepIcons: {type: "sap.ui.core.URI[]", group: "Appearance", defaultValue: []},
 
-			/**
-			* Indicates that number of steps can vary.
-			* A dashed line is displayed after the last concrete step (set by the <code>stepCount</code> property).
-			*/
-			varyingStepCount: {type: "boolean", group: "Appearance", defaultValue: false}
-		},
-		events: {
+				/**
+				* Indicates that number of steps can vary.
+				* A dashed line is displayed after the last concrete step (set by the <code>stepCount</code> property).
+				*/
+				varyingStepCount: {type: "boolean", group: "Appearance", defaultValue: false}
+			},
+			events: {
 
-			/**
-			 * This event is fired when the current step changes.
-			 */
-			stepChanged: {
-				parameters: {
-					/**
-					* The number of the current step. One-based.
-					*/
-					current: {type: "int"}
+				/**
+				 * This event is fired when the current step changes.
+				 */
+				stepChanged: {
+					parameters: {
+						/**
+						* The number of the current step. One-based.
+						*/
+						current: {type: "int"}
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: WizardProgressNavigatorRenderer
+	});
 
 	WizardProgressNavigator.CONSTANTS = {
 		MINIMUM_STEPS: 3,
@@ -118,8 +125,9 @@ function(
 		this._iActiveStep = 1;
 		this._aCachedSteps = [];
 		this._aStepOptionalIndication = [];
-		this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 		this._oActionSheet = new ActionSheet();
+		this._aStepIds = [];
 		this._createStepNavigation();
 	};
 
@@ -145,10 +153,9 @@ function(
 
 		this._updateStepNavigation(iZeroBasedActiveStep);
 		this._updateStepActiveAttribute(iZeroBasedActiveStep);
-		this._removeStepAriaDisabledAttribute(iZeroBasedActiveStep);
 
 		this._updateStepCurrentAttribute(iZeroBasedCurrentStep);
-		this._updateStepAriaLabelAttribute(iZeroBasedCurrentStep);
+		this._updateStepAriaCurrentAttribute(iZeroBasedCurrentStep);
 
 		this._updateOpenSteps();
 		ResizeHandler.register(this.getDomRef(), this._updateOpenSteps.bind(this));
@@ -180,6 +187,8 @@ function(
 	};
 
 	WizardProgressNavigator.prototype.onsapspace = function (oEvent) {
+		oEvent.preventDefault();
+
 		if (this._onEnter) {
 			this._onEnter(oEvent, this._oStepNavigation.getFocusedIndex());
 		}
@@ -195,12 +204,18 @@ function(
 		this._oStepNavigation.destroy();
 		this._oStepNavigation = null;
 
+		if (this._oActionSheetInvisibleText) {
+			this._oActionSheetInvisibleText.destroy();
+			this._oActionSheetInvisibleText = null;
+		}
+
 		this._oActionSheet.destroy();
 		this._oActionSheet = null;
 
 		this._iCurrentStep = null;
 		this._iActiveStep = null;
 		this._aCachedSteps = null;
+		this._aStepIds = null;
 
 		this._aStepOptionalIndication = null;
 	};
@@ -227,7 +242,7 @@ function(
 
 	/**
 	 * Moves the selection backwards by one step.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.previousStep = function () {
@@ -242,7 +257,7 @@ function(
 
 	/**
 	 * Moves the selection forwards by one step.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.nextStep = function () {
@@ -251,7 +266,7 @@ function(
 
 	/**
 	 * Moves the selection forwards to the next step that requires input.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.incrementProgress = function () {
@@ -271,7 +286,6 @@ function(
 		this._updateCurrentStep(iIndex, this._iCurrentStep);
 
 		this._updateStepActiveAttribute(iIndex - 1, this._iActiveStep - 1);
-		this._addStepAriaDisabledAttribute(iIndex - 1);
 		this._updateStepNavigation(iIndex - 1);
 
 		this._iCurrentStep = iIndex;
@@ -294,8 +308,15 @@ function(
 		this._oStepNavigation = new ItemNavigation();
 		this._oStepNavigation.setCycling(false);
 		this._oStepNavigation.setDisabledModifiers({
-			sapnext: ["alt"],
-			sapprevious: ["alt"]
+			// Alt + arrow keys are reserved for browser navigation
+			sapnext: [
+				"alt", // Windows and Linux
+				"meta" // Apple (⌘)
+			],
+			sapprevious: [
+				"alt",
+				"meta"
+			]
 		});
 		this._oStepNavigation.attachEvent("AfterFocus", function (params) {
 			var oEvent = params.mParameters.oEvent;
@@ -399,57 +420,48 @@ function(
 	};
 
 	/**
-	 * Adds aria-disabled attribute to all steps after the specified index.
-	 * @param {number} iIndex The index from which to add aria-disabled=true. Zero-based.
-	 * @private
-	 */
-	WizardProgressNavigator.prototype._addStepAriaDisabledAttribute = function (iIndex) {
-		var iStepsLength = this._aCachedSteps.length,
-			oStep;
-
-		for (var i = iIndex + 1; i < iStepsLength; i++) {
-			oStep = this._aCachedSteps[i];
-
-			oStep.setAttribute(WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_DISABLED, true);
-		}
-	};
-
-	/**
-	 * Removes the steps aria-disabled attribute from the DOM structure of the Control.
-	 * @param {number} iIndex The index at which the attribute should be removed. Zero-based.
-	 * @private
-	 */
-	WizardProgressNavigator.prototype._removeStepAriaDisabledAttribute = function (iIndex) {
-		if (this._aCachedSteps[iIndex]) {
-			this._aCachedSteps[iIndex]
-				.removeAttribute(WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_DISABLED);
-		}
-	};
-
-	/**
 	 * Updates the step aria-current attribute in the DOM structure of the Control.
 	 * @param {number} iNewIndex The new index at which the attribute should be set. Zero-based.
 	 * @param {number} iOldIndex The old index at which the attribute was set. Zero-based.
 	 * @private
 	 */
-	WizardProgressNavigator.prototype._updateStepAriaLabelAttribute = function (iNewIndex, iOldIndex) {
+	WizardProgressNavigator.prototype._updateStepAriaCurrentAttribute = function (iNewIndex, iOldIndex) {
+		var oStepNew = this._aCachedSteps[iNewIndex];
+
 		if (iOldIndex !== undefined && this._aCachedSteps[iOldIndex]) {
 			this._aCachedSteps[iOldIndex]
 				.removeAttribute(WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT);
 		}
 
-		if (this._aCachedSteps[iNewIndex]) {
-			this._aCachedSteps[iNewIndex]
+		if (oStepNew) {
+			oStepNew
 				.setAttribute(
-					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT, "step");
+					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT, true);
 		}
+	};
 
+	/**
+	 * Updates the step aria-label attribute in the DOM structure of the Control.
+	 * @param {number} iIndex The index at which the attribute should be set. Zero-based.
+	 * @private
+	 */
+	 WizardProgressNavigator.prototype._updateStepAriaLabelAttribute = function (iIndex) {
+		var oStep = this._aCachedSteps[iIndex];
+		var sStepActive = this._isActiveStep(iIndex) ? "ACTIVE" : "INACTIVE";
+		var sStepOptional = this._aStepOptionalIndication[iIndex] ? this._oResourceBundle.getText("WIZARD_STEP_OPTIONAL_STEP_TEXT") : "";
+		var sValueText = this._oResourceBundle.getText("WIZARD_STEP_" + sStepActive + "_LABEL", [iIndex + 1, this.getStepTitles()[iIndex], sStepOptional]);
+
+		if (oStep) {
+			oStep
+				.setAttribute(
+					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_LABEL, sValueText);
+		}
 	};
 
 	/**
 	 * Move to the specified step while updating the current step and active step.
 	 * @param {number} iNewStep The step number to which current step will be set. Non zero-based.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @private
 	 */
 	WizardProgressNavigator.prototype._moveToStep = function (iNewStep) {
@@ -479,15 +491,15 @@ function(
 
 		this._iActiveStep = iNewStep;
 		this._updateStepNavigation(iZeroBasedNewStep);
-		this._removeStepAriaDisabledAttribute(iZeroBasedNewStep);
 		this._updateStepActiveAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
+		this._updateStepAriaLabelAttribute(iZeroBasedNewStep);
 	};
 
 	/**
 	 * Updates the current step in the control instance as well as the DOM structure.
 	 * @param {number} iNewStep The step number to which current step will be set. Non zero-based.
 	 * @param {number} iOldStep The step number to which current step was set. Non zero-based.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @private
 	 */
 	WizardProgressNavigator.prototype._updateCurrentStep = function (iNewStep, iOldStep) {
@@ -498,7 +510,7 @@ function(
 		this._updateStepZIndex();
 		this._updateOpenSteps();
 		this._updateStepCurrentAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
-		this._updateStepAriaLabelAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
+		this._updateStepAriaCurrentAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
 
 		return this;
 	};
@@ -605,7 +617,7 @@ function(
 		var iStepNumber = this._getStepNumber($oStep);
 
 		return $oStep.attr(WizardProgressNavigatorRenderer.ATTRIBUTES.OPEN_STEP_NEXT) === "true" &&
-			iStepNumber < this._aCachedSteps.length;
+			iStepNumber <= this._aCachedSteps.length;
 	};
 
 	/**
@@ -617,15 +629,21 @@ function(
 	WizardProgressNavigator.prototype._showActionSheet = function (oDomTarget, bAtStart) {
 		var iFromStep = bAtStart ? 0 : this._getStepNumber(oDomTarget) - 1;
 		var iToStep = bAtStart ? this._getStepNumber(oDomTarget) : this._aCachedSteps.length;
-		var sIcon, sTitle;
+		var sIcon, sStepNumber, sStepTextContent, sTitle, oStepTitleSpan, oActionSheetParent, sActionSheetAriaLabelId;
+
+		this._oActionSheetInvisibleText = new InvisibleText({
+			text: this._oResourceBundle.getText("WIZARD_STEPS")
+		}).toStatic();
 
 		this._oActionSheet.removeAllButtons();
 		for (var i = iFromStep; i < iToStep; i++) {
 			sIcon = this.getStepIcons()[i];
-			sTitle = this._aCachedSteps[i].getAttribute("aria-roledescription");
+			sStepNumber = (i + 1) + ".";
+			oStepTitleSpan = this._aCachedSteps[i].querySelector(".sapMWizardProgressNavStepTitle");
+			sStepTextContent = oStepTitleSpan && oStepTitleSpan.textContent;
+			sTitle = sStepNumber + " " + sStepTextContent;
 
 			this._oActionSheet.addButton(new Button({
-				width: "200px",
 				text: sTitle,
 				icon: sIcon,
 				enabled: this._iActiveStep >= (i + 1),
@@ -635,8 +653,14 @@ function(
 				}.bind(this, i + 1)
 			}));
 		}
-
 		this._oActionSheet.openBy(oDomTarget);
+
+		sActionSheetAriaLabelId = this._oActionSheetInvisibleText.getId();
+		oActionSheetParent = this._oActionSheet.getParent();
+
+		if (oActionSheetParent && oActionSheetParent.getAriaLabelledBy().indexOf(sActionSheetAriaLabelId) === -1) {
+			oActionSheetParent.addAriaLabelledBy(sActionSheetAriaLabelId);
+		}
 	};
 
 	/**
@@ -678,6 +702,16 @@ function(
 						.attr(WizardProgressNavigatorRenderer.ATTRIBUTES.STEP);
 
 		return parseInt($iStepNumber);
+	};
+
+	WizardProgressNavigator.prototype._setStepIds = function (aSteps) {
+		if (!aSteps.length) {
+			return;
+		}
+
+		this._aStepIds = aSteps.map(function (oStep) {
+			return oStep.getId();
+		});
 	};
 
 	return WizardProgressNavigator;

@@ -1,9 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
+sap.ui.define([
+	"sap/ui/integration/thirdparty/adaptivecards",
+	"sap/ui/integration/cards/adaptivecards/overwrites/inputsGeneralOverwrites"
+], function (AdaptiveCards, InputsOverwrites) {
 	"use strict";
 
 	function UI5ChoiceSet (){
@@ -14,16 +17,26 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 	 *
 	 * @class
 	 * An object that overwrites Microsoft's Adaptive Card <code>Input.ChoiceSet</code> element by replacing it with
-	 * <code>ui5-select</code>, or container with <code>ui5-radiobutton</code>, or <code>ui5-checkbox</code> web components.
+	 * <code>ui5-select</code>, or container with <code>ui5-radio-button</code>, or <code>ui5-checkbox</code> web components.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @since 1.74
 	 */
 
 	UI5ChoiceSet.prototype = Object.create(AdaptiveCards.ChoiceSetInput.prototype);
+
+
+	UI5ChoiceSet.prototype.overrideInternalRender = function () {
+		var oInput = AdaptiveCards.TextInput.prototype.overrideInternalRender.call(this, arguments);
+
+		InputsOverwrites.overwriteLabel(this);
+		InputsOverwrites.overwriteRequired(this);
+
+		return oInput;
+	};
 
 	UI5ChoiceSet.prototype.internalRender = function () {
 		if (!this.isMultiSelect) {
@@ -35,37 +48,40 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 					this.valueChanged();
 				}.bind(this));
 
+				var oDocFragment = document.createDocumentFragment();
 				for (var i = 0; i < this.choices.length; i++) {
 					var oOption = document.createElement("ui5-option");
 					oOption.value = this.choices[i].value;
-					oOption.innerHTML = this.choices[i].title;
+					oOption.textContent  = this.choices[i].title;
 
 					if (this.choices[i].value === this.defaultValue) {
 						oOption.selected = true;
 					}
 
-					this._selectElement.appendChild(oOption);
+					oDocFragment.appendChild(oOption);
 				}
 
+				this._selectElement.appendChild(oDocFragment);
 				return this._selectElement;
 			}
-			//if this.isMultiSelect is false and this.isCompact is false, we need to render a container with ui5-radiobutton web components
+			//if this.isMultiSelect is false and this.isCompact is false, we need to render a container with ui5-radio-button web components
 			var oRbContainer = document.createElement("div");
 			oRbContainer.classList.add("sapFCardAdaptiveContentChoiceSetWrapper");
 			oRbContainer.id = this.id;
-			oRbContainer.addEventListener("select", function () {
+			oRbContainer.setAttribute("role", "radiogroup");
+			oRbContainer.addEventListener("change", function () {
 				this.valueChanged();
 			}.bind(this));
 			this._toggleInputs = [];
 			for (var j = 0; j < this.choices.length; j++) {
-				var oRb = document.createElement("ui5-radiobutton");
+				var oRb = document.createElement("ui5-radio-button");
 				oRb.value = this.choices[j].value;
 				oRb.text = this.choices[j].title;
 				oRb.name = this.id;
-				oRb.wrap = this.wrap;
+				oRb.wrappingType = this.wrap ? "Normal" : "None";
 
 				if (this.choices[j].value === this.defaultValue) {
-					oRb.selected = true;
+					oRb.checked = true;
 				}
 
 				this._toggleInputs.push(oRb);
@@ -78,6 +94,7 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		var defaultValues = this.defaultValue ? this.defaultValue.split(",") : null;
 		var oCbContainer = document.createElement("div");
 		oCbContainer.classList.add("sapFCardAdaptiveContentChoiceSetWrapper");
+		oCbContainer.setAttribute("role", "group");
 		oCbContainer.id = this.id;
 		oCbContainer.addEventListener("change", function () { this.valueChanged(); }.bind(this));
 		this._toggleInputs = [];
@@ -86,7 +103,7 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 			oCb.value = this.choices[k].value;
 			oCb.text = this.choices[k].title;
 			oCb.name = this.id;
-			oCb.wrap = this.wrap;
+			oCb.wrappingType = this.wrap ? "Normal" : "None";
 
 			if (defaultValues && defaultValues.indexOf(this.choices[k].value) >= 0) {
 				oCb.checked = true;
@@ -117,7 +134,7 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 					}
 
 					for (i = 0; i < this._toggleInputs.length; i++) {
-						if (this._toggleInputs[i].selected) {
+						if (this._toggleInputs[i].checked) {
 							return this._toggleInputs[i].value;
 						}
 					}
@@ -143,6 +160,33 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 			}
 		}
 	});
+
+	UI5ChoiceSet.prototype.updateInputControlAriaLabelledBy = function () {
+		var sAttribute = (!this.isMultiSelect && this.isCompact) ? "accessible-name-ref" : "aria-labelledby";
+		InputsOverwrites.overwriteAriaLabelling(this, sAttribute);
+	};
+
+	UI5ChoiceSet.prototype.showValidationErrorMessage = function () {
+		if (!this._toggleInputs || !this._toggleInputs.length) {
+			return;
+		}
+
+		this._toggleInputs.forEach(function(oToggleInput){
+			oToggleInput.valueState = "Error";
+		});
+	};
+
+	UI5ChoiceSet.prototype.resetValidationFailureCue = function () {
+		AdaptiveCards.TextInput.prototype.resetValidationFailureCue.call(this, arguments);
+
+		if (!this._toggleInputs || !this._toggleInputs.length) {
+			return;
+		}
+
+		this._toggleInputs.forEach(function (oToggleInput) {
+			oToggleInput.valueState = "None";
+		});
+	};
 
 	return UI5ChoiceSet;
 });

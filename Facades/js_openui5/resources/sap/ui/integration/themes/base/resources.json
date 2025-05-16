@@ -3,7 +3,49 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
+			"theme": "base"
+		},
+		{
+			"name": "ActionsStrip.less",
+			"size": 551,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "AdaptiveCard.less",
+			"size": 668,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "AnalyticsCloudContent.less",
+			"size": 584,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "BlockingMessage.less",
+			"size": 367,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "CalendarContent.less",
+			"size": 5085,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "Card.less",
+			"size": 5672,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "CardVariants.less",
+			"size": 5857,
+			"designtime": true,
 			"theme": "base"
 		},
 		{
@@ -19,88 +61,96 @@
 			"theme": "base"
 		},
 		{
-			"name": "ListContent.less",
-			"size": 424,
+			"name": "Footer.less",
+			"size": 748,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "HeaderInfoSection.less",
+			"size": 835,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "ImageWithOverlay.less",
+			"size": 1516,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ListContentItem.less",
-			"size": 727,
+			"size": 3785,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Microchart.less",
-			"size": 651,
+			"size": 1100,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "MicrochartLegend.less",
-			"size": 1052,
+			"size": 1037,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectContent.less",
-			"size": 857,
+			"size": 3629,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 267,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
+			"name": "ObjectStatus.less",
+			"size": 433,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 79888,
+			"name": "Paginator.less",
+			"size": 352,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "WebPageContent.less",
+			"size": 606,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 2777,
+			"size": 39837,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 67,
+			"module": "sap/ui/integration/themes/base/library-parameters.json",
+			"size": 144,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 2780,
+			"size": 39832,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 5214,
+			"size": 35111,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 493,
+			"size": 846,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 2850,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 2853,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 2576
 		}
 	]
 }

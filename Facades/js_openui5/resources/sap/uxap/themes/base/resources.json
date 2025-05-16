@@ -3,12 +3,12 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
 			"name": "AnchorBar.less",
-			"size": 9412,
+			"size": 10488,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -20,93 +20,71 @@
 		},
 		{
 			"name": "HierarchicalSelect.less",
-			"size": 4193,
+			"size": 4422,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageHeader.less",
-			"size": 11559,
+			"size": 10844,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageHeaderContent.less",
-			"size": 10097,
+			"size": 9174,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageLayout.less",
-			"size": 6130,
+			"size": 6805,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 2402,
+			"size": 4092,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 6488,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 111,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 234,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 79704,
+			"size": 7480,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 53289,
+			"size": 54907,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2,
+			"module": "sap/uxap/themes/base/library-parameters.json",
+			"size": 165,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 53283,
+			"size": 54901,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 52850,
+			"size": 55869,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 533,
+			"size": 528,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 53733,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 53727,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 1488
 		}
 	]
 }

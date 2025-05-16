@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,163 +11,157 @@
 // ---------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------
 sap.ui.define([
-	"sap/m/OverflowToolbarButton", "sap/m/OverflowToolbarLayoutData", "sap/base/util/merge", "sap/m/library", "sap/m/MenuButton"
-], function(OverflowToolbarButton, OverflowToolbarLayoutData, merge, MLibrary, MenuButton) {
+	"sap/m/OverflowToolbarButton",
+	"sap/m/library",
+	"sap/m/OverflowToolbarMenuButton",
+	"sap/m/Menu",
+	"sap/m/MenuItem",
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
+	"sap/ui/Device",
+	"sap/ui/core/ShortcutHintsMixin",
+	"sap/ui/core/theming/Parameters",
+	"sap/ui/performance/trace/FESRHelper"
+], (OverflowToolbarButton, MLibrary, OverflowToolbarMenuButton, Menu, MenuItem, Library, CoreLibrary, Device, ShortcutHintsMixin, ThemeParameters, FESRHelper) => {
 	"use strict";
 
+	const { HasPopup } = CoreLibrary.aria;
+
 	// TODO: this is just a draft version and is not final --> just for verifying flex/p13n concepts
-	var oRb;
+	let oRb;
 	/**
 	 * P13n/Settings helper class for sap.ui.mdc.Table.
-	 * <h3><b>Note:</b></h3>
-	 * The class is experimental and the API/behaviour is not finalised and hence this should not be used for productive usage.
 	 *
 	 * @author SAP SE
 	 * @private
-	 * @experimental
 	 * @since 1.60
 	 * @alias sap.ui.mdc.table.TableSettings
 	 */
-	var TableSettings = {
-		createSortButton: function(sIdPrefix, aEventInfo) {
+	const TableSettings = {
+		createSettingsButton: function(sIdPrefix, aEventInfo) {
 			if (!oRb) {
 				this._loadResourceBundle();
 			}
-			return this._createButton(sIdPrefix + "-sort", {
-				icon: "sap-icon://sort",
-				text: oRb.getText("table.SETTINGS_SORT"),
-				press: aEventInfo,
-				tooltip: oRb.getText("table.SETTINGS_SORT"),
-				layoutData: new OverflowToolbarLayoutData({
-					closeOverflowOnInteraction: false
-				})
-			});
-		},
-		createColumnsButton: function(sIdPrefix, aEventInfo) {
-			if (!oRb) {
-				this._loadResourceBundle();
-			}
-			return this._createButton(sIdPrefix + "-settings", {
+			const oBtn = this._createButton(sIdPrefix + "-settings", {
 				icon: "sap-icon://action-settings",
-				text: oRb.getText("table.SETTINGS_COLUMN"),
+				text: oRb.getText("table.SETTINGS"),
 				press: aEventInfo,
-				tooltip: oRb.getText("table.SETTINGS_COLUMN"),
-				layoutData: new OverflowToolbarLayoutData({
-					closeOverflowOnInteraction: false
-				})
+				tooltip: oRb.getText("table.SETTINGS"),
+				ariaHasPopup: HasPopup.Dialog
 			});
+
+			FESRHelper.setSemanticStepname(oBtn, "press", "mdc:tbl:p13n");
+
+			ShortcutHintsMixin.addConfig(oBtn, {
+					addAccessibilityLabel: true,
+					messageBundleKey: Device.os.macintosh ? "mdc.PERSONALIZATION_SHORTCUT_MAC" : "mdc.PERSONALIZATION_SHORTCUT" // Cmd+, or Ctrl+,
+				}, aEventInfo[1] // we need the table instance, otherwise the messageBundleKey does not find the resource bundle
+			);
+
+			return oBtn;
 		},
-		createFilterButton: function(sIdPrefix, aEventInfo) {
-			if (!oRb) {
-				this._loadResourceBundle();
-			}
-			return this._createButton(sIdPrefix + "-filter", {
-				icon: "sap-icon://filter",
-				text: oRb.getText("filter.PERSONALIZATION_DIALOG_TITLE"),
-				press: aEventInfo,
-				tooltip: oRb.getText("filter.PERSONALIZATION_DIALOG_TITLE"),
-				layoutData: new OverflowToolbarLayoutData({
-					closeOverflowOnInteraction: false
-				})
+		createPasteButton: function(sIdPrefix) {
+			const oPasteButton = this._createButton(sIdPrefix + "-paste");
+
+			FESRHelper.setSemanticStepname(oPasteButton, "press", "mdc:tbl:paste");
+
+			sap.ui.require(["sap/m/plugins/PasteProvider"], (PasteProvider) => {
+				oPasteButton.addDependent(new PasteProvider({
+					pasteFor: sIdPrefix + "-innerTable"
+				}));
 			});
+
+			return oPasteButton;
 		},
 		createExportButton: function(sIdPrefix, mEventInfo) {
 			if (!oRb) {
 				this._loadResourceBundle();
 			}
-
-			var oMenuButton = new MenuButton(sIdPrefix + "-export", {
+			const sButtonType = ThemeParameters.get({ name: "_sap_ui_mdc_Table_ExportButtonType" });
+			const oMenuButton = new OverflowToolbarMenuButton(sIdPrefix + "-export", {
 				icon: "sap-icon://excel-attachment",
+				text: oRb.getText("table.QUICK_EXPORT"),
 				tooltip: oRb.getText("table.EXPORT_BUTTON_TEXT"),
-				type: MLibrary.ButtonType.Ghost,
+				type: MLibrary.ButtonType[sButtonType],
 				buttonMode: MLibrary.MenuButtonMode.Split,
 				useDefaultActionOnly: true,
 				defaultAction: mEventInfo.default
 			});
 
-			// sap.m.Menu requires modules from the unified Lib - load it properly with preload
-			sap.ui.getCore().loadLibrary("sap.ui.unified", {async: true}).then(function() {
-				sap.ui.require(["sap/m/Menu", "sap/m/MenuItem"], function(Menu, MenuItem) {
-					var oMenu = new Menu({
-						items: [
-							new MenuItem({
-								text: oRb.getText("table.QUICK_EXPORT"),
-								press: mEventInfo.default
-							}),
-							new MenuItem({
-								text: oRb.getText("table.EXPORT_WITH_SETTINGS"),
-								press: mEventInfo.exportAs
-							})
-						]
-					});
-					oMenuButton.setMenu(oMenu);
-				});
+			const oMenu = new Menu({
+				items: [
+					new MenuItem({
+						text: oRb.getText("table.QUICK_EXPORT"),
+						press: mEventInfo.default
+					}), new MenuItem({
+						text: oRb.getText("table.EXPORT_WITH_SETTINGS"),
+						press: mEventInfo.exportAs
+					})
+				]
 			});
+			oMenuButton.setMenu(oMenu);
+
+			FESRHelper.setSemanticStepname(oMenuButton, "defaultAction", "OI:QE");
+			FESRHelper.setSemanticStepname(oMenu.getItems()[0], "press", "OI:QE");
+			FESRHelper.setSemanticStepname(oMenu.getItems()[1], "press", "OI:EXP:SETTINGS");
+
+			ShortcutHintsMixin.addConfig(oMenuButton._getButtonControl(), {
+					addAccessibilityLabel: true,
+					messageBundleKey: Device.os.macintosh ? "table.SHORTCUT_EXPORT_TO_EXCEL_MAC" : "table.SHORTCUT_EXPORT_TO_EXCEL" // Cmd+Shift+E or Ctrl+Shift+E
+				}, mEventInfo.exportAs[1] // we need the table instance, otherwise the messageBundleKey does not find the resource bundle
+			);
+
+			return oMenuButton;
+		},
+		createExpandCollapseButton: function(sIdPrefix, bIsExpand, fnPressEvent) {
+			if (!oRb) {
+				this._loadResourceBundle();
+			}
+
+			const sId = bIsExpand ? sIdPrefix + "-expandAll" : sIdPrefix + "-collapseAll",
+				sText = bIsExpand ? oRb.getText("table.EXPAND_TREE") : oRb.getText("table.COLLAPSE_TREE");
+
+			const oButton = this._createButton(sId, {
+				icon: bIsExpand ? "sap-icon://expand-all" : "sap-icon://collapse-all",
+				text: sText,
+				press: fnPressEvent,
+				tooltip: sText
+			});
+
+			FESRHelper.setSemanticStepname(oButton, "press", "mdc:tbl:" + (bIsExpand ? "expandAll" : "collapseAll"));
+
+			return oButton;
+		},
+		createExpandCollapseMenuButton: function(sIdPrefix, bIsExpand, mItemEventInfo) {
+			if (!oRb) {
+				this._loadResourceBundle();
+			}
+
+			const sId = bIsExpand ? sIdPrefix + "-expandAll" : sIdPrefix + "-collapseAll",
+				sTree = bIsExpand ? oRb.getText("table.EXPAND_TREE") : oRb.getText("table.COLLAPSE_TREE"),
+				sNode = bIsExpand ? oRb.getText("table.EXPAND_NODE") : oRb.getText("table.COLLAPSE_NODE"),
+				sText = bIsExpand ? oRb.getText("table.EXPAND_MENU_BUTTON_TEXT") : oRb.getText("table.COLLAPSE_MENU_BUTTON_TEXT");
+
+			const oMenuButton = new OverflowToolbarMenuButton(sId, {
+				icon: bIsExpand ? "sap-icon://expand-all" : "sap-icon://collapse-all",
+				tooltip: sText,
+				menu: new Menu({
+					items: [
+						new MenuItem({text: sTree, press: mItemEventInfo.tree}),
+						new MenuItem({text: sNode, press: mItemEventInfo.node})
+					]
+				})
+			});
+
 			return oMenuButton;
 		},
 		_createButton: function(sId, mSettings) {
 			return new OverflowToolbarButton(sId, mSettings);
 		},
 		_loadResourceBundle: function() {
-			oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.mdc");
-		},
-		showPanel: function(oControl, sP13nType, oSource, bIsRTAAction) {
-			TableSettings["showP13n" + sP13nType](oControl, oSource);
-		},
-
-		showP13nColumns: function(oControl, oSource) {
-			var oAdaptationController = oControl.getAdaptationController();
-			oAdaptationController.showP13n(oSource, "Item");
-		},
-
-		showP13nSort: function(oControl, oSource) {
-			var oAdaptationController = oControl.getAdaptationController();
-			oAdaptationController.showP13n(oSource, "Sort");
-		},
-
-		showP13nFilter: function(oControl, oSource) {
-			var oAdaptationController = oControl.getAdaptationController();
-			oControl.retrieveInbuiltFilter().then(function(){
-				oAdaptationController.showP13n(oSource, "Filter");
-			});
-		},
-
-		createSort: function(oControl, sProperty, bRemoveAllExisting) {
-
-			var oSorter = {
-				selected: true,
-				name: sProperty,
-				descending: false
-			};
-
-			//check to revert 'descending' in case the sorter already exists
-			oControl.getCurrentState().sorters.forEach(function(oProp) {
-				if (oProp.name == sProperty) {
-					oSorter.descending = !oProp.descending;
-				}
-			});
-
-			var oAdaptationController = oControl.getAdaptationController();
-			var aItems = [oSorter];
-
-			oAdaptationController.createSortChanges(aItems, true);
-
-		},
-		moveColumn: function(oControl, iDraggedIndex, iNewIndex) {
-			//in case the user might enable different d&d options, this function should not create a move change with similar index
-			if (iDraggedIndex != iNewIndex){
-				this._moveItem(oControl, iDraggedIndex, iNewIndex, "moveColumn");
-			}
-		},
-		_moveItem: function(oControl, iDraggedIndex, iNewIndex, sMoveOperation) {
-
-			var aVisibleFields = oControl.getCurrentState(oControl).items || [];
-			var oMovedField = aVisibleFields[iDraggedIndex];
-
-			var oAdaptationController = oControl.getAdaptationController();
-			oAdaptationController.createItemChanges([{name: oMovedField.name, position: iNewIndex}]);
-
+			oRb = Library.getResourceBundleFor("sap.ui.mdc");
 		}
 	};
+
 	return TableSettings;
 });

@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Lib"],
+	function(Library) {
 	"use strict";
 
 
@@ -25,11 +25,8 @@ sap.ui.define([],
 	 */
 	CalendarTimeIntervalRenderer.render = function(oRm, oCal){
 
-		oCal._iMode = 0; // it's rendered always as TimesRow
-
 		var sId = oCal.getId();
 		var sTooltip = oCal.getTooltip_AsString();
-		var oTimesRow = oCal.getAggregation("timesRow");
 
 		oRm.openStart("div", oCal);
 		oRm.class("sapUiCal");
@@ -44,11 +41,15 @@ sap.ui.define([],
 			oRm.class("sapUiCalIntLarge");
 		}
 
-		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
+		var rb = Library.getResourceBundleFor("sap.ui.unified");
 		var mAccProps = {labelledby: {value: "", append: false}}; // render on Month
 		if (oCal._bPoupupMode) {
 			mAccProps["role"] = "dialog";
+		} else {
+			mAccProps["role"] = "group";
+			mAccProps["roledescription"] = rb.getText("CALENDAR_DIALOG");
 		}
+
 		oRm.accessibilityState(oCal, mAccProps);
 
 		if (sTooltip) {
@@ -68,7 +69,7 @@ sap.ui.define([],
 		oRm.openStart("div", sId + "-content");
 		oRm.class("sapUiCalContent");
 		oRm.openEnd();
-		oRm.renderControl(oTimesRow);
+		oRm.renderControl(oCal.getAggregation(oCal.getProperty("_currentPicker")));
 
 		oRm.close("div");
 
@@ -78,17 +79,6 @@ sap.ui.define([],
 		oRm.openEnd();
 		oRm.text(rb.getText("CALENDAR_CANCEL"));
 		oRm.close("button");
-
-		// dummy element to catch tabbing in from next element
-		oRm.openStart("div", sId + "-end");
-		oRm.style("width", "0");
-		oRm.style("height", "0");
-		oRm.style("position", "absolute");
-		oRm.style("right", "0");
-		oRm.style("bottom", "0");
-		oRm.attr("tabindex", "0");
-		oRm.openEnd();
-		oRm.close("div");
 
 		if (oCal.getPickerPopup()) {
 			oRm.openStart("div", sId + "-contentOver");

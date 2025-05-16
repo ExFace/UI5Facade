@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,36 +8,11 @@ sap.ui.define([
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/support/supportRules/Storage",
 	"sap/ui/support/supportRules/Constants",
-	"sap/ui/support/supportRules/ui/models/SelectionUtils",
-	"sap/ui/support/supportRules/ui/models/PresetsUtils"
-], function (Controller, storage, constants, SelectionUtils, PresetsUtils) {
+	"sap/ui/support/supportRules/ui/models/SelectionUtils"
+], function (Controller, storage, constants, SelectionUtils) {
 	"use strict";
 
 	return Controller.extend("sap.ui.support.supportRules.ui.controllers.BaseController", {
-
-		onPersistedSettingSelect: function() {
-			var oModel = this.getView().getModel();
-
-			if (oModel.getProperty("/persistingSettings")) {
-				storage.createPersistenceCookie(constants.COOKIE_NAME, true);
-
-				oModel.getProperty("/libraries").forEach(function (lib) {
-					if (lib.title == constants.TEMP_RULESETS_NAME) {
-						storage.setRules(lib.rules);
-					}
-				});
-
-				this.persistExecutionScope();
-				this.persistVisibleColumns();
-				SelectionUtils.persistSelection();
-				PresetsUtils.persistSelectionPresets();
-				PresetsUtils.persistCustomPresets();
-
-			} else {
-				storage.deletePersistenceCookie(constants.COOKIE_NAME);
-				this.deletePersistedData();
-			}
-		},
 
 		persistExecutionScope: function() {
 			var setting = {

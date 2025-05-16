@@ -1,17 +1,21 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/ChangesController",
+	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/ui/fl/write/_internal/SaveAs",
-	"sap/ui/fl/write/_internal/connectors/LrepConnector"
+	"sap/ui/fl/write/_internal/connectors/LrepConnector",
+	"sap/ui/fl/write/api/FeaturesAPI",
+	"sap/ui/fl/write/_internal/Versions"
 ], function(
-	ChangesController,
+	ManifestUtils,
 	SaveAs,
-	LrepConnector
+	LrepConnector,
+	FeaturesAPI,
+	Versions
 ) {
 	"use strict";
 
@@ -20,8 +24,7 @@ sap.ui.define([
 			return Promise.reject("Layer must be provided");
 		}
 
-		var oFlexController = ChangesController.getDescriptorFlexControllerInstance(mPropertyBag.selector);
-		mPropertyBag.reference = oFlexController.getComponentName();
+		mPropertyBag.reference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 		mPropertyBag.url = "/sap/bc/lrep";
 		// Since this method is only called for Save As App Variant scenario on ABAP platform, the direct usage of write LrepConnector is triggered.
 		return LrepConnector.appVariant[sFunctionName](mPropertyBag);
@@ -31,13 +34,12 @@ sap.ui.define([
 	 * Provides an API for tools to create, update, delete app variants.
 	 *
 	 * @namespace sap.ui.fl.write.api.AppVariantWriteAPI
-	 * @experimental Since 1.72
 	 * @since 1.72
 	 * @private
 	 * @ui5-restricted sap.ui.rta, similar tools
 	 *
 	 */
-	var AppVariantWriteAPI = /**@lends sap.ui.fl.write.api.AppVariantWriteAPI */ {
+	var AppVariantWriteAPI = /** @lends sap.ui.fl.write.api.AppVariantWriteAPI */ {
 		/**
 		 * Saves the app variant to backend.
 		 *
@@ -50,17 +52,21 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		saveAs: function(mPropertyBag) {
+		saveAs(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
 			if (!mPropertyBag.id) {
 				return Promise.reject("App variant ID must be provided");
 			}
-			var oFlexController = ChangesController.getDescriptorFlexControllerInstance(mPropertyBag.selector);
-			mPropertyBag.reference = oFlexController.getComponentName();
-
-			return SaveAs.saveAs(mPropertyBag);
+			mPropertyBag.reference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
+			return FeaturesAPI.isVersioningEnabled(mPropertyBag.layer)
+			.then(function(bVersioningEnabled) {
+				if (bVersioningEnabled) {
+					mPropertyBag.parentVersion = Versions.getVersionsModel(mPropertyBag).getProperty("/displayedVersion");
+				}
+				return SaveAs.saveAs(mPropertyBag);
+			});
 		},
 
 		/**
@@ -73,12 +79,11 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		deleteAppVariant: function(mPropertyBag) {
+		deleteAppVariant(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
-			var oFlexController = ChangesController.getDescriptorFlexControllerInstance(mPropertyBag.selector);
-			mPropertyBag.id = oFlexController.getComponentName();
+			mPropertyBag.id = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 
 			return SaveAs.deleteAppVariant(mPropertyBag);
 		},
@@ -92,7 +97,7 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		listAllAppVariants: function(mPropertyBag) {
+		listAllAppVariants(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
@@ -108,7 +113,7 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		getManifest: function(mPropertyBag) {
+		getManifest(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
@@ -130,7 +135,7 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		assignCatalogs: function(mPropertyBag) {
+		assignCatalogs(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
@@ -153,7 +158,7 @@ sap.ui.define([
 		 * @private
 	 	 * @ui5-restricted
 		 */
-		unassignCatalogs: function(mPropertyBag) {
+		unassignCatalogs(mPropertyBag) {
 			if (!mPropertyBag.layer) {
 				return Promise.reject("Layer must be provided");
 			}
@@ -164,4 +169,4 @@ sap.ui.define([
 		}
 	};
 	return AppVariantWriteAPI;
-}, true);
+});

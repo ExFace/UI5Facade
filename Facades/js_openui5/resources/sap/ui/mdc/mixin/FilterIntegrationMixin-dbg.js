@@ -1,22 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
-	"sap/base/Log"
-], function (Core, Log) {
+	"sap/base/Log", "sap/ui/core/Element", "sap/ui/mdc/enums/ReasonMode"
+], (Log, Element, ReasonMode) => {
 	"use strict";
-
-	/**
-	 * @namespace
-	 * @name sap.ui.mdc.mixin
-	 * @private
-	 * @experimental
-	 * @ui5-restricted sap.ui.mdc
-	 */
 
 	/**
 	 * Enhances a given control prototype with consolidated handling for external IFilter integration
@@ -25,11 +16,8 @@ sap.ui.define([
 	 *
 	 * <ul>
 	 * <li><code>setFilter</code> - The setter for the <code>filter</code> association</li>
-	 * <li><code>_registerFilter</code> - Registers the control instance to the external provided IFilter events <code>search</code> and <code>filtersChanged</code></li>
-	 * <li><code>_deregisterFilter</code> - Deregisters the control instance from the external provided IFilter events</li>
 	 * <li><code>_validateFilter</code> - Validates the provided <code>IFilter</code> control instance and may return an error</li>
-	 * <li><code>_onFilterProvided</code> - Notifies the Control that the <code>filter</code> association has been validated and provided</li>
-	 * <li><code>checkAndRebind</code> - Executes a the <code>rebind</code> method for the given control instance.</li>
+	 * <li><code>rebind</code> - Executes a the <code>rebind</code> method for the given control instance.</li>
 	 * </ul>
 	 *
 	 * To use the FilterIntegrationMixin, the implementing Control requires the <code>filter</code> associaton.
@@ -37,80 +25,129 @@ sap.ui.define([
 	 * Additionally, the following methods are necessary to be implemented:
 	 *
 	 * <ul>
-	 * <li><code>rebind</code></li>
+	 * <li><code>_rebind</code></li>
 	 * <li><code>isFilteringEnabled</code></li>
 	 * </ul>
 	 *
+	 * Hooks that are called by the FilterIntegrationMixin if implemented in the control.
+	 *
+	 * <ul>
+	 * <li><code>_onFilterProvided(oFilter: sap.ui.mdc.IFilter)</code>
+	 *     - Notifies the control that a valid <code>filter</code> association has been provided. The provided filter instance is passed.</li>
+	 * <li><code>_onFilterRemoved(oFilter: sap.ui.mdc.IFilter)</code>
+	 *     - Notifies the control that the <code>filter</code> association has been removed. The removed filter instance is passed.</li>
+	 * <li><code>_onFilterSearch(oEvent)</code>
+	 *     - Called when the <code>search</code> event of the filter is fired. The event object is passed.</li>
+	 * <li><code>_onFiltersChanged(oEvent)</code>
+	 *     - Called when the <code>filtersChanged</code> event of the filter is fired. The event object is passed.</li>
+	 * </ul>
+	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @alias sap.ui.mdc.mixin.FilterIntegrationMixin
 	 * @namespace
 	 * @since 1.82.0
 	 * @private
-	 * @experimental
 	 * @ui5-restricted sap.ui.mdc
-	*/
-    var FilterIntegrationMixin = {};
+	 */
+	const FilterIntegrationMixin = {};
 
-    var IFILTER = "sap.ui.mdc.IFilter";
+	const IFILTER = "sap.ui.mdc.IFilter";
 
 	/**
-	 * Set an external IFilter source to connect it with the given control instane.
-	 *
-	 * @param {sap.ui.mdc.filterbar.FilterBarBase} vFilter IFilter implementing control instance.
+	 * Set an external IFilter source to connect it with the given control instance.
+	 * @public
+	 * @param {sap.ui.mdc.IFilter|string} vFilter IFilter implementing instance or its id.
 	 * @returns {sap.ui.mdc.Control} The MDC Control instance.
 	 */
-	FilterIntegrationMixin.setFilter = function (vFilter) {
+	FilterIntegrationMixin.setFilter = function(vFilter) {
 
-		if (this._validateFilter(vFilter)) {
-			this._deregisterFilter();
+		const sNewFilter = typeof vFilter === "object" ? vFilter.getId() : vFilter;
+		const sOldFilter = this.getFilter();
+
+		if (sOldFilter !== sNewFilter) {
+			this._validateFilter(vFilter);
+
+			const oOldFilter = Element.getElementById(this.getFilter());
+			if (oOldFilter) {
+				deregisterFilter(this, oOldFilter);
+			}
 
 			this.setAssociation("filter", vFilter, true);
 
-			this._registerFilter();
-
-			this._onFilterProvided();
+			const oNewFilter = Element.getElementById(this.getFilter());
+			if (oNewFilter) {
+				registerFilter(this, oNewFilter);
+			}
 		}
 
 		return this;
 	};
 
 	/**
-	 * Hook which can be used after a valid filter association has been set via <code>FilterIntegrationMixin</code>.
+	 * Event handler that is attached to the <code>search</code>
+	 * event of the IFilter implementing instance. The handler
+	 * triggers rebind and calls the _onFilterSearch hook.
+	 *
+	 * @param {object} oEvent Event object
 	 */
-	FilterIntegrationMixin._onFilterProvided = function() {
-		return;
-	};
+	function onSearch(oEvent) {
+		const sReason = oEvent.getParameter('reason');
+		const oFilter = oEvent.getSource();
+		const bForceRefresh = oFilter.getLiveMode && (oFilter.getLiveMode() ? sReason === ReasonMode.Enter : sReason === ReasonMode.Go);
+
+		this._rebind(bForceRefresh);
+		if (this._onFilterSearch) {
+			this._onFilterSearch(oEvent);
+		}
+	}
+
+	function onFiltersChanged(oEvent) {
+		if (this._onFiltersChanged) {
+			this._onFiltersChanged(oEvent);
+		}
+	}
 
 	/**
-	 * Registers the MDC Control to the provided IFilter control instance
-	 * events <code>search</code> and <code>filtersChanged</code>.
+	 * Registers the control instance to the provided IFilter.
+	 *
+	 * @param {sap.ui.mdc.Control} oControl Control instance.
+	 * @param {sap.ui.mdc.IFilter} oFilter IFilter implementing instance.
 	 */
-    FilterIntegrationMixin._registerFilter = function() {
-		var oFilter = Core.byId(this.getFilter());
-		if (oFilter) {
-			oFilter.attachSearch(this.rebind, this);
-			oFilter.attachFiltersChanged(this._onFiltersChanged, this);
+	function registerFilter(oControl, oFilter) {
+		oFilter.attachSearch(onSearch, oControl);
+
+		if (oFilter.attachFiltersChanged instanceof Function) {
+			oFilter.attachFiltersChanged(onFiltersChanged, oControl);
 		}
-	};
+
+		if (oControl._onFilterProvided instanceof Function) {
+			oControl._onFilterProvided(oFilter);
+		}
+	}
 
 	/**
-	 * Deregisters the MDC Control to the provided IFilter control instance.
-	 * events <code>search</code> and <code>filtersChanged</code>.
+	 * Deregisters the control instance from the provided IFilter.
+	 *
+	 * @param {sap.ui.mdc.Control} oControl Control instance.
+	 * @param {sap.ui.mdc.IFilter} oFilter IFilter implementing instance.
 	 */
-    FilterIntegrationMixin._deregisterFilter = function() {
-		var oFilter = Core.byId(this.getFilter());
-		if (oFilter) {
-			oFilter.detachSearch(this.rebind, this);
-			oFilter.detachFiltersChanged(this._onFiltersChanged, this);
-		}
-	};
+	function deregisterFilter(oControl, oFilter) {
+		oFilter.detachSearch(onSearch, oControl);
 
+		if (oFilter.detachFiltersChanged instanceof Function) {
+			oFilter.detachFiltersChanged(onFiltersChanged, oControl);
+		}
+
+		if (oControl._onFilterRemoved instanceof Function) {
+			oControl._onFilterRemoved(oFilter);
+		}
+	}
 
 	/**
 	 * Sanity check if the inheriting control fulfills the FilterIntegrationMixin requirements
 	 */
-	var _checkFISanity = function(oControl) {
+	function _checkFISanity(oControl) {
 
 		//TODO: consider to dynamically add properties/associations in the MDC mixins
 		if (!(oControl && oControl.getMetadata() && oControl.getMetadata().hasAssociation("filter"))) {
@@ -125,74 +162,102 @@ sap.ui.define([
 			throw new Error("Please implement the method isFilteringEnabled for the control " + oControl);
 		}
 
-	};
+	}
 
 	/**
-	 * Set an external IFilter source to connect it with the given control instane.
+	 * Validates the provided <code>IFilter</code> instance.
 	 *
-	 * @param {sap.ui.mdc.filterbar.FilterBarBase} vFilter IFilter implementing control instance.
-	 * @throws {Error} An error is being raised in case the provided Control instance does not implement IFilter.
+	 * @param {sap.ui.mdc.IFilter|string} vFilter IFilter implementing instance or its ID.
+	 * @throws {Error} An error is being raised in case the provided control instance does not implement IFilter.
 	 */
 	FilterIntegrationMixin._validateFilter = function(vFilter) {
 		_checkFISanity(this);
 
-		var oFilter = typeof vFilter === "object" ? vFilter : Core.byId(vFilter);
-		if (!oFilter || oFilter.isA(IFILTER)) {
-			return true;
+		const oFilter = typeof vFilter === "object" ? vFilter : Element.getElementById(vFilter);
+		if (oFilter && !oFilter.isA(IFILTER)) {
+			throw new Error("\"" + vFilter + "\" is not valid for association \"filter\"." +
+				" Please use an object that implements the \"" + IFILTER + "\" interface");
 		}
-		throw new Error("\"" + vFilter + "\" is not valid for association \"filter\" of mdc.Table. Please use an object that implements \"" + IFILTER + "\" interface");
 	};
 
 	/**
 	 * Executes a rebind considering the provided external and inbuilt filtering.
+	 *
+	 * @returns {Promise}
+	 *     A <code>Promise</code> that resolves after rebind is executed, and rejects if
+	 *     rebind cannot be executed, for example because there are invalid filters.
+	 * @public
+	 * @since 1.98
 	 */
-	FilterIntegrationMixin.checkAndRebind = function() {
+	FilterIntegrationMixin.rebind = function() {
+
+		if (this.bIsDestroyed) {
+			return Promise.reject("Destroyed");
+		}
 
 		//check for internal and external filtering before triggering a rebind
-		var pOuterFilterSearch;
-		var pInnerFilterSearch;
-		var oFilter = Core.byId(this.getFilter()), bInbuiltEnabled = this.isFilteringEnabled();
+		let pOuterFilterSearch;
+		let pInnerFilterSearch;
+		const oFilter = Element.getElementById(this.getFilter()),
+			bInbuiltEnabled = this.isFilteringEnabled();
 
 		//check if there is any external/internal filter source
 		if (bInbuiltEnabled || oFilter) {
 
 			if (oFilter) {
-				pOuterFilterSearch = oFilter.valid(false);
+				pOuterFilterSearch = oFilter.validate(true);
 			}
 
 			if (bInbuiltEnabled) {
-				pInnerFilterSearch = this.retrieveInbuiltFilter().then(function(oInnerFilter){
-					return oInnerFilter.valid(false);
+				pInnerFilterSearch = this.retrieveInbuiltFilter().then((oInnerFilter) => {
+					return oInnerFilter.validate(true);
 				});
 			}
 
-			Promise.all([
-				pOuterFilterSearch,
-				pInnerFilterSearch
-			]).then(function() {
-				this.rebind();
-			}.bind(this), function(){
-
-				//TODO:
-				//Do some stuff in case something gets rejected
-
+			return Promise.all([
+				pOuterFilterSearch, pInnerFilterSearch
+			]).then(() => {
+				return this._rebind();
 			});
 		} else {
 
 			//No Filter source provided --> rebind immediately
-			this.rebind();
+			return this._rebind();
 		}
 
 	};
 
-	return function () {
+	FilterIntegrationMixin._getLabelsFromFilterConditions = function() {
+		const aLabels = [];
 
-        this.setFilter = FilterIntegrationMixin.setFilter;
-        this._registerFilter = FilterIntegrationMixin._registerFilter;
-        this._deregisterFilter = FilterIntegrationMixin._deregisterFilter;
-		this._validateFilter = FilterIntegrationMixin._validateFilter;
-		this._onFilterProvided = FilterIntegrationMixin._onFilterProvided;
-        this.checkAndRebind = FilterIntegrationMixin.checkAndRebind;
+		if (this.getFilterConditions) {
+			const aFilterConditions = this.getFilterConditions();
+			Object.keys(aFilterConditions).forEach((oConditionKey) => {
+
+				if (!aFilterConditions[oConditionKey] || aFilterConditions[oConditionKey].length < 1) {
+					return;
+				}
+
+				const sLabel = this.getPropertyHelper().getProperty(oConditionKey) ? this.getPropertyHelper().getProperty(oConditionKey).label : oConditionKey; //TODO the property for the filter might not exitst when you select a variant
+
+				if (sLabel) {
+					aLabels.push(sLabel);
+				}
+				if (!sLabel || sLabel === oConditionKey) {
+					Log.error("No valid property found for filter with key " + oConditionKey + ". Check your metadata.");
+				}
+			});
+		}
+
+		return aLabels;
 	};
 
-}, /* bExport= */ true);
+	return function() {
+
+		this.setFilter = FilterIntegrationMixin.setFilter;
+		this._validateFilter = FilterIntegrationMixin._validateFilter;
+		this.rebind = FilterIntegrationMixin.rebind;
+		this._getLabelsFromFilterConditions = FilterIntegrationMixin._getLabelsFromFilterConditions;
+	};
+
+});

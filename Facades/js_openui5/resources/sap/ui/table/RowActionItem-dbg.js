@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,7 +10,7 @@ sap.ui.define([
 ], function(library, TableUtils, Element, MenuItem, IconPool) {
 	"use strict";
 
-	var RowActionType = library.RowActionType;
+	const RowActionType = library.RowActionType;
 
 	/**
 	 * Constructor for a new RowActionItem.
@@ -24,15 +24,14 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.45
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.table.RowActionItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Item = Element.extend("sap.ui.table.RowActionItem", /** @lends sap.ui.table.RowActionItem.prototype */ {
+	const Item = Element.extend("sap.ui.table.RowActionItem", /** @lends sap.ui.table.RowActionItem.prototype */ {
 		metadata: {
 			library: "sap.ui.table",
 			properties: {
@@ -63,14 +62,16 @@ sap.ui.define([
 				 * The <code>press</code> is fired when the user triggers the corresponding action.
 				 */
 				press: {
-					/**
-					 * The item which was pressed.
-					 */
-					item: {type: "sap.ui.table.RowActionItem"},
-					/**
-					 * The table row to which the pressed item belongs to.
-					 */
-					row: {type: "sap.ui.table.Row"}
+					parameters: {
+						/**
+						 * The item which was pressed.
+						 */
+						item: {type: "sap.ui.table.RowActionItem"},
+						/**
+						 * The table row to which the pressed item belongs to.
+						 */
+						row: {type: "sap.ui.table.Row"}
+					}
 				}
 			}
 		}
@@ -94,7 +95,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype.getRowAction = function() {
-		var oParent = this.getParent();
+		const oParent = this.getParent();
 		return TableUtils.isA(oParent, "sap.ui.table.RowAction") ? oParent : null;
 	};
 
@@ -104,7 +105,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype._firePress = function() {
-		var oRowAction = this.getRowAction();
+		const oRowAction = this.getRowAction();
 
 		this.firePress({
 			item: this,
@@ -137,7 +138,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype._getIcon = function() {
-		var oIcon = this.getIcon();
+		const oIcon = this.getIcon();
 		if (oIcon) {
 			return oIcon;
 		}
@@ -158,7 +159,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype._getText = function(bPreferTooltip) {
-		var sText = bPreferTooltip ? (this.getTooltip_AsString() || this.getText()) : (this.getText() || this.getTooltip_AsString());
+		const sText = bPreferTooltip ? (this.getTooltip_AsString() || this.getText()) : (this.getText() || this.getTooltip_AsString());
 		if (sText) {
 			return sText;
 		}

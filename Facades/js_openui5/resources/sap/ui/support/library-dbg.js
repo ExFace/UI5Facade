@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * Initialization Code and shared classes of library sap.ui.support.
  */
-sap.ui.define(["sap/ui/core/library"],
-	function (library1) {
+sap.ui.define(["sap/ui/core/Lib", "sap/ui/base/DataType", "sap/ui/core/library"],
+	function (Library, DataType, library1) {
 	"use strict";
 
 	/**
@@ -21,18 +21,15 @@ sap.ui.define(["sap/ui/core/library"],
 	 * rules to check all aspects of an application.
 	 *
 	 * @namespace
-	 * @name sap.ui.support
+	 * @alias sap.ui.support
 	 * @author SAP SE
-	 * @version 1.82.0
-	 *
+	 * @version 1.136.0
+	 * @since 1.50
 	 * @public
 	 */
-
-	// library dependencies
-
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	var thisLib = Library.init({
 		name : "sap.ui.support",
+		apiVersion: 2,
 		dependencies : ["sap.ui.core"],
 		types: [
 			"sap.ui.support.Severity"
@@ -41,7 +38,7 @@ sap.ui.define(["sap/ui/core/library"],
 		controls: [],
 		elements: [],
 		noLibraryCSS: true,
-		version: "1.82.0",
+		version: "1.136.0",
 		extensions: {
 			//Configuration used for rule loading of Support Assistant
 			"sap.ui.support": {
@@ -53,10 +50,10 @@ sap.ui.define(["sap/ui/core/library"],
 	/**
 	 * Defines severity types.
 	 * @enum {string}
-	 * @since 1.82.0
+	 * @since 1.50
 	 * @public
 	 */
-	sap.ui.support.Severity = {
+	thisLib.Severity = {
 		/**
 		 * Medium issue severity.
 		 * @public
@@ -74,13 +71,15 @@ sap.ui.define(["sap/ui/core/library"],
 		Low: "Low"
 	};
 
+	DataType.registerEnum("sap.ui.support.Severity", thisLib.Severity);
+
 	/**
 	 * Defines the Audiences.
 	 * @enum {string}
-	 * @since 1.82.0
+	 * @since 1.50
 	 * @public
 	 */
-	sap.ui.support.Audiences = {
+	thisLib.Audiences = {
 		/**
 		 * Audience just on Control level.
 		 * @public
@@ -101,10 +100,10 @@ sap.ui.define(["sap/ui/core/library"],
 	/**
 	 * Issue Categories.
 	 * @enum {string}
-	 * @since 1.82.0
+	 * @since 1.50
 	 * @public
 	 */
-	sap.ui.support.Categories = {
+	thisLib.Categories = {
 		/**
 		 * Accessibility issue category.
 		 * @public
@@ -132,6 +131,7 @@ sap.ui.define(["sap/ui/core/library"],
 		Consistency: "Consistency",
 		/**
 		 * Fiori Guidelines issue category.
+		 * @since 1.58
 		 * @public
 		 */
 		FioriGuidelines : "FioriGuidelines",
@@ -152,6 +152,7 @@ sap.ui.define(["sap/ui/core/library"],
 		DataModel: "DataModel",
 		/**
 		 * Modularization issue category.
+		 * @since 1.60
 		 * @public
 		 */
 		Modularization: "Modularization",
@@ -170,10 +171,10 @@ sap.ui.define(["sap/ui/core/library"],
 	/**
 	 * Analysis history formats.
 	 * @enum {string}
-	 * @since 1.82.0
+	 * @since 1.58
 	 * @public
 	 */
-	sap.ui.support.HistoryFormats = {
+	thisLib.HistoryFormats = {
 		/**
 		 * ABAP history format.
 		 * @public
@@ -189,10 +190,10 @@ sap.ui.define(["sap/ui/core/library"],
 	/**
 	 * Contains the available system presets.
 	 * @enum {object}
-	 * @since 1.82.0
+	 * @since 1.60
 	 * @public
 	 */
-	sap.ui.support.SystemPresets = {
+	thisLib.SystemPresets = {
 		/**
 		 * The accessibility preset.
 		 *
@@ -223,8 +224,53 @@ sap.ui.define(["sap/ui/core/library"],
 				{ruleId: "texttooltip", libName: "sap.m"},
 				{ruleId: "rbText", libName: "sap.m"}
 			]
+		},
+
+		/**
+		 * Preset to find usages of deprecated controls, properties, aggregations and others.
+		 *
+		 * @public
+		 * @experimental since 1.120
+		 */
+		Deprecations : {
+			id: "Deprecations",
+			title: "Deprecations",
+			description: "Usage of deprecated controls, properties, aggregations and others",
+			selections: [
+				// Grouped by library
+				{ ruleId: "deprecatedProperty", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedElement", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedAggregation", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedAssociation", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedEvent", libName: "sap.ui.core" },
+				{ ruleId: "globalApiUsage", libName: "sap.ui.core" },
+				{ ruleId: "jquerySapUsage", libName: "sap.ui.core" },
+				{ ruleId: "syncFactoryLoading", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedApiUsage", libName: "sap.ui.core" },
+				{ ruleId: "jQueryThreeDeprecation", libName: "sap.ui.core" },
+				{ ruleId: "deprecatedJSViewUsage", libName: "sap.ui.core" },
+
+				{ ruleId: "smartTableDeprecatedModel", libName: "sap.ui.comp" }
+			]
 		}
 	};
 
-	return sap.ui.support;
+	/**
+	 * Support Assistant rule configuration
+	 *
+	 * @typedef {object} sap.ui.support.RuleConfiguration
+	 * @property {string} id
+	 * @property {boolean} async
+	 * @property {string} title
+	 * @property {string} resolution
+	 * @property {string} minversion
+	 * @property {sap.ui.support.Categories[]} categories
+	 * @property {sap.ui.support.Audiences[]} audiences
+	 * @property {string} description
+	 * @property {string} resolutionurls
+	 * @property {string} check
+	 * @public
+	 */
+
+	return thisLib;
 });
