@@ -341,3 +341,9 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     .responsiveFlexbox {flex-direction: column;}
     .customSearchField {padding-left: 16px;padding-right: 16px;}
 }
+
+/* ui-5 upgrade fixes */
+.sapUxAPObjectPageSection .sapUxAPBlockContainer { padding: 0; }
+.sapUxAPObjectPageSectionTitle { border-bottom: .0625rem solid #0854a0; }
+.sapUxAPObjectPageSection { border-top: none; }
+.sapUxAPObjectPageSectionHeader { border-bottom: .0625rem solid #d9d9d9; }
