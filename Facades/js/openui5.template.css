@@ -343,7 +343,50 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 }
 
 /* ui-5 upgrade fixes */
+
+/* table width and table headings */
 .sapUxAPObjectPageSection .sapUxAPBlockContainer { padding: 0; }
 .sapUxAPObjectPageSectionTitle { border-bottom: .0625rem solid #0854a0; }
 .sapUxAPObjectPageSection { border-top: none; }
 .sapUxAPObjectPageSectionHeader { border-bottom: .0625rem solid #d9d9d9; }
+
+/* navtiles margin to navbar */
+.exf-tiles > .sapMPanelHeadingDiv
+{
+  margin-top: 1rem;
+}
+
+/* panel title margin to navbar */
+.exf-panel .sapMPanelHdr{
+  margin-top: 1rem;
+}
+
+/* context menu button styling */
+.sapMPopover .sapMBtnInner {
+  border: none;
+}
+
+/* fix table background if not full width */
+.sapUiTableContentRow .sapUiTableCellDummy {
+  background-color: var(--sapList_Background) !important;
+}
+
+/* if table has stripes, stripe dummy cells too  */
+.rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
+.sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
+    background-color: var(--sapList_AlternatingBackground) !important;
+}
+
+/* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
+.rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground);
+}
+
+/* make tbale header background darker */
+.rowAlternate-true .sapUiTableHeaderRow {
+    background-color: var(--sapList_BorderColor);
+}
+
+.sapMTableTH {
+    background-color: var(--sapList_BorderColor);
+}
