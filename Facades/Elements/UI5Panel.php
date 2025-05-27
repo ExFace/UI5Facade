@@ -155,13 +155,11 @@ JS;
      */
     public function buildJsLayoutConstructor(array $widgets = null) : string
     {
-        $widgets = $widgets ?? $this->getWidget()->getWidgets();
-        
         if (! $this->isLayoutRequired()) {     
             return $this->buildJsChildrenConstructors($widgets);
         }
         
-        return $this->buildJsLayoutForm($widgets);
+        return $this->buildJsLayoutForm($widgets ?? $this->getWidget()->getWidgets());
     }
     
     /**
@@ -170,12 +168,14 @@ JS;
      */
     public function buildJsChildrenConstructors(array $widgets = null) : string
     {
-        $js = '';
-        $widgets = $widgets ?? $this->getWidget()->getWidgets();
-        foreach ($widgets as $widget) {
-            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($widget)->buildJsConstructor();
-        }        
-        return $js;
+        if ($widgets !== null) {
+            $js = '';
+            foreach ($widgets as $widget) {
+                $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($widget)->buildJsConstructor();
+            }
+            return $js;
+        }
+        return parent::buildJsChildrenConstructors();
     }
     
     /**
@@ -487,13 +487,13 @@ JS;
         }
         $visible = $hidden === true || ($containerWidget !== null && $containerWidget->isHidden()) ? 'visible: false,' : '';
         
-        $js .= <<<JS
+        $js = <<<JS
     new sap.ui.layout.form.FormContainer({$id}{
         title: new sap.ui.core.Title({{$title}}),
         {$layout}
         {$visible}
         formElements: [
-            {$this->buildJsConstructorFormElement($widgets)}
+            {$this->buildJsConstructorFormElement($widgets, $containerWidget)}
         ]
     })
         
@@ -501,9 +501,10 @@ JS;
         return $js;
     }
     
-    protected function buildJsConstructorFormElement(array $widgets) : string
+    protected function buildJsConstructorFormElement(array $widgets, ?WidgetInterface $containerWidget = null) : string
     {
         $js = '';
+        $containerWidgetCnt = $containerWidget instanceof iContainOtherWidgets ? $containerWidget->countWidgets() : null;
         foreach ($widgets as $widget) {
             $label = '';
             $fields = '';
@@ -527,7 +528,18 @@ JS;
                 ]
             })
 JS;
-        } 
+        }
+
+        // See if any widgets have bee added to the container while the code was generated. Call this
+        // method for them separately and append the resulting JS.
+        if ($containerWidgetCnt !== null && $containerWidget->countWidgets() > $containerWidgetCnt) {
+            $addedWidgets = [];
+            for($i = $containerWidgetCnt; $i < $containerWidget->countWidgets(); $i++) {
+                $addedWidgets[] = $containerWidget->getWidget($i);
+            }
+            $js .= $js !== '' ? ",\n" : '';
+            $js .= $this->buildJsConstructorFormElement($addedWidgets, $containerWidget);
+        }
         return $js;
     }
     
