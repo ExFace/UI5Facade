@@ -162,7 +162,6 @@ JS;
                     if (bMultiline) {
                         sVal.replace(/([^>\\r\\n]?)(\\r\\n|\\n\\r|\\r|\\n)/g, '$1<br>$2');
                     }
-                    console.log(sVal)
                     return {$openTag} sVal {$closeTag};
                 },
                 
