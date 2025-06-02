@@ -345,48 +345,60 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* ui-5 upgrade fixes */
 
 /* table width and table headings */
-.sapUxAPObjectPageSection .sapUxAPBlockContainer { padding: 0; }
-.sapUxAPObjectPageSectionTitle { border-bottom: .0625rem solid #0854a0; }
-.sapUxAPObjectPageSection { border-top: none; }
-.sapUxAPObjectPageSectionHeader { border-bottom: .0625rem solid #d9d9d9; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSection .sapUxAPBlockContainer { padding: 0; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSectionTitle { border-bottom: .0625rem solid #0854a0; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSection { border-top: none; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSectionHeader { border-bottom: .0625rem solid #d9d9d9; }
 
 /* navtiles margin to navbar */
-.exf-tiles > .sapMPanelHeadingDiv
+html.sapUiTheme-sap_fiori_3 .exf-tiles > .sapMPanelHeadingDiv
 {
   margin-top: 1rem;
 }
 
 /* panel title margin to navbar */
-.exf-panel .sapMPanelHdr{
+html.sapUiTheme-sap_fiori_3 .exf-panel .sapMPanelHdr{
   margin-top: 1rem;
 }
 
 /* context menu button styling */
-.sapMPopover .sapMBtnInner {
+html.sapUiTheme-sap_fiori_3 .sapMPopover .sapMBtnInner {
   border: none;
 }
 
 /* fix table background if not full width */
-.sapUiTableContentRow .sapUiTableCellDummy {
+html.sapUiTheme-sap_fiori_3 .sapUiTableContentRow .sapUiTableCellDummy {
   background-color: var(--sapList_Background) !important;
 }
 
 /* if table has stripes, stripe dummy cells too  */
-.rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
-.sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
+html.sapUiTheme-sap_fiori_3 .sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
     background-color: var(--sapList_AlternatingBackground) !important;
 }
 
 /* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
-.rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
     background-color: var(--sapList_AlternatingBackground);
 }
 
-/* make tbale header background darker */
-.rowAlternate-true .sapUiTableHeaderRow {
+/* allow table selection on stripes (blue highlight) */
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl .sapUiTableContentRow.sapUiTableRowSel{
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+/* make table header background darker */
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableHeaderRow {
     background-color: var(--sapList_BorderColor);
 }
 
-.sapMTableTH {
+html.sapUiTheme-sap_fiori_3 .sapMTableTH {
     background-color: var(--sapList_BorderColor);
 }
+
+/* set header content darker */
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusText, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusIcon, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
+    color: var(--sapTextColor);
+}
+
+
