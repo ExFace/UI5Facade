@@ -969,6 +969,7 @@ JS;
             $fillerWidget = $tab->getFillerWidget();
             switch (true) {
                 case $fillerWidget instanceof Split:
+                    $cssClass .= ' exf-tab-split';
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
