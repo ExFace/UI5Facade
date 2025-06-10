@@ -31,7 +31,7 @@ class UI5DataPaginator extends UI5AbstractElement
 
         new sap.m.Label("{$this->getId()}_pager", {
             text: ""
-        }),
+        }).addStyleClass('exf-paginator-position'),
         new sap.m.OverflowToolbarButton("{$this->getId()}_prev", {
             type: sap.m.ButtonType.Transparent,
             icon: "sap-icon://navigation-left-arrow",
@@ -43,7 +43,7 @@ class UI5DataPaginator extends UI5AbstractElement
                 {$this->buildJsGetPaginator($oControllerJs)}.previous();
                 {$this->buildJsDataRefresh(true, $oControllerJs)}
             }
-        }),
+        }).addStyleClass('exf-paginator-button'),
         new sap.m.OverflowToolbarButton("{$this->getId()}_next", {
             type: sap.m.ButtonType.Transparent,
             icon: "sap-icon://navigation-right-arrow",
@@ -55,7 +55,7 @@ class UI5DataPaginator extends UI5AbstractElement
                 {$this->buildJsGetPaginator($oControllerJs)}.next();
                 {$this->buildJsDataRefresh(true, $oControllerJs)}
             }
-        }),     
+        }).addStyleClass('exf-paginator-button'),     
 JS;
     }
     
