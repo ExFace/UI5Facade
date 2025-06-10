@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Templates;
 
 use exface\Core\CommonLogic\TemplateRenderer\AbstractPlaceholderResolver;
+use exface\Core\Interfaces\Debug\LogBookInterface;
 use exface\Core\Interfaces\Facades\FacadeInterface;
 use exface\UI5Facade\Facades\UI5Facade;
 
@@ -36,7 +37,7 @@ class UI5CustomPlaceholders extends AbstractPlaceholderResolver
      * {@inheritDoc}
      * @see \exface\Core\Interfaces\TemplateRenderers\PlaceholderResolverInterface::resolve()
      */
-    public function resolve(array $placeholders) : array
+    public function resolve(array $placeholders, ?LogBookInterface $logbook = null) : array
     {
         $phVals = [];
         foreach ($this->filterPlaceholders($placeholders) as $placeholder) {
