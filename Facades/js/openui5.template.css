@@ -692,6 +692,11 @@ html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelContent {
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMITBContent {background-color: var(--sapObjectHeader_Background); border-bottom: none;}
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelHdr {height: 3rem !important; line-height: 3rem !important; text-align: center;}
 
+/* account popup */
+html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBaseInner{
+    color: var(--sapTextColor);
+}
+
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */
 html.sapUiTheme-sap_horizon_dark .sapMPI {
@@ -726,5 +731,13 @@ html.sapUiTheme-sap_horizon_dark .sapMPIBarCritical+.sapMPIBarRemaining {
 html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral .sapMPIText.sapMPITextLeft, 
 html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral .sapMPIText.sapMPITextLeft{
     color: var(--sapButton_Success_TextColor);
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMBtn.exf-svg-icon > .sapMBtnInner > .sapMImg {
+    filter: invert(50%) sepia(100%) saturate(500%) hue-rotate(180deg);
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMTileCntContent > .sapMImageContent > img {
+    filter: invert(50%) sepia(10%) saturate(500%) hue-rotate(165deg) brightness(100%) contrast(100%);
 }
 
