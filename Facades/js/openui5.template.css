@@ -293,7 +293,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .fullscreen {position: fixed!important; top: 0; left: 0; padding: 0; width: 100vw!important; height: 100vh!important; background: rgba(255,255,255);}
 .sapUiRespGrid.fullscreen > .sapUiRespGridSpanS12 {height: 100%}
 /* Fullscreen Scheduler */
-.fullscreen > .sapMITBContent {padding: 0; height: 100%; max-height: 100vh;};
+.fullscreen > .sapMITBContent {padding: 0; height: 100%; max-height: 100vh;}
 
 /* SegmentedButtons */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}
@@ -571,7 +571,9 @@ html.sapUiTheme-sap_horizon .sapMGT:hover:not(.sapMGTPressActive) {
 .sapFDynamicPageHeaderContent .exfw-Filter > .sapUiVltCell:nth-of-type(2) {margin-top: -2px}
 .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {box-shadow: none}*/
 
-html.sapUiTheme-sap_horizon .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {background-color: var(--sapContent_Illustrative_Color7);}
+html.sapUiTheme-sap_horizon .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {
+    background-color: var(--sapContent_Illustrative_Color7);
+}
 html.sapUiTheme-sap_horizon .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseInner {
     background-color: var(--sapContent_Illustrative_Color7); 
 }
@@ -588,7 +590,7 @@ html.sapUiTheme-sap_horizon .sapUxAPObjectPageSection .sapUiTableCCnt {border-bo
 /* Split inside a tab in ObjectPageLayout */
 html.sapUiTheme-sap_horizon .sapUxAPObjectPageSection.exf-tab-split .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {padding-bottom: 0; padding-top: 0}
 /* Splits inside ObjectPageLayout as sections/tabs */
-html.sapUiTheme-sap_horizon .sapUiLoSplitter>.sapUiLoSplitterBar {background-color: #f5f6f7}
+html.sapUiTheme-sap_horizon .sapUiLoSplitter > .sapUiLoSplitterBar {background-color: var(--sapBackgroundColor);}
 html.sapUiTheme-sap_horizon .sapUiLoSplitterH > .sapUiLoSplitterContent:first-of-type .sapMPanel {border-top-right-radius: 0; border-bottom-right-radius: 0;}
 html.sapUiTheme-sap_horizon .sapUiLoSplitterH > .sapUiLoSplitterContent:last-of-type .sapMPanel {border-top-left-radius: 0; border-bottom-left-radius: 0;}
 
@@ -700,4 +702,13 @@ html.sapUiTheme-sap_horizon .exf-tiles .sapMPanelHeadingDiv>.sapMPanelHdr,
 html.sapUiTheme-sap_horizon .exf-navtiles .sapMPanelContent {
     background-color:  #f7f7f7;
 }
+
+/* Data widgets */
+html.sapUiTheme-sap_horizon .sapMLabel.exf-paginator-position {font-weight: normal; font-family: var(--sapFontFamily);}
+
+/* Login prompt */
+html.sapUiTheme-sap_horizon .exf-loginprompt-panel .sapMPanelContent {border: none;}
+html.sapUiTheme-sap_horizon .exf-loginprompt-panel .sapMITBContent {background-color: var(--sapObjectHeader_Background); border-bottom: none;}
+html.sapUiTheme-sap_horizon .exf-loginprompt-panel .sapMPanelHdr {height: 3rem !important; line-height: 3rem !important; text-align: center;}
+
 
