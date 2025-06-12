@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\Model\UiPageTreeNode;
+use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
+
 /**
  *
  * @method \exface\Core\Widgets\NavMenu getWidget()
@@ -40,17 +43,23 @@ JS;
     
     /**
      * 
-     * @param UiPageTreeNode[] $menu
+     * @param UiPageTreeNodeInterface[] $menu
      * @return string
      */
-    protected function buildNavigationListItems(array $menu) : string
+    protected function buildNavigationListItems(array $menu, int $level = 1) : string
     {
         $output = '';
         foreach ($menu as $node) {
             $url = $this->getFacade()->buildUrlToPage($node->getPageAlias());
-            $icon = "folder-blank";
+            if ($level === 1) {
+                // TODO why do font-awesome icons like `sap-icon://font-awesome/bug` not work here???
+                // $icon = $node->getIcon() ? $this->getIconSrc($node->getIcon()) : "folder-blank";
+                $icon = "folder-blank";
+            } else {
+                $icon = '';
+            }
             if ($node->hasChildNodes() === true) {
-                $icon = "open-folder";
+                $icon = $icon === "folder-blank" ? "open-folder" : '';
                 $output .= <<<JS
             
         new sap.tnt.NavigationListItem({
@@ -59,7 +68,7 @@ JS;
             items: [
                 // BOF {$node->getName()} SubMenu
                 
-                {$this->buildNavigationListItems($node->getChildNodes())}
+                {$this->buildNavigationListItems($node->getChildNodes(), $level + 1)}
                 
                 // EOF {$node->getName()} SubMenu
                 ],
