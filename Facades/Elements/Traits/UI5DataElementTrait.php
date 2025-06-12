@@ -2637,7 +2637,7 @@ JS;
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
                     var aNewSelection = {$this->buildJsGetRowsSelected('oControl')};
                     var aOldSelection = oControl.data('exfPreviousSelection') || [];
-                    var bNoChange = exfTools.data.compareRows(aOldSelection, aNewSelection);
+                    var bNoChange = exfTools.data.compareData(aOldSelection, aNewSelection);
                     oControl.data('exfPreviousSelection', aNewSelection);
                     return bNoChange;
                 })()
