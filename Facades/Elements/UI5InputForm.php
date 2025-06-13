@@ -57,11 +57,25 @@ JS);
         new sap.ui.core.HTML("{$this->getId()}", {
             content: "<div id=\"{$this->getIdOfSurveyDiv()}\"></div>",
             afterRendering: function() {
+                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+                var fnRefresh = function(){
+                    {$this->buildJsValueSetter("oHtml.getModel().getProperty('{$this->getValueBindingPath()}')")};
+                };
+                var oValueBinding = new sap.ui.model.Binding(oHtml.getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
+                
                 {$this->buildJsSurveySetup()}
 
-                var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
                 oValueBinding.attachChange(function(oEvent){
-                    {$this->buildJsValueSetter("sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}')")};
+                    fnRefresh();
+                });
+                
+                // Rerender survey when something happens to the parent - e.g. if the tab is hidden/shown.
+                // Survey actually disappeared even if another tab was added before the survey tab!
+                sap.ui.core.ResizeHandler.register(oHtml.getParent(), function(){
+                    var jqSurvey = $('#{$this->getIdOfSurveyDiv()}');
+                    if (jqSurvey.length === 0 || jqSurvey.height() === 0) {
+                        fnRefresh();
+                    } 
                 });
             }
         })
