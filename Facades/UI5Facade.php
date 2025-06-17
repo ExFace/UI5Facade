@@ -743,4 +743,26 @@ JS;
     {
         return parent::buildUrlToVendorFile($configOption, $addVersionHash);
     }
+
+    /**
+     * {@inheritDoc}
+     * @see HtmlPageFacadeInterface::buildUrlToWidget()
+     */
+    public function buildUrlToWidget(WidgetInterface $widget, DataSheetInterface $prefillData = null) : string
+    {
+        $page = $widget->getPage();
+        $pageUrl = $this->buildUrlToPage($page);
+
+        $webappId = $page->getAliasWithNamespace();
+        $webappConfig = $this->getWebappDefaultConfig($webappId);
+        $webapp = new Webapp($this, $webappId, $this->getWebappFacadeFolder(), $webappConfig);
+        $pageUrl .= '#/' . $webapp->getViewName($widget);
+
+        if ($prefillData !== null) {
+            $prefillUrl = urlencode($prefillData->exportUxonObject()->toJson());
+            $pageUrl .= '/' . $prefillUrl;
+        }
+
+        return $pageUrl;
+    }
 }
