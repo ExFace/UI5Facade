@@ -752,17 +752,17 @@ JS;
     {
         $page = $widget->getPage();
         $pageUrl = $this->buildUrlToPage($page);
-
+        
         $webappId = $page->getAliasWithNamespace();
         $webappConfig = $this->getWebappDefaultConfig($webappId);
         $webapp = new Webapp($this, $webappId, $this->getWebappFacadeFolder(), $webappConfig);
-        $pageUrl .= '#/' . $webapp->getViewName($widget);
+        $pageUrl .= '#/' . $webapp->getViewNameWithoutNamespace($widget);
 
         if ($prefillData !== null) {
-            $prefillUrl = urlencode($prefillData->exportUxonObject()->toJson());
+            $prefillUrl = urlencode('{"data":' . $prefillData->exportUxonObject()->toJson() . '}');
             $pageUrl .= '/' . $prefillUrl;
         }
-
+        
         return $pageUrl;
     }
 }
