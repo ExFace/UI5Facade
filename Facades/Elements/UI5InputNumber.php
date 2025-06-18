@@ -46,7 +46,25 @@ class UI5InputNumber extends UI5Input
         $val = $this->getWidget()->getValueWithDefaults();
         return (is_null($val) || $val === '') ? '""' : $val;
     }
-    
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter()
+    {
+        $jsFormatter = $this->getValueBindingFormatter()->getJsFormatter();
+        return <<<JS
+(function(oInput){
+    var sVal = oInput.getValue();
+    var nVal = {$jsFormatter->buildJsFormatParser('sVal')};
+    return nVal;
+})(sap.ui.getCore().byId('{$this->getId()}'))
+JS;
+
+    }
+
     /**
      * 
      * {@inheritDoc}
