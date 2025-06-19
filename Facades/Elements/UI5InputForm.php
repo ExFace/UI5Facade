@@ -57,8 +57,6 @@ JS);
         new sap.ui.core.HTML("{$this->getId()}", {
             content: "<div id=\"{$this->getIdOfSurveyDiv()}\"></div>",
             afterRendering: function() {
-                content: "<div id=\"{$this->getIdOfSurveyDiv()}\"></div>",
-            afterRendering: function() {
                 var oHtml = sap.ui.getCore().byId('{$this->getId()}');
                 // Re-render the form
                 var fnRefresh = function(){
