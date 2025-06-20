@@ -2051,14 +2051,33 @@ JS;
      * @return string
      */
     protected function buildJsClickHandlerDoubleClick($oControllerJsVar = 'oController') : string
-    {        
-        // Double click. Currently only supports one double click action - the first one in the list of buttons
-        if ($dblclick_button = $this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK)[0]) {
-            return <<<JS
+    {
+        $dblclick_buttons = $this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK);
+        if (empty($dblclick_buttons)) {
+            return '';
+        }
+
+        $js = '';
+        // If there are multiple buttons bound to double-click, "click" the first and see if
+        // the function returns `false`. If so, the action was not performed and, thus, we
+        // can continue with the next action - and so on.
+        foreach ($dblclick_buttons as $i => $btn) {
+            $btnEl = $this->getFacade()->getElement($btn);
+            $js .= <<<JS
+
+                        bResult = {$btnEl->buildJsClickEventHandlerCall($oControllerJsVar)};
+                        if (bResult !== false) {
+                            return;
+                        }
+JS;
+        }
+
+        return <<<JS
             
             .attachBrowserEvent("dblclick", function(oEvent) {
                 var oTargetDom = oEvent.target;
                 var iRowIdx = -1;
+                var bResult = false;
                 if(! ({$this->buildJsClickIsTargetRowCheck('oTargetDom')})) return;
                 
         		iRowIdx = {$this->buildJsClickGetRowIndex('oTargetDom')};
@@ -2066,11 +2085,9 @@ JS;
                     {$this->buildJsSelectRowByIndex("sap.ui.getCore().byId('{$this->getId()}')", 'iRowIdx', false, 'false')}
                 }
                 
-                {$this->getFacade()->getElement($dblclick_button)->buildJsClickEventHandlerCall($oControllerJsVar)};
+                {$js};
             })
 JS;
-        }
-        return '';
     }
     
     /**
@@ -2637,7 +2654,7 @@ JS;
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
                     var aNewSelection = {$this->buildJsGetRowsSelected('oControl')};
                     var aOldSelection = oControl.data('exfPreviousSelection') || [];
-                    var bNoChange = exfTools.data.compareRows(aOldSelection, aNewSelection);
+                    var bNoChange = exfTools.data.compareData(aOldSelection, aNewSelection);
                     oControl.data('exfPreviousSelection', aNewSelection);
                     return bNoChange;
                 })()
