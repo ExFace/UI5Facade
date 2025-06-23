@@ -54,6 +54,7 @@ class UI5Dialog extends UI5Form
     const CONTROLLER_METHOD_FIX_HEIGHT = 'fixHeight';
     const CONTROLLER_METHOD_CLOSE_DIALOG = 'closeDialog';
     const CONTROLLER_METHOD_PREFILL = 'prefill';
+    const CONTROLLER_METHOD_GET_VISIBLE_CHANGES = 'getVisibleChanges';
     
     /**
      * 
@@ -88,9 +89,12 @@ class UI5Dialog extends UI5Form
         
         // Focus the first editable control when the dialog is opened
         $controller->addOnShowViewScript($this->buildJsFocusFirstInput());
+
+        // Register changes getter as a controller method to avoid printing it to JS every time
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '', 'return ' . parent::buildJsChangesGetter(true));
         
         // Reload the dialog after it is shown if prefill refresh is needed (e.g. because of action effects)
-        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise some required
+        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise, some required
         // filters may not resolve - e.g. in Charts inside the dialog
         $controller->addOnShowViewScript("(function(oCtrl){
             if(oCtrl.getModel('view').getProperty('/_prefill/refresh_needed') === true) {
@@ -108,6 +112,7 @@ class UI5Dialog extends UI5Form
             (function(oController){
                 var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                 var jqCtrl;
+                var aChanges = [];
                 // Avoid errors if the view/dialog is closed
                 if (oCtrl === undefined || oCtrl.getModel('view').getProperty('/_closed') === true) {
                     return;
@@ -117,7 +122,10 @@ class UI5Dialog extends UI5Form
                 if (jqCtrl.length === 0 || jqCtrl.is(':visible') === false) {
                     oCtrl.getModel('view').setProperty('/_prefill/refresh_needed', true);
                 } else {
-                    // TODO Do not refresh silently if there are changes as they will be lost
+                    aChanges = {$this->buildJsChangesGetter()};
+                    if (aChanges.length > 0) {
+                        return;
+                    }
                     {$this->buildJsRefresh(true)};
                 }
             })($oControllerJs);
@@ -1177,5 +1185,20 @@ JS;
     public function buildJsResetter() : string
     {
         return $this->getController()->getView()->buildJsViewGetter($this) . ".getModel().setData({});";
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Form::buildJsChangesGetter()
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
+    {
+        // Since getting visible changes will be needed on multiple locations in the dialog, put the typically
+        // large logic in a controller method to avoid replication of JS code.
+        // TODO perhaps we should put change getter for all containers into controller methods?
+        if ($onlyVisible === true) {
+            return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
+        }
+        return parent::buildJsChangesGetter($onlyVisible);
     }
 }
