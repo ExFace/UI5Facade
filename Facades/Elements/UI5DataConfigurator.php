@@ -117,13 +117,29 @@ JS;
         // no unsaved changes exist or the widget is explicitly required to refresh (by button config)!
         $dataWidget = $dataElement->getWidget();
         if ($dataWidget instanceof iCanEditData && $dataWidget->isEditable() && method_exists($dataElement, 'buildJsEditableChangesChecker')) {
-            $onActionEffectJs = "if (! {$dataElement->buildJsEditableChangesChecker()} || ((oParams || {}).refresh_widgets || []).indexOf('{$dataElement->getWidget()->getId()}') !== -1) { {$onActionEffectJs} }";
+            $onActionEffectJs = <<<JS
+
+                    if (
+                        ! {$dataElement->buildJsEditableChangesChecker()}
+                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataElement->getWidget()->getId()}') !== -1
+                    ) { 
+                        {$onActionEffectJs} 
+                    }
+JS;
         }
         // If we are inside a dialog, make sure the dialog is still in the DOM before performing the
         // action effects!
         if ($dialog = $this->getWidget()->getParentByClass(Dialog::class)) {
             $dialogElem = $this->getFacade()->getElement($dialog);
-            $onActionEffectJs = "if ({$dialogElem->getController()->getView()->buildJsViewGetter($dialogElem)} !== undefined && {$dialogElem->buildJsCheckDialogClosed()} !== true) { {$onActionEffectJs} }";
+            $onActionEffectJs = <<<JS
+
+                if (
+                    {$dialogElem->getController()->getView()->buildJsViewGetter($dialogElem)} !== undefined 
+                    && {$dialogElem->buildJsCheckDialogClosed()} !== true
+                ) { 
+                    {$onActionEffectJs} 
+                }
+JS;
         }
         $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
         
