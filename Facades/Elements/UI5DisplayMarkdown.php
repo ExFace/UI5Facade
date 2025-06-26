@@ -48,6 +48,10 @@ class UI5DisplayMarkdown extends UI5Value
                     oValueBinding.attachChange(function(oEvent){
                         setTimeout(function(){
                             var sVal = oModel.getProperty(sBindingPath);
+                            // Do not update if the model does not have this property
+                            if (sVal === undefined) {
+                                return;
+                            }
                             {$this->buildJsValueSetter("sVal")}
                         }, 0);
                     });

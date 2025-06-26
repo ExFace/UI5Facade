@@ -39,12 +39,16 @@ class UI5InputCustom extends UI5Input
         if (! $this->isValueBoundToModel() && ($value = $widget->getValueWithDefaults()) !== null) {
             $initPropsJs = ($widget->getScriptToSetValue(json_encode($value)) ?? '');
         } else {
-            $setterJs = $widget->getScriptToSetValue("sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}')");
             $initPropsJs = <<<JS
 
             var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
             oValueBinding.attachChange(function(oEvent){
-                {$setterJs}
+                var mVal = sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}');
+                // Do not update if the model does not have this property
+                if (mVal === undefined) {
+                    return;
+                }
+                {$widget->getScriptToSetValue("mVal")}
             });
 
 JS;
