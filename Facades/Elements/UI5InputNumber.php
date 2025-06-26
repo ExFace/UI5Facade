@@ -133,8 +133,25 @@ JS;
             $constraintsJs .= <<<JS
 
                     if($numberValidator !== true) {$onFailJs};
-JS;
+            JS;
         }
+
+        $constraintsJs .= <<<JS
+                    (
+                        // sValue is already formatted input at this point.
+                        function(oInput, sValue){
+                          // unformatted value:
+                          let inputValue = oInput.getValue();
+                          if (!isNaN(sValue) && sValue !== inputValue) {
+                            sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                          }
+                        }
+                    )(
+                        sap.ui.getCore().byId('{$this->getId()}'), 
+                        $valueJs
+                     )
+        JS;
+
         return $constraintsJs;
     }
 }
