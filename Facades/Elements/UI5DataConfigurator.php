@@ -167,6 +167,9 @@ JS;
      */
     protected function buildJsPanelsConstructors() : string
     {
+        /*
+         * FIXME add {$this->buildJsTabSetups()} to the list below - but it makes the page load forever
+         */
         return <<<JS
 
                 {$this->buildJsTabFilters()}
@@ -214,6 +217,29 @@ JS;
 JS;
         }
         return $js;
+    }
+
+    /**
+     *
+     * @return string
+     */
+    protected function buildJsTabSetups() : string
+    {
+        if (! $this->getWidget() instanceof DataTableConfigurator) {
+            return '';
+        }
+        $tab = $this->getWidget()->getSetupsTab();
+        $tabEl = $this->getFacade()->getElement($tab);
+        return <<<JS
+
+                new exface.openui5.P13nLayoutPanel({
+                    title: "{$this->escapeString($tab->getCaption())}",
+                    content: [
+                       {$tabEl->buildJsLayoutConstructor()}
+                    ]
+                }),
+JS;
+
     }
     
     /**
