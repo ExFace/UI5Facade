@@ -66,8 +66,8 @@ JS;
             }
             $items .= <<<JS
                 new sap.ui.core.Item({
-                    key: "{$key}",
-                    text: "{$value}"
+                    key: {$this->escapeString($key)},
+                    text: {$this->escapeString($value)},
                 }),
 JS;
         }
