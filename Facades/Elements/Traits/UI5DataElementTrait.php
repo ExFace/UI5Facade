@@ -628,6 +628,9 @@ JS;
      */
     protected function buildJsConfiguratorButtonConstructor(string $oControllerJs = 'oController', string $buttonType = 'Default') : string
     {
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
         $btnPriorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
         return <<<JS
         
@@ -756,7 +759,12 @@ JS;
      */
     protected function initConfiguratorControl(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        $controller->addDependentControl('oConfigurator', $this, $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget()));
+        // If the table does not have a configurator, there will not be a control for it. Instead, the
+        // configurator will work in unrendered mode
+        if (! $this->hasConfigurator()) {
+            return $this;
+        }
+        $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());
         return $this;
     }
     
@@ -776,12 +784,11 @@ JS;
      */
     protected function buildJsCheckRequiredFilters() : string
     {
-        $configurator_element = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
         return <<<JS
 
 (function (){
     try {
-        if ({$configurator_element->buildJsValidator()}) {
+        if ({$this->getConfiguratorElement()->buildJsValidator()}) {
             return true;
         } else {
             return false;
@@ -1273,7 +1280,7 @@ JS;
      */
     protected function getP13nElement()
     {
-        return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
+        return $this->getConfiguratorElement();
     }
     
     protected function getIdOfDynamicPage() : string
@@ -1562,11 +1569,17 @@ JS;
     }
     
     /**
+     * Returns the JS code to update the filter summary of the data widget
+     *
+     * Only really does something if there is a configurator with interactive filters!
      *
      * @return string
      */
     protected function buildJsFilterSummaryUpdater()
     {
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
         $filter_checks = '';
         foreach ($this->getDataWidget()->getFilters() as $fltr) {
             $elem = $this->getFacade()->getElement($fltr);
@@ -2606,7 +2619,7 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsDataGetter($action);
+                return $this->getConfiguratorElement()->buildJsDataGetter($action);
             
             default:
                 $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl', false)};";
@@ -2686,7 +2699,7 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        $resetConfiguratorJs = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsResetter();
+        $resetConfiguratorJs = $this->hasConfigurator() ? $this->getConfiguratorElement()->buildJsResetter() : '';
         $resetEditableCellsJs = $this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '';
         $resetQuickSearch = $this->hasQuickSearch() ? $this->getQuickSearchElement()->buildJsResetter() : '';
         return $this->buildJsSelectionModelReset() . $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
@@ -2814,5 +2827,14 @@ JS;
                 return $this->buildJsSelectRowByValue($vals, $colName, $functionName === Data::FUNCTION_UNSELECT);
         }
         return parent::buildJsCallFunction($functionName, $parameters);
+    }
+
+    /**
+     * Returns TRUE if this data widget needs a configurator (cog icon)
+     * @return bool
+     */
+    protected function hasConfigurator() : bool
+    {
+        return ! $this->getWidget()->getConfiguratorWidget()->isDisabled();
     }
 }

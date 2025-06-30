@@ -74,11 +74,17 @@ class UI5DataConfigurator extends UI5Tabs
     
     protected function hasTabAdvancedSearch() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
     }
     
     protected function hasTabSorters() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
     }
     
@@ -167,11 +173,9 @@ JS;
      */
     protected function buildJsPanelsConstructors() : string
     {
-        /*
-         * FIXME add {$this->buildJsTabSetups()} to the list below - but it makes the page load forever
-         */
         return <<<JS
 
+                {$this->buildJsTabSetups()}
                 {$this->buildJsTabFilters()}
                 {$this->buildJsTabSorters()}
                 {$this->buildJsTabSearch()}
@@ -229,13 +233,18 @@ JS;
             return '';
         }
         $tab = $this->getWidget()->getSetupsTab();
+        // TODO prevent autoloading all setups when the configured table is rendered. Only load the setups
+        // when they are really needed - e.g. when the configurator is opened or the setups selection menu
+        // is opened.
+        // We could use $table->setAutoloadData(false) and add a $table->buildJsRefreshScript() to some callback
+        // for opening the controls above.
         $tabEl = $this->getFacade()->getElement($tab);
         return <<<JS
 
                 new exface.openui5.P13nLayoutPanel({
-                    title: "{$this->escapeString($tab->getCaption())}",
+                    title: {$this->escapeString($tab->getCaption())},
                     content: [
-                       {$tabEl->buildJsLayoutConstructor()}
+                       {$tabEl->buildJsChildrenConstructors()}
                     ]
                 }),
 JS;
@@ -658,10 +667,16 @@ JS;
      */
     public function buildJsDataGetter(ActionInterface $action = null, bool $unrendered = false)
     {
+        // If the configurator is disabled completely, it should always work in unrendered mode
+        if ($this->getWidget()->isDisabled()) {
+            return $this->buildJsDataGetterViaTrait($action, true);
+        }
+
         if ($unrendered === true || $this->hasTabAdvancedSearch() === false) {
             return $this->buildJsDataGetterViaTrait($action, $unrendered);
         }
-        
+
+        // Add filters from the advanced search tab
         $notMap = [];
         foreach (ComparatorDataType::getValuesStatic() as $comp) {
             if (ComparatorDataType::isInvertable($comp)) {

@@ -62,29 +62,32 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     {
         $widget = $this->getWidget();
         $controller = $this->getController();
-        
+
         // Initialize optional column from the configurator when the
         // JS controller is initialized.
         // IDEA maybe just initialize the controller var here and run the
         // constructors of the columns only on-demand in buildJsRefreshPersonalization()?
-        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
-        $colsOptionalInitJs = '';
-        if (! empty($colsOptional)) {
-            foreach ($colsOptional as $col) {
-            $colsOptionalInitJs .= <<<JS
-            
-                    oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+        if ($widget->getConfiguratorWidget()->hasOptionalColumns()) {
+            $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+            $colsOptionalInitJs = '';
+            if (! empty($colsOptional)) {
+                foreach ($colsOptional as $col) {
+                    $colsOptionalInitJs .= <<<JS
+                
+                        oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
 JS;
+                }
             }
+            $controller->addOnInitScript(<<<JS
+            
+                (function(){
+                    var oColsOptional = {};
+                    {$colsOptionalInitJs}
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                })();
+JS
+            );
         }
-        $controller->addOnInitScript(<<<JS
-        
-            (function(){
-                var oColsOptional = {};
-                {$colsOptionalInitJs}
-                {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
-            })();
-JS);
 
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
