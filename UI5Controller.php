@@ -434,7 +434,7 @@ sap.ui.define([
 			var oParams = (oArgs.params === undefined ? {} : this._decodeRouteParams(oArgs.params));
             var oViewModel = oView.getModel('view');
 			oViewModel.setProperty("/_route", {params: oParams});
-            this.getHistory().setTitleOfHash(this.getRouter().getHashChanger().getHash(), $viewTitleJs);
+            exfLauncher.getHistory().setTitleOfHash(this.getRouter().getHashChanger().getHash(), $viewTitleJs);
             
             {$this->buildJsOnRouteMatched()}
 		},

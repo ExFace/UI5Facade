@@ -5,20 +5,6 @@ sap.ui.define([
 	"use strict";
 	return Controller.extend("[#app_id#].controller.BaseController", {
 		
-		_history: {
-			_oTitles : {},
-			getTitleOfHash : function(sHash) {
-				return this._oTitles[sHash];
-			},
-			setTitleOfHash : function(sHash, sTitle) {
-				this._oTitles[sHash] = sTitle;
-				// TODO remove titles for hashes, that are not present in getUI5History().aHistory anymore
-			},
-			getUI5History : function() {
-				return History.getInstance();
-			}
-		},
-		
 		onInit : function() {
 			[#onInit#]
 			
@@ -31,10 +17,6 @@ sap.ui.define([
 		
 		getRouter : function () {
 			return sap.ui.core.UIComponent.getRouterFor(this);
-		},
-		
-		getHistory : function () {
-			return this._history;	
 		},
 		
 		getViewId : function(sViewName) {

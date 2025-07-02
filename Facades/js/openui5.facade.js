@@ -104,6 +104,20 @@ const exfLauncher = {};
 			refreshWaitSeconds: 5
 		}
 	};
+	
+	var _oHistory = {
+		_oTitles : {},
+		getTitleOfHash : function(sHash) {
+			return this._oTitles[sHash];
+		},
+		setTitleOfHash : function(sHash, sTitle) {
+			this._oTitles[sHash] = sTitle;
+			// TODO remove titles for hashes, that are not present in getUI5History().aHistory anymore
+		},
+		getUI5History : function() {
+			return sap.ui.core.routing.History.getInstance();
+		}
+	};
 
 	// Reload context bar every 30 seconds
 	setInterval(function () {
@@ -337,6 +351,10 @@ const exfLauncher = {};
 
 	this.setAppMenu = function (oControl) {
 		_oAppMenu = oControl;
+	};
+
+	this.getHistory = function () {
+		return _oHistory;
 	};
 
 	this.contextBar = function () {
