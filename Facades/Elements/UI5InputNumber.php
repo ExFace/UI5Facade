@@ -147,11 +147,13 @@ JS;
                         if (oInput === undefined) {
                             return;
                         }
-                        // sValue is already formatted input at this point.
+                        // sValue is already parsed at this point.
                         // Now get the unformatted value from the control
                         let inputValue = oInput.getValue();
                         if (! isNaN(sValue) && sValue !== inputValue) {
-                            sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                            oInput.getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                            // refresh(true) forces the widget to refresh its value
+                            oInput.getBinding('value').refresh(true);
                         }
                     })(sap.ui.getCore().byId('{$this->getId()}'), $valueJs);
 JS;
