@@ -382,8 +382,6 @@ const exfLauncher = {};
               return new sap.m.Link(sId, {
                 text: oContext.getProperty("title"),
                 press: function (oEvent) {
-                  console.log("Going Steps back: ", oContext.getProperty("steps"));
-
                   const steps = oContext.getProperty("steps")
                   if (steps != null) {
                     const oHistory = sap.ui.core.routing.History.getInstance();
