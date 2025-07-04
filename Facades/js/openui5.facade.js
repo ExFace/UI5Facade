@@ -112,11 +112,88 @@ const exfLauncher = {};
 		},
 		setTitleOfHash : function(sHash, sTitle) {
 			this._oTitles[sHash] = sTitle;
-			// TODO remove titles for hashes, that are not present in getUI5History().aHistory anymore
+      this.refreshCrumbs();
 		},
 		getUI5History : function() {
 			return sap.ui.core.routing.History.getInstance();
-		}
+		},
+    /**
+     * It fills the page crumbs and cleans the _oTitels.
+     */
+    refreshCrumbs : function() {
+      const oHistory = this.getUI5History();
+      let aCrumbs = [];
+
+      const historyPosition = oHistory.iHistoryPosition;
+      const aHistory = oHistory.aHistory;
+
+      const oModel = _oShell.getModel();
+      const homeTitle = oModel.getProperty('/_app/home_title');
+      const homeUrl = oModel.getProperty('/_app/app_url');
+      let currentTitle = "";
+
+      for (let i = 0; i <= historyPosition; i++) {
+        const iStep = i - historyPosition;
+        const hash = aHistory[i];
+        const title = this.getTitleOfHash(hash);
+
+        if (i < historyPosition) {
+          aCrumbs.push({
+            title: title,
+            steps: iStep,
+            url: null
+          });
+        } else {
+          // It sets the last element as the title because it is the current page.
+          currentTitle = title;
+        }
+      }
+
+      oModel.setProperty("/_breadcrumbs/current_title", currentTitle);
+
+      const firstElementOfTheHistory = this.getTitleOfHash(aHistory[0]);
+      // It sets the first element of the breadcrumbs as the home title,
+      // unless it is already set. It's necessary if the user opens a page
+      // without the home_title in the history.
+      if (
+          (typeof homeTitle === "string" && homeTitle.trim() !== "")
+          && firstElementOfTheHistory !== homeTitle
+      ) {
+        aCrumbs.unshift(
+            {
+              title: homeTitle,
+              steps: null,
+              url: homeUrl
+            });
+      }
+
+      oModel.setProperty("/_breadcrumbs/crumbs", aCrumbs);
+
+      let aCrumbsAndTitle = [...aCrumbs.map(c => ({ ...c }))];
+
+      if (typeof currentTitle === "string" && currentTitle.trim() !== "") {
+        aCrumbsAndTitle.push({ title: currentTitle });
+      }
+
+      this.cleanUpTitles(aCrumbsAndTitle);
+    },
+    /**
+     * It takes an array of crumbs, including the page title,
+     * and deletes all titles from _oTitles that are not in the given array.
+     *
+     * @param aCrumbs
+     */
+    cleanUpTitles: function (aCrumbs) {
+      if (!Array.isArray(aCrumbs) || aCrumbs.length === 0) return;
+
+      const validTitles = new Set(aCrumbs.map(crumb => crumb.title));
+
+      for (const sHash in this._oTitles) {
+        if (!validTitles.has(this._oTitles[sHash])) {
+          delete this._oTitles[sHash];
+        }
+      }
+    }
 	};
 
 	// Reload context bar every 30 seconds
@@ -277,7 +354,7 @@ const exfLauncher = {};
 
 		_oShell = new sap.ui.unified.Shell({
 			header: [
-				new sap.m.OverflowToolbar({
+				new sap.m.OverflowToolbar("exf-toolbar",{
 					design: "Transparent",
 					content: [
 						new sap.m.Button({
@@ -297,23 +374,28 @@ const exfLauncher = {};
 							}
 						}),
 						new sap.m.ToolbarSpacer(),
-						new sap.m.Button("exf-pagetitle", {
-							text: "{/_app/home_title}",
-							//icon: "sap-icon://navigation-down-arrow",
-							iconFirst: false,
-							layoutData: new sap.m.OverflowToolbarLayoutData({ priority: "NeverOverflow" }),
-							press: function (oEvent) {
-								var oBtn = oEvent.getSource();
-								sap.ui.core.BusyIndicator.show(0);
-								window.location.href = oBtn.getModel().getProperty('/_app/app_url');
-								/*
-								if (_oAppMenu !== undefined) {
-									var oButton = oEvent.getSource();
-									var eDock = sap.ui.core.Popup.Dock;
-									_oAppMenu.open(this._bKeyboard, oButton, eDock.BeginTop, eDock.BeginBottom, oButton);
-								}*/
-							}
-						}),
+            new sap.m.Breadcrumbs("exf-breadcrumbs", {
+              layoutData: new sap.m.OverflowToolbarLayoutData({ priority: "NeverOverflow" }),
+              currentLocationText: "{/_breadcrumbs/current_title}"
+            }).bindAggregation("links", "/_breadcrumbs/crumbs", function(sId, oContext) {
+
+              return new sap.m.Link(sId, {
+                text: oContext.getProperty("title"),
+                press: function (oEvent) {
+                  const steps = oContext.getProperty("steps")
+                  if (steps != null) {
+                    const oHistory = sap.ui.core.routing.History.getInstance();
+                    // moving the history pointer to our selected location
+                    // because "window.history.go(steps);" can only decrease it by 1 at a time:
+                    oHistory.iHistoryPosition -= Math.abs(steps) - 1;
+
+                    window.history.go(steps);
+                  } else {
+                    window.location.href = oContext.getProperty("url");
+                  }
+                }
+              });
+            }),
 						new sap.m.ToolbarSpacer(),
 						new sap.m.Button("exf-network-indicator", {
 							icon: function () { return exfLauncher.isOnline() ? "sap-icon://connected" : "sap-icon://disconnected" }(),
@@ -334,8 +416,17 @@ const exfLauncher = {};
 					queueCnt: 0,
 					syncErrorCnt: 0,
 					deviceId: exfPWA.getDeviceId()
-				}
+				},
+        _breadcrumbs: {
+          current_title: "",
+          crumbs: []
+        },
 			}));
+
+    // Re-render survey when something happens to the parent - e.g. if the tab is hidden/shown.
+    // Survey actually disappeared even if another tab was added before the survey tab!
+
+    sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId("exf-toolbar"), function () {});
 
 		return _oShell;
 	};
