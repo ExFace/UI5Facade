@@ -382,8 +382,6 @@ const exfLauncher = {};
               return new sap.m.Link(sId, {
                 text: oContext.getProperty("title"),
                 press: function (oEvent) {
-                   // window.location.href = oContext.getProperty("url");
-                  //oContext.setProperty("current_title", oContext.getProperty("title"))
                   console.log("Going Steps back: ", oContext.getProperty("steps"));
 
                   const steps = oContext.getProperty("steps")
