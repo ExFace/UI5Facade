@@ -139,7 +139,7 @@ JS;
         // If the formatted value differs from that show in the control, update the control.
         // This makes only sense, if the control has an id. If it is an in-table control, we
         // will not know, which one of them to update.
-        if ($this->getUseWidgetId() === true) {
+        if ($this->getUseWidgetId() === true && $this->isValueBoundToModel() === true) {
             $constraintsJs .= <<<JS
 
                     (function(oInput, sValue){
