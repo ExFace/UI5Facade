@@ -65,9 +65,12 @@ JS);
                         setTimeout(function(){
                             var sVal = oModel.getProperty(sBindingPath);
                             // Do not update if the model does not have this property
+                            /* But why not update? This seems to lead to changes remaining in the editor if you
+                             * open a dialog, change the text, close it without saving and open the same dialog
+                             * again for the same data.
                             if (sVal === undefined) {
                                 return;
-                            }
+                            }*/
                             {$this->buildJsValueSetter("sVal")}
                         }, 0);
                     });
