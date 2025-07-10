@@ -1496,6 +1496,9 @@ JS;
      */
     protected function buildJsUiTableColumnResize(string $oTableJs, string $oModelJs) : string
     {
+        if (($this->getWidget() instanceof DataTable) && $this->getWidget()->getAutoColumnWidth() === false) {
+            return '';
+        }
         return <<<JS
 
                 var bResized = false;

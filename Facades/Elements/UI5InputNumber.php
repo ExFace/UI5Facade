@@ -135,22 +135,29 @@ JS;
                     if($numberValidator !== true) {$onFailJs};
             JS;
         }
+        
+        // If the formatted value differs from that show in the control, update the control.
+        // This makes only sense, if the control has an id. If it is an in-table control, we
+        // will not know, which one of them to update.
+        if ($this->getUseWidgetId() === true && $this->isValueBoundToModel() === true) {
+            $constraintsJs .= <<<JS
 
-        $constraintsJs .= <<<JS
-                    (
-                        // sValue is already formatted input at this point.
-                        function(oInput, sValue){
-                          // unformatted value:
-                          let inputValue = oInput.getValue();
-                          if (!isNaN(sValue) && sValue !== inputValue) {
-                            sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sValue);
-                          }
+                    (function(oInput, sValue){
+                        // Don't bother if the control is not there anymore
+                        if (oInput === undefined) {
+                            return;
                         }
-                    )(
-                        sap.ui.getCore().byId('{$this->getId()}'), 
-                        $valueJs
-                     )
-        JS;
+                        // sValue is already parsed at this point.
+                        // Now get the unformatted value from the control
+                        let inputValue = oInput.getValue();
+                        if (! isNaN(sValue) && sValue !== inputValue) {
+                            oInput.getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                            // refresh(true) forces the widget to refresh its value
+                            oInput.getBinding('value').refresh(true);
+                        }
+                    })(sap.ui.getCore().byId('{$this->getId()}'), $valueJs);
+JS;
+        }
 
         return $constraintsJs;
     }
