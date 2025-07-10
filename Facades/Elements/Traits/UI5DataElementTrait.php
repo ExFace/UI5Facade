@@ -2815,7 +2815,7 @@ JS;
      * 
      * @see \exface\UI5FAcade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === Data::FUNCTION_SELECT:
@@ -2826,7 +2826,7 @@ JS;
                 }
                 return $this->buildJsSelectRowByValue($vals, $colName, $functionName === Data::FUNCTION_UNSELECT);
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
 
     /**
