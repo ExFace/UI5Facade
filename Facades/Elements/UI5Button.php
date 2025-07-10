@@ -755,7 +755,7 @@ JS;
      * @param string $functionName
      * @return string
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === null:
@@ -764,7 +764,7 @@ JS;
             case $functionName === Button::FUNCTION_FOCUS:
                 return "sap.ui.getCore().byId('{$this->getId()}').focus()";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**
