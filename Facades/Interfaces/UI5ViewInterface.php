@@ -56,5 +56,11 @@ interface UI5ViewInterface {
      * @return bool
      */
     public function isWebAppRoot() : bool;
-    
+
+    /**
+     * Returns the human-readable name of the view (e.g. to display in breadcrumbs, etc.)
+     * 
+     * @return string
+     */
+    public function getCaption() : string;
 }

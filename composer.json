@@ -32,6 +32,7 @@
         "npm-asset/esri-leaflet": "^3.0",
         "npm-asset/leaflet.markercluster": "^1.4",
         "npm-asset/geoman-io--leaflet-geoman-free": "^2.16",
+        "npm-asset/proj4leaflet": "^1",
         "npm-asset/tinycolor2": "^1.4.2",
         "npm-asset/tinygradient": "^1.1.4",
         "npm-asset/jspreadsheet-ce": "^4.10",
