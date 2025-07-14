@@ -56,6 +56,12 @@ JS);
                     return;
                 }
                 
+                // Restore the height of the editor every time the UI5 control is resized.
+                sap.ui.core.ResizeHandler.register(oHtml, function(){
+                    var jqHtml = $('#{$this->getId()}');
+                    {$this->buildJsMarkdownVar()}.setHeight('{$this->getHeight()}');
+                });
+                
                 var oModel = oHtml.getModel();
                 if(oModel !== undefined) {
                     var sBindingPath = '{$this->getValueBindingPath()}';
