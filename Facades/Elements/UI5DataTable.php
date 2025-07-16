@@ -20,6 +20,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\DataTypes\ComparatorDataType;
 
 /**
  *
@@ -134,6 +135,271 @@ JS
         return ! ($this->getWidget() instanceof DataTableResponsive);
     }
     
+     /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+        // TODO:
+
+        // Whats the best way to apply changes? 
+
+        // IDEA: pass the config as an optional parameter to refreshPersonalization()? Does that work with DEFAULTS?????
+        // Would we then need to manually update the p13n UI? probably?
+        // TODO: test for both table types (ui and sap.m)
+        // TODO: add translations for strings
+
+        // setup uxon column
+        $setupUxonCol = json_encode($parameters[0] ?? null);
+
+        // helpers for converting the ui5 filters to uxon
+        $notMap = [];
+        foreach (ComparatorDataType::getValuesStatic() as $comp) {
+            if (ComparatorDataType::isInvertable($comp)) {
+                $notMap[$comp] = ComparatorDataType::invert($comp);
+            }
+        }
+        $notMapJs = json_encode($notMap);
+
+        $parsers = [];
+        foreach ($this->getWidget()->getColumns() as $col) {
+            if (! $col->isFilterable() || ! $col->isBoundToAttribute()) {
+                continue;
+            }
+            $formatter = $this->getFacade()->getDataTypeFormatter($col->getDataType());
+            $parsers[] = "'{$col->getAttributeAlias()}': function(mVal){ return {$formatter->buildJsFormatParser('mVal')} }";
+        }
+        $parsersJs = '{' . implode(",\n", $parsers) . '}';
+
+        // ajax request headers
+        $headers = ! empty($this->getAjaxHeaders()) ? 'headers: ' . json_encode($this->getAjaxHeaders()) . ',' : '';
+
+        switch (true) {
+            case $functionName === DataTable::FUNCTION_APPLY_SETUP:
+                return <<<JS
+
+                // get currently selected data from request
+                let result = {$jsRequestData};
+                console.log('REQUEST DATA', result);
+
+                if (result === null || result === undefined || result.rows.length === 0) {
+                    var error = "Bitte genau 1 Datensatz auswählen!";
+                    {$this->buildJsShowMessageError('error', '"ERROR"')}
+                    return;
+                }
+                if ({$setupUxonCol} === null){
+                    console.warn('No setup UXON column provided, cannot apply setup!');
+                    return;
+                }
+                
+                // get setup UXON from request data and parse it
+                let uxonCol = {$setupUxonCol};
+                uxonCol = uxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                let setupUxon = JSON.parse(result.rows[0][uxonCol]);
+
+
+                // Apply setup from UXON
+                console.log('APPLYING SETUP!', uxonCol, setupUxon);
+                if (setupUxon.columns !== undefined){
+                    console.log('Applying columns setup', setupUxon.columns);
+                    let columnSetup = setupUxon.columns;
+
+                }
+                if (setupUxon.filters !== undefined) {
+                    // TODO 
+                    console.log('Applying filters setup', setupUxon.filters);
+                }
+                if (setupUxon.sorters !== undefined) {
+                    // TODO
+                    console.log('Applying sorters setup', setupUxon.sorters);
+                }
+
+JS;
+                case $functionName === DataTable::FUNCTION_SAVE_SETUP:
+                return <<<JS
+                
+            // TODO: check if column filters and initial filters work too?
+            // TODO: how to refresh the uxon table?
+            // TODO: also create user entry when saving view (?)
+            // WORDING: view/setup/ansicht?
+
+            // prompt for the view name
+            var oInput = new sap.m.Input({placeholder: "Name der Ansicht"});
+            var oInputDialog = new sap.m.Dialog({
+                title: "Ansicht speichern",
+                content: [oInput],
+                beginButton: new sap.m.Button({
+                    text: "Speichern",
+                    type: "Emphasized",
+                    press: function() {
+
+                        var sViewName = oInput.getValue();
+                        if (!sViewName || sViewName.trim() === "") {
+                            oInput.setValueState(sap.ui.core.ValueState.Error);
+                            oInput.setValueStateText("Bitte geben Sie einen Namen ein.");
+                            return; // Do not save if input is empty
+                        }
+                        oInputDialog.close();
+
+                        // SAVE CURRENT TABLE SETUP
+                        console.log('saving setup', sViewName);
+
+                        // show busy indicator
+                        {$this->getP13nElement()->buildJsBusyIconShow()}
+
+                        // json object to save current state in
+                        let oSetupJson = {
+                            columns: [],
+                            filters: [],
+                            sorters: []
+                        };
+
+                        // get the current states
+                        var oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                        var oP13nModel = oDialog.getModel('configurator');
+                        var aColumns = oP13nModel.getProperty('/columns');
+                        var aSorters = oP13nModel.getProperty('/sorters');
+                        var aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
+
+                        // save current config to JSON 
+                        if (aColumns !== undefined && aColumns.length > 0) {
+                            aColumns.forEach(function(oColumn) {
+                                oSetupJson.columns.push({
+                                    attribute_alias: oColumn.attribute_alias,
+                                    show: oColumn.visible
+                                });
+                            });
+                        }
+
+                        if (aSorters !== undefined && aSorters.length > 0) {
+                            aSorters.forEach(function(oColumn) {
+                                oSetupJson.sorters.push({
+                                    attribute_alias: oColumn.attribute_alias,
+                                    direction: oColumn.direction
+                                });
+                            });
+                        }
+
+                        // TODO: is there another way to get condition group notation?
+                        // -> this is mostly copied from the ui5DataConfigurator now 
+                        if (aFilters !== undefined && aFilters.length > 0) {
+                                
+                                var fnNot = function(oCondition) {
+                                    var oNotMap = $notMapJs;
+                                    oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
+                                    return oCondition;
+                                };
+
+                                var aParsers = $parsersJs;
+                                if (aFilters.length > 0) {
+                                    var includeGroup = {operator: "AND", conditions: []};
+                                    var oComponent = {$this->getController()->buildJsComponentGetter()};
+                                    aFilters.forEach(function(oFilter){
+                                        var mVal = oFilter.getValue1();
+                                        var fnParser = aParsers[oFilter.getColumnKey()];
+                                        var oCondition = {
+                                            attribute_alias: oFilter.getColumnKey(), 
+                                            comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
+                                            value: (fnParser !== undefined ? fnParser(mVal) : mVal)
+                                        };
+                                        includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
+                                    });
+                                    
+                                    oSetupJson.filters.push(includeGroup);
+                                }
+                        }
+
+                        // widget setup oid
+                        let widgetSetupOid = {$jsRequestData}.oId;
+
+                        // stringified setup uxon for ajax request
+                        let sSetupUxon = JSON.stringify(oSetupJson)
+
+                        let requestData = {
+                            oId: widgetSetupOid,
+                            rows: [{
+                                UID: '',
+                                MODIFIED_ON: '',
+                                NAME: sViewName,
+                                DESCRIPTION: '',
+                                APP: '{$this->getMetaObject()->getApp()->getUid()}',
+                                PROTOTYPE_FILE: 'exface/core/Mutations/Prototypes/DataTableSetup.php',
+                                PAGE: '{$this->getWidget()->getPage()->getUid()}',
+                                OBJECT: '',
+                                WIDGET_ID: '{$this->getDataWidget()->getId()}',
+                                SETUP_UXON: sSetupUxon
+                            }]
+                        };
+
+                        
+                        $.ajax({
+                            type: 'POST',
+                            url: '{$this->getAjaxUrl()}',
+                            headers: '{$headers}',
+                            data: { 
+                                action: 'exface.Core.CreateData',
+                                resource: '{$this->getPageId()}', 
+                                element: '{$this->getWidget()->getId()}', 
+                                object: widgetSetupOid,
+                                data: requestData
+                            },
+                            success: function(data, textStatus, jqXHR) {
+                                if (typeof data === 'object') {
+                                    response = data;
+                                } else {
+                                    var response = {};
+                                    try {
+                                        response = $.parseJSON(data);
+                                    } catch (e) {
+                                        response.error = data;
+                                    }
+                                }
+                                if (response.success){
+                                    {$this->buildJsShowMessageSuccess("'Setup erfolgreich gespeichert'", "'Erfolg'")};
+                                    console.log('Setup saved successfully', response.rows);
+                                    {$this->getP13nElement()->buildJsBusyIconHide()}
+
+                                } else {
+                                    {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
+                                    console.log('Setup saving failed');
+                                    {$this->getP13nElement()->buildJsBusyIconHide()}
+                                }
+                            },
+                            error: function(jqXHR, textStatus, errorThrown){
+                                {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
+                                console.log('Setup saving failed');
+                                {$this->getP13nElement()->buildJsBusyIconHide()}
+                            }
+                        });
+
+                        console.log('Current setup JSON', oSetupJson);
+
+                }
+            }),
+            endButton: new sap.m.Button({
+                text: "Abbrechen",
+                press: function() {
+                    oInputDialog.close();
+                    return; // do not save if cancel is pressed
+                }
+            }),
+            afterClose: function() {
+                oInputDialog.destroy();
+            }
+        });
+
+        oInputDialog.open();
+JS;
+        }
+
+        // TODO: the setup tab needs to be refreshed -> rn it remains the same after deleting/adding views
+
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+    
+
     /**
      * Returns the javascript constructor for a sap.m.Table
      *
@@ -1772,7 +2038,7 @@ JS;
                                 }  
                             });
                             // optional columns
-                            if (oColConfig.visible === true) {
+                            if (oColConfig.visible === true && oColsOptional !== null) {
                                 var oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
                                     oColumn.setVisible(true);
@@ -1828,7 +2094,7 @@ JS;
                                 }
                             });
 
-                            //upadte template
+                            //update template
                             oTemplate.removeAllAggregation("cells");
                             aNewCells.forEach(cell => oTemplate.addCell(cell));
                         }
