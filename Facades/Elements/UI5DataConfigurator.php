@@ -650,6 +650,16 @@ JS;
     {
         return $this->getId() . '_SortPanel';
     }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getIdOfColumnsPanel() : string
+    {
+        return $this->getId() . '_ColumnsPanel'; 
+
+    }
     
     /**
      * 
