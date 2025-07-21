@@ -144,14 +144,9 @@ JS
     {
 
         /* TODO/IDEA:
-            -> it might be a good idea to move most of this to the UI5DataConfigurator, since we read/update the p13n properties?
-            -> Filters/Sorters added from Column Header Menu dont seem to get added rn?
-
-            TODO:  
-                    -> rename fitler to advanced search
-                    -> why is visibility always 'shared' even though it should be 'private' with the way its created?
-
-            WORDING: view/setup/ansicht?
+            -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
+            -> Filters/Sorters added from Column Header Menu do not get added it to config right now
+            -> the table with the widget steup entries does not get updated automatically (but it should (?))
         */
 
         // setup uxon column
@@ -177,31 +172,26 @@ JS
                 return <<<JS
 
                 // get currently selected data from request
-                let result = {$jsRequestData};
-                console.log('REQUEST DATA', result);
+                let oResultData = {$jsRequestData};
 
-                if (result === null || result === undefined || result.rows.length === 0) {
-                    return;
-                }
-                if ({$setupUxonCol} === null){
-                    console.warn('No setup UXON column provided, cannot apply setup!');
+                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$setupUxonCol} === null) {
                     return;
                 }
                 
                 // get setup UXON from request data and parse it
-                let uxonCol = {$setupUxonCol};
-                uxonCol = uxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
-                let setupUxon = JSON.parse(result.rows[0][uxonCol]);
+                let sUxonCol = {$setupUxonCol};
+                sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                let oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
 
                 // Apply setup from UXON
-                if (setupUxon.columns !== undefined){
+                if (oSetupUxon.columns !== undefined){
                     // COLUMN SETUP
-                    var oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
-                    var oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
-                    let aColumnSetup = setupUxon.columns;
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
+                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                    let aColumnSetup = oSetupUxon.columns;
 
                     // update column visibility according to wiget setup
-                    var aNewColModel = [];
+                    let aNewColModel = [];
                     aColumnSetup.forEach(oItem => {
                         oModel.getData()['columns'].forEach(oColConf => {
                             if (oColConf.attribute_alias === oItem.attribute_alias) {
@@ -215,12 +205,12 @@ JS
 
                     // toggle checkboxes in columns tab according to setup
                     // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-                    var oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
-                    var oTableModel = oTable.getModel();
-                    var aColsConfig = oModel.getProperty('/columns');
-                    var oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
+                    let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                    let oTableModel = oTable.getModel();
+                    let aColsConfig = oModel.getProperty('/columns');
+                    let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
                     oDialog.getBinding("items").filter(oVisibleFilter);
-                    var aItems = oTableModel.getProperty('/items');
+                    let aItems = oTableModel.getProperty('/items');
                     
                     aColsConfig.forEach(function(oColConfig){
                         aItems.forEach(function(oItem, iItemIdx){
@@ -231,15 +221,14 @@ JS
                         })
                     }); 
 
-                    console.log('Applying column setup', setupUxon.columns);
                 }
-                if (setupUxon.sorters !== undefined) {
+                if (oSetupUxon.sorters !== undefined) {
                     // SORTER SETUP
-                    var oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
-                    var oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
-                    let aSorterSetup = setupUxon.sorters;
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                    let aSorterSetup = oSetupUxon.sorters;
 
-            		var aSortItems = [];
+            		let aSortItems = [];
                     aSorterSetup.forEach(oItem => {
                         aSortItems.push({
             				attribute_alias: oItem.attribute_alias,
@@ -248,14 +237,13 @@ JS
                     });
 
             		oModel.setProperty("/sorters", aSortItems);
-                    console.log('Applying sorters setup', setupUxon.sorters);
                 }
-                if (setupUxon.filters !== undefined) {
+                if (oSetupUxon.advanced_search !== undefined) {
                     // ADVANCED SEARCH SETUP
 
-                    // remove and re-add fitters from config
-                    let aFilterSetup = setupUxon.filters;
-                    var oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+                    // remove and re-add filters from config
+                    let aFilterSetup = oSetupUxon.advanced_search;
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
                     oDialog.removeAllFilterItems();
 
                     aFilterSetup.forEach(oItem => {
@@ -267,8 +255,6 @@ JS
                         });
                         oDialog.addFilterItem(oFilterItem);
                     });
-
-                    console.log('Applying filters setup', setupUxon.filters);
                 }
                 
                 // Update UI and show success message
@@ -289,44 +275,41 @@ JS;
                     type: "Emphasized",
                     press: function() {
 
-                        var sViewName = oInput.getValue();
+                        let sViewName = oInput.getValue();
                         if (!sViewName || sViewName.trim() === "") {
                             oInput.setValueState(sap.ui.core.ValueState.Error);
                             oInput.setValueStateText({$viewNamePlaceholderMissing});
-                            return; // Do not save if input is empty
+                            return; // Do not save if view name input is empty
                         }
                         oInputDialog.close();
 
                         // SAVE CURRENT TABLE SETUP
-                        console.log('saving setup', sViewName);
-
                         // show busy indicator
                         {$this->getP13nElement()->buildJsBusyIconShow()}
 
                         // json object to save current state in
                         let oSetupJson = {
                             columns: [],
-                            filters: [],
+                            advanced_search: [],
                             sorters: []
                         };
 
                         // get the current states
-                        var oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}'); //TODO ?
-                        var oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
-                        var oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
-                        var aColumnsInit = oInitP13nModel.getProperty('/columns');
-                        var aColumns = oP13nModel.getProperty('/columns');
-                        var aSorters = oP13nModel.getProperty('/sorters');
-                        var aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
+                        let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
+                        let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
+                        let aColumnsInit = oInitP13nModel.getProperty('/columns');
+                        let aColumns = oP13nModel.getProperty('/columns');
+                        let aSorters = oP13nModel.getProperty('/sorters');
+                        let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
 
-                        // add columns back in (if missing any of the original ones)
+                        // add columns back in (if are are missing any of the original ones)
                         if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
-                            
-                            var currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
+                            let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
                             aColumnsInit.forEach(function(initCol) {
-                                var idx = currentAliases.indexOf(initCol.attribute_alias);
+                                let idx = currentAliases.indexOf(initCol.attribute_alias);
                                 if (idx === -1) {
-                                    // Missing column, add as hidden
+                                    // missing column, add as hidden
                                     oSetupJson.columns.push({
                                         attribute_alias: initCol.attribute_alias,
                                         show: false
@@ -355,10 +338,10 @@ JS;
                             });
                         }
 
-                        // save filters
+                        // save filters/advanced search
                         if (aFilters !== undefined && aFilters.length > 0) {
                             aFilters.forEach(function(oFilter){
-                                oSetupJson.filters.push({
+                                oSetupJson.advanced_search.push({
                                     attribute_alias: oFilter.mProperties.columnKey,
                                     comparator: oFilter.mProperties.operation,
                                     value: oFilter.mProperties.value1,
@@ -369,12 +352,11 @@ JS;
 
                         // widget setup oid
                         let widgetSetupOid = {$jsRequestData}.oId;
-
                         // stringified setup uxon for ajax request
-                        let sSetupUxon = JSON.stringify(oSetupJson)
+                        let sSetupUxon = JSON.stringify(oSetupJson);
 
                         // payload for the setup request
-                        let requestDataSetup = {
+                        let oRequestDataSetupPayload = {
                             oId: widgetSetupOid,
                             rows: [{
                                 NAME: sViewName,
@@ -387,7 +369,7 @@ JS;
                             }]
                         };
 
-                        // TODO: save as private for user -> why not working? why is it 'shared'?
+                        // create data request for widget_setup
                         $.ajax({
                             type: 'POST',
                             url: '{$this->getAjaxUrl()}',
@@ -397,7 +379,7 @@ JS;
                                 resource: '{$this->getPageId()}', 
                                 element: '{$this->getWidget()->getId()}', 
                                 object: widgetSetupOid,
-                                data: requestDataSetup
+                                data: oRequestDataSetupPayload
                             },
                             success: function(data, textStatus, jqXHR) {
                                 if (typeof data === 'object') {
@@ -414,7 +396,7 @@ JS;
                                     {$this->buildJsShowMessageSuccess("{$saveSuccess}", "''")};
 
                                     // payload for the widget user setup request
-                                    let requestDataUserSetup = {
+                                    let oRequestDataUserSetupPayload = {
                                         oId: '{$userSetupObjId}',
                                         rows: [{
                                             USER: '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}',
@@ -422,7 +404,7 @@ JS;
                                         }]
                                     };
 
-                                    // save the current user with setup
+                                    // create data request for widget_setup_user
                                     $.ajax({
                                         type: 'POST',
                                         url: '{$this->getAjaxUrl()}',
@@ -432,7 +414,7 @@ JS;
                                             resource: '{$this->getPageId()}', 
                                             element: '{$this->getWidget()->getId()}', 
                                             object: '{$userSetupObjId}',
-                                            data: requestDataUserSetup
+                                            data: oRequestDataUserSetupPayload
                                         },
                                         success: function(data, textStatus, jqXHR) {
                                             if (typeof data === 'object') {
@@ -462,7 +444,7 @@ JS;
                                 {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
                             },
                             complete: function(xhr, status) {
-                                // hide busy icon 
+                                // hide busy icon on complete
                                 {$this->getP13nElement()->buildJsBusyIconHide()}
                             }
                         });
