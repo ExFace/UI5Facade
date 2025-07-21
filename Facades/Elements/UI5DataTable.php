@@ -147,8 +147,7 @@ JS
             -> it might be a good idea to move most of this to the UI5DataConfigurator, since we read/update the p13n properties?
             -> Filters/Sorters added from Column Header Menu dont seem to get added rn?
 
-            TODO:   - add translations for strings
-                    - add some more validation?
+            TODO:  
                     -> rename fitler to advanced search
                     -> why is visibility always 'shared' even though it should be 'private' with the way its created?
 
@@ -164,6 +163,15 @@ JS
         // widget setup user id for ajax call
         $userSetupObjId = MetaObjectFactory::createFromAliasAndNamespace($this->getWorkbench(), 'WIDGET_SETUP_USER', 'exface.Core')->getId(); 
 
+        // translated strings 
+        $saveSuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE_SUCCESS'));
+        $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
+        $viewNamePlaceholder = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_PLACEHOLDER')); 
+        $viewNamePlaceholderMissing = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_MISSING'));
+        $viewNamePrompt = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_PROMPT_TITLE'));
+        $saveTitle = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.CREATEDATA.NAME'));
+        $cancelSave = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.GENERIC.CANCEL'));
+
         switch (true) {
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
                 return <<<JS
@@ -173,8 +181,6 @@ JS
                 console.log('REQUEST DATA', result);
 
                 if (result === null || result === undefined || result.rows.length === 0) {
-                    var error = "Bitte genau 1 Datensatz auswählen!";
-                    {$this->buildJsShowMessageError('error', '"ERROR"')}
                     return;
                 }
                 if ({$setupUxonCol} === null){
@@ -267,26 +273,26 @@ JS
                 
                 // Update UI and show success message
                 {$this->buildJsRefreshPersonalization()}
-                {$this->buildJsShowMessageSuccess("'Setup wurde angewandt'", "'Erfolg'")};
+                {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
 
 JS;
                 case $functionName === DataTable::FUNCTION_SAVE_SETUP:
                 return <<<JS
                 
             // prompt for the view name
-            var oInput = new sap.m.Input({placeholder: "Name der Ansicht"});
+            var oInput = new sap.m.Input({placeholder: {$viewNamePlaceholder}});
             var oInputDialog = new sap.m.Dialog({
-                title: "Ansicht speichern",
+                title: {$viewNamePrompt},
                 content: [oInput],
                 beginButton: new sap.m.Button({
-                    text: "Speichern",
+                    text: {$saveTitle},
                     type: "Emphasized",
                     press: function() {
 
                         var sViewName = oInput.getValue();
                         if (!sViewName || sViewName.trim() === "") {
                             oInput.setValueState(sap.ui.core.ValueState.Error);
-                            oInput.setValueStateText("Bitte geben Sie einen Namen ein.");
+                            oInput.setValueStateText({$viewNamePlaceholderMissing});
                             return; // Do not save if input is empty
                         }
                         oInputDialog.close();
@@ -405,7 +411,7 @@ JS;
                                     }
                                 }
                                 if (response.success){
-                                    {$this->buildJsShowMessageSuccess("'Setup erfolgreich gespeichert'", "'Erfolg'")};
+                                    {$this->buildJsShowMessageSuccess("{$saveSuccess}", "''")};
 
                                     // payload for the widget user setup request
                                     let requestDataUserSetup = {
@@ -463,7 +469,7 @@ JS;
                 }
             }),
             endButton: new sap.m.Button({
-                text: "Abbrechen",
+                text: {$cancelSave},
                 press: function() {
                     oInputDialog.close();
                     return; // do not save if cancel is pressed
