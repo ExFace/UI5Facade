@@ -1679,6 +1679,11 @@ JS;
     {
         $widget = $this->getWidget();
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
+        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+        $colsOptionalJs = "var oColsOptional = {};";
+        if (! empty($colsOptional)) {
+            $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+        }
         if ($this->isUiTable() === true) {
             return <<<JS
 
@@ -1686,7 +1691,7 @@ JS;
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
-                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
+                        {$colsOptionalJs}
                         var aColumnsNew = [];
                         var bOrderChanged = false;
                         var iConfOffset = 0;
@@ -1747,7 +1752,7 @@ JS;
                         var aColumns = oTable.getColumns();
                         var aColumnsNew = [];
                         var oController = {$this->getController()->buildJsControllerGetter($this)};
-                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
+                        {$colsOptionalJs}
 
                         var bOrderChanged = false;
 
