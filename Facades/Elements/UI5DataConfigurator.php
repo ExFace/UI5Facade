@@ -188,9 +188,11 @@ function(){
             var oModel = new sap.ui.model.json.JSONModel();
             var columns = {$this->buildJsonModelForColumns()};
             var sortables = {$this->buildJsonModelForSortables()};
+            var searchables = {$this->buildJsonModelForSearchables()}
             var data = {
                 "columns": columns,
                 "sortables": sortables,
+                "searchables": searchables,
                 "sorters": [{$this->buildJsonModelForInitialSorters()}]
             }
             oModel.setData(data);
@@ -424,7 +426,7 @@ JS;
                             oEvent.getSource().removeFilterItem(oParameters.index);
                         },
                         items: {
-                            path: '{$this->getModelNameForConfig()}>/columns',
+                            path: '{$this->getModelNameForConfig()}>/searchables',
                             template: new sap.m.P13nItem({
                                 columnKey: "{{$this->getModelNameForConfig()}>attribute_alias}",
                                 text: "{{$this->getModelNameForConfig()}>caption}"
@@ -453,16 +455,11 @@ JS;
 
         if ($this->hasTabColumns() === true) {
             $cols = $widget->getDataWidget()->getColumns();
-            // Add all optional columns from the configurator here. This will automatically
-            // make them filterable in the search-tab!
+            // Add all optional columns from the configurator here
             if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
                 $cols = array_merge($cols, $widget->getOptionalColumns());
             }
             foreach ($cols as $col) {
-                // filter hidden columns, we don't want them to appear in the search tab or the columns tab, unless its the UID
-                if ($col->isHidden() && !($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject())) {
-                    continue;
-                }
                 $data[] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "column_id" => $this->getFacade()->getElement($col)->getId(),
@@ -476,6 +473,32 @@ JS;
         }
         return json_encode($data);
     }
+
+    protected function buildJsonModelForSearchables() : string
+    {
+        $data = [];
+        $widget = $this->getWidget();
+
+        if ($this->hasTabColumns() === true) {
+            $cols = $widget->getDataWidget()->getColumns();
+            // Add all optional columns from the configurator here
+            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+                $cols = array_merge($cols, $widget->getOptionalColumns());
+            }
+            foreach ($cols as $col) {
+                // columns that arent filterable or ar hidden and not the uid attribute should not appear in the filter tab
+                if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
+                    continue;
+                }
+                $data[] = [
+                    "attribute_alias" => $col->getAttributeAlias(),
+                    "caption" => $col->getCaption()
+                ];
+            }
+        }
+        return json_encode($data);
+    }
+    
     
     /**
      * 
