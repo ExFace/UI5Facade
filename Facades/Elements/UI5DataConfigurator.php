@@ -486,7 +486,7 @@ JS;
                 $cols = array_merge($cols, $widget->getOptionalColumns());
             }
             foreach ($cols as $col) {
-                // columns that arent filterable or ar hidden and not the uid attribute should not appear in the filter tab
+                // columns that aren't filterable or are hidden and not the UID attribute should not appear in the filter tab
                 if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
                     continue;
                 }
