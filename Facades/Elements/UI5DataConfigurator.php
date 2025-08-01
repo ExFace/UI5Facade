@@ -459,6 +459,10 @@ JS;
                 $cols = array_merge($cols, $widget->getOptionalColumns());
             }
             foreach ($cols as $col) {
+                // filter hidden columns, we don't want them to appear in the search tab or the columns tab, unless its the UID
+                if ($col->isHidden() && !($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject())) {
+                    continue;
+                }
                 $data[] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "column_id" => $this->getFacade()->getElement($col)->getId(),
