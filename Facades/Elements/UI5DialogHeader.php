@@ -68,7 +68,7 @@ JS;
             case $widget instanceof iHaveValue:
                 $element = new UI5ObjectStatus($widget, $this->getFacade());
                 $element->addPseudoEventHandler('onAfterRendering',$this->buildJsTextOverflowHandler($element->getId()));
-                $js = $element->buildJsConstructor($oControllerJs); //TODO SR: Hier kommt das gewünschte JS element. Schau, wie es genau gebaut wird.
+                $js = $element->buildJsConstructor($oControllerJs);
 
                 break;
             // Render widget groups as vertical layouts
