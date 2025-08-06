@@ -283,7 +283,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .exf-pad > .sapMPanelContent {border-bottom: 0 !important}
 
 /* ColorIndicator */
-.sapMObjStatus {white-space: nowrap;}
+.sapMObjStatus {white-space: nowrap; width: 100%; overflow: hidden; text-overflow: ellipsis;}
 
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */

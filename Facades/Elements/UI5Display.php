@@ -239,6 +239,7 @@ JS;
      */
     protected function buildJsPropertyTooltip()
     {
+        $widget = $this->getWidget();
         if ($this->getWidget()->isInTable() === true) {
             if ($this->isValueBoundToModel()) {
                 $value = $this->buildJsValueBinding('formatter: function(value){return (value === null || value === undefined) ? value : value.toString();},');
@@ -248,8 +249,13 @@ JS;
             
             return 'tooltip: ' . $value .',';
         }
-        
-        return parent::buildJsPropertyTooltip();
+
+        return "tooltip: {$this->buildJsValueBinding("
+            formatter: function(value){
+                var sInfo = " . $this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption())) . "
+                mFormatted = (value === null || value === undefined) ? '' : value.toString();
+                return mFormatted + (sInfo  !== '' && mFormatted !== '' ? ' - ' : '') + sInfo;
+            },")},";
     }
     
     /**
