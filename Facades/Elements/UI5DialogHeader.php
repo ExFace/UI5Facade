@@ -68,7 +68,6 @@ JS;
             case $widget instanceof iHaveValue:
                 $element = new UI5ObjectStatus($widget, $this->getFacade());
                 $js = $element->buildJsConstructor($oControllerJs);
-
                 break;
             // Render widget groups as vertical layouts
             case $widget instanceof WidgetGrid:
