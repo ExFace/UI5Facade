@@ -67,7 +67,6 @@ JS;
             // Render regular generic value widgets as sap.m.ObjectStatus
             case $widget instanceof iHaveValue:
                 $element = new UI5ObjectStatus($widget, $this->getFacade());
-                $element->addPseudoEventHandler('onAfterRendering',$this->buildJsTextOverflowHandler($element->getId()));
                 $js = $element->buildJsConstructor($oControllerJs);
 
                 break;
@@ -127,33 +126,6 @@ JS;
                 break;
         }
         return $widthVal === null ? '' : 'width: ' . $this->escapeString($widthVal) . ',';
-    }
-
-    /**
-     * It builds an event handler,
-     * that checks for text overflow and, if any occurs, adds the text to the top of the tooltip.
-     *
-     * @param $elementId
-     * @return string
-     */
-    protected function buildJsTextOverflowHandler($elementId) : string
-    {
-        return <<<JS
-              var oStatus = sap.ui.getCore().byId("$elementId");
-              if (!oStatus) return;
-              
-              var dom = oStatus.$();
-              var el = dom[0];
-              if (!el) return;
-              
-              if (el.scrollWidth > el.clientWidth) {
-                var text = el.innerText?.trim();
-                var originalTitle = el.getAttribute("title")?.trim();
-                
-                var newTitle = text + "\\n\\n" + originalTitle;
-                el.setAttribute("title", newTitle);
-              }
-JS;
     }
 }
 ?>
