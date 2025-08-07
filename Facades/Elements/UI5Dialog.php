@@ -109,10 +109,9 @@ class UI5Dialog extends UI5Form
         // Listen to action affecting the data in this dialog
         $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed(<<<JS
 
-            (function(oController){
+            (function(oController, oEventParams){
                 var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                 var jqCtrl;
-                var aChanges = [];
                 // Avoid errors if the view/dialog is closed
                 if (oCtrl === undefined || oCtrl.getModel('view').getProperty('/_closed') === true) {
                     return;
@@ -122,13 +121,9 @@ class UI5Dialog extends UI5Form
                 if (jqCtrl.length === 0 || jqCtrl.is(':visible') === false) {
                     oCtrl.getModel('view').setProperty('/_prefill/refresh_needed', true);
                 } else {
-                    aChanges = {$this->buildJsChangesGetter()};
-                    if (aChanges.length > 0) {
-                        return;
-                    }
                     {$this->buildJsRefresh(true)};
                 }
-            })($oControllerJs);
+            })($oControllerJs, oEventParams);
 JS, false));
         
         // Add a controller method to close the dialog
@@ -1158,7 +1153,7 @@ JS;
      * @param string $scriptJs
      * @return string
      */
-    protected function buildJsRegisterOnActionPerformed(string $scriptJs) : string
+    protected function buildJsRegisterOnActionPerformed(string $scriptJs, bool $doNotCallOnUnhandledChanges = true) : string
     {
         if ($this->needsPrefill() === false) {
             return '';

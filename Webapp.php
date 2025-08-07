@@ -440,9 +440,24 @@ class Webapp implements WorkbenchDependantInterface
      */
     public function getViewName(WidgetInterface $widget) : string
     {
+        return $this->getRootPage()->getAliasWithNamespace() . '.view.' . $this->getViewNameWithoutNamespace($widget);
+    }
+
+    /**
+     * Computes the view name for a given widget, but without the namespace: e.g. my.app.page_alias.widget.widget_id...
+     *
+     * @see getWidgetFromPath() for more details.
+     *
+     * @param WidgetInterface $widget
+     * @return string
+     */
+    public function getViewNameWithoutNamespace(WidgetInterface $widget) : string
+    {
         $appRootPage = $this->getRootPage();
-        $pageAlias = $widget->getPage()->getAliasWithNamespace() ? $widget->getPage()->getAliasWithNamespace() : $appRootPage->getAliasWithNamespace();
-        return $appRootPage->getAliasWithNamespace() . '.view.' . $pageAlias . ($widget->hasParent() ? '.' . $this->getWidgetIdForViewControllerName($widget) : '');
+        $pageAlias = $widget->getPage()->getAliasWithNamespace() ? 
+            $widget->getPage()->getAliasWithNamespace() : $appRootPage->getAliasWithNamespace();
+        
+        return $pageAlias . ($widget->hasParent() ? '.' . $this->getWidgetIdForViewControllerName($widget) : '');
     }
     
     /**

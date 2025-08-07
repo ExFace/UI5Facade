@@ -35,7 +35,7 @@ class UI5DataLookupDialog extends UI5Dialog
         parent::init();
         $dialog = $this->getWidget();
         if ($dialog->getHideHeader() === null) {
-            $dialog->setHideHeader(true);
+            $dialog->setHideHeader(false);
         }
         $table = $this->getWidget()->getDataWidget();
         $table->setHideCaption(true);

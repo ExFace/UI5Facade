@@ -554,7 +554,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === Input::FUNCTION_FOCUS:
@@ -562,7 +562,7 @@ JS;
             case $functionName === Input::FUNCTION_EMPTY:
                 return "setTimeout(function(){ {$this->buildJsEmpty()} }, 0);";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**

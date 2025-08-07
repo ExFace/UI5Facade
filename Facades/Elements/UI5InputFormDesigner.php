@@ -59,7 +59,12 @@ class UI5InputFormDesigner extends UI5InputForm
 
                 var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
                 oValueBinding.attachChange(function(oEvent){
-                    {$this->buildJsValueSetter("sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}')")};
+                    var sVal = sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}');
+                    // Do not update if the model does not have this property
+                    if (sVal === undefined) {
+                        return;
+                    }
+                    {$this->buildJsValueSetter("sVal")};
                 });
             }
         })

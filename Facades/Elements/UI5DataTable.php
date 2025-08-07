@@ -822,22 +822,47 @@ JS;
         } elseif ($this->isMTable()) {
             $tableParams = <<<JS
 
+            // request config for opt. columns
+            {$oParamsJs}.data.columns = [];
+
             // Set sorting indicators for columns
             var aSortProperties = ({$oParamsJs}.sort ? {$oParamsJs}.sort.split(',') : []);
             var aSortOrders = ({$oParamsJs}.sort ? {$oParamsJs}.order.split(',') : []);
             var iIdx = -1;
             sap.ui.getCore().byId('{$this->getId()}').getColumns().forEach(function(oColumn){
                 iIdx = aSortProperties.indexOf(oColumn.data('_exfAttributeAlias'));
+                var oColParam;
+
                 if (iIdx > -1) {
                     oColumn.setSortIndicator(aSortOrders[iIdx] === 'desc' ? 'Descending' : 'Ascending');
                 } else {
                     oColumn.setSortIndicator(sap.ui.core.SortOrder.None);
                 }
+
+                // add optional columns as request data 
+                if (oColumn.data('_exfDataColumnName')) {
+                    if (oColumn.data('_exfAttributeAlias')) {
+                        oColParam = {
+                            attribute_alias: oColumn.data('_exfAttributeAlias')
+                        };
+                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                            oColParam.name = oColumn.data('_exfDataColumnName');
+                        }
+                    } else if (oColumn.data('_exfCalculation')) {
+                        oColParam = {
+                            name: oColumn.data('_exfDataColumnName'),
+                            expression: oColumn.data('_exfCalculation')
+                        };
+                    }
+                    if (oColParam !== undefined) {
+                        {$oParamsJs}.data.columns.push(oColParam);
+                    }
+                }
             });
 
 JS;
         }
-			
+		
         return $commonParams . $tableParams;
     }
     
@@ -1468,6 +1493,9 @@ JS;
      */
     protected function buildJsUiTableColumnResize(string $oTableJs, string $oModelJs) : string
     {
+        if (($this->getWidget() instanceof DataTable) && $this->getWidget()->getAutoColumnWidth() === false) {
+            return '';
+        }
         return <<<JS
 
                 var bResized = false;
@@ -1651,6 +1679,11 @@ JS;
     {
         $widget = $this->getWidget();
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
+        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+        $colsOptionalJs = "var oColsOptional = {};";
+        if (! empty($colsOptional)) {
+            $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+        }
         if ($this->isUiTable() === true) {
             return <<<JS
 
@@ -1658,13 +1691,13 @@ JS;
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
-                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
+                        {$colsOptionalJs}
                         var aColumnsNew = [];
                         var bOrderChanged = false;
                         var iConfOffset = 0;
                         var oDirtyColumn = aColumns.filter(oColumn => oColumn.getId() === "{$this->getDirtyFlagAlias()}")[0];
                         var oUidCol = aColumns.filter(oColumn => oColumn.data('data_column_name') === {$this->escapeString($uidColName)})[0];
-                        
+
                         if (oDirtyColumn !== undefined) {
                             iConfOffset += 1;
                             aColumnsNew.push(oDirtyColumn);  
@@ -1673,7 +1706,7 @@ JS;
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
                             var oColumn;
-                            // See if the column is part of the table right nw
+                            // See if the column is part of the table right now
                             for (var iColIdx = 0; iColIdx < aColumns.length; iColIdx++) {
                                 oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
@@ -1694,9 +1727,11 @@ JS;
                                 }   
                             }  
                         });
+
                         // TODO what if the column was part of the table, but is not in the config?
                         // e.g. the UID column, that is always added automatically. It seems to be
                         // added at the end, so we handle it here. But that does not feel good!
+                        // UPDATE: Doesnt seem to work??
                         if (oUidCol !== undefined) {
                             aColumnsNew.push(oUidCol); 
                         }
@@ -1711,73 +1746,94 @@ JS;
 JS;
         } else {
             return <<<JS
-
+                        // Responsive table
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
                         var aColumnsNew = [];
-                       
+                        var oController = {$this->getController()->buildJsControllerGetter($this)};
+                        {$colsOptionalJs}
+
                         var bOrderChanged = false;
-                        var aOrderChanges = new Array;
+
+                        // add dirty column first
+                        var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
+                        if (oDirtyColumn) {
+                            aColumnsNew.push(oDirtyColumn);
+                        }
+
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
-                            var iConfOffset = 0;
+                            // table columns
                             aColumns.forEach(function(oColumn, iColIdx) {
-                                if (oColumn.getId() === "{$this->getDirtyFlagAlias()}") {
-                                    iConfOffset += 1;
-                                    aColumnsNew.push(oColumn);  
-                                    return;
-                                }
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    iConfIdx += iConfOffset;
                                     if (oColumn.getVisible() !== oColConfig.visible) {
                                         oColumn.setVisible(oColConfig.visible);
                                     }
-                                    if (iColIdx !== iConfIdx) {
-                                        bOrderChanged = true;
-                                        aOrderChanges.push({idxFrom: iColIdx, idxTo: iConfIdx}); 
-                                    }
                                     aColumnsNew.push(oColumn);                                    
                                     return;
-                                }
+                                }  
                             });
+                            // optional columns
+                            if (oColConfig.visible === true) {
+                                var oColumn = oColsOptional[oColConfig.column_name];
+                                if (oColumn !== undefined) {
+                                    oColumn.setVisible(true);
+                                    aColumnsNew.push(oColumn); 
+                                    return;
+                                }   
+                            }
                         });
 
-                        if (bOrderChanged === true) {
+                        // compare cols if re-order is needed
+                        var aOldOrderIds = aColumns.filter(col => col.getVisible()).map(col => col.getId());
+                        var aNewOrderIds = aColumnsNew.map(col => col.getId());
 
-                            var aCellBuffer = new Array;
-                            var aRemovableCells = new Array;
-                            var aCells = oTable.getBindingInfo("items").template.getCells();
+                        if (JSON.stringify(aOldOrderIds) !== JSON.stringify(aNewOrderIds)) {
+                            bOrderChanged = true;
+                        }
 
-                            oTable.removeAllColumns();
-                            aColumnsNew.forEach(oColumn => {
-                                oTable.addColumn(oColumn);
+                        //if order/content changed, apply new columns and rebuild template
+                        if (bOrderChanged) {
+                            var oTemplate = oTable.getBindingInfo("items").template;
+                            var aOldCells = oTemplate.getCells();
+                            var aNewCells = [];
+
+                            // map data by column id for re-ordering
+                            var mColumnIdToCell = {};
+                            aColumns.forEach((col, idx) => {
+                                var colId = col.getId();
+                                if (aOldCells[idx]) {
+                                    mColumnIdToCell[colId] = aOldCells[idx];
+                                }
                             });
 
-                            aOrderChanges.forEach(function(oOrderChange, oOrderChangeIdx){
+                            // remove all columns
+                            oTable.removeAllColumns();
 
-                                var oCellFromBuffer = null;
-                                aCellBuffer.forEach(function(oCellBuffer, oCellBufferIdx){
-                                    if (oCellBuffer.previousIdx == oOrderChange.idxFrom){
-                                        oCellFromBuffer = oCellBuffer.cell;
-                                        return;
-                                    }
-                                });
-                                
-                                if (aRemovableCells.includes(oOrderChange.idxTo) == false){
-                                    aCellBuffer.push({previousIdx: oOrderChange.idxTo, cell: aCells[oOrderChange.idxTo]});
+                            // re-add columns in new order and update their cells
+                            aColumnsNew.forEach((col, idx) => {
+                                oTable.addColumn(col);
+
+                                var colId = col.getId();
+                                if (mColumnIdToCell[colId]) {
+                                    // if is existing column, reuse cell from old template
+                                    aNewCells.push(mColumnIdToCell[colId]);
+                                } 
+                                else {
+                                    // if is new/optional column, bind data to col name from config
+                                    var oColConfig = aColsConfig.find(c => c.column_id === colId);
+                                    var sProperty = oColConfig.column_name;
+                                    
+                                    aNewCells.push(new sap.m.Text({
+                                        text: '{' + sProperty + '}'
+                                    }));
                                 }
-                                
-                                if (oCellFromBuffer != null){
-                                    aCells[oOrderChange.idxTo] = oCellFromBuffer;
-                                } else {
-                                    aCells[oOrderChange.idxTo] = aCells[oOrderChange.idxFrom];
-                                    aRemovableCells.push(oOrderChange.idxFrom);
-                                }
-                            }); 
+                            });
 
-                            oTable.getBindingInfo("items").template.mAggregations.cells = aCells;
-
-                        } 
+                            //upadte template
+                            oTemplate.removeAllAggregation("cells");
+                            aNewCells.forEach(cell => oTemplate.addCell(cell));
+                        }
 
 JS;
         }
