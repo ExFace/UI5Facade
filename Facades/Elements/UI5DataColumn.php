@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -56,9 +57,9 @@ class UI5DataColumn extends UI5AbstractElement
         $widthMin = $col->getWidthMin();
         $widthJson = json_encode([
             'auto' => $col->getNowrap() && ($width->isUndefined() || strtolower($width->getValue()) === 'auto'),
-            'fixed' => $width->getValue(),
-            'min' => $widthMin->isFacadeSpecific() ? $widthMin->getValue() : null,
-            'max' => $widthMax->isFacadeSpecific() ? $widthMax->getValue() : null
+            'fixed' => $this->buildCssWidth($width),
+            'min' => $this->buildCssWidth($widthMin),
+            'max' => $this->buildCssWidth($widthMax)
         ]);
         $labelWrappingJs = $col->getNowrap() ? 'wrapping: false,' : 'wrapping: true,';
         
@@ -98,6 +99,14 @@ class UI5DataColumn extends UI5AbstractElement
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })
 JS;
+    }
+
+    /**
+     * @see AbstractJqueryElement::getWidthRelativeUnit()
+     */
+    public function getWidthRelativeUnit()
+    {
+        return $this->getFacade()->getConfig()->getOption('WIDGET.DATACOLUMN.WIDTH_RELATIVE_UNIT');
     }
     
     /**
@@ -302,11 +311,9 @@ JS;
     }
     
     protected function buildJsPropertyWidth()
-    {
-        $dim = $this->getWidget()->getWidth();
-        
-        if ($dim->isFacadeSpecific()) {
-            return 'width: "' . $dim->getValue() . '",';
+    {        
+        if ($val = $this->buildCssWidth()) {
+            return 'width: "' . $val . '",';
         }   
         
         return '';
