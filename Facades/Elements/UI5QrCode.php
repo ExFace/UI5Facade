@@ -85,4 +85,13 @@ JS;
     {
         return "setCode({$valueJs})";
     }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Display::getShowValueInTooltip()
+     */
+    protected function getShowValueInTooltip() : bool
+    {
+        return false;
+    }
 }

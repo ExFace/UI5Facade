@@ -250,12 +250,23 @@ JS;
             return 'tooltip: ' . $value .',';
         }
 
-        return "tooltip: {$this->buildJsValueBinding("
-            formatter: function(value){
-                var sInfo = " . $this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption())) . "
-                var mFormatted = (value === null || value === undefined) ? '' : value.toString();
-                return mFormatted + (sInfo  !== '' && mFormatted !== '' ? ' - ' : '') + sInfo;
-            },")},";
+        if ($this->isValueBoundToModel() && $this->getShowValueInTooltip() === true) {
+            // If showing values from model, show the full value + description. This makes sure, the value is visible
+            // entirely even if the control truncates it because it is too long
+            return "tooltip: {$this->buildJsValueBinding("
+                formatter: function(value){
+                    var sInfo = {$this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption()))};
+                    var sVal = (value === null || value === undefined) ? '' : value.toString();
+                    return sVal + (sInfo  !== '' && sVal !== '' ? ' - ' : '') + sInfo;
+                },")},";
+        } else {
+            return parent::buildJsPropertyTooltip();
+        }
+    }
+    
+    protected function getShowValueInTooltip() : bool
+    {
+        return true;
     }
     
     /**
