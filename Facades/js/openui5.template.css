@@ -164,7 +164,7 @@ table.jexcel > tbody > tr > td:last-child:not(.readonly):not(.highlight-selected
 table.jexcel > tbody > tr:last-child > td:not(:first-child):not(.readonly):not(.highlight-selected) {border-bottom-color: #89919a;}
 table.jexcel > thead > tr > td {border-top-color: rgb(229, 229, 229); border-left-color: rgb(229, 229, 229); background-color: #f2f2f2;}
 table.jexcel > tbody > tr > td.jexcel_row {background-color: #f2f2f2; border-top-color: rgb(229, 229, 229) !important;}
-table.jexcel > tbody > tr > td.readonly {color:inherit;}
+/*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
 table.jexcel > tbody > tr > td.readonly > input[type=checkbox], 
