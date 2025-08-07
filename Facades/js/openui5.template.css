@@ -282,8 +282,16 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* Pad */
 .exf-pad > .sapMPanelContent {border-bottom: 0 !important}
 
-/* ColorIndicator */
-.sapMObjStatus {white-space: nowrap; width: 100%; overflow: hidden; text-overflow: ellipsis;}
+/* Display widgets in DialogHeader + ColorIndicator anywhere */
+.sapMObjStatus {
+    white-space: nowrap; 
+    /* Truncate long text */
+    width: 100%; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    vertical-align: top;   /* prevents alignment expansion (height would increase otherwise) */
+    max-width: 100%;       /* limit overflow inside layout */
+}
 
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */
