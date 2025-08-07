@@ -253,7 +253,7 @@ JS;
         return "tooltip: {$this->buildJsValueBinding("
             formatter: function(value){
                 var sInfo = " . $this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption())) . "
-                mFormatted = (value === null || value === undefined) ? '' : value.toString();
+                var mFormatted = (value === null || value === undefined) ? '' : value.toString();
                 return mFormatted + (sInfo  !== '' && mFormatted !== '' ? ' - ' : '') + sInfo;
             },")},";
     }
