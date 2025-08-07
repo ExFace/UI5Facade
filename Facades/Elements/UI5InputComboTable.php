@@ -475,12 +475,16 @@ JS;
         // suggestion is selected automatically (see buildJsDataLoader()), aCells is not set yet, so
         // we need to fetch the first row of the suggestion table - in this case we know, that there
         // is only a single row!
+        $valueDataType = $this->getWidget()->getValueColumn()->getDataType();
         return <<<JS
             function(oEvent){
                 var oItem = oEvent.getParameter("selectedRow");
                 if (! oItem) return;
 				var aCells = oEvent.getParameter("selectedRow").getCells();
                 var oInput = oEvent.getSource();
+                var fnValueParser = function(mVal) {
+                    return {$this->getFacade()->getDataTypeFormatter($valueDataType)->buildJsFormatParser('mVal')};
+                }
                 if (oInput.getTokens !== undefined) {
                     if (oInput.getTokens().filter(function(oToken){
                             return oToken.getKey() === aCells[ {$valueColIdx} ].getText();
@@ -492,7 +496,7 @@ JS;
                     var oSuggestTable = sap.ui.getCore().byId('{$this->getId()}-popup-table');
                     aCells = oSuggestTable.getItems()[0].getCells();
                 }
-                oInput.{$this->buildJsSetSelectedKeyMethod("aCells[ {$valueColIdx} ].getText()", "aCells[ {$textColIdx} ].getText()")};
+                oInput.{$this->buildJsSetSelectedKeyMethod("fnValueParser(aCells[ {$valueColIdx} ].getText())", "aCells[ {$textColIdx} ].getText()")};
                 oInput.setValueState(sap.ui.core.ValueState.None);
                 oInput._invalidKey = false;
                 oInput.fireChange({value: aCells[ {$valueColIdx} ].getText()});
