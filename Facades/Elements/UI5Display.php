@@ -127,6 +127,12 @@ JS;
      */
     public function buildJsValueBindingOptions()
     {
+        $widget = $this->getWidget();
+        // Do not use data type formatting on hidden displays (e.g. in hidden data columns). Hidden displays are often
+        // used for all sorts of ids and if they are numeric, formatting might break them if digit groups is used.
+        if ($widget->isHidden() === true && $widget->getHiddenIf() === null) {
+            return '';
+        }
         return $this->getValueBindingFormatter()->buildJsBindingProperties();
     }
     
