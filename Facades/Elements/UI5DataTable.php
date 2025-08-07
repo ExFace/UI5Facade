@@ -1535,6 +1535,12 @@ JS;
                                 if (jqLabel[0].scrollWidth > jqLabel.width()) {
                                     oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
                                 }
+                                if (oWidth.min) {
+                                    iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
+                                    if (jqCol.outerWidth() < iWidth) {
+                                        oCol.setWidth(oWidth.min);
+                                    }
+                                }
                                 if (oWidth.max) {
                                     iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
                                     if (jqCol.outerWidth() > iWidth) {
