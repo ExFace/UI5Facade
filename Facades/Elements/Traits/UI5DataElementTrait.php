@@ -168,7 +168,7 @@ trait UI5DataElementTrait {
         
         $controller->addMethod('onUpdateFilterSummary', $this, '', $this->buildJsFilterSummaryUpdater());
         $controller->addMethod('onLoadData', $this, 'oControlEvent, bKeepPagingPos', $this->buildJsDataLoader());
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         
         if ($this->hasPaginator()) {
             $this->getPaginatorElement()->registerControllerMethods();
@@ -757,11 +757,13 @@ JS;
      * 
      * @return UI5AbstractElement
      */
-    protected function initConfiguratorControl(UI5ControllerInterface $controller) : UI5AbstractElement
+    protected function initConfiguratorControl(UI5ControllerInterface $controller, string $oControllerJs) : UI5AbstractElement
     {
         // If the table does not have a configurator, there will not be a control for it. Instead, the
         // configurator will work in unrendered mode
         if (! $this->hasConfigurator()) {
+            // Make sure the table is refreshed when needed even if there is no configurator button!
+            $this->getConfiguratorElement()->registerRefreshListeners($oControllerJs);
             return $this;
         }
         $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());

@@ -118,16 +118,49 @@ JS;
         $controller->addOnEventScript($this, self::EVENT_BUTTON_CANCEL, 'oEvent.getSource().close();');
         $controller->addOnEventScript($this, self::EVENT_BUTTON_RESET, $this->buildJsResetter() . '; oEvent.getSource().setShowResetEnabled(true).close()');
         
+        $this->registerRefreshListeners($oControllerJs);
+        
+        $refreshSetupsJs = '';
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            $setupsTable->setAutoloadData(false);
+            $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
+        }
+        
+        return <<<JS
+
+        new sap.m.P13nDialog("{$this->getId()}", {
+            ok: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_OK, true)},
+            cancel: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_CANCEL, true)},
+            showReset: true,
+            showResetEnabled: true,
+            reset: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_RESET, true)},
+            afterOpen: function(oEvent) {
+                $refreshSetupsJs
+            },
+            panels: [
+                {$this->buildJsPanelsConstructors()}
+            ]
+        })
+        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}")
+        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}_initial")
+        
+JS;
+    }
+    
+    public function registerRefreshListeners(string $oControllerJs) : void
+    {
         $onActionEffectJs = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh(true, $oControllerJs);
         // If the configured widget is an editable data widget, only react to action effects if
         // no unsaved changes exist or the widget is explicitly required to refresh (by button config)!
+        $dataElement = $this->getDataElement();
         $dataWidget = $dataElement->getWidget();
         if ($dataWidget instanceof iCanEditData && $dataWidget->isEditable() && method_exists($dataElement, 'buildJsEditableChangesChecker')) {
             $onActionEffectJs = <<<JS
 
                     if (
                         ! {$dataElement->buildJsEditableChangesChecker()}
-                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataElement->getWidget()->getId()}') !== -1
+                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataWidget->getId()}') !== -1
                     ) { 
                         {$onActionEffectJs} 
                     }
@@ -147,24 +180,8 @@ JS;
                 }
 JS;
         }
-        $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
         
-        return <<<JS
-
-        new sap.m.P13nDialog("{$this->getId()}", {
-            ok: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_OK, true)},
-            cancel: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_CANCEL, true)},
-            showReset: true,
-            showResetEnabled: true,
-            reset: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_RESET, true)},
-            panels: [
-                {$this->buildJsPanelsConstructors()}
-            ]
-        })
-        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}")
-        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}_initial")
-
-JS;
+        $this->getController()->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
     }
     
     /**
@@ -813,6 +830,11 @@ JS;
     protected function hasTabColumns() : bool
     {
         return $this->include_columns_tab;
+    }
+    
+    protected function hasTabSetups() : bool
+    {
+        return ($this->getWidget() instanceof DataTableConfigurator) && $this->getWidget()->isDisabled() !== true;
     }
     
     /**
