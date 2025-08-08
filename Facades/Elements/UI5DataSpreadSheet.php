@@ -153,11 +153,11 @@ JS;
      * 
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
-        if (null !== $js = $this->buildJsCallFunctionOfJExcel($functionName, $parameters)) {
+        if (null !== $js = $this->buildJsCallFunctionOfJExcel($functionName, $parameters, $jsRequestData)) {
             return $js;
         }
-        return $this->buildJsCallFunctionViaUI5DataDataElementTrait($functionName, $parameters);
+        return $this->buildJsCallFunctionViaUI5DataDataElementTrait($functionName, $parameters, $jsRequestData);
     }
 }

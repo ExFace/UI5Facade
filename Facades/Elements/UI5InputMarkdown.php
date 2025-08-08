@@ -57,11 +57,29 @@ JS);
                 }
                 
                 var oModel = oHtml.getModel();
+                // Restore the height of the editor every time the UI5 control is resized.
+                sap.ui.core.ResizeHandler.register(oHtml, function(){
+                    var jqHtml = $('#{$this->getId()}');
+                    let oModel = oHtml.getModel();
+                    {$this->buildJsMarkdownVar()}.setHeight('{$this->getHeight()}');
+
+                    //for some reason the markdown seems to loose its value after a resize (but only after the first resize?)
+                    //so we load the value saved in the binding and call the value setter again
+                    if(oModel !== undefined) {
+                        var sBindingPath = '{$this->getValueBindingPath()}';
+                        var sVal = oModel.getProperty(sBindingPath);
+                        {$this->buildJsValueSetter("sVal")}
+                    }
+                });
+
                 if(oModel !== undefined) {
                     var sBindingPath = '{$this->getValueBindingPath()}';
                     var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
                     
                     oValueBinding.attachChange(function(oEvent){
+                        
+                        //for some reason it seems like the markdown gets it's value cleared during a prefill when opening a dialog,
+                        //still unclear from where and why, but setting a small timeout for the value setting here seems to fix that
                         setTimeout(function(){
                             var sVal = oModel.getProperty(sBindingPath);
                             // Do not update if the model does not have this property
@@ -72,7 +90,7 @@ JS);
                                 return;
                             }*/
                             {$this->buildJsValueSetter("sVal")}
-                        }, 0);
+                        }, 10);
                     });
                 }
                 

@@ -56,9 +56,9 @@ class UI5DataColumn extends UI5AbstractElement
         $widthMin = $col->getWidthMin();
         $widthJson = json_encode([
             'auto' => $col->getNowrap() && ($width->isUndefined() || strtolower($width->getValue()) === 'auto'),
-            'fixed' => $width->getValue(),
-            'min' => $widthMin->isFacadeSpecific() ? $widthMin->getValue() : null,
-            'max' => $widthMax->isFacadeSpecific() ? $widthMax->getValue() : null
+            'fixed' => $this->buildCssWidth($width),
+            'min' => $this->buildCssWidth($widthMin),
+            'max' => $this->buildCssWidth($widthMax)
         ]);
         $labelWrappingJs = $col->getNowrap() ? 'wrapping: false,' : 'wrapping: true,';
         
@@ -98,6 +98,24 @@ class UI5DataColumn extends UI5AbstractElement
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })
 JS;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::getWidthRelativeUnit()
+     */
+    public function getWidthRelativeUnit()
+    {
+        return $this->getFacade()->getConfig()->getOption('WIDGET.DATACOLUMN.WIDTH_RELATIVE_UNIT');
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildCssWidthDefaultValue()
+     */
+    protected function buildCssWidthDefaultValue() : string
+    {
+        return '';
     }
     
     /**
@@ -302,11 +320,9 @@ JS;
     }
     
     protected function buildJsPropertyWidth()
-    {
-        $dim = $this->getWidget()->getWidth();
-        
-        if ($dim->isFacadeSpecific()) {
-            return 'width: "' . $dim->getValue() . '",';
+    {        
+        if ($val = $this->buildCssWidth()) {
+            return 'width: "' . $val . '",';
         }   
         
         return '';
@@ -316,8 +332,11 @@ JS;
     {
         $dim = $this->getWidget()->getWidthMin();
         
-        if ($dim->isFacadeSpecific() && StringDataType::endsWith($dim->getValue(), 'px')) {
-            return 'minWidth: ' . StringDataType::substringBefore($dim->getValue(), 'px') . ',';
+        switch (true) {
+            case $dim->isFacadeSpecific() && StringDataType::endsWith($dim->getValue(), 'px'):
+                return 'minWidth: ' . StringDataType::substringBefore($dim->getValue(), 'px') . ',';
+            case $dim->isRelative():
+                return 'minWidth: ' . ($dim->getValue() * $this->getWidthRelativeUnit()) . ',';
         }
         
         return '';
