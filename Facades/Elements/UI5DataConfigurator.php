@@ -248,7 +248,7 @@ JS;
      */
     protected function buildJsTabSetups() : string
     {
-        if (! $this->getWidget() instanceof DataTableConfigurator) {
+        if (! $this->hasTabSetups()) {
             return '';
         }
         $tab = $this->getWidget()->getSetupsTab();
@@ -834,7 +834,7 @@ JS;
     
     protected function hasTabSetups() : bool
     {
-        return ($this->getWidget() instanceof DataTableConfigurator) && $this->getWidget()->isDisabled() !== true;
+        return ($this->getWidget() instanceof DataTableConfigurator) && $this->getWidget()->hasSetups();
     }
     
     /**

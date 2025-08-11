@@ -1439,8 +1439,8 @@ JS;
 
         (function(){
             var oPage = sap.ui.getCore().byId("{$this->getIdOfDynamicPage()}");
-            var oP13nDialog = sap.ui.getCore().byId("{$this->getConfiguratorElement()->getid()}");
-            oPage.getHeader().setModel(oP13nDialog.getModel());
+            var oDataCtrl = sap.ui.getCore().byId("{$this->getId()}");
+            oPage.getHeader().setModel(oDataCtrl.getModel('{$this->getModelNameForConfigurator()}'));
         })();
 JS;
         $this->getController()->addOnInitScript($useConfiguratorModelForHeaderFiltersJs);
