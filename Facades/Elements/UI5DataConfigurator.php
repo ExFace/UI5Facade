@@ -1,10 +1,12 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
 use exface\Core\Interfaces\Widgets\iCanEditData;
@@ -834,7 +836,30 @@ JS;
     
     protected function hasTabSetups() : bool
     {
-        return ($this->getWidget() instanceof DataTableConfigurator) && $this->getWidget()->hasSetups();
+        $confWidget = $this->getWidget();
+        if (! $confWidget instanceof DataTableConfigurator) {
+            return false;
+        }
+        // Setups explicitly disabled
+        if (! $confWidget->hasSetups()) {
+            return false;
+        }
+        // Data widgets without full configurator support (e.g. FileList)
+        if (! $this->hasTabColumns()) {
+            return false;
+        }
+        // Check if the data widget is really a DataTable
+        $dataWidget = $confWidget->getDataWidget();
+        if (! $dataWidget instanceof DataTable) {
+            return false;
+        }
+        // Double-check if apply_setup is implemented
+        try {
+            $this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP);
+        } catch (WidgetFunctionUnknownError $e) {
+            return false;
+        }
+        return true;
     }
     
     /**
