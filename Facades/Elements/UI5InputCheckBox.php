@@ -30,7 +30,12 @@ JS;
     protected function buildJsPropertyValue()
     {
         if ($this->isValueBoundToModel()) {
-            $value = $this->buildJsValueBinding();
+            $value = $this->buildJsValueBinding(<<<JS
+                formatter: function(value) {
+                    if (value === "1" || value === "true" || value === 1 || value === true) return true;
+                    else return false;
+                },
+JS);
         } else {
             $value = $this->getWidget()->getValueWithDefaults() ? 'true' : 'false';
         }
