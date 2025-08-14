@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
 use exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\CommonLogic\Constants\Colors;
@@ -80,16 +81,21 @@ class UI5Display extends UI5Value
                     $visible = 'visible: false,';
                 }
             }
+            
+            // Apply icon changes to formatter.
+            $formatter = $this->getValueBindingFormatter()->getJsFormatter();
+            if($formatter instanceof JsBooleanFormatter) {
+                $formatter->setHtmlChecked($icon_yes);
+                $formatter->setHtmlUnchecked($icon_no);
+            }
+            
             $js = <<<JS
 
         new sap.ui.core.Icon("{$this->getId()}", {
             width: {$icon_width},
             {$this->buildJsPropertyTooltip()}
             {$visible}
-            src: {$this->buildJsValueBinding("formatter: function(value) {
-                    if (value === '1' || value === 'true' || value === 1 || value === true) return $icon_yes;
-                    else return $icon_no;
-                }")}
+            src: {$this->buildJsValueBinding()}
         })
         .addStyleClass('sapMText')
         {$this->buildJsPseudoEventHandlers()}

@@ -235,11 +235,6 @@ JS;
         return false;
     }
     
-    public function getDataTypeFormatter(DataTypeInterface $dataType)
-    {
-        return parent::getDataTypeFormatter($dataType);
-    }
-    
     /**
      * 
      * {@inheritDoc}
