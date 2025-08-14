@@ -262,7 +262,7 @@ JS
                 {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
 
 JS;
-                case $functionName === DataTable::FUNCTION_SAVE_SETUP:
+            case $functionName === DataTable::FUNCTION_SAVE_SETUP:
                 return <<<JS
                 
             // prompt for the view name
@@ -360,10 +360,10 @@ JS;
                             oId: widgetSetupOid,
                             rows: [{
                                 NAME: sViewName,
-                                APP: '{$this->getMetaObject()->getApp()->getUid()}',
                                 PROTOTYPE_FILE: 'exface/core/Mutations/Prototypes/DataTableSetup.php',
                                 PAGE: '{$this->getWidget()->getPage()->getUid()}',
                                 WIDGET_ID: '{$this->getDataWidget()->getId()}',
+                                OBJECT: '{$this->getDataWidget()->getMetaObject()->getId()}',
                                 SETUP_UXON: sSetupUxon,
                                 PRIVATE_FOR_USER : '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}'
                             }]
