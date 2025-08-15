@@ -29,6 +29,7 @@ class UI5DateFormatter extends AbstractUI5BindingFormatter
                 },
 
 JS;
+        return $props;
         return parent::buildJsBindingProperties() . $props;
     }
     
