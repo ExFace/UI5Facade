@@ -15,15 +15,15 @@ class UI5BooleanFormatter extends AbstractUI5BindingFormatter
 {
     /**
      * @inerhitDoc 
-     * @see AbstractUI5BindingFormatter::setJsFormater()
+     * @see AbstractUI5BindingFormatter::setJsFormatter()
      */
-    protected function setJsFormater(JsDataTypeFormatterInterface $jsFormatter)
+    protected function setJsFormatter(JsDataTypeFormatterInterface $jsFormatter)
     {
         if($jsFormatter instanceof JsBooleanFormatter) {
             $jsFormatter->setHtmlChecked('sap-icon://accept');
             $jsFormatter->setHtmlUnchecked('');
         }
         
-        return parent::setJsFormater($jsFormatter);
+        return parent::setJsFormatter($jsFormatter);
     }
 }

@@ -11,7 +11,7 @@ abstract class AbstractUI5BindingFormatter implements UI5BindingFormatterInterfa
     
     public function __construct(JsDataTypeFormatterInterface $jsFormatter)
     {
-        $this->setJsFormater($jsFormatter);
+        $this->setJsFormatter($jsFormatter);
     }
     
     /**
@@ -19,7 +19,7 @@ abstract class AbstractUI5BindingFormatter implements UI5BindingFormatterInterfa
      * @param JsDataTypeFormatterInterface $jsFormatter
      * @return \exface\UI5Facade\Facades\Formatters\UI5DateFormatter
      */
-    protected function setJsFormater(JsDataTypeFormatterInterface $jsFormatter)
+    protected function setJsFormatter(JsDataTypeFormatterInterface $jsFormatter)
     {
         $this->jsFormatter = $jsFormatter;
         return $this;
