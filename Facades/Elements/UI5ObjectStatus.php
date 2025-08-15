@@ -209,7 +209,7 @@ JS;
                     formatter: function(mVal){
                         var sHint = {$this->buildJsScaleResolver('mVal', $scale->getScaleValues(), $scale->isRangeBased())};
                         if (sHint === null || sHint === undefined) {
-                            sHint = ({$jsEmpty} || '').toString();
+                            sHint = (mVal || {$jsEmpty}).toString();
                         }
                         return sHint;
                     },

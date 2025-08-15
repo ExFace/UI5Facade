@@ -25,12 +25,12 @@ class UI5DateFormatter extends AbstractUI5BindingFormatter
         $props = <<<JS
                 type: '{$this->getSapDataType()}',
                 formatOptions: {
-                    dateFormat: {$dateFormatEscaped}
+                    dateFormat: {$dateFormatEscaped},
+                    emptyText: {$this->getJsFormatter()->getJsEmptyText('""')}
                 },
 
 JS;
         return $props;
-        return parent::buildJsBindingProperties() . $props;
     }
     
     protected function getSapDataType()
