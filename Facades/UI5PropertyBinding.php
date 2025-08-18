@@ -204,7 +204,7 @@ class UI5PropertyBinding
         }
         $js = <<<JS
             {
-                path: "{}",
+                path: "{$path}",
                 {$formatter}
                 {$customOptions}
             }
