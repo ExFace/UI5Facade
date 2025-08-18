@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5FAcade\Facades;
 
+use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\WidgetPropertyBindingInterface;
 use exface\Core\Widgets\Parts\WidgetPropertyBinding;
@@ -68,15 +69,15 @@ class UI5PropertyBinding
         if (! $this->isBoundToModel()) {
             $widgetBinding = $this->getWidgetBinding();
             if ($widgetBinding->hasValue() && $widgetBinding->getValueExpression()->isReference()) {
-                $value = '""';
+                $valueJs = '""';
             } else {
-                $value = str_replace("\n", '', $widgetBinding->getValue());
-                $value = '"' . $this->element->escapeJsTextValue($value) . '"';
+                $valueJs = str_replace("\n", '', $widgetBinding->getValue());
+                $valueJs = json_encode($valueJs);
             }            
         } else {
-            $value = $this->buildJsModelBinding();
+            $valueJs = $this->buildJsModelBinding();
         }
-        return $value;
+        return $valueJs;
     }
 
     /**
@@ -115,7 +116,13 @@ class UI5PropertyBinding
         } elseif ($widget instanceof Input && $widget->hasDefaultValue()) {
             // FIXME depends of widget type!
             $valueExpr = $widget->getDefaultValueExpression();
-        } 
+        }
+        
+        // If the binding is empty (not bound to anything), we obviously not bound to the model.
+        // Actually, this should not happen, but it did when binding configs were broken.
+        if ($widgetBinding->isEmpty()) {
+            return false;
+        }
         
         if ($valueExpr && $valueExpr->isStatic() === true) {
             return false;
@@ -191,9 +198,13 @@ class UI5PropertyBinding
      */
     public function buildJsModelBinding(string $formatter = '', string $customOptions = '')
     {
+        $path = $this->getModelBindingPath();
+        if ($path === '' || $path === null || $path === '/') {
+            throw new WidgetConfigurationError($this->getWidget(), 'Cannot determine model binding for color property of ' . $this->getWidget()->getWidgetType());
+        }
         $js = <<<JS
             {
-                path: "{$this->getModelBindingPath()}",
+                path: "{}",
                 {$formatter}
                 {$customOptions}
             }
