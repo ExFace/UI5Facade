@@ -1,7 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Interfaces\Actions\ActionInterface;

@@ -196,4 +196,14 @@ trait UI5JExcelTrait {
                         
 JS;
     }
+
+    /**
+     * @see JexcelTrait::buildJsCountRows()
+     */
+    protected function buildJsCountRows() : string
+    {
+        return "(sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows || []).length";
+    }
+    
+    // TODO override UI5DataElementTrait::buildJsIsCellRequired()
 }
