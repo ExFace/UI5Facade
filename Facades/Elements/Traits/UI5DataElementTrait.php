@@ -2857,9 +2857,9 @@ JS;
      * similar.
      * 
      * @param WidgetInterface $cell
-     * @return bool
+     * @return string
      */
-    public function buildJsIsCellRequired(WidgetInterface $cell) : bool
+    public function buildJsIsCellRequired(WidgetInterface $cell) : string
     {
         if ($cell instanceof DataColumn) {
             $cell = $cell->getCellWidget();
