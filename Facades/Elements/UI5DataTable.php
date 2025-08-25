@@ -255,6 +255,16 @@ JS
                     {$jsRequestData}.rows[0] = {};
                 }
 
+                // if there are any relations in input data, remove them (otherwise update actions will fail)
+                let row = {$jsRequestData}.rows[0];
+                if (row && typeof row === 'object') {
+                    Object.keys(row).forEach(key => {
+                        if (key.includes('__')) {
+                            delete row[key];
+                        }
+                    });
+                }
+
                 // write the current setup and info into to the input data
                 {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
                 {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
