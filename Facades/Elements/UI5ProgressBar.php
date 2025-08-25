@@ -206,6 +206,7 @@ JS;
         }
 
         $widget = $this->getWidget();
+        $jsEmpty = $this->getValueBindingFormatter()->getJsFormatter()->getJsEmptyText('mVal');
         switch (true) {
             case ($widget instanceof iHaveHintScale) && ! $widget->getHintScale()->isEmpty():
                 $scale = $widget->getHintScale();
@@ -214,14 +215,14 @@ JS;
                     formatter: function(mVal){
                         var sHint = {$this->buildJsScaleResolver('mVal', $scale->getScaleValues(), $scale->isRangeBased())};
                         if (sHint === null || sHint === undefined) {
-                            sHint = (mVal || '').toString();
+                            sHint = (mVal || {$jsEmpty}).toString();
                         }
                         return sHint;
                     },
 JS);
                 return 'tooltip: ' . $value .',';
             case $widget->isInTable() === true && $this->isValueBoundToModel():
-                $value = $this->buildJsValueBinding('formatter: function(value){return (value === null || value === undefined) ? value : value.toString();},');
+                $value = $this->buildJsValueBinding("formatter: function(mVal){return (mVal === null || mVal === undefined) ? {$jsEmpty} : mVal.toString();},");
                 return 'tooltip: ' . $value .',';
         }
         

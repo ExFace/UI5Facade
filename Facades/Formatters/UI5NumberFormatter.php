@@ -76,6 +76,7 @@ JS;
             $otherProps .= <<<JS
 
                 formatter: function(mVal) {
+                    mVal = ({$this->getJsFormatter()->buildJsFormatter('mVal')});
                     var sPrefix = $prefixJs;
                     var sSuffix = $suffixJs;
                     var bPlusSign = $plusSignJs;
@@ -95,6 +96,12 @@ JS;
                     }                    
 
                     return mVal;
+                },
+JS;
+        } else if ($type instanceof NumberDataType) {
+            $otherProps .= <<<JS
+                formatter: function(mVal){
+                    return ({$this->getJsFormatter()->buildJsFormatter('mVal')});
                 },
 JS;
         }
