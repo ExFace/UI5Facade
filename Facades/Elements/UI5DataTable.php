@@ -146,40 +146,138 @@ JS
         /* TODO/IDEA:
             -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
             -> Filters/Sorters added from Column Header Menu do not get added it to config right now
-            -> the table with the widget steup entries does not get updated automatically (but it should (?))
         */
 
-        // setup uxon column
-        $setupUxonCol = json_encode($parameters[0] ?? null);
-
-        // ajax request headers
-        $headers = ! empty($this->getAjaxHeaders()) ? 'headers: ' . json_encode($this->getAjaxHeaders()) . ',' : '';
-        
-        // widget setup user id for ajax call
-        $userSetupObjId = MetaObjectFactory::createFromAliasAndNamespace($this->getWorkbench(), 'WIDGET_SETUP_USER', 'exface.Core')->getId(); 
+        // passed parameters
+        $passedParameters = json_encode($parameters ?? null);
 
         // translated strings 
-        $saveSuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE_SUCCESS'));
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
-        $viewNamePlaceholder = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_PLACEHOLDER')); 
-        $viewNamePlaceholderMissing = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_MISSING'));
-        $viewNamePrompt = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SETUP_NAME_PROMPT_TITLE'));
-        $saveTitle = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.CREATEDATA.NAME'));
-        $cancelSave = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.GENERIC.CANCEL'));
 
         switch (true) {
+            case $functionName === DataTable::FUNCTION_DUMP_SETUP:
+                
+                /*
+                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER)
+
+                    - SETUP_UXON:
+                        The name of the column where the setup UXON will be stored
+                    - PAGE:
+                        the name of the column for the current page UID
+                    - WIDGET_ID:
+                        the name of the column for the current widget ID
+                    - PROTOTYPE_FILE:
+                        the name of the column for the prototype file to use
+                        e.g. 'exface/core/Mutations/Prototypes/DataTableSetup.php'
+                    - OBJECT:
+                        the name of the column for the object of the datatable
+                    - PRIVATE_FOR_USER:
+                        the name of the column for the current user UID
+                */
+
+                return <<<JS
+
+                // Dump current table setup into inputData of the action
+
+                // get column name parameters, remove leading/trailing spaces; return if not all params provided
+                let params = {$passedParameters};
+                if (!Array.isArray(params) || params.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', params);
+                    return;
+                }
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = params.map(p => typeof p === 'string' ? p.trim() : p);
+
+                // json object to save current state in
+                let oSetupJson = {
+                    columns: [],
+                    advanced_search: [],
+                    sorters: []
+                };
+
+                // get the current states
+                let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
+                let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
+                let aColumnsInit = oInitP13nModel.getProperty('/columns');
+                let aColumns = oP13nModel.getProperty('/columns');
+                let aSorters = oP13nModel.getProperty('/sorters');
+                let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
+
+                // add columns back in (if are are missing any of the original ones)
+                if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
+                    let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
+                    aColumnsInit.forEach(function(initCol) {
+                        let idx = currentAliases.indexOf(initCol.attribute_alias);
+                        if (idx === -1) {
+                            // missing column, add as hidden
+                            oSetupJson.columns.push({
+                                attribute_alias: initCol.attribute_alias,
+                                show: false
+                            });
+                        }
+                    });
+                }
+
+                // save current column config
+                if (aColumns !== undefined && aColumns.length > 0) {
+                    aColumns.forEach(function(oColumn) {
+                        oSetupJson.columns.push({
+                            attribute_alias: oColumn.attribute_alias,
+                            show: oColumn.visible
+                        });
+                    });
+                }
+
+                // save sorters
+                if (aSorters !== undefined && aSorters.length > 0) {
+                    aSorters.forEach(function(oColumn) {
+                        oSetupJson.sorters.push({
+                            attribute_alias: oColumn.attribute_alias,
+                            direction: oColumn.direction
+                        });
+                    });
+                }
+
+                // save filters/advanced search
+                if (aFilters !== undefined && aFilters.length > 0) {
+                    aFilters.forEach(function(oFilter){
+                        oSetupJson.advanced_search.push({
+                            attribute_alias: oFilter.mProperties.columnKey,
+                            comparator: oFilter.mProperties.operation,
+                            value: oFilter.mProperties.value1,
+                            exclude: oFilter.mProperties.exclude
+                        });
+                    });
+                }
+
+                // if input data is empty, initialize it
+                if ({$jsRequestData}.rows[0] === undefined){
+                    {$jsRequestData}.rows[0] = {};
+                }
+
+                // write the current setup and info into to the input data
+                {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
+                {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
+                {$jsRequestData}.rows[0][sWidgetIdCol] = '{$this->getDataWidget()->getId()}';
+                {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
+                {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
+                {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+JS;
+
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
+                // parameter: apply_setup([#SETUP_UXON#]) -> column in which the setup is stored
+                
                 return <<<JS
 
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
 
-                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$setupUxonCol} === null) {
+                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$passedParameters} === null) {
                     return;
                 }
                 
                 // get setup UXON from request data and parse it
-                let sUxonCol = {$setupUxonCol};
+                let sUxonCol = {$passedParameters}[0];
                 sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
                 let oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
 
@@ -262,211 +360,7 @@ JS
                 {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
 
 JS;
-            case $functionName === DataTable::FUNCTION_SAVE_SETUP:
-                return <<<JS
-                
-            // prompt for the view name
-            var oInput = new sap.m.Input({placeholder: {$viewNamePlaceholder}});
-            var oInputDialog = new sap.m.Dialog({
-                title: {$viewNamePrompt},
-                content: [oInput],
-                beginButton: new sap.m.Button({
-                    text: {$saveTitle},
-                    type: "Emphasized",
-                    press: function() {
-
-                        let sViewName = oInput.getValue();
-                        if (!sViewName || sViewName.trim() === "") {
-                            oInput.setValueState(sap.ui.core.ValueState.Error);
-                            oInput.setValueStateText({$viewNamePlaceholderMissing});
-                            return; // Do not save if view name input is empty
-                        }
-                        oInputDialog.close();
-
-                        // SAVE CURRENT TABLE SETUP
-                        // show busy indicator
-                        {$this->getP13nElement()->buildJsBusyIconShow()}
-
-                        // json object to save current state in
-                        let oSetupJson = {
-                            columns: [],
-                            advanced_search: [],
-                            sorters: []
-                        };
-
-                        // get the current states
-                        let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
-                        let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
-                        let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
-                        let aColumnsInit = oInitP13nModel.getProperty('/columns');
-                        let aColumns = oP13nModel.getProperty('/columns');
-                        let aSorters = oP13nModel.getProperty('/sorters');
-                        let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
-
-                        // add columns back in (if are are missing any of the original ones)
-                        if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
-                            let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
-                            aColumnsInit.forEach(function(initCol) {
-                                let idx = currentAliases.indexOf(initCol.attribute_alias);
-                                if (idx === -1) {
-                                    // missing column, add as hidden
-                                    oSetupJson.columns.push({
-                                        attribute_alias: initCol.attribute_alias,
-                                        show: false
-                                    });
-                                }
-                            });
-                        }
-
-                        // save current column config
-                        if (aColumns !== undefined && aColumns.length > 0) {
-                            aColumns.forEach(function(oColumn) {
-                                oSetupJson.columns.push({
-                                    attribute_alias: oColumn.attribute_alias,
-                                    show: oColumn.visible
-                                });
-                            });
-                        }
-
-                        // save sorters
-                        if (aSorters !== undefined && aSorters.length > 0) {
-                            aSorters.forEach(function(oColumn) {
-                                oSetupJson.sorters.push({
-                                    attribute_alias: oColumn.attribute_alias,
-                                    direction: oColumn.direction
-                                });
-                            });
-                        }
-
-                        // save filters/advanced search
-                        if (aFilters !== undefined && aFilters.length > 0) {
-                            aFilters.forEach(function(oFilter){
-                                oSetupJson.advanced_search.push({
-                                    attribute_alias: oFilter.mProperties.columnKey,
-                                    comparator: oFilter.mProperties.operation,
-                                    value: oFilter.mProperties.value1,
-                                    exclude: oFilter.mProperties.exclude
-                                });
-                            });
-                        }
-
-                        // widget setup oid
-                        let widgetSetupOid = {$jsRequestData}.oId;
-                        // stringified setup uxon for ajax request
-                        let sSetupUxon = JSON.stringify(oSetupJson);
-
-                        // payload for the setup request
-                        let oRequestDataSetupPayload = {
-                            oId: widgetSetupOid,
-                            rows: [{
-                                NAME: sViewName,
-                                PROTOTYPE_FILE: 'exface/core/Mutations/Prototypes/DataTableSetup.php',
-                                PAGE: '{$this->getWidget()->getPage()->getUid()}',
-                                WIDGET_ID: '{$this->getDataWidget()->getId()}',
-                                OBJECT: '{$this->getDataWidget()->getMetaObject()->getId()}',
-                                SETUP_UXON: sSetupUxon,
-                                PRIVATE_FOR_USER : '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}'
-                            }]
-                        };
-
-                        // create data request for widget_setup
-                        $.ajax({
-                            type: 'POST',
-                            url: '{$this->getAjaxUrl()}',
-                            headers: '{$headers}',
-                            data: { 
-                                action: 'exface.Core.CreateData',
-                                resource: '{$this->getPageId()}', 
-                                element: '{$this->getWidget()->getId()}', 
-                                object: widgetSetupOid,
-                                data: oRequestDataSetupPayload
-                            },
-                            success: function(data, textStatus, jqXHR) {
-                                if (typeof data === 'object') {
-                                    response = data;
-                                } else {
-                                    var response = {};
-                                    try {
-                                        response = $.parseJSON(data);
-                                    } catch (e) {
-                                        response.error = data;
-                                    }
-                                }
-                                if (response.success){
-                                    {$this->buildJsShowMessageSuccess("{$saveSuccess}", "''")};
-
-                                    // payload for the widget user setup request
-                                    let oRequestDataUserSetupPayload = {
-                                        oId: '{$userSetupObjId}',
-                                        rows: [{
-                                            USER: '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}',
-                                            WIDGET_SETUP: response.rows[0].UID
-                                        }]
-                                    };
-
-                                    // create data request for widget_setup_user
-                                    $.ajax({
-                                        type: 'POST',
-                                        url: '{$this->getAjaxUrl()}',
-                                        headers: '{$headers}',
-                                        data: { 
-                                            action: 'exface.Core.CreateData',
-                                            resource: '{$this->getPageId()}', 
-                                            element: '{$this->getWidget()->getId()}', 
-                                            object: '{$userSetupObjId}',
-                                            data: oRequestDataUserSetupPayload
-                                        },
-                                        success: function(data, textStatus, jqXHR) {
-                                            if (typeof data === 'object') {
-                                                response = data;
-                                            } else {
-                                                var response = {};
-                                                try {
-                                                    response = $.parseJSON(data);
-                                                } catch (e) {
-                                                    response.error = data;
-                                                }
-                                            }
-                                            if (response.error){
-                                                {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
-                                            }
-                                            },
-                                            error: function(jqXHR, textStatus, errorThrown){
-                                                {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
-                                            }
-                                    });
-
-                                } else {
-                                    {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
-                                }
-                            },
-                            error: function(jqXHR, textStatus, errorThrown){
-                                {$this->buildJsShowError('jqXHR.responseText', "(jqXHR.statusCode+' '+jqXHR.statusText)")}
-                            },
-                            complete: function(xhr, status) {
-                                // hide busy icon on complete
-                                {$this->getP13nElement()->buildJsBusyIconHide()}
-                            }
-                        });
-                }
-            }),
-            endButton: new sap.m.Button({
-                text: {$cancelSave},
-                press: function() {
-                    oInputDialog.close();
-                    return; // do not save if cancel is pressed
-                }
-            }),
-            afterClose: function() {
-                oInputDialog.destroy();
-            }
-        });
-
-        oInputDialog.open();
-JS;
         }
-
-        // TODO: the setup tab needs to be refreshed -> rn it remains the same after deleting/adding views
 
         return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
