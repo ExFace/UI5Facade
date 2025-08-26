@@ -23,10 +23,10 @@ class UI5Display extends UI5Value
 {
     use JsValueScaleTrait;
     
-    const ICON_YES_TABLE = "'sap-icon://accept'";
+    const ICON_YES_TABLE = "sap-icon://accept";
     const ICON_NO_TABLE = "null";
-    const ICON_YES_FORM = "'sap-icon://message-success'";
-    const ICON_NO_FORM = "'sap-icon://border'";
+    const ICON_YES_FORM = "sap-icon://message-success";
+    const ICON_NO_FORM = "sap-icon://border";
 
     private $UI5BindingFormatter = null;
     
@@ -72,12 +72,12 @@ class UI5Display extends UI5Value
         $visible = '';
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
-                $icon_no = self::ICON_NO_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
+                $iconNo = self::ICON_NO_TABLE;
                 $icon_width = '"100%"';
             } else {
-                $icon_yes = self::ICON_YES_FORM;
-                $icon_no = self::ICON_NO_FORM;
+                $iconYes = self::ICON_YES_FORM;
+                $iconNo = self::ICON_NO_FORM;
                 $icon_width = "'16px'";
                 if ($widget->isHidden() === true) {
                     $visible = 'visible: false,';
@@ -89,8 +89,8 @@ class UI5Display extends UI5Value
             if($formatter instanceof JsBooleanFormatter) {
                 // the trim here is ugly but we need it, as the value is wrapped in
                 // quotation marks again in the JsBooleanFormatter
-                $formatter->setHtmlChecked(trim($icon_yes, "'"));
-                $formatter->setHtmlUnchecked(trim($icon_no, "'"));
+                $formatter->setHtmlChecked($iconYes);
+                $formatter->setHtmlUnchecked($iconNo);
             }
             
             $js = <<<JS
@@ -153,9 +153,9 @@ JS;
      */
     protected function getValueBindingFormatter()
     {
-        // we have to actually cache the formatter, else changes to the JsFormatter inside it won't be kept
+        // we have to actually cache the formatter, otherwise changes to the JsFormatter inside it won't be kept
         // because getDataTypeFormatterForUI5Bindings always creates a new instance of the JsFormatter
-        if ($this->UI5BindingFormatter === null) {
+        if ($this->UI5BindingFormatter === null || $this->UI5BindingFormatter->getDataType() !== $this->getWidget()->getValueDataType()) {
             $this->UI5BindingFormatter = $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
         }
         return $this->UI5BindingFormatter;
@@ -300,15 +300,15 @@ JS;
     {
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
-                $icon_no = self::ICON_NO_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
+                $iconNo = self::ICON_NO_TABLE;
             } else {
-                $icon_yes = self::ICON_YES_FORM;
-                $icon_no = self::ICON_NO_FORM;
+                $iconYes = self::ICON_YES_FORM;
+                $iconNo = self::ICON_NO_FORM;
             }
             return "setSrc((function(value) {
-                    if (value === '1' || value === 'true' || value === 1 || value === true) return $icon_yes;
-                    else return $icon_no;
+                    if (value === '1' || value === 'true' || value === 1 || value === true) return {$this->escapeString($iconYes)};
+                    else return {$this->escapeString($iconNo)};
                 })($value))";
         }
         return "setText({$value})";
@@ -352,13 +352,13 @@ JS;
     {
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
             } else {
-                $icon_yes = self::ICON_YES_FORM;
+                $iconYes = self::ICON_YES_FORM;
             }
             return <<<JS
                 (function(oIcon){
-                    return (oIcon.getSrc() === $icon_yes);
+                    return (oIcon.getSrc() === {$this->escapeString($iconYes)});
                 })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
         }
