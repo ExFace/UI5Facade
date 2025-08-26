@@ -27,6 +27,8 @@ class UI5Display extends UI5Value
     const ICON_NO_TABLE = "null";
     const ICON_YES_FORM = "'sap-icon://message-success'";
     const ICON_NO_FORM = "'sap-icon://border'";
+
+    private $UI5BindingFormatter = null;
     
     private $alignmentProperty = null;
     
@@ -85,8 +87,10 @@ class UI5Display extends UI5Value
             // Apply icon changes to formatter.
             $formatter = $this->getValueBindingFormatter()->getJsFormatter();
             if($formatter instanceof JsBooleanFormatter) {
-                $formatter->setHtmlChecked($icon_yes);
-                $formatter->setHtmlUnchecked($icon_no);
+                // the trim here is ugly but we need it, as the value is wrapped in
+                // quotation marks again in the JsBooleanFormatter
+                $formatter->setHtmlChecked(trim($icon_yes, "'"));
+                $formatter->setHtmlUnchecked(trim($icon_no, "'"));
             }
             
             $js = <<<JS
@@ -136,7 +140,8 @@ JS;
         $widget = $this->getWidget();
         // Do not use data type formatting on hidden displays (e.g. in hidden data columns). Hidden displays are often
         // used for all sorts of ids and if they are numeric, formatting might break them if digit groups is used.
-        if ($widget->isHidden() === true && $widget->getHiddenIf() === null) {
+        // if the Display is an Icon, we still have to use the formatter though
+        if ($widget->isHidden() === true && $widget->getHiddenIf() === null && $this->isIcon() === false) {
             return '';
         }
         return $this->getValueBindingFormatter()->buildJsBindingProperties();
@@ -148,7 +153,12 @@ JS;
      */
     protected function getValueBindingFormatter()
     {
-        return $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
+        // we have to actually cache the formatter, else changes to the JsFormatter inside it won't be kept
+        // because getDataTypeFormatterForUI5Bindings always creates a new instance of the JsFormatter
+        if ($this->UI5BindingFormatter === null) {
+            $this->UI5BindingFormatter = $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
+        }
+        return $this->UI5BindingFormatter;
     }
     
     /**
