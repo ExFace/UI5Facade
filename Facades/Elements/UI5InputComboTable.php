@@ -270,25 +270,31 @@ JS;
                 break;
 
             // If value and text are the same attribut, there are still issues to fix:
-            // - When prefilling a dialog, the selectedKey is set, but the tokens are not updated, so the input
-            // remains empty. We need to manually generate the tokens here.
+            // - When the inner value (selectedKey) changes programmatically (e.g. with a prefill), the tokes are
+            // not updated for some reason - need to do it manually. Previously we updated them manually
+            // onPrefillDataChange, but this was not enough - the values still disappeared if the InputComboTable
+            // was in a big dialog and that dialog had other buttons, that would cause a refresh on-change.
             // - TODO sometimes the input remains empty even in single-select widgets. For example, if an object
             // has no LABEL and the UID should be used as value and text at the same time. Still need investigation
             // here!
             case $widget->getValueAttribute() === $widget->getTextAttribute() && $widget->getMultiSelect() === true:
-                $this->getController()->addOnPrefillDataChangedScript(<<<JS
+                $this->getController()->addOnInitScript(<<<JS
 
-                    setTimeout(function(){
-                        var oInput = sap.ui.getCore().byId('{$this->getId()}');
-                        var sKeys = oInput.getSelectedKey();
-                        var sTexts = oInput.getValue();
-                        if (sKeys !== undefined && sKeys !== null && sKeys !== '' && ! sTexts) {
-                            oInput.destroyTokens();
-                            sKeys.split(',').forEach(function(sVal){
-                                oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
-                            })
+                    (function(oInput){
+                        var oKeyBinding = oInput.getBinding('selectedKey');
+                        if (! oKeyBinding) {
+                            return;
                         }
-                    }, 0);
+                        oKeyBinding.attachChange(function(oEvent){
+                            var sKeys = oEvent.getSource().getValue();
+                            oInput.destroyTokens();
+                            if (sKeys !== undefined && sKeys !== null && sKeys !== '') {
+                                sKeys.toString().split(',').forEach(function(sVal){
+                                    oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
+                                })
+                            }
+                        });
+                    })(sap.ui.getCore().byId('{$this->getId()}'));
 JS);
         }
         
