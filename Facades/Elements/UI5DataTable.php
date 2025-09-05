@@ -150,6 +150,9 @@ JS
 
         // passed parameters
         $passedParameters = json_encode($parameters ?? null);
+        if ($jsRequestData === null){
+            $jsRequestData = 'null';
+        }
 
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
@@ -266,20 +269,44 @@ JS;
 
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
                 // parameter: apply_setup([#SETUP_UXON#]) -> column in which the setup is stored
+                // alternatively, apply_setup(['localStorage']) -> to retrieve saved setup from there
                 
                 return <<<JS
 
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
+                let oSetupUxon = {};
 
-                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$passedParameters} === null) {
+                // if there is a default setup saved in local storage, the function is called with a 'localStorage' parameter
+                // in that case, retrieve the setup from there and parse it
+                if ({$passedParameters}[0] === 'localStorage' && oResultData === null){
+                    let sPageWidget = '{$this->getWidget()->getPage()->getUid()}' + '.' + '{$this->getDataWidget()->getId()}';
+                    let sStorageSteup = localStorage.getItem(sPageWidget);
+
+                    if (sStorageSteup === null){
+                        return;
+                    }
+
+                    oSetupUxon = JSON.parse(localStorage.getItem(sPageWidget));
+                    // TODO -> how to mark currently applied setup?
+                }
+                else{
+
+                    // otherwise, we assume the widgetfunction is called from the apply button, 
+                    // and the setup config is taken from the input data of the action
+                    if (!oResultData || oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$passedParameters} === null) {
+                        return;
+                    }
+
+                    // get setup UXON from request data and parse it
+                    let sUxonCol = {$passedParameters}[0];
+                    sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                    oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
+                }
+
+                if (oSetupUxon === null || oSetupUxon === undefined){
                     return;
                 }
-                
-                // get setup UXON from request data and parse it
-                let sUxonCol = {$passedParameters}[0];
-                sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
-                let oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
 
                 // Apply setup from UXON
                 if (oSetupUxon.columns !== undefined){
@@ -358,6 +385,13 @@ JS;
                 // Update UI and show success message
                 {$this->buildJsRefreshPersonalization()}
                 {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
+
+                // store last applied setup in session storage 
+                if ({$passedParameters}[0] !== 'localStorage'){
+                    // save setup uxon with key: 'page_id.table_id'
+                    let sPageWidget = oResultData.rows[0]['PAGE'] + '.' + oResultData.rows[0]['WIDGET_ID'];
+                    localStorage.setItem(sPageWidget, oResultData.rows[0]['SETUP_UXON']); 
+                }
 
 JS;
         }

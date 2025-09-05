@@ -127,7 +127,22 @@ JS;
             $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
             $setupsTable->setAutoloadData(false);
             $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
+                
+            // check if localStorage contains stored setup for this DataTable
+            // if so, automatically apply it
+            $this->getController()->addOnShowViewScript( <<<JS
+                
+                (function (){ 
+                    let oStorageSetup = localStorage.getItem('{$this->getWidget()->getPage()->getUid()}' + '.' + '{$dataElement->getWidget()->getId()}');
+                    if (oStorageSetup != null){
+                        {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
+                    }
+                })();
+JS
+            ); 
         }
+
+
         
         return <<<JS
 
