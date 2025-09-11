@@ -154,6 +154,14 @@ JS
             $jsRequestData = 'null';
         }
 
+        $jsSetupsTableId = 'null';
+        // todo - this is missing the page prefix now
+        if ($this->getWidget()->getConfiguratorWidget()->hasSetups()){
+            
+            $jsSetupsTableId = $this->escapeString($this->getWidget()->getConfiguratorWidget()->getSetupsTableId());
+        }
+                    
+
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
 
@@ -276,11 +284,11 @@ JS;
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
                 let oSetupUxon = {};
+                let sPageWidget = '{$this->getWidget()->getPage()->getUid()}' + '.' + '{$this->getDataWidget()->getId()}';
 
                 // if there is a default setup saved in local storage, the function is called with a 'localStorage' parameter
                 // in that case, retrieve the setup from there and parse it
                 if ({$passedParameters}[0] === 'localStorage' && oResultData === null){
-                    let sPageWidget = '{$this->getWidget()->getPage()->getUid()}' + '.' + '{$this->getDataWidget()->getId()}';
                     let sStorageSteup = localStorage.getItem(sPageWidget);
 
                     if (sStorageSteup === null){
@@ -288,7 +296,6 @@ JS;
                     }
 
                     oSetupUxon = JSON.parse(localStorage.getItem(sPageWidget));
-                    // TODO -> how to mark currently applied setup?
                 }
                 else{
 
@@ -389,10 +396,12 @@ JS;
                 // store last applied setup in session storage 
                 if ({$passedParameters}[0] !== 'localStorage'){
                     // save setup uxon with key: 'page_id.table_id'
-                    let sPageWidget = oResultData.rows[0]['PAGE'] + '.' + oResultData.rows[0]['WIDGET_ID'];
+                    sPageWidget = oResultData.rows[0]['PAGE'] + '.' + oResultData.rows[0]['WIDGET_ID'];
                     localStorage.setItem(sPageWidget, oResultData.rows[0]['SETUP_UXON']); 
-                }
 
+                    // save UID with key: 'page_id.table_id.uid'
+                    localStorage.setItem(sPageWidget + '.uid', oResultData.rows[0]['UID']); 
+                }
 JS;
         }
 
