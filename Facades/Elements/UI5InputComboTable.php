@@ -278,10 +278,14 @@ JS;
             // has no LABEL and the UID should be used as value and text at the same time. Still need investigation
             // here!
             case $widget->getValueAttribute() === $widget->getTextAttribute() && $widget->getMultiSelect() === true:
+                $delim = $widget->getValueAttribute()->getValueListDelimiter();
+                if ($delim === '') {
+                    $delim = EXF_LIST_SEPARATOR;
+                }
                 $this->getController()->addOnInitScript(<<<JS
 
                     (function(oInput){
-                        var oKeyBinding = oInput.getBinding('selectedKey');
+                        var oKeyBinding = oInput?.getBinding('selectedKey');
                         if (! oKeyBinding) {
                             return;
                         }
@@ -289,7 +293,7 @@ JS;
                             var sKeys = oEvent.getSource().getValue();
                             oInput.destroyTokens();
                             if (sKeys !== undefined && sKeys !== null && sKeys !== '') {
-                                sKeys.toString().split(',').forEach(function(sVal){
+                                sKeys.toString().split({$this->escapeString($delim)}).forEach(function(sVal){
                                     oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
                                 })
                             }
