@@ -128,15 +128,30 @@ JS;
             $setupsTable->setAutoloadData(false);
             $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
                 
-            // check if localStorage contains stored setup for this DataTable
+            // check if the indexedDb contains stored setup for this DataTable
             // if so, automatically apply it
             $this->getController()->addOnShowViewScript( <<<JS
                 
                 (function (){ 
-                    let oStorageSetup = localStorage.getItem('{$this->getWidget()->getPage()->getUid()}' + '.' + '{$dataElement->getWidget()->getId()}');
-                    if (oStorageSetup != null){
-                        {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
-                    }
+                    // open indexedDb connection 
+                    const oSetupsDb = new Dexie('exf-ui5-widgets');
+                    oSetupsDb.version(1).stores({
+                        'setups': 'page_widget, setup_uid, date_last_applied'
+                    });
+                    
+                    // if a setup exists for this table in the indexedDB, apply it 
+                    oSetupsDb.setups.get('{$this->getWidget()->getPage()->getUid()}' + '.' + '{$dataElement->getWidget()->getId()}')
+                    .then(entry => {
+                        if (entry) {
+                            {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
+                        } 
+                    })
+                    .catch(err => {
+                        console.error('Error accessing IndexedDb:', err);
+                    })
+                    .finally(() => {
+                        oSetupsDb.close();
+                    });
                 })();
 JS
             ); 
