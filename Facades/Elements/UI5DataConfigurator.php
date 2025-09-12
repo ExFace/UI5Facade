@@ -89,6 +89,21 @@ class UI5DataConfigurator extends UI5Tabs
         }
         return true;
     }
+
+    /**
+     * Returns the ui5 Id of the setups table (if it exists)
+     * @return bool
+     */
+    public function getSetupsTableId() : ?string
+    {
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            return $this->getFacade()->getElement($setupsTable)->getId();
+        }
+        else {
+            return null;
+        }
+    }
     
     /**
      * 

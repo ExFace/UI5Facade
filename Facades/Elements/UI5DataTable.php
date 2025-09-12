@@ -154,13 +154,8 @@ JS
             $jsRequestData = 'null';
         }
 
-        $jsSetupsTableId = 'null';
-        // todo - this is missing the page prefix now
-        if ($this->getWidget()->getConfiguratorWidget()->hasSetups()){
-            
-            $jsSetupsTableId = $this->escapeString($this->getWidget()->getConfiguratorWidget()->getSetupsTableId());
-        }
-                    
+        // setups table id 
+        $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId());
 
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
@@ -302,7 +297,7 @@ JS;
 
                 // either use the passed oSetupUxon, or try and load it from IndexedDB
                 // then apply the setup
-                getSetupUxon(sPageWidget, oSetupUxon)
+                getSetupData(sPageWidget, oSetupUxon, 'setup_uxon')
                 .then(oSetupUxon => {
                     if (oSetupUxon) {
 
@@ -413,6 +408,46 @@ JS;
                                 oSetupsDb.close();
                             });
                         }
+
+                        // after applying a setup, get the uid and mark it as default in the setups table
+                        getSetupData(sPageWidget, null, 'setup_uid')
+                        .then(sSetupUid => {
+                            if (sSetupUid !== null && {$jsSetupsTableId} !== null){
+                            
+                                let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
+                                if (oSetupTable == undefined){
+                                    return;
+                                }
+                                
+                                let oModel = oSetupTable.getModel();
+                                let oData = oModel.getProperty('/');
+                                
+                                // the setups table seems to refresh on every re-open so its not enough to set in once,
+                                // so it needs to be some sort of event listener that re-sets it on re-open/update
+                                let fnSetAsDefault = function(oEvent) {
+                                    let oModel = oSetupTable.getModel();
+                                    let oData = oModel.getProperty('/');
+                                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
+                                        oData.rows.forEach(row => {
+                                            row.WIDGET_SETUP_USER__DEFAULT_SETUP_FLAG = "";
+                                            if (row.UID === sSetupUid) {
+                                                row.WIDGET_SETUP_USER__DEFAULT_SETUP_FLAG = "sap-icon://accept";
+                                            }
+                                        });
+
+                                        oModel.setProperty('/rows', oData.rows);
+                                    }
+                                };
+
+                                oSetupTable.detachUpdateFinished(fnSetAsDefault);
+                                oSetupTable.attachUpdateFinished(fnSetAsDefault);
+
+                                // if setup is manually applied, refresh ui to trigger event listener
+                                if ({$passedParameters}[0] !== 'localStorage'){
+                                    oModel.refresh(true);
+                                }
+                            }
+                        });
                     } 
                     else {
                         // return if no setup was passed or found
@@ -421,14 +456,18 @@ JS;
                 });
 
                 /*
-                    Function that returns a setup UXON either from a parameter (immediately) or from IndexedDB
-                    (this is needed because the indexedDb calls are asynchronous, so we need to work with promises)
+                    Function that returns a passed value as a promise (immediately) or retrieves a value stored in IndexedDB
+                    (this is needed because the indexedDB calls are asynchronous, so we need to work with promises either way)
+
+                    sPageWidget : string - the page.widget identifier, e.g. 'page1.myTable' 
+                    sPassedData = null : string|null - if a value is passed, it will be returned immediately
+                    sKey = null : string|null - the key of the value to retrieve from indexedDb, e.g. 'setup_uxon' or 'setup_uid'
                 */
-                function getSetupUxon(sPageWidget, sPassedSetup = null) {
+                function getSetupData(sPageWidget, sPassedData = null, sKey = null) {
 
                     // If data is passed in function, resolve immediately and return it 
-                    if (sPassedSetup !== null) {
-                        return Promise.resolve(sPassedSetup);
+                    if (sPassedData !== null) {
+                        return Promise.resolve(sPassedData);
                     }
 
                     // Otherwise, load the setup from IndexedDB
@@ -439,8 +478,11 @@ JS;
 
                     return oSetupsDb.setups.get(sPageWidget)
                     .then(entry => {
-                        if (entry && entry.setup_uxon) {
-                            return JSON.parse(entry.setup_uxon);
+                        if (entry && entry[sKey]) {
+                            if (sKey === 'setup_uxon') {
+                                return JSON.parse(entry[sKey]); //parse setup uxon
+                            }
+                            return entry[sKey]; //return other values as is
                         }
                         return null;
                     })
