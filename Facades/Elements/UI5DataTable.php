@@ -279,7 +279,8 @@ JS;
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
                 let oSetupUxon = null;
-                let sPageWidget = '{$this->getWidget()->getPage()->getUid()}' + '.' + '{$this->getDataWidget()->getId()}';
+                let sPageId = '{$this->getWidget()->getPage()->getUid()}';
+                let sWidgetId = '{$this->getDataWidget()->getId()}';
 
                 // if the function is not called with 'localStorage' parameter,
                 // and there is data in the request, get the setup Uxon from the request data
@@ -297,7 +298,7 @@ JS;
 
                 // either use the passed oSetupUxon, or try and load it from IndexedDB
                 // then apply the setup
-                getSetupData(sPageWidget, oSetupUxon, 'setup_uxon')
+                getSetupData(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
                 .then(oSetupUxon => {
                     if (oSetupUxon) {
 
@@ -385,9 +386,12 @@ JS;
                             {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")};
                             
                             // combination of page and widget id as primary key for db entry
-                            sPageWidget = oResultData.rows[0]['PAGE'] + '.' + oResultData.rows[0]['WIDGET_ID'];
+                            sPageId = oResultData.rows[0]['PAGE'];
+                            sWidgetId = oResultData.rows[0]['WIDGET_ID'];
+
                             let oSetupObj = {
-                                page_widget: sPageWidget,
+                                page_id: oResultData.rows[0]['PAGE'],
+                                widget_id: oResultData.rows[0]['WIDGET_ID'],
                                 setup_uid: oResultData.rows[0]['UID'],
                                 date_last_applied: new Date().toISOString(),
                                 setup_uxon: oResultData.rows[0]['SETUP_UXON']
@@ -396,7 +400,7 @@ JS;
                             // open indexedDb connection
                             const oSetupsDb = new Dexie('exf-ui5-widgets');
                             oSetupsDb.version(1).stores({
-                                'setups': 'page_widget, setup_uid, date_last_applied'
+                                'setups': '[page_id+widget_id], setup_uid, date_last_applied'
                             });
 
                             // Save setup in db, then close connection 
@@ -410,10 +414,11 @@ JS;
                         }
 
                         // after applying a setup, get the uid and mark it as default in the setups table
-                        getSetupData(sPageWidget, null, 'setup_uid')
+                        getSetupData(sPageId, sWidgetId, null, 'setup_uid')
                         .then(sSetupUid => {
                             if (sSetupUid !== null && {$jsSetupsTableId} !== null){
                             
+                                // get the ui5 datatable that shows the setups
                                 let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
                                 if (oSetupTable == undefined){
                                     return;
@@ -429,9 +434,9 @@ JS;
                                     let oData = oModel.getProperty('/');
                                     if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
                                         oData.rows.forEach(row => {
-                                            row.WIDGET_SETUP_USER__DEFAULT_SETUP_FLAG = "";
+                                            row.SETUP_APPLIED = "";
                                             if (row.UID === sSetupUid) {
-                                                row.WIDGET_SETUP_USER__DEFAULT_SETUP_FLAG = "sap-icon://accept";
+                                                row.SETUP_APPLIED = "sap-icon://accept";
                                             }
                                         });
 
@@ -459,11 +464,12 @@ JS;
                     Function that returns a passed value as a promise (immediately) or retrieves a value stored in IndexedDB
                     (this is needed because the indexedDB calls are asynchronous, so we need to work with promises either way)
 
-                    sPageWidget : string - the page.widget identifier, e.g. 'page1.myTable' 
+                    sPageId : string - the page identifier, e.g. 'page1' (part of the IndexedDb pk)
+                    sWidgetId : string - the widget identifier, e.g. 'myTable' (part of the IndexedDb pk)
                     sPassedData = null : string|null - if a value is passed, it will be returned immediately
                     sKey = null : string|null - the key of the value to retrieve from indexedDb, e.g. 'setup_uxon' or 'setup_uid'
                 */
-                function getSetupData(sPageWidget, sPassedData = null, sKey = null) {
+                function getSetupData(sPageId, sWidgetId, sPassedData = null, sKey = null) {
 
                     // If data is passed in function, resolve immediately and return it 
                     if (sPassedData !== null) {
@@ -473,10 +479,10 @@ JS;
                     // Otherwise, load the setup from IndexedDB
                     const oSetupsDb = new Dexie('exf-ui5-widgets');
                     oSetupsDb.version(1).stores({
-                        'setups': 'page_widget, setup_uid, date_last_applied'
+                        'setups': '[page_id+widget_id], setup_uid, date_last_applied'
                     });
 
-                    return oSetupsDb.setups.get(sPageWidget)
+                    return oSetupsDb.setups.get([sPageId, sWidgetId])
                     .then(entry => {
                         if (entry && entry[sKey]) {
                             if (sKey === 'setup_uxon') {

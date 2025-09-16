@@ -151,11 +151,11 @@ JS;
                     // open indexedDb connection 
                     const oSetupsDb = new Dexie('exf-ui5-widgets');
                     oSetupsDb.version(1).stores({
-                        'setups': 'page_widget, setup_uid, date_last_applied'
+                        'setups': '[page_id+widget_id], setup_uid, date_last_applied'
                     });
                     
                     // if a setup exists for this table in the indexedDB, apply it 
-                    oSetupsDb.setups.get('{$this->getWidget()->getPage()->getUid()}' + '.' + '{$dataElement->getWidget()->getId()}')
+                    oSetupsDb.setups.get(['{$this->getWidget()->getPage()->getUid()}' , '{$dataElement->getWidget()->getId()}'])
                     .then(entry => {
                         if (entry) {
                             {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
