@@ -89,6 +89,21 @@ class UI5DataConfigurator extends UI5Tabs
         }
         return true;
     }
+
+    /**
+     * Returns the ui5 Id of the setups table (if it exists)
+     * @return bool
+     */
+    public function getSetupsTableId() : ?string
+    {
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            return $this->getFacade()->getElement($setupsTable)->getId();
+        }
+        else {
+            return null;
+        }
+    }
     
     /**
      * 
@@ -127,7 +142,37 @@ JS;
             $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
             $setupsTable->setAutoloadData(false);
             $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
+                
+            // check if the indexedDb contains stored setup for this DataTable
+            // if so, automatically apply it
+            $this->getController()->addOnShowViewScript( <<<JS
+                
+                (function (){ 
+                    // open indexedDb connection 
+                    const oSetupsDb = new Dexie('exf-ui5-widgets');
+                    oSetupsDb.version(1).stores({
+                        'setups': '[page_id+widget_id], setup_uid, date_last_applied'
+                    });
+                    
+                    // if a setup exists for this table in the indexedDB, apply it 
+                    oSetupsDb.setups.get(['{$this->getWidget()->getPage()->getUid()}' , '{$dataElement->getWidget()->getId()}'])
+                    .then(entry => {
+                        if (entry) {
+                            {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
+                        } 
+                    })
+                    .catch(err => {
+                        console.error('Error accessing IndexedDb:', err);
+                    })
+                    .finally(() => {
+                        oSetupsDb.close();
+                    });
+                })();
+JS
+            ); 
         }
+
+
         
         return <<<JS
 

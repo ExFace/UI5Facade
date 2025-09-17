@@ -150,6 +150,12 @@ JS
 
         // passed parameters
         $passedParameters = json_encode($parameters ?? null);
+        if ($jsRequestData === null){
+            $jsRequestData = 'null';
+        }
+
+        // setups table id 
+        $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId());
 
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
@@ -266,99 +272,234 @@ JS;
 
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
                 // parameter: apply_setup([#SETUP_UXON#]) -> column in which the setup is stored
+                // alternatively, apply_setup(['localStorage']) -> to retrieve saved setup from indexedDb
                 
                 return <<<JS
 
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
+                let oSetupUxon = null;
+                let sPageId = '{$this->getWidget()->getPage()->getUid()}';
+                let sWidgetId = '{$this->getDataWidget()->getId()}';
 
-                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$passedParameters} === null) {
-                    return;
+                // if the function is not called with 'localStorage' parameter,
+                // and there is data in the request, get the setup Uxon from the request data
+                // (this is the case, when the user selects a setup from the setups tab and applies it)
+                if ( oResultData !== null && {$passedParameters}[0] !== 'localStorage'){
+                    if (oResultData.rows.length === 0) {
+                        return;
+                    }
+
+                    // get setup UXON from request data and parse it
+                    let sUxonCol = {$passedParameters}[0];
+                    sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                    oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
                 }
-                
-                // get setup UXON from request data and parse it
-                let sUxonCol = {$passedParameters}[0];
-                sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
-                let oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
 
-                // Apply setup from UXON
-                if (oSetupUxon.columns !== undefined){
-                    // COLUMN SETUP
-                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
-                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
-                    let aColumnSetup = oSetupUxon.columns;
+                // either use the passed oSetupUxon, or try and load it from IndexedDB
+                // then apply the setup
+                getSetupData(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
+                .then(oSetupUxon => {
+                    if (oSetupUxon) {
 
-                    // update column visibility according to wiget setup
-                    let aNewColModel = [];
-                    aColumnSetup.forEach(oItem => {
-                        oModel.getData()['columns'].forEach(oColConf => {
-                            if (oColConf.attribute_alias === oItem.attribute_alias) {
-                                oColConf.visible = oItem.show;
-                                aNewColModel.push(oColConf);
-                                return;
+                        // Apply setup
+                        if (oSetupUxon.columns !== undefined){
+                            // COLUMN SETUP
+                            let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
+                            let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                            let aColumnSetup = oSetupUxon.columns;
+
+                            // update column visibility according to wiget setup
+                            let aNewColModel = [];
+                            aColumnSetup.forEach(oItem => {
+                                oModel.getData()['columns'].forEach(oColConf => {
+                                    if (oColConf.attribute_alias === oItem.attribute_alias) {
+                                        oColConf.visible = oItem.show;
+                                        aNewColModel.push(oColConf);
+                                        return;
+                                    }
+                                });
+                            });
+                            oModel.setProperty('/columns', aNewColModel);
+
+                            // toggle checkboxes in columns tab according to setup
+                            // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
+                            let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                            let oTableModel = oTable.getModel();
+                            let aColsConfig = oModel.getProperty('/columns');
+                            let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
+                            oDialog.getBinding("items").filter(oVisibleFilter);
+                            let aItems = oTableModel.getProperty('/items');
+                            
+                            aColsConfig.forEach(function(oColConfig){
+                                aItems.forEach(function(oItem, iItemIdx){
+                                    if (oItem.columnKey === oColConfig.column_id) {
+                                        oItem.persistentSelected = oColConfig.visible; 
+                                        return;
+                                    }
+                                })
+                            }); 
+
+                        }
+                        if (oSetupUxon.sorters !== undefined) {
+                            // SORTER SETUP
+                            let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                            let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                            let aSorterSetup = oSetupUxon.sorters;
+
+                            let aSortItems = [];
+                            aSorterSetup.forEach(oItem => {
+                                aSortItems.push({
+                                    attribute_alias: oItem.attribute_alias,
+                                    direction: oItem.direction
+                                });
+                            });
+
+                            oModel.setProperty("/sorters", aSortItems);
+                        }
+                        if (oSetupUxon.advanced_search !== undefined) {
+                            // ADVANCED SEARCH SETUP
+
+                            // remove and re-add filters from config
+                            let aFilterSetup = oSetupUxon.advanced_search;
+                            let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+                            oDialog.removeAllFilterItems();
+
+                            aFilterSetup.forEach(oItem => {
+                                var oFilterItem = new sap.m.P13nFilterItem({
+                                    "columnKey": oItem.attribute_alias,
+                                    "exclude": oItem.exclude,
+                                    "operation": oItem.comparator,
+                                    "value1": oItem.value
+                                });
+                                oDialog.addFilterItem(oFilterItem);
+                            });
+                        }
+                        
+                        // Update UI 
+                        {$this->buildJsRefreshPersonalization()}
+
+                        // store the last applied setup in session storage 
+                        // do this only if it was actively applied (not when loading from indexedDb)
+                        if ({$passedParameters}[0] !== 'localStorage'){
+                            // when manually applying a setup, show the success message
+                            {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")};
+                            
+                            // combination of page and widget id as primary key for db entry
+                            sPageId = oResultData.rows[0]['PAGE'];
+                            sWidgetId = oResultData.rows[0]['WIDGET_ID'];
+
+                            let oSetupObj = {
+                                page_id: oResultData.rows[0]['PAGE'],
+                                widget_id: oResultData.rows[0]['WIDGET_ID'],
+                                setup_uid: oResultData.rows[0]['UID'],
+                                date_last_applied: new Date().toISOString(),
+                                setup_uxon: oResultData.rows[0]['SETUP_UXON']
+                            };
+
+                            // open indexedDb connection
+                            const oSetupsDb = new Dexie('exf-ui5-widgets');
+                            oSetupsDb.version(1).stores({
+                                'setups': '[page_id+widget_id], setup_uid, date_last_applied'
+                            });
+
+                            // Save setup in db, then close connection 
+                            oSetupsDb.setups.put(
+                                oSetupObj
+                            ).catch(err => {
+                                console.error('Error accessing IndexedDb:', err);
+                            }).finally(() => {
+                                oSetupsDb.close();
+                            });
+                        }
+
+                        // after applying a setup, get the uid and mark it as default in the setups table
+                        getSetupData(sPageId, sWidgetId, null, 'setup_uid')
+                        .then(sSetupUid => {
+                            if (sSetupUid !== null && {$jsSetupsTableId} !== null){
+                            
+                                // get the ui5 datatable that shows the setups
+                                let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
+                                if (oSetupTable == undefined){
+                                    return;
+                                }
+                                
+                                let oModel = oSetupTable.getModel();
+                                let oData = oModel.getProperty('/');
+                                
+                                // the setups table seems to refresh on every re-open so its not enough to set in once,
+                                // so it needs to be some sort of event listener that re-sets it on re-open/update
+                                let fnSetAsDefault = function(oEvent) {
+                                    let oModel = oSetupTable.getModel();
+                                    let oData = oModel.getProperty('/');
+                                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
+                                        oData.rows.forEach(row => {
+                                            row.SETUP_APPLIED = "";
+                                            if (row.UID === sSetupUid) {
+                                                row.SETUP_APPLIED = "sap-icon://accept";
+                                            }
+                                        });
+
+                                        oModel.setProperty('/rows', oData.rows);
+                                    }
+                                };
+
+                                oSetupTable.detachUpdateFinished(fnSetAsDefault);
+                                oSetupTable.attachUpdateFinished(fnSetAsDefault);
+
+                                // if setup is manually applied, refresh ui to trigger event listener
+                                if ({$passedParameters}[0] !== 'localStorage'){
+                                    oModel.refresh(true);
+                                }
                             }
                         });
-                    });
-                    oModel.setProperty('/columns', aNewColModel);
+                    } 
+                    else {
+                        // return if no setup was passed or found
+                        return;
+                    }
+                });
 
-                    // toggle checkboxes in columns tab according to setup
-                    // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-                    let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
-                    let oTableModel = oTable.getModel();
-                    let aColsConfig = oModel.getProperty('/columns');
-                    let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
-                    oDialog.getBinding("items").filter(oVisibleFilter);
-                    let aItems = oTableModel.getProperty('/items');
-                    
-                    aColsConfig.forEach(function(oColConfig){
-                        aItems.forEach(function(oItem, iItemIdx){
-                            if (oItem.columnKey === oColConfig.column_id) {
-                                oItem.persistentSelected = oColConfig.visible; 
-                                return;
+                /*
+                    Function that returns a passed value as a promise (immediately) or retrieves a value stored in IndexedDB
+                    (this is needed because the indexedDB calls are asynchronous, so we need to work with promises either way)
+
+                    sPageId : string - the page identifier, e.g. 'page1' (part of the IndexedDb pk)
+                    sWidgetId : string - the widget identifier, e.g. 'myTable' (part of the IndexedDb pk)
+                    sPassedData = null : string|null - if a value is passed, it will be returned immediately
+                    sKey = null : string|null - the key of the value to retrieve from indexedDb, e.g. 'setup_uxon' or 'setup_uid'
+                */
+                function getSetupData(sPageId, sWidgetId, sPassedData = null, sKey = null) {
+
+                    // If data is passed in function, resolve immediately and return it 
+                    if (sPassedData !== null) {
+                        return Promise.resolve(sPassedData);
+                    }
+
+                    // Otherwise, load the setup from IndexedDB
+                    const oSetupsDb = new Dexie('exf-ui5-widgets');
+                    oSetupsDb.version(1).stores({
+                        'setups': '[page_id+widget_id], setup_uid, date_last_applied'
+                    });
+
+                    return oSetupsDb.setups.get([sPageId, sWidgetId])
+                    .then(entry => {
+                        if (entry && entry[sKey]) {
+                            if (sKey === 'setup_uxon') {
+                                return JSON.parse(entry[sKey]); //parse setup uxon
                             }
-                        })
-                    }); 
-
-                }
-                if (oSetupUxon.sorters !== undefined) {
-                    // SORTER SETUP
-                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
-                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
-                    let aSorterSetup = oSetupUxon.sorters;
-
-            		let aSortItems = [];
-                    aSorterSetup.forEach(oItem => {
-                        aSortItems.push({
-            				attribute_alias: oItem.attribute_alias,
-            				direction: oItem.direction
-            			});
-                    });
-
-            		oModel.setProperty("/sorters", aSortItems);
-                }
-                if (oSetupUxon.advanced_search !== undefined) {
-                    // ADVANCED SEARCH SETUP
-
-                    // remove and re-add filters from config
-                    let aFilterSetup = oSetupUxon.advanced_search;
-                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
-                    oDialog.removeAllFilterItems();
-
-                    aFilterSetup.forEach(oItem => {
-                        var oFilterItem = new sap.m.P13nFilterItem({
-                            "columnKey": oItem.attribute_alias,
-                            "exclude": oItem.exclude,
-                            "operation": oItem.comparator,
-                            "value1": oItem.value
-                        });
-                        oDialog.addFilterItem(oFilterItem);
+                            return entry[sKey]; //return other values as is
+                        }
+                        return null;
+                    })
+                    .catch(err => {
+                        console.error('Error reading from IndexedDB:', err);
+                        return null;
+                    })
+                    .finally(() => {
+                        oSetupsDb.close();
                     });
                 }
-                
-                // Update UI and show success message
-                {$this->buildJsRefreshPersonalization()}
-                {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
-
 JS;
         }
 
