@@ -1,14 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
-use exface\Core\DataTypes\BooleanDataType;
-use exface\Core\DataTypes\DateDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
+use exface\Core\Interfaces\WidgetInterface;
+use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
+use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
@@ -168,7 +169,7 @@ trait UI5DataElementTrait {
         
         $controller->addMethod('onUpdateFilterSummary', $this, '', $this->buildJsFilterSummaryUpdater());
         $controller->addMethod('onLoadData', $this, 'oControlEvent, bKeepPagingPos', $this->buildJsDataLoader());
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         
         if ($this->hasPaginator()) {
             $this->getPaginatorElement()->registerControllerMethods();
@@ -628,6 +629,9 @@ JS;
      */
     protected function buildJsConfiguratorButtonConstructor(string $oControllerJs = 'oController', string $buttonType = 'Default') : string
     {
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
         $btnPriorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
         return <<<JS
         
@@ -754,9 +758,16 @@ JS;
      * 
      * @return UI5AbstractElement
      */
-    protected function initConfiguratorControl(UI5ControllerInterface $controller) : UI5AbstractElement
+    protected function initConfiguratorControl(UI5ControllerInterface $controller, string $oControllerJs) : UI5AbstractElement
     {
-        $controller->addDependentControl('oConfigurator', $this, $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget()));
+        // If the table does not have a configurator, there will not be a control for it. Instead, the
+        // configurator will work in unrendered mode
+        if (! $this->hasConfigurator()) {
+            // Make sure the table is refreshed when needed even if there is no configurator button!
+            $this->getConfiguratorElement()->registerRefreshListeners($oControllerJs);
+            return $this;
+        }
+        $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());
         return $this;
     }
     
@@ -776,12 +787,11 @@ JS;
      */
     protected function buildJsCheckRequiredFilters() : string
     {
-        $configurator_element = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
         return <<<JS
 
 (function (){
     try {
-        if ({$configurator_element->buildJsValidator()}) {
+        if ({$this->getConfiguratorElement()->buildJsValidator()}) {
             return true;
         } else {
             return false;
@@ -1273,7 +1283,7 @@ JS;
      */
     protected function getP13nElement()
     {
-        return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
+        return $this->getConfiguratorElement();
     }
     
     protected function getIdOfDynamicPage() : string
@@ -1430,8 +1440,8 @@ JS;
 
         (function(){
             var oPage = sap.ui.getCore().byId("{$this->getIdOfDynamicPage()}");
-            var oP13nDialog = sap.ui.getCore().byId("{$this->getConfiguratorElement()->getid()}");
-            oPage.getHeader().setModel(oP13nDialog.getModel());
+            var oDataCtrl = sap.ui.getCore().byId("{$this->getId()}");
+            oPage.getHeader().setModel(oDataCtrl.getModel('{$this->getModelNameForConfigurator()}'));
         })();
 JS;
         $this->getController()->addOnInitScript($useConfiguratorModelForHeaderFiltersJs);
@@ -1562,11 +1572,17 @@ JS;
     }
     
     /**
+     * Returns the JS code to update the filter summary of the data widget
+     *
+     * Only really does something if there is a configurator with interactive filters!
      *
      * @return string
      */
     protected function buildJsFilterSummaryUpdater()
     {
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
         $filter_checks = '';
         foreach ($this->getDataWidget()->getFilters() as $fltr) {
             $elem = $this->getFacade()->getElement($fltr);
@@ -2606,7 +2622,7 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsDataGetter($action);
+                return $this->getConfiguratorElement()->buildJsDataGetter($action);
             
             default:
                 $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl', false)};";
@@ -2686,7 +2702,7 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        $resetConfiguratorJs = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsResetter();
+        $resetConfiguratorJs = $this->hasConfigurator() ? $this->getConfiguratorElement()->buildJsResetter() : '';
         $resetEditableCellsJs = $this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '';
         $resetQuickSearch = $this->hasQuickSearch() ? $this->getQuickSearchElement()->buildJsResetter() : '';
         return $this->buildJsSelectionModelReset() . $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
@@ -2814,5 +2830,44 @@ JS;
                 return $this->buildJsSelectRowByValue($vals, $colName, $functionName === Data::FUNCTION_UNSELECT);
         }
         return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+
+    /**
+     * Returns TRUE if this data widget needs a configurator (cog icon)
+     * @return bool
+     */
+    protected function hasConfigurator() : bool
+    {
+        return ! $this->getWidget()->getConfiguratorWidget()->isDisabled();
+    }
+
+    /**
+     * Returns inline JS code resolving to TRUE if the given cell or column widget is editable and required and FALSE otherwise
+     * 
+     * This is basically the same as UI5Input::buildJsRequiredGetter(), but works for table columns. The regular
+     * JS required checker needs a real instantiated JS facade element, which does not work in tables - here the
+     * input element is just a template for the column and neither has an id nor a real instance. It gets even more
+     * complicated with required_if linking other columns of the same table - in this case, we even need the specific
+     * row number to determine if the cell is required or not.
+     * 
+     * Thus, UI5Input::buildJsRequiredGetter() and derivatives will not use their regular logic for in-table widgets,
+     * but forward to this method here. 
+     * 
+     * This method should be overridden by specific implementations of data widgets like UI5DataSpreadSheet and
+     * similar.
+     * 
+     * @param WidgetInterface $cell
+     * @return string
+     */
+    public function buildJsIsCellRequired(WidgetInterface $cell) : string
+    {
+        if ($cell instanceof DataColumn) {
+            $cell = $cell->getCellWidget();
+        }
+        if ($cell instanceof iCanBeRequired) {
+            return $cell->isRequired() ? 'true' : 'false';
+        }
+        // TODO how to determine, if a column is required?
+        return 'false';
     }
 }

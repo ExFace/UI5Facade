@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades;
 use exface\Core\CommonLogic\Debugger;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
@@ -17,6 +18,7 @@ use exface\UI5Facade\Facades\Formatters\UI5BooleanFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsNumberFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5ListFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5NumberFormatter;
+use exface\UI5Facade\Facades\Formatters\UI5StringFormatter;
 use exface\UI5Facade\Facades\Middleware\UI5TableUrlParamsReader;
 use exface\UI5Facade\Facades\Middleware\UI5WebappRouter;
 use exface\UI5Facade\Webapp;
@@ -235,11 +237,6 @@ JS;
         return false;
     }
     
-    public function getDataTypeFormatter(DataTypeInterface $dataType)
-    {
-        return parent::getDataTypeFormatter($dataType);
-    }
-    
     /**
      * 
      * {@inheritDoc}
@@ -262,6 +259,8 @@ JS;
                 return new UI5DateFormatter($formatter);
             case $formatter instanceof JsEnumFormatter:
                 return new UI5EnumFormatter($formatter);
+            case $formatter instanceof JsStringFormatter:
+                return new UI5StringFormatter($formatter);
         }
         
         return new UI5DefaultFormatter($formatter);

@@ -51,7 +51,7 @@ class UI5Scheduler extends UI5AbstractElement implements UI5DataElementInterface
     public function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $controller = $this->getController();
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         $this->registerResizeListeners();
         
         $cssClasses = '';

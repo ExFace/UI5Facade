@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\BooleanDataType;
+use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\Filter;
 use exface\Core\Widgets\Input;
 use exface\Core\Widgets\InputComboTable;
@@ -268,6 +269,14 @@ JS;
      */
     protected function buildJsRequiredGetter() : string
     {
+        // Special handling for in-table mode: cannot use ids here, so we forward the call to the table
+        // element in this case.
+        if ($this->getWidget()->isInTable()) {
+            /* @var $col \exface\Core\Widgets\DataColumn */
+            $col = $this->getWidget()->getParentByClass(DataColumn::class);
+            $tableEl = $this->getFacade()->getElement($col->getDataWidget());
+            return $tableEl->buildJsIsCellRequired($this->getWidget());
+        }
         return "sap.ui.getCore().byId('{$this->getId()}').getRequired()";
     }
     

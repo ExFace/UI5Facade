@@ -278,10 +278,14 @@ JS;
             // has no LABEL and the UID should be used as value and text at the same time. Still need investigation
             // here!
             case $widget->getValueAttribute() === $widget->getTextAttribute() && $widget->getMultiSelect() === true:
+                $delim = $widget->getValueAttribute()->getValueListDelimiter();
+                if ($delim === '') {
+                    $delim = EXF_LIST_SEPARATOR;
+                }
                 $this->getController()->addOnInitScript(<<<JS
 
                     (function(oInput){
-                        var oKeyBinding = oInput.getBinding('selectedKey');
+                        var oKeyBinding = oInput?.getBinding('selectedKey');
                         if (! oKeyBinding) {
                             return;
                         }
@@ -289,7 +293,7 @@ JS;
                             var sKeys = oEvent.getSource().getValue();
                             oInput.destroyTokens();
                             if (sKeys !== undefined && sKeys !== null && sKeys !== '') {
-                                sKeys.toString().split(',').forEach(function(sVal){
+                                sKeys.toString().split({$this->escapeString($delim)}).forEach(function(sVal){
                                     oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
                                 })
                             }
@@ -481,12 +485,16 @@ JS;
         // suggestion is selected automatically (see buildJsDataLoader()), aCells is not set yet, so
         // we need to fetch the first row of the suggestion table - in this case we know, that there
         // is only a single row!
+        $valueDataType = $this->getWidget()->getValueColumn()->getDataType();
         return <<<JS
             function(oEvent){
                 var oItem = oEvent.getParameter("selectedRow");
                 if (! oItem) return;
 				var aCells = oEvent.getParameter("selectedRow").getCells();
                 var oInput = oEvent.getSource();
+                var fnValueParser = function(mVal) {
+                    return {$this->getFacade()->getDataTypeFormatter($valueDataType)->buildJsFormatParser('mVal')};
+                }
                 if (oInput.getTokens !== undefined) {
                     if (oInput.getTokens().filter(function(oToken){
                             return oToken.getKey() === aCells[ {$valueColIdx} ].getText();
@@ -498,7 +506,7 @@ JS;
                     var oSuggestTable = sap.ui.getCore().byId('{$this->getId()}-popup-table');
                     aCells = oSuggestTable.getItems()[0].getCells();
                 }
-                oInput.{$this->buildJsSetSelectedKeyMethod("aCells[ {$valueColIdx} ].getText()", "aCells[ {$textColIdx} ].getText()")};
+                oInput.{$this->buildJsSetSelectedKeyMethod("fnValueParser(aCells[ {$valueColIdx} ].getText())", "aCells[ {$textColIdx} ].getText()")};
                 oInput.setValueState(sap.ui.core.ValueState.None);
                 oInput._invalidKey = false;
                 oInput.fireChange({value: aCells[ {$valueColIdx} ].getText()});

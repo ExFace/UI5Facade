@@ -33,7 +33,8 @@
 
 /* Dropdown */
 .sv_main .sv_container .sv_body .sv_p_root .sv_q .sv_q_dropdown_control {padding: 0 !important; border: .0625rem solid #89919a !important;}
-.sv_main .sv_container .sv_body .sv_p_root .sv_q_dropdown__value > .sv-string-viewer {padding: .1875rem .5rem !important;}
+.sv_main .sv_container .sv_body .sv_p_root .sv_q_dropdown__value .sv-string-viewer {padding: 0.1875rem .5rem !important;}
+.sv_main .sv_container .sv_body .sv_p_root .sv_q_dropdown_control .sv-string-viewer {padding: 0 0.5rem !important;}
 .sv_main .sv_q_dropdown_clean-button {margin: 0.1rem 2.25rem auto 0.5rem; color: #0854a0; opacity: 0.6;}
 .sv_main.sv_default_css .sv_container .sv_body .sv_p_root .sv_q .sv_q_dropdown_control .sv_q_dropdown__value .sv_q_dropdown__filter-string-input[type=text] {border: none !important;}
 .sv_main .sv_row .sv_row {padding-left: 0.75rem; padding-right:0.75rem}

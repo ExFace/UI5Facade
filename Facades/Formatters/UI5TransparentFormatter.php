@@ -12,19 +12,5 @@ use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
  */
 class UI5TransparentFormatter extends AbstractUI5BindingFormatter
 {    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface::buildJsBindingProperties()
-     */
-    public function buildJsBindingProperties()
-    {
-        return <<<JS
-
-                formatter: function(value) {
-                    return {$this->getJsFormatter()->buildJsFormatter('value')}
-                },
-
-JS;
-    }
+    
 }

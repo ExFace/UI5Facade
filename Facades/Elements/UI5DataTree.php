@@ -32,7 +32,7 @@ class UI5DataTree extends UI5DataTable
     public function buildJsConstructorForTreeTable($oControllerJs = 'oController') : string
     {
         $controller = $this->getController();
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         $widget = $this->getWidget();
         
         $this->getController()->addOnEventScript($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, $this->buildJsOnCloseScript('oEvent'));

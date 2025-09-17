@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\MetaObjectFactory;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -62,29 +63,32 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     {
         $widget = $this->getWidget();
         $controller = $this->getController();
-        
+
         // Initialize optional column from the configurator when the
         // JS controller is initialized.
         // IDEA maybe just initialize the controller var here and run the
         // constructors of the columns only on-demand in buildJsRefreshPersonalization()?
-        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
-        $colsOptionalInitJs = '';
-        if (! empty($colsOptional)) {
-            foreach ($colsOptional as $col) {
-            $colsOptionalInitJs .= <<<JS
-            
-                    oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+        if ($widget->getConfiguratorWidget()->hasOptionalColumns()) {
+            $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+            $colsOptionalInitJs = '';
+            if (! empty($colsOptional)) {
+                foreach ($colsOptional as $col) {
+                    $colsOptionalInitJs .= <<<JS
+                
+                        oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
 JS;
+                }
             }
+            $controller->addOnInitScript(<<<JS
+            
+                (function(){
+                    var oColsOptional = {};
+                    {$colsOptionalInitJs}
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                })();
+JS
+            );
         }
-        $controller->addOnInitScript(<<<JS
-        
-            (function(){
-                var oColsOptional = {};
-                {$colsOptionalInitJs}
-                {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
-            })();
-JS);
 
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
@@ -131,6 +135,237 @@ JS);
         return ! ($this->getWidget() instanceof DataTableResponsive);
     }
     
+     /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+
+        /* TODO/IDEA:
+            -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
+            -> Filters/Sorters added from Column Header Menu do not get added it to config right now
+        */
+
+        // passed parameters
+        $passedParameters = json_encode($parameters ?? null);
+
+        // translated strings 
+        $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
+
+        switch (true) {
+            case $functionName === DataTable::FUNCTION_DUMP_SETUP:
+                
+                /*
+                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER)
+
+                    - SETUP_UXON:
+                        The name of the column where the setup UXON will be stored
+                    - PAGE:
+                        the name of the column for the current page UID
+                    - WIDGET_ID:
+                        the name of the column for the current widget ID
+                    - PROTOTYPE_FILE:
+                        the name of the column for the prototype file to use
+                        e.g. 'exface/core/Mutations/Prototypes/DataTableSetup.php'
+                    - OBJECT:
+                        the name of the column for the object of the datatable
+                    - PRIVATE_FOR_USER:
+                        the name of the column for the current user UID
+                */
+
+                return <<<JS
+
+                // Dump current table setup into inputData of the action
+
+                // get column name parameters, remove leading/trailing spaces; return if not all params provided
+                let params = {$passedParameters};
+                if (!Array.isArray(params) || params.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', params);
+                    return;
+                }
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = params.map(p => typeof p === 'string' ? p.trim() : p);
+
+                // json object to save current state in
+                let oSetupJson = {
+                    columns: [],
+                    advanced_search: [],
+                    sorters: []
+                };
+
+                // get the current states
+                let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
+                let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
+                let aColumnsInit = oInitP13nModel.getProperty('/columns');
+                let aColumns = oP13nModel.getProperty('/columns');
+                let aSorters = oP13nModel.getProperty('/sorters');
+                let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
+
+                // add columns back in (if are are missing any of the original ones)
+                if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
+                    let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
+                    aColumnsInit.forEach(function(initCol) {
+                        let idx = currentAliases.indexOf(initCol.attribute_alias);
+                        if (idx === -1) {
+                            // missing column, add as hidden
+                            oSetupJson.columns.push({
+                                attribute_alias: initCol.attribute_alias,
+                                show: false
+                            });
+                        }
+                    });
+                }
+
+                // save current column config
+                if (aColumns !== undefined && aColumns.length > 0) {
+                    aColumns.forEach(function(oColumn) {
+                        oSetupJson.columns.push({
+                            attribute_alias: oColumn.attribute_alias,
+                            show: oColumn.visible
+                        });
+                    });
+                }
+
+                // save sorters
+                if (aSorters !== undefined && aSorters.length > 0) {
+                    aSorters.forEach(function(oColumn) {
+                        oSetupJson.sorters.push({
+                            attribute_alias: oColumn.attribute_alias,
+                            direction: oColumn.direction
+                        });
+                    });
+                }
+
+                // save filters/advanced search
+                if (aFilters !== undefined && aFilters.length > 0) {
+                    aFilters.forEach(function(oFilter){
+                        oSetupJson.advanced_search.push({
+                            attribute_alias: oFilter.mProperties.columnKey,
+                            comparator: oFilter.mProperties.operation,
+                            value: oFilter.mProperties.value1,
+                            exclude: oFilter.mProperties.exclude
+                        });
+                    });
+                }
+
+                // if input data is empty, initialize it
+                if ({$jsRequestData}.rows[0] === undefined){
+                    {$jsRequestData}.rows[0] = {};
+                }
+
+                // write the current setup and info into to the input data
+                {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
+                {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
+                {$jsRequestData}.rows[0][sWidgetIdCol] = '{$this->getDataWidget()->getId()}';
+                {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
+                {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
+                {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+JS;
+
+            case $functionName === DataTable::FUNCTION_APPLY_SETUP:
+                // parameter: apply_setup([#SETUP_UXON#]) -> column in which the setup is stored
+                
+                return <<<JS
+
+                // get currently selected data from request
+                let oResultData = {$jsRequestData};
+
+                if (oResultData === null || oResultData === undefined || oResultData.rows.length === 0 || {$passedParameters} === null) {
+                    return;
+                }
+                
+                // get setup UXON from request data and parse it
+                let sUxonCol = {$passedParameters}[0];
+                sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                let oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
+
+                // Apply setup from UXON
+                if (oSetupUxon.columns !== undefined){
+                    // COLUMN SETUP
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
+                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                    let aColumnSetup = oSetupUxon.columns;
+
+                    // update column visibility according to wiget setup
+                    let aNewColModel = [];
+                    aColumnSetup.forEach(oItem => {
+                        oModel.getData()['columns'].forEach(oColConf => {
+                            if (oColConf.attribute_alias === oItem.attribute_alias) {
+                                oColConf.visible = oItem.show;
+                                aNewColModel.push(oColConf);
+                                return;
+                            }
+                        });
+                    });
+                    oModel.setProperty('/columns', aNewColModel);
+
+                    // toggle checkboxes in columns tab according to setup
+                    // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
+                    let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                    let oTableModel = oTable.getModel();
+                    let aColsConfig = oModel.getProperty('/columns');
+                    let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
+                    oDialog.getBinding("items").filter(oVisibleFilter);
+                    let aItems = oTableModel.getProperty('/items');
+                    
+                    aColsConfig.forEach(function(oColConfig){
+                        aItems.forEach(function(oItem, iItemIdx){
+                            if (oItem.columnKey === oColConfig.column_id) {
+                                oItem.persistentSelected = oColConfig.visible; 
+                                return;
+                            }
+                        })
+                    }); 
+
+                }
+                if (oSetupUxon.sorters !== undefined) {
+                    // SORTER SETUP
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                    let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                    let aSorterSetup = oSetupUxon.sorters;
+
+            		let aSortItems = [];
+                    aSorterSetup.forEach(oItem => {
+                        aSortItems.push({
+            				attribute_alias: oItem.attribute_alias,
+            				direction: oItem.direction
+            			});
+                    });
+
+            		oModel.setProperty("/sorters", aSortItems);
+                }
+                if (oSetupUxon.advanced_search !== undefined) {
+                    // ADVANCED SEARCH SETUP
+
+                    // remove and re-add filters from config
+                    let aFilterSetup = oSetupUxon.advanced_search;
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+                    oDialog.removeAllFilterItems();
+
+                    aFilterSetup.forEach(oItem => {
+                        var oFilterItem = new sap.m.P13nFilterItem({
+                            "columnKey": oItem.attribute_alias,
+                            "exclude": oItem.exclude,
+                            "operation": oItem.comparator,
+                            "value1": oItem.value
+                        });
+                        oDialog.addFilterItem(oFilterItem);
+                    });
+                }
+                
+                // Update UI and show success message
+                {$this->buildJsRefreshPersonalization()}
+                {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")}; 
+
+JS;
+        }
+
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+    
+
     /**
      * Returns the javascript constructor for a sap.m.Table
      *
@@ -1535,6 +1770,12 @@ JS;
                                 if (jqLabel[0].scrollWidth > jqLabel.width()) {
                                     oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
                                 }
+                                if (oWidth.min) {
+                                    iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
+                                    if (jqCol.outerWidth() < iWidth) {
+                                        oCol.setWidth(oWidth.min);
+                                    }
+                                }
                                 if (oWidth.max) {
                                     iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
                                     if (jqCol.outerWidth() > iWidth) {
@@ -1774,7 +2015,7 @@ JS;
                                 }  
                             });
                             // optional columns
-                            if (oColConfig.visible === true) {
+                            if (oColConfig.visible === true && oColsOptional !== null) {
                                 var oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
                                     oColumn.setVisible(true);
@@ -1830,7 +2071,7 @@ JS;
                                 }
                             });
 
-                            //upadte template
+                            //update template
                             oTemplate.removeAllAggregation("cells");
                             aNewCells.forEach(cell => oTemplate.addCell(cell));
                         }

@@ -1,10 +1,12 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
 use exface\Core\Interfaces\Widgets\iCanEditData;
@@ -74,11 +76,17 @@ class UI5DataConfigurator extends UI5Tabs
     
     protected function hasTabAdvancedSearch() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
     }
     
     protected function hasTabSorters() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
     }
     
@@ -112,16 +120,49 @@ JS;
         $controller->addOnEventScript($this, self::EVENT_BUTTON_CANCEL, 'oEvent.getSource().close();');
         $controller->addOnEventScript($this, self::EVENT_BUTTON_RESET, $this->buildJsResetter() . '; oEvent.getSource().setShowResetEnabled(true).close()');
         
+        $this->registerRefreshListeners($oControllerJs);
+        
+        $refreshSetupsJs = '';
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            $setupsTable->setAutoloadData(false);
+            $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
+        }
+        
+        return <<<JS
+
+        new sap.m.P13nDialog("{$this->getId()}", {
+            ok: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_OK, true)},
+            cancel: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_CANCEL, true)},
+            showReset: true,
+            showResetEnabled: true,
+            reset: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_RESET, true)},
+            afterOpen: function(oEvent) {
+                $refreshSetupsJs
+            },
+            panels: [
+                {$this->buildJsPanelsConstructors()}
+            ]
+        })
+        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}")
+        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}_initial")
+        
+JS;
+    }
+    
+    public function registerRefreshListeners(string $oControllerJs) : void
+    {
         $onActionEffectJs = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh(true, $oControllerJs);
         // If the configured widget is an editable data widget, only react to action effects if
         // no unsaved changes exist or the widget is explicitly required to refresh (by button config)!
+        $dataElement = $this->getDataElement();
         $dataWidget = $dataElement->getWidget();
         if ($dataWidget instanceof iCanEditData && $dataWidget->isEditable() && method_exists($dataElement, 'buildJsEditableChangesChecker')) {
             $onActionEffectJs = <<<JS
 
                     if (
                         ! {$dataElement->buildJsEditableChangesChecker()}
-                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataElement->getWidget()->getId()}') !== -1
+                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataWidget->getId()}') !== -1
                     ) { 
                         {$onActionEffectJs} 
                     }
@@ -141,24 +182,8 @@ JS;
                 }
 JS;
         }
-        $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
         
-        return <<<JS
-
-        new sap.m.P13nDialog("{$this->getId()}", {
-            ok: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_OK, true)},
-            cancel: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_CANCEL, true)},
-            showReset: true,
-            showResetEnabled: true,
-            reset: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_RESET, true)},
-            panels: [
-                {$this->buildJsPanelsConstructors()}
-            ]
-        })
-        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}")
-        .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}_initial")
-
-JS;
+        $this->getController()->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
     }
     
     /**
@@ -169,6 +194,7 @@ JS;
     {
         return <<<JS
 
+                {$this->buildJsTabSetups()}
                 {$this->buildJsTabFilters()}
                 {$this->buildJsTabSorters()}
                 {$this->buildJsTabSearch()}
@@ -216,6 +242,34 @@ JS;
 JS;
         }
         return $js;
+    }
+
+    /**
+     *
+     * @return string
+     */
+    protected function buildJsTabSetups() : string
+    {
+        if (! $this->hasTabSetups()) {
+            return '';
+        }
+        $tab = $this->getWidget()->getSetupsTab();
+        // TODO prevent autoloading all setups when the configured table is rendered. Only load the setups
+        // when they are really needed - e.g. when the configurator is opened or the setups selection menu
+        // is opened.
+        // We could use $table->setAutoloadData(false) and add a $table->buildJsRefreshScript() to some callback
+        // for opening the controls above.
+        $tabEl = $this->getFacade()->getElement($tab);
+        return <<<JS
+
+                new exface.openui5.P13nLayoutPanel({
+                    title: {$this->escapeString($tab->getCaption())},
+                    content: [
+                       {$tabEl->buildJsChildrenConstructors()}
+                    ]
+                }),
+JS;
+
     }
     
     /**
@@ -642,6 +696,16 @@ JS;
     {
         return $this->getId() . '_SortPanel';
     }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getIdOfColumnsPanel() : string
+    {
+        return $this->getId() . '_ColumnsPanel'; 
+
+    }
     
     /**
      * 
@@ -659,10 +723,16 @@ JS;
      */
     public function buildJsDataGetter(ActionInterface $action = null, bool $unrendered = false)
     {
+        // If the configurator is disabled completely, it should always work in unrendered mode
+        if ($this->getWidget()->isDisabled()) {
+            return $this->buildJsDataGetterViaTrait($action, true);
+        }
+
         if ($unrendered === true || $this->hasTabAdvancedSearch() === false) {
             return $this->buildJsDataGetterViaTrait($action, $unrendered);
         }
-        
+
+        // Add filters from the advanced search tab
         $notMap = [];
         foreach (ComparatorDataType::getValuesStatic() as $comp) {
             if (ComparatorDataType::isInvertable($comp)) {
@@ -762,6 +832,34 @@ JS;
     protected function hasTabColumns() : bool
     {
         return $this->include_columns_tab;
+    }
+    
+    protected function hasTabSetups() : bool
+    {
+        $confWidget = $this->getWidget();
+        if (! $confWidget instanceof DataTableConfigurator) {
+            return false;
+        }
+        // Setups explicitly disabled
+        if (! $confWidget->hasSetups()) {
+            return false;
+        }
+        // Data widgets without full configurator support (e.g. FileList)
+        if (! $this->hasTabColumns()) {
+            return false;
+        }
+        // Check if the data widget is really a DataTable
+        $dataWidget = $confWidget->getDataWidget();
+        if (! $dataWidget instanceof DataTable) {
+            return false;
+        }
+        // Double-check if apply_setup is implemented
+        try {
+            $this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP);
+        } catch (WidgetFunctionUnknownError $e) {
+            return false;
+        }
+        return true;
     }
     
     /**
