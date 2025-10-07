@@ -797,7 +797,18 @@ JS;
         		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
                 rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
-        		{$this->buildJsPropertyVisibile()}
+        		columnResize: function (oEvent) {
+                    // skip if the table is currently auto-resizing
+                    if (this.data("__exfIsAutoResizing")) {
+                        return;
+                    }
+
+                    // otherwise we assume its a manual resize, and save in custom width property
+                    var sNewWidth = oEvent.getParameter("width");
+                    var oColumn = oEvent.getParameter("column");
+                    oColumn.data("_exfCustomColWidth", sNewWidth);
+                },
+                {$this->buildJsPropertyVisibile()}
                 {$initDnDJs}
                 toolbar: [
         			{$toolbar}
@@ -1874,6 +1885,8 @@ JS;
         }
         return <<<JS
 
+                $oTableJs.data("__exfIsAutoResizing", true);  // set auto resize flag
+
                 var bResized = false;
                 var oInitWidths = {};
                 if (! $oModelJs.getData().rows || $oModelJs.getData().rows.length === 0) {
@@ -1896,6 +1909,15 @@ JS;
                 if (bResized) {
                     setTimeout(function(){
                         $oTableJs.getColumns().forEach(function(oCol){
+
+                            // skip manually resized columns
+                            // TODO: just skipping it doesnt seem to work (only on the first column) why?
+                            // when setting the value here, its fine 
+                            if (oCol.data('_exfCustomColWidth')){
+                                oCol.setWidth(oCol.data('_exfCustomColWidth'));
+                                return;
+                            } 
+
                             var oWidth = oCol.data('_exfWidth');
                             var jqCol = $('#'+oCol.getId());
                             var jqLabel = jqCol.find('label');
@@ -1930,6 +1952,7 @@ JS;
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
+                    $oTableJs.data("__exfIsAutoResizing", false);  // done auto resizing
                 }, 0);
 JS;
     }
