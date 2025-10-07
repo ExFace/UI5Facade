@@ -26,8 +26,8 @@ class UI5InputButton extends UI5Input
         if ($widget->willUpdateValueWithActionResult()) {
             $updateOwnValueJs = <<<JS
 
-    var mNewVal = response.rows[0]['{$widget->getDataColumnName()}'];
-    if (mNewVal) {
+    var mNewVal = ((response.rows || [])[0] || {})['{$widget->getDataColumnName()}'];
+    if (mNewVal !== undefined && mNewVal !== '' && mNewVal !== null) {
         {$this->buildJsValueSetter('mNewVal')}
     }
 JS;
