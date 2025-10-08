@@ -799,11 +799,11 @@ JS;
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
         		columnResize: function (oEvent) {
                     // skip if the table is currently auto-resizing
-                    if (this.data("__exfIsAutoResizing")) {
+                    if (this.data("_exfIsAutoResizing")) {
                         return;
                     }
 
-                    // otherwise we assume its a manual resize, and save in custom width property
+                    // otherwise assume its a manual resize, and save in custom width property
                     var sNewWidth = oEvent.getParameter("width");
                     var oColumn = oEvent.getParameter("column");
                     oColumn.data("_exfCustomColWidth", sNewWidth);
@@ -1885,7 +1885,7 @@ JS;
         }
         return <<<JS
 
-                $oTableJs.data("__exfIsAutoResizing", true);  // set auto resize flag
+                $oTableJs.data("_exfIsAutoResizing", true);  // set auto resize flag
 
                 var bResized = false;
                 var oInitWidths = {};
@@ -1910,9 +1910,8 @@ JS;
                     setTimeout(function(){
                         $oTableJs.getColumns().forEach(function(oCol){
 
-                            // skip manually resized columns
-                            // TODO: just skipping it doesnt seem to work (only on the first column) why?
-                            // when setting the value here, its fine 
+                            // skip manually resized columns 
+                            // (only skipping them didnt work, so we set the saved value then return)
                             if (oCol.data('_exfCustomColWidth')){
                                 oCol.setWidth(oCol.data('_exfCustomColWidth'));
                                 return;
@@ -1952,7 +1951,7 @@ JS;
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
-                    $oTableJs.data("__exfIsAutoResizing", false);  // done auto resizing
+                    $oTableJs.data("_exfIsAutoResizing", false);  // done auto resizing
                 }, 0);
 JS;
     }
