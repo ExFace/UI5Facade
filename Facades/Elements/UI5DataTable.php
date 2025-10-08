@@ -154,8 +154,11 @@ JS
             $jsRequestData = 'null';
         }
 
-        // setups table id 
-        $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId());
+        // setups table id is needed to dynamically mark applied setup
+        if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
+            $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+        }
+        
 
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
@@ -797,7 +800,18 @@ JS;
         		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
                 rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
-        		{$this->buildJsPropertyVisibile()}
+        		columnResize: function (oEvent) {
+                    // skip if the table is currently auto-resizing
+                    if (this.data("_exfIsAutoResizing")) {
+                        return;
+                    }
+
+                    // otherwise assume its a manual resize, and save in custom width property
+                    var sNewWidth = oEvent.getParameter("width");
+                    var oColumn = oEvent.getParameter("column");
+                    oColumn.data("_exfCustomColWidth", sNewWidth);
+                },
+                {$this->buildJsPropertyVisibile()}
                 {$initDnDJs}
                 toolbar: [
         			{$toolbar}
@@ -1874,6 +1888,8 @@ JS;
         }
         return <<<JS
 
+                $oTableJs.data("_exfIsAutoResizing", true);  // set auto resize flag
+
                 var bResized = false;
                 var oInitWidths = {};
                 if (! $oModelJs.getData().rows || $oModelJs.getData().rows.length === 0) {
@@ -1896,6 +1912,14 @@ JS;
                 if (bResized) {
                     setTimeout(function(){
                         $oTableJs.getColumns().forEach(function(oCol){
+
+                            // skip manually resized columns 
+                            // (only skipping them didnt work, so we set the saved value then return)
+                            if (oCol.data('_exfCustomColWidth')){
+                                oCol.setWidth(oCol.data('_exfCustomColWidth'));
+                                return;
+                            } 
+
                             var oWidth = oCol.data('_exfWidth');
                             var jqCol = $('#'+oCol.getId());
                             var jqLabel = jqCol.find('label');
@@ -1930,6 +1954,7 @@ JS;
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
+                    $oTableJs.data("_exfIsAutoResizing", false);  // done auto resizing
                 }, 0);
 JS;
     }
