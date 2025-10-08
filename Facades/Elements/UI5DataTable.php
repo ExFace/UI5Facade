@@ -154,8 +154,11 @@ JS
             $jsRequestData = 'null';
         }
 
-        // setups table id 
-        $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId());
+        // setups table id is needed to dynamically mark applied setup
+        if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
+            $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+        }
+        
 
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
