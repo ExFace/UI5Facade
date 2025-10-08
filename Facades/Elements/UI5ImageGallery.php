@@ -358,6 +358,9 @@ JS;
         if ($popoverEl === null) {
             return '';
         }
+        // Trim the validator script because if it start on a new line, the return statement will
+        // return undefined.
+        $validationJs = trim($popoverEl->buildJsValidator());
         $popoverEl->getWidget()->addButton($popoverEl->getWidget()->createButton(new UxonObject([
             'caption' => 'OK',
             'show_icon' => false,
@@ -367,12 +370,22 @@ JS;
                 'alias' => 'exface.Core.CustomFacadeScript',
                 'script' => <<<JS
 
+                    var fnValidator = function(){
+                        return {$validationJs};
+                    };
                     var jqCarousel = $('#{$this->getIdOfSlick()}');
                     var oDataPopover = {$popoverEl->buildJsDataGetter()};
                     var oDataSlick = jqCarousel.data('_exfData');
-                    $.extend(oDataSlick.rows[jqCarousel.data('_exfUploadIdx')], oDataPopover.rows[0]);
-                    jqCarousel.data(oDataSlick);
-                    {$popoverEl->buildJsCloseDialog()}
+                    var oRowSlick = oDataSlick.rows[jqCarousel.data('_exfUploadIdx')];
+                    var oRowPopover = oDataPopover.rows[0];
+                    if (fnValidator() === false) {
+                        {$popoverEl->buildJsValidationError()}
+                        return;
+                    } else {
+                        $.extend(oRowSlick, oRowPopover);
+                        jqCarousel.data(oDataSlick);
+                        {$popoverEl->buildJsCloseDialog()}
+                    }
 JS
             ]
         ])));

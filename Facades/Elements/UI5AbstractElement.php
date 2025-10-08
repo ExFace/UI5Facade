@@ -165,11 +165,17 @@ JS;
     {
         return <<<JS
 
-        sap.m.MessageToast.show(function(){
-            var tmp = document.createElement("DIV");
-            tmp.innerHTML = {$message_body_js};
-            return tmp.textContent || tmp.innerText || "";
-        }());
+        (function(sBody, sTitle){
+            if (sBody.length > 200) {
+               {$this->getController()->buildJsComponentGetter()}.showHtmlInDialog(sTitle, '<pre style="margin: 1rem; white-space: break-spaces">' + sBody + '</pre>', sap.ui.core.ValueState.Success);
+            } else {
+                sap.m.MessageToast.show(function(){
+                    var tmp = document.createElement("DIV");
+                    tmp.innerHTML = sBody;
+                    return tmp.textContent || tmp.innerText || "";
+                }());
+            }
+        })({$message_body_js}, {$this->escapeString($title)});
 JS;
     }
     

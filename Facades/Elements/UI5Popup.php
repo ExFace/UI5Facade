@@ -183,4 +183,32 @@ JS;
     {
         return "sap.ui.getCore().byId('{$this->getId()}').close();";
     }
+
+    /**
+     * The validation error of a popup just highlights the bad inputs and tries to focus the first one.
+     * 
+     * It does not show an error message dialog because that would automatically close the popup.
+     * 
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryContainerTrait::buildJsValidationError()
+     */
+    public function buildJsValidationError()
+    {
+        foreach ($this->getWidgetsToValidate() as $child) {
+            $el = $this->getFacade()->getElement($child);
+            $validator = $el->buildJsValidator();
+            $output .= '
+				if(!' . $validator . ') { ' . $el->buildJsValidationError() . "; if (sFirstInvalidId === undefined) sFirstInvalidId = {$this->escapeString($el->getId())};}";
+        }
+        return <<<JS
+(function(){
+    var sFirstInvalidId, oFailedCtrl;
+    $output;
+    if (sFirstInvalidId && (oFailedCtrl = sap.ui.getCore().byId(sFirstInvalidId))) {
+        if (oFailedCtrl.focus !== undefined) {
+            oFailedCtrl.focus();
+        }
+    }
+})()
+JS;
+    }
 }

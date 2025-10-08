@@ -112,7 +112,7 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
     public function __construct(FacadeSelectorInterface $selector)
     {
         parent::__construct($selector);
-        $this->setClassPrefix('ui5');
+        $this->setClassPrefix('UI5');
         $this->setClassNamespace(__NAMESPACE__);
     }
     
