@@ -237,6 +237,26 @@ JS
                     });
                 }
 
+                // loop through table columns (not the p13n model)
+                // and add any custom (manually resized) widths to the setup config
+                let oTable = sap.ui.getCore().byId('{$this->getId()}'); 
+                if (oTable != null){
+                    oTable.getColumns().forEach(function(oCol){
+
+                        // if a column has a manually resized width, add it to the config
+                        let sCustomWidth = oCol.data("_exfCustomColWidth");
+                        if (sCustomWidth) {
+                            var oColumnEntry = oSetupJson.columns.find(function(column) {
+                                return column.attribute_alias === oCol.data("_exfAttributeAlias");
+                            });
+
+                            if (oColumnEntry){
+                                oColumnEntry.custom_width = sCustomWidth;
+                            }
+                        }
+                    });
+                }
+
                 // save sorters
                 if (aSorters !== undefined && aSorters.length > 0) {
                     aSorters.forEach(function(oColumn) {
@@ -311,7 +331,15 @@ JS;
                             let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
                             let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
                             let aColumnSetup = oSetupUxon.columns;
+                            let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
 
+                            // reset current custom width properties of the table columns
+                            if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                                oDataTable.getColumns().forEach(oCol => {
+                                    oCol.data("_exfCustomColWidth", null);
+                                });
+                            }
+                        
                             // update column visibility according to wiget setup
                             let aNewColModel = [];
                             aColumnSetup.forEach(oItem => {
@@ -322,6 +350,19 @@ JS;
                                         return;
                                     }
                                 });
+
+                                // if column has a custom width assigned (in widget setup), set column width to that value 
+                                // and also set the data property on the column (so they dont get optimized/resized in buildJsUiTableColumnResize)
+                                if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                                    let oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                        return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
+                                    });
+
+                                    if (oMatchingCol) {
+                                        oMatchingCol.data("_exfCustomColWidth", oItem.custom_width);
+                                        oMatchingCol.setWidth(oItem.custom_width);
+                                    }
+                                }
                             });
                             oModel.setProperty('/columns', aNewColModel);
 
