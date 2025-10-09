@@ -153,7 +153,7 @@ JS;
                         if (! isNaN(sValue) && sValue !== inputValue) {
                             oInput.getModel().setProperty('{$this->getValueBindingPath()}', sValue);
                             // refresh(true) forces the widget to refresh its value
-                            oInput.getBinding('value').refresh(true);
+                            oInput.getBinding('value')?.refresh(true);
                         }
                     })(sap.ui.getCore().byId('{$this->getId()}'), $valueJs);
 JS;
