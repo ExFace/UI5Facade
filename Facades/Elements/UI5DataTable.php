@@ -343,6 +343,13 @@ JS;
                             // update column visibility according to wiget setup
                             let aNewColModel = [];
                             aColumnSetup.forEach(oItem => {
+
+                                // skip entries without attribute alias or calculation 
+                                // (older setups where calculations are not supported)
+                                if (oItem.attribute_alias == null && oItem.calculation == null){
+                                    return;
+                                }
+
                                 oModel.getData()['columns'].forEach(oColConf => {
                                     if (oColConf.attribute_alias === oItem.attribute_alias) {
                                         oColConf.visible = oItem.show;
