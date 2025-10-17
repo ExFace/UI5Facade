@@ -206,34 +206,29 @@ JS
                 // get the current states
                 let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
                 let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
-                let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
-                let aColumnsInit = oInitP13nModel.getProperty('/columns');
                 let aColumns = oP13nModel.getProperty('/columns');
                 let aSorters = oP13nModel.getProperty('/sorters');
                 let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
 
-                // add columns back in (if are are missing any of the original ones)
-                if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
-                    let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
-                    aColumnsInit.forEach(function(initCol) {
-                        let idx = currentAliases.indexOf(initCol.attribute_alias);
-                        if (idx === -1) {
-                            // missing column, add as hidden
-                            oSetupJson.columns.push({
-                                attribute_alias: initCol.attribute_alias,
-                                show: false
-                            });
-                        }
-                    });
-                }
-
                 // save current column config
                 if (aColumns !== undefined && aColumns.length > 0) {
                     aColumns.forEach(function(oColumn) {
-                        oSetupJson.columns.push({
-                            attribute_alias: oColumn.attribute_alias,
-                            show: oColumn.visible
-                        });
+                        if (oColumn.attribute_alias != null){
+                            // cols with attribute alias
+                            oSetupJson.columns.push({
+                                attribute_alias: oColumn.attribute_alias,
+                                show: oColumn.visible
+                            });
+                        }
+                        else if (oColumn.column_name != null){
+                            // calculation columns 
+                            // (maybe this would be better with column id? 
+                            // but then its less human readable/could cause issues if order of cols changed in uxon)
+                            oSetupJson.columns.push({
+                                calculation: oColumn.column_name,
+                                show: oColumn.visible
+                            });
+                        }
                     });
                 }
 
@@ -246,10 +241,23 @@ JS
                         // if a column has a manually resized width, add it to the config
                         let sCustomWidth = oCol.data("_exfCustomColWidth");
                         if (sCustomWidth) {
-                            var oColumnEntry = oSetupJson.columns.find(function(column) {
-                                return column.attribute_alias === oCol.data("_exfAttributeAlias");
-                            });
 
+                            // find the column in the setup config
+                            let oColumnEntry = null;
+                            if (oCol.data("_exfCalculation")){
+                                // calculation cols
+                                oColumnEntry = oSetupJson.columns.find(function(column) {
+                                    return column.calculation === oCol.data("_exfDataColumnName");
+                                });
+                            }
+                            else{
+                                // attribute alias cols
+                                oColumnEntry = oSetupJson.columns.find(function(column) {
+                                    return column.attribute_alias === oCol.data("_exfAttributeAlias");
+                                });
+                            }
+                            
+                            // save custom width in setup
                             if (oColumnEntry){
                                 oColumnEntry.custom_width = sCustomWidth;
                             }
@@ -330,6 +338,8 @@ JS;
                             // COLUMN SETUP
                             let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
                             let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                            let oInitModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial');
+                            let aInitCols = oInitModel.getData()['columns'];
                             let aColumnSetup = oSetupUxon.columns;
                             let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
 
@@ -340,8 +350,10 @@ JS;
                                 });
                             }
                         
-                            // update column visibility according to wiget setup
+                            // build the new column model:
                             let aNewColModel = [];
+                            
+                            // loop through the widget setup columns
                             aColumnSetup.forEach(oItem => {
 
                                 // skip entries without attribute alias or calculation 
@@ -350,26 +362,71 @@ JS;
                                     return;
                                 }
 
-                                oModel.getData()['columns'].forEach(oColConf => {
-                                    if (oColConf.attribute_alias === oItem.attribute_alias) {
-                                        oColConf.visible = oItem.show;
-                                        aNewColModel.push(oColConf);
-                                        return;
-                                    }
-                                });
+                                // find the corresponding column in the p13n model
+                                let oColumnEntry = null;
+                                if (oItem.attribute_alias == null && oItem.calculation != null){
+                                    // calculation columns
+                                    oColumnEntry = aInitCols.find(function(column) {
+                                        return column.column_name === oItem.calculation;
+                                    });
+                                }
+                                else if (oItem.attribute_alias != null){
+                                    // attribute alias columns
+                                    oColumnEntry = aInitCols.find(function(column) {
+                                        return column.attribute_alias === oItem.attribute_alias;
+                                    });
+                                }
+
+                                // if column exists, set visibility of column according to setup
+                                // and add to new config model (check if id is already in config, to avoid duplicates here)
+                                if (oColumnEntry && aNewColModel.some(col => col && col.column_id === oColumnEntry.column_id) === false) {
+                                    oColumnEntry.visible = oItem.show;
+                                    aNewColModel.push(oColumnEntry);
+                                }
 
                                 // if column has a custom width assigned (in widget setup), set column width to that value 
                                 // and also set the data property on the column (so they dont get optimized/resized in buildJsUiTableColumnResize)
+                                // this is only done with ui.table
                                 if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                                    let oMatchingCol = oDataTable.getColumns().find(function(oCol) {
-                                        return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
-                                    });
-
+                                    
+                                    // find the actual column in hte table (not p13n model)
+                                    let oMatchingCol = null;
+                                    if (oItem.calculation != null){
+                                        // calculation cols
+                                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                            return oCol.data("_exfDataColumnName") === oItem.calculation;
+                                        });
+                                    }
+                                    else{
+                                        // attribute alias cols
+                                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                            return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
+                                        });
+                                    }
+                                    
+                                    // if column exists, set custom width (and also custom width data property)
                                     if (oMatchingCol) {
                                         oMatchingCol.data("_exfCustomColWidth", oItem.custom_width);
                                         oMatchingCol.setWidth(oItem.custom_width);
                                     }
                                 }
+                            });
+
+                            // add any missing columns back in as hidden columns at the end; 
+                            // this avoids data loss when columns are missing in widget setup, 
+                            // or if columns were added to the table later on (and the setup is older)
+                            aInitCols.forEach(oColConf => {
+                                let oColumnEntry = null;
+                                oColumnEntry = aNewColModel.find(function(column) {
+                                    return column.column_id === oColConf.column_id;
+                                });
+                                if (oColumnEntry) {
+                                    // column already in new model, skip
+                                    return;
+                                }
+
+                                oColConf.visible = false;
+                                aNewColModel.push(oColConf);
                             });
                             oModel.setProperty('/columns', aNewColModel);
 
