@@ -2056,6 +2056,17 @@ JS;
                         });
                     }, 0);
                 }
+                
+                // manually resized columns should always keep their width
+                // (only skipping them didnt work, so we set the saved value then return)
+                setTimeout(function(){
+                    $oTableJs.getColumns().forEach(function(oCol){
+                        if (oCol.data('_exfCustomColWidth')){
+                            oCol.setWidth(oCol.data('_exfCustomColWidth'));
+                            return;
+                        } 
+                    });
+                }, 0);
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
