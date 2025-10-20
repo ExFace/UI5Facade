@@ -194,7 +194,7 @@ JS;
         end: null
       }
     ], {
-        header_height: 46,
+        header_height: 39, //TODO SR: Fix Header lower padding and the number back to 46 here.
         column_width: 30,
         step: 24,
         view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
@@ -204,6 +204,10 @@ JS;
         padding: 14,
         view_mode: '$viewMode',
         date_format: {$this->escapeString($dateFormat)},
+        label_overflow: 'clip', //TODO SR: build a UXON Property for it (clip / outside)
+        keep_scroll_position: false, //TODO SR: build a UXON Property for it
+        auto_center_on_render: true, //TODO SR: build a UXON Property for it
+        auto_relayout_on_change: true, //TODO SR: build a UXON Property for it
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -256,6 +260,9 @@ JS;
                     processChildrenRecursively(oRow, moveDiffInHours, sColNameStart, sColNameEnd);
                 }
             }
+            if (oGantt.options.auto_relayout_on_change) {
+                oGantt.refresh(oGantt.tasks); // calls compute_rows_and_lanes() again.
+            }
     	}
     });
 })();
@@ -273,36 +280,87 @@ JS;
         } else {
             $colorResolversJs = 'null';
         }
+        
+        if ($calItem->getNestedDataColumn()) {
+            $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
+        } else {
+            $nestedDataColName = 'null';
+        }
         return <<<JS
             (function(oTable) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                let colorUtils = new ColorUtils();
                 var aTasks = [];
+                var sNestedColName = {$nestedDataColName}
+                let lineIndex = 0;
+                
                 oTable.getRows().forEach(function(oTreeRow) {
                     var oCtxt = oTreeRow.getBindingContext();
                     var oRow, sColor;
-                    if (! oCtxt) return;
+                    
+                    function fnRowToTask(oRow) {
+                        sColor = {$colorResolversJs};
+                        var oTask = {
+                            id: oRow['{$widget->getUidColumn()->getDataColumnName()}'],
+                            name: oRow['{$calItem->getTitleColumn()->getDataColumnName()}'],
+                            start: oRow["{$calItem->getStartTimeColumn()->getDataColumnName()}"],
+                            end: oRow["{$calItem->getEndTimeColumn()->getDataColumnName()}"],
+                            progress: 0,
+                            dependencies: '',
+                            lineIndex: lineIndex,
+                            draggable: $draggableJs,
+                            ...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                        };
+    
+                        if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
+                            oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
+                        }
+        
+                        if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
+                            oTask.custom_class += ' bar-folder';
+                        }
+                        
+                        aTasks.push(oTask);
+                    }
+                    
+                    if (!oCtxt) return;
+                    
                     oRow = oTable.getModel().getProperty(oCtxt.sPath);
-                    sColor = {$colorResolversJs};
-                    var oTask = {
-                        id: oRow['{$widget->getUidColumn()->getDataColumnName()}'],
-                        name: oRow['{$calItem->getTitleColumn()->getDataColumnName()}'],
-                        start: oRow["{$calItem->getStartTimeColumn()->getDataColumnName()}"],
-                        end: oRow["{$calItem->getEndTimeColumn()->getDataColumnName()}"],
-                        progress: 0,
-                        dependencies: '',
-                        draggable: $draggableJs
-                    };
-
-                    if(sColor !== null) {
-                        oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
+                    if (sNestedColName !== null) {
+                        var oNestedData = oRow[sNestedColName];
+                        oNestedData.rows.forEach(function(oNestedRow) {
+                            fnRowToTask(oNestedRow)
+                        })
+                    } else {
+                        fnRowToTask(oRow);
                     }
-    
-                    if(oRow._children.length > 0 && oTask.start && oTask.end) {
-                        oTask.custom_class += ' bar-folder';
-                    }
-    
-                    aTasks.push(oTask);
+                    
+                    lineIndex++
                 });
+                
+                
+                //TODO SR: Color and overlap test:
+                //TODO SR: Remove, if the feature is finished.
+/*                let oTestTasks = [
+                    
+                    //{id: '1', name:'Test Task 1', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: true, color: '#D98943', colorHover: '#D96D48'},
+                    {id: '1', name:'Maßnahme 1', start: '2025-09-30', end: '2025-10-05', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D98943')},
+                    //{id: '1', name:'Test Task 1', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: true, ...exfTools.color.deriveColors('#D98943')},
+                    
+                    {id: '2', name:'Maßnahme 2', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D96D48')},
+                    {id: '3', name:'Maßnahme 3', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#FFB1A8')},
+                    {id: '4', name:'Maßnahme 4', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D9C7A7')},
+                    {id: '5', name:'Maßnahme 5', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#65B6BF')},
+                    
+                    {id: '6', name:'Maßnahme 6', start: '2025-10-08', end: '2025-10-10', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#176A73')},
+                    {id: '7', name:'Maßnahme 7', start: '2025-10-11', end: '2025-10-14', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#83A603')},
+                    {id: '8', name:'Maßnahme 8', start: '2025-10-12', end: '2025-10-15', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#618C03')},
+                   ];
+                
+                oTestTasks.forEach(function(oTestTask) {
+                  aTasks.push(oTestTask);
+                })*/
+                
 
                 oGantt.tasks = aTasks;
                 if (aTasks.length > 0) {
@@ -338,7 +396,12 @@ JS;
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
-        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
+        $controller->addExternalModule('libs.exface.colorUtils.ColorUtils', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/color-utils.js', null, 'ColorUtils');
+
+        //TODO SR: ACHTUNG: Es sollte weiterhin die frappe-gant.min.cc hier verwendet werden. Alle weiteren CSS Änderungen sollten entweder in die große UI5 CSS rein, oder in eine separate CSS hier im Verzeichniss.
+        // Dabei sollte vor jeder CSS Codezeile ein .exf-gantt stehen. Dazu siehe Screenshots.
+        //$controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
+        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
         return $this;
     }
     
