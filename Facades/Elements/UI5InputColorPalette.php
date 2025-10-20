@@ -25,7 +25,9 @@ class UI5InputColorPalette extends UI5Input
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
+        $widget = $this->getWidget();
 
+        // TODO: teach the icon color to use defaultColor if the color binding has no value yet to show in a new dialog the default color to begin with (for now use default color button to get it after click)
         return <<<JS
         
         new sap.ui.core.Icon("{$this->getid()}", {
@@ -34,10 +36,7 @@ class UI5InputColorPalette extends UI5Input
             press: function() {                
                 var oColorPopover = new sap.m.ColorPalettePopover({    	
                     colors: {$this->buildJsColorValues()},
-                    defaultColor: 'transparent',
-                    showDefaultColorButton: false,
-                    showMoreColorsButton: true,
-                    displayMode: 'Simplified',
+                    {$this->buildJSPaletteOptions($widget)},
                     colorSelect: {$this->buildJsColorSelect()},
                     {$this->buildJsProperties()}
                 })
@@ -60,16 +59,7 @@ JS;
         if (!$ui5ColorBinding->isBoundToModel()) {
             $values = $this->buildJsColorValueNoColor(); // TODO
         } else {
-            $semColsJs = $this->getColorSemanticMap();
-            $colorScaleWithSemCols = [];
-            foreach ($widget->getColorScale() as $color) {
-                if (str_starts_with($color, '~')) {
-                    $colorScaleWithSemCols[] = $semColsJs[$color];
-                } else {
-                    $colorScaleWithSemCols[] = $color;
-                }
-            }
-            $values = $colorScaleWithSemCols;
+            $values = $this->translateSemanticColors($widget->getColorScale());
         }
         return json_encode($values);
     }
@@ -149,5 +139,44 @@ JS;
             {$this->buildJsPropertyDisabled()}
 JS;
         return $options;
+    }
+
+    private function buildJSPaletteOptions(InputColorPalette $widget)
+    {
+        $options = [
+            'defaultColor' => $this->translateSemanticColors([$widget->getDefaultColor()]),
+            'showDefaultColorButton' => $widget->getShowDefaultColorButton(),
+            'showMoreColorsButton' => $widget->getShowMoreColorsButton(),
+            'displayMode' => $widget->getDisplayMode(),
+        ];
+
+        $jsOptions = json_encode($options, JSON_PRETTY_PRINT);
+        $jsOptions = str_replace(array( '{', '}' ), '', $jsOptions);
+        return <<<JS
+        {$jsOptions}
+JS;
+    }
+
+    /**
+     * @param array $colorScale
+     * @return array|string
+     */
+    public function translateSemanticColors(array $colorScale): array|string
+    {
+        $semColsJs = $this->getColorSemanticMap();
+        $colorScaleWithSemCols = [];
+        foreach ($colorScale as $color) {
+            if (str_starts_with($color, '~')) {
+                $colorScaleWithSemCols[] = $semColsJs[$color];
+            } else {
+                $colorScaleWithSemCols[] = $color;
+            }
+        }
+
+        if (count($colorScaleWithSemCols) == 1) {
+            return $colorScaleWithSemCols[0];
+        }
+
+        return $colorScaleWithSemCols;
     }
 }
