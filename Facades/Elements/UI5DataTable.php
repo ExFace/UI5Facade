@@ -213,19 +213,10 @@ JS
                 // save current column config
                 if (aColumns !== undefined && aColumns.length > 0) {
                     aColumns.forEach(function(oColumn) {
-                        if (oColumn.attribute_alias != null){
-                            // cols with attribute alias
+                        if (oColumn.column_name != null){
+                            // save column_name and visibility
                             oSetupJson.columns.push({
-                                attribute_alias: oColumn.attribute_alias,
-                                show: oColumn.visible
-                            });
-                        }
-                        else if (oColumn.column_name != null){
-                            // calculation columns 
-                            // (maybe this would be better with column id? 
-                            // but then its less human readable/could cause issues if order of cols changed in uxon)
-                            oSetupJson.columns.push({
-                                calculation: oColumn.column_name,
+                                column_name: oColumn.column_name,
                                 show: oColumn.visible
                             });
                         }
@@ -243,19 +234,9 @@ JS
                         if (sCustomWidth) {
 
                             // find the column in the setup config
-                            let oColumnEntry = null;
-                            if (oCol.data("_exfCalculation")){
-                                // calculation cols
-                                oColumnEntry = oSetupJson.columns.find(function(column) {
-                                    return column.calculation === oCol.data("_exfDataColumnName");
-                                });
-                            }
-                            else{
-                                // attribute alias cols
-                                oColumnEntry = oSetupJson.columns.find(function(column) {
-                                    return column.attribute_alias === oCol.data("_exfAttributeAlias");
-                                });
-                            }
+                            let oColumnEntry = oSetupJson.columns.find(function(column) {
+                                    return column.column_name === oCol.data("_exfDataColumnName");
+                            });
                             
                             // save custom width in setup
                             if (oColumnEntry){
@@ -356,24 +337,25 @@ JS;
                             // loop through the widget setup columns
                             aColumnSetup.forEach(oItem => {
 
-                                // skip entries without attribute alias or calculation 
-                                // (older setups where calculations are not supported)
-                                if (oItem.attribute_alias == null && oItem.calculation == null){
+                                // skip entries without attribute alias or column_name 
+                                // (eg. faulty or older setups)
+                                if (oItem.attribute_alias == null && oItem.column_name == null){
                                     return;
                                 }
 
-                                // find the corresponding column in the p13n model
+                                // find the corresponding column (by column_name) in the p13n model
+                                // -> also ensure backwards compatiblity with attribute alias
                                 let oColumnEntry = null;
-                                if (oItem.attribute_alias == null && oItem.calculation != null){
-                                    // calculation columns
-                                    oColumnEntry = aInitCols.find(function(column) {
-                                        return column.column_name === oItem.calculation;
-                                    });
-                                }
-                                else if (oItem.attribute_alias != null){
-                                    // attribute alias columns
+                                if (oItem.attribute_alias != null){
+                                    // old: attribute alias columns
                                     oColumnEntry = aInitCols.find(function(column) {
                                         return column.attribute_alias === oItem.attribute_alias;
+                                    });
+                                }
+                                else if (oItem.column_name != null){
+                                    // new: column_name columns
+                                    oColumnEntry = aInitCols.find(function(column) {
+                                        return column.column_name === oItem.column_name;
                                     });
                                 }
 
@@ -389,16 +371,15 @@ JS;
                                 // this is only done with ui.table
                                 if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
                                     
-                                    // find the actual column in hte table (not p13n model)
+                                    // find the actual column in the table (not p13n model)
                                     let oMatchingCol = null;
-                                    if (oItem.calculation != null){
-                                        // calculation cols
+                                    if (oItem.column_name != null){
                                         oMatchingCol = oDataTable.getColumns().find(function(oCol) {
-                                            return oCol.data("_exfDataColumnName") === oItem.calculation;
+                                            return oCol.data("_exfDataColumnName") === oItem.column_name;
                                         });
                                     }
                                     else{
-                                        // attribute alias cols
+                                        // attribute alias cols (older setups)
                                         oMatchingCol = oDataTable.getColumns().find(function(oCol) {
                                             return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
                                         });
@@ -2017,13 +1998,6 @@ JS;
                 if (bResized) {
                     setTimeout(function(){
                         $oTableJs.getColumns().forEach(function(oCol){
-
-                            // skip manually resized columns 
-                            // (only skipping them didnt work, so we set the saved value then return)
-                            if (oCol.data('_exfCustomColWidth')){
-                                oCol.setWidth(oCol.data('_exfCustomColWidth'));
-                                return;
-                            } 
 
                             var oWidth = oCol.data('_exfWidth');
                             var jqCol = $('#'+oCol.getId());
