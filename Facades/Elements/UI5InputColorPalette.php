@@ -33,6 +33,8 @@ class UI5InputColorPalette extends UI5Input
         new sap.ui.core.Icon("{$this->getid()}", {
             src: "sap-icon://color-fill",
             color: {$this->buildJsValue()},
+            activeColor: {$this->buildJsValue()},
+            hoverColor: {$this->buildJsValue()},
             press: function() {                
                 var oColorPopover = new sap.m.ColorPalettePopover({    	
                     colors: {$this->buildJsColorValues()},
@@ -42,7 +44,7 @@ class UI5InputColorPalette extends UI5Input
                 })
                 oColorPopover.openBy(this);
             }
-    	})
+    	}).addStyleClass('exf-colorPalette')
     	
 JS;
     }
@@ -56,10 +58,10 @@ JS;
         $widgetColorBinding = $widget->getColorBinding();
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
         $values = [];
-        if (!$ui5ColorBinding->isBoundToModel()) {
-            $values = $this->buildJsColorValueNoColor(); // TODO
+        if ($ui5ColorBinding->isBoundToModel() === false) {
+            $values = [$this->getWidget()->getDefaultColor()];
         } else {
-            $values = $this->translateSemanticColors($widget->getColorScale());
+            $values = $this->translateSemanticColors($widget->getColorPresets());
         }
         return json_encode($values);
     }
@@ -72,7 +74,7 @@ JS;
     public function buildJsValueGetterMethod()
     {
         return <<<JS
-        getTooltip()
+        getColor()
 JS;
     }
 
@@ -106,10 +108,7 @@ JS;
         return <<<JS
 		function (oEvent) {
           var sColor = oEvent.getParameter("value");
-          var icon = sap.ui.getCore().byId("{$this->getid()}");
-          icon.setColor(sColor);
-          icon.setHoverColor(sColor);
-          icon.setActiveColor(sColor);
+          {$this->buildJsValidatorCheckRequired('sColor', '')}
           
           // convert function from co-pilot
           function rgbToHex(rgb) {
@@ -120,7 +119,14 @@ JS;
             }).join("");
           }
 
-          icon.setTooltip(sColor.startsWith("rgb") ? rgbToHex(sColor) : sColor);
+          // we only alow CSS and HEX colors for the input value
+          sColor = sColor.startsWith("rgb") ? rgbToHex(sColor) : sColor;          
+          var icon = sap.ui.getCore().byId("{$this->getid()}");
+          icon.setColor(sColor);
+          icon.setHoverColor(sColor);
+          icon.setActiveColor(sColor);
+          icon.setTooltip(sColor);
+          
         }
 JS;
     }
@@ -158,25 +164,40 @@ JS;
     }
 
     /**
-     * @param array $colorScale
+     * @param array $colorPresets
      * @return array|string
      */
-    public function translateSemanticColors(array $colorScale): array|string
+    public function translateSemanticColors(array $colorPresets): array|string
     {
         $semColsJs = $this->getColorSemanticMap();
-        $colorScaleWithSemCols = [];
-        foreach ($colorScale as $color) {
+        $colorPresetsWithSemCols = [];
+        foreach ($colorPresets as $color) {
             if (str_starts_with($color, '~')) {
-                $colorScaleWithSemCols[] = $semColsJs[$color];
+                $colorPresetsWithSemCols[] = $semColsJs[$color];
             } else {
-                $colorScaleWithSemCols[] = $color;
+                $colorPresetsWithSemCols[] = $color;
             }
         }
 
-        if (count($colorScaleWithSemCols) == 1) {
-            return $colorScaleWithSemCols[0];
+        if (count($colorPresetsWithSemCols) == 1) {
+            return $colorPresetsWithSemCols[0];
         }
 
-        return $colorScaleWithSemCols;
+        return $colorPresetsWithSemCols;
+    }
+
+    protected function buildJsValidatorCheckRequired(string $valueJs, string $onFailJs): string
+    {
+        if (($this->getWidget()->isRequired() === true || $this->getWidget()->getRequiredIf())) {
+            return <<<JS
+            var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
+            if ({$valueJs} === undefined || {$valueJs} === null || {$valueJs} === '') { 
+                oCtrl.addStyleClass('exf-colorPalette-Error');
+            } else {
+                oCtrl.removeStyleClass('exf-colorPalette-Error');
+            }
+JS;
+        }
+        return '';
     }
 }
