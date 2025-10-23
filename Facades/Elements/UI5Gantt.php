@@ -353,27 +353,6 @@ JS;
                     lineIndex++
                 });
                 
-                
-                //TODO SR: Color and overlap test:
-                //TODO SR: Remove, if the feature is finished.
-/*                let oTestTasks = [
-                    
-                    {id: '1', name:'Maßnahme 1', start: '2025-09-30', end: '2025-10-05', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D98943')},
-                    {id: '2', name:'Maßnahme 2', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D96D48')},
-                    {id: '3', name:'Maßnahme 3', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#FFB1A8')},
-                    {id: '4', name:'Maßnahme 4', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D9C7A7')},
-                    {id: '5', name:'Maßnahme 5', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#65B6BF')},
-                    
-                    {id: '6', name:'Maßnahme 6', start: '2025-10-08', end: '2025-10-10', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#176A73')},
-                    {id: '7', name:'Maßnahme 7', start: '2025-10-11', end: '2025-10-14', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#83A603')},
-                    {id: '8', name:'Maßnahme 8', start: '2025-10-12', end: '2025-10-15', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#618C03')},
-                   ];
-                
-                oTestTasks.forEach(function(oTestTask) {
-                  aTasks.push(oTestTask);
-                })*/
-               
-                
                 oGantt.tasks = aTasks;
                 if (aTasks.length > 0) {
                     oGantt.refresh(aTasks);
