@@ -349,3 +349,16 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     .responsiveFlexbox {flex-direction: column;}
     .customSearchField {padding-left: 16px;padding-right: 16px;}
 }
+
+/* ColorPalette */
+.exf-colorPalette {
+    display: flex;
+    margin: 0.5rem 0;
+}
+
+.exf-colorPalette.exf-colorPalette-Error {
+    border: 0.125rem solid #b00;
+    margin: 0.3rem 0;
+    justify-content: center;
+    width: 20px !important;
+}
