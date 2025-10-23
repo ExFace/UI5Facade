@@ -32,14 +32,14 @@
   stroke-width: 1.4;
 }
 .gantt .bar {
-  fill: var(--bar-fill, #b8c2cc);
+  fill: #b8c2cc;
   stroke: #8D99A6;
   stroke-width: 0;
   transition: stroke-width 0.3s ease;
   user-select: none;
 }
 .gantt .bar-progress {
-  fill: var(--bar-progress-fill, #a3a3ff);
+  fill: #a3a3ff;
 }
 .gantt .bar-invalid {
   fill: transparent;
@@ -73,20 +73,20 @@
   outline: none;
 }
 .gantt .bar-wrapper:hover .bar {
-  fill: var(--bar-fill-hover, var(--bar-fill, #a9b5c1));
+  fill: #a9b5c1;
 }
 .gantt .bar-wrapper:hover .bar-progress {
-  fill: var(--bar-progress-fill-hover, var(--bar-progress-fill, #8a8aff));
+  fill: #8a8aff;
 }
 .gantt .bar-wrapper:hover .handle {
   visibility: visible;
   opacity: 1;
 }
 .gantt .bar-wrapper.active .bar {
-  fill: var(--bar-fill-active, var(--bar-fill-hover, var(--bar-fill, #a9b5c1)));
+  fill: #a9b5c1;
 }
 .gantt .bar-wrapper.active .bar-progress {
-  fill: var(--bar-progress-fill-active, var(--bar-progress-fill-hover, var(--bar-progress-fill, #8a8aff)));
+  fill: #8a8aff;
 }
 .gantt .lower-text, .gantt .upper-text {
   font-size: 12px;
@@ -131,52 +131,3 @@
   border: 5px solid transparent;
   border-top-color: rgba(0, 0, 0, 0.8);
 }
-
-/* Lange Grenzlinien (Monatsanfang/-ende) in MonthWeeks */
-/*.gantt .tick.boundary {
-  stroke: #bdbdbd;    !* etwas kräftiger als normale Ticks *!
-  stroke-width: 1.2;
-}*/
-
-/* >> MonthWeeks CSS */
-/* month-end line */
-/*
-.gantt .tick.boundary.month-end {
-  stroke: #bdbdbd;
-  stroke-width: 1.2;
-}
-*/
-/* << MonthWeeks CSS */
-.bar-label { font-size: 12px; }
-.bar-label.big { font-size: 11px; }
-
-.gantt .bar-label.clip-left {
-  text-anchor: start !important;
-}
-/* aggregate-bar */
-.gantt .bar-wrapper.aggregate .bar {
-  stroke-width: 1;
-  stroke: rgba(0,0,0,0.25);
-}
-
-.gantt-container .popup-wrapper .agg-list {
-  margin: 6px 10px 10px;
-  padding-left: 16px;
-  color: #dfe2e5;
-  max-width: 260px;
-  max-height: 140px;
-  overflow: auto;
-}
-.gantt-container .popup-wrapper .agg-list li {
-  margin: 2px 0;
-  line-height: 1.25;
-}
-
-.gantt .agg-stripe {
-  shape-rendering: crispEdges;
-}
-.gantt .agg-stripe.anchor {
-  opacity: 0.9;
-}
-
-.gantt .agg-stripe-v { shape-rendering: crispEdges; }

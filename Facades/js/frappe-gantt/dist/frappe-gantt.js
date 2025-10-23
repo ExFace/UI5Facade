@@ -1347,7 +1347,6 @@ var Gantt = (function () {
                 custom_popup_html: null,
                 language: 'en',
                 label_overflow: 'outside', // 'outside' | 'hide' | 'clip'
-                auto_center_on_render: true,
                 keep_scroll_position: false,
                 lane_padding: 4, // vertical distance between lanes in the same row
                 // Automatically rearrange when dragging/resizing. 
@@ -1491,8 +1490,8 @@ var Gantt = (function () {
                 this.options.step = 24 * 365;
                 this.options.column_width = 12;
             } /*else if (view_mode === VIEW_MODE.MONTH_WEEKS) {  //TODO SR INFO: Month Weeks View:
-              this.options.step = 24 * 7;      // 1 Spalte = 1 Woche
-              this.options.column_width = 38;  // Geschmackssache: 36–72 px sind gut
+              this.options.step = 24 * 7;
+              this.options.column_width = 38;
             }*/
         }
 
@@ -1528,11 +1527,9 @@ var Gantt = (function () {
                 this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
                 this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
            /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-              // etwas Puffer und auf Sonntag snappen
               const s = start_of_week_sunday(date_utils.add(this.gantt_start, -7, 'day'));
               const e = start_of_week_sunday(date_utils.add(this.gantt_end,   14, 'day'));
               this.gantt_start = s;
-              // ensure gantt_end ist EXKLUSIVE Obergrenze: eine Woche hinter der letzten Woche
               this.gantt_end = date_utils.add(e, 7, 'day');*/
             } else {
                 this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
@@ -1550,7 +1547,6 @@ var Gantt = (function () {
                 if (!cur_date) {
                     cur_date = date_utils.clone(this.gantt_start);
 /*                  if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-                    // Start ist bereits auf Sonntag gesnappt
                     cur_date = start_of_week_sunday(date_utils.clone(this.gantt_start));
                   }*/
                 } else {
@@ -1559,7 +1555,7 @@ var Gantt = (function () {
                     } else if (this.view_is(VIEW_MODE.MONTH)) {
                         cur_date = date_utils.add(cur_date, 1, 'month');
 /*                    } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-                      cur_date = date_utils.add(cur_date, 7, 'day'); // ⬅️ Woche weiter*/
+                      cur_date = date_utils.add(cur_date, 7, 'day');*/
 
                     } else {
                         cur_date = date_utils.add(
@@ -1594,15 +1590,13 @@ var Gantt = (function () {
 
             // Scroll strategy:
             // 1) For the very first render: always centre on the first tasks
-            // 2) Then:
-            //    - if keep_scroll_position: Keep scroll position exactly
-            //    - otherwise, if auto_centre_on_render: centre again
+            // 2) Then: if keep_scroll_position: Keep scroll position exactly
             if (!this._initialScrollDone) {
               this.set_scroll_position();
               this._initialScrollDone = true;
             } else if (this.options.keep_scroll_position && container) {
               container.scrollLeft = prevScrollLeft;
-            } else if (this.options.auto_center_on_render) {
+            } else {
               this.set_scroll_position();
             }
         }
@@ -1694,10 +1688,9 @@ var Gantt = (function () {
             let tick_height = this.get_content_height();
 
             //TODO SR INFO: Month Weeks View:
-/*          // Höhe des Header-Rechtecks (wie in make_grid_header gezeichnet)
+/*          
             const header_box_height = this.options.header_height + 10;
 
-            // volle Höhe von ganz oben (y=0) bis ganz unten
             const full_height = header_box_height + this.options.padding / 2 + tick_height;
 
               for (let i= 0; i<this.dates.length; i++) {
@@ -1728,21 +1721,18 @@ var Gantt = (function () {
                   //TODO SR INFO: Month Weeks View:
 
 /*                if (this.view_is(VIEW_MODE.MONTH_WEEKS)) {
-                  // kurze Week-Ticks an jedem Sonntag (Spaltenanfang)
                   createSVG('path', {
                     d: `M ${tick_x} ${tick_y} v ${tick_height}`,
-                    class: 'tick', // nicht "thick"; thick kommt über boundary
+                    class: 'tick',
                     append_to: this.layers.grid,
                   });
 
-                  // Exakte MonatsEND-Grenze innerhalb dieser Woche zeichnen (1. Tag nächster Monat 00:00)
                   const weekStart = date; // dies ist bereits Sonntag
                   const weekEnd   = date_utils.add(weekStart, 7, 'day');
 
                   const monthStart    = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
                   const monthBoundary = date_utils.add(monthStart, 1, 'month'); // 1. des Folgemonats
 
-                  // Liegt die Monatsgrenze in dieser Woche (So..Sa)?
                   if (monthBoundary > weekStart && monthBoundary <= weekEnd) {
                     const msWeek = weekEnd - weekStart;
                     const msToBoundary = monthBoundary - weekStart;
@@ -1756,7 +1746,7 @@ var Gantt = (function () {
                     });
                   }
 
-                  tick_x += this.options.column_width; // nächste Woche (nächster Sonntag)
+                  tick_x += this.options.column_width;
                   continue;
                 }*/
 
@@ -1830,18 +1820,14 @@ var Gantt = (function () {
      /* make_dates() {
         const isMonthWeeks = this.view_is && this.view_is('MonthWeeks');
 
-        // ⬅️ WICHTIG: Date-Layer explizit leeren (defensiv),
-        // auch wenn render() normalerweise clear() aufruft.
         this.layers.date.innerHTML = '';
 
         // draw once, cache
         const draw = this.get_dates_to_draw();
 
-        // 1) Untere Labels (pro Spalte)
         for (let i = 0; i < draw.length; i++) {
           const d = draw[i];
 
-          // lower text immer
           createSVG('text', {
             x: d.lower_x,
             y: d.lower_y,
@@ -1850,7 +1836,6 @@ var Gantt = (function () {
             append_to: this.layers.date,
           });
 
-          // upper text NICHT für MonthWeeks hier zeichnen
           if (!isMonthWeeks && d.upper_text) {
             const $upper_text = createSVG('text', {
               x: d.upper_x,
@@ -1866,7 +1851,6 @@ var Gantt = (function () {
           }
         }
 
-        // 2) Für MonthWeeks: zentrierte Monatslabels separat & nur einmal zeichnen
         if (isMonthWeeks) {
           this.draw_monthweeks_upper_labels();
         }
@@ -1876,11 +1860,9 @@ var Gantt = (function () {
         const cw = this.options.column_width;
         const upperY = this.options.header_height - 25;
 
-        // Hilfsfunktionen: lokale Mitternacht, +Tage
         const localMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
         const addDaysLocal  = (d, days) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
 
-        // x-Position für ein beliebiges Datum innerhalb unserer Wochen-Spalten (Sonntag–Samstag)
         const xForDate = (dt) => {
           const weekMs = 7 * 24 * 60 * 60 * 1000;
           // finde Woche k, so dass dt in [dates[k], dates[k]+7)
@@ -1900,24 +1882,18 @@ var Gantt = (function () {
           return k * cw + ratio * cw;
         };
 
-        // Von sichtbarem Bereich die Monate iterieren: vom ersten sichtbaren Monatsanfang bis zum letzten
         const firstVisible = localMidnight(this.dates[0]);
         const lastVisible  = localMidnight(this.dates[this.dates.length - 1]);
 
-        // Start bei 1. des Monats, der firstVisible enthält/folgt
         let cursor = new Date(firstVisible.getFullYear(), firstVisible.getMonth(), 1);
 
-        // Falls firstVisible vor Monatsanfang liegt, auf nächsten Monatsanfang gehen
         if (firstVisible > cursor) {
-          // nichts, cursor ist bereits dieser Monatsanfang
         }
 
-        // Lauf bis (inkl.) Monat, der lastVisible noch schneidet
         while (cursor <= lastVisible) {
           const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
           const nextMonthStart = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
 
-          // Sichtbarkeitscheck: liegt irgendein Teil dieses Monats in unserem Bereich?
           if (nextMonthStart > this.dates[0] && monthStart < addDaysLocal(localMidnight(this.dates[this.dates.length - 1]), 7)) {
             const xStart = xForDate(monthStart);
             const xEnd   = xForDate(nextMonthStart);
@@ -1931,13 +1907,11 @@ var Gantt = (function () {
               append_to: this.layers.date,
             });
 
-            // out-of-bounds entfernen
             if ($t.getBBox().x2 > this.layers.grid.getBBox().width) {
               $t.remove();
             }
           }
 
-          // nächster Monat
           cursor = nextMonthStart;
         }
       }
@@ -1993,7 +1967,7 @@ var Gantt = (function () {
                         : '',
                 Day_upper:
                     date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'M')
+                        ? date_utils.format(date, 'MMM')
                         : '',
                 Week_upper:
                     date.getMonth() !== last_date.getMonth()
@@ -2010,11 +1984,11 @@ var Gantt = (function () {
               
               //TODO SR INFO: Month Weeks View:
                 /*
-                //MonthWeeks_lower: date_utils.format(date, 'd MMM'), // z. B. 2 Sep
-                MonthWeeks_lower: date_utils.format(date, 'd'), // z. B. 2 Sep
+                //MonthWeeks_lower: date_utils.format(date, 'd MMM'),
+                MonthWeeks_lower: date_utils.format(date, 'd'),
                 MonthWeeks_upper:
                     (!last_date || date.getMonth() !== last_date.getMonth())
-                        ? date_utils.format(date, 'MMM YYYY')           // z. B. "Sep 2025"
+                        ? date_utils.format(date, 'MMM YYYY')
                         : '',
                 */
             };
@@ -2040,8 +2014,8 @@ var Gantt = (function () {
                 Year_upper: (this.options.column_width * 30) / 2,
               
                 //TODO SR INFO: Month Weeks View:
-/*              MonthWeeks_lower: this.options.column_width / 2, // mittig
-                MonthWeeks_upper: (this.options.column_width * 4) / 2, // nur grob; wird abgeschnitten wenn out-of-bounds*/
+/*              MonthWeeks_lower: this.options.column_width / 2, 
+                MonthWeeks_upper: (this.options.column_width * 4) / 2, */
             };
 
             return {
@@ -2753,8 +2727,7 @@ var Gantt = (function () {
             const ia = idKey(a), ib = idKey(b);
             return ia > ib ? 1 : ia < ib ? -1 : 0;
           };
-
-          //TODO SR: Neu, Overlap fix:
+          
           rowMap.forEach((list, rowIndex) => {
             // hard resets for each row
             list.forEach(t => {

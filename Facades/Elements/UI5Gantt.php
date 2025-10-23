@@ -39,10 +39,21 @@ class UI5Gantt extends UI5DataTree
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
+        $controller = $this->getController();
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
         }
+        
+        // reloads the gantt task data at navigation return
+        $controller->addOnShowViewScript(
+            <<<JS
+               setTimeout(function(){
+                 const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
+                 {$this->buildJsSyncTreeToGantt('oTableReload')};
+                 },1000);
+JS
+            ,true);
         
         $gantt = <<<JS
         new sap.ui.layout.Splitter({
@@ -150,7 +161,10 @@ JS;
         $startCol = $calItem->getStartTimeColumn();
         $startFormatter = $this->getFacade()->getDataTypeFormatter($startCol->getDataType());
         $endCol = $calItem->getEndTimeColumn();
-        $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());       
+        $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
+        $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
+        $keepScrollPosition = $widget->getKeepScrollPosition();
+        $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
@@ -204,10 +218,9 @@ JS;
         padding: 14,
         view_mode: '$viewMode',
         date_format: {$this->escapeString($dateFormat)},
-        label_overflow: 'clip', //TODO SR: build a UXON Property for it (clip / outside)
-        keep_scroll_position: false, //TODO SR: build a UXON Property for it
-        auto_center_on_render: true, //TODO SR: build a UXON Property for it
-        auto_relayout_on_change: true, //TODO SR: build a UXON Property for it
+        label_overflow: '$titleOverflow',
+        keep_scroll_position: '$keepScrollPosition',
+        auto_relayout_on_change: '$autoRelayoutOnChange',
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -289,6 +302,8 @@ JS;
         return <<<JS
             (function(oTable) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                if (oGantt === undefined) return;
+                
                 let colorUtils = new ColorUtils();
                 var aTasks = [];
                 var sNestedColName = {$nestedDataColName}
@@ -309,7 +324,7 @@ JS;
                             dependencies: '',
                             lineIndex: lineIndex,
                             draggable: $draggableJs,
-                            ...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                            //...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
                         };
     
                         if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
@@ -343,10 +358,7 @@ JS;
                 //TODO SR: Remove, if the feature is finished.
 /*                let oTestTasks = [
                     
-                    //{id: '1', name:'Test Task 1', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: true, color: '#D98943', colorHover: '#D96D48'},
                     {id: '1', name:'Maßnahme 1', start: '2025-09-30', end: '2025-10-05', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D98943')},
-                    //{id: '1', name:'Test Task 1', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: true, ...exfTools.color.deriveColors('#D98943')},
-                    
                     {id: '2', name:'Maßnahme 2', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D96D48')},
                     {id: '3', name:'Maßnahme 3', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#FFB1A8')},
                     {id: '4', name:'Maßnahme 4', start: '2025-09-30', end: '2025-10-06', lineIndex:7, progress: 0, draggable: false, ...colorUtils.deriveColors('#D9C7A7')},
@@ -360,8 +372,8 @@ JS;
                 oTestTasks.forEach(function(oTestTask) {
                   aTasks.push(oTestTask);
                 })*/
+               
                 
-
                 oGantt.tasks = aTasks;
                 if (aTasks.length > 0) {
                     oGantt.refresh(aTasks);
@@ -397,11 +409,12 @@ JS;
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
         $controller->addExternalModule('libs.exface.colorUtils.ColorUtils', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/color-utils.js', null, 'ColorUtils');
-
-        //TODO SR: ACHTUNG: Es sollte weiterhin die frappe-gant.min.cc hier verwendet werden. Alle weiteren CSS Änderungen sollten entweder in die große UI5 CSS rein, oder in eine separate CSS hier im Verzeichniss.
-        // Dabei sollte vor jeder CSS Codezeile ein .exf-gantt stehen. Dazu siehe Screenshots.
-        //$controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
-        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
+        
+        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
+        //$controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
+        // task overlapping feature css:
+        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/exf-frappe-gantt.css');
+        
         return $this;
     }
     
