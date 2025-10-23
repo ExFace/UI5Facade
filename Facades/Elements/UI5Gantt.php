@@ -39,10 +39,21 @@ class UI5Gantt extends UI5DataTree
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
+        $controller = $this->getController();
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
         }
+        
+        // reloads the gantt task data at navigation return
+        $controller->addOnShowViewScript(
+            <<<JS
+               setTimeout(function(){
+                 const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
+                 {$this->buildJsSyncTreeToGantt('oTableReload')};
+                 },1000);
+JS
+            ,true);
         
         $gantt = <<<JS
         new sap.ui.layout.Splitter({
@@ -150,7 +161,10 @@ JS;
         $startCol = $calItem->getStartTimeColumn();
         $startFormatter = $this->getFacade()->getDataTypeFormatter($startCol->getDataType());
         $endCol = $calItem->getEndTimeColumn();
-        $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());       
+        $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
+        $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
+        $keepScrollPosition = $widget->getKeepScrollPosition();
+        $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
@@ -194,7 +208,7 @@ JS;
         end: null
       }
     ], {
-        header_height: 46,
+        header_height: 39, //TODO SR: Fix Header lower padding and the number back to 46 here.
         column_width: 30,
         step: 24,
         view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
@@ -204,6 +218,9 @@ JS;
         padding: 14,
         view_mode: '$viewMode',
         date_format: {$this->escapeString($dateFormat)},
+        label_overflow: '$titleOverflow',
+        keep_scroll_position: '$keepScrollPosition',
+        auto_relayout_on_change: '$autoRelayoutOnChange',
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -256,6 +273,9 @@ JS;
                     processChildrenRecursively(oRow, moveDiffInHours, sColNameStart, sColNameEnd);
                 }
             }
+            if (oGantt.options.auto_relayout_on_change) {
+                oGantt.refresh(oGantt.tasks); // calls compute_rows_and_lanes() again.
+            }
     	}
     });
 })();
@@ -273,37 +293,66 @@ JS;
         } else {
             $colorResolversJs = 'null';
         }
+        
+        if ($calItem->getNestedDataColumn()) {
+            $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
+        } else {
+            $nestedDataColName = 'null';
+        }
         return <<<JS
             (function(oTable) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                if (oGantt === undefined) return;
+                
+                let colorUtils = new ColorUtils();
                 var aTasks = [];
+                var sNestedColName = {$nestedDataColName}
+                let lineIndex = 0;
+                
                 oTable.getRows().forEach(function(oTreeRow) {
                     var oCtxt = oTreeRow.getBindingContext();
                     var oRow, sColor;
-                    if (! oCtxt) return;
+                    
+                    function fnRowToTask(oRow) {
+                        sColor = {$colorResolversJs};
+                        var oTask = {
+                            id: oRow['{$widget->getUidColumn()->getDataColumnName()}'],
+                            name: oRow['{$calItem->getTitleColumn()->getDataColumnName()}'],
+                            start: oRow["{$calItem->getStartTimeColumn()->getDataColumnName()}"],
+                            end: oRow["{$calItem->getEndTimeColumn()->getDataColumnName()}"],
+                            progress: 0,
+                            dependencies: '',
+                            lineIndex: lineIndex,
+                            draggable: $draggableJs,
+                            //...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                        };
+    
+                        if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
+                            oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
+                        }
+        
+                        if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
+                            oTask.custom_class += ' bar-folder';
+                        }
+                        
+                        aTasks.push(oTask);
+                    }
+                    
+                    if (!oCtxt) return;
+                    
                     oRow = oTable.getModel().getProperty(oCtxt.sPath);
-                    sColor = {$colorResolversJs};
-                    var oTask = {
-                        id: oRow['{$widget->getUidColumn()->getDataColumnName()}'],
-                        name: oRow['{$calItem->getTitleColumn()->getDataColumnName()}'],
-                        start: oRow["{$calItem->getStartTimeColumn()->getDataColumnName()}"],
-                        end: oRow["{$calItem->getEndTimeColumn()->getDataColumnName()}"],
-                        progress: 0,
-                        dependencies: '',
-                        draggable: $draggableJs
-                    };
-
-                    if(sColor !== null) {
-                        oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
+                    if (sNestedColName !== null) {
+                        var oNestedData = oRow[sNestedColName];
+                        oNestedData.rows.forEach(function(oNestedRow) {
+                            fnRowToTask(oNestedRow)
+                        })
+                    } else {
+                        fnRowToTask(oRow);
                     }
-    
-                    if(oRow._children.length > 0 && oTask.start && oTask.end) {
-                        oTask.custom_class += ' bar-folder';
-                    }
-    
-                    aTasks.push(oTask);
+                    
+                    lineIndex++
                 });
-
+                
                 oGantt.tasks = aTasks;
                 if (aTasks.length > 0) {
                     oGantt.refresh(aTasks);
@@ -338,7 +387,13 @@ JS;
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
+        $controller->addExternalModule('libs.exface.colorUtils.ColorUtils', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/color-utils.js', null, 'ColorUtils');
+        
         $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
+        //$controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
+        // task overlapping feature css:
+        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/exf-frappe-gantt.css');
+        
         return $this;
     }
     
