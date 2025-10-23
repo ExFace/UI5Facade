@@ -320,7 +320,7 @@ JS;
                             let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
                             let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
                             let oInitModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial');
-                            let aInitCols = oInitModel.getData()['columns'];
+                            let aInitCols = JSON.parse(JSON.stringify(oInitModel.getData()['columns'])); // deep copy to avoid reference issues
                             let aColumnSetup = oSetupUxon.columns;
                             let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
 
