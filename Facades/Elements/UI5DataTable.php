@@ -503,45 +503,53 @@ JS;
                         }
 
                         // after applying a setup, get the uid and mark it as default in the setups table
-                        getSetupData(sPageId, sWidgetId, null, 'setup_uid')
-                        .then(sSetupUid => {
-                            if (sSetupUid !== null && {$jsSetupsTableId} !== null){
+                        if ({$jsSetupsTableId} !== null){
+                        
+                            // get the ui5 datatable that shows the setups
+                            let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
+                            if (oSetupTable == undefined){
+                                return;
+                            }
+
+                            let oModel = oSetupTable.getModel();
+                            let oData = oModel.getProperty('/');
                             
-                                // get the ui5 datatable that shows the setups
-                                let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
-                                if (oSetupTable == undefined){
-                                    return;
-                                }
-                                
-                                let oModel = oSetupTable.getModel();
-                                let oData = oModel.getProperty('/');
-                                
+                            if (!oSetupTable.data("_exf_fnSetAsDefaultAttached")){
                                 // the setups table seems to refresh on every re-open so its not enough to set in once,
                                 // so it needs to be some sort of event listener that re-sets it on re-open/update
                                 let fnSetAsDefault = function(oEvent) {
-                                    let oModel = oSetupTable.getModel();
-                                    let oData = oModel.getProperty('/');
-                                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
-                                        oData.rows.forEach(row => {
-                                            row.SETUP_APPLIED = "";
-                                            if (row.UID === sSetupUid) {
-                                                row.SETUP_APPLIED = "sap-icon://accept";
-                                            }
-                                        });
+                                    // retrieve the currently applied setup uid from indexedDb/session storage
+                                    getSetupData(sPageId, sWidgetId, null, 'setup_uid')
+                                    .then(sSetupUid => {
+                                        let oModel = oSetupTable.getModel();
+                                        let oData = oModel.getProperty('/');
+                                        if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
+                                            oData.rows.forEach(row => {
+                                                row.SETUP_APPLIED = "";
+                                                if (row.UID === sSetupUid) {
+                                                    row.SETUP_APPLIED = "sap-icon://accept";
+                                                }
+                                            });
 
-                                        oModel.setProperty('/rows', oData.rows);
-                                    }
+                                            oModel.setProperty('/rows', oData.rows);
+                                        }
+                                    });
                                 };
 
                                 oSetupTable.detachUpdateFinished(fnSetAsDefault);
                                 oSetupTable.attachUpdateFinished(fnSetAsDefault);
 
-                                // if setup is manually applied, refresh ui to trigger event listener
-                                if ({$passedParameters}[0] !== 'localStorage'){
-                                    oModel.refresh(true);
-                                }
+                                // make sure listener is only attached once
+                                oSetupTable.data("_exf_fnSetAsDefaultAttached", true);
                             }
-                        });
+                            
+
+                            // if setup is manually applied, refresh ui to trigger event listener
+                            if ({$passedParameters}[0] !== 'localStorage'){
+                                oModel.refresh(true);
+                            }
+                        }
+                        
                     } 
                     else {
                         // return if no setup was passed or found
