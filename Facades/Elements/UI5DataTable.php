@@ -145,7 +145,6 @@ JS
 
         /* TODO/IDEA:
             -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
-            -> Filters/Sorters added from Column Header Menu do not get added it to config right now
         */
 
         // passed parameters
@@ -464,9 +463,6 @@ JS;
                                 oDialog.addFilterItem(oFilterItem);
                             });
                         }
-                        
-                        // Update UI 
-                        {$this->buildJsRefreshPersonalization()}
 
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
@@ -548,6 +544,12 @@ JS;
                             if ({$passedParameters}[0] !== 'localStorage'){
                                 oModel.refresh(true);
                             }
+                        }
+
+                        // apply changes immediately 
+                        let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oP13nDialog) {
+                            oP13nDialog.fireOk();
                         }
                         
                     } 
@@ -1241,8 +1243,37 @@ JS;
                         oColumn.setFiltered(true).setFilterValue(sFltrVal);
                     } else {
                         oColumn.setFiltered(false).setFilterValue('');
-                    }         
-    
+                    }  
+
+                    // also set the filter as an advanced search item in the p13n panel
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+
+                    // Check if a filter for the property already exists
+                    let aFilterItems = oDialog.getFilterItems();
+                    let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
+
+                    if (oExistingFilter) {
+                        // delete exiting property (if any)
+                        oDialog.removeFilterItem(oExistingFilter);
+                    } 
+                    if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
+                        // create new filter item if value is valid/not empty
+                        var oFilterItem = new sap.m.P13nFilterItem({
+                            "columnKey": sFltrProp,
+                            "exclude": false,
+                            "operation": "Contains",
+                            "value1": mFltrParsed
+                        });
+
+                        oDialog.addFilterItem(oFilterItem);
+                    }
+
+                    // apply the changes from the p13n dialogue 
+                    let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                    if (oP13nDialog) {
+                        oP13nDialog.fireOk();
+                    }
+
                     // Also make sure the built-in UI5-filtering is not applied.
                     oEvent.cancelBubble();
                     oEvent.preventDefault();
@@ -1254,14 +1285,33 @@ JS;
                 {$oParamsJs}.sort = {$oControlEventJsVar}.getParameters().column.getSortProperty();
                 {$oParamsJs}.order = {$oControlEventJsVar}.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
                 
-                sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}')
-                .destroySortItems()
-                .addSortItem(
-                    new sap.m.P13nSortItem({
-                        columnKey: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
-                        operation: {$oControlEventJsVar}.getParameters().sortOrder
-                    })
-                );
+                // get p13n model 
+                let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                let aSorters = oModel.getProperty('/sorters') || [];
+
+                // new sorter object
+                let oNewSorter = {
+                    attribute_alias: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
+                    direction: {$oControlEventJsVar}.getParameters().sortOrder
+                };
+                
+                let bExists = aSorters.some(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
+                if (!bExists) {
+                    // if entry doesnt exist, add new sorter
+                    aSorters.push(oNewSorter);
+                }
+                else{
+                    // if it exists, update sorting direction
+                    let oExistingSorter = aSorters.find(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
+                    if (oExistingSorter) {
+                        oExistingSorter.direction = oNewSorter.direction;
+                    }
+                }
+                
+                // update the model/refresh
+                oModel.setProperty('/sorters', aSorters);
+                oModel.refresh(true);
 
                 // Also make sure, the built-in UI5-sorting is not applied.
                 $oControlEventJsVar.cancelBubble();
