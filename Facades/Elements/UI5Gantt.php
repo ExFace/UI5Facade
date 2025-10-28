@@ -45,15 +45,25 @@ class UI5Gantt extends UI5DataTree
             $this->registerColorClasses($calItem->getColorScale());
         }
         
+        // adds the view mode buttons to the toolbar
+        $aSelectedViewModes = array_map([$this, 'convertDataTimelineGranularityToGanttViewMode'], $widget->getTimelineConfig()->getGranularitySelectable());
+        $widget->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
+        
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
             <<<JS
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
+                 
                  {$this->buildJsSyncTreeToGantt('oTableReload')};
-                 },1000);
+                 
+                 let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
+                 if (toolbarOffsetHeight !== undefined) {
+                   sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanelContent').css("height", "calc(100% - " + toolbarOffsetHeight + "px)");
+                 }
+               },0);
 JS
-            ,true);
+            ,false);
         
         $gantt = <<<JS
         new sap.ui.layout.Splitter({
@@ -68,6 +78,13 @@ JS
                             var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                             if (oCtrl.gantt === undefined) {
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
+                               
+                                // It renders the unrendered task bars on separate tabs
+                                var oSwitchTabTable = sap.ui.getCore().getElementById('{$this->getId()}');
+                                setTimeout(function(){
+                                    {$this->buildJsSyncTreeToGantt('oSwitchTabTable')}
+                                ;},0);
+                                
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
@@ -76,6 +93,12 @@ JS
                                         {$this->buildJsSyncTreeToGantt('oTable')};
                                     },100);
                                 });
+                            } else {
+                              // This refreshes the gantt chart, centring it on the first task bar again.
+                              const oGanttRefresh = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                              if (oGanttRefresh.tasks.length > 0) {
+                                oGanttRefresh.refresh(oGanttRefresh.tasks);
+                              }
                             }
                         },0);
                     }
@@ -172,7 +195,7 @@ JS;
             $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
         
-        switch ($widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)) {
+/*        switch ($widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)) {
             case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quater Day'; break;
             case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
             case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
@@ -181,7 +204,11 @@ JS;
             case DataTimeline::GRANULARITY_WEEKS: $viewMode = 'Week'; break;
             case DataTimeline::GRANULARITY_YEARS: $viewMode = 'Year'; break;
             default: $viewMode = 'sap.ui.unified.CalendarIntervalType.Hour'; break;
-        }
+        }*/
+        
+        $viewMode = $this->convertDataTimelineGranularityToGanttViewMode(
+            $widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)
+        );
         
         // see if this particular child(oChildRow)is to be moved along with its parent if the parent is moved
         // check if there is a condition set to adjust which children are to be moved along with its parent
@@ -531,5 +558,21 @@ JS;
         
         // cond1 && cond2 && (grp1cond1 || grp1cond2) && ...
         return implode($op, $jsConditions);
+    }
+    
+    protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
+    {
+        switch ($granularity) {
+            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quater Day'; break;
+            case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
+            case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
+            case DataTimeline::GRANULARITY_DAYS_PER_MONTH: $viewMode = 'Day'; break;
+            case DataTimeline::GRANULARITY_MONTHS: $viewMode = 'Month'; break;
+            case DataTimeline::GRANULARITY_WEEKS: $viewMode = 'Week'; break;
+            case DataTimeline::GRANULARITY_YEARS: $viewMode = 'Year'; break;
+            default: $viewMode = 'sap.ui.unified.CalendarIntervalType.Hour'; break;
+        }
+        
+        return $viewMode;
     }
 }

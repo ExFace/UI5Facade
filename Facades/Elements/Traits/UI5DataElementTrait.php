@@ -387,7 +387,7 @@ JS;
 				content: [
 					{$this->buildJsToolbarContent($oControllerJsVar, $leftExtras, $rightExtras)}
 				]
-			})
+			}).addStyleClass('exf-datatoolbar')
 
 JS;
     }
