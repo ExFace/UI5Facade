@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\Widgets\ButtonGroup;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Parts\DataTimeline;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsValueScaleTrait;
@@ -47,7 +49,7 @@ class UI5Gantt extends UI5DataTree
         
         // adds the view mode buttons to the toolbar
         $aSelectedViewModes = array_map([$this, 'convertDataTimelineGranularityToGanttViewMode'], $widget->getTimelineConfig()->getGranularitySelectable());
-        $widget->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
+        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -558,6 +560,43 @@ JS;
         
         // cond1 && cond2 && (grp1cond1 || grp1cond2) && ...
         return implode($op, $jsConditions);
+    }
+
+    /**
+     * Adds gantt view mode selection buttons to the toolbar
+     *
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @param array $viewModes
+     * @return void
+     */
+    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes = []) : void
+    {
+        if (empty($viewModes)) {
+            $viewModes = ['Day', 'Week', 'Month'];
+        }
+
+        $buttons = [];
+
+        foreach ($viewModes as $viewMode) {
+            $buttons[] = [
+                'caption' => $viewMode,
+                'action'  => [
+                    'alias'  => 'exface.Core.CustomFacadeScript',
+                    'hide_icon' => true,
+                    'script' => <<<JS
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewMode');
+JS
+                ],
+            ];
+        }
+
+        $btnGrp->addButton($btnGrp->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            'icon' => 'calendar',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), $index);
     }
     
     protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
