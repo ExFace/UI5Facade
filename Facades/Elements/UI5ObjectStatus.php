@@ -277,10 +277,6 @@ JS;
                     var sValueColor;
                     var oCtrl = this;
                     
-                    if (value !== null && sColor === '') {
-                        sColor = value;
-                    }
-                    
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         {$this->buildJsColorCssSetter('oCtrl', 'null')}

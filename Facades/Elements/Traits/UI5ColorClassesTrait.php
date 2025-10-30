@@ -108,6 +108,7 @@ trait UI5ColorClassesTrait {
     protected function buildJsColorClassSetter(string $oControlJs, string $sColorJs, string $cssCustomCssClass = 'exf-custom-color', $cssColorClassPrefix = 'exf-color-') : string
     {
         $cssReplaceJSON = json_encode($this->cssClassNameRemoveChars);
+        $cssInjector = $this->getWidget()->hasColorScale() ? '' : $this->buildJsColorClassInjector() . ';';
         
         // Note, the 
         return <<<JS
@@ -131,7 +132,7 @@ trait UI5ColorClassesTrait {
                         sColorClassSuffix = sColorClassSuffix.replace(sChar, '');
                     });
                     
-                    {$this->buildJsColorClassInjector()};
+                    {$cssInjector}
                     
                     oCtrl.addStyleClass(sCustomCssClass + ' ' + sColorClassPrefix + sColorClassSuffix);
                 }
