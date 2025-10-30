@@ -47,6 +47,12 @@ class UI5ObjectStatus extends UI5Display
             } else {
                 $colorCss = 'color: [#color#]';
             }
+            
+            $this->registerColorClasses(
+                $this->getWidget()->getColorScale(),
+                self::CSS_SELECTOR_TO_COLOR,
+                $colorCss
+            );
         }
         return <<<JS
         
@@ -341,7 +347,7 @@ JS;
         return <<<JS
 
         (function (sColor, sSuffix) {
-            var classId = 'free_color_' + sColor;
+            var classId = 'free_color_' + sSuffix;
             var jqTag = $('#' + classId);
             if (jqTag.length === 0) {
                 var text = ('{$cssTemplate}').replace(/#%COLOR%/g, sColor).replace(/%COLOR%/g, sSuffix);
