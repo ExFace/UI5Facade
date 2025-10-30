@@ -30,6 +30,8 @@ class UI5Gantt extends UI5DataTree
     
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
+    const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
+    
     /**
      * 
      * {@inheritDoc}
@@ -40,6 +42,7 @@ class UI5Gantt extends UI5DataTree
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
+        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -55,7 +58,7 @@ class UI5Gantt extends UI5DataTree
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
                  
-                 {$this->buildJsSyncTreeToGantt('oTableReload')};
+                 {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTableReload')};
                  
                  let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
                  if (toolbarOffsetHeight !== undefined) {
@@ -76,13 +79,12 @@ JS
                     afterRendering: function(oEvent) {
                         setTimeout(function() {
                             var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
-                            if (oCtrl.gantt === undefined) {
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
-                               
+                                
                                 // It renders the unrendered task bars on separate tabs
                                 var oSwitchTabTable = sap.ui.getCore().getElementById('{$this->getId()}');
                                 setTimeout(function(){
-                                    {$this->buildJsSyncTreeToGantt('oSwitchTabTable')}
+                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oSwitchTabTable')};
                                 ;},0);
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
@@ -90,16 +92,9 @@ JS
                                     var oBinding = oEvent.getSource();
                                     var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
                                     setTimeout(function(){
-                                        {$this->buildJsSyncTreeToGantt('oTable')};
+                                        {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                     },100);
                                 });
-                            } else {
-                              // This refreshes the gantt chart, centring it on the first task bar again.
-                              const oGanttRefresh = sap.ui.getCore().byId('{$this->getId()}').gantt;
-                              if (oGanttRefresh.tasks.length > 0) {
-                                oGanttRefresh.refresh(oGanttRefresh.tasks);
-                              }
-                            }
                         },0);
                     }
                 })
@@ -139,7 +134,7 @@ JS;
 
                 var oTable = oEvent.getSource();
                 setTimeout(function(){
-                    {$this->buildJsSyncTreeToGantt('oTable')};
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                 },10);
 JS;
     }
@@ -157,7 +152,7 @@ JS;
                 var domGanttContainer = $('#{$this->getId()}_gantt .gantt-container')[0];
                 var iScrollLeft = domGanttContainer.scrollLeft;
                 setTimeout(function(){
-                    {$this->buildJsSyncTreeToGantt('oTable')};
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                     domGanttContainer.scrollTo(iScrollLeft, 0);
                 },10);
 JS;
@@ -194,17 +189,6 @@ JS;
         } else {
             $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
-        
-/*        switch ($widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)) {
-            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quater Day'; break;
-            case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_MONTH: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_MONTHS: $viewMode = 'Month'; break;
-            case DataTimeline::GRANULARITY_WEEKS: $viewMode = 'Week'; break;
-            case DataTimeline::GRANULARITY_YEARS: $viewMode = 'Year'; break;
-            default: $viewMode = 'sap.ui.unified.CalendarIntervalType.Hour'; break;
-        }*/
         
         $viewMode = $this->convertDataTimelineGranularityToGanttViewMode(
             $widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)
