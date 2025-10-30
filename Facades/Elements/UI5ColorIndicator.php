@@ -90,6 +90,7 @@ JS;
             $bindingOptions = <<<JS
                 formatter: function(value){
                     var sColor = {$colorResolverJs};
+                    
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         return oColorScale[sColor];
