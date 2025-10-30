@@ -29,7 +29,6 @@ class UI5Gantt extends UI5DataTree
     use UI5ColorClassesTrait;
 
     const EVENT_NAME_TIMELINE_SHIFT = 'timeline_shift';
-    
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
@@ -307,7 +306,7 @@ JS;
             $colorResolversJs = 'null';
         }
         
-        if ($calItem->getNestedDataColumn()) {
+        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
         } else {
             $nestedDataColName = 'null';
@@ -337,7 +336,7 @@ JS;
                             dependencies: '',
                             lineIndex: lineIndex,
                             draggable: $draggableJs,
-                            //...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                            ...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
                         };
     
                         if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
