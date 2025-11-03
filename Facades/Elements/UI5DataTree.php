@@ -134,7 +134,7 @@ JS;
         return parent::buildJsDataLoaderOnLoaded($oModelJs) . <<<JS
 
                 var oDataTree = {$this->buildJsTransformToTree($oModelJs . '.getData()')};
-                {$oModelJs}.setData(oDataTree); console.log('loaded');
+                {$oModelJs}.setData(oDataTree);
                 {$treeModeJs}
 
 JS;
