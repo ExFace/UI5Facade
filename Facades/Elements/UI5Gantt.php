@@ -563,7 +563,7 @@ JS;
 
         foreach ($viewModes as $viewMode) {
             $buttons[] = [
-                'caption' => $viewMode,
+                'caption' => $this->translateViewMode($viewMode),
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'hide_icon' => true,
@@ -596,5 +596,20 @@ JS
         }
         
         return $viewMode;
+    }
+    
+    protected function translateViewMode($viewMode) : string
+    {
+        $translator = $this->getWidget()->getWorkbench()->getCoreApp()->getTranslator();
+        
+        switch ($viewMode) {
+            case 'Quater Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_QUARTER_DAY'); break;
+            case 'Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_DAY'); break;
+            case 'Month': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_MONTH'); break;
+            case 'Week': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_WEEK'); break;
+            case 'Year': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_YEAR'); break;
+            default: $translation = $viewMode; break;
+        }
+        return $translation;
     }
 }
