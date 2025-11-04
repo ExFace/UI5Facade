@@ -300,11 +300,7 @@ JS;
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
-        if ($calItem->hasColorScale()) {
-            $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
-        } else {
-            $colorResolversJs = 'null';
-        }
+        $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
         
         if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
@@ -336,12 +332,8 @@ JS;
                             dependencies: '',
                             lineIndex: lineIndex,
                             draggable: $draggableJs,
-                            ...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                            ...colorUtils.deriveColors(sColor)
                         };
-    
-                        if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
-                            oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
-                        }
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
                             oTask.custom_class += ' bar-folder';
@@ -424,7 +416,7 @@ JS;
                 if ($calItem->hasColorScale()) {
                     return <<<JS
                         (function(oRow){
-                            var value = oRowJs['{$colorCol->getDataColumnName()}']
+                            var value = {$oRowJs}['{$colorCol->getDataColumnName()}']
                             var sColor = {$this->buildJsScaleResolver('value', $calItem->getColorScale(), $calItem->isColorScaleRangeBased())};
                             var sCssColor = '';
                             var oSemanticColors = $semanticColorsJs;
@@ -442,7 +434,7 @@ JS;
             case null !== $colorVal = $calItem->getColor():
                 return $this->escapeString($colorVal);
         }
-        return '';
+        return 'null';
     }
     
     /**
