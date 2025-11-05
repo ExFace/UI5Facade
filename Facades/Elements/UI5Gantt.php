@@ -183,6 +183,7 @@ JS;
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
+        $defaultDurationHours = $calItem->getDefaultDurationHours();
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
@@ -232,6 +233,7 @@ JS;
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
         auto_relayout_on_change: '$autoRelayoutOnChange',
+        default_duration: Math.floor('$defaultDurationHours' / 24),
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
