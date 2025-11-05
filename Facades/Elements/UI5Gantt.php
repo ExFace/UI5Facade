@@ -33,6 +33,8 @@ class UI5Gantt extends UI5DataTree
     
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
     
+    const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
+    
     /**
      * 
      * {@inheritDoc}
@@ -44,6 +46,7 @@ class UI5Gantt extends UI5DataTree
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
         $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
+        $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -80,22 +83,18 @@ JS
                     afterRendering: function(oEvent) {
                         setTimeout(function() {
                             var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
+                            var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
+                             
+                            if (oCtrl.gantt === undefined) {
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
-                                
-                                // It renders the unrendered task bars on separate tabs
-                                var oSwitchTabTable = sap.ui.getCore().getElementById('{$this->getId()}');
-                                setTimeout(function(){
-                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oSwitchTabTable')};
-                                ;},0);
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
-                                    var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
-                                    setTimeout(function(){
-                                        {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
-                                    },100);
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                 });
+                            }
+                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                         },0);
                     }
                 })
@@ -301,6 +300,7 @@ JS;
         $calItem = $widget->getTasksConfig();
         $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
+        $controller = $this->getController();
         
         if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
@@ -308,7 +308,7 @@ JS;
             $nestedDataColName = 'null';
         }
         return <<<JS
-            (function(oTable) {
+            const syncTreeToGantt = function(oTable) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
                 
@@ -363,9 +363,37 @@ JS;
                 } else  {
                     oGantt.clear();
                 }
-            })($oTableJs)
+            };
+
+            let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};
+            if (isTableReady) {
+              setTimeout(function(){
+                syncTreeToGantt($oTableJs);
+              },0);
+            } else {
+              setTimeout(function(){
+                syncTreeToGantt($oTableJs);
+              },200);
+            }
             
 JS;
+    }
+
+    /**
+     * This function checks if the oTable with relevant data is ready.
+     * 
+     * @param string $oTableJs
+     * @return string
+     */
+    public function buildJsCheckTableIsReady(string $oTableJs) : string
+    {
+        return <<<JS
+            return (function checkTableIsReady(oTable) {
+              const oTableRows = oTable.getRows();
+              return oTableRows.some(row => !!row.getBindingContext());
+            })($oTableJs);
+JS;
+
     }
     
     /**
