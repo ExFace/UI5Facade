@@ -1354,6 +1354,7 @@ var Gantt = (function () {
                 auto_relayout_on_change: false, 
                 row_height: null, //is calculated automatically, if set to null
                 bar_inner_padding: 6, // Total vertical padding within the row for each task
+                default_duration: 1
             };
             
             this.options = Object.assign({}, default_options, (options || {}));
@@ -1390,15 +1391,16 @@ var Gantt = (function () {
                 if (!task.start && !task.end) {
                     const today = date_utils.today();
                     task._start = today;
-                    task._end = date_utils.add(today, 2, 'day');
+                  //TODO SR: The "-1" makes the task-block to disappear, but it breaks the overlapping logik a little bit
+                    task._end = date_utils.add(today, this.options.default_duration, 'day');
                 }
 
                 if (!task.start && task.end) {
-                    task._start = date_utils.add(task._end, -2, 'day');
+                    task._start = date_utils.add(task._end, - this.options.default_duration, 'day');
                 }
 
                 if (task.start && !task.end) {
-                    task._end = date_utils.add(task._start, 2, 'day');
+                    task._end = date_utils.add(task._start, this.options.default_duration, 'day');
                 }
 
               
@@ -1408,7 +1410,7 @@ var Gantt = (function () {
 
                 // if hours is not set, assume the last day is full day
                 // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
-                if (!hadEndObj && this.options.step >= 24 && (this.options.step % 24) === 0) {
+                if (this.options.step >= 24 && (this.options.step % 24) === 0) { //TODO SR: Check, why here is a ">=" in the condition.
                   task._end = date_utils.add(task._end, 24, 'hour');
                 }
             
