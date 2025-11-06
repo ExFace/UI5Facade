@@ -343,7 +343,13 @@ JS;
      */
     protected function buildJsColorClassInjector(string $colorJs = 'sColor', string $colorSuffixJs = 'sColorClassSuffix'): string
     {
-        $cssTemplate = $this->colorToCssClass('#%COLOR%', null, self::CSS_SELECTOR_TO_COLOR);
+        $cssTemplate = $this->colorToCssClass(
+            '#%COLOR%', 
+            null, 
+            self::CSS_SELECTOR_TO_COLOR,
+            $this->isInverted() ? 'background-color: [#color#]' : 'color: [#color#]'
+        );
+        
         return <<<JS
 
         (function (sColor, sSuffix) {
