@@ -23,11 +23,13 @@ use exface\Core\DataTypes\ByteSizeDataType;
 class UI5ImageGallery extends UI5AbstractElement
 {
     use SlickGalleryTrait, UI5DataElementTrait {
+        SlickGalleryTrait::buildJsEditableChangesGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsDataGetter as buildJsSlickDataGetter;
         SlickGalleryTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsUploadStore as buildJsUploadStoreViaTrait;
-        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
+        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaDataElementTrait;
+        SlickGalleryTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaSlickGalleryTrait;
     }
     
     use JsUploaderTrait;
@@ -109,10 +111,10 @@ JS;
      */
     protected function buildJsDataLoaderOnLoaded(string $oModelJs = 'oModel') : string
     {
-        return $this->buildJsDataLoaderOnLoadedViaTrait($oModelJs) . <<<JS
-
+        return 
+            $this->buildJsDataLoaderOnLoadedViaDataElementTrait($oModelJs) . 
+            $this->buildJsDataLoaderOnLoadedViaSlickGalleryTrait('oModel.getData()') . <<<JS
                 var carousel = $('#{$this->getIdOfSlick()}');
-                    
                 {$this->buildJsSlickSlidesFromData('carousel', 'oModel.getData()')}
 
 JS;
@@ -234,7 +236,7 @@ JS;
      */
     protected function isEditable()
     {
-        return false;
+        return $this->getWidget()->isEditable();
     }
     
     /**
@@ -416,5 +418,26 @@ JS
         });
     })($oControllerJs)
 JS;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false): string
+    {
+        return <<<JS
+
+(function (aOld, aChanges){
+    return aChanges.length === 0 ? [] : [
+        {
+            elementId: '{$this->getId()}',
+            caption: {$this->escapeString($this->getCaption())},
+            valueOld: aOld,
+            valueNew: aChanges
+        }
+    ];    
+})(({$this->buildJsLastLoadedGetter()}?.rows || []), {$this->buildJsEditableChangesGetter()})
+JS;
+
     }
 }
