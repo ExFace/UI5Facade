@@ -586,6 +586,20 @@ JS;
                 var aNewKeys = [];
                 var sMultiValDelim = {$this->escapeString($widget->getMultipleValuesDelimiter())};
 
+                // deduplicate the data array and update the row count if changed
+                // this is needed, if a query returns multiple entries with the same content
+                // in that case, it doesnt matter which one we take to match the key 
+                var aSeen = new Set();
+                data = data.filter(item => {
+                    const str = JSON.stringify(item);
+                    if (aSeen.has(str)) return false;
+                    aSeen.add(str);
+                    return true;
+                });
+                if (iRowsCnt !== data.length){
+                    iRowsCnt = data.length;
+                }
+
                 if (bSilent) {
                     if (iRowsCnt === 1 && (curKey === '' || data[0]['{$widget->getValueColumn()->getDataColumnName()}'] == curKey)) {
                         if (oInput.destroyTokens !== undefined) {

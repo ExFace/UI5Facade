@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\Widgets\ButtonGroup;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Parts\DataTimeline;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsValueScaleTrait;
@@ -27,8 +29,11 @@ class UI5Gantt extends UI5DataTree
     use UI5ColorClassesTrait;
 
     const EVENT_NAME_TIMELINE_SHIFT = 'timeline_shift';
-    
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
+    
+    const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
+    
+    const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
     
     /**
      * 
@@ -40,6 +45,8 @@ class UI5Gantt extends UI5DataTree
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
+        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
+        $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -47,7 +54,7 @@ class UI5Gantt extends UI5DataTree
         
         // adds the view mode buttons to the toolbar
         $aSelectedViewModes = array_map([$this, 'convertDataTimelineGranularityToGanttViewMode'], $widget->getTimelineConfig()->getGranularitySelectable());
-        $widget->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
+        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -55,7 +62,7 @@ class UI5Gantt extends UI5DataTree
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
                  
-                 {$this->buildJsSyncTreeToGantt('oTableReload')};
+                 {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTableReload')};
                  
                  let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
                  if (toolbarOffsetHeight !== undefined) {
@@ -76,30 +83,18 @@ JS
                     afterRendering: function(oEvent) {
                         setTimeout(function() {
                             var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
+                            var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
+                             
                             if (oCtrl.gantt === undefined) {
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
-                               
-                                // It renders the unrendered task bars on separate tabs
-                                var oSwitchTabTable = sap.ui.getCore().getElementById('{$this->getId()}');
-                                setTimeout(function(){
-                                    {$this->buildJsSyncTreeToGantt('oSwitchTabTable')}
-                                ;},0);
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
-                                    var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
-                                    setTimeout(function(){
-                                        {$this->buildJsSyncTreeToGantt('oTable')};
-                                    },100);
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                 });
-                            } else {
-                              // This refreshes the gantt chart, centring it on the first task bar again.
-                              const oGanttRefresh = sap.ui.getCore().byId('{$this->getId()}').gantt;
-                              if (oGanttRefresh.tasks.length > 0) {
-                                oGanttRefresh.refresh(oGanttRefresh.tasks);
-                              }
                             }
+                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                         },0);
                     }
                 })
@@ -139,7 +134,7 @@ JS;
 
                 var oTable = oEvent.getSource();
                 setTimeout(function(){
-                    {$this->buildJsSyncTreeToGantt('oTable')};
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                 },10);
 JS;
     }
@@ -157,7 +152,7 @@ JS;
                 var domGanttContainer = $('#{$this->getId()}_gantt .gantt-container')[0];
                 var iScrollLeft = domGanttContainer.scrollLeft;
                 setTimeout(function(){
-                    {$this->buildJsSyncTreeToGantt('oTable')};
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                     domGanttContainer.scrollTo(iScrollLeft, 0);
                 },10);
 JS;
@@ -188,23 +183,13 @@ JS;
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
+        $defaultDurationHours = $calItem->getDefaultDurationHours();
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
         } else {
             $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
-        
-/*        switch ($widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)) {
-            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quater Day'; break;
-            case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_MONTH: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_MONTHS: $viewMode = 'Month'; break;
-            case DataTimeline::GRANULARITY_WEEKS: $viewMode = 'Week'; break;
-            case DataTimeline::GRANULARITY_YEARS: $viewMode = 'Year'; break;
-            default: $viewMode = 'sap.ui.unified.CalendarIntervalType.Hour'; break;
-        }*/
         
         $viewMode = $this->convertDataTimelineGranularityToGanttViewMode(
             $widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)
@@ -248,6 +233,7 @@ JS;
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
         auto_relayout_on_change: '$autoRelayoutOnChange',
+        default_duration: Math.floor('$defaultDurationHours' / 24),
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -315,19 +301,16 @@ JS;
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
-        if ($calItem->hasColorScale()) {
-            $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
-        } else {
-            $colorResolversJs = 'null';
-        }
+        $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
+        $controller = $this->getController();
         
-        if ($calItem->getNestedDataColumn()) {
+        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
         } else {
             $nestedDataColName = 'null';
         }
         return <<<JS
-            (function(oTable) {
+            const syncTreeToGantt = function(oTable) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
                 
@@ -351,12 +334,8 @@ JS;
                             dependencies: '',
                             lineIndex: lineIndex,
                             draggable: $draggableJs,
-                            //...colorUtils.deriveColors(sColor) //TODO SR: put the right color here.
+                            ...colorUtils.deriveColors(sColor)
                         };
-    
-                        if(sColor !== null) { //TODO SR: Delete this and use the "...colorUtils.deriveColors(sColor)" instead.
-                            oTask.custom_class += 'exf-custom-color exf-color-' + sColor.replace("#", "");
-                        }
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
                             oTask.custom_class += ' bar-folder';
@@ -386,9 +365,37 @@ JS;
                 } else  {
                     oGantt.clear();
                 }
-            })($oTableJs)
+            };
+
+            let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};
+            if (isTableReady) {
+              setTimeout(function(){
+                syncTreeToGantt($oTableJs);
+              },0);
+            } else {
+              setTimeout(function(){
+                syncTreeToGantt($oTableJs);
+              },200);
+            }
             
 JS;
+    }
+
+    /**
+     * This function checks if the oTable with relevant data is ready.
+     * 
+     * @param string $oTableJs
+     * @return string
+     */
+    public function buildJsCheckTableIsReady(string $oTableJs) : string
+    {
+        return <<<JS
+            return (function checkTableIsReady(oTable) {
+              const oTableRows = oTable.getRows();
+              return oTableRows.some(row => !!row.getBindingContext());
+            })($oTableJs);
+JS;
+
     }
     
     /**
@@ -439,7 +446,7 @@ JS;
                 if ($calItem->hasColorScale()) {
                     return <<<JS
                         (function(oRow){
-                            var value = oRowJs['{$colorCol->getDataColumnName()}']
+                            var value = {$oRowJs}['{$colorCol->getDataColumnName()}']
                             var sColor = {$this->buildJsScaleResolver('value', $calItem->getColorScale(), $calItem->isColorScaleRangeBased())};
                             var sCssColor = '';
                             var oSemanticColors = $semanticColorsJs;
@@ -457,7 +464,7 @@ JS;
             case null !== $colorVal = $calItem->getColor():
                 return $this->escapeString($colorVal);
         }
-        return '';
+        return 'null';
     }
     
     /**
@@ -559,6 +566,43 @@ JS;
         // cond1 && cond2 && (grp1cond1 || grp1cond2) && ...
         return implode($op, $jsConditions);
     }
+
+    /**
+     * Adds gantt view mode selection buttons to the toolbar
+     *
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @param array $viewModes
+     * @return void
+     */
+    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes = []) : void
+    {
+        if (empty($viewModes)) {
+            $viewModes = ['Day', 'Week', 'Month'];
+        }
+
+        $buttons = [];
+
+        foreach ($viewModes as $viewMode) {
+            $buttons[] = [
+                'caption' => $this->translateViewMode($viewMode),
+                'action'  => [
+                    'alias'  => 'exface.Core.CustomFacadeScript',
+                    'hide_icon' => true,
+                    'script' => <<<JS
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewMode');
+JS
+                ],
+            ];
+        }
+
+        $btnGrp->addButton($btnGrp->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            'icon' => 'calendar',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), $index);
+    }
     
     protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
     {
@@ -574,5 +618,20 @@ JS;
         }
         
         return $viewMode;
+    }
+    
+    protected function translateViewMode($viewMode) : string
+    {
+        $translator = $this->getWidget()->getWorkbench()->getCoreApp()->getTranslator();
+        
+        switch ($viewMode) {
+            case 'Quater Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_QUARTER_DAY'); break;
+            case 'Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_DAY'); break;
+            case 'Month': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_MONTH'); break;
+            case 'Week': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_WEEK'); break;
+            case 'Year': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_YEAR'); break;
+            default: $translation = $viewMode; break;
+        }
+        return $translation;
     }
 }

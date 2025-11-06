@@ -39,7 +39,9 @@ class UI5DataImporter extends UI5AbstractElement
 JS;
 
         // add a button to add a specified number of rows to spreadsheet
-        $this->addNewRowsButton($this->getWidget()->getToolbarMain()->getButtonGroup(0), 0);
+        if (count($this->getWidget()->getToolbarMain()->getButtonGroups()) > 0){
+            $this->addNewRowsButton($this->getWidget()->getToolbarMain()->getButtonGroup(0), 0);
+        }
                             
         return $this->buildJsPanelWrapper($table, $oControllerJs) . ".addStyleClass('sapUiNoContentPadding exf-panel-no-border')";
     }
