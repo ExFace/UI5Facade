@@ -1354,7 +1354,11 @@ var Gantt = (function () {
                 auto_relayout_on_change: false, 
                 row_height: null, //is calculated automatically, if set to null
                 bar_inner_padding: 6, // Total vertical padding within the row for each task
-                default_duration: 1
+                default_duration: 1,
+                view_mode_column_width_day: 38,
+                view_mode_column_width_week: 140,
+                view_mode_column_width_month: 20,
+                view_mode_column_width_year: 12
             };
             
             this.options = Object.assign({}, default_options, (options || {}));
@@ -1475,22 +1479,22 @@ var Gantt = (function () {
 
             if (view_mode === VIEW_MODE.DAY) {
                 this.options.step = 24;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_day;
             } else if (view_mode === VIEW_MODE.HALF_DAY) {
                 this.options.step = 24 / 2;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_day;
             } else if (view_mode === VIEW_MODE.QUARTER_DAY) {
                 this.options.step = 24 / 4;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_day;
             } else if (view_mode === VIEW_MODE.WEEK) {
                 this.options.step = 24 * 7;
-                this.options.column_width = 140;
+                this.options.column_width = this.options.view_mode_column_width_week;
             } else if (view_mode === VIEW_MODE.MONTH) {
                 this.options.step = 24 * 30;
-                this.options.column_width = 20;
+                this.options.column_width = this.options.view_mode_column_width_month;
             } else if (view_mode === VIEW_MODE.YEAR) {
                 this.options.step = 24 * 365;
-                this.options.column_width = 12;
+                this.options.column_width = this.options.view_mode_column_width_year;
             } /*else if (view_mode === VIEW_MODE.MONTH_WEEKS) {  //TODO SR INFO: Month Weeks View:
               this.options.step = 24 * 7;
               this.options.column_width = 38;
