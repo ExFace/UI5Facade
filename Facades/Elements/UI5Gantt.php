@@ -184,10 +184,6 @@ JS;
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
         $defaultDurationHours = $calItem->getDefaultDurationHours();
-        $viewModeColumnWidthDay = $widget->getViewModeColumnWidthDay() ?? 38;
-        $viewModeColumnWidthWeek = $widget->getViewModeColumnWidthWeek() ?? 140;
-        $viewModeColumnWidthMonth = $widget->getViewModeColumnWidthMonth() ?? 20;
-        $viewModeColumnWidthYear = $widget->getViewModeColumnWidthYear() ?? 12;
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
@@ -238,10 +234,6 @@ JS;
         keep_scroll_position: '$keepScrollPosition',
         auto_relayout_on_change: '$autoRelayoutOnChange',
         default_duration: Math.floor('$defaultDurationHours' / 24),
-        view_mode_column_width_day: $viewModeColumnWidthDay,
-        view_mode_column_width_week: $viewModeColumnWidthWeek,
-        view_mode_column_width_month: $viewModeColumnWidthMonth,
-        view_mode_column_width_year: $viewModeColumnWidthYear,
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
