@@ -1574,6 +1574,7 @@ var Gantt = (function () {
         bind_events() {
             this.bind_grid_click();
             this.bind_bar_events();
+            this.bind_outside_click();
         }
 
         render() {
@@ -2265,6 +2266,24 @@ var Gantt = (function () {
             });
 
             this.bind_bar_progress();
+        }
+        
+        bind_outside_click() {
+          // capture=true: greift früh, auch bei UI5-Overlays/Fokuswechseln
+          this._onDocClick = (e) => {
+            
+            if (this.bar_being_dragged) return;
+  
+            const container = this.$container;      // dein Scroll-Wrapper
+            const target = e.target;
+            
+            if (container && container.contains(target)) return;
+            
+            // If clicked outside the gantt chard
+            this.hide_popup();
+            this.unselect_all();
+          };
+          document.addEventListener('mousedown', this._onDocClick, true);
         }
 
         bind_bar_progress() {
