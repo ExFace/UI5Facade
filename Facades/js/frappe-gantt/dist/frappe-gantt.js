@@ -2269,12 +2269,11 @@ var Gantt = (function () {
         }
         
         bind_outside_click() {
-          // capture=true: greift früh, auch bei UI5-Overlays/Fokuswechseln
           this._onDocClick = (e) => {
             
             if (this.bar_being_dragged) return;
   
-            const container = this.$container;      // dein Scroll-Wrapper
+            const container = this.$container;
             const target = e.target;
             
             if (container && container.contains(target)) return;
