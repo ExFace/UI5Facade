@@ -413,7 +413,7 @@ JS;
      */
     protected function hasPaginator() : bool
     {
-        return false;
+        return $this->getWidget()->isPaged();
     }
     
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
