@@ -17,6 +17,8 @@ use exface\UI5FAcade\Facades\UI5PropertyBinding;
  */
 class UI5InputColorPalette extends UI5Input
 {
+    private string $colorModelPath = 'color';
+    
     /**
      *
      * {@inheritDoc}
@@ -26,29 +28,92 @@ class UI5InputColorPalette extends UI5Input
     {
         $this->registerExternalModules($this->getController());
         $widget = $this->getWidget();
-
-        // TODO: teach the icon color to use defaultColor if the color binding has no value yet to show in a new dialog the default color to begin with (for now use default color button to get it after click)
-        return <<<JS
         
-        new sap.ui.core.Icon("{$this->getid()}", {
-            src: "sap-icon://color-fill",
-            color: {$this->buildJsValue()},
-            activeColor: {$this->buildJsValue()},
-            hoverColor: {$this->buildJsValue()},
-            press: function() {                
-                var oColorPopover = new sap.m.ColorPalettePopover({    	
-                    colors: {$this->buildJsColorValues()},
-                    {$this->buildJSPaletteOptions($widget)},
-                    colorSelect: {$this->buildJsColorSelect()},
+        // if the widget is not bound to a model we need our own model binding, so we can use it so synchronize the values of the input and the icon colors/tooltip.
+        $modelBindingJs = $this->isValueBoundToModel() ? "" : <<<JS
+                .setModel(new sap.ui.model.json.JSONModel({
+                        {$this->colorModelPath}: null
+                    }))
+JS;
+
+        // TODO: teach the icon color to use defaultColor if the color binding has no value yet to show in a new dialog the default color to begin with (for now use default color button to get it after click) [only do this if model is already bound, otherwise a filter will filter the default color when loading the page!]
+        /*
+         * We use HBox as the UI5 flex element to be able to combine an Input field that allows text as well as a button with the color palette for color selection
+         * [__________][▦]
+         * 
+         * There is one binding for color within all elements that need to react to it. It is bound to Input value and all Icon colors and it's tooltip.
+         * The value of the binding is changed either directly when the input value changes by user input or on the colorSelect.
+         */
+        return <<<JS
+        new sap.m.HBox({
+            items: [ 
+                new sap.m.Input("{$this->getId()}", {
+                    value: {$this->buildJsValue()},
                     {$this->buildJsProperties()}
-                })
-                oColorPopover.openBy(this);
-            }
-    	}).addStyleClass('exf-colorPalette')
-    	
+                    {$this->buildJsPropertyType()}
+                    {$this->buildJsPropertyChange()}
+                    {$this->buildJsPropertyRequired()}
+                    layoutData: new sap.m.FlexItemData({
+                        growFactor: 1
+                    })
+                }),
+                new sap.m.Button("{$this->getId()}_Button", {
+                    icon: "sap-icon://color-fill",
+                    press: function() {                
+                            var oColorPopover = new sap.m.ColorPalettePopover({    	
+                                colors: {$this->buildJsColorValues()},
+                                {$this->buildJSPaletteOptions($widget)},
+                                colorSelect: {$this->buildJsColorSelect()},
+                                {$this->buildJsProperties()}
+                            })
+                            oColorPopover.openBy(this);
+                        },
+                    {$this->buildJsProperties()}
+                    layoutData: new sap.m.FlexItemData({
+                        alignSelf: "Center"
+                    })
+                }).addEventDelegate({ onAfterRendering: function (oEvent) {
+                    var icon = sap.ui.getCore().byId("{$this->getId()}_Button-img");
+                    var value = sap.ui.getCore().byId("{$this->getId()}").getValue();
+                    icon.bindProperty("color", "{$this->getValueBindingPath()}");
+                    icon.bindProperty("activeColor", "{$this->getValueBindingPath()}");
+                    icon.bindProperty("hoverColor", "{$this->getValueBindingPath()}");
+                    icon.bindProperty("tooltip", "{$this->getValueBindingPath()}");
+                }})
+            ],
+            {$this->buildJsPropertyWidth()}
+            {$this->buildJsPropertyHeight()}
+        }){$modelBindingJs}
+
 JS;
     }
-    
+
+    /**
+     * @return string
+     * @see UI5Value::buildJsValue()
+     */
+    public function buildJsValue()
+    {
+        // use internal binding if there is no binding on the model itself
+        if ($this->isValueBoundToModel() === false) {
+            return '"{/' . $this->colorModelPath . '}"';
+        }
+        return parent::buildJsValue(); 
+    }
+
+    /**
+     * @return string
+     * @see UI5Value::getValueBindingPath()
+     */
+    public function getValueBindingPath(): string
+    {
+        // use internal binding if there is no binding on the model itself
+        if ($this->isValueBoundToModel() === false) {
+            return '/' . $this->colorModelPath;
+        }
+        return parent::getValueBindingPath(); 
+    }
+
     /**
      * Resolves the widget colors into the necessary CSS colors for the color palette.
      */
@@ -65,20 +130,10 @@ JS;
         }
         return json_encode($values);
     }
-    
-    /**
-     *
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetterMethod()
-     */
-    public function buildJsValueGetterMethod()
-    {
-        return <<<JS
-        getColor()
-JS;
-    }
 
     /**
+     * Returns the equivalent hex code for each semantic color.
+     * 
      * @return array|string[]
      * @doc https://www.sap.com/design-system/fiori-design-web/v1-84/foundations/visual/colors/quartz-light-colors?external#semantic-colors
      */
@@ -99,7 +154,7 @@ JS;
     }
 
     /**
-     * Event on color select that updates the icon color to the selected color.
+     * Event on color select that updates the icon color to the selected color and thus the binding value.
      *
      * @return string
      */
@@ -108,9 +163,8 @@ JS;
         return <<<JS
 		function (oEvent) {
           var sColor = oEvent.getParameter("value");
-          {$this->buildJsValidatorCheckRequired('sColor', '')}
           
-          // convert function from co-pilot
+          // a convert function from co-pilot to change rgb colors into hex
           function rgbToHex(rgb) {
             var result = rgb.match(/\d+/g);
             if (!result || result.length < 3) return rgb;
@@ -119,35 +173,37 @@ JS;
             }).join("");
           }
 
-          // we only alow CSS and HEX colors for the input value
+          // only alow CSS and HEX colors for the input value
           sColor = sColor.startsWith("rgb") ? rgbToHex(sColor) : sColor;          
-          var icon = sap.ui.getCore().byId("{$this->getid()}");
+          var icon = sap.ui.getCore().byId("{$this->getid()}_Button-img");
           icon.setColor(sColor);
-          icon.setHoverColor(sColor);
-          icon.setActiveColor(sColor);
-          icon.setTooltip(sColor);
-          
         }
 JS;
     }
 
     /**
-     * ColorPalettePopup has less options to modify
+     * Returns a JS for ColorPalettePopup properties.
+     * 
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsProperties()
      */
-    public function buildJsProperties()
+    public function buildJsProperties() : string
     {
-        $options = <<<JS
+        return <<<JS
             {$this->buildJsPropertyTooltip()}
             {$this->buildJsPropertyLayoutData()}
             {$this->buildJsPropertyHeight()}
             {$this->buildJsPropertyDisabled()}
 JS;
-        return $options;
     }
 
-    private function buildJSPaletteOptions(InputColorPalette $widget)
+    /**
+     * Returns a JS with custom Palette properties.
+     * 
+     * @param InputColorPalette $widget
+     * @return string
+     */
+    private function buildJSPaletteOptions(InputColorPalette $widget) : string
     {
         $options = [
             'defaultColor' => $this->translateSemanticColors([$widget->getDefaultColor()]),
@@ -164,6 +220,8 @@ JS;
     }
 
     /**
+     * Returns the associated html colors for each semantic color within the array.
+     * 
      * @param array $colorPresets
      * @return array|string
      */
@@ -184,20 +242,5 @@ JS;
         }
 
         return $colorPresetsWithSemCols;
-    }
-
-    protected function buildJsValidatorCheckRequired(string $valueJs, string $onFailJs): string
-    {
-        if (($this->getWidget()->isRequired() === true || $this->getWidget()->getRequiredIf())) {
-            return <<<JS
-            var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
-            if ({$valueJs} === undefined || {$valueJs} === null || {$valueJs} === '') { 
-                oCtrl.addStyleClass('exf-colorPalette-Error');
-            } else {
-                oCtrl.removeStyleClass('exf-colorPalette-Error');
-            }
-JS;
-        }
-        return '';
     }
 }
