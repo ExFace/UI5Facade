@@ -58,7 +58,7 @@ var ColorUtils = (function () {
       return { r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255) };
     }
 
-// Shift brightness (L) by delta; negative delta = darker
+    // Shift brightness (L) by delta; negative delta = darker
     shadeCssColor(baseColor, deltaL) {
       const rgba = this.cssColorToRgba(baseColor);
       if (!rgba) return baseColor; // Fallback: unverändert
@@ -69,13 +69,45 @@ var ColorUtils = (function () {
       return this.rgbaToHex(rgb); // hex ist hier am zuverlässigsten
     }
 
-// public API: derive variants from any CSS colour
+    // WCAG-Helpers
+    srgbToLinear(c01) {
+      // c01: 0..1
+      return (c01 <= 0.03928) ? (c01 / 12.92) : Math.pow((c01 + 0.055) / 1.055, 2.4);
+    }
+    relativeLuminance({r, g, b}) {
+      const R = this.srgbToLinear(r / 255);
+      const G = this.srgbToLinear(g / 255);
+      const B = this.srgbToLinear(b / 255);
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    }
+
+    contrastRatio(L1, L2) {
+      const [hi, lo] = L1 >= L2 ? [L1, L2] : [L2, L1];
+      return (hi + 0.05) / (lo + 0.05);
+    }
+
+    // determines the text color
+    pickTextColor(baseCssColor) {
+      if (!baseCssColor) return '#000';
+      const rgba = this.cssColorToRgba(baseCssColor);
+      if (!rgba) return '#000';
+
+      const Lbg = this.relativeLuminance(rgba);
+      const contrastToWhite = this.contrastRatio(1.0, Lbg);
+      const contrastToBlack = this.contrastRatio(Lbg, 0.0);
+
+      return (contrastToBlack >= contrastToWhite) ? '#000' : '#fff';
+    }
+
+    // public API: derive variants from any CSS colour
     deriveColors(baseCssColor) {
+      baseCssColor = baseCssColor ?? '#97bacc'; // Default color.
+      
       return {
         color: baseCssColor,                               // Original
         colorHover: this.shadeCssColor(baseCssColor, -0.08),    // slightly darker
         progressColor: this.shadeCssColor(baseCssColor, -0.28), // significantly darker
-        //textColor: '#fff',
+        textColor: this.pickTextColor(baseCssColor),
       };
     }
   }
