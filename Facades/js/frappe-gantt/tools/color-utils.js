@@ -101,7 +101,7 @@ var ColorUtils = (function () {
 
     // public API: derive variants from any CSS colour
     deriveColors(baseCssColor) {
-      baseCssColor = baseCssColor ?? '#97bacc'; // Default color.
+      baseCssColor = baseCssColor ?? '#acd3e8'; // Default color.
       
       return {
         color: baseCssColor,                               // Original

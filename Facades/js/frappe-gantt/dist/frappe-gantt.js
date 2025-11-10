@@ -546,12 +546,9 @@ var Gantt = (function () {
   
             // +n-block color stripes
             if (this.task._isAggregate && Array.isArray(this.task._members)) {
-              const colors = this.task._members.map(m => m && m.color).filter(Boolean);
-              const unique = [...new Set(colors)];
-              const maxSwatches = 6; // You can increase the max number of showed stripes here
-              const swatches = unique.slice(0, maxSwatches);
+              const colorSwatches = this.task._members.map(m => m && m.color).filter(Boolean);
   
-              if (swatches.length) {
+              if (colorSwatches.length) {
                 const stripeW = 8;     // The wide of shown stripes in pixel
                 const gapX    = 1;     // the gap between the stipes
                 const h       = Math.max(0, this.height - inset * 2);
@@ -562,8 +559,8 @@ var Gantt = (function () {
                   append_to: this.bar_group
                 });
                 stripesGroup.setAttribute('clip-path', `url(#${clipId})`);
-  
-                swatches.forEach(c => {
+
+                colorSwatches.forEach(c => {
                   const r = createSVG('rect', {
                     x: xStripe,
                     y: this.y + inset,
