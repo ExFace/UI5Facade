@@ -546,12 +546,9 @@ var Gantt = (function () {
   
             // +n-block color stripes
             if (this.task._isAggregate && Array.isArray(this.task._members)) {
-              const colors = this.task._members.map(m => m && m.color).filter(Boolean);
-              const unique = [...new Set(colors)];
-              const maxSwatches = 6; // You can increase the max number of showed stripes here
-              const swatches = unique.slice(0, maxSwatches);
+              const colorSwatches = this.task._members.map(m => m && m.color).filter(Boolean);
   
-              if (swatches.length) {
+              if (colorSwatches.length) {
                 const stripeW = 8;     // The wide of shown stripes in pixel
                 const gapX    = 1;     // the gap between the stipes
                 const h       = Math.max(0, this.height - inset * 2);
@@ -562,8 +559,8 @@ var Gantt = (function () {
                   append_to: this.bar_group
                 });
                 stripesGroup.setAttribute('clip-path', `url(#${clipId})`);
-  
-                swatches.forEach(c => {
+
+                colorSwatches.forEach(c => {
                   const r = createSVG('rect', {
                     x: xStripe,
                     y: this.y + inset,
@@ -634,10 +631,14 @@ var Gantt = (function () {
                 append_to: this.bar_group,
             });
           
-            // label color. White is recommended.
-            if (this.task.textColor) {
-              $label.style.fill = String(this.task.textColor);
-            }
+          // In-Bar label color
+          if (this.task.textColor) {
+            $label.style.fill = String(this.task.textColor);
+            $label.dataset.inBarColor = String(this.task.textColor);
+          } else {
+            // Places an empty marker if no colour has been set.
+            $label.dataset.inBarColor = '';
+          }
             
             // labels get BBox in the next tick
             requestAnimationFrame(() => this.update_label_position());
@@ -939,11 +940,23 @@ var Gantt = (function () {
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
           label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
+
+          // Restore in-bar colour (if available), otherwise delete inline colour
+          const restoreInBarColor = () => {
+            const inBar = label.dataset.inBarColor || '';
+            if (inBar) {
+              label.style.fill = inBar;
+            } else {
+              // no specific colour => remove inline colour, CSS takes care of it
+              label.style.removeProperty('--bar-fill');
+            }
+          };
   
           if (fits) {
             // shows the label if it fits inside the bar
             label.style.display = '';
             label.removeAttribute('clip-path');
+            restoreInBarColor();
             return;
           }
   
@@ -955,6 +968,9 @@ var Gantt = (function () {
             label.setAttribute('text-anchor', 'start');
             label.setAttribute('x', bar.getX() + bar.getWidth() + 5);
             label.removeAttribute('clip-path');
+
+            const outside = this.gantt.options.label_outside_color || '#555';
+            label.style.fill = String(outside);
           } else if (overflow === 'hide') {
             label.style.display = 'none';
             label.removeAttribute('clip-path');
@@ -970,6 +986,8 @@ var Gantt = (function () {
             label.classList.remove('big');
             label.setAttribute('x', bar.getX() + inset);
             label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
+
+            restoreInBarColor();
 
             // ClipPath: cuts ONLY on the right (and top/bottom), not on the left
             const clipId = `clip-label-${String(this.task.id).replace(/[^a-zA-Z0-9_-]/g,'')}`;
@@ -1360,7 +1378,8 @@ var Gantt = (function () {
                 view_mode_column_width_day: 38,
                 view_mode_column_width_week: 140,
                 view_mode_column_width_month: 20,
-                view_mode_column_width_year: 12
+                view_mode_column_width_year: 12,
+                label_outside_color: '#555',
             };
             
             this.options = Object.assign({}, default_options, (options || {}));
