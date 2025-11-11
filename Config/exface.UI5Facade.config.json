@@ -136,6 +136,8 @@
 	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/UI5Facade/Facades/js/openui5.controls.js",
 	
 	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",
+  "LIBS.EXFCOLORTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js",
+  
 	"LIBS.UI5CUSTOM.DATETYPE.JS": "exface/UI5Facade/Facades/js/ui5Custom/dataTypes/MomentDateType.js",
     "LIBS.UI5CUSTOM.TIMETYPE.JS": "exface/UI5Facade/Facades/js/ui5Custom/dataTypes/MomentTimeType.js",
     

@@ -322,7 +322,6 @@ JS;
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
                 
-                let colorUtils = new ColorUtils();
                 var aTasks = [];
                 var sNestedColName = {$nestedDataColName}
                 let lineIndex = 0;
@@ -333,6 +332,7 @@ JS;
                     
                     function fnRowToTask(oRow) {
                         sColor = {$colorResolversJs};
+                        sColor = sColor ?? '#b8c2cc'; // Default color.
                         var oTask = {
                             id: oRow['{$widget->getUidColumn()->getDataColumnName()}'],
                             name: oRow['{$calItem->getTitleColumn()->getDataColumnName()}'],
@@ -342,7 +342,10 @@ JS;
                             dependencies: '',
                             lineIndex: lineIndex,
                             draggable: $draggableJs,
-                            ...colorUtils.deriveColors(sColor)
+                            color: sColor,
+                            colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
+                            progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
+                            textColor: exfColorTools.pickTextColorForBackgroundColor(sColor),
                         };
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
@@ -429,7 +432,7 @@ JS;
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
-        $controller->addExternalModule('libs.exface.colorUtils.ColorUtils', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/color-utils.js', null, 'ColorUtils');
+        $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
         
         $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
         //$controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
