@@ -29,7 +29,6 @@ class UI5ImageGallery extends UI5AbstractElement
         SlickGalleryTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsUploadStore as buildJsUploadStoreViaTrait;
         UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaDataElementTrait;
-        SlickGalleryTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaSlickGalleryTrait;
     }
     
     use JsUploaderTrait;
@@ -112,11 +111,10 @@ JS;
     protected function buildJsDataLoaderOnLoaded(string $oModelJs = 'oModel') : string
     {
         return 
-            $this->buildJsDataLoaderOnLoadedViaDataElementTrait($oModelJs) . 
-            $this->buildJsDataLoaderOnLoadedViaSlickGalleryTrait('oModel.getData()') . <<<JS
+            $this->buildJsDataLoaderOnLoadedViaDataElementTrait($oModelJs) . <<<JS
+
                 var carousel = $('#{$this->getIdOfSlick()}');
                 {$this->buildJsSlickSlidesFromData('carousel', 'oModel.getData()')}
-
 JS;
     }
     
