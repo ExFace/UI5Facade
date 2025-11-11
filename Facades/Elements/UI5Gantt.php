@@ -53,8 +53,8 @@ class UI5Gantt extends UI5DataTree
         }
         
         // adds the view mode buttons to the toolbar
-        $aSelectedViewModes = array_map([$this, 'convertDataTimelineGranularityToGanttViewMode'], $widget->getTimelineConfig()->getGranularitySelectable());
-        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aSelectedViewModes);
+        $aViewModes = $widget->getTimelineConfig()->getViews();
+        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aViewModes);
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -184,10 +184,14 @@ JS;
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
         $defaultDurationHours = $calItem->getDefaultDurationHours();
-        $viewModeColumnWidthDay = $widget->getViewModeColumnWidthDay() ?? 38;
-        $viewModeColumnWidthWeek = $widget->getViewModeColumnWidthWeek() ?? 140;
-        $viewModeColumnWidthMonth = $widget->getViewModeColumnWidthMonth() ?? 20;
-        $viewModeColumnWidthYear = $widget->getViewModeColumnWidthYear() ?? 12;
+        
+        $aColumnWidths = $this->getViewModesColumnWidthsArray();
+        $viewModeColumnWidthQuarterDay = json_encode($aColumnWidths['Quarter Day']);
+        $viewModeColumnWidthHalfDay = json_encode($aColumnWidths['Half Day']);
+        $viewModeColumnWidthDay = json_encode($aColumnWidths['Day']);
+        $viewModeColumnWidthWeek = json_encode($aColumnWidths['Week']) ;
+        $viewModeColumnWidthMonth = json_encode($aColumnWidths['Month']);
+        $viewModeColumnWidthYear = json_encode($aColumnWidths['Year']);
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
@@ -238,6 +242,8 @@ JS;
         keep_scroll_position: '$keepScrollPosition',
         auto_relayout_on_change: '$autoRelayoutOnChange',
         default_duration: Math.floor('$defaultDurationHours' / 24),
+        view_mode_column_width_quarter_day: $viewModeColumnWidthQuarterDay,
+        view_mode_column_width_half_day: $viewModeColumnWidthHalfDay,
         view_mode_column_width_day: $viewModeColumnWidthDay,
         view_mode_column_width_week: $viewModeColumnWidthWeek,
         view_mode_column_width_month: $viewModeColumnWidthMonth,
@@ -583,22 +589,29 @@ JS;
      * @param array $viewModes
      * @return void
      */
-    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes = []) : void
+    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes) : void 
     {
         if (empty($viewModes)) {
-            $viewModes = ['Day', 'Week', 'Month'];
+            return;
         }
 
         $buttons = [];
 
         foreach ($viewModes as $viewMode) {
+            $viewName = $viewMode->getName();
+            //$viewDescription = $viewMode->getDescription(); //TODO SR: Add a description to the buttons. The DataButton does not currently have a description setter.
+            $viewGranularity = $this->convertDataTimelineGranularityToGanttViewMode(
+                $viewMode->getGranularity()
+            );
+
+            
             $buttons[] = [
-                'caption' => $this->translateViewMode($viewMode),
+                'caption' => $viewName,
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'hide_icon' => true,
                     'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewMode');
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewGranularity');
 JS
                 ],
             ];
@@ -615,7 +628,7 @@ JS
     protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
     {
         switch ($granularity) {
-            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quater Day'; break;
+            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quarter Day'; break;
             case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
             case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
             case DataTimeline::GRANULARITY_DAYS_PER_MONTH: $viewMode = 'Day'; break;
@@ -627,19 +640,30 @@ JS
         
         return $viewMode;
     }
-    
-    protected function translateViewMode($viewMode) : string
+
+    /**
+     * It returns an array with granularity to view mode column width  mapping
+     * Example: {'Day' : 38}
+     * 
+     * @return array
+     */
+    protected function getViewModesColumnWidthsArray() : array
     {
-        $translator = $this->getWidget()->getWorkbench()->getCoreApp()->getTranslator();
-        
-        switch ($viewMode) {
-            case 'Quater Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_QUARTER_DAY'); break;
-            case 'Day': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_DAY'); break;
-            case 'Month': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_MONTH'); break;
-            case 'Week': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_WEEK'); break;
-            case 'Year': $translation = $translator->translate('WIDGET.GANTT_CHARD.VIEW_MODE_YEAR'); break;
-            default: $translation = $viewMode; break;
+        $widget = $this->getWidget();
+        $aColumnWidths = array_fill_keys(['Quarter Day', 'Half Day', 'Day', 'Week', 'Month', 'Year'], null);
+
+        $viewModes = $widget->getTimelineConfig()->getViews();
+        foreach ($viewModes as $viewMode) {
+            $granularity = $this->convertDataTimelineGranularityToGanttViewMode(
+                $viewMode->getGranularity()
+            );
+
+            if (array_key_exists($granularity, $aColumnWidths)) {
+                $columnWidth = $viewMode->getColumnWidth()?->getValue();
+                $aColumnWidths[$granularity] = is_numeric($columnWidth) ? (int) $columnWidth : null;
+            }
         }
-        return $translation;
+        
+        return $aColumnWidths;
     }
 }
