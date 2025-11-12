@@ -27,6 +27,8 @@ class UI5ObjectStatus extends UI5Display
 {    
     use UI5ColorClassesTrait;
     
+    protected const CSS_SELECTOR_TO_COLOR = '.exf-custom-color.exf-color-[#color#] .sapMObjStatusText';
+    
     private $title = null;
     
     private $inverted = false;
@@ -45,7 +47,12 @@ class UI5ObjectStatus extends UI5Display
             } else {
                 $colorCss = 'color: [#color#]';
             }
-            $this->registerColorClasses($this->getWidget()->getColorScale(), '.exf-custom-color.exf-color-[#color#] .sapMObjStatusText', $colorCss);
+            
+            $this->registerColorClasses(
+                $this->getWidget()->getColorScale(),
+                self::CSS_SELECTOR_TO_COLOR,
+                $colorCss
+            );
         }
         return <<<JS
         
@@ -275,14 +282,15 @@ JS;
                     var sColor = {$colorResolverJs};
                     var sValueColor;
                     var oCtrl = this;
+                    
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         {$this->buildJsColorCssSetter('oCtrl', 'null')}
                         return oColorScale[sColor];
-                    } else if (sColor) {
+                    } else {
                         {$this->buildJsColorCssSetter('oCtrl', 'sColor')}
+                        return {$this->buildJsColorValueNoColor()};
                     }
-                    return {$this->buildJsColorValueNoColor()};
                 }
                 
 JS;
@@ -328,5 +336,30 @@ JS;
         // Make sure the value binding ist always `text` and not `src` for booleans because
         // the ObjectStatus does not show booleans as icons
         return 'text';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function buildJsColorClassInjector(string $colorJs = 'sColor', string $colorSuffixJs = 'sColorClassSuffix'): string
+    {
+        $cssTemplate = $this->colorToCssClass(
+            '#%COLOR%', 
+            null, 
+            self::CSS_SELECTOR_TO_COLOR,
+            $this->isInverted() ? 'background-color: [#color#]' : 'color: [#color#]'
+        );
+        
+        return <<<JS
+
+        (function (sColor, sSuffix) {
+            var classId = 'free_color_' + sSuffix;
+            var jqTag = $('#' + classId);
+            if (jqTag.length === 0) {
+                var text = ('{$cssTemplate}').replace(/#%COLOR%/g, sColor).replace(/%COLOR%/g, sSuffix);
+                $('head').append($('<style type="text/css" id="' + classId + '"></style>').text(text));
+            }
+        })({$colorJs}, $colorSuffixJs)
+JS;
     }
 }

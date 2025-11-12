@@ -142,6 +142,7 @@ trait UI5JExcelTrait {
                             var jqScroller = jqExcel.parents('.sapMPanelContent').first();
                             var fnOnEditStart = jExcel.options.oneditionstart;
                             var fnOnEditEnd = jExcel.options.oneditionend;
+                            var bIsDialog = false;
                             
                             jExcel.options.oneditionstart = function(el, domCell, x, y){
                                 var jqCell = $(domCell);
@@ -155,6 +156,31 @@ trait UI5JExcelTrait {
                                         if (oPosCellInit === undefined || oPosDCInit === undefined) {
                                             return;
                                         }
+
+                                        // If the height of the scroll element is larger than viewport, try and find a DialogSection instead
+                                        if (jqScroller.innerHeight() > window.innerHeight){
+                                            var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
+                                            if (jqScrollerDlg.length !== 0){
+                                                jqScroller = jqScrollerDlg;
+                                                bIsDialog = true;
+                                            }
+                                        }
+
+                                        // Class .sapMDialog also has overflow: hidden, which cuts off the dropdown when it exceeds the dialogue
+                                        // so we check:
+                                        //      if the bottom of the dropdown (bottom of current cell + height of dropdown container)
+                                        //      exceeds the bottom of the current bounding box (top of scroll element + height of scroll element)
+                                        // -> if so, we move the dropdown upwards (set the top to the top of the current cell - height of dropdown container)
+                                        if (bIsDialog === true && (jqScroller.position().top + jqScroller.height() <  (oPosCellInit.top-jqCell.height()) + jqDC.innerHeight())) {
+                                            jqDC.offset({
+                                                top: oPosCellInit.top - jqDC.innerHeight(),
+                                                left: oPosCellInit.left
+                                            });
+
+                                            // update init pos for scrolling update
+                                            oPosDCInit = jqDC.offset();
+                                        }
+
                                         var fnFixPosition = function() {
                                             var oPosCellCur = jqCell.offset();
                                             var iViewTop = jqScroller.offset().top;
@@ -162,12 +188,17 @@ trait UI5JExcelTrait {
                                             var iScrollTop = oPosCellCur.top - oPosCellInit.top;
                                             var iScrollLeft = oPosCellCur.left - oPosCellInit.left;
                                             var bVisible = (oPosCellCur.top > iViewTop && oPosCellCur.top < iViewTop + iViewHeight);
+                                            
+                                            // only show dropdown if in viewport, otherwise close it
                                             if (bVisible) {
                                                 jqDC.show();
                                                 jqDC.offset({
                                                     top: oPosDCInit.top + iScrollTop,
                                                     left: oPosDCInit.left + iScrollLeft
                                                 });
+
+                                                // fixes layout issue with upward dropdown
+                                                jqDC.css('bottom', 'unset'); 
                                             } else {
                                                 jqDC.hide();
                                             }
@@ -184,6 +215,7 @@ trait UI5JExcelTrait {
                             };
 
                             jExcel.options.oneditionend = function(el, domCell, x, y){
+                                // remove scroll listener on edition end
                                 if ($(domCell).hasClass('jexcel_dropdown')) {
                                     jqScroller.off('scroll.{$this->getId()}');
                                 }

@@ -943,7 +943,7 @@ JS;
             
             $resetColumns = <<<JS
 // reset columns
-                oCurrentModel.setProperty('/columns', oInitModel.getProperty('/columns'));
+                oCurrentModel.setProperty('/columns', JSON.parse(JSON.stringify(oInitModel.getProperty('/columns'))));
                 {$this->buildJsTabColumnsUpdate("sap.ui.getCore().byId('{$this->getId()}_ColumnsPanel')", true)}
                 {$refreshP13n}
 JS;
@@ -961,9 +961,55 @@ JS;
                 // reset advanced search filters
                 sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllFilterItems();
                 
-                // reset sorters
-                oCurrentModel.setProperty('/sorters', oInitModel.getProperty('/sorters'));
+                // reset sorters (use deep copy to allow multiple resets; otherwise the initial model gets modified after resetting)
+                oCurrentModel.setProperty('/sorters', JSON.parse(JSON.stringify(oInitModel.getProperty('/sorters'))));
+                oCurrentModel.refresh(true);
+
+                // reset current custom width properties of the table columns
+                let oDataTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}'); 
+                if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+
+                    // clear custom width data
+                    oDataTable.getColumns().forEach(oCol => {
+                        oCol.data("_exfCustomColWidth", null);
+
+                        // reset column header filter properties
+                        let sFilterProperty = oCol.getFilterProperty();
+                        if (sFilterProperty) {
+                            oCol.setFiltered(false); // indicator
+                            oCol.setFilterValue(''); // clear value
+                        }
+
+                        // reset column header sort properties
+                        let sSortProperty = oCol.getSortProperty();
+                        if (sSortProperty) {
+                            oCol.setSorted(false); // indicator
+                            oCol.setSortOrder(sap.ui.table.SortOrder.None); // sort order
+                        }
+                    });
+                }
+
+                // Reset stored setup in indexedDB
+                // open indexedDb connection 
+                const oSetupsDb = new Dexie('exf-ui5-widgets');
+                oSetupsDb.version(1).stores({
+                    'setups': '[page_id+widget_id], setup_uid, date_last_applied'
+                });
                 
+                // if a setup exists for this table in the indexedDB, delete it
+                oSetupsDb.setups.get(['{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataElement()->getWidget()->getId()}'])
+                .then(entry => {
+                    if (entry) {
+                        oSetupsDb.setups.delete(['{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataElement()->getWidget()->getId()}']);
+                    } 
+                })
+                .catch(err => {
+                    console.error('Error accessing IndexedDb:', err);
+                })
+                .finally(() => {
+                    oSetupsDb.close();
+                });
+
                 {$resetColumns}
             }());
 

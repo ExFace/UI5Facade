@@ -1,0 +1,121 @@
+/*Merged CSS:>>*/
+.exf-gantt .gantt .bar:not(.bar-invalid) {
+  fill: var(--bar-fill, #b8c2cc); 
+  stroke: #8D99A6;
+  stroke-width: 0;
+  transition: stroke-width 0.3s ease;
+  user-select: none;
+}
+.exf-gantt .gantt .bar-progress {
+  fill: var(--bar-progress-fill, #a3a3ff);
+}
+
+.exf-gantt .gantt .bar-wrapper:hover .bar:not(.bar-invalid) {
+  fill: var(--bar-fill-hover, var(--bar-fill, #a9b5c1));
+}
+.exf-gantt .gantt .bar-wrapper:hover .bar-progress {
+  fill: var(--bar-progress-fill-hover, var(--bar-progress-fill, #8a8aff));
+}
+
+.exf-gantt .gantt .bar-wrapper.active .bar:not(.bar-invalid) {
+  fill: var(--bar-fill-active, var(--bar-fill-hover, var(--bar-fill, #a9b5c1)));
+}
+.exf-gantt .gantt .bar-wrapper.active .bar-progress {
+  fill: var(--bar-progress-fill-active, var(--bar-progress-fill-hover, var(--bar-progress-fill, #8a8aff)));
+}
+/*<<Merged CSS*/
+
+/* >> MonthWeeks CSS */
+/*.gantt .tick.boundary {
+  stroke: #bdbdbd;    !* etwas kräftiger als normale Ticks *!
+  stroke-width: 1.2;
+}*/
+
+/* month-end line */
+/*
+.gantt .tick.boundary.month-end {
+  stroke: #bdbdbd;
+  stroke-width: 1.2;
+}
+*/
+/* << MonthWeeks CSS */
+.exf-gantt .bar-label { font-size: 12px; }
+.exf-gantt .bar-label.big { font-size: 11px; }
+
+.exf-gantt .gantt .bar-label.clip-left {
+  text-anchor: start !important;
+}
+/* aggregate-bar */
+.exf-gantt .gantt .bar-wrapper.aggregate .bar {
+  stroke-width: 1;
+  stroke: rgba(0,0,0,0.25);
+}
+
+.exf-gantt .gantt-container .popup-wrapper .agg-list {
+  margin: 6px 10px 10px;
+  padding-left: 16px;
+  color: #dfe2e5;
+  max-width: 260px;
+  max-height: 140px;
+  overflow: auto;
+}
+.exf-gantt .gantt-container .popup-wrapper .agg-list li {
+  margin: 2px 0;
+  line-height: 1.25;
+}
+
+.exf-gantt .gantt .agg-stripe {
+  shape-rendering: crispEdges;
+}
+.exf-gantt .gantt .agg-stripe.anchor {
+  opacity: 0.9;
+}
+
+.exf-gantt .gantt .agg-stripe-v { shape-rendering: crispEdges; }
+
+/*Popup CSS*/
+.exf-gantt .gantt-container .popup-wrapper{
+  background:#fff;
+  border:1px solid #d9d9d9;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  overflow:visible;
+}
+
+.exf-gantt .gantt-container .popup-wrapper .title {
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #32363a;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.exf-gantt .gantt-container .popup-wrapper .subtitle {
+  padding: 10px 12px 12px;
+  color: #6a6d70; 
+}
+
+.gantt-container .popup-wrapper .pointer {
+  position: absolute;
+  height: 5px;
+  margin: 0 0 0 -5px;
+  border: 5px solid transparent;
+  border-top-color: #6a6d70;
+}
+
+.exf-gantt .gantt-container .popup-wrapper .agg-list {
+  margin: 0 12px 12px;
+  padding-left: 16px;
+  color: #6a6d70;
+  max-width: 280px;
+  max-height: 160px;
+  overflow: auto;
+}
+.exf-gantt .gantt-container .popup-wrapper .agg-list li {
+  margin: 2px 0;
+  line-height: 1.3;
+  list-style: disc;
+}
+
+.exf-gantt .gantt .upper-text,
+.exf-gantt .gantt .lower-text {
+  font-size: 12px;
+}

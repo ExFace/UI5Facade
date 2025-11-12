@@ -145,7 +145,6 @@ JS
 
         /* TODO/IDEA:
             -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
-            -> Filters/Sorters added from Column Header Menu do not get added it to config right now
         */
 
         // passed parameters
@@ -206,34 +205,43 @@ JS
                 // get the current states
                 let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
                 let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'); 
-                let oInitP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial'); 
-                let aColumnsInit = oInitP13nModel.getProperty('/columns');
                 let aColumns = oP13nModel.getProperty('/columns');
                 let aSorters = oP13nModel.getProperty('/sorters');
                 let aFilters = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}').getFilterItems();
 
-                // add columns back in (if are are missing any of the original ones)
-                if (aColumnsInit !== undefined && aColumnsInit.length > 0) {
-                    let currentAliases = aColumns.map(function(col) { return col.attribute_alias; });
-                    aColumnsInit.forEach(function(initCol) {
-                        let idx = currentAliases.indexOf(initCol.attribute_alias);
-                        if (idx === -1) {
-                            // missing column, add as hidden
+                // save current column config
+                if (aColumns !== undefined && aColumns.length > 0) {
+                    aColumns.forEach(function(oColumn) {
+                        if (oColumn.column_name != null){
+                            // save column_name and visibility
                             oSetupJson.columns.push({
-                                attribute_alias: initCol.attribute_alias,
-                                show: false
+                                column_name: oColumn.column_name,
+                                show: oColumn.visible
                             });
                         }
                     });
                 }
 
-                // save current column config
-                if (aColumns !== undefined && aColumns.length > 0) {
-                    aColumns.forEach(function(oColumn) {
-                        oSetupJson.columns.push({
-                            attribute_alias: oColumn.attribute_alias,
-                            show: oColumn.visible
-                        });
+                // loop through table columns (not the p13n model)
+                // and add any custom (manually resized) widths to the setup config
+                let oTable = sap.ui.getCore().byId('{$this->getId()}'); 
+                if (oTable != null){
+                    oTable.getColumns().forEach(function(oCol){
+
+                        // if a column has a manually resized width, add it to the config
+                        let sCustomWidth = oCol.data("_exfCustomColWidth");
+                        if (sCustomWidth) {
+
+                            // find the column in the setup config
+                            let oColumnEntry = oSetupJson.columns.find(function(column) {
+                                    return column.column_name === oCol.data("_exfDataColumnName");
+                            });
+                            
+                            // save custom width in setup
+                            if (oColumnEntry){
+                                oColumnEntry.custom_width = sCustomWidth;
+                            }
+                        }
                     });
                 }
 
@@ -310,18 +318,95 @@ JS;
                             // COLUMN SETUP
                             let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
                             let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                            let oInitModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}'+'_initial');
+                            let aInitCols = JSON.parse(JSON.stringify(oInitModel.getData()['columns'])); // deep copy to avoid reference issues
                             let aColumnSetup = oSetupUxon.columns;
+                            let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
 
-                            // update column visibility according to wiget setup
-                            let aNewColModel = [];
-                            aColumnSetup.forEach(oItem => {
-                                oModel.getData()['columns'].forEach(oColConf => {
-                                    if (oColConf.attribute_alias === oItem.attribute_alias) {
-                                        oColConf.visible = oItem.show;
-                                        aNewColModel.push(oColConf);
-                                        return;
-                                    }
+                            // reset current custom width properties of the table columns
+                            if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                                oDataTable.getColumns().forEach(oCol => {
+                                    oCol.data("_exfCustomColWidth", null);
                                 });
+                            }
+                        
+                            // build the new column model:
+                            let aNewColModel = [];
+                            
+                            // loop through the widget setup columns
+                            aColumnSetup.forEach(oItem => {
+
+                                // skip entries without attribute alias or column_name 
+                                // (eg. faulty or older setups)
+                                if (oItem.attribute_alias == null && oItem.column_name == null){
+                                    return;
+                                }
+
+                                // find the corresponding column (by column_name) in the p13n model
+                                // -> also ensure backwards compatiblity with attribute alias
+                                let oColumnEntry = null;
+                                if (oItem.attribute_alias != null){
+                                    // old: attribute alias columns
+                                    oColumnEntry = aInitCols.find(function(column) {
+                                        return column.attribute_alias === oItem.attribute_alias;
+                                    });
+                                }
+                                else if (oItem.column_name != null){
+                                    // new: column_name columns
+                                    oColumnEntry = aInitCols.find(function(column) {
+                                        return column.column_name === oItem.column_name;
+                                    });
+                                }
+
+                                // if column exists, set visibility of column according to setup
+                                // and add to new config model (check if id is already in config, to avoid duplicates here)
+                                if (oColumnEntry && aNewColModel.some(col => col && col.column_id === oColumnEntry.column_id) === false) {
+                                    oColumnEntry.visible = oItem.show;
+                                    aNewColModel.push(oColumnEntry);
+                                }
+
+                                // if column has a custom width assigned (in widget setup), set column width to that value 
+                                // and also set the data property on the column (so they dont get optimized/resized in buildJsUiTableColumnResize)
+                                // this is only done with ui.table
+                                if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                                    
+                                    // find the actual column in the table (not p13n model)
+                                    let oMatchingCol = null;
+                                    if (oItem.column_name != null){
+                                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                            return oCol.data("_exfDataColumnName") === oItem.column_name;
+                                        });
+                                    }
+                                    else{
+                                        // attribute alias cols (older setups)
+                                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                            return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
+                                        });
+                                    }
+                                    
+                                    // if column exists, set custom width (and also custom width data property)
+                                    if (oMatchingCol) {
+                                        oMatchingCol.data("_exfCustomColWidth", oItem.custom_width);
+                                        oMatchingCol.setWidth(oItem.custom_width);
+                                    }
+                                }
+                            });
+
+                            // add any missing columns back in as hidden columns at the end; 
+                            // this avoids data loss when columns are missing in widget setup, 
+                            // or if columns were added to the table later on (and the setup is older)
+                            aInitCols.forEach(oColConf => {
+                                let oColumnEntry = null;
+                                oColumnEntry = aNewColModel.find(function(column) {
+                                    return column.column_id === oColConf.column_id;
+                                });
+                                if (oColumnEntry) {
+                                    // column already in new model, skip
+                                    return;
+                                }
+
+                                oColConf.visible = false;
+                                aNewColModel.push(oColConf);
                             });
                             oModel.setProperty('/columns', aNewColModel);
 
@@ -378,9 +463,6 @@ JS;
                                 oDialog.addFilterItem(oFilterItem);
                             });
                         }
-                        
-                        // Update UI 
-                        {$this->buildJsRefreshPersonalization()}
 
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
@@ -417,45 +499,59 @@ JS;
                         }
 
                         // after applying a setup, get the uid and mark it as default in the setups table
-                        getSetupData(sPageId, sWidgetId, null, 'setup_uid')
-                        .then(sSetupUid => {
-                            if (sSetupUid !== null && {$jsSetupsTableId} !== null){
+                        if ({$jsSetupsTableId} !== null){
+                        
+                            // get the ui5 datatable that shows the setups
+                            let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
+                            if (oSetupTable == undefined){
+                                return;
+                            }
+
+                            let oModel = oSetupTable.getModel();
+                            let oData = oModel.getProperty('/');
                             
-                                // get the ui5 datatable that shows the setups
-                                let oSetupTable = sap.ui.getCore().byId({$jsSetupsTableId});
-                                if (oSetupTable == undefined){
-                                    return;
-                                }
-                                
-                                let oModel = oSetupTable.getModel();
-                                let oData = oModel.getProperty('/');
-                                
+                            if (!oSetupTable.data("_exf_fnSetAsDefaultAttached")){
                                 // the setups table seems to refresh on every re-open so its not enough to set in once,
                                 // so it needs to be some sort of event listener that re-sets it on re-open/update
                                 let fnSetAsDefault = function(oEvent) {
-                                    let oModel = oSetupTable.getModel();
-                                    let oData = oModel.getProperty('/');
-                                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
-                                        oData.rows.forEach(row => {
-                                            row.SETUP_APPLIED = "";
-                                            if (row.UID === sSetupUid) {
-                                                row.SETUP_APPLIED = "sap-icon://accept";
-                                            }
-                                        });
+                                    // retrieve the currently applied setup uid from indexedDb/session storage
+                                    getSetupData(sPageId, sWidgetId, null, 'setup_uid')
+                                    .then(sSetupUid => {
+                                        let oModel = oSetupTable.getModel();
+                                        let oData = oModel.getProperty('/');
+                                        if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
+                                            oData.rows.forEach(row => {
+                                                row.SETUP_APPLIED = "";
+                                                if (row.UID === sSetupUid) {
+                                                    row.SETUP_APPLIED = "sap-icon://accept";
+                                                }
+                                            });
 
-                                        oModel.setProperty('/rows', oData.rows);
-                                    }
+                                            oModel.setProperty('/rows', oData.rows);
+                                        }
+                                    });
                                 };
 
                                 oSetupTable.detachUpdateFinished(fnSetAsDefault);
                                 oSetupTable.attachUpdateFinished(fnSetAsDefault);
 
-                                // if setup is manually applied, refresh ui to trigger event listener
-                                if ({$passedParameters}[0] !== 'localStorage'){
-                                    oModel.refresh(true);
-                                }
+                                // make sure listener is only attached once
+                                oSetupTable.data("_exf_fnSetAsDefaultAttached", true);
                             }
-                        });
+                            
+
+                            // if setup is manually applied, refresh ui to trigger event listener
+                            if ({$passedParameters}[0] !== 'localStorage'){
+                                oModel.refresh(true);
+                            }
+                        }
+
+                        // apply changes immediately 
+                        let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oP13nDialog) {
+                            oP13nDialog.fireOk();
+                        }
+                        
                     } 
                     else {
                         // return if no setup was passed or found
@@ -1147,8 +1243,37 @@ JS;
                         oColumn.setFiltered(true).setFilterValue(sFltrVal);
                     } else {
                         oColumn.setFiltered(false).setFilterValue('');
-                    }         
-    
+                    }  
+
+                    // also set the filter as an advanced search item in the p13n panel
+                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+
+                    // Check if a filter for the property already exists
+                    let aFilterItems = oDialog.getFilterItems();
+                    let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
+
+                    if (oExistingFilter) {
+                        // delete exiting property (if any)
+                        oDialog.removeFilterItem(oExistingFilter);
+                    } 
+                    if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
+                        // create new filter item if value is valid/not empty
+                        var oFilterItem = new sap.m.P13nFilterItem({
+                            "columnKey": sFltrProp,
+                            "exclude": false,
+                            "operation": "Contains",
+                            "value1": mFltrParsed
+                        });
+
+                        oDialog.addFilterItem(oFilterItem);
+                    }
+
+                    // apply the changes from the p13n dialogue 
+                    let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                    if (oP13nDialog) {
+                        oP13nDialog.fireOk();
+                    }
+
                     // Also make sure the built-in UI5-filtering is not applied.
                     oEvent.cancelBubble();
                     oEvent.preventDefault();
@@ -1160,14 +1285,33 @@ JS;
                 {$oParamsJs}.sort = {$oControlEventJsVar}.getParameters().column.getSortProperty();
                 {$oParamsJs}.order = {$oControlEventJsVar}.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
                 
-                sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}')
-                .destroySortItems()
-                .addSortItem(
-                    new sap.m.P13nSortItem({
-                        columnKey: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
-                        operation: {$oControlEventJsVar}.getParameters().sortOrder
-                    })
-                );
+                // get p13n model 
+                let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                let aSorters = oModel.getProperty('/sorters') || [];
+
+                // new sorter object
+                let oNewSorter = {
+                    attribute_alias: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
+                    direction: {$oControlEventJsVar}.getParameters().sortOrder
+                };
+                
+                let bExists = aSorters.some(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
+                if (!bExists) {
+                    // if entry doesnt exist, add new sorter
+                    aSorters.push(oNewSorter);
+                }
+                else{
+                    // if it exists, update sorting direction
+                    let oExistingSorter = aSorters.find(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
+                    if (oExistingSorter) {
+                        oExistingSorter.direction = oNewSorter.direction;
+                    }
+                }
+                
+                // update the model/refresh
+                oModel.setProperty('/sorters', aSorters);
+                oModel.refresh(true);
 
                 // Also make sure, the built-in UI5-sorting is not applied.
                 $oControlEventJsVar.cancelBubble();
@@ -1913,13 +2057,6 @@ JS;
                     setTimeout(function(){
                         $oTableJs.getColumns().forEach(function(oCol){
 
-                            // skip manually resized columns 
-                            // (only skipping them didnt work, so we set the saved value then return)
-                            if (oCol.data('_exfCustomColWidth')){
-                                oCol.setWidth(oCol.data('_exfCustomColWidth'));
-                                return;
-                            } 
-
                             var oWidth = oCol.data('_exfWidth');
                             var jqCol = $('#'+oCol.getId());
                             var jqLabel = jqCol.find('label');
@@ -1951,6 +2088,17 @@ JS;
                         });
                     }, 0);
                 }
+                
+                // manually resized columns should always keep their width
+                // (only skipping them didnt work, so we set the saved value then return)
+                setTimeout(function(){
+                    $oTableJs.getColumns().forEach(function(oCol){
+                        if (oCol.data('_exfCustomColWidth')){
+                            oCol.setWidth(oCol.data('_exfCustomColWidth'));
+                            return;
+                        } 
+                    });
+                }, 0);
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
