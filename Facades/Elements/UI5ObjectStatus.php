@@ -287,10 +287,10 @@ JS;
                         var oColorScale = {$semColsJs};
                         {$this->buildJsColorCssSetter('oCtrl', 'null')}
                         return oColorScale[sColor];
-                    } else if (sColor) {
+                    } else {
                         {$this->buildJsColorCssSetter('oCtrl', 'sColor')}
+                        return {$this->buildJsColorValueNoColor()};
                     }
-                    return {$this->buildJsColorValueNoColor()};
                 }
                 
 JS;
