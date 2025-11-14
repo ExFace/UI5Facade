@@ -154,11 +154,13 @@ JS
         }
 
         // setups table id is needed to dynamically mark applied setup
+        $jsSetupsTableId = $this->escapeString('null');
         if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
-            $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            if ($this->getP13nElement()->getSetupsTableId() !== null){
+                $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            }
         }
         
-
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
 
@@ -188,12 +190,12 @@ JS
                 // Dump current table setup into inputData of the action
 
                 // get column name parameters, remove leading/trailing spaces; return if not all params provided
-                let params = {$passedParameters};
-                if (!Array.isArray(params) || params.length < 6) {
-                    console.warn('dump_setup() called with invalid parameters:', params);
+                let aParams = {$passedParameters};
+                if (!Array.isArray(aParams) || aParams.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', aParams);
                     return;
                 }
-                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = params.map(p => typeof p === 'string' ? p.trim() : p);
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
 
                 // json object to save current state in
                 let oSetupJson = {
@@ -467,8 +469,6 @@ JS;
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
                         if ({$passedParameters}[0] !== 'localStorage'){
-                            // when manually applying a setup, show the success message
-                            {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")};
                             
                             // combination of page and widget id as primary key for db entry
                             sPageId = oResultData.rows[0]['PAGE'];
