@@ -717,9 +717,30 @@ JS;
             
         }
         
+        if($this->isMList()) {
+            $deselectJs = <<<JS
+            
+            oTable.setSelectedItem(oDeselect, false);
+JS;
+
+        } else {
+            $deselectJs = <<<JS
+
+            oTable.__modifyingSelection = true;
+            oTable.removeSelectionInterval(iDeselect, iDeselect);
+            oTable.__modifyingSelection = false;
+JS;
+
+        }
+        
         return <<<JS
         
             const oTable = $oEventJs.getSource();
+            
+            if (oTable.__modifyingSelection) {
+                return;
+            }
+            
             const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
@@ -727,6 +748,40 @@ JS;
             var aRowsVisible = [];
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aSelected = null;
+            
+            // Exclude footers from selections.
+            if (oTable.getFixedBottomRowCount() > 0) {
+                var aSelectedIndices = oTable.getSelectedIndices();
+                aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
+                bAllRowsSelected = aSelectedIndices.length === aRowsVisible.length;
+                
+                if (bAllRowsSelected && oTable._allRowsSelected) {
+                    // Our little hack to exclude footers breaks the deselect all function,
+                    // which we emulate here.
+                    oTable.__modifyingSelection = true;
+                    oTable.clearSelection();
+                    oTable.__modifyingSelection = false;
+                    
+                    oTable._allRowsSelected = false;
+                    aRowsSelectedVisible = [];
+                } else {
+                    for(var i = 1; i <= oTable.getFixedBottomRowCount(); i++) {
+                        var iDeselect = aRowsVisible.length - i;
+                        // To exclude footers, we assume they are always the last indices in our model
+                        // and simply deselect those indices, whenever they are in a selection.
+                        if (!aSelectedIndices.includes(iDeselect)) {
+                            continue;
+                        }
+                        
+                        // This line excludes footers from the selectionModel.
+                        var oDeselect = aRowsSelectedVisible.pop();
+                        {$deselectJs}
+                    }
+                    
+                    oTable._allRowsSelected = bAllRowsSelected;
+                }
+            }
 
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
@@ -739,11 +794,12 @@ JS;
                 });
                 // Add all currently visible selected rows
                 aRowsMerged.push(...aRowsSelectedVisible);
-
-                oModelSelected.setProperty('/rows', aRowsMerged);
+                aSelected = aRowsMerged;
             } else {
-                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
+                aSelected = aRowsSelectedVisible;
             }
+            
+            oModelSelected.setProperty('/rows', aSelected);
             
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
