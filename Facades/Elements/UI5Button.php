@@ -615,12 +615,9 @@ JS;
     
     /**
      * 
-     * @param ActionInterface $action
-     * @param string $jsRequestData
-     * @param string $jsOnSuccess
-     * @return string
+     * @see JqueryButtonTrait::buildJsClickCallServerAction()
      */
-    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '') : string
+    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '', string $oResultDataJsVar = 'oResultData') : string
     {
         $widget = $this->getWidget();
         $input_element = $this->getInputElement();
@@ -674,6 +671,8 @@ JS;
                                         a.click();
                                         document.body.removeChild(a);
                    					}
+                                    
+                                    var {$oResultDataJsVar} = oResultModel.getData();
                                     {$jsOnSuccess}
 								}
 JS;

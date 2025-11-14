@@ -1814,7 +1814,7 @@ JS;
             var oChanges = oChangesModel.getProperty('/changes');
             var aEditableColNames = {$this->getEditableColumnNamesJson()};        
 
-            if (oDataChanged.rows === undefined || oDataChanged.rows.lenght === 0) return;
+            if (oDataChanged.rows === undefined || oDataChanged.rows.length === 0) return;
 
             oDataChanged.rows.forEach(function(oRowChanged) {
                 var oRowLast;

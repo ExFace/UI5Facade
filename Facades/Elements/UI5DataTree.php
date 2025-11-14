@@ -23,6 +23,18 @@ class UI5DataTree extends UI5DataTable
     {
         return $this->buildJsPanelWrapper($this->buildJsConstructorForTreeTable($oControllerJs), $oControllerJs, null, false);
     }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::buildJsToolbarContent())
+     */
+    protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
+    {
+        if ($leftExtras === null && $this->hasPaginator()) {
+            $leftExtras = $this->getPaginatorElement()->buildJsConstructor($oControllerJsVar);
+        }
+        return parent::buildJsToolbarContent($oControllerJsVar, $leftExtras, $rightExtras);
+    }
     
     /**
      * 
