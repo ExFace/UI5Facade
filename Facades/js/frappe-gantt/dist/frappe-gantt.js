@@ -162,8 +162,8 @@ var Gantt = (function () {
 
             return date_string + (with_time ? ' ' + time_string : '');
         },
-
-        format(date, format_string = 'YYYY-MM-DD HH:mm:ss.SSS') {
+      
+          format(date, format_string = 'yyyy-MM-dd HH:mm:ss.SSS') {
             return exfTools.date.format(date, format_string);
         },
 
@@ -1160,7 +1160,7 @@ var Gantt = (function () {
                 if (members && members.length) {
                   const ul = document.createElement('ul');
                   ul.className = 'agg-list';
-                  const fmt = (d) => this.gantt.dateUtils.format(d, this.gantt.options.date_format || 'YYYY-MM-DD');
+                  const fmt = (d) => this.gantt.dateUtils.format(d, this.gantt.options.date_format || 'yyyy-MM-dd');
 
                   // gleiche Logik wie bei normalen Bars:
                   const adjustEnd = (d) => {
@@ -1360,7 +1360,7 @@ var Gantt = (function () {
                 arrow_curve: 5,
                 padding: 18,
                 view_mode: 'Day',
-                date_format: 'YYYY-MM-dd',
+                date_format: 'yyyy-MM-dd',
                 popup_trigger: 'click',
                 custom_popup_html: null,
                 language: 'en',
@@ -1380,9 +1380,47 @@ var Gantt = (function () {
                 view_mode_column_width_month: 20,
                 view_mode_column_width_year: 12,
                 label_outside_color: '#555',
+                // The formats are in ICU:
+                header_formats: {
+                  'Quarter Day': {
+                    upper: { date_format: '',   date_format_at_border: 'd MMM', interval: 'Date' },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH',   interval: 'Date' }
+                  },
+                  // Display only format if the day changes; and use border format if the month also changes.
+                  'Half Day': {
+                    upper: {
+                      date_format: 'd',
+                      date_format_at_border: 'd MMM',
+                      interval: 'Date',
+                      showOnChangeOf: 'Date',
+                      borderOnChangeOf: 'Month',
+                    },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH', interval: 'Date' }
+                  },
+                  'Day': {
+                    upper: { date_format: '',    date_format_at_border: 'MMM',  interval: 'Month' },
+                    lower: { date_format: '',    date_format_at_border: 'd',    interval: 'Date' }
+                  },
+                  'Week': {
+                    upper: { date_format: '',    date_format_at_border: 'M',     interval: 'Month' },
+                    lower: { date_format: 'd',   date_format_at_border: 'd MMM', interval: 'Month' }
+                  },
+                  'Month': {
+                    upper: { date_format: '',    date_format_at_border: 'yyyy',  interval: 'Year' },
+                    lower: { date_format: 'M',   date_format_at_border: 'M',     interval: 'Month' }
+                  },
+                  'Year': {
+                    upper: { date_format: '',     date_format_at_border: 'yyyy', interval: 'Year' },
+                    lower: { date_format: 'yyyy', date_format_at_border: 'yyyy', interval: 'Year' }
+                  }
+                }
+              
             };
             
             this.options = Object.assign({}, default_options, (options || {}));
+            
+            // also merges the inside objects of the header_formats with the default options.
+            this.options.header_formats = this.deepMerge(default_options.header_formats, this.options.header_formats);
             
             if (this.options.row_height == null) {
               this.options.row_height = this.options.bar_height + this.options.padding;
@@ -1391,6 +1429,18 @@ var Gantt = (function () {
             if (this.options.bar_inner_padding == null) {
               this.options.bar_inner_padding = 6;
             }
+        }
+        
+        deepMerge(target, src) {
+          if (!src) return target;
+          for (const k of Object.keys(src)) {
+            if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+              target[k] = this.deepMerge(target[k] ? {...target[k]} : {}, src[k]);
+            } else {
+              target[k] = src[k];
+            }
+          }
+          return target;
         }
 
         setup_tasks(tasks) {
@@ -1930,7 +1980,7 @@ var Gantt = (function () {
             const $t = createSVG('text', {
               x: xMid,
               y: upperY,
-              innerHTML: date_utils.format(monthStart, 'MMM YYYY'),
+              innerHTML: date_utils.format(monthStart, 'MMM yyyy'),
               class: 'upper-text',
               append_to: this.layers.date,
             });
@@ -1960,67 +2010,23 @@ var Gantt = (function () {
                 last_date = date_utils.add(date, 1, 'year');
             }
             
-            const date_text = {
-                'Quarter Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                'Half Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                Day_lower:
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'd')
-                        : '',
-                //Day_lower: dayChanged ? String(date.getDate()) : '',
-                Week_lower:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'd MMM')
-                        : date_utils.format(date, 'd'),
-                Month_lower: date_utils.format(date, 'M'),
-                Year_lower: date_utils.format(date, 'YYYY'),
-                'Quarter Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'd MMM')
-                        : '',
-                'Half Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date.getMonth() !== last_date.getMonth()
-                            ? date_utils.format(
-                                  date,
-                                  'd MMM',
-                              )
-                            : date_utils.format(date, 'd')
-                        : '',
-                Day_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'MMM')
-                        : '',
-                Week_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'M')
-                        : '',
-                Month_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
-                Year_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
+/*            const date_text = {
+               
               
               //TODO SR INFO: Month Weeks View:
-                /*
+              //TODO SR INFO: the "date_text" is deprecated. Take the Formats from here and put then into "options.header_formats"!
+              
                 //MonthWeeks_lower: date_utils.format(date, 'd MMM'),
                 MonthWeeks_lower: date_utils.format(date, 'd'),
                 MonthWeeks_upper:
                     (!last_date || date.getMonth() !== last_date.getMonth())
-                        ? date_utils.format(date, 'MMM YYYY')
+                        ? date_utils.format(date, 'MMM yyyy')
                         : '',
-                */
-            };
+       
+            };*/
 
+            const view = this.options.view_mode;
+          
             const base_pos = {
                 x: i * this.options.column_width,
                 lower_y: this.options.header_height,
@@ -2045,18 +2051,63 @@ var Gantt = (function () {
 /*              MonthWeeks_lower: this.options.column_width / 2, 
                 MonthWeeks_upper: (this.options.column_width * 4) / 2, */
             };
-
+            
             return {
-                upper_text: date_text[`${this.options.view_mode}_upper`],
-                lower_text: date_text[`${this.options.view_mode}_lower`],
+                lower_text: this.formatHeaderPart(date, last_date, view, 'lower'),
+                upper_text: this.formatHeaderPart(date, last_date, view, 'upper'),
                 upper_x: base_pos.x + x_pos[`${this.options.view_mode}_upper`],
                 upper_y: base_pos.upper_y,
                 lower_x: base_pos.x + x_pos[`${this.options.view_mode}_lower`],
                 lower_y: base_pos.lower_y,
             };
         }
+        
+      formatHeaderPart(date, last_date, viewMode, part) {
+        const spec = this.options.header_formats?.[viewMode]?.[part];
+        if (!spec) return '';
 
-        make_bars() {
+        const {
+          date_format = '',
+          date_format_at_border = '',
+          interval = 'Date',
+          showOnChangeOf = null,
+          borderOnChangeOf = null
+        } = spec;
+
+        const changed = (which) => {
+          switch (which) {
+            case 'Date':  return date.getDate() !== last_date.getDate();
+            case 'Month': return date.getMonth() !== last_date.getMonth();
+            case 'Year':  return date.getFullYear() !== last_date.getFullYear();
+            default: return false;
+          }
+        };
+
+        // The "showOnChangeOf" and "borderOnChangeOf" parameters are used here to cover "Half Day_upper" case:
+        // Old code:
+        /*
+          'Half Day_upper':
+             date.getDate() !== last_date.getDate()
+                 ? date.getMonth() !== last_date.getMonth()
+                     ? date_utils.format(
+                           date,
+                           'd MMM',
+                       )
+                     : date_utils.format(date, 'd')
+                 : '',
+         */
+        if (showOnChangeOf && !changed(showOnChangeOf)) return '';
+        
+        const useBorder =
+            date_format_at_border && (
+                borderOnChangeOf ? changed(borderOnChangeOf) : changed(interval)
+            );
+
+        const format = useBorder ? date_format_at_border : date_format;
+        return format ? this.dateUtils.format(date, format) : '';
+      }
+
+      make_bars() {
           // Only render non-hidden tasks + all aggregates
           const renderTasks = this.tasks.filter(t => !t._hidden)
           .concat(this._aggregateBars || []);
@@ -2618,7 +2669,7 @@ var Gantt = (function () {
               const ib = isFinite(+b.id) ? +b.id : String(b.id);
               return ia > ib ? 1 : ia < ib ? -1 : 0;
             };
-            const fmt = this.options.date_format || 'YYYY-MM-DD';
+            const fmt = this.options.date_format || 'yyyy-MM-dd';
     
             // group rows
             const rows = new Map();
