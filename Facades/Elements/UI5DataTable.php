@@ -154,11 +154,13 @@ JS
         }
 
         // setups table id is needed to dynamically mark applied setup
+        $jsSetupsTableId = $this->escapeString('null');
         if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
-            $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            if ($this->getP13nElement()->getSetupsTableId() !== null){
+                $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            }
         }
         
-
         // translated strings 
         $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
 
@@ -188,12 +190,12 @@ JS
                 // Dump current table setup into inputData of the action
 
                 // get column name parameters, remove leading/trailing spaces; return if not all params provided
-                let params = {$passedParameters};
-                if (!Array.isArray(params) || params.length < 6) {
-                    console.warn('dump_setup() called with invalid parameters:', params);
+                let aParams = {$passedParameters};
+                if (!Array.isArray(aParams) || aParams.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', aParams);
                     return;
                 }
-                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = params.map(p => typeof p === 'string' ? p.trim() : p);
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
 
                 // json object to save current state in
                 let oSetupJson = {
@@ -467,8 +469,6 @@ JS;
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
                         if ({$passedParameters}[0] !== 'localStorage'){
-                            // when manually applying a setup, show the success message
-                            {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")};
                             
                             // combination of page and widget id as primary key for db entry
                             sPageId = oResultData.rows[0]['PAGE'];
@@ -717,9 +717,30 @@ JS;
             
         }
         
+        if($this->isMList()) {
+            $deselectJs = <<<JS
+            
+            oTable.setSelectedItem(oDeselect, false);
+JS;
+
+        } else {
+            $deselectJs = <<<JS
+
+            oTable.__modifyingSelection = true;
+            oTable.removeSelectionInterval(iDeselect, iDeselect);
+            oTable.__modifyingSelection = false;
+JS;
+
+        }
+        
         return <<<JS
         
             const oTable = $oEventJs.getSource();
+            
+            if (oTable.__modifyingSelection) {
+                return;
+            }
+            
             const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
@@ -727,6 +748,40 @@ JS;
             var aRowsVisible = [];
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aSelected = null;
+            
+            // Exclude footers from selections.
+            if (oTable.getFixedBottomRowCount() > 0) {
+                var aSelectedIndices = oTable.getSelectedIndices();
+                aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
+                bAllRowsSelected = aSelectedIndices.length === aRowsVisible.length;
+                
+                if (bAllRowsSelected && oTable._allRowsSelected) {
+                    // Our little hack to exclude footers breaks the deselect all function,
+                    // which we emulate here.
+                    oTable.__modifyingSelection = true;
+                    oTable.clearSelection();
+                    oTable.__modifyingSelection = false;
+                    
+                    oTable._allRowsSelected = false;
+                    aRowsSelectedVisible = [];
+                } else {
+                    for(var i = 1; i <= oTable.getFixedBottomRowCount(); i++) {
+                        var iDeselect = aRowsVisible.length - i;
+                        // To exclude footers, we assume they are always the last indices in our model
+                        // and simply deselect those indices, whenever they are in a selection.
+                        if (!aSelectedIndices.includes(iDeselect)) {
+                            continue;
+                        }
+                        
+                        // This line excludes footers from the selectionModel.
+                        var oDeselect = aRowsSelectedVisible.pop();
+                        {$deselectJs}
+                    }
+                    
+                    oTable._allRowsSelected = bAllRowsSelected;
+                }
+            }
 
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
@@ -739,11 +794,12 @@ JS;
                 });
                 // Add all currently visible selected rows
                 aRowsMerged.push(...aRowsSelectedVisible);
-
-                oModelSelected.setProperty('/rows', aRowsMerged);
+                aSelected = aRowsMerged;
             } else {
-                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
+                aSelected = aRowsSelectedVisible;
             }
+            
+            oModelSelected.setProperty('/rows', aSelected);
             
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
