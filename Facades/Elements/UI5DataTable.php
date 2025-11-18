@@ -168,7 +168,7 @@ JS
             case $functionName === DataTable::FUNCTION_DUMP_SETUP:
                 
                 /*
-                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER)
+                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER, true/false)
 
                     - SETUP_UXON:
                         The name of the column where the setup UXON will be stored
@@ -183,6 +183,8 @@ JS
                         the name of the column for the object of the datatable
                     - PRIVATE_FOR_USER:
                         the name of the column for the current user UID
+                    - true/false: (optional)
+                        auto apply after dumping the data (only works for updating an existing setup, otherwise the setup UID is missing)
                 */
 
                 return <<<JS
@@ -196,6 +198,7 @@ JS
                     return;
                 }
                 let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
+                let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // json object to save current state in
                 let oSetupJson = {
@@ -281,6 +284,11 @@ JS
                 {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
                 {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
                 {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+
+                if (bAutoApply === true){
+                    {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#' . $parameters[0] . '#]' ], $jsRequestData)}
+                }
+                
 JS;
 
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
