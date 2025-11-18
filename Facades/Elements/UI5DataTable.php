@@ -751,7 +751,7 @@ JS;
             var aSelected = null;
             
             // Exclude footers from selections.
-            if (oTable.getFixedBottomRowCount() > 0) {
+            if (oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
                 var aSelectedIndices = oTable.getSelectedIndices();
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 bAllRowsSelected = aSelectedIndices.length === aRowsVisible.length;
