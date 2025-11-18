@@ -94,6 +94,11 @@ JS
                                     var oBinding = oEvent.getSource();
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                 });
+                                
+
+                                sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
+                                });
                             }
                             {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                         },0);
@@ -611,13 +616,13 @@ JS;
             $viewGranularity = $this->convertDataTimelineGranularityToGanttViewMode(
                 $viewMode->getGranularity()
             );
-
+            $viewIcon = $viewMode->getIcon() ?? '';
             
             $buttons[] = [
                 'caption' => $viewName,
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
-                    'hide_icon' => true,
+                    'icon' => $viewIcon,
                     'script' => <<<JS
                         sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewGranularity');
 JS
