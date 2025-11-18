@@ -21,6 +21,10 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\DataTypes\OfflineStrategyDataType;
+use exface\Core\CommonLogic\Model\UiPage;
+use exface\Core\Factories\WidgetFactory;
 
 /**
  *
@@ -676,6 +680,190 @@ JS;
         
 JS;
     }
+
+     /**
+      * Builds a UI5 quick select menu with widget setups for the datatable.
+      * Menu uses the same model as (so is dependant on) the table containing the setups in the p13n dialogue for consistency
+      * @return string
+      */
+     protected function buildJsSetupQuickSelectMenu() : string
+    {
+        /* TODO:
+            - translate all strings
+            - set current setup name as caption (?)
+            - check m table
+            - check offline 
+        */
+
+        if (!$this->getConfiguratorElement()->getWidget()->hasSetups()){
+            return '';
+        }
+        
+        $setupsTable = $this->getP13nElement()->getWidget()->getSetupsTab()->getWidgetFirst();
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+
+        // set caption disabled, and use as caption of popover button
+        $tableCaption = $this->getCaption() ? $this->escapeString($this->getCaption()) : $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION');
+        $this->getWidget()->setHideCaption(true);
+
+        // button to apply selected setup
+        $applySetupButtonJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY')}",
+                tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY')}",
+                type: sap.m.ButtonType.Emphasized,
+                press: () => {
+                    // return if nothing selected
+                    if (this._oTable.getSelectedItem() == null){
+                        return;
+                    }
+
+                    // apply selected setup
+                    let oQuickSelectData = {
+                        rows: [ this._oTable.getSelectedItem().getBindingContext().getObject() ]
+                    };
+                    {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#SETUP_UXON#]' ], 'oQuickSelectData')}
+                }
+            })
+                    
+JS;
+
+        // button to open the configrator 
+        $openConfiguratorBtnJs = <<<JS
+                    new sap.m.Button({
+                        text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
+                        tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
+                        layoutData: new sap.m.OverflowToolbarLayoutData({
+                            priority: sap.m.OverflowToolbarPriority.AlwaysOverflow
+                        }),
+                        press: function() {
+                			{$this->getController()->buildJsDependentControlSelector('oConfigurator', $this, 'oController')}.open();
+                		}
+                    })
+JS;
+
+        // button to close the popup
+        $closePopoverBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.GENERIC.CANCEL')}",
+                type: sap.m.ButtonType.Transparent,
+                press: () => {
+                    if (this._oPopover) {
+                        this._oPopover.close();
+                    }
+                }
+            })
+JS;
+
+        return <<<JS
+                    new sap.m.Button({
+                        text: {$tableCaption},
+                        icon: "sap-icon://slim-arrow-down",
+                        press: function (oEvent) {
+
+                            let oButton = oEvent.getSource();
+                            let oOriginalTable = sap.ui.getCore().byId("{$this->getP13nElement()->getSetupsTableId()}");
+                            let oModel = oOriginalTable.getModel();
+                            let sPath = oOriginalTable.getBinding("items").getPath();
+                            let oBinding = oOriginalTable.getBinding("items");
+
+                            if (oBinding && oBinding.getLength() === 0) {
+                                // Load data if the table is empty (on first open for example)
+                                // this calls the onload method of the table
+                                {$this->getFacade()->getElement($setupsTable)->buildJsRefresh()}
+                            }
+
+                            // only create popover once per table
+                            if (!this._oPopover) {
+                                if (!this._oTable) {
+
+                                    // create new table
+                                    this._oTable = new sap.m.Table({
+                                        columns: [
+                                            new sap.m.Column({ header: new sap.m.Text({ text: '{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ACTIVE')}'}), width: "15%"}),
+                                            new sap.m.Column({ header: new sap.m.Text({ text: "Name" })}),
+                                            new sap.m.Column({ header: new sap.m.Text({ text: "Favorit" })})
+                                        ],
+                                        mode: sap.m.ListMode.SingleSelectMaster
+                                    });
+
+                                    // use same model as in setups tab so data is consisnent
+                                    this._oTable.setModel(oModel);
+
+                                    // table template
+                                    const oTemplate = new sap.m.ColumnListItem({
+                                        cells: [
+                                            new sap.ui.core.Icon({
+                                                visible: {
+                                                    path: "SETUP_APPLIED",
+                                                    formatter: function (v) {
+                                                        return !!v; // hide icon if empty, otherwise UI5 gives warnings
+                                                    }
+                                                },
+                                                src: {
+                                                    path: "SETUP_APPLIED",
+                                                    formatter: function (v) {
+                                                        return v || "sap-icon://less";
+                                                    }
+                                                }
+                                            }),
+                                            new sap.m.Text({ text: "{NAME}" }),
+                                            new sap.ui.core.Icon({
+                                                src: {
+                                                    path: "WIDGET_SETUP_USER__FAVORITE_FLAG",
+                                                    formatter: function (v) {
+                                                        return v == 1 ? "sap-icon://favorite" : "sap-icon://unfavorite";
+                                                    }
+                                                }
+                                            })
+                                        ]
+                                    });
+
+                                    // bind items to the table 
+                                    // sort by favourite desc; and limit to 10 elements
+                                    // (we need to do that here in the binding, in order to not change the original table in the configurator)
+                                    this._oTable.bindItems({
+                                        path: sPath,
+                                        template: oTemplate,
+                                        sorter: new sap.ui.model.Sorter("WIDGET_SETUP_USER__FAVORITE_FLAG", true),
+                                        length: 10
+                                    });
+                                }
+
+                                // create popover and add table and buttons as content
+                                this._oPopover = new sap.m.Popover({
+                                    title: {$tableCaption} + '{$translator->translate(('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'))}',
+                                    contentWidth: "500px",
+                                    contentHeight: "200px",
+                                    placement: sap.m.PlacementType.VerticalPreferredBottom,
+                                    resizable: true,
+                                    showArrow: true,
+                                    content: [
+                                        this._oTable 
+                                    ],
+                                    footer: new sap.m.OverflowToolbar({
+                                        content: [
+                                            new sap.m.ToolbarSpacer(), 
+                                            {$applySetupButtonJs},
+                                            {$closePopoverBtnJs},
+                                            {$openConfiguratorBtnJs}
+                                        ]
+                                    })
+                                });
+
+                                this.addDependent(this._oPopover);
+                            }
+
+                            // open popover relative to the button
+                            this._oPopover.openBy(oButton);
+                        }
+                    }),
+                    
+                    
+JS;
+    }
+
+
     
     /**
      * 
@@ -847,7 +1035,7 @@ JS;
         $selection_behavior = $widget->getMultiSelect() ? 'sap.ui.table.SelectionBehavior.Row' : 'sap.ui.table.SelectionBehavior.RowOnly';
         
         if ($this->getDynamicPageShowToolbar() === false) {
-            $toolbar = $this->buildJsToolbar($oControllerJs, $this->getPaginatorElement()->buildJsConstructor($oControllerJs));
+            $toolbar = $this->buildJsToolbar($oControllerJs, $this->buildJsSetupQuickSelectMenu() .$this->getPaginatorElement()->buildJsConstructor($oControllerJs));
         } else {
             $toolbar = '';
         }
