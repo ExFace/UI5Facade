@@ -938,10 +938,19 @@ var Gantt = (function () {
           const overflow = this.gantt.options.label_overflow || 'outside';
           const padding = 6;
           const fits = label.getBBox().width <= Math.max(0, bar.getWidth() - padding);
+
+          const isStacked = (this.task._clusterLanes || 1) > 1;
+          const isLowHeight = this.height <= 14;
   
           // Basis: Always align labels centrally
           label.classList.remove('big');
           label.classList.remove('clip-left');
+          label.classList.remove('small');
+
+          if (isStacked || isLowHeight) {
+            label.classList.add('small');
+          }
+
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
           label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
@@ -985,11 +994,11 @@ var Gantt = (function () {
             // so that the labels do not overlap. 
             label.style.display = '';
             label.classList.remove('big');
-            const inset = 2;
+            const insetX = 2;
+            const insetY = 1;
             
             label.classList.add('clip-left');
-            label.classList.remove('big');
-            label.setAttribute('x', bar.getX() + inset);
+            label.setAttribute('x', bar.getX() + insetX);
             label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
 
             restoreInBarColor();
@@ -1005,12 +1014,12 @@ var Gantt = (function () {
 
             const cp = createSVG('clipPath', { id: clipId, append_to: defs });
             createSVG('rect', {
-              x: bar.getX() + inset,
-              y: bar.getY() + inset,
-              width: Math.max(0, bar.getWidth() - inset * 2),
-              height: Math.max(0, bar.getHeight() - inset * 2),
-              rx: Math.max(0, this.corner_radius - inset),
-              ry: Math.max(0, this.corner_radius - inset),
+              x: bar.getX() + insetX,
+              y: bar.getY() + insetY,
+              width: Math.max(0, bar.getWidth() - insetX * 2),
+              height: Math.max(0, bar.getHeight() - insetY * 2),
+              rx: Math.max(0, this.corner_radius - insetX),
+              ry: Math.max(0, this.corner_radius - insetY),
               append_to: cp
             });
 
