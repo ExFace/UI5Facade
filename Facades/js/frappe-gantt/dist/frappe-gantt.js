@@ -723,19 +723,24 @@ var Gantt = (function () {
         show_popup() {
             if (this.gantt.bar_being_dragged) return;
 
-            const start_date = date_utils.format(
-                this.task._start,
-                this.gantt.options.date_format,
-            );
+            let subtitle = '';
 
-            const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
-                ? date_utils.add(this.task._end, -24, 'hour')
-                : date_utils.add(this.task._end, -1, 'second');
+            if (!this.task._isAggregate) {
+                const start_date = date_utils.format(
+                    this.task._start,
+                    this.gantt.options.date_format,
+                );
   
-            const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
-          
-            const subtitle = start_date + ' - ' + end_date;
-
+                const adjEnd = (this.gantt.options.step >= 24
+                    && (this.gantt.options.step % 24) === 0)
+                    ? date_utils.add(this.task._end, -24, 'hour')
+                    : date_utils.add(this.task._end, -1, 'second');
+  
+                const end_date = date_utils.format(adjEnd,
+                    this.gantt.options.date_format);
+  
+                subtitle = start_date + ' - ' + end_date;
+            }
             this.gantt.show_popup({
                 target_element: this.$bar,
                 title: this.task.name,
@@ -1138,6 +1143,10 @@ var Gantt = (function () {
             }
             const target_element = options.target_element;
 
+            // Keep the pop-up invisible while we calculate the content and layout. 
+            this.parent.style.visibility = 'hidden';
+            this.parent.style.opacity = 0;
+
             if (this.custom_html) {
                 let html = this.custom_html(options.task);
                 html += '<div class="pointer"></div>';
@@ -1151,6 +1160,7 @@ var Gantt = (function () {
 
                 // aggregates the data of overlapping bars for the +n-block
                 const t = options.task;
+                this.current_task_id = t && t.id;
                 const members = t._isAggregate ? (t._members || []) : (t._aggMembers || []);
   
                 // Remove existing old list (when reopening)
@@ -1170,20 +1180,42 @@ var Gantt = (function () {
                         ? du.add(d, -24, 'hour')     // Tages-/Wochen-/Monats-Skalierung: -24h
                         : du.add(d, -1, 'second');   // Feiner als Tag: -1s
                   };
-
+                  
+                  // filling the n-block popup
                   members.forEach(m => {
                     const li = document.createElement('li');
-                    if (m._start && m._end) {
-                      li.textContent = `${m.name} (${fmt(m._start)} – ${fmt(adjustEnd(m._end))})`;
-                    } else {
-                      li.textContent = m.name;
+
+                    // Color-Swatch at the left
+                    const swatch = document.createElement('span');
+                    swatch.className = 'agg-color-swatch';
+                    if (m.color) {
+                      swatch.style.backgroundColor = String(m.color);
                     }
+                    li.appendChild(swatch);
+
+                    // Text (Name + Date interval)
+                    let labelText;
+                    if (m._start && m._end) {
+                      labelText = `${m.name} (${fmt(m._start)} – ${fmt(adjustEnd(m._end))})`;
+                    } else {
+                      labelText = m.name;
+                    }
+                    li.appendChild(document.createTextNode(labelText));
+
                     ul.appendChild(li);
                   });
                   
                   this.parent.appendChild(ul);
                 }
             }
+            
+            this.parent.style.width = 'auto';
+            this.parent.style.left = '0px';
+            this.parent.style.top = '0px';
+  
+            // popup width calculation (title & aggregate list length)
+            const bounds = this.parent.getBoundingClientRect();
+            this.parent.style.width = bounds.width + 'px';
 
             // set position
             let position_meta;
@@ -1204,12 +1236,16 @@ var Gantt = (function () {
             }
 
             // show
+            this.parent.style.visibility = 'visible';
             this.parent.style.opacity = 1;
         }
 
         hide() {
             this.parent.style.opacity = 0;
             this.parent.style.left = 0;
+            this.parent.style.width = '';
+            this.parent.style.visibility = 'hidden';
+            this.current_task_id = null;
         }
 
         move(options = {}) {
@@ -1228,9 +1264,20 @@ var Gantt = (function () {
   
             const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
 
-            this.title.innerHTML = bar?.task?.name;
-            this.subtitle.innerHTML = start_date + ' - ' + end_date;
-            this.parent.style.width = this.parent.clientWidth + 'px';
+            const isAggregate = !!bar?.task?._isAggregate;
+  
+            this.title.innerHTML = bar?.task?.name || '';
+  
+            if (isAggregate) {
+              // The subtitle should not include a date interval for aggregate blocks.
+              this.subtitle.innerHTML = '';
+            } else {
+              this.subtitle.innerHTML = start_date + ' - ' + end_date;
+              
+              //cleans  the old aggregate titels in popup.
+              const oldList = this.parent.querySelector('.agg-list');
+              if (oldList) oldList.remove();
+            }
 
             if (!options?.target_element) {
                 throw new Error('target_element is required to move popup');
@@ -2254,7 +2301,14 @@ var Gantt = (function () {
                     ...this.get_all_dependent_tasks(parent_bar_id),
                 ];
                 bars = ids.map((id) => this.get_bar(id));
-
+                
+                const mainBar = this.get_bar(parent_bar_id);
+                
+                // Only rebuild the pop-up if it is missing or belongs to another task
+                if (mainBar && (!this.popup || this.popup.current_task_id !== parent_bar_id)) {
+                  mainBar.show_popup();
+                }
+              
                 this.bar_being_dragged = parent_bar_id;
 
                 bars.forEach((bar) => {
