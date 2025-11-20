@@ -705,8 +705,8 @@ JS
             $self = $this;
             $lineToArray = static function ($line) use ($self) {
                 return [
-                    'format' => (string)($line->getDateFormat() ?? ''),
-                    'format_border' => (string)($line->getDateFormatAtBorder() ?? ''),
+                    'date_format' => (string)($line->getDateFormat() ?? ''),
+                    'date_format_at_border' => (string)($line->getDateFormatAtBorder() ?? ''),
                     'interval' => $self->convertDataTimeLineIntervalToGanttInterval($line->getInterval()) ?? '',
                 ];
             };
