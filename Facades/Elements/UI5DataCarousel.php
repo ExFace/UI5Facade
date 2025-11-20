@@ -51,10 +51,17 @@ class UI5DataCarousel extends UI5Split
             // position when the view/dialog is reopened
             ->addOnHideViewScript($initSplitter, true);
         
+        $heightDim = $this->getWidget()->getHeight();
+        if ($heightDim->isUndefined()) {
+            $heightCss = '100%';
+        } else {
+            $heightCss = $this->buildCssHeight();
+        }
+        
         $splitter = <<<JS
         
     new sap.ui.layout.Splitter("{$this->getId()}", {
-        height: "100%",
+        height: "{$heightCss}",
         width: "100%",
         orientation: "{$this->getOrientation()}",
         contentAreas: [
@@ -120,11 +127,17 @@ JS;
 JS;
         }
         
+        if ($detailElem->getWidget() instanceof iFillEntireContainer) {
+            $contentJs = $detailElem->buildJsConstructor();
+            $contentJs .= ".addStyleClass('exf-datacarousel-details-filler')";
+        }
+        
         return <<<JS
 
             {$dataElem->buildJsConstructor()},
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
+                height: "{$detailElem->buildCssHeight()}",
                 headerToolbar: [
                     new sap.m.OverflowToolbar({
                         content: [
@@ -154,10 +167,10 @@ JS;
                     })
                 ],
                 content: [
-                    {$detailElem->buildJsConstructor()}
+                    {$contentJs}
                 ]
             })
-            .addStyleClass("{$this->buildCssElementClass()} {$detailClasses} exf-panel-no-border")
+            .addStyleClass("{$this->buildCssElementClass()} {$detailClasses} exf-panel-no-border exf-datacarousel-details")
 
 JS;
     }

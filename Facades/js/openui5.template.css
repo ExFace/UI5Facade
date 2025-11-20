@@ -274,7 +274,13 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .imagecarousel-file {background-color: white; border: 1px solid rgb(217, 217, 217);}
 .imagecarousel-nodata > .sapUiIcon::before {font-family: SAP-icons; content: "\e172";}
 
-/* DocScanner */
+/* DataCarousel */
+.exf-datacarousel-details {position: relative}
+/* DataCarousel with tabs */
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB {margin-top: 30px;}
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB > .sapMITH {background-color: transparent;}
+
+    /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
 .docScannerDialog .sapMDialogSection {background-color: lightgrey;}
