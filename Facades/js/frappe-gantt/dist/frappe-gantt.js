@@ -2305,7 +2305,12 @@ var Gantt = (function () {
                 const mainBar = this.get_bar(parent_bar_id);
                 
                 // Only rebuild the pop-up if it is missing or belongs to another task
-                if (mainBar && (!this.popup || this.popup.current_task_id !== parent_bar_id)) {
+                if (
+                    mainBar
+                    && !mainBar.invalid
+                    && (!this.popup || this.popup.current_task_id !== parent_bar_id)
+                )
+                {
                   mainBar.show_popup();
                 }
               
