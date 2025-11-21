@@ -41,6 +41,7 @@
 /* << MonthWeeks CSS */
 .exf-gantt .bar-label { font-size: 12px; }
 .exf-gantt .bar-label.big { font-size: 11px; }
+.exf-gantt .bar-label.small { font-size: 11px; }
 
 .exf-gantt .gantt .bar-label.clip-left {
   text-anchor: start !important;
