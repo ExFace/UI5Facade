@@ -694,7 +694,6 @@ var Gantt = (function () {
         }
 
         bind() {
-            if (this.invalid) return;
             this.setup_click_event();
         }
 
@@ -726,20 +725,31 @@ var Gantt = (function () {
             let subtitle = '';
 
             if (!this.task._isAggregate) {
-                const start_date = date_utils.format(
-                    this.task._start,
-                    this.gantt.options.date_format,
-                );
-  
-                const adjEnd = (this.gantt.options.step >= 24
-                    && (this.gantt.options.step % 24) === 0)
-                    ? date_utils.add(this.task._end, -24, 'hour')
-                    : date_utils.add(this.task._end, -1, 'second');
-  
-                const end_date = date_utils.format(adjEnd,
-                    this.gantt.options.date_format);
-  
-                subtitle = start_date + ' - ' + end_date;
+                // normal task-blocks
+                const hasRealStart = !!this.task.start;
+                const hasRealEnd = !!this.task.end;
+                
+                if (hasRealStart || hasRealEnd) {
+                  const start_date = date_utils.format(
+                      this.task._start,
+                      this.gantt.options.date_format,
+                  );
+                  const adjEnd = (this.gantt.options.step >= 24
+                      && (this.gantt.options.step % 24) === 0)
+                      ? date_utils.add(this.task._end, -24, 'hour')
+                      : date_utils.add(this.task._end, -1, 'second');
+
+                  const end_date = date_utils.format(adjEnd,
+                      this.gantt.options.date_format);
+
+                  if (hasRealStart && hasRealEnd) {
+                    subtitle = `${start_date} - ${end_date}`;
+                  } else if (hasRealStart && !hasRealEnd) {
+                    subtitle = `${start_date} - ...`;
+                  } else if (!hasRealStart && hasRealEnd) {
+                    subtitle = `... - ${end_date}`;
+                  }
+                }
             }
             this.gantt.show_popup({
                 target_element: this.$bar,
@@ -1019,16 +1029,18 @@ var Gantt = (function () {
         }
 
         update_handle_position() {
-            const bar = this.$bar;
-            this.handle_group
-                .querySelector('.handle.left')
-                .setAttribute('x', bar.getX() + 1);
-            this.handle_group
-                .querySelector('.handle.right')
-                .setAttribute('x', bar.getEndX() - 9);
-            const handle = this.group.querySelector('.handle.progress');
-            handle &&
-                handle.setAttribute('points', this.get_progress_polygon_points());
+          const bar = this.$bar;
+          const leftHandle  = this.handle_group.querySelector('.handle.left');
+          const rightHandle = this.handle_group.querySelector('.handle.right');
+  
+          // Invalid tasks have no handles.
+          if (this.invalid && (!leftHandle || !rightHandle)) return;
+  
+          leftHandle.setAttribute('x', bar.getX() + 1);
+          rightHandle.setAttribute('x', bar.getEndX() - 9);
+  
+          const handle = this.group.querySelector('.handle.progress');
+          handle && handle.setAttribute('points', this.get_progress_polygon_points());
         }
 
         update_arrow_position() {
@@ -1156,7 +1168,6 @@ var Gantt = (function () {
                 // set data
                 this.title.innerHTML = options.title;
                 this.subtitle.innerHTML = options.subtitle;
-                this.parent.style.width = this.parent.clientWidth + 'px';
 
                 // aggregates the data of overlapping bars for the +n-block
                 const t = options.task;
@@ -1193,14 +1204,31 @@ var Gantt = (function () {
                     }
                     li.appendChild(swatch);
 
-                    // Text (Name + Date interval)
-                    let labelText;
-                    if (m._start && m._end) {
-                      labelText = `${m.name} (${fmt(m._start)} – ${fmt(adjustEnd(m._end))})`;
-                    } else {
-                      labelText = m.name;
+                    // Getting the original task to know real start/end
+                    const originalTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+                    const hasRealStart = !!(originalTask && originalTask.start);
+                    const hasRealEnd = !!(originalTask && originalTask.end);
+
+                    let labelText = m.name;
+                    let rangeText = '';
+
+                    if (hasRealStart || hasRealEnd) {
+                      const start_date = fmt(m._start);
+                      const endAdj = adjustEnd(m._end);
+                      const end_date = fmt(endAdj);
+
+                      if (hasRealStart && hasRealEnd) {
+                        rangeText = ` (${start_date} - ${end_date})`;
+                      } else if (hasRealStart && !hasRealEnd) {
+                        rangeText = ` (${start_date} - ... )`;
+                      } else if (hasRealEnd && !hasRealStart) {
+                        rangeText = ` ( ... - ${end_date})`;
+                      }
                     }
-                    li.appendChild(document.createTextNode(labelText));
+
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = labelText + rangeText;
+                    li.appendChild(textSpan);
 
                     ul.appendChild(li);
                   });
@@ -1253,31 +1281,45 @@ var Gantt = (function () {
 
             const { new_start_date, new_end_date } = bar.compute_start_end_date(target_element)
 
-            const start_date = date_utils.format(
-                new_start_date,
-                this.gantt.options.date_format,
-            );
-
-            const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
-                ? date_utils.add(new_end_date, -24, 'hour')
-                : date_utils.add(new_end_date, -1, 'second');
-  
-            const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
-
-            const isAggregate = !!bar?.task?._isAggregate;
+            const isAggregate= !!bar?.task?._isAggregate;
+            const hasRealStart = !!bar?.task?.start;
+            const hasRealEnd = !!bar?.task?.end;
   
             this.title.innerHTML = bar?.task?.name || '';
+
+            let subtitleText = '';
+            
+            if (!isAggregate) {
+              if (hasRealStart || hasRealEnd) {
+                const start_date = date_utils.format(
+                    new_start_date,
+                    this.gantt.options.date_format,
+                );
+                
+                const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
+                    ? date_utils.add(new_end_date, -24, 'hour')
+                    : date_utils.add(new_end_date, -1, 'second');
   
-            if (isAggregate) {
-              // The subtitle should not include a date interval for aggregate blocks.
-              this.subtitle.innerHTML = '';
-            } else {
-              this.subtitle.innerHTML = start_date + ' - ' + end_date;
-              
-              //cleans  the old aggregate titels in popup.
+                const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
+  
+                if (hasRealStart && hasRealEnd) {
+                  subtitleText = `${start_date} - ${end_date}`;
+                } else if (hasRealStart && !hasRealEnd) {
+                  subtitleText = `${start_date} - ...`;
+                } else if (!hasRealStart && hasRealEnd) {
+                  subtitleText = `... - ${end_date}`;
+                }
+              }
+
+              //cleans the old aggregate titels in popup.
               const oldList = this.parent.querySelector('.agg-list');
               if (oldList) oldList.remove();
+            } else {
+              // The subtitle should not include a date interval for aggregate blocks.
+              subtitleText = '';
             }
+
+            this.subtitle.innerHTML = subtitleText;
 
             if (!options?.target_element) {
                 throw new Error('target_element is required to move popup');
@@ -1538,6 +1580,8 @@ var Gantt = (function () {
             
                 // invalid flag
                 if (!task.start || !task.end) {
+                  // If the invalid tasks should be draggable again, delete this line.
+                    task.draggable = false;
                     task.invalid = true;
                 }
 
@@ -2305,7 +2349,12 @@ var Gantt = (function () {
                 const mainBar = this.get_bar(parent_bar_id);
                 
                 // Only rebuild the pop-up if it is missing or belongs to another task
-                if (mainBar && (!this.popup || this.popup.current_task_id !== parent_bar_id)) {
+                if (
+                    mainBar
+                    && !mainBar.invalid
+                    && (!this.popup || this.popup.current_task_id !== parent_bar_id)
+                )
+                {
                   mainBar.show_popup();
                 }
               
