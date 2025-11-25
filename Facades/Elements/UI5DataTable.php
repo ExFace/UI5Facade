@@ -814,12 +814,17 @@ JS;
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // Caption of Popover Button
-        // -> if the table caption is hidden and no setup selected, it shows just the dropdown arrow 
-        // -> if the table has a visible caption, it sets it as the caption of the button and hides the table caption
-        // -> if a setup is applied, the caption will be the name of the setup
+        // -> if the table is WrappedInDynamicPage, set button caption to default caption and do not hide caption
+        // -> if the table caption is hidden and no setup selected, just show the dropdown arrow 
+        // -> if the table has a visible caption, set it as the caption of the button and hide the table caption
+        // -> if a setup is applied, the caption will be the name of the setup (in any case)
         $tableCaption = $this->escapeString('');
         $popoverTitle = $this->escapeString($translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
-        if ($this->getWidget()->getHideCaption() !== true && $this->getCaption() !== null){
+        if ($this->isWrappedInDynamicPage() === true){
+            $tableCaption = $this->escapeString($translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION'));
+            $popoverTitle = $this->escapeString($this->getCaption() . ' ' . $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
+        }
+        else if ($this->getWidget()->getHideCaption() !== true && $this->getCaption() !== null){
             $tableCaption = $this->escapeString($this->getCaption());
             $popoverTitle = $this->escapeString($this->getCaption() . ' ' . $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
             $this->getWidget()->setHideCaption(true);
