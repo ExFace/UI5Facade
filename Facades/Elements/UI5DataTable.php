@@ -1086,7 +1086,7 @@ JS;
             if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
                 var aSelectedIndices = oTable.getSelectedIndices();
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
-                bAllRowsSelected = aSelectedIndices.length === aRowsVisible.length;
+                bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
                 
                 if (bAllRowsSelected && oTable._allRowsSelected) {
                     // Our little hack to exclude footers breaks the "Deselect all" function,
