@@ -865,6 +865,22 @@ JS;
                 		}
                     })
 JS;
+        // button to reset the current configuration to the standard 
+        $resetSetupBtnJs = <<<JS
+                    new sap.m.Button({
+                        text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_RESET_DEFAULT')}",
+                        tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_RESET_DEFAULT')}",
+                        layoutData: new sap.m.OverflowToolbarLayoutData({
+                            priority: sap.m.OverflowToolbarPriority.AlwaysOverflow
+                        }),
+                        press: function() {
+                            let oP13nResetBtn = sap.ui.getCore().byId("{$this->getP13nElement()->getId()}"+'-reset');
+                            if (oP13nResetBtn){
+                                oP13nResetBtn.firePress();
+                            }
+                        }
+                    })
+JS;
 
         // button to close the popup
         $closePopoverBtnJs = <<<JS
@@ -982,7 +998,8 @@ JS;
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
                                             {$closePopoverBtnJs},
-                                            {$openConfiguratorBtnJs}
+                                            {$openConfiguratorBtnJs},
+                                            {$resetSetupBtnJs}
                                         ]
                                     })
                                 });
