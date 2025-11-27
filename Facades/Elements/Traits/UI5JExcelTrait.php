@@ -158,6 +158,8 @@ trait UI5JExcelTrait {
                                         }
 
                                         // If the height of the scroll element is larger than viewport, try and find a DialogSection instead
+                                        // it seems that somethimes, the sapMPanelContent we usually use as a scroll element isnt the correct element,
+                                        // so we look for a parent element (dialogue section) instead.
                                         if (jqScroller.innerHeight() > window.innerHeight){
                                             var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
                                             if (jqScrollerDlg.length !== 0){
@@ -166,12 +168,17 @@ trait UI5JExcelTrait {
                                             }
                                         }
 
+                                        let bInScrollElement = jqExcel.parents('.sapMDialogScroll').first().length > 0;
+
                                         // Class .sapMDialog also has overflow: hidden, which cuts off the dropdown when it exceeds the dialogue
-                                        // so we check:
-                                        //      if the bottom of the dropdown (bottom of current cell + height of dropdown container)
-                                        //      exceeds the bottom of the current bounding box (top of scroll element + height of scroll element)
-                                        // -> if so, we move the dropdown upwards (set the top to the top of the current cell - height of dropdown container)
-                                        if (bIsDialog === true && (jqScroller.position().top + jqScroller.height() <  (oPosCellInit.top-jqCell.height()) + jqDC.innerHeight())) {
+                                        // Similarly, if the spreadsheet is in a dialogue and wrapped in a scroll element, we also need to flip the 
+                                        // dropdown upwards if it exceeds the scroll container of the dialogue
+                                        // 
+                                        // so we check if the spreadsheet is inside a scrollable dialogue, or if it exceeds the viewport: 
+                                        //          whether the bottom of the dialogue/bounding box (absolute top pos of scroll element + height of scroll element)
+                                        //          is smaller than the bottom of the currently opened dropdown (top of current cell + height of cell + height of dropdown container)
+                                        // -> if so, we move the dropdown upwards (set the top of the dropdown to the top of the current cell - height of dropdown container)
+                                        if ((bInScrollElement || bIsDialog === true) && (jqScroller.offset().top + jqScroller.height() <  (oPosCellInit.top-jqCell.height()) + jqDC.innerHeight())) {
                                             jqDC.offset({
                                                 top: oPosCellInit.top - jqDC.innerHeight(),
                                                 left: oPosCellInit.left
