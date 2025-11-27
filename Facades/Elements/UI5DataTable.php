@@ -1083,14 +1083,14 @@ JS;
             var aSelected = null;
             
             // Exclude footers from selections.
-            if (oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
+            if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
                 var aSelectedIndices = oTable.getSelectedIndices();
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
-                bAllRowsSelected = aSelectedIndices.length === aRowsVisible.length;
+                bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
                 
                 if (bAllRowsSelected && oTable._allRowsSelected) {
-                    // Our little hack to exclude footers breaks the deselect all function,
-                    // which we emulate here.
+                    // Our little hack to exclude footers breaks the "Deselect all" function,
+                    // so we need to emulate it.
                     oTable.__modifyingSelection = true;
                     oTable.clearSelection();
                     oTable.__modifyingSelection = false;
