@@ -855,11 +855,8 @@ JS;
         // button to open the configrator 
         $openConfiguratorBtnJs = <<<JS
                     new sap.m.Button({
-                        text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
                         tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
-                        layoutData: new sap.m.OverflowToolbarLayoutData({
-                            priority: sap.m.OverflowToolbarPriority.AlwaysOverflow
-                        }),
+                        icon: "sap-icon://action-settings",
                         press: function() {
                 			{$this->getController()->buildJsDependentControlSelector('oConfigurator', $this, 'oController')}.open();
                 		}
@@ -867,13 +864,15 @@ JS;
 JS;
 
         // button to close the popup
-        $closePopoverBtnJs = <<<JS
+        $saveSetupBtnJs = <<<JS
             new sap.m.Button({
-                text: "{$translator->translate('ACTION.GENERIC.CANCEL')}",
+                text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
+                tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
                 type: sap.m.ButtonType.Transparent,
-                press: () => {
-                    if (this._oPopover) {
-                        this._oPopover.close();
+                press: function() {
+                    let oSaveSetupBtn = sap.ui.getCore().byId("{$this->getP13nElement()->getId()}"+'_saveSetupBtn');
+                    if (oSaveSetupBtn){
+                        oSaveSetupBtn.firePress();
                     }
                 }
             })
@@ -981,7 +980,7 @@ JS;
                                         content: [
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
-                                            {$closePopoverBtnJs},
+                                            {$saveSetupBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })
