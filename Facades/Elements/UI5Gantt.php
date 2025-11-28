@@ -341,6 +341,7 @@ JS;
                 var aTasks = [];
                 var sNestedColName = {$nestedDataColName}
                 let lineIndex = 0;
+                const rowKeys = [];
                 
                 oTable.getRows().forEach(function(oTreeRow) {
                     var oCtxt = oTreeRow.getBindingContext();
@@ -368,12 +369,17 @@ JS;
                             oTask.custom_class += ' bar-folder';
                         }
                         
-                        aTasks.push(oTask);
+                        // Exludes tasks with no start and end date.
+                        if (oTask.start || oTask.end) {
+                          aTasks.push(oTask);
+                        }
                     }
                     
                     if (!oCtxt) return;
                     
                     oRow = oTable.getModel().getProperty(oCtxt.sPath);
+                    rowKeys.push(lineIndex);
+                    
                     if (sNestedColName !== null) {
                         var oNestedData = oRow[sNestedColName];
                         oNestedData.rows.forEach(function(oNestedRow) {
@@ -386,11 +392,11 @@ JS;
                     lineIndex++
                 });
                 
+                oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                if (aTasks.length > 0) {
+                
+                if (aTasks.length > 0 || rowKeys.length > 0) {
                     oGantt.refresh(aTasks);
-                } else  {
-                    oGantt.clear();
                 }
             };
 
