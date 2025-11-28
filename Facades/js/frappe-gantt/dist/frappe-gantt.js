@@ -1511,7 +1511,10 @@ var Gantt = (function () {
                     upper: { date_format: '',     date_format_at_border: 'yyyy', interval: 'Year' },
                     lower: { date_format: 'yyyy', date_format_at_border: 'yyyy', interval: 'Year' }
                   }
-                }
+                },
+              // row_keys contains the keys of all visible rows to shown, 
+              // including the empty rows with no task data:
+              row_keys: null, 
               
             };
             
@@ -1680,37 +1683,46 @@ var Gantt = (function () {
         setup_gantt_dates() {
             this.gantt_start = this.gantt_end = null;
 
-            for (let task of this.tasks) {
+            if (!this.tasks || this.tasks.length === 0) {
+              // Fallback: If no tasks are given, the start and end 
+              // of the Gantt view are set to one month before and after the current date.
+              const today = date_utils.start_of(date_utils.today(), 'day');
+              this.gantt_start = date_utils.add(today, -1, 'month');
+              this.gantt_end = date_utils.add(today,  1, 'month');
+            } else {
+              
+              for (let task of this.tasks) {
                 // set global start and end date
                 if (!this.gantt_start || task._start < this.gantt_start) {
-                    this.gantt_start = task._start;
+                  this.gantt_start = task._start;
                 }
                 if (!this.gantt_end || task._end > this.gantt_end) {
-                    this.gantt_end = task._end;
+                  this.gantt_end = task._end;
                 }
-            }
+              }
 
-            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-            this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
+              this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
+              this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
 
-            // add date padding on both sides
-            if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
+              // add date padding on both sides
+              if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
                 this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
                 this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
-            } else if (this.view_is(VIEW_MODE.MONTH)) {
+              } else if (this.view_is(VIEW_MODE.MONTH)) {
                 this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
                 this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
-            } else if (this.view_is(VIEW_MODE.YEAR)) {
+              } else if (this.view_is(VIEW_MODE.YEAR)) {
                 this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
                 this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
-           /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-              const s = start_of_week_sunday(date_utils.add(this.gantt_start, -7, 'day'));
-              const e = start_of_week_sunday(date_utils.add(this.gantt_end,   14, 'day'));
-              this.gantt_start = s;
-              this.gantt_end = date_utils.add(e, 7, 'day');*/
-            } else {
+                /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+                   const s = start_of_week_sunday(date_utils.add(this.gantt_start, -7, 'day'));
+                   const e = start_of_week_sunday(date_utils.add(this.gantt_end,   14, 'day'));
+                   this.gantt_start = s;
+                   this.gantt_end = date_utils.add(e, 7, 'day');*/
+              } else {
                 this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
                 this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+              }
             }
 
             this.gantt_start = date_utils.add(this.gantt_start, -1 * this.gantt_start.getTimezoneOffset(), 'minute');
@@ -2685,12 +2697,17 @@ var Gantt = (function () {
           });
   
           // 3) Sorting row list
-          const rows = Array.from(rowMap.keys()).sort((a,b) => (a>b?1:a<b?-1:0));
+          let rows;
+          if (Array.isArray(this.options.row_keys) && this.options.row_keys.length) {
+            rows = this.options.row_keys.slice();
+          } else {
+            rows = Array.from(rowMap.keys()).sort((a, b) => (a>b?1:a<b?-1:0));
+          }
   
           // 4) Lane allocation per row (greedy)
           const rowMeta = [];
           rows.forEach((rowKey, rowIndex) => {
-            const list = rowMap.get(rowKey).slice().sort((a,b) => +a._start - +b._start);
+            const list = (rowMap.get(rowKey) || []).slice().sort((a,b) => +a._start - +b._start);
             const laneEnds = []; // laneIndex -> Date
   
             list.forEach(task => {
