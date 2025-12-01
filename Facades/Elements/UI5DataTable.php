@@ -827,7 +827,9 @@ JS;
         else if ($this->getWidget()->getHideCaption() !== true && $this->getCaption() !== null){
             $tableCaption = $this->escapeString($this->getCaption());
             $popoverTitle = $this->escapeString($this->getCaption() . ' ' . $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
-            $this->getWidget()->setHideCaption(true);
+            // Don't hide caption here as it would hide the entire toolbar if hide_header is true at the same time
+            // $this->getWidget()->setHideCaption(true);
+            // TODO move this logic to UI5DataElementTrati::buildJsToolbarContent()? The regular caption needs to be hidden there anyhow
         }
         
         // button to apply selected setup
