@@ -1687,8 +1687,10 @@ var Gantt = (function () {
               // Fallback: If no tasks are given, the start and end 
               // of the Gantt view are set to one month before and after the current date.
               const today = date_utils.start_of(date_utils.today(), 'day');
-              this.gantt_start = date_utils.add(today, -1, 'month');
-              this.gantt_end = date_utils.add(today,  1, 'month');
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(today, today));
             } else {
               
               for (let task of this.tasks) {
@@ -1704,28 +1706,44 @@ var Gantt = (function () {
               this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
               this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
 
-              // add date padding on both sides
-              if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
-                this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
-                this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
-              } else if (this.view_is(VIEW_MODE.MONTH)) {
-                this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
-              } else if (this.view_is(VIEW_MODE.YEAR)) {
-                this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
-                /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-                   const s = start_of_week_sunday(date_utils.add(this.gantt_start, -7, 'day'));
-                   const e = start_of_week_sunday(date_utils.add(this.gantt_end,   14, 'day'));
-                   this.gantt_start = s;
-                   this.gantt_end = date_utils.add(e, 7, 'day');*/
-              } else {
-                this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
-              }
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(this.gantt_start, this.gantt_end));
             }
 
             this.gantt_start = date_utils.add(this.gantt_start, -1 * this.gantt_start.getTimezoneOffset(), 'minute');
+        }
+        
+        get_setup_gantt_dates_padding(start, end) {
+          
+          let gantt_start;
+          let gantt_end;
+          
+          // add date padding on both sides
+          if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
+            gantt_start = date_utils.add(start, -7, 'day');
+            gantt_end = date_utils.add(end, 7, 'day');
+          } else if (this.view_is(VIEW_MODE.MONTH)) {
+            gantt_start = date_utils.start_of(start, 'year');
+            gantt_end = date_utils.add(end, 1, 'year');
+          } else if (this.view_is(VIEW_MODE.YEAR)) {
+            gantt_start = date_utils.add(start, -2, 'year');
+            gantt_end = date_utils.add(end, 2, 'year');
+            /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+               const s = start_of_week_sunday(date_utils.add(start, -7, 'day'));
+               const e = start_of_week_sunday(date_utils.add(end,   14, 'day'));
+               gantt_start = s;
+               gantt_end = date_utils.add(e, 7, 'day');*/
+          } else {
+            gantt_start = date_utils.add(start, -1, 'month');
+            gantt_end = date_utils.add(end, 1, 'month');
+          }
+          
+          return {
+            gantt_start: gantt_start,
+            gantt_end: gantt_end
+          }
         }
 
         setup_date_values() {
