@@ -863,7 +863,7 @@ JS;
                     })
 JS;
 
-        // button to close the popup
+        // button to save a new setup
         $saveSetupBtnJs = <<<JS
             new sap.m.Button({
                 text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
