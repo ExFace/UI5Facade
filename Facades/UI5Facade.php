@@ -439,6 +439,7 @@ JS;
     public function buildResponseData(DataSheetInterface $data_sheet, WidgetInterface $widget = null)
     {
         $data = [];
+        $data['oId'] = $data_sheet->getMetaObject()->getId();
         $data['rows'] = array_merge($this->buildResponseDataRowsSanitized($data_sheet, true, false), $data_sheet->getTotalsRows());
         $data['recordsFiltered'] = $data_sheet->countRowsInDataSource();
         $data['recordsTotal'] = $data_sheet->countRowsInDataSource();
@@ -479,7 +480,7 @@ JS;
             return '';
         }
         if ($request !== null && $this->isRequestFrontend($request)) {
-            return Debugger::printException($exception);
+            return Debugger::printExceptionAsHtml($exception);
         } else {
             return htmlspecialchars($exception->getMessage());
         }

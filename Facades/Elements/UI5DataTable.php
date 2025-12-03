@@ -827,7 +827,9 @@ JS;
         else if ($this->getWidget()->getHideCaption() !== true && $this->getCaption() !== null){
             $tableCaption = $this->escapeString($this->getCaption());
             $popoverTitle = $this->escapeString($this->getCaption() . ' ' . $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
-            $this->getWidget()->setHideCaption(true);
+            // Don't hide caption here as it would hide the entire toolbar if hide_header is true at the same time
+            // $this->getWidget()->setHideCaption(true);
+            // TODO move this logic to UI5DataElementTrati::buildJsToolbarContent()? The regular caption needs to be hidden there anyhow
         }
         
         // button to apply selected setup
@@ -855,25 +857,24 @@ JS;
         // button to open the configrator 
         $openConfiguratorBtnJs = <<<JS
                     new sap.m.Button({
-                        text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
                         tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
-                        layoutData: new sap.m.OverflowToolbarLayoutData({
-                            priority: sap.m.OverflowToolbarPriority.AlwaysOverflow
-                        }),
+                        icon: "sap-icon://action-settings",
                         press: function() {
                 			{$this->getController()->buildJsDependentControlSelector('oConfigurator', $this, 'oController')}.open();
                 		}
                     })
 JS;
 
-        // button to close the popup
-        $closePopoverBtnJs = <<<JS
+        // button to save a new setup
+        $saveSetupBtnJs = <<<JS
             new sap.m.Button({
-                text: "{$translator->translate('ACTION.GENERIC.CANCEL')}",
+                text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
+                tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
                 type: sap.m.ButtonType.Transparent,
-                press: () => {
-                    if (this._oPopover) {
-                        this._oPopover.close();
+                press: function() {
+                    let oSaveSetupBtn = sap.ui.getCore().byId("{$this->getP13nElement()->getId()}"+'_saveSetupBtn');
+                    if (oSaveSetupBtn){
+                        oSaveSetupBtn.firePress();
                     }
                 }
             })
@@ -981,7 +982,7 @@ JS;
                                         content: [
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
-                                            {$closePopoverBtnJs},
+                                            {$saveSetupBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })

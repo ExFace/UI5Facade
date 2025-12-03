@@ -412,6 +412,10 @@ JS;
     {   
         $widget = $this->getWidget();
         $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        // Don't show plain text caption if there is the setups dropdown
+        if ($widget instanceof DataTable && $widget->getConfiguratorWidget()->hasSetups() && $widget->getHideHeader()) {
+            $heading = '';
+        }
         
         $leftExtras = $leftExtras === null ? '' : rtrim($leftExtras, ", ") . ',';
         $rightExtras = $rightExtras === null ? '' : rtrim($rightExtras, ", ") . ',';

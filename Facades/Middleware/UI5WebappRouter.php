@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Middleware;
 
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Interfaces\Exceptions\ExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
