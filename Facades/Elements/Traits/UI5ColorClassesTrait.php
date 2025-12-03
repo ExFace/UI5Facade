@@ -26,7 +26,7 @@ trait UI5ColorClassesTrait {
      * @var string[]
      */
     private $cssClassNameRemoveChars = ['#', '.', '+'];
-
+    
     /**
      * Makes the controller run a script to add custom CSS styles every time the view is shown.
      *
@@ -53,38 +53,47 @@ trait UI5ColorClassesTrait {
                 }
             }
             
-            $css .= $this->colorToCssClass($color, $value, $cssSelectorToColor, $cssColorProperties);
+            $css .= $this->buildCssClass(
+                $this->getCssPlaceholders($color, $value),
+                $cssSelectorToColor,
+                $cssColorProperties
+            );
         }
         
         $this->registerCustomCss($css, '_color_css');
     }
+    
+    protected function getCssPlaceholders(string $color, ?string $value = null) : array
+    {
+        return [
+            'color' => $color,
+            'value' => $value
+        ];
+    }
 
     /**
      * Converts a color string to an `exf-color` CSS class.
-     * 
-     * @param string      $color
-     * @param string|null $value
-     * @param string      $cssSelectorToColor
-     * @param string      $cssColorProperties
+     *
+     * @param array  $placeholders
+     * @param string $cssSelectorToColor
+     * @param string $cssColorProperties
      * @return string
      */
-    protected function colorToCssClass(
-        string $color, 
-        string $value = null,
+    protected function buildCssClass(
+        array $placeholders,
         string $cssSelectorToColor = '.exf-custom-color.exf-color-[#color#]', 
         string $cssColorProperties = 'background-color: [#color#]'
     ) : string
     {
-        $value = $value ?? $color;
+        $phsClassName = array_map(
+            function ($value) {
+                return str_replace($this->cssClassNameRemoveChars, '', trim($value));
+            },
+            $placeholders
+        );
         
-        $class = StringDataType::replacePlaceholders($cssSelectorToColor, [
-            'color' => str_replace($this->cssClassNameRemoveChars, '', trim($color)),
-            'value' => str_replace($this->cssClassNameRemoveChars, '', trim($value))
-        ]);
-        $properties = StringDataType::replacePlaceholders($cssColorProperties, [
-            'color' => $color,
-            'value' => $value
-        ]);
+        $class = StringDataType::replacePlaceholders($cssSelectorToColor, $phsClassName);
+        $properties = StringDataType::replacePlaceholders($cssColorProperties, $placeholders);
         
         return "$class { $properties } ";
     }
@@ -110,7 +119,6 @@ trait UI5ColorClassesTrait {
         $cssReplaceJSON = json_encode($this->cssClassNameRemoveChars);
         $cssInjector = $this->getWidget()->hasColorScale() ? '' : $this->buildJsColorClassInjector() . ';';
         
-        // Note, the 
         return <<<JS
         
         (function(oCtrl, sColor){
