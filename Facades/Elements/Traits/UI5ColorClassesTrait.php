@@ -26,7 +26,7 @@ trait UI5ColorClassesTrait {
      * @var string[]
      */
     private $cssClassNameRemoveChars = ['#', '.', '+'];
-
+    
     /**
      * Makes the controller run a script to add custom CSS styles every time the view is shown.
      *
@@ -53,40 +53,58 @@ trait UI5ColorClassesTrait {
                 }
             }
             
-            $css .= $this->colorToCssClass($color, $value, $cssSelectorToColor, $cssColorProperties);
+            $css .= $this->colorToCss($color, $value, $cssSelectorToColor, $cssColorProperties);
         }
         
         $this->registerCustomCss($css, '_color_css');
     }
 
     /**
-     * Converts a color string to an `exf-color` CSS class.
+     * Converts a color into a CSS class to display said color.
      * 
-     * @param string      $color
-     * @param string|null $value
-     * @param string      $cssSelectorToColor
-     * @param string      $cssColorProperties
+     * @param string $color
+     * @param string $value
+     * @param string $selector
+     * @param string $properties
      * @return string
      */
-    protected function colorToCssClass(
-        string $color, 
-        string $value = null,
-        string $cssSelectorToColor = '.exf-custom-color.exf-color-[#color#]', 
-        string $cssColorProperties = 'background-color: [#color#]'
-    ) : string
+    protected function colorToCss(string $color, string $value, string $selector, string $properties) : string
     {
-        $value = $value ?? $color;
+        return $this->buildCssClasses(
+            ['color' => $color, 'value' => $value],
+            [ $selector => $properties ]
+        );
+    }
+
+    /**
+     * Builds CSS classes with the data provided.
+     *
+     * @param array $placeholders
+     * @param array $subClasses
+     * @return string
+     */
+    protected function buildCssClasses(
+        array $placeholders,
+        array $subClasses = [
+            '.exf-custom-color.exf-color-[#color#]' => 'background-color: [#color#]'
+        ]) : string
+    {
+        $phsClassName = array_map(
+            function ($value) {
+                return str_replace($this->cssClassNameRemoveChars, '', trim($value));
+            },
+            $placeholders
+        );
         
-        $class = StringDataType::replacePlaceholders($cssSelectorToColor, [
-            'color' => str_replace($this->cssClassNameRemoveChars, '', trim($color)),
-            'value' => str_replace($this->cssClassNameRemoveChars, '', trim($value))
-        ]);
-        $properties = StringDataType::replacePlaceholders($cssColorProperties, [
-            'color' => $color,
-            'value' => $value
-        ]);
+        $class = '';
         
-        return "$class { $properties } ";
+        foreach ($subClasses as $selector => $properties) {
+            $selector = StringDataType::replacePlaceholders($selector, $phsClassName);
+            $properties = StringDataType::replacePlaceholders($properties, $placeholders);
+            $class .= "{$selector} { {$properties} }";
+        }
+
+        return $class;
     }
     
     /**
@@ -110,7 +128,6 @@ trait UI5ColorClassesTrait {
         $cssReplaceJSON = json_encode($this->cssClassNameRemoveChars);
         $cssInjector = $this->getWidget()->hasColorScale() ? '' : $this->buildJsColorClassInjector() . ';';
         
-        // Note, the 
         return <<<JS
         
         (function(oCtrl, sColor){
