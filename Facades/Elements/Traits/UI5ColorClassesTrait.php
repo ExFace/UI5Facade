@@ -53,37 +53,41 @@ trait UI5ColorClassesTrait {
                 }
             }
             
-            $css .= $this->buildCssClass(
-                $this->getCssPlaceholders($color, $value),
-                $cssSelectorToColor,
-                $cssColorProperties
-            );
+            $css .= $this->colorToCss($color, $value, $cssSelectorToColor, $cssColorProperties);
         }
         
         $this->registerCustomCss($css, '_color_css');
     }
-    
-    protected function getCssPlaceholders(string $color, ?string $value = null) : array
+
+    /**
+     * Converts a color into a CSS class to display said color.
+     * 
+     * @param string $color
+     * @param string $value
+     * @param string $selector
+     * @param string $properties
+     * @return string
+     */
+    protected function colorToCss(string $color, string $value, string $selector, string $properties) : string
     {
-        return [
-            'color' => $color,
-            'value' => $value
-        ];
+        return $this->buildCssClasses(
+            ['color' => $color, 'value' => $value],
+            [ $selector => $properties ]
+        );
     }
 
     /**
-     * Converts a color string to an `exf-color` CSS class.
+     * Builds CSS classes with the data provided.
      *
-     * @param array  $placeholders
-     * @param string $cssSelectorToColor
-     * @param string $cssColorProperties
+     * @param array $placeholders
+     * @param array $subClasses
      * @return string
      */
-    protected function buildCssClass(
+    protected function buildCssClasses(
         array $placeholders,
-        string $cssSelectorToColor = '.exf-custom-color.exf-color-[#color#]', 
-        string $cssColorProperties = 'background-color: [#color#]'
-    ) : string
+        array $subClasses = [
+            '.exf-custom-color.exf-color-[#color#]' => 'background-color: [#color#]'
+        ]) : string
     {
         $phsClassName = array_map(
             function ($value) {
@@ -92,10 +96,15 @@ trait UI5ColorClassesTrait {
             $placeholders
         );
         
-        $class = StringDataType::replacePlaceholders($cssSelectorToColor, $phsClassName);
-        $properties = StringDataType::replacePlaceholders($cssColorProperties, $placeholders);
+        $class = '';
         
-        return "$class { $properties } ";
+        foreach ($subClasses as $selector => $properties) {
+            $selector = StringDataType::replacePlaceholders($selector, $phsClassName);
+            $properties = StringDataType::replacePlaceholders($properties, $placeholders);
+            $class .= "{$selector} { {$properties} }";
+        }
+
+        return $class;
     }
     
     /**

@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
@@ -359,20 +360,33 @@ JS;
     /**
      * @inheritDoc
      */
+    protected function colorToCss(string $color, string $value, string $selector, string $properties): string
+    { 
+        $text = Colors::isDark($color) ? '#ffffff' : '#000000';
+        
+        return $this->buildCssClasses(
+            ['color' => $color, 'value' => $value, 'text' => $text],
+            [
+                $selector => $properties,
+                self::CSS_COLOR_CLASS . ' > span' => 'color: [#text#] !important'
+            ]
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
     protected function buildJsColorClassInjector(string $colorJs = 'sColor', string $colorSuffixJs = 'sColorClassSuffix'): string
     {
         $class = StringDataType::replacePlaceholders(self::CSS_COLOR_CLASS, ['color' => '%COLOR%']);
 
-        $cssTemplate = $this->buildCssClass(
-            $this->getCssPlaceholders('#%COLOR%'), 
-            $class . self::CSS_OBJECT_STATUS_TEXT,
-            $this->isInverted() ? 'background-color: [#color#]' : 'color: [#color#]'
-        );
-
-        $cssTemplate .= $this->buildCssClass(
-            $this->getCssPlaceholders('%TEXTCOLOR%'),
-             $class . ' > span',
-            'color: [#color#]'
+        $color = $this->isInverted() ? 'background-color: [#color#]' : 'color: [#color#]';
+        $cssTemplate = $this->buildCssClasses(
+            ['color' => '#%COLOR%', 'text' => '%TEXT%'], 
+            [ 
+                $class . self::CSS_OBJECT_STATUS_TEXT => $color,
+                $class . ' > span' => 'color: [#text#] !important'
+            ]
         );
 
         return <<<JS
@@ -382,11 +396,10 @@ JS;
             var jqTag = $('#' + classId);
             if (jqTag.length === 0) {
                 var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor);
-                debugger;
                 var text = ('{$cssTemplate}')
                     .replace(/#%COLOR%/g, sColor)
                     .replace(/%COLOR%/g, sSuffix)
-                    .replace(/%TEXTCOLOR%/g, sTextColor);
+                    .replace(/%TEXT%/g, sTextColor);
                 
                 $('head').append($('<style type="text/css" id="' + classId + '"></style>').text(text));
             }
