@@ -2589,6 +2589,7 @@ JS;
                     oTable.clearSelection();
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
+                        oTable.addSelectionInterval(iRowIdx, iRowIdx);
                     }
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
