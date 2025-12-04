@@ -141,7 +141,7 @@ trait UI5ColorClassesTrait {
                         oCtrl.removeStyleClass(sClass);
                     }
                 });
-                if (sColor === null) {
+                if (sColor === null || sColor === '') {
                     oCtrl.removeStyleClass(sCustomCssClass);
                 } else {
                     sColorClassSuffix = sColor.toString();
