@@ -141,9 +141,10 @@ class Webapp implements WorkbenchDependantInterface
                             return $view->buildJsView();
                         } 
                     } catch (\Throwable $e) {
-                        $this->getWorkbench()->getLogger()->logException(
-                            new FacadeRuntimeError('Cannot render UI5 view. ' . $e->getMessage(), null, $e)
-                        );
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
+                        $this->getWorkbench()->getLogger()->logException($e);
                         $errorViewName = $this->getViewNamespace() . str_replace('/', '.', $path);
                         return $this->getErrorView($e, $errorViewName);
                     }
@@ -161,9 +162,10 @@ class Webapp implements WorkbenchDependantInterface
                             return $controller->buildJsController();
                         }
                     } catch (\Throwable $e) {
-                        $this->getWorkbench()->getLogger()->logException(
-                            new FacadeLogicError('Cannot render UI5 controller. ' . $e->getMessage(), null, $e)
-                        );
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
+                        $this->getWorkbench()->getLogger()->logException($e);
                         return $this->getErrorController($e);
                     }
                     return '';
@@ -180,14 +182,15 @@ class Webapp implements WorkbenchDependantInterface
                             return $controller->buildJsController() . "\n\n" . $controller->getView()->buildJsView();
                         }
                     } catch (\Throwable $e) {
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
+                        $this->getWorkbench()->getLogger()->logException($e);
                         if ($controller) {
                             $errorViewName = $controller->getView()->getName();
                         } else {
                             $errorViewName = $this->getViewNamespace() . str_replace('/', '.', $path);
                         }
-                        $this->getWorkbench()->getLogger()->logException(
-                            new FacadeRuntimeError('Cannot render UI5 viewcontroller. ' . $e->getMessage(), null, $e)
-                        );
                         return $this->getErrorView($e, $errorViewName);
                     }
                     return '';
@@ -572,9 +575,10 @@ class Webapp implements WorkbenchDependantInterface
             $rootController = $this->getControllerForWidget($rootWidget);
             $resources = array_merge($resources, $this->getComponentPreloadForController($rootController));
         } catch (\Throwable $e) {
-            $this->getWorkbench()->getLogger()->logException(
-                new FacadeRuntimeError('Cannot render UI5 `ComponentPreload.js`. ' . $e->getMessage(), null, $e)
-            );
+            if (! $e instanceof ExceptionInterface) {
+                $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+            }
+            $this->getWorkbench()->getLogger()->logException($e);
             if ($rootController) {
                 $viewPath = $rootController->getView()->getPath();
                 $viewName = $rootController->getView()->getName();
