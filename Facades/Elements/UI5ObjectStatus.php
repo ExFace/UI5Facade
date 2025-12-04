@@ -395,7 +395,7 @@ JS;
             var classId = 'free_color_' + sSuffix;
             var jqTag = $('#' + classId);
             if (jqTag.length === 0) {
-                var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor);
+                var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, 0.35);
                 var text = ('{$cssTemplate}')
                     .replace(/#%COLOR%/g, sColor)
                     .replace(/%COLOR%/g, sSuffix)
