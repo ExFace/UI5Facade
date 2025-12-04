@@ -32,6 +32,7 @@ class UI5ObjectStatus extends UI5Display
     
     protected const CSS_COLOR_CLASS = '.exf-custom-color.exf-color-[#color#]';
     protected const CSS_OBJECT_STATUS_TEXT = ' .sapMObjStatusText';
+    protected const CFG_TEXT_COLOR_PREFERENCE = 'WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE';
     
     private $title = null;
     
@@ -362,7 +363,7 @@ JS;
      */
     protected function colorToCss(string $color, string $value, string $selector, string $properties): string
     { 
-        $text = Colors::isDark($color) ? '#ffffff' : '#000000';
+        $text = Colors::isDark($color, $this->getTextColorPreference()) ? '#ffffff' : '#000000';
         
         return $this->buildCssClasses(
             ['color' => $color, 'value' => $value, 'text' => $text],
@@ -395,7 +396,7 @@ JS;
             var classId = 'free_color_' + sSuffix;
             var jqTag = $('#' + classId);
             if (jqTag.length === 0) {
-                var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor);
+                var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, {$this->getTextColorPreference()});
                 var text = ('{$cssTemplate}')
                     .replace(/#%COLOR%/g, sColor)
                     .replace(/%COLOR%/g, sSuffix)
@@ -405,5 +406,18 @@ JS;
             }
         })({$colorJs}, $colorSuffixJs)
 JS;
+    }
+
+    /**
+     * @return float
+     */
+    protected function getTextColorPreference() : float
+    {
+        $cfg = $this->getWorkbench()->getApp('exface.UI5Facade')->getConfig();
+        if($cfg->hasOption(self::CFG_TEXT_COLOR_PREFERENCE)) {
+            return $cfg->getOption(self::CFG_TEXT_COLOR_PREFERENCE);
+        }
+        
+        return 0.5;
     }
 }
