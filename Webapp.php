@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade;
 
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\Core\Interfaces\WorkbenchDependantInterface;
 use exface\Core\CommonLogic\Workbench;
 use exface\UI5Facade\Facades\UI5Facade;
@@ -140,6 +141,9 @@ class Webapp implements WorkbenchDependantInterface
                             return $view->buildJsView();
                         } 
                     } catch (\Throwable $e) {
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
                         $this->getWorkbench()->getLogger()->logException($e);
                         $errorViewName = $this->getViewNamespace() . str_replace('/', '.', $path);
                         return $this->getErrorView($e, $errorViewName);
@@ -158,6 +162,9 @@ class Webapp implements WorkbenchDependantInterface
                             return $controller->buildJsController();
                         }
                     } catch (\Throwable $e) {
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
                         $this->getWorkbench()->getLogger()->logException($e);
                         return $this->getErrorController($e);
                     }
@@ -175,12 +182,15 @@ class Webapp implements WorkbenchDependantInterface
                             return $controller->buildJsController() . "\n\n" . $controller->getView()->buildJsView();
                         }
                     } catch (\Throwable $e) {
+                        if (! $e instanceof ExceptionInterface) {
+                            $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+                        }
+                        $this->getWorkbench()->getLogger()->logException($e);
                         if ($controller) {
                             $errorViewName = $controller->getView()->getName();
                         } else {
                             $errorViewName = $this->getViewNamespace() . str_replace('/', '.', $path);
                         }
-                        $this->getWorkbench()->getLogger()->logException($e);
                         return $this->getErrorView($e, $errorViewName);
                     }
                     return '';
@@ -565,6 +575,9 @@ class Webapp implements WorkbenchDependantInterface
             $rootController = $this->getControllerForWidget($rootWidget);
             $resources = array_merge($resources, $this->getComponentPreloadForController($rootController));
         } catch (\Throwable $e) {
+            if (! $e instanceof ExceptionInterface) {
+                $e = new FacadeRuntimeError($e->getMessage(), null, $e);
+            }
             $this->getWorkbench()->getLogger()->logException($e);
             if ($rootController) {
                 $viewPath = $rootController->getView()->getPath();
