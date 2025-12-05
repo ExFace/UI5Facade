@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
@@ -11,6 +12,7 @@ use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
+use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
@@ -157,9 +159,11 @@ trait UI5DataElementTrait {
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        $dataWidget = $this->getDataWidget();
         $widget = $this->getWidget();
         $controller = $this->getController();
+        
+        $autoloadDataStrategy = $this->getDataWidget()->getAutoloadDataStrategy();
+        $autoloadJs = '';
         
         $this->registerExternalModules($this->getController());
         
@@ -175,43 +179,26 @@ trait UI5DataElementTrait {
         if ($this->hasPaginator()) {
             $this->getPaginatorElement()->registerControllerMethods();
         }
-        
-        // Reload the data every time the view is shown. This is important, because otherwise 
-        // old rows may still be visible if a dialog is open, closed and then reopened for another 
-        // instance.
-        // The data resetter will empty the table as soon as the view is opened, then the refresher
-        // is run after all the view loading logic finished - that's what the setTimeout() is for -
-        // otherwise the refresh would run before the view finished initializing, before the prefill
-        // is started and will probably be empty.
-        // Finally, all selections are removed to ensure child elements of one instance are not
-        // automatically selected when opening another one.
-        if ($dataWidget->hasAutoloadData()) {
-            $autoloadJs = <<<JS
 
-                (function() {
-                    var bIsBack = false;
-                    if (oEvent && (oEvent.isBack || oEvent.isBackToPage || oEvent.isBackToTop)) {
-                        bIsBack = true;
-                    }
-                    if (bIsBack === false) {
-                        try { 
-                            {$this->buildJsDataResetter()} 
-                            {$this->buildJsSelectionModelReset()}
-                        } catch (e) {} 
-                        setTimeout(function(){ 
-                            {$this->buildJsRefresh()} 
-                        }, 0);
-                    }
-                })();
-JS;
-            $controller->addOnShowViewScript($autoloadJs);
-        } else {
-            $autoloadJs = <<<JS
+        // Data reload logic.
+        // Look inside the buildAutoloadJsForAutoloadStrategy() function for more documentation.
+        $strategy = AutoloadStrategyDataType::NEVER;
 
-                {$this->buildJsSelectionModelReset()}
-                {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
-JS;
+        if ($autoloadDataStrategy === AutoloadStrategyDataType::ALWAYS) {
+            $strategy = AutoloadStrategyDataType::ALWAYS;
+        } else if ($autoloadDataStrategy === AutoloadStrategyDataType::IF_VISIBLE) {
+            // NOTE: The Data that is marked as "IF_VISIBLE" should be loaded
+            // at special events like onSelect in corresponding widget facades.
+            // You can implement it inside the "buildJsDataLoader()" function in this trait.
+
+            // special logic for tabs treatment.
+            if (null !== $tab = $this->findParentTab()) {
+                $strategy = $tab->isActive()
+                    ? AutoloadStrategyDataType::ALWAYS
+                    : AutoloadStrategyDataType::IF_VISIBLE;
+            }
         }
+        $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy($strategy);
         $controller->addOnShowViewScript($autoloadJs);
         
         // add trigger to refresh data automatically when widget has autorefresh_intervall set.
@@ -282,6 +269,76 @@ JS;
         } else {
             return $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
+    }
+
+    /**
+     * Returns autoloadJs for given AutoloadStrategy that is used in buildJsConstructor
+     * 
+     * @param $strategy
+     * @return string
+     */
+    protected function buildAutoloadJsForAutoloadStrategy($strategy) : string {
+        $js = '';
+        
+        switch ($strategy) {
+            case AutoloadStrategyDataType::ALWAYS:
+                // Reload the data every time the view is shown. This is important, because otherwise 
+                // old rows may still be visible if a dialog is open, closed and then reopened for another 
+                // instance.
+                // The data resetter will empty the table as soon as the view is opened, then the refresher
+                // is run after all the view loading logic finished - that's what the setTimeout() is for -
+                // otherwise the refresh would run before the view finished initializing, before the prefill
+                // is started and will probably be empty.
+                // Finally, all selections are removed to ensure child elements of one instance are not
+                // automatically selected when opening another one.
+                $js .= <<<JS
+
+                    (function() {
+                      // 'isBack' is triggered when the user navigates back to the page. 
+                      //  in this case, we do not refresh the data.
+                      var bIsBack = !!(oEvent?.isBack || oEvent?.isBackToPage || oEvent?.isBackToTop);
+                      if (!bIsBack) {
+                            try { 
+                                {$this->buildJsDataResetter()} 
+                                {$this->buildJsSelectionModelReset()}
+                            } catch (e) {} 
+                            setTimeout(function(){ 
+                                {$this->buildJsRefresh()} 
+                            }, 0);
+                        }
+                    })();
+JS;
+                break;
+            case AutoloadStrategyDataType::IF_VISIBLE:
+                // No data refresh.
+                // The AutoloadStrategy "NEVER" logic is used if the page is not displayed due to back navigation.
+                // Data that has already been loaded is not flushed away in the event of back navigation here.
+                
+                // NOTE: The Data that is marked as "IF_VISIBLE" can be loaded
+                // inside the "buildJsDataLoader()" function in this trait.
+                $dataWidget = $this->getDataWidget();
+                $js .= <<<JS
+                
+                    (function() {
+                        var bIsBack = !!(oEvent?.isBack || oEvent?.isBackToPage || oEvent?.isBackToTop);
+                        if (!bIsBack) {
+                            {$this->buildJsSelectionModelReset()}
+                            {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+                        }
+                    })();
+JS;
+                break;
+            case AutoloadStrategyDataType::NEVER:
+                // No data refresh. Shows the hint that autoload is disabled.
+                $dataWidget = $this->getDataWidget();
+                $js .= <<<JS
+
+                    {$this->buildJsSelectionModelReset()}
+                    {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+JS;
+                break;
+        }
+        return $js;
     }
     
     /**
@@ -1121,6 +1178,35 @@ JS;
             }
         }
         
+        // Adds data load logic to specific widgets in case of AutoloadStrategy == "IF_VISIBLE".
+        if ($this->getDataWidget()->getAutoloadDataStrategy() === AutoloadStrategyDataType::IF_VISIBLE) {
+            
+            // That adds a TabsSelectionScript to UI5Tabs
+            // that causes the tab data to be loaded if the tab is selected.
+            if (null !== $tab = $this->findParentTab()) {
+                if (!$tab->isActive()) {
+                    
+                    $onChangeJs = <<<JS
+
+                        (function() {
+                            const oModelData = sap.ui.getCore().byId('{$this->getId()}').getModel().getData();
+                            const tabIsNotLoaded = Object.keys(oModelData).length === 0;
+                                
+                            if (tabIsNotLoaded) {
+                              setTimeout(function(){ 
+                                {$this->buildJsRefresh()}
+                              }, 0);
+                            }
+                        })();
+JS;
+
+                        /* @var $tabsEl \exface\UI5Facade\Facades\Elements\UI5Tabs */
+                        $tabsEl = $this->getFacade()->getElement($tab->getTabs());
+                        $tabsEl->addOnTabSelectScript($onChangeJs, $tab);         
+                    }
+            }
+        }
+        
         // Before we load anything, we need to make sure, the view data is loaded.
         // The view model has a special property to indicate if view (prefill) data
         // is being loaded. So we check that property and, if it shows a prefill
@@ -1162,6 +1248,45 @@ JS;
                 }
                 
                 return $js;
+    }
+    
+    /**
+     * Returns the first parent Tab, if present.
+     * 
+     * @return WidgetInterface|null
+     */
+    protected function findParentTab() : ? WidgetInterface {
+        if ((null !== $tab = $this->findParentsByClass(Tab::class, 1)[0])
+        && $tab->getIdSpace() === $this->getWidget()->getIdSpace()
+        ) {
+            return $tab;
+        }
+        return null;
+    }
+
+
+    /**
+     * Returns an array of parent widgets with the given class or interface
+     * 
+     * @param string $classOrInterface
+     * @param int|null $maxResults
+     * @return array
+     */
+    public function findParentsByClass(string $classOrInterface, ?int $maxResults = null) : array
+    {
+        $result  = [];
+        $widget = $this->getWidget();
+        while ($widget->getParent()) {
+            $widget = $widget->getParent();
+            if ($widget instanceof $classOrInterface) {
+                $result[] = $widget;
+                if (count($result) >= $maxResults) {
+                    break;
+                }
+            }
+        }
+
+        return $result;
     }
     
     /**
