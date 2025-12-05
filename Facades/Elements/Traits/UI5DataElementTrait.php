@@ -178,24 +178,25 @@ trait UI5DataElementTrait {
         if ($this->hasPaginator()) {
             $this->getPaginatorElement()->registerControllerMethods();
         }
-        
+
         // Data reload logic.
         // Look inside the buildAutoloadJsForAutoloadStrategy() function for more documentation.
+        $strategy = AutoloadStrategyDataType::NEVER;
+
         if ($autoloadDataStrategy === AutoloadStrategyDataType::ALWAYS) {
-            $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy(AutoloadStrategyDataType::ALWAYS);
-        } else {
-            if ($autoloadDataStrategy === AutoloadStrategyDataType::IF_VISIBLE
-                && null !== $tab = $this->findParentTab())
-            {
-                if ($tab->isActive()){
-                    $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy(AutoloadStrategyDataType::ALWAYS);
-                } else {
-                    $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy(AutoloadStrategyDataType::IF_VISIBLE);
-                }
-            } else {
-                $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy(AutoloadStrategyDataType::NEVER);
+            $strategy = AutoloadStrategyDataType::ALWAYS;
+        } else if ($autoloadDataStrategy === AutoloadStrategyDataType::IF_VISIBLE) {
+            // NOTE: The Data that is marked as "IF_VISIBLE" should be loaded
+            // at special events like onSelect inside the "buildJsDataLoader()" function in this trait.
+
+            // special logic for tabs treatment.
+            if (null !== $tab = $this->findParentTab()) {
+                $strategy = $tab->isActive()
+                    ? AutoloadStrategyDataType::ALWAYS
+                    : AutoloadStrategyDataType::IF_VISIBLE;
             }
         }
+        $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy($strategy);
         $controller->addOnShowViewScript($autoloadJs);
         
         // add trigger to refresh data automatically when widget has autorefresh_intervall set.
@@ -1184,7 +1185,7 @@ JS;
 
                         (function() {
                             const oModelData = sap.ui.getCore().byId('{$this->getId()}').getModel().getData();
-                            const tabIsNotLoaded = oModelData.rows === undefined || oModelData.rows.isEmpty();
+                            const tabIsNotLoaded = Object.keys(oModelData).length === 0;
                                 
                             if (tabIsNotLoaded) {
                               setTimeout(function(){ 
