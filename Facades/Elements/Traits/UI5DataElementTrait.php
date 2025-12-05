@@ -11,6 +11,7 @@ use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
+use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -412,7 +413,10 @@ JS;
     protected function buildJsSetupQuickSelectMenu(string $buttonCaption = null) : string
     {
         // this menu depends on the configurator and the setups tab
-        if (!$this->getConfiguratorElement()->getWidget()->hasSetups()){
+        // TODO setups currently only work for facade elements based on UI5DataTable because lots of their
+        // code is in there. We should probably extract that code to a separate JS lib and move some of it
+        // to the UI5DataElementTrait
+        if (! $this->getConfiguratorElement()->getWidget()->hasSetups() || ! $this instanceof UI5DataTable){
             return '';
         }
         
