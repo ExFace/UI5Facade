@@ -363,7 +363,7 @@ JS;
      */
     protected function colorToCss(string $color, string $value, string $selector, string $properties): string
     { 
-        $text = Colors::isDark($color, $this->getTextColorPreference()) ? '#ffffff' : '#000000';
+        $text = Colors::isDark($color, 1 - $this->getTextColorPreference()) ? '#ffffff' : '#000000';
         
         return $this->buildCssClasses(
             ['color' => $color, 'value' => $value, 'text' => $text],
