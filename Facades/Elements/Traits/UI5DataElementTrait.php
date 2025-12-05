@@ -187,7 +187,8 @@ trait UI5DataElementTrait {
             $strategy = AutoloadStrategyDataType::ALWAYS;
         } else if ($autoloadDataStrategy === AutoloadStrategyDataType::IF_VISIBLE) {
             // NOTE: The Data that is marked as "IF_VISIBLE" should be loaded
-            // at special events like onSelect inside the "buildJsDataLoader()" function in this trait.
+            // at special events like onSelect in corresponding widget facades.
+            // You can implement it inside the "buildJsDataLoader()" function in this trait.
 
             // special logic for tabs treatment.
             if (null !== $tab = $this->findParentTab()) {
