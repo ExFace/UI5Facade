@@ -35,10 +35,11 @@ class UI5Tab extends UI5Panel
     }
     
     /**
+     * Returns true if this Tab is rendered as an ObjectPageSection inside a Dialog
      * 
      * @return bool
      */
-    protected function isObjectPageSection() : bool
+    public function isObjectPageSection() : bool
     {
         $tabsWidget = $this->getWidget()->getTabs();
         if ($tabsWidget->hasParent() && ($tabsWidget->getParent() instanceof Dialog)) {
