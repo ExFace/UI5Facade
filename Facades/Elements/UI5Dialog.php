@@ -185,9 +185,9 @@ JS
                             {$fixInnerPanelHeightJs}
                         });
                         
-                        sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
+                        /*sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
                             {$fixInnerPanelHeightJs}
-                        });
+                        });*/
 JS
                 );
             }
@@ -286,8 +286,8 @@ JS
         // useIconTabBar: true did not work for some reason as tables were not shown when
         // entering a tab for the first time - just at the second time. There was also no
         // difference between creating tables with new sap.ui.table.table or function(){ ... }()
-        return <<<JS
-
+        $js = <<<JS
+   
         new sap.uxap.ObjectPageLayout('{$this->getIdOfObjectPageLayout()}', {
             useIconTabBar: false,
             upperCaseAnchorBar: false,
@@ -297,13 +297,17 @@ JS
 				{$this->buildJsObjectPageSections($oControllerJs)}
 			]
 		})
-
 JS;
+        if ($this->getWidget()->hasSidebar()) {
+            $js = $this->buildJsSidebarWrapperConstructor($js, $oControllerJs);
+        }
+        return $js;
     }
 				
     protected function buildJsPageHeaderContent(string $oControllerJs = 'oController') : string
     {
-        return $this->buildJsHelpButtonConstructor($oControllerJs);
+        return $this->buildJsHelpButtonConstructor($oControllerJs)
+            . $this->buildJsSidebarToggleButton();
     }
         
     protected function buildJsHeader(string $oControllerJs = 'oController')
@@ -344,7 +348,6 @@ JS;
                     isActionAreaAlwaysVisible: false,
                     {$image}
 					actions: [
-						
 					]
 				}),
 			headerContent:[
@@ -1195,5 +1198,63 @@ JS;
             return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
         }
         return parent::buildJsChangesGetter($onlyVisible);
+    }
+
+    /**
+     * @return string
+     */
+    protected function buildJsSidebarToggleButton() : string
+    {
+        if ($this->getWidget()->hasSidebar()) {
+            $sidebar = $this->getWidget()->getSidebar();
+            $icon = $sidebar->getIcon();
+            if ($icon !== null) {
+                $icon = $this->buildCssIconClass($icon);
+            } else {
+                $icon = 'sap-icon://screen-split-one';
+            }
+            return <<<JS
+
+                        new sap.m.Button({
+                            icon: '{$icon}',
+                            press: function(){
+                                var oSidebar = sap.ui.getCore().byId('{$this->getId()}_sidebar');
+                                oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
+                            }
+                        }),
+JS;
+
+        }
+        return '';
+    }
+
+    /**
+     * @param string $mainContentJs
+     * @param string $oControllerJs
+     * @return string
+     */
+    protected function buildJsSidebarWrapperConstructor(string $mainContentJs, string $oControllerJs) : string
+    {
+        if (! $this->getWidget()->hasSidebar()) {
+            return '';
+        }
+        $sidebar = $this->getWidget()->getSidebar();
+        $sideEl = $this->getFacade()->getElement($sidebar);
+        $sideEl->registerConditionalProperties();
+        
+        
+        return <<<JS
+
+new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
+    showSideContent: {$this->escapeBool($sidebar->isCollapsed() !== true)},
+    sideContent: [
+        {$sideEl->buildJsConstructor($oControllerJs)}
+    ],      
+    mainContent: [
+        $mainContentJs
+    ]
+})
+JS;
+
     }
 }

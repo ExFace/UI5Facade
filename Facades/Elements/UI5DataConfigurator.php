@@ -167,9 +167,15 @@ JS;
                     .finally(() => {
                         oSetupsDb.close();
                     });
-                })();
+                })();             
 JS
             ); 
+
+            // track changes made to the config
+            $this->getController()->addOnShowViewScript( <<<JS
+                {$dataElement->buildJsCallFunction('track_setup_changes')}
+JS
+           , false); 
         }
 
 
@@ -374,6 +380,11 @@ JS;
                             operation: "{{$this->getModelNameForConfig()}>direction}"
                         })
                     },
+                    updateSortItem: function(oEvent) {
+                        // otherwise change listener for property is not fired
+                        var oModel = this.getModel("{$this->getModelNameForConfig()}");
+                        oModel.refresh(true); 
+                    },
                     addSortItem: function(oEvent) {
             			var oParameters = oEvent.getParameters();
                         var oModel = this.getModel("{$this->getModelNameForConfig()}");
@@ -386,6 +397,7 @@ JS;
             				direction: oParameters.sortItemData.getOperation()
             			});
             			oModel.setProperty("/sorters", aSortItems);
+                        oModel.refresh(true); 
             		},
                     removeSortItem: function(oEvent) {
             			var oParameters = oEvent.getParameters();
@@ -394,6 +406,7 @@ JS;
             				var aSortItems = this.getModel("{$this->getModelNameForConfig()}").getProperty("/sorters");
             				aSortItems.splice(oParameters.index, 1);
             				oModel.setProperty("/sorters", aSortItems);
+                            oModel.refresh(true);
             			}
             		}
                 }),
@@ -950,6 +963,16 @@ JS;
         } else {
             $resetColumns = '';
         }
+
+        if ($this->hasTabSetups()){
+            $resetSetupTracking = <<<JS
+                // reset change indicator
+                {$this->getDataElement()->buildJsCallFunction('reset_setup_change_tracking')}
+JS;
+        }
+        else {
+            $resetSetupTracking = '';
+        }
         
         return <<<JS
 
@@ -1011,6 +1034,8 @@ JS;
                 });
 
                 {$resetColumns}
+
+                {$resetSetupTracking}
             }());
 
 JS;

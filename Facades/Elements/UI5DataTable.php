@@ -21,6 +21,10 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\DataTypes\OfflineStrategyDataType;
+use exface\Core\CommonLogic\Model\UiPage;
+use exface\Core\Factories\WidgetFactory;
 
 /**
  *
@@ -142,11 +146,6 @@ JS
      */
     public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
-
-        /* TODO/IDEA:
-            -> it might be a good idea to move parts of this to the UI5DataConfigurator, since we read/update the p13n properties?
-        */
-
         // passed parameters
         $passedParameters = json_encode($parameters ?? null);
         if ($jsRequestData === null){
@@ -154,19 +153,127 @@ JS
         }
 
         // setups table id is needed to dynamically mark applied setup
+        $jsSetupsTableId = $this->escapeString('null');
         if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
-            $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            if ($this->getP13nElement()->getSetupsTableId() !== null){
+                $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            }
         }
-        
-
-        // translated strings 
-        $applySuccess = json_encode($this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY_SUCCESS')); 
-
+  
         switch (true) {
+            case $functionName === DataTable::FUNCTION_RESET_CHANGE_TRACKING:
+                return <<<JS
+                /*
+                    Function to reset tracking of changes in the column configuration (sorting/filtering/columns) 
+                        - resets the custom data property of the ui5 table .data('_exfConfigChanged')
+                        - resets the change indicator of the quick select menu (if button exists)
+
+                    Parameters: None
+                */
+
+                (function () {
+
+                    // reset change property in table
+                    let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
+                    oDataTable.data('_exfConfigChanged', false);
+
+                    // reset change indicator in quickselect button
+                    let oButton = sap.ui.getCore().byId('{$this->getId()}' + '_setupQuickselectBtn');
+                    if (oButton){
+                        let oButtonModel = new sap.ui.model.json.JSONModel({
+                            buttonCaption: null,
+                            configChanged: false 
+                        });
+                        oButton.setModel(oButtonModel);
+                    }
+                })();
+                
+JS;
+            case $functionName === DataTable::FUNCTION_TRACK_CHANGES:
+                return <<<JS
+                /*
+                    Function to track changes in the column configuration (sorting/filtering/columns) and
+                        - mark them in a custom data property of the ui5 table .data('_exfConfigChanged')
+                        - indicate the changes visually with an asterisk (*) in the quick select menu (if button exists)
+
+                    Parameters: None
+                */
+
+                // TODO refactor change tracking -- this is now the quick and easy wax to do it
+                // but its not tracking the changes meaningfully (changing/reverting etc.) 
+                // but neither does ui5 apparently??
+
+                (function () {
+                    // Listen to changes in config elements
+                    // set flag to only attach the event listeners once per table
+                    let oDataTable = sap.ui.getCore().byId('{$this->getId()}'); 
+                    if (!oDataTable.data("_exf_fnTrackSetupChangesAttached")){
+                        // track changes as data property in table
+                        oDataTable.data('_exfConfigChanged', false);
+
+                        // Get the P13n model and the filter panel
+                        let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oDialog == undefined){
+                            return;
+                        }
+                        let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                        let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+
+                        // add change indicator (*) to quickselect button
+                        let oButton = sap.ui.getCore().byId('{$this->getId()}' + '_setupQuickselectBtn');
+                        
+                        if (oButton){
+                            let oButtonModel = new sap.ui.model.json.JSONModel({
+                                buttonCaption: null,
+                                configChanged: false 
+                            });
+                            if (oButton) {
+                                oButton.setModel(oButtonModel);
+                            }
+                        }
+
+                        // Function to handle changes
+                        function onConfigChange() {
+                            oDataTable.data('_exfConfigChanged', true);
+                            
+                            if (oButton){
+                                oButton.getModel().setProperty("/configChanged", true);
+                            }
+                        }
+
+                        // event listeners for filter, columns, sorters, manual resizes
+                        if (oP13nModel){
+                            oP13nModel.bindProperty("/columns").attachChange(onConfigChange);
+                            oP13nModel.bindProperty("/sorters").attachChange(onConfigChange);
+                        }
+                        if (oFilterPanel) {
+                            oFilterPanel.attachEvent("addFilterItem", function (oEvent) {
+                                onConfigChange(); 
+                            });
+                            oFilterPanel.attachEvent("updateFilterItem", function (oEvent) {
+                                onConfigChange();
+                            });
+                            oFilterPanel.attachEvent("removeFilterItem", function (oEvent) {
+                                onConfigChange(); 
+                            });
+                        }
+                        oDataTable.attachEvent("columnResize", function (oEvent) {
+                            if (this.data("_exfIsAutoResizing")) {
+                                return;
+                            }
+                            onConfigChange(); 
+                        });
+
+                        oDataTable.data("_exf_fnTrackSetupChangesAttached", true);
+                    }
+
+                })();
+                
+JS;
             case $functionName === DataTable::FUNCTION_DUMP_SETUP:
                 
                 /*
-                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER)
+                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER, true/false)
 
                     - SETUP_UXON:
                         The name of the column where the setup UXON will be stored
@@ -181,6 +288,8 @@ JS
                         the name of the column for the object of the datatable
                     - PRIVATE_FOR_USER:
                         the name of the column for the current user UID
+                    - true/false: (optional)
+                        auto apply after dumping the data (only works for updating an existing setup, otherwise the setup UID is missing)
                 */
 
                 return <<<JS
@@ -188,12 +297,13 @@ JS
                 // Dump current table setup into inputData of the action
 
                 // get column name parameters, remove leading/trailing spaces; return if not all params provided
-                let params = {$passedParameters};
-                if (!Array.isArray(params) || params.length < 6) {
-                    console.warn('dump_setup() called with invalid parameters:', params);
+                let aParams = {$passedParameters};
+                if (!Array.isArray(aParams) || aParams.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', aParams);
                     return;
                 }
-                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = params.map(p => typeof p === 'string' ? p.trim() : p);
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
+                let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // json object to save current state in
                 let oSetupJson = {
@@ -279,6 +389,11 @@ JS
                 {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
                 {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
                 {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+
+                if (bAutoApply === true){
+                    {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#' . $parameters[0] . '#]' ], $jsRequestData)}
+                }
+                
 JS;
 
             case $functionName === DataTable::FUNCTION_APPLY_SETUP:
@@ -467,8 +582,6 @@ JS;
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
                         if ({$passedParameters}[0] !== 'localStorage'){
-                            // when manually applying a setup, show the success message
-                            {$this->buildJsShowMessageSuccess("{$applySuccess}", "''")};
                             
                             // combination of page and widget id as primary key for db entry
                             sPageId = oResultData.rows[0]['PAGE'];
@@ -479,7 +592,8 @@ JS;
                                 widget_id: oResultData.rows[0]['WIDGET_ID'],
                                 setup_uid: oResultData.rows[0]['UID'],
                                 date_last_applied: new Date().toISOString(),
-                                setup_uxon: oResultData.rows[0]['SETUP_UXON']
+                                setup_uxon: oResultData.rows[0]['SETUP_UXON'],
+                                setup_name: oResultData.rows[0]['NAME']
                             };
 
                             // open indexedDb connection
@@ -546,12 +660,26 @@ JS;
                             }
                         }
 
+                        // update the quick select caption
+                        getSetupData(sPageId, sWidgetId, null, 'setup_name')
+                        .then(sSetupName => {
+                            if (sSetupName !== null){
+                                let oButton = sap.ui.getCore().byId('{$this->getId()}' + '_setupQuickselectBtn');
+                                if (oButton){
+                                    // update the caption of the quickselect btn
+                                    oButton.getModel().setProperty("/buttonCaption", sSetupName); 
+                                }
+                            }
+                        });
+
                         // apply changes immediately 
                         let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
                         if (oP13nDialog) {
                             oP13nDialog.fireOk();
                         }
-                        
+
+                        // reset change tracking
+                        {$this->buildJsCallFunction(DataTable::FUNCTION_RESET_CHANGE_TRACKING)}
                     } 
                     else {
                         // return if no setup was passed or found
@@ -668,6 +796,7 @@ JS;
         
 JS;
     }
+
     
     /**
      * 
@@ -717,9 +846,30 @@ JS;
             
         }
         
+        if($this->isMList()) {
+            $deselectJs = <<<JS
+            
+            oTable.setSelectedItem(oDeselect, false);
+JS;
+
+        } else {
+            $deselectJs = <<<JS
+
+            oTable.__modifyingSelection = true;
+            oTable.removeSelectionInterval(iDeselect, iDeselect);
+            oTable.__modifyingSelection = false;
+JS;
+
+        }
+        
         return <<<JS
         
             const oTable = $oEventJs.getSource();
+            
+            if (oTable.__modifyingSelection) {
+                return;
+            }
+            
             const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
@@ -727,6 +877,40 @@ JS;
             var aRowsVisible = [];
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aSelected = null;
+            
+            // Exclude footers from selections.
+            if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
+                var aSelectedIndices = oTable.getSelectedIndices();
+                aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
+                bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
+                
+                if (bAllRowsSelected && oTable._allRowsSelected) {
+                    // Our little hack to exclude footers breaks the "Deselect all" function,
+                    // so we need to emulate it.
+                    oTable.__modifyingSelection = true;
+                    oTable.clearSelection();
+                    oTable.__modifyingSelection = false;
+                    
+                    oTable._allRowsSelected = false;
+                    aRowsSelectedVisible = [];
+                } else {
+                    for(var i = 1; i <= oTable.getFixedBottomRowCount(); i++) {
+                        var iDeselect = aRowsVisible.length - i;
+                        // To exclude footers, we assume they are always the last indices in our model
+                        // and simply deselect those indices, whenever they are in a selection.
+                        if (!aSelectedIndices.includes(iDeselect)) {
+                            continue;
+                        }
+                        
+                        // This line excludes footers from the selectionModel.
+                        var oDeselect = aRowsSelectedVisible.pop();
+                        {$deselectJs}
+                    }
+                    
+                    oTable._allRowsSelected = bAllRowsSelected;
+                }
+            }
 
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
@@ -739,11 +923,12 @@ JS;
                 });
                 // Add all currently visible selected rows
                 aRowsMerged.push(...aRowsSelectedVisible);
-
-                oModelSelected.setProperty('/rows', aRowsMerged);
+                aSelected = aRowsMerged;
             } else {
-                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
+                aSelected = aRowsSelectedVisible;
             }
+            
+            oModelSelected.setProperty('/rows', aSelected);
             
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
@@ -2200,6 +2385,7 @@ JS;
                     oTable.clearSelection();
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
+                        oTable.addSelectionInterval(iRowIdx, iRowIdx);
                     }
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);

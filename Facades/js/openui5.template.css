@@ -104,13 +104,13 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .sapMGT.OneByOne .sapMText .sapMTextMaxLine.sapMTextLineClamp {-webkit-line-clamp: 3 !important}
 .exf-icon-tile .sapMGTContent {margin-top: -40px}
 .exf-tiles > .sapMPanelContent {border-bottom: none;}
+.exf-tile {hyphens: auto;}
 .exf-tiles > h2, .exf-panel > h2 {margin-top: 1rem;}
 .exf-tile > .sapMGTHdrContent.OneByOne > .sapMGTSubHdrTxt > .sapMText {white-space: normal;max-height: 3rem;  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;text-overflow: -o-ellipsis-lastline;}
 /* Fix remove grayish background on busy-indicator in tile content */
 .sapMTileCntContent > .sapMNC  > .sapUiLocalBusyIndicator {background-color: transparent;}
 /* Fix to force 2-column tile menus even on phones with long narrow screens (centering on wider phones) */
-html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%}
-
+html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%} 
 /* Panels */
 .exf-panel > .sapMPanelContent {border-bottom: none;}
 
@@ -274,7 +274,13 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .imagecarousel-file {background-color: white; border: 1px solid rgb(217, 217, 217);}
 .imagecarousel-nodata > .sapUiIcon::before {font-family: SAP-icons; content: "\e172";}
 
-/* DocScanner */
+/* DataCarousel */
+.exf-datacarousel-details {position: relative}
+/* DataCarousel with tabs */
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB {margin-top: 30px;}
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB > .sapMITH {background-color: transparent;}
+
+    /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
 .docScannerDialog .sapMDialogSection {background-color: lightgrey;}
@@ -301,7 +307,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .fullscreen {position: fixed!important; top: 0; left: 0; padding: 0; width: 100vw!important; height: 100vh!important; background: rgba(255,255,255);}
 .sapUiRespGrid.fullscreen > .sapUiRespGridSpanS12 {height: 100%}
 /* Fullscreen Scheduler */
-.fullscreen > .sapMITBContent {padding: 0; height: 100%; max-height: 100vh;};
+.fullscreen > .sapMITBContent {padding: 0; height: 100%; max-height: 100vh;}
 
 /* SegmentedButtons */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}

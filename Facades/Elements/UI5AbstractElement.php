@@ -3,8 +3,10 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\Interfaces\Exceptions\ExceptionInterface;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\StringDataType;
+use exface\UI5Facade\Exceptions\UI5ControllerNotInitializedException;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Exceptions\LogicException;
 use exface\UI5Facade\Facades\Interfaces\UI5ServerAdapterInterface;
@@ -483,10 +485,10 @@ JS;
     /**
      * Executes given PHP code once the element has a controller.
      * 
-     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise it is
+     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise, it is
      * postponed till a controller is assigned to this element or one of its parents.
      * 
-     * This method is mainly usefull for `Element::init()` logic, that requires a UI5 controller.
+     * This method is mainly useful for `Element::init()` logic, that requires a UI5 controller.
      * The `init()` method is often called before a controller was initialized, so it may not yet
      * be accessible. 
      * 
@@ -498,7 +500,10 @@ JS;
         try {
             $controller = $this->getController();
             $function($controller);
-        } catch (FacadeRuntimeError $e) {
+        } catch (ExceptionInterface $e) {
+            if (! ($e instanceof UI5ControllerNotInitializedException || null !== $e->findPrevious(UI5ControllerNotInitializedException::class))) {
+                throw $e;
+            }
             $this->getWorkbench()->eventManager()->addListener(OnControllerSetEvent::getEventName(), function(OnControllerSetEvent $event) use ($function) {
                 $thisWidget = $this->getWidget();
                 $eventWidget = $event->getWidget();
@@ -527,7 +532,7 @@ JS;
             if ($this->getWidget()->hasParent()) {
                 return $this->getFacade()->getElement($this->getWidget()->getParent())->getController();
             } else {
-                throw new FacadeRuntimeError('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
+                throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
             }
         }
         return $this->controller;

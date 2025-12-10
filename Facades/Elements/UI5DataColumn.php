@@ -217,7 +217,7 @@ JS;
 						{$this->buildJsPropertyWidth()}
 						header: [
                             new sap.m.Label({
-                                text: "{$this->getCaption()}",
+                                text: {$this->escapeString($this->getCaption())},
                                 {$this->buildJsPropertyTooltip()}
                             })
                         ],

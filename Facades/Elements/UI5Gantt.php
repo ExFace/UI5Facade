@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\UxonObject;
+use exface\Core\Exceptions\InvalidArgumentException;
 use exface\Core\Widgets\ButtonGroup;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Parts\DataTimeline;
@@ -92,6 +93,11 @@ JS
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                                });
+                                
+
+                                sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
                                 });
                             }
                             {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
@@ -184,8 +190,11 @@ JS;
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
         $defaultDurationHours = $calItem->getDefaultDurationHours();
+        $viewModesConfig = $this->getViewModesGanttConfig();
+
+        $aColumnWidths = $viewModesConfig['column_widths'];
+        $headerFormatsJson = json_encode($viewModesConfig['header_formats'], JSON_UNESCAPED_SLASHES);
         
-        $aColumnWidths = $this->getViewModesColumnWidthsArray();
         $viewModeColumnWidthQuarterDay = json_encode($aColumnWidths['Quarter Day']);
         $viewModeColumnWidthHalfDay = json_encode($aColumnWidths['Half Day']);
         $viewModeColumnWidthDay = json_encode($aColumnWidths['Day']);
@@ -248,6 +257,7 @@ JS;
         view_mode_column_width_week: $viewModeColumnWidthWeek,
         view_mode_column_width_month: $viewModeColumnWidthMonth,
         view_mode_column_width_year: $viewModeColumnWidthYear,
+        header_formats: $headerFormatsJson, 
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -331,6 +341,7 @@ JS;
                 var aTasks = [];
                 var sNestedColName = {$nestedDataColName}
                 let lineIndex = 0;
+                const rowKeys = [];
                 
                 oTable.getRows().forEach(function(oTreeRow) {
                     var oCtxt = oTreeRow.getBindingContext();
@@ -358,12 +369,17 @@ JS;
                             oTask.custom_class += ' bar-folder';
                         }
                         
-                        aTasks.push(oTask);
+                        // Exludes tasks with no start and end date.
+                        if (oTask.start || oTask.end) {
+                          aTasks.push(oTask);
+                        }
                     }
                     
                     if (!oCtxt) return;
                     
                     oRow = oTable.getModel().getProperty(oCtxt.sPath);
+                    rowKeys.push(lineIndex);
+                    
                     if (sNestedColName !== null) {
                         var oNestedData = oRow[sNestedColName];
                         oNestedData.rows.forEach(function(oNestedRow) {
@@ -376,11 +392,11 @@ JS;
                     lineIndex++
                 });
                 
+                oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                if (aTasks.length > 0) {
+                
+                if (aTasks.length > 0 || rowKeys.length > 0) {
                     oGantt.refresh(aTasks);
-                } else  {
-                    oGantt.clear();
                 }
             };
 
@@ -606,13 +622,13 @@ JS;
             $viewGranularity = $this->convertDataTimelineGranularityToGanttViewMode(
                 $viewMode->getGranularity()
             );
-
+            $viewIcon = $viewMode->getIcon() ?? '';
             
             $buttons[] = [
                 'caption' => $viewName,
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
-                    'hide_icon' => true,
+                    'icon' => $viewIcon,
                     'script' => <<<JS
                         sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewGranularity');
 JS
@@ -630,43 +646,94 @@ JS
     
     protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
     {
-        switch ($granularity) {
-            case DataTimeline::GRANULARITY_HOURS: $viewMode = 'Quarter Day'; break;
-            case DataTimeline::GRANULARITY_DAYS: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_WEEK: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_DAYS_PER_MONTH: $viewMode = 'Day'; break;
-            case DataTimeline::GRANULARITY_MONTHS: $viewMode = 'Month'; break;
-            case DataTimeline::GRANULARITY_WEEKS: $viewMode = 'Week'; break;
-            case DataTimeline::GRANULARITY_YEARS: $viewMode = 'Year'; break;
-            default: $viewMode = 'sap.ui.unified.CalendarIntervalType.Hour'; break;
-        }
-        
-        return $viewMode;
+        return match ($granularity) {
+            DataTimeline::GRANULARITY_HOURS => 'Quarter Day',
+            DataTimeline::GRANULARITY_DAYS, 
+            DataTimeline::GRANULARITY_DAYS_PER_WEEK, 
+            DataTimeline::GRANULARITY_DAYS_PER_MONTH => 'Day',
+            DataTimeline::GRANULARITY_MONTHS => 'Month',
+            DataTimeline::GRANULARITY_WEEKS => 'Week',
+            DataTimeline::GRANULARITY_YEARS => 'Year',
+            default => 'sap.ui.unified.CalendarIntervalType.Hour',
+        };
+    }
+    
+    protected function convertDataTimeLineIntervalToGanttInterval($value) : string
+    {
+        return match ($value) {
+            DataTimeline::INTERVAL_DAY => 'Date',
+            DataTimeline::INTERVAL_MONTH => 'Month',
+            DataTimeline::INTERVAL_YEAR => 'Year',
+            default => throw new InvalidArgumentException('The Gantt chard only supports the following intervals for the header lines: "day", "month" and "year".'),
+        };
     }
 
     /**
-     * It returns an array with granularity to view mode column width  mapping
-     * Example: {'Day' : 38}
+     * It returns mapped "column_widths" and "header_formats".
+     * column_widths: 
+     *      an array with granularity to view mode column width mapping.
+     *      Example: {'Day' : 38}
+     * 
+     * header_formats:
+     *      an array with header formats for each granularity view mode.
+     *      Example: 
+     *      'Day': {
+     *          upper: { date_format: '',    date_format_at_border: 'MMM',  interval: 'Month' },
+     *          lower: { date_format: '',    date_format_at_border: 'd',    interval: 'Date' }
+     *      }
      * 
      * @return array
      */
-    protected function getViewModesColumnWidthsArray() : array
+    
+    protected function getViewModesGanttConfig(): array
     {
         $widget = $this->getWidget();
-        $aColumnWidths = array_fill_keys(['Quarter Day', 'Half Day', 'Day', 'Week', 'Month', 'Year'], null);
+        
+        $columnWidths = array_fill_keys(['Quarter Day', 'Half Day', 'Day', 'Week', 'Month', 'Year'], null);
+        $headerFormats = [];
 
         $viewModes = $widget->getTimelineConfig()->getViews();
         foreach ($viewModes as $viewMode) {
-            $granularity = $this->convertDataTimelineGranularityToGanttViewMode(
-                $viewMode->getGranularity()
-            );
-
-            if (array_key_exists($granularity, $aColumnWidths)) {
-                $columnWidth = $viewMode->getColumnWidth()?->getValue();
-                $aColumnWidths[$granularity] = is_numeric($columnWidth) ? (int) $columnWidth : null;
+            $granularity = $this->convertDataTimelineGranularityToGanttViewMode($viewMode->getGranularity());
+            
+            if (!is_string($granularity) || !array_key_exists($granularity, $columnWidths)) {
+                continue;
+            }
+            
+            $columnWidth = $viewMode->getColumnWidth()?->getValue();
+            $columnWidths[$granularity] = is_numeric($columnWidth) ? (int) $columnWidth : null;
+            
+            $headerLines = $viewMode->getHeaderLines() ?? [];
+            // Gantt only supports 2 header lines, so we just take the first 2.
+            $upper = $headerLines[0] ?? null;
+            $lower = $headerLines[1] ?? null;
+            
+            $self = $this;
+            $lineToArray = static function ($line) use ($self) {
+                return [
+                    'date_format' => (string)($line->getDateFormat() ?? ''),
+                    'date_format_at_border' => (string)($line->getDateFormatAtBorder() ?? ''),
+                    'interval' => $self->convertDataTimeLineIntervalToGanttInterval($line->getInterval()) ?? '',
+                ];
+            };
+            
+            $lines = [];
+            if ($upper !== null) {
+                $lines['upper'] = $lineToArray($upper);
+            }
+            if ($lower !== null) {
+                $lines['lower'] = $lineToArray($lower);
+            }
+            
+            if (!empty($lines)) {
+                $headerFormats[$granularity] = $lines;
             }
         }
-        
-        return $aColumnWidths;
+
+        return [
+            'column_widths'  => $columnWidths,
+            'header_formats' => $headerFormats,
+        ];
     }
+    
 }

@@ -162,8 +162,8 @@ var Gantt = (function () {
 
             return date_string + (with_time ? ' ' + time_string : '');
         },
-
-        format(date, format_string = 'YYYY-MM-DD HH:mm:ss.SSS') {
+      
+          format(date, format_string = 'yyyy-MM-dd HH:mm:ss.SSS') {
             return exfTools.date.format(date, format_string);
         },
 
@@ -694,7 +694,6 @@ var Gantt = (function () {
         }
 
         bind() {
-            if (this.invalid) return;
             this.setup_click_event();
         }
 
@@ -723,19 +722,35 @@ var Gantt = (function () {
         show_popup() {
             if (this.gantt.bar_being_dragged) return;
 
-            const start_date = date_utils.format(
-                this.task._start,
-                this.gantt.options.date_format,
-            );
+            let subtitle = '';
 
-            const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
-                ? date_utils.add(this.task._end, -24, 'hour')
-                : date_utils.add(this.task._end, -1, 'second');
-  
-            const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
-          
-            const subtitle = start_date + ' - ' + end_date;
+            if (!this.task._isAggregate) {
+                // normal task-blocks
+                const hasRealStart = !!this.task.start;
+                const hasRealEnd = !!this.task.end;
+                
+                if (hasRealStart || hasRealEnd) {
+                  const start_date = date_utils.format(
+                      this.task._start,
+                      this.gantt.options.date_format,
+                  );
+                  const adjEnd = (this.gantt.options.step >= 24
+                      && (this.gantt.options.step % 24) === 0)
+                      ? date_utils.add(this.task._end, -24, 'hour')
+                      : date_utils.add(this.task._end, -1, 'second');
 
+                  const end_date = date_utils.format(adjEnd,
+                      this.gantt.options.date_format);
+
+                  if (hasRealStart && hasRealEnd) {
+                    subtitle = `${start_date} - ${end_date}`;
+                  } else if (hasRealStart && !hasRealEnd) {
+                    subtitle = `${start_date} - ...`;
+                  } else if (!hasRealStart && hasRealEnd) {
+                    subtitle = `... - ${end_date}`;
+                  }
+                }
+            }
             this.gantt.show_popup({
                 target_element: this.$bar,
                 title: this.task.name,
@@ -933,10 +948,19 @@ var Gantt = (function () {
           const overflow = this.gantt.options.label_overflow || 'outside';
           const padding = 6;
           const fits = label.getBBox().width <= Math.max(0, bar.getWidth() - padding);
+
+          const isStacked = (this.task._clusterLanes || 1) > 1;
+          const isLowHeight = this.height <= 14;
   
           // Basis: Always align labels centrally
           label.classList.remove('big');
           label.classList.remove('clip-left');
+          label.classList.remove('small');
+
+          if (isStacked || isLowHeight) {
+            label.classList.add('small');
+          }
+
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
           label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
@@ -980,11 +1004,11 @@ var Gantt = (function () {
             // so that the labels do not overlap. 
             label.style.display = '';
             label.classList.remove('big');
-            const inset = 2;
+            const insetX = 2;
+            const insetY = 1;
             
             label.classList.add('clip-left');
-            label.classList.remove('big');
-            label.setAttribute('x', bar.getX() + inset);
+            label.setAttribute('x', bar.getX() + insetX);
             label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
 
             restoreInBarColor();
@@ -1000,12 +1024,12 @@ var Gantt = (function () {
 
             const cp = createSVG('clipPath', { id: clipId, append_to: defs });
             createSVG('rect', {
-              x: bar.getX() + inset,
-              y: bar.getY() + inset,
-              width: Math.max(0, bar.getWidth() - inset * 2),
-              height: Math.max(0, bar.getHeight() - inset * 2),
-              rx: Math.max(0, this.corner_radius - inset),
-              ry: Math.max(0, this.corner_radius - inset),
+              x: bar.getX() + insetX,
+              y: bar.getY() + insetY,
+              width: Math.max(0, bar.getWidth() - insetX * 2),
+              height: Math.max(0, bar.getHeight() - insetY * 2),
+              rx: Math.max(0, this.corner_radius - insetX),
+              ry: Math.max(0, this.corner_radius - insetY),
               append_to: cp
             });
 
@@ -1014,16 +1038,18 @@ var Gantt = (function () {
         }
 
         update_handle_position() {
-            const bar = this.$bar;
-            this.handle_group
-                .querySelector('.handle.left')
-                .setAttribute('x', bar.getX() + 1);
-            this.handle_group
-                .querySelector('.handle.right')
-                .setAttribute('x', bar.getEndX() - 9);
-            const handle = this.group.querySelector('.handle.progress');
-            handle &&
-                handle.setAttribute('points', this.get_progress_polygon_points());
+          const bar = this.$bar;
+          const leftHandle  = this.handle_group.querySelector('.handle.left');
+          const rightHandle = this.handle_group.querySelector('.handle.right');
+  
+          // Invalid tasks have no handles.
+          if (this.invalid && (!leftHandle || !rightHandle)) return;
+  
+          leftHandle.setAttribute('x', bar.getX() + 1);
+          rightHandle.setAttribute('x', bar.getEndX() - 9);
+  
+          const handle = this.group.querySelector('.handle.progress');
+          handle && handle.setAttribute('points', this.get_progress_polygon_points());
         }
 
         update_arrow_position() {
@@ -1138,6 +1164,10 @@ var Gantt = (function () {
             }
             const target_element = options.target_element;
 
+            // Keep the pop-up invisible while we calculate the content and layout. 
+            this.parent.style.visibility = 'hidden';
+            this.parent.style.opacity = 0;
+
             if (this.custom_html) {
                 let html = this.custom_html(options.task);
                 html += '<div class="pointer"></div>';
@@ -1147,10 +1177,10 @@ var Gantt = (function () {
                 // set data
                 this.title.innerHTML = options.title;
                 this.subtitle.innerHTML = options.subtitle;
-                this.parent.style.width = this.parent.clientWidth + 'px';
 
                 // aggregates the data of overlapping bars for the +n-block
                 const t = options.task;
+                this.current_task_id = t && t.id;
                 const members = t._isAggregate ? (t._members || []) : (t._aggMembers || []);
   
                 // Remove existing old list (when reopening)
@@ -1160,7 +1190,7 @@ var Gantt = (function () {
                 if (members && members.length) {
                   const ul = document.createElement('ul');
                   ul.className = 'agg-list';
-                  const fmt = (d) => this.gantt.dateUtils.format(d, this.gantt.options.date_format || 'YYYY-MM-DD');
+                  const fmt = (d) => this.gantt.dateUtils.format(d, this.gantt.options.date_format || 'yyyy-MM-dd');
 
                   // gleiche Logik wie bei normalen Bars:
                   const adjustEnd = (d) => {
@@ -1170,20 +1200,59 @@ var Gantt = (function () {
                         ? du.add(d, -24, 'hour')     // Tages-/Wochen-/Monats-Skalierung: -24h
                         : du.add(d, -1, 'second');   // Feiner als Tag: -1s
                   };
-
+                  
+                  // filling the n-block popup
                   members.forEach(m => {
                     const li = document.createElement('li');
-                    if (m._start && m._end) {
-                      li.textContent = `${m.name} (${fmt(m._start)} – ${fmt(adjustEnd(m._end))})`;
-                    } else {
-                      li.textContent = m.name;
+
+                    // Color-Swatch at the left
+                    const swatch = document.createElement('span');
+                    swatch.className = 'agg-color-swatch';
+                    if (m.color) {
+                      swatch.style.backgroundColor = String(m.color);
                     }
+                    li.appendChild(swatch);
+
+                    // Getting the original task to know real start/end
+                    const originalTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+                    const hasRealStart = !!(originalTask && originalTask.start);
+                    const hasRealEnd = !!(originalTask && originalTask.end);
+
+                    let labelText = m.name;
+                    let rangeText = '';
+
+                    if (hasRealStart || hasRealEnd) {
+                      const start_date = fmt(m._start);
+                      const endAdj = adjustEnd(m._end);
+                      const end_date = fmt(endAdj);
+
+                      if (hasRealStart && hasRealEnd) {
+                        rangeText = ` (${start_date} - ${end_date})`;
+                      } else if (hasRealStart && !hasRealEnd) {
+                        rangeText = ` (${start_date} - ... )`;
+                      } else if (hasRealEnd && !hasRealStart) {
+                        rangeText = ` ( ... - ${end_date})`;
+                      }
+                    }
+
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = labelText + rangeText;
+                    li.appendChild(textSpan);
+
                     ul.appendChild(li);
                   });
                   
                   this.parent.appendChild(ul);
                 }
             }
+            
+            this.parent.style.width = 'auto';
+            this.parent.style.left = '0px';
+            this.parent.style.top = '0px';
+  
+            // popup width calculation (title & aggregate list length)
+            const bounds = this.parent.getBoundingClientRect();
+            this.parent.style.width = bounds.width + 'px';
 
             // set position
             let position_meta;
@@ -1204,12 +1273,16 @@ var Gantt = (function () {
             }
 
             // show
+            this.parent.style.visibility = 'visible';
             this.parent.style.opacity = 1;
         }
 
         hide() {
             this.parent.style.opacity = 0;
             this.parent.style.left = 0;
+            this.parent.style.width = '';
+            this.parent.style.visibility = 'hidden';
+            this.current_task_id = null;
         }
 
         move(options = {}) {
@@ -1217,20 +1290,45 @@ var Gantt = (function () {
 
             const { new_start_date, new_end_date } = bar.compute_start_end_date(target_element)
 
-            const start_date = date_utils.format(
-                new_start_date,
-                this.gantt.options.date_format,
-            );
-
-            const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
-                ? date_utils.add(new_end_date, -24, 'hour')
-                : date_utils.add(new_end_date, -1, 'second');
+            const isAggregate= !!bar?.task?._isAggregate;
+            const hasRealStart = !!bar?.task?.start;
+            const hasRealEnd = !!bar?.task?.end;
   
-            const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
+            this.title.innerHTML = bar?.task?.name || '';
 
-            this.title.innerHTML = bar?.task?.name;
-            this.subtitle.innerHTML = start_date + ' - ' + end_date;
-            this.parent.style.width = this.parent.clientWidth + 'px';
+            let subtitleText = '';
+            
+            if (!isAggregate) {
+              if (hasRealStart || hasRealEnd) {
+                const start_date = date_utils.format(
+                    new_start_date,
+                    this.gantt.options.date_format,
+                );
+                
+                const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
+                    ? date_utils.add(new_end_date, -24, 'hour')
+                    : date_utils.add(new_end_date, -1, 'second');
+  
+                const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
+  
+                if (hasRealStart && hasRealEnd) {
+                  subtitleText = `${start_date} - ${end_date}`;
+                } else if (hasRealStart && !hasRealEnd) {
+                  subtitleText = `${start_date} - ...`;
+                } else if (!hasRealStart && hasRealEnd) {
+                  subtitleText = `... - ${end_date}`;
+                }
+              }
+
+              //cleans the old aggregate titels in popup.
+              const oldList = this.parent.querySelector('.agg-list');
+              if (oldList) oldList.remove();
+            } else {
+              // The subtitle should not include a date interval for aggregate blocks.
+              subtitleText = '';
+            }
+
+            this.subtitle.innerHTML = subtitleText;
 
             if (!options?.target_element) {
                 throw new Error('target_element is required to move popup');
@@ -1360,7 +1458,7 @@ var Gantt = (function () {
                 arrow_curve: 5,
                 padding: 18,
                 view_mode: 'Day',
-                date_format: 'YYYY-MM-dd',
+                date_format: 'yyyy-MM-dd',
                 popup_trigger: 'click',
                 custom_popup_html: null,
                 language: 'en',
@@ -1380,9 +1478,50 @@ var Gantt = (function () {
                 view_mode_column_width_month: 20,
                 view_mode_column_width_year: 12,
                 label_outside_color: '#555',
+                // The formats are in ICU:
+                header_formats: {
+                  'Quarter Day': {
+                    upper: { date_format: '',   date_format_at_border: 'd MMM', interval: 'Date' },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH',   interval: 'Date' }
+                  },
+                  // Display only format if the day changes; and use border format if the month also changes.
+                  'Half Day': {
+                    upper: {
+                      date_format: 'd',
+                      date_format_at_border: 'd MMM',
+                      interval: 'Date',
+                      showOnChangeOf: 'Date',
+                      borderOnChangeOf: 'Month',
+                    },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH', interval: 'Date' }
+                  },
+                  'Day': {
+                    upper: { date_format: '',    date_format_at_border: 'MMM',  interval: 'Month' },
+                    lower: { date_format: '',    date_format_at_border: 'd',    interval: 'Date' }
+                  },
+                  'Week': {
+                    upper: { date_format: '',    date_format_at_border: 'M',     interval: 'Month' },
+                    lower: { date_format: 'd',   date_format_at_border: 'd MMM', interval: 'Month' }
+                  },
+                  'Month': {
+                    upper: { date_format: '',    date_format_at_border: 'yyyy',  interval: 'Year' },
+                    lower: { date_format: 'M',   date_format_at_border: 'M',     interval: 'Month' }
+                  },
+                  'Year': {
+                    upper: { date_format: '',     date_format_at_border: 'yyyy', interval: 'Year' },
+                    lower: { date_format: 'yyyy', date_format_at_border: 'yyyy', interval: 'Year' }
+                  }
+                },
+              // row_keys contains the keys of all visible rows to shown, 
+              // including the empty rows with no task data:
+              row_keys: null, 
+              
             };
             
             this.options = Object.assign({}, default_options, (options || {}));
+            
+            // also merges the inside objects of the header_formats with the default options.
+            this.options.header_formats = this.deepMerge(default_options.header_formats, this.options.header_formats);
             
             if (this.options.row_height == null) {
               this.options.row_height = this.options.bar_height + this.options.padding;
@@ -1391,6 +1530,18 @@ var Gantt = (function () {
             if (this.options.bar_inner_padding == null) {
               this.options.bar_inner_padding = 6;
             }
+        }
+        
+        deepMerge(target, src) {
+          if (!src) return target;
+          for (const k of Object.keys(src)) {
+            if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+              target[k] = this.deepMerge(target[k] ? {...target[k]} : {}, src[k]);
+            } else {
+              target[k] = src[k];
+            }
+          }
+          return target;
         }
 
         setup_tasks(tasks) {
@@ -1441,6 +1592,8 @@ var Gantt = (function () {
             
                 // invalid flag
                 if (!task.start || !task.end) {
+                  // If the invalid tasks should be draggable again, delete this line.
+                    task.draggable = false;
                     task.invalid = true;
                 }
 
@@ -1530,40 +1683,67 @@ var Gantt = (function () {
         setup_gantt_dates() {
             this.gantt_start = this.gantt_end = null;
 
-            for (let task of this.tasks) {
+            if (!this.tasks || this.tasks.length === 0) {
+              // Fallback: If no tasks are given, the start and end 
+              // of the Gantt view are set to one month before and after the current date.
+              const today = date_utils.start_of(date_utils.today(), 'day');
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(today, today));
+            } else {
+              
+              for (let task of this.tasks) {
                 // set global start and end date
                 if (!this.gantt_start || task._start < this.gantt_start) {
-                    this.gantt_start = task._start;
+                  this.gantt_start = task._start;
                 }
                 if (!this.gantt_end || task._end > this.gantt_end) {
-                    this.gantt_end = task._end;
+                  this.gantt_end = task._end;
                 }
-            }
+              }
 
-            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-            this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
+              this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
+              this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
 
-            // add date padding on both sides
-            if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
-                this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
-                this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
-            } else if (this.view_is(VIEW_MODE.MONTH)) {
-                this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
-            } else if (this.view_is(VIEW_MODE.YEAR)) {
-                this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
-           /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
-              const s = start_of_week_sunday(date_utils.add(this.gantt_start, -7, 'day'));
-              const e = start_of_week_sunday(date_utils.add(this.gantt_end,   14, 'day'));
-              this.gantt_start = s;
-              this.gantt_end = date_utils.add(e, 7, 'day');*/
-            } else {
-                this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(this.gantt_start, this.gantt_end));
             }
 
             this.gantt_start = date_utils.add(this.gantt_start, -1 * this.gantt_start.getTimezoneOffset(), 'minute');
+        }
+        
+        get_setup_gantt_dates_padding(start, end) {
+          
+          let gantt_start;
+          let gantt_end;
+          
+          // add date padding on both sides
+          if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
+            gantt_start = date_utils.add(start, -7, 'day');
+            gantt_end = date_utils.add(end, 7, 'day');
+          } else if (this.view_is(VIEW_MODE.MONTH)) {
+            gantt_start = date_utils.start_of(start, 'year');
+            gantt_end = date_utils.add(end, 1, 'year');
+          } else if (this.view_is(VIEW_MODE.YEAR)) {
+            gantt_start = date_utils.add(start, -2, 'year');
+            gantt_end = date_utils.add(end, 2, 'year');
+            /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+               const s = start_of_week_sunday(date_utils.add(start, -7, 'day'));
+               const e = start_of_week_sunday(date_utils.add(end,   14, 'day'));
+               gantt_start = s;
+               gantt_end = date_utils.add(e, 7, 'day');*/
+          } else {
+            gantt_start = date_utils.add(start, -1, 'month');
+            gantt_end = date_utils.add(end, 1, 'month');
+          }
+          
+          return {
+            gantt_start: gantt_start,
+            gantt_end: gantt_end
+          }
         }
 
         setup_date_values() {
@@ -1930,7 +2110,7 @@ var Gantt = (function () {
             const $t = createSVG('text', {
               x: xMid,
               y: upperY,
-              innerHTML: date_utils.format(monthStart, 'MMM YYYY'),
+              innerHTML: date_utils.format(monthStart, 'MMM yyyy'),
               class: 'upper-text',
               append_to: this.layers.date,
             });
@@ -1960,67 +2140,23 @@ var Gantt = (function () {
                 last_date = date_utils.add(date, 1, 'year');
             }
             
-            const date_text = {
-                'Quarter Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                'Half Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                Day_lower:
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'd')
-                        : '',
-                //Day_lower: dayChanged ? String(date.getDate()) : '',
-                Week_lower:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'd MMM')
-                        : date_utils.format(date, 'd'),
-                Month_lower: date_utils.format(date, 'M'),
-                Year_lower: date_utils.format(date, 'YYYY'),
-                'Quarter Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'd MMM')
-                        : '',
-                'Half Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date.getMonth() !== last_date.getMonth()
-                            ? date_utils.format(
-                                  date,
-                                  'd MMM',
-                              )
-                            : date_utils.format(date, 'd')
-                        : '',
-                Day_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'MMM')
-                        : '',
-                Week_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'M')
-                        : '',
-                Month_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
-                Year_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
+/*            const date_text = {
+               
               
               //TODO SR INFO: Month Weeks View:
-                /*
+              //TODO SR INFO: the "date_text" is deprecated. Take the Formats from here and put then into "options.header_formats"!
+              
                 //MonthWeeks_lower: date_utils.format(date, 'd MMM'),
                 MonthWeeks_lower: date_utils.format(date, 'd'),
                 MonthWeeks_upper:
                     (!last_date || date.getMonth() !== last_date.getMonth())
-                        ? date_utils.format(date, 'MMM YYYY')
+                        ? date_utils.format(date, 'MMM yyyy')
                         : '',
-                */
-            };
+       
+            };*/
 
+            const view = this.options.view_mode;
+          
             const base_pos = {
                 x: i * this.options.column_width,
                 lower_y: this.options.header_height,
@@ -2045,18 +2181,63 @@ var Gantt = (function () {
 /*              MonthWeeks_lower: this.options.column_width / 2, 
                 MonthWeeks_upper: (this.options.column_width * 4) / 2, */
             };
-
+            
             return {
-                upper_text: date_text[`${this.options.view_mode}_upper`],
-                lower_text: date_text[`${this.options.view_mode}_lower`],
+                lower_text: this.formatHeaderPart(date, last_date, view, 'lower'),
+                upper_text: this.formatHeaderPart(date, last_date, view, 'upper'),
                 upper_x: base_pos.x + x_pos[`${this.options.view_mode}_upper`],
                 upper_y: base_pos.upper_y,
                 lower_x: base_pos.x + x_pos[`${this.options.view_mode}_lower`],
                 lower_y: base_pos.lower_y,
             };
         }
+        
+      formatHeaderPart(date, last_date, viewMode, part) {
+        const spec = this.options.header_formats?.[viewMode]?.[part];
+        if (!spec) return '';
 
-        make_bars() {
+        const {
+          date_format = '',
+          date_format_at_border = '',
+          interval = 'Date',
+          showOnChangeOf = null,
+          borderOnChangeOf = null
+        } = spec;
+
+        const changed = (which) => {
+          switch (which) {
+            case 'Date':  return date.getDate() !== last_date.getDate();
+            case 'Month': return date.getMonth() !== last_date.getMonth();
+            case 'Year':  return date.getFullYear() !== last_date.getFullYear();
+            default: return false;
+          }
+        };
+
+        // The "showOnChangeOf" and "borderOnChangeOf" parameters are used here to cover "Half Day_upper" case:
+        // Old code:
+        /*
+          'Half Day_upper':
+             date.getDate() !== last_date.getDate()
+                 ? date.getMonth() !== last_date.getMonth()
+                     ? date_utils.format(
+                           date,
+                           'd MMM',
+                       )
+                     : date_utils.format(date, 'd')
+                 : '',
+         */
+        if (showOnChangeOf && !changed(showOnChangeOf)) return '';
+        
+        const useBorder =
+            date_format_at_border && (
+                borderOnChangeOf ? changed(borderOnChangeOf) : changed(interval)
+            );
+
+        const format = useBorder ? date_format_at_border : date_format;
+        return format ? this.dateUtils.format(date, format) : '';
+      }
+
+      make_bars() {
           // Only render non-hidden tasks + all aggregates
           const renderTasks = this.tasks.filter(t => !t._hidden)
           .concat(this._aggregateBars || []);
@@ -2203,7 +2384,19 @@ var Gantt = (function () {
                     ...this.get_all_dependent_tasks(parent_bar_id),
                 ];
                 bars = ids.map((id) => this.get_bar(id));
-
+                
+                const mainBar = this.get_bar(parent_bar_id);
+                
+                // Only rebuild the pop-up if it is missing or belongs to another task
+                if (
+                    mainBar
+                    && !mainBar.invalid
+                    && (!this.popup || this.popup.current_task_id !== parent_bar_id)
+                )
+                {
+                  mainBar.show_popup();
+                }
+              
                 this.bar_being_dragged = parent_bar_id;
 
                 bars.forEach((bar) => {
@@ -2522,12 +2715,17 @@ var Gantt = (function () {
           });
   
           // 3) Sorting row list
-          const rows = Array.from(rowMap.keys()).sort((a,b) => (a>b?1:a<b?-1:0));
+          let rows;
+          if (Array.isArray(this.options.row_keys) && this.options.row_keys.length) {
+            rows = this.options.row_keys.slice();
+          } else {
+            rows = Array.from(rowMap.keys()).sort((a, b) => (a>b?1:a<b?-1:0));
+          }
   
           // 4) Lane allocation per row (greedy)
           const rowMeta = [];
           rows.forEach((rowKey, rowIndex) => {
-            const list = rowMap.get(rowKey).slice().sort((a,b) => +a._start - +b._start);
+            const list = (rowMap.get(rowKey) || []).slice().sort((a,b) => +a._start - +b._start);
             const laneEnds = []; // laneIndex -> Date
   
             list.forEach(task => {
@@ -2618,7 +2816,7 @@ var Gantt = (function () {
               const ib = isFinite(+b.id) ? +b.id : String(b.id);
               return ia > ib ? 1 : ia < ib ? -1 : 0;
             };
-            const fmt = this.options.date_format || 'YYYY-MM-DD';
+            const fmt = this.options.date_format || 'yyyy-MM-dd';
     
             // group rows
             const rows = new Map();
