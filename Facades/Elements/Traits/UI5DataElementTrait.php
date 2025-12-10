@@ -193,7 +193,12 @@ trait UI5DataElementTrait {
 
             // special logic for tabs treatment.
             if (null !== $tab = $this->findParentTab()) {
-                $strategy = $tab->isActive()
+
+                /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
+                $tabEl = $this->getFacade()->getElement($tab);
+                
+                // If the tab is active or is an ObjectPageSection then we load data always
+                $strategy = $tab->isActive() || $tabEl->isObjectPageSection()
                     ? AutoloadStrategyDataType::ALWAYS
                     : AutoloadStrategyDataType::IF_VISIBLE;
             }
@@ -1184,7 +1189,12 @@ JS;
             // That adds a TabsSelectionScript to UI5Tabs
             // that causes the tab data to be loaded if the tab is selected.
             if (null !== $tab = $this->findParentTab()) {
-                if (!$tab->isActive()) {
+
+                /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
+                $tabEl = $this->getFacade()->getElement($tab);
+                
+                // Currently the ObjectPageSection Tabs are loaded always if AutoloadStrategy != "NEVER"
+                if (!$tab->isActive() && !$tabEl->isObjectPageSection()) {
                     
                     $onChangeJs = <<<JS
 
