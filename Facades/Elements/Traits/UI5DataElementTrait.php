@@ -12,6 +12,7 @@ use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
+use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
@@ -465,6 +466,18 @@ JS;
     }
 
     /**
+     * @return bool
+     */
+    protected function hasSetupsQuickSelector() : bool
+    {
+        $configWidget = $this->getWidget()->getConfiguratorWidget();
+        return ($configWidget instanceof DataTableConfigurator) 
+            && $configWidget->hasSetups() 
+            && ($this instanceof UI5DataTable) // FIXME Remove this restriction once the setups have been completely moved to this trait
+            && $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SETUPS.QUICK_SELECT_ENABLED');
+    }
+
+    /**
       * Builds a UI5 quick select menu with widget setups for the datatable.
       * Menu uses the same model as (so is dependant on) the table containing the setups in the p13n dialogue for consistency
       * if the quickselect is opened before the setup configurator, it will load the data of the configurator table
@@ -478,7 +491,7 @@ JS;
         // TODO setups currently only work for facade elements based on UI5DataTable because lots of their
         // code is in there. We should probably extract that code to a separate JS lib and move some of it
         // to the UI5DataElementTrait
-        if (! $this->getConfiguratorElement()->getWidget()->hasSetups() || ! $this instanceof UI5DataTable){
+        if (! $this->hasSetupsQuickSelector()){
             return '';
         }
         
@@ -684,7 +697,7 @@ JS;
 
         // if we have a datatable with widget_setups, we need to set the heading empty
         // and show a quickselect menu instead of the normal heading
-        if ($widget instanceof DataTable && $widget->getConfiguratorWidget()->hasSetups()) {
+        if ($this->hasSetupsQuickSelector()) {
             // Don't show plain text caption if there is the setups dropdown
             $heading = '';
 
