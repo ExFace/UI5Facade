@@ -847,7 +847,6 @@ function(){
     }
     return oData;
 }()
-
 JS;
     }
     
@@ -861,8 +860,7 @@ JS;
                 for (var i in aSortItems) {
                     $oParamsJs.sort = (params.sort ? params.sort+',' : '') + aSortItems[i].getColumnKey();
                     $oParamsJs.order = (params.order ? params.order+',' : '') + (aSortItems[i].getOperation() == 'Ascending' ? 'asc' : 'desc');
-                } 
-
+                }
 JS;
         } else {
             $addSortersJs = '';
@@ -872,7 +870,6 @@ JS;
 
                 $oParamsJs.data = {$this->buildJsDataGetter()};
                 $addSortersJs
-
 JS;
     }
         

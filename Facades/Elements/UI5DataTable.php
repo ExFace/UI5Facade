@@ -1380,39 +1380,20 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-
-            {$oParamsJs}.data.columns = [];
+            
             // Process currently visible columns:
             // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required
+            // - Add column name to ensure even optional data is read if required 
+            {$oParamsJs}.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
-                var oColParam;
-                if (oColumn.data('_exfDataColumnName')) {
-                    if (oColumn.data('_exfAttributeAlias')) {
-                        oColParam = {
-                            attribute_alias: oColumn.data('_exfAttributeAlias')
-                        };
-                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                            oColParam.name = oColumn.data('_exfDataColumnName');
-                        }
-                    } else if (oColumn.data('_exfCalculation')) {
-                        oColParam = {
-                            name: oColumn.data('_exfDataColumnName'),
-                            expression: oColumn.data('_exfCalculation')
-                        };
-                    }
-                    if (oColParam !== undefined) {
-                        {$oParamsJs}.data.columns.push(oColParam);
-                    }
-                }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
     				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
     			}
     		});
-            
+          
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'filter'){
                 (function(oEvent) {
@@ -1541,41 +1522,19 @@ JS;
         } elseif ($this->isMTable()) {
             $tableParams = <<<JS
 
-            // request config for opt. columns
-            {$oParamsJs}.data.columns = [];
-
+            // Add visible columns to params.data
+            $oParamsJs.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
+            
             // Set sorting indicators for columns
             var aSortProperties = ({$oParamsJs}.sort ? {$oParamsJs}.sort.split(',') : []);
             var aSortOrders = ({$oParamsJs}.sort ? {$oParamsJs}.order.split(',') : []);
             var iIdx = -1;
             sap.ui.getCore().byId('{$this->getId()}').getColumns().forEach(function(oColumn){
                 iIdx = aSortProperties.indexOf(oColumn.data('_exfAttributeAlias'));
-                var oColParam;
-
                 if (iIdx > -1) {
                     oColumn.setSortIndicator(aSortOrders[iIdx] === 'desc' ? 'Descending' : 'Ascending');
                 } else {
                     oColumn.setSortIndicator(sap.ui.core.SortOrder.None);
-                }
-
-                // add optional columns as request data 
-                if (oColumn.data('_exfDataColumnName')) {
-                    if (oColumn.data('_exfAttributeAlias')) {
-                        oColParam = {
-                            attribute_alias: oColumn.data('_exfAttributeAlias')
-                        };
-                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                            oColParam.name = oColumn.data('_exfDataColumnName');
-                        }
-                    } else if (oColumn.data('_exfCalculation')) {
-                        oColParam = {
-                            name: oColumn.data('_exfDataColumnName'),
-                            expression: oColumn.data('_exfCalculation')
-                        };
-                    }
-                    if (oColParam !== undefined) {
-                        {$oParamsJs}.data.columns.push(oColParam);
-                    }
                 }
             });
 
@@ -1583,6 +1542,52 @@ JS;
         }
 		
         return $commonParams . $tableParams;
+    }
+
+    /**
+     * Returns JS code, that will add a columns array to AJAX request data sent to the server
+     * 
+     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * they are - each must only have:
+     * - .data('_exfDataColumnName')
+     * - .data('_exfAttributeAlias')
+     * - .data('_exfCalculation')
+     * 
+     * @param string $aCurrentColumnsJs
+     * @param string $oDataJs
+     * @return string
+     */
+    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs) : string
+    {
+        return <<<JS
+
+            (function(aColumns, oData){
+                oData.columns = [];
+                // Add currently visible columns to data.columns array
+                aColumns.forEach(oColumn => {
+                    var oColParam;
+                    if (oColumn.data('_exfDataColumnName')) {
+                        if (oColumn.data('_exfAttributeAlias')) {
+                            oColParam = {
+                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                            };
+                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            }
+                        } else if (oColumn.data('_exfCalculation')) {
+                            oColParam = {
+                                name: oColumn.data('_exfDataColumnName'),
+                                expression: oColumn.data('_exfCalculation')
+                            };
+                        }
+                        if (oColParam !== undefined) {
+                            oData.columns.push(oColParam);
+                        }
+                    }
+                });
+                return oData;
+            })($aCurrentColumnsJs, $oDataJs);
+JS;
     }
     
     /**
@@ -1644,7 +1649,11 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getConfiguratorElement()->buildJsDataGetter($action);
+                $oDataJs = $this->getConfiguratorElement()->buildJsDataGetter($action);
+                if ($this->isMTable() || $this->isUiTable()) {
+                    $oDataJs = $this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oDataJs);
+                }
+                return $oDataJs;
                 
             // Editable tables with modifying actions return all rows either directly or as subsheet
             case $customMode === DataButton::INPUT_ROWS_ALL_AS_SUBSHEET:
