@@ -198,7 +198,7 @@
    	"LIBS.PIVOTTABLE.SUBTOTAL.JS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.CHARTS": "npm-asset/pivottable/dist/plotly_renderers.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.EXPORT": "npm-asset/pivottable/dist/export_renderers.min.js",
-   	"LIBS.PIVOTTABLE.LIBS.PLOTLY": "exface/JEasyUIFacade/Facades/js/plotly-basic-latest.min.js",
+   	"LIBS.PIVOTTABLE.LIBS.PLOTLY": "exface/ui5facade/Facades/js/plotly-basic-latest.min.js",
    	"LIBS.PIVOTTABLE.SUBTOTAL.CSS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.css",
    	"LIBS.PIVOTTABLE.UI.JS": "npm-asset/jquery-ui/dist/jquery-ui.min.js",
    	"LIBS.PIVOTTABLE.UI.CSS": "npm-asset/jquery-ui/dist/themes/base/jquery-ui.min.css",
