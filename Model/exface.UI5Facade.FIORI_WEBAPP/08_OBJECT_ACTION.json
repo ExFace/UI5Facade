@@ -72,7 +72,7 @@
             "MODIFIED_BY_USER": "0x31000000000000000000000000000000",
             "UID": "0x11e9f975eeeb9ae5b7580205857feb80",
             "OBJECT": "0x11e837e8c505989491380205857feb80",
-            "ACTION_PROTOTYPE": "exface/Core/Actions/ShowDialog.php",
+            "ACTION_PROTOTYPE": "exface/core/Actions/ShowDialog.php",
             "ALIAS": "ShowFioriExportConsole",
             "NAME": "Export",
             "SHORT_DESCRIPTION": "",
