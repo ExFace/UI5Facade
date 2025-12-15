@@ -172,6 +172,8 @@
     "LIBS.QRCODE.JS": "bower-asset/ui5-qrcode/control/",
     
     "LIBS.PDFVIEWER.DIST": "exface/ui5facade/Facades/js/ui5LabPdf/dist/resources/ui5lab/wl/pdf/",
+
+	"LIBS.SETUPMANAGER.JS": "exface/ui5facade/Facades/js/exfSetupManager.js",
     
     "LIBS.ECHARTS.ECHARTS_JS": "exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min.js",
 	"LIBS.ECHARTS.ECHARTSHEATMAP_JS": "exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts46Heatmap.custom.min.js",    
