@@ -18,6 +18,19 @@
     },
 
     /**
+     * Checks whether Dexie (IndexedDb wrapper) is available in the current context
+     * 
+     * @returns boolean 
+     */
+    _bIsDexieAvailable: function() {
+        if (typeof Dexie === 'undefined'){
+            console.warn('Dexie.js not available, cannot manage setups in IndexedDB.');
+            return false;
+        }
+        return true;
+    },
+
+    /**
      * Function to reset the data property that tracks changes attached to a data table
      * 
      * @param {string} sDataTableId 
@@ -431,7 +444,7 @@
     },
 
     /**
-     * Helper function that returns a passed value as a resolved promise (immediately) or retrieves the value from the widget_setup IndexedDB
+     * Helper function that returns a passed value as a resolved promise (immediately) or retrieves a specified key from the widget_setup IndexedDB entry
      * This is needed because the indexedDB calls are asynchronous, so we need to work with promises either way.
      * 
      * Example: in apply_setup, we either need to use the passed setupUxon fron the input data (if we press the applySetup button) or we need 
@@ -449,17 +462,8 @@
             return Promise.resolve(sPassedData);
         }
 
-        // if dexie is not available for some reason, return null
-        if (typeof Dexie === 'undefined'){
-            console.warn('Dexie.js not available, cannot load setup from IndexedDB.');
-            return Promise.resolve(null);
-        }
-
-        // Otherwise, load the setup from IndexedDB
-        const oSetupsDb = new Dexie(this._dexieDbConfig.name);
-        oSetupsDb.version(this._dexieDbConfig.version).stores(this._dexieDbConfig.stores);
-
-        return oSetupsDb.setups.get([sPageId, sWidgetId])
+        // get entry from indexed db and return the requested key
+        return exfSetupManager.getCurrentSetupFromDexie(sPageId, sWidgetId)
         .then(entry => {
             if (entry && entry[sKey]) {
                 if (sKey === 'setup_uxon') {
@@ -472,6 +476,61 @@
         .catch(err => {
             console.error('Error reading from IndexedDB:', err);
             return null;
+        });
+    },
+
+    /**
+     * Function that returns the current setup entry for a given page and widget from the IndexedDB, if it exists.
+     * can be checked/used with .then(entry => ...) to access the values 
+     * 
+     * @param {string} sPageId Id of the current page
+     * @param {string} sWidgetId id of the current widget
+     * @returns Promise resolving to the current setup entry from IndexedDB, if it exists
+     */
+    getCurrentSetupFromDexie: function(sPageId, sWidgetId) {
+
+        // if dexie is not available for some reason, return null
+        if (! exfSetupManager._bIsDexieAvailable()){
+            return Promise.resolve(null);
+        }
+
+        // open indexedDb connection 
+        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+        oSetupsDb.version(this._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+
+        // check if setup exists for page+widget pk and return the entry
+        return oSetupsDb.setups.get([sPageId, sWidgetId])
+        .catch(err => {
+            console.error('Error reading from IndexedDB:', err);
+        })
+        .finally(() => {
+            oSetupsDb.close();
+        });
+    },
+
+    /**
+     * Deletes the current setup entry for a given page and widget from the IndexedDB, if it exists. 
+     * Does not do anything if no entry exists.
+     * 
+     * @param {string} sPageId id of the current page
+     * @param {string} sWidgetId id of the current widget
+     * @returns Promise that resolves when the deletion is complete
+     */
+    deleteCurrentSetupFromDexie: function(sPageId, sWidgetId) {
+
+        // if dexie is not available for some reason, return null
+        if (! exfSetupManager._bIsDexieAvailable()){
+            return Promise.resolve(null);
+        }
+
+        // open indexedDb connection 
+        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+        oSetupsDb.version(this._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+
+        // delete entry if it exists
+        return oSetupsDb.setups.delete([sPageId, sWidgetId])
+        .catch(err => {
+            console.error('Error deleting entry from IndexedDB:', err);
         })
         .finally(() => {
             oSetupsDb.close();
@@ -501,8 +560,7 @@
         };
 
         // exit if dexie not available
-        if (typeof Dexie === 'undefined'){
-            console.warn('Dexie.js not available, cannot save setup to IndexedDB.');
+        if (! exfSetupManager._bIsDexieAvailable()){
             return;
         }
 
