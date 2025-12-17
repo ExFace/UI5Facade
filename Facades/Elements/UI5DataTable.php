@@ -172,7 +172,7 @@ JS
                 */
 
                 (function () {
-                    exfSetupManager.resetDataTableChangeTracking('{$this->getId()}');
+                    exfSetupManager.datatable.resetDataTableChangeTracking('{$this->getId()}');
                 })();
                 
 JS;
@@ -188,7 +188,7 @@ JS;
 
                 (function () {
 
-                    exfSetupManager.trackDataTableConfigChanges(
+                    exfSetupManager.datatable.trackDataTableConfigChanges(
                         '{$this->getId()}',
                         '{$this->getP13nElement()->getId()}',
                         '{$this->getConfiguratorElement()->getModelNameForConfig()}',
@@ -233,7 +233,7 @@ JS;
                 let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // get the current setup as json in widget_setup format
-                let oSetupJson = exfSetupManager.getDataTableConfiguration(
+                let oSetupJson = exfSetupManager.datatablegetDataTableConfiguration(
                     '{$this->getId()}',
                     '{$this->getP13nElement()->getId()}',
                     '{$this->getConfiguratorElement()->getModelNameForConfig()}',
@@ -292,7 +292,7 @@ JS;
                     if (oSetupUxon) {
 
                         // apply setup configuration
-                        exfSetupManager.applyDataTableConfiguration(
+                        exfSetupManager.datatable.applyDataTableConfiguration(
                             '{$this->getId()}',
                             '{$this->getConfiguratorElement()->getModelNameForConfig()}',
                             '{$this->getP13nElement()->getIdOfColumnsPanel()}',
@@ -329,7 +329,7 @@ JS;
                         }
 
                         // reset change tracking (since a new setup is now applied)
-                        exfSetupManager.resetDataTableChangeTracking('{$this->getId()}');
+                        exfSetupManager.datatable.resetDataTableChangeTracking('{$this->getId()}');
                     } 
                     else {
                         // return if no setup was passed or found

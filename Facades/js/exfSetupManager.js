@@ -30,17 +30,6 @@
         return true;
     },
 
-    /**
-     * Function to reset the data property that tracks changes attached to a data table
-     * 
-     * @param {string} sDataTableId 
-     */
-    _resetDataTableChangeProperty: function(sDataTableId) {
-        let oDataTable = sap.ui.getCore().byId(sDataTableId); 
-        if (oDataTable){
-            oDataTable.data('_exfConfigChanged', false);
-        }
-    },
 
     /**
      * Function to reset the quick select button change indicator (*)
@@ -60,27 +49,9 @@
         }
     },
 
-    /**
-     * onChange function that is called when the dataTable configuration changes.
-     * Sets the change tracking data property on the data table to true and updates the quick select button indicator.
-     * See @trackDataTableConfigChanges
-     * 
-     * @param {string} sDataTableId id of the current UI5DataTable
-     * @param {string} sQuickSelectButtonId id of quickselect button
-     */
-    _onDataTableConfigChange: function(sDataTableId, sQuickSelectButtonId) {
-        let oDataTable = sap.ui.getCore().byId(sDataTableId);
-        let oButton = sap.ui.getCore().byId(sQuickSelectButtonId);
-
-        oDataTable.data('_exfConfigChanged', true);
-                
-        if (oButton){
-            oButton.getModel().setProperty("/configChanged", true);
-        }
-    },
 
     /**
-     * Initializes or resets the model for the quick select menu button of a data table.
+     * Initializes or resets the model for the quick select menu button 
      * @param {string} sButtonId Id of quickselect button
      */
     _initializeQuickSelectButtonModel: function(sButtonId) {
@@ -96,352 +67,407 @@
         }
     },
 
-    /**
-     * Resets the change tracking (is the current configuration different from the applied setup or initial state?)
-     * for a given data table and its associated quick select button.
-     * 
-     * @param {string} sDataTableId id of the current UI5DataTable
-     */
-    resetDataTableChangeTracking: function(sDataTableId) {
-        this._resetDataTableChangeProperty(sDataTableId);
-        this._resetQuickSelectChangeIndicator(sDataTableId);
-    },
+    // UI5 DataTable specific functions
+    datatable: {
 
-    /**
-     * Tracks changes made to the DataTable configuration, including columns, sorters, filters, and manual resizes.
-     * This is done by attaching event listeners to the relevant UI5 components and models and updating a change flag and indicator.
-     * (see @_onDataTableConfigChange for onchange event function)
-     * 
-     * Can be reset usinng @resetDataTableChangeTracking
-     * 
-     * TODO: This is now implemented quick and easy, by attaching a bunch of event listeners;
-     * But it could be refactored to track changes more meaningfully. (changing/reverting etc.) This could be done 
-     * by comparing the currenty state (json stringify maybe?) of configuration to the applied setup or initial state.
-     * 
-     * @param {string} sDataTableId ID of current UI5DataTable
-     * @param {string} sP13nId ID of the personalization dialog
-     * @param {string} sP13nModelName Name of the personalization model
-     * @param {string} sP13nSearchPanelId Id of the personalization filter panel
-     */
-    trackDataTableConfigChanges: function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
-        // in order to only attach the event listeners once per table instance we check for a flag 
-        // _exf_fnTrackSetupChangesAttached
-        let oDataTable = sap.ui.getCore().byId(sDataTableId); 
-        if (!oDataTable.data("_exf_fnTrackSetupChangesAttached")){
-            
-            // initilize change tracking property on data table
-            oDataTable.data('_exfConfigChanged', false);
+        /**
+         * Function to reset the data property that tracks changes attached to a data table
+         * 
+         * @param {string} sDataTableId 
+         */
+        _resetDataTableChangeProperty: function(sDataTableId) {
+            let oDataTable = sap.ui.getCore().byId(sDataTableId); 
+            if (oDataTable){
+                oDataTable.data('_exfConfigChanged', false);
+            }
+        },
 
-            // initialize quick select button model
-            // chnages are tracked here as well, to display a change indicator (*) next to the button caption 
-            let sQuickSelectButtonId = sDataTableId + '_setupQuickselectBtn';
-            this._initializeQuickSelectButtonModel(sQuickSelectButtonId);
+        /**
+         * onChange function that is called when the dataTable configuration changes.
+         * Sets the change tracking data property on the data table to true and updates the quick select button indicator.
+         * See @trackDataTableConfigChanges
+         * 
+         * @param {string} sDataTableId id of the current UI5DataTable
+         * @param {string} sQuickSelectButtonId id of quickselect button
+         */
+        _onDataTableConfigChange: function(sDataTableId, sQuickSelectButtonId) {
+            let oDataTable = sap.ui.getCore().byId(sDataTableId);
+            let oButton = sap.ui.getCore().byId(sQuickSelectButtonId);
 
-            // Get the P13n model and the filter panel
-            // NOTE: we need the filter panel separately, as its not part of the p13n json model, 
+            oDataTable.data('_exfConfigChanged', true);
+                    
+            if (oButton){
+                oButton.getModel().setProperty("/configChanged", true);
+            }
+        },
+
+        /**
+         * Resets the change tracking (is the current configuration different from the applied setup or initial state?)
+         * for a given data table and its associated quick select button.
+         * 
+         * @param {string} sDataTableId id of the current UI5DataTable
+         */
+        resetDataTableChangeTracking: function(sDataTableId) {
+            exfSetupManager.datatable._resetDataTableChangeProperty(sDataTableId);
+            exfSetupManager._resetQuickSelectChangeIndicator(sDataTableId);
+        },
+
+        /**
+         * Tracks changes made to the DataTable configuration, including columns, sorters, filters, and manual resizes.
+         * This is done by attaching event listeners to the relevant UI5 components and models and updating a change flag and indicator.
+         * (see @_onDataTableConfigChange for onchange event function)
+         * 
+         * Can be reset usinng @resetDataTableChangeTracking
+         * 
+         * TODO: This is now implemented quick and easy, by attaching a bunch of event listeners;
+         * But it could be refactored to track changes more meaningfully. (changing/reverting etc.) This could be done 
+         * by comparing the currenty state (json stringify maybe?) of configuration to the applied setup or initial state.
+         * 
+         * @param {string} sDataTableId ID of current UI5DataTable
+         * @param {string} sP13nId ID of the personalization dialog
+         * @param {string} sP13nModelName Name of the personalization model
+         * @param {string} sP13nSearchPanelId Id of the personalization filter panel
+         */
+        trackDataTableConfigChanges: function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
+            // in order to only attach the event listeners once per table instance we check for a flag 
+            // _exf_fnTrackSetupChangesAttached
+            let oDataTable = sap.ui.getCore().byId(sDataTableId); 
+            if (oDataTable && !oDataTable.data("_exf_fnTrackSetupChangesAttached")){
+                
+                // initilize change tracking property on data table
+                oDataTable.data('_exfConfigChanged', false);
+
+                // initialize quick select button model
+                // chnages are tracked here as well, to display a change indicator (*) next to the button caption 
+                let sQuickSelectButtonId = sDataTableId + '_setupQuickselectBtn';
+                exfSetupManager._initializeQuickSelectButtonModel(sQuickSelectButtonId);
+
+                // Get the P13n model and the filter panel
+                // NOTE: we need the filter panel separately, as its not part of the p13n json model, 
+                // but is being attached to the server requests as params at runtime
+                let oDialog = sap.ui.getCore().byId(sP13nId); 
+                if (oDialog == undefined){
+                    return;
+                }
+                let oP13nModel = oDialog.getModel(sP13nModelName);
+                let oFilterPanel = sap.ui.getCore().byId(sP13nSearchPanelId);
+
+                // attach event listeners for filter, columns, sorters, manual resizes
+                // (see @_onDataTableConfigChange for the onchange function)
+                if (oP13nModel){
+                    oP13nModel.bindProperty("/columns").attachChange(() => {
+                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                    });
+                    oP13nModel.bindProperty("/sorters").attachChange(() => {
+                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                    });
+                }
+                if (oFilterPanel) {
+                    oFilterPanel.attachEvent("addFilterItem", (oEvent) => {
+                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
+                    });
+                    oFilterPanel.attachEvent("updateFilterItem", (oEvent) => {
+                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                    });
+                    oFilterPanel.attachEvent("removeFilterItem", (oEvent) => {
+                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                    });
+                }
+                oDataTable.attachEvent("columnResize", (oEvent) => {
+                    if (oDataTable.data("_exfIsAutoResizing")) {
+                        return; // ignore automatic resizes
+                    }
+                    exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
+                });
+
+                // update flag that listners are attached to table instance
+                oDataTable.data("_exf_fnTrackSetupChangesAttached", true);
+            }
+        },
+
+        /**
+         * Collects and returns the current configuration of a ui5 data table (columns, advanced search, sorters) in JSON format.
+         *  - Columns: column_name, show, custom_width (if manually resized)
+         *  - Advanced Search: attribute_alias, comparator, value, exclude
+         *  - Sorters: attribute_alias, direction
+         * 
+         * Example: 
+         * 
+         * {
+         *  "columns": 
+         *      [    
+         *          { "column_name": "COL1", "show": true, "custom_width": "150px" },
+         *      ],
+         *  "advanced_search": 
+         *      [ 
+         *          { "attribute_alias": "ATTR1", "comparator": "Contains", "value": "Test", "exclude": false },
+         *      ],
+         * "sorters": 
+         *      [
+         *          { "attribute_alias": "ATTR2", "direction": "Ascending" },
+         *      ]
+         * }
+         * 
+         * @param {string} sDataTableId id of the current UI5DataTable
+         * @param {string} sP13nId id of the personalization dialog
+         * @param {string} sP13nModelName name of the personalization model
+         * @param {string} sP13nSearchPanelId name of the personalization filter panel (advanced search)
+         * @returns JSON object in widget_setup format representing the current configuration of the data table (columns, advanced_search, sorters)
+         */
+        getDataTableConfiguration : function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
+
+            // json object to save current configuration state in
+            let oSetupJson = {
+                columns: [],
+                advanced_search: [],
+                sorters: []
+            };
+
+            // get the current states
+            // NOTE: we need the filter panel separately, as its not part of the p13n json model (oP13nModel), 
             // but is being attached to the server requests as params at runtime
             let oDialog = sap.ui.getCore().byId(sP13nId); 
-            if (oDialog == undefined){
+            let oP13nModel = oDialog.getModel(sP13nModelName); 
+            let aColumns = oP13nModel.getProperty('/columns');
+            let aSorters = oP13nModel.getProperty('/sorters');
+            let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getFilterItems();
+
+            // save current column config
+            if (aColumns !== undefined && aColumns.length > 0) {
+                aColumns.forEach(function(oColumn) {
+                    if (oColumn.column_name != null){
+                        // save column_name and visibility
+                        oSetupJson.columns.push({
+                            column_name: oColumn.column_name,
+                            show: oColumn.visible
+                        });
+                    }
+                });
+            }
+
+            // loop through table columns (not the p13n model)
+            // and add any custom (manually resized) widths to the setup config
+            let oTable = sap.ui.getCore().byId(sDataTableId); 
+            if (oTable != null){
+                oTable.getColumns().forEach(function(oCol){
+
+                    // if a column has a manually resized width, add it to the config
+                    let sCustomWidth = oCol.data("_exfCustomColWidth");
+                    if (sCustomWidth) {
+
+                        // find the column in the setup config
+                        let oColumnEntry = oSetupJson.columns.find(function(column) {
+                                return column.column_name === oCol.data("_exfDataColumnName");
+                        });
+                        
+                        // save custom width in setup
+                        if (oColumnEntry){
+                            oColumnEntry.custom_width = sCustomWidth;
+                        }
+                    }
+                });
+            }
+
+            // save sorters
+            if (aSorters !== undefined && aSorters.length > 0) {
+                aSorters.forEach(function(oColumn) {
+                    oSetupJson.sorters.push({
+                        attribute_alias: oColumn.attribute_alias,
+                        direction: oColumn.direction
+                    });
+                });
+            }
+
+            // save filters/advanced search
+            if (aFilters !== undefined && aFilters.length > 0) {
+                aFilters.forEach(function(oFilter){
+                    oSetupJson.advanced_search.push({
+                        attribute_alias: oFilter.mProperties.columnKey,
+                        comparator: oFilter.mProperties.operation,
+                        value: oFilter.mProperties.value1,
+                        exclude: oFilter.mProperties.exclude
+                    });
+                });
+            }
+
+            return oSetupJson;
+        },
+
+        /**
+         * Applies a given configuration/widget_setup JSON to a ui5 data table.
+         * 
+         * @param {string} sDataTableId Id of the ui5 DataTable
+         * @param {string} sP13nModelName Name of the configuration model
+         * @param {string} sP13nColumnsPanelId Id of the columns panel in the p13n dialogue
+         * @param {string} sP13nSortPanelId Id of the sorters panel in the p13n dialogue
+         * @param {string} sP13nSearchPanelId Id of the advanced search panel in the p13n dialogue
+         * @param {object} oSetupJson JSON object in widget_setup format containing the configuration to apply
+         * @returns 
+         */
+        applyDataTableConfiguration : function(sDataTableId, sP13nModelName, sP13nColumnsPanelId, sP13nSortPanelId, sP13nSearchPanelId, oSetupJson) {
+            
+            // setup configuration
+            let oSetupUxon = oSetupJson;
+            if (!oSetupUxon) {
                 return;
             }
-            let oP13nModel = oDialog.getModel(sP13nModelName);
-            let oFilterPanel = sap.ui.getCore().byId(sP13nSearchPanelId);
 
-            // attach event listeners for filter, columns, sorters, manual resizes
-            // (see @_onDataTableConfigChange for the onchange function)
-            if (oP13nModel){
-                oP13nModel.bindProperty("/columns").attachChange(() => {
-                    this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
-                });
-                oP13nModel.bindProperty("/sorters").attachChange(() => {
-                    this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
-                });
-            }
-            if (oFilterPanel) {
-                oFilterPanel.attachEvent("addFilterItem", (oEvent) => {
-                    this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
-                });
-                oFilterPanel.attachEvent("updateFilterItem", (oEvent) => {
-                    this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
-                });
-                oFilterPanel.attachEvent("removeFilterItem", (oEvent) => {
-                    this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
-                });
-            }
-            oDataTable.attachEvent("columnResize", (oEvent) => {
-                if (oDataTable.data("_exfIsAutoResizing")) {
-                    return; // ignore automatic resizes
-                }
-                this._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
-            });
+            // Apply setup
+            if (oSetupUxon.columns !== undefined){
+                // COLUMN SETUP
+                let oDialog = sap.ui.getCore().byId(sP13nColumnsPanelId);
+                let oModel = oDialog.getModel(sP13nModelName);
+                let oInitModel = oDialog.getModel(sP13nModelName+'_initial');
+                let aInitCols = JSON.parse(JSON.stringify(oInitModel.getData()['columns'])); // deep copy to avoid reference issues
+                let aColumnSetup = oSetupUxon.columns;
+                let oDataTable = sap.ui.getCore().byId(sDataTableId); 
 
-            // update flag that listners are attached to table instance
-            oDataTable.data("_exf_fnTrackSetupChangesAttached", true);
-        }
-    },
-
-    /**
-     * Collects and returns the current configuration of a ui5 data table (columns, advanced search, sorters) in JSON format.
-     *  - Columns: column_name, show, custom_width (if manually resized)
-     *  - Advanced Search: attribute_alias, comparator, value, exclude
-     *  - Sorters: attribute_alias, direction
-     * 
-     * @param {string} sDataTableId id of the current UI5DataTable
-     * @param {string} sP13nId id of the personalization dialog
-     * @param {string} sP13nModelName name of the personalization model
-     * @param {string} sP13nSearchPanelId name of the personalization filter panel (advanced search)
-     * @returns JSON object in widget_setup format representing the current configuration of the data table (columns, advanced_search, sorters)
-     */
-    getDataTableConfiguration : function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
-
-        // json object to save current configuration state in
-        let oSetupJson = {
-            columns: [],
-            advanced_search: [],
-            sorters: []
-        };
-
-        // get the current states
-        // NOTE: we need the filter panel separately, as its not part of the p13n json model (oP13nModel), 
-        // but is being attached to the server requests as params at runtime
-        let oDialog = sap.ui.getCore().byId(sP13nId); 
-        let oP13nModel = oDialog.getModel(sP13nModelName); 
-        let aColumns = oP13nModel.getProperty('/columns');
-        let aSorters = oP13nModel.getProperty('/sorters');
-        let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getFilterItems();
-
-        // save current column config
-        if (aColumns !== undefined && aColumns.length > 0) {
-            aColumns.forEach(function(oColumn) {
-                if (oColumn.column_name != null){
-                    // save column_name and visibility
-                    oSetupJson.columns.push({
-                        column_name: oColumn.column_name,
-                        show: oColumn.visible
+                // reset current custom width properties of the table columns
+                // only do this for ui.table
+                if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                    oDataTable.getColumns().forEach(oCol => {
+                        oCol.data("_exfCustomColWidth", null);
                     });
                 }
-            });
-        }
-
-        // loop through table columns (not the p13n model)
-        // and add any custom (manually resized) widths to the setup config
-        let oTable = sap.ui.getCore().byId(sDataTableId); 
-        if (oTable != null){
-            oTable.getColumns().forEach(function(oCol){
-
-                // if a column has a manually resized width, add it to the config
-                let sCustomWidth = oCol.data("_exfCustomColWidth");
-                if (sCustomWidth) {
-
-                    // find the column in the setup config
-                    let oColumnEntry = oSetupJson.columns.find(function(column) {
-                            return column.column_name === oCol.data("_exfDataColumnName");
-                    });
-                    
-                    // save custom width in setup
-                    if (oColumnEntry){
-                        oColumnEntry.custom_width = sCustomWidth;
-                    }
-                }
-            });
-        }
-
-        // save sorters
-        if (aSorters !== undefined && aSorters.length > 0) {
-            aSorters.forEach(function(oColumn) {
-                oSetupJson.sorters.push({
-                    attribute_alias: oColumn.attribute_alias,
-                    direction: oColumn.direction
-                });
-            });
-        }
-
-        // save filters/advanced search
-        if (aFilters !== undefined && aFilters.length > 0) {
-            aFilters.forEach(function(oFilter){
-                oSetupJson.advanced_search.push({
-                    attribute_alias: oFilter.mProperties.columnKey,
-                    comparator: oFilter.mProperties.operation,
-                    value: oFilter.mProperties.value1,
-                    exclude: oFilter.mProperties.exclude
-                });
-            });
-        }
-
-        return oSetupJson;
-    },
-
-    /**
-     * Applies a given configuration/widget_setup JSON to a ui5 data table.
-     * 
-     * @param {string} sDataTableId Id of the ui5 DataTable
-     * @param {string} sP13nModelName Name of the configuration model
-     * @param {string} sP13nColumnsPanelId Id of the columns panel in the p13n dialogue
-     * @param {string} sP13nSortPanelId Id of the sorters panel in the p13n dialogue
-     * @param {string} sP13nSearchPanelId Id of the advanced search panel in the p13n dialogue
-     * @param {object} oSetupJson JSON object in widget_setup format containing the configuration to apply
-     * @returns 
-     */
-    applyDataTableConfiguration : function(sDataTableId, sP13nModelName, sP13nColumnsPanelId, sP13nSortPanelId, sP13nSearchPanelId, oSetupJson) {
-        
-        // setup configuration
-        let oSetupUxon = oSetupJson;
-        if (!oSetupUxon) {
-            return;
-        }
-
-        // Apply setup
-        if (oSetupUxon.columns !== undefined){
-            // COLUMN SETUP
-            let oDialog = sap.ui.getCore().byId(sP13nColumnsPanelId);
-            let oModel = oDialog.getModel(sP13nModelName);
-            let oInitModel = oDialog.getModel(sP13nModelName+'_initial');
-            let aInitCols = JSON.parse(JSON.stringify(oInitModel.getData()['columns'])); // deep copy to avoid reference issues
-            let aColumnSetup = oSetupUxon.columns;
-            let oDataTable = sap.ui.getCore().byId(sDataTableId); 
-
-            // reset current custom width properties of the table columns
-            // only do this for ui.table
-            if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                oDataTable.getColumns().forEach(oCol => {
-                    oCol.data("_exfCustomColWidth", null);
-                });
-            }
-        
-            // build the new column model:
-            let aNewColModel = [];
             
-            // loop through the widget setup columns
-            aColumnSetup.forEach(oItem => {
+                // build the new column model:
+                let aNewColModel = [];
+                
+                // loop through the widget setup columns
+                aColumnSetup.forEach(oItem => {
 
-                // skip entries without attribute alias or column_name 
-                // (eg. faulty or older setups)
-                if (oItem.attribute_alias == null && oItem.column_name == null){
-                    return;
-                }
-
-                // find the corresponding column (by column_name) in the p13n model
-                // -> also ensure backwards compatiblity with attribute alias
-                let oColumnEntry = null;
-                if (oItem.attribute_alias != null){
-                    // old: attribute alias columns
-                    oColumnEntry = aInitCols.find(function(column) {
-                        return column.attribute_alias === oItem.attribute_alias;
-                    });
-                }
-                else if (oItem.column_name != null){
-                    // new: column_name columns
-                    oColumnEntry = aInitCols.find(function(column) {
-                        return column.column_name === oItem.column_name;
-                    });
-                }
-
-                // if column exists, set visibility of column according to setup
-                // and add to new config model (check if id is already in config, to avoid duplicates here)
-                if (oColumnEntry && aNewColModel.some(col => col && col.column_id === oColumnEntry.column_id) === false) {
-                    oColumnEntry.visible = oItem.show;
-                    aNewColModel.push(oColumnEntry);
-                }
-
-                // if column has a custom width assigned (in widget setup), set column width to that value 
-                // and also set the data property on the column (so they dont get optimized/resized in buildJsUiTableColumnResize)
-                // this is only done with ui.table
-                if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                    
-                    // find the actual column in the table (not p13n model)
-                    let oMatchingCol = null;
-                    if (oItem.column_name != null){
-                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
-                            return oCol.data("_exfDataColumnName") === oItem.column_name;
-                        });
-                    }
-                    else{
-                        // attribute alias cols (older setups)
-                        oMatchingCol = oDataTable.getColumns().find(function(oCol) {
-                            return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
-                        });
-                    }
-                    
-                    // if column exists, set custom width (and also custom width data property)
-                    if (oMatchingCol) {
-                        oMatchingCol.data("_exfCustomColWidth", oItem.custom_width);
-                        oMatchingCol.setWidth(oItem.custom_width);
-                    }
-                }
-            });
-
-            // add any missing columns back in as hidden columns at the end; 
-            // this avoids data loss when columns are missing in widget setup, 
-            // or if columns were added to the table later on (and the setup is older)
-            aInitCols.forEach(oColConf => {
-                let oColumnEntry = null;
-                oColumnEntry = aNewColModel.find(function(column) {
-                    return column.column_id === oColConf.column_id;
-                });
-                if (oColumnEntry) {
-                    // column already in new model, skip
-                    return;
-                }
-
-                oColConf.visible = false;
-                aNewColModel.push(oColConf);
-            });
-            oModel.setProperty('/columns', aNewColModel);
-
-            // toggle checkboxes in columns tab according to setup
-            // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-            let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
-            let oTableModel = oTable.getModel();
-            let aColsConfig = oModel.getProperty('/columns');
-            let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
-            oDialog.getBinding("items").filter(oVisibleFilter);
-            let aItems = oTableModel.getProperty('/items');
-            
-            aColsConfig.forEach(function(oColConfig){
-                aItems.forEach(function(oItem, iItemIdx){
-                    if (oItem.columnKey === oColConfig.column_id) {
-                        oItem.persistentSelected = oColConfig.visible; 
+                    // skip entries without attribute alias or column_name 
+                    // (eg. faulty or older setups)
+                    if (oItem.attribute_alias == null && oItem.column_name == null){
                         return;
                     }
-                })
-            }); 
 
-        }
-        if (oSetupUxon.sorters !== undefined) {
-            // SORTER SETUP
-            let oDialog = sap.ui.getCore().byId(sP13nSortPanelId);
-            let oModel = oDialog.getModel(sP13nModelName);
-            let aSorterSetup = oSetupUxon.sorters;
+                    // find the corresponding column (by column_name) in the p13n model
+                    // -> also ensure backwards compatiblity with attribute alias
+                    let oColumnEntry = null;
+                    if (oItem.attribute_alias != null){
+                        // old: attribute alias columns
+                        oColumnEntry = aInitCols.find(function(column) {
+                            return column.attribute_alias === oItem.attribute_alias;
+                        });
+                    }
+                    else if (oItem.column_name != null){
+                        // new: column_name columns
+                        oColumnEntry = aInitCols.find(function(column) {
+                            return column.column_name === oItem.column_name;
+                        });
+                    }
 
-            let aSortItems = [];
-            aSorterSetup.forEach(oItem => {
-                aSortItems.push({
-                    attribute_alias: oItem.attribute_alias,
-                    direction: oItem.direction
+                    // if column exists, set visibility of column according to setup
+                    // and add to new config model (check if id is already in config, to avoid duplicates here)
+                    if (oColumnEntry && aNewColModel.some(col => col && col.column_id === oColumnEntry.column_id) === false) {
+                        oColumnEntry.visible = oItem.show;
+                        aNewColModel.push(oColumnEntry);
+                    }
+
+                    // if column has a custom width assigned (in widget setup), set column width to that value 
+                    // and also set the data property on the column (so they dont get optimized/resized in buildJsUiTableColumnResize)
+                    // this is only done with ui.table
+                    if (oItem.custom_width && oItem.custom_width != '' && oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                        
+                        // find the actual column in the table (not p13n model)
+                        let oMatchingCol = null;
+                        if (oItem.column_name != null){
+                            oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                return oCol.data("_exfDataColumnName") === oItem.column_name;
+                            });
+                        }
+                        else{
+                            // attribute alias cols (older setups)
+                            oMatchingCol = oDataTable.getColumns().find(function(oCol) {
+                                return oCol.data("_exfAttributeAlias") === oItem.attribute_alias;
+                            });
+                        }
+                        
+                        // if column exists, set custom width (and also custom width data property)
+                        if (oMatchingCol) {
+                            oMatchingCol.data("_exfCustomColWidth", oItem.custom_width);
+                            oMatchingCol.setWidth(oItem.custom_width);
+                        }
+                    }
                 });
-            });
 
-            oModel.setProperty("/sorters", aSortItems);
-        }
-        if (oSetupUxon.advanced_search !== undefined) {
-            // ADVANCED SEARCH SETUP
+                // add any missing columns back in as hidden columns at the end; 
+                // this avoids data loss when columns are missing in widget setup, 
+                // or if columns were added to the table later on (and the setup is older)
+                aInitCols.forEach(oColConf => {
+                    let oColumnEntry = null;
+                    oColumnEntry = aNewColModel.find(function(column) {
+                        return column.column_id === oColConf.column_id;
+                    });
+                    if (oColumnEntry) {
+                        // column already in new model, skip
+                        return;
+                    }
 
-            // remove and re-add filters from config
-            let aFilterSetup = oSetupUxon.advanced_search;
-            let oDialog = sap.ui.getCore().byId(sP13nSearchPanelId);
-            oDialog.removeAllFilterItems();
-
-            aFilterSetup.forEach(oItem => {
-                var oFilterItem = new sap.m.P13nFilterItem({
-                    "columnKey": oItem.attribute_alias,
-                    "exclude": oItem.exclude,
-                    "operation": oItem.comparator,
-                    "value1": oItem.value
+                    oColConf.visible = false;
+                    aNewColModel.push(oColConf);
                 });
-                oDialog.addFilterItem(oFilterItem);
-            });
-        }
+                oModel.setProperty('/columns', aNewColModel);
+
+                // toggle checkboxes in columns tab according to setup
+                // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
+                let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                let oTableModel = oTable.getModel();
+                let aColsConfig = oModel.getProperty('/columns');
+                let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
+                oDialog.getBinding("items").filter(oVisibleFilter);
+                let aItems = oTableModel.getProperty('/items');
+                
+                aColsConfig.forEach(function(oColConfig){
+                    aItems.forEach(function(oItem, iItemIdx){
+                        if (oItem.columnKey === oColConfig.column_id) {
+                            oItem.persistentSelected = oColConfig.visible; 
+                            return;
+                        }
+                    })
+                }); 
+
+            }
+            if (oSetupUxon.sorters !== undefined) {
+                // SORTER SETUP
+                let oDialog = sap.ui.getCore().byId(sP13nSortPanelId);
+                let oModel = oDialog.getModel(sP13nModelName);
+                let aSorterSetup = oSetupUxon.sorters;
+
+                let aSortItems = [];
+                aSorterSetup.forEach(oItem => {
+                    aSortItems.push({
+                        attribute_alias: oItem.attribute_alias,
+                        direction: oItem.direction
+                    });
+                });
+
+                oModel.setProperty("/sorters", aSortItems);
+            }
+            if (oSetupUxon.advanced_search !== undefined) {
+                // ADVANCED SEARCH SETUP
+
+                // remove and re-add filters from config
+                let aFilterSetup = oSetupUxon.advanced_search;
+                let oDialog = sap.ui.getCore().byId(sP13nSearchPanelId);
+                oDialog.removeAllFilterItems();
+
+                aFilterSetup.forEach(oItem => {
+                    var oFilterItem = new sap.m.P13nFilterItem({
+                        "columnKey": oItem.attribute_alias,
+                        "exclude": oItem.exclude,
+                        "operation": oItem.comparator,
+                        "value1": oItem.value
+                    });
+                    oDialog.addFilterItem(oFilterItem);
+                });
+            }
+        },
+
     },
+
+    
 
     /**
      * Helper function that returns a passed value as a resolved promise (immediately) or retrieves a specified key from the widget_setup IndexedDB entry
@@ -496,7 +522,7 @@
 
         // open indexedDb connection 
         const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
-        oSetupsDb.version(this._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
 
         // check if setup exists for page+widget pk and return the entry
         return oSetupsDb.setups.get([sPageId, sWidgetId])
@@ -525,7 +551,7 @@
 
         // open indexedDb connection 
         const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
-        oSetupsDb.version(this._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
 
         // delete entry if it exists
         return oSetupsDb.setups.delete([sPageId, sWidgetId])
@@ -565,8 +591,8 @@
         }
 
         // open indexedDb connection
-        const oSetupsDb = new Dexie(this._dexieDbConfig.name);
-        oSetupsDb.version(this._dexieDbConfig.version).stores(this._dexieDbConfig.stores);
+        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
 
         // Save setup in db, then close connection 
         oSetupsDb.setups.put(
