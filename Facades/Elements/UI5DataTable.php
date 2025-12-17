@@ -233,7 +233,7 @@ JS;
                 let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // get the current setup as json in widget_setup format
-                let oSetupJson = exfSetupManager.datatablegetDataTableConfiguration(
+                let oSetupJson = exfSetupManager.datatable.getDataTableConfiguration(
                     '{$this->getId()}',
                     '{$this->getP13nElement()->getId()}',
                     '{$this->getConfiguratorElement()->getModelNameForConfig()}',
