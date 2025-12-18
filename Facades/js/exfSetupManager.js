@@ -6,6 +6,10 @@
 
   var exfSetupManager = {
 
+    // suffix for the id of the quickselect dropdown button
+    // should be appended to the unique parent widget id (e.g. datatable id)
+    _quickSelectButtonSuffix: '_setupQuickselectBtn',
+
     /**
      * Dexie IndexedDB configuration for widget setups database
      */
@@ -30,16 +34,25 @@
         return true;
     },
 
+    /**
+     * Function to set the data property that tracks unsaved changes attached to the configured widget 
+     * 
+     * @param {string} sWidgetId id of configured widget 
+     * @param {boolean} bValue true/false whether the configuration has changed
+     */
+    _setConfigChangedProperty: function(sWidgetId, bValue) {
+        let oWidget = sap.ui.getCore().byId(sWidgetId); 
+        if (oWidget){
+            oWidget.data('_exfConfigChanged', bValue);
+        }
+    },
 
     /**
-     * Function to reset the quick select button change indicator (*)
-     * 
-     * @param {string} sDataTableId 
+     * Initializes or resets the model for the quick select menu button 
+     * @param {string} sButtonParentId Id of the parent element/widget of the button (e.g. id of the datatable)
      */
-    _resetQuickSelectChangeIndicator: function(sDataTableId) {
-        // reset change indicator in quickselect button caption
-        // this is bound to a property (configChanged) in the button model for consistency
-        let oButton = sap.ui.getCore().byId(sDataTableId + '_setupQuickselectBtn');
+    _initializeQuickSelectButtonModel: function(sButtonParentId) {
+        let oButton = sap.ui.getCore().byId(sButtonParentId + exfSetupManager._quickSelectButtonSuffix);
         if (oButton){
             let oButtonModel = new sap.ui.model.json.JSONModel({
                 buttonCaption: null,
@@ -49,68 +62,286 @@
         }
     },
 
-
     /**
-     * Initializes or resets the model for the quick select menu button 
-     * @param {string} sButtonId Id of quickselect button
+     * onChange function that is called when the widget configuration changes:
+     *      - Sets the change tracking data property on the widget to true 
+     *      - updates the quick select button indicator (*)
+     * 
+     * For an example, see @trackConfigChanges
+     * 
+     * @param {string} sWidgetId id of the configured widget (for example a UI5DataTable)
      */
-    _initializeQuickSelectButtonModel: function(sButtonId) {
-        let oButton = sap.ui.getCore().byId(sButtonId);
-        if (oButton){
-            let oButtonModel = new sap.ui.model.json.JSONModel({
-                buttonCaption: null,
-                configChanged: false 
-            });
-            if (oButton) {
-                oButton.setModel(oButtonModel);
-            }
+    _onConfigChange: function(sWidgetId) {
+        let oWidget = sap.ui.getCore().byId(sWidgetId);
+        let oButton = sap.ui.getCore().byId(sWidgetId + exfSetupManager._quickSelectButtonSuffix);
+
+        if (oWidget){
+            exfSetupManager._setConfigChangedProperty(sWidgetId, true);
+        }
+        if (oButton && oButton.getModel()){
+            oButton.getModel().setProperty("/configChanged", true);
         }
     },
 
-    // UI5 DataTable specific functions
+    /**
+     * Returns the suffix for the id of the quickselect dropdown button. 
+     * Base of the Id is the unique parent widget id. (e.g. datatable id)
+     * 
+     * @returns (string) suffix for the id of the quickselect dropdown button
+     */
+    getQuickSelectButtonSuffix: function() {
+        return exfSetupManager._quickSelectButtonSuffix;
+    },
+
+    /**
+     * Fires a custom event on a ui5 component, which can be used to trigger UI updates etc. 
+     * (See event listener for appliedWidgetSetup in UI5DataElementTrait)
+     * Event should be fired when a widget setup is applied (manually or automatically)
+     * 
+     * @param {string} sFullWidgetId Full Id of the affected widget
+     */
+    fireWidgetSetupChangedEvent: function(sFullWidgetId) {
+        let oWidget = sap.ui.getCore().byId(sFullWidgetId);
+        if (oWidget){
+            oWidget.fireEvent('appliedWidgetSetup');
+        }
+    },
+
+    /**
+     * Resets the change tracking (is the current configuration different from the applied setup or initial state?)
+     * for a given widget and its associated quick select button.
+     * 
+     * @param {string} sWidgetId id of the current UI5DataTable
+     */
+    resetChangeTracking: function(sWidgetId) {
+        exfSetupManager._setConfigChangedProperty(sWidgetId, false);
+        exfSetupManager._initializeQuickSelectButtonModel(sWidgetId);
+    },
+
+    /**
+     * Attaches an event listener that marks the currently applied setup as active (with checkmark icon) in the setups table at runtime.
+     * If the setup was applied manually, the table model is refreshed once to trigger the event listener.
+     * 
+     * @param {string} sSetupsTableId Id of the table that lists the setups
+     * @param {string} sPageId current page id (used to retrieve data from indexedDb)
+     * @param {string} sWidgetId current widget id (used to retrieve data from indexedDb)
+     * @param {boolean} bIsManuallyApplied whether the setup was applied manually or onLoad/form local storage (default: false)
+     * @returns 
+     */
+    markCurrentSetupAsActive: function(sSetupsTableId, sPageId, sWidgetId, bIsManuallyApplied = false) {
+
+        // get the ui5 datatable that lists the setups
+        let oSetupTable = sap.ui.getCore().byId(sSetupsTableId);
+        if (oSetupTable == undefined){
+            return;
+        }
+        
+        // attach event listener to that table, to mark the currently applied setup as active (with checkmark icon)
+        if (!oSetupTable.data("_exf_fnSetAsDefaultAttached")){
+            // the setups table seems to refresh on every re-open so its not enough to set in once,
+            // so it needs to be some sort of event listener that re-sets it on re-open/update
+            let fnSetAsDefault = function(oEvent) {
+                // retrieve the currently applied setup uid from indexedDb/session storage
+                exfSetupManager.getSetupProperty(sPageId, sWidgetId, null, 'setup_uid')
+                .then(sSetupUid => {
+                    let oModel = oSetupTable.getModel();
+                    let oData = oModel.getProperty('/');
+                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
+                        oData.rows.forEach(row => {
+                            row.SETUP_APPLIED = "";
+                            if (row.UID === sSetupUid) {
+                                row.SETUP_APPLIED = "sap-icon://accept";
+                            }
+                        });
+
+                        oModel.setProperty('/rows', oData.rows);
+                    }
+                });
+            };
+
+            oSetupTable.detachUpdateFinished(fnSetAsDefault);
+            oSetupTable.attachUpdateFinished(fnSetAsDefault);
+
+            // make sure listener is only attached once
+            oSetupTable.data("_exf_fnSetAsDefaultAttached", true);
+        }
+
+        // if setup is manually applied, refresh ui to trigger event listener
+        let oModel = oSetupTable.getModel();
+        if (bIsManuallyApplied === true){
+            oModel.refresh(true);
+        }
+    },
+
+    /**
+     * Updates the caption of the setup quickselect button to the currently applied setup name.
+     * (The caption name is saved in the model of the button, to ensure consistency. If the ) 
+     * 
+     * TODO/FIXME: technically, widgetId and buttonParentId could be the same? But with the way we store the setups, 
+     * we only take the short ID (getDataWidget->getId()), not with the facade prefix. And to get the button, we need the full widget ID to find it in the DOM.
+     * 
+     * @param {string} sPageId Id of the current page
+     * @param {string} sWidgetId Id of the current widget
+     * @param {string} sButtonParentId Id of the parent of the quickselect button (to find the button in the ui)
+     */
+    updateQuickSelectButtonCaption: function(sPageId, sWidgetId, sButtonParentId) {
+        // get the currently applied setup name from indexedDb
+        // and update the quickselect button caption accordingly
+        exfSetupManager.getSetupProperty(sPageId, sWidgetId, null, 'setup_name')
+        .then(sSetupName => {
+            if (sSetupName !== null){
+                let oButton = sap.ui.getCore().byId(sButtonParentId + exfSetupManager._quickSelectButtonSuffix);
+                if (oButton){
+                    // update the caption of the quickselect btn if it exists
+                    oButton.getModel().setProperty("/buttonCaption", sSetupName); 
+                }
+            }
+        });
+    },
+
+    /**
+     * Helper function that returns a passed value as a resolved promise (immediately) or retrieves a specified key from the widget_setup IndexedDB entry
+     * This is needed because the indexedDB calls are asynchronous, so we need to work with promises either way.
+     * 
+     * Example: in apply_setup, we either need to use the passed setupUxon fron the input data (if we press the applySetup button) or we need 
+     * to retrieve it from indexedDb (when auto-applying steups onLoad). In both cases we need to work with a promise, because the apply_setup logic uses .then() etc.
+     * 
+     * @param {string} sPageId the page identifier, e.g. 'page1' (part of the IndexedDb pk)
+     * @param {string} sWidgetId the widget identifier, e.g. 'myTable' (part of the IndexedDb pk)
+     * @param {string|null} sPassedData if a value is passed, it will be returned immediately as a resolved promise
+     * @param {string|null} sKey the key of the value to retrieve from indexedDb, e.g. 'setup_uxon' or 'setup_uid'
+     * @returns {Promise<string|null>} a promise that resolves to the requested setup data or null if not found
+     */
+    getSetupProperty: function(sPageId, sWidgetId, sPassedData = null, sKey = null) {
+        // If data is passed in function, return it immediately as a resolved promise
+        if (sPassedData !== null) {
+            return Promise.resolve(sPassedData);
+        }
+
+        // get entry from indexed db and return the requested key
+        return exfSetupManager.dexie.getCurrentSetup(sPageId, sWidgetId)
+        .then(entry => {
+            if (entry && entry[sKey]) {
+                if (sKey === 'setup_uxon') {
+                    return JSON.parse(entry[sKey]); //parse setup uxon
+                }
+                return entry[sKey]; //return other values as is
+            }
+            return null;
+        })
+        .catch(err => {
+            console.error('Error reading from IndexedDB:', err);
+            return null;
+        });
+    },
+
+    // Indexed DB calls for the widgetsetup db (get, save, delete)
+    dexie: {
+
+        /**
+         * Function that returns the current setup entry for a given page and widget from the IndexedDB, if it exists.
+         * can be checked/used with .then(entry => ...) to access the values
+         *  
+         * Also used in @UI5DataConfigurator.php, to automatically apply the last used setup on widget load.
+         * 
+         * @param {string} sPageId Id of the current page
+         * @param {string} sWidgetId id of the current widget
+         * @returns Promise resolving to the current setup entry from IndexedDB, if it exists
+         */
+        getCurrentSetup: function(sPageId, sWidgetId) {
+
+            // if dexie is not available for some reason, return null
+            if (! exfSetupManager._bIsDexieAvailable()){
+                return Promise.resolve(null);
+            }
+
+            // open indexedDb connection 
+            const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+            oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+
+            // check if setup exists for page+widget pk and return the entry
+            return oSetupsDb.setups.get([sPageId, sWidgetId])
+            .catch(err => {
+                console.error('Error reading from IndexedDB:', err);
+            })
+            .finally(() => {
+                oSetupsDb.close();
+            });
+        },
+
+        /**
+         * Deletes the current setup entry for a given page and widget from the IndexedDB, if it exists. 
+         * Does not do anything if no entry exists.
+         * 
+         * @param {string} sPageId id of the current page
+         * @param {string} sWidgetId id of the current widget
+         * @returns Promise that resolves when the deletion is complete
+         */
+        deleteCurrentSetup: function(sPageId, sWidgetId) {
+
+            // if dexie is not available for some reason, return null
+            if (! exfSetupManager._bIsDexieAvailable()){
+                return Promise.resolve(null);
+            }
+
+            // open indexedDb connection 
+            const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+            oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+
+            // delete entry if it exists
+            return oSetupsDb.setups.delete([sPageId, sWidgetId])
+            .catch(err => {
+                console.error('Error deleting entry from IndexedDB:', err);
+            })
+            .finally(() => {
+                oSetupsDb.close();
+            });
+        },
+
+        /**
+         * Saves or updates a passed setup as the last applied setup for a given page and widget in the IndexedDB. 
+         * 
+         * @param {string} sPageId current page id (part of dexie pk)
+         * @param {string} sWidgetId current widget id (part of dexie pk)
+         * @param {string} sSetupUid current widget setup uid (used to identify the applied setup/adding checkmark in setups table)
+         * @param {string} sSetupUxon current widget setup uxon
+         * @param {string} sSetupName current widget setup name
+         */
+        saveLastAppliedSetup: function(sPageId, sWidgetId, sSetupUid, sSetupUxon, sSetupName) { 
+            
+            // setup entry to store in dexie.
+            // combination of page and widget id as primary key for db entry
+            let oSetupObj = {
+                page_id: sPageId,
+                widget_id: sWidgetId,
+                setup_uid: sSetupUid,
+                date_last_applied: new Date().toISOString(),
+                setup_uxon: sSetupUxon,
+                setup_name: sSetupName
+            };
+
+            // exit if dexie not available
+            if (! exfSetupManager._bIsDexieAvailable()){
+                return;
+            }
+
+            // open indexedDb connection
+            const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
+            oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
+
+            // Save setup in db, then close connection 
+            oSetupsDb.setups.put(
+                oSetupObj
+            ).catch(err => {
+                console.error('Error accessing IndexedDb:', err);
+            }).finally(() => {
+                oSetupsDb.close();
+            });
+        }
+    },
+
+    // UI5 DataTable specific functions (saving and applying configuration, tracking changes)
     datatable: {
-
-        /**
-         * Function to reset the data property that tracks changes attached to a data table
-         * 
-         * @param {string} sDataTableId 
-         */
-        _resetDataTableChangeProperty: function(sDataTableId) {
-            let oDataTable = sap.ui.getCore().byId(sDataTableId); 
-            if (oDataTable){
-                oDataTable.data('_exfConfigChanged', false);
-            }
-        },
-
-        /**
-         * onChange function that is called when the dataTable configuration changes.
-         * Sets the change tracking data property on the data table to true and updates the quick select button indicator.
-         * See @trackDataTableConfigChanges
-         * 
-         * @param {string} sDataTableId id of the current UI5DataTable
-         * @param {string} sQuickSelectButtonId id of quickselect button
-         */
-        _onDataTableConfigChange: function(sDataTableId, sQuickSelectButtonId) {
-            let oDataTable = sap.ui.getCore().byId(sDataTableId);
-            let oButton = sap.ui.getCore().byId(sQuickSelectButtonId);
-
-            oDataTable.data('_exfConfigChanged', true);
-                    
-            if (oButton){
-                oButton.getModel().setProperty("/configChanged", true);
-            }
-        },
-
-        /**
-         * Resets the change tracking (is the current configuration different from the applied setup or initial state?)
-         * for a given data table and its associated quick select button.
-         * 
-         * @param {string} sDataTableId id of the current UI5DataTable
-         */
-        resetDataTableChangeTracking: function(sDataTableId) {
-            exfSetupManager.datatable._resetDataTableChangeProperty(sDataTableId);
-            exfSetupManager._resetQuickSelectChangeIndicator(sDataTableId);
-        },
 
         /**
          * Tracks changes made to the DataTable configuration, including columns, sorters, filters, and manual resizes.
@@ -128,19 +359,17 @@
          * @param {string} sP13nModelName Name of the personalization model
          * @param {string} sP13nSearchPanelId Id of the personalization filter panel
          */
-        trackDataTableConfigChanges: function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
+        trackConfigChanges: function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
             // in order to only attach the event listeners once per table instance we check for a flag 
             // _exf_fnTrackSetupChangesAttached
             let oDataTable = sap.ui.getCore().byId(sDataTableId); 
             if (oDataTable && !oDataTable.data("_exf_fnTrackSetupChangesAttached")){
                 
                 // initilize change tracking property on data table
-                oDataTable.data('_exfConfigChanged', false);
-
-                // initialize quick select button model
+                // and the quick select button model
                 // chnages are tracked here as well, to display a change indicator (*) next to the button caption 
-                let sQuickSelectButtonId = sDataTableId + '_setupQuickselectBtn';
-                exfSetupManager._initializeQuickSelectButtonModel(sQuickSelectButtonId);
+                exfSetupManager._setConfigChangedProperty(sDataTableId, false);
+                exfSetupManager._initializeQuickSelectButtonModel(sDataTableId);
 
                 // Get the P13n model and the filter panel
                 // NOTE: we need the filter panel separately, as its not part of the p13n json model, 
@@ -153,31 +382,31 @@
                 let oFilterPanel = sap.ui.getCore().byId(sP13nSearchPanelId);
 
                 // attach event listeners for filter, columns, sorters, manual resizes
-                // (see @_onDataTableConfigChange for the onchange function)
+                // (see @_OnConfigChange for the onchange function)
                 if (oP13nModel){
                     oP13nModel.bindProperty("/columns").attachChange(() => {
-                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                        exfSetupManager._onConfigChange(sDataTableId);
                     });
                     oP13nModel.bindProperty("/sorters").attachChange(() => {
-                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                        exfSetupManager._onConfigChange(sDataTableId);
                     });
                 }
                 if (oFilterPanel) {
                     oFilterPanel.attachEvent("addFilterItem", (oEvent) => {
-                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
+                        exfSetupManager._onConfigChange(sDataTableId); 
                     });
                     oFilterPanel.attachEvent("updateFilterItem", (oEvent) => {
-                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                        exfSetupManager._onConfigChange(sDataTableId);
                     });
                     oFilterPanel.attachEvent("removeFilterItem", (oEvent) => {
-                        exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId);
+                        exfSetupManager._onConfigChange(sDataTableId);
                     });
                 }
                 oDataTable.attachEvent("columnResize", (oEvent) => {
                     if (oDataTable.data("_exfIsAutoResizing")) {
                         return; // ignore automatic resizes
                     }
-                    exfSetupManager.datatable._onDataTableConfigChange(sDataTableId, sQuickSelectButtonId); 
+                    exfSetupManager._onConfigChange(sDataTableId); 
                 });
 
                 // update flag that listners are attached to table instance
@@ -214,7 +443,7 @@
          * @param {string} sP13nSearchPanelId name of the personalization filter panel (advanced search)
          * @returns JSON object in widget_setup format representing the current configuration of the data table (columns, advanced_search, sorters)
          */
-        getDataTableConfiguration : function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
+        getConfiguration : function(sDataTableId, sP13nId, sP13nModelName, sP13nSearchPanelId) {
 
             // json object to save current configuration state in
             let oSetupJson = {
@@ -302,9 +531,8 @@
          * @param {string} sP13nSortPanelId Id of the sorters panel in the p13n dialogue
          * @param {string} sP13nSearchPanelId Id of the advanced search panel in the p13n dialogue
          * @param {object} oSetupJson JSON object in widget_setup format containing the configuration to apply
-         * @returns 
          */
-        applyDataTableConfiguration : function(sDataTableId, sP13nModelName, sP13nColumnsPanelId, sP13nSortPanelId, sP13nSearchPanelId, oSetupJson) {
+        applyConfiguration : function(sDataTableId, sP13nModelName, sP13nColumnsPanelId, sP13nSortPanelId, sP13nSearchPanelId, oSetupJson) {
             
             // setup configuration
             let oSetupUxon = oSetupJson;
@@ -463,226 +691,8 @@
                     oDialog.addFilterItem(oFilterItem);
                 });
             }
-        },
-
-    },
-
-    
-
-    /**
-     * Helper function that returns a passed value as a resolved promise (immediately) or retrieves a specified key from the widget_setup IndexedDB entry
-     * This is needed because the indexedDB calls are asynchronous, so we need to work with promises either way.
-     * 
-     * Example: in apply_setup, we either need to use the passed setupUxon fron the input data (if we press the applySetup button) or we need 
-     * to retrieve it from indexedDb (when auto-applying steups onLoad). In both cases we need to work with a promise, because the apply_setup logic uses .then() etc.
-     * 
-     * @param {string} sPageId the page identifier, e.g. 'page1' (part of the IndexedDb pk)
-     * @param {string} sWidgetId the widget identifier, e.g. 'myTable' (part of the IndexedDb pk)
-     * @param {string|null} sPassedData if a value is passed, it will be returned immediately as a resolved promise
-     * @param {string|null} sKey the key of the value to retrieve from indexedDb, e.g. 'setup_uxon' or 'setup_uid'
-     * @returns {Promise<string|null>} a promise that resolves to the requested setup data or null if not found
-     */
-    getSetupData: function(sPageId, sWidgetId, sPassedData = null, sKey = null) {
-        // If data is passed in function, return it immediately as a resolved promise
-        if (sPassedData !== null) {
-            return Promise.resolve(sPassedData);
         }
-
-        // get entry from indexed db and return the requested key
-        return exfSetupManager.getCurrentSetupFromDexie(sPageId, sWidgetId)
-        .then(entry => {
-            if (entry && entry[sKey]) {
-                if (sKey === 'setup_uxon') {
-                    return JSON.parse(entry[sKey]); //parse setup uxon
-                }
-                return entry[sKey]; //return other values as is
-            }
-            return null;
-        })
-        .catch(err => {
-            console.error('Error reading from IndexedDB:', err);
-            return null;
-        });
-    },
-
-    /**
-     * Function that returns the current setup entry for a given page and widget from the IndexedDB, if it exists.
-     * can be checked/used with .then(entry => ...) to access the values 
-     * 
-     * @param {string} sPageId Id of the current page
-     * @param {string} sWidgetId id of the current widget
-     * @returns Promise resolving to the current setup entry from IndexedDB, if it exists
-     */
-    getCurrentSetupFromDexie: function(sPageId, sWidgetId) {
-
-        // if dexie is not available for some reason, return null
-        if (! exfSetupManager._bIsDexieAvailable()){
-            return Promise.resolve(null);
-        }
-
-        // open indexedDb connection 
-        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
-        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
-
-        // check if setup exists for page+widget pk and return the entry
-        return oSetupsDb.setups.get([sPageId, sWidgetId])
-        .catch(err => {
-            console.error('Error reading from IndexedDB:', err);
-        })
-        .finally(() => {
-            oSetupsDb.close();
-        });
-    },
-
-    /**
-     * Deletes the current setup entry for a given page and widget from the IndexedDB, if it exists. 
-     * Does not do anything if no entry exists.
-     * 
-     * @param {string} sPageId id of the current page
-     * @param {string} sWidgetId id of the current widget
-     * @returns Promise that resolves when the deletion is complete
-     */
-    deleteCurrentSetupFromDexie: function(sPageId, sWidgetId) {
-
-        // if dexie is not available for some reason, return null
-        if (! exfSetupManager._bIsDexieAvailable()){
-            return Promise.resolve(null);
-        }
-
-        // open indexedDb connection 
-        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
-        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
-
-        // delete entry if it exists
-        return oSetupsDb.setups.delete([sPageId, sWidgetId])
-        .catch(err => {
-            console.error('Error deleting entry from IndexedDB:', err);
-        })
-        .finally(() => {
-            oSetupsDb.close();
-        });
-    },
-
-    /**
-     * Saves or updates a passed setup as the last applied setup for a given page and widget in the IndexedDB. 
-     * 
-     * @param {string} sPageId current page id (part of dexie pk)
-     * @param {string} sWidgetId current widget id (part of dexie pk)
-     * @param {string} sSetupUid current widget setup uid (used to identify the applied setup/adding checkmark in setups table)
-     * @param {string} sSetupUxon current widget setup uxon
-     * @param {string} sSetupName current widget setup name
-     */
-    saveLastAppliedSetupToDexie: function(sPageId, sWidgetId, sSetupUid, sSetupUxon, sSetupName) { 
-        
-        // setup entry to store in dexie.
-        // combination of page and widget id as primary key for db entry
-        let oSetupObj = {
-            page_id: sPageId,
-            widget_id: sWidgetId,
-            setup_uid: sSetupUid,
-            date_last_applied: new Date().toISOString(),
-            setup_uxon: sSetupUxon,
-            setup_name: sSetupName
-        };
-
-        // exit if dexie not available
-        if (! exfSetupManager._bIsDexieAvailable()){
-            return;
-        }
-
-        // open indexedDb connection
-        const oSetupsDb = new Dexie(exfSetupManager._dexieDbConfig.name);
-        oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
-
-        // Save setup in db, then close connection 
-        oSetupsDb.setups.put(
-            oSetupObj
-        ).catch(err => {
-            console.error('Error accessing IndexedDb:', err);
-        }).finally(() => {
-            oSetupsDb.close();
-        });
-    },
-
-    /**
-     * Attaches an event listener that marks the currently applied setup as active (with checkmark icon) in the setups table at runtime.
-     * If the setup was applied manually, the table model is refreshed once to trigger the event listener.
-     * 
-     * @param {string} sSetupsTableId Id of the table that lists the setups
-     * @param {string} sPageId current page id (used to retrieve data from indexedDb)
-     * @param {string} sWidgetId current widget id (used to retrieve data from indexedDb)
-     * @param {boolean} bIsManuallyApplied whether the setup was applied manually or onLoad/form local storage (default: false)
-     * @returns 
-     */
-    markCurrentSetupAsActive: function(sSetupsTableId, sPageId, sWidgetId, bIsManuallyApplied = false) {
-
-        // get the ui5 datatable that lists the setups
-        let oSetupTable = sap.ui.getCore().byId(sSetupsTableId);
-        if (oSetupTable == undefined){
-            return;
-        }
-        
-        // attach event listener to that table, to mark the currently applied setup as active (with checkmark icon)
-        if (!oSetupTable.data("_exf_fnSetAsDefaultAttached")){
-            // the setups table seems to refresh on every re-open so its not enough to set in once,
-            // so it needs to be some sort of event listener that re-sets it on re-open/update
-            let fnSetAsDefault = function(oEvent) {
-                // retrieve the currently applied setup uid from indexedDb/session storage
-                exfSetupManager.getSetupData(sPageId, sWidgetId, null, 'setup_uid')
-                .then(sSetupUid => {
-                    let oModel = oSetupTable.getModel();
-                    let oData = oModel.getProperty('/');
-                    if (oData && Array.isArray(oData.rows) && oData.rows.length > 0) {
-                        oData.rows.forEach(row => {
-                            row.SETUP_APPLIED = "";
-                            if (row.UID === sSetupUid) {
-                                row.SETUP_APPLIED = "sap-icon://accept";
-                            }
-                        });
-
-                        oModel.setProperty('/rows', oData.rows);
-                    }
-                });
-            };
-
-            oSetupTable.detachUpdateFinished(fnSetAsDefault);
-            oSetupTable.attachUpdateFinished(fnSetAsDefault);
-
-            // make sure listener is only attached once
-            oSetupTable.data("_exf_fnSetAsDefaultAttached", true);
-        }
-
-        // if setup is manually applied, refresh ui to trigger event listener
-        let oModel = oSetupTable.getModel();
-        if (bIsManuallyApplied === true){
-            oModel.refresh(true);
-        }
-    },
-
-    /**
-     * Updates the caption of the setup quickselect button to the currently applied setup name.
-     * (The caption name is saved in the model of the button, to ensure consistency. If the ) 
-     * 
-     * @param {string} sPageId Id of the current page
-     * @param {string} sWidgetId Id of the current widget
-     * @param {string} sDataTableId Id of the current data table (to find the quickselect button)
-     */
-    updateQuickSelectButtonCaption: function(sPageId, sWidgetId, sDataTableId) {
-
-        // get the currently applied setup name from indexedDb
-        // and update the quickselect button caption accordingly
-        exfSetupManager.getSetupData(sPageId, sWidgetId, null, 'setup_name')
-        .then(sSetupName => {
-            if (sSetupName !== null){
-                let oButton = sap.ui.getCore().byId(sDataTableId + '_setupQuickselectBtn');
-                if (oButton){
-                    // update the caption of the quickselect btn if it exists
-                    oButton.getModel().setProperty("/buttonCaption", sSetupName); 
-                }
-            }
-        });
     }
-
   }
   return exfSetupManager;
 }))); 

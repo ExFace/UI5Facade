@@ -172,7 +172,7 @@ JS
                 */
 
                 (function () {
-                    exfSetupManager.datatable.resetDataTableChangeTracking('{$this->getId()}');
+                    exfSetupManager.resetChangeTracking('{$this->getId()}');
                 })();
                 
 JS;
@@ -188,7 +188,7 @@ JS;
 
                 (function () {
 
-                    exfSetupManager.datatable.trackDataTableConfigChanges(
+                    exfSetupManager.datatable.trackConfigChanges(
                         '{$this->getId()}',
                         '{$this->getP13nElement()->getId()}',
                         '{$this->getConfiguratorElement()->getModelNameForConfig()}',
@@ -233,7 +233,7 @@ JS;
                 let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // get the current setup as json in widget_setup format
-                let oSetupJson = exfSetupManager.datatable.getDataTableConfiguration(
+                let oSetupJson = exfSetupManager.datatable.getConfiguration(
                     '{$this->getId()}',
                     '{$this->getP13nElement()->getId()}',
                     '{$this->getConfiguratorElement()->getModelNameForConfig()}',
@@ -287,12 +287,12 @@ JS;
 
                 // either use the passed oSetupUxon, or try and load the data from IndexedDB (onLoad)
                 // then apply the setup and update the related ui elements (quick select caption, active column in setups table, reset the change tracking)
-                exfSetupManager.getSetupData(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
+                exfSetupManager.getSetupProperty(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
                 .then(oSetupUxon => {
                     if (oSetupUxon) {
 
                         // apply setup configuration
-                        exfSetupManager.datatable.applyDataTableConfiguration(
+                        exfSetupManager.datatable.applyConfiguration(
                             '{$this->getId()}',
                             '{$this->getConfiguratorElement()->getModelNameForConfig()}',
                             '{$this->getP13nElement()->getIdOfColumnsPanel()}',
@@ -304,7 +304,7 @@ JS;
                         // store the last applied setup in session storage 
                         // do this only if it was actively applied (not when loading from indexedDb)
                         if ({$passedParameters}[0] !== 'localStorage'){
-                            exfSetupManager.saveLastAppliedSetupToDexie(
+                            exfSetupManager.dexie.saveLastAppliedSetup(
                                 oResultData.rows[0]['PAGE'],
                                 oResultData.rows[0]['WIDGET_ID'],
                                 oResultData.rows[0]['UID'],
@@ -312,15 +312,7 @@ JS;
                                 oResultData.rows[0]['NAME']
                             );
                         }
-
-                        // after applying a setup, get the uid and mark it as default in the setups table
-                        if ({$jsSetupsTableId} !== null){
-                            exfSetupManager.markCurrentSetupAsActive({$jsSetupsTableId}, sPageId, sWidgetId, {$passedParameters}[0] !== 'localStorage');
-                        }
-
-                        // update the quick select caption to the currently applied setup
-                        exfSetupManager.updateQuickSelectButtonCaption(sPageId, sWidgetId, '{$this->getId()}');
-
+                       
                         // apply the changes immediately 
                         // otherwise the p13n dialog does not apply the filters until OK is pressed
                         let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
@@ -329,12 +321,17 @@ JS;
                         }
 
                         // reset change tracking (since a new setup is now applied)
-                        exfSetupManager.datatable.resetDataTableChangeTracking('{$this->getId()}');
+                        exfSetupManager.resetChangeTracking('{$this->getId()}');
                     } 
                     else {
                         // return if no setup was passed or found
                         return;
                     }
+                })
+                .then(() => {
+                    // fire event to let other elements know that a new setup was applied
+                    // (currently used to update the quick select button indicator/caption in UI5DataElementTrait)
+                    exfSetupManager.fireWidgetSetupChangedEvent('{$this->getId()}');
                 });
 JS;
         }

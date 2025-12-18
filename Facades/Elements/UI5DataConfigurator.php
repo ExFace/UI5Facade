@@ -149,7 +149,7 @@ JS;
                 
                 (function (){ 
                     // if a setup exists for this table in the indexedDB, apply it 
-                    exfSetupManager.getCurrentSetupFromDexie('{$this->getWidget()->getPage()->getUid()}', '{$dataElement->getWidget()->getId()}')
+                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$dataElement->getWidget()->getId()}')
                     .then(entry => {
                         if (entry) {
                             {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
@@ -999,7 +999,7 @@ JS;
 
                 // Reset stored setup in indexedDB:
                 // if a setup exists for this table in the indexedDB, delete it
-                exfSetupManager.deleteCurrentSetupFromDexie(
+                exfSetupManager.dexie.deleteCurrentSetup(
                     '{$this->getWidget()->getPage()->getUid()}' , 
                     '{$this->getDataElement()->getWidget()->getId()}'
                 );
