@@ -49,7 +49,43 @@ class UI5Input extends UI5Value
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
         $this->registerOnChangeValidation();
-        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs) . ".addStyleClass('{$this->buildCssWidgetClass()}')");
+        // If the value is not bound to a UI5 model, it still must be emptied when the UI5 view is being emptied -
+        // otherwise non-prefill widgets will keep their values after a dialog is closed and reopened again, which
+        // may result in values being "smuggled" invisibly into subsequent data items created after a create-dialog
+        // was closed the first time. Users cannot see the difference between such an orphaned non-prefill value and
+        // a regular default value - thus, they do not remove the values when opening the dialog a second time assuming,
+        // that they have been set correctly automatically. For example, this was the case im manual stock booking
+        // dialogs calling a web service, where additional inputs needed to be filled depending on the booking type.
+        // If those widgets had a custom `data_column_name` and no attribute binding, they actually kept their values
+        // when the dialog was re-opened.
+        // TODO #ui5-model-everywhere the workaround below is pretty dangerous because it counts on an existing
+        // data model even for non-prefill widgets (which would probably not work if the entire dialog has no prefill).
+        // Instead we should probably always use UI5 models instead of optional value bindings.
+        if (! $this->isValueBoundToModel() || $this->getWidget()->getDoNotPrefill() === true) {
+            // The data-model of the current widget is mostly populated in UI5Dialog. It is set to `{}` whenever
+            // the dependent widgets are to be emptied - see `UI5Dialog::buildJsPrefillLoader()`,
+            // `UI5Dialog::buildJsResetter()` and possibly other places.
+            $this->getController()->addOnInitScript(<<<JS
+
+            (function(){
+                var oSelf = sap.ui.getCore().byId('{$this->getId()}');
+                if (oSelf === undefined) return;
+                var oModel = oSelf.getModel();
+                if (oModel === undefined) return;
+                var oBinding = new sap.ui.model.Binding(oModel, '/');
+                oBinding.attachChange(function(){
+                    if ($.isEmptyObject(oModel.getData())) {
+                        {$this->buildJsValueSetter('null')};
+                    }
+                });
+            })()
+JS
+            );
+        }
+        return $this->buildJsLabelWrapper(
+            $this->buildJsConstructorForMainControl($oControllerJs) 
+            . ".addStyleClass('{$this->buildCssWidgetClass()}')"
+        );
     }
     
     /**
