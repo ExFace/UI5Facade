@@ -404,7 +404,7 @@ JS;
                 oBinding.attachChange(function(oEvent){
                     var sVal = oBinding.getValue();
                     if (sVal === undefined || sVal === null || sVal === '') {
-                        {$this->buildJsEmpty()};
+                        {$this->buildJsEmpty(false)};
                     }
                 });
             }, 0);
@@ -649,14 +649,14 @@ JS;
                                 break;
                             case curKey === '' && (! curText || curText.trim() === ''):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
                             // If it is not a MultiInput, but the value is a delimited list, do not use it!
                             case oInput.getTokens === undefined && curKey != null && (curKey + '').includes(sMultiValDelim):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
@@ -928,7 +928,7 @@ JS;
                 return;
             }
             if (val === undefined || val === null || val === '') {
-                oInput.{$this->buildJsEmptyMethod('val', '""')};
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oInput.fireChange({value: val});
             } else {
                 if (oInput.destroyTokens !== undefined) {
@@ -982,13 +982,17 @@ JS;
      * 
      * @return string
      */
-    protected function buildJsEmptyMethod() : string
+    protected function buildJsEmptyMethod(bool $fireChange = true) : string
     {
         if ($this->getWidget()->getMultiSelect() === false) {
-            return "setValue('').setSelectedKey('')";
+            $js = "setValue('').setSelectedKey('')";
         } else {
-            return "setValue('').setSelectedKey('').destroyTokens()";
+            $js = "setValue('').setSelectedKey('').destroyTokens()";
         }
+        if ($fireChange === true) {
+            $js .= ".fireChange({mValue: ''})";
+        }
+        return $js;
     }
     
     /**
@@ -1121,7 +1125,7 @@ JS;
         } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
             if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
-                oInput.{$this->buildJsEmptyMethod()};
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oData.rows.forEach(function(oRow){
                     oInput.{$this->buildJsSetSelectedKeyMethod("oRow['{$colName}']", "oRow['{$widget->getTextColumn()->getDataColumnName()}']")};
                     aVals.push(oRow['{$colName}']);
