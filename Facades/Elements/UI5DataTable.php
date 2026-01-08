@@ -1107,7 +1107,7 @@ JS;
                         justifyContent: "Center",
                         alignItems: "Center",
                         items: [
-                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($widget->getEmptyText())} })
+                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($widget->getEmptyText())}, textAlign: 'Center'}).addStyleClass('sapUiResponsiveMargin'),
                         ]
                     })
                 ],
