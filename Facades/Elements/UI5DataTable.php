@@ -761,7 +761,7 @@ JS;
                     contextualWidth: "Auto",
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
-                    noDataText: "{$this->getWidget()->getEmptyText()}",
+                    noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
                     selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
@@ -1107,7 +1107,7 @@ JS;
                         justifyContent: "Center",
                         alignItems: "Center",
                         items: [
-                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: "{$widget->getEmptyText()}"})
+                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($widget->getEmptyText())} })
                         ]
                     })
                 ],
@@ -2406,9 +2406,9 @@ JS;
     {
         $hint = $this->escapeJsTextValue($message);
         if ($this->isMList() || $this->isMTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText({$this->escapeString($hint)})";
         } elseif ($this->isUiTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText({$this->escapeString($hint)})";
         }
         return $this->buildJsDataResetter() . ';' . $setNoData;
     }

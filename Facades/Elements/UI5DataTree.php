@@ -89,7 +89,7 @@ class UI5DataTree extends UI5DataTable
                     justifyContent: "Center",
                     alignItems: "Center",
                     items: [
-                        new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: "{$this->getWidget()->getEmptyText()}"})
+                        new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($this->getWidget()->getEmptyText())} })
                     ]
                 })
             ],
