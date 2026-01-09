@@ -601,6 +601,7 @@ JS;
                 }
 
                 if (bSilent) {
+                    // Just loading the suggest data - the key does not change
                     if (iRowsCnt === 1 && (curKey === '' || data[0]['{$widget->getValueColumn()->getDataColumnName()}'] == curKey)) {
                         if (oInput.destroyTokens !== undefined) {
                             oInput.destroyTokens();
@@ -609,7 +610,10 @@ JS;
                         oInput.closeSuggestions();
                         oInput.setValueState(sap.ui.core.ValueState.None);
                         oInput._invalidKey = false;
-                    } else if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
+                        oInput.fireChange({value: curKey});
+                    } else 
+                    // Just loading the suggest data for multi-select: loaded as many rows as we have keys
+                    if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
                         oInput.destroyTokens();
                         curKeys.forEach(function(sKey) {
                             sKey = sKey.trim();
@@ -1124,7 +1128,7 @@ JS;
             {$this->buildJsValueSetter("''")};
         } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
-            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
+            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] !== undefined){
                 oInput.{$this->buildJsEmptyMethod(false)};
                 oData.rows.forEach(function(oRow){
                     oInput.{$this->buildJsSetSelectedKeyMethod("oRow['{$colName}']", "oRow['{$widget->getTextColumn()->getDataColumnName()}']")};
