@@ -1,5 +1,5 @@
 {
-    "name": "exface/UI5Facade",
+    "name": "exface/ui5facade",
     "description": "UI-Facade for the ExFace business web-app plattform based on the SAP OpenUI5 library",
     "type": "library",
     "license": [
@@ -15,8 +15,8 @@
     ],
     "support": {
         "source": "https://github.com/exface/UI5Facade",
-        "docs": "https://github.com/exface/UI5Facade/blob/master/Docs",
-        "issues": "https://github.com/exface/UI5Facade/issues"
+        "docs": "https://github.com/exface/ui5facade/blob/master/Docs",
+        "issues": "https://github.com/exface/ui5facade/issues"
     },
     "require": {
         "exface/core": "^1.0",

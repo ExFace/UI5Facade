@@ -761,7 +761,7 @@ JS;
                     contextualWidth: "Auto",
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
-                    noDataText: "{$this->getWidget()->getEmptyText()}",
+                    noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
                     selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
@@ -1107,7 +1107,7 @@ JS;
                         justifyContent: "Center",
                         alignItems: "Center",
                         items: [
-                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: "{$widget->getEmptyText()}"})
+                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($widget->getEmptyText())}, textAlign: 'Center'}).addStyleClass('sapUiResponsiveMargin'),
                         ]
                     })
                 ],
@@ -1380,39 +1380,20 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-
-            {$oParamsJs}.data.columns = [];
+            
             // Process currently visible columns:
             // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required
+            // - Add column name to ensure even optional data is read if required 
+            {$oParamsJs}.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
-                var oColParam;
-                if (oColumn.data('_exfDataColumnName')) {
-                    if (oColumn.data('_exfAttributeAlias')) {
-                        oColParam = {
-                            attribute_alias: oColumn.data('_exfAttributeAlias')
-                        };
-                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                            oColParam.name = oColumn.data('_exfDataColumnName');
-                        }
-                    } else if (oColumn.data('_exfCalculation')) {
-                        oColParam = {
-                            name: oColumn.data('_exfDataColumnName'),
-                            expression: oColumn.data('_exfCalculation')
-                        };
-                    }
-                    if (oColParam !== undefined) {
-                        {$oParamsJs}.data.columns.push(oColParam);
-                    }
-                }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
     				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
     			}
     		});
-            
+          
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'filter'){
                 (function(oEvent) {
@@ -1431,15 +1412,15 @@ JS;
                     }  
 
                     // also set the filter as an advanced search item in the p13n panel
-                    let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+                    let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
 
                     // Check if a filter for the property already exists
-                    let aFilterItems = oDialog.getFilterItems();
+                    let aFilterItems = oFilterPanel.getFilterItems();
                     let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
 
                     if (oExistingFilter) {
                         // delete exiting property (if any)
-                        oDialog.removeFilterItem(oExistingFilter);
+                        oFilterPanel.removeFilterItem(oExistingFilter);
                     } 
                     if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
                         // create new filter item if value is valid/not empty
@@ -1450,7 +1431,7 @@ JS;
                             "value1": mFltrParsed
                         });
 
-                        oDialog.addFilterItem(oFilterItem);
+                        oFilterPanel.addFilterItem(oFilterItem);
                     }
 
                     // apply the changes from the p13n dialogue 
@@ -1467,40 +1448,28 @@ JS;
     		
     		// If sorting just now, overwrite the sort string and make sure the sorter in the configurator is set too
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'sort'){
-                {$oParamsJs}.sort = {$oControlEventJsVar}.getParameters().column.getSortProperty();
-                {$oParamsJs}.order = {$oControlEventJsVar}.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
-                
-                // get p13n model 
-                let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
-                let oModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
-                let aSorters = oModel.getProperty('/sorters') || [];
-
-                // new sorter object
-                let oNewSorter = {
-                    attribute_alias: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
-                    direction: {$oControlEventJsVar}.getParameters().sortOrder
-                };
-                
-                let bExists = aSorters.some(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
-                if (!bExists) {
-                    // if entry doesnt exist, add new sorter
-                    aSorters.push(oNewSorter);
-                }
-                else{
-                    // if it exists, update sorting direction
-                    let oExistingSorter = aSorters.find(oSorter => oSorter.attribute_alias === oNewSorter.attribute_alias);
-                    if (oExistingSorter) {
-                        oExistingSorter.direction = oNewSorter.direction;
-                    }
-                }
-                
-                // update the model/refresh
-                oModel.setProperty('/sorters', aSorters);
-                oModel.refresh(true);
-
-                // Also make sure, the built-in UI5-sorting is not applied.
-                $oControlEventJsVar.cancelBubble();
-                $oControlEventJsVar.preventDefault();
+                (function(oEvent) {
+                    {$oParamsJs}.sort = oEvent.getParameters().column.getSortProperty();
+                    {$oParamsJs}.order = oEvent.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
+                    
+                    // get p13n model 
+                    let oSortPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                    let oConfModel = oSortPanel.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+    
+                    // new sorter object
+                    let oNewSorter = {
+                        attribute_alias: oEvent.getParameters().column.getSortProperty(),
+                        direction: oEvent.getParameters().sortOrder
+                    };
+                    
+                    // update the model/refresh
+                    oConfModel.setProperty('/sorters', [oNewSorter]);
+                    oConfModel.refresh(true);
+    
+                    // Also make sure, the built-in UI5-sorting is not applied.
+                    oEvent.cancelBubble();
+                    oEvent.preventDefault();
+                })($oControlEventJsVar)
     		}
 
             // Set sorting indicators for columns
@@ -1541,41 +1510,19 @@ JS;
         } elseif ($this->isMTable()) {
             $tableParams = <<<JS
 
-            // request config for opt. columns
-            {$oParamsJs}.data.columns = [];
-
+            // Add visible columns to params.data
+            $oParamsJs.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
+            
             // Set sorting indicators for columns
             var aSortProperties = ({$oParamsJs}.sort ? {$oParamsJs}.sort.split(',') : []);
             var aSortOrders = ({$oParamsJs}.sort ? {$oParamsJs}.order.split(',') : []);
             var iIdx = -1;
             sap.ui.getCore().byId('{$this->getId()}').getColumns().forEach(function(oColumn){
                 iIdx = aSortProperties.indexOf(oColumn.data('_exfAttributeAlias'));
-                var oColParam;
-
                 if (iIdx > -1) {
                     oColumn.setSortIndicator(aSortOrders[iIdx] === 'desc' ? 'Descending' : 'Ascending');
                 } else {
                     oColumn.setSortIndicator(sap.ui.core.SortOrder.None);
-                }
-
-                // add optional columns as request data 
-                if (oColumn.data('_exfDataColumnName')) {
-                    if (oColumn.data('_exfAttributeAlias')) {
-                        oColParam = {
-                            attribute_alias: oColumn.data('_exfAttributeAlias')
-                        };
-                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                            oColParam.name = oColumn.data('_exfDataColumnName');
-                        }
-                    } else if (oColumn.data('_exfCalculation')) {
-                        oColParam = {
-                            name: oColumn.data('_exfDataColumnName'),
-                            expression: oColumn.data('_exfCalculation')
-                        };
-                    }
-                    if (oColParam !== undefined) {
-                        {$oParamsJs}.data.columns.push(oColParam);
-                    }
                 }
             });
 
@@ -1583,6 +1530,52 @@ JS;
         }
 		
         return $commonParams . $tableParams;
+    }
+
+    /**
+     * Returns JS code, that will add a columns array to AJAX request data sent to the server
+     * 
+     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * they are - each must only have:
+     * - .data('_exfDataColumnName')
+     * - .data('_exfAttributeAlias')
+     * - .data('_exfCalculation')
+     * 
+     * @param string $aCurrentColumnsJs
+     * @param string $oDataJs
+     * @return string
+     */
+    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs) : string
+    {
+        return <<<JS
+
+            (function(aColumns, oData){
+                oData.columns = [];
+                // Add currently visible columns to data.columns array
+                aColumns.forEach(oColumn => {
+                    var oColParam;
+                    if (oColumn.data('_exfDataColumnName')) {
+                        if (oColumn.data('_exfAttributeAlias')) {
+                            oColParam = {
+                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                            };
+                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            }
+                        } else if (oColumn.data('_exfCalculation')) {
+                            oColParam = {
+                                name: oColumn.data('_exfDataColumnName'),
+                                expression: oColumn.data('_exfCalculation')
+                            };
+                        }
+                        if (oColParam !== undefined) {
+                            oData.columns.push(oColParam);
+                        }
+                    }
+                });
+                return oData;
+            })($aCurrentColumnsJs, $oDataJs);
+JS;
     }
     
     /**
@@ -1644,7 +1637,11 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getConfiguratorElement()->buildJsDataGetter($action);
+                $oDataJs = $this->getConfiguratorElement()->buildJsDataGetter($action);
+                if ($this->isMTable() || $this->isUiTable()) {
+                    $oDataJs = $this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oDataJs);
+                }
+                return $oDataJs;
                 
             // Editable tables with modifying actions return all rows either directly or as subsheet
             case $customMode === DataButton::INPUT_ROWS_ALL_AS_SUBSHEET:
@@ -2409,9 +2406,9 @@ JS;
     {
         $hint = $this->escapeJsTextValue($message);
         if ($this->isMList() || $this->isMTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText({$this->escapeString($hint)})";
         } elseif ($this->isUiTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText({$this->escapeString($hint)})";
         }
         return $this->buildJsDataResetter() . ';' . $setNoData;
     }

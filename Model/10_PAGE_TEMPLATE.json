@@ -58,7 +58,7 @@
             "APP": "0x11e837e87a640bfd91380205857feb80",
             "NAME": "SAP Fiori 2 (Belize)",
             "DESCRIPTION": "Responsive template based on OpenUI5 and the Belize theme",
-            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "theme": "sap_belize"
             }
@@ -73,7 +73,7 @@
             "APP": "0x11e837e87a640bfd91380205857feb80",
             "NAME": "SAP Fiori 2 mobile (Belize)",
             "DESCRIPTION": "Mobile template based on OpenUI5 and the Belize theme",
-            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "content_density": "cozy",
                 "theme": "sap_belize"
@@ -89,7 +89,7 @@
             "APP": "0x11e837e87a640bfd91380205857feb80",
             "NAME": "SAP Fiori 3",
             "DESCRIPTION": "Responsive template based on OpenUI5 and the SAP Fiori 3 theme",
-            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "theme": "sap_fiori_3"
             }
@@ -104,7 +104,7 @@
             "APP": "0x11e837e87a640bfd91380205857feb80",
             "NAME": "SAP Fiori 3 mobile",
             "DESCRIPTION": "Mobile template based on OpenUI5 and the SAP Fiori 3 theme",
-            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "theme": "sap_fiori_3",
                 "content_density": "cozy"

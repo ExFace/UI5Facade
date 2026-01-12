@@ -747,8 +747,14 @@ JS;
 JS;
         }
         
-        // FIXME use buildJsPrefillLoaderSuccess here somewere?
+        // FIXME use buildJsPrefillLoaderSuccess here somewhere?
         
+        // TODO #ui5-model-everywhere make sure the data model is always created - even if no prefill request is done
+        
+        // The prefill will fill two UI5 models:
+        // - the data model - `oView.getModel()` - holding the loaded prefill data
+        // - the view model - `oView.getModel('view')` - holding all sorts of metadata about like the prefill url,
+        // pending state, etc.
         return <<<JS
 
             //FIXME for some reason the prefill is called multiple times for a EditDialog with a spreadsheet
@@ -781,7 +787,6 @@ JS;
                 oViewModel.setProperty('/_prefill/pending', false);
                 return;
             } else {
-                {$oViewJs}.getModel().setData({});
                 oViewModel.setProperty('/_prefill/current_data_hash', oCurrentRouteString);    
             }
 
@@ -1182,7 +1187,8 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        return $this->getController()->getView()->buildJsViewGetter($this) . ".getModel().setData({});";
+        return $this->getController()->getView()->buildJsViewGetter($this) 
+            . ".getModel().setData({});";
     }
 
     /**

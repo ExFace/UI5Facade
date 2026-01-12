@@ -216,6 +216,10 @@ JS;
      * is a binding conflict in the model (i.e. other widgets use the same binding name). This
      * is mainly for historical reasons - not sure, if it's still required.
      * 
+     * TODO #ui5-model-everywhere always bind the value to a UI5 model - even if not required!
+     * This would save us a lot of IFs! It would also work better with non-UI5 controls, that
+     * often count on an existing model already.
+     * 
      * @return boolean
      */
     protected function isValueBoundToModel()

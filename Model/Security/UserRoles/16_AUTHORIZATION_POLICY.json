@@ -98,7 +98,7 @@
             "CONDITION_UXON": null,
             "TARGET_ACTION_MODEL": null,
             "TARGET_ACTION_PROTOTYPE": "",
-            "TARGET_FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "TARGET_FACADE": "exface/ui5facade/Facades/UI5Facade.php",
             "TARGET_APP": null
         }
     ],
