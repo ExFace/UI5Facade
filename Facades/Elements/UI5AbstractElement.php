@@ -303,12 +303,12 @@ JS;
         }
         
         // json_encode() escapes " and ' really well
-        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text));
+        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         // however, the result is enclosed in double quotes if it's a string. If so, we
         // need to remove the first an last character (the quotes). Note: trim() won't
         // work here because if the $text was already beginning or ending with " it will
         // get trimmed off too!
-        if (substr($escaped, 0, 1) === '"') {
+        if (mb_substr($escaped, 0, 1) === '"') {
             $escaped = substr($escaped, 1, -1);   
         }
         
