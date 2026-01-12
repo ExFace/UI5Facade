@@ -132,12 +132,19 @@ JS;
             $contentJs .= ".addStyleClass('exf-datacarousel-details-filler')";
         }
         
+        $detailsHeight = $this->getWidget()->getDetailsWidget()->getHeight();
+        if ($detailsHeight->isUndefined()) {
+            $detailsHeightCss = '100%';
+        } else {
+            $detailsHeightCss = $detailElem->buildCssHeight();
+        }
+        
         return <<<JS
 
             {$dataElem->buildJsConstructor()},
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
-                height: "{$detailElem->buildCssHeight()}",
+                height: "{$detailsHeightCss}",
                 headerToolbar: [
                     new sap.m.OverflowToolbar({
                         content: [
@@ -219,13 +226,13 @@ JS;
         $action = ActionFactory::createFromString($this->getWorkbench(), ShowDialog::class);
         $bindingScript = <<<JS
 
-        (function() {
+        (function() {console.log('selected');
             var oSplit = sap.ui.getCore().byId('{$this->getId()}');
             var oDetailArea = oSplit.getContentAreas()[1];
             var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
             var oRowSelected = {$this->getDataElement()->buildJsDataGetter($action)}.rows[0];
             var oModel = oTable.getModel();
-            var iRowIdx = oModel.getData().rows.indexOf(oRowSelected);
+            var iRowIdx = exfTools.data.indexOfRow(oModel.getData().rows, oRowSelected);
             var sPath = '/rows/' + iRowIdx;
             var oControl, oBindingInfo;
             var oBtnPrev = sap.ui.getCore().byId('{$this->getId()}-details-btn-prev');
