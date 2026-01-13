@@ -280,6 +280,11 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .exf-datacarousel-details > .sapMPanelContent > .sapMITB {margin-top: 30px;}
 .exf-datacarousel-details > .sapMPanelContent > .sapMITB > .sapMITH {background-color: transparent;}
 
+.exf-datacarousel-details > .sapUiBlockLayer,.sapUiLocalBusyIndicator {
+    background-color: rgb(247, 247, 247);
+    z-index: 10;
+}
+
     /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}

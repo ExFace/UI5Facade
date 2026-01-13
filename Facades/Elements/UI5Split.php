@@ -45,7 +45,6 @@ use exface\Core\Widgets\Dialog;
  */
 class UI5Split extends UI5Container
 {
-    private $sizesInitial = [];
     
     /**
      * 

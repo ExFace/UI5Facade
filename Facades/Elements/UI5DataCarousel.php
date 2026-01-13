@@ -33,6 +33,8 @@ use exface\Core\Widgets\WidgetGrid;
 class UI5DataCarousel extends UI5Split
 {
     use JqueryDataCarouselTrait;
+
+    private $sizesInitial = [];
     
     /**
      * 
@@ -226,7 +228,7 @@ JS;
         $action = ActionFactory::createFromString($this->getWorkbench(), ShowDialog::class);
         $bindingScript = <<<JS
 
-        (function() {console.log('selected');
+        (function() {
             var oSplit = sap.ui.getCore().byId('{$this->getId()}');
             var oDetailArea = oSplit.getContentAreas()[1];
             var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
