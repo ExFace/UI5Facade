@@ -280,7 +280,8 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .exf-datacarousel-details > .sapMPanelContent > .sapMITB {margin-top: 30px;}
 .exf-datacarousel-details > .sapMPanelContent > .sapMITB > .sapMITH {background-color: transparent;}
 
-.exf-datacarousel-details > .sapUiBlockLayer,.sapUiLocalBusyIndicator {
+.exf-datacarousel-details > .sapUiBlockLayer,
+.exf-datacarousel-details > .sapUiLocalBusyIndicator {
     background-color: rgb(247, 247, 247);
     z-index: 10;
 }
