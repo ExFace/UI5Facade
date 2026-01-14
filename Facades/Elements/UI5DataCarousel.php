@@ -33,6 +33,8 @@ use exface\Core\Widgets\WidgetGrid;
 class UI5DataCarousel extends UI5Split
 {
     use JqueryDataCarouselTrait;
+
+    private $sizesInitial = [];
     
     /**
      * 
@@ -132,12 +134,19 @@ JS;
             $contentJs .= ".addStyleClass('exf-datacarousel-details-filler')";
         }
         
+        $detailsHeight = $this->getWidget()->getDetailsWidget()->getHeight();
+        if ($detailsHeight->isUndefined()) {
+            $detailsHeightCss = '100%';
+        } else {
+            $detailsHeightCss = $detailElem->buildCssHeight();
+        }
+        
         return <<<JS
 
             {$dataElem->buildJsConstructor()},
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
-                height: "{$detailElem->buildCssHeight()}",
+                height: "{$detailsHeightCss}",
                 headerToolbar: [
                     new sap.m.OverflowToolbar({
                         content: [
@@ -225,7 +234,7 @@ JS;
             var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
             var oRowSelected = {$this->getDataElement()->buildJsDataGetter($action)}.rows[0];
             var oModel = oTable.getModel();
-            var iRowIdx = oModel.getData().rows.indexOf(oRowSelected);
+            var iRowIdx = exfTools.data.indexOfRow(oModel.getData().rows, oRowSelected);
             var sPath = '/rows/' + iRowIdx;
             var oControl, oBindingInfo;
             var oBtnPrev = sap.ui.getCore().byId('{$this->getId()}-details-btn-prev');

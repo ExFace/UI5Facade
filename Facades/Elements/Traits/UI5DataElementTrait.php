@@ -37,6 +37,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface
 use exface\Core\Widgets\DataButton;
 use exface\Core\Interfaces\Widgets\iHaveQuickSearch;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\DataLookupDialog;
 
 /**
  * This trait helps wrap thrid-party data widgets (like charts, image galleries, etc.) in 
@@ -966,6 +967,12 @@ JS;
      */
     protected function buildJsFullscreenContainerGetter() : string
     {
+        // if we're in a data lookup dialog, maximize entire dialog
+        // (otherwise the toolbar is missing, and you cannot minimize anymore)
+        if ($this->getWidget()->getParentByClass(DataLookupDialog::class) !== null){
+            return "$('#{$this->getId()}').parents('.sapMDialog').first()";
+        }
+        // otherwise return normal parent elements
         return $this->isWrappedInDynamicPage() ? "$('#{$this->getId()}').parent()" : "$('#{$this->getId()}').parent().parent()";
     }
     
@@ -988,6 +995,12 @@ JS;
 var jqFullscreenContainer = {$this->buildJsFullscreenContainerGetter()};
 var oButton = sap.ui.getCore().getElementById('{$id}');
 var jqButton = $('#{$this->getId()}')[0];
+
+if (jqFullscreenContainer.length == 0){
+    console.warn('Could not find fullsize container.');
+    return;
+}
+
 
 //set the z-index of the fullscreen dynamically so it works with popovers
 var iZIndex = 0;
