@@ -187,6 +187,30 @@ trait UI5DataElementTrait {
         // added too late and won't be there in the generated controller.
         $this->getController()->addOnEventScript($this, 'select', '');
         $this->getController()->addOnEventScript($this, UI5AbstractElement::EVENT_NAME_REFRESH, '');
+
+        // if the widget has the setups quickselect enabled, we attach an listener to the 'appliedWidgetSetup' event
+        // this gets fired whenever a setup is applied (see @exfSetupManager.js for event), 
+        // we can use this to update the quickselect button caption and the change indicator (*)
+        if ($this->hasSetupsQuickSelector()){
+            $updateQuickselectUIJs = <<<JS
+                (function (){ 
+
+                    // attach listener only once per widget
+                    let oWidget = sap.ui.getCore().byId('{$this->getId()}');
+                    if (oWidget && oWidget.data('_exfWidgetSetupChangeListenerAttached') !== true){ 
+                        
+                        // Update UI Elements onchange of widget setup 
+                        oWidget.attachEvent('appliedWidgetSetup', function (oEvent) {
+                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', true);
+                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', '{$this->getId()}');
+                            oWidget.data('_exfWidgetSetupChangeListenerAttached', true);
+                        });
+                    }
+                })();
+JS;
+
+            $this->getController()->addOnInitScript($updateQuickselectUIJs);
+        }
         
         $controller->addMethod('onUpdateFilterSummary', $this, '', $this->buildJsFilterSummaryUpdater());
         $controller->addMethod('onLoadData', $this, 'oControlEvent, bKeepPagingPos', $this->buildJsDataLoader());
@@ -581,7 +605,7 @@ JS;
 
         return <<<JS
                     new sap.m.Button({
-                        id: '{$this->getId()}' + '_setupQuickselectBtn',
+                        id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
                         text: {
                             parts: [
                                 { path: "/buttonCaption" },
@@ -2868,6 +2892,10 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
+
+        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
+        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+
         return $this;
     }
     
