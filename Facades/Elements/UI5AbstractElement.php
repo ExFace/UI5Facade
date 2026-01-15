@@ -45,6 +45,8 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     
     private $layoutData = null;
     
+    private array $listenersForControllerSet = [];
+    
     /**
      * 
      * {@inheritDoc}
@@ -504,6 +506,10 @@ JS;
             if (! ($e instanceof UI5ControllerNotInitializedException || null !== $e->findPrevious(UI5ControllerNotInitializedException::class))) {
                 throw $e;
             }
+            if (in_array($function, $this->listenersForControllerSet, true) === true) {
+                return $this;
+            }
+            $this->listenersForControllerSet[] = $function;
             $this->getWorkbench()->eventManager()->addListener(OnControllerSetEvent::getEventName(), function(OnControllerSetEvent $event) use ($function) {
                 $thisWidget = $this->getWidget();
                 $eventWidget = $event->getWidget();
@@ -529,8 +535,9 @@ JS;
     public function getController() : UI5ControllerInterface
     {
         if ($this->controller === null) {
-            if ($this->getWidget()->hasParent()) {
-                return $this->getFacade()->getElement($this->getWidget()->getParent())->getController();
+            if (null !== $parent = $this->getWidget()->getParent()) {
+                $parentEl = $this->getFacade()->getElement($parent);
+                $this->controller = $parentEl->getController();
             } else {
                 throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
             }
