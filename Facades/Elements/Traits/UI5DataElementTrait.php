@@ -128,9 +128,17 @@ trait UI5DataElementTrait {
      */
     protected function init()
     {
+        $dataWidget = $this->getDataWidget();
         $configuratorElement = $this->getConfiguratorElement();
+        $configuratorLinked = $dataWidget->isConfiguratorLinked();
         
-        if ($this->isWrappedInDynamicPage()) {
+        // Tweak this widget a little if it uses a shared configurator
+        if ($configuratorLinked) {
+            $this->getWidget()->setHideHeader(true);
+            $dataWidget->setConfiguratorSetupsEnabled(false);
+        }
+        
+        if ($this->isWrappedInDynamicPage() && ! $configuratorLinked) {
             $configuratorElement->setIncludeFilterTab(false);
         }
         
@@ -151,6 +159,12 @@ trait UI5DataElementTrait {
             } else {
                 $this->quickSearchElement = $this->getFacade()->getElement($this->getWidget()->getQuickSearchWidget());
             }
+        }
+        
+        // Handle `refresh_with_widget`: add an on-refresh listener to the target widget
+        if (null !== $refreshLink = $dataWidget->getRefreshWithWidget()) {
+            $refreshEl = $this->getFacade()->getElement($refreshLink->getTargetWidget());
+            $refreshEl->addOnRefreshScript("setTimeout(function(){ {$this->buildJsRefresh()} }, 0);");
         }
     }
     
@@ -386,7 +400,7 @@ JS;
         new sap.m.Panel("{$this->getId()}_panel", {
             height: "$height",
             headerToolbar: [
-                {$toolbar}.addStyleClass("sapMTBHeader-CTX")
+                {$toolbar}
             ],
             content: [
                 {$contentConstructorsJs}
@@ -471,6 +485,9 @@ JS;
      */
     protected function hasSetupsQuickSelector() : bool
     {
+        if ($this->getDataWidget()->getConfiguratorSetupsEnabled() === false) {
+            return false;
+        }
         $configWidget = $this->getWidget()->getConfiguratorWidget();
         return ($configWidget instanceof DataTableConfigurator) 
             && $configWidget->hasSetups() 
@@ -531,7 +548,7 @@ JS;
                     
 JS;
 
-        // button to open the configrator 
+        // button to open the configrator
         $openConfiguratorBtnJs = <<<JS
                     new sap.m.Button({
                         tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
@@ -935,7 +952,12 @@ JS;
      */
     protected function buildJsConfiguratorButtonConstructor(string $oControllerJs = 'oController', string $buttonType = 'Default') : string
     {
+        // No button if configurator disabled explicitly
         if (! $this->hasConfigurator()) {
+            return '';
+        }
+        // No button if configurator is shared
+        if ($this->getWidget()->isConfiguratorLinked()) {
             return '';
         }
         $btnPriorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
@@ -1085,7 +1107,9 @@ JS;
             $this->getConfiguratorElement()->registerRefreshListeners($oControllerJs);
             return $this;
         }
-        $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());
+        if (! $this->getWidget()->isConfiguratorLinked()) {
+            $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());
+        }
         return $this;
     }
     
