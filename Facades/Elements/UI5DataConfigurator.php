@@ -461,8 +461,12 @@ JS;
             $resetSelection = '';
         }
         return <<<JS
-                        try {
-                            var oPanel = $oPanelJs;
+                var oPanel = $oPanelJs;
+
+                // settimeout needed here bc. otherwise the data is not there yet, 
+                // and changes are then only applied when panel is openend for the second time
+                setTimeout(function(){
+                    try {
                             var oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
                             var oTableModel = oTable.getModel();
                             var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
@@ -493,9 +497,11 @@ JS;
                                 } catch (e) {
                                     console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
                                 }
-                        } catch (e) {
-                            console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
-                        }
+                        } 
+                    catch (e) {
+                        console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
+                    }
+                }, 0); 
                         
 JS;
     }
