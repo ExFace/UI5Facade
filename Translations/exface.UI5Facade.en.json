@@ -128,6 +128,7 @@
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE": "Include",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE": "Exclude",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR": "Clear filter over this column",
+	"WIDGET.DATATABLE.FILTER_CLEAR": "Clear filters",
 	"WIDGET.DATATABLE.GO_BUTTON_TEXT": "Search",
 	"WIDGET.DATATABLE.OFFLINE_HINT": "The requested data is only available online!",
 	"WIDGET.DATATABLE.OFFLINE_ERROR": "The requested data is only available online.",

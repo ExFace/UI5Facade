@@ -91,6 +91,7 @@ class UI5DataColumn extends UI5AbstractElement
 	    {$this->buildJsPropertyVisibile()}
 	    {$this->buildJsPropertyWidth()}
         {$this->buildJsPropertyWidthMin()}
+        {$this->buildJsAddFilterResetBtn()}
         {$grouped}
 	})
 	{$expression}
@@ -98,6 +99,84 @@ class UI5DataColumn extends UI5AbstractElement
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })
 JS;
+    }
+
+    /**
+     * Adds an additional reset filter button to the column menu (via on columnMenuOpen) if the column is filterable.
+     * 
+     * @return string
+     */
+    private function buildJsAddFilterResetBtn()
+    {
+        $col = $this->getWidget();
+        $isFilterable = $col->isFilterable() === true;
+        $dataTable = $this->getFacade()->getElement($this->getWidget()->getDataWidget());
+        $configurator = $this->getFacade()->getElement($dataTable->getWidget()->getConfiguratorWidget());
+
+        // only add reset button for filterable columns
+        if ($isFilterable){
+            return <<<JS
+            columnMenuOpen: function(oEvent) {
+
+            // get column, menu and id from event params
+            let sResetBtnId = oEvent.getParameter('id') + "_resetBtn";
+            let oColumn = sap.ui.getCore().byId(oEvent.getParameter('id'));
+            let oMenu = oEvent.getParameter('menu');
+
+            if (!oMenu) {
+                return;
+            }
+
+            // columnMenuOpen fires before menu is there, so timeout prevents lifecycle issues here
+            setTimeout(function() {
+                
+                // since adding menu items to the default column menu was not encouraged in documentation, wrap in try/catch
+                // see https://ui5.sap.com/1.136.9/#/api/sap.ui.table.ColumnMenu
+                try {
+                    // check if the button already exists, otherwsie add it
+                    let bButtonExists = oMenu.getItems().some(function(oItem) {
+                        return oItem.getId() === sResetBtnId;
+                    });
+
+                    if (!bButtonExists) {
+                        oMenu.addItem(
+                            new sap.ui.unified.MenuItem({
+                                id: sResetBtnId,
+                                icon: "sap-icon://clear-filter",
+                                text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_CLEAR'))},
+                                select: function(oEvent) {
+                                    
+                                    let oSearchPanel = sap.ui.getCore().byId('{$configurator->getIdOfSearchPanel()}');
+                                    if (oSearchPanel && oColumn) {
+                                        let aFilterItems = oSearchPanel.getFilterItems();
+                                        let aMatchingFilters = aFilterItems.filter(oFilterItem => oFilterItem.getColumnKey() === oColumn.getFilterProperty());
+
+                                        // remove all matching filter items
+                                        aMatchingFilters.forEach(oMatchingFilter => {
+                                            oSearchPanel.removeFilterItem(oMatchingFilter);
+                                        });
+
+                                        // reset filter value (input field in column menu)
+                                        oColumn.setFilterValue(null);
+                                    }
+                                    // reload data
+                                    {$dataTable->getController()->buildJsMethodCallFromController('onLoadData', $dataTable, '')}
+                                }
+                            })
+                        );
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }, 0);  
+        },
+JS;
+        }
+        else{
+            // if not filterable, add/do nothing
+            return '';
+        }
     }
 
     /**
