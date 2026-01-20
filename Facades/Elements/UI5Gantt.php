@@ -121,12 +121,13 @@ JS;
     }
     
     /**
-     *
+     * This method builds the JS property for column header height of the left table.
+     * 
      * @return string
      */
     protected function buildJsPropertyColumnHeaderHeight() : string
     {
-        return 'columnHeaderHeight: 52,';
+        return 'columnHeaderHeight: 73,';
     }
     
     /**
@@ -233,33 +234,41 @@ JS;
       {
         id: 1,
         name: 'Loading...',
-        start: null,
-        end: null
+        start: (() => {
+          const d = new Date();
+          return "" + d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate() + "";
+        })(),
+        duration: '3d',
       }
     ], {
-        header_height: 39, //TODO SR: Fix Header lower padding and the number back to 46 here.
-        column_width: 30,
-        step: 24,
-        view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+      //TODO SR: Check all commented-out properties individually after the update and integrate them:
+        view_mode_select: true,
+        upper_header_height: 40, // 45 // TODO SR: Implement as UXON property
+        lower_header_height: 25, // 30 // TODO SR: Implement as UXON property
+        auto_move_label: true, // TODO SR: Implement as UXON property
+        //header_height: 39,
+        //column_width: 30,
+        //step: 24,
+        //view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
         bar_height: 19,
-        bar_corner_radius: 3,
-        arrow_curve: 5,
+        //bar_corner_radius: 3,
+        //arrow_curve: 5,
         padding: 14,
-        view_mode: '$viewMode',
-        date_format: {$this->escapeString($dateFormat)},
+        //view_mode: '$viewMode',
+        //date_format: {$this->escapeString($dateFormat)},
         label_overflow: '$titleOverflow',
-        keep_scroll_position: '$keepScrollPosition',
-        auto_relayout_on_change: '$autoRelayoutOnChange',
-        default_duration: Math.floor('$defaultDurationHours' / 24),
-        view_mode_column_width_quarter_day: $viewModeColumnWidthQuarterDay,
+        //keep_scroll_position: '$keepScrollPosition',
+        //auto_relayout_on_change: '$autoRelayoutOnChange',
+        //default_duration: Math.floor('$defaultDurationHours' / 24),
+/*        view_mode_column_width_quarter_day: $viewModeColumnWidthQuarterDay,
         view_mode_column_width_half_day: $viewModeColumnWidthHalfDay,
         view_mode_column_width_day: $viewModeColumnWidthDay,
         view_mode_column_width_week: $viewModeColumnWidthWeek,
         view_mode_column_width_month: $viewModeColumnWidthMonth,
         view_mode_column_width_year: $viewModeColumnWidthYear,
-        header_formats: $headerFormatsJson, 
+        header_formats: $headerFormatsJson, */
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
-        custom_popup_html: null,
+        //custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
     		var oTable = sap.ui.getCore().byId('{$this->getId()}');
             var oModel = oTable.getModel();
@@ -310,9 +319,10 @@ JS;
                     processChildrenRecursively(oRow, moveDiffInHours, sColNameStart, sColNameEnd);
                 }
             }
-            if (oGantt.options.auto_relayout_on_change) {
+            //TODO SR: This oGantt.refresh dont work as usual after the update.
+/*            if (oGantt.options.auto_relayout_on_change) {
                 oGantt.refresh(oGantt.tasks); // calls compute_rows_and_lanes() again.
-            }
+            }*/
     	}
     });
 })();
@@ -456,8 +466,8 @@ JS;
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
         $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
         
-        $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
-        //$controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
+        //$controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
+        $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
         // task overlapping feature css:
         $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/exf-frappe-gantt.css');
         
