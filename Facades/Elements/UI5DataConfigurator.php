@@ -839,8 +839,70 @@ function(){
         }
         oData.filters.nested_groups.push(includeGroup);
     }
+
+    // for datatables, add columns array to parameters (previosuly in UI5DataTable) 
+    {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getDataElement()->getId()}').getColumns()", 'oData')}
+    
     return oData;
 }()
+JS;
+    }
+
+    
+    /**
+     * Returns JS code, that will add an array of currently visible columns to AJAX request data sent to the server
+     * 
+     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * they are - each must only have:
+     * - .data('_exfDataColumnName')
+     * - .data('_exfAttributeAlias')
+     * - .data('_exfCalculation')
+     * 
+     * @param string $aCurrentColumnsJs
+     * @param string $oDataJs
+     * @return string
+     */
+    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs) : string
+    {
+        // only do this for DataTables
+        if (!$this->getDataElement() instanceof UI5DataTable) {
+            return '';
+        }
+    
+        return <<<JS
+
+            (function(aColumns, oData){
+                oData.columns = [];
+                // Add currently visible columns to data.columns array
+                aColumns.forEach(oColumn => {
+
+                    // skip invisible columns
+                    if (oColumn.getVisible() === false) {
+                        return;
+                    }
+
+                    var oColParam;
+                    if (oColumn.data('_exfDataColumnName')) {
+                        if (oColumn.data('_exfAttributeAlias')) {
+                            oColParam = {
+                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                            };
+                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            }
+                        } else if (oColumn.data('_exfCalculation')) {
+                            oColParam = {
+                                name: oColumn.data('_exfDataColumnName'),
+                                expression: oColumn.data('_exfCalculation')
+                            };
+                        }
+                        if (oColParam !== undefined) {
+                            oData.columns.push(oColParam);
+                        }
+                    }
+                });
+                return oData;
+            })($aCurrentColumnsJs, $oDataJs);
 JS;
     }
     
