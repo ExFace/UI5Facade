@@ -48,6 +48,7 @@ class UI5Gantt extends UI5DataTree
         $controller = $this->getController();
         $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
         $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
+        $keepScrollPosition = json_encode($widget->getKeepScrollPosition());
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -99,6 +100,10 @@ JS
                                 sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
                                 });
+                            } else if ($keepScrollPosition) {
+                              setTimeout(function(){
+                                oCtrl.gantt.set_scroll_position("today");
+                              },100);
                             }
                             {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                         },0);
@@ -257,7 +262,7 @@ JS;
         //view_mode: '$viewMode',
         //date_format: {$this->escapeString($dateFormat)},
         label_overflow: '$titleOverflow',
-        //keep_scroll_position: '$keepScrollPosition',
+        keep_scroll_position: '$keepScrollPosition',
         //auto_relayout_on_change: '$autoRelayoutOnChange',
         //default_duration: Math.floor('$defaultDurationHours' / 24),
 /*        view_mode_column_width_quarter_day: $viewModeColumnWidthQuarterDay,

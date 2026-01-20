@@ -1486,6 +1486,7 @@ var Gantt = function() {
         classes: "popup-wrapper",
         append_to: this.$container
       });
+      this._initialScroll = true;
     }
     setup_options(options) {
       this.original_options = options;
@@ -1749,7 +1750,7 @@ var Gantt = function() {
       this.make_arrows();
       this.map_arrows_on_bars();
       this.set_dimensions();
-      this.set_scroll_position(this.options.scroll_to);
+      this.set_scroll_strategy(this.options.scroll_to);
     }
     setup_layers() {
       this.layers = {};
@@ -1787,9 +1788,6 @@ var Gantt = function() {
           this.config.header_height + this.options.padding + this.get_content_height(),
           this.options.container_height !== "auto" ? this.options.container_height : 0
       );
-      console.log("content_height: ", this.get_content_height());
-      console.log("grid_height: ", grid_height);
-      console.log("task lenght: ", this.tasks.length);
       createSVG("rect", {
         x: 0,
         y: 0,
@@ -3011,6 +3009,22 @@ var Gantt = function() {
         this.unselect_all();
       };
       document.addEventListener("mousedown", this._onDocClick, true);
+    }
+    /**
+     * Calls set_scroll_position according to the "keep_scroll_position" option.
+     */
+    set_scroll_strategy(scroll_to) {
+      if (this._initialScroll || !this.options.keep_scroll_position) {
+        this.set_scroll_position(scroll_to);
+      }
+      if (this._initialScroll) {
+        const hasRealTasks = this.tasks.length > 0 && this.tasks[0].name !== "Loading...";
+        if (hasRealTasks) {
+          this._initialScroll = false;
+        }
+      } else if (this.options.keep_scroll_position && this.tasks.length === 0) {
+        this._initialScroll = true;
+      }
     }
     // <<< SR: Bar Aggregation ---------------------------------------------------
   }
