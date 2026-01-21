@@ -802,6 +802,9 @@ JS;
             $parsers[] = "'{$col->getAttributeAlias()}': function(mVal){ return {$formatter->buildJsFormatParser('mVal')} }";
         }
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
+
+        // if we are exporting, send only visible columns; otherwise send all columns
+        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));        
         
         return <<<JS
 
@@ -841,7 +844,7 @@ function(){
     }
 
     // for datatables, add columns array to parameters (previosuly in UI5DataTable) 
-    {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getDataElement()->getId()}').getColumns()", 'oData')}
+    {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getDataElement()->getId()}').getColumns()", 'oData', $isExportAction)}
     
     return oData;
 }()
@@ -850,7 +853,7 @@ JS;
 
     
     /**
-     * Returns JS code, that will add an array of currently visible columns to AJAX request data sent to the server
+     * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
      * 
      * This method needs an array of column definitions. It is actually not important what type/class of columns
      * they are - each must only have:
@@ -860,9 +863,10 @@ JS;
      * 
      * @param string $aCurrentColumnsJs
      * @param string $oDataJs
+     * @param string $bIsExportAction (when exporting, we only send visible columns)
      * @return string
      */
-    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs) : string
+    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs, string $bIsExportAction) : string
     {
         // only do this for DataTables
         if (!$this->getDataElement() instanceof UI5DataTable) {
@@ -871,13 +875,14 @@ JS;
     
         return <<<JS
 
-            (function(aColumns, oData){
+            (function(aColumns, oData, bIsExportAction){
                 oData.columns = [];
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns
-                    if (oColumn.getVisible() === false) {
+                    // skip invisible columns for export actions
+                    // otherwise it throws an error if we are reading for a datatable that only has optional columns
+                    if (bIsExportAction === true && oColumn.getVisible() === false) {
                         return;
                     }
 
@@ -902,7 +907,7 @@ JS;
                     }
                 });
                 return oData;
-            })($aCurrentColumnsJs, $oDataJs);
+            })($aCurrentColumnsJs, $oDataJs, $bIsExportAction);
 JS;
     }
     
