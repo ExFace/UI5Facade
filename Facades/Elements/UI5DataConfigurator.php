@@ -880,8 +880,9 @@ JS;
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns for export actions
-                    // otherwise it throws an error if we are reading for a datatable that only has optional columns
+                    // skip invisible columns 
+                    // do this only for export actions: otherwise it throws an error 
+                    // if we are doing a normal read for a datatable that only has optional columns
                     if (bIsExportAction === true && oColumn.getVisible() === false) {
                         return;
                     }
