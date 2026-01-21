@@ -57,18 +57,28 @@ class UI5Gantt extends UI5DataTree
         // adds the view mode buttons to the toolbar
         $aViewModes = $widget->getTimelineConfig()->getViews();
         $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aViewModes);
+        $this->addGanttScrollButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
             <<<JS
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
+                 var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                  
                  {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTableReload')};
                  
                  let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
                  if (toolbarOffsetHeight !== undefined) {
                    sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanelContent').css("height", "calc(100% - " + toolbarOffsetHeight + "px)");
+                 }
+                 
+                 // In some cases (tab switch or back navigation) the gantt shows the left coner of the diagram. 
+                 // This is a fix for this behaviour.
+                 if ($keepScrollPosition) {
+                    setTimeout(function(){
+                      oCtrl.gantt.set_scroll_position("today");
+                    },150);
                  }
                },0);
 JS
@@ -247,7 +257,8 @@ JS;
       }
     ], {
       //TODO SR: Check all commented-out properties individually after the update and integrate them:
-        view_mode_select: true,
+        view_mode_select: true, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
+        today_button: false,
         upper_header_height: 40, // 45 // TODO SR: Implement as UXON property
         lower_header_height: 25, // 30 // TODO SR: Implement as UXON property
         auto_move_label: true, // TODO SR: Implement as UXON property
@@ -657,6 +668,59 @@ JS
             'hide_caption' => true,
             'buttons' => $buttons
         ])), $index);
+    }
+
+    /**
+     * Adds the scroll navigation buttons to the button group at the toolbar:
+     * "<<":    navigates to the start of chard
+     * "Today": navigates to today
+     * ">>":    navigates to the end of the chard
+     * 
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @return void
+     */
+    protected function addGanttScrollButtons(ButtonGroup $btnGrp, int $index = 0) : void 
+    {
+        $sToday = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.TODAY');
+        
+        $buttons = [
+            [
+                'caption' => '',     
+                'icon' => 'angle-double-left',
+                'script' => <<<JS
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.set_scroll_position("start");
+JS
+            ],
+            [
+                'caption' => $sToday,
+                'icon' => '',
+                'script' => <<<JS
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current();
+JS
+            ],
+            [
+                'caption' => '',     
+                'icon' => 'angle-double-right',
+                'script' => <<<JS
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.set_scroll_position("end");
+JS
+            ],
+        ];
+        
+        foreach ($buttons as $i => $button) {
+            $btnGrp->addButton($btnGrp->createButton(new UxonObject([
+                'widget_type' => 'Button',
+                'caption' => $button['caption'],
+                'icon' => $button['icon'],
+                'action'  => [
+                    'alias'  => 'exface.Core.CustomFacadeScript',
+                    'icon' => '',
+                    'script' => $button['script'],
+                ],
+            ])), $index + $i);
+            
+        }
     }
     
     protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
