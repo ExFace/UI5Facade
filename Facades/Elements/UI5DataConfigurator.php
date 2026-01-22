@@ -868,8 +868,9 @@ JS;
      */
     protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs, string $bIsExportAction) : string
     {
-        // only do this for DataTables
-        if (!$this->getDataElement() instanceof UI5DataTable) {
+        // only do this for DataTables 
+        // DataCards are instance of UI5DataTable, but do not have the ui5 column controls, so skip them too
+        if ($this->getDataElement() instanceof UI5DataCards || !$this->getDataElement() instanceof UI5DataTable) {
             return '';
         }
     
@@ -883,6 +884,7 @@ JS;
                     // skip invisible columns 
                     // do this only for export actions: otherwise it throws an error 
                     // if we are doing a normal read for a datatable that only has optional columns
+                    // TODO/FIXME: if no columns are visible in a table by default, do we need to read at all? 
                     if (bIsExportAction === true && oColumn.getVisible() === false) {
                         return;
                     }
