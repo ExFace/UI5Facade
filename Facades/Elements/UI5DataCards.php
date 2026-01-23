@@ -3,6 +3,14 @@ namespace exface\UI5Facade\Facades\Elements;
 
 class UI5DataCards extends UI5DataTable
 {
+
+    protected function init() {
+        parent::init();
+        
+        // The configurator options (columns, sorters, search) dont work for DataCards
+        $this->getConfiguratorElement()->getWidget()->setDisabled(true);
+    }
+
     /**
      * 
      * {@inheritDoc}
