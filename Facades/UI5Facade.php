@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades;
 
 use exface\Core\CommonLogic\Debugger;
+use exface\Core\Contexts\DebugContext;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
@@ -374,6 +375,10 @@ JS;
         
         UI5DateFormatter::registerMoment($this, $controller);
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
+
+        if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
+            $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');
+        }
         
         return $controller;
     }
@@ -427,7 +432,7 @@ JS;
     {
         $tags = $this->buildHtmlHeadIcons();
         $webapp = $this->getWebapp();
-        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';
+        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';        
         return $tags;
     }
     
