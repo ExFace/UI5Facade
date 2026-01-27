@@ -94,6 +94,19 @@ JS
             );
         }
 
+        // re-calculate frozen columns for sap.ui.table (might change due to optional columns/setups/mutations)
+        $hasDirtyColumn = $this->escapeBool($this->hasDirtyColumn());
+        $controller->addOnShowViewScript(<<<JS
+            
+                setTimeout(() => {
+                    let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                    if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount("{$this->getId()}", {$this->getWidget()->getFreezeColumns()}, {$hasDirtyColumn}));
+                    }
+                }, 0);
+                    
+JS, false);
+
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
         } else {
@@ -679,7 +692,7 @@ JS;
                 {$this->buildJsPropertyMinAutoRowCount()}
                 selectionMode: {$selection_mode},
         		selectionBehavior: {$selection_behavior},
-                enableColumnReordering:true,
+                enableColumnReordering: true,
                 fixedColumnCount: {$freezeColumnsCount},
                 enableColumnFreeze: true,
                 {$enableGrouping}
