@@ -1277,7 +1277,7 @@ var Gantt = function() {
   }
   function getDecade(d) {
     const year = d.getFullYear();
-    return year - year % 10 + "";
+    return String(year - year % 10);
   }
   function formatWeek(d, ld, lang) {
     let endOfWeek = date_utils.add(d, 6, "day");
@@ -1286,33 +1286,47 @@ var Gantt = function() {
     return `${date_utils.format(d, beginFormat, lang)} - ${date_utils.format(endOfWeek, endFormat, lang)}`;
   }
   const DEFAULT_VIEW_MODES = [
-    {
-      name: "Hour",
-      padding: "7d",
-      step: "1h",
-      date_format: "YYYY-MM-dd HH:",
-      lower_text: "HH",
-      upper_text: (d, ld, lang) => !ld || d.getDate() !== ld.getDate() ? date_utils.format(d, "dd MMMM", lang) : "",
-      upper_text_frequency: 24
-    },
-    {
-      name: "Quarter Day",
-      padding: "7d",
-      step: "6h",
-      date_format: "YYYY-MM-dd HH:",
-      lower_text: "HH",
-      upper_text: (d, ld, lang) => !ld || d.getDate() !== ld.getDate() ? date_utils.format(d, "dd MMM", lang) : "",
-      upper_text_frequency: 4
-    },
-    {
-      name: "Half Day",
-      padding: "14d",
-      step: "12h",
-      date_format: "YYYY-MM-dd HH:",
-      lower_text: "HH",
-      upper_text: (d, ld, lang) => !ld || d.getDate() !== ld.getDate() ? d.getMonth() !== d.getMonth() ? date_utils.format(d, "dd MMM", lang) : date_utils.format(d, "dd", lang) : "",
-      upper_text_frequency: 2
-    },
+    // >>> SR: Bar Aggregation -------------------------------------------------
+    // It currently doesn't work properly with PowerUI
+    /*    {
+            name: 'Hour',
+            padding: '7d',
+            step: '1h',
+            date_format: 'YYYY-MM-dd HH:',
+            lower_text: 'HH',
+            upper_text: (d, ld, lang) =>
+                !ld || d.getDate() !== ld.getDate()
+                    ? date_utils.format(d, 'dd MMMM', lang)
+                    : '',
+            upper_text_frequency: 24,
+        },
+        {
+            name: 'Quarter Day',
+            padding: '7d',
+            step: '6h',
+            date_format: 'YYYY-MM-dd HH:',
+            lower_text: 'HH',
+            upper_text: (d, ld, lang) =>
+                !ld || d.getDate() !== ld.getDate()
+                    ? date_utils.format(d, 'dd MMM', lang)
+                    : '',
+            upper_text_frequency: 4,
+        },
+        {
+            name: 'Half Day',
+            padding: '14d',
+            step: '12h',
+            date_format: 'YYYY-MM-dd HH:',
+            lower_text: 'HH',
+            upper_text: (d, ld, lang) =>
+                !ld || d.getDate() !== ld.getDate()
+                    ? d.getMonth() !== d.getMonth()
+                        ? date_utils.format(d, 'dd MMM', lang)
+                        : date_utils.format(d, 'dd', lang)
+                    : '',
+            upper_text_frequency: 2,
+        },*/
+    // <<< SR: Bar Aggregation -------------------------------------------------
     {
       name: "Day",
       padding: "7d",
@@ -1330,18 +1344,6 @@ var Gantt = function() {
       column_width: 140,
       lower_text: formatWeek,
       upper_text: (d, ld, lang) => !ld || d.getMonth() !== ld.getMonth() ? date_utils.format(d, "MMMM", lang) : "",
-      thick_line: (d) => d.getDate() >= 1 && d.getDate() <= 7,
-      upper_text_frequency: 4
-    },
-    {
-      //TODO SR Info: Testing view
-      name: "Quartale",
-      padding: "1m",
-      step: "7d",
-      date_format: "YYYY-MM-dd",
-      column_width: 50,
-      lower_text: "w",
-      upper_text: (d, ld, lang) => !ld || d.getMonth() !== ld.getMonth() ? date_utils.format(d, "MMM", lang) : "",
       thick_line: (d) => d.getDate() >= 1 && d.getDate() <= 7,
       upper_text_frequency: 4
     },
@@ -1428,9 +1430,6 @@ var Gantt = function() {
     //TODO SR: Take a look at the new ‘maintain_pos’ in Bar. Maybe this is unnecessary here.
     lane_padding: 4,
     // vertical distance between lanes in the same row
-    // Automatically rearrange when dragging/resizing. 
-    // Necessary if multiple bars are at the same lineIndex:
-    auto_relayout_on_change: false,
     row_height: null,
     //is calculated automatically, if set to null. //TODO SR: Check whether this should also depend on the view_mode.
     bar_inner_padding: 6,
@@ -3029,13 +3028,16 @@ var Gantt = function() {
     // <<< SR: Bar Aggregation ---------------------------------------------------
   }
   Gantt2.VIEW_MODE = {
-    HOUR: DEFAULT_VIEW_MODES[0],
-    QUARTER_DAY: DEFAULT_VIEW_MODES[1],
-    HALF_DAY: DEFAULT_VIEW_MODES[2],
-    DAY: DEFAULT_VIEW_MODES[3],
-    WEEK: DEFAULT_VIEW_MODES[4],
-    MONTH: DEFAULT_VIEW_MODES[5],
-    YEAR: DEFAULT_VIEW_MODES[6]
+    // >>> SR: Bar Aggregation ---------------------------------------------------
+    // It currently doesn't work properly with PowerUI
+    /*    HOUR: DEFAULT_VIEW_MODES[0],
+        QUARTER_DAY: DEFAULT_VIEW_MODES[1],
+        HALF_DAY: DEFAULT_VIEW_MODES[2],*/
+    // <<< SR: Bar Aggregation ---------------------------------------------------
+    DAY: DEFAULT_VIEW_MODES[0],
+    WEEK: DEFAULT_VIEW_MODES[1],
+    MONTH: DEFAULT_VIEW_MODES[2],
+    YEAR: DEFAULT_VIEW_MODES[3]
   };
   function generate_id(task) {
     return task.name + "_" + Math.random().toString(36).slice(2, 12);

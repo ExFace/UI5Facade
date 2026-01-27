@@ -2,7 +2,7 @@
   --g-arrow-color: #1f2937;
   --g-bar-color: #fff;
   --g-bar-border: #fff;
-  --g-tick-color-thick: #ededed;
+  --g-tick-color-thick: #ededed; /*TODO SR: Put it in exf-frappe-gantt.css as well and add a setter for it.*/
   --g-tick-color: #f3f3f3;
   --g-actions-background: #f3f3f3;
   --g-border-color: #ebeff2;

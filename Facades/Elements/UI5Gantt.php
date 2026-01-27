@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Exceptions\InvalidArgumentException;
 use exface\Core\Widgets\ButtonGroup;
+use exface\Core\Widgets\Parts\DataTimelineView;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Parts\DataTimeline;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsValueScaleTrait;
@@ -204,29 +205,16 @@ JS;
         $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
         $keepScrollPosition = $widget->getKeepScrollPosition();
-        $autoRelayoutOnChange = $widget->getAutoRelayoutOnChange();
         $defaultDurationHours = $calItem->getDefaultDurationHours();
-        $viewModesConfig = $this->getViewModesGanttConfig();
-
-        $aColumnWidths = $viewModesConfig['column_widths'];
-        $headerFormatsJson = json_encode($viewModesConfig['header_formats'], JSON_UNESCAPED_SLASHES);
+        $viewModesConfig = $this->getViewModesConfig();
         
-        $viewModeColumnWidthQuarterDay = json_encode($aColumnWidths['Quarter Day']);
-        $viewModeColumnWidthHalfDay = json_encode($aColumnWidths['Half Day']);
-        $viewModeColumnWidthDay = json_encode($aColumnWidths['Day']);
-        $viewModeColumnWidthWeek = json_encode($aColumnWidths['Week']) ;
-        $viewModeColumnWidthMonth = json_encode($aColumnWidths['Month']);
-        $viewModeColumnWidthYear = json_encode($aColumnWidths['Year']);
+        $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
         } else {
             $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
-        
-        $viewMode = $this->convertDataTimelineGranularityToGanttViewMode(
-            $widget->getTimelineConfig()->getGranularity(DataTimeline::GRANULARITY_HOURS)
-        );
         
         // see if this particular child(oChildRow)is to be moved along with its parent if the parent is moved
         // check if there is a condition set to adjust which children are to be moved along with its parent
@@ -244,7 +232,12 @@ JS;
         }
         
         return <<<JS
-(function() {   
+
+(function() {
+    // Builds frappe-gantt readable view modes from the simplified config
+    const buildedViewModes = viewModeBuilder.buildViewModesFromSimpleConfig({$viewModesConfigJson});
+    console.log("buildedViewModes: ", buildedViewModes); //TODO SR: Nimm es wieder raus
+  
     return new Gantt("#{$this->getId()}_gantt", [
       {
         id: 1,
@@ -257,32 +250,24 @@ JS;
       }
     ], {
       //TODO SR: Check all commented-out properties individually after the update and integrate them:
-        view_mode_select: true, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
+        view_mode_select: false, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
         today_button: false,
         upper_header_height: 40, // 45 // TODO SR: Implement as UXON property
         lower_header_height: 25, // 30 // TODO SR: Implement as UXON property
         auto_move_label: true, // TODO SR: Implement as UXON property
-        //header_height: 39,
+        view_modes: buildedViewModes,
+        infinite_padding: true, // TODO SR: It fixes the month view bug where the bars have wrong positions. This will be fixed in the future original frappe-gantt version. See: https://github.com/frappe/gantt/issues/498
         //column_width: 30,
         //step: 24,
-        //view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
         bar_height: 19,
         //bar_corner_radius: 3,
         //arrow_curve: 5,
         padding: 14,
-        //view_mode: '$viewMode',
-        //date_format: {$this->escapeString($dateFormat)},
+        //view_mode: 'Tage', //TODO SR: Currently still overwritten by ‘view_modes’ and only works if no custom ‘view_modes’ have been passed.
+        //date_format: {$this->escapeString($dateFormat)}, //TODO SR: was probably replaced by ‘date_format’ in ‘view_modes’.
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
-        //auto_relayout_on_change: '$autoRelayoutOnChange',
-        //default_duration: Math.floor('$defaultDurationHours' / 24),
-/*        view_mode_column_width_quarter_day: $viewModeColumnWidthQuarterDay,
-        view_mode_column_width_half_day: $viewModeColumnWidthHalfDay,
-        view_mode_column_width_day: $viewModeColumnWidthDay,
-        view_mode_column_width_week: $viewModeColumnWidthWeek,
-        view_mode_column_width_month: $viewModeColumnWidthMonth,
-        view_mode_column_width_year: $viewModeColumnWidthYear,
-        header_formats: $headerFormatsJson, */
+        //default_duration: Math.floor('$defaultDurationHours' / 24), //TODO SR: Obsolete weil frappe-gantt jetzt start + end erwartet
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         //custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -482,6 +467,10 @@ JS;
         $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
         $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
         
+        //TODO SR: Improve the inport here:
+        $controller->addExternalModule('libs.exface.viewModeBuilder.viewModeBuilder', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/view-mode-builder.js', null, 'viewModeBuilder');
+        
+        //TODO SR: Build minified version for production use:
         //$controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
         $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
         // task overlapping feature css:
@@ -644,10 +633,6 @@ JS;
 
         foreach ($viewModes as $viewMode) {
             $viewName = $viewMode->getName();
-            //$viewDescription = $viewMode->getDescription(); //TODO SR: Add a description to the buttons. The DataButton does not currently have a description setter.
-            $viewGranularity = $this->convertDataTimelineGranularityToGanttViewMode(
-                $viewMode->getGranularity()
-            );
             $viewIcon = $viewMode->getIcon() ?? '';
             
             $buttons[] = [
@@ -656,7 +641,7 @@ JS;
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'icon' => $viewIcon,
                     'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewGranularity');
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
 JS
                 ],
             ];
@@ -723,17 +708,30 @@ JS
         }
     }
     
-    protected function convertDataTimelineGranularityToGanttViewMode($granularity) : string 
+    protected function convertDataTimelineGranularityToGanttStep($granularity) : string 
     {
         return match ($granularity) {
-            DataTimeline::GRANULARITY_HOURS => 'Quarter Day',
+            DataTimeline::GRANULARITY_HOURS => '1h',
+            DataTimeline::GRANULARITY_QUARTER_DAYS => '6h',
+            DataTimeline::GRANULARITY_HALF_DAYS => '12h',
             DataTimeline::GRANULARITY_DAYS, 
             DataTimeline::GRANULARITY_DAYS_PER_WEEK, 
-            DataTimeline::GRANULARITY_DAYS_PER_MONTH => 'Day',
-            DataTimeline::GRANULARITY_MONTHS => 'Month',
-            DataTimeline::GRANULARITY_WEEKS => 'Week',
-            DataTimeline::GRANULARITY_YEARS => 'Year',
-            default => 'sap.ui.unified.CalendarIntervalType.Hour',
+            DataTimeline::GRANULARITY_DAYS_PER_MONTH => '1d',
+            DataTimeline::GRANULARITY_WEEKS => '7d',
+            DataTimeline::GRANULARITY_MONTHS => '1m',
+            DataTimeline::GRANULARITY_YEARS => '1y',
+            default => throw new InvalidArgumentException('The Gantt chart only supports the following granularities for the view modes: "hours", "quarter_days", "half_days", "days", "weeks", "months" and "years".'),
+        };
+    }
+    
+    protected function convertDataTimelineSnapToGanttSnap($snapString)
+    {
+        return match ($snapString) {
+            DataTimelineView::SNAP_AT_DAILY => '1d',
+            DataTimelineView::SNAP_AT_WEEKLY => '7d',
+            DataTimelineView::SNAP_AT_MONTHLY => '30d', // "30d" is the original value of the gantt library
+            null => null,
+            default => throw new InvalidArgumentException('The Gantt chart only supports the following snap strings: "daily", "weekly" and "monthly".'),
         };
     }
     
@@ -743,76 +741,133 @@ JS
             DataTimeline::INTERVAL_DAY => 'Date',
             DataTimeline::INTERVAL_MONTH => 'Month',
             DataTimeline::INTERVAL_YEAR => 'Year',
-            default => throw new InvalidArgumentException('The Gantt chard only supports the following intervals for the header lines: "day", "month" and "year".'),
+            DataTimeline::INTERVAL_DECADE => 'Decade',
+            default => throw new InvalidArgumentException('The Gantt chard only supports the following intervals for the header lines: "day", "month", "year" and "decade".'),
         };
     }
-
+    
     /**
-     * It returns mapped "column_widths" and "header_formats".
-     * column_widths: 
-     *      an array with granularity to view mode column width mapping.
-     *      Example: {'Day' : 38}
+     * It maps uxon DataTimelineView views to a simplified array structure, 
+     * that can be converted with view-mode-builder.js to the required gantt view mode structure.
      * 
-     * header_formats:
-     *      an array with header formats for each granularity view mode.
-     *      Example: 
-     *      'Day': {
-     *          upper: { date_format: '',    date_format_at_border: 'MMM',  interval: 'Month' },
-     *          lower: { date_format: '',    date_format_at_border: 'd',    interval: 'Date' }
-     *      }
+     * Example output:
+     * ```
+     * Week: {
+     *      padding: '1m',
+     *      step: '7d',
+     *      date_format: 'YYYY-MM-dd',
+     *      column_width: 140,
+     *      upper_text_frequency: 4,
+     *      
+     *      header: {
+     *          upper: {
+     *              interval: 'Month',
+     *              date_format: '',
+     *              date_format_at_border: 'MMMM',
+     *          },
+     *
+     *      lower: {
+     *          interval: null,
+     *          date_format: '~weekRange',
+     *          },
+     *      },
+     *
+     *      thick_line: {
+     *          interval: 'month_range_in_days',
+     *          from: 1,
+     *          to: 7
+     *      },
+     * },
+     * ```
      * 
      * @return array
      */
-    
-    protected function getViewModesGanttConfig(): array
+    protected function getViewModesConfig(): array
     {
         $widget = $this->getWidget();
-        
-        $columnWidths = array_fill_keys(['Quarter Day', 'Half Day', 'Day', 'Week', 'Month', 'Year'], null);
-        $headerFormats = [];
-
         $viewModes = $widget->getTimelineConfig()->getViews();
+        $simple_view_modes = [];
+        
         foreach ($viewModes as $viewMode) {
-            $granularity = $this->convertDataTimelineGranularityToGanttViewMode($viewMode->getGranularity());
+            $simple_view_mode = [];
             
-            if (!is_string($granularity) || !array_key_exists($granularity, $columnWidths)) {
-                continue;
-            }
-            
-            $columnWidth = $viewMode->getColumnWidth()?->getValue();
-            $columnWidths[$granularity] = is_numeric($columnWidth) ? (int) $columnWidth : null;
-            
+            $name = $viewMode->getName();
+            $step = $this->convertDataTimelineGranularityToGanttStep($viewMode->getGranularity());
+            $date_format = $viewMode->getDateFormat();
+            $column_width = $viewMode->getColumnWidth()?->getValue();
+            $padding = $viewMode->getPadding();
+            $snap_at = $this->convertDataTimelineSnapToGanttSnap($viewMode->getSnapAt());
+            $upper_text_frequency = $viewMode->getUpperTextFrequency();
             $headerLines = $viewMode->getHeaderLines() ?? [];
+            $thickLines = $viewMode->getThickLines() ?? [];
+            
+
+            $simple_view_mode['name'] = $name; // //TODO SR: Default unique name required if empty
+            $simple_view_mode['step'] = $step ?? '1d';
+            $simple_view_mode['date_format'] = ($date_format ?? 'yyyy-MM-dd');
+            $simple_view_mode['column_width'] = is_numeric($column_width) ? (int) $column_width : null;
+            $simple_view_mode['padding'] = $padding ?? '7d';
+            $simple_view_mode['snap_at'] = $snap_at ?? null;
+            $simple_view_mode['upper_text_frequency'] = is_numeric($upper_text_frequency) ? (int) $upper_text_frequency : null;
+            
             // Gantt only supports 2 header lines, so we just take the first 2.
             $upper = $headerLines[0] ?? null;
             $lower = $headerLines[1] ?? null;
+            $thickLine = $thickLines[0] ?? null;
+
+            // Default values for header lines. Took from a day view mode.
+            $upperDefaults = [
+                'interval' => 'Month',
+                'date_format' => '',
+                'date_format_at_border' => 'MMMM',
+            ];
+
+            $lowerDefaults = [
+                'interval' => 'Date',
+                'date_format' => 'dd',
+                'date_format_at_border' => null,
+            ];
             
             $self = $this;
-            $lineToArray = static function ($line) use ($self) {
+            $headerLineToArray = static function ($line = null, array $defaults = []) use ($self) {
+                if ($line === null) {
+                    return $defaults;
+                }
+
                 return [
-                    'date_format' => (string)($line->getDateFormat() ?? ''),
-                    'date_format_at_border' => (string)($line->getDateFormatAtBorder() ?? ''),
-                    'interval' => $self->convertDataTimeLineIntervalToGanttInterval($line->getInterval()) ?? '',
+                    'date_format' => (string)($line->getDateFormat() ?? $defaults['date_format']),
+                    'date_format_at_border' => $line->getDateFormatAtBorder() ?? $defaults['date_format_at_border'],
+                    'interval' => $self->convertDataTimeLineIntervalToGanttInterval($line->getInterval())
+                        ?? $defaults['interval'],
+                ];
+            };
+
+            $thicklineToArray = static function ($line) {
+                return [
+                    'from' => $line->getFrom() ?? null,
+                    'to' => $line->getTo() ?? null,
+                    'value' => $line->getValue() ?? null,
+                    'interval' => $line->getInterval() ?? null,
                 ];
             };
             
-            $lines = [];
-            if ($upper !== null) {
-                $lines['upper'] = $lineToArray($upper);
-            }
-            if ($lower !== null) {
-                $lines['lower'] = $lineToArray($lower);
+            $aHeaderLine = [
+                'upper' => $headerLineToArray($upper, $upperDefaults),
+                'lower' => $headerLineToArray($lower, $lowerDefaults),
+            ];
+
+            if (!empty($aHeaderLine)) {
+                $simple_view_mode['header'] = $aHeaderLine;
             }
             
-            if (!empty($lines)) {
-                $headerFormats[$granularity] = $lines;
+            if ($thickLine !== null) {
+                $aThickLine = $thicklineToArray($thickLine);
+                $simple_view_mode['thick_line'] = $aThickLine;
             }
+            
+            $simple_view_modes[$name] = $simple_view_mode;
         }
-
-        return [
-            'column_widths'  => $columnWidths,
-            'header_formats' => $headerFormats,
-        ];
+        return $simple_view_modes;
     }
     
 }
