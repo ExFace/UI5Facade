@@ -70,12 +70,15 @@ class UI5DataColumn extends UI5AbstractElement
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
         
+        $caption = $this->getCaption();
         $iconJs = '';
         $labelClassJs = '';
-        if ($icon = $col->getIcon()) {
-            $iconJs = "icon: '{$this->getIconSrc($icon)}',";
+        $colClassJs = '';
+        if (null !== $icon = $col->getIcon()) {
+            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))}, textAlign: sap.ui.core.TextAlign.Center,";
+            $caption = '';
             if ($col->getIconSet() === 'svg') {
-                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
+                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored exf-icon-only")';
             }
         }
         $expression = $this->buildJsAddDataExpression($col);
@@ -87,7 +90,7 @@ class UI5DataColumn extends UI5AbstractElement
 
 	 new sap.ui.table.Column('{$this->getId()}', {
 	    label: new sap.ui.commons.Label({
-            text: "{$this->getCaption()}",
+            text: "{$caption}",
             {$this->buildJsPropertyTooltip(true)}
             {$iconJs}
             {$labelWrappingJs}
