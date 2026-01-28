@@ -319,21 +319,22 @@ JS;
     
     protected function buildJsAddDataExpression(DataColumn $col) : string
     {
-        $result = ".data('_exfCaption', '{$this->getCaption()}')";
+        $caption = $this->escapeString($this->getCaption());
+        $result = ".data('_exfCaption', {$caption})";
         
         if ($col->getAttributeAlias() !== null) {
             $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
             
             return $result . <<<JS
 
-.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
-.data('_exfAbbreviation', '{$abbreviation}')
+.data('_exfAttributeAlias', "{$col->getAttributeAlias()}")
+.data('_exfAbbreviation', "{$abbreviation}")
 JS;
         } elseif ($col->getCalculationExpression() !== null) {
             return $result . <<<JS
 
 .data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
-.data('_exfAbbreviation', '{$this->getCaption()}')
+.data('_exfAbbreviation', {$caption})
 JS;
         }
         
