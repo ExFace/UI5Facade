@@ -329,7 +329,7 @@ JS;
             return $result . <<<JS
 
 .data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
-.data('_exfAbbreviation', "{$abbreviation}")
+.data('_exfAbbreviation', {$abbreviation})
 JS;
         } elseif ($col->getCalculationExpression() !== null) {
             return $result . <<<JS
