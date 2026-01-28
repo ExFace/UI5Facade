@@ -324,10 +324,11 @@ JS;
         
         if ($col->getAttributeAlias() !== null) {
             $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
+            $abbreviation = $this->escapeString($abbreviation);
             
             return $result . <<<JS
 
-.data('_exfAttributeAlias', "{$col->getAttributeAlias()}")
+.data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
 .data('_exfAbbreviation', "{$abbreviation}")
 JS;
         } elseif ($col->getCalculationExpression() !== null) {
