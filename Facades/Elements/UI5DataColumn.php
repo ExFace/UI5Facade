@@ -73,6 +73,15 @@ class UI5DataColumn extends UI5AbstractElement
         } elseif ($col->getCalculationExpression() !== null) {
             $expression = ".data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})";
         }
+        
+        $iconJs = '';
+        $labelClassJs = '';
+        if ($icon = $col->getIcon()) {
+            $iconJs = "icon: '{$this->getIconSrc($icon)}',";
+            if ($col->getIconSet() === 'svg') {
+                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
+            }
+        }
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
         // any way to see the entire caption except for using the tooltip.
@@ -82,8 +91,9 @@ class UI5DataColumn extends UI5AbstractElement
 	    label: new sap.ui.commons.Label({
             text: "{$this->getCaption()}",
             {$this->buildJsPropertyTooltip(true)}
+            {$iconJs}
             {$labelWrappingJs}
-        }),
+        }){$labelClassJs},
         autoResizable: true,
         template: {$this->buildJsConstructorForCell()},
 	    {$this->buildJsPropertyShowSortMenuEntry()}
