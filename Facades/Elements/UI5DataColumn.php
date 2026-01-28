@@ -69,11 +69,6 @@ class UI5DataColumn extends UI5AbstractElement
         } else {
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
-        if ($col->getAttributeAlias() !== null) {
-            $expression = ".data('_exfAttributeAlias', '{$col->getAttributeAlias()}')";
-        } elseif ($col->getCalculationExpression() !== null) {
-            $expression = ".data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})";
-        }
         
         $iconJs = '';
         $labelClassJs = '';
@@ -97,7 +92,6 @@ class UI5DataColumn extends UI5AbstractElement
             {$iconJs}
             {$labelWrappingJs}
         }){$labelClassJs},
-        }),
         autoResizable: true,
         template: {$this->buildJsConstructorForCell()},
 	    {$this->buildJsPropertyShowSortMenuEntry()}
