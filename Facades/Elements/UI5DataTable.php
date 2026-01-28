@@ -1788,13 +1788,16 @@ JS;
 
                 var bResized = false;
                 var oInitWidths = {};
+                
                 if (! $oModelJs.getData().rows || $oModelJs.getData().rows.length === 0) {
                     return;
                 }
                 
                 $oTableJs.getColumns().reverse().forEach(function(oCol, i) {
                     var oWidth = oCol.data('_exfWidth');
-                    if (! oWidth || $('#'+oCol.getId()).length === 0) return;
+                    if (! oWidth || $('#'+oCol.getId()).length === 0) {
+                        return;
+                    }
                     oInitWidths[$oTableJs.indexOfColumn(oCol)] = $('#'+oCol.getId()).width();
                     if (oCol.getVisible() === true && oWidth.auto === true) {
                         bResized = true;
@@ -1806,37 +1809,53 @@ JS;
                 });
 
                 if (bResized) {
+                    var fResize = function(oCol){
+                        var oWidth = oCol.data('_exfWidth');
+                        var jqCol = $('#'+oCol.getId());
+                        var jqLabel = jqCol.find('label');
+                        var iWidth = null;
+                        var iColIdx = $oTableJs.indexOfColumn(oCol);
+                        if (! oWidth) {
+                            return;
+                        }
+                        if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
+                            oCol.setWidth(oInitWidths[iColIdx] + 'px');
+                        }
+                        if (oCol.getVisible() === true && oWidth.auto === true) {
+                            if (! jqLabel[0]) {
+                                return;
+                            }
+                            var sAbbrev = oCol.data('_exfAbbreviation');
+                            // We compare with 95% width to avoid browser truncation.
+                            var fLabelWidth = jqLabel.width()  * 0.95; 
+                            // If the caption overflows and isn't abbreviated, use the abbreviation instead.
+                            if (jqLabel[0].scrollWidth > fLabelWidth && oCol.getLabel().getText() !== sAbbrev) {
+                                oCol.getLabel()?.setText(sAbbrev);
+                                // Reiterate the resize function for this column, but with a delay to account for async results. 
+                                setTimeout(function () { fResize(oCol); }, 0);
+                                return;
+                            }
+                            if (jqLabel[0].scrollWidth > fLabelWidth) {
+                                oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
+                            }
+                            if (oWidth.min) {
+                                iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
+                                if (jqCol.outerWidth() < iWidth) {
+                                    oCol.setWidth(oWidth.min);
+                                }
+                            }
+                            if (oWidth.max) {
+                                iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
+                                if (jqCol.outerWidth() > iWidth) {
+                                    oCol.setWidth(oWidth.max);
+                                }
+                            }
+                        }
+                    };
+                    
                     setTimeout(function(){
-                        $oTableJs.getColumns().forEach(function(oCol){
-
-                            var oWidth = oCol.data('_exfWidth');
-                            var jqCol = $('#'+oCol.getId());
-                            var jqLabel = jqCol.find('label');
-                            var iWidth = null;
-                            var iColIdx = $oTableJs.indexOfColumn(oCol);
-
-                            if (! oWidth) return;
-                            if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
-                                oCol.setWidth(oInitWidths[iColIdx] + 'px');
-                            }
-                            if (oCol.getVisible() === true && oWidth.auto === true) {
-                                if (! jqLabel[0]) return;
-                                if (jqLabel[0].scrollWidth > jqLabel.width()) {
-                                    oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
-                                }
-                                if (oWidth.min) {
-                                    iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
-                                    if (jqCol.outerWidth() < iWidth) {
-                                        oCol.setWidth(oWidth.min);
-                                    }
-                                }
-                                if (oWidth.max) {
-                                    iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
-                                    if (jqCol.outerWidth() > iWidth) {
-                                        oCol.setWidth(oWidth.max);
-                                    }
-                                }
-                            }
+                        $oTableJs.getColumns().forEach(function (oCol){
+                            fResize(oCol);
                         });
                     }, 0);
                 }
