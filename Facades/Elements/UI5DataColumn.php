@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -78,8 +79,11 @@ class UI5DataColumn extends UI5AbstractElement
         $labelClassJs = '';
         if ($icon = $col->getIcon()) {
             $iconJs = "icon: '{$this->getIconSrc($icon)}',";
-            if ($col->getIconSet() === 'svg') {
+            $iconSet = $col->getIconSet();
+            if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
                 $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
+            } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
+                $labelClassJs .= '.addStyleClass("exf-svg-icon")';
             }
         }
         // The tooltips for columns of the UI table also include the column caption
