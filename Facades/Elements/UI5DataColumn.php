@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\DataColumn;
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -72,15 +73,23 @@ class UI5DataColumn extends UI5AbstractElement
         
         $caption = $this->getCaption();
         $iconJs = '';
-        $labelClassJs = '';
-        $colClassJs = '';
-        if (null !== $icon = $col->getIcon()) {
-            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))}, textAlign: sap.ui.core.TextAlign.Center,";
+        $labelClass = '';
+        if ($icon = $col->getIcon()) {
+            $iconJs = "icon: '{$this->getIconSrc($icon)}',";
+            
+            // Icons should replace the caption in the colum header
             $caption = '';
-            if ($col->getIconSet() === 'svg') {
-                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored exf-icon-only")';
+            $labelClass = 'exf-icon-only';
+            
+            // SVG icons need a special CSS class to fix their positioning and color
+            $iconSet = $col->getIconSet();
+            if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+                $labelClass .= ' exf-svg-icon exf-svg-colored';
+            } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
+                $labelClass .= ' exf-svg-icon)';
             }
         }
+        $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
         $expression = $this->buildJsAddDataExpression($col);
         
         // The tooltips for columns of the UI table also include the column caption
