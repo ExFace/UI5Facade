@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\DataColumn;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -82,6 +83,8 @@ class UI5DataColumn extends UI5AbstractElement
                 $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
             }
         }
+        $expression = $this->buildJsAddDataExpression($col);
+        
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
         // any way to see the entire caption except for using the tooltip.
@@ -94,6 +97,7 @@ class UI5DataColumn extends UI5AbstractElement
             {$iconJs}
             {$labelWrappingJs}
         }){$labelClassJs},
+        }),
         autoResizable: true,
         template: {$this->buildJsConstructorForCell()},
 	    {$this->buildJsPropertyShowSortMenuEntry()}
@@ -315,8 +319,31 @@ JS;
 					})
 					.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
 					.data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					
+					{$this->buildJsAddDataExpression($col)}
 JS;
+    }
+    
+    protected function buildJsAddDataExpression(DataColumn $col) : string
+    {
+        $result = ".data('_exfCaption', '{$this->getCaption()}')";
+        
+        if ($col->getAttributeAlias() !== null) {
+            $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
+            
+            return $result . <<<JS
+
+.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
+.data('_exfAbbreviation', '{$abbreviation}')
+JS;
+        } elseif ($col->getCalculationExpression() !== null) {
+            return $result . <<<JS
+
+.data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
+.data('_exfAbbreviation', '{$this->getCaption()}')
+JS;
+        }
+        
+        return '';
     }
                         
     protected function buildJsPropertyVisibile()
