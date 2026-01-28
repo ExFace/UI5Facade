@@ -65,6 +65,8 @@ class UI5DataTree extends UI5DataTable
             {$this->buildJsPropertyColumnHeaderHeight()}
             {$this->buildJsPropertyMinAutoRowCount()}
             selectionMode: {$selection_mode},
+            fixedColumnCount: {$this->registerUiTableFixedColumns()},
+            enableColumnFreeze: true,
 	        selectionBehavior: {$selection_behavior},
     		rowSelectionChange: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
             firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
