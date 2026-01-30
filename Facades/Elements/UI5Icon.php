@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\Constants\Icons;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 use exface\Core\Interfaces\Widgets\iHaveIcon;
 
@@ -136,7 +137,7 @@ JS;
         // we apply the same trick as with custom colors: use an injected CSS class set by a
         // value formatter. The CSS class will override the icon.
         if ($widget->hasIconScale()) {
-            if ($widget->getIconSet() === iHaveIcon::ICON_SET_SVG) {
+            if (Icons::isIconSetSVG($widget->getIconSet())) {
                 $bSvgJs = 'true';
                 // Add the widget id to the CSS class in case there are multiple widgets
                 // with same values (like 1 and 0) but different icons
@@ -154,7 +155,7 @@ JS;
             }
         } else {
             $valueJs = 'value';
-            if ($widget->getIconSet() === iHaveIcon::ICON_SET_SVG) {
+            if (Icons::isIconSetSVG($widget->getIconSet())) {
                 $this->registerColorClasses(['icon'], "#{$this->getId()}.exf-svg-icon:before", 'content: url("data:image/svg+xml,' . rawurlencode($this->getWidget()->getIcon()) . '")');
             }
         }
@@ -246,7 +247,11 @@ JS;
     public function buildCssElementClass()
     {
         $cls = parent::buildCssElementClass();
-        if ($this->getWidget()->getIconSet() === 'svg') {
+        $iconSet = $this->getWidget()->getIconSet();
+        
+        if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+            $cls .= ' exf-svg-icon exf-svg-colored';
+        } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
             $cls .= ' exf-svg-icon';
         }
         return $cls;

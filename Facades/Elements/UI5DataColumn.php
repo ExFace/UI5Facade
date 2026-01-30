@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\DataColumn;
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -68,20 +70,28 @@ class UI5DataColumn extends UI5AbstractElement
         } else {
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
-        if ($col->getAttributeAlias() !== null) {
-            $expression = ".data('_exfAttributeAlias', '{$col->getAttributeAlias()}')";
-        } elseif ($col->getCalculationExpression() !== null) {
-            $expression = ".data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})";
-        }
         
+        $caption = $this->getCaption();
         $iconJs = '';
-        $labelClassJs = '';
+        $labelClass = '';
         if ($icon = $col->getIcon()) {
             $iconJs = "icon: '{$this->getIconSrc($icon)}',";
-            if ($col->getIconSet() === 'svg') {
-                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
+            
+            // Icons should replace the caption in the colum header
+            $caption = '';
+            $labelClass = 'exf-icon-only';
+            
+            // SVG icons need a special CSS class to fix their positioning and color
+            $iconSet = $col->getIconSet();
+            if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+                $labelClass .= ' exf-svg-icon exf-svg-colored';
+            } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
+                $labelClass .= ' exf-svg-icon)';
             }
         }
+        $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
+        $expression = $this->buildJsAddDataExpression($col);
+        
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
         // any way to see the entire caption except for using the tooltip.
@@ -89,7 +99,7 @@ class UI5DataColumn extends UI5AbstractElement
 
 	 new sap.ui.table.Column('{$this->getId()}', {
 	    label: new sap.ui.commons.Label({
-            text: "{$this->getCaption()}",
+            text: "{$caption}",
             {$this->buildJsPropertyTooltip(true)}
             {$iconJs}
             {$labelWrappingJs}
@@ -315,8 +325,33 @@ JS;
 					})
 					.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
 					.data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					
+					{$this->buildJsAddDataExpression($col)}
 JS;
+    }
+    
+    protected function buildJsAddDataExpression(DataColumn $col) : string
+    {
+        $caption = $this->escapeString($this->getCaption());
+        $result = ".data('_exfCaption', {$caption})";
+        
+        if ($col->getAttributeAlias() !== null) {
+            $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
+            $abbreviation = $this->escapeString($abbreviation);
+            
+            return $result . <<<JS
+
+.data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
+.data('_exfAbbreviation', {$abbreviation})
+JS;
+        } elseif ($col->getCalculationExpression() !== null) {
+            return $result . <<<JS
+
+.data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
+.data('_exfAbbreviation', {$caption})
+JS;
+        }
+        
+        return '';
     }
                         
     protected function buildJsPropertyVisibile()
