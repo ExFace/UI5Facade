@@ -1001,55 +1001,69 @@ JS;
     		});
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
+    		// NOTE: adding filters to the P13nDialog works strage: the value of the filter does not change
+    		// immediately. So while the first-time filter on a column always works, changing the value via
+    		// header menu will not change the value in the configurator, so the table will read with the old
+    		// value once, then it will read with the new filter value immediately - ultimately sending two
+    		// requests instead of one. As a workaround, we stop the current request (via `if(false==`) and
+    		// press "OK" on the configurator instead.
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'filter'){
-                (function(oEvent) {
-                    var oColumn = oEvent.getParameters().column;
-                    var sFltrProp = oColumn.getFilterProperty();
-                    var sFltrVal = oEvent.getParameters().value;
-                    var fnParser = oColumn.data('_exfFilterParser'); 
-                    var mFltrParsed = fnParser !== undefined ? fnParser(sFltrVal) : sFltrVal;
-
-                    {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
-                    
-                    if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
-                        oColumn.setFiltered(true).setFilterValue(sFltrVal);
-                    } else {
-                        oColumn.setFiltered(false).setFilterValue('');
-                    }  
-
-                    // also set the filter as an advanced search item in the p13n panel
-                    let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
-
-                    // Check if a filter for the property already exists
-                    let aFilterItems = oFilterPanel.getFilterItems();
-                    let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
-
-                    if (oExistingFilter) {
-                        // delete exiting property (if any)
-                        oFilterPanel.removeFilterItem(oExistingFilter);
-                    } 
-                    if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
-                        // create new filter item if value is valid/not empty
-                        var oFilterItem = new sap.m.P13nFilterItem({
-                            "columnKey": sFltrProp,
-                            "exclude": false,
-                            "operation": "Contains",
-                            "value1": mFltrParsed
-                        });
-
-                        oFilterPanel.addFilterItem(oFilterItem);
-                    }
-
-                    // apply the changes from the p13n dialogue 
-                    let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
-                    if (oP13nDialog) {
-                        oP13nDialog.fireOk();
-                    }
-
-                    // Also make sure the built-in UI5-filtering is not applied.
-                    oEvent.cancelBubble();
-                    oEvent.preventDefault();
-                })($oControlEventJsVar);
+                if(
+                    false === (function(oEvent) {
+                        var oColumn = oEvent.getParameters().column;
+                        var sFltrProp = oColumn.getFilterProperty();
+                        var sFltrVal = oEvent.getParameters().value;
+                        var fnParser = oColumn.data('_exfFilterParser'); 
+                        var mFltrParsed = fnParser !== undefined ? fnParser(sFltrVal) : sFltrVal;
+    
+                        {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
+                        
+                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
+                            oColumn.setFiltered(true).setFilterValue(sFltrVal);
+                        } else {
+                            oColumn.setFiltered(false).setFilterValue('');
+                        }  
+    
+                        // also set the filter as an advanced search item in the p13n panel
+                        let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+    
+                        // Check if a filter for the property already exists
+                        let aFilterItems = oFilterPanel.getFilterItems();
+                        let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
+    
+                        if (oExistingFilter) {
+                            // delete exiting property (if any)
+                            oFilterPanel.removeFilterItem(oExistingFilter);
+                        } 
+                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
+                            // create new filter item if value is valid/not empty
+                            var oFilterItem = new sap.m.P13nFilterItem({
+                                "columnKey": sFltrProp,
+                                "exclude": false,
+                                "operation": "Contains",
+                                "value1": mFltrParsed
+                            });
+    
+                            oFilterPanel.addFilterItem(oFilterItem);
+                        }
+    
+                        // Also make sure the built-in UI5-filtering is not applied.
+                        oEvent.cancelBubble();
+                        oEvent.preventDefault();
+    
+                        // apply the changes from the p13n dialogue 
+                        let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oP13nDialog) {
+                            // Cancel the current read request and press "OK" on the configurator instead
+                            // See more comments above in PHP
+                            oP13nDialog.fireOk();
+                            return false;
+                        }
+                        return true;
+                    })($oControlEventJsVar)
+                ) {
+                    return Promise.resolve(oTable.getModel());
+                }
             }
     		
     		// If sorting just now, overwrite the sort string and make sure the sorter in the configurator is set too
