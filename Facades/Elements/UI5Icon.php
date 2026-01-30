@@ -159,26 +159,83 @@ JS;
                 $this->registerColorClasses(['icon'], "#{$this->getId()}.exf-svg-icon:before", 'content: url("data:image/svg+xml,' . rawurlencode($this->getWidget()->getIcon()) . '")');
             }
         }
+
         $bSvgJs = $bSvgJs ?? 'false';
         return parent::buildJsValueBindingOptions() . <<<JS
         
                 formatter: function(value){
                     var oCtrl = this;
                     var sIcon = {$valueJs};
-                    var bSvg = {$bSvgJs};
+
+                    // If the current value is an icon or starts with <svg, we use a custom css injection
+                    var bWasSvg = oCtrl.data('bIsSvg') === true;
+                    var bSvg = {$bSvgJs} || (value || '').toString().startsWith('<svg'); // if widget is svg or content starts with svg
+
+                    // NOTE: if the value changes from an injected svg to another type of icon or empty, the styling logic in buildJsColorClassSetter
+                    // is not re-run, so we need to remove the class here. Otherwise the icons do not get removed from old cells after scrolling!
+                    // When transitioning between different injected svgs, the logic in buildJsColorClassSetter manages the changes as usual
+                    if (bWasSvg && bSvg === false){
+                        oCtrl.removeStyleClass('exf-svg-icon');
+                    }
+                    oCtrl.data("bIsSvg", false);
+
                     switch (true) {
                         case sIcon === undefined:
                         case sIcon === null:
                         case sIcon === '':
                             return null;
                         case bSvg:
-                            {$this->buildJsColorClassSetter('oCtrl', 'sIcon', 'exf-svg-icon', $svgClassPrefix)};
+
+                            // helper function to hash icons
+                            const generateHash = (string) => {
+                                let hash = 0;
+                                for (const char of string) {
+                                    hash = (hash << 5) - hash + char.charCodeAt(0);
+                                    hash |= 0; // Constrain to 32bit integer
+                                }
+                                return hash;
+                            };
+
+                            // enocode the svg for displaying and hash it for generating an ID
+                            let sUriValue = encodeURIComponent(value);
+                            let sIconClass = generateHash(sUriValue);
+
+                            {$this->buildJsColorClassSetter('oCtrl', 'sIconClass', 'exf-svg-icon', 'exf-injected-icon-')};
+
+                            // store that the current value is an injected svg and return placeholder
+                            oCtrl.data("bIsSvg", true);
                             return 'sap-icon://circle-task';
                         case ! sIcon.toString().startsWith('sap-icon://'):
                             return 'sap-icon://font-awesome/' + sIcon;
                     }
                     return sIcon;
                 },
+JS;
+    }
+
+    protected function buildJsColorClassInjector(): string
+    {
+        // we set the icon as a background instead of content here, to avoid scaling issues;
+        $cssTemplate = $this->buildCssClasses(
+            ['content' => '[#content#]', 'id' => '[#id#]'], 
+            [ 
+                '.exf-injected-icon-' . '[#id#]' . '.exf-svg-icon:before' => 'background: url("data:image/svg+xml, ' . '[#content#]' . '") no-repeat center / contain'
+            ],
+            true
+        );
+
+        return <<<JS
+
+        (function (sUriValue, sIconClass) {
+            var classId = 'exf-svg-icon-' + sIconClass;
+            var jqTag = $('#' + classId);
+            if (jqTag.length === 0) {
+                var text = ('{$cssTemplate}')
+                    .replace('[#id#]', sIconClass)
+                    .replace('[#content#]', sUriValue);
+                $('head').append($('<style type="text/css" id="' + classId + '"></style>').text(text));
+            }
+        })(sUriValue, sIconClass)
 JS;
     }
     
