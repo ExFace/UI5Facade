@@ -94,19 +94,6 @@ JS
             );
         }
 
-        // re-calculate frozen columns for sap.ui.table (might change due to optional columns/setups/mutations)
-        $hasDirtyColumn = $this->escapeBool($this->hasDirtyColumn());
-        $controller->addOnShowViewScript(<<<JS
-            
-                setTimeout(() => {
-                    let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
-                    if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount("{$this->getId()}", {$this->getWidget()->getFreezeColumns()}, {$hasDirtyColumn}));
-                    }
-                }, 0);
-                    
-JS, false);
-
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
         } else {
@@ -135,6 +122,38 @@ JS, false);
         $controller->addOnPrefillDataChangedScript($clearSelectionJs);
         
         return $js;
+    }
+    
+    protected function registerUiTableFixedColumns() : int
+    {
+        // re-calculate frozen columns for sap.ui.table (might change due to optional columns/setups/mutations)
+        $this->getController()->addOnShowViewScript(<<<JS
+            
+                setTimeout(() => {
+                    let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                    let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+                    if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount("{$this->getId()}", {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn));
+                    }
+                }, 0);
+                    
+JS, false);
+
+        $widget = $this->getWidget();
+        $freezeColumnsCount = $widget->getFreezeColumns();
+        if ($freezeColumnsCount > 0) {
+            $columns = $widget->getColumns();
+            for ($i = 0; $i < $freezeColumnsCount; $i++) {
+                if ($columns[$i]->isHidden()) {
+                    $freezeColumnsCount++;
+                }
+            }
+            // increase the count if the DirtyFlag column is added as the first column in the table
+            if ($this->hasDirtyColumn()) {
+                $freezeColumnsCount++;
+            }
+        }
+        return $freezeColumnsCount;
     }
 
     public function isMList() : bool
@@ -647,19 +666,6 @@ JS;
         } else {
             $toolbar = '';
         }
-        $freezeColumnsCount = $widget->getFreezeColumns();
-        if ($freezeColumnsCount > 0) {
-            $columns = $widget->getColumns();
-            for ($i = 0; $i < $freezeColumnsCount; $i++) {
-                if ($columns[$i]->isHidden() == true) {
-                    $freezeColumnsCount++;
-                }
-            }
-            // increase the count if the DirtyFlag column is added as the first column in the table
-            if ($this->hasDirtyColumn()) {
-                $freezeColumnsCount++;
-            }
-        }
         $enableGrouping = $widget->hasRowGroups() ? 'enableGrouping: true,' : '';
         
         if ($widget->getDragToOtherWidgets() === true) {
@@ -693,7 +699,7 @@ JS;
                 selectionMode: {$selection_mode},
         		selectionBehavior: {$selection_behavior},
                 enableColumnReordering: true,
-                fixedColumnCount: {$freezeColumnsCount},
+                fixedColumnCount: {$this->registerUiTableFixedColumns()},
                 enableColumnFreeze: true,
                 {$enableGrouping}
         		filter: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
