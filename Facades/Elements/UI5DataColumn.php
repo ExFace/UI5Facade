@@ -75,7 +75,7 @@ class UI5DataColumn extends UI5AbstractElement
         $iconJs = '';
         $labelClass = '';
         if ($icon = $col->getIcon()) {
-            $iconJs = "icon: '{$this->getIconSrc($icon)}',";
+            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))},";
             
             // Icons should replace the caption in the colum header
             $caption = '';
@@ -86,7 +86,7 @@ class UI5DataColumn extends UI5AbstractElement
             if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
                 $labelClass .= ' exf-svg-icon exf-svg-colored';
             } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
-                $labelClass .= ' exf-svg-icon)';
+                $labelClass .= ' exf-svg-icon';
             }
         }
         $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
