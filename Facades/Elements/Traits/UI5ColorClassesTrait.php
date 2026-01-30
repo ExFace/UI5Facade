@@ -78,29 +78,49 @@ trait UI5ColorClassesTrait {
 
     /**
      * Builds CSS classes with the data provided.
+     * 
+     * Example:
+     * 
+     * $cssTemplate = $this->buildCssClasses(
+     *       ['content' => '[#content#]', 'id' => '[#id#]'], 
+     *       [ 
+     *           '.exf-icon-' . '[#id#]' . '.exf-svg-icon:before' => 'content: url("data:image/svg+xml, ' . '[#content#]' . '")'
+     *       ],
+     *       true
+     *   );
+     * 
+     * Returns:
+     * '.exf-icon-[#id#].exf-svg-icon:before { content: url("data:image/svg+xml, [#content#]") }'
+     * 
+     * 
      *
-     * @param array $placeholders
-     * @param array $subClasses
+     * @param array $placeholderValues values to be replaced with actual values at runtime
+     * @param array $cssWithPlaceholders css template with inserted placeholders
+     * @param bool $keepPlaceholders whether placeholders should be replaced or kep as is
      * @return string
      */
     protected function buildCssClasses(
-        array $placeholders,
-        array $subClasses = [
+        array $placeholderValues,
+        array $cssWithPlaceholders = [
             '.exf-custom-color.exf-color-[#color#]' => 'background-color: [#color#]'
-        ]) : string
+        ],
+        bool $keepPlaceholders = false
+        ) : string
     {
         $phsClassName = array_map(
             function ($value) {
                 return str_replace($this->cssClassNameRemoveChars, '', trim($value));
             },
-            $placeholders
+            $placeholderValues
         );
         
         $class = '';
         
-        foreach ($subClasses as $selector => $properties) {
-            $selector = StringDataType::replacePlaceholders($selector, $phsClassName);
-            $properties = StringDataType::replacePlaceholders($properties, $placeholders);
+        foreach ($cssWithPlaceholders as $selector => $properties) {
+            if ($keepPlaceholders === false){
+                $selector = StringDataType::replacePlaceholders($selector, $phsClassName);
+                $properties = StringDataType::replacePlaceholders($properties, $placeholderValues);
+            }
             $class .= "{$selector} { {$properties} }";
         }
 
@@ -169,7 +189,10 @@ JS;
     }
 
     /**
-     * Builds an inline JS-Snippet that injects CSS color classes into the document.
+     * Builds an inline JS-Snippet that injects CSS color classes into the document header.
+     * 
+     * For color example, see UI5ObjectStatus::buildJsColorClassInjector()
+     * For Icon Example, see UI5Icon::buildJsColorClassInjector() 
      * 
      * @param string $colorJs
      * @param string $colorSuffixJs
