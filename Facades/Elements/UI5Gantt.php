@@ -861,6 +861,8 @@ JS
             }
             
             if ($thickLine !== null) {
+                $simple_view_mode['thick_line_color'] = $thickLine->getColor() ?? null;
+                
                 $aThickLine = $thicklineToArray($thickLine);
                 $simple_view_mode['thick_line'] = $aThickLine;
             }

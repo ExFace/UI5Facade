@@ -1434,8 +1434,10 @@ var Gantt = function() {
     //is calculated automatically, if set to null. //TODO SR: Check whether this should also depend on the view_mode.
     bar_inner_padding: 6,
     // Total vertical padding within the row for each task
-    row_keys: null
+    row_keys: null,
     // For empty lines
+    tick_color_thick: null
+    // Defines the color of the thick tick lines.
     // <<< SR: Bar Aggregation -------------------------------------------------
   };
   class Gantt2 {
@@ -1896,6 +1898,9 @@ var Gantt = function() {
         }
       }
       if (this.options.lines === "horizontal") return;
+      if (this.config.view_mode.thick_line_color) {
+        this.$container.style.setProperty("--g-tick-color-thick", String(this.config.view_mode.thick_line_color));
+      }
       for (let date of this.dates) {
         let tick_class = "tick";
         if (this.config.view_mode.thick_line && this.config.view_mode.thick_line(date)) {

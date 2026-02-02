@@ -107,6 +107,7 @@
         column_width: vm.column_width ?? undefined,
         snap_at: vm.snap_at ?? undefined,
         upper_text_frequency: vm.upper_text_frequency ?? undefined,
+        thick_line_color: vm.thick_line_color,
 
         upper_text: _createHeaderFormatter({
           date_format: upperDef?.date_format ?? '',
