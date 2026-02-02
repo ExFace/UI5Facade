@@ -147,7 +147,9 @@ JS);
             // TODO check for the same object before extending anything here
             $oParamsJs = (function(oMapParams, oLeafletParams, oLinkParams){
                 var oMergedParams = $.extend({}, oLeafletParams);
-                oMergedParams.data.filters = oLinkParams.data.filters;
+                if (oLinkParams.data && oLinkParams.data.filters) {
+                    oMergedParams.data.filters = oLinkParams.data.filters;
+                }
                 return oMergedParams;
             })($oParamsJs, oLeafletParams, oLinkParams);
 JS;
