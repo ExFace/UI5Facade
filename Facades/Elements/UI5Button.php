@@ -778,9 +778,9 @@ JS;
         
         $iconSet = $this->getWidget()->getIconSet();
         if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
-            $cls .= 'exf-svg-icon exf-svg-colored';
+            $cls .= ' exf-svg-icon exf-svg-colored';
         } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
-            $cls .= 'exf-svg-icon';
+            $cls .= ' exf-svg-icon';
         }
         
         return $cls;
