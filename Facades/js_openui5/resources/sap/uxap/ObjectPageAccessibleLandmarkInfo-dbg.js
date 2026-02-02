@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,13 +22,12 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.uxap.ObjectPageAccessibleLandmarkInfo
 	 * @since 1.61
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ObjectPageAccessibleLandmarkInfo = Element.extend("sap.uxap.ObjectPageAccessibleLandmarkInfo", /** @lends sap.uxap.ObjectPageAccessibleLandmarkInfo.prototype */ { metadata : {
 
@@ -102,7 +101,17 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), no label is set.
 			 */
-			footerLabel : {type : "string", defaultValue : null}
+			footerLabel : {type : "string", defaultValue : null},
+
+			/**
+			 * Texts which describe the landmark of the section inside the header container of the corresponding <code>sap.uxap.ObjectPageLayout</code> control.
+			 *
+			 * If not set, default "Expanded header" aria-label is set.
+			 * @public
+			 * @since 1.127.0
+			 */
+
+			headerContentLabel: {type : "string", defaultValue : null}
 		}
 	}});
 

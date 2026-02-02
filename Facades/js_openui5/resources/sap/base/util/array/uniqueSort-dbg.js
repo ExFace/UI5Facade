@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/base/assert'], function(assert) {
@@ -11,8 +11,6 @@ sap.ui.define(['sap/base/assert'], function(assert) {
 	 *
 	 * Uses Array#sort()
 	 * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
-	 *
-	 * Note: Array#sort is used for sorting which means that there is no stable sorting for IE11 and the old edge.
 	 *
 	 * Use <code>jQuery.uniqueSort()</code> for arrays of DOMElements.
 	 *

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	Base,
 	LoaderExtensions,
 	revertAddedControls
+
 ) {
 	"use strict";
 
@@ -20,57 +21,69 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.BaseAddXml
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.75
 	 * @private
-	 * @experimental Since 1.75. This class is experimental and provides only limited functionality. Also the API might be changed in future.
+	 * @ui5-restricted change handlers
 	 */
-	var BaseAddXml = {};
+	const BaseAddXml = {};
 
 	/**
 	 * Adds the content of the XML fragment to the given aggregation of the control, if valid.
 	 *
-	 * @param {object} oChange Change object with instructions to be applied on the control
-	 * @param {object} oControl Control which has been determined by the selector id
-	 * @param {object} mPropertyBag Property bag
-	 * @param {object} mPropertyBag.modifier Modifier for the controls
-	 * @param {object} mPropertyBag.view Root view
-	 * @param {object} mChangeInfo Change Informantion map
-	 * @param {number} mChangeInfo.index Index defines the position at witch the xml fragment is added
-	 * @param {string} mChangeInfo.aggregationName Aggregation name of the control to be extended by the xml fragment
-	 * @returns {array} an array of new created controls
-	 * @public
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object with instructions to be applied on the control
+	 * @param {object} oControl - Control which has been determined by the selector id
+	 * @param {object} mPropertyBag - Property bag
+	 * @param {object} mPropertyBag.modifier - Modifier for the controls
+	 * @param {object} mPropertyBag.view - Root view
+	 * @param {object} mChangeInfo - Change Informantion map
+	 * @param {number} mChangeInfo.index - Index defines the position at witch the xml fragment is added
+	 * @param {string} mChangeInfo.aggregationName - Aggregation name of the control to be extended by the xml fragment
+	 * @param {boolean} [mChangeInfo.skipAdjustIndex] - True in case of inserting an XML node or element at an extension point, needed only in XML case
+	 * @returns {array} Array of new created controls
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Applier
 	 * @name sap.ui.fl.changeHandler.BaseAddXml#applyChange
 	 */
-	BaseAddXml.applyChange = function(oChange, oControl, mPropertyBag, mChangeInfo) {
-		var aNewControls = Base.instantiateFragment(oChange, mPropertyBag);
+	BaseAddXml.applyChange = async function(oChange, oControl, mPropertyBag, mChangeInfo) {
+		const oModifier = mPropertyBag.modifier;
+		const sAggregationName = mChangeInfo.aggregationName;
+		const sModuleName = oChange.getFlexObjectMetadata().moduleName;
 
-		var oModifier = mPropertyBag.modifier;
-		var oView = mPropertyBag.view;
-		var sAggregationName = mChangeInfo.aggregationName;
-		var oAggregationDefinition = oModifier.findAggregation(oControl, sAggregationName);
+		const oAggregationDefinition = await oModifier.findAggregation(oControl, sAggregationName);
 		if (!oAggregationDefinition) {
-			BaseAddXml._destroyArrayOfControls(aNewControls);
-			throw new Error("The given Aggregation is not available in the given control: " + oModifier.getId(oControl));
+			throw Error(`The given Aggregation is not available in the given control: ${oModifier.getId(oControl)}`);
 		}
-		var sModuleName = oChange.getModuleName();
-		var sFragment = LoaderExtensions.loadResource(sModuleName, {dataType: "text"});
-		var iIndex = mChangeInfo.index;
-		var aRevertData = [];
-		aNewControls.forEach(function(oNewControl, iIterator) {
-			if (!oModifier.validateType(oNewControl, oAggregationDefinition, oControl, sFragment, iIterator)) {
+		const sFragment = await LoaderExtensions.loadResource(sModuleName, {dataType: "text"});
+		const aNewControls = await Base.instantiateFragment(oChange, mPropertyBag);
+
+		let iIterator = 0;
+		for (const oNewControl of aNewControls) {
+			const bValidated = await oModifier.validateType(oNewControl, oAggregationDefinition, oControl, sFragment, iIterator);
+			iIterator++;
+			if (!bValidated) {
 				BaseAddXml._destroyArrayOfControls(aNewControls);
-				throw new Error("The content of the xml fragment does not match the type of the targetAggregation: " + oAggregationDefinition.type);
+				throw Error(`The content of the xml fragment does not match the type of the targetAggregation: ${oAggregationDefinition.type}`);
 			}
-		});
-		aNewControls.forEach(function(oNewControl, iIterator) {
-			oModifier.insertAggregation(oControl, sAggregationName, oNewControl, iIndex + iIterator, oView);
+		}
+
+		const aRevertData = [];
+		let iIterator1 = 0;
+		for (const oNewControl of aNewControls) {
+			await oModifier.insertAggregation(
+				oControl,
+				sAggregationName,
+				oNewControl,
+				mChangeInfo.index + iIterator1,
+				mPropertyBag.view,
+				mChangeInfo.skipAdjustIndex
+			);
+			iIterator1++;
 			aRevertData.push({
 				id: oModifier.getId(oNewControl),
 				aggregationName: sAggregationName
 			});
-		});
-
+		}
 		oChange.setRevertData(aRevertData);
 		return aNewControls;
 	};
@@ -86,13 +99,14 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.appComponent App component
 	 * @param {object} mPropertyBag.view Root view
 	 * @return {boolean} <true> if change has been reverted successfully
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.fl.apply.changes.Reverter
 	 * @name sap.ui.fl.changeHandler.BaseAddXml#revertChange
 	 */
 	BaseAddXml.revertChange = revertAddedControls;
 
 	BaseAddXml._throwMissingAttributeError = function(sAttribute) {
-		throw new Error("Attribute missing from the change specific content'" + sAttribute + "'");
+		throw new Error(`Attribute missing from the change specific content '${sAttribute}'`);
 	};
 
 	BaseAddXml._destroyArrayOfControls = function(aControls) {
@@ -106,31 +120,31 @@ sap.ui.define([
 	/**
 	 * Completes the change by adding change handler specific content
 	 *
-	 * @param {object} oChange Change object to be completed
-	 * @param {object} oSpecificChangeInfo Additional information needed to complete the change
-	 * @param {object} [oChangeDefinition] Already prepared definition of the change
-	 * @public
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object to be completed
+	 * @param {object} oSpecificChangeInfo - Additional information needed to complete the change
+	 * @param {object} [oContent] - Already prepared definition of the change
+	 * @private
+	 * @ui5-restricted sap.ui.fl.write._internal
 	 * @name sap.ui.fl.changeHandler.BaseAddXml#completeChangeContent
 	 */
-	BaseAddXml.completeChangeContent = function(oChange, oSpecificChangeInfo, oChangeDefinition) {
-		if (!oChangeDefinition) {
-			oChangeDefinition = oChange.getDefinition();
-			if (!oChangeDefinition.content) {
-				oChangeDefinition.content = {};
-			}
-		}
-		if (oSpecificChangeInfo.fragmentPath) {
-			oChangeDefinition.content.fragmentPath = oSpecificChangeInfo.fragmentPath;
-		} else {
+	BaseAddXml.completeChangeContent = function(oChange, oSpecificChangeInfo, oContent) {
+		oContent ||= {};
+		// TODO: Remove assignment without content after all derived change handlers are adjusted to use content. todos#4
+		const oSpecificChangeContent = oSpecificChangeInfo.content || oSpecificChangeInfo;
+		if (!oSpecificChangeContent.fragmentPath) {
 			BaseAddXml._throwMissingAttributeError("fragmentPath");
 		}
+		oContent.fragmentPath ??= oSpecificChangeContent.fragmentPath;
+		oChange.setContent(oContent);
 
-		//Calculate the moduleName for the fragment
-		var sModuleName = oChangeDefinition.reference.replace(/\.Component/g, "").replace(/\./g, "/");
+		// Calculate the moduleName for the fragment
+		let sModuleName = oChange.getFlexObjectMetadata().reference.replace(/\.Component/g, "").replace(/\./g, "/");
 		sModuleName += "/changes/";
-		sModuleName += oChangeDefinition.content.fragmentPath;
-		oChange.setModuleName(sModuleName);
+		sModuleName += oContent.fragmentPath;
+		const oFlexObjectMetadata = oChange.getFlexObjectMetadata();
+		oFlexObjectMetadata.moduleName = sModuleName;
+		oChange.setFlexObjectMetadata(oFlexObjectMetadata);
 	};
 
 	return BaseAddXml;
-}, /* bExport= */true);
+});

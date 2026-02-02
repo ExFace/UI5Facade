@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/descriptorRelated/internal/Utils",
+	"sap/ui/fl/descriptorRelated/Utils",
+	"sap/ui/fl/Utils",
 	"sap/ui/fl/write/_internal/appVariant/AppVariantInlineChange"
 ], function(
 	Utils,
+	FlUtils,
 	AppVariantInlineChange
 ) {
 	"use strict";
@@ -16,7 +18,7 @@ sap.ui.define([
 	function _fillTextsFromContent(mPropertyBag) {
 		if (!mPropertyBag.texts) {
 			mPropertyBag.texts = {
-				"" : mPropertyBag.content //property name = text key set when adding to descriptor variant
+				"": mPropertyBag.content // property name = text key set when adding to descriptor variant
 			};
 			mPropertyBag.content = {};
 		}
@@ -33,7 +35,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariantInlineChangeFactory
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -57,7 +59,7 @@ sap.ui.define([
 		return Promise.resolve(oAppVariantInlineChange);
 	};
 
-	//public static factory methods
+	// public static factory methods
 	/**
 	 * Creates an inline change.
 	 * @param {object} mPropertyBag Parameters
@@ -73,9 +75,11 @@ sap.ui.define([
 	AppVariantInlineChangeFactory.createDescriptorInlineChange = function(mPropertyBag) {
 		var fnTriggerChangeTypeMethod = mPropertyBag.changeType.replace("appdescr", "create");
 		// This will call the right changeType method and will be validated properly
+		if (!this[fnTriggerChangeTypeMethod]) {
+			throw new Error(`Change type '${mPropertyBag.changeType}' is not supported`);
+		}
 		return this[fnTriggerChangeTypeMethod](mPropertyBag);
 	};
-
 
 	/**
 	 * Creates an inline change of change type <code>appdescr_ovp_addNewCard</code>.
@@ -540,7 +544,6 @@ sap.ui.define([
 		return _createAppVariantInlineChange(mPropertyBag);
 	};
 
-
 	/**
 	 * Creates an inline change of change type <code>appdescr_app_setKeywords</code>.
 	 *
@@ -745,6 +748,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Creates an inline change of change type <code>appdescr_ui5_addComponentUsages</code>.
+	 *
+	 * @param {object} mPropertyBag Parameters of the change type
+	 * @param {string} mPropertyBag.changeType Inline change type of an app variant
+	 * @param {object} mPropertyBag.content Content of an inline change
+	 * @param {object} mPropertyBag.content.componentUsages component usages to be added
+	 *
+	 * @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.rta
+	 */
+	AppVariantInlineChangeFactory.create_ui5_addComponentUsages = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "componentUsages", "object");
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
+	/**
 	 * Creates an inline change of change type <code>appdescr_ui5_setMinUI5Version</code>.
 	 *
 	 * @param {object} mPropertyBag Parameters of the change type
@@ -758,7 +779,7 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
 	AppVariantInlineChangeFactory.create_ui5_setMinUI5Version = function(mPropertyBag) {
-		Utils.checkParameterAndType(mPropertyBag.content, "minUI5Version", "string");
+		Utils.checkParameterAndType(mPropertyBag.content, "minUI5Version", ["string", "array"]);
 		return _createAppVariantInlineChange(mPropertyBag);
 	};
 
@@ -900,7 +921,7 @@ sap.ui.define([
 	 * @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
 	 *
 	 * @private
-	 * @ui5-restricted WebIDE
+	 * @ui5-restricted SAP Web IDE
 	 */
 	AppVariantInlineChangeFactory.create_ui5_setFlexExtensionPointEnabled = function(mPropertyBag) {
 		Utils.checkParameterAndType(mPropertyBag.content, "flexExtensionPointEnabled", "boolean");
@@ -908,5 +929,155 @@ sap.ui.define([
 		return _createAppVariantInlineChange(mPropertyBag);
 	};
 
+	/**
+	 * Creates an inline change of change type <code>appdescr_ui5_changeModel</code>.
+	 *
+	 * @param {object} mPropertyBag - Parameters of the change type
+	 * @param {string} mPropertyBag.changeType - Inline change type of an app variant
+	 * @param {object} mPropertyBag.content - Content of an inline change
+	 * @param {string} mPropertyBag.content.modelId - ID of the data source to be changed
+	 * @param {object|array} mPropertyBag.content.entityPropertyChange - Entity property change or an array of multiple changes
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyPath - Property path inside the model (currently chaning settings/* is supported)
+	 * @param {object} mPropertyBag.content.entityPropertyChange.operation - Operation (INSERT, UPDATE, UPSERT, DELETE)
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyValue - New property value
+	 *
+	 * @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.rta, smart business
+	 */
+	 AppVariantInlineChangeFactory.create_ui5_changeModel = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "modelId", "string");
+		Utils.checkEntityPropertyChange(mPropertyBag.content);
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
+	/**
+	 * Creates an inline change of change type <code>appdescr_fiori_setAbstract</code>.
+	 *
+	 * @param {object} mPropertyBag - Parameters of the change type
+	 * @param {string} mPropertyBag.changeType - Inline change type of an app variant
+	 * @param {object} mPropertyBag.content - Content of an inline change
+	 * @param {boolean} mPropertyBag.content.abstract - Abstract property to be disabled (only allowd value is <code>false</code>)
+	 *
+	 * @return {Promise} Resolving when the descriptor inline change was created successfully (without back-end access)
+	 *
+	 * @private
+	 * @ui5-restricted SAP Web IDE
+	 */
+	 AppVariantInlineChangeFactory.create_fiori_setAbstract = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "abstract", "boolean");
+		Utils.checkParameterAndType(mPropertyBag, "changeType", "string");
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
+	/**
+	 * Creates an inline change of change type <code>appdescr_fe_changePageConfiguration</code>.
+	 *
+	 * @param {object} mPropertyBag Parameters of the change type
+	 * @param {string} mPropertyBag.changeType Inline change type of an app variant
+	 * @param {object} mPropertyBag.content Content of an inline change
+	 * @param {object} mPropertyBag.content.page The ID of the page for which the configuration is to be changed.
+	 * @param {object} mPropertyBag.content.entityPropertyChange Entity property change
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyPath The path in the page settings for which the configuration is to be changed.
+	 * @param {object} mPropertyBag.content.entityPropertyChange.operation Operation (currently only UPSERT supported)
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyValue The new value of the configuration. This could be a plain value like a string, or a Boolean, or a structured object.
+	 *
+	 * @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
+	 *
+	 * @private
+	 */
+	AppVariantInlineChangeFactory.create_fe_changePageConfiguration = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "page", "string");
+		Utils.checkEntityPropertyChange(mPropertyBag.content);
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
+	/**
+	* Creates an inline change of change type <code>appdescr_fe_addNewPage</code>.
+	*
+	* @param {object} mPropertyBag Parameters of the change type
+	* @param {string} mPropertyBag.content.changeType Inline change type of an app variant
+	* @param {object} mPropertyBag.content.sourcePage Source page details
+	* @param {string} mPropertyBag.content.sourcePage.id ID of the source page
+	* @param {string} mPropertyBag.content.sourcePage.navigationSource Navigation source of the source page
+	* @param {object} mPropertyBag.content.targetPage Target page details
+	* @param {string} mPropertyBag.content.targetPage.id ID of the target page
+	* @param {string} mPropertyBag.content.targetPage.type Type of the target page
+	* @param {string} mPropertyBag.content.targetPage.name Name of the target page component
+	* @param {string} mPropertyBag.content.targetPage.routePattern Route pattern for navigation
+	* @param {object} mPropertyBag.content.targetPage.settings Additional settings for the target page
+	*
+	* @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
+	*
+	* @private
+	*/
+	AppVariantInlineChangeFactory.create_fe_addNewPage = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content.sourcePage, "id", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.sourcePage, "navigationSource", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage, "id", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage, "type", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage, "name", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage, "routePattern", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage, "settings", "object");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage.settings, "contextPath", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage.settings, "pageLayout", "string");
+		Utils.checkParameterAndType(mPropertyBag.content.targetPage.settings, "controlConfiguration", "object");
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
+	/**
+	 * Creates an inline change of change type <code>appdescr_ui_generic_app_changePageConfiguration</code>.
+	 *
+	 * @param {object} mPropertyBag Parameters of the change type
+	 * @param {string} mPropertyBag.changeType Inline change type of an app variant
+	 * @param {object} mPropertyBag.content Content of an inline change
+	 * @param {object} mPropertyBag.content.parentPage Source page details
+	 * @param {string} mPropertyBag.content.parentPage.component The ID of the page for which the configuration is to be changed.
+	 * @param {string} mPropertyBag.content.parentPage.entitySet Entity Set of the page.
+	 * @param {object} mPropertyBag.content.entityPropertyChange Entity property change
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyPath The path in the page settings for which the configuration is to be changed.
+	 * @param {object} mPropertyBag.content.entityPropertyChange.operation Operation (currently only UPSERT supported)
+	 * @param {object} mPropertyBag.content.entityPropertyChange.propertyValue The new value of the configuration. This could be a plain value like a string, or a Boolean, or a structured object.
+	 *
+	 * @return {Promise} Resolving when creating the app variant inline change was successful (without back end access)
+	 *
+	 * @private
+	 */
+	AppVariantInlineChangeFactory.create_ui_generic_app_changePageConfiguration = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "parentPage", "object");
+		Utils.checkEntityPropertyChange(mPropertyBag.content);
+		return _createAppVariantInlineChange(mPropertyBag)
+		.then(function(oAppVariantInlineChange) {
+			oAppVariantInlineChange.fileName = FlUtils.createDefaultFileName("appdescr_ui_gen_app_changePageConfig");
+			return Promise.resolve(oAppVariantInlineChange);
+		});
+	};
+
+	/**
+	 * Adds a new object page to the manifest with change type <code>appdescr_ui_generic_app_addNewObjectPage</code>.
+	 *
+	 * @param {object} mPropertyBag - Contains the Page details which the user would like to add for the newly created node
+	 * @param {string} mPropertyBag.changeType - The app descriptor change type name
+	 * @param {object} mPropertyBag.content - Content of the change
+	 * @param {object} mPropertyBag.content.parentPage - Source page details
+	 * @param {string} mPropertyBag.content.parentPage.component - Source page component where the new page will be added
+	 * @param {string} mPropertyBag.content.parentPage.entitySet - Source page entityset name where the new page will be added
+	 * @param {object} mPropertyBag.content.childPage - Newly being added page's details
+	 * @param {string} mPropertyBag.content.childPage.id - PageId of the new page being added
+	 * @param {object} mPropertyBag.content.childPage.definition - Definition of the new page being added
+	 * @param {string} mPropertyBag.content.childPage.definition.navigationProperty - Navigation property of the new page being added
+	 * @param {string} mPropertyBag.content.childPage.definition.entitySet - Entityset name of the new page being added
+	 *
+	 * @returns {object} Resolving when creating the app variant inline change was successful (without back end access)
+	 *
+	 * @private
+	 */
+	AppVariantInlineChangeFactory.create_ui_generic_app_addNewObjectPage = function(mPropertyBag) {
+		Utils.checkParameterAndType(mPropertyBag.content, "parentPage", "object");
+		Utils.checkChildPageChange(mPropertyBag.content);
+		return _createAppVariantInlineChange(mPropertyBag);
+	};
+
 	return AppVariantInlineChangeFactory;
-}, true);
+});

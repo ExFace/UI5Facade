@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var I={};I.render=function(r,c){r.write("<div");r.writeControlData(c);r.addClass("sapMImageContent");var t=c.getTooltip_AsString();if(t){r.writeAttributeEscaped("title",t);}if(c.hasListeners("press")){r.addClass("sapMPointer");r.writeAttribute("tabindex","0");}r.writeClasses();r.write(">");var C=c.getAggregation("_content");if(C){C.addStyleClass("sapMImageContentImageIcon");r.renderControl(C);}r.write("</div>");};return I;},true);
+sap.ui.define([],function(){"use strict";var t={apiVersion:2};t.render=function(t,e){t.openStart("div",e);t.class("sapMImageContent");var n=e.getTooltip_AsString();if(n){t.attr("title",n)}if(e.hasListeners("press")){t.class("sapMPointer");t.attr("tabindex","0")}t.openEnd();var a=e.getAggregation("_content");if(a){a.addStyleClass("sapMImageContentImageIcon");t.renderControl(a)}t.close("div")};return t},true);
+//# sourceMappingURL=ImageContentRenderer.js.map

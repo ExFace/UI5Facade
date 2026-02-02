@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var F={};F.render=function(r,c){r.write("<div ");r.writeControlData(c);r.addClass("sapUiUx3FFLst");r.writeClasses();r.writeAttribute("style","width:"+c.sWidth);r.write(">");r.write("<header id=\""+c.getId()+"-head\"  class=\"sapUiUx3FFLstHead\"");if(c.getTooltip_AsString()){r.writeAttributeEscaped("title",c.getTooltip_AsString());}r.write(">");r.write("<h3 id=\""+c.getId()+"-head-txt\"  class=\"sapUiUx3FFLstHeadTxt\">");if(c.getTitle()){r.writeEscaped(c.getTitle());}r.write("</h3>");r.write("</header>");r.renderControl(c._oListBox);r.write("</div>");};return F;},true);
+sap.ui.define([],function(){"use strict";var t={};t.render=function(t,e){t.write("<div ");t.writeControlData(e);t.addClass("sapUiUx3FFLst");t.writeClasses();t.writeAttribute("style","width:"+e.sWidth);t.write(">");t.write('<header id="'+e.getId()+'-head"  class="sapUiUx3FFLstHead"');if(e.getTooltip_AsString()){t.writeAttributeEscaped("title",e.getTooltip_AsString())}t.write(">");t.write('<h3 id="'+e.getId()+'-head-txt"  class="sapUiUx3FFLstHeadTxt">');if(e.getTitle()){t.writeEscaped(e.getTitle())}t.write("</h3>");t.write("</header>");t.renderControl(e._oListBox);t.write("</div>")};return t},true);
+//# sourceMappingURL=FacetFilterListRenderer.js.map

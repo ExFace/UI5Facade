@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,20 +10,18 @@ sap.ui.define([
 	'sap/ui/model/BindingMode',
 	'sap/ui/model/Filter',
 	'sap/ui/model/Sorter',
-	"sap/base/Log",
-	'sap/base/util/ObjectPath',
+	"sap/base/future",
 	"sap/base/util/JSTokenizer",
 	"sap/base/util/resolveReference"
 ], function(
-		ExpressionParser,
-		BindingMode,
-		Filter,
-		Sorter,
-		Log,
-		ObjectPath,
-		JSTokenizer,
-		resolveReference
-	) {
+	ExpressionParser,
+	BindingMode,
+	Filter,
+	Sorter,
+	future,
+	JSTokenizer,
+	resolveReference
+) {
 	"use strict";
 
 	/**
@@ -64,13 +62,23 @@ sap.ui.define([
 	 *   a composite formatter
 	 */
 	function composeFormatters(aFormatters, fnRootFormatter) {
-		function formatter() {
+		var bRequiresIContext = aFormatters.some(function (fnFormatter) {
+				return fnFormatter.requiresIContext; // Note: it's either true or missing here
+			});
+
+		function formatter(oInterface) {
 			var i,
 				n = aFormatters.length,
+				aArguments = arguments,
 				aResults = new Array(n);
 
 			for (i = 0; i < n; i += 1) {
-				aResults[i] = aFormatters[i].apply(this, arguments);
+				if (aFormatters[i].requiresIContext) {
+					aArguments = arguments;
+				} else if (bRequiresIContext) { // drop oInterface
+					aArguments = Array.prototype.slice.call(arguments, 1);
+				}
+				aResults[i] = aFormatters[i].apply(this, aArguments);
 			}
 
 			if (fnRootFormatter) {
@@ -80,6 +88,10 @@ sap.ui.define([
 			// "default: multiple values are joined together as space separated list if no
 			//  formatter or type specified"
 			return n > 1 ? aResults.join(" ") : aResults[0];
+		}
+
+		if (bRequiresIContext) {
+			formatter.requiresIContext = true;
 		}
 		// @see sap.ui.base.ManagedObject#_bindProperty
 		formatter.textFragments = fnRootFormatter && fnRootFormatter.textFragments
@@ -125,16 +137,21 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath
 	 *   the given path
+	 * @param {object} [oEnv]
+	 *   the "environment"
 	 * @returns {object}
 	 *   a binding info object
 	 */
-	function makeSimpleBindingInfo(sPath) {
+	function makeSimpleBindingInfo(sPath, oEnv) {
 		var iPos = sPath.indexOf(">"),
 			oBindingInfo = { path : sPath };
 
 		if ( iPos > 0 ) {
 			oBindingInfo.model = sPath.slice(0,iPos);
 			oBindingInfo.path = sPath.slice(iPos + 1);
+		}
+		if (oEnv?.mLocals && oBindingInfo.path.includes("@@")) {
+			oBindingInfo.parameters = {scope : oEnv.mLocals};
 		}
 
 		return oBindingInfo;
@@ -153,11 +170,14 @@ sap.ui.define([
 		try {
 			BindingParser.mergeParts(oBindingInfo);
 		} catch (e) {
-			Log.error("Cannot merge parts: " + e.message, sBinding,
-				"sap.ui.base.BindingParser");
-			// rely on error in ManagedObject
+			future.errorThrows(`sap.ui.base.BindingParser: Cannot merge parts for binding "${sBinding}"`, { cause: e });
 		}
 	}
+
+	// A qualified name, followed by a .bind(id) call
+	// 1st capturing group matches the qualified name w/o .bind() call
+	// 2nd capturing group matches the .bind() argument
+	const rFormatterBind = /(^(?:[$_\p{ID_Start}][$_\p{ID_Continue}]*\.)*[\p{ID_Start}][$_\p{ID_Continue}]*)\.bind\(([$_\p{ID_Start}][$_\p{ID_Continue}]*)\)$/u;
 
 	function resolveBindingInfo(oEnv, oBindingInfo) {
 		var mVariables = Object.assign({".": oEnv.oContext}, oEnv.mLocals);
@@ -177,10 +197,31 @@ sap.ui.define([
 		 */
 		function resolveRef(o,sProp) {
 			if ( typeof o[sProp] === "string" ) {
-				var sName = o[sProp];
+				let sName = o[sProp];
+				let bSkipBindContext = false;
+				let aMatch = [], mBindableValues = {};
 
-				o[sProp] = resolveReference(o[sProp], mVariables, {
+				// check for .bind()-syntax
+				if (sProp == "formatter" && sName.includes(".bind(")) {
+					aMatch = sName.match(rFormatterBind);
+
+					if (!aMatch) {
+						throw new Error(`Error in formatter '${sName}': Either syntax error in the usage of '.bind(...)' or wrong number of arguments given. Only one argument is allowed when using '.bind()'.`);
+					}
+					if (aMatch[2].startsWith("$") && !Object.hasOwn(oEnv.mAdditionalBindableValues, aMatch[2])) {
+						throw new Error(`Error in formatter '${sName}': The argument '${aMatch[2]}' used in the '.bind()' call starts with '$', which is only allowed for framework-reserved variables. Please rename the variable so that it doesn't start with '$'.`);
+					}
+
+					bSkipBindContext = true;
+					mBindableValues = Object.assign(mBindableValues, oEnv.mLocals, oEnv.mAdditionalBindableValues);
+
+					// only pass function name to resolveReference
+					sName = aMatch[1];
+				}
+
+				o[sProp] = resolveReference(sName, mVariables, {
 					preferDotContext: oEnv.bPreferContext,
+					bindContext: !bSkipBindContext,
 					bindDotContext: !oEnv.bStaticContext
 				});
 
@@ -189,8 +230,15 @@ sap.ui.define([
 						oEnv.aFunctionsNotFound = oEnv.aFunctionsNotFound || [];
 						oEnv.aFunctionsNotFound.push(sName);
 					} else {
-						Log.error(sProp + " function " + sName + " not found!");
+						future.errorThrows(sProp + " function " + sName + " not found!");
 					}
+				}
+
+				if (bSkipBindContext) {
+					if (!Object.hasOwn(mBindableValues, aMatch[2])) {
+						throw new Error(`Error in formatter '${sName}': Unknown argument '${aMatch[2]}' passed to '.bind()' call.`);
+					}
+					o[sProp] = mBindableValues[aMatch[2]] !== null ? o[sProp].bind(mBindableValues[aMatch[2]]) : o[sProp];
 				}
 			}
 		}
@@ -201,7 +249,7 @@ sap.ui.define([
 		 * The name is resolved locally (against oEnv.oContext) if it starts with a '.', otherwise against
 		 * the oEnv.mLocals and if it's still not resolved, against the global context (window).
 		 *
-		 * The resolution is done inplace. If the name resolves to a function, it is assumed to be the
+		 * The resolution is done in place. If the name resolves to a function, it is assumed to be the
 		 * constructor of a data type. A new instance will be created, using the values of the
 		 * properties 'constraints' and 'formatOptions' as parameters of the constructor.
 		 * Both properties will be removed from <code>o</code>.
@@ -213,24 +261,56 @@ sap.ui.define([
 			var sType = o.type;
 			if (typeof sType === "string" ) {
 				FNType = resolveReference(sType, mVariables, {
-					bindContext: false
+					bindContext: false,
+					// only when types aren't expected to be loaded asynchronously, we try to use a
+					// probing-require to fetch it in case it can't be resolved with 'mVariables'
+					useProbingRequire: !oEnv.aTypePromises
 				});
 
-				// TODO find another solution for the type parameters?
-				if (typeof FNType === "function") {
-					o.type = new FNType(o.formatOptions, o.constraints);
+				var fnInstantiateType = function(TypeClass) {
+					if (typeof TypeClass === "function") {
+						o.type = new TypeClass(o.formatOptions, o.constraints);
+					} else {
+						o.type = TypeClass;
+					}
+
+					if (!o.type) {
+						future.errorThrows("Failed to resolve type '" + sType + "'. Maybe not loaded or a typo?");
+					}
+
+					// TODO why are formatOptions and constraints also removed for an already instantiated type?
+					// TODO why is a value of type object not validated (instanceof Type)
+					delete o.formatOptions;
+					delete o.constraints;
+				};
+
+				if (oEnv.aTypePromises) {
+					var pType;
+
+					// FNType is either:
+					//    a) a function
+					//       * a lazy-stub
+					//       * a regular constructor function
+					//    b) an object that must implement Type interface (we take this "as-is")
+					//    c) undefined, we try to interpret the original string as a module name then
+					if (typeof FNType === "function" && !FNType._sapUiLazyLoader ||
+						FNType && typeof FNType === "object") {
+						pType = Promise.resolve(fnInstantiateType(FNType));
+					} else {
+						// load type asynchronously
+						pType = new Promise(function(fnResolve, fnReject) {
+							sap.ui.require([sType.replace(/\./g, "/")], fnResolve, fnReject);
+						}).catch(function(oError){
+							// [Compatibility]: We must not throw an error during type creation (except constructor failures!).
+							//                  We catch any require() rejection and log the error.
+							future.errorThrows(oError);
+						}).then(fnInstantiateType);
+					}
+
+					oEnv.aTypePromises.push(pType);
 				} else {
-					o.type = FNType;
+					fnInstantiateType(FNType);
 				}
-
-				if (!o.type) {
-					Log.error("Failed to resolve type '" + sType + "'. Maybe not loaded or a typo?");
-				}
-
-				// TODO why are formatOptions and constraints also removed for an already instantiated type?
-				// TODO why is a value of type object not validated (instanceof Type)
-				delete o.formatOptions;
-				delete o.constraints;
 			}
 		}
 
@@ -319,6 +399,11 @@ sap.ui.define([
 			resolveRef(oBindingInfo,'formatter');
 			resolveRef(oBindingInfo,'factory'); // list binding
 			resolveRef(oBindingInfo,'groupHeaderFactory'); // list binding
+			if (oEnv.mLocals && oBindingInfo.path?.includes("@@")
+					&& oBindingInfo.parameters?.scope === undefined) {
+				oBindingInfo.parameters ??= {};
+				oBindingInfo.parameters.scope = oEnv.mLocals;
+			}
 		}
 
 		return oBindingInfo;
@@ -365,17 +450,29 @@ sap.ui.define([
 			throw new SyntaxError("no closing braces found in '" + sInput + "' after pos:" + iStart);
 		}
 		return {
-			result: makeSimpleBindingInfo(sInput.slice(iStart + 1, iEnd)),
+			result: makeSimpleBindingInfo(sInput.slice(iStart + 1, iEnd), oEnv),
 			at: iEnd + 1
 		};
 	}
 
-	BindingParser.simpleParser = function(sString, oContext) {
+	BindingParser.simpleParser = function(sString) {
+		// The simpleParser only needs the first string argument and additionally in the async case the 7th one.
+		// see "BindingParser.complexParser" for the other arguments
+		var bResolveTypesAsync = arguments[7];
 
+		var oBindingInfo;
 		if ( sString.startsWith("{") && sString.endsWith("}") ) {
-			return makeSimpleBindingInfo(sString.slice(1, -1));
+			oBindingInfo = makeSimpleBindingInfo(sString.slice(1, -1));
 		}
 
+		if (bResolveTypesAsync) {
+			return {
+				bindingInfo: oBindingInfo,
+				resolved: Promise.resolve()
+			};
+		}
+
+		return oBindingInfo;
 	};
 
 	BindingParser.simpleParser.escape = function(sValue) {
@@ -396,9 +493,12 @@ sap.ui.define([
 	 *   globally
 	 * @param {object} [mLocals]
 	 *   variables allowed in the expression as map of variable name to its value
+	 * @param {boolean} [bResolveTypesAsync]
+	 *   whether the Type classes should be resolved asynchronously.
+	 *   The parsing result is enriched with an additional Promise capturing all transitive Type loading.
 	 */
 	BindingParser.complexParser = function(sString, oContext, bUnescape,
-			bTolerateFunctionsNotFound, bStaticContext, bPreferContext, mLocals) {
+			bTolerateFunctionsNotFound, bStaticContext, bPreferContext, mLocals, bResolveTypesAsync, mAdditionalBindableValues) {
 		var b2ndLevelMergedNeeded = false, // whether some 2nd level parts again have parts
 			oBindingInfo = {parts:[]},
 			bMergeNeeded = false, // whether some top-level parts again have parts
@@ -408,7 +508,9 @@ sap.ui.define([
 				aFunctionsNotFound: undefined, // lazy creation
 				bPreferContext : bPreferContext,
 				bStaticContext: bStaticContext,
-				bTolerateFunctionsNotFound: bTolerateFunctionsNotFound
+				bTolerateFunctionsNotFound: bTolerateFunctionsNotFound,
+				aTypePromises: bResolveTypesAsync ? [] : undefined,
+				mAdditionalBindableValues: mAdditionalBindableValues
 			},
 			aFragments = [],
 			bUnescaped,
@@ -531,9 +633,26 @@ sap.ui.define([
 			if (oEnv.aFunctionsNotFound) {
 				oBindingInfo.functionsNotFound = oEnv.aFunctionsNotFound;
 			}
+
+			if (bResolveTypesAsync) {
+				// parse result contains additionally a Promise with all asynchronously loaded types
+				return {
+					bindingInfo: oBindingInfo,
+					resolved: Promise.all(oEnv.aTypePromises),
+					wait : oEnv.aTypePromises.length > 0
+				};
+			}
+
 			return oBindingInfo;
 		} else if ( bUnescape && bUnescaped ) {
-			return aFragments.join('');
+			var sResult = aFragments.join('');
+			if (bResolveTypesAsync) {
+				return {
+					bindingInfo: sResult,
+					resolved: Promise.resolve()
+				};
+			}
+			return sResult;
 		}
 
 	};
@@ -596,11 +715,24 @@ sap.ui.define([
 					aParts = aParts.concat(vEmbeddedBinding.parts);
 					iEnd = aParts.length;
 					if (vEmbeddedBinding.formatter) {
-						fnFormatter = function () {
-							// old formatter needs to operate on its own slice of overall arguments
-							return vEmbeddedBinding.formatter.apply(this,
-								Array.prototype.slice.call(arguments, iStart, iEnd));
-						};
+						if (vEmbeddedBinding.formatter.requiresIContext === true) {
+							fnFormatter = function (oInterface) {
+								// old formatter needs to operate on its own slice of overall args
+								var aArguments
+									= Array.prototype.slice.call(arguments, iStart + 1, iEnd + 1);
+
+								aArguments.unshift(oInterface._slice(iStart, iEnd));
+
+								return vEmbeddedBinding.formatter.apply(this, aArguments);
+							};
+							fnFormatter.requiresIContext = true;
+						} else {
+							fnFormatter = function () {
+								// old formatter needs to operate on its own slice of overall args
+								return vEmbeddedBinding.formatter.apply(this,
+									Array.prototype.slice.call(arguments, iStart, iEnd));
+							};
+						}
 					} else if (iEnd - iStart > 1) {
 						fnFormatter = function () {
 							// @see sap.ui.model.CompositeBinding#getExternalValue

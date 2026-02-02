@@ -1,22 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Disable some ESLint rules. camelcase (some "_" in names to indicate indexed variables (like in math)), valid-jsdoc (not completed yet), no-warning-comments (some TODOs are left)
+// Disable some ESLint rules. camelcase (some "_" in names to indicate indexed variables (like in
+// math)), valid-jsdoc (not completed yet), no-warning-comments (some TODOs are left)
 // All other warnings, errors should be resolved
-/*eslint-disable camelcase, valid-jsdoc, no-warning-comments */
+/*eslint-disable camelcase, valid-jsdoc, no-warning-comments, max-len */
 
 // Provides API for analytical extensions in OData service metadata
 sap.ui.define([
-	'sap/ui/model/Filter',
-	'sap/ui/model/FilterOperator',
-	'sap/ui/model/Sorter',
-	'./AnalyticalVersionInfo',
-	"sap/base/security/encodeURL"
-],
-	function(Filter, FilterOperator, Sorter, AnalyticalVersionInfo, encodeURL) {
+	"sap/base/security/encodeURL",
+	"sap/ui/model/Filter",
+	"sap/ui/model/FilterOperator",
+	"sap/ui/model/Sorter",
+	"sap/ui/model/odata/ODataUtils"
+], function(encodeURL, Filter, FilterOperator, Sorter, ODataUtils) {
 	"use strict";
 
 	/**
@@ -146,18 +146,20 @@ sap.ui.define([
 	/**
 	 * Create a representation of the analytical semantics of OData service metadata
 	 *
-	 * @param {object}
-	 *            oModelReference An instance of ReferenceByURI, ReferenceByModel or
-	 *            ReferenceWithWorkaround for locating the OData service.
-	 * @param {object}
-	 * 	          [mParameter] Additional parameters for controlling the model construction. Currently supported are:
-	 *            <li> sAnnotationJSONDoc - A JSON document providing extra annotations to the elements of the
-	 *                 structure of the given service
-	 *            </li>
-	 *            <li> modelVersion - Parameter to define which ODataModel version should be used, in you use
-	 *                 'odata4analytics.Model.ReferenceByURI': 1 (default), 2
-	 *                 see also: AnalyticalVersionInfo constants
-	 *            </li>
+	 * @param {object} oModelReference
+	 *   An instance of {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByModel} or
+	 *   {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceWithWorkaround} for locating
+	 *   the OData service. {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByURI} is
+	 *   deprecated.
+	 * @param {object} [mParameter]
+	 *   Additional parameters for controlling the model construction. Currently supported are:
+	 *   <li> sAnnotationJSONDoc - A JSON document providing extra annotations to the elements of
+	 *        the structure of the given service
+	 *   </li>
+	 *   <li> modelVersion (deprecated) - Parameter to define which ODataModel version should be
+	 *        used if you use {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByURI};
+	 *        supported values are: 1 (default), 2
+	 *   </li>
 	 *
 	 * @class Representation of an OData model with analytical annotations defined
 	 *        by OData4SAP.
@@ -177,6 +179,8 @@ sap.ui.define([
 	 *
 	 * @class Handle to an OData model by the URI pointing to it.
 	 * @name sap.ui.model.analytics.odata4analytics.Model.ReferenceByURI
+	 * @deprecated Since 1.94 use
+	 *   {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByModel} instead
 	 * @public
 	 */
 	odata4analytics.Model.ReferenceByURI = function(sURI) {
@@ -205,7 +209,7 @@ sap.ui.define([
 	/**
 	 * Create a reference to an OData model having certain workarounds activated. A
 	 * workaround is an implementation that changes the standard behavior of the API
-	 * to overcome some gap or limitation in the OData provider. The workaround
+	 * to overcome some gap or restriction in the OData provider. The workaround
 	 * implementation can be conditionally activated by passing the identifier in
 	 * the constructor.
 	 *
@@ -219,12 +223,12 @@ sap.ui.define([
 	 * exists, they are linked via annotation.</li>
 	 *
 	 *
-	 * @param {object}
-	 *            oModel holding a reference to the OData model, obtained
-	 *            by odata4analytics.Model.ReferenceByModel or by
-	 *            sap.odata4analytics.Model.ReferenceByURI.
-	 * @param {string[]}
-	 *            aWorkaroundID listing all workarounds to be applied.
+	 * @param {object} oModel
+	 *   Holds a reference to the OData model, obtained by
+	 *   {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByModel}, or by
+	 *   {@link sap.ui.model.analytics.odata4analytics.Model.ReferenceByURI} which is deprecated.
+	 * @param {string[]} aWorkaroundID
+	 *   All workarounds to be applied.
 	 *
 	 * @class Handle to an already instantiated SAPUI5 OData model.
 	 * @name sap.ui.model.analytics.odata4analytics.Model.ReferenceWithWorkaround
@@ -245,12 +249,14 @@ sap.ui.define([
 		 * @private
 		 */
 		_init : function(oModelReference, mParameter) {
+			var ODataModelClass,
+				that = this;
+
 			if (typeof mParameter == "string") {
 				throw "Deprecated second argument: Adjust your invocation by passing an object with a property sAnnotationJSONDoc as a second argument instead";
 			}
 			this._mParameter = mParameter;
 
-			var that = this;
 			/*
 			 * get access to OData model
 			 */
@@ -272,21 +278,23 @@ sap.ui.define([
 			//check if a model is given, or we need to create one from the service URI
 			if (oModelReference.oModel) {
 				this._oModel = oModelReference.oModel;
-				// find out which model version we are running
-				this._iVersion = AnalyticalVersionInfo.getVersion(this._oModel);
 				checkForMetadata();
-			} else if (mParameter && mParameter.modelVersion === AnalyticalVersionInfo.V2) {
-				// Check if the user wants a V2 model
-				var V2ODataModel = sap.ui.requireSync("sap/ui/model/odata/v2/ODataModel");
-				this._oModel = new V2ODataModel(oModelReference.sServiceURI);
-				this._iVersion = AnalyticalVersionInfo.V2;
-				checkForMetadata();
-			} else {
-				//default is V1 Model
-				var ODataModel = sap.ui.requireSync("sap/ui/model/odata/ODataModel");
-				this._oModel = new ODataModel(oModelReference.sServiceURI);
-				this._iVersion = AnalyticalVersionInfo.V1;
-				checkForMetadata();
+			}
+			/** @deprecated As of version 1.94.0 */
+			if (oModelReference.sServiceURI) {
+				if (mParameter && mParameter.modelVersion === 2) {
+					// Check if the user wants a V2 model
+					ODataModelClass = sap.ui.require("sap/ui/model/odata/v2/ODataModel") ||
+						sap.ui.requireSync("sap/ui/model/odata/v2/ODataModel"); // legacy-relevant: fallback for missing dependency
+					this._oModel = new ODataModelClass(oModelReference.sServiceURI);
+					checkForMetadata();
+				} else {
+					//default is V1 Model
+					ODataModelClass = sap.ui.require("sap/ui/model/odata/ODataModel") ||
+						sap.ui.requireSync("sap/ui/model/odata/ODataModel"); // legacy-relevant: fallback for missing dependency
+					this._oModel = new ODataModelClass(oModelReference.sServiceURI);
+					checkForMetadata();
+				}
 			}
 
 			if (this._oModel.getServiceMetadata()
@@ -524,7 +532,7 @@ sap.ui.define([
 							if (oParameterization3 != null) {
 								// TODO: extend this implementation to support more
 								// than one related parameter entity type
-								throw "LIMITATION: Unable to handle multiple parameter entity types of query entity "
+								throw "Unable to handle multiple parameter entity types of query entity "
 										+ oEntityType3.name;
 							} else {
 								oParameterization3 = oMatchingParameterization;
@@ -1660,7 +1668,7 @@ sap.ui.define([
 		 * Get the URI to locate the entity set holding the value set, if it is
 		 * available.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
 		 * @returns The resource path of the URI pointing to the entity set. It is a
@@ -3086,16 +3094,12 @@ sap.ui.define([
 		/**
 		 * @private
 		 */
-		_renderPropertyFilterValue : function(sFilterValue, sPropertyEDMTypeName) {
+		_renderPropertyFilterValue : function (sFilterValue, sPropertyEDMTypeName, sFractionalSeconds) {
 			if (sPropertyEDMTypeName === "Edm.Time" && rOnlyDigits.test(sFilterValue)) {
 				sFilterValue = {ms : parseInt(sFilterValue), __edmType : "Edm.Time"};
 			}
 
-			// initial implementation called odata4analytics.helper.renderPropertyFilterValue,
-			// which had problems with locale-specific input values
-			// this is handled in the ODataModel
-			return encodeURL(
-					this._oModel.getODataModel().formatValue(sFilterValue, sPropertyEDMTypeName));
+			return encodeURL(ODataUtils._formatValue(sFilterValue, sPropertyEDMTypeName, true, sFractionalSeconds));
 		},
 
 		/**
@@ -3111,17 +3115,26 @@ sap.ui.define([
 		},
 
 		/**
+		 * Adds the given filter to <code>this._aConditionUI5Filter</code> if it is not yet contained.
+		 *
+		 * @param {sap.ui.model.Filter} oFilter The filter to add
 		 * @private
 		 */
-		_addCondition : function(sProperty, sOperator, oValue1, oValue2) {
+		_addCondition : function (oFilter) {
+			const {sPath, sOperator, oValue1, oValue2, sFractionalSeconds1, sFractionalSeconds2} = oFilter;
 			// make sure that the condition is new
-			for ( var i = -1, oUI5Filter; (oUI5Filter = this._aConditionUI5Filter[++i]) !== undefined;) {
-				if (oUI5Filter.sPath == sProperty && oUI5Filter.sOperator == sOperator && oUI5Filter.oValue1 == oValue1
-						&& oUI5Filter.oValue2 == oValue2) {
-					return;
-				}
+			const bExists = this._aConditionUI5Filter.some((oFilter0) =>
+				oFilter0.sPath === sPath
+				&& oFilter0.sOperator === sOperator
+				// coercion really necessary? For dates and Edm.Time objects the equality operator
+				// does not prevent duplicates
+				&& oFilter0.oValue1 == oValue1
+				&& oFilter0.oValue2 == oValue2
+				&& oFilter0.sFractionalSeconds1 === sFractionalSeconds1
+				&& oFilter0.sFractionalSeconds2 === sFractionalSeconds2);
+			if (!bExists) {
+				this._aConditionUI5Filter.push(oFilter);
 			}
-			this._aConditionUI5Filter.push(new Filter(sProperty, sOperator, oValue1, oValue2));
 		},
 
 		/**
@@ -3137,22 +3150,28 @@ sap.ui.define([
 		 * Multiple conditions on the same property are combined with a logical OR first, and in a second step conditions for
 		 * different properties are combined with a logical AND.
 		 *
-		 * @param {string}
-		 *            sPropertyName The name of the property bound in the condition
-		 * @param {sap.ui.model.FilterOperator}
-		 *            sOperator operator used for the condition
-		 * @param {object}
-		 *            oValue value to be used for this condition
-		 * @param {object}
-		 *            oValue2 (optional) as second value to be used for this condition
-		 * @throws Exception
-		 *             if the property is unknown or not filterable
+		 * @param {string|sap.ui.model.Filter} vPropertyNameOrFilter
+		 *   The name of the property or a {@link sap.ui.model.Filter} instance
+		 * @param {sap.ui.model.FilterOperator} [sOperator]
+		 *   The operator of the condition, only used if <code>vPropertyNameOrFilter</code> is a string
+		 * @param {object} [oValue]
+		 *   The value of the condition, only used if <code>vPropertyNameOrFilter</code> is a string
+		 * @param {object} [oValue2]
+		 *   The second value of the condition, only used if <code>vPropertyNameOrFilter</code> is a string
 		 * @returns {sap.ui.model.analytics.odata4analytics.FilterExpression} This object for method chaining
+		 * @throws Exception
+		 *   If the property is unknown or not filterable
 		 * @public
 		 * @function
 		 * @name sap.ui.model.analytics.odata4analytics.FilterExpression#addCondition
 		 */
-		addCondition : function(sPropertyName, sOperator, oValue, oValue2) {
+		addCondition : function (vPropertyNameOrFilter, sOperator, oValue, oValue2) {
+			let sPropertyName = vPropertyNameOrFilter;
+			let oFilter;
+			if (typeof vPropertyNameOrFilter === "object") {
+				sPropertyName = vPropertyNameOrFilter.sPath;
+				oFilter = vPropertyNameOrFilter;
+			}
 			var oProperty = this._oEntityType.findPropertyByName(sPropertyName);
 			if (oProperty == null) {
 				throw "Cannot add filter condition for unknown property name " + sPropertyName; // TODO
@@ -3161,7 +3180,7 @@ sap.ui.define([
 			if (((aFilterablePropertyNames ? Array.prototype.indexOf.call(aFilterablePropertyNames, sPropertyName) : -1)) === -1) {
 				throw "Cannot add filter condition for not filterable property name " + sPropertyName; // TODO
 			}
-			this._addCondition(sPropertyName, sOperator, oValue, oValue2);
+			this._addCondition(oFilter || new Filter(sPropertyName, sOperator, oValue, oValue2));
 			return this;
 		},
 
@@ -3220,20 +3239,20 @@ sap.ui.define([
 				throw "Cannot add filter condition for not filterable property name " + sPropertyName; // TODO
 			}
 			for ( var i = -1, oValue; (oValue = aValues[++i]) !== undefined;) {
-				this._addCondition(sPropertyName, FilterOperator.EQ, oValue);
+				this._addCondition(new Filter(sPropertyName, FilterOperator.EQ, oValue));
 			}
 			return this;
 		},
 
 		/**
-		 * Add an array of UI5 filter conditions to the filter expression.
+		 * Adds an array of UI5 filter conditions to the filter expression.
 		 *
 		 * The UI5 filter condition is combined with the other given conditions using a logical AND. This method
 		 * is particularly useful for passing forward already created UI5 filter arrays.
 		 *
-		 * @param {sap.ui.model.Filter[]}
-		 *            aUI5Filter Array of UI5 filter objects
+		 * @param {sap.ui.model.Filter[]} aUI5Filter Array of UI5 filter objects
 		 * @returns {sap.ui.model.analytics.odata4analytics.FilterExpression} This object for method chaining
+		 * @throws Exception If the given aUI5Filter is not an array
 		 * @public
 		 * @function
 		 * @name sap.ui.model.analytics.odata4analytics.FilterExpression#addUI5FilterConditions
@@ -3258,7 +3277,7 @@ sap.ui.define([
 				this._addUI5FilterArray(aUI5Filter);
 			} else {
 				for (var j = 0; j < aUI5Filter.length; j++) {
-							this.addCondition(aUI5Filter[j].sPath, aUI5Filter[j].sOperator, aUI5Filter[j].oValue1, aUI5Filter[j].oValue2);
+					this.addCondition(aUI5Filter[j]);
 				}
 			}
 			return this;
@@ -3330,48 +3349,50 @@ sap.ui.define([
 		 *
 		 * @param {string} oUI5Filter The filter object to render (must not be a multi filter)
 		 * @returns {string} The $filter value for the given UI5 filter
+		 * @throws Exception If the given <code>oUI5Filter.sPath</code> is not the name of a property of this
+		 *   filter's expression entity type
 		 * @private
 		 */
 		renderUI5Filter : function(oUI5Filter) {
-			var sFilterExpression = null,
-				oProperty = this._oEntityType.findPropertyByName(oUI5Filter.sPath);
+			const {sPath, sOperator, oValue1, oValue2, sFractionalSeconds1, sFractionalSeconds2} = oUI5Filter;
+			let sFilterExpression = null;
+			const oProperty = this._oEntityType.findPropertyByName(sPath);
 
 			if (oProperty == null) {
-				throw "Cannot add filter condition for unknown property name " + oUI5Filter.sPath; // TODO
+				throw "Cannot add filter condition for unknown property name " + sPath; // TODO
 			}
 
-			switch (oUI5Filter.sOperator) {
+			switch (sOperator) {
 			case FilterOperator.BT:
-				sFilterExpression = "(" + oUI5Filter.sPath + " ge "
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue1, oProperty.type)
-					+ " and " + oUI5Filter.sPath + " le "
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue2, oProperty.type)
+				sFilterExpression = "(" + sPath + " ge "
+					+ this._renderPropertyFilterValue(oValue1, oProperty.type, sFractionalSeconds1)
+					+ " and " + sPath + " le "
+					+ this._renderPropertyFilterValue(oValue2, oProperty.type, sFractionalSeconds2)
 					+ ")";
 				break;
 			case FilterOperator.NB:
-				sFilterExpression = "(" + oUI5Filter.sPath + " lt "
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue1, oProperty.type)
-					+ " or " + oUI5Filter.sPath + " gt "
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue2, oProperty.type)
+				sFilterExpression = "(" + sPath + " lt "
+					+ this._renderPropertyFilterValue(oValue1, oProperty.type, sFractionalSeconds1)
+					+ " or " + sPath + " gt "
+					+ this._renderPropertyFilterValue(oValue2, oProperty.type, sFractionalSeconds2)
 					+ ")";
 				break;
 			case FilterOperator.Contains:
 			case FilterOperator.NotContains:
-				sFilterExpression = (oUI5Filter.sOperator[0] === "N" ? "not " : "") + "substringof("
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue1, "Edm.String")
-					+ "," +  oUI5Filter.sPath + ")";
+				sFilterExpression = (sOperator[0] === "N" ? "not " : "") + "substringof("
+					+ this._renderPropertyFilterValue(oValue1, "Edm.String")
+					+ "," +  sPath + ")";
 				break;
 			case FilterOperator.StartsWith:
 			case FilterOperator.EndsWith:
 			case FilterOperator.NotStartsWith:
 			case FilterOperator.NotEndsWith:
-				sFilterExpression = oUI5Filter.sOperator.toLowerCase().replace("not", "not ") + "("
-					+ oUI5Filter.sPath + ","
-					+ this._renderPropertyFilterValue(oUI5Filter.oValue1, "Edm.String") + ")";
+				sFilterExpression = sOperator.toLowerCase().replace("not", "not ") + "(" + sPath + ","
+					+ this._renderPropertyFilterValue(oValue1, "Edm.String") + ")";
 				break;
 			default:
-				sFilterExpression = oUI5Filter.sPath + " " + oUI5Filter.sOperator.toLowerCase()
-					+ " " + this._renderPropertyFilterValue(oUI5Filter.oValue1, oProperty.type);
+				sFilterExpression = sPath + " " + sOperator.toLowerCase()
+					+ " " + this._renderPropertyFilterValue(oValue1, oProperty.type, sFractionalSeconds1);
 			}
 
 			return sFilterExpression;
@@ -3414,14 +3435,14 @@ sap.ui.define([
 			var sOptionString = "";
 			// 1. Process conditions
 			aUI5Filter.sort(function(a, b) {
-				if (a.sPath == b.sPath) {
+				// default path to "" to ensure that the array contains all multi-filters, that don't have a path,
+				// at the beginning
+				const sAPath = a.sPath || "";
+				const sBPath = b.sPath || "";
+				if (sAPath === sBPath) {
 					return 0;
 				}
-				if (a.sPath > b.sPath) {
-					return 1;
-				} else {
-					return -1;
-				}
+				return sAPath > sBPath ? 1 : -1;
 			});
 
 			var sPropertyName = aUI5Filter[0].sPath;
@@ -3678,6 +3699,8 @@ sap.ui.define([
 		 *            sPropertyName The name of the property bound in the condition
 		 * @param {sap.ui.model.analytics.odata4analytics.SortOrder}
 		 *            sSortOrder sorting order used for the condition
+		 * @param {boolean} bIgnoreIfAlreadySorted
+		 *   If there is already a sorter for that property, ignore this call.
 		 * @throws Exception
 		 *             if the property is unknown, not sortable or already added as
 		 *             sorter
@@ -3687,14 +3710,16 @@ sap.ui.define([
 		 * @function
 		 * @name sap.ui.model.analytics.odata4analytics.SortExpression#addSorter
 		 */
-		addSorter : function(sPropertyName, sSortOrder) {
+		addSorter : function(sPropertyName, sSortOrder, bIgnoreIfAlreadySorted) {
 			var oProperty = this._oEntityType.findPropertyByName(sPropertyName);
 			if (oProperty == null) {
 				throw "Cannot add sort condition for unknown property name " + sPropertyName; // TODO
 			}
 			var oExistingSorterEntry = this._containsSorter(sPropertyName);
 			if (oExistingSorterEntry != null) {
-				oExistingSorterEntry.sorter.order = sSortOrder;
+				if (!bIgnoreIfAlreadySorted) {
+					oExistingSorterEntry.sorter.order = sSortOrder;
+				}
 				return this;
 			}
 			var aSortablePropertyNames = this._oEntityType.getSortablePropertyNames();
@@ -3885,12 +3910,12 @@ sap.ui.define([
 		/**
 		 * Assign a value to a parameter
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sParameterName Name of the parameter. In case of a range
 		 *            value, provide the name of the lower boundary parameter.
-		 * @param {String}
+		 * @param {string}
 		 *            sValue Assigned value. Pass null to remove a value assignment.
-		 * @param {String}
+		 * @param {string}
 		 *            sToValue Omit it or set it to null for single values. If set,
 		 *            it will be assigned to the upper boundary parameter
 		 * @public
@@ -3945,7 +3970,7 @@ sap.ui.define([
 		/**
 		 * Get the URI to locate the entity set for the query parameterization.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
 		 * @returns The resource path of the URI pointing to the entity set. It is a
@@ -3967,7 +3992,7 @@ sap.ui.define([
 		 * "omitted" value. For example, for services based on BW Easy Queries, this
 		 * would be an empty string.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
 		 * @returns The resource path of the URI pointing to the entity set. It is a
@@ -4515,16 +4540,16 @@ sap.ui.define([
 		 * Set further options to be applied for the OData request to fetch the
 		 * query result
 		 *
-		 * @param {Boolean}
+		 * @param {boolean}
 		 *            bIncludeEntityKey Indicates whether or not the entity key
 		 *            should be returned for every entry in the query result.
 		 *            Default is not to include it. Pass null to keep current
 		 *            setting.
-		 * @param {Boolean}
+		 * @param {boolean}
 		 *            bIncludeCount Indicates whether or not the result shall
 		 *            include a count for the returned entities. Default is not to
 		 *            include it. Pass null to keep current setting.
-		 * @param {Boolean}
+		 * @param {boolean}
 		 *            bReturnNoEntities Indicates whether or not the result shall
 		 *            be empty. This will translate to $top=0 in the OData request and override
 		 *            any setting done with setResultPageBoundaries. The default is not to
@@ -4552,11 +4577,11 @@ sap.ui.define([
 		 * described by its boundaries, that are row numbers for the first and last
 		 * rows in the query result to be returned.
 		 *
-		 * @param {Number}
+		 * @param {int}
 		 *            start The first row of the query result to be returned.
 		 *            Numbering starts at 1. Passing null is equivalent to start
 		 *            with the first row.
-		 * @param {Number}
+		 * @param {int}
 		 *            end The last row of the query result to be returned. Passing
 		 *            null is equivalent to get all rows up to the end of the query
 		 *            result.
@@ -4612,11 +4637,11 @@ sap.ui.define([
 		/**
 		 * Get the URI to locate the entity set for the query result.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
 		 *
-		 * @returns {String} The resource path of the URI pointing to the entity
+		 * @returns {string} The resource path of the URI pointing to the entity
 		 *          set. It is a relative URI unless a service root is given, which
 		 *          would then prefixed in order to return a complete URL.
 		 * @public
@@ -4679,11 +4704,11 @@ sap.ui.define([
 		 * Get the value of a query option for the OData request URI corresponding
 		 * to this request.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sQueryOptionName Identifies the query option: $select,
 		 *            $filter,$orderby ... or any custom query option
 		 *
-		 * @returns {String} The value of the requested query option or null, if
+		 * @returns {string} The value of the requested query option or null, if
 		 *          this option is not used for the OData request.
 		 * @public
 		 * @function
@@ -4808,15 +4833,15 @@ sap.ui.define([
 		/**
 		 * Get the unescaped URI to fetch the query result.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
-		 * @param {String}
+		 * @param {string}
 		 *            sResourcePath (optional) OData resource path to be considered.
 		 *            If provided, it overwrites any parameterization object that
 		 *            might have been specified separately.
 		 *
-		 * @returns {String} The unescaped URI that contains the OData resource path
+		 * @returns {string} The unescaped URI that contains the OData resource path
 		 *          and OData system query options to express the aggregation level,
 		 *          filter expression and further options.
 		 * @public
@@ -5040,11 +5065,11 @@ sap.ui.define([
 		 * Get the value of a query option for the OData request URI corresponding
 		 * to this request.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sQueryOptionName Identifies the query option: $select,
 		 *            $filter,... or any custom query option
 		 *
-		 * @returns {String} The value of the requested query option or null, if
+		 * @returns {string} The value of the requested query option or null, if
 		 *          this option is not used for the OData request.
 		 * @public
 		 * @function
@@ -5089,10 +5114,10 @@ sap.ui.define([
 		/**
 		 * Get the unescaped URI to fetch the parameter value set.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
-		 * @returns {String} The unescaped URI that contains the OData resource path
+		 * @returns {string} The unescaped URI that contains the OData resource path
 		 *          and OData system query options to express the request for the
 		 *          parameter value set..
 		 * @public
@@ -5196,7 +5221,7 @@ sap.ui.define([
 			this._oSortExpression = null;
 
 			if (this._oParameterizationRequest != null && this._bUseMasterData == true) {
-				throw "LIMITATION: parameterized master data entity sets are not yet implemented";
+				throw "Parameterized master data entity sets are not yet implemented";
 			}
 			if (this._bUseMasterData) {
 				this._oEntitySet = this._oDimension.getMasterDataEntitySet();
@@ -5327,7 +5352,7 @@ sap.ui.define([
 		/**
 		 * Set further options to be applied for the OData request
 		 *
-		 * @param {Boolean}
+		 * @param {boolean}
 		 *            bIncludeCount Indicates whether or not the result shall
 		 *            include a count for the returned entities. Default is not to
 		 *            include it. Pass null to keep current setting.
@@ -5346,11 +5371,11 @@ sap.ui.define([
 		 * described by its boundaries, that are row numbers for the first and last
 		 * rows in the query result to be returned.
 		 *
-		 * @param {Number}
+		 * @param {int}
 		 *            start The first row of the query result to be returned.
 		 *            Numbering starts at 1. Passing null is equivalent to start
 		 *            with the first row.
-		 * @param {Number}
+		 * @param {int}
 		 *            end The last row of the query result to be returned. Passing
 		 *            null is equivalent to get all rows up to the end of the query
 		 *            result.
@@ -5407,11 +5432,11 @@ sap.ui.define([
 		 * Get the value of a query option for the OData request URI corresponding
 		 * to this request.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sQueryOptionName Identifies the query option: $select,
 		 *            $filter,... or any custom query option
 		 *
-		 * @returns {String} The value of the requested query option or null, if
+		 * @returns {string} The value of the requested query option or null, if
 		 *          this option is not used for the OData request.
 		 * @public
 		 * @function
@@ -5525,10 +5550,10 @@ sap.ui.define([
 		/**
 		 * Get the URI to locate the entity set for the dimension memebers.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
-		 * @returns {String} The resource path of the URI pointing to the entity
+		 * @returns {string} The resource path of the URI pointing to the entity
 		 *          set. It is a relative URI unless a service root is given, which
 		 *          would then prefixed in order to return a complete URL.
 		 * @public
@@ -5550,10 +5575,10 @@ sap.ui.define([
 		 * Get the unescaped URI to fetch the dimension members, optionally
 		 * augmented by text and attributes.
 		 *
-		 * @param {String}
+		 * @param {string}
 		 *            sServiceRootURI (optional) Identifies the root of the OData
 		 *            service
-		 * @returns {String} The unescaped URI that contains the OData resource path
+		 * @returns {string} The unescaped URI that contains the OData resource path
 		 *          and OData system query options to express the request for the
 		 *          parameter value set..
 		 * @public

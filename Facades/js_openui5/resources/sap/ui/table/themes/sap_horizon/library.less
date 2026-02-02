@@ -1,0 +1,194 @@
+/* NOTE: This file was generated as an optimized version of "library.source.less" for the Theme Designer. */
+
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+
+@import "../base/library.less";
+@import "../../../../../../Base/baseLib/sap_horizon/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_horizon/base.less" */
+
+@import "../../../../../sap/ui/core/themes/sap_horizon/global.less";
+
+@_sap_ui_table_DeleteIcon: decline;
+@_sap_ui_table_RowActionItemSize: @_sap_ui_table_BaseSizeCondensed;
+@_sap_ui_table_RowActionItemSizeCozy: @_sap_ui_table_BaseSize;
+@_sap_ui_table_RowActionItemSizeCondensed: calc(@_sap_ui_table_BaseSizeCondensed ~"-" 0.125rem);
+
+/* START "Table.less" */
+/* =================================== */
+/* CSS for control sap.ui.table/Table  */
+/* Morning Horizon theme               */
+/* =================================== */
+
+@_sap_ui_table_Table_HeaderPaddingRight: 0.5rem;
+@_sap_ui_table_Table_FooterPaddingRight: 0.5rem;
+
+.sapUiTableExt .sapMTBHeader-CTX:first-child {
+	border-top-right-radius: var(--sapElement_BorderCornerRadius);
+	border-top-left-radius: var(--sapElement_BorderCornerRadius);
+}
+
+.sapUiTableCnt {
+	background-color: var(--sapList_Background);
+	border: transparent;
+}
+
+.sapUiTableFtr {
+	border-left: none;
+	border-right: none;
+	border-bottom: none;
+}
+/* END "Table.less" */
+
+/* START "Cell.less" */
+/* ========================= */
+/* CSS for sap.ui.table/Cell */
+/* Horizon theme             */
+/* ========================= */
+
+@_sap_ui_table_Cell_FocusOutlineOffset: ~"calc((var(--sapContent_FocusWidth) * -1) - 0.0625rem)";
+@_sap_ui_table_Cell_BorderColorSelected: var(--sapList_SelectionBorderColor);
+@_sap_ui_table_Cell_BorderColorFixedSelected: var(--sapList_SelectionBorderColor);
+@_sap_ui_table_Cell_ShadowColorFixed: @sapUiListTableFixedBorder;
+@_sap_ui_table_Cell_BorderBottomFocus: transparent;
+@_sap_ui_table_Cell_DummyBorderColor: @sapUiListTableFixedBorder;
+
+.sapUiTableCellDummy {
+
+	.sapUiTableContentRow & {
+		background-color: var(--sapList_Background) !important;
+	}
+}
+
+.sapUiTableGroupMode .sapUiTableCell.sapUiTableRowSelectionCell {
+	box-shadow: none;
+}
+
+/*
+ * Focus outline in Condensed mode
+ */
+.sapUiSizeCondensed .sapUiTableCell:focus {
+
+	&::before {
+		outline: 0.0625rem var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+		outline-offset: -1px;
+	}
+}
+/* END "Cell.less" */
+
+/* START "RowSelection.less" */
+/* ================================== */
+/* CSS for sap.ui.table/RowSelection  */
+/* Morning Horizon theme              */
+/* ================================== */
+
+@_sap_ui_table_RowSelection_CheckBoxBorderWidth: 0.0625rem; /*@sapUiFieldBorderWidth;*/
+@_sap_ui_table_RowSelection_CheckBoxBorderRadius: var(--sapField_BorderCornerRadius);
+@_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy: var(--sapField_BorderCornerRadius);
+
+.sapUiTableRowSelectionHeaderCell:not(.sapUiTableSelAll) .sapUiTableSelectAllCheckBox::after,
+.sapUiTableSelModeMultiToggle .sapUiTableRowSel .sapUiTableRowSelectionCell::after {
+	border-color: var(--sapContent_FocusColor);
+}
+
+.sapUiTableRowSelectionHeaderCell:hover .sapUiTableSelectAllCheckBox::after,
+.sapUiTableRowHvr .sapUiTableRowSelectionCell::after {
+	background-color: var(--sapField_Hover_Background);
+	box-shadow: var(--sapContent_Interaction_Shadow);
+}
+/* END "RowSelection.less" */
+
+/* START "RowAction.less" */
+/* ======================================= */
+/* CSS for control sap.ui.table/RowAction  */
+/* Morning Horizon theme                   */
+/* ======================================= */
+
+/*TBD: Adjustments for sapUiTableActionIcon might be obsolete when Icon is adjusted */
+
+.sapUiTableActionIcon {
+	border-radius: var(--sapButton_BorderCornerRadius);
+	box-sizing: border-box;
+	color: var(--sapButton_Lite_TextColor);
+}
+
+.sapUiTableActionIcon:hover {
+	border: 1px solid var(--sapButton_Hover_BorderColor);
+	background: var(--sapButton_Hover_Background);
+}
+
+.sapUiTableActionIcon:active {
+	color: var(--sapButton_Active_TextColor);
+	border: 1px solid var(--sapButton_Active_BorderColor);
+}
+
+.sapUiTableActionIcon.sapUiIcon:focus {
+	outline-width: var(--sapContent_FocusWidth);
+	outline-style: var(--sapContent_FocusStyle);
+	outline-color: var(--sapContent_FocusColor);
+	outline-offset: ~"calc(var(--sapContent_FocusWidth) * -1)";
+}
+
+.sapUiTableActionIcon:active:focus {
+	outline: none;
+}
+/* END "RowAction.less" */
+
+/* START "Scrolling.less" */
+/* ================================== */
+/* CSS for sap.ui.table/Scrolling     */
+/* Morning Horizon theme              */
+/* ================================== */
+
+._sap_ui_table_Scrolling_NativeScrollbarDesktop() {
+
+	&::-webkit-scrollbar-thumb:vertical {
+		border-left-width: 0.25rem !important;
+		border-right-width: 0.25rem !important;
+	}
+
+	&::-webkit-scrollbar-thumb:horizontal {
+		border-top-width: 0.25rem !important;
+		border-bottom-width: 0.25rem !important;
+	}
+}
+/* END "Scrolling.less" */
+
+/* START "Grouping.less" */
+/* ============================== */
+/* CSS for sap.ui.table/Grouping  */
+/* Horizon theme                  */
+/* ============================== */
+
+/*TBD: Adjustments for sapUiTableTreeIcon might be obsolete when Icon is adjusted */
+
+.sapUiTableTreeIcon {
+	border-radius: var(--sapButton_BorderCornerRadius);
+	box-sizing: border-box;
+	margin-right: 2px;
+}
+
+.sapUiSizeCompact .sapUiTableTreeIcon {
+	height: @_sap_ui_table_BaseSizeCondensed;
+}
+
+.sapUiTableTreeIcon:active::before {
+	color: var(--sapButton_Active_TextColor);
+}
+
+.sapUiTableTreeIcon:hover {
+	color: var(--sapButton_Hover_TextColor);
+	border: 1px solid var(--sapButton_Hover_BorderColor);
+	background: var(--sapButton_Hover_Background);
+}
+
+.sapUiTableTreeIcon:active {
+	border: 1px solid var(--sapButton_Active_BorderColor);
+}
+
+.sapUiTableTreeIcon:active:focus {
+	outline: none;
+}
+/* END "Grouping.less" */

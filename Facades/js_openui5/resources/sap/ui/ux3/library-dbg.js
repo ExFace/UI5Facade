@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,17 +18,16 @@ sap.ui.define([
 	 * Controls that implement the SAP User Experience (UX) Guidelines 3.0
 	 *
 	 * @namespace
-	 * @name sap.ui.ux3
+	 * @alias sap.ui.ux3
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @public
+	 * @since 0.13
 	 * @deprecated Since 1.38
 	 */
-
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.ui.ux3",
-		version: "1.82.0",
+		version: "1.136.0",
 		dependencies : ["sap.ui.core","sap.ui.commons"],
 		types: [
 			"sap.ui.ux3.ActionBarSocialActions",
@@ -88,10 +87,9 @@ sap.ui.define([
 	 * @public
 	 * @experimental Since version 1.2.
 	 * API is not yet finished and might change completely
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.ActionBarSocialActions = {
+	thisLib.ActionBarSocialActions = {
 
 		/**
 		 * Standard action 'Create an update' (Feed)
@@ -133,7 +131,6 @@ sap.ui.define([
 	 * @name sap.ui.ux3.DataSetView
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
 
@@ -145,10 +142,9 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.7.1
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.ExactOrder = {
+	thisLib.ExactOrder = {
 
 		/**
 		 * The order of the sub lists is defined by the selection order of the user.
@@ -172,10 +168,9 @@ sap.ui.define([
 	 * @public
 	 * @experimental Since version 1.2.
 	 * The whole Feed/Feeder API is still under discussion, significant changes are likely. Especially text presentation (e.g. @-references and formatted text) is not final. Also the Feed model topic is still open.
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.FeederType = {
+	thisLib.FeederType = {
 
 		/**
 		 * large Feeder
@@ -203,10 +198,9 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.FollowActionState = {
+	thisLib.FollowActionState = {
 
 		/**
 		 * follow state
@@ -235,10 +229,9 @@ sap.ui.define([
 	 * @author SAP
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.NotificationBarStatus = {
+	thisLib.NotificationBarStatus = {
 
 		/**
 		 * Default height for the bar
@@ -274,10 +267,9 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.12.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.ShellDesignType = {
+	thisLib.ShellDesignType = {
 
 		/**
 		 * The standard Shell design (dark).
@@ -313,10 +305,9 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.ShellHeaderType = {
+	thisLib.ShellHeaderType = {
 
 		/**
 		 * The standard Shell header.
@@ -352,10 +343,9 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.16.3
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.ThingViewerHeaderType = {
+	thisLib.ThingViewerHeaderType = {
 
 		/**
 		 * The standard ThingViewer header.
@@ -377,10 +367,9 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated Since 1.38
 	 */
-	sap.ui.ux3.VisibleItemCountMode = {
+	thisLib.VisibleItemCountMode = {
 
 		/**
 		 * The FacetFilter always has as many items in the FacetFilterList as defined in the visibleItemCount property.
@@ -396,6 +385,6 @@ sap.ui.define([
 
 	};
 
-	return sap.ui.ux3;
+	return thisLib;
 
 });

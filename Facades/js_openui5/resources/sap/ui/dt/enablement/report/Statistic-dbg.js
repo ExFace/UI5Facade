@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,12 +12,13 @@ sap.ui.define([
 	"sap/m/Label",
 	"sap/m/Text",
 	"./StatisticRenderer"
-], function (
+], function(
 	Control,
 	JSONModel,
 	SimpleForm,
 	Label,
-	Text
+	Text,
+	StatisticRenderer
 ) {
 	"use strict";
 
@@ -32,33 +33,31 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.38
 	 * @alias sap.ui.dt.enablement.report.Statistic
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be changed in future.
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var oStatistic = Control.extend("sap.ui.dt.enablement.report.Statistic", /** @lends sap.ui.dt.enablement.report.Statistic.prototype */ {
-		metadata : {
-			properties : {
-				data : {
-					type : "object"
+		metadata: {
+			library: "sap.ui.dt",
+			properties: {
+				data: {
+					type: "object"
 				}
 			},
-			aggregations : {
-				_form : {
-					type : "sap.ui.layout.form.SimpleForm",
-					hidden : true,
-					multiple : false
+			aggregations: {
+				_form: {
+					type: "sap.ui.layout.form.SimpleForm",
+					hidden: true,
+					multiple: false
 				}
 			}
 		},
 
-
-		init : function() {
+		init() {
 			this._oModel = null;
 			this.setAggregation("_form", this._createForm());
 		},
@@ -67,11 +66,11 @@ sap.ui.define([
 		 * Called when the Statistic is destroyed
 		 * @protected
 		 */
-		exit : function() {
+		exit() {
 			this.setData(null);
 		},
 
-		setData : function(oData) {
+		setData(oData) {
 			if (this._oModel) {
 				this._oModel.destroy();
 				delete this._oModel;
@@ -85,30 +84,32 @@ sap.ui.define([
 			this.setProperty("data", oData);
 		},
 
-
-		_createForm : function() {
-			var oForm = new SimpleForm(this.getId() + "--form", {
-				editable : false,
-				title : "Statistics",
-				content : [
-					new Label(this.getId() + "--form-supported-label", {text: "Supported"}),
-					new Text(this.getId() + "--form-supported-value", {text: "{/statistic/SUPPORTED}"}),
-					new Label(this.getId() + "--form-partial-supported-label", {text: "Partial Supported"}),
-					new Text(this.getId() + "--form-partial-supported-value", {text: "{/statistic/PARTIAL_SUPPORTED}"}),
-					new Label(this.getId() + "--form-not-supported-label", {text: "Not Supported"}),
-					new Text(this.getId() + "--form-not-supported-value", {text: "{/statistic/NOT_SUPPORTED}"}),
-					new Label(this.getId() + "--form-unknown-label", {text: "Unknown"}),
-					new Text(this.getId() + "--form-unknown-value", {text: "{/statistic/UNKNOWN}"}),
-					new Label(this.getId() + "--form-error-label", {text: "Error"}),
-					new Text(this.getId() + "--form-error-value", {text: "{/statistic/ERROR}"})
+		_createForm() {
+			var oForm = new SimpleForm(`${this.getId()}--form`, {
+				editable: false,
+				layout: "ResponsiveGridLayout",
+				title: "Statistics",
+				content: [
+					new Label(`${this.getId()}--form-supported-label`, {text: "Supported"}),
+					new Text(`${this.getId()}--form-supported-value`, {text: "{/statistic/SUPPORTED}"}),
+					new Label(`${this.getId()}--form-partial-supported-label`, {text: "Partial Supported"}),
+					new Text(`${this.getId()}--form-partial-supported-value`, {text: "{/statistic/PARTIAL_SUPPORTED}"}),
+					new Label(`${this.getId()}--form-not-supported-label`, {text: "Not Supported"}),
+					new Text(`${this.getId()}--form-not-supported-value`, {text: "{/statistic/NOT_SUPPORTED}"}),
+					new Label(`${this.getId()}--form-unknown-label`, {text: "Unknown"}),
+					new Text(`${this.getId()}--form-unknown-value`, {text: "{/statistic/UNKNOWN}"}),
+					new Label(`${this.getId()}--form-error-label`, {text: "Error"}),
+					new Text(`${this.getId()}--form-error-value`, {text: "{/statistic/ERROR}"})
 				]
 			});
 			return oForm;
 		},
 
-		_getForm : function() {
+		_getForm() {
 			return this.getAggregation("_form");
-		}
+		},
+
+		renderer: StatisticRenderer
 	});
 
 	return oStatistic;

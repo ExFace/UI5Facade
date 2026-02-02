@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,6 +41,7 @@ sap.ui.define([
 		CONTEXT_MENU_HIGHLIGHT: " CONTEXT_MENU_HIGHLIGHT",
 		CONTEXT_MENU_PRESS: "CONTEXT_MENU_PRESS",
 		CONTEXT_MENU_ENTER_TEXT: "CONTEXT_MENU_ENTER_TEXT",
+		ASSERT_PROPERTY: "ASSERT_PROPERTY",
 		/*
 		 * recorder frame events
 		 */

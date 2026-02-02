@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegendRenderer',
-		'sap/ui/unified/library', "sap/base/Log"],
-	function (CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log) {
+sap.ui.define(["sap/ui/core/Element", 'sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegendRenderer', 'sap/ui/unified/library', "sap/base/Log", "sap/ui/core/date/UI5Date"],
+	function(Element, CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log, UI5Date) {
 		"use strict";
 
 
@@ -33,7 +32,6 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		var oDate = oMonthsRow._getStartDate();
 		var sTooltip = oMonthsRow.getTooltip_AsString();
 		var sId = oMonthsRow.getId();
-		var oAriaLabel = {value: sId + "-Descr", append: true};
 
 		oRm.openStart("div", oMonthsRow);
 		oRm.class("sapUiCalMonthsRow");
@@ -46,17 +44,10 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		oRm.accessibilityState(oMonthsRow, {
 			role: "grid",
 			readonly: "true",
-			multiselectable: !oMonthsRow.getSingleSelection() || oMonthsRow.getIntervalSelection(),
-			labelledby: oAriaLabel
+			multiselectable: !oMonthsRow.getSingleSelection() || oMonthsRow.getIntervalSelection()
 		});
 
 		oRm.openEnd(); // div element
-
-		oRm.openStart("span", sId + "-Descr");
-		oRm.style("display", "none");
-		oRm.openEnd();
-		oRm.text(oMonthsRow._rb.getText("CALENDAR_DIALOG"));
-		oRm.close("span");
 
 		if (oMonthsRow.getIntervalSelection()) {
 			oRm.openStart("span", sId + "-Start");
@@ -122,7 +113,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	/**
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.ui.unified.calendar.MonthsRow} oMonthsRow An object representation of the control that should be rendered
-	 * @param {sap.ui.core.LocaleData} oLocalDate
+	 * @param {sap.ui.core.LocaleData} oLocaleData
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate The first date of the month
 	 */
 	MonthsRowRenderer.renderHeaderLine = function(oRm, oMonthsRow, oLocaleData, oDate){
@@ -140,7 +131,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			iYear = oMonthDate.getYear();
 			if (aYearMonths.length > 0 && aYearMonths[aYearMonths.length - 1].iYear == iYear) {
 				aYearMonths[aYearMonths.length - 1].iMonths++;
-			}else {
+			} else  {
 				aYearMonths.push({iYear: iYear, iMonths: 1});
 			}
 			oMonthDate.setMonth(oMonthDate.getMonth() + 1);
@@ -188,24 +179,24 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		CalendarUtils._checkCalendarDate(oDate);
 
 		var oHelper = {};
+		var sPrimaryCalendarType = oMonthsRow.getProperty("primaryCalendarType");
 
 		oHelper.sLocale = oMonthsRow._getLocale();
 		oHelper.oLocaleData = oMonthsRow._getLocaleData();
-		oHelper.oToday = new CalendarDate();
+		oHelper.oToday = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), sPrimaryCalendarType);
 		oHelper.sCurrentMonth = oMonthsRow._rb.getText("CALENDAR_CURRENT_MONTH");
 		oHelper.sId = oMonthsRow.getId();
 		oHelper.oFormatLong = oMonthsRow._getFormatLong();
 		if (oMonthsRow._bLongMonth || !oMonthsRow._bNamesLengthChecked) {
-			oHelper.aMonthNames = oHelper.oLocaleData.getMonthsStandAlone("wide");
+			oHelper.aMonthNames = oHelper.oLocaleData.getMonthsStandAlone("wide", sPrimaryCalendarType);
 		} else {
-			oHelper.aMonthNames = oHelper.oLocaleData.getMonthsStandAlone("abbreviated");
-			oHelper.aMonthNamesWide = oHelper.oLocaleData.getMonthsStandAlone("wide");
+			oHelper.aMonthNames = oHelper.oLocaleData.getMonthsStandAlone("abbreviated", sPrimaryCalendarType);
+			oHelper.aMonthNamesWide = oHelper.oLocaleData.getMonthsStandAlone("wide", sPrimaryCalendarType);
 		}
-
 
 		var sLegendId = oMonthsRow.getLegend();
 		if (sLegendId) {
-			var oLegend = sap.ui.getCore().byId(sLegendId);
+			var oLegend = Element.getElementById(sLegendId);
 			if (oLegend) {
 				if (!(oLegend instanceof sap.ui.unified.CalendarLegend)) {
 					throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + oMonthsRow);
@@ -215,6 +206,33 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 				Log.warning("CalendarLegend " + sLegendId + " does not exist!", oMonthsRow);
 			}
 		}
+
+		oHelper.convertTextInfoToSecondaryType = function (oDate) {
+			var sSecondaryCalendarType = oMonthsRow._getSecondaryCalendarType(),
+				// always use wide month names for the screen reader
+				aMonthNamesSecondary = oHelper.oLocaleData.getMonthsStandAlone("abbreviated", sSecondaryCalendarType),
+				oSecondaryYearFormat = oMonthsRow._oFormatYearInSecType,
+				oSecondaryDates = oMonthsRow._getDisplayedSecondaryDates(oDate.getMonth(), oDate.getYear()),
+				sSecondaryMonthInfo,
+				sSecondaryYearInfo,
+				sPattern;
+
+			if (oSecondaryDates.start.getMonth() === oSecondaryDates.end.getMonth()) {
+				sSecondaryMonthInfo = aMonthNamesSecondary[oSecondaryDates.start.getMonth()];
+			} else {
+				sPattern = oMonthsRow._getLocaleData().getIntervalPattern();
+				sSecondaryMonthInfo = sPattern.replace(/\{0\}/, aMonthNamesSecondary[oSecondaryDates.start.getMonth()]).replace(/\{1\}/, aMonthNamesSecondary[oSecondaryDates.end.getMonth()]);
+			}
+
+			if (oSecondaryDates.start.getYear() === oSecondaryDates.end.getYear()){
+				sSecondaryYearInfo = oSecondaryYearFormat.format(oSecondaryDates.start.toUTCJSDate(), true);
+			} else {
+				sSecondaryYearInfo = sPattern.replace(/\{0\}/, oSecondaryYearFormat.format(oSecondaryDates.start.toUTCJSDate(), true))
+				.replace(/\{1\}/, oSecondaryYearFormat.format(oSecondaryDates.end.toUTCJSDate(), true));
+			}
+
+			return {sMonthInfo: sSecondaryMonthInfo, sYearInfo: sSecondaryYearInfo};
+		};
 
 		return oHelper;
 
@@ -230,16 +248,19 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	MonthsRowRenderer.renderMonth = function(oRm, oMonthsRow, oDate, oHelper, sWidth){
 		CalendarUtils._checkCalendarDate(oDate);
 
-		var mAccProps = {
-				role: oMonthsRow._getAriaRole(),
-				selected: false,
-				label: "",
-				describedby: ""
-			};
+		var bHasSecondaryCalendarType = !!oMonthsRow._getSecondaryCalendarType(),
+			oSecondaryTypeInfo;
 
-		if (!oMonthsRow._bLongMonth && oMonthsRow._bNamesLengthChecked) {
-			mAccProps["label"] = oHelper.aMonthNamesWide[oDate.getMonth()];
+		if (bHasSecondaryCalendarType) {
+			oSecondaryTypeInfo = oHelper.convertTextInfoToSecondaryType(oDate);
 		}
+
+		var mAccProps = {
+			role: oMonthsRow._getAriaRole(),
+			selected: false,
+			label: "",
+			describedby: oMonthsRow._getMonthDescription()
+		};
 
 		var sYyyymm = oMonthsRow._oFormatYyyymm.format(oDate.toUTCJSDate(), true);
 		var iSelected = oMonthsRow._checkDateSelected(oDate);
@@ -291,18 +312,32 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		oRm.attr("tabindex", "-1");
 		oRm.attr("data-sap-month", sYyyymm);
 		mAccProps["label"] = mAccProps["label"] + oHelper.oFormatLong.format(oDate.toUTCJSDate(), true);
+		if (bHasSecondaryCalendarType) {
+			mAccProps["label"] = mAccProps["label"] + ", " + oSecondaryTypeInfo.sMonthInfo + " " + oSecondaryTypeInfo.sYearInfo;
+		}
 
 		if (oType && oType.type != CalendarDayType.None) {
 			CalendarLegendRenderer.addCalendarTypeAccInfo(mAccProps, oType.type, oHelper.oLegend);
 		}
 
 		oRm.accessibilityState(null, mAccProps);
+		if (bHasSecondaryCalendarType) {
+			oRm.class("sapUiCalItemWithSecondaryType");
+		}
+
 		oRm.openEnd();
 		oRm.openStart("span");
 		oRm.class("sapUiCalItemText");
 		oRm.openEnd();
 		oRm.text(oHelper.aMonthNames[oDate.getMonth()]);
 		oRm.close("span");
+		if (bHasSecondaryCalendarType) {
+			oRm.openStart("span");
+			oRm.class("sapUiCalItemAddText");
+			oRm.openEnd();
+			oRm.text(oSecondaryTypeInfo.sMonthInfo);
+			oRm.close("span");
+		}
 		oRm.close("div");
 	};
 

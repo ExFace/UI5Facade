@@ -1,12 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/mdc/field/FieldInfoBase', 'sap/ui/core/Control', 'sap/ui/core/InvisibleText', 'sap/ui/base/ManagedObjectObserver'
-], function(FieldInfoBase, Control, InvisibleText, ManagedObjectObserver) {
+	'sap/ui/mdc/field/FieldInfoBase', 'sap/ui/core/Control', 'sap/ui/base/ManagedObjectObserver'
+], (FieldInfoBase, Control, ManagedObjectObserver) => {
 	"use strict";
 
 	/**
@@ -16,19 +16,17 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 * @class A field help used in the <code>FieldInfo</code> aggregation in <code>FieldBase</code> controls that allows you to add custom content.
 	 * @extends sap.ui.mdc.field.FieldInfoBase
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
+	 * @ui5-restricted sap.fe
 	 * @since 1.54.0
 	 * @alias sap.ui.mdc.field.CustomFieldInfo
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var CustomFieldInfo = FieldInfoBase.extend("sap.ui.mdc.field.CustomFieldInfo", /** @lends sap.ui.mdc.field.CustomFieldInfo.prototype */
-	{
+	const CustomFieldInfo = FieldInfoBase.extend("sap.ui.mdc.field.CustomFieldInfo", /** @lends sap.ui.mdc.field.CustomFieldInfo.prototype */ {
 		metadata: {
 			library: "sap.ui.mdc",
-			properties: {
-				},
+			properties: {},
 			aggregations: {
 				/**
 				 * Content of the field information.
@@ -85,33 +83,30 @@ sap.ui.define([
 
 	};
 
-	CustomFieldInfo.prototype.getContentTitle = function() {
-
-		return "";
-
-	};
-
 	CustomFieldInfo.prototype.getContent = function() {
 
 		if (!CustomFieldInfo._oBox) {
 			CustomFieldInfo._oBox = Control.extend("sap.ui.mdc.field.CustomFieldInfoBox", {
 
-				metadata : {
+				metadata: {
+					library: "sap.ui.mdc"
 				},
 
-				renderer : function(oRm, oBox) {
+				renderer: {
+					apiVersion: 2,
+					render: function(oRm, oBox) {
 
-					var oContent = oBox._oInfo.getAggregation("content");
+						const oContent = oBox._oInfo.getAggregation("content");
 
-					oRm.write("<div");
-					oRm.writeControlData(oBox);
-					oRm.write(">");
+						oRm.openStart("div", oBox);
+						oRm.openEnd();
 
-					if (oContent) {
-						oRm.renderControl(oContent);
+						if (oContent) {
+							oRm.renderControl(oContent);
+						}
+
+						oRm.close("div");
 					}
-
-					oRm.write("</div>");
 				}
 
 			});
@@ -124,6 +119,10 @@ sap.ui.define([
 
 		return Promise.resolve(this._oMyBox);
 
+	};
+
+	CustomFieldInfo.prototype.checkDirectNavigation = function() {
+		return Promise.resolve(false);
 	};
 
 	function _observeChanges(oChanges) {

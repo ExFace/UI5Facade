@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 /**
  * Internal Component of the AnalyticalBinding, only used there
  *
@@ -26,7 +26,7 @@ sap.ui.define(function() {
 	 * @alias sap.ui.model.analytics.BatchResponseCollector
 	 * @constructor
 	 * @public
-	 * @param {object} [mParams] optional Setup-Parameter, @see BatchResponseCollector#setup
+	 * @param {object} [mParams] optional Setup-Parameter, see {@link #setup}
 	 */
 	function BatchResponseCollector(mParams) {
 		if (mParams) {
@@ -53,9 +53,9 @@ sap.ui.define(function() {
 	 * @param {int} mParams.lastAnalyticalInfoVersion the analyticalInfo version at the time of the creation of this
 	 * 			BatchResponseCollector instance, this may change during the process of a pending request. Typically changed
 	 * 			via a call to AnalyticalBinding#updateAnalyticalInfo.
-	 * @param {function} mParam.success a success handler function, which is called after all requests in mParams.executedRequests
+	 * @param {function} mParams.success a success handler function, which is called after all requests in mParams.executedRequests
 	 * 			have returned.
-	 * @param {function} mParam.error an error handler function, which is called if one or more requests have returned with an error
+	 * @param {function} mParams.error an error handler function, which is called if one or more requests have returned with an error
 	 */
 	BatchResponseCollector.prototype.setup = function(mParams) {
 		this.iRequestCollectionCount = 0;

@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,13 +25,11 @@ sap.ui.define([
 	/**
 	 * @private
 	 * @alias sap.ui.fl.write._internal.transport.TransportSelection
-	 * @constructor
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.74.0
 	 * Helper object to select an ABAP transport for an LREP object. This is not a generic utility to select a transport request, but part
 	 *        of the SmartVariant control.
-	 * @returns {sap.ui.fl.write._internal.transport.TransportSelection} New instance of <code>sap.ui.fl.write._internal.transport.TransportSelection</code>
 	 */
 	var TransportSelection = function() {};
 
@@ -51,10 +49,12 @@ sap.ui.define([
 	 * @param {function} fError - Callback to be invoked when an error occurred during selection of a transport request
 	 * @param {boolean} bCompactMode - Flag indicating whether the transport dialog should be opened in compact mode
 	 * @param {object} oControl - Control instance
+	 * @param {string} sStyleClass - CSS style class that should be added to any dialogs
+	 * @param {boolean} bLocalObjectVisible - Flag if the "Local Object" button should be visible in the transport dialog
 	 * @public
 	 */
-	TransportSelection.prototype.selectTransport = function(oObjectInfo, fOkay, fError, bCompactMode, oControl, sStyleClass) {
-		//No transport selection unless Lrep connector is available
+	TransportSelection.prototype.selectTransport = function(oObjectInfo, fOkay, fError, bCompactMode, oControl, sStyleClass, bLocalObjectVisible) {
+		// No transport selection unless Lrep connector is available
 		if (!FlUtils.getLrepUrl()) {
 			fOkay(this._createEventObject(oObjectInfo, {transportId: ""}));
 			return;
@@ -66,6 +66,7 @@ sap.ui.define([
 						hidePackage: !LayerUtils.doesCurrentLayerRequirePackage(),
 						pkg: oObjectInfo.package,
 						transports: oGetTransportsResult.transports,
+						localObjectVisible: bLocalObjectVisible,
 						lrepObject: this._toLREPObject(oObjectInfo)
 					}, fOkay, fError, bCompactMode, sStyleClass);
 				} else {
@@ -77,19 +78,19 @@ sap.ui.define([
 			});
 		};
 
-		var sLayerType = LayerUtils.getCurrentLayer(false);
-		//First check the current layer
+		var sLayerType = LayerUtils.getCurrentLayer();
+		// First check the current layer
 		if (sLayerType && ((sLayerType === Layer.CUSTOMER) || (sLayerType === Layer.CUSTOMER_BASE))) {
-			//CUSTOMER layer --> retrieve the settings and check if ATO is enabled
-			FlexSettings.getInstance().then(function (oSettings) {
+			// CUSTOMER layer --> retrieve the settings and check if ATO is enabled
+			FlexSettings.getInstance().then(function(oSettings) {
 				if (oSettings.isAtoEnabled()) {
-					//ATO is enabled
+					// ATO is enabled
 					if (!(oObjectInfo && oObjectInfo.name && oObjectInfo.namespace && oObjectInfo.type)) {
-						//Object info is not completed (public scenario)+ ATO is enabled + CUSTOMER layer: No getTransport is necessary
+						// Object info is not completed (public scenario)+ ATO is enabled + CUSTOMER layer: No getTransport is necessary
 						var oTransport = { transportId: "ATO_NOTIFICATION" };
 						fOkay(this._createEventObject(oObjectInfo, oTransport));
 					} else {
-						//Object info is completed (delete/reset scenario) --> retrieve transport info to distinguish local object
+						// Object info is completed (delete/reset scenario) --> retrieve transport info to distinguish local object
 						retrieveTransportInfo.apply(this, [oObjectInfo, fOkay, fError, bCompactMode, sStyleClass, true]);
 					}
 				} else {
@@ -113,13 +114,13 @@ sap.ui.define([
 		return {
 			mParameters: {
 				selectedTransport: oTransport.transportId,
-				selectedPackage: oObjectInfo["package"],
+				selectedPackage: oObjectInfo.package,
 				dialog: false
 			},
-			getParameters: function() {
+			getParameters() {
 				return this.mParameters;
 			},
-			getParameter: function(sName) {
+			getParameter(sName) {
 				return this.mParameters[sName];
 			}
 		};
@@ -157,6 +158,7 @@ sap.ui.define([
 	 * @param {function} fOkay - Callback to be invoked when a transport request has successfully been selected
 	 * @param {function} fError - Callback to be invoked when an error occurred during selection of a transport request
 	 * @param {boolean} bCompactMode - Flag indicating whether the transport dialog should be opened in compact mode
+	 * @param {string} sStyleClass - CSS style class that should be added to any dialogs
 	 * @returns {sap.ui.fl.write._internal.transport.TransportDialog} Dialog
 	 * @private
 	 */
@@ -202,7 +204,7 @@ sap.ui.define([
 	/**
 	 * Returns whether the dialog to select a transport should be started.
 	 *
-	 * @param {object} oTransports- Available transports
+	 * @param {object} oTransports - Available transports
 	 * @param {boolean} bATOActive - Indicates whether the system is using ATO_NOTIFICATION or not
 	 * @returns {boolean} <code>true</code> if the LREP object is already locked in one of the transports, <code>false</code> otherwise
 	 * @private
@@ -241,7 +243,7 @@ sap.ui.define([
 	/**
 	 * Sets the transports for all changes.
 	 *
-	 * @param {array} aChanges - Array of {sap.ui.fl.Change}
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject[]} aChanges - Array of change instances
 	 * @param {object} oControl - Object of the root control for the transport
 	 * @returns {Promise} Promise that resolves without parameters or rejects with "cancel" value in case escape/cancel is triggered from the transport dialog
 	 * @public
@@ -260,7 +262,7 @@ sap.ui.define([
 					// if the request has been set by the transport dialog already,
 					// do not bring up the transport dialog a second time, but use this transport instead
 					// if the change is locked on another transport, this will be resolved in the back end when the DELETE request is send
-					if (oCurrentChange.getDefinition().packageName !== "$TMP") {
+					if (oCurrentChange.getFlexObjectMetadata().packageName !== "$TMP") {
 						oCurrentChange.setRequest(sTransport);
 					}
 					iChangeIdx--;
@@ -268,8 +270,14 @@ sap.ui.define([
 					return fnSetTransports(aChanges, iChangeIdx, oControl, sTransport, bFromDialog);
 				}
 				// bring up the transport dialog to get the transport information for a change
-				if (oCurrentChange.getDefinition().packageName !== "$TMP") {
-					return that.openTransportSelection(oCurrentChange, oControl).then(function(oTransportInfo) {
+				if (oCurrentChange.getFlexObjectMetadata().packageName !== "$TMP") {
+					var oTransportInfo = {
+						name: oCurrentChange.getId(),
+						type: oCurrentChange.getFileType(),
+						"package": oCurrentChange.getFlexObjectMetadata().packageName,
+						namespace: oCurrentChange.getNamespace()
+					};
+					return that.openTransportSelection(oTransportInfo, oControl).then(function(oTransportInfo) {
 						if (oTransportInfo === "cancel") {
 							return Promise.reject("cancel");
 						}
@@ -283,7 +291,7 @@ sap.ui.define([
 						iChangeIdx--;
 						// set the transport for the next request
 						return fnSetTransports(aChanges, iChangeIdx, oControl, sTransport, bFromDialog);
-					}, function () {
+					}, function() {
 						return null;
 					});
 				}
@@ -302,12 +310,14 @@ sap.ui.define([
 	/**
 	 * Opens the transport selection dialog
 	 *
-	 * @param {sap.ui.fl.Change} [oChange] - Change for which the transport information should be retrieved
-	 * @param {object} oControl- Object of the root control for the transport dialog
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} [oTransportInfo] - Transport Information
+	 * @param {object} oControl - Object of the root control for the transport dialog
+	 * @param {string} sStyleClass - CSS style class that should be added to any dialogs
+	 * @param {boolean} bLocalObjectVisible - Flag if the "Local Object" button should be visible in the transport dialog
 	 * @returns {Promise} Promise that resolves
 	 * @public
 	 */
-	TransportSelection.prototype.openTransportSelection = function(oChange, oControl, sStyleClass) {
+	TransportSelection.prototype.openTransportSelection = function(oTransportInfo, oControl, sStyleClass, bLocalObjectVisible) {
 		var that = this;
 
 		return new Promise(function(resolve, reject) {
@@ -327,21 +337,13 @@ sap.ui.define([
 				}
 			};
 			var fnError = function(oError) {
-				if (oError.sId === 'cancel') {
+				if (oError.sId === "cancel") {
 					resolve(oError.sId);
 				} else {
 					reject(oError);
 				}
 			};
-			var oObject = {}; // no restriction on package, name or name space
-			if (oChange) {
-				oObject["package"] = oChange.getPackage();
-				oObject.namespace = oChange.getNamespace();
-				oObject.name = oChange.getId();
-				oObject.type = oChange.getDefinition().fileType;
-			}
-
-			that.selectTransport(oObject, fnOkay, fnError, false, oControl, sStyleClass);
+			that.selectTransport(oTransportInfo || {}, fnOkay, fnError, false, oControl, sStyleClass, bLocalObjectVisible);
 		});
 	};
 
@@ -367,7 +369,6 @@ sap.ui.define([
 	 * @param {Array} [aAppVariantDescriptors] - Array that includes all app variant descriptors
 	 * @param {object} oContentParameters - Object containing parameters added into the publish request
 	 * @param {string} oContentParameters.reference - Application ID of the changes which should be transported
-	 * @param {string} oContentParameters.appVersion - Version of the application for which the changes should be transported
 	 * @param {string} oContentParameters.layer - Layer in which the changes are stored
 	 * @returns {Promise} Promise which resolves without parameters
 	 */
@@ -375,26 +376,25 @@ sap.ui.define([
 		// Pass list of changes to be transported with transport request to backend
 		var aTransportData = Transports.convertToChangeTransportData(aAllLocalChanges, aAppVariantDescriptors);
 		var oTransportParams = {};
-		//packageName is '' in CUSTOMER layer (no package input field in transport dialog)
+		// packageName is '' in CUSTOMER layer (no package input field in transport dialog)
 		oTransportParams.package = oTransportInfo.packageName;
 		oTransportParams.transportId = oTransportInfo.transport;
 		oTransportParams.changeIds = aTransportData;
 		oTransportParams.reference = oContentParameters.reference;
-		oTransportParams.appVersion = oContentParameters.appVersion;
 		oTransportParams.layer = oContentParameters.layer;
 
 		return Transports.makeChangesTransportable(oTransportParams).then(function() {
 			// remove the $TMP package from all changes; has been done on the server as well,
 			// but is not reflected in the client cache until the application is reloaded
 			aAllLocalChanges.forEach(function(oChange) {
-				if (oChange.getPackage() === '$TMP') {
-					var oDefinition = oChange.getDefinition();
-					oDefinition.packageName = oTransportInfo.packageName;
-					oChange.setResponse(oDefinition);
+				var oFlexObjectMetadata = oChange.getFlexObjectMetadata();
+				if (oFlexObjectMetadata.packageName === "$TMP") {
+					oFlexObjectMetadata.packageName = oTransportInfo.packageName;
+					oChange.setFlexObjectMetadata(oFlexObjectMetadata);
 				}
 			});
 		});
 	};
 
 	return TransportSelection;
-}, true);
+});

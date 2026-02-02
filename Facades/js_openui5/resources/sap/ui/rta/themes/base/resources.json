@@ -3,18 +3,42 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
 			"name": "AddIFrame.less",
-			"size": 2919,
+			"size": 3377,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "ChangeVisualization.less",
+			"size": 2612,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "ContextMenu.less",
+			"size": 1306,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "Dialogs.less",
+			"size": 3148,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FieldRepository.less",
-			"size": 2209,
+			"size": 1105,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "FlexSupportExtension.less",
+			"size": 971,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -26,93 +50,77 @@
 		},
 		{
 			"name": "Overlay.less",
-			"size": 6204,
+			"size": 2474,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "OverlayWithScrollbar.less",
+			"size": 1524,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 4179,
+			"size": 6862,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 5843,
+			"size": 1767,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.fiori.less",
-			"size": 741,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "Toolbar.personalization.less",
-			"size": 1139,
+			"size": 341,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.standalone.less",
-			"size": 711,
+			"size": 346,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 3672,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 84175,
+			"name": "WhatsNew.less",
+			"size": 354,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 23345,
+			"size": 24562,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 1405,
+			"module": "sap/ui/rta/themes/base/library-parameters.json",
+			"size": 3469,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 23343,
+			"size": 24537,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 25275,
+			"size": 27835,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 552,
+			"size": 693,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 24171,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 24169,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 2069
 		}
 	]
 }

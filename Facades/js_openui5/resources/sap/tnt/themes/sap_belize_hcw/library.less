@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.less";
 @import "../../../../../Base/baseLib/sap_belize_hcw/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/sap_belize_hcw/base.less" */
 
 @import "../../../../sap/ui/core/themes/sap_belize_hcw/global.less";
@@ -17,17 +26,18 @@
 /* Belize HCW theme                  */
 /* ================================= */
 
-.sapTntInfoLabel {
-	background-color: @sapUiGroupContentBackground;
-	border: 1px solid @sapUiGroupContentBorderColor;
-	line-height: 85%;
-}
 
 /* ==========================================================================
-   InfoLabel Display Only
+   Variables and mixins
    ========================================================================== */
-.sapTntInfoLabel.sapTntInfoLabelDisplayOnly .sapTntInfoLabelInner {
-	line-height: 0.875rem;
+
+@_sap_tnt_InfoLabel_LineHeightDisplayOnly: 0.875rem;
+
+
+.sapTntInfoLabel,
+.sapTntInfoLabel.sapTntInfoLabelDisplayOnly {
+	background-color: @sapUiGroupContentBackground;
+	border: 1px solid @sapUiGroupContentBorderColor;
 }
 
 /* ==========================================================================
@@ -48,10 +58,14 @@
 /* Belize High Contrast White theme        */
 /* ======================================= */
 
-@_sap_tnt_NavigationList_ItemFocusBorder: 0.125rem dotted @sapUiContentFocusColor;
-@_sap_tnt_NavigationList_ItemFocusBorderIE: 0.125rem dashed @sapUiContentFocusColor;
 @_sap_tnt_NavigationList_SelectedItemBorderColor: transparent;
 @_sap_tnt_NavigationList_Collapsed_SelectedGroupBorderColor: @sapUiListSelectionBorderColor;
+
+.sapTntNLMenu.sapUiMnu .sapUiMnuItmIco>.sapUiIcon {
+	line-height: 3rem;
+	font-size: 1.375rem;
+}
+
 /* END "NavigationList.less" */
 
 /* START "ToolHeader.less" */
@@ -62,4 +76,20 @@
 
 @_sap_tnt_ToolHeader_AvatarBackground: @sapUiAccent6;
 @_sap_tnt_ToolHeader_AvatarColor: @sapUiBaseColor;
+
+.sapTntToolHeader .sapMITH.sapMITBTextOnly .sapMITHEndOverflow {
+	margin-top: 0;
+}
+
+// ==========================================================================
+// sap.m.Avatar / sap.f.Avatar overriding
+// ==========================================================================
+
+.sapTntToolHeader .sapFAvatar {
+	background-color: @_sap_tnt_ToolHeader_AvatarBackground;
+	.sapFAvatarInitialsHolder,
+	.sapUiIcon.sapFAvatarTypeIcon  {
+		color: @_sap_tnt_ToolHeader_AvatarColor;
+	}
+}
 /* END "ToolHeader.less" */

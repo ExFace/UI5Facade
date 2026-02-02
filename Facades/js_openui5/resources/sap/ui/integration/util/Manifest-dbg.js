@@ -1,22 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/Object",
+	"sap/base/util/LoaderExtensions",
 	"sap/ui/core/Manifest",
 	"sap/base/util/deepClone",
+	"sap/base/util/deepExtend",
+	"sap/base/util/each",
 	"sap/base/util/isPlainObject",
+	"sap/base/util/isEmptyObject",
+	"sap/base/util/merge",
 	"sap/base/Log",
 	"./ParameterMap",
 	"sap/ui/integration/util/CardMerger"
-	], function (
+], function (
 	BaseObject,
+	LoaderExtensions,
 	CoreManifest,
 	deepClone,
+	deepExtend,
+	each,
 	isPlainObject,
+	isEmptyObject,
+	merge,
 	Log,
 	ParameterMap,
 	CardMerger
@@ -27,7 +37,7 @@ sap.ui.define([
 		MANIFEST_FILTERS = "/{SECTION}/configuration/filters",
 		MANIFEST_CONFIGURATION = "/{SECTION}",
 		APP_DATA_SOURCES = "/sap.app/dataSources",
-		REGEXP_TRANSLATABLE = /\{\{(?!parameters.)(?!destinations.)([^\}\}]+)\}\}|\{i18n>([^\}]+)\}/g;
+		REGEXP_TRANSLATABLE = /\{\{(?!parameters.)(?!destinations.)(?!csrfTokens.)([^\}\}]+)\}\}|\{i18n>([^\}]+)\}/g;
 
 	/**
 	 * Creates a new Manifest object.
@@ -58,7 +68,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -66,10 +76,12 @@ sap.ui.define([
 	 * @alias sap.ui.integration.util.Manifest
 	 */
 	var Manifest = BaseObject.extend("sap.ui.integration.util.Manifest", {
-		constructor: function(sSection, oManifestJson, sBaseUrl, aChanges) {
+		constructor: function (sSection, oManifestJson, sBaseUrl, aChanges) {
 			BaseObject.call(this);
 
+			this._sBaseUrl = sBaseUrl;
 			this._aChanges = aChanges;
+			this._sSection = sSection;
 
 			this.PARAMETERS = MANIFEST_PARAMETERS.replace("{SECTION}", sSection);
 			this.FILTERS = MANIFEST_FILTERS.replace("{SECTION}", sSection);
@@ -80,15 +92,19 @@ sap.ui.define([
 					oMergedManifest;
 				mOptions.process = false;
 
+				this._oInitialJson = deepClone(oManifestJson, 500);
+
 				if (sBaseUrl) {
 					mOptions.baseUrl = sBaseUrl;
-					this._sBaseUrl = sBaseUrl;
 				} else {
-					Log.warning("If no base URL is provided when the manifest is an object static resources cannot be loaded.");
+					mOptions.baseUrl = "/";
+					Log.info("Property baseUrl is not provided and manifest URL is unknown. Relative resources may not be loaded correctly.", "sap.ui.integration.widgets.Card");
 				}
 
+				this._registerManifestModulePath(oManifestJson, sBaseUrl || "/");
+
 				if (this._aChanges) {
-					oMergedManifest = CardMerger.mergeCardDelta(oManifestJson, this._aChanges);
+					oMergedManifest = this.mergeDeltaChanges(oManifestJson);
 				} else {
 					oMergedManifest = oManifestJson;
 				}
@@ -100,10 +116,51 @@ sap.ui.define([
 	});
 
 	/**
-	 * @returns {Object} A copy of the Manifest JSON.
+	 * Merge the manifest json with changes
+	 *
+	 * @param {Object} oManifestJson The manifest json
+	 * @returns {Object} The merged manifest json
+	 */
+	Manifest.prototype.mergeDeltaChanges = function (oManifestJson) {
+		return CardMerger.mergeCardDelta(oManifestJson, this._aChanges, this._sSection);
+	};
+
+	/**
+	 * @returns {object} A copy of the manifest JSON.
 	 */
 	Manifest.prototype.getJson = function () {
 		return this._unfreeze(this.oJson);
+	};
+
+	/**
+	 * @returns {object} JSON, from which any unprocessable parts have been erased.
+	 */
+	Manifest.prototype.getProcessableJson = function () {
+		const oValue = deepExtend({}, this._oManifest.getRawJson());
+
+		if (oValue["sap.card"]?.type === "AdaptiveCard") {
+			delete oValue["sap.card"].content;
+		}
+
+		return this._unfreeze(oValue);
+	};
+
+	/**
+	 * @ui5-restricted
+	 * @private
+	 */
+	Manifest.prototype.setJson = function (oJson) {
+		deepFreeze(oJson);
+		this.oJson = oJson;
+	};
+
+	/**
+	 * Returns a clone of the initial manifest without the <code>manifestChanges</code> applied to it and without any processing.
+	 * @ui5-restricted
+	 * @returns {Object} A clone of the initial manifest json.
+	 */
+	Manifest.prototype.getInitialJson = function () {
+		return this._oInitialJson;
 	};
 
 	/**
@@ -168,34 +225,34 @@ sap.ui.define([
 	/**
 	 * Load a manifest.json file and all of its resources and then process it.
 	 *
-	 * @param {Object} mSettings The settings to use for manifest loading.
+	 * @param {object} mSettings The settings to use for manifest loading.
 	 * @returns {Promise} A promise resolved when the manifest is ready and processed.
 	 */
 	Manifest.prototype.load = function (mSettings) {
 
 		if (!mSettings || !mSettings.manifestUrl) {
-			// When the manifest JSON is already set and there is a base URL, try to load i18n files.
-			if (this._sBaseUrl && this._oManifest) {
+			if (this._oManifest) {
+				// When the manifest JSON is already set try to load i18n files.
 				return this.loadI18n().then(function () {
 					this.processManifest();
 				}.bind(this));
-			} else {
-				if (this._oManifest) {
-					this.processManifest();
-				}
-				return new Promise(function (resolve) {
-					resolve();
-				});
 			}
+
+			return new Promise(function (resolve) {
+				resolve();
+			});
 		}
 
 		return CoreManifest.load({
 			manifestUrl: mSettings.manifestUrl,
 			async: true,
 			processJson: function (oManifestJson) {
+				var sModuleBaseUrl = this._sBaseUrl || mSettings.manifestUrl.replace(/\/+[^\/]*$/, "") || "/";
+				this._registerManifestModulePath(oManifestJson, sModuleBaseUrl);
+				this._oInitialJson = deepClone(oManifestJson, 500);
 
 				if (this._aChanges) {
-					return CardMerger.mergeCardDelta(oManifestJson, this._aChanges);
+					return this.mergeDeltaChanges(oManifestJson);
 				}
 
 				return oManifestJson;
@@ -210,6 +267,13 @@ sap.ui.define([
 		}.bind(this));
 	};
 
+	/**
+	 * Loads the dependencies listed in "sap.ui5"/dependencies/libs and the includes
+	 * @returns {Promise} A promise resolved when the dependencies are loaded
+	 */
+	Manifest.prototype.loadDependenciesAndIncludes = function () {
+		return this._oManifest.loadDependenciesAndIncludes(true);
+	};
 
 	/**
 	 * Loads the i18n resources.
@@ -223,7 +287,7 @@ sap.ui.define([
 		// the manifest which should be processed
 		var bHasTranslatable = false;
 
-		CoreManifest.processObject(this._oManifest.getJson(), function(oObject, sKey, vValue) {
+		CoreManifest.processObject(this.getProcessableJson(), function (oObject, sKey, vValue) {
 			if (!bHasTranslatable && vValue.match(REGEXP_TRANSLATABLE)) {
 				bHasTranslatable = true;
 			}
@@ -248,20 +312,16 @@ sap.ui.define([
 	 * and replacing all placeholders.
 	 *
 	 * @private
-	 * @param {Object} oParams Parameters that should be replaced in the manifest.
 	 */
 	Manifest.prototype.processManifest = function () {
-
 		var iCurrentLevel = 0,
 			iMaxLevel = 15,
-			//Always need the unprocessed manifest
-			oUnprocessedJson = jQuery.extend(true, {}, this._oManifest.getRawJson()),
+			oValue = this.getProcessableJson(),
 			oDataSources = this.get(APP_DATA_SOURCES);
 
-		process(oUnprocessedJson, this.oResourceBundle, iCurrentLevel, iMaxLevel, this._oCombinedParams, oDataSources, this._oCombinedFilters);
-		deepFreeze(oUnprocessedJson);
+		process(oValue, this.oResourceBundle, iCurrentLevel, iMaxLevel, this._oCombinedParams, oDataSources, this._oCombinedFilters);
 
-		this.oJson = oUnprocessedJson;
+		this.setJson(merge(this.getJson(), oValue));
 	};
 
 	/**
@@ -289,8 +349,9 @@ sap.ui.define([
 	 * @param {*} vValue The value to be checked.
 	 * @returns {boolean} If the string is translatable.
 	 */
-	function isTranslatable (vValue) {
+	function isTranslatable(vValue) {
 		return (typeof vValue === "string")
+			&& vValue.match(REGEXP_TRANSLATABLE)
 			&& vValue.indexOf("{{") === 0
 			&& vValue.indexOf("}}") === vValue.length - 2;
 	}
@@ -302,7 +363,7 @@ sap.ui.define([
 	 * @param {*} vValue The value to check.
 	 * @returns {boolean} true if the value contains placeholders.
 	 */
-	function isProcessable (vValue) {
+	function isProcessable(vValue) {
 		return (typeof vValue === "string")
 			&& (vValue.indexOf("{{parameters.") > -1 || vValue.indexOf("{{dataSources") > -1 || vValue.indexOf("{{filters.") > -1);
 	}
@@ -312,19 +373,19 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {string} sPlaceholder The value to process.
-	 * @param {Object} oParam The parameter from the configuration.
+	 * @param {Object} oParams The parameters from the configuration.
 	 * @param {Object} oDataSources The dataSources from the configuration.
 	 * @param {Object} oFilters The filters from the configuration.
 	 * @returns {string} The string with replaced placeholders.
 	 */
-	Manifest._processPlaceholder = function (sPlaceholder, oParam, oDataSources, oFilters) {
+	Manifest._processPlaceholder = function (sPlaceholder, oParams, oDataSources, oFilters) {
 		var sProcessed = ParameterMap.processPredefinedParameter(sPlaceholder),
 			oValue,
 			sPath;
 
-		if (oParam) {
-			for (var oProperty in oParam) {
-				oValue = oParam[oProperty].value;
+		if (!isEmptyObject(oParams)) {
+			for (var oProperty in oParams) {
+				oValue = oParams[oProperty].value;
 				sPath = "{{parameters." + oProperty;
 
 				sProcessed = replacePlaceholders(sProcessed, oValue, sPath);
@@ -347,12 +408,12 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {string} sPlaceholder The string with placeholders to process.
-	 * @param {string|Object} vValue The current value. It will be processed recursively, if is object.
+	 * @param {string|Object} vValue The current value. It will be processed recursively, if its type is an object.
 	 * @param {string} sPath The current path.
 	 * @returns {string} The string with replaced placeholders.
 	 */
 	function replacePlaceholders(sPlaceholder, vValue, sPath) {
-		if (isPlainObject(vValue)) {
+		if (isPlainObject(vValue) || Array.isArray(vValue)) {
 			for (var sProperty in vValue) {
 				sPlaceholder = replacePlaceholders(sPlaceholder, vValue[sProperty], sPath + "." + sProperty);
 			}
@@ -374,7 +435,7 @@ sap.ui.define([
 	 * @param {Object} oParams The parameters to be replaced in the manifest.
 	 * @param {Object} oDataSources The dataSources to be replaced in the manifest.
 	 */
-	function process (oObject, oResourceBundle, iCurrentLevel, iMaxLevel, oParams, oDataSources, oFilters) {
+	function process(oObject, oResourceBundle, iCurrentLevel, iMaxLevel, oParams, oDataSources, oFilters) {
 		if (iCurrentLevel === iMaxLevel) {
 			return;
 		}
@@ -469,7 +530,7 @@ sap.ui.define([
 			return;
 		}
 
-		jQuery.each(oManifestFilters, function (sKey, oConfig) {
+		each(oManifestFilters, function (sKey, oConfig) {
 			var sValue = mRuntimeFilters.get(sKey) || oConfig.value;
 
 			oCombinedFilters[sKey] = sValue;
@@ -492,7 +553,7 @@ sap.ui.define([
 
 		var oManifestParams = this.get(this.PARAMETERS);
 
-		if (oParameters && !oManifestParams) {
+		if (!isEmptyObject(oParameters) && !oManifestParams) {
 			Log.error("If parameters property is set, parameters should be described in the manifest");
 			return;
 		}
@@ -525,11 +586,11 @@ sap.ui.define([
 	 * @private
 	 */
 	Manifest.prototype._syncParameters = function (oParameters, oManifestParameters) {
-		if (!oParameters) {
+		if (isEmptyObject(oParameters)) {
 			return oManifestParameters;
 		}
 
-		var oClonedManifestParams = deepClone(oManifestParameters, 20, 20),
+		var oClonedManifestParams = deepClone(oManifestParameters || {}, 500),
 			oParamProps = Object.getOwnPropertyNames(oParameters),
 			oManifestParamsProps = Object.getOwnPropertyNames(oClonedManifestParams);
 
@@ -544,5 +605,46 @@ sap.ui.define([
 		return oClonedManifestParams;
 	};
 
+	/**
+	 * Finds all data sections (in depth) in the given manifest section.
+	 * @ui5-restricted
+	 * @param {Object} [oSection] The root section to check. Defaults to the main section ('sap.card' for cards).
+	 * @returns {Array} A list of all found data sections.
+	 */
+	Manifest.prototype.findDataSections = function (oSection) {
+		var aResult = [],
+			sKey;
+
+		if (!oSection) {
+			oSection = this.get(this.CONFIGURATION);
+		}
+
+		if (!isPlainObject(oSection)) {
+			return [];
+		}
+
+		if (oSection.data) {
+			aResult.push(oSection.data);
+		}
+
+		for (sKey in oSection) {
+			if (oSection[sKey]) {
+				aResult = aResult.concat(this.findDataSections(oSection[sKey]));
+			}
+		}
+
+		return aResult;
+	};
+
+	Manifest.prototype._registerManifestModulePath = function (oManifestJson, sBaseUrl) {
+		var sAppId = oManifestJson && oManifestJson["sap.app"] && oManifestJson["sap.app"].id;
+
+		if (!sAppId) {
+			return;
+		}
+
+		LoaderExtensions.registerResourcePath(sAppId.replace(/\./g, "/"), sBaseUrl);
+	};
+
 	return Manifest;
-}, true);
+});

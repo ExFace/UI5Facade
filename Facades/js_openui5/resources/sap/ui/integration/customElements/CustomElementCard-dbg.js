@@ -1,19 +1,17 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.require([
 	"sap/ui/integration/widgets/Card",
 	"sap/ui/integration/customElements/CustomElementBase",
-	"sap/ui/integration/customElements/CustomElementHostConfiguration",
-	"sap/m/BadgeCustomData"
+	"sap/f/cards/CardBadgeCustomData"
 ], function (
 	Card,
 	CustomElementBase,
-	CustomElementHostConfiguration,
-	BadgeCustomData
+	CardBadgeCustomData
 ) {
 	"use strict";
 
@@ -30,7 +28,13 @@ sap.ui.require([
 		customProperties: {
 			"badge": {
 				set: function(oCard, vValue) {
-					oCard.addCustomData( new BadgeCustomData({value: vValue}));
+					// only one badge is allowed through this API, remove the old badge
+					oCard.getCustomData().forEach((oData) => {
+						if (oData.isA("sap.m.BadgeCustomData") || oData.isA("sap.f.cards.CardBadgeCustomData")) {
+							oCard.removeCustomData(oData);
+						}
+						});
+					oCard.addCustomData( new CardBadgeCustomData({value: vValue}));
 				}
 			}
 		}
@@ -71,6 +75,5 @@ sap.ui.require([
 		return this._getControl().loadDesigntime();
 	};
 
-	var aDependencies = ["ui-integration-host-configuration"];
-	CustomElementBase.define("ui-integration-card", CustomElementCard, aDependencies);
+	CustomElementBase.define("ui-integration-card", CustomElementCard);
 });

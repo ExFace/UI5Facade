@@ -2,16 +2,383 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_hcb with SAPUI5 version 1.46 the library.source.less */
+/* file of base is resolved: Imports to base.less and global.less of              */
+/* base are added to this library.source.less file (sap_hcb) and the              */
+/* respective control css files of base are added to the sap_hcb theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.126.     */
+/* ============================================================================== */
+
+@import "../../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../core/themes/base/base.less" */
+
+@import "../../../core/themes/base/global.less";
+
+/* START "base_Overlay.less" */
+/******************************************************************
+	Style of the DT Overlays - base Theme
+*******************************************************************/
+@_sap_ui_dt_Overlay_FocusColor: @sapUiContentFocusColor; //#000
+@_sap_ui_dt_Overlay_TargetZoneColor: @sapUiSelected; //#8fb5ff
+@_sap_ui_dt_Overlay_SelectionColor: lighten(@sapUiChart1, 20); //#6fa0e2
+@_sap_ui_dt_Overlay_CuttedColor: @sapUiNeutralBG; // #fff
+@_sap_ui_dt_Overlay_CuttedBorder: @sapUiSelected; //#8fb5ff
+@_sap_ui_dt_Overlay_HighlightColor: @sapUiShellActiveBackground; //#ec8b46
+@_sap_ui_dt_Overlay_ActiveBG: fade(@sapUiSelected, 10%); //rgba(143, 181, 255, 0.1);
+
+#overlay-container {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.sapUiDtOverlay {
+	position: absolute;
+	outline: none;
+
+	// please, don't use border property, it cause the size change of an overtla and box-sizing: border box doesn't work with position: absolute and absolute sizing
+	// please, don't use outline property, outline can be invisible due to overflow:hidden of parent
+	// instead you should use pseudo elements to special border-like styling:
+	// :before pseudoelement should be used for focus visualisation
+	// :after pseudoelement should be used for other border-like visualisations
+
+	&:before, &:after {
+		position: absolute;
+		pointer-events: none;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		box-sizing: border-box;
+		z-index: 2;
+		box-shadow: none;
+	}
+}
+
+.sapUiDtOverlayFocusable {
+	&:focus {
+		&:before {
+			content: " ";
+			border: 0.0625rem dotted @_sap_ui_dt_Overlay_FocusColor; //1px
+		}
+	}
+}
+
+.sapUiDtDummyScrollContainer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+}
+
+.sapUiDtOverlayDropZone {
+	z-index: 9999999 !important;
+
+	> .sapUiDtOverlayChildren {
+		> .sapUiDtOverlayMovable {
+			background: @_sap_ui_dt_Overlay_ActiveBG;
+			// no "border"
+			&:after {
+				content: none;
+			}
+		}
+	}
+}
+
+.sapUiDtOverlayTargetZone {
+	&:after {
+		content: " ";
+		outline: 0.125rem dashed @_sap_ui_dt_Overlay_TargetZoneColor; //2px
+		outline-offset: -0.125rem; //2px
+	}
+}
+
+.sapUiDtOverlaySelected {
+	&:after {
+		content: " ";
+		outline: 0.125rem solid @_sap_ui_dt_Overlay_SelectionColor; //2px
+		outline-offset: -0.125rem; //2px
+		border: none;
+	}
+
+	&.sapUiDtOverlayWithScrollBar:after {
+		bottom: 0;
+		right: 0;
+		top: 0;
+		left: 0;
+		width: initial;
+		height: initial;
+	}
+
+	&.sapUiDtOverlayFocusable {
+		&:focus {
+			&:before {
+				top: 0.125rem; //2px
+				left: 0.125rem; //2px
+				bottom: 0.125rem; //2px
+				right: 0.125rem; //2px
+				width: auto;
+				height: auto;
+			}
+		}
+	}
+}
+
+.sapUiDtOverlayHighlighted:not(.sapUiDtOverlaySelected) {
+	&:after {
+		content: " ";
+		outline: 0.0625rem solid @_sap_ui_dt_Overlay_HighlightColor; //1px
+		outline-offset: -0.0625rem; //1px
+		box-shadow: 0 0.1875rem 0.375rem 0 rgba(0, 0, 0, 0.3);
+	}
+}
+
+.sapUiDtOverlayMovable {
+	cursor: move;
+}
+
+// Used for non-movable children overlays of movable parents
+.sapUiDtOverlaySelectable:not(.sapUiDtOverlayMovable) {
+	cursor: auto;
+}
+
+.sapUiDtOverlayCutted {
+	background-color: @_sap_ui_dt_Overlay_CuttedColor !important;
+	opacity: 0.5;
+
+	&:after {
+		content: " ";
+		outline: 0.063rem solid @_sap_ui_dt_Overlay_CuttedBorder; //1px
+		outline-offset: -0.125rem; //2px
+	}
+}
+
+.sapUiDtDragGhostWrapper {
+	position: fixed;
+	pointer-events: none;
+}
+
+/* fix ghost blinking in FireFox */
+.sap-desktop[data-sap-ui-browser^="ff"] .sapUiDtDragGhostWrapper {
+	top: -9999px;
+	left: -9999px;
+}
+
+/* fix for chrome */
+.sap-desktop[data-sap-ui-browser^="cr"] .sapUiDtDragGhostWrapper {
+	padding-left: -500px;
+	padding-bottom: 500px;
+	bottom: -1000px;
+}
+
+// Fix for Safari, ghost must not be completly off screen
+.sap-desktop[data-sap-ui-browser^="sf"] .sapUiDtDragGhostWrapper {
+	top: 100vh;
+}
+
+.sapUiDtDragGhost {
+	background: @_sap_ui_dt_Overlay_ActiveBG;
+}
+
+.sapUiDtClonedDom {
+	position: absolute;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+
+	* {
+		pointer-events: none !important;
+	}
+}
+
+.sapUiDtOverlayScrollContainer {
+	position: absolute;
+}
+/* END "base_Overlay.less" */
+
+/* START "base_ContextMenu.less" */
+/******************************************************************
+	Style of the DT Contextmenu - base Theme
+*******************************************************************/
+@_sap_ui_dt_ContextMenu_HoverBGColor: @sapUiButtonLiteHoverBackground; //rgba(199,95,20,0.5)
+@_sap_ui_dt_ContextMenu_OpenMenuBGColor: @sapUiListSelectionBackgroundColor; //#8fb5ff
+
+.sapUiDtContextMenu {
+	&.sapUiMnu {
+		min-width: 4.25rem; //68px
+	}
+
+	.sapUiMnuLst {
+		padding: 0.1875rem;
+
+		.sapUiMnuItm {
+			.sapUiMnuItmIco {
+				padding: 0 0.375rem;
+				max-width: none;
+
+				.sapUiIcon {
+					min-width: 2.0rem;
+				}
+			}
+
+			&.sapUiMnuItmDsbl {
+				opacity: 0.5;
+			}
+		}
+	}
+
+	&.sapUiSubmenu,
+	&:not(.sapUiDtContextMiniMenu) {
+		.sapUiMnuItm {
+			&.sapUiMnuItmHov {
+				&:not(.sapUiMnuItmDsbl) {
+					background-color: @_sap_ui_dt_ContextMenu_HoverBGColor;
+				}
+			}
+		}
+	}
+}
+
+.sapUiDtContextMiniMenu {
+	&:not(.sapUiSubmenu) {
+		.sapUiMnuItm {
+			display: inline-flex;
+
+			&:focus {
+				outline: none;
+
+				.sapUiIcon {
+					border: 0.0625rem dotted;
+				}
+			}
+
+			&.sapUiMnuItmHov {
+				background-color: transparent;
+
+				.sapUiIcon {
+					background-color: @_sap_ui_dt_ContextMenu_HoverBGColor;
+				}
+			}
+
+			&.sapUiMnuItmSubMnuOpen {
+				background-color: transparent;
+
+				&:not(.sapUiMnuItmHov) {
+					.sapUiIcon {
+						background-color: @_sap_ui_dt_ContextMenu_OpenMenuBGColor;
+					}
+				}
+			}
+			.sapUiMnuItmIco {
+				position: relative;
+			}
+			.sapUiMnuItmTxt {
+				display: none !important;
+			}
+			.sapUiMnuItmSbMnu {
+				padding-top: 0.25rem;
+				right: -0.2rem;
+				position: absolute;
+			}
+			.sapUiIcon {
+				border: 0.0625rem dotted transparent;
+			}
+		}
+	}
+}
+
+.sapUiSizeCozy.sapUiMnu.sapUiMnuCozySupport {
+	&.sapUiDtContextMiniMenu {
+		.sapUiMnuItmIco {
+			width: 3rem;
+			+ .sapUiMnuItmTxt {
+				margin-left: 2.5rem;
+			}
+			.sapUiIcon {
+				height: 2.625rem;
+				line-height: 2.625rem !important;
+				min-width: 3rem;
+			}
+		}
+	}
+}
+
+.sapUiSizeCompact .sapMMenu.sapUiMnu.sapUiDtContextMenu {
+	.sapUiMnuItm {
+		height: 2.25rem;
+		padding: 0 0.25rem;
+
+		.sapUiMnuItmIco {
+			padding: 0;
+			+ .sapUiMnuItmTxt {
+				margin-left: 0.5rem;
+			}
+		}
+		.sapUiMnuItmSbMnu {
+			line-height: 2.25rem;
+		}
+	}
+}
+
+html.sap-desktop, html.sap-tablet {
+
+	& .sapUiSizeCozy .sapUiDtContextMenu .sapUiMnuLst > .sapUiMnuItm > .sapUiMnuItmIco + .sapUiMnuItmTxt {
+		margin-left: 2.75rem;
+	}
+}
+/* END "base_ContextMenu.less" */
+
+/* START "base_shared.less" */
+/* This CSS shares it rules with all other CSS of this library */
+/* END "base_shared.less" */
+
+
 @import "../../../../../sap/ui/core/themes/sap_hcb/global.less";
 /* START "Overlay.less" */
-@_sap_ui_dt_Overlay_FocusColor : rgba(255, 255, 255, 0.8);
-@_sap_ui_dt_Overlay_TargetZoneColor : lime;
-@_sap_ui_dt_Overlay_SelectionColor : white;
-@_sap_ui_dt_Overlay_CuttedColor : #555;
+/******************************************************************
+	Style of the DT Overlays - sap_hcb Theme
+*******************************************************************/
+@_sap_ui_dt_Overlay_FocusColor: fade(@sapUiNeutralBorder, 80%); //rgba(255, 255, 255, 0.8)
+@_sap_ui_dt_Overlay_TargetZoneColor: @sapUiContentHelpColor; //#03b803
+@_sap_ui_dt_Overlay_SelectionColor: @sapUiNeutralElement; //#ffffff
+@_sap_ui_dt_Overlay_CuttedColor: @sapUiHcReducedAltForeground; // #999
+@_sap_ui_dt_Overlay_HighlightColor: @sapUiWarningBorder; // #ffab1d
 /* END "Overlay.less" */
 
+/* START "ContextMenu.less" */
+/******************************************************************
+	Style of the DT Contextmenu - sap_hcb Theme
+*******************************************************************/
+@_sap_ui_dt_ContextMenu_OpenSubMenuBG: @sapUiSelected; //#0f5d94
+@_sap_ui_dt_ContextMenu_OpenSubMenuBorder: @sapUiNeutralBG; //000
+
+.sapUiDtContextMenu {
+	.sapUiMnuLst {
+		.sapUiMnuItm {
+			border-top: 0.0625rem solid transparent; //1px
+			&.sapUiMnuItmDsbl {
+				opacity: 1;
+			}
+		}
+	}
+}
+
+
+.sapUiDtContextMiniMenu {
+	.sapUiMnuItm {
+		border: none;
+
+		&.sapUiMnuItmSubMnuOpen {
+			background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBorder;
+
+			.sapUiIcon {
+				background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBG;
+			}
+		}
+	}
+}
+/* END "ContextMenu.less" */

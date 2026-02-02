@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,9 +12,11 @@ sap.ui.define([
   'sap/ui/core/Control',
   './MessageRenderer',
   './Button',
-  'sap/ui/dom/jquery/rect' // jQuery Plugin "rect"
+  "sap/ui/core/Configuration",
+    // jQuery Plugin "rect"
+  'sap/ui/dom/jquery/rect'
 ],
-	function(jQuery, Dialog, library, Control, MessageRenderer, Button) {
+	function(jQuery, Dialog, library, Control, MessageRenderer, Button, Configuration) {
 	"use strict";
 
 
@@ -28,14 +30,13 @@ sap.ui.define([
 	 * @class
 	 * Creates the "Message"s to be supplied to the "MessageBar" Control.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.4.0.
 	 * A new messaging concept will be created in future. Therefore this control might be removed in one of the next versions.
 	 * @alias sap.ui.commons.Message
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Message = Control.extend("sap.ui.commons.Message", /** @lends sap.ui.commons.Message.prototype */ { metadata : {
 
@@ -69,7 +70,7 @@ sap.ui.define([
 
 	Message.prototype.init = function(){
 		// Defining some private data...
-		this.isRTL = sap.ui.getCore().getConfiguration().getRTL();
+		this.isRTL = Configuration.getRTL();
 
 		// The "Details" related Controls.
 	  this.fnCallBack    = null; // Supplied only if a longText is to be provided on demand.
@@ -186,7 +187,7 @@ sap.ui.define([
 			return;
 		}
 
-	  // Dialog limitation. Work-around:
+	  // Dialog restriction. Work-around:
 	  if (bWasOpen) {
 			if (iOthersMaxZIndex > jContainer.css('zIndex')) {
 				// zIndex not raised via previous re-open()...
@@ -285,7 +286,6 @@ sap.ui.define([
 	 * function getDetails(sId) {... return htmlString;}
 	 *
 	 * @param {function} fnCallBack the callback function
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 * @public
 	 */
 	Message.prototype.bindDetails = function(fnCallBack) {

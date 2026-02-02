@@ -5,13 +5,25 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.82.0"
+      "version": "1.136.0"
     },
     "title": "Common basic controls, mainly intended for desktop scenarios",
     "description": "Common basic controls, mainly intended for desktop scenarios",
     "ach": "CA-UI5-CTR",
     "resources": "resources.json",
-    "offline": true
+    "offline": true,
+    "openSourceComponents": [
+      {
+        "name": "jquery_UI",
+        "packagedWithMySelf": true,
+        "version": "1.10.4"
+      },
+      {
+        "name": "jquery-fix-clone",
+        "packagedWithMySelf": true,
+        "version": "unknown"
+      }
+    ]
   },
   "sap.ui": {
     "technology": "UI5",
@@ -22,16 +34,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.82",
+      "minUI5Version": "1.136",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         },
         "sap.ui.unified": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         }
       }
     },
@@ -43,20 +55,27 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
           "en",
+          "en-GB",
           "en-US-sappsd",
+          "en-US-saprigi",
           "en-US-saptrc",
           "es",
+          "es-MX",
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -64,17 +83,19 @@
           "ko",
           "lt",
           "lv",
+          "mk",
           "ms",
           "nl",
           "no",
           "pl",
           "pt",
-          "rigi",
+          "pt-PT",
           "ro",
           "ru",
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",

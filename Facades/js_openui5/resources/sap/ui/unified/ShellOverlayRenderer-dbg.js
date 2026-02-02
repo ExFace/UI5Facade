@@ -1,26 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.ShellOverlay
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Lib", "sap/ui/core/ControlBehavior"],
+	function(Library, ControlBehavior) {
 	"use strict";
 
 
 	/**
 	 * ShellOverlay renderer.
 	 * @namespace
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 */
 	var ShellOverlayRenderer = {};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oShell an object representation of the control that should be rendered
+	 * @param {sap.ui.unified.ShellOverlay} oControl an object representation of the control that should be rendered
 	 */
 	ShellOverlayRenderer.render = function(rm, oControl){
 		rm.write("<div");
@@ -35,7 +35,7 @@ sap.ui.define([],
 			rm.addClass("sapUiUfdShellOvrlyAnim");
 		}
 		rm.writeClasses();
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			rm.writeAccessibilityState(oControl, {
 				role: "dialog"
 			});
@@ -45,17 +45,17 @@ sap.ui.define([],
 		rm.write("<header class='sapUiUfdShellOvrlyHead'>");
 		rm.write("<hr class='sapUiUfdShellOvrlyBrand'>");
 		rm.write("<div class='sapUiUfdShellOvrlyHeadCntnt'");
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			rm.writeAttribute("role", "toolbar");
 		}
 		rm.write("><div id='" + oControl.getId() + "-hdr-center' class='sapUiUfdShellOvrlyHeadCenter'>");
 		ShellOverlayRenderer.renderSearch(rm, oControl);
 		rm.write("</div>");
-		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified"),
+		var rb = Library.getResourceBundleFor("sap.ui.unified"),
 			sCloseTxt = rb.getText("SHELL_OVERLAY_CLOSE");
 		rm.write("<a tabindex='0' href='#' id='" + oControl.getId() + "-close' class='sapUiUfdShellOvrlyHeadClose'");
 		rm.writeAttributeEscaped("title", sCloseTxt);
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			rm.writeAttribute("role", "button");
 		}
 		rm.write(">");
@@ -70,12 +70,14 @@ sap.ui.define([],
 
 	ShellOverlayRenderer.renderSearch = function(rm, oControl) {
 		var iWidth = oControl._getSearchWidth();
-		var sStyle = "";
-		if (iWidth > 0 && oControl._opening) {
-			sStyle = "style='width:" + iWidth + "px'";
-		}
 
-		rm.write("<div id='" + oControl.getId() + "-search' class='sapUiUfdShellOvrlySearch' " + sStyle + "><div>");
+		rm.write("<div id='" + oControl.getId() + "-search' class='sapUiUfdShellOvrlySearch' ");
+		if (iWidth > 0 && oControl._opening) {
+			rm.addStyle("width", iWidth + "px'");
+			rm.writeStyles();
+		}
+		rm.write("><div>");
+
 		var oSearch = oControl.getSearch();
 		if (oSearch) {
 			rm.renderControl(oSearch);

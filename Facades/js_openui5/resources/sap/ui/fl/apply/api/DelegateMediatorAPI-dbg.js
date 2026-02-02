@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,36 +15,56 @@ sap.ui.define([
 	 * Provides an API to handle default delegates.
 	 *
 	 * @namespace sap.ui.fl.apply.api.DelegateMediatorAPI
-	 * @experimental Since 1.80
 	 * @since 1.80
 	 * @private
 	 * @ui5-restricted
 	 */
-	var DelegateMediatorAPI = /** @lends sap.ui.fl.apply.api.DelegateMediatorAPI */{
+	const DelegateMediatorAPI = /** @lends sap.ui.fl.apply.api.DelegateMediatorAPI */{
 		/**
-		 * Registers the default delegate by model type.
+		 * Register model-specific read delegate by the model type.
 		 *
-		 * @param {object} mPropertyBag - Property bag for default delegate
-		 * @param {object} mPropertyBag.modelType - default delegate model type
-		 * @param {object} mPropertyBag.delegate - path to default delegate
-	 	 * @param {object} [mPropertyBag.requiredLibraries] - map of required libraries
+		 * @param {object} mPropertyBag - Property bag for read delegate
+		 * @param {object} mPropertyBag.modelType - Read delegate model type
+		 * @param {object} mPropertyBag.delegate - Path to read delegate
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta, smart controls
 		 */
-		registerDefaultDelegate: function (mPropertyBag) {
-			DelegateMediator.registerDefaultDelegate(mPropertyBag);
+		registerReadDelegate(mPropertyBag) {
+			DelegateMediator.registerReadDelegate(mPropertyBag);
 		},
 
 		/**
-		 * Returns the delegate object for the requested control.
+		 * Registers a control-specific write delegate by control type.
+		 *
+		 * @param {object} mPropertyBag - Property bag for control-specific delegate
+		 * @param {object} mPropertyBag.controlType - Control type
+		 * @param {object} mPropertyBag.delegate - Path to control-specific delegate
+		 * @param {object} [mPropertyBag.requiredLibraries] - Map of required libraries
+		 * @param {object} [mPropertyBag.payload] - Payload for the delegate
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta, smart controls
+		 */
+		registerWriteDelegate(mPropertyBag) {
+			DelegateMediator.registerWriteDelegate(mPropertyBag);
+		},
+
+		/**
+		 * Returns the model-specific read delegate for the requested control.
+		 * The instance-specific read delegate is returned if available.
 		 *
 		 * @param {object} mPropertyBag - Property bag
-		 * @param {sap.ui.core.Element|DomNode} mPropertyBag.control - Control for which the corresponding delegate should be returned
+		 * @param {sap.ui.core.Element|Element} mPropertyBag.control - Control for which the corresponding delegate should be returned
 		 * @param {sap.ui.core.util.reflection.BaseTreeModifier} mPropertyBag.modifier - Control tree modifier
 		 * @param {string} [mPropertyBag.modelType] - Model type; required in case you passed the <code>XmlTreeModifier</code>
-		 * @param {boolean} [mPropertyBag.supportsDefault] - Include default delegate if no instance specific delegate is available
 		 * @returns {Promise.<sap.ui.core.util.reflection.FlexDelegateInfo>} Delegate information including the lazy loaded instance of the delegate
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta, smart controls
 		 */
-		getDelegateForControl: function (mPropertyBag) {
-			return DelegateMediator.getDelegateForControl(
+		getReadDelegateForControl(mPropertyBag) {
+			return DelegateMediator.getReadDelegateForControl(
 				mPropertyBag.control,
 				mPropertyBag.modifier,
 				mPropertyBag.modelType,
@@ -53,13 +73,24 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns a list of library names which needs to be required to get default delegates loaded.
-		 * @returns {array} List of library names
+		 * Returns the write delegate for the requested control.
+	 	 * The instance-specific write delegate is returned if available.
+		 *
+		 * @param {object} mPropertyBag - Property bag
+		 * @param {sap.ui.core.Element|Element} mPropertyBag.control - Control for which the corresponding delegate should be returned
+		 * @param {sap.ui.core.util.reflection.BaseTreeModifier} mPropertyBag.modifier - Control tree modifier
+		 * @returns {Promise.<sap.ui.core.util.reflection.FlexDelegateInfo>} Delegate information including the lazy loaded instance of the delegate
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta, smart controls
 		 */
-		getKnownDefaultDelegateLibraries: function () {
-			return DelegateMediator.getKnownDefaultDelegateLibraries();
+		getWriteDelegateForControl(mPropertyBag) {
+			return DelegateMediator.getWriteDelegateForControl(
+				mPropertyBag.control,
+				mPropertyBag.modifier
+			);
 		}
 	};
 
 	return DelegateMediatorAPI;
-},  /* bExport= */false);
+});

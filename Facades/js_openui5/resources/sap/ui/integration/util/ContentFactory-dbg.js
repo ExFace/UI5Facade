@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"./BindingHelper",
-	"./CardActions",
-	"sap/ui/base/Object",
+	"./BaseFactory",
+	"sap/base/Log",
+	"sap/m/IllustratedMessageType",
+	"sap/ui/integration/cards/actions/CardActions",
 	"sap/ui/integration/cards/AdaptiveContent",
 	"sap/ui/integration/cards/AnalyticalContent",
 	"sap/ui/integration/cards/AnalyticsCloudContent",
@@ -15,11 +16,14 @@ sap.ui.define([
 	"sap/ui/integration/cards/ListContent",
 	"sap/ui/integration/cards/ObjectContent",
 	"sap/ui/integration/cards/TableContent",
-	"sap/ui/integration/cards/TimelineContent"
+	"sap/ui/integration/cards/TimelineContent",
+	"sap/ui/integration/cards/WebPageContent",
+	"sap/ui/integration/cards/BaseListContent"
 ], function (
-	BindingHelper,
+	BaseFactory,
+	Log,
+	IllustratedMessageType,
 	CardActions,
-	BaseObject,
 	AdaptiveContent,
 	AnalyticalContent,
 	AnalyticsCloudContent,
@@ -28,7 +32,9 @@ sap.ui.define([
 	ListContent,
 	ObjectContent,
 	TableContent,
-	TimelineContent
+	TimelineContent,
+	WebPageContent,
+	BaseListContent
 ) {
 	"use strict";
 
@@ -37,77 +43,82 @@ sap.ui.define([
 	 *
 	 * @class
 	 *
-	 * @extends sap.ui.base.Object
+	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.util.ContentFactory
 	 */
-	var ContentFactory = BaseObject.extend("sap.ui.integration.util.ContentFactory", {
-		metadata: {
-			library: "sap.ui.integration"
-		},
-		constructor: function (oCard) {
-			BaseObject.call(this);
-
-			this._oCard = oCard;
-		}
-	});
+	var ContentFactory = BaseFactory.extend("sap.ui.integration.util.ContentFactory");
 
 	ContentFactory.prototype.create = function (mConfig) {
 		var oCard = this._oCard,
-			sType = mConfig.cardType;
+			sType = mConfig.cardType,
+			oExtension = oCard.getAggregation("_extension");
 
-		return new Promise(function (resolve, reject) {
-			var Content = this.getClass(sType);
+		var Content = this.getClass(sType);
 
-			if (!Content) {
-				reject(sType.toUpperCase() + " content type is not supported.");
-				return;
-			}
+		if (!Content) {
+			throw new Error(sType.toUpperCase() + " content type is not supported.");
+		}
 
-			var oContent = new Content();
+		var oContent = new Content({
+			card: oCard,
+			overflowWithShowMore: mConfig.overflowWithShowMore
+		});
 
-			// Set the card ID as association to the content
-			oContent.setCard(oCard);
+		if (oContent instanceof AdaptiveContent) {
+			oContent.setCardDataProvider(oCard._oDataProvider);
+		}
 
-			if (oContent instanceof AdaptiveContent) {
-				oContent.setCardDataProvider(oCard._oDataProvider);
-			}
+		oContent.setServiceManager(mConfig.serviceManager);
+		oContent.setDataProviderFactory(mConfig.dataProviderFactory);
+		oContent.setIconFormatter(mConfig.iconFormatter);
+		oContent.setActions(new CardActions({
+			card: oCard
+		}));
+		oContent.setConfiguration(mConfig.contentManifest);
+		oContent.setNoDataConfiguration(mConfig.noDataConfiguration);
 
-			oContent.loadDependencies(mConfig.contentManifest)
-				.then(function () {
-					if ((mConfig.cardManifest && mConfig.cardManifest.isDestroyed()) ||
-						(mConfig.dataProviderFactory && mConfig.dataProviderFactory.isDestroyed())) {
-						// reject creating of the content if a new manifest is loaded meanwhile
-						reject();
-						return;
-					}
+		if (!(oContent instanceof AdaptiveContent)) {
+			oContent.setDataConfiguration(mConfig.contentManifest.data);
+		}
 
-					var oActions = new CardActions({
-						card: oCard
+		if (oContent instanceof BaseListContent) {
+			oContent.setPaginator(mConfig.paginator);
+		}
+
+		oContent.setLoadDependenciesPromise(
+			Promise.all([
+				oContent.loadDependencies(mConfig.cardManifest),
+				oExtension ? oExtension.loadDependencies() : Promise.resolve()
+			]).then(function () {
+				return true;
+			}).catch(function (sError) {
+				if (sError) {
+					Log.error(sError, "sap.ui.integration.util.ContentFactory");
+					oCard._handleError({
+						type: IllustratedMessageType.ErrorScreen,
+						title: oCard.getTranslatedText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
+						description: oCard.getTranslatedText("CARD_ERROR_REQUEST_DESCRIPTION"),
+						details: sError
 					});
+				}
+				return false;
+			})
+		);
 
-					oContent._sAppId = mConfig.appId;
-					oContent.setServiceManager(mConfig.serviceManager);
-					oContent.setDataProviderFactory(mConfig.dataProviderFactory);
-					oContent.setIconFormatter(mConfig.iconFormatter);
-					oContent.setActions(oActions);
+		oContent.getLoadDependenciesPromise()
+			.then(function (bLoadSuccessful) {
+				if (bLoadSuccessful && !oContent.isDestroyed()) {
+					oContent.applyConfiguration();
+				}
+			});
 
-					if (sType.toLowerCase() !== "adaptivecard") {
-						oContent.setConfiguration(BindingHelper.createBindingInfos(mConfig.contentManifest), sType);
-					} else {
-						oContent.setConfiguration(mConfig.contentManifest);
-					}
-					resolve(oContent);
-				})
-				.catch(function (sError) {
-					reject(sError);
-				});
-		}.bind(this));
+		return oContent;
 	};
 
 	/**
@@ -135,6 +146,8 @@ sap.ui.define([
 				return TableContent;
 			case "timeline":
 				return TimelineContent;
+			case "webpage":
+				return WebPageContent;
 			default:
 				return null;
 		}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,12 +29,11 @@ sap.ui.define([
 	 * @class The Remove allows trigger remove operations on the overlay
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.rta.plugin.Remove
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var Remove = Plugin.extend("sap.ui.rta.plugin.Remove", /** @lends sap.ui.rta.plugin.Remove.prototype */{
 		metadata: {
@@ -51,34 +50,21 @@ sap.ui.define([
 	 * @param {sap.ui.dt.Overlay} oOverlay overlay object
 	 * @override
 	 */
-	Remove.prototype.registerElementOverlay = function (oOverlay) {
+	Remove.prototype.registerElementOverlay = function(...aArgs) {
+		const [oOverlay] = aArgs;
 		if (this.isEnabled([oOverlay])) {
 			oOverlay.attachBrowserEvent("keydown", this._onKeyDown, this);
 		}
-		Plugin.prototype.registerElementOverlay.apply(this, arguments);
+		Plugin.prototype.registerElementOverlay.apply(this, aArgs);
 	};
 
 	/**
-	 * @param {sap.ui.dt.ElementOverlay} oElementOverlay - Overlay to be checked for editable
-	 * @return {Promise.<boolean>|boolean} <code>true</code> if it's editable wrapped in a promise.
+	 * @param {sap.ui.dt.ElementOverlay} oOverlay - Overlay to be checked for editable
+	 * @return {Promise.<boolean>} <code>true</code> if it's editable wrapped in a promise.
 	 * @private
 	 */
-	Remove.prototype._isEditable = function (oElementOverlay) {
-		var oElement = oElementOverlay.getElement();
-
-		var oRemoveAction = this.getAction(oElementOverlay);
-		if (oRemoveAction && oRemoveAction.changeType) {
-			if (oRemoveAction.changeOnRelevantContainer) {
-				oElement = oElementOverlay.getRelevantContainer();
-			}
-			return this.hasChangeHandler(oRemoveAction.changeType, oElement)
-				.then(function(bHasChangeHandler) {
-					return bHasChangeHandler
-						&& this._checkRelevantContainerStableID(oRemoveAction, oElementOverlay)
-						&& this.hasStableId(oElementOverlay);
-				}.bind(this));
-		}
-		return false;
+	Remove.prototype._isEditable = function(oOverlay) {
+		return this._checkChangeHandlerAndStableId(oOverlay);
 	};
 
 	/**
@@ -87,7 +73,7 @@ sap.ui.define([
 	 * @return {boolean} true if enabled
 	 * @public
 	 */
-	Remove.prototype.isEnabled = function (aElementOverlays) {
+	Remove.prototype.isEnabled = function(aElementOverlays) {
 		var aResponsibleElementOverlays = aElementOverlays.map(function(oElementOverlay) {
 			return this.getResponsibleElementOverlay(oElementOverlay);
 		}.bind(this));
@@ -114,12 +100,25 @@ sap.ui.define([
 	/**
 	 * Checks if Overlay control has a valid parent and if it is
 	 * not the last visible control in the aggregation
+	 * The removal of the last element in the aggregation can
+	 * be defined by the parameter 'removeLastElement' in the
+	 * designtime of the aggregation
 	 *
 	 * @param  {sap.ui.dt.ElementOverlay[]} aElementOverlays - overlays to be removed
 	 * @return {boolean} Returns true if the control can be removed
 	 * @private
 	 */
 	Remove.prototype._canBeRemovedFromAggregation = function(aElementOverlays) {
+		// Check if designtime allows removing last visible element
+		var fnCheckDesignTimeSettings = function(oOverlay) {
+			var oParentOverlay = oOverlay.getParentAggregationOverlay();
+			if (oParentOverlay) {
+				var oAction = this.getAction(oParentOverlay);
+				return !!(oAction && oAction.removeLastElement);
+			}
+			return false;
+		}.bind(this);
+
 		var oOverlay = aElementOverlays[0];
 		var oElement = oOverlay.getElement();
 		var oParent = oElement.getParent();
@@ -130,22 +129,22 @@ sap.ui.define([
 		if (!Array.isArray(aElements)) {
 			return true;
 		}
-		if (aElements.length === 1) {
-			return false;
-		}
-
-		// Fallback to 1 if no overlay is selected
+		// check if selected Overlays are the last visible elements in aggregation
 		var iNumberOfSelectedOverlays = aElementOverlays.length;
 		var aInvisibleElements = aElements.filter(function(oElement) {
 			var oElementOverlay = OverlayRegistry.getOverlay(oElement);
 			return !(oElementOverlay && oElementOverlay.getElementVisibility());
 		});
-		return !(aInvisibleElements.length === (aElements.length - iNumberOfSelectedOverlays));
+		var bIsLastVisibleElement = (aInvisibleElements.length + iNumberOfSelectedOverlays === aElements.length);
+		if (bIsLastVisibleElement) {
+			return fnCheckDesignTimeSettings(oOverlay);
+		}
+		return true;
 	};
 
 	/**
 	 * @param  {sap.ui.dt.Overlay} oOverlay overlay object
-	 * @return {String} Returns the confirmation text
+	 * @return {string} Returns the confirmation text
 	 * @private
 	 */
 	Remove.prototype._getConfirmationText = function(oOverlay) {
@@ -161,11 +160,12 @@ sap.ui.define([
 	 * @param {sap.ui.dt.Overlay} oOverlay overlay object
 	 * @override
 	 */
-	Remove.prototype.deregisterElementOverlay = function(oOverlay) {
+	Remove.prototype.deregisterElementOverlay = function(...aArgs) {
+		const [oOverlay] = aArgs;
 		if (this.isEnabled([oOverlay])) {
 			oOverlay.detachBrowserEvent("keydown", this._onKeyDown, this);
 		}
-		Plugin.prototype.deregisterElementOverlay.apply(this, arguments);
+		Plugin.prototype.deregisterElementOverlay.apply(this, aArgs);
 	};
 
 	/**
@@ -175,7 +175,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Remove.prototype._onKeyDown = function(oEvent) {
-		if (oEvent.keyCode === KeyCodes.DELETE) {
+		if (oEvent.keyCode === KeyCodes.DELETE || oEvent.keyCode === KeyCodes.BACKSPACE) {
 			oEvent.stopPropagation();
 			this.removeElement();
 		}
@@ -186,10 +186,10 @@ sap.ui.define([
 	 * @param {sap.ui.dt.ElementOverlay[]} aElementOverlays - Target overlays
 	 * @private
 	 */
-	Remove.prototype.removeElement = function (aElementOverlays) {
+	Remove.prototype.removeElement = function(aElementOverlays) {
 		var aTargetOverlays = aElementOverlays || this.getSelectedOverlays();
 
-		aTargetOverlays = aTargetOverlays.filter(function (oElementOverlay) {
+		aTargetOverlays = aTargetOverlays.filter(function(oElementOverlay) {
 			return this.isEnabled([oElementOverlay]);
 		}, this);
 
@@ -200,19 +200,19 @@ sap.ui.define([
 
 	Remove.prototype._getRemoveCommand = function(oRemovedElement, oDesignTimeMetadata, sVariantManagementKey) {
 		return this.getCommandFactory().getCommandFor(oRemovedElement, "Remove", {
-			removedElement : oRemovedElement
+			removedElement: oRemovedElement
 		}, oDesignTimeMetadata, sVariantManagementKey);
 	};
 
 	Remove.prototype._fireElementModified = function(oCompositeCommand) {
 		if (oCompositeCommand.getCommands().length) {
 			this.fireElementModified({
-				command : oCompositeCommand
+				command: oCompositeCommand
 			});
 		}
 	};
 
-	Remove.prototype.handler = function (aElementOverlays) {
+	Remove.prototype.handler = function(aElementOverlays) {
 		var aPromises = [];
 		var oCompositeCommand = new CompositeCommand();
 		function fnSetFocus(oOverlay) {
@@ -294,14 +294,12 @@ sap.ui.define([
 						aSiblings.slice(0, iOverlayPosition).reverse()
 					);
 				}
-				oNextOverlaySelection = aCandidates.filter(function (oSibling) {
+				oNextOverlaySelection = aCandidates.filter(function(oSibling) {
 					return oSibling.getElement().getVisible();
 				}).shift();
 			}
 		}
-		if (!oNextOverlaySelection) {
-			oNextOverlaySelection = OverlayRegistry.getOverlay(aSelectedOverlays[0].getRelevantContainer());
-		}
+		oNextOverlaySelection ||= OverlayRegistry.getOverlay(aSelectedOverlays[0].getRelevantContainer());
 		return oNextOverlaySelection;
 	};
 
@@ -310,8 +308,8 @@ sap.ui.define([
 	 * @param {sap.ui.dt.ElementOverlay[]} aElementOverlays - Target overlays
 	 * @return {object[]} - array of the items with required data
 	 */
-	Remove.prototype.getMenuItems = function (aElementOverlays) {
-		return this._getMenuItems(aElementOverlays, {pluginId : "CTX_REMOVE", rank : 60, icon : "sap-icon://less"});
+	Remove.prototype.getMenuItems = function(aElementOverlays) {
+		return this._getMenuItems(aElementOverlays, {pluginId: "CTX_REMOVE", icon: "sap-icon://less"});
 	};
 
 	/**

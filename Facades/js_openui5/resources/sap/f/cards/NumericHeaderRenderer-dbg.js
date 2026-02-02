@@ -1,138 +1,154 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides default renderer for control sap.f.cards.NumericHeader
-sap.ui.define([], function () {
+sap.ui.define([
+	"sap/f/cards/BaseHeaderRenderer",
+	"sap/ui/core/Renderer"
+], function (BaseHeaderRenderer, Renderer) {
 	"use strict";
 
-	var NumericHeaderRenderer = {
-		apiVersion: 2
+	const NumericHeaderRenderer = Renderer.extend(BaseHeaderRenderer);
+	NumericHeaderRenderer.apiVersion = 2;
+
+	/**
+	 * @override
+	 */
+	NumericHeaderRenderer.renderHeaderAttributes = function (oRm, oHeader) {
+		oRm.class("sapFCardNumericHeader");
+
+		if (oHeader.getNumber() && oHeader.getNumberVisible()) {
+			oRm.class("sapFCardHeaderHasNumber");
+		}
 	};
 
 	/**
-	 * Render a numeric header.
-	 *
-	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.f.cards.NumericHeader} oNumericHeader An object representation of the control that should be rendered
+	 * @override
 	 */
-	NumericHeaderRenderer.render = function (oRm, oNumericHeader) {
-		var bLoading = oNumericHeader.isLoading(),
-			oToolbar = oNumericHeader.getToolbar();
+	NumericHeaderRenderer.hasNumericPart = function (oHeader) {
+		const oBindingInfos = oHeader.mBindingInfos;
+		const bHasMainIndicator = oHeader.getNumber() || oHeader.isBound("number");
+		const bHasSideIndicators = oHeader.getSideIndicators().length > 0;
+		const bHasDetails = oHeader.getDetails() || oBindingInfos.details;
+		const bHasDataTimestamp = oHeader.getDataTimestamp() || oBindingInfos.dataTimestamp;
 
-		oRm.openStart("div", oNumericHeader)
-			.class("sapFCardHeader")
-			.class("sapFCardNumericHeader");
+		return bHasMainIndicator || bHasSideIndicators || bHasDetails || bHasDataTimestamp;
+	};
 
-		if (bLoading) {
-			oRm.class("sapFCardHeaderLoading");
+	/**
+	 * @override
+	 */
+	NumericHeaderRenderer.renderNumericPart = function (oRm, oHeader) {
+		if (oHeader.getProperty("useTileLayout")) {
+			return;
 		}
 
-		if (oNumericHeader.hasListeners("press")) {
-			oRm.class("sapFCardClickable");
-		}
-
-		oRm.attr("tabindex", "0");
-		//Accessibility state
-		oRm.accessibilityState(oNumericHeader, {
-			role: oNumericHeader._sAriaRole,
-			labelledby: { value: oNumericHeader._getHeaderAccessibility(), append: true },
-			roledescription: { value: oNumericHeader._sAriaRoleDescritoion, append: true },
-			level: { value: oNumericHeader._sAriaHeadingLevel }
-		});
-		oRm.openEnd();
+		const oMicroChart = oHeader.getMicroChart();
 
 		oRm.openStart("div")
-			.class("sapFCardHeaderContent")
+			.class("sapFCardNumericHeaderNumericPart")
+			.class("sapFCardHeaderLastPart")
 			.openEnd();
 
-		NumericHeaderRenderer.renderHeaderText(oRm, oNumericHeader);
-		NumericHeaderRenderer.renderIndicators(oRm, oNumericHeader);
-		NumericHeaderRenderer.renderDetails(oRm, oNumericHeader);
+		oRm.openStart("div")
+			.class("sapFCardHeaderNumericPartFirstLine")
+			.openEnd();
 
-		oRm.close("div");
+		this._renderIndicators(oRm, oHeader);
 
-		if (oToolbar) {
-			oRm.openStart("div")
-				.class("sapFCardHeaderToolbar")
-				.openEnd();
-
-			oRm.renderControl(oToolbar);
-
-			oRm.close("div");
+		if (oMicroChart) {
+			oRm.renderControl(oMicroChart);
 		}
+
+		oRm.close("div"); // sapFCardHeaderNumericPartFirstLine
+
+		this._renderDetails(oRm, oHeader);
 
 		oRm.close("div");
 	};
 
 	/**
-	 * Render title and subtitle texts.
-	 *
-	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.f.cards.NumericHeader} oNumericHeader An object representation of the control that should be rendered
+	 * @override
 	 */
-	NumericHeaderRenderer.renderHeaderText = function(oRm, oNumericHeader) {
-		var oTitle = oNumericHeader.getAggregation("_title"),
-			oSubtitle = oNumericHeader.getAggregation("_subtitle"),
-			oUnitOfMeasurement = oNumericHeader.getAggregation("_unitOfMeasurement"),
-			sStatus = oNumericHeader.getStatusText(),
-			oBindingInfos = oNumericHeader.mBindingInfos;
-
-		// TODO reuse title and subtitle rendering from the default header if possible
+	NumericHeaderRenderer.renderMainContentInTileLayout = function (oRm, oHeader) {
 		oRm.openStart("div")
 			.class("sapFCardHeaderText")
 			.openEnd();
 
-		oRm.openStart("div")
-			.class("sapFCardHeaderTextFirstLine")
-			.openEnd();
-
-		if (oTitle) {
-			if (oBindingInfos.title) {
-				oTitle.addStyleClass("sapFCardHeaderItemBinded");
-			}
-			oTitle.addStyleClass("sapFCardTitle");
-			oRm.renderControl(oTitle);
-		}
-
-		if (sStatus) {
-			oRm.openStart("span", oNumericHeader.getId() + '-status')
-				.class("sapFCardStatus");
-
-			if (oBindingInfos.statusText) {
-				oRm.class("sapFCardHeaderItemBinded");
-			}
-
-			oRm.openEnd()
-				.text(sStatus)
-				.close("span");
-		}
+		BaseHeaderRenderer.renderMainPartFirstLine(oRm, oHeader);
+		this._renderSubtitle(oRm, oHeader);
 
 		oRm.close("div");
 
-		if (((oSubtitle && oSubtitle.getText()) || ( oBindingInfos && oBindingInfos.subtitle))
-			|| ((oUnitOfMeasurement && oUnitOfMeasurement.getText()) || ( oBindingInfos && oBindingInfos.unitOfMeasurement))) {
+		this._renderAvatarAndIndicatorsLine(oRm, oHeader);
+		this._renderDetails(oRm, oHeader);
+	};
+
+	/**
+	 * @override
+	 */
+	NumericHeaderRenderer.renderMainPartSecondLine = function (oRm, oHeader) {
+		this._renderSubtitle(oRm, oHeader);
+	};
+
+	/**
+	 * Render subtitle and unit of measurement.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {sap.f.cards.NumericHeader} oNumericHeader An object representation of the control that should be rendered
+	 */
+	NumericHeaderRenderer._renderSubtitle = function(oRm, oNumericHeader) {
+		var oBindingInfos = oNumericHeader.mBindingInfos,
+			oSubtitle = oNumericHeader.getAggregation("_subtitle"),
+			oUnitOfMeasurement = oNumericHeader.getAggregation("_unitOfMeasurement"),
+			bHasSubtitle = oSubtitle && oSubtitle.getText() || oBindingInfos && oBindingInfos.subtitle,
+			bHasUnitOfMeasurement = oUnitOfMeasurement && oUnitOfMeasurement.getText() || oBindingInfos && oBindingInfos.unitOfMeasurement;
+
+		if (bHasSubtitle || bHasUnitOfMeasurement) {
 			oRm.openStart("div")
-				.class("sapFCardSubtitle")
-				.openEnd();
+				.class("sapFCardSubtitle");
+
+			if (bHasSubtitle && oUnitOfMeasurement) {
+				oRm.class("sapFCardSubtitleAndUnit");
+			}
+
+			if (oBindingInfos.subtitle || oBindingInfos.unitOfMeasurement) {
+				oRm.class("sapFCardHeaderItemBinded");
+			}
+
+			oRm.openEnd();
 
 			if (oSubtitle) {
-				if (oBindingInfos.subtitle) {
-					oSubtitle.addStyleClass("sapFCardHeaderItemBinded");
-				}
 				oRm.renderControl(oSubtitle);
 			}
 
 			if (oUnitOfMeasurement) {
-				oUnitOfMeasurement.addStyleClass("sapFCardHeaderUnitOfMeasurement");
-				if (oBindingInfos.unitOfMeasurement) {
-					oUnitOfMeasurement.addStyleClass("sapFCardHeaderItemBinded");
-				}
 				oRm.renderControl(oUnitOfMeasurement);
 			}
+
 			oRm.close("div");
+		}
+	};
+
+	/**
+	 * Render avatar, main indicator and side indicators if any.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {sap.f.cards.NumericHeader} oNH An object representation of the control that should be rendered
+	 */
+	NumericHeaderRenderer._renderAvatarAndIndicatorsLine = function(oRm, oNH) {
+		oRm.openStart("div")
+			.class("sapFCardAvatarAndIndicatorsLine")
+			.openEnd();
+
+		BaseHeaderRenderer.renderAvatar(oRm, oNH);
+		this._renderIndicators(oRm, oNH);
+
+		var oMicroChart = oNH.getMicroChart();
+		if (oMicroChart) {
+			oRm.renderControl(oMicroChart);
 		}
 
 		oRm.close("div");
@@ -142,52 +158,23 @@ sap.ui.define([], function () {
 	 * Render main indicator and side indicators if any.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.f.cards.NumericHeader} oNumericHeader An object representation of the control that should be rendered
+	 * @param {sap.f.cards.NumericHeader} oNH An object representation of the control that should be rendered
 	 */
-	NumericHeaderRenderer.renderIndicators = function(oRm, oNumericHeader) {
-		var oMainIndicator = oNumericHeader.getAggregation("_mainIndicator"),
-			oSideIndicators = oNumericHeader.getAggregation("sideIndicators"),
-			oBindingInfos = oNumericHeader.mBindingInfos;
-
-		if ((oMainIndicator && oMainIndicator.getValue()) || oSideIndicators.length !== 0) {
-			oRm.openStart("div")
-				.class("sapFCardHeaderIndicators")
-				.openEnd();
-
-			if (oMainIndicator) {
-				oRm.openStart("div")
-					.class("sapFCardHeaderMainIndicator")
-					.openEnd();
-
-				if (oBindingInfos.scale || oBindingInfos.number || oBindingInfos.trend || oBindingInfos.state) {
-					oMainIndicator.addStyleClass("sapFCardHeaderItemBinded");
-				} else {
-					oMainIndicator.removeStyleClass("sapFCardHeaderItemBinded");
-				}
-				oRm.renderControl(oMainIndicator);
-				oRm.close("div");
-
-				oRm.openStart("div")
-					.class("sapFCardHeaderIndicatorsGap")
-					.openEnd()
-					.close("div");
-			}
-
-			if (oSideIndicators.length !== 0) {
-				oRm.openStart("div")
-					.class("sapFCardHeaderSideIndicators")
-					.openEnd();
-
-				// TODO min-width for side indicator. Now it starts to truncate too early
-				// Maybe wrap them when card is too small
-				oSideIndicators.forEach(function(oIndicator) {
-					oRm.renderControl(oIndicator);
-				});
-				oRm.close("div");
-			}
-
-			oRm.close("div");
+	NumericHeaderRenderer._renderIndicators = function(oRm, oNH) {
+		if (!oNH.getNumber() && !oNH.isBound("number") && oNH.getSideIndicators().length === 0) {
+			return;
 		}
+
+		var oNumericIndicators = oNH._getNumericIndicators(),
+			oMainIndicator = oNumericIndicators._getMainIndicator();
+
+		if (oNH.isBound("scale") || oNH.isBound("number") || oNH.isBound("trend") || oNH.isBound("state")) {
+			oMainIndicator.addStyleClass("sapFCardHeaderItemBinded");
+		} else {
+			oMainIndicator.removeStyleClass("sapFCardHeaderItemBinded");
+		}
+
+		oRm.renderControl(oNumericIndicators);
 	};
 
 	/**
@@ -196,16 +183,40 @@ sap.ui.define([], function () {
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.f.cards.NumericHeader} oNumericHeader An object representation of the control that should be rendered
 	 */
-	NumericHeaderRenderer.renderDetails = function(oRm, oNumericHeader) {
-		var oDetails = oNumericHeader.getAggregation("_details"),
-			oBindingInfos = oNumericHeader.mBindingInfos;
+	NumericHeaderRenderer._renderDetails = function(oRm, oNumericHeader) {
+		var oBindingInfos = oNumericHeader.mBindingInfos,
+			oDetails = oNumericHeader.getAggregation("_details"),
+			bHasDetails = oNumericHeader.getDetails() || oBindingInfos.details,
+			oDataTimestamp = oNumericHeader.getAggregation("_dataTimestamp"),
+			bHasDataTimestamp = oNumericHeader.getDataTimestamp() || oBindingInfos.dataTimestamp;
+
+		if (!bHasDetails && !bHasDataTimestamp) {
+			return;
+		}
+
+		oRm.openStart("div")
+			.class("sapFCardHeaderDetailsWrapper");
+
+		if (bHasDataTimestamp) {
+			oRm.class("sapFCardHeaderLineIncludesDataTimestamp");
+		}
+
+		oRm.openEnd();
 
 		//show placeholder when there is binded value also
-		if ((oDetails && oDetails.getText()) || oBindingInfos.details) {
-					oDetails.addStyleClass("sapFCardHeaderItemBinded");
-					oDetails.addStyleClass("sapFCardHeaderDetails");
-					oRm.renderControl(oDetails);
+		if (bHasDetails) {
+			if (oBindingInfos.details) {
+				oDetails.addStyleClass("sapFCardHeaderItemBinded");
+			}
+
+			oRm.renderControl(oDetails);
 		}
+
+		if (bHasDataTimestamp) {
+			oRm.renderControl(oDataTimestamp);
+		}
+
+		oRm.close("div");
 	};
 
 	return NumericHeaderRenderer;

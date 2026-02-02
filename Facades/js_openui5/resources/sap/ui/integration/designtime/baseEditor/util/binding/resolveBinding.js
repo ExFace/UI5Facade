@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/designtime/baseEditor/util/binding/ObjectBinding"],function(O){"use strict";return function(j,m,c,i){var o=new O();c=c||{};i=i||[];i.forEach(function(p){o.addToIgnore(p);});Object.keys(m).forEach(function(k){o.setModel(m[k],k===""?undefined:k);});Object.keys(c).forEach(function(k){o.setBindingContext(c[k],k===""?undefined:k);});o.setObject(j);var r=o.getObject();o.destroy();return r;};});
+sap.ui.define(["sap/ui/integration/designtime/baseEditor/util/binding/ObjectBinding"],function(e){"use strict";return function(n,t,i,o){var c=new e;i=i||{};o=o||[];o.forEach(function(e){c.addToIgnore(e)});Object.keys(t).forEach(function(e){c.setModel(t[e],e===""?undefined:e)});Object.keys(i).forEach(function(e){c.setBindingContext(i[e],e===""?undefined:e)});c.setObject(n);var d=c.getObject();c.destroy();return d}});
+//# sourceMappingURL=resolveBinding.js.map

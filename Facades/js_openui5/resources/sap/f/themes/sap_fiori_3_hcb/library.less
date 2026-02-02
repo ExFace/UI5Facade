@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,20 +17,8 @@
 /* Quartz High Contrast Black theme  */
 /* ================================= */
 
-html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
-	&.sapMBtn {
-		outline: none;
-
-		.sapMBtnInner {
-			border: 0.125rem solid @sapUiFieldBorderColor;
-			border-radius: 50%
-		}
-	}
-
-	&.sapMBtn:focus > .sapMFocusable {
-		outline: 0.0625rem dotted @sapUiContentFocusColor;
-		border-radius: 50%;
-	}
+.sapFAvatarGroup {
+	padding: var(--sapContent_FocusWidth);
 }
 /* END "AvatarGroup.less" */
 
@@ -40,6 +28,44 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 /* Quartz High Contrast Black theme   */
 /* ================================== */
 
+.sapFDynamicPageContent,
+.sapFDynamicPageContentFitContainer {
+	padding: 1rem 2rem 0 2rem;
+}
+
+.sapFDynamicPage-Std-Desktop-XL {
+	.sapFDynamicPageContent,
+	.sapFDynamicPageContentFitContainer {
+		padding: 1rem 3rem 0 3rem;
+	}
+}
+
+.sapFDynamicPage.sapUiResponsiveContentPadding {
+	&.sapFDynamicPage-Std-Phone {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Tablet {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 2rem;
+			padding-right: 2rem;
+		}
+	}
+
+	&.sapFDynamicPage-Std-Desktop-XL {
+		.sapFDynamicPageContent,
+		.sapFDynamicPageContentFitContainer {
+			padding-left: 3rem;
+			padding-right: 3rem;
+		}
+	}
+}
+
 /* Tablet and Desktop */
 .sapFDynamicPageToggleHeaderIndicator,
 .sapFDynamicPageHeaderPinButton {
@@ -47,6 +73,7 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 	height: 2.5rem;
 	font-size: 1.375rem;
 
+	// Reflection: styles overwritten
 	.sapMBtnInner {
 		height: 2rem;
 		bottom: 0.5rem;
@@ -65,6 +92,7 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 		height: 2rem;
 		font-size: 1rem;
 
+		// Reflection: styles overwritten
 		.sapMBtnInner {
 			min-width: 1.5rem;
 			width: 1.5rem;
@@ -120,7 +148,7 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 	/* DynamicPageTitle and Toggle Header Visual Indicator hover state */
 	&.sapFDynamicPageTitleClickEnabled {
 		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
-			background: @sapUiHighlight;
+			background: @sapUiObjectHeaderHoverBackground;
 			box-shadow: @sapUiShadowHeader;
 		}
 		&.sapFDynamicPageTitleForceHovered {
@@ -142,6 +170,7 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 		}
 	}
 }
+
 /* END "DynamicPage.less" */
 
 /* START "DynamicPageTitle.less" */
@@ -157,36 +186,42 @@ html.sap-desktop .sapFAvatarGroup .sapFAvatarGroupMoreButton {
 
 html.sap-desktop .sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
 	outline-width: 0.125rem;
-	outline-offset: -0.25rem; // due to bottom border overlapping
+	outline-offset: -0.25rem; /* due to bottom border overlapping */
 }
 
 .sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnappedTitleOnMobile > .sapFDynamicPageTitle {
-	border-bottom: 1px solid @sapUiObjectHeaderBorderColor;
+	border-bottom: 1px solid var(--sapObjectHeader_BorderColor);
 }
 
 .sapFDynamicPageTitle {
-	padding: 0.5rem 3rem;
+	padding: 0.5rem 2rem;
 	word-wrap: break-word;
 
 	&.sapFDynamicPageTitleTransparent {
-		background: @sapUiObjectHeaderBackground;
+		background: var(--sapObjectHeader_Background);
 	}
 }
 
+.sapFDynamicPage-Std-Desktop-XL .sapFDynamicPageTitle {
+	padding: 0.5rem 3rem;
+}
+
 .sapFDynamicPage-Std-Tablet {
+
 	.sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped > .sapFDynamicPageTitle {
 		padding: 0.5rem 2rem;
 	}
 
-	// Needed because on some high-end phones in landscape mode,
-	// the width of the viewport is bigger than 600 (Tablet breakpoint).
+	/* Needed because on some high-end phones in landscape mode,
+	the width of the viewport is bigger than 600 (Tablet breakpoint). */
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnappedTitleOnMobile > .sapFDynamicPageTitle {
 		padding: 0 2rem;
 	}
 }
 
 .sapFDynamicPage-Std-Phone {
+
 	.sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleOnly > .sapFDynamicPageTitle,
 	.sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped > .sapFDynamicPageTitle {
@@ -199,6 +234,7 @@ html.sap-desktop .sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
 }
 
 .sapFDynamicPageTitle .sapMTB {
+	background: transparent;
 	padding: 0;
 }
 
@@ -210,44 +246,29 @@ html.sap-desktop .sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
 	margin-left: 0;
 }
 
-/* IE and Edge ignores outline-offset. Use an overlay: */
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
+/* Firefox fix due to focus cut out from top and left */
+html[data-sap-ui-browser^='ff'].sap-desktop {
+
 	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
 		outline: none;
 		position: relative;
 	}
-	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus:before {
-		content: " ";
+
+	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus::before {
+		content: '';
 		box-sizing: border-box;
 		width: 100%;
-		height: 98%; // due to bottom border overlapping
+		height: 98%; /* due to bottom border overlapping */
 		position: absolute;
 		left: 0;
 		top: 0;
-		border: 0.125rem dashed @sapUiContentFocusColor;
+		border: 0.125rem dotted var(--sapContent_FocusColor);
 		pointer-events: none;
 	}
 }
 
-/* Firefox fix due to focus cut out from top and left */
-html[data-sap-ui-browser^="ff"].sap-desktop {
-	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
-		outline: none;
-		position: relative;
-	}
-	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus:before {
-		content: " ";
-		box-sizing: border-box;
-		width: 100%;
-		height: 98%; // due to bottom border overlapping
-		position: absolute;
-		left: 0;
-		top: 0;
-		border: 0.125rem dotted @sapUiContentFocusColor;
-		pointer-events: none;
-	}
+.sapFDynamicPageNavigation .sapFDynamicPageTitleWrapper.sapFDynamicPageTitleOnly > .sapFDynamicPageTitle {
+	box-shadow: none;
 }
 /* END "DynamicPageTitle.less" */
 
@@ -257,20 +278,21 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 /* Quartz High Contrast Black theme            */
 /* =========================================== */
 
-// Cozy mode
+/* Cozy mode */
 .sapFFCL > {
+
 	& > .sapFFCLColumnMid.sapFFCLColumnActive {
-		border-left: 1px solid @sapUiGroupContentBorderColor;
-		border-right: 1px solid @sapUiGroupContentBorderColor;
+		border-left: 1px solid var(--sapGroup_ContentBorderColor);
+		border-right: 1px solid var(--sapGroup_ContentBorderColor);
 	}
 
 	& > .sapFFCLColumnActive.sapFFCLColumnLastActive {
 		border-right: none;
-		border-left: 1px solid @sapUiGroupContentBorderColor;
+		border-left: 1px solid var(--sapGroup_ContentBorderColor);
 	}
 
 	& > .sapFFCLColumnActive.sapFFCLColumnFirstActive {
-		border-right: 1px solid @sapUiGroupContentBorderColor;
+		border-right: 1px solid var(--sapGroup_ContentBorderColor);
 		border-left: none;
 	}
 
@@ -278,36 +300,39 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 		border-right: none;
 		border-left: none;
 	}
-	
+
 	&.sapFFCLBackgroundDesign {
-		background: @sapUiBaseBG;
+		background: var(--sapBackgroundColor);
 	}
 }
 
 .sapFFCL {
+
 	.sapFFCLNavigationButton {
+
 		.sapMBtnInner {
-			border: 1px solid @sapUiButtonBorderColor;
+			border: 1px solid var(--sapButton_BorderColor);
 
-			&:before,
-			&:after {
-				background-size: 0.125rem 100%;
-				background-position-x: calc(50% - 0.0625rem);
-			}
-			&:before {
-				background-image: linear-gradient(to top, @sapUiObjectHeaderBorderColor, fade(@sapUiObjectHeaderBorderColor, 0));
-			}
-
-			&:after {
-				background-image: linear-gradient(to bottom, @sapUiObjectHeaderBorderColor, fade(@sapUiObjectHeaderBorderColor, 0));
-			}
 			.sapMBtnIcon {
 				width: auto;
 			}
 		}
+
+		&::before,
+		&::after {
+			background-size: 0.125rem 100%;
+			background-position-x: calc(50% - 0.0625rem);
+		}
+
+		&::before {
+			background-image: linear-gradient(to top, var(--sapObjectHeader_BorderColor), fade(@sapUiObjectHeaderBorderColor, 0));
+		}
+
+		&::after {
+			background-image: linear-gradient(to bottom, var(--sapObjectHeader_BorderColor), fade(@sapUiObjectHeaderBorderColor, 0));
+		}
 	}
 }
-
 /* END "FlexibleColumnLayout.less" */
 
 /* START "Card.less" */
@@ -317,32 +342,9 @@ html[data-sap-ui-browser^="ff"].sap-desktop {
 /* ================================= */
 
 @_sap_f_Card_BoxShadow: none;
-@_sap_f_Card_HeaderIconColor: @sapUiContentIconColor;
-@_sap_f_Card_HeaderFocusBorderBottomOffset: 2px;
-
-.sapFCard .sapFCardHeader.sapFCardClickable {
-	&:hover {
-		.sapFCardHeaderMainIndicator {
-			.sapMNCValue,
-			.sapMNCIndicator,
-			.sapMNCScale,
-			.sapMNCIndIcon {
-				color: @sapUiContentContrastTextColor;
-			}
-		}
-	}
-
-	&:active {
-		.sapFCardHeaderMainIndicator {
-			.sapMNCValue,
-			.sapMNCIndicator,
-			.sapMNCScale,
-			.sapMNCIndIcon {
-				color: @sapUiContentContrastTextColor;
-			}
-		}
-	}
-}
+@_sap_f_Card_FocusBorderBottomOffset: 2px;
+@_sap_f_Card_Badge_Background: var(--sapHighlightColor);
+@_sap_f_Card_Badge_Border: 0.0625rem solid var(--sapContent_ForegroundBorderColor);
 /* END "Card.less" */
 
 /* START "ShellBar.less" */
@@ -392,26 +394,30 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMBtnInner.sapMToggleBtnPressed{
 /* START "CardLoading.less" */
 /* ================================== */
 /* CSS for control sap.f/CardLoading  */
-/* Quartz High Contrast Black theme          */
+/* Quartz High Contrast Black theme   */
 /* ================================== */
 
-@sap_f_Card_Background_Placeholder_Color: @sapHC_ReducedForeground;
-@sap_f_Card_Placeholder_Gradient: linear-gradient(to right, @sapHC_ReducedForeground 0%, @sapHC_ReducedForeground 35%, @sapHC_ReducedAltForeground 50%, @sapHC_ReducedForeground 65%, @sapHC_ReducedForeground 100%);
-
-
+@_sap_f_Card_Background_Placeholder_Color: @sapUiHcReducedForeground;
+@_sap_f_Card_Placeholder_Gradient: linear-gradient(to right, @sapUiHcReducedForeground 0%, @sapUiHcReducedForeground 35%, @sapUiHcReducedAltForeground 50%, @sapUiHcReducedForeground 65%, @sapUiHcReducedForeground 100%);
 /* END "CardLoading.less" */
+
+/* START "GridContainer.less" */
+/* ==================================== */
+/* CSS for control sap.f/GridContainer  */
+/* Quartz High Contrast Black theme     */
+/* ==================================== */
+
+@_sap_f_GridContainer_FocusBorderOffset: -2px;
+/* END "GridContainer.less" */
 
 /* START "GridListItem.less" */
 /* =================================== */
 /* CSS for control sap.f/GridListItem  */
-/* Fiori 3 theme                       */
+/* Quartz High Contrast Black theme    */
 /* =================================== */
 
-@_sap_f_GridListItem_Header_BoxShadow: 0 0 0.25rem 0 fade(@sapUiContentShadowColor, 15), inset 0 -0.0625rem 0 0 @sapUiPageHeaderBorderColor;
+@_sap_f_GridListItem_HeaderBoxShadow: 0 0 0.25rem 0 fade(@sapUiContentShadowColor, 15), inset 0 -0.0625rem 0 0 var(--sapPageHeader_BorderColor);
 @_sap_f_GridListItem_HeaderHeight: 2.75rem;
-@_sap_f_GridListItem_BorderHover: 0 0 0 0.125rem @sapContent_ShadowColor;
-@_sap_f_GridListItem_BorderSelected: 0 0 0 0.125rem @sapUiListSelectionBorderColor;
-@_sap_f_GridListItem_Header_BoxShadowActive: @_sap_f_GridListItem_Header_BoxShadow;
 /* END "GridListItem.less" */
 
 /* START "DynamicPageHeader.less" */
@@ -419,6 +425,10 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMBtnInner.sapMToggleBtnPressed{
 /* CSS for control sap.f.DynamicPageHeader  */
 /* Quartz High Contrast Black theme            */
 /* =========================================== */
+
+.sapFDynamicPage-Std-Desktop .sapFDynamicPageHeader.sapFDynamicPageHeaderWithContent {
+	padding: 1rem 2rem;
+}
 
 .sapFDynamicPageHeader {
     &.sapFDynamicPageHeaderTransparent,
@@ -429,4 +439,61 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMBtnInner.sapMToggleBtnPressed{
 
 
 /* END "DynamicPageHeader.less" */
+
+/* START "SidePanel.less" */
+/* ================================= */
+/* CSS for control sap.f/SidePanel   */
+/* Quartz High Contrast Black theme  */
+/* ================================= */
+
+@_sap_ui_layout_Splitter_BarDecorationColors: var(--sapObjectHeader_BorderColor), fade(@sapUiObjectHeaderBorderColor, 0);
+@_sap_ui_layout_Splitter_BarActiveDecorationColors: var(--sapObjectHeader_BorderColor), var(--sapObjectHeader_BorderColor);
+
+.sapFSP {
+
+	.sapFSPSplitterBar {
+
+		&:hover {
+
+			.sapFSPSplitterBarGripIcon {
+				border-color: var(--sapButton_Lite_Hover_BorderColor);
+				background: var(--sapButton_Lite_Hover_Background);
+			}
+		}
+	}
+
+	.sapFSPSide {
+
+		.sapFSPSideInner {
+			border: 0.0625rem solid var(--sapGroup_ContentBorderColor);
+			box-sizing: content-box;
+
+			.sapFSPActionBar {
+
+				.sapFSPItem {
+
+					&.sapFSPSelected {
+
+						.sapUiIcon {
+							background-color: var(--sapContent_Selected_Background);
+							border-width: 0.125rem;
+						}
+
+						&::before {
+							width: 0.25rem;
+						}
+					}
+
+					&:focus {
+
+						&::after {
+							border: 0.125rem dotted var(--sapContent_FocusColor);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+/* END "SidePanel.less" */
 

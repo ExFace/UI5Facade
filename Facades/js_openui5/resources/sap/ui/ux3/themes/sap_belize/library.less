@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.less";
 @import "../../../../../../Base/baseLib/sap_belize/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_belize/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_belize/global.less";
@@ -2212,18 +2221,6 @@ html[dir="rtl"] .sapUiUx3Shell .sapUiUx3NavBarToplevel .sapUiUx3NavBarArrow {
 	height:38px;
 	padding:2px;
 	opacity: 1;
-}
-
-.sapUiUx3TICollectionThingAction {
-	height: 21px;
-	padding: 10px 5px 5px 10px;
-	border: 2px solid #444;
-	font-size: 14px;
-	font-weight: bold;
-	color: @sapUiContentContrastTextColor; // @sapUiTextInverted = #ffffff
-	background-image: url("img/overflow_regular.png");
-	background-repeat:no-repeat;
-	background-position:right;
 }
 
 .sapUiUx3TIContentScrollContainer {

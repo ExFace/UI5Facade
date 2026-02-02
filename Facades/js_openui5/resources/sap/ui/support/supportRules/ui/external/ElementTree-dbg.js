@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["jquery.sap.global"],
-	function (jQuery) {
+sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"],
+	function (Log, jQuery) {
 		"use strict";
 
 		function _isObject(data) {
@@ -60,7 +60,7 @@ sap.ui.define(["jquery.sap.global"],
 		 * @private
 		 */
 		function _getElementTreeLeftColumnOfListItem(controls, paddingLeft) {
-			var html = "<offset style=\"padding-left:" + paddingLeft + "px\" >";
+			var html = "<offset data-indent=\"" + paddingLeft + "\" >";
 
 			if (controls.content.length > 0) {
 				html += "<arrow down=\"true\"></arrow>";
@@ -212,7 +212,7 @@ sap.ui.define(["jquery.sap.global"],
 			var isDataAnObject = _isObject(data);
 
 			if (isDataAnObject === false) {
-				jQuery.sap.log.warning("The parameter should be an Object");
+				Log.warning("The parameter should be an Object");
 				return;
 			}
 
@@ -257,14 +257,14 @@ sap.ui.define(["jquery.sap.global"],
 			var selectedElement;
 
 			if (typeof elementID !== "string") {
-				jQuery.sap.log.warning("Please use a valid string parameter");
+				Log.warning("Please use a valid string parameter");
 				return;
 			}
 
 			selectedElement = this._ElementTreeContainer.querySelector("[data-id='" + elementID + "']");
 
 			if (selectedElement === null) {
-				jQuery.sap.log.warning("The selected element is not a child of the ElementTree");
+				Log.warning("The selected element is not a child of the ElementTree");
 				return;
 			}
 
@@ -293,7 +293,7 @@ sap.ui.define(["jquery.sap.global"],
 			html += this._createTreeContainer();
 
 			this._ElementTreeContainer.innerHTML = html;
-			// Save reverences for future use
+			// Save references for future use
 			this._setReferences();
 
 			if (this.getData() !== undefined) {
@@ -334,6 +334,25 @@ sap.ui.define(["jquery.sap.global"],
 			var controls = this.getData().controls;
 
 			this._treeContainer.innerHTML = this._createTreeHTML(controls);
+
+			this._provideIndentation();
+		};
+
+		/**
+		 * Sets the padding for each row in the element tree.
+		 * @private
+		 */
+		ElementTree.prototype._provideIndentation = function () {
+			var aOffsets = this._treeContainer.getElementsByTagName("offset"),
+				oOffset,
+				iIndex;
+
+			for (iIndex = 0; iIndex < aOffsets.length; iIndex++) {
+				oOffset = aOffsets[iIndex];
+				if (oOffset.dataset && oOffset.dataset.indent) {
+					oOffset.style.paddingLeft = oOffset.dataset.indent + "px";
+				}
+			}
 		};
 
 		/**
@@ -583,6 +602,10 @@ sap.ui.define(["jquery.sap.global"],
 					this._treeContainer.setAttribute("show-filtered-elements", true);
 				} else {
 					this._treeContainer.removeAttribute("show-filtered-elements");
+					var selectedElement = this._ElementTreeContainer.querySelector("[selected]");
+					if (selectedElement) {
+						this._scrollToElement(selectedElement, window);
+					}
 				}
 			}
 

@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/ControlBehavior",
 	"sap/ui/core/ValueStateSupport",
 	"sap/ui/core/library",
 	"sap/ui/Device"
-], function (Core, ValueStateSupport, coreLibrary, Device) {
+], function (ControlBehavior, ValueStateSupport, coreLibrary, Device) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oRadioButton an object representation of the control that should be rendered
+	 * @param {sap.m.RadioButton} oRadioButton an object representation of the control that should be rendered
 	 */
 	RadioButtonRenderer.render = function (oRM, oRadioButton) {
 		this.addWOuterDivStyles(oRM, oRadioButton);
@@ -50,10 +50,14 @@ sap.ui.define([
 			bEnabled = oRadioButton.getEnabled(),
 			bNonEditableParent = !oRadioButton.getProperty("editableParent"),
 			bNonEditable = !oRadioButton.getEditable() || bNonEditableParent,
-			oValueState = oRadioButton.getValueState();
+			sValueState = oRadioButton.getValueState();
 
 		oRM.openStart("div", oRadioButton)
 			.class("sapMRb");
+
+		if (oRadioButton.getWrapping()) {
+			oRM.class("sapMRbWrapped");
+		}
 
 		if (oRadioButton.getUseEntireWidth()) {
 			oRM.style("width", oRadioButton.getWidth());
@@ -70,7 +74,6 @@ sap.ui.define([
 			selected: null, // Avoid output aria-selected
 			checked: oRadioButton.getSelected(), // aria-checked must be set explicitly
 			disabled: bNonEditable ? true : undefined, // Avoid output aria-disabled=false when the button is editable
-			invalid: oValueState === ValueState.Error ? true : null,
 			labelledby: { value: sId + "-label", append: true },
 			describedby: { value: (sTooltipWithStateMessage ? sId + "-Descr" : undefined), append: true }
 		});
@@ -87,20 +90,8 @@ sap.ui.define([
 			oRM.class("sapMRbRo");
 		}
 
-		if (oValueState === ValueState.Error) {
-			oRM.class("sapMRbErr");
-		}
-
-		if (oValueState === ValueState.Warning) {
-			oRM.class("sapMRbWarn");
-		}
-
-		if (oValueState === ValueState.Success) {
-			oRM.class("sapMRbSucc");
-		}
-
-		if (oValueState === ValueState.Information) {
-			oRM.class("sapMRbInfo");
+		if (!this.isButtonReadOnly(oRadioButton)) {
+			this.addValueStateClass(oRM, sValueState);
 		}
 
 		if (bEnabled) {
@@ -139,7 +130,6 @@ sap.ui.define([
 
 
 		oRM.openStart("circle")
-			.attr("r", "22%")
 			.attr("stroke-width", "10")
 			.class("sapMRbBInn")
 			.openEnd().close("circle");
@@ -169,7 +159,7 @@ sap.ui.define([
 	RadioButtonRenderer.renderTooltip = function (oRM, oRadioButton) {
 		var sTooltipWithStateMessage = this.getTooltipText(oRadioButton);
 
-		if (sTooltipWithStateMessage && Core.getConfiguration().getAccessibility()) {
+		if (sTooltipWithStateMessage && ControlBehavior.isAccessibilityEnabled()) {
 			// for ARIA, the tooltip must be in a separate SPAN and assigned via aria-describedby.
 			// otherwise, JAWS does not read it.
 			oRM.openStart("span", oRadioButton.getId() + "-Descr")
@@ -207,6 +197,25 @@ sap.ui.define([
 			return (sTooltipText ? sTooltipText + " - " : "") + sValueStateText;
 		} else {
 			return ValueStateSupport.enrichTooltip(oRadioButton, sTooltipText);
+		}
+	};
+
+	RadioButtonRenderer.addValueStateClass = function (oRM, sValueState) {
+		switch (sValueState) {
+			case ValueState.Error:
+				oRM.class("sapMRbErr");
+				break;
+			case ValueState.Warning:
+				oRM.class("sapMRbWarn");
+				break;
+			case ValueState.Success:
+				oRM.class("sapMRbSucc");
+				break;
+			case ValueState.Information:
+				oRM.class("sapMRbInfo");
+				break;
+			default:
+				break;
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,7 @@ sap.ui.define([
 	"sap/ui/dt/ElementUtil",
 	"sap/ui/dt/DOMUtil",
 	"sap/ui/dt/OverlayRegistry"
-],
-function(
+], function(
 	ElementUtil,
 	DOMUtil,
 	OverlayRegistry
@@ -23,13 +22,12 @@ function(
 	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @static
 	 * @since 1.38
 	 * @alias sap.ui.dt.enablement.Util
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 
 	var MIN_SIZE = 5;
@@ -37,34 +35,34 @@ function(
 
 	/**
 	 * Returns all design time information of the element
-	 * @param  {sap.ui.core.Element} oElement the element to test
-	 * @return {map} result object
+	 * @param {sap.ui.core.Element} oElement - Element to test
+	 * @returns {map} Result object
 	 */
 	ElementTest.getInfo = function(oElement) {
 		var oMetadata = oElement.getMetadata();
 		var oElementOverlay = OverlayRegistry.getOverlay(oElement);
 
 		return {
-			metadata : oMetadata,
-			overlay : oElementOverlay
+			metadata: oMetadata,
+			overlay: oElementOverlay
 		};
 	};
 
-
 	/**
 	 * Returns all aggregation infos of the element
-	 * @param  {sap.ui.core.Element} oElement the element to test
-	 * @return {map} result object
+	 * @param {sap.ui.core.Element} oElement - Element to test
+	 * @param {string} sAggregationName - Name of the aggregation
+	 * @returns {map} Result object
 	 */
 	ElementTest.getAggregationInfo = function(oElement, sAggregationName) {
 		var mAggregationTest = {
-			ignored : true,
-			domRefDeclared : false,
-			domRefFound : false,
-			domRefVisible : false,
-			overlayTooSmall : false,
-			overlayGeometryCalculatedByChildren : false,
-			overlayVisible : false
+			ignored: true,
+			domRefDeclared: false,
+			domRefFound: false,
+			domRefVisible: false,
+			overlayTooSmall: false,
+			overlayGeometryCalculatedByChildren: false,
+			overlayVisible: false
 		};
 		var oDesignTimeMetadata;
 
@@ -77,10 +75,10 @@ function(
 		if (oDesignTimeMetadata && !oDesignTimeMetadata.isIgnored(oElement)) {
 			mAggregationTest.ignored = false;
 			mAggregationTest.domRefDeclared = !!oDesignTimeMetadata.getDomRef();
-			var $AggregationDomRef = oAggregationOverlay.getAssociatedDomRef();
-			if ($AggregationDomRef) {
+			var oAggregationDomRef = oAggregationOverlay.getAssociatedDomRef();
+			if (oAggregationDomRef) {
 				mAggregationTest.domRefFound = true;
-				mAggregationTest.domRefVisible = DOMUtil.isVisible($AggregationDomRef.get(0));
+				mAggregationTest.domRefVisible = DOMUtil.isVisible(oAggregationDomRef);
 			}
 
 			var mGeometry = oAggregationOverlay.getGeometry();
@@ -95,11 +93,10 @@ function(
 		return mAggregationTest;
 	};
 
-
 	/**
 	 * Returns all information of all aggregations of the element
-	 * @param  {sap.ui.core.Element} oElement the element to test
-	 * @return {map} result object
+	 * @param {sap.ui.core.Element} oElement - Element to test
+	 * @returns {map} Result object
 	 */
 	ElementTest.getAggregationsInfo = function(oElement) {
 		var mAggregationTests = {};

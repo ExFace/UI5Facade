@@ -8,19 +8,13 @@
 		},
 		{
 			"name": "Calendar.less",
-			"size": 18069,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "CalendarLegend.less",
-			"size": 4799,
+			"size": 17795,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 11259,
+			"size": 3912,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -42,13 +36,13 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 1715,
+			"size": 1851,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Menu.less",
-			"size": 3257,
+			"size": 1487,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -71,58 +65,36 @@
 			"theme": "sap_fiori_3"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 19536,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 108559,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 108191,
-			"designtime": true,
-			"theme": "sap_fiori_3"
-		},
-		{
 			"name": "library-RTL.css",
-			"size": 154782,
+			"size": 163300,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 7896,
+			"module": "sap/ui/unified/themes/sap_fiori_3/library-parameters.json",
+			"size": 8056,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 154648,
+			"size": 163198,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 46241,
+			"size": 32114,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.source.less",
-			"size": 574,
+			"size": 538,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 163379,
-			"theme": "sap_fiori_3"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 163245,
-			"theme": "sap_fiori_3"
+			"name": "resources.json",
+			"size": 1736
 		}
 	]
 }

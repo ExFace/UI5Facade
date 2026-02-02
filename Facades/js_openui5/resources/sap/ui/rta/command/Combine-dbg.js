@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,27 +16,31 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.46
 	 * @alias sap.ui.rta.command.Combine
-	 * @experimental Since 1.46. This class is experimental and provides only limited functionality. Also the API might be
-	 *							 changed in future.
 	 */
 	var Combine = FlexCommand.extend("sap.ui.rta.command.Combine", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				source : {
-					type : "any"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				newElementId: {
+					type: "string",
+					group: "content"
 				},
-				combineElements : {
-					type : "any[]"
+				source: {
+					type: "any",
+					group: "content"
+				},
+				combineElements: {
+					type: "any[]",
+					group: "content"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
@@ -49,9 +53,12 @@ sap.ui.define([
 			aFieldIds.push(oField.getId());
 		});
 		var mSpecificInfo = {
-			changeType : this.getChangeType(),
-			sourceControlId : this.getSource().getId(),
-			combineElementIds : aFieldIds
+			changeType: this.getChangeType(),
+			content: {
+				newElementId: this.getNewElementId(),
+				sourceControlId: this.getSource().getId(),
+				combineElementIds: aFieldIds
+			}
 		};
 		return mSpecificInfo;
 	};

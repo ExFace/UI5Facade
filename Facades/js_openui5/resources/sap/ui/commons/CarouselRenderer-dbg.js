@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.Carousel
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Configuration"],
+	function(Configuration) {
 	"use strict";
 
 
@@ -26,7 +26,7 @@ sap.ui.define([],
 	 */
 	CarouselRenderer.render = function(rm, oControl) {
 
-		var bRTL = sap.ui.getCore().getConfiguration().getRTL();
+		var bRTL = Configuration.getRTL();
 
 		rm.write("<div");
 		rm.addClass("sapUiCrsl");

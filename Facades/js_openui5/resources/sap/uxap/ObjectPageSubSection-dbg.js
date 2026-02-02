@@ -1,22 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.uxap.ObjectPageSubSection.
 sap.ui.define([
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/layout/Grid",
-	"sap/ui/layout/GridData",
+	"sap/ui/core/ResizeHandler",
 	"./ObjectPageSectionBase",
 	"./ObjectPageLazyLoader",
 	"./BlockBase",
 	"sap/m/Button",
-	"sap/ui/Device",
 	"sap/ui/core/StashedControlSupport",
 	"sap/ui/base/ManagedObjectObserver",
+	"sap/m/Title",
 	"sap/m/TitlePropagationSupport",
+	"sap/m/OverflowToolbar",
+	"sap/m/ToolbarSpacer",
 	"./library",
 	"sap/m/library",
 	"./ObjectPageSubSectionRenderer",
@@ -26,17 +30,21 @@ sap.ui.define([
 	// jQuery Plugin "firstFocusableDomRef"
 	"sap/ui/dom/jquery/Focusable"
 ], function(
+	Element,
+	Library,
+	coreLibrary,
 	jQuery,
-	Grid,
-	GridData,
+	ResizeHandler,
 	ObjectPageSectionBase,
 	ObjectPageLazyLoader,
 	BlockBase,
 	Button,
-	Device,
 	StashedControlSupport,
 	ManagedObjectObserver,
+	Title,
 	TitlePropagationSupport,
+	OverflowToolbar,
+	ToolbarSpacer,
 	library,
 	mobileLibrary,
 	ObjectPageSubSectionRenderer,
@@ -49,11 +57,17 @@ sap.ui.define([
 	// shortcut for sap.m.ButtonType
 	var ButtonType = mobileLibrary.ButtonType;
 
+	var ToolbarStyle = mobileLibrary.ToolbarStyle;
+
+	var ToolbarDesign = mobileLibrary.ToolbarDesign;
+
 	// shortcut for sap.uxap.ObjectPageSubSectionMode
 	var ObjectPageSubSectionMode = library.ObjectPageSubSectionMode;
 
 	// shortcut for sap.uxap.ObjectPageSubSectionLayout
 	var ObjectPageSubSectionLayout = library.ObjectPageSubSectionLayout;
+
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	/**
 	 * Constructor for a new <code>ObjectPageSubSection</code>.
@@ -75,6 +89,9 @@ sap.ui.define([
 	 * situations where the sub-section contains a control that has “100%” height, for example,
 	 * <code>sap.ui.table.Table</code> with <code>visibleRowCountMode</code> set to <code>Auto</code>.
 	 *
+	 * As of version 1.122, applications can set transparent background to subsections
+	 * by adding the <code>sapUxAPObjectPageSubSectionTransparentBackground</code> class to the subsection.
+	 *
 	 * <b>Note:</b> This control is intended to be used only as part of the <code>ObjectPageLayout</code>.
 	 *
 	 * @extends sap.uxap.ObjectPageSectionBase
@@ -83,7 +100,6 @@ sap.ui.define([
 	 * @public
 	 * @alias sap.uxap.ObjectPageSubSection
 	 * @since 1.26
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ObjectPageSubSection = ObjectPageSectionBase.extend("sap.uxap.ObjectPageSubSection", /** @lends sap.uxap.ObjectPageSubSection.prototype */ {
 		metadata: {
@@ -101,6 +117,8 @@ sap.ui.define([
 				 */
 				showTitle: {type: "boolean", group: "Appearance", defaultValue: true},
 
+				_columnSpan: {type: "string", group: "Appearance", defaultValue: "all", visibility: "hidden"},
+
 				/**
 				 * A mode property that will be passed to the controls in the blocks and moreBlocks aggregations. Only relevant if these aggregations use Object page blocks.
 				 */
@@ -117,11 +135,6 @@ sap.ui.define([
 			},
 			defaultAggregation: "blocks",
 			aggregations: {
-
-				/**
-				 * Internal grid aggregation
-				 */
-				_grid: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"},
 
 				/**
 				 * Controls to be displayed in the subsection
@@ -146,7 +159,7 @@ sap.ui.define([
 				 * Example:
 				 *
 				 * <pre>
-				 * <code> &lt;Panel class="sapUxAPObjectPageSubSectionAlignContent" width="auto"&gt;&lt;/Panel&gt; </code>
+				 * <code> &lt;Form class="sapUxAPObjectPageSubSectionAlignContent" width="auto"&gt;&lt;/Form&gt; </code>
 				 * </pre>
 				 *
 				 */
@@ -168,10 +181,17 @@ sap.ui.define([
 				 * of <code>ObjectPageSubSection</code> do NOT have overflow behavior. If the
 				 * available space is not enough, the controls will be displayed on more lines.
 				 */
-				actions: {type: "sap.ui.core.Control", multiple: true, singularName: "action"}
+				actions: {type: "sap.ui.core.Control", multiple: true, singularName: "action"},
+
+				/**
+				 * Internal <code>OverflowToolbar</code> for the <code>ObjectPageSubSection</code> actions.
+				 */
+				_headerToolbar: {type: "sap.m.OverflowToolbar", multiple: false, visibility: "hidden"}
 			},
 			designtime: "sap/uxap/designtime/ObjectPageSubSection.designtime"
-		}
+		},
+
+		renderer: ObjectPageSubSectionRenderer
 	});
 
 	// Add Title Propagation Support
@@ -182,6 +202,27 @@ sap.ui.define([
 
 	ObjectPageSubSection.FIT_CONTAINER_CLASS = "sapUxAPObjectPageSubSectionFitContainer";
 
+	// SubSection's Title and Spacer
+	ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS = 2;
+
+	// determines the number of columns the subsection will span accross (inside a single row)
+	ObjectPageSubSection.COLUMN_SPAN = {
+		/* this is the default option
+		/* the subsection spans accross the entire row */
+		all: "all",
+
+		/* The columns span is based on the content:
+		the subsection takes as many columns as required
+		by the count and colspan of its visible blocks.
+
+		In addition, if there are unused empty cells
+		in the neighbouring columns,
+		the subsection is automatically extended
+		to span accross those empty cells
+		(in order to utilize the remaining unused space on the row) */
+		auto: "auto"
+	};
+
 	/**
 	 * Retrieves the resource bundle for the <code>sap.uxap</code> library.
 	 * @static
@@ -189,7 +230,7 @@ sap.ui.define([
 	 * @returns {Object} the resource bundle object
 	 */
 	ObjectPageSubSection._getLibraryResourceBundle = function() {
-		return sap.ui.getCore().getLibraryResourceBundle("sap.uxap");
+		return Library.getResourceBundleFor("sap.uxap");
 	};
 
 	/**
@@ -197,7 +238,9 @@ sap.ui.define([
 	 */
 	ObjectPageSubSection.prototype.init = function () {
 		ObjectPageSectionBase.prototype.init.call(this);
-
+		this._aStashedControls = [];
+		this._aUnStashedControls = [];
+		this._bUnstashed = false;
 		//proxy public aggregations
 		this._bRenderedFirstTime = false;
 		this._aAggregationProxy = {blocks: [], moreBlocks: []};
@@ -208,11 +251,7 @@ sap.ui.define([
 		this._sMoreContainerSelector = ".sapUxAPSubSectionSeeMoreContainer";
 
 		this._oObserver = new ManagedObjectObserver(ObjectPageSubSection.prototype._observeChanges.bind(this));
-		this._oObserver.observe(this, {
-			aggregations: [
-				"actions"
-			]
-		});
+		this._oBlocksObserver = new ManagedObjectObserver(this._onBlocksChange.bind(this));
 
 		//switch logic for the default mode
 		this._switchSubSectionMode(this.getMode());
@@ -221,6 +260,303 @@ sap.ui.define([
 		this._initTitlePropagationSupport();
 		this._sBorrowedTitleDomId = false;
 		this._height = ""; // css height property
+
+		this._fnActionSubstituteParentFunction = function () {
+			return this;
+		}.bind(this);
+
+		this._oTitle = null;
+		this._bPromoted = false;
+		this._sTitleStyle = TitleLevel.H5;
+		this._sTitleId = this.getId() + "-headerTitle";
+		this._getTitleControl().addStyleClass("sapUxAPObjectPageSubSectionTitle");
+
+		var oActionsToolbar = this._getHeaderToolbar();
+		oActionsToolbar.insertContent(this._getTitleControl(), 0);
+		oActionsToolbar.insertContent(new ToolbarSpacer(), 1);
+	};
+
+	/**
+	 * Override the parent getter to preserve the externally visible parent-child relationship
+	 * @override
+	 * @returns {sap.ui.base.ManagedObject|null} The technical parent managed object or <code>null</code>
+	 */
+	ObjectPageSubSection.prototype.getParent = function () {
+		var oParent = ObjectPageSectionBase.prototype.getParent.apply(this, arguments);
+		if (oParent && oParent.isA("sap.ui.layout.Grid")) {
+			oParent = oParent.getParent();
+		}
+		return oParent;
+	};
+
+	/**
+	 * Override the parent setter to preserve the externally visible parent-child relationship
+	 * @override
+	 * @returns {this} Returns <code>this</code> to allow method chaining
+	 */
+	ObjectPageSubSection.prototype.setParent = function () {
+		var oResult = ObjectPageSectionBase.prototype.setParent.apply(this, arguments),
+			oPublicParent = this.getParent();
+		if (oPublicParent && oPublicParent.isA("sap.uxap.ObjectPageSection")
+			&& this.sParentAggregationName !== "subSections") {
+				this.sParentAggregationName = "subSections";
+		}
+		return oResult;
+	};
+
+	ObjectPageSubSection.prototype._getTitleControl = function () {
+		if (!this._oTitle) {
+			this._oTitle = new Title(this._sTitleId, {
+				titleStyle: this._getTitleStyle(),
+				level: this._getTitleLevel()
+			});
+		}
+
+		return this._oTitle;
+	};
+
+	ObjectPageSubSection.prototype._getTitleUpperCaseStyleClass = function () {
+		return "sapUxAPObjectPageSubSectionTitleUppercase";
+	};
+
+	/**
+	 * Returns the label id for the subsection.
+	 * @private
+	 * @returns {string} aria-labeled by id
+	 */
+	ObjectPageSubSection.prototype._getAriaLabelledById = function () {
+		// Each section should be labelled as:
+		// 'titleID' - if title is visible
+		if (this._isPromoted()) {
+			return "";
+		} else {
+			return this._getTitleControl().getId();
+		}
+	};
+
+	/* ========== ObjectPageSubSection actions aggregation methods ========== */
+
+	ObjectPageSubSection.prototype.addAction = function (oAction) {
+		this._getHeaderToolbar().insertContent(oAction, ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS + this.getActions().length);
+		this._preProcessAction(oAction, "actions");
+
+		return this;
+	};
+
+	ObjectPageSubSection.prototype.insertAction = function (oAction, iIndex) {
+		var iIndexToInsertAt = iIndex + ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS;
+		this._getHeaderToolbar().insertContent(oAction, iIndexToInsertAt);
+		this._preProcessAction(oAction, "actions");
+
+		return this;
+	};
+
+	ObjectPageSubSection.prototype.removeAction = function (oAction) {
+		this._getHeaderToolbar().removeContent(oAction);
+		this._postProcessAction(oAction);
+
+		return this.removeAggregation("actions", oAction);
+	};
+
+	ObjectPageSubSection.prototype.removeAllActions = function () {
+		var oActionsToolbar = this._getHeaderToolbar(),
+			oActionsToRemove = this.getActions();
+
+		oActionsToRemove.forEach(function (oAction) {
+			oActionsToolbar.removeContent(oAction);
+			this._postProcessAction(oAction);
+		}, this);
+
+		return this;
+	};
+
+	ObjectPageSubSection.prototype.destroyActions = function () {
+		this._getHeaderToolbar().destroyContent();
+		this.getActions().forEach(function (oAction) {
+			this._postProcessAction(oAction);
+		}, this);
+
+		return this;
+	};
+
+	ObjectPageSubSection.prototype.getActions = function () {
+		return this._getHeaderToolbar().getContent().slice(ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS);
+	};
+
+	ObjectPageSubSection.prototype.indexOfAction = function (oAction) {
+		return this.getActions().indexOf(oAction);
+	};
+
+	ObjectPageSubSection.prototype._setIsPromoted = function (bPromoted, bInvalidate) {
+		if (bPromoted != this._bPromoted) {
+			this._bPromoted = bPromoted;
+			if (bInvalidate) {
+				this.invalidate();
+			}
+		}
+
+		this.toggleStyleClass("sapUxAPObjectPageSubSectionPromoted", bPromoted);
+	};
+
+	ObjectPageSubSection.prototype._isPromoted = function () {
+		return this._bPromoted;
+	};
+
+	/**
+	 * Lazily retrieves the internal <code>_headerToolbar</code> aggregation.
+	 * @returns {sap.m.OverflowToolbar}
+	 * @private
+	 */
+	ObjectPageSubSection.prototype._getHeaderToolbar = function () {
+		var sId = this.getId() + "-_headerToolbar";
+
+		if (!this.getAggregation("_headerToolbar")) {
+			this.setAggregation("_headerToolbar", new OverflowToolbar({
+				id: sId,
+				style: ToolbarStyle.Clear,
+				design: ToolbarDesign.Transparent,
+				width: "100%"
+			}).addStyleClass("sapUxAPObjectPageSubSectionHeaderToolbar"), true); // suppress invalidate, as this is always called onBeforeRendering
+		}
+
+		return this.getAggregation("_headerToolbar");
+	};
+
+	/**
+	 * Pre-processes a <code>ObjectPageSubSection</code> action before inserting it in the aggregation.
+	 * The action would returns the <code>ObjectPageSubSection</code> as its parent, rather than its real parent (the <code>OverflowToolbar</code>).
+	 * This way, it looks like the <code>ObjectPageSubSection</code> aggregates the actions.
+	 * @param {sap.ui.core.Control} oAction
+	 * @param {string} sParentAggregationName
+	 * @private
+	 */
+	ObjectPageSubSection.prototype._preProcessAction = function (oAction, sParentAggregationName) {
+			if (isFunction(oAction._fnOriginalGetParent)) {
+				return;
+			}
+
+			this._observeAction(oAction);
+
+			oAction._fnOriginalGetParent = oAction.getParent;
+			oAction.getParent = this._fnActionSubstituteParentFunction;
+
+			oAction._sOriginalParentAggregationName = oAction.sParentAggregationName;
+			oAction.sParentAggregationName = sParentAggregationName;
+	};
+
+	/**
+	 * Post-processes a <code>ObjectPageSubSection</code> action before removing it from the aggregation, so it returns its real parent (the <code>OverflowToolbar</code>),
+	 * thus allowing proper processing by the framework.
+	 * @param {sap.ui.core.Control} oAction
+	 * @private
+	 */
+	ObjectPageSubSection.prototype._postProcessAction = function (oAction) {
+		if (!isFunction(oAction._fnOriginalGetParent)) {
+			return;
+		}
+
+		this._unobserveAction(oAction);
+
+		// The runtime adaptation tipically removes and then adds aggregations multiple times.
+		// That is why we need to make sure that the controls are in their previous state
+		// when preprocessed. Otherwise the wrong parent aggregation name is passed
+		oAction.getParent = oAction._fnOriginalGetParent;
+		oAction._fnOriginalGetParent = null;
+
+		oAction.sParentAggregationName = oAction._sOriginalParentAggregationName;
+		oAction._sOriginalParentAggregationName = null;
+	};
+
+	function isFunction(oObject) {
+		return typeof oObject === "function";
+	}
+
+	/**
+	 * Determines if the <code>ObjectPageSubSection</code> title is visible.
+	 * @private
+	 * @returns {boolean}
+	 */
+	ObjectPageSubSection.prototype._isTitleVisible = function () {
+		return this.getShowTitle() && this.getTitle().trim() !== "";
+	};
+
+	ObjectPageSubSection.prototype._getImportance = function () {
+		if (!this._isPromoted()) {
+			return this.getImportance();
+		}
+		var sParentImportance = this.getParent()?.getImportance(),
+			getLowestImportance = function (sImportance1, sImportance2) {
+				return fnToNumber(sImportance1) > fnToNumber(sImportance2) ? sImportance1 : sImportance2;
+			},
+			fnToNumber = function (sImportance) {
+				return ObjectPageSectionBase._importanceMap[sImportance];
+			};
+		return getLowestImportance(sParentImportance, this.getImportance());
+	};
+
+	ObjectPageSubSection.prototype._getWrapTitle = function () {
+		if (this._isPromoted()) { // for backward compatibility
+			return this.getParent()?._getWrapTitle();
+		}
+		return true;
+	};
+
+	ObjectPageSubSection.prototype.getEffectiveTitleLevel = function () {
+		if (this._isPromoted()) {
+			return this.getParent()?._getTitleLevel();
+		} else {
+			return this._getTitleLevel();
+		}
+	};
+
+	ObjectPageSubSection.prototype._getTitleStyle = function () {
+		if (this._isPromoted()) {
+			return this.getParent()?._getTitleStyle();
+		}
+
+		return ObjectPageSectionBase.prototype._getTitleStyle.call(this);
+	};
+
+	ObjectPageSubSection.prototype._updateShowHideState  = function (bHide) {
+		if (this._getIsHidden() === bHide) {
+			return this;
+		}
+
+		this.$().children(this._sMoreContainerSelector).toggle(!bHide);
+
+		return ObjectPageSectionBase.prototype._updateShowHideState.call(this, bHide);
+	};
+
+	ObjectPageSubSection.prototype._shouldBeHidden = function () {
+		return ObjectPageSectionBase.prototype._shouldBeHidden.call(this);
+	};
+
+	/**
+	 * Getter for the private "_columnSpan" property
+	 * @returns {string}
+	 * @restricted
+	 */
+	 ObjectPageSubSection.prototype._getColumnSpan = function () {
+		return this.getProperty("_columnSpan");
+	};
+
+	/**
+	 * Setter for the private "_columnSpan" property
+	 * @param {string} sValue
+	 * @returns {object} this
+	 * @restricted
+	 */
+	ObjectPageSubSection.prototype._setColumnSpan = function (sValue) {
+		var sOldValue = this.getProperty("_columnSpan"),
+			oParent;
+		if (sOldValue === sValue) {
+			return;
+		}
+		this.setProperty("_columnSpan", sValue);
+		oParent = this.getParent();
+		oParent && oParent.invalidate(); // let parent section re-apply its layout
+
+		return this;
 	};
 
 	ObjectPageSubSection.prototype._getHeight = function () {
@@ -245,8 +581,23 @@ sap.ui.define([
 
 		oDom = this.getDomRef();
 		if (oDom) {
-			oDom.style.height = oValue;
+			oDom.style.height = this._height;
+			this._adaptDomHeight();
 		}
+	};
+
+	ObjectPageSubSection.prototype._toggleContentResizeListener = function(bEnable) {
+		if (bEnable && !this._iResizeId) {
+			this._iResizeId = ResizeHandler.register(this._getContentWrapper(), this._adaptDomHeight.bind(this));
+		}
+		if (!bEnable && this._iResizeId) {
+			ResizeHandler.deregister(this._iResizeId);
+			this._iResizeId = null;
+		}
+	};
+
+	ObjectPageSubSection.prototype._getContentWrapper = function() {
+		return this.getAggregation("_grid");
 	};
 
 	/**
@@ -261,10 +612,8 @@ sap.ui.define([
 		if (!this.getTitle().trim()) {
 			return false;
 		}
-		if (this._getInternalTitleVisible()) {
-			return this.getId() + "-headerTitle";
-		}
-		return false;
+
+		return this.getId() + "-headerTitle";
 	};
 
 	/**
@@ -284,29 +633,20 @@ sap.ui.define([
 		return this;
 	};
 
-	ObjectPageSubSection.prototype._getGrid = function () {
-		if (!this.getAggregation("_grid")) {
-			this.setAggregation("_grid", new Grid({
-				id: this.getId() + "-innerGrid",
-				defaultSpan: "XL12 L12 M12 S12",
-				hSpacing: 1,
-				vSpacing: 1,
-				width: "100%",
-				containerQuery: true
-			}), true); // this is always called onBeforeRendering so suppress invalidate
-		}
-
-		return this.getAggregation("_grid");
+	ObjectPageSubSection.prototype._updateImportance = function (oCurrentMedia) {
+		var sCurrentImportanceLevel = this._getImportanceLevelToHide(oCurrentMedia);
+		this._applyImportanceRules(sCurrentImportanceLevel);
 	};
 
 	ObjectPageSubSection.prototype._hasVisibleActions = function () {
-		var aActions = this.getActions() || [];
+		var aActions = this.getActions();
 
 		if (aActions.length === 0) {
-		 return false;
+			return false;
 		}
+
 		return aActions.filter(function(oAction) {
-		   return oAction.getVisible();
+			return oAction.getVisible();
 		}).length > 0;
 	};
 
@@ -316,28 +656,25 @@ sap.ui.define([
 	 * @private
 	 */
 	ObjectPageSubSection.prototype._observeChanges = function (oChanges) {
-		var oObject = oChanges.object,
-			sChangeName = oChanges.name,
-			sMutationName = oChanges.mutation,
-			oChild = oChanges.child,
+		var sChangeName = oChanges.name,
 			bHasTitle;
 
-		if (oObject === this) {// changes on SubSection level
-
-			if (sChangeName === "actions") { // change of the actions aggregation
-				if (sMutationName === "insert") {
-					this._observeAction(oChild);
-				} else if (sMutationName === "remove") {
-					this._unobserveAction(oChild);
-				}
-			}
-
-		} else if (sChangeName === "visible") { // change of the actions elements` visibility
-			bHasTitle = this._getInternalTitleVisible() && this.getTitle().trim() !== "";
+		if (sChangeName === "visible") { // change of the actions elements` visibility
+			bHasTitle = this.getTitle().trim() !== "";
 			if (!bHasTitle) {
 				this.$("header").toggleClass("sapUiHidden", !this._hasVisibleActions());
 			}
 		}
+	};
+
+	ObjectPageSubSection.prototype._onBlocksChange = function () {
+		var oObjectPageLayout = this._getObjectPageLayout();
+
+		if (!this._bRenderedFirstTime) {
+			return;
+		}
+
+		this._applyLayout(oObjectPageLayout);
 	};
 
 	/**
@@ -371,12 +708,39 @@ sap.ui.define([
 		};
 	});
 
+	/**@deprecated */
 	ObjectPageSubSection.prototype._unStashControls = function () {
-		StashedControlSupport.getStashedControls(this.getId()).forEach(function (oControl) {
-			oControl.setStashed(false);
+		var oUnstashedControl;
+		this._aStashedControls.forEach(function (oControlHandle) {
+			oControlHandle.control.unstash();
+			oUnstashedControl = Element.getElementById(oControlHandle.control.getId());
+			this.addAggregation(oControlHandle.aggregationName, oUnstashedControl, true);
+		}.bind(this));
+		this._aStashedControls = [];
+	};
+
+	ObjectPageSubSection.prototype._unStashControlsAsync = function () {
+		var oUnstashedControl;
+
+		if (!this._bUnstashed) {
+			this._aStashedControls.forEach(function (oControlHandle) {
+				this._aUnStashedControls.push(oControlHandle.control.unstash(true).then(function() {
+					oUnstashedControl = Element.getElementById(oControlHandle.control.getId());
+					this.addAggregation(oControlHandle.aggregationName, oUnstashedControl, true);
+				}.bind(this)));
+			}.bind(this));
+
+			this._bUnstashed = true;
+		}
+
+		return Promise.all(this._aUnStashedControls).then(() => {
+			this._bUnstashed = false;
+			this._aUnStashedControls = [];
+			this._aStashedControls = [];
 		});
 	};
 
+	/**@deprecated */
 	ObjectPageSubSection.prototype.connectToModels = function () {
 		var aBlocks = this.getBlocks() || [],
 			aMoreBlocks = this.getMoreBlocks() || [],
@@ -403,6 +767,34 @@ sap.ui.define([
 				}
 			});
 		}
+	};
+
+	ObjectPageSubSection.prototype.connectToModelsAsync = function () {
+		var aBlocks = this.getBlocks() || [],
+			aMoreBlocks = this.getMoreBlocks() || [],
+			sCurrentMode = this.getMode();
+
+		return this._unStashControlsAsync().then(function() {
+			aBlocks.forEach(function (oBlock) {
+				if (oBlock instanceof BlockBase) {
+					if (!oBlock.getMode()) {
+						oBlock.setMode(sCurrentMode);
+					}
+					oBlock.connectToModels();
+				}
+			});
+
+			if (aMoreBlocks.length > 0 && sCurrentMode === ObjectPageSubSectionMode.Expanded) {
+				aMoreBlocks.forEach(function (oMoreBlock) {
+					if (oMoreBlock instanceof BlockBase) {
+						if (!oMoreBlock.getMode()) {
+							oMoreBlock.setMode(sCurrentMode);
+						}
+						oMoreBlock.connectToModels();
+					}
+				});
+			}
+		});
 	};
 
 	ObjectPageSubSection.prototype._allowPropagationToLoadedViews = function (bAllow) {
@@ -443,6 +835,15 @@ sap.ui.define([
 		});
 	};
 
+	ObjectPageSubSection.prototype._unobserveBlocks = function() {
+		var aAllBlocks = this.getBlocks().concat(this.getMoreBlocks());
+		aAllBlocks.forEach(function (oBlock) {
+			oBlock && this._oBlocksObserver.unobserve(oBlock, {
+				properties: ["visible"]
+			});
+		}, this);
+	};
+
 	ObjectPageSubSection.prototype.exit = function () {
 		if (this._oSeeMoreButton) {
 			this._oSeeMoreButton.destroy();
@@ -454,6 +855,10 @@ sap.ui.define([
 			this._oSeeLessButton = null;
 		}
 
+		this._getTitleControl().destroy();
+
+		this._unobserveBlocks();
+
 		this._oCurrentlyVisibleSeeMoreLessButton = null;
 
 		this._cleanProxiedAggregations();
@@ -464,7 +869,8 @@ sap.ui.define([
 	};
 
 	ObjectPageSubSection.prototype.onAfterRendering = function () {
-		var oObjectPageLayout = this._getObjectPageLayout();
+		var oObjectPageLayout = this._getObjectPageLayout(),
+			oParent = this.getParent();
 
 		if (ObjectPageSectionBase.prototype.onAfterRendering) {
 			ObjectPageSectionBase.prototype.onAfterRendering.call(this);
@@ -474,11 +880,22 @@ sap.ui.define([
 			return;
 		}
 
-		this._$spacer = jQuery(document.getElementById(oObjectPageLayout.getId() + "-spacer"));
+		if (this.hasStyleClass(ObjectPageSubSection.FIT_CONTAINER_CLASS)) {
+			this._toggleContentResizeListener(true);
+		}
 
-		if (this._bShouldFocusSeeMoreLessButton) {
-			this._bShouldFocusSeeMoreLessButton = false;
+		this._$spacer = oObjectPageLayout.$("spacer");
+
+		if (this._bShouldFocusSeeMoreLessButton && document.activeElement === document.body) {
 			this._oCurrentlyVisibleSeeMoreLessButton.focus();
+		}
+
+		this._bShouldFocusSeeMoreLessButton = false;
+
+		// Removes the horizontal spacing of the grid, which is needed for
+		// suport of Table inside ObjectPageSubSection scenario
+		if (oParent && oParent.hasStyleClass("sapUiTableOnObjectPageAdjustmentsForSection") && !this.hasStyleClass("sapUiAdjustedSectionSubsectionWithoutTable")) {
+			this.getAggregation("_grid").setProperty("hSpacing", 0);
 		}
 	};
 
@@ -493,15 +910,48 @@ sap.ui.define([
 			ObjectPageSectionBase.prototype.onBeforeRendering.call(this);
 		}
 
+		this._toggleContentResizeListener(false);
+
+		this.setTitleVisible();
+
 		this._setAggregationProxy();
-		this._getGrid().removeAllContent();
 		this._applyLayout(oObjectPageLayout);
 		this.refreshSeeMoreVisibility();
+
+		this.toggleStyleClass("sapUxAPObjectPageSubSectionStashed", this._aStashedControls.length ? true : false);
+		// SubSection is focusable only if it has its OWN title visible
+		this.toggleStyleClass("sapUxAPObjectPageSubSectionFocusable", this.getTitleVisible());
+		this._updateImportance();
+	};
+
+	ObjectPageSubSection.prototype._adaptDomHeight = function() {
+		var oDom = this.getDomRef(),
+			defaultSectionHeight = this._height,
+			bFitContainerClass = this.hasStyleClass(ObjectPageSubSection.FIT_CONTAINER_CLASS);
+
+		if (!oDom) {
+			return;
+		}
+
+		if (bFitContainerClass && defaultSectionHeight) {
+			var contentHeight = oDom.scrollHeight,
+				containerHeight = Math.ceil(parseFloat(defaultSectionHeight));
+
+			oDom.style.height = (contentHeight > containerHeight) ? "" : defaultSectionHeight;
+			this._height = oDom.style.height;
+		}
+	};
+
+	ObjectPageSubSection.prototype._hasRestrictedHeight = function() {
+		var oDom = this.getDomRef();
+		if (!oDom) {
+			return;
+		}
+		return parseInt(oDom.style.height) > 0;
 	};
 
 	ObjectPageSubSection.prototype._applyLayout = function (oLayoutProvider) {
 		var aVisibleBlocks,
-			oGrid = this._getGrid(),
 			sCurrentMode = this.getMode(),
 			sLayout = oLayoutProvider.getSubSectionLayout(),
 			oLayoutConfig = this._calculateLayoutConfiguration(sLayout, oLayoutProvider),
@@ -518,12 +968,11 @@ sap.ui.define([
 			aVisibleBlocks = aBlocks;
 		}
 
-		this._calcBlockColumnLayout(aVisibleBlocks, this._oLayoutConfig);
+		this._assignLayoutData(aVisibleBlocks, oLayoutConfig);
 
 		try {
 			aVisibleBlocks.forEach(function (oBlock) {
 				this._setBlockMode(oBlock, sCurrentMode);
-				oGrid.addAggregation("content", oBlock, true); // this is always called onBeforeRendering so suppress invalidate
 			}, this);
 		} catch (sError) {
 			Log.error("ObjectPageSubSection :: error while building layout " + sLayout + ": " + sError);
@@ -583,7 +1032,7 @@ sap.ui.define([
 			this._switchSubSectionMode(sMode);
 
 			if (this._bRenderedFirstTime) {
-				this.rerender();
+				this.invalidate();
 			}
 		}
 		return this;
@@ -606,12 +1055,12 @@ sap.ui.define([
 		// Filter F7 key down
 		if (oEvent.keyCode === KeyCodes.F7) {
 			oEvent.stopPropagation();
-			var oTarget = sap.ui.getCore().byId(oEvent.target.id);
+			var oTarget = Element.getElementById(oEvent.target.id);
 
 			//define if F7 is pressed from SubSection itself or active element inside SubSection
 			if (oTarget instanceof ObjectPageSubSection) {
 				this._handleSubSectionF7();
-			} else {
+			} else if (!oEvent.isMarked()) {
 				this._handleInteractiveElF7();
 				this._oLastFocusedControlF7 = oTarget;
 			}
@@ -640,97 +1089,43 @@ sap.ui.define([
 	/*************************************************************************************
 	 * generic block layout calculation
 	 ************************************************************************************/
+	/**
+	 * Returns the minimum required count of columns that the subsection should span accross.
+	 * The number is derived from the value of the <code>_columnSpan</code> property
+	 * and the content of the subSection
+	 * @returns {number} the number
+	 */
+	ObjectPageSubSection.prototype._getMinRequiredColspan = function () {
+		var sColumnSpan = this._getColumnSpan(),
+			aAllBlocks,
+			aVisibleBlocks,
+			iColumnSpan;
+
+		if (sColumnSpan === ObjectPageSubSection.COLUMN_SPAN.auto) {
+			aAllBlocks = this.getBlocks().concat(this.getMoreBlocks());
+			aVisibleBlocks = aAllBlocks.filter(function (oBlock) {
+				return oBlock.getVisible && oBlock.getVisible();
+			});
+			return aVisibleBlocks.reduce(function(iSum, oBlock) {
+				return iSum + this._getMinRequiredColspanForChild(oBlock);
+			}.bind(this), 0);
+		}
+
+		iColumnSpan = parseInt(sColumnSpan);
+		if (iColumnSpan > 0 && iColumnSpan <= 4) {
+			return iColumnSpan;
+		}
+
+		// default case: ObjectPageSubSection.COLUMN_SPAN.all
+		return 4;
+	};
 
 	/**
-	 * calculate the layout data to use for subsection blocks
-	 * Aligned with PUX specifications as of Oct 14, 2014
+	 * Determines the minimal required number of columns that a child item
+	 * should take, based on the child content and own colspan
+	 * @override
 	 */
-	ObjectPageSubSection.prototype._calcBlockColumnLayout = function (aBlocks, oColumnConfig) {
-		var iGridSize = 12,
-			aVisibleBlocks,
-			M, L, XL,
-			aDisplaySizes;
-
-		M = {
-			iRemaining: oColumnConfig.M,
-			iColumnConfig: oColumnConfig.M
-		};
-
-		L = {
-			iRemaining: oColumnConfig.L,
-			iColumnConfig: oColumnConfig.L
-		};
-
-		XL = {
-			iRemaining: oColumnConfig.XL,
-			iColumnConfig: oColumnConfig.XL
-		};
-
-		aDisplaySizes = [XL, L, M];
-
-		//step 1: get only visible blocks into consideration
-		aVisibleBlocks = aBlocks.filter(function (oBlock) {
-			return oBlock.getVisible && oBlock.getVisible();
-		});
-
-		//step 2: set layout for each blocks based on their columnLayout configuration
-		//As of Oct 14, 2014, the default behavior is:
-		//on phone, blocks take always the full line
-		//on tablet, desktop:
-		//1 block on the line: takes 3/3 columns
-		//2 blocks on the line: takes 1/3 columns then 2/3 columns
-		//3 blocks on the line: takes 1/3 columns then 1/3 columns and last 1/3 columns
-
-		aVisibleBlocks.forEach(function (oBlock, iIndex) {
-
-			aDisplaySizes.forEach(function (oConfig) {
-				oConfig.iCalculatedSize = this._calculateBlockSize(oBlock, oConfig.iRemaining,
-					aVisibleBlocks, iIndex, oConfig.iColumnConfig);
-			}, this);
-
-			//set block layout based on resolution and break to a new line if necessary
-			oBlock.setLayoutData(new GridData(oBlock.getId() + "-layoutData", {
-				spanS: iGridSize,
-				spanM: M.iCalculatedSize * (iGridSize / M.iColumnConfig),
-				spanL: L.iCalculatedSize * (iGridSize / L.iColumnConfig),
-				spanXL: XL.iCalculatedSize * (iGridSize / XL.iColumnConfig),
-				linebreakM: (iIndex > 0 && M.iRemaining === M.iColumnConfig),
-				linebreakL: (iIndex > 0 && L.iRemaining === L.iColumnConfig),
-				linebreakXL: (iIndex > 0 && XL.iRemaining === XL.iColumnConfig)
-			}));
-
-			aDisplaySizes.forEach(function (oConfig) {
-				oConfig.iRemaining -= oConfig.iCalculatedSize;
-				if (oConfig.iRemaining < 1) {
-					oConfig.iRemaining = oConfig.iColumnConfig;
-				}
-			});
-
-		}, this);
-
-		return aVisibleBlocks;
-	};
-
-	ObjectPageSubSection.prototype._calculateBlockSize = function (oBlock, iRemaining, aVisibleBlocks, iCurrentIndex, iMax) {
-		var iCalc, iForewordBlocksToCheck = iMax, indexOffset;
-
-		if (!this._hasAutoLayout(oBlock)) {
-			return Math.min(iMax, parseInt(oBlock.getColumnLayout()));
-		}
-
-		for (indexOffset = 1; indexOffset <= iForewordBlocksToCheck; indexOffset++) {
-			iCalc = this._calcLayout(aVisibleBlocks[iCurrentIndex + indexOffset]);
-			if (iCalc < iRemaining) {
-				iRemaining -= iCalc;
-			} else {
-				break;
-			}
-		}
-
-		return iRemaining;
-	};
-
-	ObjectPageSubSection.prototype._calcLayout = function (oBlock) {
+	ObjectPageSubSection.prototype._getMinRequiredColspanForChild = function (oBlock) {
 		var iLayoutCols = 1;
 
 		if (!oBlock) {
@@ -740,6 +1135,15 @@ sap.ui.define([
 		}
 
 		return iLayoutCols;
+	};
+
+	/**
+	 * Determines if allowed to automatically extend the number of columns to span accross
+	 * (in case of unused columns on the side, in order to utilize that unused space
+	 * @override
+	 */
+	ObjectPageSubSection.prototype._allowAutoextendColspanForChild = function (oBlock) {
+		return this._hasAutoLayout(oBlock);
 	};
 
 	ObjectPageSubSection.prototype._hasAutoLayout = function (oBlock) {
@@ -752,13 +1156,18 @@ sap.ui.define([
 	 ************************************************************************************/
 
 	ObjectPageSubSection.prototype._setAggregationProxy = function () {
+		var aAggregation;
 		if (this._bRenderedFirstTime) {
 			return;
 		}
 
 		//empty real aggregations and feed internal ones at first rendering only
 		jQuery.each(this._aAggregationProxy, jQuery.proxy(function (sAggregationName, aValue) {
-			this._setAggregation(sAggregationName, this.removeAllAggregation(sAggregationName, true), true);
+			aAggregation = this.removeAllAggregation(sAggregationName, true);
+			aAggregation.forEach(function(oBlock) {
+				this._onAddBlock(oBlock, sAggregationName, true); // this is always called onBeforeRendering so suppress invalidate
+			}, this);
+			this._setAggregation(sAggregationName, aAggregation, true);
 		}, this));
 
 		this._bRenderedFirstTime = true;
@@ -785,29 +1194,35 @@ sap.ui.define([
 		var aAggregation;
 
 		if (oObject instanceof ObjectPageLazyLoader) {
-			oObject.getContent().forEach(function (oControl) {
-				this.addAggregation(sAggregationName, oControl, true);
-			}, this);
+			if (oObject.isStashed()) {
+				this._aStashedControls.push({
+					aggregationName: sAggregationName,
+					control: oObject
+				});
+			} else {
+				oObject.getContent().forEach(function (oControl) {
+					this.addAggregation(sAggregationName, oControl, true);
+				}, this);
 
-			oObject.removeAllContent();
-			oObject.destroy();
-			this.invalidate();
-			return this;
-		}
-
-		if (this.hasProxy(sAggregationName)) {
-			aAggregation = this._getAggregation(sAggregationName);
-			aAggregation.push(oObject);
-			this._setAggregation(sAggregationName, aAggregation, bSuppressInvalidate);
-
-			if (oObject instanceof BlockBase || oObject instanceof ObjectPageLazyLoader) {
-				oObject.setParent(this); //let the block know of its parent subsection
+				oObject.removeAllContent();
+				oObject.destroy();
+				this.invalidate();
 			}
 
-			return this;
+		} else if (this.hasProxy(sAggregationName)) {
+			aAggregation = this._getAggregation(sAggregationName);
+			aAggregation.push(oObject);
+			if (oObject instanceof BlockBase) {
+				oObject.setParent(this, sAggregationName); //let the block know of its parent subsection
+			}
+			this._onAddBlock(oObject, sAggregationName, bSuppressInvalidate);
+			this._setAggregation(sAggregationName, aAggregation, bSuppressInvalidate);
+
+		} else {
+			ObjectPageSectionBase.prototype.addAggregation.apply(this, arguments);
 		}
 
-		return ObjectPageSectionBase.prototype.addAggregation.apply(this, arguments);
+		return this;
 	};
 
 	/**
@@ -818,12 +1233,53 @@ sap.ui.define([
 	* adding a single block to the end of the <code>blocks</code> aggregation.
 	* @param {sap.uxap.BlockBase} oObject The <code>sap.uxap.BlockBase</code> instance
 	* @param {int} iIndex The insertion index
-	* @returns {sap.uxap.ObjectPageSubSection} The <code>sap.uxap.ObjectPageSubSection</code> instance
+	* @returns {this} The <code>sap.uxap.ObjectPageSubSection</code> instance
 	* @public
 	*/
 	ObjectPageSubSection.prototype.insertBlock = function (oObject, iIndex) {
 		Log.warning("ObjectPageSubSection :: usage of insertBlock is not supported - addBlock is performed instead.");
 		return this.addAggregation("blocks", oObject);
+	};
+
+	ObjectPageSubSection.prototype._onAddBlock = function (oBlock, sAggregationName, bSuppressInvalidate) {
+		if (!oBlock) {
+			return;
+		}
+		this._oBlocksObserver.observe(oBlock, {
+			properties: ["visible"]
+		});
+		if (this._shouldForwardAggregationToGrid(sAggregationName)) {
+			this._addBlockToGrid(oBlock, bSuppressInvalidate);
+		}
+	};
+
+	ObjectPageSubSection.prototype._shouldForwardAggregationToGrid = function (sAggregationName) {
+		return ((sAggregationName === "blocks")
+			|| (sAggregationName === "moreBlocks" && this.getMode() === ObjectPageSubSectionMode.Expanded));
+	};
+
+	ObjectPageSubSection.prototype._addBlockToGrid = function (oBlock, bSuppressInvalidate) {
+		var oGrid = this._getGrid();
+		if (oGrid?.indexOfContent(oBlock) < 0) { // add only if not already added (to preserve the ordering of the blocks)
+			oGrid?.addAggregation("content", oBlock, bSuppressInvalidate);
+		}
+	};
+
+	ObjectPageSubSection.prototype._onRemoveBlock = function (oBlock, bSuppressInvalidate) {
+		if (!oBlock) {
+			return;
+		}
+		this._oBlocksObserver.unobserve(oBlock, {
+			properties: ["visible"]
+		});
+		this._removeBlockFromGrid(oBlock, bSuppressInvalidate);
+	};
+
+	ObjectPageSubSection.prototype._removeBlockFromGrid = function (oBlock, bSuppressInvalidate) {
+		var oGrid = this._getGrid();
+		if (oGrid?.indexOfContent(oBlock) > -1) {
+			oGrid?.removeAggregation("content", oBlock, bSuppressInvalidate);
+		}
 	};
 
 	/**
@@ -834,7 +1290,7 @@ sap.ui.define([
 	 * adding a single block to the end of the <code>moreBlocks</code> aggregation.
 	 * @param {sap.uxap.BlockBase} oObject The <code>sap.uxap.BlockBase</code> instance
 	 * @param {int} iIndex The insertion index
-	 * @returns {sap.uxap.ObjectPageSubSection} The <code>sap.uxap.ObjectPageSubSection</code> instance
+	 * @returns {this} The <code>sap.uxap.ObjectPageSubSection</code> instance
 	 * @public
 	 */
 	ObjectPageSubSection.prototype.insertMoreBlock = function (oObject, iIndex) {
@@ -848,27 +1304,32 @@ sap.ui.define([
 		if (this.hasProxy(sAggregationName)) {
 			aInternalAggregation = this._getAggregation(sAggregationName);
 			this._setAggregation(sAggregationName, [], bSuppressInvalidate);
+			aInternalAggregation.forEach(function(oBlock) {
+				this._onRemoveBlock(oBlock);
+			}.bind(this));
 			return aInternalAggregation.slice();
 		}
 
 		return ObjectPageSectionBase.prototype.removeAllAggregation.apply(this, arguments);
 	};
 
-	ObjectPageSubSection.prototype.removeAggregation = function (sAggregationName, oObject) {
-		var bRemoved = false, aInternalAggregation;
+	ObjectPageSubSection.prototype.removeAggregation = function (sAggregationName, vObject) {
+		var bRemoved = false,
+			aInternalAggregation;
 
-		if (this.hasProxy(sAggregationName)) {
+		if (this.hasProxy(sAggregationName) && typeof vObject === "object") {
 			aInternalAggregation = this._getAggregation(sAggregationName);
-			aInternalAggregation.forEach(function (oObjectCandidate, iIndex) {
-				if (oObjectCandidate.getId() === oObject.getId()) {
-					aInternalAggregation.splice(iIndex, 1);
-					this._setAggregation(sAggregationName, aInternalAggregation);
-					bRemoved = true;
-				}
-				return !bRemoved;
-			}, this);
+				aInternalAggregation.forEach(function (oObjectCandidate, iIndex) {
+					if (oObjectCandidate.getId() === vObject.getId()) {
+						aInternalAggregation.splice(iIndex, 1);
+						this._onRemoveBlock(vObject);
+						this._setAggregation(sAggregationName, aInternalAggregation);
+						bRemoved = true;
+					}
+					return !bRemoved;
+				}, this);
 
-			return (bRemoved ? oObject : null);
+			return (bRemoved ? vObject : null);
 		}
 
 		return ObjectPageSectionBase.prototype.removeAggregation.apply(this, arguments);
@@ -913,6 +1374,14 @@ sap.ui.define([
 		return ObjectPageSectionBase.prototype.destroyAggregation.apply(this, arguments);
 	};
 
+	ObjectPageSubSection.prototype.destroy = function() {
+		// destroy all stashed controls which have not been unstashed
+		this._aStashedControls.forEach(function(oControlHandle) {
+			oControlHandle.control.destroy();
+		});
+		ObjectPageSectionBase.prototype.destroy.apply(this, arguments);
+	};
+
 	/*************************************************************************************
 	 *  Private section : should overridden with care
 	 ************************************************************************************/
@@ -926,8 +1395,7 @@ sap.ui.define([
 			this._oSeeMoreButton = new Button(this.getId() + "--seeMore", {
 				type: ButtonType.Transparent,
 				iconFirst: false,
-				text: ObjectPageSubSection._getLibraryResourceBundle().getText("SHOW_MORE"),
-				ariaLabelledBy: this.getId()
+				text: ObjectPageSubSection._getLibraryResourceBundle().getText("SHOW_MORE")
 			}).addStyleClass("sapUxAPSubSectionSeeMoreButton").attachPress(this._seeMoreLessControlPressHandler, this);
 		}
 
@@ -943,8 +1411,7 @@ sap.ui.define([
 			this._oSeeLessButton = new Button(this.getId() + "--seeLess", {
 				type: ButtonType.Transparent,
 				iconFirst: false,
-				text: ObjectPageSubSection._getLibraryResourceBundle().getText("SHOW_LESS"),
-				ariaLabelledBy: this.getId()
+				text: ObjectPageSubSection._getLibraryResourceBundle().getText("SHOW_LESS")
 			}).addStyleClass("sapUxAPSubSectionSeeMoreButton").attachPress(this._seeMoreLessControlPressHandler, this);
 		}
 
@@ -991,10 +1458,16 @@ sap.ui.define([
 			this.setProperty("mode", ObjectPageSubSectionMode.Collapsed);
 			this._oCurrentlyVisibleSeeMoreLessButton = this._getSeeMoreButton().setVisible(true);
 			this._getSeeLessButton().setVisible(false);
+			this.getMoreBlocks().forEach(function(oBlock) {
+				this._removeBlockFromGrid(oBlock);
+			}, this);
 		} else {
 			this.setProperty("mode", ObjectPageSubSectionMode.Expanded);
 			this._getSeeMoreButton().setVisible(false);
 			this._oCurrentlyVisibleSeeMoreLessButton = this._getSeeLessButton().setVisible(true);
+			this.getMoreBlocks().forEach(function(oBlock) {
+				this._addBlockToGrid(oBlock);
+			}, this);
 		}
 	};
 
@@ -1013,16 +1486,12 @@ sap.ui.define([
 	};
 
 	ObjectPageSubSection.prototype._setToFocusable = function (bFocusable) {
-		var sFocusable = '0',
-			sNotFocusable = '-1',
-			sTabIndex = "tabindex";
-
-		if (bFocusable) {
-			this.$().attr(sTabIndex, sFocusable);
+		// SubSection is focusable only if it has its OWN title visible
+		if (this.getTitleVisible()) {
+			this.$().attr("tabindex", bFocusable ? "0" : "-1");
 		} else {
-			this.$().attr(sTabIndex, sNotFocusable);
+			this.$().removeAttr("tabindex");
 		}
-
 		return this;
 	};
 
@@ -1032,34 +1501,15 @@ sap.ui.define([
 		return oObjectPageLayout && (oObjectPageLayout.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnLeft);
 	};
 
-	/**
-	 * If this is the first rendering and a layout has been defined by the subsection developer,
-	 * We remove it and let the built-in mechanism decide on the layouting aspects
-	 * @param aBlocks
-	 * @private
-	 */
-	ObjectPageSubSection.prototype._resetLayoutData = function (aBlocks) {
-		aBlocks.forEach(function (oBlock) {
-			if (oBlock.getLayoutData()) {
-				oBlock.destroyLayoutData();
-			}
-		}, this);
-	};
-
-	ObjectPageSubSection.prototype._updateShowHideState = function (bHide) {
-		if (this._getIsHidden() === bHide) {
-			return this;
-		}
-
-		this.$().children(this._sMoreContainerSelector).toggle(!bHide);
-
-		return ObjectPageSectionBase.prototype._updateShowHideState.call(this, bHide);
-	};
-
 	ObjectPageSubSection.prototype.getVisibleBlocksCount = function () {
-		var iVisibleBlocks = StashedControlSupport.getStashedControls(this.getId()).length;
+		var iVisibleBlocks = this._aStashedControls.length;
 
 		(this.getBlocks() || []).forEach(function (oBlock) {
+			// Skip if it's undefined
+			if (!oBlock) {
+				return;
+			}
+
 			if (oBlock.getVisible && !oBlock.getVisible()) {
 				return true;
 			}

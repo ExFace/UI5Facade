@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var M={apiVersion:2};M.CSS_CLASS="sapMMenuBtn";M.render=function(r,m){var w=m.getWidth();r.openStart("div",m);r.class(M.CSS_CLASS).class(M.CSS_CLASS+m.getButtonMode());if(w!=""){r.style("width",w);}r.openEnd();m._ensureBackwardsReference();r.renderControl(m._getButtonControl());r.close("div");};return M;},true);
+sap.ui.define([],function(){"use strict";var t={apiVersion:2};t.CSS_CLASS="sapMMenuBtn";t.render=function(e,n){var o=n.getWidth();e.openStart("div",n);e.class(t.CSS_CLASS).class(t.CSS_CLASS+n.getButtonMode());if(o!=""){e.style("width",o)}e.openEnd();n._ensureBackwardsReference();e.renderControl(n._getButtonControl());n._activeButton=n._isSplitButton()?n._getButtonControl()._getArrowButton():n._getButtonControl();e.close("div")};return t},true);
+//# sourceMappingURL=MenuButtonRenderer.js.map

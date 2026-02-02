@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,9 @@ sap.ui.define([
 	 * @ui5-restricted sap.m.P13nFilterPanel
 	 * @since 1.74
 	 * @alias sap.m.P13nOperationsHelper
+	 * @class
+	 * @deprecated As of version 1.124, replaced
+ by the artifacts provided in {@link sap.m.p13n}.
 	 */
 	var P13nOperationsHelper = function () {
 		this.init();

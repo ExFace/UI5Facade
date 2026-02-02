@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	function emptify (vValue) {
+	function emptify(vValue) {
 		if (!vValue) {
 			return "";
 		}
@@ -23,20 +23,22 @@ sap.ui.define([
 	/**
 	 * Use the shell service to get the current user information
 	 *
-	 * @return {object} Dictionary listing current user properties or empty object if no user or error
+	 * @return {Promise<object>} Resolving to dictionary listing current user properties or empty object if no user or error
+	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
-	return function () {
-		return Utils.ifUShellContainerThen(function(aServices) {
-			var oUserInfoService = aServices[0];
-			if (!oUserInfoService) {
-				return {};
-			}
-			var oUserInfo = oUserInfoService.getUser();
-			if (!oUserInfo) {
-				return {};
-			}
-			try {
+	return function() {
+		var oUShellContainer = Utils.getUshellContainer();
+		if (oUShellContainer) {
+			return Utils.getUShellService("UserInfo")
+			.then(function(oUserInfoService) {
+				if (!oUserInfoService) {
+					return {};
+				}
+				var oUserInfo = oUserInfoService.getUser();
+				if (!oUserInfo) {
+					return {};
+				}
 				var sEmail = emptify(oUserInfo.getEmail());
 				var sDomain;
 				if (sEmail) {
@@ -51,9 +53,12 @@ sap.ui.define([
 					email: sEmail,
 					domain: sDomain
 				};
-			} catch (oError) {
-				Log.error("Unexpected exception when reading shell user info: " + oError.toString());
-			}
-		}, ["UserInfo"]) || {};
+			})
+			.catch(function(vError) {
+				Log.error(`Unexpected exception when reading shell user info: ${vError.toString()}`);
+				return {};
+			});
+		}
+		return Promise.resolve({});
 	};
 });

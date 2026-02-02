@@ -1,20 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.base.Metadata
 sap.ui.define([
 	'sap/base/util/ObjectPath',
-	'sap/ui/Device',
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/base/util/array/uniqueSort"
 ],
-	function(ObjectPath, Device, assert, Log, uniqueSort) {
+	function(ObjectPath, assert, Log, uniqueSort) {
 	"use strict";
 
+	function isFunction(obj) {
+		return typeof obj === "function";
+	}
 
 	/**
 	 * Creates a new metadata object from the given static infos.
@@ -24,10 +26,12 @@ sap.ui.define([
 	 *
 	 * @param {string} sClassName Fully qualified name of the described class
 	 * @param {object} oClassInfo Info to construct the class and its metadata from
+	 * @param {sap.ui.base.Object.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @class Metadata for a class.
 	 * @author Frank Weigel
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 0.8.6
 	 * @public
 	 * @alias sap.ui.base.Metadata
@@ -37,17 +41,22 @@ sap.ui.define([
 		assert(typeof sClassName === "string" && sClassName, "Metadata: sClassName must be a non-empty string");
 		assert(typeof oClassInfo === "object", "Metadata: oClassInfo must be empty or an object");
 
-		// support for old usage of Metadata
+		/**
+		 * Support for old usage of Metadata.
+		 * @deprecated Since 1.3.1
+		 */
 		if ( !oClassInfo || typeof oClassInfo.metadata !== "object" ) {
 			oClassInfo = {
 				metadata : oClassInfo || {},
 				// retrieve class by its name. Using a lookup costs time but avoids the need for redundant arguments to this function
-				constructor : ObjectPath.get(sClassName)
+				constructor : ObjectPath.get(sClassName) // legacy-relevant, code path not used by extend call
 			};
 			oClassInfo.metadata.__version = 1.0;
 		}
+
+		oClassInfo.metadata ??= {};
 		oClassInfo.metadata.__version = oClassInfo.metadata.__version || 2.0;
-		if ( typeof oClassInfo.constructor !== "function" ) {
+		if ( !isFunction(oClassInfo.constructor) ) {
 			throw Error("constructor for class " + sClassName + " must have been declared before creating metadata for it");
 		}
 
@@ -77,17 +86,33 @@ sap.ui.define([
 			oPrototype;
 
 		if ( oStaticInfo.baseType ) {
-			// lookup base class by its name - same reasoning as above
-			var oParentClass = ObjectPath.get(oStaticInfo.baseType);
-			if ( typeof oParentClass !== "function" ) {
-				Log.fatal("base class '" + oStaticInfo.baseType + "' does not exist");
+			var oParentClass,
+				bValidBaseType = isFunction(oStaticInfo.baseType);
+
+			if ( bValidBaseType ) {
+				oParentClass = oStaticInfo.baseType;
+				if ( !isFunction(oParentClass.getMetadata) ) {
+					throw new TypeError("baseType must be a UI5 class with a static getMetadata function");
+				}
 			}
+
+			/**
+			 * @deprecated
+			 */
+			if ( !bValidBaseType ) {
+				// lookup base class by its name - same reasoning as above
+				oParentClass = ObjectPath.get(oStaticInfo.baseType); // legacy-relevant, code path not used by extend call
+				if ( !isFunction(oParentClass) ) {
+					Log.fatal("base class '" + oStaticInfo.baseType + "' does not exist");
+				}
+			}
+
 			// link metadata with base metadata
 			if ( oParentClass.getMetadata ) {
 				this._oParent = oParentClass.getMetadata();
 				assert(oParentClass === oParentClass.getMetadata().getClass(), "Metadata: oParentClass must match the class in the parent metadata");
 			} else {
-				// fallback, if base class has no metadata
+				// fallback, if base class has no metadata - can only happen if baseType is a string
 				this._oParent = new Metadata(oStaticInfo.baseType, {});
 			}
 		} else {
@@ -132,11 +157,9 @@ sap.ui.define([
 	Metadata.prototype.afterApplySettings = function() {
 		// create the flattened "all" view
 		if ( this._oParent ) {
-			//this._aAllInterfaces = jQuery.sap.unique(this._oParent._aAllInterfaces.concat(this._aInterfaces));
 			this._aAllPublicMethods = this._oParent._aAllPublicMethods.concat(this._aPublicMethods);
 			this._bInterfacesUnique = false;
 		} else {
-			//this._aAllInterfaces = this._aInterfaces;
 			this._aAllPublicMethods = this._aPublicMethods;
 		}
 
@@ -144,7 +167,9 @@ sap.ui.define([
 
 	/**
 	 * Stereotype of the described class.
-	 * @experimental might be enhanced to a set of stereotypes
+	 *
+	 * @private
+	 * @ui5-restricted
 	 */
 	Metadata.prototype.getStereotype = function() {
 		return this._sStereotype;
@@ -161,7 +186,7 @@ sap.ui.define([
 
 	/**
 	 * Returns the (constructor of the) described class
-	 * @return {function} class described by this metadata
+	 * @return {function(new:sap.ui.base.Object)} class described by this metadata
 	 * @public
 	 */
 	Metadata.prototype.getClass = function() {
@@ -170,9 +195,9 @@ sap.ui.define([
 
 	/**
 	 * Returns the metadata object of the base class of the described class
-	 * or null if the class has no (documented) base class.
+	 * or undefined if the class has no (documented) base class.
 	 *
-	 * @return {sap.ui.base.Metadata} metadata of the base class
+	 * @return {sap.ui.base.Metadata | undefined} metadata of the base class
 	 * @public
 	 */
 	Metadata.prototype.getParent = function() {
@@ -405,6 +430,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Traverse up through the parent chain to find the static property on the class.
+	 *
+	 * @param {string} sStaticName The name of the static property
+	 * @returns {any} If found, returns the static property
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	Metadata.prototype.getStaticProperty = function(sStaticName) {
+		let oMetadata = this;
+		while (oMetadata && !(sStaticName in oMetadata.getClass())) {
+			oMetadata = oMetadata.getParent();
+		}
+		const oClass = oMetadata?.getClass();
+
+		return oClass?.[sStaticName];
+	};
+
+	/**
 	 * @since 1.3.1
 	 * @private
 	 */
@@ -417,14 +460,20 @@ sap.ui.define([
 			fnBaseClass = null;
 		}
 
-		assert(!fnBaseClass || typeof fnBaseClass === "function");
+		assert(!fnBaseClass || isFunction(fnBaseClass));
 		assert(typeof sClassName === "string" && !!sClassName);
 		assert(!oClassInfo || typeof oClassInfo === "object");
-		assert(!FNMetaImpl || typeof FNMetaImpl === "function");
+		assert(!FNMetaImpl || isFunction(FNMetaImpl));
 
-		// allow metadata class to preprocess
 		FNMetaImpl = FNMetaImpl || Metadata;
-		if ( typeof FNMetaImpl.preprocessClassInfo === "function" ) {
+
+		/**
+		 * allow metadata class to preprocess
+		 * Component- and UIComponentMetadata uses this to derive if "component.json"
+		 * must be loaded synchronously.
+		 * @deprecated
+		 */
+		if ( isFunction(FNMetaImpl.preprocessClassInfo) ) {
 			oClassInfo = FNMetaImpl.preprocessClassInfo(oClassInfo);
 		}
 
@@ -436,7 +485,7 @@ sap.ui.define([
 		}
 
 		var fnClass = oClassInfo.constructor;
-		assert(!fnClass || typeof fnClass === "function");
+		assert(!fnClass || isFunction(fnClass));
 
 		// ensure defaults
 		if ( fnBaseClass ) {
@@ -459,7 +508,7 @@ sap.ui.define([
 			fnClass.prototype = Object.create(fnBaseClass.prototype);
 			fnClass.prototype.constructor = fnClass;
 			// enforce correct baseType
-			oClassInfo.metadata.baseType = fnBaseClass.getMetadata().getName();
+			oClassInfo.metadata.baseType = fnBaseClass;
 		} else {
 			// default constructor does nothing
 			fnClass = fnClass || function() { };
@@ -468,7 +517,10 @@ sap.ui.define([
 		}
 		oClassInfo.constructor = fnClass;
 
-		// make the class visible as JS Object
+		/**
+		 * make the class visible as JS Object
+		 * @deprecated
+		 */
 		ObjectPath.set(sClassName, fnClass);
 
 		// add metadata

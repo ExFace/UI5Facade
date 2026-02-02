@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,19 +24,17 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.53
 	 * @alias sap.ui.rta.appVariant.AppVariantManager
-	 * @experimental Since 1.53. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
-	var AppVariantManager = ManagedObject.extend("sap.ui.rta.appVariant.AppVariantManager", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				commandSerializer : {
+	const AppVariantManager = ManagedObject.extend("sap.ui.rta.appVariant.AppVariantManager", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				commandSerializer: {
 					type: "object" // has to be of type sap.ui.rta.command.LrepSerializer
 				},
 				layer: {
@@ -46,12 +44,8 @@ sap.ui.define([
 		}
 	});
 
-	/**
-	 * Opens the 'Save As' dialog.
-	 * @private
-	 */
 	AppVariantManager.prototype._openDialog = function(fnCreate, fnCancel) {
-		var oDialog = new AppVariantDialog("appVariantDialog");
+		const oDialog = new AppVariantDialog("appVariantDialog");
 
 		oDialog.attachCreate(fnCreate);
 		oDialog.attachCancel(fnCancel);
@@ -69,27 +63,28 @@ sap.ui.define([
 	 * Returns the info required to create the app variant
 	 * @private
 	 */
-	AppVariantManager.prototype._prepareAppVariantData = function(oDescriptor, mParameters) {
+	AppVariantManager.prototype._prepareAppVariantData = function(oManifest, mParameters) {
 		return {
-			referenceAppId: oDescriptor["sap.app"].id,
+			referenceAppId: oManifest["sap.app"].id,
 			title: mParameters.title,
 			subTitle: mParameters.subTitle,
 			description: mParameters.description,
 			icon: mParameters.icon,
-			inbounds: oDescriptor["sap.app"].crossNavigation && oDescriptor["sap.app"].crossNavigation.inbounds ? oDescriptor["sap.app"].crossNavigation.inbounds : null
+			inbounds: oManifest["sap.app"].crossNavigation && oManifest["sap.app"].crossNavigation.inbounds ? oManifest["sap.app"].crossNavigation.inbounds : null
 		};
 	};
 
 	/**
 	 *
 	 * @param {Object} oAppVariantSpecificData - Contains the specific info needed to create the inline changes for the app variant
-	 * @returns {Promise[]} returns all the descriptor inline changes
-	 * @description Creates all the descriptor inline changes for different change types.
+	 * @param {sap.ui.fl.Selector} vSelector - Managed object or selector object
+	 * @returns {Promise[]} returns all the manifest inline changes
+	 * @description Creates all the manifest inline changes for different change types.
 	 */
 	AppVariantManager.prototype.createAllInlineChanges = function(oAppVariantSpecificData, vSelector) {
-		var sAppVariantId = AppVariantUtils.getId(oAppVariantSpecificData.referenceAppId);
-		var aAllInlineChangeOperations = [];
-		var oPropertyChange = {};
+		const sAppVariantId = AppVariantUtils.getId(oAppVariantSpecificData.referenceAppId);
+		const aAllInlineChangeOperations = [];
+		let oPropertyChange = {};
 
 		// create a inline change using a change type 'appdescr_app_setTitle'
 		oPropertyChange.content = AppVariantUtils.prepareTextsChange("title", oAppVariantSpecificData.title);
@@ -107,35 +102,43 @@ sap.ui.define([
 		oPropertyChange = AppVariantUtils.getInlineChangeInputIcon(oAppVariantSpecificData.icon);
 		aAllInlineChangeOperations.push(AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_ui_setIcon", vSelector));
 
-		/***********************************************************Inbounds handling******************************************************************/
-		var oInboundInfo = AppVariantUtils.getInboundInfo(oAppVariantSpecificData.inbounds);
-		var sCurrentRunningInboundId = oInboundInfo.currentRunningInbound;
+		/** *********************************************************Inbounds handling******************************************************************/
+		return AppVariantUtils.getInboundInfo(oAppVariantSpecificData.inbounds)
+		.then(function(oInboundInfo) {
+			const sCurrentRunningInboundId = oInboundInfo.currentRunningInbound;
 
-		// If there is no inbound, create a new inbound
-		if (oInboundInfo.addNewInboundRequired) {
-			// create a inline change using a change type 'appdescr_app_addNewInbound'
-			oPropertyChange = AppVariantUtils.prepareAddNewInboundChange(sCurrentRunningInboundId, sAppVariantId, oAppVariantSpecificData);
-			aAllInlineChangeOperations.push(AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_app_addNewInbound", vSelector));
+			// If there is no inbound, create a new inbound
+			if (oInboundInfo.addNewInboundRequired) {
+				// create a inline change using a change type 'appdescr_app_addNewInbound'
+				const oInlineChangePromise = AppVariantUtils.prepareAddNewInboundChange(sCurrentRunningInboundId, sAppVariantId, oAppVariantSpecificData)
+				.then(function(oPropertyChange) {
+					return AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_app_addNewInbound", vSelector);
+				});
 
+				aAllInlineChangeOperations.push(oInlineChangePromise);
+			} else {
+				// create a inline change using a change type 'appdescr_app_changeInbound'
+				oPropertyChange = AppVariantUtils.prepareChangeInboundChange(sCurrentRunningInboundId, sAppVariantId, oAppVariantSpecificData);
+				aAllInlineChangeOperations.push(AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_app_changeInbound", vSelector));
+			}
+
+			// remove all other inbounds except appVariant inbound
 			// create a inline change using a change type 'appdescr_app_removeAllInboundsExceptOne'
 			oPropertyChange = AppVariantUtils.prepareRemoveAllInboundsExceptOneChange(sCurrentRunningInboundId);
 			aAllInlineChangeOperations.push(AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_app_removeAllInboundsExceptOne", vSelector));
-		} else {
-			// create a inline change using a change type 'appdescr_app_changeInbound'
-			oPropertyChange = AppVariantUtils.prepareChangeInboundChange(sCurrentRunningInboundId, sAppVariantId, oAppVariantSpecificData);
-			aAllInlineChangeOperations.push(AppVariantUtils.createInlineChange(oPropertyChange, "appdescr_app_changeInbound", vSelector));
-		}
 
-		return Promise.all(aAllInlineChangeOperations);
+			return Promise.all(aAllInlineChangeOperations);
+		});
 	};
 
 	/**
-	 * @param {String} sAppVariantId - Application variant ID
+	 * @param {string} sAppVariantId - Application variant ID
+	 * @param {sap.ui.fl.Selector} vSelector - Selector
 	 * @returns {Promise} Resolved promise
 	 * @description Creates the app variant with all inline changes in backend.
 	 */
 	AppVariantManager.prototype.createAppVariant = function(sAppVariantId, vSelector) {
-		var mPropertyBag = {
+		const mPropertyBag = {
 			id: sAppVariantId,
 			layer: this.getLayer()
 		};
@@ -143,7 +146,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * @param {String} sAppVariantId - Application variant ID
+	 * @param {string} sAppVariantId - Application variant ID
 	 * @returns {Promise} Resolved promise
 	 * @description Deletes the app variant from backend.
 	 */
@@ -155,21 +158,21 @@ sap.ui.define([
 
 	/**
 	 *
-	 * @param {Object} oDescriptor - Contains the app variant descriptor information
-	 * @param {Boolean} bSaveAsTriggeredFromRtaToolbar - Boolean value which tells if 'Save As' is triggered from the UI adaptation header bar
+	 * @param {Object} oManifest - Contains the app variant manifest information
+	 * @param {boolean} bSaveAsTriggeredFromRtaToolbar - Boolean value which tells if 'Save As' is triggered from the UI adaptation header bar
 	 * @returns {Object} Contains the information to create the app variant
 	 * @description Processes the Save As Dialog and consolidates the input parameters from the 'Save As' dialog as an object.
 	 */
-	AppVariantManager.prototype.processSaveAsDialog = function(oDescriptor, bSaveAsTriggeredFromRtaToolbar) {
+	AppVariantManager.prototype.processSaveAsDialog = function(oManifest, bSaveAsTriggeredFromRtaToolbar) {
 		return new Promise(function(resolve, reject) {
-			var fnCreate = function(oResult) {
-				var mParameters = oResult.getParameters();
-				var oAppVariantData = this._prepareAppVariantData(oDescriptor, mParameters);
+			const fnCreate = function(oResult) {
+				const mParameters = oResult.getParameters();
+				const oAppVariantData = this._prepareAppVariantData(oManifest, mParameters);
 
 				resolve(oAppVariantData);
 			}.bind(this);
 
-			var fnCancel = function() {
+			const fnCancel = function() {
 				if (!bSaveAsTriggeredFromRtaToolbar) {
 					return RtaAppVariantFeature.onGetOverview(true, this.getLayer());
 				}
@@ -182,6 +185,7 @@ sap.ui.define([
 
 	/**
 	 * Dirty changes get taken over by the app variant.
+	 * @returns {Promise} Resolves as soon as the command stack is cleared
 	 * @private
 	 */
 	AppVariantManager.prototype._clearRTACommandStack = function() {
@@ -190,12 +194,12 @@ sap.ui.define([
 
 	/**
 	 *
-	 * @param {Boolean} bCopyUnsavedChanges - Boolean value which tells whether the dirty changes exist and need to be copied
+	 * @param {boolean} bCopyUnsavedChanges - Boolean value which tells whether the dirty changes exist and need to be copied
 	 * @returns {Promise} Server response
 	 * @description Clears the RTA command stack
 	 */
 	AppVariantManager.prototype.clearRTACommandStack = function(bCopyUnsavedChanges) {
-		var oCommandStack = this.getCommandSerializer().getCommandStack();
+		const oCommandStack = this.getCommandSerializer().getCommandStack();
 		if (bCopyUnsavedChanges && oCommandStack.getAllExecutedCommands().length) {
 			return this._clearRTACommandStack();
 		}
@@ -205,36 +209,36 @@ sap.ui.define([
 
 	/**
 	 *
-	 * @param {String} sAppVariantId - Contains the application variant ID
-	 * @param {String} sReferenceAppId - Contains the reference application ID
-	 * @param {Boolean} bSaveAs - Indicates whether the app is currently being saved
+	 * @param {string} sAppVariantId - Contains the application variant ID
+	 * @param {string} sReferenceAppId - Contains the reference application ID
+	 * @param {boolean} bSaveAs - Indicates whether the app is currently being saved
 	 * @returns {Promise} Server response
 	 * @description In 'Save As' scenario: The app variant gets assigned to the same catalog(s) as the original app;
 	 * In 'Deletion' scenario: The app variant is unassigned from all catalogs.
 	 */
 	AppVariantManager.prototype.triggerCatalogPublishing = function(sAppVariantId, sReferenceAppId, bSaveAs) {
-		var fnTriggerCatalogOperation = bSaveAs ? AppVariantUtils.triggerCatalogAssignment : AppVariantUtils.triggerCatalogUnAssignment;
+		const fnTriggerCatalogOperation = bSaveAs ? AppVariantUtils.triggerCatalogAssignment : AppVariantUtils.triggerCatalogUnAssignment;
 		return fnTriggerCatalogOperation(sAppVariantId, this.getLayer(), sReferenceAppId)
-			.catch(function(oError) {
-				var sMessageKey = bSaveAs ? "MSG_CATALOG_ASSIGNMENT_FAILED" : "MSG_DELETE_APP_VARIANT_FAILED";
-				return AppVariantUtils.catchErrorDialog(oError, sMessageKey, sAppVariantId);
-			});
+		.catch(function(oError) {
+			const sMessageKey = bSaveAs ? "MSG_CATALOG_ASSIGNMENT_FAILED" : "MSG_DELETE_APP_VARIANT_FAILED";
+			return AppVariantUtils.catchErrorDialog(oError, sMessageKey, sAppVariantId);
+		});
 	};
 
 	/**
 	 *
-	 * @param {String} sIamId - Identity Access Management ID of SAP Fiori app
-	 * @param {String} sAppVariantId - Application variant ID
-	 * @param {Boolean} bCreation - Indicates that app is being created
+	 * @param {string} sIamId - Identity Access Management ID of SAP Fiori app
+	 * @param {string} sAppVarId - Application variant ID
+	 * @param {boolean} bCreation - Indicates that app is being created
 	 * @returns {Promise} Resolved promise
 	 * @description When the app variant creation/deletion and catalog assignment/unassignment are executed successfully, this asynchronous process gets triggered. It talks to the server every 2.5 secs.
 	 * In case of creation: It checks whether the new FLP tile is available.
 	 * In case of deletion: It checks whether the catalogs bound to the app variant have been unpublished and the deletion can be started.
 	 */
 	AppVariantManager.prototype.notifyKeyUserWhenPublishingIsReady = function(sIamId, sAppVarId, bCreation) {
-		var oS4HanaCloudBackend = new S4HanaCloudBackend();
+		const oS4HanaCloudBackend = new S4HanaCloudBackend();
 		return oS4HanaCloudBackend.notifyFlpCustomizingIsReady(sIamId, bCreation).catch(function(oError) {
-			var sMessageKey = bCreation ? "MSG_TILE_CREATION_FAILED" : "MSG_DELETE_APP_VARIANT_FAILED";
+			let sMessageKey = bCreation ? "MSG_TILE_CREATION_FAILED" : "MSG_DELETE_APP_VARIANT_FAILED";
 			if (!bCreation && oError.error === "locked") {
 				sMessageKey = "MSG_CATALOGS_LOCKED";
 			}
@@ -255,4 +259,4 @@ sap.ui.define([
 	};
 
 	return AppVariantManager;
-}, true);
+});

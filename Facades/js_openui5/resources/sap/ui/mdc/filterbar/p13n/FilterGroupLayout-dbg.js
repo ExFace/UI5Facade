@@ -1,60 +1,67 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.mdc.filterbar.p13n.FilterGroupLayout.
-sap.ui.define(['sap/m/CustomListItem', 'sap/m/CustomListItemRenderer', 'sap/m/Label'
-], function(CustomListItem, CustomListItemRenderer, Label) {
+sap.ui.define(['sap/ui/core/Control'], (Control) => {
 	"use strict";
 
 	/**
 	 * Constructor for a new filterBar/p13n/FilterGroupLayout.
-	 * Displays the label above the FilterField
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new control
-	 * @class Represents a filter item on the UI.
-	 * @extends sap.m.ColumnListItem
+	 * @class Represents a filter item on the UI and displays the label above the FilterField
+	 * @extends sap.ui.core.Control
 	 * @constructor
 	 * @private
 	 * @since 1.82.0
 	 * @alias sap.ui.mdc.filterbar.p13n.FilterGroupLayout
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FilterGroupLayout = CustomListItem.extend("sap.ui.mdc.filterbar.p13n.FilterGroupLayout", {
-		renderer: CustomListItemRenderer
+	const FilterGroupLayout = Control.extend("sap.ui.mdc.filterbar.p13n.FilterGroupLayout", {
+		metadata: {
+			library: "sap.ui.mdc"
+		},
+		renderer: {
+			apiVersion: 2,
+			render: function(oRm, oControl) {
+				oRm.openStart("div", oControl);
+				oRm.style("height", "100%");
+				oRm.openEnd();
+				oRm.renderControl(oControl.getItems()[0]);
+				oRm.close("div");
+			}
+		}
 	});
 
-	FilterGroupLayout.prototype._getFieldPath = function () {
-		return this._sFieldPath;
+	FilterGroupLayout.prototype._getFieldPath = function() {
+		return this._oFilterField ? this._oFilterField.getPropertyKey() : null;
 	};
 
-	FilterGroupLayout.prototype.setFilterField = function (oFilterField) {
-		this._sLabel = oFilterField.getLabel();
+	FilterGroupLayout.prototype.setFilterField = function(oFilterField) {
 		this._oFilterField = oFilterField;
-		this._sFieldPath = oFilterField.getFieldPath();
 	};
 
-	FilterGroupLayout.prototype.getContent = function() {
-		var aContent = [];
-		var oLabel = new Label({
-			text: this._sLabel,
-			required: "{required}"
-		});
+	FilterGroupLayout.prototype.getIdForLabel = function() {
+		return this._oFilterField && this._oFilterField.getIdForLabel();
+	};
 
-		oLabel.setParent(this);
+	FilterGroupLayout.prototype.getAccessibilityInfo = function() {
+		return {
+			children: this.getItems()
+		};
+	};
 
-		aContent.push(oLabel);
-
+	FilterGroupLayout.prototype.getItems = function() {
+		const aContent = [];
 		aContent.push(this._oFilterField);
-
 		return aContent;
 	};
 
-	FilterGroupLayout.prototype.exit = function () {
+	FilterGroupLayout.prototype.exit = function() {
+		Control.prototype.exit.apply(this, arguments);
 		this._oFilterField = null;
-		this._sFieldPath = null;
 	};
 
 	return FilterGroupLayout;

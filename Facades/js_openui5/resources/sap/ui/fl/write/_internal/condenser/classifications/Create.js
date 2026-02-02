@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Core","sap/ui/fl/write/_internal/condenser/Utils"],function(C,a){"use strict";return{addToReconstructionMap:function(u,c){var A=C.byId(c.affectedControl);var s=A&&A.sParentAggregationName||c.targetAggregation;var t=a.getContainerElementIds(c.targetContainer,s);var b=a.getInitialUIContainerElementIds(u,c.targetContainer,c.targetAggregation,t);var i=b.indexOf(c.affectedControl);if(i>-1){b.splice(i,1);}},simulate:function(c,o){c.splice(o.getTargetIndex(o.change),0,o.affectedControl);}};});
+sap.ui.define(["sap/ui/core/Element","sap/ui/fl/write/_internal/condenser/Utils"],function(t,e){"use strict";return{async addToReconstructionMap(n,a){const o=t.getElementById(a.affectedControl);const r=a.targetAggregation||o&&o.sParentAggregationName;const i=await e.getContainerElementIds(a.targetContainer,r,a.customAggregation,a.affectedControlIdProperty);const g=e.getInitialUIContainerElementIds(n,a.targetContainer,a.targetAggregation,i);const s=g.indexOf(a.affectedControl);if(s>-1){g.splice(s,1)}},simulate(t,e){t.splice(e.getTargetIndex(e.change),0,e.affectedControl)}}});
+//# sourceMappingURL=Create.js.map

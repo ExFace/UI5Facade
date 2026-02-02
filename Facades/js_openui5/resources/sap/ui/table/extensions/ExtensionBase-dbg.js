@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,12 +19,12 @@ sap.ui.define([
 	 * @abstract
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.ExtensionBase
 	 */
-	var ExtensionBase = BaseObject.extend("sap.ui.table.extensions.ExtensionBase", /** @lends sap.ui.table.extensions.ExtensionBase.prototype */ {
+	const ExtensionBase = BaseObject.extend("sap.ui.table.extensions.ExtensionBase", /** @lends sap.ui.table.extensions.ExtensionBase.prototype */ {
 		/**
 		 * Instance of the table this extension is applied to.
 		 *
@@ -62,11 +62,11 @@ sap.ui.define([
 				this._type = ExtensionBase.TABLETYPES.ANALYTICAL;
 			}
 
-			var sExtensionName = this._init(this._table, this._type, this._settings);
+			const sExtensionName = this._init(this._table, this._type, this._settings);
 
 			// Attach a getter to the table to get the instance of this extension.
 			if (sExtensionName) {
-				var that = this;
+				const that = this;
 				oTable["_get" + sExtensionName] = function() { return that; };
 			}
 		},
@@ -156,7 +156,7 @@ sap.ui.define([
 			return;
 		}
 
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i]._attachEvents();
 		}
 	};
@@ -173,7 +173,7 @@ sap.ui.define([
 		if (!oTable._aExtensions) {
 			return;
 		}
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i]._detachEvents();
 		}
 	};
@@ -193,7 +193,7 @@ sap.ui.define([
 			return null;
 		}
 
-		var oExtension = new ExtensionClass(oTable, mSettings);
+		const oExtension = new ExtensionClass(oTable, mSettings);
 		if (!oTable._aExtensions) {
 			oTable._aExtensions = [];
 		}
@@ -212,7 +212,7 @@ sap.ui.define([
 		if (!oTable._bExtensionsInitialized || !oTable._aExtensions) {
 			return;
 		}
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i].destroy();
 		}
 		delete oTable._aExtensions;
@@ -232,7 +232,7 @@ sap.ui.define([
 			return false;
 		}
 
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			if (oTable._aExtensions[i].getMetadata().getName() === sExtensionFullName) {
 				return true;
 			}

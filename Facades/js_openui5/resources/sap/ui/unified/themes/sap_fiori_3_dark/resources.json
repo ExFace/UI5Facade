@@ -8,19 +8,13 @@
 		},
 		{
 			"name": "Calendar.less",
-			"size": 18502,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "CalendarLegend.less",
-			"size": 4799,
+			"size": 18227,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 11261,
+			"size": 4416,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -42,13 +36,13 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 1715,
+			"size": 1851,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "Menu.less",
-			"size": 3256,
+			"size": 1487,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -71,58 +65,36 @@
 			"theme": "sap_fiori_3_dark"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 19539,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 108545,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 108167,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
 			"name": "library-RTL.css",
-			"size": 155831,
+			"size": 173441,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 7899,
+			"module": "sap/ui/unified/themes/sap_fiori_3_dark/library-parameters.json",
+			"size": 8059,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 155697,
+			"size": 173299,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 46690,
+			"size": 33065,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 584,
+			"size": 548,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 164055,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 163921,
-			"theme": "sap_fiori_3_dark"
+			"name": "resources.json",
+			"size": 1821
 		}
 	]
 }

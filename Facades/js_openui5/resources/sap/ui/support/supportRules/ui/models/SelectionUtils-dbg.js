@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"jquery.sap.global",
+	"sap/base/util/deepExtend",
 	"sap/ui/support/supportRules/Constants",
 	"sap/ui/support/supportRules/Storage",
 	"sap/ui/support/supportRules/ui/models/SharedModel"
-], function (jQuery, constants, storage, SharedModel) {
+], function (deepExtend, Constants, Storage, SharedModel) {
 	"use strict";
 
 	var SelectionUtils = {
@@ -72,7 +72,7 @@ sap.ui.define([
 		 * @returns {Array} Rule selections array
 		 */
 		updateSelectedRulesFromLocalStorage: function (oTreeViewModelRules) {
-			var aSelectedRules = storage.getSelectedRules();
+			var aSelectedRules = Storage.getSelectedRules();
 
 			if (!aSelectedRules) {
 				return null;
@@ -105,7 +105,7 @@ sap.ui.define([
 		persistSelection: function () {
 			var aSelectedRules = this.getRulesSelectionState();
 
-			storage.setSelectedRules(aSelectedRules);
+			Storage.setSelectedRules(aSelectedRules);
 		},
 
 		/**
@@ -114,19 +114,19 @@ sap.ui.define([
 		 * @param {Array} aSelectedRules The selected rules - same as the result of getSelectedRulesPlain
 		 */
 		setSelectedRules: function (aSelectedRules) {
-			var oTreeViewModelRules = this.model.getProperty("/treeModel");
+			var oRuleSetsData = deepExtend({}, this.treeTable.getModel("ruleSets").getData());
 
 			// deselect all
-			Object.keys(oTreeViewModelRules).forEach(function(iKey) {
-				oTreeViewModelRules[iKey].nodes.forEach(function(oRule) {
+			Object.keys(oRuleSetsData).forEach(function(iKey) {
+				oRuleSetsData[iKey].nodes.forEach(function(oRule) {
 					oRule.selected = false;
 				});
 			});
 
 			// select those from aSelectedRules
 			aSelectedRules.forEach(function (oRuleDescriptor) {
-				Object.keys(oTreeViewModelRules).forEach(function(iKey) {
-					oTreeViewModelRules[iKey].nodes.forEach(function(oRule) {
+				Object.keys(oRuleSetsData).forEach(function(iKey) {
+					oRuleSetsData[iKey].nodes.forEach(function(oRule) {
 						if (oRule.id === oRuleDescriptor.ruleId) {
 							oRule.selected = true;
 						}
@@ -134,8 +134,9 @@ sap.ui.define([
 				});
 			});
 
+			this.treeTable.getModel("ruleSets").setData(oRuleSetsData);
 			// syncs the parent and child selected/deselected state
-			this.treeTable.syncParentNoteWithChildrenNotes(oTreeViewModelRules);
+			this.treeTable.syncParentNodeSelectionWithChildren(this.treeTable.getModel("ruleSets"));
 
 			// apply selection to ui
 			this.treeTable.updateSelectionFromModel();
@@ -143,55 +144,47 @@ sap.ui.define([
 			// update the count in ui
 			this.getSelectedRules();
 
-			if (storage.readPersistenceCookie(constants.COOKIE_NAME)) {
+			if (Storage.readPersistenceCookie(Constants.COOKIE_NAME)) {
 				this.persistSelection();
 			}
 		},
 
 
 		/**
-		 * Applies selection to the tree model after reinitializing model with additional rulesets.
-		 * @param {Object} tempTreeModelWithAdditionalRuleSets tree model with no selection
-		 * @param {Object} oTreeModelWithSelection tree model with selection before loading additional rulesets
-		 * @returns {Object} oTreeModelWhitAdditionalRuleSets updated selection model
+		 * Applies selection after loading additional rulesets.
+		 * @param {Object} oRuleSetsFresh Newly loaded rulesets, without selections
+		 * @param {Object} oRuleSetsWithSelection The current data of the Rulesets model with selections
 		 */
-		_syncSelectionAdditionalRuleSetsMainModel: function (tempTreeModelWithAdditionalRuleSets, oTreeModelWithSelection) {
-
-			Object.keys(tempTreeModelWithAdditionalRuleSets).forEach(function(iKey) {
-				Object.keys(oTreeModelWithSelection).forEach(function(iKey) {
-					if (tempTreeModelWithAdditionalRuleSets[iKey].id === oTreeModelWithSelection[iKey].id) {
-						tempTreeModelWithAdditionalRuleSets[iKey] =  oTreeModelWithSelection[iKey];
+		_syncSelectionAdditionalRuleSetsMainModel: function (oRuleSetsFresh, oRuleSetsWithSelection) {
+			Object.keys(oRuleSetsFresh).forEach(function(iKey) {
+				Object.keys(oRuleSetsWithSelection).forEach(function(iKey) {
+					if (oRuleSetsFresh[iKey].id === oRuleSetsWithSelection[iKey].id) {
+						oRuleSetsFresh[iKey] = oRuleSetsWithSelection[iKey];
 					}
 				});
 			});
-
-			return tempTreeModelWithAdditionalRuleSets;
 		},
 
 		/**
-		 * Deselect additional rulesets in model
-		 * @param {Object} oTreeModel tree model with loaded additional ruleset(s)
-		 * @param {Array} aAdditionalRuleSetsNames additional ruleset(s) name
-		 * @returns {Object} oTreeModel updated selection model
+		 * Deselects additional rulesets
+		 * @param {Object} oRuleSets Newly loaded rulesets, with selections
+		 * @param {Array} aAdditionalRuleSetsNames Additional rulesets names
 		 */
-		_deselectAdditionalRuleSets: function (oTreeModel, aAdditionalRuleSetsNames) {
-
+		_deselectAdditionalRuleSets: function (oRuleSets, aAdditionalRuleSetsNames) {
 			if (!aAdditionalRuleSetsNames) {
 				return;
 			}
 
 			aAdditionalRuleSetsNames.forEach(function (sRuleName) {
-				Object.keys(oTreeModel).forEach(function(iKey) {
-					if (oTreeModel[iKey].name === sRuleName) {
-						oTreeModel[iKey].selected = false;
-						oTreeModel[iKey].nodes.forEach(function(oRule){
+				Object.keys(oRuleSets).forEach(function(iKey) {
+					if (oRuleSets[iKey].name === sRuleName) {
+						oRuleSets[iKey].selected = false;
+						oRuleSets[iKey].nodes.forEach(function(oRule){
 							oRule.selected = false;
 						});
 					}
 				});
 			});
-
-			return oTreeModel;
 		}
 	};
 

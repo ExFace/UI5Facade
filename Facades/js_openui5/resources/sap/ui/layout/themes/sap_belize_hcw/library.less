@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.less";
 @import "../../../../../../Base/baseLib/sap_belize_hcw/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_belize_hcw/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_belize_hcw/global.less";
@@ -43,6 +52,11 @@
 .sapUiGridHeader > .sapUiFormTitle > .sapUiBtn {
 	bottom: 0.4375rem;
 }
+
+/* Toolbar */
+.sapUiGridHeader.sapUiFormContainerToolbar > .sapMTB-Transparent-CTX.sapMTB.sapMIBar {
+	padding: 0;
+}
 /* END "GridLayout.less" */
 
 /* START "ResponsiveGridLayout.less" */
@@ -67,19 +81,12 @@
 .sapUiRLContainer > .sapUiFormTitle > .sapUiBtn {
 	bottom: 0.4375rem;
 }
-/* END "ResponsiveLayout.less" */
 
-/* START "SimpleForm.less" */
-/* ========================================= */
-/* CSS for control sap.ui.layout/SimpleForm  */
-/* Belize High Contrast White theme          */
-/* ========================================= */
-
-.sapUiFormEdit-CTX .sapMRb {
-	overflow: hidden;
-	text-overflow: ellipsis;
+/* Toolbar */
+.sapUiRLContainer.sapUiFormContainerToolbar > .sapMTB-Transparent-CTX.sapMTB.sapMIBar {
+	padding: 0;
 }
-/* END "SimpleForm.less" */
+/* END "ResponsiveLayout.less" */
 
 /* START "Splitter.less" */
 /* ======================================= */
@@ -89,7 +96,6 @@
 
 @_sap_ui_layout_Splitter_BarActiveDecorationColors: @sapUiObjectHeaderBorderColor, @sapUiObjectHeaderBorderColor;
 @_sap_ui_layout_Splitter_BarDecorationColors: @sapUiObjectHeaderBorderColor, fade(@sapUiObjectHeaderBorderColor, 0);
-@_sap_ui_layout_Splitter_BarBorder: 0.0625rem solid @sapUiGroupContentBorderColor;
 @_sap_ui_layout_Splitter_BarHoverIconBorderColor: @sapUiButtonLiteHoverBorderColor;
 @_sap_ui_layout_Splitter_BarHoverIconBackground: @sapUiButtonLiteHoverBackground;
 
@@ -103,10 +109,6 @@
 .sapUiLoSplitter > .sapUiLoSplitterOverlay .sapUiLoSplitterOverlayBar {
 	&:focus::after {
 		border-width: 2px;
-		top: -1px;
-		bottom: -1px;
-		left: -1px;
-		right: -1px;
 	}
 }
 

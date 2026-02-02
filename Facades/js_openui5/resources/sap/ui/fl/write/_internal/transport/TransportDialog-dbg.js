@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,9 +14,10 @@ sap.ui.define([
 	"sap/m/Input",
 	"sap/m/MessageToast",
 	"sap/ui/core/ListItem",
-	"sap/ui/fl/write/_internal/transport/Transports"
-],
-function(
+	"sap/ui/core/Lib",
+	"sap/ui/fl/write/_internal/transport/Transports",
+	"sap/ui/core/library"
+], function(
 	List,
 	InputListItem,
 	Button,
@@ -25,9 +26,14 @@ function(
 	Input,
 	MessageToast,
 	ListItem,
-	Transports
+	Lib,
+	Transports,
+	coreLibrary
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.ValueState
+	var {ValueState} = coreLibrary;
 
 	/**
 	 * Constructor for a new transport/TransportDialog.
@@ -44,46 +50,52 @@ function(
 	 * @alias sap.ui.fl.write._internal.transport.TransportDialog
 	 */
 	var TransportDialog = Dialog.extend("sap.ui.fl.write._internal.transport.TransportDialog", /** @lends sap.ui.fl.write._internal.transport.TransportDialog.prototype */ {
-		metadata : {
-			library : "sap.ui.fl",
-			properties : {
+		metadata: {
+			library: "sap.ui.fl",
+			properties: {
 
 				/**
 				 * An ABAP package that can be used as default for the ABAP package selection.
 				 */
-				pkg : {type : "string", group : "Misc", defaultValue : null},
+				pkg: {type: "string", group: "Misc", defaultValue: null},
 
 				/**
 				 * The set of ABAP transport requests that can be selected by a user.
 				 */
-				transports : {type : "any", group : "Misc", defaultValue : null},
+				transports: {type: "any", group: "Misc", defaultValue: null},
 
 				/**
 				 * The LREP object for which as transport request has to be selected.
 				 */
-				lrepObject : {type : "any", group : "Misc", defaultValue : null},
+				lrepObject: {type: "any", group: "Misc", defaultValue: null},
+
+				/**
+				 * Flag if the "Local Object" button should be visible.
+				 */
+				localObjectVisible: {type: "boolean", group: "Misc", defaultValue: true},
 
 				/**
 				 * Flag indicating whether the selection of an ABAP package is to be hidden or not.
 				 */
-				hidePackage : {type : "boolean", group : "Misc", defaultValue : null}
+				hidePackage: {type: "boolean", group: "Misc", defaultValue: null}
 			},
-			events : {
+			events: {
 
 				/**
 				 * This event will be fired when the user clicks the OK button in the dialog.
 				 */
-				ok : {},
+				ok: {},
 
 				/**
 				 * This event will be fired when the user clicks the Cancel button in the dialog or presses the Escape key on the keyboard.
 				 */
-				cancel : {}
+				cancel: {}
 			}
 		},
-		renderer: {} // inherit Dialog renderer
+		renderer: { // inherit Dialog renderer
+			apiVersion: 2
+		}
 	});
-
 
 	/**
 	 * Initializes the control.
@@ -94,7 +106,7 @@ function(
 		Dialog.prototype.init.apply(this);
 
 		// initialize dialog and create member variables.
-		this._oResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.fl");
+		this._oResources = Lib.getResourceBundleFor("sap.ui.fl");
 		this.setTitle(this._oResources.getText("TRANSPORT_DIALOG_TITLE"));
 
 		// add the content.
@@ -111,11 +123,6 @@ function(
 		}.bind(this));
 	};
 
-	/**
-	 * Creates the content list and places its content.
-	 *
-	 * @private
-	 */
 	TransportDialog.prototype._createContentList = function() {
 		this._oPackageListItem = new InputListItem({
 			label: this._oResources.getText("TRANSPORT_DIALOG_PACKAGE"),
@@ -147,25 +154,26 @@ function(
 	TransportDialog.prototype._createButtons = function() {
 		var that = this;
 
-		this.addButton(new Button({
+		this._oLocalObjectButton = new Button({
 			text: this._oResources.getText("TRANSPORT_DIALOG_LOCAL_OBJECT"),
 			tooltip: this._oResources.getText("TRANSPORT_DIALOG_LOCAL_OBJECT"),
-			press: function() {
+			press() {
 				that._onLocal();
 			}
-		}));
+		});
+		this.addButton(this._oLocalObjectButton);
 		this.addButton(new Button({
 			text: this._oResources.getText("TRANSPORT_DIALOG_OK"),
 			tooltip: this._oResources.getText("TRANSPORT_DIALOG_OK"),
 			enabled: false,
-			press: function() {
+			press() {
 				that._onOkay();
 			}
 		}));
 		this.addButton(new Button({
 			text: this._oResources.getText("TRANSPORT_DIALOG_CANCEL"),
 			tooltip: this._oResources.getText("TRANSPORT_DIALOG_CANCEL"),
-			press: function() {
+			press() {
 				that.fireCancel();
 				that.close();
 				that.destroy();
@@ -206,7 +214,7 @@ function(
 			this.destroy();
 		} else {
 			this.getButtons()[1].setEnabled(false);
-			this._oTransport.setValueState(sap.ui.core.ValueState.Error);
+			this._oTransport.setValueState(ValueState.Error);
 			this._oTransport.setValueStateText(this.getTitle());
 		}
 	};
@@ -228,8 +236,8 @@ function(
 	};
 
 	/**
-	 * Creates the transport <code>sap.ui.commons.ComboBox</code>.
-	 * @returns {sap.ui.commons.ComboBox} Transport <code>sap.ui.commons.ComboBox</code>
+	 * Creates the transport <code>sap.m.ComboBox</code>.
+	 * @returns {sap.m.ComboBox} Transport <code>sap.m.ComboBox</code>
 	 *
 	 * @private
 	 */
@@ -241,16 +249,16 @@ function(
 			enabled: false,
 			tooltip: this._oResources.getText("TRANSPORT_DIALOG_TRANSPORT_TT"),
 			width: "100%",
-			selectionChange: function() {
-				//if package field is visible but has no value, the OK button is disable
+			selectionChange() {
+				// if package field is visible but has no value, the OK button is disable
 				if (that._oPackageListItem.getVisible() && !that._oPackage.getValue()) {
 					return;
 				}
 
 				that.getButtons()[1].setEnabled(true);
-				that._oTransport.setValueState(sap.ui.core.ValueState.None);
+				that._oTransport.setValueState(ValueState.None);
 			},
-			change : function(oEvent) {
+			change(oEvent) {
 				var fCheck = function(oItem) {
 					if ((oItem && oEvent.mParameters.newValue !== oItem.getText()) || !oItem) {
 						return true;
@@ -262,7 +270,7 @@ function(
 				if (oEvent && oEvent.mParameters && oEvent.mParameters.newValue) {
 					if (fCheck(that._oTransport.getSelectedItem())) {
 						that.getButtons()[1].setEnabled(false);
-						that._oTransport.setValueState(sap.ui.core.ValueState.Error);
+						that._oTransport.setValueState(ValueState.Error);
 						that._oTransport.setValueStateText(that._oResources.getText("TRANSPORT_DIALOG_TRANSPORT_TT"));
 					}
 				}
@@ -271,8 +279,8 @@ function(
 	};
 
 	/**
-	 * Creates the package <code>sap.ui.commons.ComboBox</code>.
-	 * @returns {sap.ui.commons.ComboBox} Package <code>sap.ui.commons.ComboBox</code>
+	 * Creates an <code>sap.m.Input</code> field for the package.
+	 * @returns {sap.m.Input} Input field for the package
 	 *
 	 * @private
 	 */
@@ -282,7 +290,7 @@ function(
 		return new Input({
 			tooltip: this._oResources.getText("TRANSPORT_DIALOG_PACKAGE_TT"),
 			width: "100%",
-			change: function() {
+			change() {
 				var oPromise;
 				var oObject;
 
@@ -294,7 +302,7 @@ function(
 					that._onPackageChangeError(oResult);
 				});
 			},
-			liveChange: function(oEvent) {
+			liveChange(oEvent) {
 				if (oEvent.mParameters.liveValue && oEvent.mParameters.liveValue.length > 3) {
 					that._oTransport.setEnabled(true);
 				}
@@ -311,7 +319,7 @@ function(
 	TransportDialog.prototype._createObjectInfo = function() {
 		var oObject;
 		var oResult = {
-			"package" : this._oPackage.getValue() || ""
+			"package": this._oPackage.getValue() || ""
 		};
 
 		oObject = this.getProperty("lrepObject");
@@ -349,8 +357,8 @@ function(
 				this._setTransports(oTransports);
 			} else if (oTransports.errorCode) {
 				this.getButtons()[1].setEnabled(false);
-				this._oPackage.setValueState(sap.ui.core.ValueState.Error);
-				this._oPackage.setValueStateText(this._oResources.getText("TRANSPORT_DIALOG_" + oTransports.errorCode));
+				this._oPackage.setValueState(ValueState.Error);
+				this._oPackage.setValueStateText(this._oResources.getText(`TRANSPORT_DIALOG_${oTransports.errorCode}`));
 				this._setTransports(oTransports);
 			} else {
 				MessageToast.show(this._oResources.getText("TRANSPORT_DIALOG_NO_TRANSPORTS"));
@@ -368,7 +376,7 @@ function(
 		var oLock;
 		var aTransports;
 
-		//get the transports into an array.
+		// get the transports into an array.
 		oLock = this._hasLock(oTransports.transports);
 
 		if (oLock) {
@@ -377,19 +385,19 @@ function(
 			aTransports = oTransports.transports;
 		}
 
-		//set the transports.
+		// set the transports.
 		this.setTransports(aTransports);
 
-		//pre-select one, if necessary.
+		// pre-select one, if necessary.
 		if (aTransports && aTransports.length === 1) {
 			this._oTransport.setValue(aTransports[0].description, true);
 			this.getButtons()[1].setEnabled(true);
 		}
 
-		//clear the transport combo-box, if necessary.
+		// clear the transport combo-box, if necessary.
 		if (!aTransports || aTransports.length === 0) {
 			this._oTransport.setSelectedKey(null);
-			this._oTransport.setValueState(sap.ui.core.ValueState.None);
+			this._oTransport.setValueState(ValueState.None);
 			this.getButtons()[1].setEnabled(false);
 		}
 	};
@@ -427,10 +435,16 @@ function(
 		return null;
 	};
 
+	TransportDialog.prototype.setLocalObjectVisible = function(bLocalObjectVisible) {
+		this._oLocalObjectButton.setVisible(bLocalObjectVisible);
+		this.setProperty("localObjectVisible", bLocalObjectVisible);
+	};
+
 	/**
 	 * An ABAP package that can be used as default for the ABAP package selection.
 	 * The property can only be set once and afterwards it cannot be changed.
 	 * @param {string} sPackage - ABAP package that can be used as default for the ABAP package selection
+	 * @returns {sap.ui.fl.write._internal.transport.TransportDialog} The <code>this</code> object
 	 *
 	 * @public
 	 */
@@ -449,7 +463,7 @@ function(
 			// correct the title.
 			this.setTitle(this._oResources.getText("TRANSPORT_DIALOG_TITLE_SIMPLE"));
 
-			//disable local object button, as package has been set from outside and therefore should not be changed.
+			// disable local object button, as package has been set from outside and therefore should not be changed.
 			this.getButtons()[0].setVisible(false);
 		}
 
@@ -459,6 +473,7 @@ function(
 	/**
 	 * The set of ABAP transport requests that can be selected by a user.
 	 * @param {array} aSelection - Set of ABAP transport requests that can be selected by a user
+	 * @returns {sap.ui.fl.write._internal.transport.TransportDialog} The <code>this</code> object
 	 *
 	 * @public
 	 */
@@ -499,6 +514,7 @@ function(
 	 * The LREP object for which as transport request has to be selected.
 	 * The property can only be set once and afterwards it cannot be changed.
 	 * @param {object} oObject - LREP object for which a transport request has to be selected. The object has the attributes name, namespace, and type
+	 * @returns {sap.ui.fl.write._internal.transport.TransportDialog} The <code>this</code> object
 	 *
 	 * @public
 	 */
@@ -513,22 +529,23 @@ function(
 	/**
 	 * Flag indicating whether the selection of an ABAP package is to be hidden or not.
 	 * @param {boolean} bHide - If set to <code>true</code>, the package selection is hidden
+	 * @returns {sap.ui.fl.write._internal.transport.TransportDialog} The <code>this</code> object
 	 *
 	 * @public
 	 */
 	TransportDialog.prototype.setHidePackage = function(bHide) {
-		//set the property itself.
+		// set the property itself.
 		this.setProperty("hidePackage", bHide);
 
-		//toggle package visibility.
+		// toggle package visibility.
 		this._oPackageListItem.setVisible(!bHide);
 
 		if (bHide) {
-			//set the local object button to enabled,
-			//as the end-user might want to "just" save the object without selecting a transport.
+			// set the local object button to enabled,
+			// as the end-user might want to "just" save the object without selecting a transport.
 			this.getButtons()[0].setEnabled(bHide);
 
-			//correct the title.
+			// correct the title.
 			this.setTitle(this._oResources.getText("TRANSPORT_DIALOG_TITLE_SIMPLE"));
 		}
 

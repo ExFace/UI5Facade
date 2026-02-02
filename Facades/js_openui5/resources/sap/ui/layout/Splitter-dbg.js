@@ -1,30 +1,40 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/core/Control',
+	"./_SplitterRegistry",
+	'./SplitterRenderer',
+	"./SplitterLayoutData",
 	'./library',
+	"sap/base/i18n/Localization",
+	'sap/ui/core/Control',
+	"sap/ui/core/Core",
+	'sap/ui/core/CustomData',
 	'sap/ui/core/library',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/RenderManager',
-	'./SplitterRenderer',
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/layout/SplitterLayoutData"
+	"sap/ui/core/Theming"
 ],
 	function(
-		Control,
+		_SplitterRegistry,
+		SplitterRenderer,
+		SplitterLayoutData,
 		library,
+		Localization,
+		Control,
+		Core,
+		CustomData,
 		coreLibrary,
 		ResizeHandler,
 		RenderManager,
-		SplitterRenderer,
 		Log,
 		jQuery,
-		SplitterLayoutData
+		Theming
 	) {
 	"use strict";
 
@@ -66,13 +76,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.22.0
 	 * @alias sap.ui.layout.Splitter
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Splitter = Control.extend("sap.ui.layout.Splitter", /** @lends sap.ui.layout.Splitter.prototype */ {
 		metadata: {
@@ -133,22 +142,27 @@ sap.ui.define([
 	});
 
 	Splitter.prototype.init = function() {
+		/**
+		 * @deprecated As of version 1.21
+		 */
 		this._liveResize        = true;
 		this._keyboardEnabled   = true;
 		this._bHorizontal       = true;
-		/** @type {Number[]} */
+		/** @type {number[]} */
 		this._calculatedSizes   = [];
 		this._move              = {};
 
 		this._resizeTimeout     = null;
 
 		// Context bound method for easy (de-)registering at the ResizeHandler
-		this._resizeCallback    = this._delayedResize.bind(this);
+		this._resizeCallback    = function (oEvent) {
+			this._delayedResize(0);
+		}.bind(this);
 		this._resizeHandlerId   = null;
 		// We need the information whether auto resize is enabled to temporarily disable it
 		// during live resize and then set it back to the value before
 		this._autoResize = true;
-		this.enableAutoResize();
+		this._enableAutoResize();
 
 		// Bound versions for event handler registration
 		this._boundBarMoveEnd   = this._onBarMoveEnd.bind(this);
@@ -157,7 +171,7 @@ sap.ui.define([
 		// Switch resizing parameters based on orientation - this must be done to initialize the values
 		this._initOrientationProperties();
 
-		this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		this._bRtl = Localization.getRTL();
 
 		// Create bound listener functions for keyboard event handling
 		this._keyListeners = {
@@ -169,10 +183,12 @@ sap.ui.define([
 			min          : this._onKeyboardResize.bind(this, "min", 20)
 		};
 		this._enableKeyboardListeners();
+		this._handleThemeAppliedBound = this._handleThemeApplied.bind(this);
 	};
 
 	Splitter.prototype.exit = function() {
-		this.disableAutoResize();
+		_SplitterRegistry.removeInstance(this);
+		this._disableAutoResize();
 		delete this._resizeCallback;
 
 		delete this._boundBarMoveEnd;
@@ -183,12 +199,18 @@ sap.ui.define([
 	};
 
 	Splitter.prototype.onBeforeRendering = function() {
+		_SplitterRegistry.removeInstance(this);
 		this._initOrientationProperties();
 	};
 
 	Splitter.prototype.onAfterRendering = function() {
+		_SplitterRegistry.addInstance(this);
 		this._$SplitterOverlay = this.$("overlay");
 		this._$SplitterOverlayBar = this.$("overlayBar");
+
+		if (!this._bThemeApplied) {
+			Theming.attachApplied(this._handleThemeAppliedBound);
+		}
 
 		// Calculate and apply correct sizes to the Splitter contents
 		this._resize();
@@ -221,11 +243,7 @@ sap.ui.define([
 	Splitter.prototype.resetContentAreasSizes = function () {
 		var aContentAreas = this._getContentAreas();
 		for (var i = 0; i < aContentAreas.length; i++) {
-			var oLD = aContentAreas[i].getLayoutData();
-			var bHasMinSize = oLD.getMinSize() != 0;
-			var sSize = bHasMinSize ? oLD.getMinSize() + "px" : "auto";
-			oLD.setSize(sSize);
-			this.$("content-" + i).css(this._sizeType, sSize);
+			aContentAreas[i].getLayoutData().setSize("auto");
 		}
 	};
 
@@ -235,7 +253,7 @@ sap.ui.define([
 	 * Returns the current actual content sizes as pixel value - these values can change with every
 	 * resize.
 	 *
-	 * @returns {Number[]} Array of px values that correspond to the content area sizes
+	 * @returns {number[]} Array of px values that correspond to the content area sizes
 	 * @protected
 	 * @deprecated As of version 1.21. This method is declared as protected in order to assess the need for this feature. It is declared as deprecated because the API might change in case the need for this is high enough to make it part of the official Splitter interface
 	 */
@@ -254,6 +272,10 @@ sap.ui.define([
 	 * @deprecated As of version 1.21. This method is declared as protected in order to assess the need for this feature. It is declared as deprecated because the API might change in case the need for this is high enough to make it part of the official Splitter interface
 	 */
 	Splitter.prototype.enableAutoResize = function(bTemporarily) {
+		this._enableAutoResize(bTemporarily);
+	};
+
+	Splitter.prototype._enableAutoResize = function(bTemporarily) {
 		// Do not enable autoResize if it was deactivated temporarily and wasn't enabled before
 		if (bTemporarily && !this._autoResize) {
 			return;
@@ -262,7 +284,7 @@ sap.ui.define([
 		this._autoResize = true;
 
 		var that = this;
-		sap.ui.getCore().attachInit(function() {
+		Core.ready(function() {
 			that._resizeHandlerId = ResizeHandler.register(that, that._resizeCallback);
 		});
 
@@ -280,6 +302,10 @@ sap.ui.define([
 	 * @deprecated As of version 1.21. This method is declared as protected in order to assess the need for this feature. It is declared as deprecated because the API might change in case the need for this is high enough to make it part of the official Splitter interface
 	 */
 	Splitter.prototype.disableAutoResize = function(bTemporarily) {
+		this._disableAutoResize(bTemporarily);
+	};
+
+	Splitter.prototype._disableAutoResize = function(bTemporarily) {
 		ResizeHandler.deregister(this._resizeHandlerId);
 
 		if (!bTemporarily) {
@@ -407,12 +433,12 @@ sap.ui.define([
 		var sId = this.getId();
 
 		// Disable auto resize during bar move
-		this.disableAutoResize(/* temporarily: */ true);
+		this._disableAutoResize(/* temporarily: */ true);
 
 		var iPos = oEvent[this._moveCord];
 		var iBar = parseInt(oBar.id.substr((sId + "-splitbar-").length));
 		var $bar = jQuery(oBar);
-		var mCalcSizes = this.getCalculatedSizes();
+		var mCalcSizes = this._calculatedSizes;
 		var iBarSize = this._bHorizontal ? $bar.outerWidth() : $bar.outerHeight();
 		var aContentAreas = this._getContentAreas();
 		var oLd1   = aContentAreas[iBar].getLayoutData();
@@ -442,9 +468,9 @@ sap.ui.define([
 			$bar : $bar,
 			// The content sizes for fast resize bound calculation
 			c1Size : mCalcSizes[iBar],
-			c1MinSize : oLd1 ? parseInt(oLd1.getMinSize()) : 0,
+			c1MinSize : oLd1.getMinSize(),
 			c2Size : mCalcSizes[iBar + 1],
-			c2MinSize : oLd2 ? parseInt(oLd2.getMinSize()) : 0
+			c2MinSize : oLd2.getMinSize()
 		};
 
 		// Event handlers use bound handler methods - see init()
@@ -504,21 +530,26 @@ sap.ui.define([
 		if (bInBounds) {
 			this._$SplitterOverlayBar.css(this._sizeDir, this._move.relStart + iDelta);
 
-			if (this._liveResize) {
-				var fMove = (this._move["start"] - oConfig[this._moveCord]);
-
-				//We should only switch direction of change in case it is left or right.
-				//Otherwise the vertical splitter is moved opposite to the mouse movement
-				if (this.getOrientation() == Orientation.Horizontal && this._bRtl) {
-					fMove = -fMove;
-				}
-
-				this._resizeContents(
-					/* left content number:    */ this._move["barNum"],
-					/* number of pixels:       */ -fMove,
-					/* also change layoutData: */ false
-				);
+			/**
+			 * @deprecated As of version 1.21
+			 */
+			if (!this._liveResize) {
+				return;
 			}
+
+			var fMove = (this._move["start"] - oConfig[this._moveCord]);
+
+			//We should only switch direction of change in case it is left or right.
+			//Otherwise the vertical splitter is moved opposite to the mouse movement
+			if (this.getOrientation() == Orientation.Horizontal && this._bRtl) {
+				fMove = -fMove;
+			}
+
+			this._resizeContents(
+				/* left content number:    */ this._move["barNum"],
+				/* number of pixels:       */ -fMove,
+				/* also change layoutData: */ false
+			);
 		}
 
 	};
@@ -565,19 +596,18 @@ sap.ui.define([
 		document.removeEventListener("touchmove", this._boundBarMove);
 
 		// Enable auto resize after bar move if it was enabled before
-		this.enableAutoResize(/* temporarily: */ true);
+		this._enableAutoResize(/* temporarily: */ true);
 		if (this._move.$bar){
-			this._move.$bar.focus();
+			this._move.$bar.trigger("focus");
 		}
 	};
 
 	/**
 	 * Resizes the contents after a bar has been moved
 	 *
-	 * @param {Number} [iLeftContent] Number of the first (left) content that is resized
-	 * @param {Number} [iPixels] Number of pixels to increase the first and decrease the second content
-	 * @param {boolean} [bFinal] Whether this is the final position (sets the size in the layoutData of the
-	 * content areas)
+	 * @param {int} iLeftContent Index of the first (left) content that is resized
+	 * @param {number} iPixels Number of pixels to increase the first and decrease the second content
+	 * @param {boolean} bFinal Whether this is the final position (sets the size in the layoutData of the content areas)
 	 */
 	Splitter.prototype._resizeContents = function(iLeftContent, iPixels, bFinal) {
 		if (isNaN(iPixels)) {
@@ -595,10 +625,15 @@ sap.ui.define([
 		var $Cnt1 = this.$("content-" + iLeftContent);
 		var $Cnt2 = this.$("content-" + (iLeftContent + 1));
 
-		var iNewSize1 = this._move.c1Size + iPixels;
-		var iNewSize2 = this._move.c2Size - iPixels;
+		var sMoveContentSize1 = parseFloat(this._move.c1Size).toFixed(5);
+		var sMoveContentSize2 = parseFloat(this._move.c2Size).toFixed(5);
+
+		var iNewSize1 = parseFloat(sMoveContentSize1) + iPixels;
+		var iNewSize2 = parseFloat(sMoveContentSize2) - iPixels;
 		var iMinSize1 = parseInt(oLd1.getMinSize());
 		var iMinSize2 = parseInt(oLd2.getMinSize());
+
+		var sFinalSize1, sFinalSize2;
 
 		// Adhere to size constraints
 		var iDiff;
@@ -615,24 +650,64 @@ sap.ui.define([
 		}
 
 		if (bFinal) {
+			// in this case widths of the areas are % from the available content width (bars excluded)
+			var iAvailableContentSize = this._calcAvailableContentSize();
+
 			// Resize finished, set layout data in content areas
 			if (sSize1 === "auto" && sSize2 !== "auto") {
 				// First pane has auto size - only change size of second pane
-				oLd2.setSize(iNewSize2 + "px");
+				sFinalSize2 = this._calcAreaSizeWithUnit(iNewSize2, iAvailableContentSize, oLd2._getSizeUnit());
+				oLd2.setSize(sFinalSize2);
+				oLd2._markModified();
 			} else if (sSize1 !== "auto" && sSize2 === "auto") {
 				// Second pane has auto size - only change size of first pane
-				oLd1.setSize(iNewSize1 + "px");
+				sFinalSize1 = this._calcAreaSizeWithUnit(iNewSize1, iAvailableContentSize, oLd1._getSizeUnit());
+				oLd1.setSize(sFinalSize1);
+				oLd1._markModified();
 			} else {
-				oLd1.setSize(iNewSize1 + "px");
-				oLd2.setSize(iNewSize2 + "px");
+				sFinalSize1 = this._calcAreaSizeWithUnit(iNewSize1, iAvailableContentSize, oLd1._getSizeUnit());
+				sFinalSize2 = this._calcAreaSizeWithUnit(iNewSize2, iAvailableContentSize, oLd2._getSizeUnit());
+
+				oLd1.setSize(sFinalSize1);
+				oLd2.setSize(sFinalSize2);
+				oLd1._markModified();
+				oLd2._markModified();
 			}
-		} else {
-			// Live-Resize, resize contents in Dom
-			$Cnt1.css(this._sizeType, iNewSize1 + "px");
-			$Cnt2.css(this._sizeType, iNewSize2 + "px");
+
+			this._delayedResize();
+		} else { // Live-Resize, resize contents in Dom
+			// in this case widths of the areas are % from the total size (bars included)
+			var iTotalSplitterSize = this._getTotalSize();
+
+			sFinalSize1 = this._pxToPercent(iNewSize1, iTotalSplitterSize);
+			sFinalSize2 = this._pxToPercent(iNewSize2, iTotalSplitterSize);
+
+			$Cnt1.css(this._sizeType, sFinalSize1);
+			$Cnt2.css(this._sizeType, sFinalSize2);
 		}
 	};
 
+	Splitter.prototype._calcAreaSizeWithUnit = function (iPx, iAvailable, sUnit) {
+		if (sUnit === "px") {
+			return iPx + "px";
+		}
+
+		if (sUnit === "rem") {
+			return (iPx / iRemAsPixels) + "rem"; // TODO: use Rem class
+		}
+
+		return this._pxToPercent(iPx, iAvailable);
+	};
+
+	Splitter.prototype._pxToPercent = function (iPx, iFullSize) {
+		return (iPx * 100) / iFullSize + "%";
+	};
+
+	Splitter.prototype._handleThemeApplied = function () {
+		Theming.detachApplied(this._handleThemeAppliedBound);
+		this._bThemeApplied = true;
+		this._resize();
+	};
 
 	////////////////////////////////////////// Private Methods /////////////////////////////////////////
 
@@ -640,7 +715,7 @@ sap.ui.define([
 	 * Resizes as soon as the current stack is done. Can be used in cases where several resize-relevant
 	 * actions are done in a loop to make sure only one resize calculation is done at the end.
 	 *
-	 * @param {Number} [iDelay=0] Number of milliseconds to wait before doing the resize
+	 * @param {int} [iDelay=0] Number of milliseconds to wait before doing the resize
 	 * @private
 	 */
 	Splitter.prototype._delayedResize = function(iDelay) {
@@ -660,26 +735,26 @@ sap.ui.define([
 	 * been calculated.
 	 *
 	 * @param {sap.ui.core.Control[]} aContentAreas - The content areas of the Splitter
-	 * @returns {void}
 	 * @private
 	 */
 	Splitter.prototype._resizeBars = function(aContentAreas) {
-		var i, $Bar;
+		var i, $Bar,
+			iSizeNot = this._bHorizontal ? this.$().innerHeight() : this.$().innerWidth();
+
 		// In case the Splitter has a relative height or width set (like "100%"), and the surrounding
 		// container does not have a size set, the content of the Splitter defines the height/width,
 		// in which case the size of the splitter bars is incorrect.
-		var $this = this.$();
 		// First remove the size from the splitter bar so it does not lead to growing the content
 		for (i = 0; i < aContentAreas.length - 1; ++i) {
 			$Bar = this.$("splitbar-" + i);
 			$Bar.css(this._sizeTypeNot, "");
 		}
+
 		// Now measure the content and adapt the size of the Splitter bar
 		for (i = 0; i < aContentAreas.length - 1; ++i) {
 			$Bar = this.$("splitbar-" + i);
-			var iSize = this._bHorizontal ? $this.height() : $this.width();
 			$Bar.css(this._sizeType, "");
-			$Bar.css(this._sizeTypeNot, iSize + "px");
+			$Bar.css(this._sizeTypeNot, iSizeNot + "px");
 		}
 	};
 
@@ -689,9 +764,17 @@ sap.ui.define([
 	 * @private
 	 */
 	Splitter.prototype._resize = function() {
+		if (!this._bThemeApplied) {
+			return;
+		}
+
 		var oDomRef = this.getDomRef();
-		if (!oDomRef || RenderManager.getPreserveAreaRef().contains(oDomRef)) {
-			// Do not attempt to resize the content areas in case we are in the preserved area
+
+		// Do not attempt to resize the content areas in case the splitter
+		if (
+			!oDomRef || RenderManager.getPreserveAreaRef().contains(oDomRef) // is in the preserved area
+			|| oDomRef.scrollHeight === 0 || oDomRef.scrollWidth === 0 // has 0 width or height (display: none, etc.)
+		) {
 			return;
 		}
 
@@ -702,9 +785,9 @@ sap.ui.define([
 		this._resizeBars(aContentAreas);
 
 		// Save calculated sizes to be able to tell whether a resize occurred
-		var oldCalculatedSizes = this.getCalculatedSizes();
+		var oldCalculatedSizes = this._calculatedSizes;
 		this._recalculateSizes();
-		var newCalculatedSizes = this.getCalculatedSizes();
+		var newCalculatedSizes = this._calculatedSizes;
 
 		var bSizesValid = false;
 		for (i = 0; i < newCalculatedSizes.length; ++i) {
@@ -751,100 +834,75 @@ sap.ui.define([
 		}
 	};
 
+	Splitter.prototype._getTotalSize = function () {
+		return this._bHorizontal ? this.$().innerWidth() : this.$().innerHeight();
+	};
+
+	Splitter.prototype._calcAvailableContentSize = function () {
+		return this._getTotalSize() - this._calcBarsSize();
+	};
+
 	/**
-	 * Calculates how much space is actually available inside the splitter to distribute the content
-	 * areas in.
-	 *
-	 * @param {string[]} [aSizes] The list of size values from the LayoutData of the content areas
-	 * @returns {Number} The available space in px
+	 * @returns {int} Sum of the widths of all bars in px
 	 * @private
 	 */
-	Splitter.prototype._calculateAvailableContentSize = function(aSizes) {
-		var i = 0;
-		var $Splitter = this.$();
-		var iFullSize      = this._bHorizontal ? $Splitter.innerWidth() : $Splitter.innerHeight();
-		// Due to rounding errors when zoom is activated, we need 1px of error margin for every element
-		// that is automatically sized...
-		var iAutosizedAreas = 0;
-		var bHasAutoSizedContent = false;
-		for (i = 0; i < aSizes.length; ++i) {
-			var sSize = aSizes[i];
-			if (sSize.indexOf("%") > -1) {
-				iAutosizedAreas++;
-			}
-			if (aSizes[i] == "auto") {
-				bHasAutoSizedContent = true;
-			}
-		}
-		iAutosizedAreas += bHasAutoSizedContent ? 1 : 0;
-
-		// don't subtract from the full size when orientation is Vertical to prevent endless resizing
-		if (this.getOrientation() === Orientation.Horizontal) {
-			iFullSize -= iAutosizedAreas;
-		}
+	Splitter.prototype._calcBarsSize = function () {
+		var iSplitBarsWidth = 0,
+			iBarsCount = this._getContentAreas().length - 1;
 
 		// Due to zoom rounding erros, we cannot assume that all SplitBars have the same sizes, even
 		// though they have the same CSS size set.
-		var iSplitters     = aSizes.length - 1;
-		var iSplitBarsWidth = 0;
-		for (i = 0; i < iSplitters; ++i) {
+		for (var i = 0; i < iBarsCount; i++) {
 			iSplitBarsWidth += this._bHorizontal
 				? this.$("splitbar-" + i).outerWidth()
 				: this.$("splitbar-" + i).outerHeight();
 		}
 
-		return Math.max(0, iFullSize - iSplitBarsWidth);
+		return iSplitBarsWidth;
 	};
 
 	/**
 	 * Recalculates the content sizes in three steps:
 	 *  1. Searches for all absolute values ("px") and deducts them from the available space.
-	 *  2. Searches for all percent values and interprets them as % of the available space after step 1
+	 *  2. Searches for all percent values and interprets them as % of the available space
 	 *  3. Divides the rest of the space uniformly between all contents with "auto" size values
 	 *
 	 * @private
 	 */
-	Splitter.prototype._recalculateSizes = function() {
-		var i, sSize, oLayoutData, iColSize, idx;
-
-		// Read all content sizes from the layout data
+	Splitter.prototype._recalculateSizes = function () {
+		var i, iAreaSize, idx, iMinSize;
 		var aSizes = [];
 		var aContentAreas = this._getContentAreas();
-		for (i = 0; i < aContentAreas.length; ++i) {
-			oLayoutData = aContentAreas[i].getLayoutData();
-			sSize = oLayoutData ? oLayoutData.getSize() : "auto";
-
-			aSizes.push(sSize);
-		}
+		var iRemainingSize = this._calcAvailableContentSize();
+		var aAutosizeIdx = [];
+		var aAutoMinsizeIdx = [];
+		var aPercentSizeIdx = [];
 
 		this._calculatedSizes = [];
 
-		var iAvailableSize = this._calculateAvailableContentSize(aSizes);
+		// Read all content sizes from the layout data
+		for (i = 0; i < aContentAreas.length; ++i) {
+			aSizes.push(aContentAreas[i].getLayoutData().getSize());
+		}
 
-		var aAutosizeIdx = [];
-		var aAutoMinsizeIdx = [];
-		var aPercentsizeIdx = [];
-		var iRest = iAvailableSize;
-
-		// Remove fixed sizes from available size
+		// Step 1: Subtract fixed sizes from available size
 		for (i = 0; i < aSizes.length; ++i) {
-			sSize = aSizes[i];
+			var sSize = aSizes[i];
 			var iSize;
 
 			if (sSize.indexOf("rem") > -1) {
 				iSize = parseFloat(sSize) * iRemAsPixels;
-				iRest -= iSize;
+				iRemainingSize -= iSize;
 				this._calculatedSizes[i] = iSize;
 			} else if (sSize.indexOf("px") > -1) {
 				// Pixel based Value - deduct it from available size
 				iSize = parseInt(sSize);
-				iRest -= iSize;
+				iRemainingSize -= iSize;
 				this._calculatedSizes[i] = iSize;
 			} else if (sSize.indexOf("%") > -1) {
-				aPercentsizeIdx.push(i);
-			} else if (aSizes[i] == "auto") {
-				oLayoutData = aContentAreas[i].getLayoutData();
-				if (oLayoutData && parseInt(oLayoutData.getMinSize()) != 0) {
+				aPercentSizeIdx.push(i);
+			} else if (sSize === "auto") {
+				if (aContentAreas[i].getLayoutData().getMinSize() !== 0) {
 					aAutoMinsizeIdx.push(i);
 				} else {
 					aAutosizeIdx.push(i);
@@ -856,66 +914,136 @@ sap.ui.define([
 
 		var bWarnSize = false; // Warn about sizes being too big for the available space
 
-		// If more than the available size if assigned to fixed width content, the rest will get no
-		// space at all
-		if (iRest < 0) { bWarnSize = true; iRest = 0; }
-
-		// Now calculate % of the available space
-		var iPercentSizes = aPercentsizeIdx.length;
-		for (i = 0; i < iPercentSizes; ++i) {
-			idx = aPercentsizeIdx[i];
-			// Percent based Value - deduct it from available size
-			iColSize = Math.floor((parseFloat(aSizes[idx]) / 100) * iAvailableSize);
-			this._calculatedSizes[idx] = iColSize;
-			iRest -= iColSize;
+		// If more than the available size is assigned to fixed width content, the rest will get no space at all
+		if (iRemainingSize < 0) {
+			bWarnSize = true;
+			iRemainingSize = 0;
 		}
-		iAvailableSize = iRest;
 
-		if (iAvailableSize < 0) { bWarnSize = true; iAvailableSize = 0; }
+		// Step 2: Calculate % of the total space
+		iRemainingSize = this._calcPercentBasedSizes(aPercentSizeIdx, iRemainingSize);
 
-		// Calculate auto sizes
-		iColSize = Math.floor(iAvailableSize / (aAutoMinsizeIdx.length + aAutosizeIdx.length), 0);
+		if (iRemainingSize < 0) {
+			bWarnSize = true;
+			iRemainingSize = 0;
+		}
+
+		// Step 3: Calculate auto sizes
+		var iAutoSize = Math.floor(iRemainingSize / (aAutoMinsizeIdx.length + aAutosizeIdx.length), 0);
 
 		// First calculate auto-sizes with a minSize constraint
-		var iAutoMinSizes = aAutoMinsizeIdx.length;
-		for (i = 0; i < iAutoMinSizes; ++i) {
+		for (i = 0; i < aAutoMinsizeIdx.length; ++i) {
+			iAreaSize = iAutoSize;
 			idx = aAutoMinsizeIdx[i];
-			var iMinSize = parseInt(aContentAreas[idx].getLayoutData().getMinSize());
-			if (iMinSize > iColSize) {
-				this._calculatedSizes[idx] = iMinSize;
-				iAvailableSize -= iMinSize;
-			} else {
-				this._calculatedSizes[idx] = iColSize;
-				iAvailableSize -= iColSize;
+			iMinSize = aContentAreas[idx].getLayoutData().getMinSize();
+
+			if (iAreaSize > iRemainingSize) {
+				iAreaSize = iRemainingSize;
 			}
+
+			if (iAreaSize < iMinSize) {
+				iAreaSize = iMinSize;
+			}
+
+			this._calculatedSizes[idx] = iAreaSize;
+			iRemainingSize -= iAreaSize;
 		}
 
-		if (iAvailableSize < 0) { bWarnSize = true; iAvailableSize = 0; }
+		if (iRemainingSize < 0) {
+			bWarnSize = true;
+			iRemainingSize = 0;
+		}
 
 		// Now calculate "auto"-sizes
-		iRest = iAvailableSize;
 		var iAutoSizes = aAutosizeIdx.length;
-		iColSize = Math.floor(iAvailableSize / iAutoSizes, 0);
+		iAutoSize = Math.floor(iRemainingSize / iAutoSizes, 0);
 		for (i = 0; i < iAutoSizes; ++i) {
 			idx = aAutosizeIdx[i];
-			this._calculatedSizes[idx] = iColSize;
-			iRest -= iColSize;
-	//			if (i == iAutoSizes - 1 && iRest != 0) {
-	//				// In case of rounding errors, change the last auto-size column
-	//				this._calculatedSizes[idx] += iRest;
-	//			}
+			this._calculatedSizes[idx] = iAutoSize;
+			iRemainingSize -= iAutoSize;
 		}
 
 		if (bWarnSize) {
-			// TODO: Decide if the warning should be kept - might spam the console but on the other
-			//       hand it might make analyzing of splitter bugs easier, since we can just ask
-			//       developers if there was a [Splitter] output on the console if the splitter looks
-			//       weird in their application.
-			Log.info(
-				"[Splitter] The set sizes and minimal sizes of the splitter contents are bigger " +
-				"than the available space in the UI."
-			);
+			this._logConstraintsViolated();
 		}
+	};
+
+	/**
+	 * Calculates sizes of areas sized with "%".
+	 * If some "%" area would exceed the available space, its size is reduced.
+	 * @param {int[]} aPercentSizeIdx Areas that are sized with "%"
+	 * @param {int} iRemainingSize Remaining size to distribute the "%" areas
+	 * @returns {int} How much space is left after distributing the "%" areas
+	 */
+	Splitter.prototype._calcPercentBasedSizes = function (aPercentSizeIdx, iRemainingSize) {
+		var aContentAreas = this._getContentAreas(),
+			iAvailableContentSize = this._calcAvailableContentSize();
+
+		// Step1: Distribute the % in the available size
+		for (let i = 0; i < aPercentSizeIdx.length; ++i) {
+			var idx = aPercentSizeIdx[i];
+			// Percent based value - deduct it from available size
+			var iAreaSize = parseFloat(aContentAreas[idx].getLayoutData().getSize()) / 100 * iAvailableContentSize;
+			var iMinSize = aContentAreas[idx].getLayoutData().getMinSize();
+
+			if (iAreaSize < iMinSize) {
+				iAreaSize = iMinSize;
+			}
+
+			this._calculatedSizes[idx] = iAreaSize;
+			iRemainingSize -= iAreaSize;
+		}
+
+		// Step2: Check if the distributed % would violate the minSize constrains of the remaining "auto" areas
+		var iMinSizeOfAutoSizedAreas = aContentAreas
+			.filter(function (oArea) {
+				return oArea.getLayoutData().getSize() === "auto";
+			})
+			.reduce(function (iSum, oArea) {
+				return iSum + oArea.getLayoutData().getMinSize();
+			}, 0);
+
+		// calculated % exceed the available space - shrink areas if possible
+		if (iRemainingSize < iMinSizeOfAutoSizedAreas) {
+			var iNeededSize = Math.abs(iRemainingSize - iMinSizeOfAutoSizedAreas);
+
+			// shrink areas from right to left
+			for (var i = aPercentSizeIdx.length - 1; i >= 0; i--) {
+				var iIdx = aPercentSizeIdx[i],
+					oArea = aContentAreas[iIdx],
+					iCalculatedSize = this._calculatedSizes[iIdx],
+					oLD = oArea.getLayoutData();
+
+				if (oLD._isMarked()) {
+					var iNewSize = iCalculatedSize - iNeededSize;
+
+					if (iNewSize < oLD.getMinSize()) {
+						iNewSize = oLD.getMinSize();
+					}
+
+					this._calculatedSizes[iIdx] = iNewSize;
+
+					var iIncreasedSize = iCalculatedSize - iNewSize;
+					iNeededSize -= iIncreasedSize;
+					iRemainingSize += iIncreasedSize;
+				}
+
+				// already shrunk enough
+				if (iNeededSize <= 0) {
+					break;
+				}
+			}
+		}
+
+		return iRemainingSize;
+	};
+
+	Splitter.prototype._logConstraintsViolated = function () {
+		Log.warning(
+			"The set sizes and minimal sizes of the splitter contents are bigger than the available space in the UI.",
+			null,
+			"sap.ui.layout.Splitter"
+		);
 	};
 
 	/**
@@ -961,7 +1089,7 @@ sap.ui.define([
 		var iBigStep  = 999999;
 
 		var iBar = parseInt(oEvent.target.id.substr(sBarId.length));
-		var mCalcSizes = this.getCalculatedSizes();
+		var mCalcSizes = this._calculatedSizes;
 		// TODO: These two lines are incomprehensible magic - find better solution
 		this._move.c1Size = mCalcSizes[iBar];
 		this._move.c2Size = mCalcSizes[iBar + 1];
@@ -1028,8 +1156,6 @@ sap.ui.define([
 		this._keyboardEnabled = false;
 	};
 
-	///////////////////////////////////////// Hidden Functions /////////////////////////////////////////
-
 	/**
 	 * Returns the bar for the given target. If there isn't such, null is returned
 	 * @param {HTMLElement} oTarget The target
@@ -1053,7 +1179,6 @@ sap.ui.define([
 			// The clicked element was not one of my splitter bars
 			return null;
 		}
-
 		return oBar;
 	};
 
@@ -1061,8 +1186,8 @@ sap.ui.define([
 	 * Compares two (simple, one-dimensional) arrays. If all values are the same, false is returned -
 	 * If values differ or at least one of the values is no array, true is returned.
 	 *
-	 * @param {Number[]} [aSizes1] The array of numbers to compare against
-	 * @param {Number[]} [aSizes2] The array of numbers that is compared to the first one
+	 * @param {number[]} [aSizes1] The array of numbers to compare against
+	 * @param {number[]} [aSizes2] The array of numbers that is compared to the first one
 	 * @returns {boolean} True if the size-arrays differ, false otherwise
 	 * @private
 	 */
@@ -1144,6 +1269,10 @@ sap.ui.define([
 
 	//////////////////////////////////////// Overridden Methods ////////////////////////////////////////
 
+	Splitter.prototype.getFocusDomRef = function() {
+		return this.getDomRef("splitbar-0") || this.getDomRef();
+	};
+
 	Splitter.prototype.invalidate = function(oOrigin) {
 		var bForce =
 			// In case the content invalidates and bubbles up (for example an invisible button being
@@ -1152,7 +1281,7 @@ sap.ui.define([
 
 			// CustomData that needs to be updated in the DOM has been set on the splitter
 			// TODO: Programatically write CustomData on this control to the DOM
-		 || (oOrigin && oOrigin instanceof sap.ui.core.CustomData && oOrigin.getWriteToDom())
+		 || (oOrigin && oOrigin instanceof CustomData && oOrigin.getWriteToDom())
 
 			// We do not know where the invalidate originated from. We will pretty much have to rerender
 		 || (oOrigin === undefined);

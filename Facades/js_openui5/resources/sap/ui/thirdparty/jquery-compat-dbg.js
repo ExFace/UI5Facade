@@ -26,7 +26,7 @@
 	// 1. check for URL parameter
 	// 2. check for the attribute marker in the bootstrap
 	// 3. check in the global configuration object
-	if (/sap-ui-excludeJQueryCompat=(true|x)/.test(location.search)
+	if (/sap-ui-excludeJQueryCompat=(true|x)/.test(location.search) || /sap-ui-excludejquerycompat=(true|x)/.test(location.search)
 		|| (oBootstrapScript && oBootstrapScript.getAttribute("data-sap-ui-excludejquerycompat") === "true")
 		|| oCfg["excludejquerycompat"] === true || oCfg["excludeJQueryCompat"] === true) {
 		return;
@@ -81,17 +81,17 @@ function jQueryVersionSince( version ) {
 
 
 // ##### BEGIN: MODIFIED BY SAP
-// Check the jquery version. If it's different than 3.5.1 but stays in the same major version 3.x.x, a warning is
+// Check the jquery version. If it's different than 3.6.0 but stays in the same major version 3.x.x, a warning is
 // logged and the compatibility layer is still applied. If it has a different major version as 3.x.x, an error is
 // logged and the application of the layer is skipped.
 /* eslint-disable no-console */
 if (jQueryVersionSince("3.0.0") && !jQueryVersionSince("4.0.0")) {
-	if (jQuery.fn.jquery !== "3.5.1" && console) {
-		console.warn("The current jQuery version " + jQuery.fn.jquery + " is different than the version 3.5.1 that is used for testing jquery-compat.js. jquery-compat.js is applied but it may not work properly.");
+	if (jQuery.fn.jquery !== "3.6.0" && console) {
+		console.warn("The current jQuery version " + jQuery.fn.jquery + " is different than the version 3.6.0 that is used for testing jquery-compat.js. jquery-compat.js is applied but it may not work properly.");
 	}
 } else {
 	if (console) {
-		console.error("The current jQuery version " + jQuery.fn.jquery + " differs at the major version than the version 3.5.1 that is used for testing jquery-compat.js. jquery-compat.js shouldn't be applied in this case!");
+		console.error("The current jQuery version " + jQuery.fn.jquery + " differs at the major version than the version 3.6.0 that is used for testing jquery-compat.js. jquery-compat.js shouldn't be applied in this case!");
 	}
 	// skip the appliation of jquery compatibility layer
 	return;
@@ -794,9 +794,12 @@ jQuery.Deferred.exceptionHook = oldDeferred.exceptionHook;
  *
  *  to
  *
- *  - return null instead of undefined when the jQuery element set is empty
- *  - When the function is called as a getter (without parameter given), return integer instead of float
- *  - When the function is called as a setter, the return value isn't adapted
+ *  - Valid jQuery element set:
+ *     - When the function is called as a getter (without parameter given): return integer instead of float
+ *     - When the function is called as a setter: the return value isn't adapted
+ *  - Empty jQuery element set:
+ *     - When the function is called as a getter (without parameter given): return null instead of undefined
+ *     - When the function is called as a setter: return 'this' (the empty jQuery object)
  *
  */
 var mOrigMethods = {},
@@ -804,11 +807,12 @@ var mOrigMethods = {},
 aMethods.forEach(function(sName) {
 	mOrigMethods[sName] = jQuery.fn[sName];
 	jQuery.fn[sName] = function() {
-		var vRes;
-		if (this.length === 0) {
+		var vRes = mOrigMethods[sName].apply(this, arguments);
+
+		// return null instead of undefined for empty element sets
+		if (vRes === undefined && this.length === 0) {
 			return null;
 		} else {
-			vRes = mOrigMethods[sName].apply(this, arguments);
 			// Round the pixel value
 			if (typeof vRes === "number") {
 				vRes = Math.round(vRes);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/dt/OverlayUtil",
 	"sap/base/util/isPlainObject"
-], function (
+], function(
 	ObjectPath,
 	hasStableId,
 	View,
@@ -22,9 +22,12 @@ sap.ui.define([
 	"use strict";
 
 	function isFioriElementsApp(oComponent) {
-		var oManifest = oComponent.getManifest();
+		var mManifest = oComponent.getManifest();
 
-		return ObjectPath.get(["sap.ui.generic.app"], oManifest);
+		var isV4 = !!ObjectPath.get(["sap.ui5", "dependencies", "libs", "sap.fe.templates"], mManifest);
+		var isV2 = !!ObjectPath.get(["sap.ui.generic.app"], mManifest);
+		var isOVP = !!ObjectPath.get(["sap.ovp"], mManifest);
+		return isV2 || isV4 || isOVP;
 	}
 
 	function getFioriElementsExtensions(oComponent) {
@@ -35,11 +38,11 @@ sap.ui.define([
 		var aViewExtensions = [];
 
 		if (isPlainObject(mViewExtensions)) {
-			Object.keys(mViewExtensions).forEach(function (sViewExtensionGroupName) {
+			Object.keys(mViewExtensions).forEach(function(sViewExtensionGroupName) {
 				if (sViewExtensionGroupName.startsWith("sap.suite.ui.generic.template")) {
 					var mViewExtensionGroup = mViewExtensions[sViewExtensionGroupName];
 
-					Object.keys(mViewExtensionGroup).forEach(function (sViewExtensionName) {
+					Object.keys(mViewExtensionGroup).forEach(function(sViewExtensionName) {
 						aViewExtensions.push(mViewExtensionGroup[sViewExtensionName]);
 					});
 				}
@@ -55,8 +58,8 @@ sap.ui.define([
 		for (var i = 0, l = aElementOverlays.length; i < l; i++) {
 			var oElementOverlay = aElementOverlays[i];
 			var oElement = oElementOverlay.getElement();
-			var bIsExtensionOverlay = aExtensionList.some(function (mViewExtension) { // eslint-disable-line no-loop-func
-				var ClassDeclaration = ObjectPath.get(mViewExtension.className);
+			var bIsExtensionOverlay = aExtensionList.some(function(mViewExtension) { // eslint-disable-line no-loop-func
+				var ClassDeclaration = sap.ui.require(mViewExtension.className.replace(/\./g, "/"));
 				var sExtensionName;
 				var sElementName;
 
@@ -88,8 +91,8 @@ sap.ui.define([
 
 		var aRelevantOverlays = [];
 
-		aExtensionOverlays.forEach(function (oElementOverlay) {
-			OverlayUtil.iterateOverlayElementTree(oElementOverlay, function (oElementOverlay) {
+		aExtensionOverlays.forEach(function(oElementOverlay) {
+			OverlayUtil.iterateOverlayElementTree(oElementOverlay, function(oElementOverlay) {
 				aRelevantOverlays.push(oElementOverlay);
 			});
 		});
@@ -97,7 +100,7 @@ sap.ui.define([
 		return aRelevantOverlays;
 	}
 
-	return function (aElementOverlays, oComponent) {
+	return function(aElementOverlays, oComponent) {
 		var aResult = [];
 
 		var aRelevantOverlays = aElementOverlays.slice(0);
@@ -112,7 +115,7 @@ sap.ui.define([
 			);
 		}
 
-		aResult = aRelevantOverlays.filter(function (oElementOverlay) {
+		aResult = aRelevantOverlays.filter(function(oElementOverlay) {
 			return (
 				!oElementOverlay.getDesignTimeMetadata().markedAsNotAdaptable()
 				&& !hasStableId(oElementOverlay)

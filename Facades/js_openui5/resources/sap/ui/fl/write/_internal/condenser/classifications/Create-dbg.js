@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
+	"sap/ui/core/Element",
 	"sap/ui/fl/write/_internal/condenser/Utils"
 ], function(
-	Core,
+	Element,
 	CondenserUtils
 ) {
 	"use strict";
@@ -19,14 +19,19 @@ sap.ui.define([
 		 *
 		 * @param {Map} mUIReconstructions - Map of UI reconstructions
 		 * @param {object} oCondenserInfo - Condenser specific information
+		 * @returns {Promise} resolves when a create change is added to UI Reconstruction Map
 		 */
-		addToReconstructionMap: function(mUIReconstructions, oCondenserInfo) {
-			var oAffectedControl = Core.byId(oCondenserInfo.affectedControl);
-			var sAggregationName = oAffectedControl && oAffectedControl.sParentAggregationName || oCondenserInfo.targetAggregation;
-			var aTargetContainerElementIds = CondenserUtils.getContainerElementIds(oCondenserInfo.targetContainer, sAggregationName);
-			var aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(mUIReconstructions, oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation, aTargetContainerElementIds);
-			var iIndex = aContainerElementIds.indexOf(oCondenserInfo.affectedControl);
-
+		async addToReconstructionMap(mUIReconstructions, oCondenserInfo) {
+			const oAffectedControl = Element.getElementById(oCondenserInfo.affectedControl);
+			const sAggregationName = oCondenserInfo.targetAggregation || oAffectedControl && oAffectedControl.sParentAggregationName;
+			const aTargetContainerElementIds = await CondenserUtils.getContainerElementIds(
+				oCondenserInfo.targetContainer, sAggregationName,
+				oCondenserInfo.customAggregation, oCondenserInfo.affectedControlIdProperty
+			);
+			const aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(
+				mUIReconstructions, oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation, aTargetContainerElementIds
+			);
+			const iIndex = aContainerElementIds.indexOf(oCondenserInfo.affectedControl);
 			// if the index is -1 the element was already removed by a different add change
 			if (iIndex > -1) {
 				aContainerElementIds.splice(iIndex, 1);
@@ -39,7 +44,7 @@ sap.ui.define([
 		 * @param {string[]} aContainerElements - Array with the Ids of the current elements in the container
 		 * @param {object} oCondenserInfo - Condenser specific information
 		 */
-		simulate: function(aContainerElements, oCondenserInfo) {
+		simulate(aContainerElements, oCondenserInfo) {
 			aContainerElements.splice(oCondenserInfo.getTargetIndex(oCondenserInfo.change), 0, oCondenserInfo.affectedControl);
 		}
 	};

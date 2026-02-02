@@ -1,12 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.Tree.
-sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/core/Control', './TreeRenderer', './Button'],
-	function(jQuery, Log, library, Control, TreeRenderer, Button) {
+sap.ui.define([
+	'sap/ui/thirdparty/jquery',
+	'sap/base/Log',
+	'sap/base/util/isEmptyObject',
+	'./library',
+	'sap/ui/core/Control',
+	'./TreeRenderer',
+	'./Button',
+	'sap/ui/core/Configuration'
+], function(jQuery, Log, isEmptyObject, library, Control, TreeRenderer, Button, Configuration) {
 	"use strict";
 
 
@@ -25,17 +33,17 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 	 * @class
 	 * Simple tree to display item in a hierarchical way
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Tree}
 	 * @alias sap.ui.commons.Tree
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Tree = Control.extend("sap.ui.commons.Tree", /** @lends sap.ui.commons.Tree.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -209,7 +217,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 	 *
 	 * @type {void}
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Tree.prototype.expandAll = function(){
 		var aNodes = this._getNodes();
@@ -225,7 +232,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 	 *
 	 * @type {void}
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Tree.prototype.collapseAll = function(){
 		var aNodes = this._getNodes();
@@ -328,9 +334,9 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 	 * @returns {string} The icon path prefix
 	 */
 	Tree.prototype.getIconPrefix = function() {
-		var sIconPrefix = "themes/" + sap.ui.getCore().getConfiguration().getTheme() + "/";
+		var sIconPrefix = "themes/" + Configuration.getTheme() + "/";
 
-		if (!sap.ui.getCore().getConfiguration().getRTL()) {
+		if (!Configuration.getRTL()) {
 			sIconPrefix		+= "img/tree/";
 		} else {
 			sIconPrefix		+= "img-RTL/tree/";
@@ -750,6 +756,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 	 * @private
 	 */
 	Tree.prototype.getSelection = function(){
+		// eslint-disable-next-line no-unreachable-loop
 		for (var sId in this.mSelectedNodes) {
 			return this.mSelectedNodes[sId];
 		}
@@ -854,13 +861,13 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 						oNode.setIsSelected(false);
 						break;
 					case TreeSelectionMode.Legacy:
-						if (jQuery.isEmptyObject(that.mSelectedNodes)) {
+						if (isEmptyObject(that.mSelectedNodes)) {
 							that.mSelectedNodes[oNode.getId()] = oNode;
 							that._addSelectedNodeContext(that.getNodeContext(oNode));
 						}
 						break;
 					case TreeSelectionMode.Single:
-						if (jQuery.isEmptyObject(that.mSelectedNodes) == false) {
+						if (isEmptyObject(that.mSelectedNodes) == false) {
 							Log.warning("Added multiple selected nodes in single select tree");
 							oNode.setIsSelected(false);
 						} else {
@@ -1028,7 +1035,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/Log', './library', 'sap/ui/
 		if (this.oSelectedNode) {
 			this.oSelectedNode._deselect();
 		}
-		if (jQuery.isEmptyObject(this.mSelectedNodes) == false) {
+		if (isEmptyObject(this.mSelectedNodes) == false) {
 			jQuery.each(this.mSelectedNodes, function(sId, oNode){
 				that._delMultiSelection(oNode);
 			});

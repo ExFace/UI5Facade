@@ -1,50 +1,41 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.StepInput.
 sap.ui.define([
-	"sap/ui/core/Icon",
-	"./Input",
-	"./InputBase",
-	"./InputRenderer",
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
-	"sap/ui/core/LabelEnablement",
+	"sap/ui/core/Lib",
 	"sap/ui/core/message/MessageMixin",
+	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/ValidateException",
 	"sap/ui/Device",
 	"sap/ui/core/library",
-	"sap/ui/core/Renderer",
 	"sap/m/library",
+	"./NumericInput",
 	"./StepInputRenderer",
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log"
 ],
 function(
-	Icon,
-	Input,
-	InputBase,
-	InputRenderer,
 	Control,
 	IconPool,
-	LabelEnablement,
+	Library,
 	MessageMixin,
+	NumberFormat,
 	ValidateException,
 	Device,
 	coreLibrary,
-	Renderer,
 	library,
+	NumericInput,
 	StepInputRenderer,
 	KeyCodes,
 	Log
 ) {
 		"use strict";
-
-		// shortcut for sap.m.InputType
-		var InputType = library.InputType;
 
 		// shortcut for sap.ui.core.TextAlign
 		var TextAlign = coreLibrary.TextAlign;
@@ -55,7 +46,7 @@ function(
 		// shortcut for sap.m.StepInputValidationMode
 		var StepInputValidationMode = library.StepInputValidationMode;
 
-		// shortcut fro sap.m.StepModes
+		// shortcut for sap.m.StepModes
 		var StepModeType = library.StepInputStepModeType;
 
 		/**
@@ -106,7 +97,7 @@ function(
 		 * </ul>
 		 *
 		 * <b>Note:</b> The control uses a JavaScript number to keep its value, which
-		 * has a certain precision limitation.
+		 * has a certain precision limit.
 		 *
 		 * In general, exponential notation is used:
 		 * <ul>
@@ -120,7 +111,7 @@ function(
 		 * Also, the JavaScript number persists its precision up to 16 digits. If the user enters
 		 * a number with a greater precision, the value will be rounded.
 		 *
-		 * This limitation comes from JavaScript itself and it cannot be worked around in a
+		 * This restriction comes from JavaScript itself and it cannot be worked around in a
 		 * feasible way.
 		 *
 		 * <b>Note:</b> Formatting of decimal numbers is browser dependent, regardless of
@@ -130,14 +121,13 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.40
 		 * @alias sap.m.StepInput
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/step-input/ Step Input}
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var StepInput = Control.extend("sap.m.StepInput", /** @lends sap.m.StepInput.prototype */ {
 			metadata: {
@@ -305,11 +295,13 @@ function(
 				if (mSettings && mSettings.value === undefined){
 					this.setValue(this._getDefaultValue(undefined, mSettings.max, mSettings.min));
 				}
-			}
+			},
+
+			renderer: StepInputRenderer
 		});
 
 		// get resource translation bundle;
-		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oLibraryResourceBundle = Library.getResourceBundleFor("sap.m");
 		StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP = oLibraryResourceBundle.getText("STEP_INPUT_INCREASE_BTN");
 		StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP = oLibraryResourceBundle.getText("STEP_INPUT_DECREASE_BTN");
 
@@ -324,117 +316,6 @@ function(
 		 * @type {Array.<string>}
 		 */
 		var aForwardableProps = ["enabled", "editable", "name", "placeholder", "required", "valueStateText", "description", "fieldWidth", "textAlign"];
-
-
-		/****************************************** NUMERIC INPUT CONTROL ****************************************************/
-
-		var NumericInputRenderer = Renderer.extend(InputRenderer);
-
-		NumericInputRenderer.apiVersion = 2;
-
-		NumericInputRenderer.writeInnerAttributes = function(oRm, oControl) {
-			var oStepInput = oControl.getParent(),
-				mAccAttributes = this.getAccessibilityState(oControl);
-			// inside the Input this function also sets explicitly textAlign to "End" if the type
-			// of the Input is Numeric (our case)
-			// so we have to overwrite it by leaving only the text direction
-			// and the textAlign will be controlled by textAlign property of the StepInput
-			oRm.attr("type", oControl.getType().toLowerCase());
-
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
-				oRm.attr("dir", "ltr");
-			}
-			// prevent rendering of aria-disabled attribute to avoid having
-			// both aria-disabled and disabled at the same time
-			mAccAttributes.disabled = null;
-
-			oRm.accessibilityState(oStepInput,  mAccAttributes);
-		};
-
-		//Accessibility behavior of the Input needs to be extended
-		/**
-		 * Overwrites the accessibility state using the <code>getAccessibilityState</code> method of the <code>InputBaseRenderer</code>.
-		 *
-		 * @param {NumericInput} oNumericInput The numeric input instance
-		 * @returns {Array} mAccessibilityState
-		 */
-		NumericInputRenderer.getAccessibilityState = function(oNumericInput) {
-			var mAccessibilityState = InputRenderer.getAccessibilityState(oNumericInput),
-				oStepInput = oNumericInput.getParent(),
-				fMin = oStepInput._getMin(),
-				fMax = oStepInput._getMax(),
-				fNow = oStepInput.getValue(),
-				sDescription = oStepInput.getDescription(),
-				aAriaLabelledByRefs = oStepInput.getAriaLabelledBy(),
-				// If we don't check this manually, we won't have the labels, which were referencing SI,
-				// in aria-labelledby (which normally comes out of the box). This is because writeAccessibilityState
-				// is called for NumericInput, while any labels will be for the parent StepInput.
-				aReferencingLabels = LabelEnablement.getReferencingLabels(oStepInput),
-				sDescribedBy = oStepInput.getAriaDescribedBy().join(" "),
-				sResultingLabelledBy;
-
-				mAccessibilityState.valuenow = fNow;
-
-			if (sDescription) {
-				// If there is a description, we should add a reference to it in the aria-labelledby
-				aAriaLabelledByRefs.push(oStepInput._getInput().getId() + "-descr");
-			}
-
-			sResultingLabelledBy = aReferencingLabels.concat(aAriaLabelledByRefs).join(" ");
-
-			if (typeof fMin === "number") {
-				mAccessibilityState.valuemin = fMin;
-			}
-
-			if (typeof fMax === "number") {
-				mAccessibilityState.valuemax = fMax;
-			}
-
-			if (!oStepInput.getEditable()) {
-				mAccessibilityState.readonly = true;
-			}
-
-			if (sDescribedBy){
-				mAccessibilityState.describedby = sDescribedBy;
-			}
-
-			if (sResultingLabelledBy){
-				mAccessibilityState.labelledby = sResultingLabelledBy;
-			}
-
-			return mAccessibilityState;
-		};
-
-		var NumericInput = Input.extend("sap.m.internal.NumericInput", {
-			metadata: {
-				library: "sap.m"
-			},
-			constructor: function(sId, mSettings) {
-				return Input.apply(this, arguments);
-			},
-			renderer: NumericInputRenderer
-		});
-
-		NumericInput.prototype.onBeforeRendering = function() {
-			InputBase.prototype.onBeforeRendering.call(this);
-
-			// The Input is handling its width in its onBeforeRendering method - if noting is set, the width is 100%.
-			// As the NumericInput is using the InputBase's onBeforeRendering method, the width must be handled here too.
-			// The real width of the StepInput is handled from its width property, so the NumericInput's width should be 100%.
-			this.setWidth("100%");
-
-			this._deregisterEvents();
-		};
-
-		NumericInput.prototype.setValue = function(sValue) {
-			Input.prototype.setValue.apply(this, arguments);
-
-			if (this.getDomRef()) {
-				document.getElementById(this.getId() + "-inner").setAttribute("aria-valuenow", sValue);
-			}
-
-			return this;
-		};
 
 		MessageMixin.call(StepInput.prototype);
 
@@ -461,17 +342,16 @@ function(
 		StepInput.prototype.onBeforeRendering = function () {
 			var fMin = this._getMin(),
 				fMax = this._getMax(),
-				vValue = this._getInput()._$input.val() || this.getValue(),
+				vValue = this._sOriginalValue || this.getValue(),
 				bEditable = this.getEditable();
 
 			this._iRealPrecision = this._getRealValuePrecision();
 
 			this._getInput().setValue(this._getFormattedValue(vValue));
 			this._getInput().setValueState(this.getValueState());
-			this._getInput().setTooltip(this.getTooltip());
 			this._getOrCreateDecrementButton().setVisible(bEditable);
 			this._getOrCreateIncrementButton().setVisible(bEditable);
-
+			this._getInput().setTooltip(this.getTooltip());
 			this._disableButtons(vValue, fMax, fMin);
 			this.$().off(Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onmousewheel);
 			if (this._bNeedsVerification && !this._bValueStatePreset) {
@@ -486,6 +366,7 @@ function(
 
 		StepInput.prototype.exit = function () {
 			this.$().off(Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onmousewheel);
+			this._sOriginalValue = null;
 		};
 
 		StepInput.prototype.setProperty = function (sPropertyName, oValue, bSuppressInvalidate) {
@@ -502,7 +383,7 @@ function(
 		 * Sets the validation mode.
 		 *
 		 * @param {sap.m.StepInputValidationMode} sValidationMode The validation mode value
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		StepInput.prototype.setValidationMode = function (sValidationMode) {
 			if (this.getValidationMode() !== sValidationMode) {
@@ -523,7 +404,7 @@ function(
 		 * Sets the min value.
 		 *
 		 * @param {float} min The minimum value
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		StepInput.prototype.setMin = function (min) {
 			if (min !== undefined && !this._validateOptionalNumberProperty("min", min)) {
@@ -537,7 +418,7 @@ function(
 		 * Sets the max value.
 		 *
 		 * @param {float} max The max value
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		StepInput.prototype.setMax = function (max) {
 			if (max !== undefined && !this._validateOptionalNumberProperty("max", max)) {
@@ -568,10 +449,11 @@ function(
 		 * Sets the <code>displayValuePrecision</code>.
 		 *
 		 * @param {number} number The value precision
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		StepInput.prototype.setDisplayValuePrecision = function (number) {
-			var vValuePrecision;
+			var vValuePrecision,
+				oInstance;
 
 			if (isValidPrecisionValue(number)) {
 				vValuePrecision = parseInt(number);
@@ -580,7 +462,11 @@ function(
 				Log.warning(this + ": ValuePrecision (" + number + ") is not correct. It should be a number between 0 and 20! Setting the default ValuePrecision:0.");
 			}
 
-			return this.setProperty("displayValuePrecision", vValuePrecision);
+			var oInstance = this.setProperty("displayValuePrecision", vValuePrecision);
+
+			this._getNumberFormatter(true);
+
+			return oInstance;
 		};
 
 		/**
@@ -589,8 +475,19 @@ function(
 		 * @private
 		 */
 		StepInput.prototype._getIncrementButton = function () {
-			var endIcons = this._getInput().getAggregation("_endIcon");
-			return endIcons ? endIcons[0] : null; //value state icon comes from sap.m.Input constructor and is at index 0
+			var endIcons = this._getInput().getAggregation("_endIcon") || [];
+			var oIncrementIcon = null;
+
+			// sap.m.Input constructor provides some icons on its own.
+			// Clear icon is always at index 0;
+			// Value help icon is at index 1;
+			// Though in this case the Input is controlled by the StepInput's code, the safe approach
+			// will be to look for the increment button at the last index in the aggregation.
+			if (endIcons.length) {
+				oIncrementIcon = endIcons[endIcons.length - 1];
+			}
+
+			return oIncrementIcon;
 		};
 
 		/**
@@ -613,12 +510,14 @@ function(
 					src: IconPool.getIconURI("add"),
 					id: this.getId() + "-incrementBtn",
 					noTabStop: true,
+					decorative: !Device.support.touch || Device.system.desktop ? true : false,
 					press: this._handleButtonPress.bind(this, 1),
-					tooltip: StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
-				return !this._shouldDisableIncrementButton(Number(this._getInput().getValue()), this._getMax());
+				return !this._shouldDisableIncrementButton(this._parseNumber(this._getInput().getValue()), this._getMax());
 			}.bind(this);
 
 			oIcon.$().attr("tabindex", "-1");
@@ -645,12 +544,14 @@ function(
 					src: IconPool.getIconURI("less"),
 					id: this.getId() + "-decrementBtn",
 					noTabStop: true,
+					decorative: !Device.support.touch || Device.system.desktop ? true : false,
 					press: this._handleButtonPress.bind(this, -1),
-					tooltip: StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
-				return !this._shouldDisableDecrementButton(Number(this._getInput().getValue()), this._getMin());
+				return !this._shouldDisableDecrementButton(this._parseNumber(this._getInput().getValue()), this._getMin());
 			}.bind(this);
 
 			oIcon.$().attr("tabindex", "-1");
@@ -678,7 +579,6 @@ function(
 				var oNumericInput = new NumericInput({
 					id: this.getId() + "-input",
 					textAlign: this.getTextAlign(),
-					type: InputType.Number,
 					editable: this.getEditable(),
 					enabled: this.getEnabled(),
 					description: this.getDescription(),
@@ -695,7 +595,7 @@ function(
 		 * Changes the value of the control and fires the change event.
 		 *
 		 * @param {boolean} bForce If true, will force value change
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 * @private
 		 */
 		StepInput.prototype._changeValue = function (bForce) {
@@ -706,7 +606,7 @@ function(
 			} else {
 				// just update the visual value and buttons
 				this._applyValue(this._fTempValue);
-				this._disableButtons(Number(this._getInput().getValue()), this._getMax(), this._getMin());
+				this._disableButtons(this._parseNumber(this._getInput().getValue()), this._getMax(), this._getMin());
 			}
 			return this;
 		};
@@ -716,7 +616,7 @@ function(
 		 *
 		 * @param {float} fMultiplier Indicates the direction - increment (positive value)
 		 * or decrement (negative value) and multiplier for modifying the value
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 * @private
 		 */
 		StepInput.prototype._handleButtonPress = function (fMultiplier)	{
@@ -739,12 +639,19 @@ function(
 		 *
 		 * @param {float} fMultiplier Indicates the direction - increment (positive value)
 		 * or decrement (negative value), and multiplier for modifying the value
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 * @private
 		 */
 		StepInput.prototype._changeValueWithStep = function (fMultiplier) {
-			var fNewValue,
+			var iMultiplier,
+				fNewValue,
 				fDelta;
+
+			// calculate precision multiplier
+			if (isNaN(this._iValuePrecision)) {
+				this._iValuePrecision = this._getNumberPrecision(this.getValue());
+			}
+			iMultiplier = Math.pow(10, Math.max(this.getDisplayValuePrecision(), this._iValuePrecision));
 
 			if (isNaN(this._fTempValue) || this._fTempValue === undefined) {
 				this._fTempValue = this.getValue();
@@ -757,6 +664,11 @@ function(
 			// calculate new value
 			fNewValue = fMultiplier !== 0 ? this._calculateNewValue(fMultiplier) : this._fTempValue;
 
+			// fix value precision
+			if (fMultiplier === 0) {
+				fNewValue = Math.round(fNewValue * iMultiplier) / iMultiplier;
+			}
+
 			// save new temp value
 			if (fMultiplier !== 0 || fDelta !== 0 || this._bDelayedEventFire) {
 				this._fTempValue = fNewValue;
@@ -764,7 +676,7 @@ function(
 
 			if (this._bDelayedEventFire) {
 				this._applyValue(fNewValue);
-				this._disableButtons(Number(this._getFormattedValue(fNewValue)), this._getMax(), this._getMin());
+				this._disableButtons(this._parseNumber(this._getFormattedValue(fNewValue)), this._getMax(), this._getMin());
 				this._bNeedsVerification = true;
 			}
 
@@ -777,7 +689,7 @@ function(
 		 * @param {number} iValue Indicates the value in the input
 		 * @param {number} iMax Indicates the max
 		 * @param {number} iMin Indicates the min
-		 * @returns {sap.m.StepInput} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		StepInput.prototype._disableButtons = function (iValue, iMax, iMin) {
 
@@ -816,8 +728,8 @@ function(
 		StepInput.prototype._verifyValue = function () {
 			var min = this._getMin(),
 				max = this._getMax(),
-				value = parseFloat(this._getInput().getValue()),
-				oCoreMessageBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core"),
+				value = this._parseNumber(this._getInput().getValue()),
+				oCoreMessageBundle = Library.getResourceBundleFor("sap.ui.core"),
 				oBinding = this.getBinding("value"),
 				oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 				sBindingConstraintMax = oBindingType && oBindingType.oConstraints && oBindingType.oConstraints.maximum,
@@ -837,20 +749,20 @@ function(
 				oEventProvider = oEventProvider.getEventingParent();
 			} while (oEventProvider && !bHasValidationErrorListeners);
 
-			if (this._isNumericLike(max) && value > max) {
+			if (this._isMoreThanMax(value)) {
 				if (bHasValidationErrorListeners && sBindingConstraintMax) {
 					return;
 				}
-				sMessage = oCoreMessageBundle.getText("EnterNumberMax", [max]);
+				sMessage = this.getValueStateText() ? this.getValueStateText() : oCoreMessageBundle.getText("EnterNumberMax", [max]);
 				aViolatedConstraints.push("maximum");
-			} else if (this._isNumericLike(min) && value < min) {
+			} else if (this._isLessThanMin(value)) {
 				if (bHasValidationErrorListeners && sBindingConstraintMin) {
 					return;
 				}
-				sMessage = oCoreMessageBundle.getText("EnterNumberMin", [min]);
+				sMessage = this.getValueStateText() ? this.getValueStateText() : oCoreMessageBundle.getText("EnterNumberMin", [min]);
 				aViolatedConstraints.push("minimum");
 			} else if (this._areFoldChangeRequirementsFulfilled() && (value % this.getStep() !== 0)) {
-				sMessage = oCoreMessageBundle.getText("Float.Invalid");
+				sMessage = this.getValueStateText() ? this.getValueStateText() : oCoreMessageBundle.getText("Float.Invalid");
 			}
 
 			if (sMessage) {
@@ -879,6 +791,18 @@ function(
 
 		};
 
+		/**
+		 * Returns the precision of a number.
+		 * @param {float} fNumber The number whose precision is to be obtained
+		 * @returns {int} the precision of the number passed as parameter
+		 *
+		 */
+		 StepInput.prototype._getNumberPrecision = function(fNumber) {
+			var aNumberParts = !isNaN(fNumber) && fNumber !== null ? fNumber.toString().split('.') : [];
+
+			return aNumberParts.length > 1 ? aNumberParts[1].length : 0;
+		};
+
 		StepInput.prototype.setValueState = function(sValueState) {
 			this._bValueStatePreset = true;
 			this.setProperty("valueState", sValueState);
@@ -896,6 +820,8 @@ function(
 		StepInput.prototype.setValue = function (oValue) {
 			var oResult;
 
+			this._iValuePrecision = this._getNumberPrecision(oValue);
+
 			if (isNaN(oValue) || oValue === null) {
 				oValue = this._getDefaultValue(undefined, this._getMax(), this._getMin());
 			} else {
@@ -906,8 +832,9 @@ function(
 				return this;
 			}
 
+			this._sOriginalValue = oValue;
 			this._applyValue(oValue);
-			this._disableButtons(Number(this._getInput().getValue()), this._getMax(), this._getMin());
+			this._disableButtons(this._parseNumber(this._getInput().getValue()), this._getMax(), this._getMin());
 
 			if (oValue !== this._fOldValue) {
 				// save current value (for ESC restoring)
@@ -923,11 +850,19 @@ function(
 			return oResult;
 		};
 
+		StepInput.prototype._getNumberFormatter = function(bReset) {
+			if (!this._formatter || bReset) {
+				this._formatter = NumberFormat.getFloatInstance({ decimals: this.getDisplayValuePrecision() });
+			}
+
+			return this._formatter;
+		};
+
 		/**
 		 * Formats the <code>vValue</code> accordingly to the <code>displayValuePrecision</code> property.
-		 * if vValue is undefined or null, the property <code>value</code> will be used.
+		 * If vValue is undefined or null, the property <code>value</code> will be used.
 		 *
-		 * @returns formated value as a String
+		 * @returns formatted value as a String
 		 * @private
 		 */
 		StepInput.prototype._getFormattedValue = function (vValue) {
@@ -937,6 +872,10 @@ function(
 
 			if (vValue == undefined) {
 				vValue = this.getValue();
+			}
+
+			if (Device.system.desktop) {
+				return this._getNumberFormatter().format(vValue);
 			}
 
 			if (iPrecision <= 0) {
@@ -955,7 +894,6 @@ function(
 			} else {
 				return vValue.toString() + "." + this._padZeroesRight("0", iPrecision);
 			}
-
 		};
 
 		/**
@@ -995,12 +933,12 @@ function(
 
 			// fix the entered value if the precision is 0; and filter 'e/E' meanwhile
 			if (this.getDisplayValuePrecision() === 0) {
-				sInputValue = Math.round(Number(sInputValue.toLowerCase().split('e')[0])).toString();
+				sInputValue = Math.round(this._parseNumber(sInputValue.toLowerCase().split('e')[0])).toString();
 			}
 
 			// calculates delta (difference) between input value and real control value
 			if (this._getFormattedValue(this._fTempValue) !== sInputValue) {
-				fDelta = Number(sInputValue) - this._fTempValue;
+				fDelta = this._parseNumber(sInputValue) - this._fTempValue;
 			}
 			return fDelta;
 		};
@@ -1045,7 +983,7 @@ function(
 		StepInput.prototype.onsappageupmodifiers = function (oEvent) {
 			if (this.getEditable() && this._isNumericLike(this._getMax()) && !(oEvent.ctrlKey || oEvent.metaKey || oEvent.altKey) && oEvent.shiftKey) {
 				this._bDelayedEventFire = true;
-				this._fTempValue = Number(this._getInput().getValue());
+				this._fTempValue = this._parseNumber(this._getInput().getValue());
 				this._changeValueWithStep(this._getMax() - this._fTempValue);
 			}
 		};
@@ -1058,7 +996,7 @@ function(
 		StepInput.prototype.onsappagedownmodifiers = function (oEvent) {
 			if (this.getEditable() && this._isNumericLike(this._getMin()) && !(oEvent.ctrlKey || oEvent.metaKey || oEvent.altKey) && oEvent.shiftKey) {
 				this._bDelayedEventFire = true;
-				this._fTempValue = Number(this._getInput().getValue());
+				this._fTempValue = this._parseNumber(this._getInput().getValue());
 				this._changeValueWithStep(-(this._fTempValue - this._getMin()));
 			}
 		};
@@ -1129,11 +1067,11 @@ function(
 
 			if (oEvent.which === KeyCodes.ARROW_UP && !oEvent.altKey && oEvent.shiftKey && (oEvent.ctrlKey || oEvent.metaKey)) { //ctrl+shift+up
 				fMax = this._getMax();
-				this._fTempValue = Number(this._getInput().getValue());
+				this._fTempValue = this._parseNumber(this._getInput().getValue());
 				fStep = (fMax !== undefined) ? fMax - this._fTempValue : 0;
 			} else if (oEvent.which === KeyCodes.ARROW_DOWN && !oEvent.altKey && oEvent.shiftKey && (oEvent.ctrlKey || oEvent.metaKey)) { //ctrl+shift+down
 				fMin = this._getMin();
-				this._fTempValue = Number(this._getInput().getValue());
+				this._fTempValue = this._parseNumber(this._getInput().getValue());
 				fStep = (fMin !== undefined) ? -(this._fTempValue - fMin) : 0;
 			} else if (oEvent.which === KeyCodes.ARROW_UP && !(oEvent.ctrlKey || oEvent.metaKey || oEvent.altKey) && oEvent.shiftKey) { //shift+up
 				fStep = this.getLargerStep();
@@ -1200,7 +1138,7 @@ function(
 		 * @private
 		 */
 		StepInput.prototype._liveChange = function () {
-			this._disableButtons(Number(this._getInput().getValue()), this._getMax(), this._getMin());
+			this._disableButtons(this._parseNumber(this._getInput().getValue()), this._getMax(), this._getMin());
 			this._verifyValue();
 		};
 
@@ -1211,11 +1149,13 @@ function(
 		 */
 		StepInput.prototype._change = function (oEvent) {
 			var fOldValue;
+			var oNewValue = this._getInput().getValue();
+			var bIsNotInValidRange = this._isLessThanMin(oNewValue) || this._isMoreThanMax(oNewValue);
 
-			if (!this._isButtonFocused()) {
+			if (!this._isButtonFocused() ) {
 
-				if (!this._btndown) {
-					fOldValue = Number(this._getFormattedValue());
+				if (!this._btndown || bIsNotInValidRange) {
+					fOldValue = this._parseNumber(this._getFormattedValue());
 					if (this._fOldValue === undefined) {
 						this._fOldValue = fOldValue;
 					}
@@ -1225,9 +1165,17 @@ function(
 					this._changeValue();
 					this._bNeedsVerification = true;
 				} else {
-					this._fTempValue = Number(this._getInput().getValue());
+					this._fTempValue = this._parseNumber(this._getInput().getValue());
 				}
 			}
+		};
+
+		StepInput.prototype._isMoreThanMax = function(iValue) {
+			return this._isNumericLike(this._getMax()) && this._getMax() < iValue;
+		};
+
+		StepInput.prototype._isLessThanMin = function(iValue) {
+			return this._isNumericLike(this._getMin()) && this._getMin() > iValue;
 		};
 
 		/**
@@ -1247,7 +1195,7 @@ function(
 		 *
 		 * @param {float} fStepMultiplier Holds the step multiplier
 		 * @param {boolean} bIsIncreasing Holds the operation(or direction) whether addition(increasing) or subtraction(decreasing)
-		 * @returns {{value, displayValue}} The result of the calculation where:
+		 * @returns {{value: number, displayValue: number}} The result of the calculation where:
 		 * <ul>
 		 * <li>value is the result of the computation where the real stepInput <value> is used</li>
 		 * <li>displayValue is the result of the computation where the DOM value (also sap.m.Input.getValue()) is used</li>
@@ -1343,30 +1291,31 @@ function(
 		 * @param {sap.ui.base.Event} oEvent Event object
 		 * @private
 		 */
-		StepInput.prototype._restrictCharsWhenDecimal = function (oEvent) {
-			var iDecimalMark = oEvent.getParameter("value").indexOf("."),
+		StepInput.prototype._restrictCharsWhenDecimal = function(oEvent) {
+			var sDecimalSeparator = Device.system.desktop ? this._getNumberFormatter().oFormatOptions.decimalSeparator : ".";
+			var iDecimalMark = oEvent.getParameter("value").indexOf(sDecimalSeparator),
 				iCharsSet = this.getDisplayValuePrecision(),
 				sEventValue = oEvent.getParameter("value"),
 				sValue;
 
 			if (iDecimalMark > 0 && iCharsSet >= 0) { //only for decimals
-				var sEventValueAfterTheDecimal = sEventValue.split('.')[1],
+				var sEventValueAfterTheDecimal = sEventValue.split(sDecimalSeparator)[1],
 					iCharsAfterTheDecimalSign = sEventValueAfterTheDecimal ? sEventValueAfterTheDecimal.length : 0,
-					sCharsBeforeTheEventDecimalValue = sEventValue.split('.')[0],
-					sCharsAfterTheEventDecimalValue = iCharsSet > 0 ? sEventValue.substring(sEventValue.indexOf('.') + 1, sEventValue.length) : '';
+					sCharsBeforeTheEventDecimalValue = sEventValue.split(sDecimalSeparator)[0],
+					sCharsAfterTheEventDecimalValue = iCharsSet > 0 ? sEventValue.substring(sEventValue.indexOf(sDecimalSeparator) + 1, sEventValue.length) : '';
 
 				//scenario 1 - user typing after the decimal mark:
 				if (!this._bPaste) {
 					//if the characters after the decimal are more than the displayValuePrecision -> keep the current value after the decimal
 					if (iCharsAfterTheDecimalSign > iCharsSet) {
-						sValue = sCharsBeforeTheEventDecimalValue + (iCharsSet > 0 ? "." + sCharsAfterTheEventDecimalValue.substr(0, iCharsSet) : '');
+						sValue = sCharsBeforeTheEventDecimalValue + (iCharsSet > 0 ? sDecimalSeparator + sCharsAfterTheEventDecimalValue.substr(0, iCharsSet) : '');
 						this._showWrongValueVisualEffect();
 					}
 
 					//scenario 2 - paste - cut the chars with length, bigger than displayValuePrecision
 				} else {
-					if (sEventValue.indexOf(".")){
-						sValue = sEventValue.split('.')[0] + (iCharsSet > 0 ? "." + sEventValueAfterTheDecimal.substring(0, iCharsSet) : '');
+					if (sEventValue.indexOf(sDecimalSeparator)){
+						sValue = sEventValue.split(sDecimalSeparator)[0] + (iCharsSet > 0 ? sDecimalSeparator + sEventValueAfterTheDecimal.substring(0, iCharsSet) : '');
 					}
 					this._bPaste = false;
 				}
@@ -1374,7 +1323,9 @@ function(
 				sValue = sEventValue;
 			}
 
-			this._getInput().updateDomValue(sValue);
+			if (this._getInput()._getInputValue() !== sValue) {
+				this._getInput().updateDomValue(sValue);
+			}
 			return sValue;
 		};
 
@@ -1406,7 +1357,7 @@ function(
 		 */
 		StepInput.prototype._getDefaultValue = function (value, max, min) {
 			if (value !== "" && value !== undefined) {
-				return Number(this._getInput().getValue());
+				return this._parseNumber(this._getInput().getValue());
 			}
 
 			if (this._isNumericLike(min) && min > 0) {
@@ -1537,7 +1488,7 @@ function(
 					this._bSpinStarted = true;
 					this._bDelayedEventFire = true;
 					this._changeValueWithStep(bIncrementButton ? 1 : -1);
-					this._disableButtons(Number(this._getInput().getValue()), this._getMax(), this._getMin());
+					this._disableButtons(this._parseNumber(this._getInput().getValue()), this._getMax(), this._getMin());
 					if ((this._getIncrementButton().getEnabled() && bIncrementButton) || (this._getDecrementButton().getEnabled() && !bIncrementButton)) {
 						this._spinValues(bIncrementButton);
 					}
@@ -1564,39 +1515,60 @@ function(
 					}.bind(this),
 					onmouseup: function (oEvent) {
 						// check if the left mouse button is up
+						// handled in touchend for mobile
+						// but the touchend comes before mousedown on android
 						if (oEvent.button === 0) {
 							this._bDelayedEventFire = undefined;
 							this._btndown = false;
-							this._resetSpinValues();
-							if (this._bSpinStarted) {
-								this._changeValue();
-							}
+							this._stopSpin();
 						}
 					}.bind(this),
 					onmouseout: function (oEvent) {
 						if (this._btndown) {
 							this._bDelayedEventFire = undefined;
-							this._resetSpinValues();
-							if (this._bSpinStarted) {
-								this._changeValue();
-							}
+							this._stopSpin();
 						}
 					}.bind(this),
 					oncontextmenu: function (oEvent) {
-						if (!sap.ui.Device.os.android) {
-							// Context menu is shown on "long-touch"
-							// so prevent of showing it while "long-touching" on the button
-							oEvent.stopImmediatePropagation(true);
-							if (oEvent.originalEvent && oEvent.originalEvent.cancelable) {
-								oEvent.preventDefault();
-							}
-							oEvent.stopPropagation();
+						// Context menu is shown on "long-touch"
+						// so prevent of showing it while "long-touching" on the button
+						oEvent.stopImmediatePropagation(true);
+						if (oEvent.originalEvent && oEvent.originalEvent.cancelable) {
+							oEvent.preventDefault();
 						}
-					}
+						oEvent.stopPropagation();
+					},
+					ontouchend: function(oEvent) {
+						if (Device.system.phone || Device.system.tablet) {
+							this._bDelayedEventFire = undefined;
+							this._btndown = false;
+							this._stopSpin();
+						}
+
+						if (oEvent.originalEvent && oEvent.originalEvent.cancelable) {
+							oEvent.preventDefault();
+						}
+						if (bIncrementButton) {
+							this._getIncrementButton().invalidate();
+						} else {
+							this._getDecrementButton().invalidate();
+						}
+					}.bind(this)
 				};
 
 				oBtn.addDelegate(oEvents, true);
 
+		};
+
+		/**
+		 * Stops an initiated spin and applies changes to the value.
+		 * @private
+		 */
+		StepInput.prototype._stopSpin = function() {
+			this._resetSpinValues();
+			if (this._bSpinStarted) {
+				this._changeValue();
+			}
 		};
 
 		StepInput.prototype._getMin = function() {
@@ -1604,7 +1576,7 @@ function(
 				oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 				sBindingConstraintMin = oBindingType && oBindingType.oConstraints && oBindingType.oConstraints.minimum;
 
-			return sBindingConstraintMin ? parseFloat(sBindingConstraintMin) : this.getMin();
+			return sBindingConstraintMin !== undefined ? parseFloat(sBindingConstraintMin) : this.getMin();
 		};
 
 		StepInput.prototype._getMax = function() {
@@ -1612,7 +1584,7 @@ function(
 				oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 				sBindingConstraintMax = oBindingType && oBindingType.oConstraints && oBindingType.oConstraints.maximum;
 
-			return sBindingConstraintMax ? parseFloat(sBindingConstraintMax) : this.getMax();
+			return sBindingConstraintMax !== undefined ? parseFloat(sBindingConstraintMax) : this.getMax();
 		};
 
 		/**
@@ -1638,6 +1610,10 @@ function(
 			}
 		};
 
+		StepInput.prototype.getFocusDomRef = function() {
+			return this.getAggregation("_input").getFocusDomRef();
+		};
+
 		/*
 		 * Resets timeouts and speed to initial values.
 		 */
@@ -1649,12 +1625,20 @@ function(
 
 		StepInput.prototype.getAccessibilityInfo = function() {
 			return {
-				type: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_STEPINPUT"),
+				type: Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_STEPINPUT"),
 				description: this.getValue() || "",
 				focusable: this.getEnabled(),
 				enabled: this.getEnabled(),
 				editable: this.getEnabled() && this.getEditable()
 			};
+		};
+
+		StepInput.prototype._parseNumber = function(sValue) {
+			if (Device.system.desktop) {
+				return this._getNumberFormatter().parse(sValue);
+			}
+
+			return Number(sValue);
 		};
 
 		return StepInput;

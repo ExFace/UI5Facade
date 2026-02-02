@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/Object",
+	"sap/ui/core/Element",
 	"sap/ui/test/RecordReplay"
-], function (BaseObject, RecordReplay) {
+], function(BaseObject, Element, RecordReplay) {
 	"use strict";
 
 	/**
@@ -41,7 +42,7 @@ sap.ui.define([
 			return document.getElementById(mData.domElementId);
 		} else if (mData.controlId) {
 			// mDat would contain control ID: when control is selected from the recorder control tree
-			return sap.ui.getCore().byId(mData.controlId).getFocusDomRef();
+			return Element.getElementById(mData.controlId).getFocusDomRef();
 		}
 	}
 

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.Panel
-sap.ui.define(['sap/base/security/encodeXML', 'sap/ui/core/library'],
-	function(encodeXML, coreLibrary) {
+sap.ui.define(['sap/base/security/encodeXML', 'sap/ui/core/library', 'sap/ui/core/Configuration'],
+	function(encodeXML, coreLibrary, Configuration) {
 	"use strict";
 
 
@@ -29,7 +29,7 @@ sap.ui.define(['sap/base/security/encodeXML', 'sap/ui/core/library'],
 	 */
 	PanelRenderer.render = function(rm, oControl) {
 		var id = oControl.getId();
-		var accessibility = sap.ui.getCore().getConfiguration().getAccessibility();
+		var accessibility = Configuration.getAccessibility();
 
 		//var hasToolbar = false; // TODO: this can be used in the future; rendering should already be quite ok, but minor adjustments are expected
 

@@ -1,12 +1,15 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/base/Object', 'sap/ui/thirdparty/jquery'
-], function(BaseObject, jQuery) {
+	"sap/base/i18n/Localization",
+	'sap/ui/base/Object',
+	'sap/base/util/isEmptyObject',
+	"sap/ui/core/Locale"
+], (Localization, BaseObject, isEmptyObject, Locale) => {
 	"use strict";
 
 	/**
@@ -20,10 +23,8 @@ sap.ui.define([
 	 * @private
 	 * @since 1.58.0
 	 * @alias sap.ui.mdc.link.Log
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Log = BaseObject.extend("sap.ui.mdc.link.Log", /** @lends sap.ui.mdc.link.Log.prototype */
-	{
+	const Log = BaseObject.extend("sap.ui.mdc.link.Log", /** @lends sap.ui.mdc.link.Log.prototype */ {
 		// Structure of log object:
 		// {
 		//    semanticObjects: {
@@ -68,17 +69,17 @@ sap.ui.define([
 		return this;
 	};
 	Log.prototype.isEmpty = function() {
-		return !(!jQuery.isEmptyObject(this._oLog.semanticObjects) || this._oLog.intents.breakout.length || this._oLog.intents.api.length);
+		return !(!isEmptyObject(this._oLog.semanticObjects) || this._oLog.intents.breakout.length || this._oLog.intents.api.length);
 	};
 	Log.prototype.initialize = function(aSemanticObjects) {
 		this.reset();
-		aSemanticObjects.forEach(function(sSemanticObject) {
+		aSemanticObjects.forEach((sSemanticObject) => {
 			this.createSemanticObjectStructure(sSemanticObject);
-		}.bind(this));
+		});
 	};
 	Log.prototype.addContextObject = function(sSemanticObject, oContextObject) {
-		for ( var sAttributeName in oContextObject) {
-			var oAttribute = this.createAttributeStructure();
+		for (const sAttributeName in oContextObject) {
+			const oAttribute = this.createAttributeStructure();
 			this.addSemanticObjectAttribute(sSemanticObject, sAttributeName, oAttribute);
 			oAttribute.transformations.push({
 				value: oContextObject[sAttributeName],
@@ -129,15 +130,15 @@ sap.ui.define([
 		return this;
 	};
 	Log.prototype.getFormattedText = function() {
-		var fnGetReadableValue = function(oValue) {
+		const fnGetReadableValue = function(oValue) {
 			return (typeof oValue === "string") ? "'" + oValue + "'" : oValue;
 		};
-		var fnResolveTransformations = function(aTransformations, sAttributeName) {
-			var oResult = {
+		const fnResolveTransformations = function(aTransformations, sAttributeName) {
+			const oResult = {
 				value: "\u2022\u0020" + sAttributeName + " : ",
 				description: ""
 			};
-			aTransformations.forEach(function(oTransformation, iIndex) {
+			aTransformations.forEach((oTransformation, iIndex) => {
 				oResult.value = oResult.value + (iIndex > 0 ? "\u0020 \u279c \u0020" : "") + fnGetReadableValue(oTransformation["value"]);
 				oResult.description = oResult.description + "\u2026 \u0020 " + oTransformation["description"] + "\n";
 				if (oTransformation["reason"]) {
@@ -146,25 +147,25 @@ sap.ui.define([
 			});
 			return oResult;
 		};
-		var fnResolveIntents = function(aIntents) {
-			var sIntents = "";
-			aIntents.forEach(function(oIntent) {
+		const fnResolveIntents = function(aIntents) {
+			let sIntents = "";
+			aIntents.forEach((oIntent) => {
 				sIntents += "\u2022\u0020'" + oIntent.text + "' : " + oIntent.intent + "\n";
 			});
 			return sIntents;
 		};
-		var fnSortByText = function(aArray) {
+		const fnSortByText = function(aArray) {
 			try {
-				var sLanguage = sap.ui.getCore().getConfiguration().getLocale().toString();
+				const sLanguage = new Locale(Localization.getLanguageTag()).toString();
 				if (typeof window.Intl !== 'undefined') {
-					var oCollator = window.Intl.Collator(sLanguage, {
+					const oCollator = window.Intl.Collator(sLanguage, {
 						numeric: true
 					});
-					aArray.sort(function(a, b) {
+					aArray.sort((a, b) => {
 						return oCollator.compare(a, b);
 					});
 				} else {
-					aArray.sort(function(a, b) {
+					aArray.sort((a, b) => {
 						return a.localeCompare(b, sLanguage, {
 							numeric: true
 						});
@@ -175,19 +176,18 @@ sap.ui.define([
 			}
 		};
 
-		var sText = "";
+		let sText = "";
 
-		for ( var sSemanticObject in this._oLog.semanticObjects) {
+		for (const sSemanticObject in this._oLog.semanticObjects) {
 			sText = sText + "\n\u2b24" + " " + sSemanticObject + "\n";
-			if (jQuery.isEmptyObject(this._oLog.semanticObjects[sSemanticObject].attributes)) {
+			if (isEmptyObject(this._oLog.semanticObjects[sSemanticObject].attributes)) {
 				sText += "\u2026\u2026 \u0020\ud83d\udd34 No semantic attributes available for semantic object " + sSemanticObject + ". Please be aware " + "that without semantic attributes no URL parameters can be created.\n";
 			} else {
-				var aSemanticAttributes = Object.keys(this._oLog.semanticObjects[sSemanticObject].attributes);
+				const aSemanticAttributes = Object.keys(this._oLog.semanticObjects[sSemanticObject].attributes);
 				fnSortByText(aSemanticAttributes);
 
-				for (var i = 0; i < aSemanticAttributes.length; i++) {
-					var sAttributeName = aSemanticAttributes[i];
-					var oTexts = fnResolveTransformations(this._oLog.semanticObjects[sSemanticObject].attributes[sAttributeName].transformations, sAttributeName);
+				for (const sAttributeName of aSemanticAttributes) {
+					const oTexts = fnResolveTransformations(this._oLog.semanticObjects[sSemanticObject].attributes[sAttributeName].transformations, sAttributeName);
 					sText += oTexts.value + "\n";
 					sText += oTexts.description;
 				}
@@ -209,6 +209,14 @@ sap.ui.define([
 		}
 
 		return sText;
+	};
+
+	/**
+	 * @private
+	 * @returns {string} Contains information of the InfoLog | "No logging data available"
+	 */
+	Log.prototype._getLogFormattedText = function() {
+		return (!this.isEmpty()) ? "---------------------------------------------\nsap.ui.mdc.Link:\nBelow you can see detailed information regarding semantic attributes which have been calculated for one or more semantic objects defined in a Link control. Semantic attributes are used to create the URL parameters. Additionally you can see all links containing the URL parameters.\n" + this.getFormattedText() : "No logging data available";
 	};
 
 	Log.IntentType = {

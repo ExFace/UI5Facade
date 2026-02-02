@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,11 +12,20 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/library'], // library dependency
 
 	"use strict";
 
-
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	/**
+	 * Suite controls library.
+	 *
+	 * @namespace
+	 * @alias sap.ui.suite
+	 * @author SAP SE
+	 * @version 1.136.0
+	 * @since 1.1
+	 * @public
+	 * @deprecated as of version 1.108
+	 */
+	var thisLibrary = sap.ui.getCore().initLibrary({
 		name : "sap.ui.suite",
-		version: "1.82.0",
+		version: "1.136.0",
 		dependencies : ["sap.ui.core"],
 		types: [
 			"sap.ui.suite.TaskCircleColor"
@@ -29,26 +38,12 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/library'], // library dependency
 		elements: []
 	});
 
-	/* eslint-disable no-undef */
-	/**
-	 * Suite controls library.
-	 *
-	 * @namespace
-	 * @alias sap.ui.suite
-	 * @author SAP SE
-	 * @version 1.82.0
-	 * @public
-	 */
-	var thisLibrary = sap.ui.suite;
-	/* eslint-enable no-undef */
-
 	/**
 	 * Defined color values for the Task Circle Control
 	 *
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLibrary.TaskCircleColor = {
 

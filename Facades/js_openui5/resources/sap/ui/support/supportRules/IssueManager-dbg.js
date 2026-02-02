@@ -1,18 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/**
- * The IssueManager interface stores, groups and converts issues from the Core Object to a usable model by the Support Assistant.
- * Issues can be added only through the IssueManager using <code>addIssue</code> method.
- */
-sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/supportRules/Constants"],
-	function (jQuery, BaseObject, constants) {
+sap.ui.define(["sap/base/util/deepExtend", "sap/ui/core/Element", "sap/ui/support/library", "sap/ui/support/supportRules/Constants"],
+	function(deepExtend, Element, library, constants) {
 		"use strict";
 		/**
-		 * @type {object[]} _aIssues Issues stored in the IssueManager
+		 * Issues stored in the IssueManager.
+		 * @type {object[]}
 		 * @private
 		 */
 		var _aIssues = [];
@@ -23,7 +20,7 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 		 * @returns {object} Converted Issue Object
 		 */
 		var _convertIssueToViewModel = function (oIssue) {
-			var element = sap.ui.getCore().byId(oIssue.context.id),
+			var element = Element.getElementById(oIssue.context.id),
 				className = "";
 
 			if (oIssue.context.id === "WEBPAGE") {
@@ -55,24 +52,17 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 		/**
 		 * @class
 		 * The IssueManager is used to store and export issues to the Support Assistant.
-		 * <h3>Overview</h3>
-		 * The IssueManager is used to store and export issues found by the Support Assistant.
+		 *
 		 * <h3>Usage</h3>
 		 * The IssueManager can be used as a static class and add issues using the <code>addIssue</code> method of both the IssueManager or the IssueManagerFacade.
-		 * @public
-		 * @name sap.ui.support.IssueManager
-		 * @alias IssueManager
-		 *
-		 * @lends IssueManager
+		 * @private
+		 * @alias sap.ui.support.IssueManager
 		 */
 		var IssueManager = {
-
 
 			/**
 			 * Adds an issue to the list of issues found.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.addIssue
 			 * @param {object} oIssue The issue to be added in the IssueManager
 			 */
 			addIssue: function (oIssue) {
@@ -81,8 +71,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Cycles through issues stored in the IssueManager and executes the given callback function.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.walkIssues
 			 * @param {function} fnCallback Callback function to be used in the same fashion as Array.prototype.forEach
 			 */
 			walkIssues: function (fnCallback) {
@@ -92,8 +80,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Clears all issues in the IssueManager.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.clearIssues
 			 * @returns {void}
 			 */
 			clearIssues: function () {
@@ -106,8 +92,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Converts the issues inside the IssueManager.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.getIssuesModel
 			 * @returns {object[]} viewModel Issues in ViewModel format
 			 */
 			getIssuesModel: function () {
@@ -123,26 +107,24 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Gets rules and issues, and converts each rule to a ruleViewModel - parameters should be converted as specified beforehand.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.getRulesViewModel
-			 * @param {object} rules All the rules from _mRulesets
+			 * @param {object} ruleLibs All rule libraries
 			 * @param {array} selectedRulesIDs The rule ID's of the selected rules.
 			 * @param {array} issues The issues to map to the rulesViewModel
 			 * The issues passes should be grouped and in ViewModel format.
 			 * @returns {object} rulesViewModel All the rules with issues, selected flag and issueCount properties
 			 * The issues are in ViewModel format.
 			 */
-			getRulesViewModel: function (rules, selectedRulesIDs, issues) {
+			getRulesViewModel: function (ruleLibs, selectedRulesIDs, issues) {
 				var rulesViewModel = {},
 					issueCount = 0,
 					group = {},
 					library = {},
 					rule = {},
-					rulesCopy = jQuery.extend(true, {}, rules),
-					issuesCopy = jQuery.extend(true, {}, issues);
+					ruleLibsCopy = deepExtend({}, ruleLibs),
+					issuesCopy = deepExtend({}, issues);
 
-				for (group in rulesCopy) {
-					rulesViewModel[group] = jQuery.extend(true, {}, rulesCopy[group].ruleset._mRules);
+				for (group in ruleLibsCopy) {
+					rulesViewModel[group] = deepExtend({}, ruleLibsCopy[group].ruleset._mRules);
 					library = rulesViewModel[group];
 
 					// Create non-enumerable properties
@@ -159,8 +141,8 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 						value: 0
 					});
 
-					for (rule in rulesCopy[group].ruleset._mRules) {
-						library[rule] = jQuery.extend(true, [], library[rule]);
+					for (rule in ruleLibsCopy[group].ruleset._mRules) {
+						library[rule] = deepExtend([], library[rule]);
 
 						// Create non-enumerable properties
 						Object.defineProperty(library[rule], 'selected', {
@@ -199,15 +181,12 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Gets rules and converts them into treeTable format.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.getTreeTableViewModel
 			 * @param {object} oRules Deserialized rules found within the current state
 			 * @returns {object} TreeTableModel Rules in treeTable usable format
 			 * The rules are in a TreeTable format.
 			 */
 			getTreeTableViewModel: function(oRules) {
 				var index = 0,
-					innerIndex = 0,
 					treeTableModel = {},
 					rulesViewModel,
 					rule,
@@ -237,7 +216,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 							libName: libraryName,
 							selected: true
 						});
-						innerIndex++;
 					}
 					rules = [];
 					index++;
@@ -248,8 +226,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Gets issues in TreeTable format.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.getIssuesViewModel
 			 * @param {object} issuesModel All the issues after they have been grouped with <code>groupIssues</code>
 			 * @returns {object} All the issues in TreeTable usable model
 			 */
@@ -335,37 +311,35 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			 * Builds a string containing the formatted name e.g. (1 H, 0 M, 0 L ).
 			 * @private
 			 * @param {object} oValues
-			 * @name sap.ui.support.IssueManager._getFormattedName
 			 * @returns {string} String containing the formatted name.
 			 */
 			_getFormattedName: function(oValues) {
-				var sHighColor = "",
-					sMediumColor = "",
-					sLowColor = "";
+				var sHighClass = "",
+					sMediumClass = "",
+					sLowClass = "";
 
 				if (oValues.highCount > 0) {
-					sHighColor = "color: " + constants.SUPPORT_ASSISTANT_SEVERITY_HIGH_COLOR + ";";
+					sHighClass = "issueSeverityHigh";
 				}
 
 				if (oValues.mediumCount > 0) {
-					sMediumColor = "color: " + constants.SUPPORT_ASSISTANT_SEVERITY_MEDIUM_COLOR + ";";
+					sMediumClass = "issueSeverityMedium";
 				}
 
 				if (oValues.lowCount > 0) {
-					sLowColor = "color: " + constants.SUPPORT_ASSISTANT_SEVERITY_LOW_COLOR + ";";
+					sLowClass = "issueSeverityLow";
 				}
 
 				return oValues.name +
-					" (<span style=\"" + sHighColor + "\"> " + oValues.highCount + " " + oValues.highName + ", </span> " +
-					"<span style=\"" + sMediumColor + "\"> " + oValues.mediumCount + " " + oValues.mediumName + ", </span> " +
-					"<span style=\"" + sLowColor + "\"> " + oValues.lowCount + " " + oValues.lowName + "</span> )";
+					" (<span class=\"" + sHighClass + "\"> " + oValues.highCount + " " + oValues.highName + ", </span> " +
+					"<span class=\"" + sMediumClass + "\"> " + oValues.mediumCount + " " + oValues.mediumName + ", </span> " +
+					"<span class=\"" + sLowClass + "\"> " + oValues.lowCount + " " + oValues.lowName + "</span> )";
 			},
 
 			/**
 			 * Sorts number of severity issues e.g. 1 High, 0 Medium, 0 Low.
 			 * @private
 			 * @param {array} aIssues
-			 * @name sap.ui.support.IssueManager._sortSeverityIssuesByPriority
 			 * @returns {object} Object containing the number of issues sorted by severity.
 			 */
 			_sortSeverityIssuesByPriority: function(aIssues) {
@@ -392,8 +366,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Converts issues to view model format.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.convertToViewModel
 			 * @param {array} oIssues The issues to convert
 			 * @returns {array} viewModel Issues in ViewModel format
 			 */
@@ -408,8 +380,6 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Groups all issues by library and rule ID.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.groupIssues
 			 * @param {array} oIssues The issues to group. Must be in a ViewModel format
 			 * @returns {array} groupedIssues Grouped issues by library and rule id
 			 */
@@ -437,10 +407,8 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 			/**
 			 * Creates an instance of the IssueManagerFacade.
 			 * @public
-			 * @method
-			 * @name sap.ui.support.IssueManager.createIssueManagerFacade
 			 * @param {object} oRule Given rule
-			 * @returns {object} New IssueManagerFacade
+			 * @returns {sap.ui.support.IssueManagerFacade} New IssueManagerFacade
 			 */
 			createIssueManagerFacade: function (oRule) {
 				return new IssueManagerFacade(oRule);
@@ -448,31 +416,32 @@ sap.ui.define(["jquery.sap.global", "sap/ui/base/Object", "sap/ui/support/suppor
 		};
 
 		/**
-		 * Creates an IssueManagerFacade.
-		 * @constructor
-		 * @private
-		 * @method
-		 * @namespace
+		 * The IssueManagerFacade allows rule developers to add new issues.
+		 *
+		 * <h3>Usage</h3>
+		 * The IssueManagerFacade is passed as first argument to all rule check functions.
+		 *
+		 * @class
 		 * @name sap.ui.support.IssueManagerFacade
 		 * @param {object} oRule Rule for the IssueManagerFacade
-		 * @returns {void}
+		 * @hideconstructor
+		 * @public
 		 */
 		var IssueManagerFacade = function (oRule) {
 			this.oRule = oRule;
 		};
 
 		/**
-		 * Adds issue to the IssueManager via the IssueManagerFacade.
+		 * Adds issue
+		 * @alias sap.ui.support.IssueManagerFacade#addIssue
 		 * @public
-		 * @method
-		 * @memberof IssueManagerFacade
-		 * @param {object} oIssue Issue object to be added in the IssueManager
-		 * @returns {void}
+		 * @param {{severity: sap.ui.support.Severity, details: string, context: {id: string}}} oIssue Issue object to be added
+		 * @throws {Error} Will throw an error if some of the issue properties are invalid
 		 */
 		IssueManagerFacade.prototype.addIssue = function (oIssue) {
 			oIssue.rule = this.oRule;
 
-			if (!sap.ui.support.Severity[oIssue.severity]) {
+			if (!library.Severity[oIssue.severity]) {
 				throw "The issue from rule " + this.oRule.title + " does not have proper severity defined. Allowed values can be found" +
 						"in sap.ui.support.Severity";
 			}

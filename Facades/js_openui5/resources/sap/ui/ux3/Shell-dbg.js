@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,6 +29,7 @@ sap.ui.define([
     'sap/ui/Device',
     'sap/base/Log',
     'sap/base/assert',
+    'sap/ui/core/Configuration',
     // jQuery Plugin 'firstFocusableDomRef'
 	'sap/ui/dom/jquery/Focusable'
 ],
@@ -55,7 +56,8 @@ sap.ui.define([
 		BaseObject,
 		Device,
 		Log,
-		assert
+		assert,
+		Configuration
 	) {
 	"use strict";
 
@@ -88,16 +90,16 @@ sap.ui.define([
 	 * The Ux3 GoldReflection Shell, which is an application frame with navigation capabilities.
 	 * It is supposed to be added to a direct child of the BODY tag of a page and there should be no other parts of the page consuming space outside the Shell.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Shell}
 	 * @alias sap.ui.ux3.Shell
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Shell = Control.extend("sap.ui.ux3.Shell", /** @lends sap.ui.ux3.Shell.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -452,7 +454,7 @@ sap.ui.define([
 		this._adaptContentHeight();
 
 		// remember RTL mode to avoid repeated checks
-		this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		this._bRtl = Configuration.getRTL();
 
 		if (this._getPersonalization().hasChanges()) {
 			this._getPersonalization().applySettings(this._getPersonalization().oSettings);
@@ -489,11 +491,22 @@ sap.ui.define([
 	 * @private
 	 */
 	Shell.prototype._updateThemeVariables = function() {
-		Shell.SIDE_BAR_BASE_WIDTH = parseInt(
-			Parameters.get("sapUiUx3ShellSideBarBaseWidth"));
+		var mParams = Object.assign({
+			// add base styles as default
+			"sapUiUx3ShellSideBarBaseWidth": "40px",
+			"sapUiUx3ShellPaneOverflowButtonHeight": "40px"
+		}, Parameters.get({
+			name: ["sapUiUx3ShellSideBarBaseWidth", "sapUiUx3ShellPaneOverflowButtonHeight"],
+			callback: function (_mParams) {
+				Shell.SIDE_BAR_BASE_WIDTH = parseInt(_mParams["sapUiUx3ShellSideBarBaseWidth"]);
+				Shell.PANE_OVERFLOW_BUTTON_HEIGHT = parseInt(_mParams["sapUiUx3ShellPaneOverflowButtonHeight"]);
+			}
+		}));
 
-		Shell.PANE_OVERFLOW_BUTTON_HEIGHT = parseInt(
-			Parameters.get("sapUiUx3ShellPaneOverflowButtonHeight"));
+		Shell.SIDE_BAR_BASE_WIDTH = parseInt(mParams["sapUiUx3ShellSideBarBaseWidth"]);
+
+		Shell.PANE_OVERFLOW_BUTTON_HEIGHT = parseInt(mParams["sapUiUx3ShellPaneOverflowButtonHeight"]);
+
 		// Save the original button height to be referenced as maximum height
 		Shell.PANE_OVERFLOW_BUTTON_MAX_HEIGHT = Shell.PANE_OVERFLOW_BUTTON_HEIGHT;
 	};
@@ -1136,7 +1149,6 @@ sap.ui.define([
 	 *
 	 * @type sap.ui.commons.SearchField
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.getSearchField = function() {
 		if (!this._oSearchField) {
@@ -1189,9 +1201,8 @@ sap.ui.define([
 	 *
 	 * @param {string} sPaneBarItemId
 	 *         The ID of the PaneBarItem which should be marked as selected.
-	 * @type sap.ui.ux3.Shell
+	 * @type this
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.openPane = function(sPaneId) {
 		var that = this;
@@ -1239,9 +1250,8 @@ sap.ui.define([
 	 *
 	 * Returns 'this' to allow method chaining.
 	 *
-	 * @type sap.ui.ux3.Shell
+	 * @type this
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.closePane = function() {
 		this._closePane();
@@ -1254,7 +1264,6 @@ sap.ui.define([
 	 *
 	 * @type boolean
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.isPaneOpen = function() {
 		return (this._sOpenPaneId != null);
@@ -1377,7 +1386,7 @@ sap.ui.define([
 					this.$("paneContent").css("width", iWidth + "px");
 					this.$("paneBar").css("width", (iWidth + Shell.SIDE_BAR_BASE_WIDTH) + "px");
 
-					if (!!this._sOpenPaneId) { // pane area is open
+					if (this._sOpenPaneId) { // pane area is open
 						if (this._bRtl) {
 							this.$("wBar").css("marginLeft", (iWidth + Shell.SIDE_BAR_BASE_WIDTH) + "px");
 							this.$("canvas").css("left", (iWidth + Shell.SIDE_BAR_BASE_WIDTH + Shell._SHELL_OFFSET_RIGHT) + "px");
@@ -2360,7 +2369,6 @@ sap.ui.define([
 	 *         If set, the controls previously contained in the Shell will be destroyed, to avoid memory leaks.
 	 * @type sap.ui.core.Control[]
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.setContent = function(vContent, bDestruct) {
 		assert(vContent === null
@@ -2413,7 +2421,6 @@ sap.ui.define([
 	 *         If set, the controls previously contained in the pane will be destroyed, to avoid memory leaks.
 	 * @type sap.ui.core.Control[]
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.setPaneContent = function(vContent, bDestruct) {
 		assert((vContent instanceof Control)
@@ -2666,7 +2673,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.openPersonalizationDialog = function() {
 		this._getPersonalization().openDialog();
@@ -2682,7 +2688,6 @@ sap.ui.define([
 	 *         Personalization settings object
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Shell.prototype.initializePersonalization = function(oSettings) {
 		this._getPersonalization().initializeSettings(oSettings);

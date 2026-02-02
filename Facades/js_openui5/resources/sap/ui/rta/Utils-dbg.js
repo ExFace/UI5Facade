@@ -1,53 +1,56 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/fl/Utils",
+	"sap/base/util/restricted/_omit",
+	"sap/m/MessageBox",
+	"sap/ui/core/Fragment",
+	"sap/ui/core/Lib",
+	"sap/ui/dt/DOMUtil",
+	"sap/ui/dt/ElementUtil",
+	"sap/ui/dt/MetadataPropagationUtil",
+	"sap/ui/dt/OverlayUtil",
+	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
+	"sap/ui/fl/initial/api/Version",
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/LayerUtils",
-	"sap/ui/fl/registry/Settings",
-	"sap/ui/dt/OverlayUtil",
-	"sap/ui/dt/DOMUtil",
-	"sap/m/MessageBox",
+	"sap/ui/fl/Utils",
+	"sap/ui/model/json/JSONModel",
 	"sap/ui/rta/util/BindingsExtractor",
-	"sap/base/Log",
-	"sap/base/util/UriParameters",
-	"sap/base/util/restricted/_omit"
-],
-function(
-	jQuery,
-	FlexUtils,
+	"sap/ui/rta/util/hasStableId"
+], function(
+	_omit,
+	MessageBox,
+	Fragment,
+	Lib,
+	DOMUtil,
+	ElementUtil,
+	MetadataPropagationUtil,
+	OverlayUtil,
+	FlexRuntimeInfoAPI,
+	Version,
 	Layer,
 	FlexLayerUtils,
-	Settings,
-	OverlayUtil,
-	DOMUtil,
-	MessageBox,
+	FlexUtils,
+	JSONModel,
 	BindingsExtractor,
-	Log,
-	UriParameters,
-	_omit
+	hasStableId
 ) {
 	"use strict";
 
 	/**
-	 * Class for Utils.
+	 * Utility functionality to work with controls, e.g. iterate through aggregations, find parents, etc.
 	 *
-	 * @class Utility functionality to work with controls, e.g. iterate through aggregations, find parents, etc.
-	 *
+	 * @namespace
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
-	 * @static
 	 * @since 1.30
 	 * @alias sap.ui.rta.Utils
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality.
-	 * API of this class might be changed in the future.
 	 */
 
 	var Utils = {};
@@ -56,7 +59,7 @@ function(
 
 	Utils._sFocusableOverlayClass = ".sapUiDtOverlaySelectable";
 
-	Utils._sRtaStyleClassName = '';
+	Utils._sRtaStyleClassName = "";
 
 	/**
 	 * Returns the rta specific Style Class
@@ -81,134 +84,6 @@ function(
 	};
 
 	/**
-	 * Utility function to check if extensibility is enabled in the current system
-	 *
-	 * @param {sap.ui.core.Control} oControl - Control to be checked
-	 * @returns {Promise} resolves a boolean
-	 */
-	Utils.isExtensibilityEnabledInSystem = function(oControl) {
-		var sComponentName = FlexUtils.getComponentClassName(oControl);
-		if (!sComponentName || sComponentName === "") {
-			return Promise.resolve(false);
-		}
-		return Settings.getInstance(sComponentName).then(function(oSettings) {
-			if (oSettings.isModelS) {
-				return oSettings.isModelS();
-			}
-			return false;
-		});
-	};
-
-	/**
-	 * Utility function to check if the OData service is updated in the meantime
-	 *
-	 * @param {sap.ui.core.Control} oControl - Control to be checked
-	 * @returns {Promise} resolves if service is up to date, rejects otherwise
-	 */
-	Utils.isServiceUpToDate = function(oControl) {
-		return this.isExtensibilityEnabledInSystem(oControl)
-
-		.then(function(bEnabled) {
-			if (bEnabled) {
-				return new Promise(function(fnResolve, fnReject) {
-					sap.ui.require([
-						"sap/ui/fl/fieldExt/Access"
-					], function(Access) {
-						var oModel = oControl.getModel();
-						if (oModel) {
-							var bServiceOutdated = Access.isServiceOutdated(oModel.sServiceUrl);
-							if (bServiceOutdated) {
-								Access.setServiceValid(oModel.sServiceUrl);
-								//needs FLP to trigger UI restart popup
-								sap.ui.getCore().getEventBus().publish("sap.ui.core.UnrecoverableClientStateCorruption", "RequestReload", {});
-								return fnReject();
-							}
-						}
-						return fnResolve();
-					});
-				});
-			}
-		});
-	};
-
-	/**
-	 * Fetching entity metadata by specified path.
-	 * @param {sap.ui.model.Model} oModel - Model
-	 * @param {string} sPath Path to resolve
-	 * @returns {object|null} Plain object with entity description
-	 */
-	function getEntityTypeByPath (oModel, sPath) {
-		return oModel.oMetadata && oModel.oMetadata._getEntityTypeByPath(sPath);
-	}
-	/**
-	 * Get the entity type based on the binding of a control
-	 *
-	 * @param {sap.ui.core.Element} oElement - Any Object
-	 * @param {sap.ui.model.odata.ODataModel} oModel - Data model
-	 * @returns{object} Entity type without namespace
-	 */
-	function getBoundEntityType(oElement, oModel) {
-		oModel || (oModel = oElement.getModel());
-
-		var oBindingContext = oElement.getBindingContext();
-
-		if (oBindingContext) {
-			return getEntityTypeByPath(oModel, oBindingContext.getPath()) || {};
-		}
-		return {};
-	}
-	/**
-	 * Utility function to check via backend calls if the custom field button shall be enabled or not
-	 *
-	 * @param {sap.ui.core.Control} oControl - Control to be checked
-	 * @returns {Promise} Returns <boolean> value - true if CustomFieldCreation functionality is to be enabled, false if not
-	 */
-	Utils.isCustomFieldAvailable = function(oControl) {
-		return this.isExtensibilityEnabledInSystem(oControl)
-
-		.then(function(bShowCreateExtFieldButton) {
-			if (!bShowCreateExtFieldButton || !oControl.getModel()) {
-				return false;
-			}
-
-			return new Promise(function(fnResolve, fnReject) {
-				sap.ui.require([
-					"sap/ui/fl/fieldExt/Access"
-				], function(Access) {
-					var sServiceUrl = oControl.getModel().sServiceUrl;
-					var sEntityType = getBoundEntityType(oControl).name;
-					var $Deferred;
-					try {
-						$Deferred = Access.getBusinessContexts(sServiceUrl, sEntityType);
-					} catch (oError) {
-						Log.error("exception occured in sap.ui.fl.fieldExt.Access.getBusinessContexts", oError);
-						fnResolve(false);
-					}
-
-					return Promise.resolve($Deferred)
-					.then(function(oResult) {
-						if (oResult && Array.isArray(oResult.BusinessContexts) && oResult.BusinessContexts.length > 0) {
-							oResult.EntityType = sEntityType;
-							return fnResolve(oResult);
-						}
-						return fnResolve(false);
-					})
-					.catch(function(oError) {
-						if (oError) {
-							if (Array.isArray(oError.errorMessages)) {
-								for (var i = 0; i < oError.errorMessages.length; i++) {
-									Log.error(oError.errorMessages[i].text);
-								}
-							}
-						}
-						return fnResolve(false);
-					});
-				}, fnReject);
-			});
-		});
-	};
-
-	/**
 	 * Opens a confirmation dialog indicating mandatory fields if necessary.
 	 *
 	 * @param {object} oElement - The analyzed control
@@ -216,7 +91,7 @@ function(
 	 * @returns{Promise} The Promise which resolves when popup is closed (via Remove OR Cancel actions)
 	 */
 	Utils.openRemoveConfirmationDialog = function(oElement, sText) {
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
+		var oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
 		var sTitle;
 		return new Promise(
 			function(resolve) {
@@ -224,13 +99,13 @@ function(
 
 				// create some dummy JSON data and create a Model from it
 				var data = {
-					messageText : sText,
-					titleText : sTitle,
-					icon : "sap-icon://question-mark",
-					removeText : oTextResources.getText("BTN_FREP_REMOVE"),
-					cancelText : oTextResources.getText("BTN_FREP_CANCEL")
+					messageText: sText,
+					titleText: sTitle,
+					icon: "sap-icon://question-mark",
+					removeText: oTextResources.getText("BTN_FREP_REMOVE"),
+					cancelText: oTextResources.getText("BTN_FREP_CANCEL")
 				};
-				var oModel = new sap.ui.model.json.JSONModel();
+				var oModel = new JSONModel();
 				oModel.setData(data);
 
 				var oFragmentDialog;
@@ -244,11 +119,11 @@ function(
 
 				// create a controller for the action in the Dialog
 				var oFragmentController = {
-					removeField : function() {
+					removeField() {
 						fnCleanUp();
 						resolve(true);
 					},
-					closeDialog : function() {
+					closeDialog() {
 						fnCleanUp();
 						resolve(false);
 					}
@@ -256,11 +131,19 @@ function(
 
 				// instantiate the Fragment if not done yet
 				if (!oFragmentDialog) {
-					oFragmentDialog = sap.ui.xmlfragment("sap.ui.rta.view.RemoveElementDialog", oFragmentController);
-					oFragmentDialog.setModel(oModel);
+					Fragment.load({
+						name: "sap.ui.rta.view.RemoveElementDialog",
+						controller: oFragmentController
+					}).then(function(oFragmentDialogT) {
+						oFragmentDialog = oFragmentDialogT;
+						oFragmentDialog.setModel(oModel);
+						oFragmentDialog.addStyleClass(Utils.getRtaStyleClassName());
+						oFragmentDialog.open();
+					});
+				} else {
+					oFragmentDialog.addStyleClass(Utils.getRtaStyleClassName());
+					oFragmentDialog.open();
 				}
-				oFragmentDialog.addStyleClass(Utils.getRtaStyleClassName());
-				oFragmentDialog.open();
 			}
 		);
 	};
@@ -276,48 +159,6 @@ function(
 		// check the real DOM visibility should be preformed while oOverlay.isVisible() can be true, but if element
 		// has no geometry, overlay will not be visible in UI
 		return oOverlay.isSelectable() && DOMUtil.isVisible(oOverlay.getDomRef());
-	};
-
-	/**
-	 * Utility function for retrieving property values for a specified Element
-	 *
-	 * @param {sap.ui.core.Element} oElement - Any element
-	 * @param {string} sPropertyName - Name of the property
-	 * @returns {*} value of the property, could be any value
-	 */
-	Utils.getPropertyValue = function(oElement, sPropertyName) {
-		var oMetadata = oElement.getMetadata().getPropertyLikeSetting(sPropertyName);
-		var sPropertyGetter = oMetadata._sGetter;
-		return oElement[sPropertyGetter]();
-	};
-
-	/**
-	 * Returns overlay instance for an overlay's dom element
-	 *
-	 * @param {document.documentElement} oDomRef - DOM Element
-	 * @returns {sap.ui.dt.ElementOverlay} Overlay object
-	 * @private
-	 */
-	Utils.getOverlayInstanceForDom = function(oDomRef) {
-		var sId = jQuery(oDomRef).attr("id");
-		if (sId) {
-			return sap.ui.getCore().byId(sId);
-		}
-	};
-
-	/**
-	 * Returns the focused overlay
-	 *
-	 * @returns {sap.ui.dt.ElementOverlay} Overlay object
-	 * @private
-	 */
-	Utils.getFocusedOverlay = function() {
-		if (document.activeElement) {
-			var oElement = sap.ui.getCore().byId(document.activeElement.id);
-			if (oElement instanceof sap.ui.dt.ElementOverlay) {
-				return oElement;
-			}
-		}
 	};
 
 	/**
@@ -375,9 +216,7 @@ function(
 		while (oNextFocusableSiblingOverlay && !this.isOverlaySelectable(oNextFocusableSiblingOverlay)) {
 			oNextFocusableSiblingOverlay = OverlayUtil.getNextSiblingOverlay(oNextFocusableSiblingOverlay);
 		}
-		if (!oNextFocusableSiblingOverlay) {
-			oNextFocusableSiblingOverlay = this._findSiblingOverlay(oOverlay, NEXT);
-		}
+		oNextFocusableSiblingOverlay ||= this._findSiblingOverlay(oOverlay, NEXT);
 		return oNextFocusableSiblingOverlay;
 	};
 
@@ -394,11 +233,9 @@ function(
 
 		while (oPreviousFocusableSiblingOverlay && !this.isOverlaySelectable(oPreviousFocusableSiblingOverlay)) {
 			oPreviousFocusableSiblingOverlay = OverlayUtil
-					.getPreviousSiblingOverlay(oPreviousFocusableSiblingOverlay);
+			.getPreviousSiblingOverlay(oPreviousFocusableSiblingOverlay);
 		}
-		if (!oPreviousFocusableSiblingOverlay) {
-			oPreviousFocusableSiblingOverlay = this._findSiblingOverlay(oOverlay, PREVIOUS);
-		}
+		oPreviousFocusableSiblingOverlay ||= this._findSiblingOverlay(oOverlay, PREVIOUS);
 		return oPreviousFocusableSiblingOverlay;
 	};
 
@@ -434,8 +271,8 @@ function(
 	 * @param {sap.ui.core.Element} oParentElement - Parent Element
 	 * @param {sap.ui.core.Element} oChildElement - Element which position is being looked for
 	 * @param {string} sAggregationName - Aggregation name
-	 * @param {Function} [fnGetIndex] - Custom handler for retreiving index
-	 * @returns {Number} index of the element
+	 * @param {Function} [fnGetIndex] - Custom handler for retrieving index
+	 * @returns {int} index of the element
 	 */
 	Utils.getIndex = function(oParentElement, oChildElement, sAggregationName, fnGetIndex) {
 		var iIndex;
@@ -457,50 +294,11 @@ function(
 		return iIndex;
 	};
 
-	/**
-	 * Creates a unique id for a new control based on its parent control, entityType and binding path.
-	 *
-	 * @param {*} oParentControl - Parent control.
-	 * @param {string} sEntityType - EntityType which is bound to the parent control
-	 * @param {string} sBindingPath - Binding path of the control for which a new Id should be created
-	 * @returns {string} New string Id
-	 * @private
-	 */
-	Utils.createFieldLabelId = function(oParentControl, sEntityType, sBindingPath) {
-		return (oParentControl.getId() + "_" + sEntityType + "_" + sBindingPath).replace("/", "_");
-	};
-
-
-	/**
-	 * Allow window.open to be stubbed in tests
-	 *
-	 * @param {string} sUrl - url string
-	 */
-	Utils.openNewWindow = function(sUrl) {
-		window.open(sUrl, "_blank");
-	};
-
-	/**
-	 * Function to find the binding paths of a given UI5 Element
-	 *
-	 * @param {sap.ui.core.Element} oElement - Element for which the binding info should be found
-	 * @returns {object} valueProperty: the name of the property which is bound
-	 * @private
-	 */
-	Utils.getElementBindingPaths = function(oElement) {
-		var aPaths = {};
-		if (oElement.mBindingInfos) {
-			for (var oInfo in oElement.mBindingInfos) {
-				var sPath = oElement.mBindingInfos[oInfo].parts[0].path
-						? oElement.mBindingInfos[oInfo].parts[0].path
-						: "";
-				sPath = sPath.split("/")[sPath.split("/").length - 1];
-				aPaths[sPath] = {
-					valueProperty : oInfo
-				};
-			}
-		}
-		return aPaths;
+	Utils.isOriginalFioriToolbarAccessible = function() {
+		var oRenderer = Utils.getFiori2Renderer();
+		return oRenderer
+			&& oRenderer.getRootControl
+			&& oRenderer.getRootControl().getShellHeader();
 	};
 
 	/**
@@ -522,45 +320,24 @@ function(
 	 * @param {Function} fnCustomizer - The customizer is invoked with five arguments:
 	 *                                  (vDestinationValue, vSourceValue, sProperty, mDestination, mSource).
 	 */
-	Utils.extendWith = function (mDestination, mSource, fnCustomizer) {
+	Utils.extendWith = function(mDestination, mSource, fnCustomizer) {
 		if (!(typeof fnCustomizer === "function")) {
-			throw new Error('In order to use extendWith() utility function fnCustomizer should be provided!');
+			throw new Error("In order to use extendWith() utility function fnCustomizer should be provided!");
 		}
 
 		for (var sSourceProperty in mSource) {
 			if (mSource.hasOwnProperty(sSourceProperty)) {
 				if (fnCustomizer(
-						mDestination[sSourceProperty],
-						mSource[sSourceProperty],
-						sSourceProperty,
-						mDestination,
-						mSource)
+					mDestination[sSourceProperty],
+					mSource[sSourceProperty],
+					sSourceProperty,
+					mDestination,
+					mSource)
 				) {
 					mDestination[sSourceProperty] = mSource[sSourceProperty];
 				}
 			}
 		}
-	};
-
-	/**
-	 * Returns if the <code>oDomElement</code> is currently visible on the screen.
-	 *
-	 * @param {HTMLElement|jQuery} oDomElement Element to be evaluated
-	 * @returns{boolean} - Returns if <code>oDomElement</code> is currently visible on the screen.
-	 */
-	Utils.isElementInViewport = function(oDomElement) {
-		if (oDomElement instanceof jQuery) {
-			oDomElement = oDomElement.get(0);
-		}
-
-		var mRect = oDomElement.getBoundingClientRect();
-
-		return (
-			mRect.top >= 0 &&
-			mRect.left >= 0 &&
-			mRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-			mRect.right <= (window.innerWidth || document.documentElement.clientWidth)
-		);
 	};
 
 	/**
@@ -572,21 +349,37 @@ function(
 	 * @param  {object} [mPropertyBag] - Object with additional information; error and titleKey are evaluated, the rest is passed as option to the MessageBox
 	 * @param  {any} [mPropertyBag.error] - If an error is passed on, the message box text is derived from it
 	 * @param  {string} [mPropertyBag.titleKey] - The text key for the title of the message box; if none is provided the default of the selectde MessageBox type  will be displayed
-	 * @returns{Promise} Promise displaying the message box; resolves when it is closed
+	 * @param  {array} [mPropertyBag.actions] - Available actions for the messabe box
+	 * @param  {array} [mPropertyBag.actionKeys] - The text key for the action buttons of the message box. It is provided as actions property to the MessageBox.
+	 * 											   If mPropertyBag.actions property is set, it will not be overriden
+	 * @param {string} [mPropertyBag.emphasizedAction] - Action option to be emphasized
+	 * @param {string} [mPropertyBag.emphasizedActionKey] - Text key of the action option to be emphasized
+	 * @param {boolean} [mPropertyBag.showCancel] - Whether "cancel" should be part of the actions
+	 * @returns{Promise} Promise displaying the message box; resolves when it is closed with the pressed button
 	 */
 	Utils.showMessageBox = function(sMessageType, sMessageKey, mPropertyBag) {
-		return sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta", true)
-		.then(function(oResourceBundle) {
-			mPropertyBag = mPropertyBag || {};
-			var sMessage = oResourceBundle.getText(sMessageKey, mPropertyBag.error ? [mPropertyBag.error.userMessage || mPropertyBag.error.message || mPropertyBag.error] : undefined);
-			var sTitle = oResourceBundle.getText(mPropertyBag.titleKey);
+		var oResourceBundle = Lib.getResourceBundleFor("sap.ui.rta");
+		mPropertyBag ||= {};
+		var sMessage = oResourceBundle.getText(sMessageKey, mPropertyBag.error ? [mPropertyBag.error.userMessage || mPropertyBag.error.message || mPropertyBag.error] : undefined);
+		var sTitle = mPropertyBag.titleKey && oResourceBundle.getText(mPropertyBag.titleKey);
+		var vActionTexts =
+			mPropertyBag.actionKeys &&
+			mPropertyBag.actionKeys.map(function(sActionKey) {
+				return oResourceBundle.getText(sActionKey);
+			});
+		var sEmphasizedAction = mPropertyBag.emphasizedActionKey ? oResourceBundle.getText(mPropertyBag.emphasizedActionKey) : undefined;
 
-			var mOptions = _omit(mPropertyBag, ["titleKey", "error"]);
-			mOptions.title = sTitle;
-			mOptions.styleClass = Utils.getRtaStyleClassName();
+		var bShowCancel = mPropertyBag.showCancel;
+		var mOptions = _omit(mPropertyBag, ["titleKey", "error", "actionKeys", "emphasizedAction", "emphasizedActionKey", "showCancel"]);
+		mOptions.title = sTitle;
+		mOptions.styleClass = Utils.getRtaStyleClassName();
+		mOptions.actions ||= vActionTexts;
+		mOptions.emphasizedAction = sEmphasizedAction || mPropertyBag.emphasizedAction;
+		if (bShowCancel) {
+			mOptions.actions.push(MessageBox.Action.CANCEL);
+		}
 
-			return messageBoxPromise(sMessageType, sMessage, mOptions);
-		});
+		return messageBoxPromise(sMessageType, sMessage, mOptions);
 	};
 
 	function messageBoxPromise(sMessageType, sMessage, mOptions) {
@@ -605,7 +398,7 @@ function(
 	 * @returns{boolean} <code>true</code> when the controls have compatible bindings.
 	 */
 	Utils.checkSourceTargetBindingCompatibility = function(oSource, oTarget, oModel) {
-		oModel = oModel || oSource.getModel();
+		oModel ||= oSource.getModel();
 		var mSourceBindings = BindingsExtractor.collectBindingPaths(oSource, oModel);
 		var sSourceContextBindingPath;
 		var sTargetContextBindingPath;
@@ -636,21 +429,131 @@ function(
 		})) {
 			return fnCallback();
 		}
+		return undefined;
 	};
 
 	/**
-	 * Build hashmap from array of objects
-	 *
-	 * @param {object} aArray - Array
-	 * @param {string} sKeyFieldName - Field name to use as key
-	 * @param {string} sValueFieldName - Field name to use as value
-	 * @returns {object} Hashmap
+	 * Checks if the system is an S4Hana Cloud system
+	 * @return {boolean} <code>true</code> if the system is an S4HANA Cloud system
 	 */
-	Utils.buildHashMapFromArray = function (aArray, sKeyFieldName, sValueFieldName) {
-		return aArray.reduce(function (mMap, oItem) {
-			mMap[oItem[sKeyFieldName]] = oItem[sValueFieldName];
-			return mMap;
-		}, {});
+	Utils.isS4HanaCloud = function() {
+		return FlexRuntimeInfoAPI.isAtoEnabled() && FlexRuntimeInfoAPI.getSystem();
+	};
+
+	/**
+	 * Checks drop ability for aggregation overlays
+	 * @param {sap.ui.dt.Overlay} oAggregationOverlay Aggregation overlay object
+	 * @param {sap.ui.dt.ElementOverlay} oMovedOverlay Overlay being moved/added
+	 * @param {sap.ui.rta.Plugin} oPlugin RTA plugin calling this method
+	 * @param {boolean} [bOverlayNotInDom] Flag defining if overlay is not in DOM
+	 * @return {Promise.<boolean>} Promise with true value if overlay can be added to the aggregation overlay or false value if not.
+	 * @override
+	 */
+	Utils.checkTargetZone = function(oAggregationOverlay, oMovedOverlay, oPlugin, bOverlayNotInDom) {
+		function fnHasMoveAction(oAggregationOverlay, oElement, oRelevantContainer, oPlugin) {
+			var oAggregationDTMetadata = oAggregationOverlay.getDesignTimeMetadata();
+			var oMoveAction = oAggregationDTMetadata.getAction("move", oElement);
+			if (!oMoveAction) {
+				return Promise.resolve(false);
+			}
+			// moveChangeHandler information is always located on the relevant container
+			return oPlugin.hasChangeHandler(oMoveAction.changeType, oRelevantContainer);
+		}
+
+		return ElementUtil.checkTargetZone(oAggregationOverlay, oMovedOverlay, bOverlayNotInDom)
+		.then(function(bTargetZone) {
+			if (!bTargetZone) {
+				return false;
+			}
+
+			var oMovedElement = oMovedOverlay.getElement();
+			var oTargetOverlay = oAggregationOverlay.getParent();
+			var oMovedRelevantContainer = oMovedOverlay.getRelevantContainer();
+
+			// the element or the parent overlay might be destroyed or not available
+			if (!oMovedElement || !oTargetOverlay) {
+				return false;
+			}
+
+			var oTargetElement = oTargetOverlay.getElement();
+			var oAggregationDtMetadata = oAggregationOverlay.getDesignTimeMetadata();
+
+			// determine target relevantContainer
+			var vTargetRelevantContainerAfterMove = MetadataPropagationUtil.getRelevantContainerForPropagation(oAggregationDtMetadata.getData(), oMovedElement);
+			vTargetRelevantContainerAfterMove ||= oTargetElement;
+
+			// check for same relevantContainer
+			if (
+				!oMovedRelevantContainer
+					|| !vTargetRelevantContainerAfterMove
+					|| !hasStableId(oTargetOverlay)
+					|| oMovedRelevantContainer !== vTargetRelevantContainerAfterMove
+			) {
+				return false;
+			}
+
+			// check if binding context is the same
+			if (
+			// binding context is not relevant if the element is being moved inside its parent
+				oMovedOverlay.getParent().getElement() !== oTargetElement
+					&& !Utils.checkSourceTargetBindingCompatibility(oMovedElement, oTargetElement)
+			) {
+				return false;
+			}
+
+			// check if movedOverlay is movable into the target aggregation
+			return fnHasMoveAction(oAggregationOverlay, oMovedElement, vTargetRelevantContainerAfterMove, oPlugin);
+		});
+	};
+
+	/**
+	 * Check if an existing draft would be overwritten if a change is done on the currently shown version
+	 * If so it opens a confirmation dialog.
+	 * @param {object} oVersionsModel The versions model
+	 * @return {Promise.<boolean>} It either resolves with an indicator whether a confirmation
+	 * was shown or rejects with "cancel" if cancel was pressed
+	 */
+	Utils.checkDraftOverwrite = function(oVersionsModel, bOnlySwitch) {
+		var bBackEndDraftExists = oVersionsModel.getProperty("/backendDraft");
+		var bDraftDisplayed = oVersionsModel.getProperty("/displayedVersion") === Version.Number.Draft;
+
+		if (
+			bDraftDisplayed ||
+			!bBackEndDraftExists ||
+			bOnlySwitch
+		) {
+			return Promise.resolve(false);
+		}
+
+		// warn the user: the existing draft would be discarded in case the user saves
+		return Utils.showMessageBox("warning", "MSG_DRAFT_DISCARD_AND_CREATE_NEW_DIALOG", {
+			titleKey: "TIT_DRAFT_DISCARD_DIALOG",
+			actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+			emphasizedAction: MessageBox.Action.OK
+		})
+		.then(function(sAction) {
+			if (sAction !== MessageBox.Action.OK) {
+				throw "cancel";
+			}
+			return true;
+		});
+	};
+
+	/**
+	 * Checks if a DOM element is visible in the UI.
+	 *
+	 * The function determines visibility based on the computed styles of the element
+	 * (`display` and `visibility`) and its dimensions (`offsetWidth` and `offsetHeight`).
+	 *
+	 * @param {HTMLElement} oDomRef - The DOM reference of the element to check.
+	 * @returns {boolean} Returns `true` if the element is visible, otherwise `false`.
+	 */
+	Utils.isElementVisible = function(oDomRef) {
+		if (!oDomRef) {
+			return false;
+		}
+
+		return !!(oDomRef.offsetWidth || oDomRef.offsetHeight || oDomRef.getClientRects().length);
 	};
 
 	return Utils;

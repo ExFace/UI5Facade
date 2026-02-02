@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Lib","sap/ui/dt/OverlayRegistry"],function(e,a){"use strict";var r={};function t(e){return e.addViaDelegate&&e.addViaDelegate.designTimeMetadata}r.getParents=function(e,r,t){var n;var i=r;var l=["add.delegate","reveal"].some(function(e){return t.isResponsibleElementActionAvailable(r,e)});if(l){i=t.getResponsibleElementOverlay(r)}var s=i.getRelevantContainer(!e);var u=a.getOverlay(s);if(e){n=i.getParentElementOverlay()}else{n=i}return{responsibleElementOverlay:i,relevantContainerOverlay:u,parentOverlay:n,relevantContainer:s,parent:n&&n.getElement()}};r.getText=function(a,r,n,i,l){var s=[];var u;var v;var g=r.aggregation;if(r.addViaCustom||r.addViaDelegate){var o=t(r);u=o.getAggregationDescription(g,n);if(u){v=i?u.singular:u.plural;s.push(v)}}if(r.reveal){r.reveal.controlTypeNames.forEach(function(e){v=i?e.singular:e.plural;s.push(v)})}var d=s.reduce(function(e,a){if(e.indexOf(a)===-1){e.push(a)}return e},[]);var f=e.getResourceBundleFor("sap.ui.rta");if(d.length===1){[v]=d}else if(l){v=l}else{v=f.getText("MULTIPLE_CONTROL_NAME")}return f.getText(a,[v])};return r});
+//# sourceMappingURL=AdditionalElementsUtils.js.map

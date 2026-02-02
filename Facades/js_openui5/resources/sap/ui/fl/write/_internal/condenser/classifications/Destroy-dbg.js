@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,13 +17,20 @@ sap.ui.define([
 		 *
 		 * @param {Map} mUIReconstructions - Map of UI reconstructions
 		 * @param {object} oCondenserInfo - Condenser specific information
+ 		 * @returns {Promise} resolves when a destroy change is added to UI Reconstruction Map
 		 */
-		addToReconstructionMap: function(mUIReconstructions, oCondenserInfo) {
-			var aTargetContainerElementIds = CondenserUtils.getContainerElementIds(oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation);
-			var aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(mUIReconstructions, oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation, aTargetContainerElementIds);
+		async addToReconstructionMap(mUIReconstructions, oCondenserInfo) {
+			const aTargetContainerElementIds = await CondenserUtils.getContainerElementIds(
+				oCondenserInfo.targetContainer, oCondenserInfo.targetAggregation,
+				oCondenserInfo.customAggregation, oCondenserInfo.affectedControlIdProperty
+			);
+			const aContainerElementIds = CondenserUtils.getInitialUIContainerElementIds(
+				mUIReconstructions, oCondenserInfo.targetContainer,
+				oCondenserInfo.targetAggregation, aTargetContainerElementIds
+			);
 			if (aContainerElementIds.length - 1 < oCondenserInfo.sourceIndex) {
 				while (aContainerElementIds.length - 1 < oCondenserInfo.sourceIndex) {
-					var iIndex = aContainerElementIds.length;
+					const iIndex = aContainerElementIds.length;
 					aContainerElementIds.splice(aContainerElementIds.length, 0, CondenserUtils.PLACEHOLDER + iIndex);
 				}
 				aContainerElementIds[oCondenserInfo.sourceIndex] = oCondenserInfo.affectedControl;
@@ -39,15 +46,18 @@ sap.ui.define([
 		 * @param {object} oCondenserInfo - Condenser specific information
 		 * @param {string[]} aInitialUIElementIds - Array with the Ids of the initial elements in the container
 		 */
-		simulate: function(aContainerElements, oCondenserInfo, aInitialUIElementIds) {
-			var iIndex = aContainerElements.indexOf(oCondenserInfo.affectedControl);
-			if (iIndex === -1) {
-				var sUnknown = CondenserUtils.PLACEHOLDER + aInitialUIElementIds.indexOf(oCondenserInfo.affectedControl);
-				iIndex = aContainerElements.indexOf(sUnknown);
+		simulate(aContainerElements, oCondenserInfo, aInitialUIElementIds) {
+			let iCurrentSourceIndex = aContainerElements.indexOf(oCondenserInfo.affectedControl);
+			if (iCurrentSourceIndex === -1) {
+				const sUnknown = CondenserUtils.PLACEHOLDER + aInitialUIElementIds.indexOf(oCondenserInfo.affectedControl);
+				iCurrentSourceIndex = aContainerElements.indexOf(sUnknown);
 			}
 
-			if (iIndex > -1) {
-				aContainerElements.splice(iIndex, 1);
+			// to enable a revert in the same session the previous index has to be saved during the simulation
+			oCondenserInfo.revertIndex = iCurrentSourceIndex;
+
+			if (iCurrentSourceIndex > -1) {
+				aContainerElements.splice(iCurrentSourceIndex, 1);
 			}
 		}
 	};

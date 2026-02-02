@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,15 +26,19 @@ sap.ui.define(function () {
 				role: "region"
 			})
 			.class("sapMWizardStep")
+			.attr("data-sap-ui-customfastnavgroup", true)
 			.openEnd();
 	};
 
 	WizardStepRenderer.renderWizardStepTitle = function (oRm, oStep) {
-		oRm.openStart("h3", oStep.getId() + "-Title")
+		var sStepTitleLevel = oStep.getProperty("_titleLevel").toLowerCase();
+
+		oRm.openStart(sStepTitleLevel, oStep.getId() + "-Title")
 			.class("sapMWizardStepTitle")
 			.openEnd()
+			.text(this._resolveOrder(oStep))
 			.text(oStep.getTitle())
-			.close("h3");
+			.close(sStepTitleLevel);
 	};
 
 	WizardStepRenderer.renderContent = function (oRm, oStep) {
@@ -44,6 +48,15 @@ sap.ui.define(function () {
 
 	WizardStepRenderer.endWizardStep = function (oRm) {
 		oRm.close("div");
+	};
+
+	WizardStepRenderer._resolveOrder = function (oStep) {
+		var oData = oStep.getCustomData()
+			.filter(function (oCustomData) {
+				return oCustomData.getKey() === "stepIndex";
+			})[0];
+
+		return oData ? (oData.getValue() + ". ") : "";
 	};
 
 	return WizardStepRenderer;

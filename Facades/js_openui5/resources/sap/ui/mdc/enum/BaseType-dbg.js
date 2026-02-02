@@ -1,26 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides enumeration sap.ui.mdc.enum.BaseType
-sap.ui.define(function() {
+sap.ui.define(["sap/ui/base/DataType"], (DataType) => {
 	"use strict";
 
 
 	/**
 	 * Enumeration of the possible basic data types
 	 *
-	 * In <code>Field</code> and <code>FilterField</code> different data types can be used. This data types might
-	 * be model dependent. To handle them model independent internally basic types are used.
+	 * In {@link sap.ui.mdc.Field Field}, {@link sap.ui.mdc.MultiValueField MultiValueField},
+	 * and {@link sap.ui.mdc.FilterField FilterField}, different data types can be used. These data types might
+	 * be model-dependent. To handle them model-independently, basic types are used internally.
 	 *
 	 * @enum {string}
-	 * @private
 	 * @since 1.74.0
 	 * @alias sap.ui.mdc.enum.BaseType
+	 * @private
+	 * @ui5-restricted sap.fe
+	 * @deprecated since 1.115.0 - please see {@link sap.ui.mdc.enums.BaseType}
 	 */
-	var BaseType = {
+	const BaseType = {
 		/**
 		 * Data type represents a string
 		 * @public
@@ -35,7 +38,7 @@ sap.ui.define(function() {
 		Numeric: "Numeric",
 
 		/**
-		 * Data type represents a boolean
+		 * Data type represents a Boolean
 		 * @public
 		 */
 		Boolean: "Boolean",
@@ -60,11 +63,16 @@ sap.ui.define(function() {
 
 		/**
 		 * Data type represents a unit.
-		 * This means a composite type with a number and a unit part is used.
+		 * A composite type with a number and a unit part is used.
 		 * @public
 		 */
 		Unit: "Unit"
 	};
+
+	/**
+	 * @deprecated As of version 1.121
+	 */
+	DataType.registerEnum("sap.ui.mdc.enum.BaseType", BaseType);
 
 	return BaseType;
 

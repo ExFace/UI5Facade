@@ -1,27 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 sap.ui.define([
+	"sap/ui/core/Lib",
+	"sap/ui/model/odata/ODataMetadata",
 	"sap/ui/model/odata/ODataUtils",
-	"sap/ui/core/library",
 	"sap/ui/thirdparty/URI",
+	"sap/ui/core/Messaging",
 	"sap/ui/core/message/MessageParser",
 	"sap/ui/core/message/Message",
-	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/core/message/MessageType",
+	"sap/base/Log"
 ],
-	function(ODataUtils, coreLibrary, URI, MessageParser, Message, Log, jQuery) {
+	function(Library, ODataMetadata, ODataUtils, URI, Messaging, MessageParser, Message, MessageType,  Log) {
 	"use strict";
 
 var sClassName = "sap.ui.model.odata.ODataMessageParser",
 	rEnclosingSlashes = /^\/+|\/$/g,
-	// shortcuts for enums
-	MessageType = coreLibrary.MessageType,
 	// This map is used to translate back-end response severity values to the values defined in the
-	// enumeration sap.ui.core.MessageType
+	// enumeration sap.ui.core.message.MessageType
 	mSeverity2MessageType = {
 		"error" : MessageType.Error,
 		"info" : MessageType.Information,
@@ -68,17 +68,24 @@ var sClassName = "sap.ui.model.odata.ODataMessageParser",
  */
 
 /**
- * OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses from the back-end.
+ * OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses
+ * from the back end.
+ *
+ * @param {string} sServiceUrl
+ *   Base URI of the service used for the calculation of message targets
+ * @param {sap.ui.model.odata.ODataMetadata} oMetadata
+ *   The ODataMetadata object
+ * @param {boolean} bPersistTechnicalMessages
+ *   Whether technical messages should always be treated as persistent, since 1.83.0
  *
  * @class
- * @classdesc
- *   OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses from the back-end.
+ *   OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses
+ *   from the back end.
  * @extends sap.ui.core.message.MessageParser
  *
  * @author SAP SE
- * @version 1.82.0
+ * @version 1.136.0
  * @public
- * @abstract
  * @alias sap.ui.model.odata.ODataMessageParser
  */
 var ODataMessageParser = MessageParser.extend("sap.ui.model.odata.ODataMessageParser", {
@@ -86,13 +93,13 @@ var ODataMessageParser = MessageParser.extend("sap.ui.model.odata.ODataMessagePa
 		publicMethods: [ "parse", "setProcessor", "getHeaderField", "setHeaderField" ]
 	},
 
-	constructor: function(sServiceUrl, oMetadata) {
+	constructor: function(sServiceUrl, oMetadata, bPersistTechnicalMessages) {
 		MessageParser.apply(this);
 		this._serviceUrl = getRelativeServerUrl(this._parseUrl(sServiceUrl).url);
 		this._metadata = oMetadata;
-		this._processor = null;
 		this._headerField = "sap-message"; // Default header field
 		this._lastMessages = [];
+		this._bPersistTechnicalMessages = bPersistTechnicalMessages;
 	}
 });
 
@@ -113,7 +120,7 @@ ODataMessageParser.prototype.getHeaderField = function() {
  * Sets the header field name that should be used for parsing the JSON messages
  *
  * @param {string} sFieldName - The name of the header field that should be used as source of the message object
- * @return {sap.ui.model.odata.ODataMessageParser} Instance reference for method chaining
+ * @return {this} Instance reference for method chaining
  * @public
  */
 ODataMessageParser.prototype.setHeaderField = function(sFieldName) {
@@ -124,41 +131,62 @@ ODataMessageParser.prototype.setHeaderField = function(sFieldName) {
 
 /**
  * Parses the given response for messages, calculates the delta and fires the messageChange-event
- * on the MessageProcessor if messages are found.
+ * on the MessageProcessor if messages are found. Messages of responses to GET requests with status
+ * codes 204 or 424 are ignored.
  *
  * @param {object} oResponse
  *   The response from the server containing body and headers
  * @param {object} oRequest
- *   The original request that leads to this response
- * @param {object} mGetEntities
+ *   The original request that lead to this response
+ * @param {object} [mGetEntities]
  *   A map with the keys of the entities requested from the back-end mapped to true
- * @param {object} mChangeEntities
+ * @param {object} [mChangeEntities]
  *   A map with the keys of the entities changed in the back-end mapped to true
- * @param {boolean} bMessageScopeSupported
+ * @param {boolean} [bMessageScopeSupported]
  *   Whether the used OData service supports the message scope
  *   {@link sap.ui.model.odata.MessageScope.BusinessObject}
  * @public
  */
 ODataMessageParser.prototype.parse = function(oResponse, oRequest, mGetEntities, mChangeEntities,
 		bMessageScopeSupported) {
-	var aMessages = [],
-		mRequestInfo = {
-			request: oRequest,
-			response: oResponse,
-			url: oRequest ? oRequest.requestUri : oResponse.requestUri
-		};
+	var aMessages,
+		mRequestInfo,
+		sStatusCode = String(oResponse.statusCode);
+
+	if (oRequest.method === "GET" && sStatusCode === "204") {
+		return;
+	}
+
+	mRequestInfo = {
+		request: oRequest,
+		response: oResponse,
+		url: oRequest.requestUri
+	};
 
 	if (oResponse.statusCode >= 200 && oResponse.statusCode < 300) {
 		// Status is 2XX - parse headers
-		this._parseHeader(/* ref: */ aMessages, oResponse, mRequestInfo);
+		aMessages = this._parseHeader(oResponse, mRequestInfo);
 	} else if (oResponse.statusCode >= 400 && oResponse.statusCode < 600) {
 		// Status us 4XX or 5XX - parse body
-		this._parseBody(/* ref: */ aMessages, oResponse, mRequestInfo);
+		try {
+			aMessages = this._parseBody(oResponse, mRequestInfo);
+		} catch (ex) {
+			aMessages = this._createGenericError(mRequestInfo);
+			Log.debug("Failed to parse error messages from the response body", ex, sClassName);
+		} finally {
+			this._logErrorMessages(aMessages, oRequest, sStatusCode);
+		}
 	} else {
-		// Status neither ok nor error - I don't know what to do
-		Log.warning(
-			"No rule to parse OData response with status " + oResponse.statusCode + " for messages"
-		);
+		// Status neither ok nor error, may happen if no network connection is available (some
+		// browsers use status code 0 in that case)
+		aMessages = this._createGenericError(mRequestInfo);
+		Log.error("Request failed with unsupported status code " + sStatusCode + ": "
+			+ oRequest.method + " " + oRequest.requestUri, undefined, sClassName);
+	}
+
+	if (oRequest.method === "GET" && sStatusCode === "424") {
+		// Failed dependency: End user message already created for superordinate request
+		return;
 	}
 
 	this._propagateMessages(aMessages, mRequestInfo, mGetEntities, mChangeEntities,
@@ -195,7 +223,7 @@ ODataMessageParser.prototype._getAffectedTargets = function (aMessages, mRequest
 		oEntitySet,
 		sRequestTarget = this._parseUrl(mRequestInfo.url).url;
 
-	if (mRequestInfo.request && mRequestInfo.request.key && mRequestInfo.request.created){
+	if (mRequestInfo.request.key && mRequestInfo.request.created){
 		mAffectedTargets[mRequestInfo.request.key] = true;
 	}
 
@@ -237,24 +265,30 @@ ODataMessageParser.prototype._getAffectedTargets = function (aMessages, mRequest
  * "sap-messages" with the value <code>transientOnly</code> all existing messages are kept with the
  * expectation to only receive transition messages from the back end.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - All messaged returned from the back-end in this request
+ * @param {sap.ui.core.message.Message[]} aMessages
+ *   All messaged returned from the back-end in this request
  * @param {ODataMessageParser~RequestInfo} mRequestInfo
  *   Info object about the request URL. If the "request" property of "mRequestInfo" is flagged with
  *   "updateAggregatedMessages=true", all aggregated messages for the entities in the response are
  *   updated. Aggregated messages are messages of child entities of these entities which belong to
  *   the same business object.
- * @param {map} mGetEntities - A map containing the entities requested from the back-end as keys
- * @param {map} mChangeEntities - A map containing the entities changed on the back-end as keys
- * @param {boolean} bSimpleMessageLifecycle - This flag is set to false, if the used OData Model v2 supports message scopes
+ * @param {map} [mGetEntities] - A map containing the entities requested from the back-end as keys
+ * @param {map} [mChangeEntities] - A map containing the entities changed on the back-end as keys
+ * @param {boolean} bSimpleMessageLifecycle
+ *   This flag is set to false, if the used OData Model v2 supports message scopes
  */
-ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestInfo, mGetEntities, mChangeEntities, bSimpleMessageLifecycle) {
+ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestInfo, mGetEntities,
+		mChangeEntities, bSimpleMessageLifecycle) {
 	var mAffectedTargets,
 		sDeepPath = mRequestInfo.request.deepPath,
 		aKeptMessages = [],
+		aCanonicalPathsOfReturnedEntities,
 		bPrefixMatch = sDeepPath && mRequestInfo.request.updateAggregatedMessages,
 		bTransitionMessagesOnly = mRequestInfo.request.headers
 			&& mRequestInfo.request.headers["sap-messages"] === "transientOnly",
 		aRemovedMessages = [],
+		bReturnsCollection
+			= ODataMetadata._returnsCollection(mRequestInfo.request.functionMetadata),
 		bStateMessages,
 		iStatusCode,
 		bSuccess;
@@ -262,9 +296,18 @@ ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestIn
 	function isTargetMatching(oMessage, aTargets) {
 		return aTargets.some(function (sTarget) { return mAffectedTargets[sTarget]; })
 			|| bPrefixMatch && oMessage.aFullTargets.some(function (sFullTarget) {
-				return sFullTarget.startsWith(sDeepPath);
+				if (bReturnsCollection) {
+					return aCanonicalPathsOfReturnedEntities.some(function (sKey) {
+						var sKeyPredicate = sKey.slice(sKey.indexOf("("));
+						return sFullTarget.startsWith(sDeepPath + sKeyPredicate);
+					});
+				} else {
+					return sFullTarget.startsWith(sDeepPath);
+				}
 			});
 	}
+
+	mGetEntities = mGetEntities || {};
 
 	if (bTransitionMessagesOnly) {
 		aKeptMessages = this._lastMessages;
@@ -278,6 +321,9 @@ ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestIn
 	} else {
 		mAffectedTargets = this._getAffectedTargets(aMessages, mRequestInfo, mGetEntities,
 			mChangeEntities);
+		// only the mGetEntities are relevant for function imports; mChangeEntities are used for
+		// DELETE and MERGE requests
+		aCanonicalPathsOfReturnedEntities = Object.keys(mGetEntities);
 		iStatusCode = mRequestInfo.response.statusCode;
 		bSuccess = (iStatusCode >= 200 && iStatusCode < 300);
 		this._lastMessages.forEach(function (oCurrentMessage) {
@@ -310,11 +356,7 @@ ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestIn
 			}
 		});
 	}
-	this.getProcessor().fireMessageChange({
-		oldMessages: aRemovedMessages,
-		newMessages: aMessages
-	});
-
+	Messaging.updateMessages(aRemovedMessages, aMessages);
 	this._lastMessages = aKeptMessages.concat(aMessages);
 };
 
@@ -337,7 +379,8 @@ ODataMessageParser.prototype._createMessage = function (oMessageObject, mRequest
 		bIsTechnical) {
 	var bPersistent = oMessageObject.target && oMessageObject.target.indexOf("/#TRANSIENT#") === 0
 			|| oMessageObject.transient
-			|| oMessageObject.transition,
+			|| oMessageObject.transition
+			|| bIsTechnical && this._bPersistTechnicalMessages,
 		oTargetInfos,
 		sText = typeof oMessageObject.message === "object"
 			? oMessageObject.message.value
@@ -388,7 +431,7 @@ ODataMessageParser._isResponseForCreate = function (mRequestInfo) {
 	if (oRequest.key && oRequest.created && oResponse.statusCode >= 400) {
 		return false;
 	}
-	// return undefined; otherwise
+	return undefined;
 };
 
 /**
@@ -487,7 +530,7 @@ ODataMessageParser.prototype._createTarget = function (sODataTarget, mRequestInf
 	sODataTarget = sCanonicalTarget || sODataTarget;
 
 	return {
-		deepPath : this._metadata._getReducedPath(sDeepPath || sODataTarget),
+		deepPath : ODataUtils._normalizeKey(this._metadata._getReducedPath(sDeepPath || sODataTarget)),
 		target : ODataUtils._normalizeKey(sODataTarget)
 	};
 };
@@ -541,19 +584,21 @@ ODataMessageParser.prototype._createTargets = function(oMessageObject, mRequestI
 /**
  * Parses the header with the set headerField and tries to extract the messages from it.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - The Array into which the new messages are added
  * @param {object} oResponse - The response object from which the headers property map will be used
  * @param {ODataMessageParser~RequestInfo} mRequestInfo - Info object about the request URL
- *
+ * @returns {sap.ui.core.message.Message[]} An array with messages contained in the header
  */
-ODataMessageParser.prototype._parseHeader = function(/* ref: */ aMessages, oResponse, mRequestInfo) {
-	var sField = this.getHeaderField();
+ODataMessageParser.prototype._parseHeader = function (oResponse, mRequestInfo) {
+	var i, sKey, sMessages, oServerMessage,
+		sField = this.getHeaderField(),
+		aMessages = [];
+
 	if (!oResponse.headers) {
 		// No header set, nothing to process
-		return;
+		return aMessages;
 	}
 
-	for (var sKey in oResponse.headers) {
+	for (sKey in oResponse.headers) {
 		if (sKey.toLowerCase() === sField.toLowerCase()) {
 			sField = sKey;
 		}
@@ -561,11 +606,10 @@ ODataMessageParser.prototype._parseHeader = function(/* ref: */ aMessages, oResp
 
 	if (!oResponse.headers[sField]) {
 		// No header set, nothing to process
-		return;
+		return aMessages;
 	}
 
-	var sMessages = oResponse.headers[sField];
-	var oServerMessage = null;
+	sMessages = oResponse.headers[sField];
 
 	try {
 		oServerMessage = JSON.parse(sMessages);
@@ -573,160 +617,218 @@ ODataMessageParser.prototype._parseHeader = function(/* ref: */ aMessages, oResp
 		aMessages.push(this._createMessage(oServerMessage, mRequestInfo));
 
 		if (Array.isArray(oServerMessage.details)) {
-			for (var i = 0; i < oServerMessage.details.length; ++i) {
+			for (i = 0; i < oServerMessage.details.length; i += 1) {
 				aMessages.push(this._createMessage(oServerMessage.details[i], mRequestInfo));
 			}
 		}
 	} catch (ex) {
 		Log.error("The message string returned by the back-end could not be parsed: '" + ex.message + "'");
-		return;
+
+		return aMessages;
 	}
+
+	return aMessages;
 };
 
 /**
  * Parses the body of the request and tries to extract the messages from it.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - The Array into which the new messages are added
  * @param {object} oResponse - The response object from which the body property will be used
  * @param {ODataMessageParser~RequestInfo} mRequestInfo - Info object about the request URL
+ * @returns {sap.ui.core.message.Message[]} An array with messages contained in the body
+ * @throws {Error} If the body cannot be parsed
  */
-ODataMessageParser.prototype._parseBody = function(/* ref: */ aMessages, oResponse, mRequestInfo) {
-	// TODO: The main error object does not support "target". Find out how to proceed with the main error information (ignore/add without target/add to all other errors)
-
+ODataMessageParser.prototype._parseBody = function (oResponse, mRequestInfo) {
 	var sContentType = getContentType(oResponse);
-	if (sContentType && sContentType.indexOf("xml") > -1) {
-		// XML response
-		this._parseBodyXML(/* ref: */ aMessages, oResponse, mRequestInfo, sContentType);
-	} else {
-		// JSON response
-		this._parseBodyJSON(/* ref: */ aMessages, oResponse, mRequestInfo);
-	}
 
-	filterDuplicates(aMessages);
+	return (sContentType && sContentType.indexOf("xml") > -1)
+		? this._parseBodyXML(oResponse, mRequestInfo, sContentType)
+		: this._parseBodyJSON(oResponse, mRequestInfo);
 };
 
 
 /**
- * Adds a technical generic error message to the given array of messages. The
- * <code>description</code> of the error message is the response body.
+ * Creates a technical generic error message and returns it in an array containing only this error
+ * message. The <code>description</code> of the error message is the response body.
  *
- * @param {sap.ui.core.message.Message[]} aMessages
- *   The array to which to add the generic error message
  * @param {ODataMessageParser~RequestInfo} mRequestInfo
  *   Info object about the request and the response
+ * @returns {sap.ui.core.message.Message[]}
+ *   The array with the generic error message
  */
-ODataMessageParser.prototype._addGenericError = function (aMessages, mRequestInfo) {
-	aMessages.push(this._createMessage({
-		description : mRequestInfo.response.body,
-		message : sap.ui.getCore().getLibraryResourceBundle().getText("CommunicationError"),
-		severity : MessageType.Error,
-		transition : true
-	}, mRequestInfo, true));
+ODataMessageParser.prototype._createGenericError = function (mRequestInfo) {
+	return [this._createMessage({
+			description : mRequestInfo.response.body,
+			message : Library.getResourceBundleFor("sap.ui.core").getText("CommunicationError"),
+			severity : MessageType.Error,
+			transition : true
+		}, mRequestInfo, true)];
+};
+
+/**
+ * Gets the body messages from the given outer and inner messages. If there is a message in the
+ * inner messages with the same code and message as the outer message, the outer message is filtered
+ * out. If the request given in "mRequestInfo" has a "Content-ID" header only messages without a
+ * "ContentID" or with the same "ContentID" are returned.
+ *
+ * @param {object} oOuterError
+ *   The outer error message as parsed by "_parseBodyJSON" or "_parseBodyXML"; outer message differs
+ *   in the "message" property, in JSON it is an object like {value : "foo"} and in XML it is a
+ *   string; "_createMessage" takes care of this difference
+ * @param {object[]} aInnerErrors
+ *   The inner error messages as parsed by "_parseBodyJSON" or "_parseBodyXML"
+ * @param {ODataMessageParser~RequestInfo} mRequestInfo
+ *   Info object about the request URL
+ * @returns {sap.ui.core.message.Message[]}
+ *   An array with messages contained in the body
+ */
+ODataMessageParser.prototype._getBodyMessages = function (oOuterError, aInnerErrors, mRequestInfo) {
+	var sContentID = mRequestInfo.request.headers["Content-ID"],
+		aMessages = [],
+		oOuterMessage = this._createMessage(oOuterError, mRequestInfo, true),
+		that = this;
+
+	aInnerErrors.forEach(function (oInnerError) {
+		var oMessage = that._createMessage(oInnerError, mRequestInfo, true);
+
+		if (oOuterMessage && oOuterMessage.getCode() === oMessage.getCode()
+				&& oOuterMessage.getMessage() === oMessage.getMessage()) {
+			oOuterMessage = undefined;
+		}
+
+		if (!sContentID || !oInnerError.ContentID || sContentID === oInnerError.ContentID) {
+			aMessages.push(oMessage);
+		}
+	});
+
+	if (oOuterMessage) {
+		aMessages.unshift(oOuterMessage);
+	}
+
+	return aMessages;
+};
+
+/**
+ * Logs the given messages as an error.
+ *
+ * @param {sap.ui.core.message.Message[]} aMessages Messages to be logged
+ * @param {object} oRequest The request object which caused the given messages
+ * @param {string} sStatusCode The status code of the error response
+ */
+ODataMessageParser.prototype._logErrorMessages = function (aMessages, oRequest, sStatusCode) {
+	var sErrorDetails = aMessages.length
+			? JSON.stringify(aMessages.map(function (oMessage) {
+				return {
+					code : oMessage.getCode(),
+					message : oMessage.getMessage(),
+					persistent : oMessage.getPersistent(),
+					targets : oMessage.getTargets(),
+					type : oMessage.getType()
+				};
+			}))
+			: "Another request in the same change set failed";
+
+	Log.error("Request failed with status code " + sStatusCode + ": " + oRequest.method + " "
+		+ oRequest.requestUri, sErrorDetails, sClassName);
 };
 
 /**
  * Parses the body of a JSON request and tries to extract the messages from it.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - The Array into which the new messages are added
  * @param {object} oResponse - The response object from which the body property will be used
  * @param {ODataMessageParser~RequestInfo} mRequestInfo - Info object about the request URL
  * @param {string} sContentType - The content type of the response (for the XML parser)
+ * @returns {sap.ui.core.message.Message[]} An array with messages contained in the body
+ * @throws {Error} If the body cannot be parsed
  */
-ODataMessageParser.prototype._parseBodyXML = function(/* ref: */ aMessages, oResponse, mRequestInfo, sContentType) {
-	try {
-		var oDoc = new DOMParser().parseFromString(oResponse.body, sContentType);
-		var aElements = getAllElements(oDoc, [ "error", "errordetail" ]);
-		if (!aElements.length) {
-			this._addGenericError(aMessages, mRequestInfo);
-			return;
-		}
-		for (var i = 0; i < aElements.length; ++i) {
-			var oNode = aElements[i];
+ODataMessageParser.prototype._parseBodyXML = function(oResponse, mRequestInfo, sContentType) {
+	var oChildNode, sChildName, oError, i, m, n, oNode,
+		oDoc = new DOMParser().parseFromString(oResponse.body, sContentType),
+		aElements = getAllElements(oDoc, [ "error", "errordetail" ]),
+		aErrors = [];
 
-			var oError = {};
-			// Manually set severity in case we get an error response
-			oError["severity"] = MessageType.Error;
+	if (!aElements.length) {
+		return this._createGenericError(mRequestInfo);
+	}
+	for (i = 0; i < aElements.length; i += 1) {
+		oNode = aElements[i];
 
-			for (var n = 0; n < oNode.childNodes.length; ++n) {
-				var oChildNode = oNode.childNodes[n];
-				var sChildName = oChildNode.nodeName;
+		oError = {};
+		// Manually set severity in case we get an error response
+		oError.severity = MessageType.Error;
 
-				if (sChildName === "errordetails" || sChildName === "details" || sChildName === "innererror" || sChildName === "#text") {
-					// Ignore known children that contain other errors
-					continue;
-				}
+		for (n = 0; n < oNode.childNodes.length; n += 1) {
+			oChildNode = oNode.childNodes[n];
+			sChildName = oChildNode.nodeName;
 
-				if (sChildName === "message" && oChildNode.hasChildNodes() && oChildNode.firstChild.nodeType !== window.Node.TEXT_NODE) {
-					// Special case for V2 error message - the message is in the child node "value"
-					for (var m = 0; m < oChildNode.childNodes.length; ++m) {
-						if (oChildNode.childNodes[m].nodeName === "value") {
-							oError["message"] = oChildNode.childNodes[m].text || oChildNode.childNodes[m].textContent;
-						}
-					}
-				} else {
-					oError[oChildNode.nodeName] = oChildNode.text || oChildNode.textContent;
-				}
+			if (sChildName === "errordetails" || sChildName === "details"
+					|| sChildName === "innererror" || sChildName === "#text") {
+				// Ignore known children that contain other errors
+				continue;
 			}
 
-			aMessages.push(this._createMessage(oError, mRequestInfo, true));
+			if (sChildName === "message" && oChildNode.hasChildNodes()
+					&& oChildNode.firstChild.nodeType !== window.Node.TEXT_NODE) {
+				// Special case for V2 error message - the message is in the child node "value"
+				for (m = 0; m < oChildNode.childNodes.length; m += 1) {
+					if (oChildNode.childNodes[m].nodeName === "value") {
+						oError.message = oChildNode.childNodes[m].text
+							|| oChildNode.childNodes[m].textContent;
+					}
+				}
+			} else {
+				oError[oChildNode.nodeName] = oChildNode.text || oChildNode.textContent;
+			}
 		}
-	} catch (ex) {
-		this._addGenericError(aMessages, mRequestInfo);
-		Log.error("Error message returned by server could not be parsed");
+
+		aErrors.push(oError);
 	}
+
+	return this._getBodyMessages(aErrors[0], aErrors.slice(1), mRequestInfo);
 };
 
 /**
  * Parses the body of a JSON request and tries to extract the messages from it.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - The Array into which the new messages are added
  * @param {object} oResponse - The response object from which the body property will be used
  * @param {ODataMessageParser~RequestInfo} mRequestInfo - Info object about the request URL
+ * @returns {sap.ui.core.message.Message[]} An array with messages contained in the body
+ * @throws {Error} If the body cannot be parsed
  */
-ODataMessageParser.prototype._parseBodyJSON = function(/* ref: */ aMessages, oResponse, mRequestInfo) {
-	try {
-		var oErrorResponse = JSON.parse(oResponse.body);
+ODataMessageParser.prototype._parseBodyJSON = function(oResponse, mRequestInfo) {
+	var aInnerErrors, oOuterError,
+		oErrorResponse = JSON.parse(oResponse.body);
 
-		var oError;
-		if (oErrorResponse["error"]) {
-			// V4 response according to OData specification or V2 response according to MS specification and SAP message specification
-			oError = oErrorResponse["error"];
-		} else {
-			// Actual V2 response in some tested services
-			oError = oErrorResponse["odata.error"];
-		}
-
-		if (!oError) {
-			this._addGenericError(aMessages, mRequestInfo);
-			Log.error("Error message returned by server did not contain error-field");
-			return;
-		}
-
-		// Manually set severity in case we get an error response
-		oError["severity"] = MessageType.Error;
-
-		aMessages.push(this._createMessage(oError, mRequestInfo, true));
-
-		// Check if more than one error has been returned from the back-end
-		var aFurtherErrors = null;
-		if (Array.isArray(oError.details)) {
-			// V4 errors
-			aFurtherErrors = oError.details;
-		} else if (oError.innererror && Array.isArray(oError.innererror.errordetails)) {
-			// V2 errors
-			aFurtherErrors = oError.innererror.errordetails;
-		} else {
-			// No further errors
-			aFurtherErrors = [];
-		}
-
-		for (var i = 0; i < aFurtherErrors.length; ++i) {
-			aMessages.push(this._createMessage(aFurtherErrors[i], mRequestInfo, true));
-		}
-	} catch (ex) {
-		this._addGenericError(aMessages, mRequestInfo);
-		Log.error("Error message returned by server could not be parsed");
+	if (oErrorResponse.error) {
+		// V4 response according to OData specification or V2 response according to MS specification
+		// and SAP message specification
+		oOuterError = oErrorResponse.error;
+	} else {
+		// Actual V2 response in some tested services
+		oOuterError = oErrorResponse["odata.error"];
 	}
+
+	if (!oOuterError) {
+		Log.error("Error message returned by server did not contain error-field");
+		return this._createGenericError(mRequestInfo);
+	}
+
+	// Manually set severity in case we get an error response
+	oOuterError.severity = MessageType.Error;
+
+	// Check if more than one error has been returned from the back-end
+	if (Array.isArray(oOuterError.details)) {
+		// V4 errors
+		aInnerErrors = oOuterError.details;
+	} else if (oOuterError.innererror && Array.isArray(oOuterError.innererror.errordetails)) {
+		// V2 errors
+		aInnerErrors = oOuterError.innererror.errordetails;
+	} else {
+		// No further errors
+		aInnerErrors = [];
+	}
+
+	return this._getBodyMessages(oOuterError, aInnerErrors, mRequestInfo);
 };
 
 /**
@@ -759,6 +861,17 @@ ODataMessageParser.prototype._parseUrl = function(sUrl) {
 	}
 
 	return mUrlData;
+};
+
+/**
+ * Sets whether technical messages should always be treated as persistent.
+ *
+ * @param {boolean} bPersistTechnicalMessages
+ *   Whether technical messages should always be treated as persistent
+ * @private
+ */
+ODataMessageParser.prototype._setPersistTechnicalMessages = function (bPersistTechnicalMessages) {
+	this._bPersistTechnicalMessages = bPersistTechnicalMessages;
 };
 
 ///////////////////////////////////////// Hidden Functions /////////////////////////////////////////
@@ -812,7 +925,7 @@ function getAllElements(oDocument, aElementNames) {
 	var aElements = [];
 
 	var mElementNames = {};
-	for (var i = 0; i < aElementNames.length; ++i) {
+	for (var i = 0; i < aElementNames.length; i += 1) {
 		mElementNames[aElementNames[i]] = true;
 	}
 
@@ -841,39 +954,6 @@ function getAllElements(oDocument, aElementNames) {
 
 	return aElements;
 }
-
-	/**
-	* The message container returned by the backend could contain duplicate messages in some scenarios.
-	* The outer error could be identical to an inner error. This makes sense when the outer error is only though as error message container
-	* for the inner errors and therefore shouldn't be end up in a seperate UI message.
-    *
-	* This function is used to filter out not relevant outer errors.
-	* @example
-	* {
-	*  "error": {
-	*    "code": "ABC",
-	*    "message": {
-	*      "value": "Bad things happened."
-	*    },
-	*    "innererror": {
-	*      "errordetails": [
-	*        {
-	*          "code": "ABC",
-	*          "message": "Bad things happened."
-	*        },
-	*   ...
-	* @private
-	*/
-	function filterDuplicates(/*ref*/ aMessages){
-		if (aMessages.length > 1) {
-			for (var iIndex = 1; iIndex < aMessages.length; iIndex++) {
-				if (aMessages[0].getCode() == aMessages[iIndex].getCode() && aMessages[0].getMessage() == aMessages[iIndex].getMessage()) {
-					aMessages.shift(); // Remove outer error, since inner error is more detailed
-					break;
-				}
-			}
-		}
-	}
 
 //////////////////////////////////////// Overridden Methods ////////////////////////////////////////
 

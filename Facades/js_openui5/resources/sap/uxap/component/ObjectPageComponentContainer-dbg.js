@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/ComponentContainer', "sap/base/Log", 'sap/ui/core/Component'],
-	function(ComponentContainer, Log /*, Component */) {
+sap.ui.define(['sap/ui/core/ComponentContainer', 'sap/ui/core/ComponentContainerRenderer', "sap/base/Log", 'sap/ui/core/Component'],
+	function(ComponentContainer, ComponentContainerRenderer, Log, Component) {
 		"use strict";
 
 		/**
@@ -14,6 +14,7 @@ sap.ui.define(['sap/ui/core/ComponentContainer', "sap/base/Log", 'sap/ui/core/Co
 		 */
 		var ObjectPageComponentContainer = ComponentContainer.extend("sap.uxap.component.ObjectPageComponentContainer", /** @lends sap.uxap.component.ObjectPageComponentContainer.prototype */ {
 			metadata: {
+				library: "sap.uxap",
 				properties: {
 					"jsonConfigurationURL": {type: "string", group: "Behavior"},
 					"mode": {type: "sap.uxap.ObjectPageConfigurationMode", group: "Behavior"}
@@ -34,9 +35,16 @@ sap.ui.define(['sap/ui/core/ComponentContainer', "sap/base/Log", 'sap/ui/core/Co
 			 * unlike the standard ComponentContainer, this ones exposes properties to the outside world and pass them on to the underlying component
 			 */
 			onBeforeRendering: function () {
-				this._oComponent || (this._oComponent = sap.ui.component("sap.uxap"));
+				// call the parent onBeforeRendering
+				if (ComponentContainer.prototype.onBeforeRendering) {
+					ComponentContainer.prototype.onBeforeRendering.call(this);
+				}
+			},
+
+			_createComponent : function () {
+				var oPromise;
 				if (!this._oComponent) {
-					this._oComponent = sap.ui.component({
+					oPromise = Component.create({
 						name: this.getName(),
 						url: this.getUrl(),
 						componentData: {            //forward configuration to underlying component
@@ -45,12 +53,13 @@ sap.ui.define(['sap/ui/core/ComponentContainer', "sap/base/Log", 'sap/ui/core/Co
 						}
 					});
 
-					this.setComponent(this._oComponent, true);
-				}
+					oPromise.then(function (oComponent) {
+						this._oComponent = oComponent;
+					}.bind(this));
 
-				// call the parent onBeforeRendering
-				if (ComponentContainer.prototype.onBeforeRendering) {
-					ComponentContainer.prototype.onBeforeRendering.call(this);
+					return oPromise;
+				} else {
+					return this._oComponent;
 				}
 			},
 
@@ -72,7 +81,7 @@ sap.ui.define(['sap/ui/core/ComponentContainer', "sap/base/Log", 'sap/ui/core/Co
 			/**
 			 * use the standard renderer
 			 */
-			renderer: "sap.ui.core.ComponentContainerRenderer"
+			renderer: ComponentContainerRenderer
 		});
 
 		return ObjectPageComponentContainer;

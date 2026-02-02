@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,17 +30,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.TooltipBase
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Tf you want to achieve a similar behavior, use a <code>sap.m.Popover</code> control and open it next to your control.
 	 * @alias sap.ui.commons.RichTooltip
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var RichTooltip = TooltipBase.extend("sap.ui.commons.RichTooltip", /** @lends sap.ui.commons.RichTooltip.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -102,7 +102,7 @@ sap.ui.define([
 	 * This sets an individual text for the ValueState of the parent element of the RichTooltip.
 	 *
 	 * @param {string} sText the text that should be shown as individual ValueState text
-	 * @returns {sap.ui.commons.RichTooltip} Returns <code>this</code> to facilitate method chaining.
+	 * @returns {this} Returns <code>this</code> to facilitate method chaining.
 	 * @public
 	 */
 	RichTooltip.prototype.setValueStateText = function(sText) {

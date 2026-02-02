@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,17 +19,16 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * Common basic controls, mainly intended for desktop scenarios
 	 *
 	 * @namespace
-	 * @name sap.ui.commons
+	 * @alias sap.ui.commons
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
+	 * @since 0.8
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
-
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.ui.commons",
-		version: "1.82.0",
+		version: "1.136.0",
 		dependencies : ["sap.ui.core","sap.ui.layout","sap.ui.unified"],
 		types: [
 			"sap.ui.commons.ButtonStyle",
@@ -167,10 +166,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether with sap.ui.commons.Button). Use sap.m.Button with its sap.m.ButtonType instead.
 	 */
-	sap.ui.commons.ButtonStyle = {
+	thisLib.ButtonStyle = {
 
 		/**
 		 * Button is emphasized.
@@ -205,12 +203,11 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * This enum is an alias for {@link sap.ui.unified.ColorPickerMode} and was only kept
 	 * for compatibility reasons. Please switch to the {@link sap.ui.unified.ColorPicker} API.
 	 *
-	 * @enum {string}
+	 * @typedef {sap.ui.unified.ColorPickerMode}
 	 * @public
-	 * @deprecated Since version 1.48.0. Moved to sap.ui.unified library. Please use that one.
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 * @deprecated Since version 1.48.0. Use {@link sap.ui.unified.ColorPickerMode} instead.
 	 */
-	sap.ui.commons.ColorPickerMode = sap.ui.unified.ColorPickerMode;
+	thisLib.ColorPickerMode = sap.ui.unified.ColorPickerMode;
 
 	/**
 	 * Marker interface for common controls which are suitable for use within a FormattedTextView.
@@ -218,8 +215,7 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @name sap.ui.commons.FormattedTextViewControl
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated As of version 1.38, the concept has been discarded.
 	 */
 
 
@@ -228,10 +224,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 without replacement.
 	 */
-	sap.ui.commons.HorizontalDividerHeight = {
+	thisLib.HorizontalDividerHeight = {
 
 		/**
 		 * Divider gets no top and bottom margin.
@@ -265,10 +260,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 without a replacement.
 	 */
-	sap.ui.commons.HorizontalDividerType = {
+	thisLib.HorizontalDividerType = {
 
 		/**
 		 * Type Area
@@ -290,10 +284,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated As of version 1.38, the concept has been discarded.
 	 */
-	sap.ui.commons.LabelDesign = {
+	thisLib.LabelDesign = {
 
 		/**
 		 * Displays the label in bold.
@@ -315,10 +308,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether with sap.ui.commons.Toolbar). Use sap.m.Toolbar and its sap.m.ToolbarDesign instead.
 	 */
-	sap.ui.commons.MenuBarDesign = {
+	thisLib.MenuBarDesign = {
 
 		/**
 		 * The MenuBar appears in standard design.
@@ -340,10 +332,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 Instead, use the <code>sap.ui.core.MessageType</code>.
 	 */
-	sap.ui.commons.MessageType = {
+	thisLib.MessageType = {
 
 		/**
 		 * Error message
@@ -371,10 +362,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38, the concept has been discarded.
 	 */
-	sap.ui.commons.PaginatorEvent = {
+	thisLib.PaginatorEvent = {
 
 		/**
 		 * First page event
@@ -414,10 +404,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 Instead, use <code>sap.m.RatingIndicator</code> control.
 	 */
-	sap.ui.commons.RatingIndicatorVisualMode = {
+	thisLib.RatingIndicatorVisualMode = {
 
 		/**
 		 * Values are rounded to the nearest integer value (e.g. 1.7 -> 2).
@@ -445,10 +434,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.RowRepeaterDesign = {
+	thisLib.RowRepeaterDesign = {
 
 		/**
 		 * The RowRepeater header and footer elements, as well as the row container background, appear solid.
@@ -477,10 +465,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 Instead, use <code>sap.ui.layout.Splitter</code> control.
 	 */
-	sap.ui.commons.SplitterSize = DataType.createType('sap.ui.commons.SplitterSize', {
+	thisLib.SplitterSize = DataType.createType('sap.ui.commons.SplitterSize', {
 	    isValid : function(vValue) {
 	      return /^((0*|([0-9]+|[0-9]*\.[0-9]+)([pP][xX]|%)))$/.test(vValue);
 	    }
@@ -495,10 +482,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated As of version 1.38, the concept has been discarded.
 	 */
-	sap.ui.commons.TextViewColor = {
+	thisLib.TextViewColor = {
 
 		/**
 		 * Default color
@@ -532,10 +518,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated As of version 1.38, the concept has been discarded.
 	 */
-	sap.ui.commons.TextViewDesign = {
+	thisLib.TextViewDesign = {
 
 		/**
 		 * Displays the text in standard letters.
@@ -614,11 +599,15 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 
 	/**
 	 * Level of a title.
+	 *
+	 * This is an alias for {@link sap.ui.core.TitleLevel} and only kept for compatibility reasons.
+	 *
 	 * @since 1.9.1
-	 * @deprecated Since version 1.16.0. Moved to sap.ui.core library. Please use this one.
+	 * @deprecated Since version 1.16.0. Use {@link sap.ui.core.TitleLevel} instead.
 	 * @public
+	 * @typedef {sap.ui.core.TitleLevel}
 	 */
-	sap.ui.commons.TitleLevel = sap.ui.core.TitleLevel;
+	thisLib.TitleLevel = sap.ui.core.TitleLevel;
 
 
 	/**
@@ -626,10 +615,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.ToolbarDesign = {
+	thisLib.ToolbarDesign = {
 
 		/**
 		 * The toolbar elements such as buttons for example have their normal visual design, and the toolbar appears solid.
@@ -666,8 +654,7 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @name sap.ui.commons.ToolbarItem
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether with sap.ui.commons.Toolbar). Use sap.m.Toolbar instead.
 	 */
 
 
@@ -676,10 +663,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether wuith sap.ui.commons.Toolbar). Use sap.m.Toolbar and its sap.m.ToolbarSeparator instead.
 	 */
-	sap.ui.commons.ToolbarSeparatorDesign = {
+	thisLib.ToolbarSeparatorDesign = {
 
 		/**
 		 * Standard Separator between controls
@@ -701,10 +687,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether with sap.ui.commons.Tree). Use sap.m.Tree with its items instead.
 	 */
-	sap.ui.commons.TreeSelectionMode = {
+	thisLib.TreeSelectionMode = {
 
 		/**
 		 * Select multiple rows at a time.
@@ -739,10 +724,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @enum {string}
 	 * @public
 	 * @since 1.7.2
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38. Use {@link sap.m.CheckBox} and its properties instead.
 	 */
-	sap.ui.commons.TriStateCheckBoxState = {
+	thisLib.TriStateCheckBoxState = {
 
 		/**
 		 * unchecked, default value for tri-state checkbox
@@ -769,17 +753,16 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.enums = sap.ui.commons.enums || {};
+	thisLib.enums = thisLib.enums || {};
 
 	/**
 	 * Value set for the background design of areas
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.enums.AreaDesign = {
+	thisLib.enums.AreaDesign = {
 
 		/**
 		 * Shows the area in a plain look
@@ -807,10 +790,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.enums.BorderDesign = {
+	thisLib.enums.BorderDesign = {
 
 		/**
 		 * Draws the border as a box around the area
@@ -832,10 +814,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.enums.Orientation = {
+	thisLib.enums.Orientation = {
 
 		/**
 		 * Horizontal orientation
@@ -856,39 +837,45 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.form = sap.ui.commons.form || {};
+	thisLib.form = thisLib.form || {};
 
 	/**
-	 * A string that defines the number of used cells in a GridLayout. This can be a number from 1 to 16, "auto" or "full".
-	 * @deprecated Since version 1.16.0. Moved to sap.ui.layout library. Please use this one.
+	 * A string that defines the number of used cells in a GridLayout.
+	 *
+	 * This is an alias for {@link sap.ui.layout.form.GridElementCells} and only kept for compatibility reasons.
+	 *
+	 * @deprecated Since version 1.16.0. Use {@link sap.ui.layout.form.GridElementCells} instead.
+	 * @typedef {sap.ui.layout.form.GridElementCells}
 	 */
-	sap.ui.commons.form.GridElementCells = sap.ui.layout.form.GridElementCells;
+	thisLib.form.GridElementCells = sap.ui.layout.form.GridElementCells;
 
 
 	/**
 	 * Available FormLayouts used for the SimpleForm.
-	 * @deprecated Since version 1.16.0. Moved to sap.ui.layout library. Please use this one.
+	 *
+	 * This is an alias for {@link sap.ui.layout.form.SimpleFormLayout} and only kept for compatibility reasons.
+	 *
+	 * @deprecated Since version 1.16.0. Use {@link sap.ui.layout.form.SimpleFormLayout} instead.
 	 * @public
-	 * @enum {string}
+	 * @typedef {sap.ui.layout.form.SimpleFormLayout}
 	 */
-	sap.ui.commons.form.SimpleFormLayout = sap.ui.layout.form.SimpleFormLayout;
+	thisLib.form.SimpleFormLayout = sap.ui.layout.form.SimpleFormLayout;
 
 	/**
 	 * @namespace
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout = sap.ui.commons.layout || {};
+	thisLib.layout = thisLib.layout || {};
 
 	/**
 	 * Background design (i.e. color), e.g. of a layout cell.
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout.BackgroundDesign = {
+	thisLib.layout.BackgroundDesign = {
 
 		/**
 		 *
@@ -954,10 +941,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 * @deprecated as of version 1.38
+	 * @deprecated as of version 1.38 (altogether with sap.ui.commons.layout.BorderLayout). Use sap.m.Page instead with its aggregations.
 	 */
-	sap.ui.commons.layout.BorderLayoutAreaTypes = {
+	thisLib.layout.BorderLayoutAreaTypes = {
 
 		/**
 		 * Value to identify the top area.
@@ -999,10 +985,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout.HAlign = {
+	thisLib.layout.HAlign = {
 
 		/**
 		 *
@@ -1055,10 +1040,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout.Padding = {
+	thisLib.layout.Padding = {
 
 		/**
 		 *
@@ -1115,10 +1099,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout.Separation = {
+	thisLib.layout.Separation = {
 
 		/**
 		 *
@@ -1184,10 +1167,9 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @deprecated as of version 1.38
 	 */
-	sap.ui.commons.layout.VAlign = {
+	thisLib.layout.VAlign = {
 
 		/**
 		 *
@@ -1221,7 +1203,7 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	// lazy imports for MenuItemBase which no longer is a control on its own
 	sap.ui.lazyRequire("sap.ui.commons.MenuItemBase", "new extend getMetadata");
 
-	sap.ui.commons.Orientation = {
+	thisLib.Orientation = {
 		// Map the Orientation enum to new enums in core
 		"Vertical"   : sap.ui.core.Orientation.Vertical,
 		"Horizontal" : sap.ui.core.Orientation.Horizontal,
@@ -1229,98 +1211,6 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 		"vertical"   : sap.ui.core.Orientation.Vertical,
 		"horizontal" : sap.ui.core.Orientation.Horizontal
 	};
-
-	// implements ColorPicker helper factory with common controls
-	if (!sap.ui.unified.ColorPickerHelper || !sap.ui.unified.ColorPickerHelper.bFinal) {
-		sap.ui.unified.ColorPickerHelper = {
-			isResponsive: function () {
-				return false;
-			},
-			factory: {
-				createLabel: function (mConfig) {
-					return new sap.ui.commons.Label(mConfig);
-				},
-				createInput: function (sId, mConfig) {
-					return new sap.ui.commons.TextField(sId, mConfig);
-				},
-				createSlider: function (sId, mConfig) {
-					if (mConfig && mConfig.step) {
-						mConfig.smallStepWidth = mConfig.step;
-						delete mConfig.step;
-					}
-					return new sap.ui.commons.Slider(sId, mConfig);
-				},
-				createRadioButtonGroup: function (mConfig) {
-					if (mConfig && mConfig.buttons) {
-						mConfig.items = mConfig.buttons;
-						delete mConfig.buttons;
-					}
-					return new sap.ui.commons.RadioButtonGroup(mConfig);
-				},
-				createRadioButtonItem: function (mConfig) {
-					return new sap.ui.core.Item(mConfig);
-				}
-			},
-			bFinal: false /* to allow mobile to overwrite  */
-		};
-	}
-
-	// implement Form helper factory with common controls
-	if (!sap.ui.layout.form.FormHelper || !sap.ui.layout.form.FormHelper.bFinal) {
-		sap.ui.layout.form.FormHelper = {
-			createLabel: function(sText, sId){
-				return new sap.ui.commons.Label(sId, {text: sText});
-			},
-			createButton: function(sId, fPressFunction, fnCallback){
-				var that = this;
-				var _createButton = function(Button){
-					var oButton = new Button(sId, {lite: true});
-					oButton.attachEvent('press', fPressFunction, that); // attach event this way to have the right this-reference in handler
-					fnCallback.call(that, oButton);
-				};
-				var fnButtonClass = sap.ui.require("sap/ui/commons/Button");
-				if (fnButtonClass) {
-					// already loaded -> execute synchron
-					_createButton(fnButtonClass);
-				} else {
-					sap.ui.require(["sap/ui/commons/Button"], _createButton);
-				}
-			},
-			setButtonContent: function(oButton, sText, sTooltip, sIcon, sIconHovered){
-				oButton.setText(sText);
-				oButton.setTooltip(sTooltip);
-				oButton.setIcon(sIcon);
-				oButton.setIconHovered(sIconHovered);
-			},
-			addFormClass: function(){ return null; },
-			setToolbar: function(oToolbar){ return oToolbar; },
-			getToolbarTitle: function(oToolbar) {
-				// as no Title control as ToolbarItem exust just use Toolbar ID. (Let application point to the wanted control.)
-				return oToolbar && oToolbar.getId();
-			},
-			bArrowKeySupport: true, /* enables the keyboard support for arrow keys */
-			bFinal: false /* to allow mobile to overwrite  */
-		};
-	}
-
-	//implement FileUploader helper factory with commons controls
-	if (!sap.ui.unified.FileUploaderHelper || !sap.ui.unified.FileUploaderHelper.bFinal) {
-		sap.ui.unified.FileUploaderHelper = {
-			createTextField: function(sId){
-				var oTextField = new sap.ui.commons.TextField(sId);
-				return oTextField;
-			},
-			setTextFieldContent: function(oTextField, sWidth){
-				oTextField.setWidth(sWidth);
-			},
-			createButton: function(sId){
-				var oButton = new sap.ui.commons.Button(sId);
-				return oButton;
-			},
-			addFormClass: function(){ return "sapUiCFUM"; },
-			bFinal: false /* to allow mobile to overwrite  */
-		};
-	}
 
 	//implement table helper factory with m controls
 	//possible is set before layout lib is loaded.
@@ -1350,6 +1240,6 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 		};
 	}
 
-	return sap.ui.commons;
+	return thisLib;
 
 });

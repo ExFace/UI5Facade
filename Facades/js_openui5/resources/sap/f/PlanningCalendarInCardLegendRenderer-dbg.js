@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,7 @@ sap.ui.define(['sap/m/PlanningCalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		/**
 		 * Renders a header for the <code>items</code> list.
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.unified.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
+		 * @param {sap.f.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
 		 * @override
 		 */
 		PlanningCalendarInCardLegendRenderer.renderItemsHeader = function(oRm, oLeg) {};
@@ -27,14 +27,14 @@ sap.ui.define(['sap/m/PlanningCalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		/**
 		 * Renders a header for the <code>appointmentItems</code> list.
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.unified.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
+		 * @param {sap.f.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
 		 */
 		PlanningCalendarInCardLegendRenderer.renderAppointmentsItemsHeader = function(oRm, oLeg) {};
 
 		/**
 		 * Renders additional content after the <code>items</code> list - a second list for the <code>appointmentItems</code> with a header.
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.unified.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
+		 * @param {sap.f.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
 		 * @override
 		 */
 		PlanningCalendarInCardLegendRenderer.renderAdditionalContent = function(oRm, oLeg) {};
@@ -42,7 +42,7 @@ sap.ui.define(['sap/m/PlanningCalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		/**
 		 * Renders additional content after the <code>items</code> list - a second list for the <code>appointmentItems</code> with a header.
 		 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.unified.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
+		 * @param {sap.f.PlanningCalendarInCardLegend} oLeg an object representation of the legend that should be rendered
 		 * @override
 		 */
 		PlanningCalendarInCardLegendRenderer.renderAdditionalItems = function(oRm, oLeg) {
@@ -64,15 +64,15 @@ sap.ui.define(['sap/m/PlanningCalendarLegendRenderer', 'sap/ui/core/Renderer'],
 			}
 
 			if (oLeg.getItems().length + oLeg.getAppointmentItems().length > iVisibleLegendItems){
-				oRm.renderControl(oLeg._getMoreLabel(oLeg.getItems().length + oLeg.getAppointmentItems().length - iVisibleLegendItems));
+				this.renderLegendItem(oRm, "sapUiCalLegMoreText", oLeg._getMoreItemsText(oLeg.getItems().length + oLeg.getAppointmentItems().length - iVisibleLegendItems), []);
 			}
 		};
 
 		/**
 		 * Determines how many custom items will be rendered.
 		 * @param {sap.ui.unified.CalendarLegend} oLeg an object representation of the legend that should be rendered
-		 * @param {integer} iCustomItemsLength the length of the custom items
-		 * @returns {integer} the length of the custom items to be rendered
+		 * @param {int} iCustomItemsLength the length of the custom items
+		 * @returns {int} the length of the custom items to be rendered
 		 * @override
 		 */
 		PlanningCalendarInCardLegendRenderer.defineItemsLength = function(oLeg, iCustomItemsLength) {

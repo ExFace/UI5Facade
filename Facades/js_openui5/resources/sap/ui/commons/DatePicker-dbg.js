@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,9 +20,11 @@ sap.ui.define([
     'sap/ui/core/LocaleData',
     'sap/ui/core/Popup',
     'sap/ui/dom/containsOrEquals',
-    'sap/ui/dom/jquery/cursorPos' // jQuery.fn.cursorPos
+    'sap/ui/core/Configuration',
+    // jQuery.fn.cursorPos
+    'sap/ui/dom/jquery/cursorPos'
 ],
-	function(jQuery, Log, TextField, TypeDate, UniversalDate, library, DatePickerRenderer, DateFormat, coreLibrary, Device, Locale, LocaleData, Popup, containsOrEquals) {
+	function(jQuery, Log, TextField, TypeDate, UniversalDate, library, DatePickerRenderer, DateFormat, coreLibrary, Device, Locale, LocaleData, Popup, containsOrEquals, Configuration) {
 	"use strict";
 
 	// shortcut for sap.ui.core.Popup.Dock
@@ -46,17 +48,17 @@ sap.ui.define([
 	 * @extends sap.ui.commons.TextField
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.DatePicker}
 	 * @alias sap.ui.commons.DatePicker
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DatePicker = TextField.extend("sap.ui.commons.DatePicker", /** @lends sap.ui.commons.DatePicker.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -442,7 +444,7 @@ sap.ui.define([
 						if (!this._oDate || this._oDate.getTime() < this._oMinDate.getTime() || this._oDate.getTime() > this._oMaxDate.getTime()) {
 							this._oDate = undefined;
 							bWrong = true;
-						}else {
+						} else  {
 							// just format date to right pattern, because maybe a fallback pattern is used in the parsing
 							sNewValue = this._formatValue(this._oDate);
 							oInput.value = sNewValue;
@@ -489,11 +491,15 @@ sap.ui.define([
 		 * <li>'invalidValue' of type <code>boolean</code> The new / changed value of the DatePicker is not a valid date. </li>
 		 * </ul>
 		 *
-		 * @param {boolean} bInvalidValue true is value is invalid
-		 * @return {sap.ui.commons.DatePicker} <code>this</code> to allow method chaining
+		 * @param {object} [mParameters] Parameters to pass along with the event - do not use: value is ignored
+		 * @param {boolean} [bInvalidValue] true if value is invalid
+		 * @return {this} <code>this</code> to allow method chaining
 		 * @protected
 		 */
-		DatePicker.prototype.fireChange = function(bInvalidValue) {
+		DatePicker.prototype.fireChange = function(mParameters, bInvalidValue) {
+			if (!(typeof mParameters === "object")) {
+				bInvalidValue = mParameters;
+			}
 
 			this.fireEvent("change", {newValue:this.getValue(),
 				newYyyymmdd: this.getYyyymmdd(),
@@ -529,7 +535,7 @@ sap.ui.define([
 
 		/**
 		 * @see sap.ui.core.Control#getAccessibilityInfo
-		 * @returns {Object} Current accessibility state of the control
+		 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 		 * @protected
 		 */
 		DatePicker.prototype.getAccessibilityInfo = function() {
@@ -557,7 +563,7 @@ sap.ui.define([
 				oLocale = _getUsedLocale(oThis);
 				var oLocaleData = LocaleData.getInstance(oLocale);
 				sPattern = oLocaleData.getDatePattern("medium");
-				sCalendarType = sap.ui.getCore().getConfiguration().getCalendarType();
+				sCalendarType = Configuration.getCalendarType();
 			}
 
 			if (sPattern != oThis._sUsedPattern || sCalendarType != oThis._sUsedCalendarType) {
@@ -583,7 +589,7 @@ sap.ui.define([
 			if (sLocale) {
 				oLocale = oThis._oLocale;
 			} else {
-				oLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale();
+				oLocale = Configuration.getFormatSettings().getFormatLocale();
 			}
 
 			return oLocale;
@@ -622,7 +628,6 @@ sap.ui.define([
 				oThis._oPopup.setContent(oThis._oCalendar);
 				// use compact design in commons
 				oThis._oCalendar.addStyleClass("sapUiSizeCompact");
-				oThis._oCalendar.setPopupMode(true);
 				oThis._oCalendar.setParent(oThis, undefined, true); // don't invalidate DatePicker
 			}
 
@@ -742,7 +747,7 @@ sap.ui.define([
 				if (oBinding && oBinding.oType && (oBinding.oType instanceof TypeDate)) {
 					sCalendarType = oBinding.oType.oOutputFormat.oFormatOptions.calendarType;
 				} else {
-					sCalendarType = sap.ui.getCore().getConfiguration().getCalendarType();
+					sCalendarType = Configuration.getCalendarType();
 				}
 				var oDate = UniversalDate.getInstance(new Date(oOldDate.getTime()), sCalendarType);
 				oOldDate = UniversalDate.getInstance(new Date(oOldDate.getTime()), sCalendarType);
@@ -778,7 +783,7 @@ sap.ui.define([
 
 				if (oDate.getTime() < oThis._oMinDate.getTime()) {
 					oDate = new UniversalDate(oThis._oMinDate.getTime());
-				}else if (oDate.getTime() > oThis._oMaxDate.getTime()){
+				} else if (oDate.getTime() > oThis._oMaxDate.getTime()){
 					oDate = new UniversalDate(oThis._oMaxDate.getTime());
 				}
 

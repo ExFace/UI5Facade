@@ -1,66 +1,64 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'sap/ui/mdc/condition/Condition',
-	'sap/ui/mdc/enum/BaseType',
-	'sap/ui/mdc/util/DateUtil',
-	'sap/ui/mdc/condition/FilterOperatorUtil',
-	'sap/ui/mdc/condition/Operator',
-	'sap/base/util/merge'
-],
-	function(
+		'sap/ui/mdc/condition/Condition',
+		'sap/ui/mdc/enums/ConditionValidated',
+		'sap/ui/mdc/enums/OperatorValueType',
+		'sap/ui/mdc/condition/FilterOperatorUtil',
+		'sap/base/util/merge'
+	],
+	(
 		Condition,
-		BaseType,
-		DateUtil,
+		ConditionValidated,
+		OperatorValueType,
 		FilterOperatorUtil,
-		Operator,
 		merge
-	) {
+	) => {
 		"use strict";
-
-		var sDateTimePattern = "yyyy-MM-ddTHH:mm:ssZ"; // milliseconds missing
-		var sDatePattern = "yyyy-MM-dd";
-		var sTimePattern = "HH:mm:ss";
 
 		/**
 		 * Utilities for condition conversion
 		 *
+		 * @namespace
 		 * @author SAP SE
+		 * @version 1.136.0
 		 * @private
+		 * @ui5-restricted sap.ui.mdc
 		 * @since 1.74.0
 		 * @alias sap.ui.mdc.condition.ConditionConverter
 		 */
-		var ConditionConverter = {
+		const ConditionConverter = {
 
 			/**
-			 * converts a condition into a unified String
+			 * Converts a condition into a unified String
 			 *
 			 * The condition is not checked for validity. The used values must fit to the used basic type.
 			 *
-			 * @param {object} oCondition Condition
-			 * @param {sap.ui.mdc.TypeConfig} oTypeConfig given dataType mapping configuration
-			 * @param {sap.ui.mdc.util.TypeUtil} oTypeUtil delegate dependent type util
-			 * @returns {object} stringified condition
-			 * @public
+			 * <b>Note:</b> Number types are not converted, the number conversion is done by the Flex handling.
+			 *
+			 * @param {sap.ui.mdc.condition.ConditionObject} oCondition Condition
+			 * @param {sap.ui.model.SimpleType|sap.ui.mdc.TypeConfig} vType given dataType mapping configuration
+			 * @param {module:sap/ui/mdc/util/TypeMap} oTypeUtil delegate dependent <code>TypeMap</code> implementation
+			 * @returns {sap.ui.mdc.condition.ConditionObject} stringified condition
+			 * @private
+			 * @ui5-restricted sap.ui.mdc
 			 * @since 1.74.0
 			 */
-			toString: function(oCondition, oTypeConfig, oTypeUtil) {
+			toString: function(oCondition, vType, oTypeUtil) {
 
 				// convert using "normalized" data type
-				var aValues = _valuesToString(oCondition.values, _getLocalTypeConfig(oCondition, oTypeUtil) || oTypeConfig);
-
-				// ignore the second value for EQ operator with description
-				if (oCondition.operator === "EQ") {
-					aValues = [aValues[0]];
-				}
+				const oOperator = FilterOperatorUtil.getOperator(oCondition.operator);
+				const oTypeInstance = vType.typeInstance ? vType.typeInstance : vType;
+				const aValues = _externalizeValues(oCondition.values, _getLocalType(oTypeInstance, oOperator), oOperator, oTypeUtil);
 
 				// inParameter, OutParameter
 				// TODO: we need the types of the in/out parameter
-				var oInParameters;
-				var oOutParameters;
+				let oInParameters;
+				let oOutParameters;
+				let oPayload;
 
 				if (oCondition.inParameters) {
 					oInParameters = merge({}, oCondition.inParameters);
@@ -69,7 +67,11 @@ sap.ui.define([
 					oOutParameters = merge({}, oCondition.outParameters);
 				}
 
-				var oResult = Condition.createCondition(oCondition.operator, aValues, oInParameters, oOutParameters, oCondition.validated);
+				if (oCondition.payload) {
+					oPayload = merge({}, oCondition.payload);
+				}
+
+				const oResult = Condition.createCondition(oCondition.operator, aValues, oInParameters, oOutParameters, oCondition.validated, oPayload);
 				return oResult;
 
 			},
@@ -79,21 +81,27 @@ sap.ui.define([
 			 *
 			 * The condition is not checked for validity. The used values must fit to the used basic type.
 			 *
-			 * @param {object} oCondition stringified condition
-			 * @param {sap.ui.mdc.TypeConfig} oTypeConfig Data type of the condition
-			 * @param {sap.ui.mdc.util.TypeUtil} oTypeUtil delegate dependent type util
-			 * @returns {object} condition
-			 * @public
+			 * <b>Note:</b> Number types are not converted, the number conversion is done by the Flex handling.
+			 *
+			 * @param {sap.ui.mdc.condition.ConditionObject} oCondition stringified condition
+			 * @param {sap.ui.model.SimpleType|sap.ui.mdc.TypeConfig} vType given dataType mapping configuration
+			 * @param {module:sap/ui/mdc/util/TypeMap} oTypeUtil delegate dependent <code>TypeMap</code> implementation
+			 * @returns {sap.ui.mdc.condition.ConditionObject} condition
+			 * @private
+			 * @ui5-restricted sap.ui.mdc
 			 * @since 1.74.0
 			 */
-			toType: function(oCondition, oTypeConfig, oTypeUtil) {
+			toType: function(oCondition, vType, oTypeUtil) {
 				// convert using "normalized" data type
-				var aValues = _stringToValues(oCondition.values, _getLocalTypeConfig(oCondition, oTypeUtil) || oTypeConfig);
+				const oOperator = FilterOperatorUtil.getOperator(oCondition.operator);
+				const oTypeInstance = vType.typeInstance ? vType.typeInstance : vType;
+				const aValues = _internalizeValues(oCondition.values, _getLocalType(oTypeInstance, oOperator), oTypeUtil);
 
 				// inParameter, OutParameter
 				// TODO: we need the types of the in/out parameter
-				var oInParameters;
-				var oOutParameters;
+				let oInParameters;
+				let oOutParameters;
+				let oPayload;
 
 				if (oCondition.inParameters) {
 					oInParameters = merge({}, oCondition.inParameters);
@@ -102,110 +110,55 @@ sap.ui.define([
 					oOutParameters = merge({}, oCondition.outParameters);
 				}
 
-				var oResult = Condition.createCondition(oCondition.operator, aValues, oInParameters, oOutParameters, oCondition.validated);
-				return oResult;
+				if (oCondition.payload) {
+					oPayload = merge({}, oCondition.payload);
+				}
 
+				const oResult = Condition.createCondition(oCondition.operator, aValues, oInParameters, oOutParameters, oCondition.validated, oPayload);
+
+				if (oResult.validated !== ConditionValidated.Validated && oOperator.validateInput) {
+					// let the operator check if the condition could be validated. (Use result to not change original condition.)
+					oOperator.checkValidated(oResult);
+				}
+
+				return oResult;
 			}
 		};
 
-		function _getLocalTypeConfig (oCondition, oTypeUtil) {
-			var oOperator = FilterOperatorUtil.getOperator(oCondition.operator);
-			if (oOperator && oOperator.valueTypes[0] && (oOperator.valueTypes[0] !== Operator.ValueType.Self && oOperator.valueTypes[0] !== Operator.ValueType.Static)) {
+		function _getLocalType(oTypeInstance, oOperator) {
+			if (oOperator && oOperator.valueTypes[0] && (oOperator.valueTypes[0] !== OperatorValueType.Self && oOperator.valueTypes[0] !== OperatorValueType.Static)) {
 				// we have to create the type instance for the values
-				return oTypeUtil.getTypeConfig(oOperator._createLocalType(oOperator.valueTypes[0])); // TODO type for all values must be the same})
+				return oOperator._createLocalType(oOperator.valueTypes[0], oTypeInstance); //TODO: type for all values must be the same
 			}
+			return oTypeInstance;
 		}
 
-		function _valuesToString (aValues, oTypeConfig) {
+		function _externalizeValues(aValues, oTypeInstance, oOperator, oTypeUtil) {
 
-			var aResult = [];
+			const aResult = [];
 
-			for (var i = 0; i < aValues.length; i++) {
-				var vValue = aValues[i];
-				aResult.push(_valueToString(vValue, oTypeConfig));
+			for (let i = 0; i < aValues.length; i++) {
+				if (!oOperator || (oOperator.valueTypes[i] && oOperator.valueTypes[i] !== OperatorValueType.Static)) {
+					// only add real values (no description in EQ case or static texts) (for unknown operators just copy to be compatible)
+					const vValue = aValues[i];
+					aResult.push(oTypeUtil.externalizeValue(vValue, oTypeInstance));
+				}
 			}
 
 			return aResult;
 
 		}
 
-		function _valueToString (vValue, oTypeConfig) {
+		function _internalizeValues(aValues, oTypeInstance, oTypeUtil) {
+			const aResult = [];
 
-			// read base type
-			var sBaseType = oTypeConfig.baseType;
-			var oTypeInstance = oTypeConfig.typeInstance;
-
-			switch (sBaseType) {
-				case BaseType.DateTime:
-					return DateUtil.typeToString(vValue, oTypeInstance, sDateTimePattern);
-
-				case BaseType.Date:
-					return DateUtil.typeToString(vValue, oTypeInstance, sDatePattern);
-
-				case BaseType.Time:
-					return DateUtil.typeToString(vValue, oTypeInstance, sTimePattern);
-
-				case BaseType.Boolean:
-					return vValue;
-
-				case BaseType.Numeric:
-					if (oTypeInstance.getMetadata().getName() === "sap.ui.model.odata.type.Int64" || oTypeInstance.getMetadata().getName() === "sap.ui.model.odata.type.Decimal") {
-						return vValue.toString();
-					}
-					return vValue;
-
-				default:
-					// just use type to convert
-					return oTypeInstance.formatValue(vValue, "string");
-			}
-
-		}
-
-		function _stringToValues (aValues, oTypeConfig) {
-
-			var aResult = [];
-
-			for (var i = 0; i < aValues.length; i++) {
-				var sValue = aValues[i];
-				aResult.push(_stringToValue(sValue, oTypeConfig));
+			for (const sValue of aValues) {
+				aResult.push(oTypeUtil.internalizeValue(sValue, oTypeInstance));
 			}
 
 			return aResult;
-
-		}
-
-		function _stringToValue (sValue, oTypeConfig) {
-
-			// read base type
-			var sBaseType = oTypeConfig.baseType;
-			var oTypeInstance = oTypeConfig.typeInstance;
-
-
-			switch (sBaseType) {
-				case BaseType.DateTime:
-					return DateUtil.stringToType(sValue, oTypeInstance, sDateTimePattern);
-
-				case BaseType.Date:
-					return DateUtil.stringToType(sValue, oTypeInstance, sDatePattern);
-
-				case BaseType.Time:
-					return DateUtil.stringToType(sValue, oTypeInstance, sTimePattern);
-
-				case BaseType.Boolean:
-					return sValue;
-
-				case BaseType.Numeric:
-					if (oTypeInstance.getMetadata().getName() === "sap.ui.model.odata.type.Int64" || oTypeInstance.getMetadata().getName() === "sap.ui.model.odata.type.Decimal") {
-						return oTypeInstance.parseValue(sValue, "string");
-					}
-					return sValue;
-
-				default:
-					// just use type to convert
-					return oTypeConfig.typeInstance.parseValue(sValue, "string");
-			}
-
 		}
 
 		return ConditionConverter;
-	}, /* bExport= */ true);
+	}, /* bExport= */
+	true);

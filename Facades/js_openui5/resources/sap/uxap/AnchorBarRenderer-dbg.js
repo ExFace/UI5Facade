@@ -1,16 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/m/ToolbarRenderer", "sap/ui/core/Renderer", "sap/m/BarInPageEnabler", "./library"],
-	function (ToolbarRenderer, Renderer, BarInPageEnabler, library) {
+sap.ui.define(["sap/m/ToolbarRenderer", "sap/ui/core/Lib", "sap/ui/core/Renderer", "sap/m/BarInPageEnabler", "./library"],
+	function(ToolbarRenderer, Library, Renderer, BarInPageEnabler, library) {
 		"use strict";
 
 		/**
-		 * @class ObjectPageRenderer renderer.
-		 * @static
+		 * ObjectPageRenderer renderer.
+		 * @namespace
 		 */
 		var AnchorBarRenderer = Renderer.extend(ToolbarRenderer);
 
@@ -27,9 +27,6 @@ sap.ui.define(["sap/m/ToolbarRenderer", "sap/ui/core/Renderer", "sap/m/BarInPage
 				rm.renderControl(oToolbar._getScrollArrowLeft());
 
 				rm.openStart("div", oToolbar.getId() + "-scrollContainer");
-				if (oToolbar._bHideScrollContainer) {
-					rm.style("display", "none");
-				}
 				// ARIA attributes
 				rm.class("sapUxAPAnchorBarScrollContainer")
 					.openEnd();
@@ -37,19 +34,17 @@ sap.ui.define(["sap/m/ToolbarRenderer", "sap/ui/core/Renderer", "sap/m/BarInPage
 				rm.openStart("div", oToolbar.getId() + "-scroll")
 					.attr("role", "listbox")
 					.attr("aria-describedby", oToolbar.getId() + "-desc")
-					.attr("aria-roledescription", sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("ANCHOR_BAR_ROLE_DESCRIPTION"))
+					.attr("aria-label", Library.getResourceBundleFor("sap.uxap").getText("ANCHOR_BAR_ARIA_LABEL"))
 					.openEnd();
 
-				if (!oToolbar._bHideScrollContainer) {
-					AnchorBarRenderer.renderBarItems(rm, oToolbar);
-				}
+				AnchorBarRenderer.renderBarItems(rm, oToolbar);
 
 				rm.close("div");
 
 				rm.openStart("span", oToolbar.getId() + "-desc")
 					.class("sapUiPseudoInvisibleText")
 					.openEnd();
-				rm.text(sap.ui.getCore().getLibraryResourceBundle("sap.uxap").getText("ANCHOR_BAR_ARIA_LABEL_DESC"));
+				rm.text(Library.getResourceBundleFor("sap.uxap").getText("ANCHOR_BAR_ARIA_LABEL_DESC"));
 				rm.close("span");
 
 				rm.close("div");

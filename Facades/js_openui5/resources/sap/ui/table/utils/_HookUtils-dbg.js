@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides helper sap.ui.table.utils._HookUtils.
-sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) {
+sap.ui.define(["sap/ui/base/DataType", "sap/ui/model/ChangeReason"], function(DataType, ChangeReason) {
 	"use strict";
 
-	var Hooks = new window.WeakMap();
-	var MASTER_HOOK_KEY = {}; // Symbol could be used here, but IE does not support it.
-	var mKeyMapForExternalUsage = {};
-	var mHookMetadataByKey = {};
-	var aForbiddenTypes = ["function"];
+	const Hooks = new window.WeakMap();
+	const MASTER_HOOK_KEY = {};
+	const mKeyMapForExternalUsage = {};
+	const mHookMetadataByKey = {};
+	const aForbiddenTypes = ["function"];
 
 	/**
 	 * Static collection of utility functions providing a table internal hook system.
@@ -22,7 +22,7 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 * - There is no concept for public or protected hooks. Never expose a hook directly, only indirectly as can be seen in the examples.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @namespace
 	 * @alias sap.ui.table.utils._HookUtils
 	 *
@@ -75,7 +75,7 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 *
 	 * @private
 	 */
-	var HookUtils = {};
+	const HookUtils = {};
 
 	/*
 	 * This table internal hooks system is intended to simplify the communication between table modules. Such modules might need to be decoupled from
@@ -86,47 +86,47 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 * Every hook must be defined before it can be used. There can be no dynamic hooks. Calling or registering to an undefined hook has no effect.
 	 *
 	 * Hook metadata:
-	 * - "arguments" (required) - List of types of arguments that have to be provided to a call.
-	 *   Examples: [] | ["any"] | ["string"] | ["int[]", "any", ...] | ["object"] | ["class:sap.ui.table.Table"] | [function():boolean] | ...
+	 * - "arguments" (required) - List arguments that have to be provided to a call. If a hook has no arguments, this has to be specified with an
+	 *   empty array.
+	 *
+	 *   Definition:
+	 *   {
+	 *     type: string | function():boolean,
+	 *     [optional=false]: boolean
+	 *   }
+	 *
+	 *   Examples of valid types:
+	 *   "any", "string", "int[]", "object", "class:sap.ui.table.Table", function(vValue) {return typeof vValue === "boolean"}
 	 *
 	 *   Calls with invalid arguments are ignored. This includes the number of arguments as well as their types.
 	 *   Almost any type that can be used for a property, for example, can also be used here. Classes have to be prefixed with "class:", so the
 	 *   correct method is used to validate arguments.
 	 *
-	 *   If a hook does not allow any values to be passed, an empty array has to be set.
-	 *
 	 *   Type function():boolean -> Custom validation
 	 *   For example for internal types like sap.ui.table.Row.State. It is also possible to use sap.ui.base.DataType#createType to create
 	 *   a type that can be used here. But this is not done to avoid polluting the type registry just for this util.
 	 *
-	 * - "returnValue" (optional) - Type of the return value.
-	 *   Examples: "boolean" | "Promise"
-	 *
-	 *   If a type for the return value is defined, an array of valid return values is returned to the caller. Invalid values that do not match
-	 *   the type are discarded.
-	 *   Any type that can be used in "arguments" can also be used here, plus "Promise".
-	 *
 	 * Forbidden types: "function"
 	 */
 
-	var mHookMetadata = {
+	const mHookMetadata = {
 		Table: {
 			// Called when Table#bindRows or Table#bindAggregation("rows", ...) is called, before Control#bindAggregation.
 			BindRows: {
 				arguments: [
-					"object" // BindingInfo
+					{type: "object" /* BindingInfo */}
 				]
 			},
 			// Called when a binding object is created for the rows aggregation.
 			RowsBound: {
 				arguments: [
-					"class:sap.ui.model.Binding"
+					{type: "class:sap.ui.model.Binding"}
 				]
 			},
 			// Called when Table#unbindRows or Table#unbindAggregation("rows", ...) is called, before Control#unbindAggregation.
 			UnbindRows: {
 				arguments: [
-					"object" // BindingInfo
+					{type: "object" /* BindingInfo */}
 				]
 			},
 			// Called after the Table.UnbindRows hook, if the unbind is not caused by rebind or destroy.
@@ -136,63 +136,93 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 			// Called when Table#refreshRows is called.
 			RefreshRows: {
 				arguments: [
-					function(sReason) { // sap.ui.table.utils.TableUtils.RowsUpdateReason
-						return sReason in HookUtils.TableUtils.RowsUpdateReason || DataType.getType("sap.ui.model.ChangeReason").isValid(sReason);
-					}
+					{type: validateRowsUpdateReason}
 				]
 			},
 			// Called when Table#updateRows is called.
 			UpdateRows: {
 				arguments: [
-					function(sReason) { // sap.ui.table.utils.TableUtils.RowsUpdateReason
-						return sReason in HookUtils.TableUtils.RowsUpdateReason || DataType.getType("sap.ui.model.ChangeReason").isValid(sReason);
-					}
+					{type: validateRowsUpdateReason}
 				]
 			},
 			// Called when Table#_updateTableSizes is called.
 			UpdateSizes: {
 				arguments: [
-					function(sReason) { // sap.ui.table.utils.TableUtils.RowsUpdateReason
-						return sReason in HookUtils.TableUtils.RowsUpdateReason || DataType.getType("sap.ui.model.ChangeReason").isValid(sReason);
-					}
+					{type: validateRowsUpdateReason}
 				]
 			},
-			// Called when a menu is opened.
-			OpenMenu: {
+			TotalRowCountChanged: {
+				arguments: []
+			},
+			/**
+			* @deprecated As of Version 1.117
+			*/
+			InvalidateColumnMenus: {
 				arguments: [
-					function(oCellInfo) { // sap.ui.table.utils.TableUtils.CellInfo
-						return oCellInfo ? typeof oCellInfo.isOfType === "function" : false;
-					},
-					"class:sap.ui.unified.Menu"
+					{type: "class:sap.ui.table.Table"}
+				]
+			}
+		},
+		TableRenderer: {
+			RenderTableStyles: {
+				arguments: [
+					{type: "object" /* RenderManager */}
+				]
+			},
+			RenderInTableBottomArea: {
+				arguments: [
+					{type: "object" /* RenderManager */}
+				]
+			},
+			RenderRowContainerStyles: {
+				arguments: [
+					{type: "object" /* RenderManager */}
+				]
+			},
+			RenderRowStyles: {
+				arguments: [
+					{type: "object" /* RenderManager */}
+				]
+			},
+			RenderCellContentStyles: {
+				arguments: [
+					{type: "object" /* RenderManager */}
 				]
 			}
 		},
 		Row: {
-			// Called when the state of a row is updated.
 			UpdateState: {
 				arguments: [
-					function(oRowState) { // sap.ui.table.Row.State
-						// instanceof check not possible due to missing reference, just check for some properties
-						return oRowState != null
-							   && oRowState.hasOwnProperty("context")
-							   && oRowState.hasOwnProperty("Type")
-							   && oRowState.hasOwnProperty("type")
-							   && oRowState.type in oRowState.Type;
-					}
+					{type: validateRowState}
+				]
+			},
+			Expand: {
+				arguments: [
+					{type: "class:sap.ui.table.Row"}
+				]
+			},
+			Collapse: {
+				arguments: [
+					{type: "class:sap.ui.table.Row"}
 				]
 			}
 		},
 		Column: {
-			// Called when the table needs to know whether menu items will be added on the Table.OpenMenu hook. Returning "true" indicates that
-			// the consumer will add menu items on Table.OpenMenu.
-			MenuItemNotification: {
-				arguments: ["class:sap.ui.table.Column"],
-				returnValue: "boolean"
+			/**
+			* @deprecated As of Version 1.117
+			*/
+			SetFilterState: {
+				arguments: [
+					{type: "class:sap.ui.table.Column"},
+					{type: "string"}
+				]
 			}
 		},
 		// Can be used to send any signal.
 		Signal: {
-			arguments: ["string"]
+			arguments: [
+				{type: "string"}
+			]
 		}
 	};
 
@@ -213,47 +243,38 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 *
 	 * @param {sap.ui.table.Table} oScope The table whose hook is called.
 	 * @param {string} sKey The hook to call.
-	 * @returns {any[] | undefined} The return values, or <code>undefined</code> if the hook does not allow return values.
 	 */
 	HookUtils.call = function(oScope, sKey) {
-		var aHooks = Hooks.get(oScope);
+		const aHooks = Hooks.get(oScope);
 
 		if (!isValidScope(oScope) || !isValidKey(sKey)) {
-			return undefined;
+			return;
 		}
 
-		var mHookMetadata = getHookMetadataByKey(sKey);
+		const mHookMetadata = getHookMetadataByKey(sKey);
 
 		if (aHooks == null) {
-			if (mHookMetadata.returnValue) {
-				return [];
-			}
-			return undefined;
+			return;
 		}
 
-		var aArguments = Array.prototype.slice.call(arguments, 2);
-		var bArgumentsValid = validateArguments(mHookMetadata, aArguments);
+		const aArguments = sanitizeArguments(Array.prototype.slice.call(arguments, 2));
+		const bArgumentsValid = validateArguments(mHookMetadata, aArguments);
 
 		if (!bArgumentsValid) {
 			throw new Error("Hook with key " + sKey + " was not called. Invalid arguments passed\n" + oScope);
 		}
 
-		var aReturnValues = aHooks.map(function(oHook) {
+		aHooks.map((oHook) => {
 			if (oHook.key === MASTER_HOOK_KEY) {
-				var oCall = {};
-				var oHandlerContext = oHook.handlerContext == null ? oHook.target : oHook.handlerContext;
+				const oCall = {};
+				const oHandlerContext = oHook.handlerContext == null ? oHook.target : oHook.handlerContext;
 
 				oCall[sKey] = aArguments;
-				return HookUtils.TableUtils.dynamicCall(oHook.target, oCall, oHandlerContext);
-
+				HookUtils.TableUtils.dynamicCall(oHook.target, oCall, oHandlerContext);
 			} else if (oHook.key === sKey) {
-				return oHook.handler.apply(oHook.handlerContext, aArguments);
+				oHook.handler.apply(oHook.handlerContext, aArguments);
 			}
 		});
-
-		aReturnValues = getValidReturnValues(mHookMetadata, aReturnValues);
-
-		return aReturnValues;
 	};
 
 	/**
@@ -272,13 +293,13 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 			return;
 		}
 
-		var aHooks = Hooks.get(oScope);
+		let aHooks = Hooks.get(oScope);
 
 		if (aHooks == null) {
 			aHooks = [];
 		}
 
-		var bMasterHookInstalled = aHooks.some(function(oHook) {
+		const bMasterHookInstalled = aHooks.some(function(oHook) {
 			return oHook.key === MASTER_HOOK_KEY && oHook.target === oTarget && oHook.handlerContext === oThis;
 		});
 
@@ -303,14 +324,14 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 * @param {Object} [oThis] The context of hook handler calls.
 	 */
 	HookUtils.uninstall = function(oScope, oTarget, oThis) {
-		var aHooks = Hooks.get(oScope);
+		const aHooks = Hooks.get(oScope);
 
 		if (aHooks == null || !oTarget) {
 			return;
 		}
 
-		for (var i = 0; i < aHooks.length; i++) {
-			var oHook = aHooks[i];
+		for (let i = 0; i < aHooks.length; i++) {
+			const oHook = aHooks[i];
 
 			if (oHook.key === MASTER_HOOK_KEY && oHook.target === oTarget && oHook.handlerContext === oThis) {
 				aHooks.splice(i, 1);
@@ -339,7 +360,7 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 			return;
 		}
 
-		var aHooks = Hooks.get(oScope);
+		let aHooks = Hooks.get(oScope);
 
 		if (aHooks == null) {
 			aHooks = [];
@@ -365,14 +386,14 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 	 * @param {Object} [oThis] The context of hook handler calls.
 	 */
 	HookUtils.deregister = function(oScope, sKey, fnHandler, oThis) {
-		var aHooks = Hooks.get(oScope);
+		const aHooks = Hooks.get(oScope);
 
 		if (aHooks == null) {
 			return;
 		}
 
-		for (var i = 0; i < aHooks.length; i++) {
-			var oHook = aHooks[i];
+		for (let i = 0; i < aHooks.length; i++) {
+			const oHook = aHooks[i];
 
 			if (oHook.key === sKey && oHook.handler === fnHandler && oHook.handlerContext === oThis) {
 				aHooks.splice(i, 1);
@@ -389,11 +410,11 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 
 	function extractKeys(mKeys, mCurrent, sCurrentKey) {
 		Object.keys(mCurrent).forEach(function(sProperty) {
-			var sKey = sCurrentKey ? sCurrentKey + "." + sProperty : sProperty;
+			const sKey = sCurrentKey ? sCurrentKey + "." + sProperty : sProperty;
 
 			if ("arguments" in mCurrent[sProperty]) {
 				aForbiddenTypes.forEach(function(sForbiddenType) {
-					if (mCurrent[sProperty].arguments.indexOf(sForbiddenType) > -1 || mCurrent[sProperty].returnValue === sForbiddenType) {
+					if (mCurrent[sProperty].arguments.includes(sForbiddenType)) {
 						throw new Error("Forbidden type found in metadata of hook " + sCurrentKey + ": " + sForbiddenType);
 					}
 				});
@@ -422,38 +443,46 @@ sap.ui.define(["sap/ui/base/DataType", "sap/base/Log"], function(DataType, Log) 
 		return mHookMetadataByKey[sKey];
 	}
 
-	function validateArguments(mHookMetadata, aArguments) {
-		return mHookMetadata.arguments.length === aArguments.length && mHookMetadata.arguments.every(function(vType, iIndex) {
-			if (typeof vType === "function") {
-				return vType(aArguments[iIndex]);
-			} else if (vType.startsWith("class:")) {
-				return HookUtils.TableUtils.isA(aArguments[iIndex], vType.substring(6));
-			} else {
-				return DataType.getType(vType).isValid(aArguments[iIndex]);
+	function sanitizeArguments(aArguments) {
+		while (aArguments.length > 0) {
+			const vArgument = aArguments.pop();
+			if (vArgument != null) {
+				aArguments.push(vArgument);
+				break;
 			}
+		}
+
+		return aArguments;
+	}
+
+	function validateArguments(mHookMetadata, aArguments) {
+		return mHookMetadata.arguments.length >= aArguments.length && aArguments.every(function(vValue, iIndex) {
+			const mArgument = mHookMetadata.arguments[iIndex];
+			if (typeof mArgument.type === "function") {
+				return mArgument.type(vValue);
+			}
+			if (mArgument.type.startsWith("class:")) {
+				return HookUtils.TableUtils.isA(vValue, mArgument.type.substring(6));
+			}
+			return mArgument.optional === true && vValue == null || DataType.getType(mArgument.type).isValid(vValue);
 		});
 	}
 
-	function getValidReturnValues(mHookMetadata, aValues) {
-		if (!mHookMetadata.returnValue) {
-			return undefined;
-		}
+	function validateChangeReason(sReason) {
+		return typeof sReason === "string" && Object.values(ChangeReason).includes(sReason);
+	}
 
-		var vType = mHookMetadata.returnValue;
+	function validateRowsUpdateReason(sReason) { // sap.ui.table.utils.TableUtils.RowsUpdateReason
+		return sReason in HookUtils.TableUtils.RowsUpdateReason || validateChangeReason(sReason);
+	}
 
-		return aValues.filter(function(vValue) {
-			if (vValue == null) {
-				return false;
-			} else if (typeof vType === "function") {
-				return vType(vValue);
-			} else if (vType === "Promise") {
-				return vValue instanceof Promise;
-			} else if (vType.startsWith("class:")) {
-				return HookUtils.TableUtils.isA(vValue, vType.substring(6));
-			} else {
-				return DataType.getType(vType).isValid(vValue);
-			}
-		});
+	function validateRowState(oRowState) { // sap.ui.table.Row.State
+		// instanceof check not possible due to missing reference, just check for some properties
+		return oRowState != null
+			   && oRowState.hasOwnProperty("context")
+			   && oRowState.hasOwnProperty("Type")
+			   && oRowState.hasOwnProperty("type")
+			   && oRowState.type in oRowState.Type;
 	}
 
 	return HookUtils;

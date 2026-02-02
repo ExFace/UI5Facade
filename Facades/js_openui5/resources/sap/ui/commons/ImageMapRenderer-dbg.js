@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Configuration"],
+	function(Configuration) {
 	"use strict";
 
 
@@ -25,7 +25,7 @@ sap.ui.define([],
 	 */
 	ImageMapRenderer.render = function(rm, oImageMap){
 	    // convenience variable
-		var accessibility = sap.ui.getCore().getConfiguration().getAccessibility();
+		var accessibility = Configuration.getAccessibility();
 		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.commons");
 
 		rm.write('<span id="' + oImageMap.getId() + '-Descr" style="visibility: hidden; display: none; outline: none;">');

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,9 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/m/Label",
 	"sap/m/library",
-	"./DraftIndicatorRenderer"
-], function(Control, Label, library, DraftIndicatorRenderer) {
+	"./DraftIndicatorRenderer",
+	"sap/ui/core/Lib"
+], function(Control, Label, library, DraftIndicatorRenderer, Library) {
 	"use strict";
 
 	// shortcut for sap.m.DraftIndicatorState
@@ -18,21 +19,20 @@ sap.ui.define([
 	/**
 	 * Constructor for a new DraftIndicator.
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
+	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
 	 * A draft indicator is {@link sap.m.Label}.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.32.0
 	 * @alias sap.m.DraftIndicator
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	var DraftIndicator = Control.extend("sap.m.DraftIndicator", /** @lends sap.m.DraftIndicator.prototype */ {
@@ -64,10 +64,12 @@ sap.ui.define([
 				 */
 				_label : {type : "sap.m.Label", multiple : false, visibility: "hidden"}
 			}
-		}
+		},
+
+		renderer: DraftIndicatorRenderer
 	});
 
-	var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	var oBundle = Library.getResourceBundleFor("sap.m");
 	DraftIndicator._oTEXTS = {};
 	DraftIndicator._oTEXTS[DraftIndicatorState.Saving] = oBundle.getText("DRAFT_INDICATOR_SAVING_DRAFT");
 	DraftIndicator._oTEXTS[DraftIndicatorState.Saved] = oBundle.getText("DRAFT_INDICATOR_DRAFT_SAVED");

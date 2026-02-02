@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,19 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 	"use strict";
 
 	/**
-	 * @class HeaderBase renderer.
-	 * @static
+	 * Header renderer.
+	 * @namespace
 	 */
 	var ObjectPageHeaderRenderer = {
 		apiVersion: 2
 	};
 
+	/**
+	 * Renders the ObjectPageHeader.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {sap.uxap.ObjectPageHeader} oControl The ObjectPageHeader
+	 */
 	ObjectPageHeaderRenderer.render = function (oRm, oControl) {
 
 		var oNavigationBar = oControl.getNavigationBar(),
@@ -28,10 +34,12 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 				&& oParent.getHeaderContent().length > 0 && oParent.getShowHeaderContent()) ||
 			(oParent.getShowHeaderContent() && oParent.getShowTitleInHeaderContent()));
 
-		oRm.openStart("div", oControl)
-			.class('sapUxAPObjectPageHeader')
-			.class('sapUxAPObjectPageHeaderDesign-' + oControl.getHeaderDesign())
-			.openEnd();
+		oRm.openStart("div", oControl).class('sapUxAPObjectPageHeader');
+		/**
+		 * @deprecated As of version 1.40.1
+		 */
+		oRm.class('sapUxAPObjectPageHeaderDesign-' + oControl.getHeaderDesign());
+		oRm.openEnd();
 
 		// if a navigationBar has been provided display it
 		if (oNavigationBar) {
@@ -113,10 +121,10 @@ sap.ui.define(["./ObjectImageHelper", "sap/ui/Device"], function (ObjectImageHel
 
 
 	/**
-	 * Renders the SelectTitleArrow icon.
+	 * Renders the title.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.uxap.ObjecPageHeader} oControl The ObjectPageHeader
+	 * @param {sap.uxap.ObjectPageHeader} oControl The ObjectPageHeader
 	 *
 	 * @private
 	 */

@@ -1,20 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/Device",
 	"sap/ui/base/Object",
 	"./ObjectPageSubSection",
 	"./library",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/base/util/isEmptyObject"
 ],
-	function(jQuery, Device, BaseObject, ObjectPageSubSection, library, Log) {
+	function(Element, jQuery, Device, BaseObject, ObjectPageSubSection, library, Log, isEmptyObject) {
 		"use strict";
 
+		var oPendingPromises = {};
 		var LazyLoading = BaseObject.extend("sap.uxap._helpers.LazyLoading", {
 			/**
 			 * @private
@@ -48,14 +51,6 @@ sap.ui.define([
 			//delay before loading data for visible sub-sections
 			//this delay avoid loading data for every subsections during scroll
 			this.LAZY_LOADING_DELAY = 200;  //ms.
-
-			//lazy loading fine tuning
-			//An extra non visible subsection will be loaded if the top of this subsection is at
-			//no more than LAZY_LOADING_EXTRA_PAGE_SIZE * page height from the bottom of the page.
-			this.LAZY_LOADING_EXTRA_PAGE_SIZE = 0.5;
-
-			// delayed lazy loading call to check if there's another extra subsection to load
-			this.LAZY_LOADING_EXTRA_SUBSECTION = this.LAZY_LOADING_DELAY * 5;
 
 			//number of subsections which should be preloaded :
 			//   - FirstRendering : for first loading
@@ -113,7 +108,7 @@ sap.ui.define([
 					clearTimeout(this._sLazyLoadingTimer);
 				}
 				this._sLazyLoadingTimer = null;
-				this.doLazyLoading();
+				this.doLazyLoading(iScrollTop);
 				return;
 			}
 
@@ -137,21 +132,18 @@ sap.ui.define([
 
 			//If there's no delayed lazy loading call, create a new one.
 			if (!this._sLazyLoadingTimer) {
-				this._sLazyLoadingTimer = setTimeout(this.doLazyLoading.bind(this), iDelay);
+				this._sLazyLoadingTimer = setTimeout(this.doLazyLoading.bind(this, iScrollTop), iDelay);
 			}
 		};
 
-		LazyLoading.prototype.doLazyLoading = function () {
+		LazyLoading.prototype.doLazyLoading = function (iScrollTopPosition) {
 			var oHeightParams = this._oObjectPageLayout._getHeightRelatedParameters(),
 				bIconTabBar = this._oObjectPageLayout.getUseIconTabBar(),
-				oSelectedSection = sap.ui.getCore().byId(this._oObjectPageLayout.getSelectedSection()),
+				oSelectedSection = Element.getElementById(this._oObjectPageLayout.getSelectedSection()),
 				oSectionInfo = this._oObjectPageLayout._oSectionInfo,
 				iScrollTop,
 				iScrollPageBottom,
 				iPageHeight,
-				bShouldStick = this._iPreviousScrollTop >= (oHeightParams.iHeaderContentHeight), // iHeaderContentHeight
-				sExtraSubSectionId,
-				iExtraSubSectionTop = -1,
 				oSubSectionsToLoad = {},
 				oSubSectionsInView = {},
 				iTimeDifference,
@@ -164,11 +156,11 @@ sap.ui.define([
 
 			//calculate the limit of visible sections to be lazy loaded
 			iPageHeight = (
-				oHeightParams.iScreenHeight                                            /* the total screen height */
-				- (bShouldStick ? oHeightParams.iAnchorBarHeight : 0)              /* minus the part taken by the anchor bar (when sticky)*/
-				- (bShouldStick ? oHeightParams.iHeaderTitleHeightStickied : 0)    /* minus the part taken by the header title (mandatory) */
+				oHeightParams.iScreenHeight                    /* the total screen height */
+				- oHeightParams.iAnchorBarHeight              /* minus the part taken by the anchor bar */
+				- oHeightParams.iHeaderTitleHeightStickied    /* minus the part taken by the header title (mandatory) */
 			);
-			iScrollTop = oHeightParams.iScrollTop;
+			iScrollTop = iScrollTopPosition || oHeightParams.iScrollTop;
 
 			//we consider that the scroll is still ongoing if:
 			//   - a scroll event has been received for less than half of the LAZY_LOADING_DELAY (100 ms)
@@ -216,46 +208,40 @@ sap.ui.define([
 						if (!oInfo.loaded) {
 							oSubSectionsToLoad[sId] = sId;
 						}
-						// Lazy loading will add an extra subsection :
-						//    the first (highest) subsection not yet visible (and not yet loaded)
-						//    top of this subsection must be close from page bottom (less than 0.5 page : LAZY_LOADING_EXTRA_PAGE_SIZE)
-					} else if (!oInfo.loaded && oInfo.positionTop > iScrollPageBottom &&
-						oInfo.positionTop < iScrollPageBottom + iPageHeight * this.LAZY_LOADING_EXTRA_PAGE_SIZE &&
-						(iExtraSubSectionTop == -1 || oInfo.positionTop < iExtraSubSectionTop)) {
-						iExtraSubSectionTop = oInfo.positionTop;
-						sExtraSubSectionId = sId;
 					}
 				}
 
 			}, this));
 
-			//add the extra subsection if:
-			//      - we have found one
-			//      - we have no visible subsections to load
-			if (iExtraSubSectionTop != -1 &&
-				jQuery.isEmptyObject(oSubSectionsToLoad)) {
-				Log.debug("ObjectPageLayout :: lazyLoading", "extra section added : " + sExtraSubSectionId);
-				oSubSectionsToLoad[sExtraSubSectionId] = sExtraSubSectionId;
-			}
-
 			//Load the subsections
 			jQuery.each(oSubSectionsToLoad, jQuery.proxy(function (idx, sSectionId) {
 				Log.debug("ObjectPageLayout :: lazyLoading", "connecting " + sSectionId);
-				sap.ui.getCore().byId(sSectionId).connectToModels();
+				oPendingPromises[idx] = true;
+				Element.getElementById(sSectionId).connectToModelsAsync().then(function () {
+					// newly scrolled in view
+					oPendingPromises[idx] = false;
+					Log.debug("ObjectPageLayout :: lazyLoading", "subSectionEnteredViewPort " + sSectionId);
+					this._oObjectPageLayout.fireEvent("subSectionEnteredViewPort", {
+						subSection: Element.getElementById(sSectionId)
+					});
+					this._oPrevSubSectionsInView[idx] = Element.getElementById(sSectionId);
+				}.bind(this));
 				oSectionInfo[sSectionId].loaded = true;
 			}, this));
 
+
 			// fire event for sections scrolled in view (for app to resume binding)
 			jQuery.each(oSubSectionsInView, jQuery.proxy(function (idx, sSectionId) {
-				if (!this._oPrevSubSectionsInView[idx]) {
+				if (!this._oPrevSubSectionsInView[idx] && !oPendingPromises[idx]) {
 					// newly scrolled in view
 					Log.debug("ObjectPageLayout :: lazyLoading", "subSectionEnteredViewPort " + sSectionId);
 					this._oObjectPageLayout.fireEvent("subSectionEnteredViewPort", {
-						subSection: sap.ui.getCore().byId(sSectionId)
+						subSection: Element.getElementById(sSectionId)
 					});
+					this._oPrevSubSectionsInView[idx] = Element.getElementById(sSectionId);
 				}
 			}, this));
-			this._oPrevSubSectionsInView = oSubSectionsInView;
+
 
 			if (bOnGoingScroll) {
 				//bOnGoingScroll is just a prediction, we can't be 100% sure as there's no end-of-scroll event
@@ -263,18 +249,10 @@ sap.ui.define([
 				//sections will actually be loaded (no shift) if scroll stops suddenly.
 				this._sLazyLoadingTimer = setTimeout(this.doLazyLoading.bind(this), this.LAZY_LOADING_DELAY);
 			} else {
-				if (iExtraSubSectionTop) {
-					//An extra subsection has been found
-					//relaunch a delayed lazy loading call to check if there's another extra subsection to load
-					//We use a long delay (5* LAZY_LOADING_DELAY) to wait for current loading completion.
-					this._sLazyLoadingTimer = setTimeout(this.doLazyLoading.bind(this), this.LAZY_LOADING_EXTRA_SUBSECTION);
-				} else {
-					//reset the lazy loading timer
-					this._sLazyLoadingTimer = null;
-				}
+				//reset the lazy loading timer
+				this._sLazyLoadingTimer = null;
 			}
 		};
-
 
 		/**
 		 * Load in advance the subsections which will likely be visible once the operation (firstRendering or scrolltoSection)

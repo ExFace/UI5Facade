@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,27 +10,31 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/CustomData",
 	"sap/ui/core/mvc/View",
+	"sap/ui/base/ManagedObjectObserver",
 	"./BlockBaseMetadata",
+	"./BlockBaseRenderer",
 	"sap/ui/model/Context",
-	"sap/ui/Device",
 	"sap/ui/layout/form/ColumnLayout",
 	"./library",
 	"sap/ui/core/Component",
 	"sap/ui/layout/library",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/uxap/ModelMapping"
 ], function(
 	jQuery,
 	Control,
 	CustomData,
 	CoreView,
+	ManagedObjectObserver,
 	BlockBaseMetadata,
+	BlockBaseRenderer,
 	Context,
-	Device,
 	ColumnLayout,
 	library,
 	Component,
 	layoutLibrary,
-	Log
+	Log,
+	ModelMapping
 ) {
 		"use strict";
 
@@ -74,7 +78,6 @@ sap.ui.define([
 		 * @see {@link topic:4527729576cb4a4888275b6935aad03a Block Base}
 		 * @see {@link topic:2978f6064742456ebed31c5ccf4d051d Creating Blocks}
 		 * @alias sap.uxap.BlockBase
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 
 		var BlockBase = Control.extend("sap.uxap.BlockBase", {
@@ -184,7 +187,7 @@ sap.ui.define([
 //
 				}
 			},
-			renderer: "sap.uxap.BlockBaseRenderer"
+			renderer: BlockBaseRenderer
 		}, BlockBaseMetadata);
 
 		BlockBase.prototype.init = function () {
@@ -199,16 +202,14 @@ sap.ui.define([
 			this._oMappingApplied = {};
 
 			//lazy loading
-			this._bLazyLoading = false; //by default, no lazy loading so we can use it out of an objectPageLayout
 			this._bConnected = false;   //indicates connectToModels function has been called
 			this._oUpdatedModels = {};
 			this._oParentObjectPageSubSection = null; // the parent ObjectPageSubSection
 			this._oPromisedViews = {};
+			this._oViewDestroyObserver = new ManagedObjectObserver(this._onViewDestroy.bind(this));
 		};
 
 		BlockBase.prototype.onBeforeRendering = function () {
-			var oParentObjectPageLayout;
-
 			this._applyMapping();
 
 			if (!this.getMode() || this.getMode() === "") {
@@ -221,14 +222,10 @@ sap.ui.define([
 			}
 
 			this._applyFormAdjustment();
-
-			//TODO: for iconTabBar mode, specify lazyLoading for selectedTab only?
-			oParentObjectPageLayout = this._getObjectPageLayout();
-			this._bLazyLoading = oParentObjectPageLayout && (oParentObjectPageLayout.getEnableLazyLoading() || oParentObjectPageLayout.getUseIconTabBar());
 		};
 
 		BlockBase.prototype.onAfterRendering = function () {
-			var oParentObjectPageLayout = this._getObjectPageLayout();
+			var oParentObjectPageLayout = this._getObjectPageLayout(this._oParentObjectPageSubSection);
 
 			if (oParentObjectPageLayout) {
 				oParentObjectPageLayout._requestAdjustLayout();
@@ -243,11 +240,10 @@ sap.ui.define([
 		 * @param {*} bSuppressInvalidate invalidate
 		 */
 		BlockBase.prototype.setParent = function (oParent, sAggregationName, bSuppressInvalidate) {
-			if (oParent instanceof library.ObjectPageSubSection) {
-				this._bLazyLoading = true; //we activate the block lazy loading since we are within an objectPageLayout
+			Control.prototype.setParent.call(this, oParent, sAggregationName, bSuppressInvalidate);
+
+			if (oParent?.isA("sap.uxap.ObjectPageSubSection")) {
 				this._oParentObjectPageSubSection = oParent;
-			} else {
-				Control.prototype.setParent.call(this, oParent, sAggregationName, bSuppressInvalidate);
 			}
 		};
 
@@ -360,6 +356,7 @@ sap.ui.define([
 
 			if (this.getMode() !== sMode) {
 				this.setProperty("mode", sMode, false);
+
 				//if Lazy loading is enabled, and if the block is not connected
 				//delay the view creation (will be done in connectToModels function)
 				if (!this._shouldLazyLoad()) {
@@ -373,6 +370,7 @@ sap.ui.define([
 		/**
 		 * Set the column layout for this particular block.
 		 * @param {string} sLayout The column layout to apply to the control
+		 * @returns {*} this
 		 * @public
 		 */
 		BlockBase.prototype.setColumnLayout = function (sLayout) {
@@ -381,7 +379,7 @@ sap.ui.define([
 				/*the parent subsection needs to recalculate block layout data
 				 based on the changed block column layout */
 			}
-			this.setProperty("columnLayout", sLayout);
+			return this.setProperty("columnLayout", sLayout);
 		};
 
 		/**
@@ -506,6 +504,10 @@ sap.ui.define([
 		 * @private
 		 */
 		BlockBase.prototype._afterViewInstantiated = function (oView, sMode) {
+			if (this._bIsBeingDestroyed) {
+				return;
+			}
+
 			var oController = oView.getController();
 
 			//link to the controller defined in the Block
@@ -521,6 +523,8 @@ sap.ui.define([
 				}));
 
 				this.addAggregation("_views", oView);
+
+				this._oViewDestroyObserver.observe(oView, {destroy: true});
 				this.fireEvent("viewInit", {view: oView});
 			} else {
 				throw new Error("BlockBase :: no view defined in metadata.views for mode " + sMode);
@@ -716,18 +720,23 @@ sap.ui.define([
 
 		/**
 		 * Getter for the parent object page layout.
+		 * @param {sap.ui.core.Control} oParent (optional) - the parent ObjectPageSubSection
 		 * @returns {*} OP layout
 		 * @private
 		 */
-		BlockBase.prototype._getObjectPageLayout = function () {
-			return library.Utilities.getClosestOPL(this);
+		BlockBase.prototype._getObjectPageLayout = function (oParent) {
+			return library.Utilities.getClosestOPL(this, oParent);
 		};
 
 		/*
 		 * Setter for the visibility of the block.
 		 */
 		BlockBase.prototype.setVisible = function (bValue, bSuppressInvalidate) {
-			var oParentObjectPageLayout = this._getObjectPageLayout();
+			var oParentObjectPageLayout = this._getObjectPageLayout(this._oParentObjectPageSubSection);
+
+			if (bValue === this.getVisible()) {
+				return this;
+			}
 
 			this.setProperty("visible", bValue, bSuppressInvalidate);
 			oParentObjectPageLayout && oParentObjectPageLayout._requestAdjustLayoutAndUxRules();
@@ -757,11 +766,12 @@ sap.ui.define([
 			if (!this._bConnected) {
 				Log.debug("BlockBase :: Connecting block to the UI5 model tree");
 				this._bConnected = true;
-				if (this._bLazyLoading) {
+				if (this._getObjectPageLayout(this._oParentObjectPageSubSection)?._isLazyLoadingEffectivelyEnabled()) {
 					//if lazy loading is enabled, the view has not been created during the setMode
 					//so create it now
 					var sMode = this.getMode();
 					sMode && this._selectView(sMode);
+					this.updateBindings(true, null);
 				}
 
 				this.invalidate();
@@ -774,7 +784,19 @@ sap.ui.define([
 				return; /* only loaded views should be affected */
 			}
 
+			var bResume = bAllow && this.mSkipPropagation._views === true;
+
 			this.mSkipPropagation._views = !bAllow; /* skip if now allowed */
+
+			if (bResume) {
+				// upon resuming, we need to also catch up all the updates that were missed while the propagation was being skipped
+				// => the following will re-trigger the propagation of ALL binding info from the block to its child views
+				// [by re-attaching the views to the block]
+				var aViews = this.removeAllAggregation("_views", true) || [];
+				aViews.forEach(function (oView) {
+					this.addAggregation("_views", oView, true);
+				}, this);
+			}
 		};
 
 		/**
@@ -809,15 +831,32 @@ sap.ui.define([
 			}
 		};
 
+		BlockBase.prototype.exit = function () {
+			if (this._oViewDestroyObserver) {
+				this._oViewDestroyObserver.disconnect();
+			}
+		};
+
 		/**
 		 * Determines whether the <code>sap.uxap.BlockBase</code> should be loaded lazily.
 		 * There are 3 prerequisites - lazy loading sould be enabled, the block should not be connected
 		 * and the block is used whithin <code>sap.uxap.ObjectPageSubSection</code>
-		 * @returns {Boolean}
+		 * @returns {boolean}
 		 * @private
 		 */
 		BlockBase.prototype._shouldLazyLoad = function () {
-			return !!this._oParentObjectPageSubSection && this._bLazyLoading && !this._bConnected;
+			var oParentObjectPageLayout = this._getObjectPageLayout(this._oParentObjectPageSubSection),
+				vLazyLoad = oParentObjectPageLayout?._isLazyLoadingEffectivelyEnabled(),
+				bDelayLoading = vLazyLoad === true || vLazyLoad === undefined; // delay loading until the value of the "enableLazyLoading" property of ObjectPage is known
+			return !!this._oParentObjectPageSubSection && bDelayLoading && !this._bConnected;
+		};
+
+		/**
+		 * Called when a view is destroyed.
+		 * @param {object} oEvent
+		 */
+		BlockBase.prototype._onViewDestroy = function (oEvent) {
+			delete this._oPromisedViews[oEvent.object.getId()];
 		};
 
 		return BlockBase;

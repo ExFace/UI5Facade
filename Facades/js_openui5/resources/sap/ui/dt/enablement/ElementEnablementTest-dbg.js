@@ -1,24 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
 	"sap/ui/dt/enablement/Test",
 	"sap/ui/dt/DesignTime",
 	"sap/ui/dt/enablement/Util",
+	"sap/base/Log",
 	"sap/base/util/ObjectPath",
 	"sap/ui/dt/ElementOverlay",
 	"sap/ui/qunit/utils/waitForThemeApplied",
 	"sap/ui/thirdparty/sinon-4"
-],
-function(
-	jQuery,
+], function(
 	Test,
 	DesignTime,
 	EnablementUtil,
+	Log,
 	ObjectPath,
 	ElementOverlay,
 	waitForThemeApplied,
@@ -38,33 +37,32 @@ function(
 	 * @extends sap.ui.dt.test.Test
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.38
 	 * @alias sap.ui.dt.test.ElementEnablementTest
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var ElementEnablementTest = Test.extend("sap.ui.dt.test.ElementEnablementTest", /** @lends sap.ui.dt.test.ElementEnablementTest.prototype */ {
-		metadata : {
+		metadata: {
 			// ---- object ----
 
 			// ---- control specific ----
-			library : "sap.ui.dt",
-			properties : {
-				type : {
-					type : "string"
+			library: "sap.ui.dt",
+			properties: {
+				type: {
+					type: "string"
 				},
-				create : {
-					type : "any" //function
+				create: {
+					type: "any" // function
 				},
-				timeout : {
-					type : "int",
-					defaultValue : 0
+				timeout: {
+					type: "int",
+					defaultValue: 0
 				},
-				groupPostfix : {
-					type : "string"
+				groupPostfix: {
+					type: "string"
 				}
 			}
 		}
@@ -81,14 +79,13 @@ function(
 		this._aAggregatedTestResult = null;
 		this._aAggregatedInfoResult = null;
 		this._sAggregation = null;
-		this._$TestAreaDomRef = null;
+		this._oTestAreaDomRef = null;
 
 		if (iStubCounter === 0) {
 			oMutationObserverStub = sinon.stub(ElementOverlay.prototype, "_subscribeToMutationObserver");
 		}
 		iStubCounter++;
 	};
-
 
 	/**
 	 * Called when the ElementEnablementTest is destroyed
@@ -104,12 +101,11 @@ function(
 		}
 		window.clearTimeout(this._iTimeout);
 		this._oElement.destroy();
-		if (this._$TestAreaDomRef) {
-			this._$TestAreaDomRef.remove();
-			delete this._$TestAreaDomRef;
+		if (this._oTestAreaDomRef) {
+			this._oTestAreaDomRef.remove();
+			delete this._oTestAreaDomRef;
 		}
 	};
-
 
 	/**
 	 * @return {Promise} A promise providing the test results.
@@ -122,7 +118,7 @@ function(
 			var mElementTest = this.addGroup(
 				this._mResult.children,
 				this.getType(),
-				"Given that a DesignTime is created for " + this.getType()
+				`Given that a DesignTime is created for ${this.getType()}`
 			);
 
 			this._testAggregations(mElementTest.children);
@@ -133,44 +129,52 @@ function(
 		}.bind(this));
 	};
 
-
 	/**
 	 * @private
+	 * @returns {Promise<sap.ui.core.Element>}
 	 */
 	ElementEnablementTest.prototype._createElement = function() {
 		var sType = this.getType();
 		var fnCreate = this.getCreate();
-		var Element = ObjectPath.get(sType || "");
 
-		var oElement;
+		return new Promise(function(resolve) {
+			if (fnCreate) {
+				resolve(fnCreate());
+				return;
+			}
 
-		if (fnCreate) {
-			oElement = fnCreate();
-		} else {
-			oElement = new Element();
-		}
-
-		if (oElement.addStyleClass) {
-			oElement.addStyleClass("minSize");
-		}
-
-		return oElement;
+			// try to load the module whose name matches the type's name
+			sap.ui.require([
+				sType.replace(/\./g, "/")
+			], function(Element) {
+				resolve(new Element());
+			}, function() {
+				// fall back to global name
+				Log.warning(`[Deprecated] Control ${sType} could only be loaded via global name`);
+				var Element = ObjectPath.get(sType || "");
+				resolve(new Element());
+			});
+		}).then(function(oElement) {
+			if (oElement.addStyleClass) {
+				oElement.addStyleClass("minSize");
+			}
+			return oElement;
+		});
 	};
-
 
 	/**
 	 * @private
 	 */
 	ElementEnablementTest.prototype._getTestArea = function() {
-		if (!this._$TestAreaDomRef) {
-			this._$TestAreaDomRef = jQuery("<div id='" + this.getId() + "--testArea" + "'></div>").css({
-				height : "500px",
-				width: "1000px"// test area needs a height, so that some controls render correctly
-			}).appendTo("body");
+		if (!this._oTestAreaDomRef) {
+			this._oTestAreaDomRef = document.createElement("div");
+			this._oTestAreaDomRef.id = `${this.getId()}--testArea`;
+			this._oTestAreaDomRef.style.height = "500px";
+			this._oTestAreaDomRef.style.width = "1000px";
+			document.body.append(this._oTestAreaDomRef);
 		}
-		return this._$TestAreaDomRef;
+		return this._oTestAreaDomRef;
 	};
-
 
 	/**
 	 * @private
@@ -182,7 +186,9 @@ function(
 
 		return new Promise(function(fnResolve) {
 			waitForThemeApplied().then(function() {
-				this._oElement = this._createElement();
+				return this._createElement();
+			}.bind(this)).then(function(oElement) {
+				this._oElement = oElement;
 
 				try {
 					this._oElement.getRenderer();
@@ -192,15 +198,14 @@ function(
 
 				if (!this._bNoRenderer) {
 					try {
-						this._oElement.placeAt(this._getTestArea().get(0));
-						sap.ui.getCore().applyChanges();
+						this._oElement.placeAt(this._getTestArea());
 					} catch (oError) {
 						this._bErrorDuringRendering = true;
 					}
 
 					if (!this._bErrorDuringRendering) {
 						this._oDesignTime = new DesignTime({
-							rootElements : [this._oElement]
+							rootElements: [this._oElement]
 						});
 						this._oDesignTime.attachEventOnce("synced", function() {
 							if (this.getTimeout()) {
@@ -221,7 +226,6 @@ function(
 		}.bind(this));
 	};
 
-
 	/**
 	 * @private
 	 */
@@ -232,7 +236,6 @@ function(
 			"Each aggregation needs to be ignored or has a visible domRef maintained in the metadata",
 			this.getGroupPostfix()
 		);
-
 
 		if (this._bNoRenderer) {
 			this.addTest(mAggregationsTests.children,

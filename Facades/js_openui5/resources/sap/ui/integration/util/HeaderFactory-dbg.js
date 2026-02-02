@@ -1,161 +1,281 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"./BaseFactory",
+	"sap/base/Log",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/Lib",
+	"sap/ui/integration/cards/actions/CardActions",
+	"sap/ui/integration/cards/actions/NavigationAction",
 	"sap/ui/integration/library",
-	"sap/ui/base/Object",
+	"sap/m/library",
 	"sap/ui/integration/cards/NumericHeader",
 	"sap/ui/integration/cards/Header",
-	"sap/base/strings/formatMessage",
-	"sap/ui/integration/controls/ActionsToolbar",
-	"sap/ui/integration/util/BindingHelper",
-	"./CardActions"
+	"sap/ui/integration/controls/HeaderInfoSectionRow",
+	"sap/ui/integration/controls/HeaderInfoSectionColumn",
+	"sap/ui/integration/util/Utils",
+	"sap/m/Button",
+	"./ObjectStatusFactory",
+	"sap/m/AvatarImageFitType",
+	"sap/f/library"
 ], function (
+	BaseFactory,
+	Log,
+	isEmptyObject,
+	Library,
+	CardActions,
+	NavigationAction,
 	library,
-	BaseObject,
+	mLibrary,
 	NumericHeader,
 	Header,
-	formatMessage,
-	ActionsToolbar,
-	BindingHelper,
-	CardActions
+	HeaderInfoSectionRow,
+	HeaderInfoSectionColumn,
+	Utils,
+	Button,
+	ObjectStatusFactory,
+	AvatarImageFitType,
+	fLibrary
 ) {
 	"use strict";
 
-	var AreaType = library.AreaType;
+	var ActionArea = library.CardActionArea;
 
-	/**
-	 * Binds the statusText of a header to the provided format configuration.
-	 *
-	 * @private
-	 * @param {Object} mFormat The formatting configuration.
-	 * @param {sap.f.cards.IHeader} oHeader The header instance.
-	 */
-	function bindStatusText(mFormat, oHeader) {
+	var ActionType = library.CardActionType;
 
-		if (mFormat.parts && mFormat.translationKey && mFormat.parts.length === 2) {
-			var oBindingInfo = {
-				parts: [
-					mFormat.translationKey,
-					mFormat.parts[0].toString(),
-					mFormat.parts[1].toString()
-				],
-				formatter: function (sText, vParam1, vParam2) {
-					var sParam1 = vParam1 || mFormat.parts[0];
-					var sParam2 = vParam2 || mFormat.parts[1];
+	var CardDisplayVariant = library.CardDisplayVariant;
 
-					if (Array.isArray(vParam1)) {
-						sParam1 = vParam1.length;
-					}
-					if (Array.isArray(vParam2)) {
-						sParam2 = vParam2.length;
-					}
-
-					var iParam1 = parseFloat(sParam1) || 0;
-					var iParam2 = parseFloat(sParam2) || 0;
-
-					return formatMessage(sText, [iParam1, iParam2]);
-				}
-			};
-
-			oHeader.bindProperty("statusText", oBindingInfo);
-		}
-	}
+	var SemanticRole = fLibrary.cards.SemanticRole;
 
 	/**
 	 * Constructor for a new <code>HeaderFactory</code>.
 	 *
 	 * @class
 	 *
-	 * @extends sap.ui.base.Object
+	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.util.HeaderFactory
 	 */
-	var HeaderFactory = BaseObject.extend("sap.ui.integration.util.HeaderFactory", {
-		metadata: {
-			library: "sap.ui.integration"
-		},
-		constructor: function (oCard) {
-			BaseObject.call(this);
+	var HeaderFactory = BaseFactory.extend("sap.ui.integration.util.HeaderFactory");
 
-			this._oCard = oCard;
-		}
-	});
-
-	HeaderFactory.prototype.create = function (mConfiguration) {
-		var oHeader,
-			oCard = this._oCard,
-			oActions,
-			oActionsToolbar = this._createActionsToolbar();
-
-		if (!mConfiguration && !oActionsToolbar) {
+	HeaderFactory.prototype.create = function (mConfiguration, oToolbar) {
+		if (isEmptyObject(mConfiguration)) {
+			Log.warning("Card sap.card/header entry in the manifest is mandatory", "sap.ui.integration.widgets.Card");
 			return null;
 		}
 
-		if (!mConfiguration) {
-			mConfiguration = {};
-		}
+		var oCard = this._oCard,
+			sId = oCard.getId() + "-header",
+			bIsInDialog = oCard.getOpener(),
+			oBindingInfo,
+			oHeader;
 
-		oActions = new CardActions({
-			card: oCard,
-			areaType: AreaType.Header
-		});
+		mConfiguration = this.createBindingInfos(mConfiguration, oCard.getBindingNamespaces());
+
+		if (oCard.isCompactHeader()) {
+			mConfiguration.type = "";
+		}
 
 		switch (mConfiguration.type) {
 			case "Numeric":
-				oHeader = new NumericHeader(mConfiguration, oActionsToolbar, oCard._sAppId);
+				oHeader = NumericHeader.create(sId, mConfiguration, oToolbar, oCard._oIconFormatter);
 				break;
 			default:
-				oHeader = new Header(mConfiguration, oActionsToolbar, oCard._sAppId, oCard._oIconFormatter);
+				oHeader = Header.create(sId, mConfiguration, oToolbar, oCard._oIconFormatter);
 				break;
 		}
+
+		oHeader.setCard(oCard);
 
 		if (mConfiguration.status &&
 			mConfiguration.status.text &&
 			mConfiguration.status.text.format) {
-			if (mConfiguration.status.text.format.translationKey) {
-				oCard._loadDefaultTranslations();
-			}
 
-			bindStatusText(mConfiguration.status.text.format, oHeader);
+			oBindingInfo = Utils.getStatusTextBindingInfo(mConfiguration.status.text.format, oHeader);
+			if (oBindingInfo) {
+				oHeader.bindProperty("statusText", oBindingInfo);
+			}
 		}
 
 		oHeader.setServiceManager(oCard._oServiceManager);
 		oHeader.setDataProviderFactory(oCard._oDataProviderFactory);
-		oHeader._setDataConfiguration(BindingHelper.createBindingInfos(mConfiguration.data));
+		oHeader._setDataConfiguration(mConfiguration.data);
 
-		oActions.attach(mConfiguration, oHeader);
+		if (oCard.isTileDisplayVariant()) {
+			this._setTileDisplayDefaults(oHeader, mConfiguration);
+		} else if (oCard.isHeaderDisplayVariant()) {
+			this._setHeaderDisplayDefaults(oHeader, mConfiguration);
+		}
+
+		var oActions = new CardActions({
+			card: oCard
+		});
+
+		oActions.attach({
+			area: ActionArea.Header,
+			enabledPropertyName: "interactive",
+			actions: mConfiguration.actions,
+			control: oHeader
+		});
 		oHeader._oActions = oActions;
+
+		if (bIsInDialog) {
+			// if card is in dialog - header shouldn't be focusable
+			oHeader.setProperty("focusable", false);
+			//if card is in a dialog - aria-level of the header should be 1
+			oHeader.setProperty("headingLevel", "1");
+		}
+
+		if (oCard.getSemanticRole() === SemanticRole.ListItem && !oHeader.isInteractive()){
+			oHeader.setProperty("focusable", false);
+		}
+
+		oHeader.applySettings({
+			infoSection: HeaderFactory._createInfoSection(mConfiguration)
+		});
 
 		return oHeader;
 	};
 
-	HeaderFactory.prototype._createActionsToolbar = function () {
-		var oCard = this._oCard,
-			oHost = oCard.getHostInstance(),
-			oExtension = oCard._oExtension,
-			oActionsToolbar,
-			bHasActions;
+	HeaderFactory.prototype._setTileDisplayDefaults = function (oHeader, mConfiguration) {
+		oHeader.setProperty("useTileLayout", true);
+		oHeader.setProperty("useTooltips", true);
 
-		if (!oHost && !oExtension) {
-			return null;
+		const oCard = this._oCard;
+		const bIsFlatTile = [CardDisplayVariant.TileFlat, CardDisplayVariant.TileFlatWide].indexOf(oCard.getDisplayVariant()) > -1;
+
+		if (!mConfiguration.titleMaxLines) {
+			oHeader.setTitleMaxLines(bIsFlatTile ? 1 : 2);
 		}
 
-		oActionsToolbar = new ActionsToolbar();
-		bHasActions = oActionsToolbar.initializeContent(oHost, oCard, oExtension);
-
-		if (bHasActions) {
-			return oActionsToolbar;
+		if (!mConfiguration.icon?.fitType) {
+			oHeader.setIconFitType(AvatarImageFitType.Contain);
 		}
 
-		return null;
+		if (bIsFlatTile) {
+			oHeader.setIconSize("XS");
+
+			if (oHeader.isA("sap.f.cards.NumericHeader")) {
+				oHeader.setNumberSize("S");
+			}
+
+			if (!mConfiguration.subtitleMaxLines) {
+				oHeader.setSubtitleMaxLines(1);
+			}
+		}
+
+		if (oHeader.isA("sap.f.cards.NumericHeader")) {
+			oHeader.getSideIndicators().forEach((oSideIndicator) => {
+				oSideIndicator.setProperty("useTooltips", true);
+			});
+		}
+
+		const vAction = mConfiguration.actions && mConfiguration.actions[0];
+		const vHref = vAction?.parameters?.url;
+		const vTarget = vAction?.parameters?.target;
+
+		if (vAction?.type === ActionType.Navigation && vHref) {
+			oHeader.applySettings({
+				href: vHref,
+				target: vTarget || NavigationAction.DEFAULT_TARGET,
+				interactive: true
+			});
+		}
+	};
+
+	HeaderFactory.prototype._setHeaderDisplayDefaults = function (oHeader, mConfiguration) {
+		const oCard = this._oCard;
+		oHeader.setProperty("useTooltips", true);
+
+		if (oCard.isCompactHeader()) {
+			oHeader.setProperty("useTooltips", true);
+			oHeader.setIconSize("XS");
+			oHeader.setTitleMaxLines(1);
+			oHeader.setSubtitleMaxLines(1);
+			oHeader.setStatusVisible(false);
+			return;
+		}
+
+		const bIsSmall = oCard.isSmallHeader();
+
+		if (!mConfiguration.titleMaxLines) {
+			oHeader.setTitleMaxLines(bIsSmall ? 1 : 2);
+		}
+
+		if (bIsSmall) {
+			if (oHeader.isA("sap.f.cards.NumericHeader")) {
+				oHeader.setIconSize("XS");
+				oHeader.setNumberSize("S");
+			}
+
+			if (!mConfiguration.subtitleMaxLines) {
+				oHeader.setSubtitleMaxLines(1);
+			}
+		}
+
+		if (oHeader.isA("sap.f.cards.NumericHeader")) {
+			oHeader.getSideIndicators().forEach((oSideIndicator) => {
+				oSideIndicator.setProperty("useTooltips", true);
+			});
+		}
+	};
+
+	HeaderFactory._createInfoSection = function (mConfiguration) {
+		const oRows = [];
+		const oInfoSection = mConfiguration.infoSection;
+
+		(oInfoSection?.rows || []).forEach((oRow) => {
+			oRows.push(HeaderFactory._createRow(oRow));
+		});
+
+		return oRows;
+	};
+
+
+
+	HeaderFactory._createRow = function (oRow) {
+		const aItems = [];
+		const aColumns = [];
+
+		(oRow.items || []).forEach((oItem) => {
+			aItems.push(ObjectStatusFactory.createStatusItem(oItem));
+		});
+
+		(oRow.columns || []).forEach((oColumn) => {
+			aColumns.push(HeaderFactory._createColumn(oColumn));
+		});
+
+		return new HeaderInfoSectionRow({
+			justifyContent: oRow.justifyContent,
+			columns: aColumns,
+			items: aItems
+		});
+	};
+
+	HeaderFactory._createColumn = function (oColumn) {
+		const aItems = [];
+		const aRows = [];
+
+		(oColumn.items || []).forEach((oItem) => {
+			aItems.push(ObjectStatusFactory.createStatusItem(oItem));
+		});
+
+		(oColumn.rows || []).forEach((oRow) => {
+			aRows.push(HeaderFactory._createRow(oRow));
+		});
+
+		return new HeaderInfoSectionColumn({
+			rows: aRows,
+			items: aItems
+		});
 	};
 
 	return HeaderFactory;

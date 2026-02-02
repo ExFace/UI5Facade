@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/util/merge"],function(m){"use strict";var s={};function _(r,t){var f=r.reduce(function(f,R){if(R[t]){return f.concat(R[t]);}return f;},[]);var c=[];return f.filter(function(C){var F=C.fileName;var d=c.indexOf(F)!==-1;if(d){return false;}c.push(F);return true;});}function a(r){return r.reduce(function(u,R){return m({},u,R.ui2personalization);},{});}function b(r){return r.reduce(function(c,R){return R.cacheKey?c+=R.cacheKey:c;},"")||null;}s.merge=function(r){return{appDescriptorChanges:_(r,"appDescriptorChanges"),changes:_(r,"changes"),ui2personalization:a(r),variants:_(r,"variants"),variantChanges:_(r,"variantChanges"),variantDependentControlChanges:_(r,"variantDependentControlChanges"),variantManagementChanges:_(r,"variantManagementChanges"),cacheKey:b(r)};};return s;});
+sap.ui.define(["sap/base/util/merge","sap/base/util/ObjectPath"],function(n,a){"use strict";var e={};function t(n,e){var t=n.reduce(function(n,t){if(a.get(e,t)){return n.concat(a.get(e,t))}return n},[]);var r=[];return t.filter(function(n){var a=n.fileName;var e=r.indexOf(a)!==-1;if(e){return false}r.push(a);return true})}function r(a){return a.reduce(function(a,e){return n({},a,e.ui2personalization)},{})}function i(n){return n.reduce(function(n,a){return a.cacheKey?n+=a.cacheKey:n},"")||null}e.merge=function(n){var a={appDescriptorChanges:t(n,"appDescriptorChanges"),annotationChanges:t(n,"annotationChanges"),changes:t(n,"changes"),ui2personalization:r(n),comp:{variants:t(n,"comp.variants"),changes:t(n,"comp.changes"),defaultVariants:t(n,"comp.defaultVariants"),standardVariants:t(n,"comp.standardVariants")},variants:t(n,"variants"),variantChanges:t(n,"variantChanges"),variantDependentControlChanges:t(n,"variantDependentControlChanges"),variantManagementChanges:t(n,"variantManagementChanges"),cacheKey:i(n)};var e=t(n,"info");if(e.length>0){[a.info]=e}return a};return e});
+//# sourceMappingURL=StorageResultMerger.js.map

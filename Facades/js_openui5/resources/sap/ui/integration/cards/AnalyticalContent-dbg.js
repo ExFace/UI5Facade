@@ -1,21 +1,35 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./AnalyticalContentRenderer",
 	"./BaseContent",
+	"sap/f/cards/loading/AnalyticalPlaceholder",
+	"sap/m/IllustratedMessageType",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/base/Log",
-	"sap/ui/core/Core",
-	"sap/ui/thirdparty/jquery"
-], function (AnalyticalContentRenderer, BaseContent, library, BindingResolver, Log, Core, jQuery) {
+	"sap/base/util/merge"
+], function (
+	AnalyticalContentRenderer,
+	BaseContent,
+	AnalyticalPlaceholder,
+	IllustratedMessageType,
+	Library,
+	library,
+	BindingResolver,
+	Log,
+	merge
+) {
 	"use strict";
 
+	var ActionArea = library.CardActionArea;
+
 	// lazy dependencies, loaded on the first attempt to create AnalyticalContent
-	var VizFrame, FeedItem, FlattenedDataset;
+	var VizFrame, FeedItem, FlattenedDataset, Popover, MeasureDefinition, DimensionDefinition;
 
 	/**
 	 * Enumeration with supported legend positions.
@@ -29,6 +43,7 @@ sap.ui.define([
 
 	/**
 	 * Enumeration with supported legend alignments.
+	 * Needed for backward compatibility.
 	 */
 	var LegendAlignment = {
 		"TopLeft": "topLeft",
@@ -37,6 +52,7 @@ sap.ui.define([
 
 	/**
 	 * Enumeration with supported title alignments.
+	 * Needed for backward compatibility.
 	 */
 	var TitleAlignment = {
 		"Left": "left",
@@ -45,7 +61,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Enumeration with supported chart types.
+	 * Chart type to vizType.
+	 * Needed for backward compatibility.
 	 */
 	var ChartTypes = {
 		"Line": "line",
@@ -54,7 +71,13 @@ sap.ui.define([
 		"Donut": "donut"
 	};
 
-	var AreaType = library.AreaType;
+	/**
+	 * Enumeration for actionable parts of the analytical content
+	 */
+	var ActionableArea = {
+		"Chart": "Chart",
+		"Full": "Full"
+	};
 
 	/**
 	 * Constructor for a new <code>AnalyticalContent</code>.
@@ -69,7 +92,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -77,24 +100,61 @@ sap.ui.define([
 	 * @alias sap.ui.integration.cards.AnalyticalContent
 	 */
 	var AnalyticalContent = BaseContent.extend("sap.ui.integration.cards.AnalyticalContent", {
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: AnalyticalContentRenderer
 	});
+
+	AnalyticalContent.prototype.exit = function () {
+		BaseContent.prototype.exit.apply(this, arguments);
+
+		if (this._oPopover) {
+			this._oPopover.destroy();
+		}
+	};
+
+	AnalyticalContent.prototype.applyConfiguration = function () {
+		var oConfiguration = this.getParsedConfiguration();
+
+		if (!oConfiguration) {
+			return;
+		}
+
+		this._createChart();
+	};
 
 	/**
 	 * @override
 	 */
-	AnalyticalContent.prototype.loadDependencies = function (oConfig) {
+	AnalyticalContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		return new AnalyticalPlaceholder({
+			chartType: oConfiguration.chartType,
+			minHeight: this.getOverflowWithShowMore() ? 0 : AnalyticalContentRenderer.getMinHeight(oConfiguration)
+		});
+	};
+
+	/**
+	 * @override
+	 */
+	AnalyticalContent.prototype.loadDependencies = function (oCardManifest) {
 		return new Promise(function (resolve, reject) {
-			Core.loadLibrary("sap.viz", { async: true })
+			Library.load("sap.viz")
 				.then(function () {
 					sap.ui.require([
 						"sap/viz/ui5/controls/VizFrame",
 						"sap/viz/ui5/controls/common/feeds/FeedItem",
-						"sap/viz/ui5/data/FlattenedDataset"
-					], function (_VizFrame, _FeedItem, _FlattenedDataset) {
+						"sap/viz/ui5/controls/Popover",
+						"sap/viz/ui5/data/FlattenedDataset",
+						"sap/viz/ui5/data/MeasureDefinition",
+						"sap/viz/ui5/data/DimensionDefinition"
+					], function (_VizFrame, _FeedItem, _Popover, _FlattenedDataset, _MeasureDefinition, _DimensionDefinition) {
 						VizFrame = _VizFrame;
 						FeedItem = _FeedItem;
+						Popover = _Popover;
 						FlattenedDataset = _FlattenedDataset;
+						MeasureDefinition = _MeasureDefinition;
+						DimensionDefinition = _DimensionDefinition;
 						resolve();
 					}, function (sErr) {
 						reject(sErr);
@@ -107,85 +167,31 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates vizFrame readable vizProperties object.
-	 *
-	 * @private
-	 * @param {Object} oChartObject Chart information
-	 * @returns {Object} oVizPropertiesObject vizFrame vizProperties object
-	 */
-	AnalyticalContent.prototype._getVizPropertiesObject = function (oChartObject) {
-		var oTitle = oChartObject.title,
-			oLegend = oChartObject.legend,
-			oPlotArea = oChartObject.plotArea;
-
-		if (!oChartObject) {
-			return this;
-		}
-
-		var oVizPropertiesObject = {
-			"title": {
-				"style": {
-					"fontWeight": "normal"
-				},
-				"layout": {
-					"respectPlotPosition": false
-				}
-			},
-			"legend": {},
-			"legendGroup": {
-				"layout": {}
-			},
-			"plotArea": {
-				"window": {
-					"start": "firstDataPoint",
-					"end": "lastDataPoint"
-				}
-			},
-			"categoryAxis": {
-				"title": {}
-			},
-			"valueAxis": {
-				"title": {}
-			},
-			"interaction": {
-				"noninteractiveMode": true
-			}
-		};
-
-		if (oTitle) {
-			oVizPropertiesObject.title.text = oTitle.text;
-			oVizPropertiesObject.title.visible = oTitle.visible;
-			oVizPropertiesObject.title.alignment = TitleAlignment[oTitle.alignment];
-		}
-
-		if (oLegend) {
-			oVizPropertiesObject.legend.visible = oLegend.visible;
-			oVizPropertiesObject.legendGroup.layout.position = LegendPosition[oLegend.position];
-			oVizPropertiesObject.legendGroup.layout.alignment = LegendAlignment[oLegend.alignment];
-		}
-
-		if (oPlotArea) {
-			if (oPlotArea.dataLabel) {
-				oVizPropertiesObject.plotArea.dataLabel = oPlotArea.dataLabel;
-			}
-			if (oPlotArea.categoryAxisText) {
-				oVizPropertiesObject.categoryAxis.title.visible = oPlotArea.categoryAxisText.visible;
-			}
-			if (oPlotArea.valueAxisText) {
-				oVizPropertiesObject.valueAxis.title.visible = oPlotArea.valueAxisText.visible;
-			}
-		}
-
-		return oVizPropertiesObject;
-	};
-
-	/**
 	 * Creates the chart when data in the model is changed.
 	 *
 	 * @private
 	 */
 	AnalyticalContent.prototype.onDataChanged = function () {
-		this._createChart();
+		this._updateChart();
+		var oChart = this.getAggregation("_content");
+
+		if (oChart) {
+			var vizDS = oChart._getVizDataset(),
+				bHasData = vizDS
+					&& vizDS._FlatTableD
+					&& vizDS._FlatTableD._data
+					&& Array.isArray(vizDS._FlatTableD._data)
+					&& vizDS._FlatTableD._data.length;
+
+			if (bHasData) {
+				this.hideNoDataMessage();
+			} else {
+				this.showNoDataMessage({
+					illustrationType: IllustratedMessageType.NoEntries,
+					title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_LISTS")
+				});
+			}
+		}
 	};
 
 	/**
@@ -194,107 +200,278 @@ sap.ui.define([
 	 * @private
 	 */
 	AnalyticalContent.prototype._createChart = function () {
-		var oChartObject = this.getConfiguration();
+		var oConfiguration = this.getParsedConfiguration();
 
-		if (!oChartObject.chartType) {
-			Log.error("ChartType is a mandatory property");
+		if (!oConfiguration.chartType) {
+			Log.error("\"sap.card\".content.chartType is mandatory property.", null, "sap.ui.integration.widgets.Card");
 			return;
 		}
 
-		var oResolvedChartObject = BindingResolver.resolveValue(oChartObject, this.getModel(), "/");
+		var oResolvedConfiguration = BindingResolver.resolveValue(oConfiguration, this, "/");
+		var oChart = new VizFrame({
+			uiConfig: {
+				applicationSet: "fiori"
+			},
+			height: "100%",
+			width: "100%",
+			vizType: ChartTypes[oResolvedConfiguration.chartType] || oResolvedConfiguration.chartType
+		});
 
-		var aDimensionNames = [];
-		if (oChartObject.dimensions) {
-			var aDimensions = [];
-			for (var i = 0; i < oChartObject.dimensions.length; i++) {
-				var oDimension = oChartObject.dimensions[i];
-				var sName = oResolvedChartObject.dimensions[i].label;
-				aDimensionNames.push(sName);
-				var oDimensionMap = {
-					name: sName,
-					value: oDimension.value
-				};
-				aDimensions.push(oDimensionMap);
-			}
+		this.setAggregation("_content", oChart);
+		this._attachActions(oConfiguration);
 
+		if (oResolvedConfiguration.popover && oResolvedConfiguration.popover.active) {
+			this._attachPopover();
+		}
+	};
+
+	/**
+	 * @override
+	 */
+	AnalyticalContent.prototype._supportsOverflow = function () {
+		return false;
+	};
+
+	AnalyticalContent.prototype._updateChart = function () {
+		var oConfiguration = this.getParsedConfiguration();
+		var oChart = this.getAggregation("_content");
+		var oResolvedConfiguration = BindingResolver.resolveValue(oConfiguration, this, "/");
+
+		if (!oChart) {
+			return;
 		}
 
-		var aMeasureNames = [];
-		if (oChartObject.measures) {
-			var aMeasures = [];
-			for (var i = 0; i < oChartObject.measures.length; i++) {
-				var oMeasure = oChartObject.measures[i];
-				var sName = oResolvedChartObject.measures[i].label;
-				aMeasureNames.push(sName);
-				var oMeasureMap = {
-					name: sName,
+		oChart.destroyDataset().destroyFeeds();
+
+		oChart.applySettings({
+			vizProperties: this._getVizProperties(oResolvedConfiguration),
+			dataset: this._getDataset(oConfiguration, oResolvedConfiguration),
+			feeds: this._getFeeds(oResolvedConfiguration),
+			vizType: ChartTypes[oResolvedConfiguration.chartType] || oResolvedConfiguration.chartType
+		});
+	};
+
+	AnalyticalContent.prototype._attachActions = function (oConfiguration) {
+		var oActionConfig = {
+			area: ActionArea.Content,
+			actions: oConfiguration.actions,
+			control: this
+		};
+
+		if (oConfiguration.actionableArea === ActionableArea.Chart) {
+			oActionConfig.eventName = "selectData";
+			oActionConfig.actionControl = this.getAggregation("_content");
+
+			this._oActions.setBindingPathResolver((oEvent) => {
+				const sResolvedPath = this._getContextPath(oEvent);
+				return sResolvedPath;
+			});
+
+		} else {
+			oActionConfig.eventName = "press";
+		}
+
+		this._oActions.attach(oActionConfig);
+	};
+
+	AnalyticalContent.prototype._attachPopover = function () {
+		if (this._oPopover) {
+			this._oPopover.destroy();
+		}
+
+		this._oPopover = new Popover();
+		this._oPopover.connect(this.getAggregation("_content").getVizUid());
+		const oConfig = this.getParsedConfiguration();
+		const aActionsStrip = oConfig.popover.actionsStrip;
+
+		if (aActionsStrip && aActionsStrip[0]?.actions?.length) {
+			const oActionsStripItem = aActionsStrip[0];
+			const oChart = this.getAggregation("_content");
+
+			oChart.attachSelectData((oEvent) => {
+				const oResolvedPath = this._getContextPath(oEvent);
+				const oResolvedActionItem = BindingResolver.resolveValue(oActionsStripItem, this, oResolvedPath);
+
+				this._oPopover.setActionItems([{
+					type: 'action',
+					text: oResolvedActionItem.text,
+					press: () => {
+						this._oActions.fireAction(oChart, oResolvedActionItem.actions[0].type, oResolvedActionItem.actions[0].parameters);
+					}
+				}]);
+			});
+		}
+	};
+
+	/**
+	 * Creates vizFrame readable vizProperties object.
+	 *
+	 * @private
+	 * @param {object} oResolvedConfiguration Manifest configuration with resolved bindings
+	 * @returns {object} vizProperties object
+	 */
+	 AnalyticalContent.prototype._getVizProperties = function (oResolvedConfiguration) {
+		if (!oResolvedConfiguration) {
+			return null;
+		}
+
+		var oTitle = oResolvedConfiguration.title,
+			oLegend = oResolvedConfiguration.legend,
+			oPlotArea = oResolvedConfiguration.plotArea;
+
+		var oVizProperties = {
+			title: {
+				style: {
+					fontWeight: "normal"
+				},
+				layout: {
+					respectPlotPosition: false
+				}
+			},
+			legend: {},
+			legendGroup: {
+				layout: {}
+			},
+			plotArea: {
+				window: {
+					start: "firstDataPoint",
+					end: "lastDataPoint"
+				}
+			},
+			categoryAxis: {
+				title: {}
+			},
+			valueAxis: {
+				title: {}
+			},
+			interaction: {
+				noninteractiveMode: true
+			}
+		};
+
+		if (oResolvedConfiguration.actions || oResolvedConfiguration.popover) {
+			var bChartsInteractive = oResolvedConfiguration.actionableArea === ActionableArea.Chart
+									|| oResolvedConfiguration.popover && oResolvedConfiguration.popover.active;
+			oVizProperties.interaction.noninteractiveMode = !bChartsInteractive;
+		}
+
+		if (oTitle) {
+			oVizProperties.title.text = oTitle.text;
+			oVizProperties.title.visible = oTitle.visible;
+			oVizProperties.title.alignment = TitleAlignment[oTitle.alignment];
+			Log.warning("\"sap.card\".content.title is deprecated. Use \"sap.card\".content.chartProperties instead", null, "sap.ui.integration.widgets.Card");
+		}
+
+		if (oLegend) {
+			oVizProperties.legend.visible = oLegend.visible;
+			oVizProperties.legendGroup.layout.position = LegendPosition[oLegend.position];
+			oVizProperties.legendGroup.layout.alignment = LegendAlignment[oLegend.alignment];
+			Log.warning("\"sap.card\".content.legend is deprecated. Use \"sap.card\".content.chartProperties instead", null, "sap.ui.integration.widgets.Card");
+		}
+
+		if (oPlotArea) {
+			if (oPlotArea.dataLabel) {
+				oVizProperties.plotArea.dataLabel = oPlotArea.dataLabel;
+			}
+			if (oPlotArea.categoryAxisText) {
+				oVizProperties.categoryAxis.title.visible = oPlotArea.categoryAxisText.visible;
+			}
+			if (oPlotArea.valueAxisText) {
+				oVizProperties.valueAxis.title.visible = oPlotArea.valueAxisText.visible;
+			}
+			Log.warning("\"sap.card\".content.plotArea is deprecated. Use \"sap.card\".content.chartProperties instead", null, "sap.ui.integration.widgets.Card");
+		}
+
+		merge(oVizProperties, oResolvedConfiguration.chartProperties);
+
+		return oVizProperties;
+	};
+
+	/**
+	 * @param {object} oConfiguration Parsed manifest configuration
+	 * @param {object} oResolvedConfiguration Manifest configuration with resolved bindings
+	 * @returns {sap.viz.ui5.data.FlattenedDataset} The data set for the VizFrame
+	 */
+	AnalyticalContent.prototype._getDataset = function (oConfiguration, oResolvedConfiguration) {
+		var aMeasures, aDimensions;
+
+		if (oConfiguration.dimensions) {
+			aDimensions = oConfiguration.dimensions.map(function (oDimension, i) {
+				return new DimensionDefinition({
+					name: oResolvedConfiguration.dimensions[i].name || oResolvedConfiguration.dimensions[i].label, // .label for backwards compatibility
+					value: oDimension.value,
+					displayValue: oDimension.displayValue,
+					dataType: oDimension.dataType
+				});
+			});
+		}
+
+		if (oConfiguration.measures) {
+			aMeasures = oConfiguration.measures.map(function (oMeasure, i) {
+				return new MeasureDefinition({
+					name: oResolvedConfiguration.measures[i].name || oResolvedConfiguration.measures[i].label, // .label for backwards compatibility,
 					value: oMeasure.value
-				};
-				aMeasures.push(oMeasureMap);
-			}
-
+				});
+			});
 		}
 
-		var oFlattendedDataset = new FlattenedDataset({
+		return new FlattenedDataset({
 			measures: aMeasures,
 			dimensions: aDimensions,
 			data: {
 				path: this.getBindingContext().getPath()
 			}
 		});
+	};
 
-		var oChart = new VizFrame({
-			uiConfig: {
-				applicationSet: 'fiori'
-			},
-			height: "100%",
-			width: "100%",
-			vizType: ChartTypes[oChartObject.chartType],
-			dataset: oFlattendedDataset,
-			legendVisible: oChartObject.legend,
-			feeds: [
-				new FeedItem({
-					uid: oChartObject.measureAxis,
-					type: 'Measure',
-					values: aMeasureNames
-				}),
-				new FeedItem({
-					uid: oChartObject.dimensionAxis,
-					type: 'Dimension',
-					values: aDimensionNames
-				})
-			]
+	/**
+	 * @param {object} oResolvedConfiguration Manifest configuration with resolved bindings
+	 * @returns {sap.viz.ui5.controls.common.feeds.FeedItem[]} Feeds for the VizFrame
+	 */
+	AnalyticalContent.prototype._getFeeds = function (oResolvedConfiguration) {
+		var aFeeds = oResolvedConfiguration.feeds;
+
+		// Backwards compatibility
+		if (oResolvedConfiguration.measureAxis || oResolvedConfiguration.dimensionAxis) {
+			Log.warning("\"sap.card\".content.measureAxis and \"sap.card\".content.dimensionAxis are deprecated. Use \"sap.card\".content.feeds instead", null, "sap.ui.integration.widgets.Card");
+
+			aFeeds = [
+				{
+					uid: oResolvedConfiguration.measureAxis,
+					type: "Measure",
+					values: oResolvedConfiguration.measures.map(function (oMeasure) {
+						return oMeasure.label;
+					})
+				},
+				{
+					uid: oResolvedConfiguration.dimensionAxis,
+					type: "Dimension",
+					values: oResolvedConfiguration.dimensions.map(function (oDimension) {
+						return oDimension.label;
+					})
+				}
+			];
+		}
+
+		return aFeeds.map(function (oFeed) {
+			return new FeedItem(oFeed);
 		});
-
-		var oVizProperties = this._getVizPropertiesObject(oResolvedChartObject);
-		oChart.setVizProperties(oVizProperties);
-
-		this._oActions.setAreaType(AreaType.Content);
-		this._oActions.attach(oChartObject, this);
-
-		this.setAggregation("_content", oChart);
 	};
 
-	AnalyticalContent.prototype.onBeforeRendering = function () {
-		if (this._handleHostConfiguration) {
-			//implementation is added with sap.ui.integration.host.HostConfiguration
-			this._handleHostConfiguration();
-		}
+	/**
+	 * Get the resolved chart item path.
+	 * @private
+	 * @param {jQuery.Event} oEvent
+	 */
+
+	AnalyticalContent.prototype._getContextPath = function (oEvent) {
+		const iIndex = oEvent.getParameter("data")[0].data._context_row_number;
+		const sPath = this.getBindingContext().getPath();
+		return sPath !== "/" ? sPath + "/" + iIndex : sPath + iIndex;
 	};
 
-	//add host configuration handler for analytical content
-	AnalyticalContent.prototype._handleHostConfiguration = function () {
-		var oParent = this.getParent(),
-			oContent = this.getAggregation("_content");
-		if (oParent && oParent.getHostConfigurationId && oContent) {
-			var oHostConfiguration = Core.byId(oParent.getHostConfigurationId());
-			if (oHostConfiguration) {
-				var oSettings = oHostConfiguration.generateJSONSettings("vizProperties"),
-					oVizProperties = oContent.getVizProperties();
-				oVizProperties = jQuery.extend(true, oVizProperties, oSettings);
-				oContent.setVizProperties(oVizProperties);
-			}
-		}
+	AnalyticalContent.prototype.getFocusDomRef = function () {
+		return this.getAggregation("_content").getDomRef().querySelector(".v-info") || this.getDomRef();
 	};
 
 	return AnalyticalContent;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,8 +19,12 @@ sap.ui.define([
 
 	// Define managed object "S4HanaCloudBackend"
 	var S4HanaCloudBackend = ManagedObject.extend("sap.ui.rta.appVariant.S4HanaCloudBackend", {
-		constructor: function() {
-			ManagedObject.apply(this, arguments);
+		metadata: {
+			library: "sap.ui.rta"
+		},
+		// eslint-disable-next-line object-shorthand
+		constructor: function(...aArgs) {
+			ManagedObject.apply(this, aArgs);
 		}
 	});
 
@@ -35,7 +39,12 @@ sap.ui.define([
 	 *                    or rejects if the required ODATA service /sap/opu/odata/sap/APS_IAM_APP_SRV is not there
 	 * @async
 	 */
-	S4HanaCloudBackend.prototype.notifyFlpCustomizingIsReady = function(sIamAppId, bAppVarCreation, iCheckIntervallMsec, iMaxNumberOfChecks) {
+	S4HanaCloudBackend.prototype.notifyFlpCustomizingIsReady = function(
+		sIamAppId,
+		bAppVarCreation,
+		iCheckIntervallMsec,
+		iMaxNumberOfChecks
+	) {
 		var that = this;
 		return new Promise(function(resolve, reject) {
 			// Check inputs and determine defaults
@@ -46,25 +55,25 @@ sap.ui.define([
 			function checkForNotification() {
 				// No further checks if max number of checks done
 				if (iRemainingChecks === 0) {
-					resolve({ iamAppId : sIamAppId, customizingIsReady : false });
+					resolve({ iamAppId: sIamAppId, customizingIsReady: false });
 					return;
 				} else if (iRemainingChecks > 0) {
 					iRemainingChecks = iRemainingChecks - 1;
 				}
 
 				this.checkCatalogCustomizingIsReady(sIamAppId, bAppVarCreation).then(function(bIsReady) {
-				// ... Resolve promise if true
+					// ... Resolve promise if true
 					if (bIsReady) {
-						resolve({ iamAppId : sIamAppId, customizingIsReady : true });
-				// ... Continue checking if false
+						resolve({ iamAppId: sIamAppId, customizingIsReady: true });
+					// ... Continue checking if false
 					} else {
 						setTimeout(checkForNotification.bind(that), iMsec);
 					}
 				// ... Reject if publishing return an error or is locked
 				}).catch(function(oError) {
 					var sText = bAppVarCreation ? "creation" : "deletion";
-					Log.error("Catalog publishing failed for app variant " + sText + ". AppVarStatus is " + oError.message);
-					reject({ iamAppId : sIamAppId, error: oError.message});
+					Log.error(`Catalog publishing failed for app variant ${sText}. AppVarStatus is ${oError.message}`);
+					reject({ iamAppId: sIamAppId, error: oError.message});
 				});
 			}
 
@@ -76,7 +85,7 @@ sap.ui.define([
 	S4HanaCloudBackend._isAppReady = function(oAppStatusResponse, bAppVarCreation) {
 		var aCatalogList = oAppStatusResponse.data.results;
 		if (!Array.isArray(aCatalogList)) {
-			throw new Error(oAppStatusResponse.requestUri + " returned unexpected result: " + oAppStatusResponse);
+			throw new Error(`${oAppStatusResponse.requestUri} returned unexpected result: ${oAppStatusResponse}`);
 		}
 
 		var bIsUnpublished = aCatalogList.every(function(oCatalog) {
@@ -108,18 +117,16 @@ sap.ui.define([
 	};
 
 	S4HanaCloudBackend._getODataModel = function() {
-		if (!oModelPromise) {
-			oModelPromise = new Promise(function(resolve, reject) {
-				var oModel = new ODataModel("/sap/opu/odata/sap/APS_IAM_APP_SRV");
-				oModel.attachMetadataFailed(function(oError) {
-					reject(oError);
-					oModelPromise = null;
-				});
-				oModel.metadataLoaded().then(function() {
-					resolve(oModel);
-				});
+		oModelPromise ||= new Promise(function(resolve, reject) {
+			var oModel = new ODataModel("/sap/opu/odata/sap/APS_IAM_APP_SRV");
+			oModel.attachMetadataFailed(function(oError) {
+				reject(oError);
+				oModelPromise = null;
 			});
-		}
+			oModel.metadataLoaded().then(function() {
+				resolve(oModel);
+			});
+		});
 		return oModelPromise;
 	};
 
@@ -132,28 +139,27 @@ sap.ui.define([
 				reject(oError);
 			};
 
-			return oModel.read("/aps_iam_app_ddl('" + sIamAppId + "')/to_BusinessCatalogAssignment", {success: fnSuccess, error: fnFailure});
+			oModel.read(`/aps_iam_app_ddl('${sIamAppId}')/to_BusinessCatalogAssignment`, {success: fnSuccess, error: fnFailure});
 		});
 	};
-
 
 	/**
 	 * Polls the OData model to check catalog publishing status of the given IAM app ID.
 	 *
-	 * @param  {string} sIamAppId Identity Access Management ID of SAP Fiori app
+	 * @param {string} sIamAppId - Identity Access Management ID of SAP Fiori app
+	 * @param {boolean} bAppVarCreation - Indicates if it's a creation scenario
 	 * @return {Promise<boolean>} Promise delivering a boolean value
 	 * @async
 	 */
 	S4HanaCloudBackend.prototype.checkCatalogCustomizingIsReady = function(sIamAppId, bAppVarCreation) {
 		return S4HanaCloudBackend._getODataModel()
-			.then(function(oModel) {
-				return S4HanaCloudBackend._readODataModel(oModel, sIamAppId);
-			})
-			.then(function(oAppStatusResponse) {
-				return S4HanaCloudBackend._isAppReady(oAppStatusResponse, bAppVarCreation);
-			});
+		.then(function(oModel) {
+			return S4HanaCloudBackend._readODataModel(oModel, sIamAppId);
+		})
+		.then(function(oAppStatusResponse) {
+			return S4HanaCloudBackend._isAppReady(oAppStatusResponse, bAppVarCreation);
+		});
 	};
 
 	return S4HanaCloudBackend;
 });
-

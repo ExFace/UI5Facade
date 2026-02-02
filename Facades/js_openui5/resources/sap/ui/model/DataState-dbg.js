@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/util/each",
@@ -14,81 +14,90 @@ sap.ui.define([
 
 	/**
 	 * @class
-	 * Provides and updates the status data of a binding.
-	 * Depending on the model's state and control's state changes, the data state is used to propagate changes to a control.
-	 * The control can react to these changes by implementing the <code>refreshDataState</code> method for the control.
-	 * Here, the data state object is passed as second parameter.
-	 *
-	 * Using the {@link #getChanges} method, the control can determine the changed properties and their old and new values.
+	 * Holds the status data of a binding.
+	 * To react to changes of this status data, a control must implement the
+	 * <code>refreshDataState</code> method, which is called with the name of the bound control
+	 * property and the data state object as parameters.
+	 * With the {@link #getChanges} method, the control can determine the changed properties
+	 * and their old and new values.
 	 * <pre>
-	 *     //sample implementation to handle message changes
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        var aMessages = oDataState.getChanges().messages;
-	 *        if (aMessages) {
-	 *            for (var i = 0; i &lt; aMessages.length; i++) {
-	 *                console.log(aMessages.message);
-	 *            }
+	 *     // sample implementation to handle message changes
+	 *     myControl.prototype.refreshDataState = function (sPropertyName, oDataState) {
+	 *        oDataState.getMessages().forEach(function (oMessage) {
+	 *            console.log(oMessage.getMessage());
 	 *        }
 	 *     }
 	 *
-	 *     //sample implementation to handle laundering state
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        var bLaundering = oDataState.getChanges().laundering || false;
-	 *        this.setBusy(bLaundering);
+	 *     // sample implementation to handle laundering state
+	 *     myControl.prototype.refreshDataState = function (sPropertyName, oDataState) {
+	 *        this.setBusy(oDataState.isLaundering());
 	 *     }
 	 *
-	 *     //sample implementation to handle dirty state
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        if (oDataState.isDirty()) console.log("Control " + this.getId() + " is now dirty");
+	 *     // sample implementation to handle dirty state
+	 *     myControl.prototype.refreshDataState = function (sPropertyName, oDataState) {
+	 *        if (oDataState.isDirty()) {
+	 *           console.log("Property " + sPropertyName + " of control " + this.getId()
+	 *               + " is dirty");
+	 *        }
 	 *     }
 	 * </pre>
 	 *
-	 * Using the {@link #getProperty} method, the control can read the properties of the data state. The properties are
+	 * With the {@link #getProperty} method, the control can read a property of the data state.
+	 * The properties are
 	 * <ul>
-	 *     <li><code>value</code> The value formatted by the formatter of the binding
-	 *     <li><code>originalValue</code> The original value of the model formatted by the formatter of the binding
-	 *     <li><code>invalidValue</code> The control value that was tried to be applied to the model but was rejected by a type validation
-	 *     <li><code>modelMessages</code> The messages that were applied to the binding by the <code>sap.ui.model.MessageModel</code>
-	 *     <li><code>controlMessages</code> The messages that were applied due to type validation errors
+	 *     <li><code>controlMessages</code> The {@link sap.ui.core.message.Message messages}
+	 *         created from type validation or parse errors on user input for a property binding
+	 *     <li><code>dirty</code> Whether the value was not yet confirmed by the server; use
+	 *         {@link #isDirty} to read this property
+	 *     <li><code>invalidValue</code> The control value that was rejected by type parsing or
+	 *         validation on user input for a property binding
+	 *     <li><code>laundering</code> Whether the value has been sent to the server but is not yet
+	 *         confirmed
 	 *     <li><code>messages</code> All messages of the data state
-	 *      <li><code>dirty</code> true if the value was not yet confirmed by the server
+	 *     <li><code>modelMessages</code> The {@link sap.ui.core.message.Message messages}
+	 *         available for the binding in its {@link sap.ui.model.Binding#getModel model}
+	 *     <li><code>originalValue</code> The <em>original</em> value of a property binding in
+	 *         {@link sap.ui.model.PropertyBinding#getExternalValue external representation}
+	 *     <li><code>value</code> The value of a property binding in
+	 *         {@link sap.ui.model.PropertyBinding#getExternalValue external representation}
 	 * </ul>
 	 *
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.DataState
 	 */
 	var DataState = BaseObject.extend("sap.ui.model.DataState", /** @lends sap.ui.model.DataState.prototype */ {
 		metadata : {},
-		constructor : function() {
-			this.mProperties = {
-				modelMessages : [],
-				controlMessages: [],
-				laundering: false,
-				originalValue : undefined,
-				originalInternalValue: undefined,
-				value : undefined,
-				invalidValue: undefined,
-				internalValue: undefined,
-				dirty: false,
-				messages: []
-
-			};
-			//the resolved path of the binding to check for binding context changes
-			this.mChangedProperties = Object.assign({},this.mProperties);
+		constructor : function () {
+			this.mProperties = DataState.getInitialProperties();
+			this.mChangedProperties = DataState.getInitialProperties();
+			// parent data state is set by the CompositeDataState if this data state is part of a composite data state
+			// this.oParentDataState = undefined;
 		}
 	});
+
+	/**
+	 * Sets the parent data state. If a parent data state is set, it is used to check whether the associated control is
+	 * dirty.
+	 * @param {sap.ui.model.DataState} oParentDataState The parent data state
+	 *
+	 * @private
+	 * @see sap.ui.model.DataState#isControlDirty
+	 */
+	DataState.prototype.setParent = function(oParentDataState) {
+		this.oParentDataState = oParentDataState;
+	};
 
 	/**
 	 * Updates the given property with the given value.
 	 *
 	 * @param {string} sProperty - The property name
 	 * @param {any} vValue - The new value
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @private
 	 */
 	DataState.prototype.setProperty = function(sProperty, vValue) {
@@ -97,8 +106,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * @deprecated Likely unused method
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @deprecated As of version 1.74, the concept has been discarded.
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @private
 	 */
 	DataState.prototype.calculateChanges = function() {
@@ -128,10 +137,29 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the array of this data state's messages combining the model and control messages.
-	 * The array is sorted descendingly by message severity.
+	 * Returns an array of all model and control messages, regardless of whether they are old or
+	 * new.
 	 *
-	 * @returns {sap.ui.core.Message[]} The sorted array of all messages
+	 * @returns {sap.ui.core.message.Message[]} The array of all messages
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	 DataState.prototype.getAllMessages = function () {
+		var oResultSet = new Set();
+
+		this.getMessages().forEach(oResultSet.add.bind(oResultSet));
+		this._getOldMessages().forEach(oResultSet.add.bind(oResultSet));
+
+		return Array.from(oResultSet);
+	};
+
+	/**
+	 * Returns the array of this data state's current messages combining the model and control
+	 * messages. The array is sorted descendingly by message severity.
+	 *
+	 * @returns {sap.ui.core.message.Message[]} The sorted array of all messages
+	 *
 	 * @public
 	 */
 	DataState.prototype.getMessages = function () {
@@ -142,7 +170,7 @@ sap.ui.define([
 	 * Returns the array of this data state's old messages combining the model and control messages.
 	 * The array is sorted descendingly by message severity.
 	 *
-	 * @returns {sap.ui.core.Message[]} The sorted array of all old messages
+	 * @returns {sap.ui.core.message.Message[]} The sorted array of all old messages
 	 * @private
 	 */
 	DataState.prototype._getOldMessages = function() {
@@ -155,8 +183,8 @@ sap.ui.define([
 	 *
 	 * @param {object} mProperties
 	 *   Object with properties <code>controlMessages</code> and <code>modelMessages</code> which
-	 *   are both arrays of <code>sap.ui.core.Message</code> objects
-	 * @returns {sap.ui.core.Message[]} The sorted array of messages
+	 *   are both arrays of <code>sap.ui.core.message.Message</code> objects
+	 * @returns {sap.ui.core.message.Message[]} The sorted array of messages
 	 * @private
 	 */
 	DataState.getMessagesForProperties = function (mProperties) {
@@ -164,8 +192,8 @@ sap.ui.define([
 			aControlMessages = mProperties.controlMessages,
 			aModelMessages = mProperties.modelMessages;
 
-		if (aModelMessages || aControlMessages) {
-			aMessages = aMessages.concat(aModelMessages || [], aControlMessages || []);
+		if (aModelMessages.length || aControlMessages.length) {
+			aMessages = aMessages.concat(aControlMessages || [], aModelMessages || []);
 			aMessages.sort(Message.compare);
 		}
 		return aMessages;
@@ -174,8 +202,8 @@ sap.ui.define([
 	/**
 	 * Sets an array of model state messages.
 	 *
-	 * @param {sap.ui.core.Message[]} aMessages - The model messages for this data state.
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @param {sap.ui.core.message.Message[]} [aMessages=[]] The model messages for this data state.
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DataState.prototype.setModelMessages = function(aMessages) {
@@ -184,9 +212,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the array of state messages of the model or undefined.
+	 * Returns the array of this data state's current model messages.
 	 *
-	 * @returns {sap.ui.core.Message[]} The array of messages of the model
+	 * @returns {sap.ui.core.message.Message[]} The array of messages of the model
+	 *
 	 * @public
 	 */
 	DataState.prototype.getModelMessages = function() {
@@ -196,8 +225,8 @@ sap.ui.define([
 	/**
 	 * Sets an array of control state messages.
 	 *
-	 * @param {sap.ui.core.Message[]} aMessages - The control messages
-	 * @return {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @param {sap.ui.core.message.Message[]} aMessages - The control messages
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	DataState.prototype.setControlMessages = function(aMessages) {
@@ -206,9 +235,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the array of state messages of the control.
+	 * Returns the array of this data state's current control messages.
 	 *
-	 * @return {sap.ui.core.Message[]} The array of control messages
+	 * @returns {sap.ui.core.message.Message[]} The array of control messages
+	 *
 	 * @public
 	 */
 	DataState.prototype.getControlMessages = function() {
@@ -232,13 +262,27 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns whether the data state is dirty in the UI control.
-	 * A data state is dirty in the UI control if the entered value did not yet pass the type validation.
+	 * Returns whether the data state is dirty in the UI control. A data state is dirty in the UI control if an entered
+	 * value did not pass the type validation. If the data state is used by a composite data state, it is also checked
+	 * whether the composite data state is dirty in the UI control.
 	 *
-	 * @returns {boolean} Whether the data state is dirty
+	 * @returns {boolean} Whether the data state is dirty in the UI control
 	 * @public
 	 */
-	DataState.prototype.isControlDirty = function() {
+	DataState.prototype.isControlDirty = function () {
+		return this.oParentDataState
+			? this.oParentDataState.isControlDirty()
+			: this.isControlDirtyInternal();
+	};
+
+	/**
+	 * Returns whether the data state is dirty in the UI control. If the data state is used by a composite data state,
+	 * the composite data state is not considered.
+	 *
+	 * @returns {boolean} Whether this data state is dirty in the UI control
+	 * @private
+	 */
+	DataState.prototype.isControlDirtyInternal = function () {
 		return this.mChangedProperties["invalidValue"] !== undefined;
 	};
 
@@ -258,7 +302,7 @@ sap.ui.define([
 	 * Sets the laundering state of the data state.
 	 *
 	 * @param {boolean} bLaundering Whether the state is laundering
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	DataState.prototype.setLaundering = function(bLaundering) {
@@ -280,7 +324,7 @@ sap.ui.define([
 	 * Sets the formatted value of the data state,
 	 *
 	 * @param {any} vValue the value
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	DataState.prototype.setValue = function(vValue) {
@@ -294,7 +338,7 @@ sap.ui.define([
 	 * value was not rejected it returns <code>undefined</code>. In this case the current
 	 * model value can be accessed using the {@link #getValue} method.
 	 *
-	 * @returns {any} The value that was rejected or <code>undefined</code>
+	 * @returns {any|undefined} The value that was rejected or <code>undefined</code>
 	 * @public
 	 */
 	DataState.prototype.getInvalidValue = function() {
@@ -306,7 +350,7 @@ sap.ui.define([
 	 *
 	 * @param {any} vInvalidValue The value that was rejected by the type validation or
 	 *   <code>undefined</code> if the value was valid
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	DataState.prototype.setInvalidValue = function(vInvalidValue) {
@@ -329,7 +373,7 @@ sap.ui.define([
 	 * Sets the formatted original value of the data.
 	 *
 	 * @param {boolean} vOriginalValue The original value
-	 * @returns {sap.ui.model.DataState} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	DataState.prototype.setOriginalValue = function(vOriginalValue) {
@@ -388,6 +432,37 @@ sap.ui.define([
 		}
 
 		return mChanges;
+	};
+
+	/**
+	 * Returns an object containing the data state properties with their initial value; each call
+	 * to this method creates a new object.
+	 *
+	 * @returns {object} An object with the initial data state properties
+	 * @private
+	 */
+	DataState.getInitialProperties = function () {
+		return {
+			controlMessages : [],
+			dirty : false,
+			internalValue : undefined,
+			invalidValue : undefined,
+			laundering : false,
+			messages : [],
+			modelMessages : [],
+			originalInternalValue : undefined,
+			originalValue : undefined,
+			value : undefined
+		};
+	};
+
+	/**
+	 * Resets the data state properties to their initial value.
+	 *
+	 * @private
+	 */
+	DataState.prototype.reset = function () {
+		this.mChangedProperties = DataState.getInitialProperties();
 	};
 
 	return DataState;

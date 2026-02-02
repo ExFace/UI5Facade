@@ -1,28 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.ComponentMetadata
-sap.ui.define(['./ComponentMetadata', './library'],
-	function(ComponentMetadata, library) {
+sap.ui.define(['./ComponentMetadata', 'sap/ui/core/mvc/ViewType'],
+	function(ComponentMetadata, ViewType) {
 	"use strict";
-
-	// shortcut for enum(s)
-	var ViewType = library.mvc.ViewType;
-
 
 	/**
 	 * Creates a new metadata object for a UIComponent subclass.
 	 *
 	 * @param {string} sClassName Fully qualified name of the class that is described by this metadata object
-	 * @param {object} oStaticInfo Static info to construct the metadata from
+	 * @param {object} oClassInfo Static info to construct the metadata from
 	 *
-	 * @experimental Since 1.15.1. The Component concept is still under construction, so some implementation details can be changed in future.
 	 * @class
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.15.1
 	 * @alias sap.ui.core.UIComponentMetadata
 	 * @extends sap.ui.core.ComponentMetadata
@@ -39,6 +34,10 @@ sap.ui.define(['./ComponentMetadata', './library'],
 	UIComponentMetadata.prototype = Object.create(ComponentMetadata.prototype);
 	UIComponentMetadata.prototype.constructor = UIComponentMetadata;
 
+	/**
+	 * Synchronous loading Component metadata from "component.json" is deprecated.
+	 * @deprecated
+	 */
 	UIComponentMetadata.preprocessClassInfo = function(oClassInfo) {
 		// if the component is a string we convert this into a "_src" metadata entry
 		// the specific metadata object can decide to support this or gracefully ignore it
@@ -61,7 +60,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 	 * the Component metadata or in the proper Component manifest.
 	 *
 	 * @param {boolean} [bDoNotMerge] Returns the local root view configuration if set to <code>true</code>.
-	 * @return {object} root view as configuration object or null ({@link sap.ui.view})
+	 * @return {object|null} root view as configuration object or null ({@link sap.ui.view})
 	 * @protected
 	 * @since 1.15.1
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/rootView")
@@ -80,6 +79,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 	 * the Component metadata or in the proper Component manifest.
 	 *
 	 * @return {object} routing configuration
+	 * @param {boolean} [bDoNotMerge] Returns the local routing config if set to <code>true</code>
 	 * @private
 	 * @since 1.16.1
 	 * @experimental Since 1.16.1. Implementation might change.
@@ -99,6 +99,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 	 * the Component metadata or in the proper Component manifest.
 	 *
 	 * @return {array} routes
+	 * @param {boolean} [bDoNotMerge] Returns the local routes if set to <code>true</code>
 	 * @private
 	 * @since 1.16.1
 	 * @experimental Since 1.16.1. Implementation might change.
@@ -111,6 +112,9 @@ sap.ui.define(['./ComponentMetadata', './library'],
 
 	/**
 	 * Converts the legacy metadata into the new manifest format
+	 *
+	 * @param {object} oStaticInfo Static info containing the legacy metadata
+	 * @param {object} oManifest The new manifest
 	 * @private
 	 */
 	UIComponentMetadata.prototype._convertLegacyMetadata = function(oStaticInfo, oManifest) {

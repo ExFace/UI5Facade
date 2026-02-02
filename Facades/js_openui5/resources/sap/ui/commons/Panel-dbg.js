@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.Panel.
-sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/ui/core/Control', './PanelRenderer', 'sap/ui/core/ResizeHandler', 'sap/ui/core/Title', "sap/ui/dom/jquery/scrollLeftRTL" ], // jQuery Plugin "scrollLeftRTL"
-	function(jQuery, assert, library, Control, PanelRenderer, ResizeHandler, Title) {
+sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/ui/core/Control', './PanelRenderer', 'sap/ui/core/ResizeHandler', 'sap/ui/core/Title', "sap/ui/core/Configuration", "sap/ui/dom/jquery/scrollLeftRTL" ], // jQuery Plugin "scrollLeftRTL"
+	function(jQuery, assert, library, Control, PanelRenderer, ResizeHandler, Title, Configuration) {
 	"use strict";
 
 
@@ -31,17 +31,17 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.Panel</code> control.
 	 * @alias sap.ui.commons.Panel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Panel = Control.extend("sap.ui.commons.Panel", /** @lends sap.ui.commons.Panel.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -225,7 +225,9 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 
 
 	/**
+	 * Returns an object representing the serialized focus information.
 	 *
+	 * @returns {object} an object representing the serialized focus information
 	 * @protected
 	 */
 	Panel.prototype.getFocusInfo = function () {
@@ -271,7 +273,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * @private
 	 */
 	Panel.prototype._initializeSizes = function() {
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Configuration.getRTL();
 
 		// maximum width of a toolbar item -> min toolbar width
 		var aButtons = this.getButtons();
@@ -400,7 +402,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Property setter for the "enabled" state
 	 *
 	 * @param {boolean} bEnabled Whether the Panel should be enabled or not.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setEnabled = function(bEnabled) {
@@ -415,7 +417,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Property setter for the padding
 	 *
 	 * @param {boolean} bPadding Whether the Panel should have padding.
-	 * @returns {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setApplyContentPadding = function(bPadding) {
@@ -429,7 +431,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Property setter for the "collapsed" state
 	 *
 	 * @param {boolean} bCollapsed Whether the Panel should be collapsed or not.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setCollapsed = function(bCollapsed) {
@@ -449,7 +451,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 		var oDomRef = this.getDomRef();
 		if (oDomRef) {
 			// after Panel has been rendered
-			var accessibility = sap.ui.getCore().getConfiguration().getAccessibility();
+			var accessibility = Configuration.getAccessibility();
 			if (bCollapsed) {
 				// collapsing
 				if (!this.getWidth()) {
@@ -512,7 +514,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets a Tille control that will be rendered in the Panel header.
 	 *
 	 * @param {sap.ui.core.Title} oTitle The Title to render in the header.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setTitle = function(oTitle) {
@@ -530,7 +532,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets the text that will be rendered in the Panel header.
 	 *
 	 * @param {string} sText The text to render in the header.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setText = function(sText) {
@@ -569,7 +571,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	Panel.prototype.getScrollLeft = function () {
 		var scrollLeft = 0;
 		if (this._oScrollDomRef) {
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Configuration.getRTL()) {
 				// jQuery Plugin "scrollLeftRTL"
 				scrollLeft = jQuery(this._oScrollDomRef).scrollLeftRTL();
 			} else {
@@ -587,13 +589,13 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets the scroll position of the panel in pixels from the left.
 	 *
 	 * @param {int} iPosition The position to scroll to.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setScrollLeft = function (iPosition) {
 		this.setProperty("scrollLeft", iPosition, true);
 		if (this._oScrollDomRef) {
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Configuration.getRTL()) {
 				// jQuery Plugin "scrollLeftRTL"
 				jQuery(this._oScrollDomRef).scrollLeftRTL(iPosition);
 			} else {
@@ -629,7 +631,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets the scrolls position of the panel in pixels from the top.
 	 *
 	 * @param {int} iPosition The position to scroll to.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setScrollTop = function (iPosition) {
@@ -646,7 +648,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 *
 	 * @param {sap.ui.core.CSSSize} sWidth The width of the panel as CSS size.
 	 * @param {sap.ui.core.CSSSize} sHeight The height of the panel as CSS size.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setDimensions = function (sWidth, sHeight) {
@@ -661,7 +663,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets the width of the panel.
 	 *
 	 * @param {sap.ui.core.CSSSize} sWidth The width of the panel as CSS size.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setWidth = function (sWidth) {
@@ -678,7 +680,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/assert', './library', 'sap/
 	 * Sets the height of the panel.
 	 *
 	 * @param {sap.ui.core.CSSSize} sHeight The height of the panel as CSS size.
-	 * @return {sap.ui.commons.Panel} <code>this</code> to allow method chaining.
+	 * @return {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 	Panel.prototype.setHeight = function (sHeight) {

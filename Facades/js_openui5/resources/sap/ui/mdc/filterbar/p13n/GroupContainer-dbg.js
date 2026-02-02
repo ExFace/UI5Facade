@@ -1,62 +1,54 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.mdc.filterbar.FilterItemLayout.
 sap.ui.define([
-	'sap/ui/mdc/filterbar/IFilterContainer','sap/ui/mdc/p13n/panels/GroupPanelBase'
-], function(IFilterContainer, GroupPanelBase) {
+	'sap/ui/mdc/filterbar/IFilterContainer', 'sap/ui/mdc/p13n/panels/AdaptFiltersPanel'
+], (IFilterContainer, AdaptFiltersPanel) => {
 	"use strict";
 
 	/**
 	 * Constructor for a new filterBar/p13n/GroupContainer.
-     * Used for a complex groupable FilterBar UI, should be used in combination with <code>FilterColumnLayout</code>
 	 * @param {string} [sId] ID for the new control, generated automatically if no ID is given
-	 * @class The GroupContainer is a IFilterContainer implementation for <code>sap.m.Table</code>
+	 * @class
+	 * The GroupContainer is a IFilterContainer implementation for <code>sap.m.Table</code>.
+	 * It is used for a complex groupable FilterBar UI and should be used in combination with <code>FilterGroupLayout</code>.
 	 * @extends sap.ui.mdc.filterbar.IFilterContainer
 	 * @constructor
 	 * @private
 	 * @since 1.82.0
 	 * @alias sap.ui.mdc.filterbar.p13n.GroupContainer
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var GroupContainer = IFilterContainer.extend("sap.ui.mdc.filterbar.p13n.GroupContainer");
+	const GroupContainer = IFilterContainer.extend("sap.ui.mdc.filterbar.p13n.GroupContainer", {
+		metadata: {
+			library: "sap.ui.mdc"
+		}
+	});
 
 	GroupContainer.prototype.init = function() {
 
-		this.mFilterItems = {
-		};
-		this.mFilterFields = {
-		};
+		IFilterContainer.prototype.init.apply(this, arguments);
 
-		this.oLayout = new GroupPanelBase({
-			expandFirstGroup: true
+		this.mFilterItems = {};
+
+		this.oLayout = new AdaptFiltersPanel();
+
+		this.oLayout.setItemFactory((oBindingContext) => {
+			const sKey = oBindingContext.getProperty(oBindingContext.sPath).name;
+			const oFilterItem = this.mFilterItems[sKey];
+			return oFilterItem;
 		});
+	};
 
-		this.oLayout.setItemFactory(function(sId, oBindingContext){
-			var sKey = this.oLayout.getModel().getProperty(oBindingContext.sPath).name;
-			var oFilterItemClone, oFilterItem = this.mFilterItems[sKey];
-
-			oFilterItemClone = oFilterItem.bIsDestroyed ? oFilterItem.clone() : oFilterItem;
-
-			oFilterItemClone.bindProperty("selected", {
-				path: "selected"
-			});
-
-			var oFilterField = this.mFilterFields[sKey];
-
-			oFilterItemClone.setFilterField(oFilterField);
-
-			this.mFilterItems[sKey] = oFilterItemClone;
-			return oFilterItemClone;
-		}.bind(this));
+	GroupContainer.prototype.setMessageStrip = function(oStrip) {
+		this.oLayout.getCurrentViewContent().setMessageStrip(oStrip);
 	};
 
 	GroupContainer.prototype.insertFilterField = function(oControl, iIndex) {
 		this.mFilterItems[oControl._getFieldPath()] = oControl;
-		this.mFilterFields[oControl._getFieldPath()] = oControl._oFilterField;
 	};
 
 	GroupContainer.prototype.removeFilterField = function(oControl) {
@@ -64,22 +56,31 @@ sap.ui.define([
 	};
 
 	GroupContainer.prototype.getFilterFields = function() {
-		var aFilterItems = [];
-		var aOuterItems = this.oLayout._oListControl.getItems();
-		aOuterItems.forEach(function(oOuterItem){
-			var oPanel = oOuterItem.getContent()[0];
-			var aInnerItems = oPanel.getContent()[0].getItems();
-			aInnerItems.forEach(function(oInnerItem){
-				aFilterItems.push(oInnerItem);
-			});
+		const aFilterItems = [];
+
+		Object.keys(this.mFilterItems).forEach((sKey) => {
+			aFilterItems.push(this.mFilterItems[sKey]);
 		});
 
 		return aFilterItems;
 	};
 
+	GroupContainer.prototype.update = function(oAdaptationData) {
+		this.oLayout.restoreDefaults();
+	};
+
+	GroupContainer.prototype.setP13nData = function(oAdaptationData) {
+		this.oLayout.setP13nData(oAdaptationData);
+	};
+
 	GroupContainer.prototype.exit = function() {
 		this.mFilterItems = null;
 		this.mFilterFields = null;
+		IFilterContainer.prototype.exit.apply(this, arguments);
+	};
+
+	GroupContainer.prototype.getInitialFocusedControl = function() {
+		return this.oLayout.getInitialFocusedControl && this.oLayout.getInitialFocusedControl();
 	};
 
 	return GroupContainer;

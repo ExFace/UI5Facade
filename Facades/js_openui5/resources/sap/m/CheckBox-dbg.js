@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,27 +8,27 @@
 sap.ui.define([
 	'./Label',
 	'./library',
-	'sap/ui/Device',
 	'sap/ui/core/Control',
-	'sap/ui/core/IconPool',
+	'sap/ui/core/Element',
 	'sap/ui/core/EnabledPropagator',
+	'sap/ui/core/AccessKeysEnablement',
 	'sap/ui/core/library',
+	'sap/ui/core/Lib',
 	'./CheckBoxRenderer',
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/events/KeyCodes",
+	'sap/ui/events/KeyCodes',
 	'sap/ui/core/LabelEnablement',
 	'sap/ui/core/message/MessageMixin'
 ],
 	function(
 		Label,
 		library,
-		Device,
 		Control,
-		IconPool,
+		Element,
 		EnabledPropagator,
+		AccessKeysEnablement,
 		coreLibrary,
+		Library,
 		CheckBoxRenderer,
-		jQuery,
 		KeyCodes,
 		LabelEnablement,
 		MessageMixin
@@ -87,171 +87,216 @@ sap.ui.define([
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/checkbox/ Check Box}
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IFormContent
+	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.ui.core.IAccessKeySupport
+	 *
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+	 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.CheckBox
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var CheckBox = Control.extend("sap.m.CheckBox", /** @lends sap.m.CheckBox.prototype */ { metadata : {
+	var CheckBox = Control.extend("sap.m.CheckBox", /** @lends sap.m.CheckBox.prototype */ {
+		metadata : {
 
-		interfaces : ["sap.ui.core.IFormContent"],
-		library : "sap.m",
-		properties : {
+			interfaces : [
+				"sap.m.IToolbarInteractiveControl",
+				"sap.ui.core.IFormContent",
+				"sap.ui.core.ISemanticFormContent",
+				"sap.ui.core.IAccessKeySupport"
+			],
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * Determines whether the <code>CheckBox</code> is selected (checked).
-			 *
-			 * When this property is set to <code>true</code>, the control is displayed as selected,
-			 * unless the value of the <code>partiallySelected</code> property is also set to <code>true</code>.
-			 * In this case, the control is displayed as partially selected.
-			 */
-			selected : {type : "boolean", group : "Data", defaultValue : false},
+				/**
+				 * Determines whether the <code>CheckBox</code> is selected (checked).
+				 *
+				 * When this property is set to <code>true</code>, the control is displayed as selected,
+				 * unless the value of the <code>partiallySelected</code> property is also set to <code>true</code>.
+				 * In this case, the control is displayed as partially selected.
+				 */
+				selected : {type : "boolean", group : "Data", defaultValue : false},
 
-			/**
-			 * Determines whether the <code>CheckBox</code> is displayed as partially selected.
-			 *
-			 * <b>Note:</b> This property leads only to visual change of the checkbox and the
-			 * state cannot be achieved by user interaction. The visual state depends on
-			 * the value of the <code>selected</code> property:
-			 * <ul>
-			 * <li>If <code>selected</code> = <code>true</code> and <code>partiallySelected</code>
-			 * = <code>true</code>, the control is displayed as partially selected</li>
-			 * <li>If <code>selected</code> = <code>true</code> and <code>partiallySelected</code>
-			 * = <code>false</code>, the control is displayed as selected</li>
-			 * <li>If <code>selected</code> = <code>false</code>, the control is displayed as not
-			 * selected regardless of what is set for <code>partiallySelected</code></li>
-			 * </ul>
-			 *
-			 * @since 1.58
-			 */
-			partiallySelected : {type : "boolean", group : "Data", defaultValue : false},
+				/**
+				 * Determines whether the <code>CheckBox</code> is displayed as partially selected.
+				 *
+				 * <b>Note:</b> This property leads only to visual change of the checkbox and the
+				 * state cannot be achieved by user interaction. The visual state depends on
+				 * the value of the <code>selected</code> property:
+				 * <ul>
+				 * <li>If <code>selected</code> = <code>true</code> and <code>partiallySelected</code>
+				 * = <code>true</code>, the control is displayed as partially selected</li>
+				 * <li>If <code>selected</code> = <code>true</code> and <code>partiallySelected</code>
+				 * = <code>false</code>, the control is displayed as selected</li>
+				 * <li>If <code>selected</code> = <code>false</code>, the control is displayed as not
+				 * selected regardless of what is set for <code>partiallySelected</code></li>
+				 * </ul>
+				 *
+				 * @since 1.58
+				 */
+				partiallySelected : {type : "boolean", group : "Data", defaultValue : false},
 
-			/**
-			 * Disables the Checkbox. Disabled controls are not interactive and are rendered differently according to the theme.
-			 */
-			enabled : {type : "boolean", group : "Behavior", defaultValue : true},
+				/**
+				 * Whether the <code>CheckBox</code> is enabled.
+				 *
+				 * <b>Note:</b> Disabled <code>CheckBox</code> is not interactive and is rendered differently according to the theme.
+				 */
+				enabled : {type : "boolean", group : "Behavior", defaultValue : true},
 
-			/**
-			 * The 'name' property to be used in the HTML code, for example for HTML forms that send data to the server via submit.
-			 */
-			name : {type : "string", group : "Misc", defaultValue : null},
+				/**
+				 * Sets the <code>required</code> state of the <code>CheckBox</code>.
+				 *
+				 * <b>Note:</b> Use this property only when a single relationship between this field and a Label cannot be established.
+				 * For example, with the assistance of the <code>labelFor</code> property of <code>sap.m.Label</code>.
+				 *
+				 * <b>Note:</b> This property won't work as expected without setting a value to the <code>text</code> property of the <code>CheckBox</code>.
+ 				 * The <code>text</code> property acts as a label for the <code>CheckBox</code> and is crucial for assistive technologies,
+ 				 * like screen readers, to provide a meaningful context.
+				 *
+				 * @since 1.121
+				 */
+				required: {type: "boolean", group: "Misc", defaultValue: false},
 
-			/**
-			 * Defines the text displayed next to the checkbox
-			 */
-			text : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * The 'name' property to be used in the HTML code, for example for HTML forms that send data to the server via submit.
+				 */
+				name : {type : "string", group : "Misc", defaultValue : null},
 
-			/**
-			 * Options for the text direction are RTL and LTR. Alternatively, the control can inherit the text direction from its parent container.
-			 */
-			textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
+				/**
+				 * Defines the text displayed next to the checkbox
+				 */
+				text : {type : "string", group : "Data", defaultValue : null},
 
-			/**
-			 * Aligns the text of the checkbox. Available alignment settings are "Begin", "Center", "End", "Left", and "Right".
-			 */
-			textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin},
+				/**
+				 * Options for the text direction are RTL and LTR. Alternatively, the control can inherit the text direction from its parent container.
+				 */
+				textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
 
-			/**
-			 * Determines the total width of the control or the width of its label only, depending on the value of <code>useEntireWidth</code>.
-			 *
-			 * <b>Note:</b> When <code>useEntireWidth</code> is set to <code>true</code>, <code>width</code> is applied to the control as a whole (checkbox and label). Otherwise, <code>width</code> is applied to the label only.
-			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
+				/**
+				 * Aligns the text of the checkbox. Available alignment settings are "Begin", "Center", "End", "Left", and "Right".
+				 */
+				textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin},
 
-			/**
-			 * Indicates if the given width will be applied to the control as a whole or to its label only.
-			 *
-			 * <b>Note:</b> by default the width is set to the label
-			 * @since 1.52
-			 */
-			useEntireWidth : {type : "boolean", group: "Appearance", defaultValue : false },
+				/**
+				 * Determines the total width of the control or the width of its label only, depending on the value of <code>useEntireWidth</code>.
+				 *
+				 * <b>Note:</b> When <code>useEntireWidth</code> is set to <code>true</code>, <code>width</code> is applied to the control as a whole (checkbox and label). Otherwise, <code>width</code> is applied to the label only.
+				 */
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : ''},
 
-			/**
-			 * Flag to switch on activeHandling, when it is switched off, there will be no visual changes on active state. Default value is 'true'
-			 */
-			activeHandling : {type : "boolean", group : "Misc", defaultValue : true},
+				/**
+				 * Indicates if the given width will be applied to the control as a whole or to its label only.
+				 *
+				 * <b>Note:</b> by default the width is set to the label
+				 * @since 1.52
+				 */
+				useEntireWidth : {type : "boolean", group: "Appearance", defaultValue : false },
 
-			/**
-			 * Specifies whether the user shall be allowed to edit the state of the checkbox
-			 * @since 1.25
-			 */
-			editable : {type : "boolean", group : "Behavior", defaultValue : true},
+				/**
+				 * Flag to switch on activeHandling, when it is switched off, there will be no visual changes on active state. Default value is 'true'
+				 */
+				activeHandling : {type : "boolean", group : "Misc", defaultValue : true},
 
-			/**
-			 * Accepts the core enumeration ValueState.type that supports 'None', 'Error', 'Warning', 'Success' and 'Information'.
-			 * @since 1.38
-			 */
-			valueState : {type : "sap.ui.core.ValueState", group : "Data", defaultValue : ValueState.None},
+				/**
+				 * Specifies whether the user shall be allowed to edit the state of the checkbox
+				 * @since 1.25
+				 */
+				editable : {type : "boolean", group : "Behavior", defaultValue : true},
 
-			/**
-			 * Defines the text that appears in the tooltip of the <code>CheckBox</code>. If this is not specified, a default text is shown from the resource bundle.
-			 * @since 1.74
-			 * @private
-			 */
-			valueStateText: { type: "string", group: "Misc", defaultValue: null, visibility: "hidden" },
+				/**
+				 * Accepts the core enumeration ValueState.type that supports 'None', 'Error', 'Warning', 'Success' and 'Information'.
+				 * @since 1.38
+				 */
+				valueState : {type : "sap.ui.core.ValueState", group : "Data", defaultValue : ValueState.None},
 
-			/**
-			 * Determines whether the <code>CheckBox</code> is in display only state.
-			 *
-			 * When set to <code>true</code>, the <code>CheckBox</code> is not interactive, not editable, not focusable
-			 * and not in the tab chain. This setting is used for forms in review mode.
-			 *
-			 * <Note:> When the property <code>enabled</code> is set to <code>false</code> this property has no effect.
-			 * @since 1.54
-			 */
-			displayOnly : {type : "boolean", group : "Behavior", defaultValue : false},
+				/**
+				 * Defines the text that appears in the tooltip of the <code>CheckBox</code>. If this is not specified, a default text is shown from the resource bundle.
+				 * @since 1.74
+				 * @private
+				 */
+				valueStateText: { type: "string", group: "Misc", defaultValue: null, visibility: "hidden" },
 
-			/**
-			 * Determines whether the label's text is wrapped.
-			 *
-			 * When set to <code>false</code> (default), the label's text
-			 * is truncated with ellipsis at the end.
-			 *
-			 * @since 1.54
-			 */
-			wrapping: {type : "boolean", group : "Appearance", defaultValue : false}
-		},
-		aggregations: {
-			/**
-			 * The label that represents the text of the checkbox control
-			 */
-			_label: {type: "sap.m.Label", group: "Behavior", multiple: false, visibility: "hidden"}
-		},
-		associations : {
+				/**
+				 * Determines whether the <code>CheckBox</code> is in display only state.
+				 *
+				 * When set to <code>true</code>, the <code>CheckBox</code> is not interactive, not editable, not focusable
+				 * and not in the tab chain. This setting is used for forms in review mode.
+				 *
+				 * <Note:> When the property <code>enabled</code> is set to <code>false</code> this property has no effect.
+				 * @since 1.54
+				 */
+				displayOnly : {type : "boolean", group : "Behavior", defaultValue : false},
 
-			/**
-			 * Association to controls / IDs which describe this control (see WAI-ARIA attribute aria-describedby).
-			 */
-			ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
+				/**
+				 * Determines whether the label's text is wrapped.
+				 *
+				 * When set to <code>false</code> (default), the label's text
+				 * is truncated with ellipsis at the end.
+				 *
+				 * @since 1.54
+				 */
+				wrapping: {type : "boolean", group : "Appearance", defaultValue : false},
 
-			/**
-			 * Association to controls / IDs which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
-		},
-		events : {
+				/**
+				 * Indicates whether the access keys ref of the control should be highlighted.
+				 * NOTE: this property is used only when access keys feature is turned on.
+				 *
+				 * @private
+				 */
+				highlightAccKeysRef: { type: "boolean", defaultValue: false, visibility: "hidden" },
 
-			/**
-			 * Event is triggered when the control status is changed by the user by selecting or deselecting the checkbox.
-			 */
-			select : {
-				parameters : {
+				/**
+				 * Indicates which keyboard key should be pressed to focus the access key ref
+				 * NOTE: this property is used only when access keys feature is turned on.
+				 *
+				 * @private
+				 */
+				accesskey: { type: "string", defaultValue: "", visibility: "hidden" }
+			},
+			aggregations: {
+				/**
+				 * The label that represents the text of the checkbox control
+				 */
+				_label: {type: "sap.m.Label", group: "Behavior", multiple: false, visibility: "hidden"}
+			},
+			associations : {
 
-					/**
-					 * Checks whether the CheckBox is marked or not .
-					 */
-					selected : {type : "boolean"}
+				/**
+				 * Association to controls / IDs which describe this control (see WAI-ARIA attribute aria-describedby).
+				 */
+				ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
+
+				/**
+				 * Association to controls / IDs which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
+			},
+			events : {
+
+				/**
+				 * Event is triggered when the control status is changed by the user by selecting or deselecting the checkbox.
+				 */
+				select : {
+					parameters : {
+
+						/**
+						 * Checks whether the CheckBox is marked or not .
+						 */
+						selected : {type : "boolean"}
+					}
 				}
-			}
+			},
+			dnd: { draggable: true, droppable: false },
+			designtime: "sap/m/designtime/CheckBox.designtime"
 		},
-		dnd: { draggable: true, droppable: false },
-		designtime: "sap/m/designtime/CheckBox.designtime"
-	}});
+
+		renderer: CheckBoxRenderer
+	});
 
 	EnabledPropagator.call(CheckBox.prototype);
 
@@ -263,9 +308,23 @@ sap.ui.define([
 	 * Lifecycle Methods
 	 */
 	CheckBox.prototype.init = function() {
-		this.addActiveState(this);
-		IconPool.insertFontFaceStyle();
 		this._handleReferencingLabels();
+
+		AccessKeysEnablement.registerControl(this);
+	};
+
+	CheckBox.prototype.onAccKeysHighlightStart = function () {
+		this._getLabel().setProperty("highlightAccKeysRef", true);
+	};
+
+	CheckBox.prototype.onAccKeysHighlightEnd = function () {
+		this._getLabel().setProperty("highlightAccKeysRef", false);
+	};
+
+	CheckBox.prototype.onBeforeRendering = function () {
+		if (this.getText()) {
+			this.setProperty("accesskey", this.getText()[0].toLowerCase());
+		}
 	};
 
 	CheckBox.prototype.exit = function() {
@@ -329,21 +388,26 @@ sap.ui.define([
 		return this;
 	};
 
-	/**
-	 * Add ActiveState to non-supported mobile platform
-	 * @private
-	 */
-	CheckBox.prototype.addActiveState = function(oControl) {
-		if (Device.os.blackberry) {
-			oControl.addDelegate({
-				ontouchstart: function(oEvent){
-					jQuery(oControl.getDomRef()).addClass("sapMActive");
-				},
-				ontouchend: function(oEvent){
-					jQuery(oControl.getDomRef()).removeClass("sapMActive");
-				}
-			});
-		}
+	CheckBox.prototype.getFormattedState = function() {
+		var oBundle = Library.getResourceBundleFor("sap.m");
+
+		return this.getSelected() ? oBundle.getText("ACC_CTR_STATE_CHECKED") : oBundle.getText("ACC_CTR_STATE_NOT_CHECKED");
+	};
+
+	CheckBox.prototype.getFormFormattedValue = function() {
+		return this.getFormattedState();
+	};
+
+	CheckBox.prototype.getFormValueProperty = function () {
+		return "selected";
+	};
+
+	CheckBox.prototype.getFormObservingProperties = function() {
+		return ["selected", "displayOnly"]; // as displayOnly changes the rendering mode
+	};
+
+	CheckBox.prototype.getFormRenderAsControl = function () {
+		return this.getDisplayOnly(); // for displayOnly CheckBox, show the control
 	};
 
 	/**
@@ -388,7 +452,6 @@ sap.ui.define([
 			this.ontap(oEvent);
 			// stop browsers default behavior
 			oEvent.preventDefault();
-			oEvent.stopPropagation();
 		}
 	};
 
@@ -415,7 +478,7 @@ sap.ui.define([
 	 * Sets the tab index of the control
 	 *
 	 * @param {int} iTabIndex The tab index should be greater than or equal -1
-	 * @returns {sap.m.CheckBox} The <code>sap.m.CheckBox</code> instance
+	 * @returns {this} The <code>sap.m.CheckBox</code> instance
 	 * @since 1.16
 	 * @protected
 	 */
@@ -442,14 +505,16 @@ sap.ui.define([
 	/**
 	 * Lazy loads the CheckBox`s label
 	 *
-	 * @return {sap.m.Label}
+	 * @return {sap.m.Label} The label control
 	 * @private
 	 */
 	CheckBox.prototype._getLabel = function() {
 		if (!this._oLabel) {
-			this._oLabel = new Label(this.getId() + "-label", {
-				labelFor: this.getId()
-			}).addStyleClass("sapMCbLabel");
+			this._oLabel = new Label(this.getId() + "-label").addStyleClass("sapMCbLabel");
+
+			this._oLabel.getAccessKeysFocusTarget = function () {
+				return this.getFocusDomRef();
+			}.bind(this);
 
 			this.setAggregation("_label", this._oLabel, true);
 		}
@@ -520,7 +585,7 @@ sap.ui.define([
 
 		if (aLabelIds.length > 0) {
 			aLabelIds.forEach(function (sLabelId) {
-				sap.ui.getCore().byId(sLabelId).addEventDelegate({
+				Element.getElementById(sLabelId).addEventDelegate({
 					ontap: function () {
 						that._fnLabelTapHandler();
 					}
@@ -532,25 +597,66 @@ sap.ui.define([
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {Object} The <code>sap.m.CheckBox</code> accessibility information
+	 * @returns {sap.ui.core.AccessibilityInfo}
+	 * The object contains the accessibility information of <code>sap.m.CheckBox</code>
 	 */
 	CheckBox.prototype.getAccessibilityInfo = function() {
-		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oBundle = Library.getResourceBundleFor("sap.m"),
+			sText = this.getText();
 		return {
 			role: "checkbox",
 			type: oBundle.getText("ACC_CTR_TYPE_CHECKBOX"),
-			description: (this.getText() || "") + (this.getSelected() ? (" " + oBundle.getText("ACC_CTR_STATE_CHECKED")) : ""),
+			description: (sText ? sText + " " : "") + this.getFormattedState(),
 			focusable: this.getEnabled() && !this.getDisplayOnly(),
 			enabled: this.getEnabled(),
-			editable: this.getEditable()
+			editable: this.getEditable(),
+			required: this._isRequired()
 		};
 	};
 
-	/*
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	CheckBox.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
+	/**
+	 * Determines if the Control is used in visual only mode (hidden from the accessibility tree).
+	 *
+	 * @returns {boolean} If it is an visual only checkbox
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.MultiComboBox
+	 */
+	CheckBox.prototype._getVisualOnlyMode = function () {
+		return false;
+	};
+
+	/**
 	 * Checkbox without label must not be stretched in Form.
+	 * @returns {boolean} If the width of the control should not be adjusted
 	 */
 	CheckBox.prototype.getFormDoNotAdjustWidth = function() {
 		return this.getText() ? false : true;
+	};
+
+	/**
+	 * Determines if the CheckBox is required.
+	 * A CheckBox is considered required if it has been explicitly set as required,
+	 * or if it is required by LabelEnablement.
+	 *
+	 * @returns {boolean} True if the CheckBox is required, false otherwise.
+	 * @private
+	 */
+	CheckBox.prototype._isRequired = function () {
+		return this.getRequired() || LabelEnablement.isRequired(this);
 	};
 
 	return CheckBox;

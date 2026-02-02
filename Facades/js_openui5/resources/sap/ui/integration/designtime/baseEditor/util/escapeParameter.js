@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/util/isPlainObject","sap/base/util/each"],function(i,e){"use strict";return function(a,v){v=v||function(){return true;};var A=Array.from(a);var s=typeof A[0]!=="string"&&A[0]!==undefined?0:1;if(i(A[s])){var S=Object.assign({},A[s]);e(S,function(k,V){if(i(V)&&v(V,k)){S[k]=Object.assign({},V,{ui5object:true});}});A[s]=S;}return A;};});
+sap.ui.define(["sap/base/util/isPlainObject","sap/base/util/each"],function(t,e){"use strict";return function(i,n){n=n||function(){return true};var r=Array.from(i);var u=typeof r[0]!=="string"&&r[0]!==undefined?0:1;if(t(r[u])){var a=Object.assign({},r[u]);e(a,function(e,i){if(t(i)&&n(i,e)){a[e]=Object.assign({},i,{ui5object:true})}});r[u]=a}return r}});
+//# sourceMappingURL=escapeParameter.js.map

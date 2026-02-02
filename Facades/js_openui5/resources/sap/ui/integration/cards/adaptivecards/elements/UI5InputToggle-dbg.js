@@ -1,9 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
+sap.ui.define([
+	"sap/ui/integration/thirdparty/adaptivecards",
+	"sap/ui/integration/cards/adaptivecards/overwrites/inputsGeneralOverwrites"
+], function (AdaptiveCards, InputsOverwrites) {
 	"use strict";
 	function UI5InputToggle() {
 		AdaptiveCards.ToggleInput.apply(this, arguments);
@@ -16,18 +19,28 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 	 * <code>ui5-checkbox</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @since 1.74
 	 */
 	UI5InputToggle.prototype = Object.create(AdaptiveCards.ToggleInput.prototype);
+
+	UI5InputToggle.prototype.overrideInternalRender = function () {
+		var oInput = AdaptiveCards.TextInput.prototype.overrideInternalRender.call(this, arguments);
+
+		InputsOverwrites.overwriteLabel(this);
+		InputsOverwrites.overwriteRequired(this);
+
+		return oInput;
+	};
+
 	UI5InputToggle.prototype.internalRender = function () {
 
 		this._checkboxInputElement = document.createElement("ui5-checkbox");
 		this._checkboxInputElement.id = this.id;
 		this._checkboxInputElement.text = this.title || "";
-		this._checkboxInputElement.wrap = this.wrap;
+		this._checkboxInputElement.wrappingType = this.wrap ? "Normal" : "None";
 		this._checkboxInputElement.checked = false;
 
 		// We have to map Input.Toggle value with the checked property of the ui5-checkbox webcomponent.
@@ -42,5 +55,26 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 
 		return this._checkboxInputElement;
 	};
+
+	UI5InputToggle.prototype.updateInputControlAriaLabelledBy = function () {
+		// support for accessible-name-ref is available from 1.1.0, after updating
+		// aria-labelledby should be changed to accessible-name-ref
+		InputsOverwrites.overwriteAriaLabelling(this, "aria-labelledby");
+	};
+
+	UI5InputToggle.prototype.showValidationErrorMessage = function () {
+		if (this._checkboxInputElement) {
+			this._checkboxInputElement.valueState = "Error";
+		}
+	};
+
+	UI5InputToggle.prototype.resetValidationFailureCue = function () {
+		AdaptiveCards.TextInput.prototype.resetValidationFailureCue.call(this, arguments);
+
+		if (this._checkboxInputElement) {
+			this._checkboxInputElement.valueState = "None";
+		}
+	};
+
 	return UI5InputToggle;
 });

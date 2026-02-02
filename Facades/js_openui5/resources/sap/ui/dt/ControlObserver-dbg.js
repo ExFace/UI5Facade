@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,30 +22,29 @@ function(ManagedObjectObserver) {
 	 * @extends sap.ui.dt.ManagedObjectObserver
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.30
 	 * @alias sap.ui.dt.ControlObserver
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var ControlObserver = ManagedObjectObserver.extend("sap.ui.dt.ControlObserver", /** @lends sap.ui.dt.ControlObserver.prototype */ {
-		metadata : {
+		metadata: {
 
 			// ---- object ----
 
 			// ---- control specific ----
-			library : "sap.ui.dt",
-			properties : {
+			library: "sap.ui.dt",
+			properties: {
 
 			},
-			associations : {
+			associations: {
 				/**
 				 * target Control to observe
 				 */
-				target : {
-					type : "sap.ui.core.Control"
+				target: {
+					type: "sap.ui.core.Control"
 				}
 			}
 		}
@@ -54,11 +53,11 @@ function(ManagedObjectObserver) {
 	/**
 	 * @protected
 	 */
-	ControlObserver.prototype.init = function() {
-		ManagedObjectObserver.prototype.init.apply(this, arguments);
+	ControlObserver.prototype.init = function(...aArgs) {
+		ManagedObjectObserver.prototype.init.apply(this, aArgs);
 
 		this._oControlDelegate = {
-			onAfterRendering : this._onAfterRendering
+			onAfterRendering: this._onAfterRendering
 		};
 	};
 
@@ -67,8 +66,9 @@ function(ManagedObjectObserver) {
 	 * @param {sap.ui.core.Control} oControl The target to observe
 	 * @override
 	 */
-	ControlObserver.prototype.observe = function(oControl) {
-		ManagedObjectObserver.prototype.observe.apply(this, arguments);
+	ControlObserver.prototype.observe = function(...aArgs) {
+		const [oControl] = aArgs;
+		ManagedObjectObserver.prototype.observe.apply(this, aArgs);
 
 		oControl.addEventDelegate(this._oControlDelegate, this);
 	};
@@ -78,13 +78,13 @@ function(ManagedObjectObserver) {
 	 * @param {sap.ui.core.Control} oControl The target to unobserve
 	 * @override
 	 */
-	ControlObserver.prototype.unobserve = function() {
+	ControlObserver.prototype.unobserve = function(...aArgs) {
 		var oControl = this.getTargetInstance();
 		if (oControl) {
 			oControl.removeDelegate(this._oControlDelegate, this);
 		}
 
-		ManagedObjectObserver.prototype.unobserve.apply(this, arguments);
+		ManagedObjectObserver.prototype.unobserve.apply(this, aArgs);
 	};
 
 	/**

@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
-	'sap/m/Text',
+	'sap/m/FormattedText',
 	'sap/ui/Device',
 	'./NewsContentRenderer',
 	"sap/ui/events/KeyCodes"
 ],
-	function(library, Control, Text, Device, NewsContentRenderer, KeyCodes) {
+	function(library, Control, FormattedText, Device, NewsContentRenderer, KeyCodes) {
 	"use strict";
 
 	/**
@@ -25,12 +25,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.34
 	 *
 	 * @public
 	 * @alias sap.m.NewsContent
-	 * @ui5-metamodel This control will also be described in the UI5 (legacy) designtime metamodel
 	 */
 	var NewsContent = Control.extend("sap.m.NewsContent", /** @lends sap.m.NewsContent.prototype */ {
 		metadata : {
@@ -41,7 +40,7 @@ sap.ui.define([
 				 * Updates the size of the chart. If not set then the default size is applied based on the device tile.
 				 * @deprecated Since version 1.38.0. The NewsContent control has now a fixed size, depending on the used media (desktop, tablet or phone).
 				 */
-				"size" : {type : "sap.m.Size", group : "Misc", defaultValue : "Auto"},
+				"size" : {type : "sap.m.Size", group : "Misc", defaultValue : "Auto", deprecated: true},
 				/**
 				 * The content text.
 				 */
@@ -56,7 +55,11 @@ sap.ui.define([
 				/**
 				 * The hidden aggregation for the content text.
 				 */
-				"_contentText" : {type : "sap.m.Text", multiple : false, visibility : "hidden"}
+				"_contentText" : {type : "sap.m.FormattedText", multiple : false, visibility : "hidden"},
+				/**
+				 * The hidden aggregation for the subHeader text.
+				 */
+				 "_subHeaderText" : {type : "sap.m.FormattedText", multiple : false, visibility : "hidden"}
 			},
 			events : {
 				/**
@@ -64,7 +67,9 @@ sap.ui.define([
 				 */
 				"press" : {}
 			}
-		}
+		},
+
+		renderer: NewsContentRenderer
 	});
 
 	/* --- Lifecycle methods --- */
@@ -73,11 +78,10 @@ sap.ui.define([
 	* Init function for the control
 	*/
 	NewsContent.prototype.init = function() {
-		this._oContentText = new Text(this.getId() + "-content-text", {
-			maxLines : 2
-		});
-		this._oContentText.cacheLineHeight = false;
+		this._oContentText = new FormattedText(this.getId() + "-content-text");
+		this._oSubHeaderText = new FormattedText(this.getId() + "-subheader-text");
 		this.setAggregation("_contentText", this._oContentText, true);
+		this.setAggregation("_subHeaderText", this._oSubHeaderText, true);
 		this.setTooltip("{AltText}");
 	};
 
@@ -90,6 +94,29 @@ sap.ui.define([
 	NewsContent.prototype.onAfterRendering = function() {
 		this.$().on("mouseenter", this._addTooltip.bind(this));
 		this.$().on("mouseleave", this._removeTooltip.bind(this));
+		this._setMaxLines();
+	};
+
+	/**
+	 * Sets the maximum number of lines as either contentText or subheader
+	 * @private
+	 */
+	NewsContent.prototype._setMaxLines = function() {
+		// This is being done in an asynchronous way so that all the div tags are rendered and appropriate dimensions are added
+		setTimeout(() => {
+			if (this.getDomRef()) {
+				var bIsTitleExtended = this.getDomRef("title").classList.contains("sapMNwCExtend");
+				var oRequiredDiv = bIsTitleExtended ? this.getDomRef("title") : this.getDomRef("subheader");
+				var iHeight = parseFloat(getComputedStyle(oRequiredDiv).height);
+				var oInnerDiv = oRequiredDiv.querySelector('.sapMFT');
+				var iFontSize = parseFloat(getComputedStyle(oInnerDiv).fontSize);
+				var iLineHeight = getComputedStyle(oInnerDiv).lineHeight === "normal" ? "1.2" : getComputedStyle(oInnerDiv).lineHeight;
+				iLineHeight = (iLineHeight.slice(-2) === "px") ? parseFloat(iLineHeight.slice(0,-2)) / iFontSize : iLineHeight;
+				var iCummulativeLineHeight = iFontSize * iLineHeight;
+				var iTotalLines = Math.floor(iHeight / iCummulativeLineHeight);
+				oInnerDiv.style.webkitLineClamp = iTotalLines;
+			}
+		},0);
 	};
 
 	/**
@@ -126,13 +153,13 @@ sap.ui.define([
 	/**
 	 * Returns the AltText
 	 *
-	 * @returns {String} The AltText text
+	 * @returns {string} The AltText text
 	 */
 	NewsContent.prototype.getAltText = function() {
 		var sAltText = "";
 		var bIsFirst = true;
-		if (this.getAggregation("_contentText").getText()) {
-			sAltText += this.getAggregation("_contentText").getText();
+		if (this.getContentText()) {
+			sAltText += this.getContentText();
 			bIsFirst = false;
 		}
 		if (this.getSubheader()) {
@@ -160,8 +187,13 @@ sap.ui.define([
 	};
 
 	NewsContent.prototype.setContentText = function(text) {
-		this._oContentText.setText(text);
+		this._oContentText.setHtmlText(text);
 		return this.setProperty("contentText", text, true);
+	};
+
+	NewsContent.prototype.setSubheader = function(text) {
+		this._oSubHeaderText.setHtmlText(text);
+		return this.setProperty("subheader", text, true);
 	};
 
 	/* --- Event Handling --- */

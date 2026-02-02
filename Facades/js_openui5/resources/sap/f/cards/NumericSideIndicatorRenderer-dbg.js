@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,8 @@ sap.ui.define([], function () {
 		var oBindingInfos = oNSI.mBindingInfos;
 
 		oRm.openStart("div", oNSI)
-			.class("sapFCardHeaderSideIndicator");
+			.class("sapFCardHeaderSideIndicator")
+			.class("sapFCardHeaderSideIndicatorState" + oNSI.getState());
 
 		if (oBindingInfos.title || oBindingInfos.number || oBindingInfos.unit) {
 			oRm.class("sapFCardHeaderItemBinded");
@@ -39,7 +40,7 @@ sap.ui.define([], function () {
 		oRm.openStart("div")
 			.class("sapFCardHeaderSINumber");
 
-		if (oBindingInfos.title || oBindingInfos.number || oBindingInfos.unit) {
+		if (oBindingInfos.title || oBindingInfos.number || oBindingInfos.unit || oBindingInfos.state) {
 			oRm.class("sapFCardHeaderItemBinded");
 		}
 

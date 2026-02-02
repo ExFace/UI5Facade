@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,12 +33,11 @@ sap.ui.define([
 	 * @class The CutPaste enables Cut & Paste functionality for the overlays based on aggregation types
 	 * @extends sap.ui.dt.Plugin
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.dt.plugin.CutPaste
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var CutPaste = Plugin.extend("sap.ui.dt.plugin.CutPaste", /** @lends sap.ui.dt.plugin.CutPaste.prototype */ {
 		metadata: {
@@ -68,25 +67,25 @@ sap.ui.define([
 	CutPaste.prototype.registerElementOverlay = function(oOverlay) {
 		var oElement = oOverlay.getElement();
 		this.getElementMover().checkMovable(oOverlay)
-			.then(function(bMovable) {
-				//Register key down so that ESC is possible on all overlays
-				oOverlay.attachBrowserEvent("keydown", this._onKeyDown, this);
-				if (
-					this.getElementMover().isMovableType(oElement)
+		.then(function(bMovable) {
+			// Register key down so that ESC is possible on all overlays
+			oOverlay.attachBrowserEvent("keydown", this._onKeyDown, this);
+			if (
+				this.getElementMover().isMovableType(oElement)
 					&& bMovable
-				) {
-					oOverlay.setMovable(true);
-				}
-				if (this.getElementMover().getMovedOverlay()) {
-					this.getElementMover().activateTargetZonesFor(this.getElementMover().getMovedOverlay());
-				}
-			}.bind(this))
-			.catch(function(oError) {
-				throw DtUtil.createError(
-					"CutPaste#registerElementOverlay",
-					"An error occured during checkMovable: " + oError
-				);
-			});
+			) {
+				oOverlay.setMovable(true);
+			}
+			if (this.getElementMover().getMovedOverlay()) {
+				this.getElementMover().activateTargetZonesFor(this.getElementMover().getMovedOverlay());
+			}
+		}.bind(this))
+		.catch(function(oError) {
+			throw DtUtil.createError(
+				"CutPaste#registerElementOverlay",
+				`An error occurred during checkMovable: ${oError}`
+			);
+		});
 	};
 
 	/**
@@ -154,9 +153,9 @@ sap.ui.define([
 			oOverlay.addStyleClass("sapUiDtOverlayCutted");
 
 			return this.getElementMover().activateAllValidTargetZones(this.getDesignTime())
-				.then(function() {
-					oOverlay.focus();
-				});
+			.then(function() {
+				oOverlay.focus();
+			});
 		}
 		return Promise.resolve(undefined);
 	};
@@ -189,7 +188,7 @@ sap.ui.define([
 		// focus get invalidated, see BCP 1580061207
 		if (bResult) {
 			oCutOverlay.setSelected(true);
-			setTimeout(function () {
+			setTimeout(function() {
 				oCutOverlay.focus();
 			}, 0);
 		}
@@ -226,7 +225,7 @@ sap.ui.define([
 	};
 
 	CutPaste.prototype._getTargetZoneAggregation = function(oTargetOverlay) {
-		var aAggregationOverlays = oTargetOverlay.getAggregationOverlays();
+		var aAggregationOverlays = oTargetOverlay.getChildren();
 		var aPossibleTargetZones = aAggregationOverlays.filter(function(oAggregationOverlay) {
 			return oAggregationOverlay.isTargetZone();
 		});

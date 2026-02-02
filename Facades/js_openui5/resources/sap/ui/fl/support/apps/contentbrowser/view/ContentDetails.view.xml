@@ -9,7 +9,6 @@
 					icon="sap-icon://attachment"
 					text="{i18n>content}">
 					<f:SimpleForm
-						minWidth="1024"
 						maxContainerCols="1"
 						editable="false"
 						layout="ResponsiveGridLayout"
@@ -47,6 +46,7 @@
 				<ToolbarSpacer />
 				<Button text="{i18n>edit}" press=".onEditClicked" />
 				<Button text="{i18n>delete}" press=".onDeleteClicked" />
+				<CheckBox id="activeVersionCheckBox" text="{i18n>onActiveVersion}" valueState="Warning" visible="false"/>
 			</Toolbar>
 		</footer>
 	</Page>

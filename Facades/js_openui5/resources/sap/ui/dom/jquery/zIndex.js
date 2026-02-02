@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/thirdparty/jquery'],function(q){"use strict";function g(t,p){var d=Object.getOwnPropertyDescriptor(t,p);return d&&d.value;}if(!g(q.fn,"zIndex")){var f=function(z){if(z!==undefined){return this.css("zIndex",z);}if(this.length){var e=q(this[0]),p,v;while(e.length&&e[0]!==document){p=e.css("position");if(p==="absolute"||p==="relative"||p==="fixed"){v=parseInt(e.css("zIndex"));if(!isNaN(v)&&v!==0){return v;}}e=e.parent();}}return 0;};
+sap.ui.define(["sap/ui/thirdparty/jquery"],function(jQuery){"use strict";function e(e,n){var t=Object.getOwnPropertyDescriptor(e,n);return t&&t.value}if(!e(jQuery.fn,"zIndex")){var n=function(e){if(e!==undefined){return this.css("zIndex",e)}if(this.length){var n=jQuery(this[0]),t,i;while(n.length&&n[0]!==document){t=n.css("position");if(t==="absolute"||t==="relative"||t==="fixed"){i=parseInt(n.css("zIndex"));if(!isNaN(i)&&i!==0){return i}}n=n.parent()}}return 0};
 /*!
 		 * The following function is taken from
 		 * jQuery UI Core 1.11.1
@@ -14,5 +14,5 @@ sap.ui.define(['sap/ui/thirdparty/jquery'],function(q){"use strict";function g(t
 		 * http://jquery.org/license
 		 *
 		 * http://api.jqueryui.com/category/ui-core/
-		 */
-q.fn.zIndex=f;}return q;});
+		 */jQuery.fn.zIndex=n}return jQuery});
+//# sourceMappingURL=zIndex.js.map

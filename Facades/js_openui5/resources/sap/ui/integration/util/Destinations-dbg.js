@@ -1,15 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/Object",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/base/util/isPlainObject",
+	"sap/ui/integration/util/Utils"
 ], function (
 	BaseObject,
-	Log
+	Log,
+	isPlainObject,
+	Utils
 ) {
 	"use strict";
 	/* global Map */
@@ -25,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @param {sap.ui.integration.Host} oHost The Host which will be used for resolving destinations.
@@ -37,10 +41,11 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.integration"
 		},
-		constructor: function (oHost, oConfiguration) {
+		constructor: function (mConfig) {
 			BaseObject.call(this);
-			this._oHost = oHost;
-			this._oConfiguration = oConfiguration;
+			this._oHost = mConfig.host;
+			this._oCard = mConfig.card;
+			this._oConfiguration = mConfig.manifestConfig;
 			this._mResolved = new Map();
 		}
 	});
@@ -60,24 +65,54 @@ sap.ui.define([
 	 * @returns {Promise} A promise which resolves with the processed object.
 	 */
 	Destinations.prototype.process = function (oConfig) {
-		var sUrl = oConfig.url,
-			oClonedConfig;
+		var aPromises = [];
 
-		if (!sUrl || typeof sUrl !== "string") {
-			return Promise.resolve(oConfig);
+		this._processObject(oConfig, undefined, aPromises);
+
+		return Promise.all(aPromises).then(function () {
+			return oConfig;
+		}).catch(function (sMessage) {
+			Log.error(sMessage, "sap.ui.integration.util.Destinations");
+			return oConfig;
+		});
+	};
+
+	/**
+	 * @private
+	 */
+	Destinations.prototype._processObject = function (oObj, vKey, aPromises) {
+		if (!oObj) {
+			return Promise.resolve(oObj);
 		}
 
-		if (!this.hasDestination(sUrl)) {
-			return Promise.resolve(oConfig);
+		var vValue = oObj.hasOwnProperty(vKey) ? oObj[vKey] : oObj;
+
+		if (typeof vValue === "string") {
+			aPromises.push(this.processString(vValue)
+				.then(function (sProcessedString) {
+					if (vKey !== undefined) {
+						oObj[vKey] = sProcessedString;
+					}
+				})
+				.catch(function (sMessage) {
+					Log.error(sMessage, "sap.ui.integration.util.Destinations");
+					if (vKey !== undefined) {
+						oObj[vKey] = "";
+					}
+				}));
 		}
 
-		oClonedConfig = jQuery.extend(true, {}, oConfig);
+		if (isPlainObject(vValue)) {
+			Object.keys(vValue).forEach(function (sKey) {
+				this._processObject(vValue, sKey, aPromises);
+			}.bind(this));
+		}
 
-		return this.processString(sUrl)
-			.then(function (sProcessedUrl) {
-				oClonedConfig.url = sProcessedUrl;
-				return oClonedConfig;
-			});
+		if (Array.isArray(vValue)) {
+			vValue.forEach(function (vItem, iIndex) {
+				this._processObject(vValue, iIndex, aPromises);
+			}.bind(this));
+		}
 	};
 
 	/**
@@ -132,11 +167,11 @@ sap.ui.define([
 			return Promise.resolve(sDefaultUrl);
 		}
 
-		pResult = this._oHost.getDestination(sName);
+		pResult = Utils.timeoutPromise(this._oHost.getDestination(sName, this._oCard));
 
 		if (sDefaultUrl) {
 			return pResult.catch(function (sMessage) {
-				Log.error(sMessage + " Fallback to default url.");
+				Log.info(sMessage + " Fallback to default url.", "sap.ui.integration.util.Destinations");
 				return sDefaultUrl;
 			});
 		}

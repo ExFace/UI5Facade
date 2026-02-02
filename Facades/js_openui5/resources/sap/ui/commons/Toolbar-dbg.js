@@ -1,6 +1,6 @@
 /*!
  # * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,8 @@ sap.ui.define([
     'sap/ui/dom/containsOrEquals',
     'sap/ui/core/ResizeHandler',
     'sap/ui/core/Element',
-    'sap/ui/events/KeyCodes'
+    'sap/ui/events/KeyCodes',
+    'sap/ui/core/Configuration'
 ],
 	function(
 	    jQuery,
@@ -29,7 +30,8 @@ sap.ui.define([
 		containsOrEquals,
 		ResizeHandler,
 		Element,
-		KeyCodes
+		KeyCodes,
+		Configuration
 	) {
 		"use strict";
 
@@ -49,13 +51,12 @@ sap.ui.define([
 		 * @implements sap.ui.core.Toolbar
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @deprecated as of version 1.38, replaced by {@link sap.m.Toolbar}
 		 * @alias sap.ui.commons.Toolbar
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var Toolbar = Control.extend("sap.ui.commons.Toolbar", /** @lends sap.ui.commons.Toolbar.prototype */ {
 			metadata: {
@@ -64,6 +65,7 @@ sap.ui.define([
 					"sap.ui.core.Toolbar"
 				],
 				library: "sap.ui.commons",
+				deprecated: true,
 				properties: {
 					/**
 					 * When there is not enough space for the toolbar to display all items, the rightmost items are overflowing into a drop-down menu.
@@ -121,7 +123,7 @@ sap.ui.define([
 			this.bHasRightItems = false;
 			this._bRendering = false;
 
-			this.bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			this.bRtl = Configuration.getRTL();
 
 			// for resize detection
 			this._detectVisibleItemCountChangeTimer = null;
@@ -383,7 +385,7 @@ sap.ui.define([
 
 				var aElements = bIncludeItemsWithAPIPropertyVisibleFalse ? this.oInnerRef.childNodes :
 					this.oInnerRef.parentNode.querySelectorAll("#" + this.oInnerRef.id + ' > :not(.sapUiHiddenPlaceholder)');
-				this.bRtl = sap.ui.getCore().getConfiguration().getRTL();
+				this.bRtl = Configuration.getRTL();
 
 				/* Check for each item how far it is from the parent's left border:
 				 * As long as the items are in the same row, this offset increases, but

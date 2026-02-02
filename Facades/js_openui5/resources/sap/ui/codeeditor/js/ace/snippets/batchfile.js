@@ -1,1 +1,2 @@
-ace.define("ace/snippets/batchfile",["require","exports","module"],function(r,e,m){"use strict";e.snippetText="";e.scope="batchfile";});(function(){ace.require(["ace/snippets/batchfile"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/batchfile"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=batchfile.js.map

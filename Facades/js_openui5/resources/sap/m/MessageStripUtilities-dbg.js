@@ -1,10 +1,16 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
-sap.ui.define(function () {
+sap.ui.define([
+	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib"
+], function(
+	IconPool,
+	Library
+) {
 	"use strict";
 
 	/**
@@ -14,8 +20,8 @@ sap.ui.define(function () {
 	var MessageStripUtilities = {};
 
 	MessageStripUtilities.MESSAGES = {
-		TYPE_NOT_SUPPORTED: "Value 'sap.ui.core.MessageType.None' for property 'type' is not supported." +
-		"Defaulting to 'sap.ui.core.MessageType.Information'"
+		TYPE_NOT_SUPPORTED: "Value 'module:sap/ui/core/message/MessageType.None' for property 'type' is not supported. " +
+		"Defaulting to 'module:sap/ui/core/message/MessageType.Information'"
 	};
 
 	MessageStripUtilities.CLASSES = {
@@ -30,7 +36,7 @@ sap.ui.define(function () {
 		CLOSABLE: "data-sap-ui-ms-closable"
 	};
 
-	MessageStripUtilities.RESOURCE_BUNDLE = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	MessageStripUtilities.RESOURCE_BUNDLE = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Calculate the icon uri that should be set to the control property.
@@ -43,7 +49,16 @@ sap.ui.define(function () {
 	MessageStripUtilities.getIconURI = function () {
 		var sType = this.getType(),
 			sCustomIconURI = this.getCustomIcon(),
-			sIconURI = "sap-icon://message-" + sType.toLowerCase();
+			sIconURI;
+
+		var oIconsMapping = {
+			"Error": "error",
+			"Warning": "alert",
+			"Success": "sys-enter-2",
+			"Information": "information"
+		};
+
+		sIconURI = IconPool.getIconURI(oIconsMapping[sType]);
 
 		return sCustomIconURI || sIconURI;
 	};
@@ -71,8 +86,7 @@ sap.ui.define(function () {
 
 	MessageStripUtilities.getAccessibilityState = function () {
 		return {
-			role: "note",
-			live: "assertive"
+			role: "note"
 		};
 	};
 

@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library"
-], function(library, coreLibrary) {
+], function(library, Library, coreLibrary) {
 	"use strict";
 	//shortcut for sap.m.GenericTagDesign
 	var GenericTagDesign = library.GenericTagDesign,
@@ -17,7 +18,6 @@ sap.ui.define([
 
 		//shortcut for sap.ui.core.ValueState
 		ValueState = coreLibrary.ValueState,
-		oCore = sap.ui.getCore(),
 		GenericTagRenderer = {
 			apiVersion: 2
 		};
@@ -31,7 +31,7 @@ sap.ui.define([
 
 	GenericTagRenderer.render = function(oRm, oControl) {
 		var aLabelledBy = this._getAriaLabelledBy(oControl),
-			oResourceBundle = oCore.getLibraryResourceBundle("sap.m"),
+			oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			sTooltip = oControl.getTooltip_AsString();
 
 		oRm.openStart("div", oControl);
@@ -107,12 +107,13 @@ sap.ui.define([
 	};
 
 	GenericTagRenderer._getAriaLabelledBy = function(oControl) {
-		var aLabelledBy = [],
+		var aLabelledBy = oControl.getAriaLabelledBy().slice(),
 			sId = oControl.getId(),
 			sTagValueId = this._getTagValueId(oControl),
-			sTagValueState = this._getTagValueState(oControl);
+			sTagValueState = this._getTagValueState(oControl),
+			sStatus = oControl.getStatus();
 
-		if (oControl.getStatus() !== ValueState.None) {
+		if (sStatus !== ValueState.None && sStatus !== sTagValueState) {
 			aLabelledBy.push(sId + "-status");
 		}
 
@@ -122,15 +123,11 @@ sap.ui.define([
 			oControl.getValueState() === GenericTagValueState.Error ? sId + "-errorIcon" : sTagValueId
 		);
 
-		if (sTagValueState && sTagValueState !== ValueState.None) {
-			aLabelledBy.push(sTagValueId + '-state');
-		}
-
 		return aLabelledBy;
 	};
 
 	GenericTagRenderer._getGenericTagStatusText = function(oControl) {
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			sARIAStatusText;
 
 		switch (oControl.getStatus()) {

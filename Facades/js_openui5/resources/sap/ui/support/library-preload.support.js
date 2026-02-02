@@ -1,16 +1,19 @@
 //@ui5-bundle sap/ui/support/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRules/Main",
+sap.ui.predefine("sap/ui/support/jQuery.sap.support", ["sap/ui/thirdparty/jquery",
+		"sap/ui/support/supportRules/Main",
 		"sap/ui/support/supportRules/RuleSetLoader"],
-	function (Main,
+	function (jQuery,
+			  Main,
 			  RuleSetLoader) {
 		"use strict";
 
+		jQuery.sap = jQuery.sap || {};
 
 		/**
 		 * The <code>jQuery.sap.support</code> namespace is the central entry point for the Support Assistant functionality.
@@ -31,9 +34,8 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 		 *
 		 * @namespace
 		 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
-		 * @alias jQuery.sap.support
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 * @public
 		 */
 		jQuery.sap.support = {
@@ -44,7 +46,6 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 			 * Allows to choose a particular execution scope - desired part of the UI
 			 * to be checked and a flexible way to specify the list of rules to be used.
 			 *
-			 * @memberof jQuery.sap.support
 			 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 			 * @public
 			 * @param {object} [oExecutionScope] The execution scope of the analysis (see {@link topic:e15067d976f24b11907f4c262bd749a0 Execution Scopes}).
@@ -72,7 +73,6 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 
 			/**
 			 * Returns the result of the last analysis performed.
-			 * @memberof jQuery.sap.support
 			 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 			 * @public
 			 * @returns {Object} Last analysis history.
@@ -84,7 +84,6 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 			/**
 			 * Returns the history of all executed analyses.
 			 *
-			 * @memberof jQuery.sap.support
 			 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 			 * @public
 			 * @returns {Object[]} Array of history objects in the order of analyses performed. The results of the last analysis are contained in the last element in the array.
@@ -96,7 +95,6 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 			/**
 			 * Returns the history of all executed analyses into formatted output depending on the passed format.
 			 *
-			 * @memberof jQuery.sap.support
 			 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 			 * @public
 			 * @param {sap.ui.support.HistoryFormats} [sFormat=sap.ui.support.HistoryFormats.String] The format into which the history object will be converted. Possible values are listed in sap.ui.support.HistoryFormats.
@@ -109,7 +107,6 @@ sap.ui.predefine('sap/ui/support/jQuery.sap.support',["sap/ui/support/supportRul
 			 /**
 			 * Adds new temporary rule when in silent mode
 			 *
-			 * @memberof jQuery.sap.support
 			 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 			 * @public
 			 * @since 1.60

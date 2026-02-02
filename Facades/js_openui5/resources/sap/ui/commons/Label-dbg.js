@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,13 +41,12 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem, sap.ui.core.Label
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.Label</code> control.
 	 * @alias sap.ui.commons.Label
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Label = Control.extend("sap.ui.commons.Label", /** @lends sap.ui.commons.Label.prototype */ { metadata : {
 
@@ -56,6 +55,7 @@ sap.ui.define([
 			"sap.ui.core.Label"
 		],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -166,8 +166,8 @@ sap.ui.define([
 	 * old name are added so that existing applications will still run.
 	 *
 	 * @deprecated
-	 * @param {Boolean} bReqiuredAtBegin new value for property requiredAtBegin.
-	 * @returns {Object} Result of function execution.
+	 * @param {boolean} bReqiuredAtBegin new value for property requiredAtBegin.
+	 * @returns {this} Result of function execution.
 	 */
 	Label.prototype.setReqiuredAtBegin = function(bReqiuredAtBegin){
 		return this.setRequiredAtBegin(bReqiuredAtBegin);
@@ -180,7 +180,7 @@ sap.ui.define([
 	 * old name are added so that existing applications will still run.
 	 *
 	 * @deprecated
-	 * @returns {Object} Result of function execution.
+	 * @returns {boolean} Result of function execution.
 	 */
 	Label.prototype.getReqiuredAtBegin = function(){
 		return this.getRequiredAtBegin();
@@ -202,6 +202,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {sap.ui.core.AccessibilityInfo} The accessibility info
 	 * @protected
 	 */
 	Label.prototype.getAccessibilityInfo = function() {

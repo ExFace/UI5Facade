@@ -3,12 +3,18 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Card.less",
-			"size": 699,
+			"size": 247,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "CardHeaders.less",
+			"size": 253,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -20,13 +26,19 @@
 		},
 		{
 			"name": "DynamicPageTitle.less",
-			"size": 1855,
+			"size": 1967,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "FlexibleColumnLayout.less",
-			"size": 1288,
+			"size": 1277,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "GridContainer.less",
+			"size": 215,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -37,58 +49,42 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 3052,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 84810,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 84442,
+			"name": "SidePanel.less",
+			"size": 1062,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 69507,
+			"size": 109155,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 1220,
+			"module": "sap/f/themes/sap_belize_hcw/library-parameters.json",
+			"size": 2409,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 69502,
+			"size": 109152,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 7455,
+			"size": 9094,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 471,
+			"size": 1116,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 71703,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 71696,
-			"theme": "sap_belize_hcw"
+			"name": "resources.json",
+			"size": 1594
 		}
 	]
 }

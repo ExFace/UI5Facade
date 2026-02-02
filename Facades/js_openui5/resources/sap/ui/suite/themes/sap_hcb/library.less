@@ -2,11 +2,66 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_hcb with SAPUI5 version 1.46 the library.source.less */
+/* file of base is resolved: Imports to base.less and global.less of              */
+/* base are added to this library.source.less file (sap_hcb) and the              */
+/* respective control css files of base are added to the sap_hcb theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.126.     */
+/* ============================================================================== */
+
+@import "../../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../core/themes/base/base.less" */
+
+@import "../../../core/themes/base/global.less";
+
+/* START "base_shared.less" */
+/* This CSS shares it rules with all other CSS of this library */
+/* END "base_shared.less" */
+
+/* START "base_TaskCircle.less" */
+
+/* ============================================= */
+/* CSS for control sap.ui.dev/TaskCircle.control */
+/* ============================================= */
+
+.sapUiTaskCircle {
+	font-weight:bold;
+	text-align: center;
+	border: 2px solid @sapUiDarkBorder;
+	box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.5);
+	background-color: @sapUiBaseBG;
+	color: @sapUiText;
+}
+
+
+/* END "base_TaskCircle.less" */
+
+/* START "base_VerticalProgressIndicator.less" */
+
+/* ============================================= */
+/* CSS for control sap.ui.suite/VerticalProgressIndicator.control */
+/* ============================================= */
+
+
+.sapUiVerticalProgressOuterContainer{
+	border: 2px solid @sapUiBaseBorder;
+	width:  31px;
+	height: 58px;
+	box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.5);
+	background-color: @sapUiMediumBG;
+}
+
+.sapUiVerticalProgressInnerContainer{
+	position: relative;
+	background-color: @sapUiDarkBG;
+}
+/* END "base_VerticalProgressIndicator.less" */
+
+
 @import "../../../../../sap/ui/core/themes/sap_hcb/global.less";
 /* START "shared.less" */
 /* This CSS inherits rules from default/shared.css */

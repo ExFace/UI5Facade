@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/fl/apply/api/FlexRuntimeInfoAPI','./ItemBaseFlex'],function(F,I){"use strict";var c=Object.assign({},I);var r=function(C){if(C&&C.isA&&C.isA("sap.ui.mdc.Table")&&C.isTableBound()){if(!C._bWaitForBindChanges){C._bWaitForBindChanges=true;F.waitForChanges({element:C}).then(function(){C.checkAndRebind();delete C._bWaitForBindChanges;});}}};c.findItem=function(m,C,n){return C.find(function(o){var d=m.getProperty(o,"dataProperties");return d[0]===n;});};c.afterApply=function(C,t,i){if(C==="addColumn"&&!i||(C==="removeColumn"&&i)){r(t);}};c.addColumn=c.createAddChangeHandler();c.removeColumn=c.createRemoveChangeHandler();c.moveColumn=c.createMoveChangeHandler();return c;});
+sap.ui.define(["./ItemBaseFlex","./Util","sap/ui/fl/changeHandler/common/ChangeCategories"],(e,t,n)=>{"use strict";const r=Object.assign({},e);r.findItem=function(e,t,n){return t.reduce((t,r)=>t.then(t=>{if(!t){return Promise.all([e.getProperty(r,"propertyKey"),e.getProperty(r,"dataProperty")]).then(e=>{if(e[0]===n||e[1]===n){return r}})}return t}),Promise.resolve())};r.getChangeVisualizationInfo=function(e,r){const o=e.getContent();const a=r.byId(e.getSelector().id);let i;const d=[o.name];const l={descriptionPayload:{}};if(e.getChangeType()==="addColumn"){l.descriptionPayload.category=n.ADD;i="table.ITEM_ADD_CHANGE";d.push(o.index)}else if(e.getChangeType()==="removeColumn"){l.descriptionPayload.category=n.REMOVE;i="table.ITEM_DEL_CHANGE"}else if(e.getChangeType()==="moveColumn"){l.descriptionPayload.category=n.MOVE;i="table.ITEM_MOVE_CHANGE";d.push(e.getRevertData().index);d.push(o.index)}if(a){const e=a.getPropertyHelper()?.getProperty(o.name);if(e){d.splice(0,1,e.label)}}return t.getMdcResourceText(i,d).then(e=>{l.descriptionPayload.description=e;l.updateRequired=true;return l})};r.addColumn=r.createAddChangeHandler();r.removeColumn=r.createRemoveChangeHandler();r.moveColumn=r.createMoveChangeHandler();return r});
+//# sourceMappingURL=ColumnFlex.js.map

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,16 +26,16 @@ sap.ui.define([
 	 * @class
 	 * Dialog implementation based on the Overlay. If used in a Shell it leaves the Tool-Palette, Pane-Bar and Header-Items accessible.
 	 * @extends sap.ui.ux3.Overlay
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
-	 * @deprecated Since version 1.38.
+	 * @deprecated As of version 1.38, replaced by {@link sap.m.Dialog}
 	 * @alias sap.ui.ux3.OverlayDialog
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var OverlayDialog = Overlay.extend("sap.ui.ux3.OverlayDialog", /** @lends sap.ui.ux3.OverlayDialog.prototype */ {
 		metadata: {
+			deprecated: true,
 			library: "sap.ui.ux3",
 			properties: {
 				/**
@@ -104,6 +104,7 @@ sap.ui.define([
 	 * This Method is not supported for the OverlayDialog.
 	 *
 	 * @param {boolean} bVisible
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	OverlayDialog.prototype.setOpenButtonVisible = function(bVisible) {

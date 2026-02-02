@@ -1,86 +1,69 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/fl/requireAsync",
-	"sap/ui/fl/apply/_internal/changes/descriptor/ApplyUtil",
 	"sap/base/Log"
-], function (
+], function(
 	requireAsync,
-	ApplyUtil,
 	Log
 ) {
 	"use strict";
 
-	var BuildStrategy = {
-		registry: function() {
-			return requireAsync("sap/ui/fl/apply/_internal/changes/descriptor/RegistrationBuild");
-		},
-		handleError: function (oError) {
-			throw oError;
-		},
-		processTexts: function (oManifest, oChangeTexts) {
-			if (typeof oManifest["sap.app"].i18n === "string") {
-				oManifest["sap.app"].i18n = { bundleUrl: oManifest["sap.app"].i18n };
+	function processManifestPart(vManifestPart, oChangeTexts) {
+		// Recursively search the manifest for localization bindings and replace them with default texts
+		const vNewManifestPart = Array.isArray(vManifestPart)
+			? [...vManifestPart]
+			: { ...vManifestPart };
+		Object.entries(vNewManifestPart).forEach(([sKey, vValue]) => {
+			if (typeof vValue === "object" && vValue !== null) {
+				vNewManifestPart[sKey] = processManifestPart(vValue, oChangeTexts);
+			} else if (typeof vValue === "string") {
+				vNewManifestPart[sKey] = vValue.replaceAll(/{{.*?}}/g, (sMatch) => {
+					// Extract the key and replace it if there is a value for it
+					const sTextKey = sMatch.slice(2, -2);
+					const sResolvedValue = oChangeTexts[sTextKey];
+					return sResolvedValue || sMatch;
+				});
 			}
-			if (!oManifest["sap.app"].i18n.enhanceWith) {
-				oManifest["sap.app"].i18n.enhanceWith = [];
-			}
-			var sBundleName = ApplyUtil.formatBundleName(oManifest["sap.app"].id, oChangeTexts.i18n);
-
-			var bDoubles = oManifest["sap.app"].i18n.enhanceWith.some(function(mEntry) {
-				return mEntry.bundleName === sBundleName;
-			});
-			if (!bDoubles) {
-				oManifest["sap.app"].i18n.enhanceWith.push({ bundleName: sBundleName });
-			}
-			return oManifest;
-		}
-	};
+		});
+		return vNewManifestPart;
+	}
 
 	var RuntimeStrategy = {
-		registry: function() {
+		registry() {
 			return requireAsync("sap/ui/fl/apply/_internal/changes/descriptor/Registration");
 		},
-		handleError: function (oError) {
+		handleError(oError) {
 			Log.error(oError);
 		},
-		processTexts: function (oManifest, oChangeTexts) {
-			//TODO: optimize performance by creating map not using JSON.stringify/parse
-			var sManifest = JSON.stringify(oManifest);
-			Object.keys(oChangeTexts).forEach(function(sTextKey) {
-				if (oChangeTexts[sTextKey].value[""]) {
-					 sManifest = sManifest.replace("{{" + sTextKey + "}}", oChangeTexts[sTextKey].value[""]);
-				} else {
-					Log.error("Text change has to contain default language");
+		processTexts(oManifest, oChangeTexts) {
+			const oValidChangeTexts = {};
+			Object.entries(oChangeTexts).forEach(([sTextKey, { value: mChangeTextValue }]) => {
+				// Always use the default language (key = "")
+				if (mChangeTextValue[""]) {
+					oValidChangeTexts[sTextKey] = mChangeTextValue[""];
+					return;
 				}
+				Log.error("Text change has to contain default language");
 			});
-			return JSON.parse(sManifest);
+			return processManifestPart(oManifest, oValidChangeTexts);
 		}
 	};
-
 
 	var ApplyStrategyFactory = {
 		/**
-		 * Strategy to apply descriptor changes during build.
-		 * @returns {Promise<object>} Build strategy
-		 */
-		getBuildStrategy: function() {
-			return Promise.resolve(BuildStrategy);
-		},
-
-		/**
 		 * Strategy to apply descriptor changes during runtime.
-		 * @returns {Promise<object>} Runtime strategy
+		 * @returns {object} Runtime strategy
 		 */
-		getRuntimeStrategy: function() {
-			return Promise.resolve(RuntimeStrategy);
+		getRuntimeStrategy() {
+			return RuntimeStrategy;
 		}
 	};
 
 	return ApplyStrategyFactory;
-}, true);
+});

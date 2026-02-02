@@ -1,35 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/**
- * @class
- * Allows to select the scope of analysis on an application.
- *
- * <h3>Overview</h3>
- *
- * <code>ExecutionScope</code> is the third parameter of a rule check function.
- * It provides access to internal UI5 objects available for inspection.
- * The <code>getElements</code> API method allows the user to select a specific subset of
- * elements valid for their case. It accepts one query object argument.
- *
- * <h3>Usage</h3>
- *
- * When a rule is executed, three parameters are passed: <code>oIssueManager</code>,
- * <code>oCoreFacade</code> and <code>oScope</code>.
- *
- * An <code>ExecutionScope</code> instance is passed to every call of a rule check function.
- * When you analyze your application, available objects are collected depending on the settings
- * passed to the Support Assistant at the moment when you start it.
- * @public
- * @since 1.48
- * @class sap.ui.support.ExecutionScope
- */
 sap.ui.define(
-	["jquery.sap.global", "sap/ui/core/Component", "sap/ui/core/Element"],
-	function (jQuery, Component, Element) {
+	["sap/base/Log", "sap/ui/core/ComponentRegistry", "sap/ui/core/ElementRegistry", "sap/ui/core/UIAreaRegistry"],
+	function (Log, ComponentRegistry, ElementRegistry, UIAreaRegistry) {
 		"use strict";
 
 		var _context = null,
@@ -37,13 +14,13 @@ sap.ui.define(
 
 		var globalContext = {
 			setScope: function () {
-				elements = Element.registry.filter(function() { return true;});
+				elements = ElementRegistry.filter(function() { return true;});
 			}
 		};
 
 		var subtreeContext = {
 			setScope: function () {
-				var parent = Element.registry.get(_context.parentId);
+				var parent = ElementRegistry.get(_context.parentId);
 				//TODO: Handle parent not found
 				elements = parent.findAggregatedObjects(true);
 			}
@@ -53,7 +30,7 @@ sap.ui.define(
 			setScope: function () {
 				var set = {};
 				_context.components.forEach(function (componentId) {
-					var component = Component.registry.get(componentId),
+					var component = ComponentRegistry.get(componentId),
 						aggregations = component.findAggregatedObjects(true);
 
 					aggregations.forEach(function (agg) {
@@ -87,16 +64,18 @@ sap.ui.define(
 		function getPublicElementsInside(oControlRoot) {
 			var oRoot;
 
-			if (oControlRoot.getRootControl) {
+			if (oControlRoot.isA("sap.ui.core.Component")) {
 				oRoot = oControlRoot.getRootControl();
-				if (oRoot) {
-					// TODO also exclude clones of binding templates, but include
-					// the binding template
-					// TODO also exclude customData etc.?
-					return [oRoot].concat(
-						oRoot.findAggregatedObjects(true, isInPublicAggregation)
-					);
-				}
+			} else if (oControlRoot.getContent()) { // UIArea
+				oRoot = oControlRoot.getContent()[0];
+			}
+
+			if (oRoot) {
+				// TODO also exclude clones of binding templates, but include the binding template
+				// TODO also exclude customData etc.?
+				return [oRoot].concat(
+					oRoot.findAggregatedObjects(true, isInPublicAggregation)
+				);
 			}
 
 			return [];
@@ -153,13 +132,34 @@ sap.ui.define(
 			return res;
 		}
 
+		/**
+		 * @class
+		 * Allows to select the scope of analysis on an application.
+		 *
+		 * <h3>Overview</h3>
+		 *
+		 * The ExecutionScope provides access to internal UI5 objects available for inspection.
+		 * The <code>getElements</code> API method allows the user to select a specific subset of
+		 * elements valid for their case. It accepts one query object argument.
+		 *
+		 * <h3>Usage</h3>
+		 * The ExecutionScope is passed as third argument to all rule check functions.
+		 *
+		 * When you analyze your application, available objects are collected depending on the settings
+		 * passed to the Support Assistant at the moment when you start it.
+		 *
+		 * @public
+		 * @since 1.48
+		 * @hideconstructor
+		 * @alias sap.ui.support.ExecutionScope
+		 */
 		function ExecutionScope(core, context) {
 			elements = [];
 			_context = context;
 
 			contextTypes[_context.type].setScope();
 
-			return {
+			return /** @lends sap.ui.support.ExecutionScope.prototype */ {
 				/**
 				 * @param {object} oConfig Object with specific filtering options
 				 * @param {string} oConfig.type Type name to filter by type
@@ -168,9 +168,7 @@ sap.ui.define(
 				 * @param {boolean} oConfig.cloned Option to exclude elements that are
 				 * clones of list bindings
 				 * @public
-				 * @function
 				 * @returns {Array} Array of matched elements
-				 * @alias sap.ui.support.ExecutionScope.getElements
 				 */
 				getElements: function (oConfig) {
 					var that = this;
@@ -240,15 +238,13 @@ sap.ui.define(
 				 * Returns all public elements, i.e. elements that are part of public API
 				 * aggregations
 				 * @public
-				 * @function
 				 * @returns {Array} Array of matched elements
-				 * @alias sap.ui.support.ExecutionScope.getPublicElements
 				 */
 				getPublicElements: function () {
 					var aPublicElements = [];
-					var mUIAreas = core.mUIAreas;
+					var mUIAreas = UIAreaRegistry.all();
 
-					Component.registry.forEach(function(oComponent) {
+					ComponentRegistry.forEach(function(oComponent) {
 						aPublicElements = aPublicElements.concat(
 							getPublicElementsInside(oComponent)
 						);
@@ -265,11 +261,9 @@ sap.ui.define(
 				/**
 				 * Gets elements by their type
 				 * @public
-				 * @function
 				 * @param {string|function} classNameSelector Either string or function
 				 * to be used when selecting a subset of elements
 				 * @returns {Array} Array of matched elements
-				 * @alias sap.ui.support.ExecutionScope.getElementsByClassName
 				 */
 				getElementsByClassName: function (classNameSelector) {
 					if (typeof classNameSelector === "string") {
@@ -287,13 +281,11 @@ sap.ui.define(
 				/**
 				 * Gets the logged objects by object type
 				 * @public
-				 * @function
 				 * @param {any} type Type of logged objects
 				 * @returns {Array} Array of logged objects
-				 * @alias sap.ui.support.ExecutionScope.getLoggedObjects
 				 */
 				getLoggedObjects: function (type) {
-					var log = jQuery.sap.log.getLogEntries(),
+					var log = Log.getLogEntries(),
 						loggedObjects = [], elemIds;
 
 					// Add logEntries that have support info object,
@@ -314,7 +306,7 @@ sap.ui.define(
 								logEntry.supportInfo.type === type || type === undefined,
 							scopeMatch =
 								!hasElemId ||
-								jQuery.inArray(logEntry.supportInfo.elementId, elemIds) > -1;
+								elemIds.indexOf(logEntry.supportInfo.elementId) > -1;
 
 						/**
 						 * Give the developer the ability to pass filtering function
@@ -334,9 +326,7 @@ sap.ui.define(
 				/**
 				 * Gets the type of the execution scope
 				 * @public
-				 * @function
 				 * @returns {string} The type of the execution scope. Possible values are <code>global</code>, <code>subtree</code> or <code>components</code>.
-				 * @alias sap.ui.support.ExecutionScope.getType
 				 */
 				getType: function () {
 					return _context.type;

@@ -1,18 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/AnimationMode",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-	"sap/ui/core/Core"
-], function(coreLibrary, Core) {
+	"sap/ui/core/IconPool" // side effect: required when calling RenderManager#icon
+], function(
+	AnimationMode,
+	ControlBehavior,
+	Library,
+	coreLibrary
+) {
 	"use strict";
 
 	// shortcut for sap.ui.core.Orientation
 	var Orientation = coreLibrary.Orientation;
 
-	var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.layout");
+	var oResourceBundle = Library.getResourceBundleFor("sap.ui.layout");
 
 	/**
 	 * Splitter renderer.
@@ -32,8 +40,7 @@ sap.ui.define([
 	 */
 	SplitterRenderer.render = function(oRm, oSplitter) {
 		var bHorizontal = oSplitter.getOrientation() === Orientation.Horizontal,
-			sOrientationClass = bHorizontal ? "sapUiLoSplitterH" : "sapUiLoSplitterV",
-			bAnimate = Core.getConfiguration().getAnimation();
+			sOrientationClass = bHorizontal ? "sapUiLoSplitterH" : "sapUiLoSplitterV";
 
 		// Make sure we have the main element available before rendering the children so we can use
 		// the element width to calculate before rendering the children.
@@ -41,8 +48,11 @@ sap.ui.define([
 			.class("sapUiLoSplitter")
 			.class(sOrientationClass);
 
-		// Do not animate via CSS when liveResize is enabled
-		if (bAnimate && !oSplitter._liveResize) {
+		/**
+		 * Do not animate via CSS when liveResize is enabled
+		 * @deprecated As of version 1.21.
+		 */
+		if (!oSplitter._liveResize && ControlBehavior.getAnimationMode() !== AnimationMode.none && ControlBehavior.getAnimationMode() !== AnimationMode.minimal) {
 			oRm.class("sapUiLoSplitterAnimated");
 		}
 
@@ -67,7 +77,7 @@ sap.ui.define([
 			sSizeType = bHorizontal ? "width" : "height",
 			aContentAreas = oSplitter._getContentAreas(),
 			iLen = aContentAreas.length,
-			aCalculatedSizes = oSplitter.getCalculatedSizes();
+			aCalculatedSizes = oSplitter._calculatedSizes;
 
 		aContentAreas.forEach(function (oContentArea, i) {
 			var oLayoutData = oContentArea.getLayoutData(),

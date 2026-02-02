@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -8,6 +8,8 @@ sap.ui.define([
 	"sap/ui/base/ManagedObject",
 	"sap/ui/core/Fragment",
 	"sap/ui/core/library",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/rta/Utils",
 	"sap/ui/rta/plugin/iframe/AddIFrameDialogController",
@@ -17,6 +19,8 @@ sap.ui.define([
 	ManagedObject,
 	Fragment,
 	coreLibrary,
+	Element,
+	Lib,
 	JSONModel,
 	RtaUtils,
 	AddIFrameDialogController,
@@ -25,10 +29,10 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
-	var ValueState = coreLibrary.ValueState;
-	var _oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-	var _sDocumentationURL = "https://help.sap.com/viewer/4fc8d03390c342da8a60f8ee387bca1a/latest/en-US/8db25610e91342919fcf63d4e5868ae9.html";
-	var _sDocumentationHTML = _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_URL_WARNING_TEXT") + " (" + "<a href=" + _sDocumentationURL + ">" + _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_URL_WARNING_LINKTEXT") + "</a>" + ")";
+	var {ValueState} = coreLibrary;
+	var _oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
+	var _sDocumentationURL = "https://help.sap.com/docs/search?q=Embedding%20Content%20%28Object%20Pages%29";
+	var _sDocumentationHTML = `${_oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_URL_WARNING_TEXT")} (` + `<a href=${_sDocumentationURL}>${_oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_URL_WARNING_LINKTEXT")}</a>)`;
 	var _mText = {
 		dialogTitle: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_TITLE"),
 		dialogCreateTitle: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_TITLE"),
@@ -38,7 +42,7 @@ sap.ui.define([
 		widthUnitLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_WIDTH_UNITLABEL"),
 		heightLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_HEIGHT_LABEL"),
 		heightUnitLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_HEIGHT_UNITLABEL"),
-		percentUseLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_PERCENT_USED"),
+		dimensionsErrorText: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_DIMENSIONS_ERROR"),
 		saveText: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_BUTTON_SAVE"),
 		cancelText: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_BUTTON_CANCEL"),
 		previewUrlLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_PREVIEW_URL_LABEL"),
@@ -51,29 +55,40 @@ sap.ui.define([
 		editUrlLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_EDIT_URL_LABEL"),
 		parametersLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_PARAMETERS_LABEL"),
 		columnParameterLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_TABLE_PARAMETER_LABEL"),
-		columnUiValueLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_TABLE_UI_VALUE_LABEL")
+		columnUiValueLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_TABLE_UI_VALUE_LABEL"),
+		containerTitleLabel: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_CONTAINER_TITLE_LABEL"),
+		containerTitleDefaultValue: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_CONTAINER_TITLE_DEFAULT_VALUE_TEXT"),
+		selectAdditionalTextPercentSection: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_SELECT_ADDITIONAL_TEXT_PERCENT_SECTION"),
+		selectAdditionalTextPercentHeader: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_SELECT_ADDITIONAL_TEXT_PERCENT_HEADER"),
+		selectAdditionalTextVh: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_SELECT_ADDITIONAL_TEXT_VH"),
+		selectAdditionalTextPx: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_SELECT_ADDITIONAL_TEXT_PX"),
+		selectAdditionalTextRem: _oTextResources.getText("IFRAME_ADDIFRAME_DIALOG_SELECT_ADDITIONAL_TEXT_REM"),
+		advancedSettingsTitle: _oTextResources.getText("IFRAME_ADDIFRAME_ADVANCED_SETTINGS"),
+		additionalParametersSecurityWarningText: _oTextResources.getText("IFRAME_ADDIFRAME_ADDITIONAL_PARAMETERS_SECURITY_WARNING_TEXT"),
+		additionalParametersWarningMoreInfoText: _oTextResources.getText("IFRAME_ADDIFRAME_ADDITIONAL_PARAMETERS_WARNING_MORE_INFO_TEXT"),
+		additionalSandboxParametersLabel: _oTextResources.getText("IFRAME_ADDIFRAME_ADD_ADDITIONAL_SANDBOX_PARAMETERS_LABEL"),
+		additionalSandboxParametersPlaceholder: _oTextResources.getText("IFRAME_ADDIFRAME_ADD_ADDITIONAL_SANDBOX_PARAMETERS_PLACEHOLDER")
 	};
 
-	function createJSONModel(bSetUpdateTitle) {
-		if (bSetUpdateTitle) {
-			_mText.dialogTitle = _mText.dialogUpdateTitle;
-		} else {
-			_mText.dialogTitle = _mText.dialogCreateTitle;
-		}
+	function createJSONModel(bSetUpdateTitle, bAsContainer, sFrameWidthValue, sFrameHeightValue, oAdvancedSettings) {
+		_mText.dialogTitle = bSetUpdateTitle ? _mText.dialogUpdateTitle : _mText.dialogCreateTitle;
+
+		var sSelectAdditionalTextPercent = bAsContainer
+			? _mText.selectAdditionalTextPercentSection
+			: _mText.selectAdditionalTextPercentHeader;
+
 		return new JSONModel({
 			text: _mText,
-			section: {
-				visible: false
+			asContainer: {
+				value: bAsContainer
 			},
-			asNewSection: {
-				value: false
-			},
-			sectionName: {
-				value: "",
-				valueState: ValueState.None
+			title: {
+				value: _mText.containerTitleDefaultValue,
+				valueState: ValueState.None,
+				id: "sapUiRtaAddIFrameDialog_ContainerTitle_TitleInput"
 			},
 			frameWidth: {
-				value: 100,
+				value: parseFloat(sFrameWidthValue) || 100,
 				valueState: ValueState.None,
 				id: "sapUiRtaAddIFrameDialog_WidthInput"
 			},
@@ -81,29 +96,60 @@ sap.ui.define([
 				value: "%"
 			},
 			frameHeight: {
-				value: 100,
+				value: parseFloat(sFrameHeightValue) || 50,
 				valueState: ValueState.None,
 				id: "sapUiRtaAddIFrameDialog_HeightInput"
 			},
 			frameHeightUnit: {
-				value: "%"
+				value: "vh"
 			},
 			frameUrl: {
 				value: "",
 				valueState: ValueState.None
+			},
+			previousFrameUrl: {
+				value: ""
+			},
+			frameUrlError: {
+				value: undefined
 			},
 			previewUrl: { value: "" },
 			documentationLink: {
 				HTML: _sDocumentationHTML
 			},
 			parameters: { value: [] },
-			unitsOfMeasure: [{
-				name: "%"
+			unitsOfWidthMeasure: [{
+				unit: "%",
+				descriptionText: sSelectAdditionalTextPercent
 			}, {
-				name: "px"
+				unit: "px",
+				descriptionText: _mText.selectAdditionalTextPx
 			}, {
-				name: "rem"
-			}]
+				unit: "rem",
+				descriptionText: _mText.selectAdditionalTextRem
+			}],
+			unitsOfHeightMeasure: [{
+				unit: "vh",
+				descriptionText: _mText.selectAdditionalTextVh
+			}, {
+				unit: "px",
+				descriptionText: _mText.selectAdditionalTextPx
+			}, {
+				unit: "rem",
+				descriptionText: _mText.selectAdditionalTextRem
+			}],
+			advancedSettings: {
+				value: {
+					allowForms: true,
+					allowScripts: true,
+					allowSameOrigin: true,
+					additionalSandboxParameters: [],
+					...oAdvancedSettings
+				}
+			},
+			settingsUpdate: {
+				value: false
+			}
 		});
 	}
 
@@ -113,7 +159,7 @@ sap.ui.define([
 	 * @class Context - Dialog for IFrame settings in Runtime Authoring
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.78
@@ -131,30 +177,33 @@ sap.ui.define([
 	/**
 	 * Open the Add IFrame Dialog
 	 *
-	 * @param {object|undefined} mSettings - existing IFrame settings
-	 * @returns {Promise} promise resolving to IFrame settings
+	 * @param {object|undefined} mSettings - Existing IFrame settings
+	 * @param {sap.ui.core.Control} oReferenceControl - Control to take the default model from
+	 * @returns {Promise} Promise resolving to IFrame settings
 	 * @public
 	 */
-	AddIFrameDialog.prototype.open = function(mSettings) {
+	AddIFrameDialog.prototype.open = function(mSettings, oReferenceControl) {
 		return new Promise(function(resolve) {
 			this._fnResolve = resolve;
-			this._createDialog(mSettings);
+			this._createDialog(mSettings, oReferenceControl);
 		}.bind(this));
 	};
 
 	/**
 	 * Create the Add IFrame Dialog
 	 *
-	 * @param {object|undefined} mSettings - existing IFrame settings
+	 * @param {object|undefined} mSettings - Existing IFrame settings
+	 * @param {sap.ui.core.Control} oReferenceControl - Control to take the default model from
 	 * @private
 	 */
-	AddIFrameDialog.prototype._createDialog = function(mSettings) {
-		// set the correct title
-		var bSetUpdateTitle = false;
-		if (mSettings) {
-			bSetUpdateTitle = mSettings.updateMode ? mSettings.updateMode : false;
-		}
-		this._oJSONModel = createJSONModel(bSetUpdateTitle);
+	AddIFrameDialog.prototype._createDialog = function(mSettings, oReferenceControl) {
+		this._oJSONModel = createJSONModel(
+			!!mSettings?.updateMode,
+			!!mSettings?.asContainer,
+			mSettings?.frameWidth,
+			mSettings?.frameHeight,
+			mSettings?.advancedSettings
+		);
 		this._oController = new AddIFrameDialogController(this._oJSONModel, mSettings);
 		Fragment.load({
 			name: "sap.ui.rta.plugin.iframe.AddIFrameDialog",
@@ -162,7 +211,9 @@ sap.ui.define([
 		}).then(function(oAddIFrameDialog) {
 			this._oDialog = oAddIFrameDialog;
 			this._oDialog.addStyleClass(RtaUtils.getRtaStyleClassName());
-			this._oDialog.setModel(this._oJSONModel);
+			this._oDialog.setModel(this._oJSONModel, "dialogInfo");
+			this._oDialog.setModel(oReferenceControl.getModel());
+			this._oDialog.setBindingContext(oReferenceControl.getBindingContext());
 			this._openDialog();
 		}.bind(this)).catch(function(oError) {
 			Log.error("Error loading fragment sap.ui.rta.plugin.iframe.AddIFrameDialog: ", oError);
@@ -177,6 +228,9 @@ sap.ui.define([
 	AddIFrameDialog.prototype._openDialog = function() {
 		this._oDialog.attachAfterOpen(function() {
 			this._disablePanelExpand();
+			const oIframe = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewFrame");
+			const oUserModel = oIframe.getModel("$user");
+			this._oDialog.setModel(oUserModel, "$user");
 			this.fireOpened();
 		}.bind(this));
 
@@ -196,7 +250,7 @@ sap.ui.define([
 	 * @private
 	 */
 	AddIFrameDialog.prototype._disablePanelExpand = function() {
-		var oPanelButton = sap.ui.getCore().byId("sapUiRtaAddIFrameDialog_PreviewLinkPanel").getDependents()[0];
+		var oPanelButton = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewLinkPanel").getDependents()[0];
 		if (oPanelButton) {
 			oPanelButton.setEnabled(false);
 		}
@@ -206,37 +260,50 @@ sap.ui.define([
 	 * Helper to extract current context URL parameters for the URL builder
 	 *
 	 * @param {sap.ui.base.ManagedObject} oObject - Managed object to extract the context from
-	 * @return {object[]}  - Parameters array for URL builder exposed by the Add IFrame dialog
+	 * @return {Promise<object[]>} Resolving to parameters array for URL builder exposed by the Add IFrame dialog
 	 */
-	AddIFrameDialog.buildUrlBuilderParametersFor = function(oObject) {
-		var oUserInfo = getContainerUserInfo();
-		var oUserParameters = Object.keys(oUserInfo)
-			.map(function(sUserSetting) {
-				return {
-					label: sUserSetting,
-					key: "{$user>/" + sUserSetting + "}",
-					value: oUserInfo[sUserSetting]
-				};
-			});
-		var oBindingContext = oObject.getBindingContext();
-		var oDefaultBoundObjectParameters;
+	AddIFrameDialog.buildUrlBuilderParametersFor = async function(oObject) {
+		const oUserInfo = await getContainerUserInfo();
+		const oUserParameters = Object.keys(oUserInfo)
+		.map(function(sUserSetting) {
+			return {
+				label: sUserSetting,
+				key: `{$user>/${sUserSetting}}`,
+				value: oUserInfo[sUserSetting]
+			};
+		});
+		const oBindingContext = oObject.getBindingContext();
+		let aDefaultBoundObjectParameters;
 		if (oBindingContext) {
-			var oDefaultBoundObject = oBindingContext.getObject();
-			oDefaultBoundObjectParameters = Object.keys(oDefaultBoundObject)
-				.filter(function(sProperty) {
-					return typeof oDefaultBoundObject[sProperty] !== "object";
-				})
-				.map(function(sProperty) {
-					return {
-						label: sProperty,
-						key: "{" + sProperty + "}",
-						value: oDefaultBoundObject[sProperty]
-					};
-				});
+			const oDefaultBoundObject = oBindingContext.getObject();
+			aDefaultBoundObjectParameters = Object.keys(oDefaultBoundObject)
+			.filter(function(sProperty) {
+				return typeof oDefaultBoundObject[sProperty] !== "object";
+			})
+			.map(async function(sProperty) {
+				const oModel = oBindingContext.getModel();
+				const oReturn = {
+					label: sProperty,
+					key: `{${sProperty}}`,
+					value: oDefaultBoundObject[sProperty]
+				};
+				// V4 Models automatically adjust values for certain data types based on localization settings,
+				// which can make them different from what we display on the table of parameters. We get the data
+				// type here to add the parameter to the URL later with the same value that was displayed on the table.
+				if (oModel.isA("sap.ui.model.odata.v4.ODataModel")) {
+					const oMetaModel = oModel.getMetaModel();
+					const sMetaPath = oMetaModel.getMetaPath(oBindingContext.getPath());
+					const sType = await oMetaModel.requestObject(`${sMetaPath}/${sProperty}/$Type`);
+					if (sType) {
+						oReturn.type = sType;
+					}
+				}
+				return oReturn;
+			});
 		} else {
-			oDefaultBoundObjectParameters = [];
+			aDefaultBoundObjectParameters = [];
 		}
-		return oUserParameters.concat(oDefaultBoundObjectParameters);
+		return oUserParameters.concat(await Promise.all(aDefaultBoundObjectParameters));
 	};
 
 	return AddIFrameDialog;

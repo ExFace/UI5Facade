@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,16 +44,16 @@ sap.ui.define([
 	 * @class
 	 * DataSet
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38. Use a container by choice from the {@link sap.m} library, instead.
 	 * @alias sap.ui.ux3.DataSet
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DataSet = Control.extend("sap.ui.ux3.DataSet", /** @lends sap.ui.ux3.DataSet.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.ux3",
 		properties : {
 
@@ -382,9 +382,8 @@ sap.ui.define([
 	/**
 	 * Returns the LeadSelection index
 	 *
-	 * @return {int} selected index
+	 * @returns {int} selected index
 	 * @protected
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	DataSet.prototype.getLeadSelection = function() {
 		return this.selectionModel.getLeadSelectedIndex();
@@ -396,7 +395,6 @@ sap.ui.define([
 	 * @param {int} iIIndex set LeadSelection index
 	 * @type void
 	 * @protected
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	DataSet.prototype.setLeadSelection = function(iIndex) {
 		this.selectionModel.setLeadSelectedIndex(iIndex);
@@ -406,7 +404,7 @@ sap.ui.define([
 	 * Returns true if iIndex is selected
 	 *
 	 * @param {int} iIndex index of selection
-	 * @return {boolean} index selected true/false
+	 * @returns {boolean} index selected true/false
 	 * @protected
 	*/
 	DataSet.prototype.isSelectedIndex = function(iIndex) {
@@ -417,7 +415,7 @@ sap.ui.define([
 	 * Returns id of selected Item from given index
 	 *
 	 * @param {int} iIndex index of selection
-	 * @return {string} id of selected item
+	 * @returns {string} id of selected item
 	 * @protected
 	*/
 	DataSet.prototype.getSelectedItemId = function(iIndex) {
@@ -427,9 +425,9 @@ sap.ui.define([
 	/**
 	 * Creates a view switch button
 	 *
-	 * @param {object} oView View
+	 * @param {sap.ui.ux3.DataSetView} oView DataSet view
 	 * @param {int} iIndex Index of view
-	 * @return {object} viewSwitch instance
+	 * @returns {sap.m.Button} viewSwitch instance
 	 * @protected
 	*/
 	DataSet.prototype.createViewSwitch = function(oView, iIndex) {
@@ -508,12 +506,12 @@ sap.ui.define([
 		this.clearSelection();
 		if (!bMode) {
 			this.setProperty("multiSelect", false);
-			if (!!this.selectionModel) {
+			if (this.selectionModel) {
 				this.selectionModel.setSelectionMode(SelectionModel.SINGLE_SELECTION);
 			}
 		} else {
 			this.setProperty("multiSelect", true);
-			if (!!this.selectionModel) {
+			if (this.selectionModel) {
 				this.selectionModel.setSelectionMode(SelectionModel.MULTI_SELECTION);
 			}
 		}
@@ -658,7 +656,6 @@ sap.ui.define([
 	 *         ToolbarItem
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	DataSet.prototype.addToolbarItem = function(oToolbarItem) {
 		this._getToolbar().addItem(oToolbarItem);
@@ -672,7 +669,6 @@ sap.ui.define([
 	 * @param {sap.ui.commons.ToolbarItem} oOToolbarItem
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	DataSet.prototype.removeToolbarItem = function(oToolbarItem) {
 		this._getToolbar().removeItem(oToolbarItem);

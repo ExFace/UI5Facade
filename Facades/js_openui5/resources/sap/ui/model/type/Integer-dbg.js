@@ -1,30 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
-	'sap/ui/core/format/NumberFormat',
-	'sap/ui/model/SimpleType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		NumberFormat,
-		SimpleType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/Lib",
+	"sap/ui/core/format/NumberFormat",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(each, isEmptyObject, Library, NumberFormat, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for an Integer type.
@@ -35,15 +26,17 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat#constructor NumberFormat}.
+	 * @param {object} [oFormatOptions]
+	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getIntegerInstance}
 	 * @param {object} [oFormatOptions.source] Additional set of format options to be used if the property in the model is not of type string and needs formatting as well.
 	 * 										   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
 	 * @param {object} [oConstraints] Value constraints
 	 * @param {int} [oConstraints.minimum] Smallest value allowed for this type
 	 * @param {int} [oConstraints.maximum] Largest value allowed for this type
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @alias sap.ui.model.type.Integer
 	 */
 	var Integer = SimpleType.extend("sap.ui.model.type.Integer", /** @lends sap.ui.model.type.Integer.prototype */ {
@@ -84,14 +77,14 @@ sap.ui.define([
 			case "string":
 				iResult = this.oOutputFormat.parse(String(vValue));
 				if (isNaN(iResult)) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
 					throw new ParseException(oBundle.getText("EnterInt"));
 				}
 				break;
 			case "float":
 				iResult = Math.floor(vValue);
 				if (iResult != vValue) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
+					oBundle = Library.getResourceBundleFor("sap.ui.core");
 					throw new ParseException(oBundle.getText("EnterInt"));
 				}
 				break;
@@ -109,26 +102,32 @@ sap.ui.define([
 
 	Integer.prototype.validateValue = function(vValue) {
 		if (this.oConstraints) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			var oBundle = Library.getResourceBundleFor("sap.ui.core"),
 				aViolatedConstraints = [],
 				aMessages = [],
-				iValue = vValue;
+				iValue = vValue,
+				that = this;
+
 			if (this.oInputFormat) {
 				iValue = this.oInputFormat.parse(vValue);
 			}
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				switch (sName) {
 					case "minimum":
 						if (iValue < oContent) {
 							aViolatedConstraints.push("minimum");
-							aMessages.push(oBundle.getText("Integer.Minimum", [oContent]));
+							aMessages.push(oBundle.getText("Integer.Minimum",
+								[that.oOutputFormat.format(oContent)]));
 						}
 						break;
 					case "maximum":
 						if (iValue > oContent) {
 							aViolatedConstraints.push("maximum");
-							aMessages.push(oBundle.getText("Integer.Maximum", [oContent]));
+							aMessages.push(oBundle.getText("Integer.Maximum",
+								[that.oOutputFormat.format(oContent)]));
 						}
+						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {

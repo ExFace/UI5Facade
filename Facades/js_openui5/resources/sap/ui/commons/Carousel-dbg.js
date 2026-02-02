@@ -1,9 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
 // Provides control sap.ui.commons.Carousel.
 sap.ui.define([
     'sap/ui/thirdparty/jquery',
@@ -17,12 +16,13 @@ sap.ui.define([
     './CarouselRenderer',
     'sap/ui/Device',
     'sap/ui/events/KeyCodes',
+    "sap/ui/core/Configuration",
     // jQuery custom selectors ":sapFocusable"
     "sap/ui/dom/jquery/Selectors",
     // jQuery Plugin "firstFocusableDomRef"
     "sap/ui/dom/jquery/Focusable"
 ],
-	function(jQuery, Log, capitalize, containsOrEquals, library, Control, ResizeHandler, ItemNavigation, CarouselRenderer, Device, KeyCodes) {
+	function(jQuery, Log, capitalize, containsOrEquals, library, Control, ResizeHandler, ItemNavigation, CarouselRenderer, Device, KeyCodes, Configuration) {
 	"use strict";
 
 
@@ -43,18 +43,18 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.8.0
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.Carousel</code> control.
 	 * @alias sap.ui.commons.Carousel
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Carousel = Control.extend("sap.ui.commons.Carousel", /** @lends sap.ui.commons.Carousel.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -176,7 +176,7 @@ sap.ui.define([
 		if (this.getOrientation() == "vertical") {
 			this._sAnimationAttribute = 'margin-top';
 		} else {
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Configuration.getRTL()) {
 				this._sAnimationAttribute = 'margin-right';
 			} else {
 				this._sAnimationAttribute = 'margin-left';
@@ -226,7 +226,7 @@ sap.ui.define([
 					}
 				}
 
-				if (sap.ui.getCore().getConfiguration().getRTL()) {
+				if (Configuration.getRTL()) {
 					$ContentArea.scrollLeft($ScrollList.width()  - $ContentArea.width());
 				} else {
 					$ContentArea.scrollLeft(0);
@@ -431,7 +431,7 @@ sap.ui.define([
 
 	/**
 	 * Enters action mode
-	 * @param {Object} oDomRef The HTML element to be focused
+	 * @param {HTMLElement} oDomRef The HTML element to be focused
 	 * @private
 	 */
 	Carousel.prototype._enterActionMode = function(oDomRef) {
@@ -515,7 +515,6 @@ sap.ui.define([
 	/**
 	 * Shows the previous item in carousel. This can be only used after the component is rendered.
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Carousel.prototype.showPrevious = function() {
 		var that = this,
@@ -549,7 +548,6 @@ sap.ui.define([
 	/**
 	 * Shows the next item in carousel. This can be only used after the component is rendered.
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Carousel.prototype.showNext = function() {
 		var that = this,
@@ -583,7 +581,6 @@ sap.ui.define([
 	 * Shows the element with the specified Id. This can be only used after the component is rendered.
 	 * @param {string} sElementId Id of the element to slide to.
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Carousel.prototype.showElementWithId = function(sElementId) {
 		this._showAllItems();
@@ -727,12 +724,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the focused DOM element
-	 * @returns {jQuery} The focused DOM element
-	 * @public
+	 * Returns the DOM Element that should get the focus.
+	 *
+	 * To be overwritten by the specific control method.
+	 *
+	 * @return {Element} Returns the DOM Element that should get the focus
+	 * @protected
 	 */
 	Carousel.prototype.getFocusDomRef = function() {
-		return this.$("scrolllist");
+		return this.$("scrolllist")[0];
 	};
 
 	/**
@@ -778,7 +778,7 @@ sap.ui.define([
 	 * Default value is <code>0</code>
 	 *
 	 * @param {int} iFirstVisibleIndex  new value for property <code>firstVisibleIndex</code>
-	 * @return {sap.ui.commons.Carousel} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @since 1.11.0
 	 */

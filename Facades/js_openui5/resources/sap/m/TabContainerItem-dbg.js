@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,8 @@
 sap.ui.define(['sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'./TabStripItem',
-	'./library'],
-	function(Element, IconPool, TabStripItem, library) {
+	'sap/m/ImageHelper'],
+	function(Element, IconPool, TabStripItem, ImageHelper) {
 		"use strict";
 
 		/**
@@ -23,17 +23,15 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.m.TabContainerItem
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var TabContainerItem = Element.extend("sap.m.TabContainerItem", /** @lends sap.m.TabContainerItem.prototype */ { metadata : {
 
-			library : "sap.ui.core",
 			properties : {
 
 				/**
@@ -43,23 +41,20 @@ sap.ui.define(['sap/ui/core/Element',
 
 				/**
 				 * Determines additional text to be displayed for the item.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.63
 				 */
 				additionalText : {type : "string", group : "Misc", defaultValue : ""},
 
 				/**
 				 * Defines the icon to be displayed as graphical element within the <code>TabContainerItem</code>.
 				 * It can be an image or an icon from the icon font.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
-				 */
+				 * @since 1.63
+				 * */
 				icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
 
 				/**
 				 * Determines the tooltip text of the <code>TabContainerItem</code>'s icon.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.63
 				 */
 				iconTooltip : {type : "string", group : "Accessibility", defaultValue : null},
 
@@ -86,11 +81,19 @@ sap.ui.define(['sap/ui/core/Element',
 				 */
 				_image: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
 			},
+			associations : {
+				/**
+				 * Internal association for managing the tab strip item element.
+				 */
+				_tabStripItem : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"}
+
+			},
 			events : {
 
 				/**
 				 * Sends information that some of the properties have changed.
 				 * @private
+				 * @ui5-restricted sap.m.TabContainerItem
 				 */
 				itemPropertyChanged : {
 					parameters: {
@@ -115,13 +118,25 @@ sap.ui.define(['sap/ui/core/Element',
 			dnd: { draggable: true, droppable: false }
 		}});
 
+		TabContainerItem.prototype.init = function() {
+			var oTabStripItem = new TabStripItem();
+			this.setAssociation("_tabStripItem", oTabStripItem, true);
+		};
+
+		TabContainerItem.prototype.exit = function() {
+			var oTabStripItem = this._getTabStripItem();
+			if (oTabStripItem) {
+				oTabStripItem.destroy();
+			}
+		};
+
 		/**
 		 * Overwrites the method in order to suppress invalidation for some properties.
 		 *
 		 * @param {string} sName Property name to be set
 		 * @param {boolean | string | object} vValue Property value to be set
 		 * @param {boolean} bSuppressInvalidation Whether invalidation to be suppressed
-		 * @return {sap.m.TabContainerItem} This instance for chaining
+		 * @return {this} This instance for chaining
 		 * @public
 		 */
 		TabContainerItem.prototype.setProperty = function(sName, vValue, bSuppressInvalidation) {
@@ -139,24 +154,69 @@ sap.ui.define(['sap/ui/core/Element',
 		 * Property setter for the icon
 		 *
 		 * @param {sap.ui.core.URI} sIcon new value of the Icon property
-		 * @return {sap.m.TabContainerItem} <code>this</code> to allow method chaining
+		 * @return {this} <code>this</code> to allow method chaining
 		 * @public
 		 */
-		TabContainerItem.prototype.setIcon = function(sIcon) {
-			return TabStripItem.prototype._setIcon.call(this, sIcon, true);
+		TabContainerItem.prototype.setIcon = function(sIcon, bSuppressRendering) {
+			var mProperties,
+				aCssClasses = ['sapMTabContIcon'],
+				oImage = this.getAggregation("_image"),
+				sImgId = this.getId() + "-img",
+				bDecorative = !!(this.getName() || this.getAdditionalText());
+
+			if (!sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+				if (oImage) {
+					this.destroyAggregation("_image");
+				}
+				return this;
+			}
+
+			if (this.getIcon() !== sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+
+				mProperties = {
+					src : sIcon,
+					id: sImgId,
+					decorative: bDecorative,
+					tooltip: this.getIconTooltip()
+				};
+
+				oImage = ImageHelper.getImageControl(sImgId, oImage, undefined, mProperties, aCssClasses);
+				this.setAggregation("_image", oImage, bSuppressRendering);
+			}
+			return this;
 		};
 
 		/**
 		 * Function is called when image control needs to be loaded.
 		 *
-		 * @param {string} sImgId - id to be used for the image
-		 * @param {sap.ui.core.URI} sSrc - URI indicating the image to use as image source
-		 * @return {sap.m.TabContainerItem} this to allow method chaining
+		 * @return {sap.ui.core.Control} The image
 		 * @private
 		 */
 		TabContainerItem.prototype._getImage = function () {
 			return this.getAggregation("_image");
 		};
+
+		/**
+		 * Gets a reference to the instance of the TabStripItem.
+		 * @returns {sap.m.TabStripItem} The tab strip item instance.
+		 */
+		TabContainerItem.prototype._getTabStripItem = function () {
+			return Element.getElementById(this.getAssociation("_tabStripItem"));
+		};
+
+		// Override customData getters/setters to forward the customData added to TabContainerItem to the internal TabStripItem
+		["addCustomData", "getCustomData", "destroyCustomData", "indexOfCustomData",
+		 "insertCustomData", "removeAllCustomData", "removeCustomData", "data"].forEach(function(sName){
+			TabContainerItem.prototype[sName] = function() {
+				var oTabStripItem = this._getTabStripItem();
+				if (oTabStripItem && oTabStripItem[sName]) {
+					var res = oTabStripItem[sName].apply(oTabStripItem, arguments);
+					return res === oTabStripItem ? this : res;
+				}
+			};
+		});
 
 		return TabContainerItem;
 });

@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_bluecrystal with SAPUI5 version 1.44 the             */
+/* inheritance of the base theme is now updated to an inheritance of a static     */
+/* copy of the base theme named sap_bluecrystal_base. The respective              */
+/* control css files of base are copied to the sap_bluecrystal_base theme folder. */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.124.     */
+/* ============================================================================== */
+
+
+@import "../sap_bluecrystal_base/library.less";
 @import "../../../../../../Base/baseLib/sap_bluecrystal/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_bluecrystal/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_bluecrystal/global.less";
@@ -427,6 +436,10 @@ and (orientation: landscape) {
 /* BlueCrystal theme                              */
 /* ============================================== */
 
+.sapUiUnifiedLegendSquareColor {
+	border-radius: 0;
+}
+
 /*** items and colors ***/
 
 
@@ -836,7 +849,6 @@ html.sapUiMedia-Std-Desktop .sapUiUfdShellHeadUsrItm:hover:active > *,
 }
 
 .sapUiUfdShell .sapUiUfdShellHead > div {
-	background: -ms-linear-gradient(top,@_sap_ui_unified_ShellLayout_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellLayout_HeadBGEndColor 100%);
 	background: -webkit-gradient(linear,left top,left bottom,color-stop(0,@_sap_ui_unified_ShellLayout_HeadBGStartColor),color-stop(0.33,@sapUiShellBackground),color-stop(0.75,@sapUiShellBackground),color-stop(1,@_sap_ui_unified_ShellLayout_HeadBGEndColor));
 	background-image: -webkit-linear-gradient(top,@_sap_ui_unified_ShellLayout_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellLayout_HeadBGEndColor 100%);
 	background: linear-gradient(top,@_sap_ui_unified_ShellLayout_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellLayout_HeadBGEndColor 100%);
@@ -869,7 +881,6 @@ html.sapUiMedia-Std-Desktop .sapUiUfdShellHeadUsrItm:hover:active > *,
 
 .sapUiUfdShellOvrlyHeadCntnt {
 	background-color: @sapUiShellBackground;
-	background: -ms-linear-gradient(top,@_sap_ui_unified_ShellOverlay_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellOverlay_HeadBGEndColor 100%);
 	background: -webkit-gradient(linear,left top,left bottom,color-stop(0,@_sap_ui_unified_ShellOverlay_HeadBGStartColor),color-stop(0.33,@sapUiShellBackground),color-stop(0.75,@sapUiShellBackground),color-stop(1,@_sap_ui_unified_ShellOverlay_HeadBGEndColor));
 	background-image: -webkit-linear-gradient(top,@_sap_ui_unified_ShellOverlay_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellOverlay_HeadBGEndColor 100%);
 	background: linear-gradient(top,@_sap_ui_unified_ShellOverlay_HeadBGStartColor 0,@sapUiShellBackground 33%,@sapUiShellBackground 75%,@_sap_ui_unified_ShellOverlay_HeadBGEndColor 100%);

@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 137,
+			"size": 187,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "CalendarLegend.less",
-			"size": 2827,
+			"size": 2882,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -50,69 +50,47 @@
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 2502,
+			"size": 2314,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 1664,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 6861,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 108557,
-			"designtime": true,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 108181,
+			"size": 1474,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 129796,
+			"size": 151837,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2785,
+			"module": "sap/ui/unified/themes/sap_bluecrystal/library-parameters.json",
+			"size": 8085,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.css",
-			"size": 129670,
+			"size": 151696,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.less",
-			"size": 31884,
+			"size": 32169,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.source.less",
-			"size": 582,
+			"size": 1190,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 144453,
-			"theme": "sap_bluecrystal"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 144327,
-			"theme": "sap_bluecrystal"
+			"name": "resources.json",
+			"size": 1722
 		}
 	]
 }

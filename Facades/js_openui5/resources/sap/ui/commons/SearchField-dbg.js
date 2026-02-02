@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,9 +24,11 @@ sap.ui.define([
 	'sap/ui/core/ListItem',
 	'sap/ui/events/KeyCodes',
 	'sap/ui/dom/containsOrEquals',
-	'sap/ui/dom/jquery/rect', // jQuery Plugin "rect"
-	'sap/ui/dom/jquery/getSelectedText' // jQuery.fn.getSelectedText
-
+	'sap/ui/core/Configuration',
+	// jQuery Plugin "rect"
+	'sap/ui/dom/jquery/rect',
+	// jQuery.fn.getSelectedText
+	'sap/ui/dom/jquery/getSelectedText'
 ],
 	function(
 		jQuery,
@@ -46,7 +48,8 @@ sap.ui.define([
 		SeparatorItem,
 		ListItem,
 		KeyCodes,
-		containsOrEquals
+		containsOrEquals,
+		Configuration
 	) {
 	"use strict";
 
@@ -72,16 +75,16 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.m.SearchField</code> control.
 	 * @alias sap.ui.commons.SearchField
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SearchField = Control.extend("sap.ui.commons.SearchField", /** @lends sap.ui.commons.SearchField.prototype */ { metadata : {
 
+		deprecated: true,
 		interfaces : [
 			"sap.ui.commons.ToolbarItem"
 		],
@@ -293,7 +296,7 @@ sap.ui.define([
 	SearchField.prototype.onAfterRendering = function(){
 		if (this.getShowExternalButton()) {
 			var iButtonWidth = this._btn.$().outerWidth(true);
-			this._ctrl.$().css(sap.ui.getCore().getConfiguration().getRTL() ? "left" : "right", iButtonWidth + "px");
+			this._ctrl.$().css(Configuration.getRTL() ? "left" : "right", iButtonWidth + "px");
 	    }
 		_setClearTooltip(this);
 	};
@@ -366,7 +369,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	SearchField.prototype.clearHistory = function() {
 		this._oHistory.clear();
@@ -383,7 +385,6 @@ sap.ui.define([
 	 *         The list of suggestions belonging to the suggest value
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	SearchField.prototype.suggest = function(sSuggestValue, aSuggestions) {
 		if (!this.getEnableListSuggest() || !sSuggestValue || !aSuggestions) {
@@ -652,7 +653,7 @@ sap.ui.define([
 		oRM.write("<div");
 		oRM.writeAttributeEscaped('id', oCtrl.getId() + '-searchico');
 		oRM.writeAttribute('unselectable', 'on');
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			oRM.writeAttribute("role", "presentation");
 		}
 		oRM.addClass("sapUiSearchFieldIco");
@@ -668,7 +669,7 @@ sap.ui.define([
 	TextField.extend("sap.ui.commons.SearchField.TF", {
 
 		metadata : {
-			visibility : "hidden"
+			library: "sap.ui.commons"
 		},
 
 	  constructor : function (sId, mSettings) {
@@ -767,7 +768,7 @@ sap.ui.define([
 	ComboBox.extend("sap.ui.commons.SearchField.CB", {
 
 		metadata : {
-			visibility : "hidden"
+			library: "sap.ui.commons"
 		},
 
 		constructor: function(sId, mSettings) {
@@ -1025,7 +1026,7 @@ sap.ui.define([
 					oRM.write("<div");
 					oRM.writeAttributeEscaped('id', oCtrl.getId() + '-providerico');
 					oRM.writeAttribute('unselectable', 'on');
-					if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+					if (Configuration.getAccessibility()) {
 						oRM.writeAttribute("role", "presentation");
 					}
 					oRM.addClass("sapUiSearchFieldProvIco");

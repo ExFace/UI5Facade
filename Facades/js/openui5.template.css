@@ -385,3 +385,402 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     justify-content: center;
     width: 20px !important;
 }
+/* ui-5 upgrade fixes */
+
+/* table width and table headings */
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSection .sapUxAPBlockContainer { padding: 0; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSectionTitle { border-bottom: .0625rem solid #0854a0; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSection { border-top: none; }
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSectionHeader { border-bottom: .0625rem solid #d9d9d9; }
+
+/* navtiles margin to navbar */
+html.sapUiTheme-sap_fiori_3 .exf-tiles > .sapMPanelHeadingDiv
+{
+  margin-top: 1rem;
+}
+
+/* panel title margin to navbar */
+html.sapUiTheme-sap_fiori_3 .exf-panel .sapMPanelHdr{
+  margin-top: 1rem;
+}
+
+/* context menu button styling */
+html.sapUiTheme-sap_fiori_3 .sapMPopover .sapMBtnInner {
+  border: none;
+}
+
+/* fix table background if not full width */
+html.sapUiTheme-sap_fiori_3 .sapUiTableContentRow .sapUiTableCellDummy {
+  background-color: var(--sapList_Background) !important;
+}
+
+/* if table has stripes, stripe dummy cells too  */
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
+html.sapUiTheme-sap_fiori_3 .sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
+    background-color: var(--sapList_AlternatingBackground) !important;
+}
+
+/* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground);
+}
+
+/* stripe split table rows */
+/* todo check if configurable, and add blue selection border */
+html.sapUiTheme-sap_fiori_3 .sapUiTableContentRow:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground);
+}
+
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl .sapUiTableContentRow.sapUiTableRowSel{
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+html.sapUiTheme-sap_fiori_3 .sapUiTableContentRow.sapUiTableRowSel {
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+html.sapUiTheme-sap_fiori_3 .sapUiTableHeaderCell {
+    background-color: var(--sapList_BorderColor);
+}
+
+/* allow table selection on stripes (blue highlight) */
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableCtrl .sapUiTableContentRow.sapUiTableRowSel{
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+/* make table header background darker */
+html.sapUiTheme-sap_fiori_3 .rowAlternate-true .sapUiTableHeaderRow {
+    background-color: var(--sapList_BorderColor);
+}
+
+html.sapUiTheme-sap_fiori_3 .sapMTableTH {
+    background-color: var(--sapList_BorderColor);
+}
+
+/* set header content darker */
+html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusText, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusIcon, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
+    color: var(--sapTextColor);
+}
+
+
+/* HORIZON THEME CHANGES */
+
+/* progress bar */
+
+/* remove semantic icons */
+html[class*="sapUiTheme-sap_horizon"] .sapMPIBar::before{
+    display: none;
+}
+
+/* set semantic colors darker */
+html.sapUiTheme-sap_horizon .sapMPIBarNeutral {
+    background: #6a6d70
+}
+
+html.sapUiTheme-sap_horizon .sapMPIBarPositive {
+    background: #107e3e
+}
+
+html.sapUiTheme-sap_horizon .sapMPIBarNegative {
+    background: #b00
+}
+
+html.sapUiTheme-sap_horizon .sapMPIBarCritical {
+    background: #e9730c
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPI {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    box-sizing: border-box;
+    outline: none;
+    background: #ffffff00;
+    min-height: 1rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPIBar {
+    margin-top: 0;
+    height: 100%;
+    -webkit-justify-content: flex-end;
+    justify-content: flex-end;
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border: none;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPIDisplayOnly .sapMPIText,
+html[class*="sapUiTheme-sap_horizon"] .sapMPIText {
+    padding: 0;
+    position: static;
+    top: 0.125rem;
+    left: 0;
+    margin-bottom: 0;
+    font-size: 0.685rem;
+    color: var(--sapProgress_TextColor);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPIDisplayOnly .sapMPIText.sapMPITextRight,
+html[class*="sapUiTheme-sap_horizon"] .sapMPIText.sapMPITextRight {
+    padding: 0;
+    margin-left: 0.375rem;
+    margin-right: 0.375rem;
+    top: 0;
+    right: 0;
+}
+
+/* remove progress bar dot */
+html[class*="sapUiTheme-sap_horizon"] .sapMPIBarRemaining::after {
+    display: none;
+}
+
+html.sapUiTheme-sap_horizon .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining {
+    background-color: #fff;
+}
+
+html.sapUiTheme-sap_horizon .sapMPIBarPositive+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIBarNegative+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIBarCritical+.sapMPIBarRemaining {
+    background-color: #fff;
+    border-color: #89919a;;
+}
+
+/* progress bar backgrounds */
+html[class*="sapUiTheme-sap_horizon"] .sapMPI .sapMPIBarRemaining {
+    height: 1rem;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPI  .sapMPIBarRemaining {
+    position: static;
+    -webkit-flex-grow: 1;
+    flex-grow: 1;
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 0;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPIBarPositive .sapMPIText.sapMPITextLeft {
+    color: #fff;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPIBarCritical .sapMPIText.sapMPITextLeft {
+    color: #fff;
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMPITextLeft, 
+html[class*="sapUiTheme-sap_horizon"]  .sapMPITextRight {
+    padding: 0;
+    margin-left: 0.375rem;
+    margin-right: 0.375rem;
+}
+
+/* progress bar end */
+
+/* tile menu drop shadow on hover */
+html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
+    box-shadow: var(--sapContent_Shadow0) !important;
+    background-color: var(--sapTile_Hover_Background);
+}
+
+/* header filter inputs */
+html[class*="sapUiTheme-sap_horizon"] .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {background-color: var(--sapContent_Illustrative_Color7);}
+html[class*="sapUiTheme-sap_horizon"] .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseInner {
+    background-color: var(--sapContent_Illustrative_Color7); 
+}
+
+html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseInner {
+    background: var(--sapField_BackgroundStyle);
+    background-color: var(--sapContent_Illustrative_Color7);
+    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
+    box-shadow: var(--sapField_Shadow);
+}
+
+/* filters on hover */
+html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState):hover {
+    background-color: var(--sapContent_Illustrative_Color18);
+}
+
+html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseContentWrapper:hover .sapMInputBaseInner {
+    background-color: var(--sapContent_Illustrative_Color18);
+    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
+    box-shadow: var(--sapField_Shadow);
+}
+
+/* Tab "bubbles" in ObjectPageLayout */
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUiTableCCnt {border-bottom: none;}
+
+/* Split inside a tab in ObjectPageLayout */
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection.exf-tab-split .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {padding-bottom: 0; padding-top: 0}
+/* Splits inside ObjectPageLayout as sections/tabs */
+html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter>.sapUiLoSplitterBar {background-color: var(--sapBaseColor);}
+html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitterH > .sapUiLoSplitterContent:first-of-type .sapMPanel {border-top-right-radius: 0; border-bottom-right-radius: 0;}
+html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitterH > .sapUiLoSplitterContent:last-of-type .sapMPanel {border-top-left-radius: 0; border-bottom-left-radius: 0;}
+
+/* context menu button styling */
+html[class*="sapUiTheme-sap_horizon"] .sapMPopover .sapMBtnInner {
+  border: none;
+}
+
+/* if table has stripes, stripe dummy cells too  */
+html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
+html[class*="sapUiTheme-sap_horizon"] .sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
+    background-color: var(--sapList_AlternatingBackground) !important;
+}
+
+/* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
+html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground);
+}
+
+/* stripe split table rows */
+/* todo: check if configurable, and add blue selection border */
+html[class*="sapUiTheme-sap_horizon"] .sapUiTableContentRow:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground);
+}
+
+html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl .sapUiTableContentRow.sapUiTableRowSel{
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapUiTableContentRow.sapUiTableRowSel {
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+/* allow table selection on stripes (blue highlight) */
+
+html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl .sapUiTableContentRow.sapUiTableRowSel{
+    background-color: var(--sapList_SelectionBackgroundColor);
+}
+
+/* make table header background darker */
+html[class*="sapUiTheme-sap_horizon"] .sapUiTableHeaderCell {
+    /* background-color: var(--sapContent_Illustrative_Color6); #eff1f2; */
+    /* background-color: var(--sapList_BorderColor); c6ebff*/
+    background-color: var(--sapList_BorderColor);
+}
+
+html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableHeaderRow {
+    background-color: var(--sapList_BorderColor);
+}
+
+html[class*="sapUiTheme-sap_horizon"] .sapMTableTH {
+    background-color: var(--sapList_BorderColor);
+}
+
+/* detail view heading less bold */
+html[class*="sapUiTheme-sap_horizon"] h2.sapUxAPObjectPageHeaderIdentifierTitle, h2.sapUxAPObjectPageHeaderIdentifierTitleForce {
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 0.5rem;
+}
+
+/* header content dividers */
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHeaderContentItem:not(:first-of-type) {
+    border-left: 2px solid var(--sapList_BorderColor);
+    margin-right: 1rem;
+    padding-left: 1rem;
+}
+
+/* header font styling */ 
+html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus>.sapMObjStatusTitle, html.sapUiTheme-sap_horizon header .sapUxAPObjectPageHeaderDetails .sapMLabel {
+    font-weight: normal;
+}
+
+html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
+    font-weight: bold;
+    color: var(--sapNeutralTextColor);
+}
+
+/* margin tab headings */
+html[class*="sapUiTheme-sap_horizon"] .sapMITH.sapMITBInLine .sapMITBHead {
+    padding-top: 1.5rem;
+}
+
+/* widget bubbles border */
+html[class*="sapUiTheme-sap_horizon"]  .sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {
+    box-shadow: 0 0 .125rem 0 rgba(34, 53, 72, 0.1), 0 .125rem .25rem 0 rgba(34, 53, 72, 0.1);
+}
+
+/* make pagination less bold */
+html[class*="sapUiTheme-sap_horizon"] [data-sap-ui*="DataPaginator"] bdi {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* nav-tiles background */
+html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMPanelBGTranslucent, 
+html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMPanelHeadingDiv>.sapMPanelHdr,
+html[class*="sapUiTheme-sap_horizon"] .exf-navtiles .sapMPanelContent {
+    background-color:  var(--sapBackgroundColor);
+}
+
+
+/* Data widgets */
+html[class*="sapUiTheme-sap_horizon"] .sapMLabel.exf-paginator-position {font-weight: normal; font-family: var(--sapFontFamily);}
+
+/* Login prompt */
+html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelContent {border: none;}
+html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMITBContent {background-color: var(--sapObjectHeader_Background); border-bottom: none;}
+html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelHdr {height: 3rem !important; line-height: 3rem !important; text-align: center;}
+
+/* account popup */
+html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBaseInner{
+    color: var(--sapTextColor);
+}
+
+/* DARK MODE SPECIFIC CHANGES */
+/* progress bar */
+html.sapUiTheme-sap_horizon_dark .sapMPI {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    box-sizing: border-box;
+    outline: none;
+    background: #ffffff00;
+    min-height: 1rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral+.sapMPIBarRemaining {
+    background-color: #ffffff20;
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMPIBarPositive+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNegative+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarCritical+.sapMPIBarRemaining {
+    background-color: #ffffff20;
+    border-color: #89919a;;
+}
+
+/* progress bar text left */
+html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral .sapMPIText.sapMPITextLeft, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral .sapMPIText.sapMPITextLeft{
+    color: var(--sapButton_Success_TextColor);
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMBtn.exf-svg-icon > .sapMBtnInner > .sapMImg {
+    filter: invert(50%) sepia(100%) saturate(500%) hue-rotate(180deg);
+}
+
+html.sapUiTheme-sap_horizon_dark .sapMTileCntContent > .sapMImageContent > img {
+    filter: invert(50%) sepia(10%) saturate(500%) hue-rotate(165deg) brightness(100%) contrast(100%);
+}
+

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -12,7 +12,6 @@ sap.ui.define([
 	"sap/ui/model/FilterOperator",
 	"sap/ui/core/IconPool",
 	"sap/ui/base/BindingParser",
-	"sap/ui/integration/designtime/baseEditor/util/isValidBindingString",
 	"./IsInIconPool.validator"
 ], function (
 	BasePropertyEditor,
@@ -23,7 +22,6 @@ sap.ui.define([
 	FilterOperator,
 	IconPool,
 	BindingParser,
-	isValidBindingString,
 	IsInIconPoolValidator
 ) {
 	"use strict";
@@ -42,7 +40,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.iconEditor.IconEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.70
@@ -50,10 +48,21 @@ sap.ui.define([
 	 */
 	var IconEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.iconEditor.IconEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.iconEditor.IconEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
-	IconEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata);
+	IconEditor.configMetadata = Object.assign(
+		{},
+		BasePropertyEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.SIMPLEICON"
+			}
+		}
+	);
 
 	IconEditor.prototype.onFragmentReady = function () {
 		var oInput = this.getContent();

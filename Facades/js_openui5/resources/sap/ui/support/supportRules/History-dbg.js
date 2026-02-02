@@ -1,6 +1,6 @@
 /**
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
@@ -8,9 +8,10 @@ sap.ui.define([
 	"sap/ui/support/supportRules/IssueManager",
 	"sap/ui/support/supportRules/RuleSetLoader",
 	"sap/ui/support/supportRules/report/StringHistoryFormatter",
-	"sap/ui/support/supportRules/report/AbapHistoryFormatter"
+	"sap/ui/support/supportRules/report/AbapHistoryFormatter",
+	"sap/ui/core/date/UI5Date"
 ],
-function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHistoryFormatter) {
+function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHistoryFormatter, UI5Date) {
 	"use strict";
 
 	/**
@@ -106,7 +107,6 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 	 * @param {string} sRuleName The name of the rule
 	 * @returns {Array} All issues from a rule
 	 * @private
-	 * @method
 	 */
 	var _getIssuesFromRule = function (oRun, sLibraryName, sRuleName) {
 		var aIssues = [];
@@ -126,6 +126,10 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 		return aIssues;
 	};
 
+	/**
+	 * @namespace
+	 * @alias sap.ui.support.History
+	 */
 	var History = {
 
 		/**
@@ -141,33 +145,33 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 		 * Stores the passed analysis object to an array of passed runs.
 		 *
 		 * @public
-		 * @method
 		 * @param {Object} oContext the context of the analysis
-		 * @name sap.ui.support.History.saveAnalysis
 		 */
 		saveAnalysis: function (oContext) {
-			var mIssues = IssueManager.groupIssues(IssueManager.getIssuesModel()),
-				aIssues = IssueManager.getIssues(),
-				mRules = RuleSetLoader.getRuleSets(),
-				mSelectedRules = oContext._oSelectedRulesIds,
-				oSelectedRulePreset = oContext._oSelectedRulePreset;
+			return oContext._oDataCollector.getTechInfoJSON().then(function (oTechData) {
+				var mIssues = IssueManager.groupIssues(IssueManager.getIssuesModel()),
+					aIssues = IssueManager.getIssues(),
+					mRuleLibs = RuleSetLoader.getRuleLibs(),
+					mSelectedRules = oContext._oSelectedRulesIds,
+					oSelectedRulePreset = oContext._oSelectedRulePreset;
 
-			_aRuns.push({
-				date: new Date().toUTCString(),
-				issues: mIssues,
-				onlyIssues: aIssues,
-				application: oContext._oDataCollector.getAppInfo(),
-				technical: oContext._oDataCollector.getTechInfoJSON(),
-				rules: IssueManager.getRulesViewModel(mRules, mSelectedRules, mIssues),
-				rulePreset: oSelectedRulePreset,
-				scope: {
-					executionScope: {
-						type: oContext._oExecutionScope.getType(),
-						selectors: oContext._oExecutionScope._getContext().parentId || oContext._oExecutionScope._getContext().components
-					}
-				},
-				analysisDuration: oContext._oAnalyzer.getElapsedTimeString(),
-				analysisMetadata: oContext._oAnalysisMetadata || null
+				_aRuns.push({
+					date: UI5Date.getInstance().toUTCString(),
+					issues: mIssues,
+					onlyIssues: aIssues,
+					application: oContext._oDataCollector.getAppInfo(),
+					technical: oTechData,
+					rules: IssueManager.getRulesViewModel(mRuleLibs, mSelectedRules, mIssues),
+					rulePreset: oSelectedRulePreset,
+					scope: {
+						executionScope: {
+							type: oContext._oExecutionScope.getType(),
+							selectors: oContext._oExecutionScope._getContext().parentId || oContext._oExecutionScope._getContext().components
+						}
+					},
+					analysisDuration: oContext._oAnalyzer.getElapsedTimeString(),
+					analysisMetadata: oContext._oAnalysisMetadata || null
+				});
 			});
 		},
 
@@ -175,8 +179,6 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 		 * Clears all stored analysis history objects.
 		 *
 		 * @public
-		 * @method
-		 * @name sap.ui.support.History.clearHistory
 		 */
 		clearHistory: function () {
 			_aRuns = [];
@@ -186,8 +188,6 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 		 * Gets all passed analyses in a JSON object that can easily be converted into a string.
 		 *
 		 * @public
-		 * @method
-		 * @name sap.ui.support.History.getHistory
 		 * @returns {Array} Which contains all passed run analysis objects.
 		 */
 		getHistory: function () {
@@ -214,9 +214,7 @@ function (library, IssueManager, RuleSetLoader, StringHistoryFormatter, AbapHist
 		 * Returns the history into formatted output depending on the passed format.
 		 *
 		 * @public
-		 * @method
 		 * @param {string} sFormat The format into which the history object will be converted. Possible values are listed in sap.ui.support.HistoryFormats.
-		 * @name sap.ui.support.History.getFormattedHistory
 		 * @returns {*} All analysis history objects in the correct format.
 		 */
 		getFormattedHistory: function (sFormat) {

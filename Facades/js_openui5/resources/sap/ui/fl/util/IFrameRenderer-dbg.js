@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,17 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	function _setDimensionAsStyle (oRm, sDimension, sValue) {
+	function _setDimensionAsStyle(oRm, sDimension, sValue) {
 		if (sValue !== "" || sValue.toLowerCase() === "auto") {
 			oRm.style(sDimension, sValue);
 		}
+	}
+
+	 function createsSandboxAttributesString(oAdvancedSettings) {
+		return Object.keys(oAdvancedSettings)
+		.filter((sKey) => oAdvancedSettings[sKey])
+		.map((sKey) => sKey.replace(/[A-Z]/g, "-$&").toLowerCase())
+		.join(" ");
 	}
 
 	/**
@@ -28,7 +35,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm
 	 *            The RenderManager that can be used for writing to
 	 *            the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oIFrame
+	 * @param {sap.ui.fl.util.IFrame} oIFrame
 	 *            The iframe to be rendered
 	 */
 	IFrameRenderer.render = function(oRm, oIFrame) {
@@ -39,7 +46,15 @@ sap.ui.define([
 		oRm.style("display", "block");
 		oRm.style("border", "none");
 
-		oRm.attr("src", oIFrame.getUrl());
+		const oAdvancedSettings = oIFrame.getAdvancedSettings();
+		const { additionalSandboxParameters: aAdditionalSandboxParameters, ...oFilteredAdvancedSettings } = oAdvancedSettings;
+		const sAdditionalSandboxParameters = aAdditionalSandboxParameters?.join(" ");
+		const sSandboxAttributes = createsSandboxAttributesString(oFilteredAdvancedSettings);
+		const sCombinedSandboxAttributes = sAdditionalSandboxParameters ? `${sSandboxAttributes} ${sAdditionalSandboxParameters}` : sSandboxAttributes;
+		oRm.attr("sandbox", sCombinedSandboxAttributes);
+		// Always set the src to about:blank to avoid adding history entries when parameters are resolved
+		oRm.attr("src", "about:blank");
+
 		var sTitle = oIFrame.getTitle();
 		if (sTitle) {
 			oRm.attr("title", sTitle);

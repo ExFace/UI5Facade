@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,12 +9,17 @@ sap.ui.define([
 	"./RouterHashChanger",
 	'sap/ui/thirdparty/hasher',
 	"sap/base/Log",
-	"sap/base/util/ObjectPath"
-], function(HashChangerBase, RouterHashChanger, hasher, Log, ObjectPath) {
+	"sap/ui/performance/trace/Interaction"
+], function(HashChangerBase, RouterHashChanger, hasher, Log, Interaction) {
 	"use strict";
 
 	/**
-	 * @class Class for manipulating and receiving changes of the browser hash with the hasher framework.
+	 * @class Class for manipulating and receiving changes of the browser hash with <code>hasher</code> framework.
+	 *
+	 * <b>IMPORTANT:</b>
+	 * To set or replace the current browser hash, use {@link #setHash} or {@link #replaceHash} and do NOT interact with
+	 * the <code>hasher</code> framework directly in order to have the navigation direction calculated as accurate as
+	 * possible.
 	 *
 	 * Fires a <code>hashChanged</code> event if the browser hash changes.
 	 * @extends sap.ui.core.routing.HashChangerBase
@@ -31,8 +36,8 @@ sap.ui.define([
 	});
 
 	/**
-	 * Will start listening to hashChanges with the parseHash function.
-	 * This will also fire a hashchanged event with the initial hash.
+	 * Will start listening to hash changes.
+	 * This will also fire a <code>hashChanged</code> event with the initial hash.
 	 *
 	 * @public
 	 * @return {boolean} false if it was initialized before, true if it was initialized the first time
@@ -58,7 +63,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Fires the hashchanged event, may be extended to modify the hash before fireing the event
+	 * Fires the <code>hashChanged</code> event, may be extended to modify the hash before firing the event
 	 * @param {string} sNewHash the new hash of the browser
 	 * @param {string} sOldHash - the previous hash
 	 * @protected
@@ -84,8 +89,11 @@ sap.ui.define([
 	 */
 	HashChanger.prototype.createRouterHashChanger = function() {
 		if (!this._oRouterHashChanger) {
+			var oParsedHash = this._parseHash(this.getHash());
 			this._oRouterHashChanger = new RouterHashChanger({
-				parent: this
+				parent: this,
+				hash: oParsedHash.hash,
+				subHashMap: oParsedHash.subHashMap
 			});
 
 			this._registerListenerToRelevantEvents();
@@ -93,7 +101,9 @@ sap.ui.define([
 			this._oRouterHashChanger.attachEvent("hashSet", this._onHashModified, this);
 			this._oRouterHashChanger.attachEvent("hashReplaced", this._onHashModified, this);
 		}
-
+		this._oRouterHashChanger.attachEvent("hashChanged", function() {
+			Interaction.notifyNavigation();
+		});
 		return this._oRouterHashChanger;
 	};
 
@@ -217,6 +227,7 @@ sap.ui.define([
 						}
 						return true;
 					}
+					return false;
 				});
 				if (!bFound) {
 					// the subhash must be added
@@ -248,7 +259,12 @@ sap.ui.define([
 			subHashMap: aParts.reduce(function(oMap, sPart) {
 				var iSlashPos = sPart.indexOf("/");
 
-				oMap[sPart.substring(0, iSlashPos)] = sPart.substring(iSlashPos + 1);
+				if (iSlashPos === -1) {
+					oMap[sPart] = "";
+				} else {
+					oMap[sPart.substring(0, iSlashPos)] = sPart.substring(iSlashPos + 1);
+				}
+
 				return oMap;
 			}, {})
 		};
@@ -268,7 +284,14 @@ sap.ui.define([
 	/**
 	 * Replaces the hash with a certain value. When using the replace function, no browser history entry is written.
 	 * If you want to have an entry in the browser history, please use the {@link #setHash} function.
+	 *
+	 * The <code>sDirection</code> parameter can be used to provide direction information on the navigation which
+	 * leads to this hash replacement. This is typically used when synchronizing the hashes between multiple frames to
+	 * provide information to the frame where the hash is replaced with the navigation direction in the other frame
+	 * where the navigation occurs.
+	 *
 	 * @param {string} sHash New hash
+	 * @param {sap.ui.core.routing.HistoryDirection} sDirection The direction information for this hash replacement
 	 * @public
 	 */
 	HashChanger.prototype.replaceHash = function(sHash) {
@@ -287,16 +310,37 @@ sap.ui.define([
 	};
 
 	/**
+	 * @typedef {object} sap.ui.core.routing.HashChangerEventInfo
+	 * @description The object containing the event info for the events that are forwarded to {@link sap.ui.core.routing.RouterHashChanger}.
+	 * @property {string} name The name of the event that is fired by the HashChanger and should be forwarded to the RouterHashChanger
+	 * @property {sap.ui.core.routing.HashChangerEventParameterMapping} [paramMapping] The optional defined parameter name mapping that is
+	 *  used for forwarding the event to the {@link sap.ui.core.routing.RouterHashChanger}.
+	 * @property {boolean} updateHashOnly Indicates whether the event is ignored by every RouterHashChanger
+	 *  instance and is only relevant for the other routing classes, for example {@link sap.ui.core.routing.History}.
+	 * @protected
+	 * @since 1.82.0
+	 */
+
+	/**
+	 * @typedef {object} sap.ui.core.routing.HashChangerEventParameterMapping
+	 * @description The object containing the parameter mapping for forwarding the event to the {@link sap.ui.core.routing.RouterHashChanger}.
+	 * @property {string} [newHash] The name of the parameter whose value is used as the <code>newHash</code> parameter
+	 *  in the event that is forwarded to the {@link sap.ui.core.routing.RouterHashChanger}. If this isn't set, the
+	 *  value is taken from the property <code>newHash</code>.
+	 * @property {string} [oldHash] The name of the parameter whose value is used as the <code>oldHash</code> parameter
+	 *  in the event that is forwarded to the {@link sap.ui.core.routing.RouterHashChanger}. If this isn't set, the
+	 *  value is taken from the property <code>oldHash</code>.
+	 * @property {string} [fullHash] The name of the parameter whose value is used as the <code>fullHash</code> parameter
+	 *  in the event that is forwarded to the {@link sap.ui.core.routing.RouterHashChanger}. If this isn't set, the
+	 *  value is taken from the property <code>fullHash</code>.
+	 * @protected
+	 * @since 1.82.0
+	 */
+
+	/**
 	 * Defines the events and its parameters which should be used for tracking the hash changes
 	 *
-	 * @return {Object[]} the events info. Each event info object in the array should
-	 * contain a name property which describes the event name, and an optional paramMapping object where the parameter
-	 * names in the event are defined for the 'newHash', 'oldHash' and 'fullHash'. If any of them isn't defined in the
-	 * mapping, the same name is used to get the property value from the event object. Every object can also define a
-	 * "updateHashOnly" option with boolean value to indicate whether the event is only relevant for the
-	 * RouterHashChanger instances which are going to be created and the event shouldn't be forwarded to the existing
-	 * RouterHashChanger instances. If this option is set to true, the new hash is saved RouterHashChanger instances but
-	 * no "hashChanged" event is fired on any existing RouterHashChanger instance.
+	 * @return {sap.ui.core.routing.HashChangerEventInfo[]} The array containing the events info
 	 * @protected
 	 */
 	HashChanger.prototype.getRelevantEventsInfo = function() {
@@ -335,6 +379,7 @@ sap.ui.define([
 	(function() {
 
 		var _oHashChanger = null;
+		var History;
 
 		/**
 		 * Gets a global singleton of the HashChanger. The singleton will get created when this function is invoked for the first time.
@@ -379,13 +424,12 @@ sap.ui.define([
 		 */
 		HashChanger.replaceHashChanger = function(oHashChanger) {
 			if (_oHashChanger && oHashChanger) {
-				var fnGetHistoryInstance = ObjectPath.get("sap.ui.core.routing.History.getInstance"),
-					oHistory;
+				History = History || sap.ui.require("sap/ui/core/routing/History");
 
 				// replace the hash changer on oHistory should occur before the replacement on router hash changer
 				// because the history direction should be determined before a router processes the hash.
-				if (fnGetHistoryInstance) {
-					oHistory = fnGetHistoryInstance();
+				if (History) {
+					var oHistory = History.getInstance();
 					// set the new hash changer to oHistory. This will also deregister the listeners from the old hash
 					// changer.
 					oHistory._setHashChanger(oHashChanger);

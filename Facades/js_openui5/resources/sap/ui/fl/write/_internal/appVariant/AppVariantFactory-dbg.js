@@ -1,28 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/fl/write/_internal/appVariant/AppVariant",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/fl/descriptorRelated/internal/Utils",
+	"sap/ui/fl/Layer",
+	"sap/ui/fl/descriptorRelated/Utils",
 	"sap/ui/fl/write/_internal/connectors/LrepConnector",
-	"sap/base/util/merge"
+	"sap/base/util/merge",
+	"sap/base/util/isPlainObject"
 ], function(
 	AppVariant,
-	jQuery,
+	Layer,
 	Utils,
 	LrepConnector,
-	merge
+	merge,
+	isPlainObject
 ) {
 	"use strict";
 
 	function _getAppVariant(mPropertyBag) {
-		if (!mPropertyBag.url) {
-			mPropertyBag.url = "/sap/bc/lrep";
-		}
+		mPropertyBag.url ||= "/sap/bc/lrep";
 		// Since this method is only called internally for app variants on ABAP platform, the direct usage of write LrepConnector is triggered.
 		return LrepConnector.appVariant.load(mPropertyBag);
 	}
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariantFactory
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -53,15 +53,15 @@ sap.ui.define([
 	 */
 	AppVariantFactory.load = function(mPropertyBag) {
 		if (mPropertyBag.id === undefined || typeof mPropertyBag.id !== "string") {
-			throw new Error("Parameter " + mPropertyBag.id + " must be provided of type string");
+			throw new Error(`Parameter ${mPropertyBag.id} must be provided of type string`);
 		}
 
 		return _getAppVariant({
 			reference: mPropertyBag.id
 		}).then(function(oResult) {
 			var oAppVariantConfig = oResult.response;
-			if (!jQuery.isPlainObject(oAppVariantConfig)) {
-				//Parse if needed. Happens if backend sends wrong content type
+			if (!isPlainObject(oAppVariantConfig)) {
+				// Parse if needed. Happens if backend sends wrong content type
 				oAppVariantConfig = JSON.parse(oAppVariantConfig);
 			}
 			mPropertyBag = merge(
@@ -100,9 +100,9 @@ sap.ui.define([
 				Utils.checkParameterAndType(mPropertyBag, "version", "string");
 			}
 
-			//default layer to CUSTOMER
+			// default layer to CUSTOMER
 			if (!mPropertyBag.layer) {
-				mPropertyBag.layer = 'CUSTOMER';
+				mPropertyBag.layer = Layer.CUSTOMER;
 			} else {
 				Utils.checkParameterAndType(mPropertyBag, "layer", "string");
 			}
@@ -165,11 +165,11 @@ sap.ui.define([
 	 */
 	AppVariantFactory.prepareDelete = function(mPropertyBag) {
 		return ((mPropertyBag.isForSmartBusiness) ? Promise.resolve(new AppVariant(mPropertyBag)) : AppVariantFactory.load(mPropertyBag))
-			.then(function(oAppVariant) {
-				oAppVariant.setMode("DELETION");
-				return oAppVariant;
-			});
+		.then(function(oAppVariant) {
+			oAppVariant.setMode("DELETION");
+			return oAppVariant;
+		});
 	};
 
 	return AppVariantFactory;
-}, true);
+});

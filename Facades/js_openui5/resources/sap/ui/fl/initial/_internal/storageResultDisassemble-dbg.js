@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ function(
 			aFlexObjects.push(oControlVariant.content);
 		}
 
-		oControlVariant.controlChanges.forEach(function (oControlChange) {
+		oControlVariant.controlChanges.forEach(function(oControlChange) {
 			aFlexObjects.push(oControlChange);
 		});
 
@@ -33,10 +33,25 @@ function(
 		return aFlexObjects;
 	}
 
+	function isInitialCompSection(oCompSection) {
+		var bInitial = true;
+
+		if (oCompSection) {
+			Object.keys(oCompSection).some(function(sKey) {
+				if (oCompSection[sKey].length) {
+					bInitial = false;
+					return true;
+				}
+			});
+		}
+		return bInitial;
+	}
+
 	/**
-	 * @namespace sap.ui.fl.initial._internal.StorageResultDisassemble
+	 * @name sap.ui.fl.initial._internal.storageResultDisassemble
+	 * @function
 	 * @since 1.70
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.Storage
 	 * Disassembles a response with a variant section into one or more plain responses.
@@ -44,11 +59,11 @@ function(
 	 * @param {object} oResponse Flexibility data response from a <code>sap.ui.connectors.BaseConnector</code> implementation
 	 * @param {object} oResponse.variantSection Variant section of the response (mandatory)
 	 * @returns {object[]} Disassembled result
-	 *
 	 */
 	return function(oResponse) {
+		var aFlexObjects;
 		if (!isEmptyObject(oResponse.variantSection)) {
-			var aFlexObjects = oResponse.changes || [];
+			aFlexObjects = oResponse.changes || [];
 
 			for (var sVariantManagement in oResponse.variantSection) {
 				var oVariantManagement = oResponse.variantSection[sVariantManagement];
@@ -60,11 +75,57 @@ function(
 
 			var mGroupedFlexObjects = StorageUtils.getGroupedFlexObjects(aFlexObjects);
 			var aDisassembleResponses = StorageUtils.filterAndSortResponses(mGroupedFlexObjects);
-			//Add un-disassembled parts of the original response into the first response of the result array
+			// Add un-disassembled parts of the original response into the first response of the result array
 			delete oResponse.changes;
 			delete oResponse.variantSection;
 			merge(aDisassembleResponses[0] || {}, oResponse);
 			return aDisassembleResponses;
+		}
+
+		if (isInitialCompSection(oResponse.comp)) {
+			aFlexObjects = oResponse.changes || [];
+			oResponse.comp = {
+				variants: [],
+				changes: [],
+				defaultVariants: [],
+				standardVariants: []
+			};
+
+			// loop over a copy in reverse order to handle deletions accordingly
+			aFlexObjects.slice().reverse().forEach(function(oFlexObject, nIndex, aArray) {
+				var bMoved = false;
+				if (oFlexObject.fileType === "variant") {
+					oResponse.comp.variants.unshift(oFlexObject);
+					bMoved = true;
+				} else {
+					switch (oFlexObject.changeType) {
+						case "addFavorite":
+						case "removeFavorite":
+						case "updateVariant":
+							oResponse.comp.changes.unshift(oFlexObject);
+							bMoved = true;
+
+							break;
+						case "defaultVariant":
+							oResponse.comp.defaultVariants.unshift(oFlexObject);
+							bMoved = true;
+							break;
+						case "standardVariant":
+							oResponse.comp.standardVariants.unshift(oFlexObject);
+							bMoved = true;
+							break;
+						default:
+							// normal UI change which should not be part of the comp section
+							break;
+					}
+				}
+
+				// remove in original by reverse the index
+				if (bMoved) {
+					var nIndexInOriginal = aArray.length - 1 - nIndex;
+					oResponse.changes.splice(nIndexInOriginal, 1);
+				}
+			});
 		}
 
 		return [oResponse];

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -33,7 +33,7 @@ sap.ui.define(["sap/ui/support/library"],
 			resolution: "Set text or icon when active property is true",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ObjectStatus",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ObjectStatus"
+				href: "https://sdk.openui5.org/api/sap.m.ObjectStatus"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
 				oScope.getElementsByClassName("sap.m.ObjectStatus")

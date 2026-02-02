@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,19 +15,19 @@ sap.ui.define([
 	 * @abstract
 	 * @extends sap.ui.base.ManagedObject
 	 * @public
-	 * @name sap.ui.test.matchers.Matcher
+	 * @alias sap.ui.test.matchers.Matcher
 	 * @author SAP SE
 	 * @since 1.23
 	 */
-	var Matcher = ManagedObject.extend("sap.ui.test.matchers.Matcher", {
+	var Matcher = ManagedObject.extend("sap.ui.test.matchers.Matcher", /** @lends sap.ui.test.matchers.Matcher.prototype */ {
 
 		metadata : {
 			publicMethods : [ "isMatching" ]
 		},
 
 		constructor: function () {
+			ManagedObject.prototype.constructor.apply(this, arguments);
 			this._oLogger = _OpaLogger.getLogger(this.getMetadata().getName());
-			return ManagedObject.prototype.constructor.apply(this, arguments);
 		},
 
 		/**
@@ -38,28 +38,46 @@ sap.ui.define([
 		 * @param {sap.ui.core.Control} oControl the control that is checked by the matcher
 		 * @return {boolean} true if the Control is matching the condition of the matcher
 		 * @protected
-		 * @name sap.ui.test.matchers.Matcher#isMatching
-		 * @function
 		 */
 		isMatching : function (oControl) {
 			return true;
 		},
 
 		/**
-		 * @return {object} window of the application under test, or the current window if OPA5 is not loaded
-		 * Note: declared matchers are instanciated in the app context (by MatcherFactory)
-		 * while users instanciate matchers in the test context (in a waitFor)
+		 * @returns {Window} window of the application under test, or the current window if Opa5 is not loaded
+		 * Note: declared matchers are instantiated in the app context (by MatcherFactory)
+		 * while users instantiate matchers in the test context (in a waitFor)
 		 * @private
-		 * @function
 		 */
 		_getApplicationWindow: function () {
-			if (sap.ui.test && sap.ui.test.Opa5) {
-				// matcher context === test context, because Opa5 is loadded
-				return sap.ui.test.Opa5.getWindow();
+			var Opa5 = sap.ui.require("sap/ui/test/Opa5");
+			if (Opa5) {
+				// matcher context === test context, because Opa5 is loaded
+				return Opa5.getWindow();
 			} else {
 				// matcher context === app context
 				return window;
 			}
+		},
+
+		_getApplicationWindowJQuery: function () {
+			var Opa5 = sap.ui.require("sap/ui/test/Opa5");
+			if (Opa5) {
+				// matcher context === test context, because Opa5 is loaded
+				return Opa5.getJQuery();
+			} else {
+				// matcher context === app context
+				return sap.ui.require("sap/ui/thirdparty/jquery");
+			}
+		},
+
+		_isInStaticArea: function(oDomElement) {
+			var oAppWindow = this._getApplicationWindow(),
+				oAppWindowJQuery = this._getApplicationWindowJQuery(),
+				oStaticArea = oAppWindow.sap.ui.require("sap/ui/test/OpaPlugin")
+					.getStaticAreaDomRef();
+
+			return oAppWindowJQuery.contains(oStaticArea, oDomElement);
 		}
 
 	});

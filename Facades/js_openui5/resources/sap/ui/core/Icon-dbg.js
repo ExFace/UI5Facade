@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,25 +9,27 @@ sap.ui.define([
 	'sap/base/assert',
 	'../Device',
 	'./Control',
-	'./IconPool',
+	'./_IconRegistry',
 	'./InvisibleText',
 	'./library',
 	"./IconRenderer",
+	"./Lib",
 	"sap/ui/events/KeyCodes",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/base/util/each"
 ],
 	function(
 		assert,
 		Device,
 		Control,
-		IconPool,
+		_IconRegistry,
 		InvisibleText,
 		library,
 		IconRenderer,
+		Library,
 		KeyCodes,
-		jQuery,
-		Log
+		Log,
+		each
 	) {
 	"use strict";
 
@@ -65,134 +67,150 @@ sap.ui.define([
 	 * @class
 	 * Icon uses embedded font instead of pixel image. Comparing to image, Icon is easily scalable, color can be altered live and various effects can be added using css.
 	 *
-	 * A set of built in Icons is available and they can be fetched by calling sap.ui.core.IconPool.getIconURI and set this value to the src property on the Icon.
+	 * A set of built in Icons is available in the {@link demo:sap/m/demokit/iconExplorer/webapp/index.html Icon Explorer}.
+	 *
+	 * For further information, see {@link topic:21ea0ea94614480d9a910b2e93431291 Icon and Icon Pool}.
+	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @since 1.11.1
 	 * @alias sap.ui.core.Icon
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Icon = Control.extend("sap.ui.core.Icon", /** @lends sap.ui.core.Icon.prototype */ { metadata : {
+	var Icon = Control.extend("sap.ui.core.Icon", /** @lends sap.ui.core.Icon.prototype */ {
+		metadata : {
 
-		interfaces : ["sap.ui.core.IFormContent"],
-		library : "sap.ui.core",
-		designtime: "sap/ui/core/designtime/Icon.designtime",
-		properties : {
+			interfaces : ["sap.ui.core.IFormContent"],
+			library : "sap.ui.core",
+			designtime: "sap/ui/core/designtime/Icon.designtime",
+			properties : {
 
-			/**
-			 * This property should be set by the return value of calling sap.ui.core.IconPool.getIconURI with an Icon name parameter and an optional collection parameter which is required when using application extended Icons. A list of standard FontIcon is available here.
-			 */
-			src : {type : "sap.ui.core.URI", group : "Data", defaultValue : null},
+				/**
+				 * This property can be set by following options:
+				 *
+				 * <b>Option 1:</b></br>
+				 * The value has to be matched by following pattern <code>sap-icon://collection-name/icon-name</code> where
+				 * <code>collection-name</code> and <code>icon-name</code> have to be replaced by the desired values.
+				 * In case the default UI5 icons are used the <code>collection-name</code> can be omited.</br>
+				 * <i>Example:</i> <code>sap-icon://accept</code>
+				 *
+				 * <b>Option 2:</b>
+				 * The value is determined by using {@link sap.ui.core.IconPool.getIconURI} with an Icon name parameter
+				 * and an optional collection parameter which is required when using application extended Icons.</br>
+				 * <i>Example:</i> <code>IconPool.getIconURI("accept")</code>
+				 */
+				src : {type : "sap.ui.core.URI", group : "Data", defaultValue : null},
 
-			/**
-			 * Since Icon uses font, this property will be applied to the css font-size property on the rendered DOM element.
-			 */
-			size : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * Since Icon uses font, this property will be applied to the css font-size property on the rendered DOM element.
+				 */
+				size : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * The color of the Icon. If color is not defined here, the Icon inherits the color from its DOM parent.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			color : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * The color of the Icon. If color is not defined here, the Icon inherits the color from its DOM parent.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				color : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This color is shown when icon is hovered. This property has no visual effect when run on mobile device.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			hoverColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * This color is shown when icon is hovered. This property has no visual effect when run on mobile device.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				hoverColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This color is shown when icon is pressed/activated by the user.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			activeColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * This color is shown when icon is pressed/activated by the user.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				activeColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This is the width of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
-			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * This is the width of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
+				 */
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * This is the height of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
-			 */
-			height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * This is the height of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
+				 */
+				height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * Background color of the Icon in normal state.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			backgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color of the Icon in normal state.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				backgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * Background color for Icon in hover state. This property has no visual effect when run on mobile device.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			hoverBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color for Icon in hover state. This property has no visual effect when run on mobile device.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				hoverBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * Background color for Icon in active state.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			activeBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color for Icon in active state.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				activeBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * A decorative icon is included for design reasons. Accessibility tools will ignore decorative icons. Tab stop isn't affected by this property anymore and it's now controlled by the existence of press event handler and the noTabStop property.
-			 * @since 1.16.4
-			 */
-			decorative : {type : "boolean", group : "Accessibility", defaultValue : true},
+				/**
+				 * A decorative icon is included for design reasons. Accessibility tools will ignore decorative icons. Tab stop isn't affected by this property anymore and it's now controlled by the existence of press event handler and the noTabStop property.
+				 * @since 1.16.4
+				 */
+				decorative : {type : "boolean", group : "Accessibility", defaultValue : true},
 
-			/**
-			 * Decides whether a default Icon tooltip should be used if no tooltip is set.
-			 * @since 1.30.0
-			 */
-			useIconTooltip : {type : "boolean", group : "Accessibility", defaultValue : true},
+				/**
+				 * Decides whether a default Icon tooltip should be used if no tooltip is set.
+				 * @since 1.30.0
+				 */
+				useIconTooltip : {type : "boolean", group : "Accessibility", defaultValue : true},
 
-			/**
-			 * This defines the alternative text which is used for outputting the aria-label attribute on the DOM.
-			 * @since 1.30.0
-			 */
-			alt : {type : "string", group : "Accessibility", defaultValue : null},
+				/**
+				 * This defines the alternative text which is used for outputting the aria-label attribute on the DOM.
+				 * @since 1.30.0
+				 */
+				alt : {type : "string", group : "Accessibility", defaultValue : null},
 
-			/**
-			 * Defines whether the tab stop of icon is controlled by the existence of press event handler. When it's set to false, Icon control has tab stop when press event handler is attached.
-			 * If it's set to true, Icon control never has tab stop no matter whether press event handler exists or not.
-			 * @since 1.30.1
-			 */
-			noTabStop : {type : "boolean", group : "Accessibility", defaultValue : false}
+				/**
+				 * Defines whether the tab stop of icon is controlled by the existence of press event handler. When it's set to false, Icon control has tab stop when press event handler is attached.
+				 * If it's set to true, Icon control never has tab stop no matter whether press event handler exists or not.
+				 * @since 1.30.1
+				 */
+				noTabStop : {type : "boolean", group : "Accessibility", defaultValue : false}
+			},
+			aggregations: {
+
+				/**
+				 * Hidden aggregation for holding the InvisibleText instance which is used for outputing the text labeling the control
+				 */
+				_invisibleText : {type : "sap.ui.core.InvisibleText", multiple : false, visibility : "hidden"}
+			},
+			associations : {
+
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+			},
+			events : {
+
+				/**
+				 * This event is fired when icon is pressed/activated by the user. When a handler is attached to this event, the Icon gets tab stop. If you want to disable this behavior, set the noTabStop property to true.
+				 */
+				press : {}
+			}
 		},
-		aggregations: {
-
-			/**
-			 * Hidden aggregation for holding the InvisibleText instance which is used for outputing the text labeling the control
-			 */
-			_invisibleText : {type : "sap.ui.core.InvisibleText", multiple : false, visibility : "hidden"}
-		},
-		associations : {
-
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
-		},
-		events : {
-
-			/**
-			 * This event is fired when icon is pressed/activated by the user. When a handler is attached to this event, the Icon gets tab stop. If you want to disable this behavior, set the noTabStop property to true.
-			 */
-			press : {}
-		}
-	}});
+		renderer: IconRenderer
+	});
 
 	/* =========================================================== */
 	/* Event handlers                                              */
@@ -210,26 +228,9 @@ sap.ui.define([
 			oEvent.setMarked();
 		}
 
-		var sActiveColor = this.getActiveColor(),
-			sActiveBackgroundColor = this.getActiveBackgroundColor(),
-			$Icon;
-
-		if (sActiveColor || sActiveBackgroundColor) {
-
-			// change the source only when the first finger is on the Icon, the following fingers doesn't affect
-			if (!oEvent.targetTouches || (oEvent.targetTouches && oEvent.targetTouches.length === 1)) {
-				$Icon = this.$();
-
-				$Icon.addClass("sapUiIconActive");
-
-				if (sActiveColor) {
-					this._addColorClass(sActiveColor, "color");
-				}
-
-				if (sActiveBackgroundColor) {
-					this._addColorClass(sActiveBackgroundColor, "background-color");
-				}
-			}
+		// change the source only when the first finger is on the Icon, the following fingers doesn't affect
+		if (!oEvent.targetTouches || (oEvent.targetTouches && oEvent.targetTouches.length === 1)) {
+			this._activeIcon();
 		}
 	};
 
@@ -240,13 +241,45 @@ sap.ui.define([
 	 * @private
 	 */
 	Icon.prototype[Device.support.touch ? "ontouchend" : "onmouseup"] = function(oEvent) {
-
 		// change the source back only when all fingers leave the icon
 		if (!oEvent.targetTouches || (oEvent.targetTouches && oEvent.targetTouches.length === 0)) {
-
-			this.$().removeClass("sapUiIconActive");
-			this._restoreColors(Device.system.desktop ? "hover" : undefined);
+			this._deactiveIcon();
 		}
+	};
+
+
+	/**
+	 * Set the icon color and icon background color to active
+	 * @private
+	 */
+	Icon.prototype._activeIcon = function() {
+		var sActiveColor = this.getActiveColor(),
+			sActiveBackgroundColor = this.getActiveBackgroundColor(),
+			$Icon;
+
+		if (sActiveColor || sActiveBackgroundColor) {
+			// change the source only when the first finger is on the Icon, the following fingers doesn't affect
+			$Icon = this.$();
+
+			$Icon.addClass("sapUiIconActive");
+
+			if (sActiveColor) {
+				this._addColorClass(sActiveColor, "color");
+			}
+
+			if (sActiveBackgroundColor) {
+				this._addColorClass(sActiveBackgroundColor, "background-color");
+			}
+		}
+	};
+
+	/**
+	 * Restore the icon color and the icon background color
+	 * @private
+	 */
+	Icon.prototype._deactiveIcon = function() {
+		this.$().removeClass("sapUiIconActive");
+		this._restoreColors(Device.system.desktop ? "hover" : undefined);
 	};
 
 	/**
@@ -255,7 +288,6 @@ sap.ui.define([
 	 * @private
 	 */
 	Icon.prototype.onmouseover = function() {
-
 		var sHoverColor = this.getHoverColor(),
 			sHoverBackgroundColor = this.getHoverBackgroundColor();
 
@@ -280,6 +312,7 @@ sap.ui.define([
 	/**
 	 * Handle the click or tap event on the Icon.
 	 *
+	 * @param {sap.ui.base.Event} oEvent The event
 	 * @private
 	 */
 	Icon.prototype[Device.support.touch && !Device.system.desktop ? "ontap" : "onclick"] = function(oEvent) {
@@ -294,34 +327,42 @@ sap.ui.define([
 	/* ----------------------------------------------------------- */
 	/* Keyboard handling                                           */
 	/* ----------------------------------------------------------- */
-
-	/**
-	 * Handle the key down event for SPACE and ENTER.
-	 *
-	 * @param {jQuery.Event} oEvent - the keyboard event.
-	 * @private
-	 */
 	Icon.prototype.onkeydown = function(oEvent) {
+		if ((oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER || oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT)
+			&& !oEvent.ctrlKey && !oEvent.metaKey) {
+			if (this.hasListeners("press") && (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER)) {
+				// mark the event for components that needs to know if the event was handled by the control
+				oEvent.setMarked();
 
-		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
-
-			// note: prevent document scrolling
-			oEvent.preventDefault();
-
-			var $Icon = this.$(),
-				sActiveColor = this.getActiveColor(),
-				sActiveBackgroundColor = this.getActiveBackgroundColor();
-
-			$Icon.addClass("sapUiIconActive");
-
-			if (sActiveColor) {
-				this._addColorClass(sActiveColor, "color");
+				this._activeIcon();
 			}
 
-			if (sActiveBackgroundColor) {
-				this._addColorClass(sActiveBackgroundColor, "background-color");
+			if (oEvent.which === KeyCodes.ENTER) {
+				this.firePress({/* no parameters */});
+			}
+
+			if (oEvent.which === KeyCodes.SPACE) {
+				if (this.hasListeners("press")) {
+					oEvent.preventDefault();
+				}
+				this._bPressedSpace = true;
+			}
+
+			// set inactive state of the button and marked ESCAPE or SHIFT as pressed only if SPACE was pressed before it
+			if (this._bPressedSpace) {
+				if (oEvent.which === KeyCodes.SHIFT || oEvent.which === KeyCodes.ESCAPE) {
+					this._bPressedEscapeOrShift = true;
+					// set inactive button state
+					this._deactiveIcon();
+				}
+			}
+
+		} else {
+			if (this._bPressedSpace) {
+				oEvent.preventDefault();
 			}
 		}
+
 	};
 
 	/**
@@ -332,11 +373,30 @@ sap.ui.define([
 	 */
 	Icon.prototype.onkeyup = function(oEvent) {
 
-		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+		if (oEvent.which === KeyCodes.ENTER) {
+			// mark the event for components that needs to know if the event was handled by the button
+			oEvent.setMarked();
 
-			this.$().removeClass("sapUiIconActive");
-			this._restoreColors();
-			this.firePress({/* no parameters */});
+			// set inactive button state
+			this._deactiveIcon();
+		}
+
+		if (oEvent.which === KeyCodes.SPACE) {
+			if (!this._bPressedEscapeOrShift) {
+				// mark the event for components that needs to know if the event was handled by the button
+				oEvent.setMarked();
+
+				// set inactive button state
+				this._deactiveIcon();
+				this.firePress({/* no parameters */});
+			} else {
+				this._bPressedEscapeOrShift = false;
+			}
+			this._bPressedSpace = false;
+		}
+
+		if (oEvent.which === KeyCodes.ESCAPE){
+			this._bPressedSpace = false;
 		}
 	};
 
@@ -373,7 +433,7 @@ sap.ui.define([
 			return;
 		}
 
-		jQuery.each(IconColor, function(sPropertyName, sPropertyValue) {
+		each(IconColor, function(sPropertyName, sPropertyValue) {
 			that.removeStyleClass(sCSSClassNamePrefix + sPropertyValue);
 		});
 
@@ -391,7 +451,7 @@ sap.ui.define([
 	/* =========================================================== */
 
 	Icon.prototype.setSrc = function(sSrc) {
-		assert(sSrc == null || IconPool.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
+		assert(sSrc == null || sSrc == "" || _IconRegistry.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
 
 		return this.setProperty("src", sSrc);
 	};
@@ -499,10 +559,9 @@ sap.ui.define([
 		var sAlt = this.getAlt(),
 			sTooltip = this.getTooltip_AsString(),
 			bUseIconTooltip = this.getUseIconTooltip(),
-			sLabel = sAlt || sTooltip || (bUseIconTooltip && oIconInfo && (oIconInfo.text || oIconInfo.name)),
-			sOutputTitle = this._getOutputTitle(oIconInfo);
+			sLabel = sAlt || sTooltip || (bUseIconTooltip && oIconInfo && (oIconInfo.text || oIconInfo.name));
 
-		if (sLabel && sLabel !== sOutputTitle) {
+		if (sLabel) {
 			return sLabel;
 		}
 	};
@@ -517,8 +576,7 @@ sap.ui.define([
 			});
 			this.setAggregation("_invisibleText", oInvisibleText, true);
 		} else {
-			// avoid triggering invalidation during rendering
-			oInvisibleText.setProperty("text", sText, true);
+			oInvisibleText.setText(sText);
 		}
 
 		return oInvisibleText;
@@ -533,12 +591,10 @@ sap.ui.define([
 		if (this.getDecorative()) {
 			mAccAttributes.role = "presentation";
 			mAccAttributes.hidden = "true";
+		} else if (this.hasListeners("press")) {
+			mAccAttributes.role = "button";
 		} else {
-			if (this.hasListeners("press")) {
-				mAccAttributes.role = "button";
-			} else {
-				mAccAttributes.role = "img";
-			}
+			mAccAttributes.role = "img";
 		}
 
 		if (aLabelledBy.length > 0) {
@@ -555,6 +611,7 @@ sap.ui.define([
 	};
 
 	/**
+	 * @returns {object} Current accessibility state of the Icon
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
 	 */
@@ -564,11 +621,11 @@ sap.ui.define([
 		}
 
 		var bHasPressListeners = this.hasListeners("press");
-		var oIconInfo = IconPool.getIconInfo(this.getSrc(), undefined, "sync");
+		var oIconInfo = _IconRegistry.getIconInfo(this.getSrc(), undefined, "sync");
 
 		return {
 			role: bHasPressListeners ? "button" : "img",
-			type: sap.ui.getCore().getLibraryResourceBundle("sap.ui.core").getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
+			type: Library.getResourceBundleFor("sap.ui.core").getText(bHasPressListeners ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
 			description: this.getAlt() || this.getTooltip_AsString() || (oIconInfo ? oIconInfo.text || oIconInfo.name : ""),
 			focusable: bHasPressListeners
 		};

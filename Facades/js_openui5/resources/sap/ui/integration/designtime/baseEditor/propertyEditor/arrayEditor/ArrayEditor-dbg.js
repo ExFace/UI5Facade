@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -82,7 +82,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.arrayEditor.ArrayEditor
 	 * @author SAP SE
 	 * @since 1.72
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.72
@@ -91,6 +91,7 @@ sap.ui.define([
 	var ArrayEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.arrayEditor.ArrayEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.arrayEditor.ArrayEditor",
 		metadata: {
+			library: "sap.ui.integration",
 			properties: {
 				value: {
 					type: "any"
@@ -119,6 +120,9 @@ sap.ui.define([
 		},
 		template: {
 			defaultValue: {}
+		},
+		typeLabel: {
+			defaultValue: "BASE_EDITOR.TYPES.ARRAY"
 		}
 	});
 
@@ -139,7 +143,7 @@ sap.ui.define([
 		var oConfig = this.getConfig();
 
 		var aItems = [];
-		aValue.forEach(function(oValue, iIndex) {
+		(aValue || []).forEach(function(oValue, iIndex) {
 			var oValueCopy = deepClone(oValue);
 			var oDesigntimeMetadata = this.getNestedDesigntimeMetadata(iIndex);
 			var mItem = {

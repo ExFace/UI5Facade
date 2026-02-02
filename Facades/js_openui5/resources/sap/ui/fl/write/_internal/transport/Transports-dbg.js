@@ -1,9 +1,8 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-/*global Promise */
 
 sap.ui.define([
 	"sap/ui/fl/initial/_internal/connectors/LrepConnector",
@@ -28,7 +27,7 @@ sap.ui.define([
 	 * Entity that handles ABAP transport related information.
 	 * @alias sap.ui.fl.write._internal.transport.Transports
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.74.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.transport
@@ -50,27 +49,25 @@ sap.ui.define([
 		 * 					"localonly" tells the consumer if only local development is valid and no transport selection should take place.
 		 * 					"transports" is an array of objects with attributes "transportId", "owner", "description", "locked"(true/false).
 		 * 					"errorCode" can have the values "INVALID_PACKAGE" or "NO_TRANSPORTS" or is an empty string if there is no error.
-		 * @public
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl.write._internal.transport
 		 */
-		getTransports: function (mParameters) {
+		getTransports(mParameters) {
 			if (FlexUtils.getClient()) {
 				mParameters["sap-client"] = FlexUtils.getClient();
 			}
 			var sGetTransportsUrl = InitialUtils.getUrl(ROUTES.ACTION_GET_TRANSPORTS, {url: FlexUtils.getLrepUrl()}, mParameters);
-			//decode url before sending to ABAP back end which does not expect encoded special character such as "/" in the package name
+			// decode url before sending to ABAP back end which does not expect encoded special character such as "/" in the package name
 			sGetTransportsUrl = decodeURIComponent(sGetTransportsUrl);
-			return InitialUtils.sendRequest(sGetTransportsUrl, "GET").then(function (oResponse) {
+			return InitialUtils.sendRequest(sGetTransportsUrl, "GET").then(function(oResponse) {
 				if (oResponse.response) {
-					if (!oResponse.response.localonly) {
-						oResponse.response.localonly = false;
-					}
-					if (!oResponse.response.errorCode) {
-						oResponse.response.errorCode = "";
-					}
+					oResponse.response.localonly ||= false;
+					oResponse.response.errorCode ||= "";
 					return Promise.resolve(oResponse.response);
 				}
 
-				return Promise.reject('response is empty');
+				return Promise.reject("response is empty");
 			});
 		},
 
@@ -83,9 +80,11 @@ sap.ui.define([
 		 * @param {string} mParameters.changeIds Array of change ID objects with attributes "namespace", "fileName", "fileType"
 		 * @param {string} mParameters.reference Application ID of the changes which should be transported
 		 * @returns {Promise} without parameters
-		 * @public
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl.write._internal.transport
 		 */
-		makeChangesTransportable: function (mParameters) {
+		makeChangesTransportable(mParameters) {
 			if (!mParameters.transportId) {
 				return Promise.reject(new Error("no transportId provided as attribute of mParameters"));
 			}
@@ -95,7 +94,7 @@ sap.ui.define([
 			if (!mParameters.reference) {
 				return Promise.reject(new Error("no reference provided as attribute of mParameters"));
 			}
-			var mUrlParams = FlexUtils.getClient() ? {"sap-client" : FlexUtils.getClient()} : {};
+			var mUrlParams = FlexUtils.getClient() ? {"sap-client": FlexUtils.getClient()} : {};
 
 			var sMakeChangesTransportableUrl = InitialUtils.getUrl(ROUTES.ACTION_MAKE_CHANGE_TRANSPORTABLE, {url: FlexUtils.getLrepUrl()}, mUrlParams);
 			var sTokenUrl = InitialUtils.getUrl(ROUTES.ACTION_GET_TOKEN, {url: FlexUtils.getLrepUrl()});
@@ -114,8 +113,11 @@ sap.ui.define([
 		 * @param {Array} aLocalChanges List of changes which data have to be extracted
 		 * @param {Array} [aAppVariantDescriptors] List of app variant descriptors which data have to be extracted
 		 * @returns {Array} Returns an array of object containing all required data to transport the existing local changes
+		 *
+		 * @private
+		 * @ui5-restricted sap.ui.fl.write._internal.transport
 		 */
-		convertToChangeTransportData: function (aLocalChanges, aAppVariantDescriptors) {
+		convertToChangeTransportData(aLocalChanges, aAppVariantDescriptors) {
 			var aTransportData = [];
 			var i;
 
@@ -136,10 +138,10 @@ sap.ui.define([
 				var oData = {};
 				oData.namespace = oCurrentChange.getNamespace();
 				oData.fileName = oCurrentChange.getId();
-				oData.fileType = oCurrentChange.getDefinition().fileType;
+				oData.fileType = oCurrentChange.getFileType();
 				aTransportData.push(oData);
 			}
 			return aTransportData;
 		}
 	};
-}, true);
+});

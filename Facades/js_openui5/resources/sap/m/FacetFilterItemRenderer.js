@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ListItemBaseRenderer','sap/ui/core/Renderer'],function(L,R){"use strict";var F=R.extend(L);F.apiVersion=2;F.renderLIContent=function(r,c){r.openStart("div",c);if(c.getParent()&&c.getParent().getWordWrap()){r.class("sapMFFLITitleWrap");}else{r.class("sapMFFLITitle");}r.openEnd();r.text(c.getText());r.close("div");};return F;},true);
+sap.ui.define(["./ListItemBaseRenderer","sap/ui/core/Renderer"],function(e,t){"use strict";var r=t.extend(e);r.apiVersion=2;r.renderLIContent=function(e,t){e.openStart("div");if(t.getParent()&&t.getParent().getWordWrap()){e.class("sapMFFLITitleWrap")}else{e.class("sapMFFLITitle")}e.openEnd();e.text(t.getText());e.close("div")};return r},true);
+//# sourceMappingURL=FacetFilterItemRenderer.js.map

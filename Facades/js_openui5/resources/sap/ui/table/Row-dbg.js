@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,7 +10,7 @@ sap.ui.define([
 ], function(Element, TableUtils, jQuery) {
 	"use strict";
 
-	var RowType = Object.freeze({
+	const RowType = Object.freeze({
 		Standard: "Standard",
 		Summary: "Summary",
 		GroupHeader: "GroupHeader"
@@ -26,29 +26,29 @@ sap.ui.define([
 	 * @private
 	 */
 	function RowState() {
-		var oContext = null;
-		var sType = RowType.Standard;
-		var bContentHidden = false;
-		var sTitle = "";
-		var bExpanded = false;
-		var bExpandable = false;
-		var iLevel = 0;
+		let oContext = null;
+		let sType = RowType.Standard;
+		let bContentHidden = false;
+		let sTitle = "";
+		let bExpanded = false;
+		let bExpandable = false;
+		let iLevel = 0;
 
 		Object.defineProperties(this, {
 			/** @type sap.ui.model.Context */
 			context: {
-				get: function() {return oContext;},
+				get: function() { return oContext; },
 				set: function(_oContext) {
 					oContext = _oContext || null;
 				}
 			},
 			/** @type {Readonly<{GroupHeader: string, Summary: string, Standard: string}>} */
 			Type: {
-				get: function() {return RowType;}
+				get: function() { return RowType; }
 			},
 			/** @type string */
 			type: {
-				get: function() {return sType;},
+				get: function() { return sType; },
 				set: function(_sType) {
 					if (!(_sType in RowType)) {
 						throw Error("Is not a valid type for sap.ui.table.Row: " + _sType);
@@ -58,39 +58,39 @@ sap.ui.define([
 			},
 			/** @type boolean */
 			empty: {
-				get: function() {return this.context == null;}
+				get: function() { return this.context == null; }
 			},
 			/** @type boolean */
 			contentHidden: {
-				get: function() {return this.empty ? true : bContentHidden;},
+				get: function() { return this.empty ? true : bContentHidden; },
 				set: function(_bContentHidden) {
 					bContentHidden = _bContentHidden === true;
 				}
 			},
 			/** @type string */
 			title: {
-				get: function() {return this.empty ? "" : sTitle;},
+				get: function() { return this.empty ? "" : sTitle; },
 				set: function(_sTitle) {
 					sTitle = (typeof _sTitle === "string" ? _sTitle : "");
 				}
 			},
 			/** @type boolean */
 			expandable: {
-				get: function() {return this.empty ? false : bExpandable;},
+				get: function() { return this.empty ? false : bExpandable; },
 				set: function(_bExpandable) {
 					bExpandable = _bExpandable === true;
 				}
 			},
 			/** @type boolean */
 			expanded: {
-				get: function() {return this.expandable ? bExpanded : false;},
+				get: function() { return this.expandable ? bExpanded : false; },
 				set: function(_bExpanded) {
 					bExpanded = _bExpanded === true;
 				}
 			},
 			/** @type number */
 			level: {
-				get: function() {return this.empty ? 0 : iLevel;},
+				get: function() { return this.empty ? 0 : iLevel; },
 				set: function(_iLevel) {
 					iLevel = (typeof _iLevel === "number" ? Math.max(1, _iLevel || 1) : 1);
 				}
@@ -110,7 +110,7 @@ sap.ui.define([
 		});
 	}
 
-	var StateMap = new window.WeakMap();
+	const StateMap = new window.WeakMap();
 
 	/**
 	 * Gets the status information for a row.
@@ -135,32 +135,31 @@ sap.ui.define([
 	 * @class
 	 * The row.
 	 * @extends sap.ui.core.Element
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.table.Row
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Row = Element.extend("sap.ui.table.Row", /** @lends sap.ui.table.Row.prototype */ { metadata : {
-		library : "sap.ui.table",
-		defaultAggregation : "cells",
-		aggregations : {
+	const Row = Element.extend("sap.ui.table.Row", /** @lends sap.ui.table.Row.prototype */ {metadata: {
+		library: "sap.ui.table",
+		defaultAggregation: "cells",
+		aggregations: {
 			/**
 			 * The actual cells are a table-internal construct. The controls in this aggregation are the content of the cells.
 			 * This aggregation is managed by the table and must not be manipulated. Only read access is allowed.
 			 */
-			cells : {type : "sap.ui.core.Control", multiple : true, singularName : "cell"},
+			cells: {type: "sap.ui.core.Control", multiple: true, singularName: "cell"},
 
 			/*
 			 * Hidden aggregation for row actions
 			 */
-			_rowAction : {type : "sap.ui.table.RowAction", multiple: false, visibility: "hidden"},
+			_rowAction: {type: "sap.ui.table.RowAction", multiple: false, visibility: "hidden"},
 
 			/*
 			 * Hidden aggregation for the settings.
 			 */
-			_settings : {type : "sap.ui.table.RowSettings", multiple: false, visibility: "hidden"}
+			_settings: {type: "sap.ui.table.RowSettings", multiple: false, visibility: "hidden"}
 		}
 	}});
 
@@ -172,25 +171,38 @@ sap.ui.define([
 		this.initDomRefs();
 	};
 
-	/*
-	 * @see JSDoc generated by SAPUI5 control
-	 */
 	Row.prototype.getFocusInfo = function() {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 		return oTable ? oTable.getFocusInfo() : Element.prototype.getFocusInfo.apply(this, arguments);
 	};
 
-	/*
-	 * @see JSDoc generated by SAPUI5 control
-	 */
 	Row.prototype.applyFocusInfo = function(mFocusInfo) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 		if (oTable) {
 			oTable.applyFocusInfo(mFocusInfo);
 		} else {
 			Element.prototype.applyFocusInfo.apply(this, arguments);
 		}
 		return this;
+	};
+
+	/**
+	 * If <code>bFirstInteractiveElement</code> is <code>true</code> and there are interactive elements in the
+	 * data cells, sets the focus on the first interactive element. Otherwise sets the focus on the first
+	 * data cell.
+	 *
+	 * @param {boolean} [bFirstInteractiveElement=false] Indicates whether to set the focus on the first
+	 * interactive element
+	 * @private
+	 */
+	Row.prototype._setFocus = function(bFirstInteractiveElement) {
+		const oFirstInteractiveElement = TableUtils.getFirstInteractiveElement(this);
+
+		if (bFirstInteractiveElement === true && oFirstInteractiveElement) {
+			oFirstInteractiveElement.focus();
+		} else {
+			this.getDomRef("col0").focus();
+		}
 	};
 
 	/**
@@ -221,18 +233,17 @@ sap.ui.define([
 	 *
 	 * @returns {int} index of the row (considers scroll position and fixed rows)
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Row.prototype.getIndex = function() {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (!oTable) {
 			return -1;
 		}
 
 		// get the index of the row in the aggregation
-		var iRowIndex = oTable.indexOfRow(this);
-		var mRowCount = oTable._getRowCounts();
+		const iRowIndex = oTable.indexOfRow(this);
+		const mRowCount = oTable._getRowCounts();
 
 		// check for fixed rows. In this case the index of the context is the same like the index of the row in the aggregation
 		if (mRowCount.fixedTop > 0 && iRowIndex < mRowCount.fixedTop) {
@@ -241,7 +252,7 @@ sap.ui.define([
 
 		// check for fixed bottom rows
 		if (mRowCount.fixedBottom > 0 && iRowIndex >= mRowCount.count - mRowCount.fixedBottom) {
-			var iTotalRowCount = oTable._getTotalRowCount();
+			const iTotalRowCount = oTable._getTotalRowCount();
 			if (iTotalRowCount >= mRowCount.count) {
 				return iTotalRowCount - (mRowCount.count - iRowIndex);
 			} else {
@@ -259,30 +270,28 @@ sap.ui.define([
 	 * {@link sap.ui.table.Row#initDomRefs}.
 	 *
 	 * @param {boolean} [bJQuery=false] If set to <code>true</code>, jQuery objects are returned, otherwise native DOM references.
-	 * @param {boolean} [bCollection=false] If set to <code>true</code>, the DOM references will be returned as an array, otherwise as an object.
 	 * @returns {Object|Array} An object (or array, if <code>bCollection</code> is true) containing jQuery objects, or native references to the DOM
 	 *                         elements of the row.
 	 * @see sap.ui.core.Element#getDomRef
 	 * @see sap.ui.table.Row#initDomRefs
 	 * @private
 	 */
-	Row.prototype.getDomRefs = function(bJQuery, bCollection) {
+	Row.prototype.getDomRefs = function(bJQuery) {
 		bJQuery = bJQuery === true;
-		bCollection = bCollection === true;
 
-		var sKey = bJQuery ? "jQuery" : "dom";
-		var mDomRefs = this._mDomRefs;
+		const sKey = bJQuery ? "jQuery" : "dom";
+		const mDomRefs = this._mDomRefs;
 
 		if (!mDomRefs[sKey]) {
-			var oTable = this.getTable();
-			var fnGetElement = function(sId) {
-				var oElement = document.getElementById(sId);
+			const oTable = this.getTable();
+			const fnGetElement = function(sId) {
+				const oElement = document.getElementById(sId);
 				if (oElement) {
 					return bJQuery ? jQuery(oElement) : oElement;
 				}
 				return null;
 			};
-			var fnGetParent = function(vElement) {
+			const fnGetParent = function(vElement) {
 				if (vElement) {
 					return bJQuery ? vElement.parent() : vElement.parentNode;
 				}
@@ -292,7 +301,7 @@ sap.ui.define([
 			mDomRefs[sKey] = {};
 
 			if (oTable) {
-				var iRowIndex = oTable.indexOfRow(this);
+				const iRowIndex = oTable.indexOfRow(this);
 				mDomRefs[sKey].rowSelector = fnGetElement(oTable.getId() + "-rowsel" + iRowIndex);
 				mDomRefs[sKey].rowAction = fnGetElement(oTable.getId() + "-rowact" + iRowIndex);
 			}
@@ -309,17 +318,17 @@ sap.ui.define([
 					.add(mDomRefs[sKey].rowFixedPart)
 					.add(mDomRefs[sKey].rowScrollPart)
 					.add(mDomRefs[sKey].rowActionPart);
+			} else {
+				mDomRefs[sKey].row = [
+					mDomRefs[sKey].rowHeaderPart,
+					mDomRefs[sKey].rowFixedPart,
+					mDomRefs[sKey].rowScrollPart,
+					mDomRefs[sKey].rowActionPart
+				].filter(Boolean);
 			}
 		}
 
-		var mKeyDomRefs = mDomRefs[sKey];
-		if (bCollection) {
-			return Object.keys(mKeyDomRefs).map(function(sKey) {
-				return mKeyDomRefs[sKey];
-			}).filter(Boolean);
-		}
-
-		return mKeyDomRefs;
+		return mDomRefs[sKey];
 	};
 
 	/**
@@ -328,17 +337,23 @@ sap.ui.define([
 	 * @private
 	 */
 	Row.prototype._updateSelection = function() {
-		var oTable = this.getTable();
-		var bIsSelected = oTable._getSelectionPlugin().isIndexSelected(this.getIndex());
+		const oTable = this.getTable();
+		const bSelected = this._isSelected();
 
-		this._setSelected(bIsSelected);
+		if (bSelected) {
+			this.addStyleClass("sapUiTableRowSel");
+		} else {
+			this.removeStyleClass("sapUiTableRowSel");
+		}
+
 		oTable._getAccExtension().updateSelectionStateOfRow(this);
+		oTable._getSyncExtension?.().syncRowSelection(oTable.indexOfRow(this), bSelected);
 	};
 
 	Row.prototype.setRowBindingContext = function(oContext, oTable) {
-		var oBindingInfo = oTable.getBindingInfo("rows");
-		var sModelName = oBindingInfo ? oBindingInfo.model : undefined;
-		var oState = state(this);
+		const oBindingInfo = oTable.getBindingInfo("rows");
+		const sModelName = oBindingInfo ? oBindingInfo.model : undefined;
+		const oState = state(this);
 
 		oState.reset();
 		oState.context = oContext;
@@ -349,6 +364,7 @@ sap.ui.define([
 
 		this.setBindingContext(oState.context, sModelName);
 		this.getDomRefs(true).row.toggleClass("sapUiTableRowHidden", this.isContentHidden());
+		/** @deprecated As of version 1.64 */
 		this._updateTableCells(oTable);
 	};
 
@@ -360,14 +376,15 @@ sap.ui.define([
 		return Element.prototype.setBindingContext.call(this, oContext || null, sModelName);
 	};
 
+	/** @deprecated As of version 1.64 */
 	Row.prototype._updateTableCells = function(oTable) {
-		var aCells = this.getCells(),
-			iAbsoluteRowIndex = this.getIndex(),
-			bHasTableCellUpdate = !!oTable._updateTableCell,
-			oCell, $Td, bHasCellUpdate,
-			oBindingContext = this.getRowBindingContext();
+		const aCells = this.getCells();
+		const iAbsoluteRowIndex = this.getIndex();
+		const bHasTableCellUpdate = !!oTable._updateTableCell;
+		let oCell; let $Td; let bHasCellUpdate;
+		const oBindingContext = this.getRowBindingContext();
 
-		for (var i = 0; i < aCells.length; i++) {
+		for (let i = 0; i < aCells.length; i++) {
 			oCell = aCells[i];
 			bHasCellUpdate = !!oCell._updateTableCell;
 			$Td = bHasCellUpdate || bHasTableCellUpdate ? oCell.$().closest("td") : null;
@@ -458,6 +475,7 @@ sap.ui.define([
 	 *
 	 * @returns {number} The level.
 	 * @private
+	 * @ui5-private sap.ui.mdc.Table
 	 */
 	Row.prototype.getLevel = function() {
 		return state(this).level;
@@ -502,7 +520,8 @@ sap.ui.define([
 	};
 
 	Row.prototype.invalidate = function() {
-		return this;
+		// The table takes care of rendering the rows after it has done an update. Rendering must not be triggered by the row itself, therefore
+		// invalidation must not bubble up to the table.
 	};
 
 	/**
@@ -512,30 +531,30 @@ sap.ui.define([
 	 * @private
 	 */
 	Row.prototype.getDragGhost = function() {
-		var oTable = this.getTable();
-		var oTableElement = oTable.getDomRef();
-		var mRowAreas = this.getDomRefs();
-		var oGhostElement;
-		var oGhostAreaElement;
-		var oRowElementClone;
-		var iSelectedRowCount = oTable._getSelectionPlugin().getSelectedCount();
+		const oTable = this.getTable();
+		const oTableElement = oTable.getDomRef();
+		const mRowAreas = this.getDomRefs();
+		const oGhostElement = oTableElement.cloneNode();
+		let oGhostAreaElement;
+		let oRowElementClone;
+		const iSelectedRowCount = oTable._getSelectionPlugin().getSelectedCount();
 
 		function removeForbiddenAttributes(oElement) {
 			oElement.removeAttribute("id");
 			oElement.removeAttribute("data-sap-ui");
 			oElement.removeAttribute("data-sap-ui-related");
 
-			var iChildCount = oElement.children.length;
-			for (var i = 0; i < iChildCount; i++) {
+			const iChildCount = oElement.children.length;
+			for (let i = 0; i < iChildCount; i++) {
 				removeForbiddenAttributes(oElement.children[i]);
 			}
 		}
 
 		function cloneTableAndRow(oTableElement, oRowElement) {
-			var oTableClone = oTableElement.cloneNode();
-			var oTableHeadClone = oTableElement.querySelector("thead").cloneNode(true);
-			var oTableBodyClone = oTableElement.querySelector("tbody").cloneNode();
-			var oRowClone = oRowElement.cloneNode(true);
+			const oTableClone = oTableElement.cloneNode();
+			const oTableHeadClone = oTableElement.querySelector("thead").cloneNode(true);
+			const oTableBodyClone = oTableElement.querySelector("tbody").cloneNode();
+			const oRowClone = oRowElement.cloneNode(true);
 
 			oTableBodyClone.appendChild(oRowClone);
 			oTableClone.appendChild(oTableHeadClone);
@@ -544,7 +563,6 @@ sap.ui.define([
 			return oTableClone;
 		}
 
-		oGhostElement = oTableElement.cloneNode();
 		oGhostElement.classList.add("sapUiTableRowGhost");
 		oGhostElement.classList.remove("sapUiTableVScr");
 		oGhostElement.classList.remove("sapUiTableHScr");
@@ -567,7 +585,7 @@ sap.ui.define([
 		}
 
 		if (mRowAreas.rowScrollPart) {
-			var oScrollableColumnsContainer = oTable.getDomRef("sapUiTableCtrlScr");
+			const oScrollableColumnsContainer = oTable.getDomRef("sapUiTableCtrlScr");
 
 			oGhostAreaElement = oScrollableColumnsContainer.cloneNode();
 			oRowElementClone = cloneTableAndRow(oTable.getDomRef("table"), mRowAreas.rowScrollPart);
@@ -599,7 +617,7 @@ sap.ui.define([
 			oGhostAreaElement = document.createElement("div");
 			oGhostAreaElement.classList.add("sapUiTableRowGhostCount");
 
-			var oCountElement = document.createElement("div");
+			const oCountElement = document.createElement("div");
 			oCountElement.textContent = iSelectedRowCount;
 
 			oGhostAreaElement.appendChild(oCountElement);
@@ -612,25 +630,23 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the visual selected state of the row.
+	 * Sets the selected state of the row.
 	 *
 	 * @param {boolean} bSelected Whether the row should be selected.
 	 * @private
 	 */
 	Row.prototype._setSelected = function(bSelected) {
-		var oTable = this.getTable();
+		this.getTable()._getSelectionPlugin().setSelected(this, bSelected);
+	};
 
-		if (bSelected) {
-			this.addStyleClass("sapUiTableRowSel");
-		} else {
-			this.removeStyleClass("sapUiTableRowSel");
-		}
-
-		if (oTable) {
-			TableUtils.dynamicCall(oTable._getSyncExtension, function(oSyncExtension) {
-				oSyncExtension.syncRowSelection(oTable.indexOfRow(this), bSelected);
-			}, this);
-		}
+	/**
+	 * Checks if the row is selected.
+	 *
+	 * @returns {boolean} Whether the row is selected.
+	 * @private
+	 */
+	Row.prototype._isSelected = function() {
+		return this.getTable()._getSelectionPlugin().isSelected(this);
 	};
 
 	/**
@@ -640,7 +656,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Row.prototype._setHovered = function(bHovered) {
-		var oTable = this.getTable();
+		const oTable = this.getTable();
 
 		if (bHovered) {
 			this.addStyleClass("sapUiTableRowHvr");
@@ -648,11 +664,7 @@ sap.ui.define([
 			this.removeStyleClass("sapUiTableRowHvr");
 		}
 
-		if (oTable) {
-			TableUtils.dynamicCall(oTable._getSyncExtension, function(oSyncExtension) {
-				oSyncExtension.syncRowHover(oTable.indexOfRow(this), bHovered);
-			}, this);
-		}
+		oTable._getSyncExtension?.().syncRowHover(oTable.indexOfRow(this), bHovered);
 	};
 
 	/**
@@ -662,7 +674,8 @@ sap.ui.define([
 	 * The <code>RowAction</code> is generated based on a template. Manipulations of the object or its items are not supported.
 	 *
 	 * @return {sap.ui.table.RowAction} The related <code>RowAction</code> of the row.
-	 * @protected
+	 * @private
+	 * @ui5-restricted For testing purposes only
 	 */
 	Row.prototype.getRowAction = function() {
 		return this.getAggregation("_rowAction");
@@ -675,8 +688,43 @@ sap.ui.define([
 	 * @private
 	 */
 	Row.prototype.getTable = function() {
-		var oParent = this.getParent();
+		const oParent = this.getParent();
 		return TableUtils.isA(oParent, "sap.ui.table.Table") ? oParent : null;
+	};
+
+	/**
+	 * Expands the row if it can be expanded.
+	 *
+	 * @private
+	 */
+	Row.prototype.expand = function() {
+		if (this.isExpandable() && !this.isExpanded()) {
+			TableUtils.Hook.call(this.getTable(), TableUtils.Hook.Keys.Row.Expand, this);
+		}
+	};
+
+	/**
+	 * Collapses the row if it can be collapsed.
+	 *
+	 * @private
+	 */
+	Row.prototype.collapse = function() {
+		if (this.isExpandable() && this.isExpanded()) {
+			TableUtils.Hook.call(this.getTable(), TableUtils.Hook.Keys.Row.Collapse, this);
+		}
+	};
+
+	/**
+	 * If possible, it collapses the row if it is expanded, or expands it if it is collapsed.
+	 *
+	 * @private
+	 */
+	Row.prototype.toggleExpandedState = function() {
+		if (this.isExpanded()) {
+			this.collapse();
+		} else {
+			this.expand();
+		}
 	};
 
 	/**

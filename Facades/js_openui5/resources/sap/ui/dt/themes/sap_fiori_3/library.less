@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,3 +10,96 @@
 @import "../../../../../../Base/baseLib/sap_fiori_3/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_fiori_3/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_fiori_3/global.less";
+
+/* START "ContextMenu.less" */
+/******************************************************************
+	Style of the DT Contextmenu - sap_fiori_3 Theme
+*******************************************************************/
+@_sap_ui_dt_ContextMenu_MnuItemTextColor: @sapUiListSelectionBorderColor; // #0854a0
+@_sap_ui_dt_ContextMenu_MnuItemBackgroundColor: @sapUiListBackground; // #fff
+@_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor: @sapUiListSelectionBackgroundColor; // #e5f0fa
+@_sap_ui_dt_ContextMenu_BorderRadius: @sapUiButtonBorderCornerRadius; // 0.25rem
+
+.sapUiDtContextMenu {
+	.sapUiMnuLst {
+		.sapUiMnuItm {
+			color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+			background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+			margin: 0.0625rem;
+
+			.sapUiMnuItmIco {
+				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+				background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+			}
+
+			.sapUiMnuItmSbMnu > div:after,
+			.sapUiMnuItm.sapUiMnuItmHov .sapUiMnuItmSbMnu > div:after {
+				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+			}
+			&.sapUiMnuItmHov {
+				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+				background-color: @_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor;
+
+				.sapUiMnuItmIco {
+					color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+					background: @_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor;
+				}
+				&.sapUiMnuItmDsbl {
+					background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+					.sapUiMnuItmIco {
+						background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+					}
+				}
+			}
+
+			&:focus {
+				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
+				outline-offset: 0;
+				&.sapUiMnuItmDsbl{
+					outline: none;
+				}
+			}
+
+			&.sapUiMnuItmSubMnuOpen {
+				border-bottom: none !important; //1px
+			}
+		}
+	}
+}
+/* END "ContextMenu.less" */
+
+/* START "Overlay.less" */
+/******************************************************************
+	Style of the DT Overlays - sap_fiori_3 Theme
+*******************************************************************/
+@_sap_ui_dt_Overlay_DropZoneBackgroundColor: fade(@sapUiSelected, 5%); //RGBA(8,84,160,0.05)
+
+.sapUiDtOverlayDropZone {
+	> .sapUiDtOverlayChildren {
+		> .sapUiDtOverlayMovable {
+			background: inherit;
+
+			&:before {
+				content: none;
+			}
+
+			&.sapUiDtOverlayHover {
+				&:after {
+					content: none;
+				}
+			}
+
+			&.sapUiDtOverlaySelected {
+				box-shadow: none;
+			}
+		}
+	}
+}
+
+.sapUiDtOverlayTargetZone {
+	&:after {
+		transition: box-shadow .25s;
+		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
+	}
+}
+/* END "Overlay.less" */

@@ -1,419 +1,167 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./PluginBase",
-	"../utils/TableUtils",
-	"sap/ui/unified/MenuItem"
+	"../utils/TableUtils"
 ], function(
 	PluginBase,
-	TableUtils,
-	MenuItem
+	TableUtils
 ) {
 	"use strict";
 
 	/**
-	 * Constructs an instance of sap.ui.table.plugins.V4Aggregation
+	 * @class
+	 * Integrates the aggregation information of the {@link sap.ui.model.odata.v4.ODataListBinding} and the table. The table is enabled to visualize
+	 * group levels and sums according to that information. See {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation} for details.
 	 *
-	 * @class TODO
-	 * @extends sap.ui.table.plugins.PluginBase
+	 * This plugin only works in combination with a <code>sap.ui.model.odata.v4.ODataModel</code>. Do not add it to a table that is bound to another
+	 * model.
+	 * @extends sap.ui.core.Element
+	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
+	 *
 	 * @private
-	 * @since 1.76
-	 * @experimental
 	 * @alias sap.ui.table.plugins.V4Aggregation
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+	 *
+	 * @borrows sap.ui.table.plugins.PluginBase.findOn as findOn
 	 */
-	var V4Aggregation = PluginBase.extend("sap.ui.table.plugins.V4Aggregation", /** @lends sap.ui.table.plugins.V4Aggregation.prototype */ {
+	const V4Aggregation = PluginBase.extend("sap.ui.table.plugins.V4Aggregation", /** @lends sap.ui.table.plugins.V4Aggregation.prototype */ {
 		metadata: {
 			library: "sap.ui.table",
 			properties: {
-				// This has to be managed above column level, because the group order is independent from the oder of the columns in the aggregation.
-				//groupLevels: {type: "string[]", defaultValue: []}
-				//showTotalSummary: {type: "boolean", defaultValue: true},
-				//showGroupSummaries: {type: "boolean", defaultValue: true}
-			},
-			events: {}
+				/**
+				 * Indicates whether this plugin is enabled.
+				 */
+				enabled: {type: "boolean", defaultValue: true}, // TODO: Inherited from private PluginBase. Remove once PluginBase is public.
+
+				/**
+				 * If the formatter returns undefined, the default group header title is set.
+				 *
+				 * Parameters: Binding context (sap.ui.model.Context), Name of the grouped property (string)
+				 * Returns: The group header title or undefined
+				 */
+				groupHeaderFormatter: {type: "function"}
+			}
 		}
 	});
 
-	V4Aggregation.prototype.init = function() {
-		this.aGroupMenuItems = [];
-		this.aAggregateMenuItems = [];
-		this.aContextMenuItems = [];
-	};
+	V4Aggregation.findOn = PluginBase.findOn;
 
-	V4Aggregation.prototype.isApplicable = function(oTable) {
-		return oTable.getMetadata().getName() === "sap.ui.table.Table";
-	};
-
-	V4Aggregation.prototype.onActivate = function(oTable) {
-		// TODO: Only activate if OData V4
-		PluginBase.prototype.onActivate.apply(this, arguments);
-		TableUtils.Grouping.setGroupMode(oTable); // TODO: Only when really grouped
-		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Row.UpdateState, this.updateRowState, this);
-		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Table.OpenMenu, this.onOpenMenu, this);
-		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Column.MenuItemNotification, this.notifyColumnAboutMenuItems, this);
-	};
-
-	V4Aggregation.prototype.onDeactivate = function(oTable) {
-		PluginBase.prototype.onDeactivate.apply(this, arguments);
-		TableUtils.Grouping.clearMode(oTable);
-		TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Row.UpdateState, this.updateRowState, this);
-		TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Table.OpenMenu, this.onOpenMenu, this);
-		TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Column.MenuItemNotification, this.notifyColumnAboutMenuItems, this);
-
-		this.aGroupMenuItems.concat(this.aAggregateMenuItems, this.aContextMenuItems)
-			.forEach(function(oItem) {
-				oItem.destroy();
-			});
-		this.aGroupMenuItems = [];
-		this.aAggregateMenuItems = [];
-		this.aContextMenuItems = [];
-
-		var oBinding = oTable.getBinding("rows");
-		if (oBinding) {
-			oBinding.setAggregation();
-		}
-	};
-
-	V4Aggregation.prototype.onTableRowsBound = function(oBinding) {
-		// TODO: Activate if OData V4, otherwise deactivate
-		this.updateAggregation();
-	};
-
-	V4Aggregation.prototype.updateRowState = function(oState) {
-		if (typeof oState.context.getValue("@$ui5.node.isExpanded") === "boolean") {
-			oState.type = oState.Type.GroupHeader;
-		} else if (oState.context.getValue("@$ui5.node.isTotal")) {
-			oState.type = oState.Type.Summary;
-		}
-		oState.title = "todo";
-		oState.expandable = oState.type === oState.Type.GroupHeader;
-		oState.expanded = oState.context.getValue("@$ui5.node.isExpanded") === true;
-		oState.level = oState.context.getValue("@$ui5.node.level");
-	};
-
-	V4Aggregation.prototype.setGroupLevels = function(aGroupLevels) {
-		this._aGroupLevels = aGroupLevels;
-	};
-
-	V4Aggregation.prototype.getGroupLevels = function() {
-		return this._aGroupLevels || [];
-	};
-
-	V4Aggregation.prototype.expandRow = function(oRow) {
-		var oBinding = this.getTableBinding();
-
-		if (oBinding && TableUtils.isA(oRow, "sap.ui.table.Row")) {
-			if (oBinding.expand) {
-				oBinding.expand(oRow.getIndex());
-			} else {
-				sap.m.MessageToast.show("not yet ;)");
-			}
-		}
-	};
-
-	V4Aggregation.prototype.collapseRow = function(oRow) {
-		var oBinding = this.getTableBinding();
-
-		if (oBinding && TableUtils.isA(oRow, "sap.ui.table.Row")) {
-			if (oBinding.collapse) {
-				oBinding.collapse(oRow.getIndex());
-			} else {
-				sap.m.MessageToast.show("not yet ;)");
-			}
-		}
-	};
-
-	function getGroupableProperties(oInstance) {
-		var aColumns;
-
-		if (oInstance.isA("sap.ui.table.Table")) {
-			aColumns = oInstance.getColumns();
-		} else {
-			aColumns = [oInstance];
-		}
-
-		return aColumns.reduce(function(aGroupableProperties, oColumn) {
-			var oPropertyInfo = oColumn.data("propertyInfo");
-
-			if (oColumn.getVisible() && oPropertyInfo) {
-				for (var sProperty in oPropertyInfo) {
-					if (oPropertyInfo[sProperty].groupable && aGroupableProperties.indexOf(sProperty) === -1) {
-						aGroupableProperties.push(sProperty);
-					}
-				}
-			}
-
-			return aGroupableProperties;
-		}, []);
-	}
-
-	function getAggregatableProperties(oInstance) {
-		var aColumns;
-
-		if (oInstance.isA("sap.ui.table.Table")) {
-			aColumns = oInstance.getColumns();
-		} else {
-			aColumns = [oInstance];
-		}
-
-		return aColumns.reduce(function(aAggregatableProperties, oColumn) {
-			var oPropertyInfo = oColumn.data("propertyInfo");
-
-			if (oColumn.getVisible() && oPropertyInfo) {
-				for (var sProperty in oPropertyInfo) {
-					if (oPropertyInfo[sProperty].aggregatable && aAggregatableProperties.indexOf(sProperty) === -1) {
-						aAggregatableProperties.push(sProperty);
-					}
-				}
-			}
-
-			return aAggregatableProperties;
-		}, []);
-	}
-
-	function getAggregationInfos(oColumn) {
-		var aAggregatableProperties = getAggregatableProperties(oColumn);
-		var oPropertyInfo = oColumn.data("propertyInfo");
-		var aAggregationConfigs = [];
-
-		for (var i = 0; i < aAggregatableProperties.length; i++) {
-			var sProperty = aAggregatableProperties[i];
-			var oProperty = oPropertyInfo[aAggregatableProperties[i]];
-			var oDetails = Object.assign({grandtotal: true, subtotals: true}, oProperty.aggregationDetails);
-			var oConfig = {
-				grandTotal: oDetails.grandtotal === true,
-				subtotals: oDetails.subtotals === true
-			};
-			if (oConfig.grandTotal && oConfig.subtotals) {
-				aAggregationConfigs.push({name: sProperty, menuText: "All Totals", config: oConfig});
-			}
-			if (oConfig.grandTotal) {
-				aAggregationConfigs.push({name: sProperty, menuText: "GrandTotal", config: {grandTotal: true}});
-			}
-			if (oConfig.subtotals) {
-				aAggregationConfigs.push({name: sProperty, menuText: "Subtotals", config: {subtotals: true}});
-			}
-			if (oDetails.custom) {
-				for (var sCustomConfig in oDetails.custom) {
-					var oCustomConfig = oDetails.custom[sCustomConfig];
-					aAggregationConfigs.push({name: sCustomConfig, menuText: sCustomConfig, config: oCustomConfig});
-				}
-			}
-		}
-
-		return aAggregationConfigs;
-	}
-
-	function getGroup(oTable) {
-		return getGroupableProperties(oTable).reduce(function(mGroup, sGroupableProperty) {
-			mGroup[sGroupableProperty] = {};
-			return mGroup;
-		}, {});
-	}
-
-	function getAggregate(oTable) {
-		var mAggregate = getAggregatableProperties(oTable).reduce(function(mAggregate, sAggregatableProperty) {
-			mAggregate[sAggregatableProperty] = {};
-			return mAggregate;
-		}, {});
-
-		return oTable.getColumns().reduce(function(mAggregate, oColumn) {
-			var oExtendedState = oColumn.data("extendedState");
-
-			if (oExtendedState && oExtendedState.aggregations) {
-				oExtendedState.aggregations.forEach(function(oAggregatedProperty) {
-					mAggregate[oAggregatedProperty.name] = oAggregatedProperty.config;
-				});
-			}
-
-			return mAggregate;
-		}, mAggregate);
-	}
-
-	V4Aggregation.prototype.updateAggregation = function() {
-		var oTable = this.getTable();
-		var oBinding = this.getTableBinding();
-		var mAggregation = {
-			aggregate: getAggregate(oTable),
-			group: getGroup(oTable),
-			groupLevels: this.getGroupLevels()
-		};
-
-		oBinding.setAggregation(mAggregation);
-	};
-
-	/* TODO: The whole method needs to be refactored.
-	 *  Maybe switch to sap.m.ColumnHeaderPopover. But then it also needs to be able to be opened as a context menu (see
-	 *  Menu#openAsContextMenu), ... and perhaps get a different name
-	 *  How to handle existing Table/Column API related to old menus (sap.ui.unified.Menu)?
+	/**
+	 * @override
+	 * @inheritDoc
 	 */
-	V4Aggregation.prototype.onOpenMenu = function(oCellInfo, oMenu) {
-		var that = this;
-		var oTable = this.getTable();
+	V4Aggregation.prototype.isApplicable = function(oControl) {
+		return PluginBase.prototype.isApplicable.apply(this, arguments) && oControl.getMetadata().getName() === "sap.ui.table.Table";
+	};
 
-		if (oCellInfo.isOfType(TableUtils.CELLTYPE.COLUMNHEADER)) {
-			var oColumn = oTable.getColumns()[oCellInfo.columnIndex];
-			var aGroupableProperties = getGroupableProperties(oColumn);
-			var aAggregationInfos = getAggregationInfos(oColumn);
+	/**
+	 * @override
+	 * @inheritDoc
+	 */
+	V4Aggregation.prototype.onActivate = function(oTable) {
+		validateBinding(oTable.getBinding());
+		TableUtils.Grouping.setToDefaultGroupMode(oTable);
+		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Table.RowsBound, validateBinding);
+		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Row.UpdateState, updateRowState, this);
+		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Row.Expand, expandRow, this);
+		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Row.Collapse, collapseRow, this);
+	};
 
-			if (aGroupableProperties.length > 0) {
-				// Info about groups is stored in property "groupLevels".
-				var onGroup = function(sProperty) {
-					var aGroupLevels = this.getGroupLevels();
+	/**
+	 * @override
+	 * @inheritDoc
+	 */
+	V4Aggregation.prototype.onDeactivate = function(oTable) {
+		for (const oColumn of oTable.getColumns()) {
+			oColumn._setCellContentVisibilitySettings();
+		}
+		TableUtils.Grouping.setToDefaultFlatMode(oTable);
+		TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Table.RowsBound, validateBinding);
+		TableUtils.Hook.deregister(oTable, TableUtils.Hook.Keys.Row.UpdateState, this.updateRowState, this);
+		TableUtils.Hook.deregister(this, TableUtils.Hook.Keys.Row.Expand, expandRow, this);
+		TableUtils.Hook.deregister(this, TableUtils.Hook.Keys.Row.Collapse, collapseRow, this);
+	};
 
-					// TODO: Fire group event of the table and consider prevent default.
-					// TODO: Maintain array of grouped columns to provide in the event and for internal usage.
-					if (this.getGroupLevels().indexOf(sProperty) === -1) { // Group
-						// TODO: This is incorrect, but good enough for testing. Move "showIfGrouped" property from AnalyticalColumn to Column.
-						//oColumn.setGrouped(true);
-						aGroupLevels.push(sProperty);
-						this.setGroupLevels(aGroupLevels);
-					} else { // Ungroup
-						aGroupLevels.splice(aGroupLevels.indexOf(sProperty), 1);
-						this.setGroupLevels(aGroupLevels);
-						//if (aGroupLevels.length === 0) {
-						//	oColumn.setGrouped(false);
-						//}
-					}
+	V4Aggregation.prototype.declareColumnsHavingTotals = function(aColumnsWithTotals) {
+		const aColumns = this.getControl()?.getColumns() ?? [];
 
-					this.updateAggregation();
-				}.bind(this);
+		for (const oColumn of aColumns) {
+			const bHasTotals = aColumnsWithTotals.includes(oColumn);
 
-				aGroupableProperties.forEach(function(sGroupableProperty, iIndex) {
-					if (!this.aGroupMenuItems[iIndex] || this.aGroupMenuItems[iIndex].bIsDestroyed) {
-						this.aGroupMenuItems[iIndex] = new MenuItem(this.getId() + "-group" + "-" + iIndex, {
-							text: TableUtils.getResourceText("TBL_GROUP") + ": " + sGroupableProperty,
-							icon: this.getGroupLevels().indexOf(sGroupableProperty) > -1 ? "sap-icon://accept" : null,
-							select: function() {
-								onGroup(sGroupableProperty);
-							}
-						});
-					} else {
-						// TODO: Just a quick hack. Do the update without messing with private stuff.
-						this.aGroupMenuItems[iIndex].mEventRegistry.select[0].fFunction = function() {
-							onGroup(sGroupableProperty);
-						};
-						this.aGroupMenuItems[iIndex].setText(TableUtils.getResourceText("TBL_GROUP") + ": " + sGroupableProperty);
-						this.aGroupMenuItems[iIndex].setIcon(this.getGroupLevels().indexOf(sGroupableProperty) > -1 ? "sap-icon://accept" : null);
-					}
-					oMenu.addItem(this.aGroupMenuItems[iIndex]);
-				}.bind(this));
-			}
-
-			if (aAggregationInfos.length > 0) {
-				// Info about enabled aggregation is stored in custom data "extendedState".
-				var onAggregate = function(oAggregationInfo) {
-					var oExtendedState = oColumn.data("extendedState");
-					var bEnable = true;
-
-					if (!oExtendedState) {
-						oExtendedState = {aggregations: []};
-					}
-
-					for (var i = 0; i < oExtendedState.aggregations.length; i++) {
-						var oAggregation = oExtendedState.aggregations[i];
-
-						if (oAggregation.name === oAggregationInfo.name) {
-							oExtendedState.aggregations.splice(i, 1);
-							bEnable = false;
-							break;
-						}
-					}
-
-					if (bEnable) {
-						oExtendedState.aggregations.push(oAggregationInfo);
-					}
-
-					oColumn.data("extendedState", oExtendedState);
-
-					this.updateAggregation();
-				}.bind(this);
-
-				var getAggregationMenuConfig = function(oAggregatablePropertyInfo) {
-					var oExtendedState = oColumn.data("extendedState");
-
-					if (!oExtendedState || !oExtendedState.aggregations) {
-						return {icon: null, enabled: true};
-					}
-
-					return {
-						icon: oExtendedState.aggregations.some(function(oAggregation) {
-							return oAggregation.name === oAggregatablePropertyInfo.name
-								   && oAggregation.menuText === oAggregatablePropertyInfo.menuText;
-						}) ? "sap-icon://accept" : null,
-						enabled: !oExtendedState.aggregations.some(function(oAggregation) {
-							return oAggregation.name === oAggregatablePropertyInfo.name;
-						}) || oExtendedState.aggregations.some(function(oAggregation) {
-							return oAggregation.menuText === oAggregatablePropertyInfo.menuText;
-						})
-					};
-				};
-
-				aAggregationInfos.forEach(function(oAggregationInfo, iIndex) {
-					if (!this.aAggregateMenuItems[iIndex] || this.aAggregateMenuItems[iIndex].bIsDestroyed) {
-						var oMenuConfig = getAggregationMenuConfig(oAggregationInfo);
-						this.aAggregateMenuItems[iIndex] = new MenuItem(this.getId() + "-aggregate" + "-" + iIndex, {
-							text: oAggregationInfo.menuText,
-							icon: oMenuConfig.icon,
-							enabled: oMenuConfig.enabled,
-							select: function() {
-								onAggregate(oAggregationInfo);
-							}
-						});
-					} else {
-						// TODO: Just a quick hack. Do the update without messing with private stuff.
-						var oMenuConfig = getAggregationMenuConfig(oAggregationInfo);
-						this.aAggregateMenuItems[iIndex].mEventRegistry.select[0].fFunction = function() {
-							onAggregate(oAggregationInfo);
-						};
-						this.aAggregateMenuItems[iIndex].setText(oAggregationInfo.menuText);
-						this.aAggregateMenuItems[iIndex].setIcon(oMenuConfig.icon);
-						this.aAggregateMenuItems[iIndex].setEnabled(oMenuConfig.enabled);
-					}
-					oMenu.addItem(this.aAggregateMenuItems[iIndex]);
-				}.bind(this));
-			}
-
-		} else if (oCellInfo.isOfType(TableUtils.CELLTYPE.ANYCONTENTCELL)) {
-			var oRow = this.getTable().getRows()[oCellInfo.rowIndex];
-
-			if (oRow.isGroupHeader()) { // Group header row context menu
-				if (this.aContextMenuItems[0]) {
-					this.aContextMenuItems[0].destroy();
-				}
-				this.aContextMenuItems[0] = new MenuItem(this.getId() + "-expandrow", {
-					text: "expand index (" + oRow.getIndex() + ")",
-					select: function() {
-						that.expandRow(oRow);
-					}
-				});
-				oMenu.addItem(this.aContextMenuItems[0]);
-
-				if (this.aContextMenuItems[1]) {
-					this.aContextMenuItems[1].destroy();
-				}
-				this.aContextMenuItems[1] = new MenuItem(this.getId() + "-collapserow", {
-					text: "collapse (" + oRow.getIndex() + ")",
-					select: function() {
-						that.collapseRow(oRow);
-					}
-				});
-				oMenu.addItem(this.aContextMenuItems[1]);
-			}
+			oColumn._setCellContentVisibilitySettings({
+				groupHeader: bHasTotals,
+				summary: bHasTotals
+			});
 		}
 	};
 
-	V4Aggregation.prototype.notifyColumnAboutMenuItems = function(oColumn, fnNotify) {
-		if (getGroupableProperties(oColumn).length > 0 || getAggregationInfos(oColumn).length > 0) {
-			fnNotify();
+	function validateBinding(oBinding) {
+		if (!oBinding) {
+			return;
 		}
-	};
+
+		if (!oBinding.getModel().isA("sap.ui.model.odata.v4.ODataModel")) {
+			throw new Error("Model must be sap.ui.model.odata.v4.ODataModel");
+		}
+	}
+
+	function updateRowState(oState) {
+		const iLevel = oState.context.getProperty("@$ui5.node.level");
+		const bContainsTotals = oState.context.getProperty("@$ui5.node.isTotal");
+		const bIsLeaf = oState.context.getProperty("@$ui5.node.isExpanded") === undefined;
+		const bIsGrandTotal = iLevel === 0 && bContainsTotals;
+		const bIsGroupHeader = iLevel > 0 && !bIsLeaf;
+		const bIsGroupTotal = !bIsGroupHeader && bContainsTotals;
+
+		oState.level = iLevel;
+		oState.expandable = bIsGroupHeader;
+		oState.expanded = oState.context.getProperty("@$ui5.node.isExpanded") === true;
+
+		if (bIsGrandTotal || bIsGroupTotal) {
+			oState.type = oState.Type.Summary;
+			oState.level = iLevel + 1;
+		} else if (bIsGroupHeader) {
+			oState.type = oState.Type.GroupHeader;
+		}
+
+		if (bIsGroupHeader) {
+			const sGroupHeaderPath = oState.context.getBinding().getAggregation().groupLevels[iLevel - 1];
+			const fnCustomGroupHeaderFormatter = this.getGroupHeaderFormatter();
+
+			if (fnCustomGroupHeaderFormatter) {
+				const sCustomGroupHeaderTitle = fnCustomGroupHeaderFormatter(oState.context, sGroupHeaderPath);
+
+				if (typeof sCustomGroupHeaderTitle !== "string") {
+					throw new Error("The group header title must be a string");
+				}
+
+				oState.title = sCustomGroupHeaderTitle;
+			} else {
+				oState.title = oState.context.getProperty(sGroupHeaderPath, true);
+			}
+		}
+	}
+
+	function expandRow(oRow) {
+		const oBindingContext = oRow.getRowBindingContext();
+
+		if (oBindingContext) {
+			oBindingContext.expand();
+		}
+	}
+
+	function collapseRow(oRow) {
+		const oBindingContext = oRow.getRowBindingContext();
+
+		if (oBindingContext) {
+			oBindingContext.collapse();
+		}
+	}
 
 	return V4Aggregation;
 });

@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function() {
+sap.ui.define(["sap/ui/base/DataType"], function(DataType) {
 	"use strict";
 
 	/**
@@ -14,7 +14,6 @@ sap.ui.define([], function() {
 	 * @public
 	 * @alias sap.m.AvatarSize
 	 * @since 1.73
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var AvatarSize = {
 		/**
@@ -58,6 +57,8 @@ sap.ui.define([], function() {
 		 */
 		Custom: "Custom"
 	};
+
+	DataType.registerEnum("sap.m.AvatarSize", AvatarSize);
 
 	return AvatarSize;
 });

@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,14 +29,13 @@ sap.ui.define([
 	 * @param {object[]} [mPropertyBag.flexObjects] - Objects to be written (i.e. change definitions, variant definitions etc.)
 	 * @param {object} [mPropertyBag.flexObject] - Object to be updated
 	 * @param {string} mPropertyBag.url Configured - url for the connector
-	 * @param {boolean} [mPropertyBag.draft=false] - Indicates if changes should be written as a draft
+	 * @param {string} [mPropertyBag.parentVersion] - Indicates if changes should be written as a draft and on which version the changes should be based on
 	 * @returns {Promise} Promise resolves as soon as the writing was completed
 	 */
 	function _doWrite(mPropertyBag) {
 		var mParameters = {};
-		if (mPropertyBag.draft) {
-			// TODO: As soon as drafts can be based on other versions the parentVersion must be passed down from higher layers
-			mParameters.parentVersion = "";
+		if (mPropertyBag.parentVersion !== undefined) {
+			mParameters.parentVersion = mPropertyBag.parentVersion;
 		}
 		if (this.isLanguageInfoRequired) {
 			InitialUtils.addLanguageInfo(mParameters);
@@ -75,7 +74,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.BackendConnector
 	 * @since 1.72
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.connectors
 	 */
@@ -89,14 +88,14 @@ sap.ui.define([
 		 * @param {object} mPropertyBag - Property bag
 		 * @param {string} mPropertyBag.reference - Flex reference of the application
 		 * @param {string} mPropertyBag.url - Configured url for the connector
-		 * @param {string} [mPropertyBag.appVersion] - Version of the application for which the reset takes place
+		 * @param {sap.ui.fl.Layer} mPropertyBag.layer - Layer
 		 * @param {string} [mPropertyBag.generator] - Generator with which the changes were created
 		 * @param {string} [mPropertyBag.selectorIds] - Selector IDs of controls for which the reset should filter (comma-separated list)
 		 * @param {string} [mPropertyBag.changeTypes] - Change types of the changes which should be reset (comma-separated list)
 		 * @returns {Promise} Promise resolves as soon as the reset has completed
 		 */
-		reset: function (mPropertyBag) {
-			var aParameters = ["reference", "appVersion", "generator"];
+		reset(mPropertyBag) {
+			var aParameters = ["reference", "generator", "layer"];
 			var mParameters = _pick(mPropertyBag, aParameters);
 			if (mPropertyBag.selectorIds) {
 				mParameters.selector = mPropertyBag.selectorIds;
@@ -124,14 +123,14 @@ sap.ui.define([
 		 * @param {object} mPropertyBag - Property bag
 		 * @param {object[]} mPropertyBag.flexObjects - Objects to be written (i.e. change definitions, variant definitions etc.)
 		 * @param {string} mPropertyBag.url - Configured url for the connector
-		 * @param {boolean} [mPropertyBag.draft=false] - Indicates if changes should be written as a draft
+		 * @param {string} [mPropertyBag.parentVersion] - Indicates if changes should be written as a draft and on which version the changes should be based on
 		 * @returns {Promise} Promise resolves as soon as the writing was completed
 		 */
-		write: function (mPropertyBag) {
+		write(mPropertyBag) {
 			mPropertyBag.method = "POST";
-			return _doWrite.call(this, mPropertyBag).then(function (oResponse) {
-				//Single save of Personalization and Keyuser service return single JSON object
-				//It needs to be put into an array so output of this function is the same format for both saving of single or multiple changes
+			return _doWrite.call(this, mPropertyBag).then(function(oResponse) {
+				// Single save of Personalization and Keyuser service return single JSON object
+				// It needs to be put into an array so output of this function is the same format for both saving of single or multiple changes
 				if (oResponse.response && !Array.isArray(oResponse.response)) {
 					oResponse.response = [oResponse.response];
 				}
@@ -147,7 +146,7 @@ sap.ui.define([
 		 * @param {string} mPropertyBag.url - Configured url for the connector
 		 * @returns {Promise} Resolves as soon as the writing is completed without data
 		 */
-		update: function (mPropertyBag) {
+		update(mPropertyBag) {
 			mPropertyBag.method = "PUT";
 			return _doSingleWrite.call(this, mPropertyBag);
 		},
@@ -158,12 +157,16 @@ sap.ui.define([
 		 * @param {object} mPropertyBag - Property bag
 		 * @param {object} mPropertyBag.flexObject - Flex Object to be deleted
 		 * @param {string} mPropertyBag.url - Configured url for the connector
+		 * @param {string} [mPropertyBag.parentVersion] - Indicates if changes should be written as a draft and on which version the changes should be based on
 		 * @returns {Promise} Resolves as soon as the deletion is completed without data
 		 */
-		remove: function (mPropertyBag) {
+		remove(mPropertyBag) {
 			var mParameters = {
 				namespace: mPropertyBag.flexObject.namespace
 			};
+			if (mPropertyBag.parentVersion !== undefined) {
+				mParameters.parentVersion = mPropertyBag.parentVersion;
+			}
 			mPropertyBag.fileName = mPropertyBag.flexObject.fileName;
 			var sDeleteUrl = InitialUtils.getUrl(this.ROUTES.CHANGES, mPropertyBag, mParameters);
 			delete mPropertyBag.fileName;
@@ -177,24 +180,9 @@ sap.ui.define([
 				"json"
 			);
 			return WriteUtils.sendRequest(sDeleteUrl, "DELETE", oRequestOption);
-		},
-
-		/**
-		 * Called to get the flex features.
-		 *
-		 * @returns {Promise<object>} Promise resolves with an object containing the flex features
-		 */
-		loadFeatures: function (mPropertyBag) {
-			if (this.initialConnector.settings) {
-				return Promise.resolve({response: this.initialConnector.settings});
-			}
-			var sFeaturesUrl = InitialUtils.getUrl(this.ROUTES.SETTINGS, mPropertyBag);
-			return InitialUtils.sendRequest(sFeaturesUrl).then(function (oResult) {
-				return oResult.response;
-			});
 		}
 	});
 
 	BackendConnector.initialConnector = InitialConnector;
 	return BackendConnector;
-}, true);
+});

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/rta/command/FlexCommand"],function(F){"use strict";var S=F.extend("sap.ui.rta.command.Settings",{metadata:{library:"sap.ui.rta",properties:{content:{type:"any",group:"content"}},associations:{},events:{}}});S.prototype.execute=function(){if(this.getElement()){return F.prototype.execute.apply(this,arguments);}return Promise.resolve();};S.prototype.undo=function(){if(this.getElement()){return F.prototype.undo.apply(this,arguments);}return Promise.resolve();};return S;});
+sap.ui.define(["sap/ui/rta/command/FlexCommand"],function(t){"use strict";var e=t.extend("sap.ui.rta.command.Settings",{metadata:{library:"sap.ui.rta",properties:{content:{type:"any"}},associations:{},events:{}}});e.prototype.execute=function(...e){if(this.getElement()){return t.prototype.execute.apply(this,e)}return Promise.resolve()};e.prototype.undo=function(...e){if(this.getElement()){return t.prototype.undo.apply(this,e)}return Promise.resolve()};return e});
+//# sourceMappingURL=Settings.js.map

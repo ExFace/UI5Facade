@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/rta/plugin/Plugin",
 	"sap/ui/fl/Utils",
 	"sap/ui/rta/Utils"
 ], function(
+	Lib,
 	Plugin,
 	FlexUtils,
 	RtaUtils
@@ -23,12 +25,11 @@ sap.ui.define([
 	 * @class The BaseCreate allows trigger BaseCreate operations on the overlay.
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.75
 	 * @alias sap.ui.rta.plugin.BaseCreate
-	 * @experimental Since 1.75. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 * @abstract
 	 */
 	var BaseCreate = Plugin.extend("sap.ui.rta.plugin.BaseCreate", /** @lends sap.ui.rta.plugin.BaseCreate.prototype */ {
@@ -46,7 +47,7 @@ sap.ui.define([
 	 * @returns {object} Object with editable boolean values for <code>asChild</code> and <code>asSibling</code>
 	 * @private
 	 */
-	BaseCreate.prototype._isEditable = function (oOverlay) {
+	BaseCreate.prototype._isEditable = function(oOverlay) {
 		return Promise.all([this._isEditableCheck(oOverlay, true), this._isEditableCheck(oOverlay, false)])
 		.then(function(aPromiseValues) {
 			return {
@@ -56,12 +57,12 @@ sap.ui.define([
 		});
 	};
 
-	BaseCreate.prototype._isEditableCheck = function (oOverlay, bOverlayIsSibling) {
+	BaseCreate.prototype._isEditableCheck = function(oOverlay, bOverlayIsSibling) {
 		var oParentOverlay = this._getParentOverlay(bOverlayIsSibling, oOverlay);
 		var sAggregationName;
 
 		if (!oParentOverlay || !oParentOverlay.getParentElementOverlay()) {
-			//root element is not editable as parent and as sibling
+			// root element is not editable as parent and as sibling
 			return Promise.resolve(false);
 		}
 
@@ -70,21 +71,21 @@ sap.ui.define([
 		}
 
 		return this.checkAggregationsOnSelf(oParentOverlay, this.getActionName(), sAggregationName)
-			.then(function(bEditableCheck) {
-				if (bEditableCheck) {
-					// If IDs are created within fragments or controller code,
-					// the ID of the parent view might not be part of the control ID.
-					// In these cases the control might have a stable ID (this.hasStableId()), but the view doesn't.
-					// As the view is needed create the ID for the newly created container,
-					// it has to be stable, otherwise the new ID will not be stable.
-					var oParentView = FlexUtils.getViewForControl(oParentOverlay.getElement());
-					return this.hasStableId(oOverlay) && FlexUtils.checkControlId(oParentView);
-				}
-				return false;
-			}.bind(this));
+		.then(function(bEditableCheck) {
+			if (bEditableCheck) {
+				// If IDs are created within fragments or controller code,
+				// the ID of the parent view might not be part of the control ID.
+				// In these cases the control might have a stable ID (this.hasStableId()), but the view doesn't.
+				// As the view is needed create the ID for the newly created container,
+				// it has to be stable, otherwise the new ID will not be stable.
+				var oParentView = FlexUtils.getViewForControl(oParentOverlay.getElement());
+				return this.hasStableId(oOverlay) && FlexUtils.checkControlId(oParentView);
+			}
+			return false;
+		}.bind(this));
 	};
 
-	BaseCreate.prototype._getParentOverlay = function (bSibling, oOverlay) {
+	BaseCreate.prototype._getParentOverlay = function(bSibling, oOverlay) {
 		var oParentOverlay;
 		var oResponsibleElementOverlay = this.getResponsibleElementOverlay(oOverlay);
 		if (bSibling) {
@@ -95,21 +96,21 @@ sap.ui.define([
 		return oParentOverlay;
 	};
 
-	BaseCreate.prototype.getCreateActions = function (bSibling, oOverlay) {
+	BaseCreate.prototype.getCreateActions = function(bSibling, oOverlay) {
 		var oResponsibleElementOverlay = this.getResponsibleElementOverlay(oOverlay);
 		var oParentOverlay = this._getParentOverlay(bSibling, oResponsibleElementOverlay);
 		var oDesignTimeMetadata = oParentOverlay.getDesignTimeMetadata();
 		var aActions = oDesignTimeMetadata.getActionDataFromAggregations(this.getActionName(), oResponsibleElementOverlay.getElement());
 		if (bSibling) {
 			var sParentAggregation = oResponsibleElementOverlay.getParentAggregationOverlay().getAggregationName();
-			return aActions.filter(function (oAction) {
+			return aActions.filter(function(oAction) {
 				return oAction.aggregation === sParentAggregation;
 			});
 		}
 		return aActions;
 	};
 
-	BaseCreate.prototype.getCreateAction = function (bSibling, oOverlay, sAggregationName) {
+	BaseCreate.prototype.getCreateAction = function(bSibling, oOverlay, sAggregationName) {
 		var aActions = this.getCreateActions(bSibling, oOverlay);
 		if (sAggregationName) {
 			var oCreateActionForAggregation;
@@ -124,11 +125,11 @@ sap.ui.define([
 		return aActions[0];
 	};
 
-	BaseCreate.prototype.isAvailable = function (bSibling, aElementOverlays) {
+	BaseCreate.prototype.isAvailable = function(aElementOverlays, bSibling) {
 		return this._isEditableByPlugin(aElementOverlays[0], bSibling);
 	};
 
-	BaseCreate.prototype.isActionEnabled = function (oAction, bSibling, oElementOverlay) {
+	BaseCreate.prototype.isActionEnabled = function(oAction, bSibling, oElementOverlay) {
 		if (!oAction) {
 			return false;
 		}
@@ -149,7 +150,7 @@ sap.ui.define([
 	 * @param  {string} sNewControlID - ID of the new control
 	 * @return {string} ID of the created control
 	 */
-	BaseCreate.prototype.getCreatedContainerId = function (vAction, sNewControlID) {
+	BaseCreate.prototype.getCreatedContainerId = function(vAction, sNewControlID) {
 		var sId = sNewControlID;
 		if (vAction.getCreatedContainerId && typeof vAction.getCreatedContainerId === "function") {
 			var fnMapToRelevantControlID = vAction.getCreatedContainerId;
@@ -158,11 +159,11 @@ sap.ui.define([
 		return sId;
 	};
 
-	BaseCreate.prototype._determineIndex = function (oParentElement, oSiblingElement, sAggregationName, fnGetIndex) {
+	BaseCreate.prototype._determineIndex = function(oParentElement, oSiblingElement, sAggregationName, fnGetIndex) {
 		return RtaUtils.getIndex(oParentElement, oSiblingElement, sAggregationName, fnGetIndex);
 	};
 
-	BaseCreate.prototype._getText = function (vAction, oElement, oDesignTimeMetadata, sText) {
+	BaseCreate.prototype._getText = function(vAction, oElement, oDesignTimeMetadata, sText) {
 		if (!vAction) {
 			return sText;
 		}
@@ -171,8 +172,8 @@ sap.ui.define([
 			return sText;
 		}
 		var sContainerTitle = oAggregationDescription.singular;
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-		return oTextResources.getText(sText, sContainerTitle);
+		var oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
+		return oTextResources.getText(sText, [sContainerTitle]);
 	};
 
 	/**
@@ -180,11 +181,11 @@ sap.ui.define([
 	 * @return {string} Action name
 	 * @abstract
 	 */
-	BaseCreate.prototype.getActionName = function () {
+	BaseCreate.prototype.getActionName = function() {
 		throw new Error("abstract");
 	};
 
-	function ignoreAbstractParameters () {}
+	function ignoreAbstractParameters() {}
 
 	/**
 	 * Retrieve the context menu item for the actions.
@@ -193,18 +194,18 @@ sap.ui.define([
 	 * @return {object[]} Array containing the items with required data
 	 * @abstract
 	 */
-	BaseCreate.prototype.getMenuItems = function (aElementOverlays) {
+	BaseCreate.prototype.getMenuItems = function(aElementOverlays) {
 		ignoreAbstractParameters(aElementOverlays);
 		throw new Error("abstract");
 	};
 
 	/**
 	 * Handles the creation.
-	 * @param {boolean} bSibing - Create as a sibling
+	 * @param {boolean} bSibling - Create as a sibling
 	 * @param {sap.ui.dt.Overlay} oOverlay - Reference overlay for creation
 	 * @abstract
 	 */
-	BaseCreate.prototype.handleCreate = function (bSibling, oOverlay) {
+	BaseCreate.prototype.handleCreate = function(bSibling, oOverlay) {
 		ignoreAbstractParameters(bSibling, oOverlay);
 		throw new Error("abstract");
 	};

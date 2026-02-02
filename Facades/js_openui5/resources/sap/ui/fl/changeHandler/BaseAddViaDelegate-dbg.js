@@ -1,17 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/fl/changeHandler/condenser/Classification",
 	"sap/ui/fl/changeHandler/Base",
-	"sap/ui/fl/apply/api/DelegateMediatorAPI",
+	"sap/ui/fl/requireAsync",
 	"sap/base/util/merge",
 	"sap/base/util/ObjectPath"
 ], function(
+	CondenserClassification,
 	Base,
-	DelegateMediatorAPI,
+	requireAsync,
 	merge,
 	ObjectPath
 ) {
@@ -21,27 +23,17 @@ sap.ui.define([
 		return typeof fn === "function";
 	}
 
-	function getModelType(mChangeContent) {
-		if (mChangeContent.modelType) {
-			return mChangeContent.modelType;
-		} else if (mChangeContent.oDataServiceVersion) {
-			// fallback for changes created with old addODataProperty action
-			// that was replaced by default OData V2 delegate
-			return "sap.ui.model.odata.v2.ODataModel";
-		}
-	}
-
 	/**
 	 * Base Change Handler for AddViaDelegate
 	 *
 	 * @constructor
 	 * @alias sap.ui.fl.changeHandler.BaseAddViaDelegate
 	 * @author SAP SE
-	 * @version 1.82.0
-	 * @public
-	 * @experimental Since 1.81
+	 * @version 1.136.0
+	 * @private
+	 * @ui5-restricted change handlers
 	 */
-	var BaseAddViaDelegate = {
+	const BaseAddViaDelegate = {
 
 		/**
 		 * Returns an instance of the addViaDelegate change handler
@@ -54,86 +46,94 @@ sap.ui.define([
 		 * @param  {string} mAddViaDelegateSettings.fieldSuffix - Aggregation name to be passed to the delegate
 		 * @param  {boolean|function} [mAddViaDelegateSettings.skipCreateLabel] - Skip delegate method, is a function is passed it has to return a boolean
 		 * @param  {boolean|function} [mAddViaDelegateSettings.skipCreateLayout] - Skip delegate method, is a function is passed it has to return a boolean
-		 * @param  {boolean} [mAddViaDelegateSettings.supportsDefault] - Are default delegates supported?
 		 * @return {any} The addViaDelegate change handler object
 		 * @public
 		 */
-		createAddViaDelegateChangeHandler: function(mAddViaDelegateSettings) {
-			/****************** Utility functions with access to mAddViaDelegateSettings ******************/
+		createAddViaDelegateChangeHandler(mAddViaDelegateSettings) {
+			/** **************** Utility functions with access to mAddViaDelegateSettings ******************/
 
 			function getNewFieldId(sNewPropertyId) {
 				return sNewPropertyId + mAddViaDelegateSettings.fieldSuffix;
 			}
 
-			function skipCreateLabel(mChangeDefinition) {
-				if (isFunction(mAddViaDelegateSettings.skipCreateLabel)) {
-					return !!mAddViaDelegateSettings.skipCreateLabel({
-						changeDefinition: mChangeDefinition
-					});
+			function evaluateSettingsFlag(oChangeODataInformation, sSetting) {
+				if (isFunction(mAddViaDelegateSettings[sSetting])) {
+					return !!mAddViaDelegateSettings[sSetting](oChangeODataInformation);
 				}
-				return !!mAddViaDelegateSettings.skipCreateLabel;
+				return !!mAddViaDelegateSettings[sSetting];
 			}
 
-			function skipCreateLayout(mChangeDefinition) {
-				if (isFunction(mAddViaDelegateSettings.skipCreateLayout)) {
-					return !!mAddViaDelegateSettings.skipCreateLayout({
-						changeDefinition: mChangeDefinition
-					});
-				}
-				return !!mAddViaDelegateSettings.skipCreateLayout;
+			function skipCreateLabel(oChangeODataInformation) {
+				return evaluateSettingsFlag(oChangeODataInformation, "skipCreateLabel");
 			}
 
-			function getDelegateControlForPropertyAndLabel(mChangeDefinition, mDelegatePropertyBag, oDelegate) {
-				var mDelegateSettings = merge({}, mDelegatePropertyBag);
+			function skipCreateLayout(oChangeODataInformation) {
+				return evaluateSettingsFlag(oChangeODataInformation, "skipCreateLayout");
+			}
+
+			async function checkCondensingEnabled(mChange, mPropertyBag) {
+				// createLayout side effects might break condensing
+				// Only enable condensing if the delegate doesn't create a layout
+				// or the handler opts out
+
+				const oControl = mPropertyBag.modifier.bySelector(mChange.getSelector(), mPropertyBag.appComponent);
+
+				const DelegateMediatorAPI = await requireAsync("sap/ui/fl/apply/api/DelegateMediatorAPI");
+				const oDelegate = await DelegateMediatorAPI.getWriteDelegateForControl({
+					control: oControl,
+					modifier: mPropertyBag.modifier
+				});
+				const bCondensingSupported = !isFunction(oDelegate.instance.createLayout);
+				return bCondensingSupported || skipCreateLayout(mChange.getSupportInformation().oDataInformation);
+			}
+
+			async function getDelegateControlForPropertyAndLabel(oChangeODataInformation, mDelegatePropertyBag, oDelegate) {
+				const mDelegateSettings = merge({}, mDelegatePropertyBag);
 				mDelegateSettings.fieldSelector.id = getNewFieldId(mDelegateSettings.fieldSelector.id);
-				return oDelegate.createControlForProperty(mDelegateSettings)
-					.then(function(mSpecificControlInfo) {
-						if (skipCreateLabel(mChangeDefinition)) {
-							return mSpecificControlInfo;
-						}
-						var sNewFieldId = mDelegatePropertyBag.modifier.getId(mSpecificControlInfo.control);
-						mDelegatePropertyBag.labelFor = sNewFieldId;
-						return oDelegate.createLabel(mDelegatePropertyBag).then(function(oLabel) {
-							return {
-								label: oLabel,
-								control: mSpecificControlInfo.control,
-								valueHelp: mSpecificControlInfo.valueHelp
-							};
-						});
-					});
+				const mSpecificControlInfo = await oDelegate.createControlForProperty(mDelegateSettings);
+				if (skipCreateLabel(oChangeODataInformation)) {
+					return mSpecificControlInfo;
+				}
+				const sNewFieldId = mDelegatePropertyBag.modifier.getId(mSpecificControlInfo.control);
+				mDelegatePropertyBag.labelFor = sNewFieldId;
+				const oLabel = await oDelegate.createLabel(mDelegatePropertyBag);
+				return {
+					label: oLabel,
+					control: mSpecificControlInfo.control,
+					valueHelp: mSpecificControlInfo.valueHelp
+				};
 			}
 
-			function getControlsFromDelegate(mChangeDefinition, mDelegate, mPropertyBag) {
-				var mDelegatePropertyBag = merge({
+			async function getControlsFromDelegate(oChangeContent, mDelegate, mPropertyBag, oChangeODataInformation) {
+				if (!mDelegate) {
+					return undefined;
+				}
+				const mDelegatePropertyBag = merge({
 					aggregationName: mAddViaDelegateSettings.aggregationName,
-					payload: mDelegate.payload || {}
+					payload: mDelegate.payload || {},
+					parentSelector: oChangeContent.parentId
 				}, mPropertyBag);
-				var oDelegate = mDelegate.instance;
-
-				return Promise.resolve()
-					.then(function() {
-						if (
-							isFunction(oDelegate.createLayout)
-							&& !skipCreateLayout(mChangeDefinition)
-						) {
-							return oDelegate.createLayout(mDelegatePropertyBag);
-						}
-					})
-					.then(function(mLayoutControlInfo) {
-						if (ObjectPath.get("control", mLayoutControlInfo)) {
-							mLayoutControlInfo.layoutControl = true;
-							return mLayoutControlInfo;
-						}
-						return getDelegateControlForPropertyAndLabel(mChangeDefinition, mDelegatePropertyBag, oDelegate);
-					});
+				const oDelegate = mDelegate.instance;
+				let mLayoutControlInfo;
+				if (
+					isFunction(oDelegate.createLayout)
+						&& !skipCreateLayout(oChangeODataInformation)
+				) {
+					mLayoutControlInfo = await oDelegate.createLayout(mDelegatePropertyBag);
+				}
+				if (ObjectPath.get("control", mLayoutControlInfo)) {
+					mLayoutControlInfo.layoutControl = true;
+					return mLayoutControlInfo;
+				}
+				return getDelegateControlForPropertyAndLabel(oChangeODataInformation, mDelegatePropertyBag, oDelegate);
 			}
 
-			/****************** Change Handler ******************/
+			/** **************** Change Handler ******************/
 			return {
 				/**
 				 * Added a property from the model's metadata via delegate
 				 *
-				 * @param {sap.ui.fl.Change} oChange - change object with instructions to be applied on the control map
+				 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - change object with instructions to be applied on the control map
 				 * @param {sap.ui.core.Control} oControl - Control that matches the change selector for applying the change
 				 * @param {object} mPropertyBag - property bag
 				 * @param {object} mPropertyBag.modifier - modifier for the controls
@@ -141,67 +141,87 @@ sap.ui.define([
 				 * @returns {Promise<undefined>} to wait for execution
 				 * @public
 				 */
-				applyChange : function(oChange, oControl, mPropertyBag) {
-					var mChangeDefinition = oChange.getDefinition();
-					var oAppComponent = mPropertyBag.appComponent;
-					var mChangeContent = mChangeDefinition.content;
-					var mFieldSelector = mChangeContent.newFieldSelector;
-					var mCreateProperties = {
+				async applyChange(oChange, oControl, mPropertyBag) {
+					const oAppComponent = mPropertyBag.appComponent;
+					const oChangeContent = oChange.getContent();
+					const oChangeODataInformation = oChange.getSupportInformation().oDataInformation;
+					const mFieldSelector = oChangeContent.newFieldSelector;
+					const mCreateProperties = {
 						appComponent: mPropertyBag.appComponent,
 						view: mPropertyBag.view,
 						fieldSelector: mFieldSelector,
-						bindingPath: mChangeContent.bindingPath,
+						bindingPath: oChangeContent.bindingPath,
 						modifier: mPropertyBag.modifier,
 						element: oControl
 					};
 					// Check if the change is applicable
-					if (mPropertyBag.modifier.bySelector(mFieldSelector, oAppComponent)) {
-						return Base.markAsNotApplicable(
-							"Control to be created already exists:" + (mFieldSelector.id || mFieldSelector),
-							/*bAsync*/true
+					if (mPropertyBag.modifier.bySelector(mFieldSelector, oAppComponent, mPropertyBag.view)) {
+						await Base.markAsNotApplicable(
+							`Control to be created already exists:${mFieldSelector.id || mFieldSelector}`,
+							/* bAsync */true
 						);
+						return;
 					}
-					var oRevertData = {
+					const oRevertData = {
 						newFieldSelector: mFieldSelector
 					};
-					//revert data will be enhanced later on, but should be attached to the change so that the addProperty-hook can access it and enhance it
+					// revert data will be enhanced later on, but should be attached to the change
+					// so that the addProperty-hook can access it and enhance it
 					oChange.setRevertData(oRevertData);
 
-
-					var sModelType = getModelType(mChangeContent);
-
-					return DelegateMediatorAPI.getDelegateForControl({
+					const DelegateMediatorAPI = await requireAsync("sap/ui/fl/apply/api/DelegateMediatorAPI");
+					const mDelegate = await DelegateMediatorAPI.getWriteDelegateForControl({
 						control: oControl,
-						modifier: mPropertyBag.modifier,
-						modelType: sModelType,
-						supportsDefault: mAddViaDelegateSettings.supportsDefault
-					}).then(function (mDelegate) {
-						return getControlsFromDelegate(mChangeDefinition, mDelegate, mCreateProperties);
-					}).then(function(mInnerControls) {
-						var mAddPropertySettings = merge({},
-							{
-								control: oControl,
-								innerControls: mInnerControls,
-								change : oChange
-							},
-							mPropertyBag
-						);
-						//------------------------
-						//Call 'addProperty' hook!
-						//------------------------
-						mAddViaDelegateSettings.addProperty(mAddPropertySettings);
-
-						if (mInnerControls.valueHelp) {
-							var oValueHelpSelector = mPropertyBag.modifier.getSelector(mPropertyBag.modifier.getId(mInnerControls.valueHelp), oAppComponent);
-							oRevertData.valueHelpSelector = oValueHelpSelector;
-						}
+						modifier: mPropertyBag.modifier
 					});
+					if (!mDelegate) {
+						Base.markAsNotApplicable(
+							`No delegate found for control ${mPropertyBag.modifier.getId(oControl)}`,
+							/* bAsync */false
+						);
+					}
+					const mInnerControls = await getControlsFromDelegate(
+						oChangeContent,
+						mDelegate,
+						mCreateProperties,
+						oChangeODataInformation
+					);
+					const mAddPropertySettings = merge({},
+						{
+							control: oControl,
+							innerControls: mInnerControls,
+							change: oChange
+						},
+						mPropertyBag
+					);
+					//------------------------
+					// Call 'addProperty' hook!
+					//------------------------
+					await mAddViaDelegateSettings.addProperty(mAddPropertySettings);
+					if (mInnerControls.valueHelp) {
+						const oValueHelpSelector = mPropertyBag.modifier.getSelector(
+							mPropertyBag.modifier.getId(mInnerControls.valueHelp),
+							oAppComponent
+						);
+						const oRevertData = oChange.getRevertData();
+						oRevertData.valueHelpSelector = oValueHelpSelector;
+						oChange.setRevertData(oRevertData);
+					}
+					// If the control is a layoutControl it should be destroyed in the revert, which will also destroy the field
+					if (mInnerControls.layoutControl) {
+						const oRevertData = oChange.getRevertData();
+						oRevertData.newFieldSelector = mPropertyBag.modifier.getSelector(
+							mPropertyBag.modifier.getId(mInnerControls.control),
+							oAppComponent
+						);
+						oChange.setRevertData(oRevertData);
+					}
 				},
 
 				/**
 				 * Reverts an applied addViaDelegate Change
 				 *
-				 * @param {sap.ui.fl.Change} oChange change wrapper object with instructions to be applied on the control map
+				 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange change wrapper object with instructions to be applied on the control map
 				 * @param {sap.ui.core.Control} oControl Control that matches the change selector for applying the change
 				 * @param {object} mPropertyBag property bag
 				 * @param {object} mPropertyBag.modifier modifier for the controls
@@ -209,98 +229,144 @@ sap.ui.define([
 				 * @return {boolean} True if successful
 				 * @public
 				 */
-				revertChange : function(oChange, oControl, mPropertyBag) {
-					var oAppComponent = mPropertyBag.appComponent;
-					var oModifier = mPropertyBag.modifier;
-					var mFieldSelector = oChange.getRevertData().newFieldSelector;
-					var mValueHelpSelector = oChange.getRevertData().valueHelpSelector;
+				async revertChange(oChange, oControl, mPropertyBag) {
+					const oAppComponent = mPropertyBag.appComponent;
+					const oModifier = mPropertyBag.modifier;
+					const mFieldSelector = oChange.getRevertData().newFieldSelector;
+					const mValueHelpSelector = oChange.getRevertData().valueHelpSelector;
 
-					var oNewField = oModifier.bySelector(mFieldSelector, oAppComponent);
+					const oNewField = oModifier.bySelector(mFieldSelector, oAppComponent);
 
-					var oParentControl = oChange.getDependentControl(mAddViaDelegateSettings.parentAlias, mPropertyBag)
-						|| /*fallback and legacy changes*/ oControl;
-					oModifier.removeAggregation(oParentControl, mAddViaDelegateSettings.aggregationName, oNewField);
-					oModifier.destroy(oNewField);
+					const oParentControl = oChange.getDependentControl(mAddViaDelegateSettings.parentAlias, mPropertyBag)
+						|| /* fallback and legacy changes */ oControl;
 
+					await oModifier.removeAggregation(oParentControl, mAddViaDelegateSettings.aggregationName, oNewField);
+					await oModifier.destroy(oNewField);
 					if (mValueHelpSelector) {
-						var oValueHelp = oModifier.bySelector(mValueHelpSelector, oAppComponent);
-						oModifier.removeAggregation(oParentControl, "dependents", oValueHelp);
-						oModifier.destroy(oValueHelp);
+						const oValueHelp = oModifier.bySelector(mValueHelpSelector, oAppComponent);
+						await oModifier.removeAggregation(oParentControl, "dependents", oValueHelp);
+						await oModifier.destroy(oValueHelp);
 					}
-					var mAddPropertySettings = merge({},
+					const mAddPropertySettings = merge({},
 						{
 							control: oControl,
-							change : oChange
+							change: oChange
 						},
 						mPropertyBag
 					);
 
 					if (isFunction(mAddViaDelegateSettings.revertAdditionalControls)) {
 						//-------------------------------------
-						//Call 'revertAdditionalControls' hook!
+						// Call 'revertAdditionalControls' hook!
 						//-------------------------------------
-						mAddViaDelegateSettings.revertAdditionalControls(mAddPropertySettings);
+						await mAddViaDelegateSettings.revertAdditionalControls(mAddPropertySettings);
+						oChange.resetRevertData();
 					}
-
-					oChange.resetRevertData();
-					return true;
 				},
 
 				/**
 				 * Completes the change by adding change handler specific content
 				 *
-				 * @param {sap.ui.fl.Change} oChange Change wrapper object to be completed
+				 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange Change wrapper object to be completed
 				 * @param {Object} mSpecificChangeInfo Information specific to this change
 				 * @param {string} mSpecificChangeInfo.newControlId The control ID for the control to be added
 				 * @param {string} mSpecificChangeInfo.bindingPath The binding path for the new control
 				 * @param {string} mSpecificChangeInfo.parentId FormContainer where the new control will be added
 				 * @param {number} mSpecificChangeInfo.index The index where the field will be added
 				 * @param {string} [mSpecificChangeInfo.oDataServiceVersion] The OData service version
-				 * @param {string} [mSpecificChangeInfo.modelType] Then UI5 model type name, only pass it if default delegate should be taken
 				 * @param {Object} mPropertyBag The property bag containing the App Component
 				 * @param {object} mPropertyBag.modifier Modifier for the controls
 				 * @param {object} mPropertyBag.appComponent Application component
 				 * @param {object} mPropertyBag.view Application view
 				 * @public
 				 */
-				completeChangeContent : function(oChange, mSpecificChangeInfo, mPropertyBag) {
-					var oAppComponent = mPropertyBag.appComponent;
-					var mChangeDefinition = oChange.getDefinition();
-					if (!mChangeDefinition.content) {
-						mChangeDefinition.content = {};
-					}
-					if (mSpecificChangeInfo.parentId) {
+				completeChangeContent(oChange, mSpecificChangeInfo, mPropertyBag) {
+					const oAppComponent = mPropertyBag.appComponent;
+					// TODO: Remove assignment without content after all derived change handlers are adjusted to use content. todos#4
+					const oChangeInfoContent = mSpecificChangeInfo.content || mSpecificChangeInfo;
+					const oContent = {};
+					if (oChangeInfoContent.parentId) {
 						if (isFunction(mAddViaDelegateSettings.mapParentIdIntoChange)) {
-							mAddViaDelegateSettings.mapParentIdIntoChange(oChange, mSpecificChangeInfo, mPropertyBag);
+							mAddViaDelegateSettings.mapParentIdIntoChange(oChange, oChangeInfoContent, mPropertyBag);
 						} else {
-							oChange.addDependentControl(mSpecificChangeInfo.parentId, mAddViaDelegateSettings.parentAlias, mPropertyBag);
+							oChange.addDependentControl(
+								oChangeInfoContent.parentId,
+								mAddViaDelegateSettings.parentAlias,
+								mPropertyBag
+							);
+						}
+						try {
+							oContent.parentId = mPropertyBag.modifier.getSelector(oChangeInfoContent.parentId, oAppComponent);
+						} catch (e) {
+							// If the parentId is not stable, e.g. in the case of SimpleForm groups
+							// don't set the parentId. This error is safe to ignore as a missing parentId
+							// will disable condensing
 						}
 					} else {
-						throw new Error("mSpecificChangeInfo.parentId attribute required");
+						throw new Error("mSpecificChangeInfo.content.parentId attribute required");
 					}
-					if (mSpecificChangeInfo.bindingPath) {
-						mChangeDefinition.content.bindingPath = mSpecificChangeInfo.bindingPath;
+					if (oChangeInfoContent.bindingPath) {
+						oContent.bindingPath = oChangeInfoContent.bindingPath;
 					} else {
-						throw new Error("mSpecificChangeInfo.bindingPath attribute required");
+						throw new Error("mSpecificChangeInfo.content.bindingPath attribute required");
 					}
-					if (mSpecificChangeInfo.newControlId) {
-						mChangeDefinition.content.newFieldSelector = mPropertyBag.modifier.getSelector(mSpecificChangeInfo.newControlId, oAppComponent);
+					if (oChangeInfoContent.newControlId) {
+						oContent.newFieldSelector = mPropertyBag.modifier.getSelector(oChangeInfoContent.newControlId, oAppComponent);
 					} else {
-						throw new Error("mSpecificChangeInfo.newControlId attribute required");
+						throw new Error("mSpecificChangeInfo.content.newControlId attribute required");
 					}
-					if (mSpecificChangeInfo.index === undefined) {
-						throw new Error("mSpecificChangeInfo.targetIndex attribute required");
+					if (oChangeInfoContent.index === undefined) {
+						throw new Error("mSpecificChangeInfo.content.targetIndex attribute required");
 					} else {
-						mChangeDefinition.content.newFieldIndex = mSpecificChangeInfo.index;
+						oContent.newFieldIndex = oChangeInfoContent.index;
 					}
-					if (mSpecificChangeInfo.oDataServiceVersion) {
-						//used to connect to change handler mediator
-						mChangeDefinition.content.oDataServiceVersion = mSpecificChangeInfo.oDataServiceVersion;
+					if (oChangeInfoContent.oDataServiceVersion) {
+						// used to connect to change handler mediator
+						oContent.oDataServiceVersion = oChangeInfoContent.oDataServiceVersion;
 					}
-					if (mSpecificChangeInfo.modelType && mAddViaDelegateSettings.supportsDefault) {
-						//used to connect to default delegate
-						mChangeDefinition.content.modelType = mSpecificChangeInfo.modelType;
+					oChange.setContent(oContent);
+				},
+
+				getChangeVisualizationInfo(oChange) {
+					const oRevertData = oChange.getRevertData();
+					if (oRevertData && oRevertData.labelSelector) {
+						return {
+							affectedControls: [oRevertData.labelSelector]
+						};
 					}
+					return {
+						affectedControls: [oChange.getContent().newFieldSelector]
+					};
+				},
+
+				async getCondenserInfo(oChange, mPropertyBag) {
+					const bCondensingEnabled = await checkCondensingEnabled(oChange, mPropertyBag);
+					if (!bCondensingEnabled) {
+						return undefined;
+					}
+
+					if (
+						!oChange.getContent().newFieldSelector
+							|| !oChange.getContent().parentId
+							|| !mAddViaDelegateSettings.aggregationName
+					) {
+						return undefined;
+					}
+
+					return {
+						affectedControl: oChange.getContent().newFieldSelector,
+						classification: CondenserClassification.Create,
+						targetContainer: oChange.getContent().parentId,
+						targetAggregation: mAddViaDelegateSettings.aggregationName,
+						setTargetIndex(oChange, iNewTargetIndex) {
+							const oChangeContent = oChange.getContent();
+							oChangeContent.newFieldIndex = iNewTargetIndex;
+							oChange.setContent(oChangeContent);
+						},
+						getTargetIndex(oChange) {
+							return oChange.getContent().newFieldIndex;
+						}
+					};
 				}
 			};
 		}

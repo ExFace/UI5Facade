@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides default renderer for control sap.ui.table.RowAction
-sap.ui.define(['sap/ui/table/Row'],
-	function(Row) {
+sap.ui.define([],
+	function() {
 	"use strict";
 
 	/**
 	 * RowAction renderer.
 	 * @namespace
 	 */
-	var RowActionRenderer = {
+	const RowActionRenderer = {
 		apiVersion: 2
 	};
 
@@ -21,7 +21,7 @@ sap.ui.define(['sap/ui/table/Row'],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oTable an object representation of the control that should be rendered
+	 * @param {sap.ui.table.RowAction} oAction an object representation of the control that should be rendered
 	 */
 	RowActionRenderer.render = function(rm, oAction) {
 		rm.openStart("div", oAction);
@@ -35,14 +35,14 @@ sap.ui.define(['sap/ui/table/Row'],
 			rm.class("sapUiTableActionHidden");
 		}
 
-		var sTooltip = oAction.getTooltip_AsString();
+		const sTooltip = oAction.getTooltip_AsString();
 		if (sTooltip) {
 			rm.attr("title", sTooltip);
 		}
 
 		rm.openEnd();
 
-		var aIcons = oAction.getAggregation("_icons");
+		const aIcons = oAction.getAggregation("_icons");
 		rm.renderControl(aIcons[0]);
 		rm.renderControl(aIcons[1]);
 

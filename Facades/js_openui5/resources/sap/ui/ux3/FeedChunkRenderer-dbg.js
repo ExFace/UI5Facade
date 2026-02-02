@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,9 @@
 sap.ui.define([
     "sap/ui/core/theming/Parameters",
     "sap/base/security/encodeXML",
-    "sap/base/security/URLWhitelist"
+    "sap/base/security/URLListValidator"
 ],
-	function(Parameters, encodeXML, URLWhitelist) {
+	function(Parameters, encodeXML, URLListValidator) {
 	"use strict";
 
 
@@ -162,14 +162,14 @@ sap.ui.define([
 				rm.writeEscaped(sWord, true);
 				rm.write('</a>', sSpace);
 				i++;
-			} else if (/^(https?|ftp):\/\//i.test(sWord) && URLWhitelist.validate(sWord)) {
+			} else if (/^(https?|ftp):\/\//i.test(sWord) && URLListValidator.validate(sWord)) {
 				// web link - valid URL
 				rm.write('<a');
 				rm.writeAttribute('href', encodeXML(sWord));
 				rm.write('>');
 				rm.writeEscaped(sWord, true);
 				rm.write('</a>',sSpace);
-			} else if (/^(www\.)/i.test(sWord) && URLWhitelist.validate("http://" + sWord)) {
+			} else if (/^(www\.)/i.test(sWord) && URLListValidator.validate("http://" + sWord)) {
 				// web link without protocol -> use HTTP - valid URL
 				rm.write('<a');
 				rm.writeAttribute('href', encodeXML("http://" + sWord));
@@ -187,7 +187,7 @@ sap.ui.define([
 				// normal word
 				rm.writeEscaped(sWord + sSpace, true);
 			}
-		}while (iPos >= 0);
+		} while (iPos >= 0);
 
 	};
 

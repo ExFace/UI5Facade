@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/Device',
 	'sap/ui/core/library',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/ShortcutHintsMixin',
 	'sap/m/library',
-	'sap/ui/core/InvisibleText'
+	'sap/ui/core/InvisibleText',
+	'sap/ui/core/AccessKeysEnablement'
 ],
 
-	function(Device, coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText) {
+	function(coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText, AccessKeysEnablement) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -22,11 +22,17 @@ sap.ui.define([
 	// shortcut for sap.m.ButtonAccessibilityType
 	var ButtonAccessibilityType = library.ButtonAccessibilityType;
 
+	// shortcut for sap.m.LinkAccessibleRole
+	var ButtonAccessibleRole = library.ButtonAccessibleRole;
+
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
 	// shortcut for sap.m.BadgeState
 	var BadgeState = library.BadgeState;
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Button renderer.
@@ -41,7 +47,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm
 	 *            the RenderManager that can be used for writing to
 	 *            the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oButton
+	 * @param {sap.m.Button} oButton
 	 *            the button to be rendered
 	 */
 	ButtonRenderer.render = function(oRm, oButton) {
@@ -54,9 +60,8 @@ sap.ui.define([
 		var sTooltip = oButton._getTooltip();
 		var sText = oButton._getText();
 		var sTextDir = oButton.getTextDirection();
-		var bIE_Edge = Device.browser.internet_explorer || Device.browser.edge;
 		// render bdi tag only if the browser is different from IE and Edge since it is not supported there
-		var bRenderBDI = (sTextDir === TextDirection.Inherit) && !bIE_Edge;
+		var bRenderBDI = (sTextDir === TextDirection.Inherit);
 
 		// get icon from icon pool
 		var sBackURI = IconPool.getIconURI("nav-back");
@@ -66,14 +71,11 @@ sap.ui.define([
 		oRm.openStart("button", oButton);
 		oRm.class("sapMBtnBase");
 
+		oRm.attr("data-ui5-accesskey", oButton.getProperty("accesskey"));
+
 		// button container style class
 		if (!oButton._isUnstyled()) {
 			oRm.class("sapMBtn");
-
-			// extend  minimum button size if icon is set without text for button types back and up
-			if ((sType === ButtonType.Back || sType === ButtonType.Up) && oButton._getAppliedIcon() && !sText) {
-				oRm.class("sapMBtnBack");
-			}
 		}
 
 		//ARIA attributes
@@ -144,10 +146,6 @@ sap.ui.define([
 		// check if button is focusable (not disabled)
 		if (bEnabled) {
 			oRm.class("sapMFocusable");
-			// special focus handling for IE
-			if (bIE_Edge) {
-				oRm.class("sapMIE");
-			}
 		}
 
 		if (!oButton._isUnstyled()) {
@@ -195,36 +193,12 @@ sap.ui.define([
 
 		// write button text
 		if (sText) {
-			oRm.openStart("span", sButtonId + "-content");
-			oRm.class("sapMBtnContent");
-			// check if textDirection property is not set to default "Inherit" and add "dir" attribute
-			if (sTextDir !== TextDirection.Inherit) {
-				oRm.attr("dir", sTextDir.toLowerCase());
-			}
-			oRm.openEnd();
-
-			if (bRenderBDI) {
-				oRm.openStart("bdi", sButtonId + "-BDI-content");
-				oRm.openEnd();
-			}
-			oRm.text(sText);
-			if (bRenderBDI) {
-				oRm.close("bdi");
-			}
-			oRm.close("span");
+			this.writeButtonText(oRm, oButton, sTextDir, bRenderBDI);
 		}
 
 		// write icon
 		if (!oButton.getIconFirst() && oButton._getAppliedIcon()) {
 			this.writeImgHtml(oRm, oButton);
-		}
-
-		// special handling for IE focus outline
-		if (bIE_Edge && bEnabled) {
-			oRm.openStart("span");
-			oRm.class("sapMBtnFocusDiv");
-			oRm.openEnd();
-			oRm.close("span");
 		}
 
 		// end inner button tag
@@ -249,11 +223,26 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm
 	 *            the RenderManager that can be used for writing to
 	 *            the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oButton
+	 * @param {sap.m.Button} oButton
 	 *            the button to be rendered
 	 * @private
 	 */
 	ButtonRenderer.writeImgHtml = function(oRm, oButton) {
+		var sType = oButton.getType(),
+			bHasExplicitIcon = oButton.getIcon(),
+			bIsBackType = (sType === ButtonType.Back) || (sType === ButtonType.Up);
+
+		// Avoid duplicated rendering of the default Back/Up icon. Due to legacy
+		// reasons, those types are different than the others and can have 2 icons
+		// at the same time - here we render the one that's explicitly provided.
+		//
+		// If such isn't provided, our button will get the default icon for its type.
+		// However, because Back/Up's default icon is already rendered, two identical
+		// icons will appear unless we escape this here.
+		if (!bHasExplicitIcon && bIsBackType) {
+			return;
+		}
+
 		oRm.renderControl(oButton._getImage(
 			oButton.getId() + "-img",
 			oButton._getAppliedIcon(),
@@ -265,7 +254,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm
 	 *	      the RenderManager that can be used for writing to
 	 *	      the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oButton
+	 * @param {sap.m.Button} oButton
 	 *	      the button to be rendered
 	 * @param {sap.ui.core.URI} sURI
 	 *            URI of the icon to be written
@@ -273,6 +262,31 @@ sap.ui.define([
 	 */
 	ButtonRenderer.writeInternalIconPoolHtml = function(oRm, oButton, sURI) {
 		oRm.renderControl(oButton._getInternalIconBtn((oButton.getId() + "-iconBtn"), sURI));
+	};
+
+	ButtonRenderer.writeButtonText = function(oRm, oButton, sTextDir, bRenderBDI){
+		oRm.openStart("span", oButton.getId() + "-content");
+		oRm.class("sapMBtnContent");
+		// check if textDirection property is not set to default "Inherit" and add "dir" attribute
+		if (sTextDir !== TextDirection.Inherit) {
+			oRm.attr("dir", sTextDir.toLowerCase());
+		}
+
+		if (oButton.getProperty("highlightAccKeysRef")) {
+			oRm.class(AccessKeysEnablement.CSS_CLASS);
+		}
+
+		oRm.openEnd();
+
+		if (bRenderBDI) {
+			oRm.openStart("bdi", oButton.getId() + "-BDI-content");
+			oRm.openEnd();
+		}
+		oRm.text(oButton.getText());
+		if (bRenderBDI) {
+			oRm.close("bdi");
+		}
+		oRm.close("span");
 	};
 
 	/**
@@ -306,7 +320,9 @@ sap.ui.define([
 
 	ButtonRenderer.generateAccProps = function (oButton) {
 		var sText = oButton._getText(),
-			mAccProps;
+			sHasPopupType = oButton.getAriaHasPopup(),
+			mAccProps,
+			sAccessibleRole = oButton.getAccessibleRole();
 
 		if (sText) {
 			mAccProps = ButtonRenderer.generateTextButtonAccProps(oButton);
@@ -318,6 +334,12 @@ sap.ui.define([
 		// both aria-disabled and disabled at the same time
 		mAccProps["disabled"] = null;
 
+		if (sAccessibleRole === ButtonAccessibleRole.Link) {
+			mAccProps["role"] = "link";
+		}
+
+		mAccProps["haspopup"] = (sHasPopupType === AriaHasPopup.None) ? null : sHasPopupType.toLowerCase();
+
 		return mAccProps;
 	};
 
@@ -327,7 +349,8 @@ sap.ui.define([
 			sTooltip = oButton._getTooltip(),
 			sTooltipId = oButton.getId() + "-tooltip", // Icon-only buttons will always have a tooltip
 			sAccessibilityType = oButton._determineAccessibilityType(),
-			mAccProps = {};
+			mAccProps = {},
+			sDescription;
 
 		switch (sAccessibilityType) {
 			case ButtonAccessibilityType.Default:
@@ -335,7 +358,9 @@ sap.ui.define([
 				break;
 			case ButtonAccessibilityType.Described:
 				mAccProps["label"] = { value: sTooltip, append: true };
-				mAccProps["describedby"] = { value: (sTooltipId + " " + sTypeId + " " + sBadgeTextId).trim(), append: true };
+
+				sDescription = (sTypeId + " " + sBadgeTextId).trim();
+				sDescription && (mAccProps["describedby"] = { value: sDescription, append: true });
 				break;
 			case ButtonAccessibilityType.Labelled:
 				mAccProps["describedby"] = { value: sTooltipId, append: true };

@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define([
 	"use strict";
 
 	var PREFIX = "/flex/keyuser";
-	var API_VERSION = "/v1";
+	var API_VERSION = "/v2";
 
 	/**
 	 * Connector for requesting data from SAPUI5 Flexibility KeyUser service.
@@ -28,12 +28,31 @@ sap.ui.define([
 	 */
 	var KeyUserConnector = merge({}, BackendConnector, { /** @lends sap.ui.fl.initial._internal.connectors.KeyUserConnector */
 		layers: [
-			Layer.CUSTOMER
+			Layer.CUSTOMER,
+			Layer.PUBLIC
 		],
+		API_VERSION,
 		ROUTES: {
-			DATA: PREFIX + API_VERSION + "/data/"
+			DATA: `${PREFIX + API_VERSION}/data/`,
+			SETTINGS: `${PREFIX + API_VERSION}/settings`
 		},
-		isLanguageInfoRequired: true
+		isLanguageInfoRequired: true,
+		loadFeatures(mPropertyBag) {
+			return BackendConnector.loadFeatures.call(this, mPropertyBag).then(function(oFeatures) {
+				oFeatures.isContextSharingEnabled = true;
+				return oFeatures;
+			});
+		},
+		loadFlexData(mPropertyBag) {
+			mPropertyBag.cacheable = true;
+			return BackendConnector.sendRequest.call(this, mPropertyBag).then(function(oResult) {
+				oResult.contents.map(function(oContent, iIndex, oResult) {
+					oResult[iIndex].changes = (oContent.changes || []).concat(oContent.compVariants);
+				});
+				oResult.contents[0].cacheKey = oResult.cacheKey;
+				return oResult.contents;
+			});
+		}
 	});
 
 	return KeyUserConnector;

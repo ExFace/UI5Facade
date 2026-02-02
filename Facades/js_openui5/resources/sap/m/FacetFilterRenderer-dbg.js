@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
-	function(library, Device, InvisibleText) {
+sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/Element", "sap/ui/core/Lib", "sap/ui/core/InvisibleText"],
+	function(library, Device, Element, Library, InvisibleText) {
 	"use strict";
 
 
@@ -26,7 +26,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 */
 	FacetFilterRenderer.render = function(oRm, oControl){
 		if (oControl.getType() === FacetFilterType.Light || oControl.getShowSummaryBar()) {
@@ -42,7 +42,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	 *
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 */
 	FacetFilterRenderer.renderSimpleFlow = function(oRm, oControl) {
 
@@ -102,7 +102,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	 *
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 */
 	FacetFilterRenderer.renderSummaryBar = function(oRm, oControl) {
 
@@ -123,9 +123,9 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	 *
 	 * This method should be used when text is reached frequently.
 	 *
-	 * @param {String} sKey Key of the announcement
-	 * @param {String} sBundleText Key of the announcement
-	 * @returns {String} Id of the generated invisible aria node
+	 * @param {string} sKey Key of the announcement
+	 * @param {string} sBundleText Key of the announcement
+	 * @returns {string} Id of the generated invisible aria node
 	 * @protected
 	 */
 	FacetFilterRenderer.getAriaAnnouncement = function(sKey, sBundleText) {
@@ -136,6 +136,8 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 		var aLists = oControl._getSequencedLists(),
 			iLength = aLists.length,
 			bShowPersonalization = oControl.getShowPersonalization(),
+			bAddFilterButton = bShowPersonalization && (oControl.getType() === FacetFilterType.Simple),
+			iFacetFilterButtonsLength = bAddFilterButton ? iLength + 1 : iLength,
 			oButton,
 			i;
 
@@ -148,7 +150,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 			if (!oControl._bCheckForAddListBtn || bAddButton) {
 				oButton = oControl._getButtonForList(aLists[i]);
 
-				FacetFilterRenderer.addPositionInfoForButton(oControl, oButton, i + 1, iLength + 1);
+				FacetFilterRenderer.addPositionInfoForButton(oControl, oButton, i + 1, iFacetFilterButtonsLength);
 
 				if (bShowPersonalization) {
 					oButton.addAriaDescribedBy(FacetFilterRenderer.getAriaAnnouncement("ARIA_REMOVE"));
@@ -166,7 +168,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	/**
 	 * Prepares the "Add Filter" button by adding positioning information and then renders it.
 	 *
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
 	 *
 	 * @returns {FacetFilterRenderer} <code>this</code> to allow method chaining
@@ -184,7 +186,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	/**
 	 * Replaces the old positioning information with updated one.
 	 *
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 * @param {sap.m.Button} oButton The button on which positioning information will be added
 	 * @param {int} iPosInSet Button's position in the set
 	 * @param {int} iSetSize Set's total size
@@ -202,7 +204,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	/**
 	 * Removes the old positioning information.
 	 *
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 * @param {sap.m.Button} oButton The button from which old positioning information will be removed
 	 * @returns {FacetFilterRenderer} <code>this</code> to allow method chaining
 	 */
@@ -219,7 +221,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 			}
 
 			// Destroy the item itself
-			oItem = sap.ui.getCore().byId(sItemId);
+			oItem = Element.getElementById(sItemId);
 			oItem && oItem.destroy();
 		});
 
@@ -229,13 +231,13 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText"],
 	/**
 	 * Creates a label in the static area, which contains positioning information.
 	 *
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+	 * @param {sap.m.FacetFilter} oControl An object representation of the control that should be rendered
 	 * @param {int} iPosInSet Position in the set
 	 * @param {int} iSetSize Set's total size
 	 * @returns {sap.ui.core.InvisibleText} oStaticLabel The newly created label
 	 */
 	FacetFilterRenderer.createStaticPositioningLabel = function (oControl, iPosInSet, iSetSize) {
-		var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oRB = Library.getResourceBundleFor("sap.m"),
 			sFacetFilterText = oRB.getText("FACETFILTER_ARIA_FACET_FILTER"),
 			sPositioningText = oRB.getText("FACETFILTERLIST_ARIA_POSITION", [iPosInSet, iSetSize]),
 			oStaticLabel = new InvisibleText({ text: sFacetFilterText + " " + sPositioningText }).toStatic();

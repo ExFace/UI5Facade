@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,16 +21,23 @@ function(
 	 *
 	 * @class
 	 * The Transport Dialog Control can be used to implement a value help for selecting an ABAP package and transport request. It is not a generic utility, but part of the Variantmanament and therefore cannot be used in any other application.
-	 * @extends sap.ui.fl.write._internal.transport.TransportDialog
+	 * @extends sap.m.Dialog
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.74
 	 * The TransportDialog should be used only internally inside the <code>sap.ui.fl</code> library.
 	 * @alias sap.ui.fl.transport.TransportDialog
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TransportDialog = InternalTransportDialog.extend("sap.ui.fl.transport.TransportDialog");
+	var TransportDialog = InternalTransportDialog.extend("sap.ui.fl.transport.TransportDialog", {
+		metadata: {
+			library: "sap.ui.fl",
+			deprecated: true
+		},
+		renderer: { // inherit Dialog renderer
+			apiVersion: 2
+		}
+	});
 
 	return TransportDialog;
 });

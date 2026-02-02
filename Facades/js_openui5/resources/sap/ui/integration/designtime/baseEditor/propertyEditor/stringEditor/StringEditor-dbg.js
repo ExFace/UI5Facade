@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.stringEditor.StringEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.70
@@ -69,10 +69,16 @@ sap.ui.define([
 	 */
 	var StringEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.stringEditor.StringEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.stringEditor.StringEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
 	StringEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata, {
+		typeLabel: {
+			defaultValue: "BASE_EDITOR.TYPES.STRING"
+		},
 		enabled: {
 			defaultValue: true,
 			mergeStrategy: "mostRestrictiveWins"

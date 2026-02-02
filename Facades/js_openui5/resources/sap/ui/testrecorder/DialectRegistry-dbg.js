@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,14 +10,14 @@ sap.ui.define([
 ], function (BaseObject, Dialects) {
 	"use strict";
 
-	var DEFAULT_DIALECT = Dialects.UIVERI5;
+	var DEFAULT_DIALECT = Dialects.OPA5;
 
 	var oDialectRegistry = null;
 
 	var DialectRegistry = BaseObject.extend("sap.ui.testrecorder.DialectRegistry", {
 		constructor: function () {
 			if (!oDialectRegistry) {
-				Object.apply(this, arguments);
+				BaseObject.apply(this, arguments);
 				this.setActiveDialect(DEFAULT_DIALECT);
 			} else {
 				return oDialectRegistry;

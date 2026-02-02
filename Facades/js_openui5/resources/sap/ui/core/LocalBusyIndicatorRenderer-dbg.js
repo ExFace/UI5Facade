@@ -1,11 +1,41 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(function() {
 	"use strict";
 
+	/**
+	 * Renders the HTML for the given control, using the provided
+	 * {@link sap.ui.core.RenderManager}.
+	 *
+	 * @param {sap.ui.core.RenderManager}
+	 *            oRm the RenderManager that can be used for writing to the
+	 *            render output buffer
+	 * @param {sap.ui.core.LocalBusyIndicator}
+	 *            oControl an object representation of the control that should
+	 *            be rendered
+	 * @private
+	 */
+	var fnRenderFlickerDivs = function(oRm, oControl) {
+		var sId = oControl.getId();
+		var sIdAnimation = sId + "-animation";
+		var aBoxEnum = [ "-leftBox", "-middleBox", "-rightBox" ];
+
+		oRm.openStart('div', sIdAnimation);
+		oRm.class("sapUiLocalBusyIndicatorAnimation");
+		oRm.openEnd();
+
+		for ( var i = 0; i < aBoxEnum.length; i++) {
+			oRm.openStart('div', sId + aBoxEnum[i]);
+			oRm.class("sapUiLocalBusyIndicatorBox");
+			oRm.openEnd();
+			oRm.close("div");
+		}
+
+		oRm.close("div");
+	};
 
 	/**
 	 * LocalBusyIndicator renderer.
@@ -23,7 +53,7 @@ sap.ui.define(function() {
 	 * @param {sap.ui.core.RenderManager}
 	 *            oRm the RenderManager that can be used for writing to the
 	 *            render output buffer
-	 * @param {sap.ui.core.Control}
+	 * @param {sap.ui.core.LocalBusyIndicator}
 	 *            oControl an object representation of the control that should
 	 *            be rendered
 	 */
@@ -33,25 +63,6 @@ sap.ui.define(function() {
 		oRm.openEnd();
 
 		fnRenderFlickerDivs(oRm, oControl);
-
-		oRm.close("div");
-	};
-
-	var fnRenderFlickerDivs = function(oRm, oControl) {
-		var sId = oControl.getId();
-		var sIdAnimation = sId + "-animation";
-		var aBoxEnum = [ "-leftBox", "-middleBox", "-rightBox" ];
-
-		oRm.openStart('div', sIdAnimation);
-		oRm.class("sapUiLocalBusyIndicatorAnimation");
-		oRm.openEnd();
-
-		for ( var i = 0; i < aBoxEnum.length; i++) {
-			oRm.openStart('div', sId + aBoxEnum[i]);
-			oRm.class("sapUiLocalBusyIndicatorBox");
-			oRm.openEnd();
-			oRm.close("div");
-		}
 
 		oRm.close("div");
 	};

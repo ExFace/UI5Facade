@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.support.Bootstrap.
-sap.ui.define(["jquery.sap.global", "sap/base/Log"],
-	function (jQuery, Log) {
+sap.ui.define(["sap/base/Log"],
+	function (Log) {
 	"use strict";
 
 	Log.setLogEntriesLimit(Infinity);
 
 	var Bootstrap = {
 		initSupportRules: function (aSettings, oDelegates) {
-			sap.ui.require(["sap/ui/support/supportRules/Main", "sap/ui/support/jQuery.sap.support"], function (Main) {
+			sap.ui.require(["sap/ui/support/supportRules/Main"], function (Main) {
 				if (aSettings[0].toLowerCase() === "true" || aSettings[0].toLowerCase() === "silent") {
 
 					var bHasReadyFunction = oDelegates && oDelegates.onReady && typeof oDelegates.onReady === "function";
@@ -35,9 +35,7 @@ sap.ui.define(["jquery.sap.global", "sap/base/Log"],
 					 * allowing the developers to pass custom data, that is later going to be added
 					 * to the executionScope of the rules
 					 */
-					if ('logSupportInfo' in jQuery.sap.log) {
-						jQuery.sap.log.logSupportInfo(true);
-					}
+					Log.logSupportInfo(true);
 				}
 			});
 		}

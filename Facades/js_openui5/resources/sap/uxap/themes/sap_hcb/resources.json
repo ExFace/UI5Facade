@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 128,
+			"size": 162,
 			"theme": "sap_hcb"
 		},
 		{
@@ -50,63 +50,89 @@
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 627,
+			"size": 636,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 161,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 71092,
+			"name": "base_AnchorBar.less",
+			"size": 10488,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 70795,
+			"name": "base_BreadCrumbs.less",
+			"size": 1533,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_HierarchicalSelect.less",
+			"size": 4422,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPageHeader.less",
+			"size": 10844,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPageHeaderContent.less",
+			"size": 9056,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPageLayout.less",
+			"size": 6317,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPageSection.less",
+			"size": 3249,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ObjectPageSubSection.less",
+			"size": 6406,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 60589,
+			"size": 59786,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2,
+			"module": "sap/uxap/themes/sap_hcb/library-parameters.json",
+			"size": 165,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 60577,
+			"size": 59776,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 11243,
+			"size": 64969,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 504,
+			"size": 1466,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 62302,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 62290,
-			"theme": "sap_hcb"
+			"name": "resources.json",
+			"size": 2413
 		}
 	]
 }

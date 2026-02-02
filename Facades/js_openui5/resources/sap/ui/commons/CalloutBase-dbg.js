@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,18 +14,14 @@ sap.ui.define([
     'sap/ui/core/Popup',
     'sap/ui/events/ControlEvents',
     'sap/ui/events/KeyCodes',
-    'sap/ui/dom/jquery/control', // jQuery.fn.control
-    'sap/ui/dom/jquery/Focusable' // jQuery.fn.firstFocusableDomRef, jQuery.fn.lastFocusableDomRef,
+    "sap/ui/core/Configuration",
+    // jQuery.fn.control
+    'sap/ui/dom/jquery/control',
+    // jQuery.fn.firstFocusableDomRef, jQuery.fn.lastFocusableDomRef,
+    'sap/ui/dom/jquery/Focusable'
 ],
-	function(jQuery, library, TooltipBase, CalloutBaseRenderer, Popup, ControlEvents, KeyCodes) {
+	function(jQuery, library, TooltipBase, CalloutBaseRenderer, Popup, ControlEvents, KeyCodes, Configuration) {
 	"use strict";
-
-
-
-	// shortcut for sap.ui.core.Popup.Dock
-	var Dock = Popup.Dock;
-
-
 
 	/**
 	 * Constructor for a new CalloutBase.
@@ -38,17 +34,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.TooltipBase
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
-	 * @deprecated Since version 1.38.
+	 * @deprecated Since version 1.38 If you want to achieve a similar behavior, use the <code>sap.m.Popover</code> control and open it next to your control.
 	 * @alias sap.ui.commons.CalloutBase
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var CalloutBase = TooltipBase.extend("sap.ui.commons.CalloutBase", /** @lends sap.ui.commons.CalloutBase.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		events : {
 
 			/**
@@ -105,7 +101,7 @@ sap.ui.define([
 		this.oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.commons");
 
 		// override the default position and offset of TooltipBase:
-		this.setPosition(Dock.BeginBottom, Dock.BeginTop);
+		this.setPosition("begin bottom", "begin top");
 
 		// listen to global events outside of the callout to close it when needed
 		this.fAnyEventHandlerProxy = jQuery.proxy(this.onAnyEvent, this);
@@ -261,7 +257,7 @@ sap.ui.define([
 
 		if (dock.y) { // pointer on the top or bottom border
 			// switch right to left in case of RTL for the relevant docking (begin & end):
-			var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			var bRtl = Configuration.getRTL();
 			if (bRtl) { myPosition.replace("begin", "right").replace("end", "left"); }
 			var hPos = 0;
 
@@ -305,7 +301,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	CalloutBase.prototype.adjustPosition = function() {
 
@@ -383,7 +378,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	CalloutBase.prototype.close = function() {
 		if (this.oPopup && this.oPopup.isOpen() && !this.sCloseNowTimeout) {
@@ -610,14 +604,13 @@ sap.ui.define([
 	 * use it instead of <code>setMyPosition/setAtPosition</code>.
 	 * @param {sap.ui.core.Dock} myPosition docking position of the Callout
 	 * @param {sap.ui.core.Dock} atPosition docking position of the parent control
-	 * @return {sap.ui.commons.CalloutBase} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	CalloutBase.prototype.setPosition = function(myPosition, atPosition){
 
-		var myPos = myPosition || Dock.BeginBottom;
-		var atPos = atPosition || Dock.BeginTop;
+		var myPos = myPosition || "begin bottom";
+		var atPos = atPosition || "begin top";
 
 		var myX = 0, myY = 0, atX = 0, atY = 0, gap = 5;
 

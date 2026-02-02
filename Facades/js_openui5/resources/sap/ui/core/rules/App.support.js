@@ -1,29 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines Application related support rules.
+ *
+ * @deprecated since 1.120 No rule will survive as all will throw an error in the future.
+ * @fileoverview
  */
-sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mvc/Controller"], function(SupportLib, View, Controller) {
+sap.ui.define([
+	"sap/ui/support/library",
+	"sap/ui/core/mvc/View",
+	"sap/ui/core/mvc/Controller",
+	"sap/ui/thirdparty/jquery"
+], function(SupportLib, View, Controller, jQuery) {
 	"use strict";
 
 	// shortcuts
 	var Categories = SupportLib.Categories; // Accessibility, Performance, Memory, ...
 	var Severity = SupportLib.Severity; // Hint, Warning, Error
 	var Audiences = SupportLib.Audiences; // Control, Internal, Application
-
-	var aObsoleteFunctionNames = ["jQuery.sap.require", "$.sap.require", "sap.ui.requireSync", "jQuery.sap.sjax"];
-
-	// avoid spoiling the globalAPIRule by using Object.getOwnPropertyDescriptor
-	if (jQuery && jQuery.sap && !!Object.getOwnPropertyDescriptor(jQuery.sap, "sjax").value) {
-		aObsoleteFunctionNames.push("jQuery.sap.syncHead",
-			"jQuery.sap.syncGet",
-			"jQuery.sap.syncPost",
-			"jQuery.sap.syncGetText",
-			"jQuery.sap.syncGetJSON");
-	}
 
 	//**********************************************************
 	// Rule Definitions
@@ -32,6 +29,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 	 * Check controller code for obsolete function calls.
 	 *
 	 * e.g. <code>{aObsoleteFunctionNames:["jQuery.sap.sjax"]}</code>
+	 * @deprecated Since 1.119
 	 */
 	var oControllerSyncCodeCheckRule = {
 		id: "controllerSyncCodeCheck",
@@ -44,7 +42,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Use asynchronous XHR calls instead",
 		resolutionurls: [{
 			text: 'Documentation: Loading a Module',
-			href: 'https://sapui5.hana.ondemand.com/#docs/guide/d12024e38385472a89c1ad204e1edb48.html'
+			href: 'https://sdk.openui5.org/topic/d12024e38385472a89c1ad204e1edb48'
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			// get the controllers and the associated viewId
@@ -61,6 +59,17 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 					}
 				}
 			});
+
+			const aObsoleteFunctionNames = ["jQuery.sap.require", "$.sap.require", "sap.ui.requireSync", "jQuery.sap.sjax"];
+			// avoid spoiling the globalAPIRule by using Object.getOwnPropertyDescriptor
+			if (jQuery && jQuery.sap && Object.getOwnPropertyDescriptor(jQuery.sap, "sjax").value) {
+				aObsoleteFunctionNames.push(
+					"jQuery.sap.syncHead",
+					"jQuery.sap.syncGet",
+					"jQuery.sap.syncPost",
+					"jQuery.sap.syncGetText",
+					"jQuery.sap.syncGetJSON");
+			}
 
 			// checks the given module's functions code for invalidContent
 			// returns an array which contains the functions with invalid content
@@ -133,6 +142,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 	 * Check for usage of stubbed global API, which leads to a sync request and should be avoided.
 	 *
 	 * e.g. <code>jQuery.sap.assert(bValue)</code>
+	 * @deprecated Since 1.119
 	 */
 	var oGlobalAPIRule = {
 		id: "globalApiUsage",
@@ -145,8 +155,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Declare the dependency properly or even better: Migrate to the modern module API as documented.",
 		resolutionurls: [{
 			text: 'Documentation: Modularization',
-			// TODO: link to the modularization dev guide
-			href: 'https://openui5.hana.ondemand.com/#/api'
+			href: 'https://sdk.openui5.org/topic/b8fdf0c903424c9191f142842323ae22'
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var oLoggedObjects = oScope.getLoggedObjects("jquery.sap.stubs");
@@ -164,6 +173,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 
 	/**
 	 * Check for usage of jquery.sap modules and provide a hint on the alternatives.
+	 * @deprecated Since 1.119
 	 */
 	var oJquerySapRule = {
 		id: "jquerySapUsage",
@@ -178,8 +188,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Migrate to the modern module API as documented.",
 		resolutionurls: [{
 			text: 'Documentation: Modularization',
-			// TODO: link to the modularization dev guide
-			href: 'https://openui5.hana.ondemand.com/#/topic/a075ed88ef324261bca41813a6ac4a1c'
+			href: 'https://sdk.openui5.org/topic/a075ed88ef324261bca41813a6ac4a1c'
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope, fnResolve) {
 			if (oScope.getType() === "global") {
@@ -207,6 +216,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 
 	/**
 	 * Check if deprecated factories are called.
+	 * @deprecated Since 1.119
 	 */
 	var oSyncFactoryLoadingRule = {
 		id: "syncFactoryLoading",
@@ -219,7 +229,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Avoid using synchronous factory functions. Use the create() and/or load() functions of the respective modules instead. For example: View.create(...) or Component.load(). Migrate to the modern module API as documented.",
 		resolutionurls: [{
 			text: 'Documentation: Legacy Factories Replacement',
-			href: 'https://openui5.hana.ondemand.com/#/topic/491bd9c70b9f4c4d913c8c7b4a970833'
+			href: 'https://sdk.openui5.org/topic/491bd9c70b9f4c4d913c8c7b4a970833'
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var aFactoryTypes = [
@@ -250,7 +260,39 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 	};
 
 	/**
+	 * Check if deprecated sap.ui.core.mvc.JSView is used.
+	 * @deprecated Since 1.119
+	 */
+	 var oJSViewRule = {
+		id: "deprecatedJSViewUsage",
+		audiences: [Audiences.Internal],
+		categories: [Categories.Modularization],
+		enabled: true,
+		minversion: "1.90",
+		title: "Usage of deprecated JSView",
+		description: "Usage of deprecated JSView",
+		resolution: "Avoid using sap.ui.core.mvc.JSView. Instead use Typed Views by defining the view class with 'sap.ui.core.mvc.View.extend' and creating the view instances with 'sap.ui.core.mvc.View.create'.",
+		resolutionurls: [{
+			text: 'Documentation: Typed Views',
+			href: 'https://sdk.openui5.org/topic/e6bb33d076dc4f23be50c082c271b9f0'
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var oLoggedObjects = oScope.getLoggedObjects("sap.ui.core.mvc.JSView");
+			oLoggedObjects.forEach(function(oLoggedObject) {
+				oIssueManager.addIssue({
+					severity: Severity.High,
+					details: oLoggedObject.message,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			});
+		}
+	};
+
+	/**
 	 * Check for avoidable synchronous XHRs.
+	 * @deprecated Since 1.119
 	 */
 	var oGlobalSyncXhrRule = {
 		id: "globalSyncXHR",
@@ -263,11 +305,11 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Check the details of the findings for tips to fix the issue.",
 		resolutionurls: [{
 			text: "Performance: Speed Up Your App",
-			href: "https://sapui5.hana.ondemand.com/#/topic/408b40efed3c416681e1bd8cdd8910d4"
+			href: "https://sdk.openui5.org/topic/408b40efed3c416681e1bd8cdd8910d4"
 		},
 		{
 			text: "Configuration of 'sap.ui.loader'",
-			href: "https://sapui5.hana.ondemand.com/#/api/sap.ui.loader"
+			href: "https://sdk.openui5.org/api/sap.ui.loader"
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var oLoggedObjects = oScope.getLoggedObjects("SyncXHR");
@@ -286,6 +328,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 	/**
 	 * Check for deprecated API calls in general.
 	 * Not specific to factories or already covered APIs.
+	 * @deprecated Since 1.119
 	 */
 	var oDeprecatedAPIRule = {
 		id: "deprecatedApiUsage",
@@ -298,7 +341,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		resolution: "Check the details of the findings for tips to fix the issue.",
 		resolutionurls: [{
 			text: 'Documentation: Adapting to the Modularization of the Core',
-			href: 'https://openui5.hana.ondemand.com/#/topic/b8fdf0c903424c9191f142842323ae22'
+			href: 'https://sdk.openui5.org/topic/b8fdf0c903424c9191f142842323ae22'
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var oLoggedObjects = oScope.getLoggedObjects("Deprecation");
@@ -316,6 +359,8 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 
 	/**
 	 * Check for usage of Controller Extension API.
+	 *
+	 * @deprecated since 1.120 Will throw an error instead.
 	 */
 	var oControllerExtensionRule = {
 		id: "controllerExtension",
@@ -343,6 +388,7 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 	/**
 	 * With jQuery 3.x we provide a compatibility layer to bridge gaps between jQuery 3.x and 2.x.
 	 * Our compatibility module logs warnings when deprecated jQuery APIs are used.
+	 * @deprecated Since 1.119
 	 */
 	var oJQueryThreeDeprecationRule = {
 		id: "jQueryThreeDeprecation",
@@ -379,5 +425,96 @@ sap.ui.define(["sap/ui/support/library", "sap/ui/core/mvc/View", "sap/ui/core/mv
 		}
 	};
 
-	return [oControllerSyncCodeCheckRule, oGlobalAPIRule, oJquerySapRule, oSyncFactoryLoadingRule, oGlobalSyncXhrRule, oDeprecatedAPIRule, oControllerExtensionRule, oJQueryThreeDeprecationRule];
+	/**
+	 * Checks for missing super init() calls on sap.ui.core.UIComponents.
+	 *
+	 * @deprecated since 1.120 Will throw an error instead.
+	 */
+	 var oMissingSuperInitRule = {
+		id: "missingInitInUIComponent",
+		audiences: [Audiences.Application, Audiences.Control, Audiences.Internal],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.89",
+		title: "Missing super init() call in sap.ui.core.UIComponent",
+		description: "A sub-class of sap.ui.core.UIComponent which overrides the init() function must apply the super init() function as well.",
+		resolution: "A bound call to sap.ui.core.UIComponent.prototype.init must be introduced in the sub-class.",
+		resolutionurls: [{
+			text: "API Documentation: sap.ui.core.UIComponent#init",
+			href: "https://sdk.openui5.org/api/sap.ui.core.UIComponent/methods/init"
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var oLoggedObjects = oScope.getLoggedObjects("missingInitInUIComponent");
+			oLoggedObjects.forEach(function(oLoggedObject) {
+				oIssueManager.addIssue({
+					severity: Severity.High,
+					details: oLoggedObject.message,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			});
+		}
+	};
+
+	/**
+	 * Checks for missing super constructor calls on sap.ui.core.Component and sap.ui.core.mvc.Controller.
+	 *
+	 * @deprecated since 1.120 Will throw an error instead.
+	 */
+	 var oMissingSuperConstructorRule = {
+		id: "missingSuperConstructor",
+		audiences: [Audiences.Application, Audiences.Control, Audiences.Internal],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.93",
+		title: "Missing super constructor call",
+		description: "A sub-class of sap.ui.core.Component or sap.ui.core.mvc.Controller which overrides the constructor must apply the super constructor as well.",
+		resolution: "A bound call to sap.ui.core.Component or sap.ui.core.mvc.Controller must be introduced in the sub-class.",
+		resolutionurls: [{
+			text: "API Documentation: sap.ui.core.mvc.Controller",
+			href: "https://sdk.openui5.org/api/sap.ui.core.mvc.Controller"
+		},
+		{
+			text: "API Documentation: sap.ui.core.Component",
+			href: "https://sdk.openui5.org/api/sap.ui.core.Component"
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var oLoggedObjects = oScope.getLoggedObjects("missingSuperConstructor");
+			oLoggedObjects.forEach(function(oLoggedObject) {
+				oIssueManager.addIssue({
+					severity: Severity.High,
+					details: oLoggedObject.message,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			});
+		}
+	};
+
+	return [
+		/** @deprecated */
+		oControllerSyncCodeCheckRule,
+		/** @deprecated */
+		oGlobalAPIRule,
+		/** @deprecated */
+		oJquerySapRule,
+		/** @deprecated */
+		oSyncFactoryLoadingRule,
+		/** @deprecated */
+		oGlobalSyncXhrRule,
+		/** @deprecated */
+		oDeprecatedAPIRule,
+		/** @deprecated */
+		oJQueryThreeDeprecationRule,
+		/** @deprecated */
+		oJSViewRule,
+		/** @deprecated */
+		oMissingSuperConstructorRule,
+		/** @deprecated */
+		oMissingSuperInitRule,
+		/** @deprecated */
+		oControllerExtensionRule
+	];
 }, true);

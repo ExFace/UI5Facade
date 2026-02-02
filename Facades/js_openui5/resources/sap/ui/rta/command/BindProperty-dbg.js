@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -26,56 +26,56 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.38
 	 * @alias sap.ui.rta.command.BindProperty
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
 	var BindProperty = FlexCommand.extend("sap.ui.rta.command.BindProperty", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				propertyName : {
-					type : "string"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				propertyName: {
+					type: "string",
+					group: "content"
 				},
-				newBinding : {
-					type : "string"
+				newBinding: {
+					type: "string",
+					group: "content"
 				},
-				changeType : {
-					type : "string",
-					defaultValue : "propertyBindingChange"
+				changeType: {
+					type: "string",
+					defaultValue: "propertyBindingChange"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
 	/**
-	 * @override to suppress the binding strings to be used as binding
+	 * Overridden to suppress the binding strings to be used as binding.
+	 * @override
 	 */
-	BindProperty.prototype.bindProperty = function(sName, oBindingInfo) {
-		if (sName === "newBinding") {
-			return this.setNewBinding(oBindingInfo.bindingString);
-		}
-		return FlexCommand.prototype.bindProperty.apply(this, arguments);
+	BindProperty.prototype.applySettings = function(...aArgs) {
+		const [mSettings] = aArgs;
+		FlexCommand.prototype.applySettings.apply(this, aArgs);
+		this.setNewBinding(mSettings.newBinding);
 	};
 
 	BindProperty.prototype._getChangeSpecificData = function() {
 		var oElement = this.getElement();
 		// general format
 		var mSpecificChangeInfo = {
-			changeType : this.getChangeType(),
-			selector : {
-				id : oElement.getId(),
-				type : oElement.getMetadata().getName()
+			changeType: this.getChangeType(),
+			selector: {
+				id: oElement.getId(),
+				type: oElement.getMetadata().getName()
 			},
-			content : {
-				property : this.getPropertyName(),
-				newBinding : this.getNewBinding()
+			content: {
+				property: this.getPropertyName(),
+				newBinding: this.getNewBinding()
 			}
 		};
 

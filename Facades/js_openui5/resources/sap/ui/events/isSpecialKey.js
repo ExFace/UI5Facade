@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function(){"use strict";var i=function(e){function a(e){var k=e.key;return(k==='Shift')||(k==='Control')||(k==='Alt')||(k==='AltGraph')||(k==='CapsLock')||(k==='NumLock');}function b(e){var k=e.key;return(k==='ArrowLeft')||(k==='ArrowUp')||(k==='ArrowRight')||(k==='ArrowDown')||(k==='Left')||(k==='Up')||(k==='Right')||(k==='Down');}var k=e.key,s=a(e)||b(e)||k==='PageUp'||k==='PageDown'||k==='End'||k==='Home'||k==='PrintScreen'||k==='Insert'||k==='Del'||k==='Delete'||k==='F1'||k==='F2'||k==='F3'||k==='F4'||k==='F5'||k==='F6'||k==='F7'||k==='F8'||k==='F9'||k==='F10'||k==='F11'||k==='F12'||k==='Pause'||k==='Backspace'||k==='Tab'||k==='Enter'||k==='Escape'||k==='Esc'||k==='ScrollLock'||k==='Scroll';switch(e.type){case"keydown":case"keyup":case"keypress":return s;default:return false;}};return i;});
+sap.ui.define(function(){"use strict";var e=function(e){function r(e){var r=e.key;return r==="Shift"||r==="Control"||r==="Alt"||r==="AltGraph"||r==="CapsLock"||r==="NumLock"}function t(e){var r=e.key;return r==="ArrowLeft"||r==="ArrowUp"||r==="ArrowRight"||r==="ArrowDown"}var n=e.key,a=r(e)||t(e)||n==="PageUp"||n==="PageDown"||n==="End"||n==="Home"||n==="PrintScreen"||n==="Insert"||n==="Delete"||n==="F1"||n==="F2"||n==="F3"||n==="F4"||n==="F5"||n==="F6"||n==="F7"||n==="F8"||n==="F9"||n==="F10"||n==="F11"||n==="F12"||n==="Pause"||n==="Backspace"||n==="Tab"||n==="Enter"||n==="Escape"||n==="ScrollLock";switch(e.type){case"keydown":case"keyup":case"keypress":return a;default:return false}};return e});
+//# sourceMappingURL=isSpecialKey.js.map

@@ -1,10 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function () {
+sap.ui.define([
+	"sap/m/library",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib"
+], function(library, Element, Library) {
 	"use strict";
 
 	var WizardRenderer = {
@@ -19,14 +23,16 @@ sap.ui.define([], function () {
 	};
 
 	WizardRenderer.startWizard = function (oRm, oWizard) {
-		var sWizardLabelText = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("WIZARD_LABEL");
+		var sWizardLabelText = Library.getResourceBundleFor("sap.m").getText("WIZARD_LABEL");
 
 		oRm.openStart("div", oWizard)
 			.class("sapMWizard")
+			.class("sapMWizardMode" + oWizard.getRenderMode())
 			.class("sapMWizardBg" + oWizard.getBackgroundDesign())
 			.style("width", oWizard.getWidth())
 			.style("height", oWizard.getHeight())
 			.accessibilityState({
+				role: "region",
 				label: sWizardLabelText
 			})
 			.openEnd();
@@ -41,8 +47,11 @@ sap.ui.define([], function () {
 			.class("sapMWizardStepContainer")
 			.openEnd();
 
-		var aRenderingOrder = this._getStepsRenderingOrder(oWizard);
-		aRenderingOrder.forEach(oRm.renderControl, oRm);
+		// Page rendering mode would be handled manually
+		if (oWizard.getRenderMode() === library.WizardRenderMode.Scroll) {
+			this._getStepsRenderingOrder(oWizard)
+				.forEach(oRm.renderControl, oRm);
+		}
 
 		oRm.close("section");
 	};
@@ -71,7 +80,7 @@ sap.ui.define([], function () {
 
 
 		var fnCheckStepOrder = function (sSubsequentStepId, index, oRefStep) {
-			var oSubsequentStep = sap.ui.getCore().byId(sSubsequentStepId);
+			var oSubsequentStep = Element.getElementById(sSubsequentStepId);
 			if (aSteps.indexOf(oSubsequentStep) < aSteps.indexOf(oRefStep)) {
 				var iSubsequentStep = aSteps.indexOf(oSubsequentStep),
 					temp = aSteps[iSubsequentStep];

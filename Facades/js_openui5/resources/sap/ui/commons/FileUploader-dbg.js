@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,14 +26,13 @@ sap.ui.define([
 	 * @extends sap.ui.unified.FileUploader
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.21.0.
 	 * Please use the control sap.ui.unified.FileUploader of the library sap.ui.unified instead.
 	 * @alias sap.ui.commons.FileUploader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var FileUploader = UnifiedFileUploader.extend("sap.ui.commons.FileUploader", /** @lends sap.ui.commons.FileUploader.prototype */ { metadata : {
 

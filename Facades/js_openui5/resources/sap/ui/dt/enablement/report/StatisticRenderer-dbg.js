@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,32 +10,27 @@ sap.ui.define(function() {
 
 	/**
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @namespace
 	 */
-	var StatisticRenderer = {};
+	var StatisticRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the render output buffer.
-	 * @param {sap.ui.core.Control} oStatistic An object representation of the control that should be rendered.
+	 * @param {sap.ui.dt.enablement.report.Statistic} oStatistic An object representation of the control that should be rendered.
 	 */
 	StatisticRenderer.render = function(rm, oStatistic) {
-		rm.addClass("sapUiDtStatisticReport");
-
-		rm.write("<div");
-		rm.writeControlData(oStatistic);
-
-		rm.writeStyles();
-
-		rm.writeClasses();
-
-		rm.write(">");
+		rm.openStart("div", oStatistic);
+		rm.class("sapUiDtStatisticReport");
+		rm.openEnd();
 
 		rm.renderControl(oStatistic._getForm());
 
-		rm.write("</div>");
+		rm.close("div");
 	};
 
 	return StatisticRenderer;

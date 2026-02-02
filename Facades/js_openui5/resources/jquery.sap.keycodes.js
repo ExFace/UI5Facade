@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['jquery.sap.global','sap/ui/events/KeyCodes'],function(q,K){"use strict";q.sap.KeyCodes=K;return q;});
+sap.ui.define(["jquery.sap.global","sap/ui/events/KeyCodes"],function(jQuery,e){"use strict";jQuery.sap.KeyCodes=e;return jQuery});
+//# sourceMappingURL=jquery.sap.keycodes.js.map

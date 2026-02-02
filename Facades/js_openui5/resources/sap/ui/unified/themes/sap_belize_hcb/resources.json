@@ -3,24 +3,24 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "Calendar.less",
-			"size": 15669,
+			"size": 15957,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "CalendarLegend.less",
-			"size": 3471,
+			"size": 1340,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 5313,
+			"size": 4077,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "Menu.less",
-			"size": 893,
+			"size": 1190,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -61,68 +61,41 @@
 			"theme": "sap_belize_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 5980,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 90786,
-			"designtime": true,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 90412,
-			"designtime": true,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "img-RTL/PickingCursor-HCB.png",
-			"size": 1135,
-			"theme": "sap_belize_hcb"
-		},
-		{
 			"name": "img/PickingCursor-HCB.png",
 			"size": 436,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 125829,
+			"size": 145552,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2343,
+			"module": "sap/ui/unified/themes/sap_belize_hcb/library-parameters.json",
+			"size": 7583,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 125711,
+			"size": 145438,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 33321,
+			"size": 31128,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 576,
+			"size": 1165,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 141664,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 141546,
-			"theme": "sap_belize_hcb"
+			"name": "resources.json",
+			"size": 1796
 		}
 	]
 }

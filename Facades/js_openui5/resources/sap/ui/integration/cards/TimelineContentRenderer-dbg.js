@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
+sap.ui.define(["./BaseListContentRenderer"], function (BaseListContentRenderer) {
 	"use strict";
 
 	/**
@@ -12,25 +12,35 @@ sap.ui.define(["./BaseContentRenderer"], function (BaseContentRenderer) {
 	 * @author SAP SE
 	 * @namespace
 	 */
-	var TimelineContentRenderer = BaseContentRenderer.extend("sap.ui.integration.cards.TimelineContentRenderer");
+	var TimelineContentRenderer = BaseListContentRenderer.extend("sap.ui.integration.cards.TimelineContentRenderer", {
+		apiVersion: 2
+	});
 
 	/**
 	 * @override
 	 */
-	TimelineContentRenderer.getMinHeight = function (oConfiguration, oContent) {
-		if (!oConfiguration) {
+	TimelineContentRenderer.getMinHeight = function (oConfiguration, oContent, oCard) {
+		if (oContent._fMinHeight) {
+			return oContent._fMinHeight + "px";
+		}
+
+		var iMinItems = oCard.getContentMinItems(oConfiguration);
+
+		if (iMinItems == null) {
 			return this.DEFAULT_MIN_HEIGHT;
 		}
 
-		if (!oConfiguration.maxItems) {
-			return this.DEFAULT_MIN_HEIGHT;
+		var iItemHeight = this.getItemMinHeight(oConfiguration, oContent);
+
+		return (iMinItems * iItemHeight) + "rem";
+	};
+
+	TimelineContentRenderer.getItemMinHeight = function (oConfiguration, oContent) {
+		if (!oConfiguration || !oConfiguration.item) {
+			return 0;
 		}
 
-		var bIsCompact = this.isCompact(oContent),
-			iCount = parseInt(oConfiguration.maxItems),
-			iItemHeight = bIsCompact ? 4 : 5; // timeline item height in "rem"
-
-		return (iCount * iItemHeight) + "rem";
+		return oConfiguration.item.ownerImage ? 7 : 5.625;
 	};
 
 	return TimelineContentRenderer;

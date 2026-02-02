@@ -1,1 +1,2 @@
-ace.define("ace/snippets/cobol",["require","exports","module"],function(r,e,m){"use strict";e.snippetText="";e.scope="cobol";});(function(){ace.require(["ace/snippets/cobol"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/cobol"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=cobol.js.map

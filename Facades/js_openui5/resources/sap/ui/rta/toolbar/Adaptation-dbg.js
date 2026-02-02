@@ -1,20 +1,61 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/Log",
+	"sap/m/MessageBox",
+	"sap/m/MessageStrip",
+	"sap/m/Popover",
+	"sap/ui/core/message/MessageType",
+	"sap/ui/core/BusyIndicator",
+	"sap/ui/core/Element",
 	"sap/ui/core/Fragment",
-	"sap/ui/Device",
-	"./Base",
-	"sap/ui/core/MessageType"
-],
-function(
+	"sap/ui/core/Popup",
+	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
+	"sap/ui/fl/initial/api/Version",
+	"sap/ui/fl/write/api/ContextBasedAdaptationsAPI",
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/performance/Measurement",
+	"sap/ui/rta/appVariant/Feature",
+	"sap/ui/rta/toolbar/contextBased/ManageAdaptations",
+	"sap/ui/rta/toolbar/contextBased/SaveAsAdaptation",
+	"sap/ui/rta/toolbar/translation/Translation",
+	"sap/ui/rta/toolbar/versioning/Versioning",
+	"sap/ui/rta/toolbar/AdaptationRenderer",
+	"sap/ui/rta/toolbar/Base",
+	"sap/ui/rta/util/guidedTour/content/GeneralTour",
+	"sap/ui/rta/util/guidedTour/GuidedTour",
+	"sap/ui/rta/util/whatsNew/WhatsNewOverview",
+	"sap/ui/rta/Utils"
+], function(
+	Log,
+	MessageBox,
+	MessageStrip,
+	Popover,
+	MessageType,
+	BusyIndicator,
+	Element,
 	Fragment,
-	Device,
+	Popup,
+	FlexRuntimeInfoAPI,
+	Version,
+	ContextBasedAdaptationsAPI,
+	JSONModel,
+	Measurement,
+	AppVariantFeature,
+	ManageAdaptations,
+	SaveAsAdaptation,
+	Translation,
+	Versioning,
+	AdaptationRenderer,
 	Base,
-	MessageType
+	GeneralTour,
+	GuidedTour,
+	WhatsNewOverview,
+	Utils
 ) {
 	"use strict";
 
@@ -26,18 +67,18 @@ function(
 	 * @extends sap.ui.rta.toolbar.Base
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.48
 	 * @alias sap.ui.rta.toolbar.Adaptation
-	 * @experimental Since 1.48. This class is experimental. API might be changed in future.
 	 */
 	var Adaptation = Base.extend("sap.ui.rta.toolbar.Adaptation", {
-		renderer: "sap.ui.rta.toolbar.AdaptationRenderer",
+		renderer: AdaptationRenderer,
 		animation: true,
 		metadata: {
+			library: "sap.ui.rta",
 			events: {
 				/**
 				 * Events are fired when the Toolbar Buttons are pressed
@@ -45,57 +86,145 @@ function(
 				undo: {},
 				redo: {},
 				exit: {},
+				save: {},
 				restore: {},
-				transport: {},
+				publishVersion: {},
 				modeChange: {},
-				manageApps: {},
-				appVariantOverview: {},
-				saveAs: {},
-				activateDraft: {},
+				activate: {},
 				discardDraft: {},
-				switchVersion: {}
-			},
-			properties: {
-				/** Defines value of the switcher SegmentedButton */
-				modeSwitcher: {
-					type: "string",
-					defaultValue: "adaptation"
-				}
+				switchVersion: {},
+				switchAdaptation: {},
+				deleteAdaptation: {},
+				openChangeCategorySelectionPopover: {},
+				saveAndReload: {}
 			}
 		}
 	});
 
-	Adaptation.modes = {
-		MOBILE: "sapUiRtaToolbarMobile",
-		TABLET: "sapUiRtaToolbarTablet",
-		DESKTOP: "sapUiRtaToolbarDesktop"
+	Adaptation.LEFT_SECTION = "toolbarIconAndDraftSection";
+	Adaptation.MIDDLE_SECTION = "toolbarSwitcherSection";
+	Adaptation.RIGHT_SECTION = "toolbarActionsSection";
+
+	// Size of three icons + spacing in pixels
+	var SWITCHER_ICON_WIDTH = 124;
+
+	Adaptation.prototype.init = function(...aArgs) {
+		this._mSizeLimits = {
+			switchToIcons: undefined
+		};
+		Base.prototype.init.apply(this, aArgs);
+		this._pFragmentLoaded = this._pFragmentLoaded.then(function() {
+			this._onResize = this._onResize.bind(this);
+			window.addEventListener("resize", this._onResize);
+			this._aIntersectionObservers = [];
+		}.bind(this));
 	};
 
-	var DEVICE_SET = "sapUiRtaToolbar";
-
-	var DRAFT_ACCENT_COLOR = "sapUiRtaDraftVersionAccent";
-	var ACTIVE_ACCENT_COLOR = "sapUiRtaActiveVersionAccent";
-
-	Adaptation.prototype.init = function() {
-		Device.media.attachHandler(this._onSizeChanged, this, DEVICE_SET);
-		Base.prototype.init.apply(this, arguments);
+	Adaptation.prototype._calculateWindowWidth = function(aEntries) {
+		var iSectionWidth = aEntries[0].intersectionRect.width;
+		return (iSectionWidth * 2) + this._iSwitcherToolbarWidth + 80/* toolbar padding */;
 	};
 
-	Adaptation.prototype.onBeforeRendering = function () {
-		if (!Device.media.hasRangeSet(DEVICE_SET)) {
-			Device.media.initRangeSet(DEVICE_SET, [900, 1200], "px", [Adaptation.modes.MOBILE, Adaptation.modes.TABLET, Adaptation.modes.DESKTOP]);
+	Adaptation.prototype.exit = function(...aArgs) {
+		window.removeEventListener("resize", this._onResize);
+		this._aIntersectionObservers.forEach(function(oInstersectionObserver) {
+			oInstersectionObserver.disconnect();
+		});
+		Base.prototype.exit.apply(this, aArgs);
+	};
+
+	Adaptation.prototype._restoreHiddenElements = function() {
+		delete this._iOnResizeAnimationFrame;
+		// Restore texts when window gets wide enough again
+		if (window.innerWidth > this._mSizeLimits.switchToIcons) {
+			this._switchToTexts();
+			delete this._mSizeLimits.switchToIcons;
 		}
-		this._onSizeChanged(Device.media.getCurrentRange(DEVICE_SET));
-
-		Base.prototype.onBeforeRendering.apply(this, arguments);
 	};
 
-	Adaptation.prototype.exit = function() {
-		Device.media.detachHandler(this._onSizeChanged, this, DEVICE_SET);
-		Base.prototype.exit.apply(this, arguments);
+	Adaptation.prototype._onResize = function() {
+		if (this._iOnResizeAnimationFrame) {
+			window.cancelAnimationFrame(this._iOnResizeAnimationFrame);
+		}
+		this._iOnResizeAnimationFrame = window.requestAnimationFrame(this._restoreHiddenElements.bind(this));
 	};
 
-	function _setButtonProperties(sButtonName, sIcon, sTextKey, sToolTipKey) {
+	Adaptation.prototype.initialAdjustToolbarSectionWidths = function() {
+		var nModeSwitcherWidth = this.getControl("modeSwitcher").getDomRef().getBoundingClientRect().width;
+		// Size of switcher with texts depends on language; needs to be calculated on start
+		this._iSwitcherToolbarWidthWithTexts = nModeSwitcherWidth + 16;
+		this._iSwitcherToolbarWidth = this._iSwitcherToolbarWidthWithTexts;
+		this.adjustToolbarSectionWidths();
+	};
+
+	Adaptation.prototype.adjustToolbarSectionWidths = function() {
+		// The middle section (switcher) is used as base for the other calculations
+		this.getControl(Adaptation.MIDDLE_SECTION).setWidth(`${this._iSwitcherToolbarWidth}px`);
+		[Adaptation.LEFT_SECTION, Adaptation.RIGHT_SECTION].forEach(function(sSectionName) {
+			this.getControl(sSectionName).getDomRef().style.setProperty(
+				"width",
+				`calc(50% - ${Math.ceil(this._iSwitcherToolbarWidth / 2)}px)`,
+				"important"
+			);
+		}.bind(this));
+	};
+
+	// The intersection observers check if the sections are being overlapped (visibility < 100%)
+	// to adjust the toolbar appearance, like changing the mode switcher buttons to icons-only
+	Adaptation.prototype._observeIntersections = function() {
+		this._aIntersectionObservers.forEach(function(oInstersectionObserver) {
+			oInstersectionObserver.disconnect();
+		});
+		[Adaptation.LEFT_SECTION, Adaptation.RIGHT_SECTION].forEach(function(sSectionName) {
+			var oIntersectionObserver = this._createIntersectionObserver(sSectionName);
+			this._observeToolbarIntersection(sSectionName, oIntersectionObserver);
+			this._aIntersectionObservers.push(oIntersectionObserver);
+		}.bind(this));
+	};
+
+	// Parameter sSectionName is used by the Fiori toolbar method
+	Adaptation.prototype._hideElementsOnIntersection = function(sSectionName, aEntries) {
+		if (aEntries[0].intersectionRatio === 0) {
+			this.adjustToolbarSectionWidths();
+			this._observeIntersections();
+			return;
+		}
+
+		// Section is no longer fully visible
+		if (aEntries[0].intersectionRatio < 1) {
+			if (!this._mSizeLimits.switchToIcons) {
+				this._mSizeLimits.switchToIcons = this._calculateWindowWidth(aEntries);
+				this._switchToIcons();
+			}
+		}
+	};
+
+	Adaptation.prototype._createIntersectionObserver = function(sSectionName) {
+		return new IntersectionObserver(
+			this._hideElementsOnIntersection.bind(this, sSectionName),
+			{
+				threshold: 1,
+				root: this.getControl(sSectionName).getDomRef()
+			}
+		);
+	};
+
+	Adaptation.prototype._observeToolbarIntersection = function(sSectionName, oInstersectionObserver) {
+		var oHBox = this.getControl(sSectionName);
+		oHBox.getItems().map(function(oItem) {
+			var oItemDomRef = oItem.getDomRef();
+			oInstersectionObserver.observe(oItemDomRef);
+		});
+	};
+
+	Adaptation.prototype.show = function() {
+		return Base.prototype.show.call(this, this.initialAdjustToolbarSectionWidths.bind(this))
+		.then(function() {
+			this._observeIntersections();
+		}.bind(this));
+	};
+
+	function setButtonProperties(sButtonName, sIcon, sTextKey, sToolTipKey) {
 		var oButton = this.getControl(sButtonName);
 		var sText = sTextKey ? this.getTextResources().getText(sTextKey) : "";
 		var sToolTip = sToolTipKey ? this.getTextResources().getText(sToolTipKey) : "";
@@ -104,268 +233,345 @@ function(
 		oButton.setIcon(sIcon || "");
 	}
 
-	Adaptation.prototype.formatVersionButtonText = function (bDraftAvailable, aVersions) {
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-		var sText = "";
-		var sType = "Active";
-
-		if (aVersions.length > 0) {
-			sType = aVersions[0].type;
-			if (bDraftAvailable) {
-				sText = oTextResources.getText("TIT_DRAFT");
-			} else {
-				sText = aVersions[0].title || oTextResources.getText("TIT_VERSION_1");
-			}
-		} else {
-			sText = oTextResources.getText("TIT_ORIGINAL_APP");
-		}
-
-		this.setVersionButtonAccentColor(sType);
-		return sText;
+	Adaptation.prototype.formatPublishVersionVisibility = function(bPublishVisible, bVersioningEnabled, sDisplayedVersion, sModeSwitcher) {
+		return this.getExtension("versioning", Versioning).formatPublishVersionVisibility(bPublishVisible, bVersioningEnabled, sDisplayedVersion, sModeSwitcher);
 	};
 
-	Adaptation.prototype.formatVersionTableVisibility = function (nVersionsLength) {
-		return nVersionsLength > 0;
+	Adaptation.prototype.formatDiscardDraftVisible = function(sDisplayedVersion, bVersioningEnabled, sModeSwitcher) {
+		return this.getExtension("versioning", Versioning).formatDiscardDraftVisible(sDisplayedVersion, bVersioningEnabled, sModeSwitcher);
 	};
 
-	Adaptation.prototype.formatVersionTitle = function (sTitle, sType) {
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-
-		if (sType === "draft") {
-			return oTextResources.getText("TIT_DRAFT");
-		}
-
-		return sTitle || oTextResources.getText("TIT_VERSION_1");
+	Adaptation.prototype.formatVersionButtonText = function(aVersions, sDisplayedVersion) {
+		return this.getExtension("versioning", Versioning).formatVersionButtonText(aVersions, sDisplayedVersion);
 	};
 
-	Adaptation.prototype.formatHighlight = function (sType) {
-		switch (sType) {
-			case "draft":
-				return MessageType.Warning;
-			case "active":
-				return MessageType.Success;
-			default:
-				return MessageType.None;
-		}
+	Adaptation.prototype.showVersionHistory = function(oEvent) {
+		return this.getExtension("versioning", Versioning).showVersionHistory(oEvent);
 	};
 
-	Adaptation.prototype.formatHighlightText = function (sType) {
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-		switch (sType) {
-			case "draft":
-				return oTextResources.getText("TIT_DRAFT");
-			case "active":
-				return oTextResources.getText("LBL_ACTIVE");
-			default:
-				return oTextResources.getText("LBL_INACTIVE");
-		}
+	Adaptation.prototype._openVersionTitleDialog = function(sDisplayedVersion) {
+		return this.getExtension("versioning", Versioning).openActivateVersionDialog(sDisplayedVersion);
 	};
 
-	function doesActiveVersionExists (aVersions) {
-		return aVersions.some(function (oVersion) {
-			return oVersion.type === "active";
+	Adaptation.prototype.showHardReloadInfoPopover = function(oEvent) {
+		this._oHardReloadInfoPopover ||= new Popover({
+			placement: "Bottom",
+			content: [
+				new MessageStrip({
+					text: this.getTextResources().getText("MSG_HARD_RELOAD_INFO"),
+					type: MessageType.Warning,
+					showIcon: true
+				})
+			],
+			showHeader: false,
+			contentWidth: "18rem"
 		});
-	}
-
-	Adaptation.prototype.formatOriginalAppHighlight = function (aVersions) {
-		return doesActiveVersionExists(aVersions) ? MessageType.None : MessageType.Success;
+		this.addDependent(this._oHardReloadInfoPopover);
+		this._oHardReloadInfoPopover.openBy(oEvent.getSource());
 	};
 
-	Adaptation.prototype.formatVersionListItemType = function (bSwitchVersionsActive) {
-		return bSwitchVersionsActive ? "Active" : "Inactive";
-	};
-
-	Adaptation.prototype.formatOriginalAppHighlightText = function (aVersions) {
-		var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-		return doesActiveVersionExists(aVersions) ? oTextResources.getText("LBL_INACTIVE") : oTextResources.getText("LBL_ACTIVE");
-	};
-
-	Adaptation.prototype.versionSelected = function (oEvent) {
-		var oVersionsBindingContext = oEvent.getSource().getBindingContext("versions");
-		var nVersionNumber = sap.ui.fl.Versions.Original;
-
-		if (oVersionsBindingContext) {
-			// the original Version does not have a version binding Context
-			nVersionNumber = oVersionsBindingContext.getProperty("versionNumber");
-		}
-
-		this.fireEvent("switchVersion", {versionNumber: nVersionNumber});
-	};
-
-	Adaptation.prototype.showVersionHistory = function (oEvent) {
-		var oVersionButton = oEvent.getSource();
-
-		if (!this.oVersionDialogPromise) {
-			this.oVersionDialogPromise = Fragment.load({
-				name: "sap.ui.rta.toolbar.VersionHistory",
-				id: this.getId() + "_versionHistoryDialog",
+	Adaptation.prototype.showActionsMenu = function(oEvent) {
+		var oButton = oEvent.getSource();
+		if (!this._oActionsMenuFragment) {
+			return Fragment.load({
+				id: `${this.getId()}_actionsMenu_fragment`,
+				name: "sap.ui.rta.toolbar.ActionsMenu",
 				controller: {
-					formatVersionTitle: this.formatVersionTitle.bind(this),
-					formatVersionTableVisibility: this.formatVersionTableVisibility.bind(this),
-					formatHighlight: this.formatHighlight.bind(this),
-					formatHighlightText: this.formatHighlightText.bind(this),
-					formatOriginalAppHighlight: this.formatOriginalAppHighlight.bind(this),
-					formatOriginalAppHighlightText: this.formatOriginalAppHighlightText.bind(this),
-					formatVersionListItemType: this.formatVersionListItemType.bind(this),
-					versionSelected: this.versionSelected.bind(this)
+					openDownloadTranslationDialog: onOpenDownloadTranslationDialog.bind(this),
+					openUploadTranslationDialog: onOpenUploadTranslationDialog.bind(this),
+					manageApps: onManageAppsPressed.bind(this),
+					overviewForKeyUser: onOverviewForKeyUserPressed.bind(this),
+					overviewForDeveloper: onOverviewForDeveloperPressed.bind(this),
+					restore: this.eventHandler.bind(this, "Restore"),
+					formatSaveAsEnabled,
+					saveAs: onSaveAsPressed.bind(this),
+					openWhatsNewOverviewDialog,
+					openGuidedTour
 				}
-			}).then(function (oVersionsDialog) {
-				oVersionButton.addDependent(oVersionsDialog);
-				return oVersionsDialog;
-			});
+			}).then(function(oMenu) {
+				oMenu.addStyleClass(Utils.getRtaStyleClassName());
+				this.addDependent(oMenu);
+				oMenu.openBy(oButton, true, Popup.Dock.CenterTop, Popup.Dock.CenterBottom);
+				this._oActionsMenuFragment = oMenu;
+			}.bind(this));
 		}
-
-		return this.oVersionDialogPromise.then(function (oVersionsDialog) {
-			if (!oVersionsDialog.isOpen()) {
-				oVersionsDialog.openBy(oVersionButton);
-			} else {
-				oVersionsDialog.close();
-			}
-		});
+		this._oActionsMenuFragment.openBy(oButton, true, Popup.Dock.CenterTop, Popup.Dock.CenterBottom);
+		return Promise.resolve();
 	};
 
 	Adaptation.prototype._showButtonIcon = function(sButtonName, sIcon, sToolTipKey) {
-		_setButtonProperties.call(this, sButtonName, sIcon, "", sToolTipKey);
+		setButtonProperties.call(this, sButtonName, sIcon, "", sToolTipKey);
 	};
 
 	Adaptation.prototype._showButtonText = function(sButtonName, sTextKey) {
-		_setButtonProperties.call(this, sButtonName, "", sTextKey, "");
+		setButtonProperties.call(this, sButtonName, "", sTextKey, "");
 	};
 
 	Adaptation.prototype._switchToIcons = function() {
-		this.getControl("iconBox").setVisible(false);
-		this.getControl("iconSpacer").setVisible(false);
 		this._showButtonIcon("adaptationSwitcherButton", "sap-icon://wrench", "BTN_ADAPTATION");
 		this._showButtonIcon("navigationSwitcherButton", "sap-icon://explorer", "BTN_NAVIGATION");
-		this._showButtonIcon("exit", "sap-icon://decline", "BTN_EXIT");
+		this._showButtonIcon("visualizationSwitcherButton", "sap-icon://show", "BTN_VISUALIZATION");
+
+		this._iSwitcherToolbarWidth = SWITCHER_ICON_WIDTH;
+		this.adjustToolbarSectionWidths();
 	};
 
-	Adaptation.prototype._switchToTexts = function () {
-		this.getControl("iconBox").setVisible(true);
-		this.getControl("iconSpacer").setVisible(true);
+	Adaptation.prototype._switchToTexts = function() {
 		this._showButtonText("adaptationSwitcherButton", "BTN_ADAPTATION");
 		this._showButtonText("navigationSwitcherButton", "BTN_NAVIGATION");
-		this._showButtonText("exit", "BTN_EXIT");
-	};
+		this._showButtonText("visualizationSwitcherButton", "BTN_VISUALIZATION");
 
-	Adaptation.prototype._onSizeChanged = function(mParams) {
-		var sMode = mParams.name;
-		this.sMode = sMode;
-
-		switch (sMode) {
-			case Adaptation.modes.MOBILE:
-				this._switchToIcons();
-				break;
-			case Adaptation.modes.TABLET:
-				this._switchToTexts();
-				break;
-			case Adaptation.modes.DESKTOP:
-				this._switchToTexts();
-				break;
-			default:
-			// no default
-		}
+		this._iSwitcherToolbarWidth = this._iSwitcherToolbarWidthWithTexts;
+		this.adjustToolbarSectionWidths();
 	};
 
 	/**
-	 * format of the controls that get added here:
-	 * 	HBox (this)
-	 * 		HBox
-	 * 			place for Icon in Fiori Toolbar
-	 * 		HBox
-	 * 			OverflowToolbar
-	 * 				Segmented Button, Buttons for Undo, Redo, manageApps, appVariantOverview, restore, publish, saveAs
-	 * 			Save & Exit Button
+	 * Loads and creates the Fragment of the Toolbar
 	 *
-	 * @returns {sap.ui.core.Control[]} Returns the controls in a structure described above.
+	 * @returns {Promise<sap.ui.core.Control[]>} Returns the controls in a structure described above.
 	 */
-	Adaptation.prototype.buildControls = function () {
+	Adaptation.prototype.buildControls = function() {
 		return Fragment.load({
 			name: "sap.ui.rta.toolbar.Adaptation",
-			id: this.getId() + "_fragment",
+			id: `${this.getId()}_fragment`,
 			controller: {
-				activateDraft: this._openVersionTitleDialog.bind(this),
+				activate: this._openVersionTitleDialog.bind(this),
 				discardDraft: this.eventHandler.bind(this, "DiscardDraft"),
+				formatDiscardDraftVisible: this.formatDiscardDraftVisible.bind(this),
+				formatPublishVersionVisibility: this.formatPublishVersionVisibility.bind(this),
 				modeChange: this.eventHandler.bind(this, "ModeChange"),
 				undo: this.eventHandler.bind(this, "Undo"),
 				redo: this.eventHandler.bind(this, "Redo"),
-				manageApps: this.eventHandler.bind(this, "ManageApps"),
-				appVariantOverview: this.eventHandler.bind(this, "AppVariantOverview"),
-				restore: this.eventHandler.bind(this, "Restore"),
-				publish: this.eventHandler.bind(this, "Transport"),
-				saveAs: this.eventHandler.bind(this, "SaveAs"),
+				openChangeCategorySelectionPopover: this.eventHandler.bind(this, "OpenChangeCategorySelectionPopover"),
+				saveAsAdaptation: onSaveAsAdaptation.bind(this),
+				editAdaptation: onEditAdaptation.bind(this),
+				deleteAdaptation: onDeleteAdaptation.bind(this),
+				manageAdaptations: onManageAdaptations.bind(this),
+				switchAdaptation: onSwitchAdaptations.bind(this),
+				formatAdaptationsMenuText: formatAdaptationsMenuText.bind(this),
+				publishVersion: this.eventHandler.bind(this, "PublishVersion"),
+				save: this.eventHandler.bind(this, "Save"),
 				exit: this.eventHandler.bind(this, "Exit"),
 				formatVersionButtonText: this.formatVersionButtonText.bind(this),
-				showVersionHistory: this.showVersionHistory.bind(this)
+				showVersionHistory: this.showVersionHistory.bind(this),
+				showActionsMenu: this.showActionsMenu.bind(this),
+				showFeedbackForm: this.showFeedbackForm.bind(this),
+				showHardReloadInfoPopover: this.showHardReloadInfoPopover.bind(this),
+				saveAndReloadApp: this.eventHandler.bind(this, "SaveAndReload")
 			}
-		}).then(function (aControls) {
-			this.getControl("modeSwitcher").setSelectedKey(this.getModeSwitcher());
-			return aControls;
-		}.bind(this));
+		});
 	};
 
-	function _resetDialog() {
-		this.getControl("versionTitleInput").setValue("");
-		this.getControl("confirmVersionTitleButton").setEnabled(false);
-		return Promise.resolve(this._oDialog);
+	function onOpenDownloadTranslationDialog() {
+		var mPropertyBag = {
+			layer: this.getRtaInformation().flexSettings.layer,
+			selector: this.getRtaInformation().rootControl
+		};
+		this.getExtension("translation", Translation).openDownloadTranslationDialog(mPropertyBag);
 	}
 
-	function _createDialog() {
-		return Fragment.load({
-			name: "sap.ui.rta.toolbar.VersionTitleDialog",
-			id: this.getId() + "_fragment",
-			controller: {
-				onConfirmVersioningDialog: function () {
-					var sVersionTitle = this.getControl("versionTitleInput").getValue();
-					this.fireEvent("activateDraft", {versionTitle: sVersionTitle});
-					this._oDialog.close();
-				}.bind(this),
-				onCancelVersioningDialog: function () {
-					this._oDialog.close();
-				}.bind(this),
-				onVersionTitleLiveChange: function (oEvent) {
-					var sValue = oEvent.getParameter("value");
-					this.getControl("confirmVersionTitleButton").setEnabled(!!sValue);
-				}.bind(this)
+	function onOpenUploadTranslationDialog() {
+		this.getExtension("translation", Translation).openUploadTranslationDialog();
+	}
+
+	function formatSaveAsEnabled(bGeneralSaveAsEnabled, sDisplayedVersion) {
+		return bGeneralSaveAsEnabled && sDisplayedVersion !== Version.Number.Draft;
+	}
+
+	function onSaveAsPressed() {
+		AppVariantFeature.onSaveAs(true, true, this.getRtaInformation().flexSettings.layer, null);
+	}
+
+	function confirmMigration(oRtaInformation) {
+		var bDirty = oRtaInformation.commandStack.canSave();
+
+		return Utils.showMessageBox("confirm", (bDirty) ? "DAC_DIALOG_MIGRATION_DIRTY_DESCRIPTION" : "DAC_DIALOG_MIGRATION_DESCRIPTION", {
+			titleKey: "DAC_DIALOG_MIGRATION_HEADER",
+			actionKeys: ["DAC_DIALOG_MIGRATION_HEADER"],
+			showCancel: true
+		})
+		.then(function(sAction) {
+			if (sAction !== MessageBox.Action.CANCEL) {
+				if (bDirty) {
+					return new Promise(function(resolve) {
+						this.fireEvent("save", {callback: resolve});
+					}.bind(this))
+					.then(function() {
+						return performMigration.call(this, oRtaInformation);
+					}.bind(this));
+				}
+				return performMigration.call(this, oRtaInformation);
 			}
-		}).then(function (oDialog) {
-			this._oDialog = oDialog;
-			this.addDependent(this._oDialog);
 		}.bind(this));
+	}
+
+	function performMigration(oRtaInformation) {
+		BusyIndicator.show();
+		Measurement.start("onCBAMigration", "Measurement of migration to context-based adaptation");
+		return ContextBasedAdaptationsAPI.migrate({
+			control: oRtaInformation.rootControl,
+			layer: oRtaInformation.flexSettings.layer
+		})
+		.finally(function() {
+			Measurement.end("onCBAMigration");
+			Measurement.getActive() && Log.info(`onCBAMigration: ${Measurement.getMeasurement("onCBAMigration").time} ms`);
+			BusyIndicator.hide();
+		})
+		.then(Utils.showMessageBox.bind(undefined, "information", "DAC_DIALOG_MIGRATION_SUCCESSFULL_DESCRIPTION", {
+			titleKey: "DAC_DIALOG_MIGRATION_HEADER"
+		}))
+		.then(function() {
+			return new Promise(function(resolve) {
+				this.fireEvent("switchAdaptation", {adaptationId: "DEFAULT", callback: resolve});
+			}.bind(this));
+		}.bind(this))
+		.catch(function(oError) {
+			Log.error(oError.stack || oError);
+			var sMessage = "DAC_DIALOG_MIGRATION_ERROR_DESCRIPTION";
+			var oOptions = {
+				titleKey: "DAC_DIALOG_MIGRATION_HEADER",
+				details: oError.userMessage || oError
+			};
+			Utils.showMessageBox("error", sMessage, oOptions);
+		});
+	}
+
+	function onSaveAsAdaptation() {
+		var oRtaInformation = this.getRtaInformation();
+		Utils.checkDraftOverwrite(this.getModel("versions")).then(function() {
+			Measurement.start("onCBACanMigrate", "Measurement if its possible to migrate to context-based adaptation");
+			return ContextBasedAdaptationsAPI.canMigrate({ control: oRtaInformation.rootControl, layer: oRtaInformation.flexSettings.layer });
+		}).then(function(bCanMigrate) {
+			Measurement.end("onCBACanMigrate");
+			Measurement.getActive() && Log.info(`onCBACanMigrate: ${Measurement.getMeasurement("onCBACanMigrate").time} ms`);
+			if (bCanMigrate) {
+				confirmMigration.call(this, oRtaInformation);
+			} else {
+				this.getExtension("contextBasedSaveAs", SaveAsAdaptation).openAddAdaptationDialog(oRtaInformation.flexSettings.layer);
+			}
+		}.bind(this))
+		.catch(handleError);
+	}
+
+	function onEditAdaptation() {
+		Utils.checkDraftOverwrite(this.getModel("versions"))
+		.then(function() {
+			this.getExtension("contextBasedSaveAs", SaveAsAdaptation).openAddAdaptationDialog(this.getRtaInformation().flexSettings.layer, true /* bIsEditMode */);
+		}.bind(this))
+		.catch(handleError);
+	}
+
+	function handleError(oError) {
+		if (oError !== "cancel") {
+			Utils.showMessageBox("error", "MSG_LREP_TRANSFER_ERROR", {error: oError});
+			Log.error(`sap.ui.rta: ${oError.stack || oError.message || oError}`);
+		}
+	}
+
+	function onDeleteAdaptation() {
+		Utils.checkDraftOverwrite(this.getModel("versions"))
+		.then(function() {
+			this.fireEvent("deleteAdaptation");
+		}.bind(this))
+		.catch(handleError);
+	}
+
+	function onManageAdaptations() {
+		this.getExtension("contextBasedManage", ManageAdaptations).openManageAdaptationDialog();
+	}
+
+	function onSwitchAdaptations(sAdaptationId) {
+		this.fireEvent("switchAdaptation", {adaptationId: sAdaptationId});
+	}
+
+	function formatAdaptationsMenuText(iCount, sTitle) {
+		if (iCount > 0) {
+			if (sTitle === "") {
+				return this.getTextResources().getText("TXT_DEFAULT_APP");
+			}
+			return this.getTextResources().getText("BTN_ADAPTING_FOR", [sTitle]);
+		}
+		return this.getTextResources().getText("BTN_ADAPTING_FOR_ALL_USERS");
+	}
+
+	function onOverviewForKeyUserPressed() {
+		return AppVariantFeature.onGetOverview(true, this.getRtaInformation().flexSettings.layer);
+	}
+
+	function onOverviewForDeveloperPressed() {
+		return AppVariantFeature.onGetOverview(false, this.getRtaInformation().flexSettings.layer);
+	}
+
+	function onManageAppsPressed() {
+		AppVariantFeature.onGetOverview(true, this.getRtaInformation().flexSettings.layer);
+	}
+
+	function openWhatsNewOverviewDialog() {
+		WhatsNewOverview.openWhatsNewOverviewDialog();
+	}
+
+	function openGuidedTour() {
+		new GuidedTour().start(GeneralTour.getTourContent());
 	}
 
 	Adaptation.prototype.getControl = function(sName) {
-		return sap.ui.getCore().byId(this.getId() + "_fragment--sapUiRta_" + sName);
-	};
-
-	Adaptation.prototype._openVersionTitleDialog = function () {
-		var oDialogPromise;
-
-		if (this._oDialog) {
-			oDialogPromise = _resetDialog.call(this);
-		} else {
-			oDialogPromise = _createDialog.call(this);
+		var oControl = Element.getElementById(`${this.getId()}_fragment--sapUiRta_${sName}`);
+		// Control is inside the ActionsMenu
+		if (!oControl && this._oActionsMenuFragment) {
+			oControl = Element.getElementById(this._oActionsMenuFragment.getId().replace("sapUiRta_actions", "sapUiRta_") + sName);
 		}
-
-		return oDialogPromise.then(function () {
-			return this._oDialog.open();
-		}.bind(this));
+		return oControl;
 	};
 
-	Adaptation.prototype.setVersionButtonAccentColor = function (sType) {
-		var oVersionButton = this.getControl("versionButton");
-		if (sType === "draft") {
-			oVersionButton.addStyleClass(DRAFT_ACCENT_COLOR);
-			oVersionButton.removeStyleClass(ACTIVE_ACCENT_COLOR);
-		} else {
-			oVersionButton.addStyleClass(ACTIVE_ACCENT_COLOR);
-			oVersionButton.removeStyleClass(DRAFT_ACCENT_COLOR);
+	/**
+	 * @inheritDoc
+	 */
+	Adaptation.prototype.hide = function(...aArgs) {
+		this._aIntersectionObservers.forEach(function(oInstersectionObserver) {
+			oInstersectionObserver.disconnect();
+		});
+		return Base.prototype.hide.apply(this, aArgs);
+	};
+
+	Adaptation.prototype.showFeedbackForm = async function() {
+		// Set URL
+		const sURLPart1 = "https://sapinsights.eu.qualtrics.com/jfe/form/";
+		const sURLPart2 = "SV_4MANxRymEIl9K06";
+		const sURL = sURLPart1 + sURLPart2;
+		const oUrlParams = new URLSearchParams();
+		const mPropertyBag = {
+			rootControl: this.getRtaInformation().rootControl
+		};
+		const oFeedbackUrlParams = await FlexRuntimeInfoAPI.getFeedbackInformation(mPropertyBag);
+		oUrlParams.set("version", oFeedbackUrlParams.version);
+		oUrlParams.set("feature", (oFeedbackUrlParams.connector === "KeyUserConnector" ? "BTP" : "ABAP"));
+		oUrlParams.set("appId", oFeedbackUrlParams.appId);
+		oUrlParams.set("appVersion", oFeedbackUrlParams.appVersion);
+
+		var oFeedbackDialogModel = new JSONModel({
+			url: `${sURL}?${oUrlParams.toString()}`
+		});
+
+		return Fragment.load({
+			name: "sap.ui.rta.toolbar.FeedbackDialog",
+			controller: this
+		}).then(function(oFeedbackDialog) {
+			this._oFeedbackDialog = oFeedbackDialog;
+			this._oFeedbackDialog.addStyleClass(Utils.getRtaStyleClassName());
+			this._oFeedbackDialog.setModel(oFeedbackDialogModel, "feedbackModel");
+			this._oFeedbackDialog.setModel(this.getModel("i18n"), "i18n");
+			this._oFeedbackDialog.open();
+		}.bind(this)).catch(function(oError) {
+			Log.error("Error loading fragment sap.ui.rta.toolbar.FeedbackDialog: ", oError);
+		});
+	};
+
+	Adaptation.prototype.closeFeedbackForm = function() {
+		if (this._oFeedbackDialog) {
+			this._oFeedbackDialog.close();
+			this._oFeedbackDialog.destroy();
 		}
 	};
-
-	/* Methods propagation */
-	Adaptation.prototype.show = function () { return Base.prototype.show.apply(this, arguments); };
-	Adaptation.prototype.hide = function () { return Base.prototype.hide.apply(this, arguments); };
 
 	return Adaptation;
-}, true);
+});

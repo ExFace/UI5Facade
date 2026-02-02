@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcb"
 		},
 		{
@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 263,
+			"size": 380,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -32,75 +32,47 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 300,
-			"designtime": true,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "SimpleForm.less",
-			"size": 268,
+			"size": 418,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "Splitter.less",
-			"size": 1036,
-			"designtime": true,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 5534,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 87795,
-			"designtime": true,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 87421,
+			"size": 895,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 162103,
+			"size": 156247,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2420,
+			"module": "sap/ui/layout/themes/sap_belize_hcb/library-parameters.json",
+			"size": 3026,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 161648,
+			"size": 155778,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 3714,
+			"size": 4069,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 541,
+			"size": 1103,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 161960,
-			"theme": "sap_belize_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 161505,
-			"theme": "sap_belize_hcb"
+			"name": "resources.json",
+			"size": 1391
 		}
 	]
 }

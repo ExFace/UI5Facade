@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 650,
+			"size": 738,
 			"theme": "sap_belize"
 		},
 		{
@@ -128,7 +128,7 @@
 		},
 		{
 			"name": "Label.less",
-			"size": 4018,
+			"size": 2240,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -206,7 +206,7 @@
 		},
 		{
 			"name": "RadioButton.less",
-			"size": 2815,
+			"size": 2622,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -266,7 +266,7 @@
 		},
 		{
 			"name": "TabStrip.less",
-			"size": 3799,
+			"size": 2984,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -319,65 +319,8 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 3003,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 86251,
-			"designtime": true,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 85885,
-			"designtime": true,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img-RTL/TriStateCheckBox.png",
 			"size": 439,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/applicationheader/Header_bg.png",
-			"size": 100,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/applicationheader/SAPLogo.png",
-			"size": 1176,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_down.png",
-			"size": 99,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_down_hover.png",
-			"size": 96,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_left.png",
-			"size": 889,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_left_hover.png",
-			"size": 889,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_right.png",
-			"size": 889,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/arrow_right_hover.png",
-			"size": 889,
 			"theme": "sap_belize"
 		},
 		{
@@ -386,73 +329,8 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "img-RTL/arrow_up_hover.png",
-			"size": 94,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/button/EmphButton_accept_BG.png",
-			"size": 113,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/button/EmphButton_regular_BG.png",
-			"size": 144,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/button/EmphButton_reject_BG.png",
-			"size": 109,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img-RTL/checkbox.png",
 			"size": 2057,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/combobox/ComboBoxArrow_dsbl.png",
-			"size": 99,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/combobox/ComboBoxArrow_hover.png",
-			"size": 96,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/combobox/ComboBoxArrow_regular.png",
-			"size": 99,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/datepicker/Calendar_dsbl.png",
-			"size": 131,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/datepicker/Calendar_hover.png",
-			"size": 120,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/datepicker/Calendar_regular.png",
-			"size": 123,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/dlg-close-act.png",
-			"size": 925,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/dlg-close-hov.png",
-			"size": 125,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/dlg-close.png",
-			"size": 145,
 			"theme": "sap_belize"
 		},
 		{
@@ -461,303 +339,13 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "img-RTL/menu/menuitem-sub-dis.png",
-			"size": 110,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/menu/menuitem-sub-hov.png",
-			"size": 105,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/menu/menuitem-sub.png",
-			"size": 110,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/menubutton/Menu_Disabled.png",
-			"size": 90,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/menubutton/Menu_Hover.png",
-			"size": 84,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/menubutton/Menu_Regular.png",
-			"size": 90,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Error.gif",
-			"size": 847,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Success.gif",
-			"size": 847,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_Warning.gif",
-			"size": 847,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebar/toastarrow_multi.gif",
-			"size": 847,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebox/32x32/error.png",
-			"size": 271,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebox/32x32/information.png",
-			"size": 316,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebox/32x32/question.png",
-			"size": 779,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebox/32x32/success.png",
-			"size": 1124,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/messagebox/32x32/warning.png",
-			"size": 443,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img-RTL/paginator/paginator.png",
 			"size": 948,
 			"theme": "sap_belize"
 		},
 		{
-			"name": "img-RTL/panel_container/Maximize.png",
-			"size": 889,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/panel_container/Maximize_hover.png",
-			"size": 889,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/panel_container/Minimize.png",
-			"size": 83,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/panel_container/Minimize_hover.png",
-			"size": 80,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/radiobutton.png",
-			"size": 2212,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/rating/star_hover.png",
-			"size": 399,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/rating/star_selected.png",
-			"size": 399,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/rating/star_unselected.png",
-			"size": 359,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/rating/star_unselected2.png",
-			"size": 323,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip.gif",
-			"size": 66,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_dsbl.gif",
-			"size": 66,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_end.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_end_dsbl.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_end_hov.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_hov.gif",
-			"size": 66,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_start.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_start_dsbl.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/roadmap/roundtrip_start_hov.gif",
-			"size": 58,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/clear.png",
-			"size": 130,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/clear_hover.png",
-			"size": 130,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/search.png",
-			"size": 274,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/search_dsbl.png",
-			"size": 274,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/search_hover.png",
-			"size": 273,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/search/search_unclickable.png",
-			"size": 275,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/splitter/splitter_horiz_grip.gif",
-			"size": 817,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/splitter/splitter_vert_grip.gif",
-			"size": 817,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tab-close-sel.png",
-			"size": 159,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tab-close.png",
-			"size": 161,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/CollapseAll.png",
-			"size": 111,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/CollapseAll_pressed.png",
-			"size": 893,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/ExpandAll.png",
-			"size": 116,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/ExpandAll_pressed.png",
-			"size": 886,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode-inverted.gif",
-			"size": 827,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode-white.gif",
-			"size": 827,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode.gif",
-			"size": 827,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode_Coll-inverted.gif",
-			"size": 833,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode_Coll-white.gif",
-			"size": 833,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img-RTL/tree/TreeNode_Coll.gif",
 			"size": 833,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode_Exp-inverted.gif",
-			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode_Exp-white.gif",
-			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/tree/TreeNode_Exp.gif",
-			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_dsbl.png",
-			"size": 132,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_hover.png",
-			"size": 132,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img-RTL/valuehelpfield/F4-Help_icon_regular.png",
-			"size": 132,
 			"theme": "sap_belize"
 		},
 		{
@@ -878,21 +466,6 @@
 		{
 			"name": "img/menu/bar-overflow.png",
 			"size": 211,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/menu/menuitem-sub-dis.png",
-			"size": 384,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/menu/menuitem-sub-hov.png",
-			"size": 380,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/menu/menuitem-sub.png",
-			"size": 383,
 			"theme": "sap_belize"
 		},
 		{
@@ -1126,23 +699,8 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "img/tree/TreeNode-white.gif",
-			"size": 827,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img/tree/TreeNode.gif",
 			"size": 827,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/tree/TreeNode_Coll-inverted.gif",
-			"size": 833,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/tree/TreeNode_Coll-white.gif",
-			"size": 833,
 			"theme": "sap_belize"
 		},
 		{
@@ -1151,33 +709,8 @@
 			"theme": "sap_belize"
 		},
 		{
-			"name": "img/tree/TreeNode_Exp-inverted.gif",
-			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/tree/TreeNode_Exp-white.gif",
-			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
 			"name": "img/tree/TreeNode_Exp.gif",
 			"size": 829,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/valuehelpfield/F4-Help_icon_dsbl.png",
-			"size": 126,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/valuehelpfield/F4-Help_icon_hover.png",
-			"size": 126,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "img/valuehelpfield/F4-Help_icon_regular.png",
-			"size": 126,
 			"theme": "sap_belize"
 		},
 		{
@@ -1188,40 +721,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 325791,
+			"size": 321170,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/commons/themes/sap_belize/library-parameters.json",
 			"size": 915,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.css",
-			"size": 324606,
+			"size": 320960,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.less",
-			"size": 121829,
+			"size": 119632,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.source.less",
-			"size": 2108,
+			"size": 2697,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 362442,
-			"theme": "sap_belize"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 361257,
-			"theme": "sap_belize"
+			"name": "resources.json",
+			"size": 13595
 		}
 	]
 }

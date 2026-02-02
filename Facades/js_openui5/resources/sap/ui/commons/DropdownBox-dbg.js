@@ -1,28 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.DropdownBox.
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
-    'sap/base/Log',
-    './ComboBox',
-    './library',
-    'sap/ui/core/History',
-    'sap/ui/core/SeparatorItem',
-    './DropdownBoxRenderer',
-    'sap/ui/Device',
-    './TextField',
-    'sap/ui/core/ListItem',
-    'sap/ui/dom/containsOrEquals',
-    'sap/ui/events/jquery/EventExtension',
-    'sap/ui/events/KeyCodes',
-    'sap/ui/dom/jquery/cursorPos', // jQuery.fn.cursorPos
-    'sap/ui/dom/jquery/selectText' // jQuery.fn.selectText
+	'sap/ui/thirdparty/jquery',
+	'sap/base/Log',
+	'./ComboBox',
+	'./library',
+	'sap/ui/core/History',
+	'sap/ui/core/SeparatorItem',
+	'./DropdownBoxRenderer',
+	'sap/ui/Device',
+	'./TextField',
+	'sap/ui/core/ListItem',
+	'sap/ui/dom/containsOrEquals',
+	'sap/ui/events/jquery/EventExtension',
+	'sap/ui/events/KeyCodes',
+	"sap/ui/core/Configuration",
+	// jQuery.fn.cursorPos
+	'sap/ui/dom/jquery/cursorPos',
+	// jQuery.fn.selectText
+	'sap/ui/dom/jquery/selectText'
 ],
-	function(jQuery, Log, ComboBox, library, History, SeparatorItem, DropdownBoxRenderer, Device, TextField, ListItem, containsOrEquals, EventExtension, KeyCodes) {
+	function(jQuery, Log, ComboBox, library, History, SeparatorItem, DropdownBoxRenderer, Device, TextField, ListItem, containsOrEquals, EventExtension, KeyCodes, Configuration) {
 	"use strict";
 
 
@@ -36,17 +39,17 @@ sap.ui.define([
 	 * The control provides a field that allows end users to an entry out of a list of pre-defined items.
 	 * The choosable items can be provided in the form of a complete <code>ListBox</code>, single <code>ListItems</code>.
 	 * @extends sap.ui.commons.ComboBox
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.ComboBox}
 	 * @alias sap.ui.commons.DropdownBox
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DropdownBox = ComboBox.extend("sap.ui.commons.DropdownBox", /** @lends sap.ui.commons.DropdownBox.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -531,12 +534,9 @@ sap.ui.define([
 			this.onkeypress(oEvent);
 		}
 
-		if (!Device.browser.msie || oEvent.which !== KeyCodes.BACKSPACE) {
+		if (oEvent.which !== KeyCodes.BACKSPACE) {
 			return;
 		}
-
-		// Quite a trick to solve the issue with 'delete from last cursorPos' vs. 'delete last (proposed / auto-completed) character in IE
-		this._iCursorPosBeforeBackspace = jQuery(this.getInputDomRef()).cursorPos();
 	};
 
 	/**
@@ -564,10 +564,6 @@ sap.ui.define([
 
 		if (this.mobile) {
 			// as no real input is possible on mobile devices
-			return;
-		}
-
-		if (!this._realOninput(oEvent)) {
 			return;
 		}
 
@@ -610,7 +606,7 @@ sap.ui.define([
 		// call keyup function of TextField to get liveChange event
 		TextField.prototype.onkeyup.apply(this, arguments);
 
-		if (!(Device.browser.msie && iKC === KeyCodes.BACKSPACE) && this._oValueBeforePaste === null || iKC === KeyCodes.TAB) {
+		if (this._oValueBeforePaste === null || iKC === KeyCodes.TAB) {
 			return;
 		}
 		// it's either backspace in IE or after paste (cumulating potentially multiple pastes, too)
@@ -780,7 +776,7 @@ sap.ui.define([
 			return;
 		}
 
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Configuration.getRTL();
 		if (!bRtl) {
 			this._updateSelection(1);
 		} else {
@@ -805,7 +801,7 @@ sap.ui.define([
 			return;
 		}
 
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Configuration.getRTL();
 		if (!bRtl) {
 			this._updateSelection( -1);
 		} else {
@@ -849,18 +845,7 @@ sap.ui.define([
 	 * @private
 	 */
 	DropdownBox.prototype._callDoSelectAfterFocusIn = function(iStart, iEnd) {
-		if (!Device.browser.msie) {
-			this._doSelect(iStart, iEnd);
-		} else {
-			// Enum _eDoSelectAfterFocusIn as well describes the IE flow:  undefined -> "onfocusin" -> "_doSelect",
-			// so make sure we are not called due to _doSelect.
-			if (!this._eDoSelectAfterFocusIn || this._eDoSelectAfterFocusIn !== "_doSelect") {
-				this._eDoSelectAfterFocusIn = "onfocusin";
-				this._doSelect(iStart, iEnd);
-			} else {
-				this._eDoSelectAfterFocusIn = undefined;
-			}
-		}
+		this._doSelect(iStart, iEnd);
 	};
 
 
@@ -937,7 +922,7 @@ sap.ui.define([
 	 * Selects the text of the InputDomRef in the given range
 	 * @param {int} [iStart=0] start position of the text selection
 	 * @param {int} [iEnd=<length of text>] end position of the text selection
-	 * @return {sap.ui.commons.DropdownBox} this DropdownBox instance
+	 * @returns {this} this DropdownBox instance
 	 * @private
 	 */
 	DropdownBox.prototype._doSelect = function(iStart, iEnd){
@@ -1148,7 +1133,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.commons.ListBox} oListBox listBox belonging to this ComboBox instance.
 	 * @param {sap.ui.core.Popup} oPopup the instance of the Popup functionality used for opening the proposal list
-	 * @returns {sap.ui.commons.DropdownBox} DropdownBox
+	 * @returns {this} DropdownBox
 	 * @private
 	 */
 	DropdownBox.prototype._prepareOpen = function(oListBox, oPopup){
@@ -1174,20 +1159,13 @@ sap.ui.define([
 	DropdownBox.prototype._handleOpened = function(){
 
 		ComboBox.prototype._handleOpened.apply(this, arguments);
-
-		if (!Device.browser.msie) {
-			// because in IE already async made in ComboBox
 			jQuery(this.getInputDomRef()).trigger("focus");
-		} else {
-			this._bFocusByOpen = true;
-		}
-
 	};
 
 	/**
 	 * Ensures the given listbox is 'cleaned-up'.
 	 * @param {sap.ui.commons.ListBox} oListBox the listBox to clean up
-	 * @returns {sap.ui.commons.DropdownBox} this instance of DropdownBox
+	 * @returns {this} this instance of DropdownBox
 	 * @private
 	 */
 	DropdownBox.prototype._cleanupClose = function(oListBox){
@@ -1331,7 +1309,7 @@ sap.ui.define([
 	 * Applies the focus info and ensures the cursor and selection is set again
 	 *
 	 * @param {object} oFocusInfo the focus information belonging to this dropdown
-	 * @returns {sap.ui.commons.DropdownBox} DropdownBox
+	 * @returns {this} DropdownBox
 	 * @private
 	 */
 	DropdownBox.prototype.applyFocusInfo = function(oFocusInfo){
@@ -1391,9 +1369,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Extends the method inherited from sap.ui.core.Element by providing information on Search Help access (if needed)
+	 * Overrides the method inherited from {@link sap.ui.core.Element} by providing information on Search Help access (if needed)
 	 *
-	 * @return {string} string tooltip or undefined
+	 * @returns {string|undefined} string tooltip or <code>undefined</code>
 	 * @public
 	 */
 	DropdownBox.prototype.getTooltip_AsString = function() {
@@ -1485,7 +1463,7 @@ sap.ui.define([
 	 * @param {string} sText new value for property <code>searchHelpText</code>
 	 * @param {string} sAdditionalText new value for property <code>searchHelpAdditionalText</code>
 	 * @param {string} sIcon new value for property <code>searchHelpIcon</code>
-	 * @return {sap.ui.commons.DropdownBox} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DropdownBox.prototype.setSearchHelpEnabled = function(bEnabled, sText, sAdditionalText, sIcon) {
@@ -1547,7 +1525,7 @@ sap.ui.define([
 	 * Default value is empty/<code>undefined</code>
 	 *
 	 * @param {string} sSearchHelpText new value for property <code>searchHelpText</code>
-	 * @return {sap.ui.commons.DropdownBox} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DropdownBox.prototype.setSearchHelpText = function(sSearchHelpText) {
@@ -1564,7 +1542,7 @@ sap.ui.define([
 	 * Default value is empty/<code>undefined</code>
 	 *
 	 * @param {string} sSearchHelpAdditionalText new value for property <code>searchHelpAdditionalText</code>
-	 * @return {sap.ui.commons.DropdownBox} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DropdownBox.prototype.setSearchHelpAdditionalText = function(sSearchHelpAdditionalText) {
@@ -1581,7 +1559,7 @@ sap.ui.define([
 	 * Default value is empty/<code>undefined</code>
 	 *
 	 * @param {sap.ui.core.URI} sSearchHelpIcon new value for property <code>searchHelpIcon</code>
-	 * @return {sap.ui.commons.DropdownBox} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DropdownBox.prototype.setSearchHelpIcon = function(sSearchHelpIcon) {
@@ -1704,7 +1682,6 @@ sap.ui.define([
 	 * This might be necessary if the items of the DropdownBox have changed. Otherwise invalid items may appear in the history.
 	 *
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	DropdownBox.prototype.clearHistory = function() {
 

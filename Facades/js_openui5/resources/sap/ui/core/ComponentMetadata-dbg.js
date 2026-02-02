@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,35 +8,30 @@
 sap.ui.define([
 	'sap/ui/base/ManagedObjectMetadata',
 	'sap/ui/core/Manifest',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/base/util/extend',
 	'sap/base/util/deepExtend',
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions'
 ],
-	function(ManagedObjectMetadata, Manifest, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
+	function(ManagedObjectMetadata, Manifest, future, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
 	"use strict";
 
-	var oCfgData = window["sap-ui-config"] || {};
-
-	var syncCallBehavior = 0; // ignore
-	if (oCfgData['xx-nosync'] === 'warn' || /(?:\?|&)sap-ui-xx-nosync=(?:warn)/.exec(window.location.search)) {
-		syncCallBehavior = 1;
-	}
-	if (oCfgData['xx-nosync'] === true || oCfgData['xx-nosync'] === 'true' || /(?:\?|&)sap-ui-xx-nosync=(?:x|X|true)/.exec(window.location.search)) {
-		syncCallBehavior = 2;
-	}
+	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 
 	/**
 	 * Creates a new metadata object for a Component subclass.
 	 *
 	 * @param {string} sClassName Fully qualified name of the class that is described by this metadata object
-	 * @param {object} oStaticInfo Static info to construct the metadata from
+	 * @param {object} oClassInfo Static info to construct the metadata from
+	 * @param {sap.ui.core.Component.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @public
 	 * @class
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 1.9.2
 	 * @alias sap.ui.core.ComponentMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -52,6 +47,10 @@ sap.ui.define([
 	ComponentMetadata.prototype = Object.create(ManagedObjectMetadata.prototype);
 	ComponentMetadata.prototype.constructor = ComponentMetadata;
 
+	/**
+	 * Synchronous loading Component metadata from "component.json" is deprecated.
+	 * @deprecated since 1.120
+	 */
 	ComponentMetadata.preprocessClassInfo = function(oClassInfo) {
 		// if the component is a string we convert this into a "_src" metadata entry
 		// the specific metadata object can decide to support this or gracefully ignore it
@@ -68,28 +67,35 @@ sap.ui.define([
 
 		var oStaticInfo = this._oStaticInfo = oClassInfo.metadata;
 
-		// if the component metadata loadFromFile feature is active then
-		// the component metadata will be loaded from the specified file
-		// which needs to be located next to the Component.js file.
 		var sName = this.getName(),
 		    sPackage = sName.replace(/\.\w+?$/, "");
-		if (oStaticInfo._src) {
-			if (oStaticInfo._src == "component.json") {
-				Log.warning("Usage of declaration \"metadata: 'component.json'\" is deprecated (component " + sName + "). Use \"metadata: 'json'\" instead.");
-			} else if (oStaticInfo._src != "json") {
-				throw new Error("Invalid metadata declaration for component " + sName + ": \"" + oStaticInfo._src + "\"! Use \"metadata: 'json'\" to load metadata from component.json.");
-			}
 
-			var sResource = sPackage.replace(/\./g, "/") + "/component.json";
-			Log.info("The metadata of the component " + sName + " is loaded from file " + sResource + ".");
-			try {
-				var oResponse = LoaderExtensions.loadResource(sResource, {
-					dataType: "json"
-				});
-				extend(oStaticInfo, oResponse);
-			} catch (err) {
-				Log.error("Failed to load component metadata from \"" + sResource + "\" (component " + sName + ")! Reason: " + err);
-			}
+		/**
+		 * @ui5-transform-hint replace-local false
+		 */
+		const bLegacyMetadata = !!oStaticInfo._src;
+
+		if (bLegacyMetadata || oClassInfo && typeof oClassInfo.metadata === "string") {
+			future.errorThrows("Component Metadata must not be a string. Please use \"metadata: { manifest: 'json' }\" instead.");
+
+			/**
+			 * if the component metadata loadFromFile feature is active then
+			 * the component metadata will be loaded from the specified file
+			 * which needs to be located next to the Component.js file.
+			 * @deprecated
+			 */
+			(() => {
+				var sResource = sPackage.replace(/\./g, "/") + "/component.json";
+				Log.info("The metadata of the component " + sName + " is loaded from file " + sResource + ".");
+				try {
+					var oResponse = LoaderExtensions.loadResource(sResource, {
+						dataType: "json"
+					});
+					extend(oStaticInfo, oResponse);
+				} catch (err) {
+					Log.error("Failed to load component metadata from \"" + sResource + "\" (component " + sName + ")! Reason: " + err);
+				}
+			})();
 		}
 
 		ManagedObjectMetadata.prototype.applySettings.call(this, oClassInfo);
@@ -142,15 +148,18 @@ sap.ui.define([
 	 * - {@link sap.ui.component} / {@link sap.ui.component.load} with an existing manifest to prevent the sync request
 	 *
 	 * @param {object} oManifestJson manifest object (will be modified internally!)
+	 * @param {boolean} [bSkipProcess=false] whether the sync processing of the manifest should be skipped.
+	 *  This needs to be set to true when the processing of manifest should be done asynchronously with
+	 *  separated code
 	 * @private
 	 * @ui5-restricted sap.ui.core.Component
 	 */
-	ComponentMetadata.prototype._applyManifest = function(oManifestJson) {
+	ComponentMetadata.prototype._applyManifest = function(oManifestJson, bSkipProcess = false) {
 		// Make sure to not create the manifest object twice!
 		// This could happen when the manifest is accessed (via #getManifestObject) while sap.ui.component is loading it.
 		// Then the async request wouldn't be cancelled and the manifest already loaded (sync) should not be be overridden.
 		if (this._oManifest) {
-			Log.warning("Can't apply manifest to ComponentMetadata as it has already been created.", this.getName(), "sap.ui.core.ComponentMetadata");
+			Log.info("Can't apply manifest to ComponentMetadata as it has already been created.", this.getName(), "sap.ui.core.ComponentMetadata");
 			return;
 		}
 
@@ -172,8 +181,9 @@ sap.ui.define([
 		this._oManifest = new Manifest(oManifestJson, {
 			componentName: this.getComponentName(),
 			baseUrl: sap.ui.require.toUrl(this.getComponentName().replace(/\./g, "/")) + "/",
-			process: this._oStaticInfo.__metadataVersion === 2
+			process: !bSkipProcess && this._oStaticInfo.__metadataVersion === 2
 		});
+
 	};
 
 	/**
@@ -323,30 +333,29 @@ sap.ui.define([
 	/**
 	 * Returns the manifest defined in the metadata of the Component.
 	 * If not specified, the return value is null.
-	 * @return {Object} manifest.
+	 * @return {Object|null} manifest.
 	 * @public
 	 * @since 1.27.1
 	 * @deprecated  Since 1.33.0. Please use the sap.ui.core.Component#getManifest
 	 */
 	ComponentMetadata.prototype.getManifest = function() {
+		return this._getManifest();
+	};
+
+	/**
+	 * Returns the manifest defined in the metadata of the Component.
+	 * If not specified, the return value is null.
+	 *
+	 * @return {object|null} manifest
+	 * @private
+	 * @ui5-restricted sap.ui.core.Component
+	 * @since 1.29.0
+	 */
+	ComponentMetadata.prototype._getManifest = function() {
 		// use raw manifest in case of legacy metadata
 		if (this.getMetadataVersion() === 1) {
 			return this.getManifestObject().getRawJson();
 		}
-		return this.getManifestObject().getJson();
-	};
-
-	/**
-	 * Returns the processed manifest object (no copy).
-	 * Processing will be done in a "lazy" way.
-	 *
-	 * @return {object} manifest
-	 * @private
-	 * @since 1.29.0
-	 * @deprecated  Since 1.33.0. Please use the sap.ui.core.Component#getManifest
-	 */
-	ComponentMetadata.prototype._getManifest = function() {
-		Log.warning("ComponentMetadata#_getManifest: do not use deprecated functions anymore!");
 		return this.getManifestObject().getJson();
 	};
 
@@ -413,6 +422,22 @@ sap.ui.define([
 	 * @deprecated  Since 1.33.0. Please use the sap.ui.core.Component#getManifest
 	 */
 	ComponentMetadata.prototype.getManifestEntry = function(sKey, bMerged) {
+		return this._getManifestEntry(sKey, bMerged);
+	};
+
+	/**
+	 * Returns the configuration of a manifest section or the value for a
+	 * specific path. If no section or key is specified, the return value is null.
+	 *
+	 * Sample and more information see public function documentation.
+	 *
+	 * @param {string} sKey Either the manifest section name (namespace) or a concrete path
+	 * @param {boolean} [bMerged=false] Indicates whether the custom configuration is merged with the parent custom configuration of the Component.
+	 * @return {any|null} Value of the manifest section or the key (could be any kind of value)
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	ComponentMetadata.prototype._getManifestEntry = function(sKey, bMerged) {
 		var oData = this.getManifestObject().getEntry(sKey);
 
 		// merge / extend should only be done for objects or when entry wasn't found
@@ -424,7 +449,7 @@ sap.ui.define([
 		// the configuration of the static component metadata will be ignored
 		var oParent, oParentData;
 		if (bMerged && (oParent = this.getParent()) instanceof ComponentMetadata) {
-			oParentData = oParent.getManifestEntry(sKey, bMerged);
+			oParentData = oParent._getManifestEntry(sKey, bMerged);
 		}
 
 		// only extend / clone if there is data
@@ -504,7 +529,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/dependencies")
 	 */
 	ComponentMetadata.prototype.getDependencies = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getDependencies is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getDependencies is deprecated!");
 		if (!this._oLegacyDependencies) {
 
 			var mDependencies = this.getManifestEntry("/sap.ui5/dependencies"),
@@ -540,10 +565,21 @@ sap.ui.define([
 	 *
 	 * @return {string[]} Included files.
 	 * @public
-	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/resources")
+	 * @deprecated Since 1.27.1. For CSS, please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/resources/css").
 	 */
 	ComponentMetadata.prototype.getIncludes = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getIncludes is deprecated!");
+		Log.warning(
+			"Usage of sap.ui.core.ComponentMetadata.prototype.getIncludes() is deprecated. " +
+			"For CSS files, please use the '/sap.ui5/resources/css' section in your 'manifest.json'. ",
+			"Deprecation",
+			null,
+			function() {
+				return {
+					type: "sap.ui.core.ComponentMetadata",
+					name: this.getName()
+				};
+			}.bind(this));
+
 		if (!this._aLegacyIncludes) {
 			var aIncludes = [],
 			    mResources = this.getManifestEntry("/sap.ui5/resources") || {},
@@ -575,12 +611,12 @@ sap.ui.define([
 	 * manifest file! It returns only the entries which have been defined in
 	 * the Component metadata or in the proper Component manifest.
 	 *
-	 * @return {string} Required version of UI5 or if not specified then null.
+	 * @returns {string|null} Required version of UI5 or if not specified then <code>null</code>.
 	 * @public
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/dependencies/minUI5Version")
 	 */
 	ComponentMetadata.prototype.getUI5Version = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getUI5Version is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getUI5Version is deprecated!");
 		return this.getManifestEntry("/sap.ui5/dependencies/minUI5Version");
 	};
 
@@ -599,7 +635,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/dependencies/components")
 	 */
 	ComponentMetadata.prototype.getComponents = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getComponents is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getComponents is deprecated!");
 		return this.getDependencies().components;
 	};
 
@@ -619,7 +655,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/dependencies/libs")
 	 */
 	ComponentMetadata.prototype.getLibs = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getLibs is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getLibs is deprecated!");
 		return this.getDependencies().libs;
 	};
 
@@ -653,7 +689,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/config")
 	 */
 	ComponentMetadata.prototype.getConfig = function(sKey, bDoNotMerge) {
-		//Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getConfig is deprecated!");
+		//Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getConfig is deprecated!");
 		var mConfig = this.getManifestEntry("/sap.ui5/config", !bDoNotMerge);
 
 		if (!mConfig) {
@@ -685,7 +721,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/extends/extensions")
 	 */
 	ComponentMetadata.prototype.getCustomizing = function(bDoNotMerge) {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getCustomizing is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getCustomizing is deprecated!");
 		return this.getManifestEntry("/sap.ui5/extends/extensions", !bDoNotMerge);
 	};
 
@@ -708,7 +744,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/models")
 	 */
 	ComponentMetadata.prototype.getModels = function(bDoNotMerge) {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getModels is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getModels is deprecated!");
 		if (!this._oLegacyModels) {
 			this._oLegacyModels = {};
 			var mDataSources = this.getManifestEntry("/sap.ui5/models") || {};
@@ -747,7 +783,7 @@ sap.ui.define([
 	 * @deprecated Since 1.28.1. Please use {@link sap.ui.core.Component#getManifestEntry}("/sap.ui5/handleValidation")
 	 */
 	ComponentMetadata.prototype.handleValidation = function() {
-		// Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.handleValidation is deprecated!");
+		// Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.handleValidation is deprecated!");
 		return this.getManifestEntry("/sap.ui5/handleValidation");
 	};
 
@@ -768,7 +804,7 @@ sap.ui.define([
 	 * @deprecated Since 1.27.1. Please use the sap.ui.core.ComponentMetadata#getManifest
 	 */
 	ComponentMetadata.prototype.getServices = function() {
-		Log.warning("Usage of sap.ui.core.ComponentMetadata.protoype.getServices is deprecated!");
+		Log.warning("Usage of sap.ui.core.ComponentMetadata.prototype.getServices is deprecated!");
 		// legacy API - for the manifest services has a different meaning!
 		return this._oStaticInfo.services || {};
 	};

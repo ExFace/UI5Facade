@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
+
 sap.ui.define([], function() {
 	"use strict";
 
@@ -16,7 +17,7 @@ sap.ui.define([], function() {
 	 * (http://www.json.org/ > JavaScript > json-2). The code contains
 	 * local modifications.
 	 *
-	 * Git URL: https://github.com/douglascrockford/JSON-js/blob/42c18c621a411c3f39a81bb0a387fc50dcd738d9/json_parse.js
+	 * Git URL: https://github.com/douglascrockford/JSON-js/blob/ff55d8d4513b149e2511aee01c3a61d372837d1f/json_parse.js
 	 */
 
 	/**
@@ -56,12 +57,10 @@ sap.ui.define([], function() {
 	JSTokenizer.prototype.error = function(m) {
 
 		// Call error when something is wrong.
-		throw {
-			name: 'SyntaxError',
-			message: m,
-			at: this.at,
-			text: this.text
-		};
+		const err = new SyntaxError(m);
+		err.at = this.at;
+		err.text = this.text;
+		throw err;
 	};
 
 	JSTokenizer.prototype.next = function(c) {
@@ -156,32 +155,33 @@ sap.ui.define([], function() {
 		this.error("Bad string");
 	};
 
+	function isNameCharacter(ch) {
+		return ch === "_" || ch === "$" ||
+			(ch >= "0" && ch <= "9") ||
+			(ch >= "a" && ch <= "z") ||
+			(ch >= "A" && ch <= "Z");
+	}
+
 	JSTokenizer.prototype.name = function() {
 
 		// Parse a name value.
-		var name = '',
-			allowed = function(ch) {
-				return ch === "_" || ch === "$" ||
-					(ch >= "0" && ch <= "9") ||
-					(ch >= "a" && ch <= "z") ||
-					(ch >= "A" && ch <= "Z");
-			};
+		var name = '';
 
-		if (allowed(this.ch)) {
+		if (isNameCharacter(this.ch)) {
 			name += this.ch;
 		} else {
 			this.error("Bad name");
 		}
 
 		while (this.next()) {
-			if (this.ch === ' ') {
+			if (this.ch <= ' ') {
 				this.next();
 				return name;
 			}
 			if (this.ch === ':') {
 				return name;
 			}
-			if (allowed(this.ch)) {
+			if (isNameCharacter(this.ch)) {
 				name += this.ch;
 			} else {
 				this.error("Bad name");
@@ -269,12 +269,20 @@ sap.ui.define([], function() {
 					key = this.number();
 				} else if (this.ch === '"' || this.ch === '\'') {
 					key = this.string();
-				} else {
+				} else if (isNameCharacter(this.ch)) {
 					key = this.name();
+				} else {
+					const contextStart = Math.max(0, this.at - 10);
+					const context = this.text.substring(contextStart, this.at + 10);
+					const positionInContext = this.at - contextStart;
+					this.error(`Syntax error: Unexpected character '${this.ch}'.
+
+${context}
+${' '.repeat(positionInContext - 1)}^`);
 				}
 				this.white();
 				this.next(':');
-				if (Object.hasOwnProperty.call(object, key)) {
+				if (Object.hasOwn(object, key)) {
 					this.error('Duplicate key "' + key + '"');
 				}
 				object[key] = this.value();

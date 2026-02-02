@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/thirdparty/URI",
 	"sap/ui/base/Object",
 	"sap/base/util/restricted/_debounce",
 	"sap/ui/testrecorder/CommunicationBus",
 	"sap/ui/testrecorder/CommunicationChannels",
 	"sap/ui/testrecorder/Constants"
-], function (jQuery, BaseObject, _debounce, CommunicationBus, CommunicationChannels, constants) {
+], function (jQuery, URI, BaseObject, _debounce, CommunicationBus, CommunicationChannels, constants) {
 	"use strict";
 
 	var oUIContextInjector = null;
@@ -20,8 +21,8 @@ sap.ui.define([
 	var UIContextInjector = BaseObject.extend("sap.ui.testrecorder.UIContextInjector", {
 		constructor: function () {
 			if (!oUIContextInjector) {
+				BaseObject.apply(this, arguments);
 				this._sIdentifier = generateIdentifier();
-				Object.apply(this, arguments);
 			} else {
 				return oUIContextInjector;
 			}
@@ -47,13 +48,6 @@ sap.ui.define([
 		} else {
 			this._openWindow();
 		}
-
-		// beforeunload will only work if the page was loaded and received; it is not guarateed to fire
-		window.communicationWindows.testRecorder.addEventListener("beforeunload", function () {
-			if (!this._dockStarted && !this._closeTriggered) {
-				this.close();
-			}
-		}.bind(this));
 
 		CommunicationBus.subscribe(CommunicationChannels.MINIMIZE_IFRAME, this.minimizeFrame.bind(this));
 		CommunicationBus.subscribe(CommunicationChannels.SHOW_IFRAME, this.unminimizeFrame.bind(this));
@@ -131,13 +125,30 @@ sap.ui.define([
 			"width=1024,height=700,status=no,toolbar=no,menubar=no,resizable=yes,location=no,directories=no,scrollbars=yes"
 		);
 
-		window.communicationWindows.testRecorder.window.onload = function () {
-			window.communicationWindows.testRecorder.document.title = "Test Recorder";
-		};
+		window.communicationWindows.testRecorder.document.title = "Test Recorder";
+		_setLanguageFromParentWindow();
 
 		this._isInIframe = false;
 		this._dockStarted = false;
 		this._closeTriggered = false;
+
+		setTimeout(function () {
+			var fnBeforeUnloadListener = function () {
+				window.communicationWindows.testRecorder.removeEventListener("pagehide", fnBeforeUnloadListener);
+				if (!this._dockStarted && !this._closeTriggered) {
+					this.close();
+				}
+			}.bind(this);
+
+			// beforeunload will only work if the page was loaded and received; it is not guarateed to fire
+			if (window.communicationWindows.testRecorder.closed) {
+				if (!this._dockStarted && !this._closeTriggered) {
+					this.close();
+				}
+			} else {
+				window.communicationWindows.testRecorder.addEventListener("pagehide", fnBeforeUnloadListener);
+			}
+		}.bind(this), 1000);
 	};
 
 	UIContextInjector.prototype._openFrame = function () {
@@ -192,6 +203,7 @@ sap.ui.define([
 		document.body.appendChild(iFrame);
 
 		window.communicationWindows.testRecorder = iFrame.contentWindow;
+		_setLanguageFromParentWindow();
 
 		this._iframe = iFrame;
 		this._resizeOverlay = resizeOverlay;
@@ -216,10 +228,7 @@ sap.ui.define([
 		if (this._isInIframe) {
 			var frameWindow = this._iframe && this._iframe.contentWindow;
 			if (frameWindow) {
-				// Workaround for IE - there are errors even after removing the frame so setting the onerror to noop again seems to be fine
-				frameWindow.onerror = jQuery.noop;
 				this._iframe.src = "about:blank";
-				frameWindow.document.write('');
 				frameWindow.close();
 				/*global CollectGarbage */
 				if (typeof CollectGarbage == "function") {
@@ -255,10 +264,19 @@ sap.ui.define([
 	};
 
 	UIContextInjector.prototype._generateTestRecorderUrl = function () {
+		var mUriParams = new URI().search(true);
+		var aIncludeList = ["sap-language"];
+		var aExcludeList = ["sap-ui-testRecorder"];
+		var sSapUriParams = Object.keys(mUriParams).map(function (sUriParamName) {
+			if (aExcludeList.indexOf(sUriParamName) === -1 && sUriParamName.startsWith("sap-ui-") || aIncludeList.indexOf(sUriParamName) > -1) {
+				return "&" + sUriParamName + "=" + mUriParams[sUriParamName];
+			}
+		}).join("");
+
 		this._sUrl = sap.ui.require.toUrl("sap/ui/testrecorder/ui/overlay.html") +
 			"?sap-ui-testrecorder-origin=" + window.location.protocol +
-			"//" + window.location.host + "&" + "sap-ui-testrecorder-frame-identifier=" + this._sIdentifier;
-		var frameURI = new window.URI(this._sUrl);
+			"//" + window.location.host + "&" + "sap-ui-testrecorder-frame-identifier=" + this._sIdentifier + sSapUriParams;
+		var frameURI = new URI(this._sUrl);
 		this._sOrigin = ( frameURI.protocol() || window.location.protocol.replace(':', '') ) +
 			'://' + ( frameURI.host() || window.location.host );
 	};
@@ -331,6 +349,40 @@ sap.ui.define([
 
 	function generateIdentifier() {
 		return '' + Date.now();
+	}
+
+	function _setLanguageFromParentWindow() {
+		var appBootstrapScript = window.document.getElementById("sap-ui-bootstrap");
+		if (appBootstrapScript && appBootstrapScript.dataset.sapUiLanguage) {
+			_pollForRecorderBootstrap(function (recorderBootstrapScript) {
+				recorderBootstrapScript.dataset.sapUiLanguage = appBootstrapScript.dataset.sapUiLanguage;
+			});
+		}
+		if (appBootstrapScript && appBootstrapScript.dataset.sapUiConfig) {
+			appBootstrapScript.dataset.sapUiConfig.split(",").forEach(function (sConfig) {
+				if (sConfig.startsWith("language:")) {
+					_pollForRecorderBootstrap(function (recorderBootstrapScript) {
+						recorderBootstrapScript.dataset.sapUiConfig = recorderBootstrapScript.dataset.sapUiConfig ?
+						recorderBootstrapScript.dataset.sapUiConfig + "," + sConfig : sConfig;
+					});
+				}
+			});
+		}
+		if (window["sap-ui-config"]?.language) {
+			window.communicationWindows.testRecorder["sap-ui-config"] = window.communicationWindows.testRecorder["sap-ui-config"] || {};
+			window.communicationWindows.testRecorder["sap-ui-config"].language = window["sap-ui-config"].language;
+		}
+	}
+
+	function _pollForRecorderBootstrap(fnDone) {
+		var recorderBootstrapScript = window.communicationWindows.testRecorder.document.getElementById("sap-ui-bootstrap");
+		if (recorderBootstrapScript) {
+			fnDone(recorderBootstrapScript);
+		} else {
+			setTimeout(function () {
+				_pollForRecorderBootstrap(fnDone);
+			}, 10);
+		}
 	}
 
 	oUIContextInjector = new UIContextInjector();

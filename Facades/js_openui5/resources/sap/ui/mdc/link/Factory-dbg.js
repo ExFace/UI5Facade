@@ -1,31 +1,41 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function() {
+sap.ui.define(["sap/base/Log"], (Log) => {
 	"use strict";
 
 	/**
 	 * @namespace Factory to access services outside of sap.ui.mdc library like for example <code>ushell</code> services.
 	 * @name sap.ui.mdc.link.Factory
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @since 1.54.0
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	return {
-		getService: function(sServiceName) {
+		getUShellContainer: function() {
+			return sap.ui.require("sap/ushell/Container");
+		},
+		getServiceAsync: function(sServiceName) {
+			const oContainer = this.getUShellContainer();
+			if (!oContainer) {
+				return Promise.resolve(null);
+			}
+
 			switch (sServiceName) {
 				case "CrossApplicationNavigation":
-					return sap.ushell && sap.ushell.Container && sap.ushell.Container.getService("CrossApplicationNavigation");
+					Log.error("sap.ui.mdc.link.Factory: tried to retrieve deprecated service 'CrossApplicationNavigation', please use 'Navigation' instead!");
+					return oContainer.getServiceAsync("CrossApplicationNavigation");
+				case "Navigation":
+					return oContainer.getServiceAsync("Navigation");
 				case "URLParsing":
-					return sap.ushell && sap.ushell.Container && sap.ushell.Container.getService("URLParsing");
+					return oContainer.getServiceAsync("URLParsing");
 				default:
-					return null;
+					return Promise.resolve(null);
 			}
 		}
 	};
-}, /* bExport= */true);
+});

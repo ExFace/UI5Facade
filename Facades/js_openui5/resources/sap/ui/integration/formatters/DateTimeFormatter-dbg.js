@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -20,39 +20,56 @@ sap.ui.define([
 	 * @namespace
 	 * @private
 	 */
-	var oDateTimeFormatters = {
+	const oDateTimeFormatters = {
 
 		/**
 		 * Formats date and time.
-		 * @param {string|number|object} vDate Any string and number from which Date object can be created, or a Date object.
+		 * @param {string|integer|Date|Array<string|integer|Date>} vDate The date or dates to be formatted. Accepts date string, timestamp, Date instance, or array of the same.
 		 * @param {object} [oFormatOptions] All format options which sap.ui.core.format.DateFormat.getDateTimeInstance accepts.
 		 * @param {string} [sLocale] A string representing the desired locale. If skipped the current locale of the user is taken
 		 * @returns {string} The formatted date time.
 		 */
-		dateTime: function (vDate, oFormatOptions, sLocale) {
+		dateTime(vDate, oFormatOptions, sLocale) {
+			const oArguments = Utils.processFormatArguments(oFormatOptions, sLocale);
+			const oDateTimeFormatter = DateFormat.getDateTimeInstance(oArguments.formatOptions, oArguments.locale);
+			let vUniversalDate;
 
-			var oArguments = Utils.processFormatArguments(oFormatOptions, sLocale),
-				oDateFormat = DateFormat.getDateTimeInstance(oArguments.formatOptions, oArguments.locale),
-				oParsedDate = Utils.parseJsonDateTime(vDate);
+			if (Array.isArray(vDate)) {
+				vUniversalDate = vDate.map((date) => new UniversalDate(Utils.parseJsonDateTime(date)));
+			} else if (vDate !== undefined) {
+				vUniversalDate = new UniversalDate(Utils.parseJsonDateTime(vDate));
+			}
 
-			// Calendar is determined base on sap.ui.getCore().getConfiguration().getCalendarType()
-			var oUniversalDate = new UniversalDate(oParsedDate);
-			var sFormattedDate = oDateFormat.format(oUniversalDate);
+			if (vUniversalDate) {
+				return oDateTimeFormatter.format(vUniversalDate);
+			}
 
-			return sFormattedDate;
+			return "";
 		},
 
 		/**
-		 * Formats date and time.
-		 * @param {string|number|object} vDate Any string and number from which Date object can be created, or a Date object.
+		 * Formats date.
+		 * @param {string|integer|Date|Array<string|integer|Date>} vDate The date or dates to be formatted. Accepts date string, timestamp, Date instance, or array of the same.
 		 * @param {object} [oFormatOptions] All format options which sap.ui.core.format.DateFormat.getDateTimeInstance accepts.
 		 * @param {string} [sLocale] A string representing the desired locale. If skipped the current locale of the user is taken
-		 * @returns {string} The formatted date time.
-		 * @deprecated Since version 1.74
-		 * Use dateTime instead
+		 * @returns {string} The formatted date.
 		 */
-		date: function (vDate, oFormatOptions, sLocale) {
-			return oDateTimeFormatters.dateTime.apply(this, arguments);
+		date(vDate, oFormatOptions, sLocale) {
+			const oArguments = Utils.processFormatArguments(oFormatOptions, sLocale);
+			const oDateFormatter = DateFormat.getDateInstance(oArguments.formatOptions, oArguments.locale);
+			let vUniversalDate;
+
+			if (Array.isArray(vDate)) {
+				vUniversalDate = vDate.map((date) => new UniversalDate(Utils.parseJsonDateTime(date)));
+			} else if (vDate !== undefined) {
+				vUniversalDate = new UniversalDate(Utils.parseJsonDateTime(vDate));
+			}
+
+			if (vUniversalDate) {
+				return oDateFormatter.format(vUniversalDate);
+			}
+
+			return "";
 		}
 	};
 

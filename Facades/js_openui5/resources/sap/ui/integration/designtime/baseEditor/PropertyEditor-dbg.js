@@ -1,28 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/util/findClosestInstance",
 	"sap/ui/integration/designtime/baseEditor/util/createPromise",
 	"sap/ui/integration/designtime/baseEditor/util/escapeParameter",
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/PropertyEditorFactory",
 	"sap/base/util/restricted/_merge",
 	"sap/base/util/restricted/_omit",
-	"sap/base/util/deepEqual",
-	"sap/base/util/deepClone"
-], function (
+	"sap/base/util/deepEqual"
+], function(
 	Control,
+	Element,
 	findClosestInstance,
 	createPromise,
 	escapeParameter,
 	PropertyEditorFactory,
 	_merge,
 	_omit,
-	deepEqual,
-	deepClone
+	deepEqual
 ) {
 	"use strict";
 
@@ -37,13 +37,14 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.PropertyEditor
 	 * @author SAP SE
 	 * @since 1.73.0
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @experimental since 1.73.0
 	 * @ui5-restricted
 	 */
 	var PropertyEditor = Control.extend("sap.ui.integration.designtime.baseEditor.PropertyEditor", {
 		metadata: {
+			library: "sap.ui.integration",
 			interfaces : ["sap.ui.core.IFormContent"],
 			properties: {
 				/**
@@ -165,6 +166,19 @@ sap.ui.define([
 				ready: {},
 
 				/**
+				 * Fires when the error state of the nested property editor changes
+				 */
+				 validationErrorChange: {
+					parameters: {
+						/**
+						 * Whether there is an error in the nested editor
+						 * @since 1.96.0
+						 */
+						hasError: { type: "boolean" }
+					}
+				},
+
+				/**
 				 * Fires before the value of the nested property editor changes
 				 */
 				beforeValueChange: {
@@ -273,6 +287,10 @@ sap.ui.define([
 					this._initPropertyEditor();
 				} else {
 					oNestedEditor.setConfig(oConfig);
+					if (oConfig.visible !== false && oPreviousConfig.visible === false) {
+						// If editor just got activated, make sure the value is up-to-date
+						oNestedEditor.setValue(this.getValue());
+					}
 				}
 			});
 
@@ -289,15 +307,18 @@ sap.ui.define([
 			this._initPropertyEditor();
 		},
 
-		renderer: function (oRm, oControl) {
-			oRm.openStart("div", oControl);
-			oRm.addStyle("display", "inline-block");
-			oRm.addStyle("width", "100%");
-			oRm.openEnd();
+		renderer: {
+			apiVersion: 2,
+			render: function (oRm, oControl) {
+				oRm.openStart("div", oControl);
+				oRm.style("display", "inline-block");
+				oRm.style("width", "100%");
+				oRm.openEnd();
 
-			oRm.renderControl(oControl.getAggregation("propertyEditor"));
+				oRm.renderControl(oControl.getAggregation("propertyEditor"));
 
-			oRm.close("div");
+				oRm.close("div");
+			}
 		}
 	});
 
@@ -308,7 +329,15 @@ sap.ui.define([
 	};
 
 	PropertyEditor.prototype.getEditor = function () {
-		return sap.ui.getCore().byId(this.getAssociation("editor"));
+		return Element.getElementById(this.getAssociation("editor"));
+	};
+
+	PropertyEditor.prototype._prepareConfig = function(oConfig) {
+		var oBaseEditor = this.getEditor();
+		var oEditorConfig = (oConfig.type && oBaseEditor)
+			? (oBaseEditor.getConfig().propertyEditorConfigs || {})[oConfig.type]
+			: {};
+		return _merge({}, oEditorConfig, oConfig);
 	};
 
 	PropertyEditor.prototype.setConfig = function (mConfig) {
@@ -320,7 +349,7 @@ sap.ui.define([
 			{
 				designtime: undefined
 			},
-			mConfig
+			this._prepareConfig(mConfig)
 		);
 
 		if (!deepEqual(mPreviousConfig, mNextConfig)) {
@@ -345,7 +374,7 @@ sap.ui.define([
 
 	PropertyEditor.prototype.setEditor = function (vEditor) {
 		var oPreviousEditor = this.getEditor();
-		var oEditor = typeof vEditor === "string" ? sap.ui.getCore().byId(vEditor) : vEditor;
+		var oEditor = typeof vEditor === "string" ? Element.getElementById(vEditor) : vEditor;
 		if (oPreviousEditor !== oEditor) {
 			this.setAssociation("editor", vEditor);
 			var oEditor = this.getEditor();
@@ -353,6 +382,8 @@ sap.ui.define([
 				previousEditor: oPreviousEditor,
 				editor: oEditor
 			});
+			// Make sure to refresh config as the editor defaults might have changed
+			this.setConfig(this.getConfig());
 		}
 	};
 
@@ -376,6 +407,7 @@ sap.ui.define([
 		if (oPropertyEditor) {
 			this.setAggregation("propertyEditor", null);
 			oPropertyEditor.detachReady(this._onPropertyEditorReady, this);
+			oPropertyEditor.detachValidationErrorChange(this._onPropertyEditorError, this);
 			oPropertyEditor.destroy();
 			this._sCreatedBy = null;
 			this.firePropertyEditorChange({
@@ -392,6 +424,11 @@ sap.ui.define([
 	PropertyEditor.prototype.isReady = function () {
 		var oNestedEditor = this.getAggregation("propertyEditor");
 		return oNestedEditor && oNestedEditor.isReady() || false;
+	};
+
+	PropertyEditor.prototype.hasError = function () {
+		var oNestedEditor = this.getAggregation("propertyEditor");
+		return oNestedEditor && oNestedEditor.hasError();
 	};
 
 	PropertyEditor.prototype.ready = function () {
@@ -417,6 +454,12 @@ sap.ui.define([
 
 	PropertyEditor.prototype._onPropertyEditorReady = function () {
 		this.fireReady();
+	};
+
+	PropertyEditor.prototype._onPropertyEditorError = function (oEvent) {
+		this.fireValidationErrorChange({
+			hasError: oEvent.getParameter("hasError")
+		});
 	};
 
 	PropertyEditor.prototype._initPropertyEditor = function () {
@@ -455,7 +498,7 @@ sap.ui.define([
 			}
 
 			mPromise.promise.then(function (oPropertyEditor) {
-				oPropertyEditor.setModel(this.getEditor().getModel("i18n"), "i18n");
+				oPropertyEditor.initI18n(this.getEditor().getModel("i18n"));
 				oPropertyEditor.setConfig(_omit(_merge({}, this._mConfig), "__propertyName")); // deep clone to avoid editor modifications to influence the outer config
 
 				oPropertyEditor.attachBeforeValueChange(function (oEvent) {
@@ -483,6 +526,13 @@ sap.ui.define([
 				oPropertyEditor.attachReady(this._onPropertyEditorReady, this);
 				if (oPropertyEditor.isReady()) { // in case it's already ready
 					this.fireReady();
+				}
+
+				oPropertyEditor.attachValidationErrorChange(this._onPropertyEditorError, this);
+				if (oPropertyEditor.hasError()) {
+					this.fireValidationErrorChange({
+						hasError: true
+					});
 				}
 
 				this.firePropertyEditorChange({
@@ -552,8 +602,6 @@ sap.ui.define([
 			// use Field as control, but aria properties of rendered inner control.
 			oParent.enhanceAccessibilityState(this, mAriaProps);
 		}
-
-		return mAriaProps;
 	};
 
 	PropertyEditor.prototype.getFocusDomRef = function() {

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var L={};L.render=function(r,l){r.write("<a");r.writeControlData(l);r.writeAccessibilityState(l);if(!l.getEnabled()){r.addClass("sapUiLnkDsbl");r.writeAttribute("disabled","true");}else{r.addClass("sapUiLnk");}r.writeClasses();if(l.getTooltip_AsString()){r.writeAttributeEscaped("title",l.getTooltip_AsString());}if(l.getHref()){r.writeAttributeEscaped("href",l.getHref());}else{r.writeAttribute("href","#");}if(l.getTarget()){r.writeAttributeEscaped("target",l.getTarget());}if(!l.getEnabled()){r.writeAttribute("tabindex","-1");}else{r.writeAttribute("tabindex","0");}if(l.getWidth()){r.addStyle("width",l.getWidth());}r.writeStyles();r.write(">");if(l.getText()){r.writeEscaped(l.getText());}r.write("</a>");};return L;},true);
+sap.ui.define([],function(){"use strict";var t={};t.render=function(t,e){t.write("<a");t.writeControlData(e);t.writeAccessibilityState(e);if(!e.getEnabled()){t.addClass("sapUiLnkDsbl");t.writeAttribute("disabled","true")}else{t.addClass("sapUiLnk")}t.writeClasses();if(e.getTooltip_AsString()){t.writeAttributeEscaped("title",e.getTooltip_AsString())}if(e.getHref()){t.writeAttributeEscaped("href",e.getHref())}else{t.writeAttribute("href","#")}if(e.getTarget()){t.writeAttributeEscaped("target",e.getTarget())}if(!e.getEnabled()){t.writeAttribute("tabindex","-1")}else{t.writeAttribute("tabindex","0")}if(e.getWidth()){t.addStyle("width",e.getWidth())}t.writeStyles();t.write(">");if(e.getText()){t.writeEscaped(e.getText())}t.write("</a>")};return t},true);
+//# sourceMappingURL=LinkRenderer.js.map

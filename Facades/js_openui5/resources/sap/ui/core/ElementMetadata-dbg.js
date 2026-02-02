@@ -1,31 +1,43 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-/*global Promise */
 
 // Provides class sap.ui.core.ElementMetadata
 sap.ui.define([
 	'sap/base/Log',
 	'sap/base/util/ObjectPath',
 	'sap/ui/base/ManagedObjectMetadata',
+	'sap/ui/core/Lib',
 	'sap/ui/core/Renderer'
 ],
-	function(Log, ObjectPath, ManagedObjectMetadata, Renderer) {
+	function(Log, ObjectPath, ManagedObjectMetadata, Library, Renderer) {
 	"use strict";
 
+	/**
+	 * Control Renderer
+	 *
+	 * @typedef {object} sap.ui.core.ControlRenderer
+	 * @public
+	 *
+	 * @property {function(sap.ui.core.RenderManager, sap.ui.core.Element):void} render
+	 *  The function that renders the control
+	 * @property {1|2|4} [apiVersion] The API version of the RenderManager that are used in this renderer. See {@link
+	 *  sap.ui.core.RenderManager RenderManager} API documentation for detailed information
+	 */
 
 	/**
 	 * Creates a new metadata object for a UIElement subclass.
 	 *
 	 * @param {string} sClassName fully qualified name of the class that is described by this metadata object
-	 * @param {object} oStaticInfo static info to construct the metadata from
+	 * @param {object} oClassInfo static info to construct the metadata from
+	 * @param {sap.ui.core.Element.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @since 0.8.6
 	 * @alias sap.ui.core.ElementMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -61,6 +73,8 @@ sap.ui.define([
 
 	/**
 	 * Determines the class name of the renderer for the described control class.
+	 *
+	 * @returns {string} The renderer name
 	 */
 	ElementMetadata.prototype.getRendererName = function() {
 		return this._sRendererName;
@@ -68,6 +82,9 @@ sap.ui.define([
 
 	/**
 	 * Retrieves the renderer for the described control class
+	 *
+	 * If no renderer exists <code>undefined</code> is returned
+	 * @returns {sap.ui.core.ControlRenderer|undefined} The renderer
 	 */
 	ElementMetadata.prototype.getRenderer = function() {
 
@@ -79,26 +96,36 @@ sap.ui.define([
 		var sRendererName = this.getRendererName();
 
 		if ( !sRendererName ) {
-			return;
+			return undefined;
 		}
 
 		// check if renderer class exists already, in case it was passed inplace,
 		// and written to the global namespace during applySettings().
-		this._oRenderer = ObjectPath.get(sRendererName);
-		if (this._oRenderer) {
-			return this._oRenderer;
-		}
+		this._oRenderer = sap.ui.require(sRendererName.replace(/\./g, "/"));
 
-		// if not, try to load a module with the same name
-		Log.warning("Synchronous loading of Renderer for control class '" + this.getName() + "', due to missing Renderer dependency.", "SyncXHR", null, function() {
-			return {
-				type: "SyncXHR",
-				name: sRendererName
-			};
-		});
-		this._oRenderer =
-			sap.ui.requireSync(sRendererName.replace(/\./g, "/"))
-			|| ObjectPath.get(sRendererName);
+		/**
+		 * @deprecated
+		 */
+		(() => {
+			if (!this._oRenderer) {
+				this._oRenderer = ObjectPath.get(sRendererName);
+			}
+
+			if (!this._oRenderer) {
+				// if not, try to load a module with the same name
+				Log.warning("Synchronous loading of Renderer for control class '" + this.getName() + "', due to missing Renderer dependency.", "SyncXHR", null, function() {
+					return {
+						type: "SyncXHR",
+						name: sRendererName
+					};
+				});
+
+				// Relevant for all controls that don't maintain the renderer module in their dependencies
+				this._oRenderer =
+					sap.ui.requireSync(sRendererName.replace(/\./g, "/")) // legacy-relevant
+					|| ObjectPath.get(sRendererName);
+			}
+		})();
 
 		return this._oRenderer;
 	};
@@ -110,7 +137,7 @@ sap.ui.define([
 		this._sVisibility = oStaticInfo.visibility || "public";
 
 		// remove renderer stuff before calling super.
-		var vRenderer = oClassInfo.hasOwnProperty("renderer") ? (oClassInfo.renderer || "") : undefined;
+		var vRenderer = Object.hasOwn(oClassInfo, "renderer") ? (oClassInfo.renderer || "") : undefined;
 		delete oClassInfo.renderer;
 
 		ManagedObjectMetadata.prototype.applySettings.call(this, oClassInfo);
@@ -133,8 +160,14 @@ sap.ui.define([
 			}
 
 			// try to identify fully built renderers
-			if ( typeof vRenderer === "object" && typeof vRenderer.render === "function" ) {
-				var oRenderer = ObjectPath.get(this.getRendererName());
+			if ( (typeof vRenderer === "object" || typeof vRenderer === "function") && typeof vRenderer.render === "function" ) {
+				var oRenderer = sap.ui.require(this.getRendererName().replace(/\./g, "/"));
+				/**
+				 * @deprecated
+				 */
+				if (!oRenderer) {
+					oRenderer = ObjectPath.get(this.getRendererName());
+				}
 				if ( oRenderer === vRenderer ) {
 					// the given renderer has been exported globally already, it can be used without further action
 					this._oRenderer = vRenderer;
@@ -143,6 +176,9 @@ sap.ui.define([
 				if ( oRenderer === undefined && typeof vRenderer.extend === "function" ) {
 					// the given renderer has an 'extend' method, so it most likely has been created by one of the
 					// extend methods and it is usable already; it just has to be exported globally
+					/**
+					 * @deprecated
+					 */
 					ObjectPath.set(this.getRendererName(), vRenderer);
 					this._oRenderer = vRenderer;
 					return;
@@ -153,7 +189,6 @@ sap.ui.define([
 				vRenderer = { render : vRenderer };
 			}
 
-			var oParent = this.getParent();
 			var oBaseRenderer;
 			if ( oParent instanceof ElementMetadata ) {
 				oBaseRenderer = oParent.getRenderer();
@@ -164,7 +199,7 @@ sap.ui.define([
 
 	ElementMetadata.prototype.afterApplySettings = function() {
 		ManagedObjectMetadata.prototype.afterApplySettings.apply(this, arguments);
-		this.register && this.register(this);
+		Library._registerElement(this);
 	};
 
 	ElementMetadata.prototype.isHidden = function() {
@@ -196,7 +231,7 @@ sap.ui.define([
 	 * Returns an info object describing the drag-and-drop behavior.
 	 *
 	 * @param {string} [sAggregationName] name of the aggregation or empty.
-	 * @returns {Object} An info object about the drag-and-drop behavior.
+	 * @returns {sap.ui.core.Element.MetadataOptions.DnD} An info object about the drag-and-drop behavior.
 	 * @public
 	 * @since 1.56
 	 */

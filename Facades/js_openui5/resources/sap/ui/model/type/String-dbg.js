@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
 	"sap/base/Log",
-	"sap/ui/model/SimpleType",
+	"sap/base/util/each",
+	"sap/ui/core/Lib",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
-	"sap/ui/model/ValidateException",
-	"sap/ui/thirdparty/jquery"
-],
-	function(Log, SimpleType, FormatException, ParseException, ValidateException, jQuery) {
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(Log, each, Library, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
 
 	/**
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @alias sap.ui.model.type.String
 	 * @param {object} [oFormatOptions]
@@ -74,7 +74,7 @@ sap.ui.define([
 	 *   The target type; may be "any", "boolean", "float", "int" or "string", or a type with "any",
 	 *   "boolean", "float", "int" or "string" as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}
-	 * @returns {string|number|boolean}
+	 * @returns {string|number|boolean|null}
 	 *   The formatted output value in the target type; <code>undefined</code> and <code>null</code>
 	 *   are always formatted to <code>null</code>
 	 * @throws {sap.ui.model.FormatException}
@@ -158,14 +158,14 @@ sap.ui.define([
 	 */
 	StringType.prototype.validateValue = function (sValue) {
 		if (this.oConstraints) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			var oBundle = Library.getResourceBundleFor("sap.ui.core"),
 				aViolatedConstraints = [],
 				aMessages = [];
 
 			if (sValue === null) {
 				sValue = "";
 			}
-			jQuery.each(this.oConstraints, function (sName, vConstraint) {
+			each(this.oConstraints, function (sName, vConstraint) {
 				switch (sName) {
 					case "maxLength":
 						if (sValue.length > vConstraint) {

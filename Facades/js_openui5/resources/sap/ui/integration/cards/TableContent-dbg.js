@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,7 @@ sap.ui.define([
 	"./BaseListContent",
 	"./TableContentRenderer",
 	"sap/ui/integration/library",
+	"sap/f/cards/loading/TablePlaceholder",
 	"sap/m/Table",
 	"sap/m/Column",
 	"sap/m/ColumnListItem",
@@ -15,16 +16,20 @@ sap.ui.define([
 	"sap/m/Link",
 	"sap/m/ProgressIndicator",
 	"sap/m/ObjectIdentifier",
-	"sap/m/ObjectStatus",
+	"sap/ui/integration/controls/ObjectStatus",
 	"sap/m/Avatar",
 	"sap/ui/core/library",
 	"sap/m/library",
 	"sap/ui/integration/util/BindingResolver",
-	"sap/ui/integration/util/BindingHelper"
+	"sap/ui/integration/util/BindingHelper",
+	"sap/base/Log",
+	"sap/ui/integration/util/SorterHelper"
+
 ], function (
 	BaseListContent,
 	TableContentRenderer,
 	library,
+	TablePlaceholder,
 	ResponsiveTable,
 	Column,
 	ColumnListItem,
@@ -37,12 +42,20 @@ sap.ui.define([
 	coreLibrary,
 	mobileLibrary,
 	BindingResolver,
-	BindingHelper
+	BindingHelper,
+	Log,
+	SorterHelper
 ) {
 	"use strict";
 
 	// shortcut for sap.f.AvatarSize
 	var AvatarSize = mobileLibrary.AvatarSize;
+
+	// shortcut for sap.m.AvatarColor
+	var AvatarColor = mobileLibrary.AvatarColor;
+
+	// shortcut for sap.m.AvatarImageFitType
+	var AvatarImageFitType = mobileLibrary.AvatarImageFitType;
 
 	// shortcut for sap.ui.core.VerticalAlign
 	var VerticalAlign = coreLibrary.VerticalAlign;
@@ -51,7 +64,8 @@ sap.ui.define([
 	var ListSeparators = mobileLibrary.ListSeparators;
 	var ListType = mobileLibrary.ListType;
 
-	var AreaType = library.AreaType;
+	// shortcuts for sap.ui.integration.CardActionArea
+	var ActionArea = library.CardActionArea;
 
 	/**
 	 * Constructor for a new <code>TableContent</code>.
@@ -71,7 +85,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -79,8 +93,21 @@ sap.ui.define([
 	 * @alias sap.ui.integration.cards.TableContent
 	 */
 	var TableContent = BaseListContent.extend("sap.ui.integration.cards.TableContent", {
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: TableContentRenderer
 	});
+
+	/**
+	 * Called on before rendering of the control.
+	 * @private
+	 */
+	TableContent.prototype.onBeforeRendering = function () {
+		BaseListContent.prototype.onBeforeRendering.apply(this, arguments);
+
+		this._getTable().setBackgroundDesign(this.getDesign());
+	};
 
 	TableContent.prototype.exit = function () {
 		BaseListContent.prototype.exit.apply(this, arguments);
@@ -91,8 +118,21 @@ sap.ui.define([
 		}
 	};
 
-	TableContent.prototype._getTable = function () {
+	/**
+	 * @override
+	 */
+	TableContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		var oCard = this.getCardInstance(),
+			iContentMinItems = oCard.getContentMinItems(oConfiguration);
 
+		return new TablePlaceholder({
+			minItems: iContentMinItems !== null ? iContentMinItems : 2,
+			itemHeight: TableContentRenderer.getItemMinHeight(oConfiguration, this) + "rem",
+			columns: oConfiguration.row ? oConfiguration.row.columns.length || 2 : 2
+		});
+	};
+
+	TableContent.prototype._getTable = function () {
 		if (this._bIsBeingDestroyed) {
 			return null;
 		}
@@ -102,8 +142,27 @@ sap.ui.define([
 		if (!oTable) {
 			oTable = new ResponsiveTable({
 				id: this.getId() + "-Table",
-				showSeparators: ListSeparators.None
+				showSeparators: ListSeparators.None,
+				ariaLabelledBy: this.getHeaderTitleId()
 			});
+
+			oTable.addEventDelegate({
+				onfocusin: function (oEvent) {
+					if (!(oEvent.srcControl instanceof ColumnListItem)) {
+						return;
+					}
+
+					var fItemBottom = oEvent.target.getBoundingClientRect().bottom;
+					var fContentBottom = this.getDomRef().getBoundingClientRect().bottom;
+					var fDist = Math.abs(fItemBottom - fContentBottom);
+					var ROUNDED_CORNER_PX_THRESHOLD = 10;
+
+					if (fDist < ROUNDED_CORNER_PX_THRESHOLD) {
+						oEvent.srcControl.addStyleClass("sapUiIntTCIRoundedCorners");
+					}
+				}
+			}, this);
+
 			this.setAggregation("_content", oTable);
 		}
 
@@ -111,36 +170,107 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for configuring a <code>sap.ui.integration.cards.TableContent</code>.
-	 *
-	 * @public
-	 * @param {Object} oConfiguration Configuration object used to create the internal table.
-	 * @returns {sap.ui.integration.cards.TableContent} Pointer to the control instance to allow method chaining.
+	 * @override
 	 */
-	TableContent.prototype.setConfiguration = function (oConfiguration) {
-		BaseListContent.prototype.setConfiguration.apply(this, arguments);
+	TableContent.prototype.applyConfiguration = function () {
+		BaseListContent.prototype.applyConfiguration.apply(this, arguments);
+
+		var oConfiguration = this.getParsedConfiguration();
 
 		if (!oConfiguration) {
-			return this;
+			return;
 		}
 
 		if (oConfiguration.rows && oConfiguration.columns) {
 			this._setStaticColumns(oConfiguration.rows, oConfiguration.columns);
-			return this;
+			return;
 		}
 
 		if (oConfiguration.row && oConfiguration.row.columns) {
 			this._setColumns(oConfiguration.row);
 		}
+	};
 
-		return this;
+	/**
+	 * @override
+	 */
+	TableContent.prototype.getStaticConfiguration = function () {
+		var aRows = this.getInnerList().getItems(),
+			oConfiguration = this.getParsedConfiguration(),
+			bHasGroups = aRows[0] && aRows[0].isA("sap.m.GroupHeaderListItem"),
+			aHeaders = [],
+			aResolvedRows = [],
+			aResolvedGroups = [],
+			oResolvedRow,
+			oResolvedGroup;
+
+		(oConfiguration.row.columns || []).forEach(function (oColumn) {
+			oColumn = BindingResolver.resolveValue(oColumn, this, this.getBindingContext().getPath());
+			aHeaders.push(oColumn);
+		}.bind(this));
+
+		aRows.forEach(function (oRow) {
+			if (oRow.isA("sap.m.GroupHeaderListItem")) {
+				if (oResolvedGroup) {
+					aResolvedGroups.push(oResolvedGroup);
+				}
+
+				aResolvedRows = [];
+				oResolvedGroup = {
+					title: oRow.getTitle(),
+					rows: aResolvedRows
+				};
+			} else {
+				oResolvedRow = BindingResolver.resolveValue(oConfiguration.row, this, oRow.getBindingContext().getPath());
+
+				(oResolvedRow.columns || []).forEach(function (oColumn) {
+					delete oColumn.title;
+					delete oColumn.width;
+					delete oColumn.hAlign;
+					delete oColumn.visible;
+					delete oColumn.identifier;
+
+					if (oColumn.icon && oColumn.icon.src) {
+						oColumn.icon.src = this._oIconFormatter.formatSrc(oColumn.icon.src);
+					}
+				}.bind(this));
+
+				aResolvedRows.push(oResolvedRow);
+			}
+		}.bind(this));
+
+		if (oResolvedGroup) {
+			aResolvedGroups.push(oResolvedGroup);
+		}
+
+		var oStaticConfiguration = {
+			headers: aHeaders
+		};
+
+		if (bHasGroups) {
+			oStaticConfiguration.groups = aResolvedGroups;
+		} else {
+			oStaticConfiguration.groups = [
+				{
+					rows: aResolvedRows
+				}
+			];
+		}
+
+		return oStaticConfiguration;
+	};
+
+	TableContent.prototype.getItemsLength = function () {
+		return this._getTable().getItems().filter((item) => !item.isA("sap.m.GroupHeaderListItem")).length;
 	};
 
 	/**
 	 * Handler for when data is changed.
 	 */
 	TableContent.prototype.onDataChanged = function () {
-		this._checkHiddenNavigationItems(this.getConfiguration().row);
+		BaseListContent.prototype.onDataChanged.apply(this, arguments);
+
+		this._checkHiddenNavigationItems(this.getParsedConfiguration().row);
 	};
 
 	/**
@@ -167,17 +297,32 @@ sap.ui.define([
 
 		this._oItemTemplate = new ColumnListItem({
 			cells: aCells,
-			vAlign: VerticalAlign.Middle
+			vAlign: VerticalAlign.Middle,
+			highlight: oRow.highlight,
+			highlightText: oRow.highlightText
 		});
 
-		this._oActions.setAreaType(AreaType.ContentItem);
-		this._oActions.attach(oRow, this);
+		this._oActions.attach({
+			area: ActionArea.ContentItem,
+			actions: oRow.actions,
+			control: this,
+			actionControl: this._oItemTemplate,
+			enabledPropertyName: "type",
+			enabledPropertyValue: ListType.Active,
+			disabledPropertyValue: ListType.Inactive
+		});
+
+		var oGroup = this.getParsedConfiguration().group;
+
+		if (oGroup) {
+			this._oSorter = SorterHelper.getGroupSorter(oGroup);
+		}
 
 		var oBindingInfo = {
-			template: this._oItemTemplate
+			template: this._oItemTemplate,
+			sorter: this._oSorter
 		};
-		this._filterHiddenNavigationItems(oRow, oBindingInfo);
-		this._bindAggregation("items", oTable, oBindingInfo);
+		this._bindAggregationToControl("items", oTable, oBindingInfo);
 	};
 
 	TableContent.prototype._setStaticColumns = function (aRows, aColumns) {
@@ -193,9 +338,10 @@ sap.ui.define([
 
 		aRows.forEach(function (oRow) {
 			var oItem = new ColumnListItem({
-				vAlign: VerticalAlign.Middle
+				vAlign: VerticalAlign.Middle,
+				highlight: oRow.highlight,
+				highlightText: oRow.highlightText
 			});
-
 
 			if (oRow.cells && Array.isArray(oRow.cells)) {
 				for (var j = 0; j < oRow.cells.length; j++) {
@@ -203,20 +349,16 @@ sap.ui.define([
 				}
 			}
 
-			// TO DO: move this part to CardActions
 			if (oRow.actions && Array.isArray(oRow.actions)) {
-				// for now allow only 1 action of type navigation
-				var oAction = oRow.actions[0];
-
-				if (oAction.type === ListType.Navigation) {
-					oItem.setType(ListType.Navigation);
-				}
-
-				if (oAction.url) {
-					oItem.attachPress(function () {
-						window.open(oAction.url, oAction.target || "_blank");
-					});
-				}
+				this._oActions.attach({
+					area: ActionArea.ContentItem,
+					actions: oRow.actions,
+					control: this,
+					actionControl: oItem,
+					enabledPropertyName: "type",
+					enabledPropertyValue: ListType.Active,
+					disabledPropertyValue: ListType.Inactive
+				});
 			}
 			oTable.addItem(oItem);
 		}.bind(this));
@@ -228,69 +370,85 @@ sap.ui.define([
 	/**
 	 * Factory method that returns a control from the correct type for each column.
 	 *
-	 * @param {Object} oColumn Object with settings from the schema.
+	 * @param {object} oColumn Object with settings from the schema.
 	 * @returns {sap.ui.core.Control} The control of the proper type.
 	 * @private
 	 */
 	TableContent.prototype._createCell = function (oColumn) {
-
-		if (oColumn.url) {
-			return new Link({
-				text: oColumn.value,
-				href: oColumn.url,
-				target: oColumn.target || "_blank"
-			});
-		}
+		var oControl;
 
 		if (oColumn.identifier) {
+			if (typeof oColumn.identifier == "object") {
+				if (!BindingHelper.isBindingInfo(oColumn.identifier)) {
+					Log.warning("Usage of object type for column property 'identifier' is deprecated.", null, "sap.ui.integration.widgets.Card");
+				}
 
-			var vTitleActive;
-
-			if (oColumn.identifier.url) {
-				vTitleActive = BindingHelper.formattedProperty(oColumn.identifier.url, function (sValue) {
-					if (typeof sValue === "string") {
-						return true;
-					}
-					return false;
-				});
+				if (oColumn.identifier.url) {
+					oColumn.actions = [{
+						type: "Navigation",
+						parameters: {
+							url: oColumn.identifier.url,
+							target: oColumn.identifier.target
+						}
+					}];
+				}
 			}
 
-			var oIdentifier = new ObjectIdentifier({
+			oControl = new ObjectIdentifier({
 				title: oColumn.value,
-				titleActive: vTitleActive
+				text: oColumn.additionalText
 			});
 
-			if (oColumn.identifier.url) {
-				// TO DO: move this part to CardActions
-				oIdentifier.attachTitlePress(function (oEvent) {
+			if (oColumn.actions) {
+				oControl.setTitleActive(true);
 
-					var oSource = oEvent.getSource(),
-						oBindingContext = oSource.getBindingContext(),
-						oModel = oSource.getModel(),
-						sPath,
-						sUrl,
-						sTarget;
-
-					if (oBindingContext) {
-						sPath = oBindingContext.getPath();
-					}
-
-					sUrl = BindingResolver.resolveValue(oColumn.identifier.url, oModel, sPath);
-					sTarget = BindingResolver.resolveValue(oColumn.identifier.target, oModel, sPath);
-
-					if (sUrl) {
-						window.open(sUrl, sTarget || "_blank");
-					}
+				this._oActions.attach({
+					area: ActionArea.ContentItemDetail,
+					actions: oColumn.actions,
+					control: this,
+					actionControl: oControl,
+					enabledPropertyName: "titleActive",
+					eventName: "titlePress"
 				});
 			}
 
-			return oIdentifier;
+			return oControl;
+		}
+
+		if (oColumn.url) {
+			Log.warning("Usage of column property 'url' is deprecated. Use card actions for navigation.", null, "sap.ui.integration.widgets.Card");
+
+			oColumn.actions = [{
+				type: "Navigation",
+				parameters: {
+					url: oColumn.url,
+					target: oColumn.target
+				}
+			}];
+		}
+
+		if (oColumn.actions) {
+			oControl = new Link({
+				text: oColumn.value
+			});
+
+			this._oActions.attach({
+				area: ActionArea.ContentItemDetail,
+				actions: oColumn.actions,
+				control: this,
+				actionControl: oControl,
+				enabledPropertyName: "enabled"
+			});
+
+			return oControl;
 		}
 
 		if (oColumn.state) {
 			return new ObjectStatus({
 				text: oColumn.value,
-				state: oColumn.state
+				state: oColumn.state,
+				showStateIcon: oColumn.showStateIcon,
+				customIcon: oColumn.customStateIcon
 			});
 		}
 
@@ -301,16 +459,20 @@ sap.ui.define([
 		}
 
 		if (oColumn.icon) {
-			var vSrc = BindingHelper.formattedProperty(oColumn.icon.src, function (sValue) {
-				return this._oIconFormatter.formatSrc(sValue, this._sAppId);
+			var oSrc = BindingHelper.formattedProperty(oColumn.icon.src, function (sValue) {
+				return this._oIconFormatter.formatSrc(sValue);
 			}.bind(this));
+			var vInitials = oColumn.icon.initials || oColumn.icon.text;
 
 			return new Avatar({
-				src: vSrc,
+				src: oSrc,
 				displayShape: oColumn.icon.shape,
 				displaySize: oColumn.icon.size || AvatarSize.XS,
 				tooltip: oColumn.icon.alt,
-				initials: oColumn.icon.text
+				initials: vInitials,
+				backgroundColor: oColumn.icon.backgroundColor || (vInitials ? undefined : AvatarColor.Transparent),
+				imageFitType: oColumn.icon.fitType || AvatarImageFitType.Cover,
+				visible: oColumn.icon.visible
 			}).addStyleClass("sapFCardIcon");
 		}
 
@@ -324,7 +486,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * @overwrite
+	 * @override
 	 * @returns {sap.m.Table} The inner table.
 	 */
 	TableContent.prototype.getInnerList = function () {

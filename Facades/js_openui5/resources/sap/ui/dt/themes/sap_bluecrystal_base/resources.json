@@ -1,0 +1,60 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 166,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ContextMenu.less",
+			"size": 2355,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Overlay.less",
+			"size": 4001,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 5698,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/ui/dt/themes/sap_bluecrystal_base/library-parameters.json",
+			"size": 428,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.css",
+			"size": 5691,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.less",
+			"size": 7049,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.source.less",
+			"size": 343,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "resources.json",
+			"size": 1096
+		},
+		{
+			"name": "shared.less",
+			"size": 65,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		}
+	]
+}

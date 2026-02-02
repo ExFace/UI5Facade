@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Renderer","sap/m/HBoxRenderer"],function(R,H){"use strict";var B=R.extend.call(H,'sap.ui.rta.toolbar.BaseRenderer');B.render=function(r,c){r.addClass('sapUiRtaToolbar');r.addClass("color_"+c.getColor());c.type&&r.addClass("type_"+c.type);var z=c.getZIndex();z&&r.addStyle("z-index",z);H.render(r,c);};return B;});
+sap.ui.define(["sap/ui/core/Renderer","sap/m/HBoxRenderer"],function(e,r){"use strict";var a=e.extend.call(r,"sap.ui.rta.toolbar.BaseRenderer");a.apiVersion=1;a.render=function(e,a){e.class("sapUiRtaToolbar");e.class(`color_${a.getColor()}`);a.type&&e.class(`type_${a.type}`);var s=a.getZIndex();s&&e.style("z-index",s);r.render(e,a)};return a});
+//# sourceMappingURL=BaseRenderer.js.map

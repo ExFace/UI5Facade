@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/test/_LogCollector","sap/base/Log","sap/ui/test/matchers/_Visitor"],function(_,L,a){"use strict";var l=L.getLogger("sap.ui.test.matchers.Ancestor");var v=new a();return function(A,d){return function(c){if(!A){l.debug("No ancestor was defined so no controls will be filtered.");return true;}var r=v.isMatching(c,function(C){if(C===c){return false;}if(typeof A==="string"){return C&&C.getId()===A;}return C===A;},d);l.debug("Control '"+c+(r?"' has ":"' does not have ")+(d?"direct ":"")+"ancestor '"+A);return r;};};},true);
+sap.ui.define(["sap/base/Log","sap/ui/test/matchers/_Visitor"],function(e,t){"use strict";var r=e.getLogger("sap.ui.test.matchers.Ancestor");var n=new t;return function(e,t){return function(s){if(!e){r.debug("No ancestor was defined so no controls will be filtered.");return true}var i=n.isMatching(s,function(t){if(t===s){return false}if(typeof e==="string"){return t&&t.getId()===e}return t===e},t);r.debug("Control '"+s+(i?"' has ":"' does not have ")+(t?"direct ":"")+"ancestor '"+e);return i}}},true);
+//# sourceMappingURL=Ancestor.js.map

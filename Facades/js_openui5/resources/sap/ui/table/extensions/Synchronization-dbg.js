@@ -1,18 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"./ExtensionBase", "../Table", "../utils/TableUtils", "../library", "sap/base/Log"
-], function(ExtensionBase, Table, TableUtils, library, Log) {
+	"./ExtensionBase",
+	"../utils/TableUtils",
+	"../library",
+	"sap/base/Log",
+	"sap/ui/core/RenderManager"
+], function(ExtensionBase, TableUtils, library, Log, RenderManager) {
 	"use strict";
 
 	/**
 	 * Provides utility functions.
 	 */
-	var ExtensionHelper = {
+	const ExtensionHelper = {
 		/**
 		 * Sets the selection state of a row.
 		 *
@@ -20,11 +24,11 @@ sap.ui.define([
 		 * @param {boolean} bSelected Whether the row should be selected.
 		 */
 		setRowSelection: function(iIndex, bSelected) {
-			var oTable = this.getTable();
-			var oRow = oTable.getRows()[iIndex];
+			const oTable = this.getTable();
+			const oRow = oTable.getRows()[iIndex];
 
 			if (oRow && bSelected != null) {
-				TableUtils.toggleRowSelection(oTable, oRow.getIndex(), bSelected);
+				TableUtils.toggleRowSelection(oTable, oRow, bSelected);
 			}
 		},
 
@@ -35,8 +39,8 @@ sap.ui.define([
 		 * @param {boolean} bHovered Whether the row should be hovered.
 		 */
 		setRowHover: function(iIndex, bHovered) {
-			var oTable = this.getTable();
-			var oRow = oTable.getRows()[iIndex];
+			const oTable = this.getTable();
+			const oRow = oTable.getRows()[iIndex];
 
 			if (oRow && bHovered != null) {
 				oRow._setHovered(bHovered);
@@ -44,31 +48,70 @@ sap.ui.define([
 		},
 
 		addVerticalScrollingListener: function(mConfig) {
-			var oTable = this.getTable();
-			var oScrollExtension = oTable._getScrollExtension();
-			var ScrollDirection = oScrollExtension.constructor.ScrollDirection;
+			const oTable = this.getTable();
+			const oSyncExtension = oTable._getSyncExtension();
+			const oScrollExtension = oTable._getScrollExtension();
+			const mOptions = {scrollDirection: oScrollExtension.constructor.ScrollDirection.VERTICAL};
 
-			if (mConfig) {
-				oScrollExtension.registerForMouseWheel(mConfig.wheelAreas, {scrollDirection: ScrollDirection.VERTICAL});
-				oScrollExtension.registerForTouch(mConfig.touchAreas, {scrollDirection: ScrollDirection.VERTICAL});
+			ExtensionHelper.removeVerticalScrollingListener.call(this);
+
+			if (!mConfig) {
+				return;
+			}
+
+			if (mConfig.wheelAreas) {
+				oSyncExtension._mMouseWheelEventListener = oScrollExtension.registerForMouseWheel(mConfig.wheelAreas, mOptions);
+				oSyncExtension._mMouseWheelEventListener.areas = mConfig.wheelAreas;
+			}
+
+			if (mConfig.touchAreas) {
+				oSyncExtension._mTouchEventListener = oScrollExtension.registerForTouch(mConfig.touchAreas, mOptions);
+				oSyncExtension._mTouchEventListener.areas = mConfig.touchAreas;
+			}
+		},
+
+		removeVerticalScrollingListener: function() {
+			const oTable = this.getTable();
+			const oSyncExtension = oTable._getSyncExtension();
+
+			function removeEventListener(aTargets, mEventListenerMap) {
+				for (const sEventName in mEventListenerMap) {
+					const fnListener = mEventListenerMap[sEventName];
+					if (fnListener) {
+						for (let i = 0; i < aTargets.length; i++) {
+							aTargets[i].removeEventListener(sEventName, fnListener);
+						}
+					}
+				}
+			}
+
+			if (oSyncExtension._mMouseWheelEventListener) {
+				removeEventListener(oSyncExtension._mMouseWheelEventListener.areas, oSyncExtension._mMouseWheelEventListener);
+				delete oSyncExtension._mMouseWheelEventListener;
+			}
+
+			if (oSyncExtension._mTouchEventListener) {
+				removeEventListener(oSyncExtension._mTouchEventListener.areas, oSyncExtension._mTouchEventListener);
+				delete oSyncExtension._mTouchEventListener;
 			}
 		},
 
 		placeVerticalScrollbarAt: function(oHTMLElement) {
-			var oTable = this.getTable();
-			var oScrollExtension = oTable._getScrollExtension();
+			const oTable = this.getTable();
+			const oScrollExtension = oTable._getScrollExtension();
 
 			if (!oHTMLElement) {
 				throw new Error("The HTMLElement in which the vertical scrollbar should be placed must be specified.");
 			}
 
 			if (!oScrollExtension.isVerticalScrollbarExternal()) {
-				var oRenderManager = sap.ui.getCore().createRenderManager();
+				const oRenderManager = new RenderManager().getInterface();
 				oTable.getRenderer().renderVSbExternal(oRenderManager, oTable);
 				oRenderManager.flush(oHTMLElement);
 
 				// Notify ScrollExtension and table that the vertical scrollbar is now rendered outside the table.
-				var oExternalVerticalScrollbar = oHTMLElement.querySelector("#" + oTable.getId() + "-" + library.SharedDomRef.VerticalScrollBar);
+				const sId = oTable.getId() + "-" + library.SharedDomRef.VerticalScrollBar;
+				const oExternalVerticalScrollbar = oHTMLElement.querySelector('[id="' + sId + '"]');
 				oScrollExtension.markVerticalScrollbarAsExternal(oExternalVerticalScrollbar);
 
 				// Rendering the vertical scrollbar outside the table makes it necessary to remove the currently existing internal scrollbar from the
@@ -76,7 +119,7 @@ sap.ui.define([
 				oTable.invalidate();
 			} else {
 				// To avoid table invalidation on every call of this method, the scrollbar that is still in memory is inserted back into the DOM.
-				oHTMLElement.appendChild(oScrollExtension.getVerticalScrollbar());
+				oHTMLElement.appendChild(oScrollExtension.getVerticalScrollbar().parentElement);
 
 				// If an element is removed from DOM and is inserted again, the scroll position is reset to 0 and needs to be restored.
 				oScrollExtension.restoreVerticalScrollPosition();
@@ -84,7 +127,7 @@ sap.ui.define([
 		},
 
 		renderHorizontalScrollbar: function(oRM, sId, iScrollWidth) {
-			var oTable = this.getTable();
+			const oTable = this.getTable();
 
 			if (sId == null) {
 				throw new Error("The id must be specified.");
@@ -94,11 +137,11 @@ sap.ui.define([
 		}
 	};
 
-	var ExtensionDelegate = {
+	const ExtensionDelegate = {
 		onBeforeRendering: function(oEvent) {
-			var oSyncExtension = this._getSyncExtension();
-			var bRenderedRows = oEvent && oEvent.isMarked("renderRows");
-			var oContentDomRef = this.getDomRef("tableCCnt");
+			const oSyncExtension = this._getSyncExtension();
+			const bRenderedRows = oEvent && oEvent.isMarked("renderRows");
+			const oContentDomRef = this.getDomRef("tableCCnt");
 
 			if (!bRenderedRows && oContentDomRef && oSyncExtension._onTableContainerScrollEventHandler) {
 				oContentDomRef.removeEventListener("scroll", oSyncExtension._onTableContainerScrollEventHandler);
@@ -107,9 +150,9 @@ sap.ui.define([
 		},
 
 		onAfterRendering: function(oEvent) {
-			var oScrollExtension = this._getScrollExtension();
-			var bRenderedRows = oEvent && oEvent.isMarked("renderRows");
-			var oContentDomRef = this.getDomRef("tableCCnt");
+			const oScrollExtension = this._getScrollExtension();
+			const bRenderedRows = oEvent && oEvent.isMarked("renderRows");
+			const oContentDomRef = this.getDomRef("tableCCnt");
 
 			// On a full re-rendering of the table, the newly rendered scrollbar would have the correct attributes already. The external
 			// scrollbar is independent from the tables rendering and therefore needs to be updated after rendering.
@@ -119,7 +162,9 @@ sap.ui.define([
 			}
 
 			if (!bRenderedRows) {
-				var oSyncExtension = this._getSyncExtension();
+				const oSyncExtension = this._getSyncExtension();
+
+				oSyncExtension.syncInnerVerticalScrollPosition(oContentDomRef.scrollTop);
 
 				if (!oSyncExtension._onTableContainerScrollEventHandler) {
 					oSyncExtension._onTableContainerScrollEventHandler = function(oEvent) {
@@ -140,12 +185,12 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table that allows synchronization with a table.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Synchronization
 	 */
-	var SyncExtension = ExtensionBase.extend("sap.ui.table.extensions.Synchronization",
+	const SyncExtension = ExtensionBase.extend("sap.ui.table.extensions.Synchronization",
 		/** @lends sap.ui.table.extensions.Synchronization.prototype */ {
 		/**
 		 * @override
@@ -158,6 +203,7 @@ sap.ui.define([
 				syncRowSelection: ExtensionHelper.setRowSelection.bind(this),
 				syncRowHover: ExtensionHelper.setRowHover.bind(this),
 				registerVerticalScrolling: ExtensionHelper.addVerticalScrollingListener.bind(this),
+				deregisterVerticalScrolling: ExtensionHelper.removeVerticalScrollingListener.bind(this),
 				placeVerticalScrollbarAt: ExtensionHelper.placeVerticalScrollbarAt.bind(this),
 				renderHorizontalScrollbar: ExtensionHelper.renderHorizontalScrollbar.bind(this)
 			};
@@ -172,12 +218,13 @@ sap.ui.define([
 		 * @inheritDoc
 		 */
 		destroy: function() {
-			var oTable = this.getTable();
+			const oTable = this.getTable();
 
 			if (oTable) {
 				oTable.removeEventDelegate(this._delegate);
 			}
 
+			ExtensionHelper.removeVerticalScrollingListener.call(this);
 			this._delegate = null;
 			this._oPublicInterface = null;
 
@@ -236,7 +283,7 @@ sap.ui.define([
 	/**
 	 * Synchronizes the layout information.
 	 *
-	 * @param {{top:number, headerHeight:number, contentHeight:number}} mLayoutData The layout information.
+	 * @param {{top: number, headerHeight: number, contentHeight: number}} mLayoutData The layout information.
 	 */
 	SyncExtension.prototype.syncLayout = function(mLayoutData) {
 		this.callInterfaceHook("layout", arguments);
@@ -251,7 +298,7 @@ sap.ui.define([
 	 * @private
 	 */
 	SyncExtension.prototype.callInterfaceHook = function(sHook, oArguments) {
-		var oCall = {};
+		const oCall = {};
 		oCall[sHook] = Array.prototype.slice.call(oArguments);
 		Log.debug("sap.ui.table.extensions.Synchronization", "Sync " + sHook + "(" + oCall[sHook] + ")", this.getTable());
 		return TableUtils.dynamicCall(this._oPublicInterface, oCall);
@@ -276,6 +323,7 @@ sap.ui.define([
 	 *   <li>syncRowSelection: function(index:int, selected:boolean):void</li>
 	 *   <li>syncRowHover: function(index:int, selected:boolean):void</li>
 	 *   <li>registerVerticalScrolling: function({wheelAreas:HTMLElement[], touchAreas:HTMLElement[]}):void</li>
+	 *   <li>deregisterVerticalScrolling: function():void</li>
 	 *   <li>placeVerticalScrollbarAt: function(container:HTMLElement):void</li>
 	 *   <li>renderHorizontalScrollbar: function(renderManager:sap.ui.core.RenderManager, id:string, scrollWidth:int):void</li>
 	 * </ul>
@@ -287,8 +335,6 @@ sap.ui.define([
 	 * The <code>Synchronization</code> extension has no mechanisms to avoid infinite synchronization loops. This means that the
 	 * <code>Synchronization</code> extension can also call the corresponding hook if a synchronization method of this interface is used. It is the
 	 * responsibility of the user of the synchronization interface to avoid endless loops.
-	 * Registering HTMLElements for event handling by the table (e.g. via <code>registerVerticalScrolling</code>) can cause memory leaks. To avoid
-	 * this, make sure to avoid registering the same elements multiple times.
 	 *
 	 * @example
 	 * // Add a row selection hook.

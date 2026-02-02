@@ -1,61 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/m/Label",
-	"sap/m/Dialog",
+	"sap/ui/core/Element",
+	"sap/ui/core/Fragment",
 	"sap/ui/model/json/JSONModel",
-	"sap/m/SearchField",
-	"sap/m/Button",
-	"sap/m/Toolbar",
-	"sap/m/ToolbarSpacer",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
-	"sap/m/List",
-	"sap/m/CustomListItem",
-	"sap/m/ScrollContainer",
+	"sap/ui/model/resource/ResourceModel",
 	"sap/ui/model/Sorter",
-	"sap/base/Log",
-	"sap/m/VBox",
-	"sap/ui/rta/Utils",
-	"sap/m/library",
-	"sap/ui/layout/VerticalLayout",
-	"sap/m/Text"
+	"sap/ui/rta/Utils"
 ], function(
 	ManagedObject,
-	Label,
-	Dialog,
+	Element,
+	Fragment,
 	JSONModel,
-	SearchField,
-	Button,
-	Toolbar,
-	ToolbarSpacer,
 	Filter,
 	FilterOperator,
-	List,
-	ListItem,
-	ScrollContainer,
+	ResourceModel,
 	Sorter,
-	Log,
-	VBox,
-	Utils,
-	mobileLibrary,
-	VerticalLayout,
-	Text
+	Utils
 ) {
 	"use strict";
-
-	// shortcut for sap.m.ButtonType
-	var ButtonType = mobileLibrary.ButtonType;
-
-	// shortcut for sap.m.ListType
-	var ListType = mobileLibrary.ListType;
-
-	// shortcut for sap.m.LabelDesign
-	var LabelDesign = mobileLibrary.LabelDesign;
 
 	/**
 	 * Constructor for a new sap.ui.rta.plugin.additionalElements.AddElementsDialog control.
@@ -63,36 +32,32 @@ sap.ui.define([
 	 * @class Context - Dialog for available Fields in Runtime Authoring
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.44
 	 * @alias sap.ui.rta.plugin.additionalElements.AddElementsDialog
-	 * @experimental Since 1.44. This class is experimental and provides only limited functionality. Also the API might be
-	 *			   changed in future.
 	 */
-	var AddElementsDialog = ManagedObject.extend("sap.ui.rta.plugin.additionalElements.AddElementsDialog", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				customFieldEnabled : {
+	const AddElementsDialog = ManagedObject.extend("sap.ui.rta.plugin.additionalElements.AddElementsDialog", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				businessContextVisible: {
 					type: "boolean",
 					defaultValue: false
 				},
-				businessContextVisible : {
-					type: "boolean",
-					defaultValue: false
-				},
-				title : {
+				title: {
 					type: "string"
 				}
 			},
-			events : {
-				opened : {},
-				openCustomField : {}
+			events: {
+				opened: {},
+				triggerExtensibilityAction: {}
 			}
 		}
 	});
+
+	let oRTAResourceModel;
 
 	/**
 	 * Initialize the Dialog
@@ -100,215 +65,95 @@ sap.ui.define([
 	 * @private
 	 */
 	AddElementsDialog.prototype.init = function() {
-		// Get messagebundle.properties for sap.ui.rta
-		this._oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.rta");
-		this._bAscendingSortOrder = false;
-		// sap.m.Dialog shouldn't have no parent or a rendered parent
-		// otherwise invalidate/filter/... is not working correctly
-		this._oDialog = new Dialog().addStyleClass("sapUIRtaFieldRepositoryDialog");
-		this._oDialog.addStyleClass(Utils.getRtaStyleClassName());
-		this._oDialog.removeStyleClass("sapUiPopupWithPadding");
-		this._oDialog.setModel(new JSONModel({
-			elements: []
-		}));
+		this._oDialogPromise = Fragment.load({
+			id: this.getId(),
+			name: "sap.ui.rta.plugin.additionalElements.AddElementsDialog",
+			controller: this
+		});
 
-		var aContent = this._createContent();
-		var aButtons = this._createButtons();
-		aContent.forEach(function(oContent) {
-			this._oDialog.addContent(oContent);
-		}, this);
-		aButtons.forEach(function(oButton) {
-			this._oDialog.addButton(oButton);
-		}, this);
-		this._oDialog.setInitialFocus(this._oInput);
+		this._oDialogModel = new JSONModel({
+			elements: [],
+			customFieldButtonText: "",
+			customFieldButtonVisible: false,
+			businessContextVisible: false,
+			customFieldButtonTooltip: "",
+			businessContextTexts: [{text: ""}], // empty element in first place to be replaced by the headerText (see: addExtensibilityInfo)
+			extensibilityMenuButtonActive: false,
+			extensibilityMenuButtonText: "",
+			extensibilityMenuButtonTooltip: "",
+			extensibilityOptions: []
+		});
+
+		this._oDialogPromise.then(function(oDialog) {
+			oDialog.setModel(this._oDialogModel);
+			oRTAResourceModel ||= new ResourceModel({bundleName: "sap.ui.rta.messagebundle"});
+			oDialog.setModel(oRTAResourceModel, "i18n");
+
+			oDialog.addStyleClass(Utils.getRtaStyleClassName());
+
+			this._oDialogModel.setProperty("/listNoDataText", oRTAResourceModel.getProperty("MSG_NO_FIELDS").toLowerCase());
+
+			// retrieve List to set the sorting for the 'items' aggregation, since sap.ui.model.Sorter
+			// does not support binding to a model property...
+			this._oList = Element.getElementById(`${this.getId()}--rta_addElementsDialogList`);
+			this._bDescendingSortOrder = false;
+		}.bind(this));
 	};
 
-	AddElementsDialog.prototype.exit = function() {
-		this._oDialog.destroy();
+	AddElementsDialog.prototype.exit = function(...aArgs) {
+		this._oDialogPromise.then(function(oDialog) {
+			oDialog.destroy();
+		});
+
+		if (ManagedObject.prototype.exit) {
+			ManagedObject.prototype.exit.apply(this, aArgs);
+		}
 	};
 
-	/**
-	 * Create the Content of the Dialog
-	 *
-	 * @returns {object} list containes inputList and oScrollContainer objects
-	 * @private
-	 */
-	AddElementsDialog.prototype._createContent = function() {
-		// SearchField
-		this._oInput = new SearchField({
-			width : "100%",
-			liveChange : [this._updateModelFilter, this]
-		});
-
-		// Button for sorting the List
-		var oResortButton = new Button({
-			text : "",
-			icon : "sap-icon://sort",
-			press : [this._resortList, this]
-		});
-
-		// Button for creating Custom Fields
-		this._oCustomFieldButton = new Button({
-			text : "",
-			icon : "sap-icon://add",
-			tooltip : this._oTextResources.getText("BTN_FREP_CCF"),
-			enabled : this.getCustomFieldEnabled(),
-			press : [this._redirectToCustomFieldCreation, this]
-		});
-
-		// Toolbar
-		this._oToolbarSpacer1 = new ToolbarSpacer();
-		this.oInputFields = new Toolbar({
-			content: [this._oInput, oResortButton, this._oToolbarSpacer1, this._oCustomFieldButton]
-		});
-
-		//Business Context Display
-		this._oBCContainer = new VerticalLayout({
-			visible: this.getBusinessContextVisible(),
-			content: [new Text({
-				text: this._oTextResources.getText("BUSINESS_CONTEXT_TITLE")
-			})
-			]
-		}).addStyleClass("sapUIRtaBusinessContextContainer");
-
-		// Fields of the List
-		var oFieldName = new Label({
-			design: LabelDesign.Standard,
-			text: {
-				parts: [{path: "label"}, {path: "parentPropertyName"}, {path: "duplicateName"}],
-				formatter: function(sLabel, sParentPropertyName, bDuplicateName) {
-					if (bDuplicateName && sParentPropertyName) {
-						sLabel += " (" + sParentPropertyName + ")";
-					}
-					return sLabel;
-				}
-			}
-		});
-
-		var oFieldName2 = new Label({
-			text: {
-				parts: [{path: "originalLabel"}],
-				formatter: function(sOriginalLabel) {
-					if (sOriginalLabel) {
-						return this._oTextResources.getText("LBL_FREP", sOriginalLabel);
-					}
-					return "";
-				}.bind(this)
-			},
-			visible: {
-				parts: [{path: "originalLabel"}],
-				formatter: function(sOriginalLabel) {
-					if (sOriginalLabel) {
-						return true;
-					}
-					return false;
-				}
-			}
-		});
-
-		var oVBox = new VBox();
-		oVBox.addItem(oFieldName);
-		oVBox.addItem(oFieldName2);
-
-		// List
-		var oSorter = new Sorter("label", this._bAscendingSortOrder);
-		this._oList = new List(
-			{
-				mode : "MultiSelect",
-				includeItemInSelection : true,
-				growing : true,
-				growingScrollToLoad : true
-			}).setNoDataText(this._oTextResources.getText("MSG_NO_FIELDS", this._oTextResources.getText("MULTIPLE_CONTROL_NAME").toLowerCase()));
-
-		var oListItem = new ListItem({
-			type: ListType.Active,
-			selected : "{selected}",
-			tooltip: "{tooltip}",
-			content : [oVBox]
-		}).addStyleClass("sapUIRtaListItem");
-
-		this._oList.bindItems({
-			path:"/elements",
-			template: oListItem,
-			sorter: oSorter,
-			templateShareable: false,
-			//Extended Change Detection via "key" property see docs: #/topic/7cdff73f308b4b10bdf7d83b7aba72e7 -
-			key: function (oContext) {
-				switch (oContext.getProperty("type")) {
-					case "invisible":
-						return oContext.getProperty("elementId");
-					case "odata":
-						return oContext.getProperty("name");
-					case "delegate":
-						return oContext.getProperty("name");
-					case "custom":
-						return oContext.getProperty("key");
-					default:
-						Log.error("sap.ui.rta.plugin.additionalElements.AddElementsDialog#_createContent: unsupported data type");
-				}
-			}
-		});
-
-		// Scrollcontainer containing the List
-		// Needed for scrolling the List
-		var oScrollContainer = new ScrollContainer({
-			content: this._oList,
-			vertical: true,
-			horizontal: false
-		}).addStyleClass("sapUIRtaCCDialogScrollContainer");
-
-		return [this.oInputFields,
-			this._oBCContainer,
-			oScrollContainer];
+	AddElementsDialog.prototype.setCustomFieldButtonVisible = function(bVisible) {
+		this._oDialogModel.setProperty("/customFieldButtonVisible", bVisible);
 	};
 
-	/**
-	 * Create the Buttons of the Dialog (OK/Cancel)
-	 *
-	 * @returns {object} list containes ok button and cancel button objects
-	 * @private
-	 */
-	AddElementsDialog.prototype._createButtons = function() {
-		this._oOKButton = new Button({
-			text : this._oTextResources.getText("BTN_FREP_OK"),
-			press : [this._submitDialog, this],
-			type: ButtonType.Emphasized
-		});
-		var oCancelButton = new Button({
-			text : this._oTextResources.getText("BTN_FREP_CANCEL"),
-			press : [this._cancelDialog, this]
-		});
-		return [this._oOKButton, oCancelButton];
+	AddElementsDialog.prototype.getCustomFieldButtonVisible = function() {
+		return this._oDialogModel.getProperty("/customFieldButtonVisible");
 	};
 
 	/**
 	 * Close the dialog.
+	 * @returns {Promise} a Promise that resolves (to nothing) once the dialog is loaded and closed
 	 */
-	AddElementsDialog.prototype._submitDialog = function() {
-		this._oDialog.close();
-		this._fnResolve();
+	AddElementsDialog.prototype._submitDialog = async function() {
+		const oDialog = await this._oDialogPromise;
+		oDialog.close();
+		this._fnResolveOnDialogConfirm();
+		// indicate that the dialog has been closed and the selected fields (if any) are to be added to the UI
 	};
 
 	/**
-	 * Close dialog and revert all change operations
+	 * Close dialog. All sections will be reverted
 	 */
 	AddElementsDialog.prototype._cancelDialog = function() {
-		// clear all variables
-		this._oList.removeSelections();
-		this._oDialog.close();
-		this._fnReject();
+		// clear all selections
+		this._oDialogModel.getObject("/elements").forEach(function(oElem) {
+			oElem.selected = false;
+		});
+		this._oDialogPromise.then(function(oDialog) {
+			oDialog.close();
+		});
+		// indicate that the dialog has been closed without choosing to add any fields (canceled)
+		this._fnRejectOnDialogCancel();
 	};
 
 	AddElementsDialog.prototype.setElements = function(aElements) {
-		this._oDialog.getModel().setProperty("/elements", aElements);
+		this._oDialogModel.setProperty("/elements", aElements);
 	};
 
 	AddElementsDialog.prototype.getElements = function() {
-		return this._oDialog.getModel().getProperty("/elements");
+		return this._oDialogModel.getProperty("/elements");
 	};
 
 	AddElementsDialog.prototype.getSelectedElements = function() {
-		return this._oDialog.getModel().getObject("/elements").filter(function(oElement) {
+		return this._oDialogModel.getObject("/elements").filter(function(oElement) {
 			return oElement.selected;
 		});
 	};
@@ -316,34 +161,33 @@ sap.ui.define([
 	/**
 	 * Open the Field Repository Dialog
 	 *
-	 * @param {sap.ui.core.Control} oControl Currently selected control
-	 * @returns {Promise} empty promise
+	 * @returns {Promise} promise that resolves once the Fragment is loaded and the dialog is opened
 	 * @public
 	 */
-	AddElementsDialog.prototype.open = function () {
-		return new Promise(function (resolve, reject) {
-			this._fnResolve = resolve;
-			this._fnReject = reject;
-			this._oDialog.attachAfterOpen(function () {
-				this.fireOpened();
+	AddElementsDialog.prototype.open = function() {
+		return new Promise(function(resolve, reject) {
+			this._fnResolveOnDialogConfirm = resolve;
+			this._fnRejectOnDialogCancel = reject;
+
+			this._oDialogPromise.then(function(oDialog) {
+				oDialog.attachAfterOpen(function() {
+					this.fireOpened();
+				}.bind(this));
+				oDialog.open();
 			}.bind(this));
-			// Makes sure the modal div element does not change the size of our application (which would result in
-			// recalculation of our overlays)
-			this._oDialog.open();
 		}.bind(this));
 	};
 
 	/**
 	 * Resort the list
 	 *
-	 * @param {sap.ui.base.Event} oEvent event object
 	 * @private
 	 */
-	AddElementsDialog.prototype._resortList = function () {
-		this._bAscendingSortOrder = !this._bAscendingSortOrder;
-		var oBinding = this._oList.getBinding("items");
-		var aSorter = [];
-		aSorter.push(new Sorter("label", this._bAscendingSortOrder));
+	AddElementsDialog.prototype._resortList = function() {
+		this._bDescendingSortOrder = !this._bDescendingSortOrder;
+		const oBinding = this._oList.getBinding("items");
+		const aSorter = [];
+		aSorter.push(new Sorter("label", this._bDescendingSortOrder));
 		oBinding.sort(aSorter);
 	};
 
@@ -354,15 +198,15 @@ sap.ui.define([
 	 * @private
 	 */
 	AddElementsDialog.prototype._updateModelFilter = function(oEvent) {
-		var sValue = oEvent.getParameter("newValue");
-		var oBinding = this._oList.getBinding("items");
+		const sValue = oEvent.getParameter("newValue");
+		const oBinding = this._oList.getBinding("items");
 		if ((typeof sValue) === "string") {
-			var oFilterLabel = new Filter("label", FilterOperator.Contains, sValue);
-			var oOriginalLabelFilter = new Filter("originalLabel", FilterOperator.Contains, sValue);
-			var oParentPropertyNameFilter = new Filter("parentPropertyName", FilterOperator.Contains, sValue);
-			var oDuplicateNameFilter = new Filter("duplicateName", FilterOperator.EQ, true);
-			var oParentNameFilter = new Filter({ filters: [oParentPropertyNameFilter, oDuplicateNameFilter], and: true });
-			var oFilterLabelOrInfo = new Filter({ filters: [oFilterLabel, oOriginalLabelFilter, oParentNameFilter], and: false });
+			const oFilterLabel = new Filter("label", FilterOperator.Contains, sValue);
+			const oOriginalLabelFilter = new Filter("originalLabel", FilterOperator.Contains, sValue);
+			const oParentPropertyNameFilter = new Filter("parentPropertyName", FilterOperator.Contains, sValue);
+			const oDuplicateNameFilter = new Filter("duplicateName", FilterOperator.EQ, true);
+			const oParentNameFilter = new Filter({ filters: [oParentPropertyNameFilter, oDuplicateNameFilter], and: true });
+			const oFilterLabelOrInfo = new Filter({ filters: [oFilterLabel, oOriginalLabelFilter, oParentNameFilter], and: false });
 			oBinding.filter([oFilterLabelOrInfo]);
 		} else {
 			oBinding.filter([]);
@@ -370,30 +214,52 @@ sap.ui.define([
 	};
 
 	/**
-	 * Fire an event to redirect to custom field creation
-	 *
-	 * @param {sap.ui.base.Event} oEvent event object
+	 * Fire an event to redirect to the extensibility action
+	 * @param {string} sActionKey - Key for the mapping of specific actions (e.g. which URI to open for given extension data)
 	 * @private
 	 */
-	AddElementsDialog.prototype._redirectToCustomFieldCreation = function () {
-		this.fireOpenCustomField();
-		this._oDialog.close();
+	AddElementsDialog.prototype._redirectToExtensibilityAction = function(sActionKey) {
+		this.fireTriggerExtensibilityAction({actionKey: sActionKey});
+		this._oDialogPromise.then(function(oDialog) {
+			oDialog.close();
+		});
 	};
 
-	AddElementsDialog.prototype.setTitle = function(sTitle) {
+	AddElementsDialog.prototype.setTitle = async function(sTitle) {
 		ManagedObject.prototype.setProperty.call(this, "title", sTitle, true);
-		this._oDialog.setTitle(sTitle);
+		const oDialog = await this._oDialogPromise;
+		oDialog.setTitle(sTitle);
 	};
 
 	/**
-	 * Enables the Custom Field Creation button
+	 * Sets the information for the extensibility menu button items
 	 *
-	 * @param {boolean} bCustomFieldEnabled true shows the button, false not
+	 * @param {object} oExtensibilityInfo - Information for the extensibility menu button
+	 * @param {string} oExtensibilityInfo.UITexts.buttonText - Text for the extensibility MenuButton
+	 * @param {string} oExtensibilityInfo.UITexts.tooltip - Tooltip for the extensibility MenuButton
+	 * @param {object[]} oExtensibilityInfo.UITexts.options - Options available on the extensibility MenuButton
 	 * @public
 	 */
-	AddElementsDialog.prototype.setCustomFieldEnabled = function(bCustomFieldEnabled) {
-		this.setProperty("customFieldEnabled", bCustomFieldEnabled, true);
-		this._oCustomFieldButton.setEnabled(this.getProperty("customFieldEnabled"));
+	AddElementsDialog.prototype.setExtensibilityOptions = function(oExtensibilityInfo) {
+		const aExtensibilityOptions = oExtensibilityInfo.UITexts.options;
+
+		this._oDialogModel.setProperty("/extensibilityOptions", aExtensibilityOptions);
+		if (aExtensibilityOptions.length === 1) {
+			// if there is only one option, we can directly set the button text
+			this._oDialogModel.setProperty("/customFieldButtonText", aExtensibilityOptions[0].text);
+			if (aExtensibilityOptions[0]?.tooltip) {
+				this._oDialogModel.setProperty("/customFieldButtonTooltip", aExtensibilityOptions[0].tooltip);
+			}
+			this.setCustomFieldButtonVisible(true);
+		} else {
+			this._oDialogModel.setProperty("/extensibilityMenuButtonActive", true);
+			this._oDialogModel.setProperty("/extensibilityMenuButtonText", oExtensibilityInfo.UITexts.buttonText);
+			this._oDialogModel.setProperty("/extensibilityMenuButtonTooltip", oExtensibilityInfo.UITexts.tooltip);
+		}
+	};
+
+	AddElementsDialog.prototype.getExtensibilityOptions = function() {
+		return this._oDialogModel.getProperty("/extensibilityOptions");
 	};
 
 	/**
@@ -404,54 +270,48 @@ sap.ui.define([
 	 */
 	AddElementsDialog.prototype._setBusinessContextVisible = function(bBusinessContextVisible) {
 		this.setProperty("businessContextVisible", bBusinessContextVisible, true);
-		this._oBCContainer.setVisible(this.getProperty("businessContextVisible"));
+		this._oDialogModel.setProperty("/businessContextVisible", bBusinessContextVisible);
 	};
 
 	/**
-	 * Returns list control
-	 * @returns {sap.m.List}
-	 */
-	AddElementsDialog.prototype.getList = function () {
-		return this._oList;
-	};
-
-	/**
-	 * Adds available business contexts
-	 * @param (object[]} aBusinessContexts - Array containing business contexts
+	 * Adds extensibility info - business contexts, UI Texts, etc...
+	 * @param {object} oExtensibilityInfo - Extensibility Info
 	 * @public
 	 */
-	AddElementsDialog.prototype.addBusinessContext = function (aBusinessContexts) {
+	AddElementsDialog.prototype.addExtensibilityInfo = function(oExtensibilityInfo) {
+		const aContexts = oExtensibilityInfo?.extensionData;
 		// clear old values from last run
-		this._removeBusinessContexts();
-		// Message "none" when no business contexts are available
-		var oBCDescription = new Text({
-			text: this._oTextResources.getText("MSG_NO_BUSINESS_CONTEXTS")
-		});
-		if (aBusinessContexts && aBusinessContexts.length > 0) {
-			aBusinessContexts.forEach(function (oContext) {
-				oBCDescription = new Text({
-					text: oContext.BusinessContextDescription
+		this._removeExtensionDataTexts();
+
+		const aBusinessContextTexts = this._oDialogModel.getObject("/businessContextTexts");
+		if (aContexts && aContexts.length > 0) {
+			aContexts.forEach(function(oContext) {
+				aBusinessContextTexts.push({
+					text: oContext.description
 				});
-				this._oBCContainer.addContent(oBCDescription);
 			}, this);
 		} else {
-			this._oBCContainer.addContent(oBCDescription);
+			// Message "none" when no extension data is available
+			aBusinessContextTexts.push({
+				text: oRTAResourceModel.getProperty("MSG_NO_BUSINESS_CONTEXTS")
+			});
 		}
 		// set the container visible
 		this._setBusinessContextVisible(true);
+
+		// the first entry is always the "header" to be set by the implementation of FieldExtensibility
+		// it is set during the instantiation of the model, in the 'init' function
+		this._oDialogModel.setProperty("/businessContextTexts/0/text", oExtensibilityInfo?.UITexts?.headerText);
 	};
 
 	/**
-	 * Removes business contexts from the vertical layout
+	 * Removes extension data from the vertical layout
 	 * (except for the title)
 	 * @private
 	 */
-	AddElementsDialog.prototype._removeBusinessContexts = function () {
-		var nIndex;
-		var nElementsCount = this._oBCContainer.getContent().length;
-		for (nIndex = 0; nIndex < nElementsCount; nIndex++) {
-			this._oBCContainer.removeContent(1);
-		}
+	AddElementsDialog.prototype._removeExtensionDataTexts = function() {
+		const aBusinessContextTexts = this._oDialogModel.getObject("/businessContextTexts");
+		aBusinessContextTexts.splice(1);
 	};
 
 	return AddElementsDialog;

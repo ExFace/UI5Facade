@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,13 +25,12 @@ sap.ui.define(['./DateRange', './library'],
 	 * @class
 	 * Date range with calendar day type information. Used to visualize special days in the Calendar.
 	 * @extends sap.ui.unified.DateRange
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.24.0
 	 * @alias sap.ui.unified.DateTypeRange
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var DateTypeRange = DateRange.extend("sap.ui.unified.DateTypeRange", /** @lends sap.ui.unified.DateTypeRange.prototype */ { metadata : {
 
@@ -42,11 +41,10 @@ sap.ui.define(['./DateRange', './library'],
 			 * Type of the date range.
 			 */
 			type : {type : "sap.ui.unified.CalendarDayType", group : "Appearance", defaultValue : CalendarDayType.Type01},
+
 			/**
-			 * Applies secondary <code>CalendarDayType</code> combined with the <code>CalendarDayType</code> type chosen.
-			 * Allows <code>specialDates</code> to be also a <code>NonWorkingDay</code>.
-			 * The secondary day type can only be used for <code>NonWorkingDay</code> or <code>None</code> calendar day types.
-			 * In other cases it will not be visible.
+			 * Applies additional <code>sap.ui.unified.CalendarDayType</code>, with which <code>sap.ui.unified.CalendarDayType.NonWorking</code>
+			 * or <code>sap.ui.unified.CalendarDayType.Working</code> types could be represented as well.
 			 * @since 1.81.0
 			 */
 			secondaryType : {type : "sap.ui.unified.CalendarDayType", group : "Appearance", defaultValue : CalendarDayType.None},

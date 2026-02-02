@@ -1,33 +1,98 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides the locale object sap.ui.core.LocaleData
-sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', './Locale', 'sap/base/assert', 'sap/base/util/LoaderExtensions'],
-	function(extend, BaseObject, CalendarType, Locale, assert, LoaderExtensions) {
+sap.ui.define([
+	"./Locale",
+	"sap/base/assert",
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/LanguageTag",
+	"sap/base/i18n/Localization",
+	"sap/base/i18n/date/CalendarType",
+	"sap/base/i18n/date/CalendarWeekNumbering",
+	"sap/base/util/extend",
+	"sap/base/util/LoaderExtensions",
+	"sap/ui/base/Object",
+	"sap/ui/base/SyncPromise"
+], function(Locale, assert, Formatting, LanguageTag, Localization, CalendarType, CalendarWeekNumbering,
+		extend, LoaderExtensions, BaseObject, SyncPromise) {
 	"use strict";
 
+	var rCIgnoreCase = /c/i,
+		rEIgnoreCase = /e/i,
+		rNumberInScientificNotation = /^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/,
+		rTrailingZeroes = /0+$/;
+	const rFallbackPatternTextParts = /(.*)?\{[0|1]}(.*)?\{[0|1]}(.*)?/;
+	const rOnlyZeros = /^0+$/;
+	const aSupportedWidths = ["narrow", "abbreviated", "wide"];
 	/**
-	 * Creates an instance of LocaleData for the given locale.
+	 * With the upgrade of the CLDR to version 41 some unit keys have changed.
+	 * For compatibility reasons this map is used for formatting units.
+	 * It maps a legacy unit key to its renamed key.
 	 *
-	 * @class Provides access to locale-specific data, such as, date formats, number formats, and currencies.
+	 * @deprecated As of version 1.122.0, this map is no longer maintained and stays for compatibility reasons
+	 *   only. Reason for the depreciation: The assumption of homogeneous unit keys in the CLDR data has been proven
+	 *   wrong. Additionally, it is unclear if, those CLDR unit keys are actually used. Implementing a complex logic
+	 *   to maintain potentially unused entries did not seem reasonable. Therefore, it was decided to deprecate this
+	 *   feature.
+	 *   This map was last updated with CLDR V43, in 1.119.0.
+	 * @private
+	 */
+	const mLegacyUnit2CurrentUnit = {
+		"acceleration-meter-per-second-squared": "acceleration-meter-per-square-second",
+		"concentr-milligram-per-deciliter": "concentr-milligram-ofglucose-per-deciliter",
+		"concentr-part-per-million": "concentr-permillion",
+		"consumption-liter-per-100kilometers": "consumption-liter-per-100-kilometer",
+		"mass-metric-ton": "mass-tonne",
+		"pressure-millimeter-of-mercury": "pressure-millimeter-ofhg",
+		"pressure-pound-per-square-inch": "pressure-pound-force-per-square-inch",
+		"pressure-inch-hg": "pressure-inch-ofhg",
+		"torque-pound-foot": "torque-pound-force-foot"
+	};
+
+	/**
+	 * The locale data cache. Maps a locale ID, formatted as either the language_region (e.g. "ar_SA"),
+	 * language_script (e.g. "sr_Latn") or just the language code (e.g. "de") to its set of loaded
+	 * CLDR data. In case of asynchronous loading, the locale ID is mapped to a <code>Promise</code> which resolves
+	 * with the loaded CLDR data. As soon as the data is loaded the <code>Promise</code> is replaced by it.
 	 *
-	 * @param {sap.ui.core.Locale} oLocale the locale
+	 * @type {Object<string, Object<string, any>|Promise<Object<string, any>>>}
+	 * @private
+	 */
+	let mLocaleIdToData = {};
+
+	/**
+	 * DO NOT call the constructor for <code>LocaleData</code>; use <code>LocaleData.getInstance</code> instead.
 	 *
-	 * @extends sap.ui.base.Object
-	 * @author SAP SE
-	 * @version 1.82.0
-	 * @public
+	 * @param {sap.ui.core.Locale} oLocale The locale
+	 * @param {boolean} bAsync Whether to load the data asynchronously
+	 *
 	 * @alias sap.ui.core.LocaleData
+	 * @author SAP SE
+	 * @extends sap.ui.base.Object
+	 * @class Provides access to locale-specific data, such as date formats, number formats, and currencies. For more
+	 *   information on terminology, such as field names used in the methods of this class, see
+	 *   {@link https://cldr.unicode.org/ Unicode CLDR}.
+	 * @hideconstructor
+	 * @public
+	 * @version 1.136.0
 	 */
 	var LocaleData = BaseObject.extend("sap.ui.core.LocaleData", /** @lends sap.ui.core.LocaleData.prototype */ {
 
-		constructor: function(oLocale) {
-			this.oLocale = oLocale;
+		constructor: function(oLocale, bAsync) {
 			BaseObject.apply(this);
-			this.mData = getData(oLocale);
+			this.oLocale = Locale._getCoreLocale(oLocale);
+			this.loaded = loadData(this.oLocale, bAsync).then((oResult) => {
+				this.mData = oResult.mData;
+				this.sCLDRLocaleId = oResult.sCLDRLocaleId;
+				return this;
+			});
+			this.loaded.finally(() => {
+				delete this.loaded;
+			});
 		},
 
 		/**
@@ -47,6 +112,41 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			return this._get.apply(this, arguments);
 		},
 
+		/**
+		 * Get month names in the given width. Result may contain alternative month names.
+		 *
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @returns {array}
+		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
+		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
+		 * @private
+		 */
+		_getMonthsWithAlternatives: function(sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth);
+		},
+
+		/**
+		 * Get standalone month names in the given width. Result may contain alternative month
+		 * names.
+		 *
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @returns {array}
+		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
+		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
+		 * @private
+		 */
+		_getMonthsStandAloneWithAlternatives: function(sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth);
+		},
+
 		_getDeep: function(oObject, aPropertyNames) {
 			var oResult = oObject;
 			for (var i = 0; i < aPropertyNames.length; i++) {
@@ -59,9 +159,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get orientation (left-to-right or right-to-left).
+		 * Gets the text orientation.
 		 *
-		 * @returns {string} character orientation for this locale
+		 * @returns {"left-to-right"|"right-to-left"} text orientation
 		 * @public
 		 */
 		getOrientation: function() {
@@ -69,19 +169,114 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get locale specific language names.
+		 * Get a display name for the language of the Locale of this LocaleData, using
+		 * the CLDR display names for languages.
 		 *
-		 * @returns {object} map of locale specific language names
-		 * @public
+		 * The lookup logic works as follows:
+		 * 1. language code and region is checked (e.g. "en-GB")
+		 * 2. If not found: language code and script is checked (e.g. "zh-Hant")
+		 * 3. If not found language code is checked (e.g. "en")
+		 * 4. If it is then still not found <code>undefined</code> is returned.
+		 *
+		 * @returns {string} language name, e.g. "English", "British English", "American English"
+		 *  or <code>undefined</code> if language cannot be found
+		 * @private
+		 * @ui5-restricted sap.ushell
 		 */
-		getLanguages: function() {
-			return this._get("languages");
+		getCurrentLanguageName: function () {
+			return this.getLanguageName(this.oLocale.toString());
 		},
 
 		/**
-		 * Get locale specific script names.
+		 * Gets the locale-specific language name for the given language tag.
 		 *
-		 * @returns {object} map of locale specific script names
+		 * The languages returned by {@link #getLanguages} from the CLDR raw data do not contain the
+		 * language names if they can be derived from the language and the script or the territory.
+		 * If the map of languages contains no entry for the given language tag, derive the language
+		 * name from the used script or region.
+		 *
+		 * @param {string} sLanguageTag
+		 *   The language tag, for example "en", "en-US", "en_US", "zh-Hant", or "zh_Hant"
+		 * @returns {string|undefined}
+		 *   The language name, or <code>undefined</code> if the name cannot be determined
+		 * @throws {TypeError} When the given language tag isn't valid
+		 *
+		 * @public
+		 */
+		getLanguageName: function (sLanguageTag) {
+			const oLanguageTag = new LanguageTag(sLanguageTag);
+			let sLanguage = Localization.getModernLanguage(oLanguageTag.language);
+			let sScript = oLanguageTag.script;
+			// special case for "sr_Latn" language: "sh" should then be used
+			if (sLanguage === "sr" && sScript === "Latn") {
+				sLanguage = "sh";
+				sScript = null;
+			}
+			const sRegion = oLanguageTag.region;
+			const oLanguages = this._get("languages");
+			const sLanguageText = oLanguages[sLanguage];
+			if (!sScript && !sRegion || !sLanguageText) {
+				return sLanguageText;
+			}
+
+			const sResult = oLanguages[sLanguage + "_" + sRegion] || oLanguages[sLanguage + "_" + sScript];
+			if (sResult) {
+				return sResult;
+			}
+
+			if (sScript) {
+				const sScriptText = this._get("scripts")[sScript];
+				if (sScriptText) {
+					return sLanguageText + " (" + sScriptText + ")";
+				}
+			}
+			if (sRegion) {
+				const sRegionText = this._get("territories")[sRegion];
+				if (sRegionText) {
+					return sLanguageText + " (" + sRegionText + ")";
+				}
+			}
+
+			return sLanguageText;
+		},
+
+		/**
+		 * Gets locale-specific language names, as available in the CLDR raw data.
+		 *
+		 * To avoid redundancies, with CLDR version 43 only language names are contained which cannot be derived from
+		 * the language and the script or the territory. If a language tag is not contained in the map, use
+		 * {@link #getLanguageName} to get the derived locale-specific language name for that language tag.
+		 *
+		 * @returns {Object<string, string>} Maps a language tag to the locale-specific language name
+		 *
+		 * @public
+		 */
+		getLanguages: function() {
+			const oLanguages = this._get("languages");
+			/** @deprecated As of version 1.120.0 */
+			[
+				"ar_001", "de_AT", "de_CH", "en_AU", "en_CA", "en_GB", "en_US", "es_419", "es_ES", "es_MX", "fa_AF",
+				"fr_CA", "fr_CH", "nds_NL", "nl_BE", "pt_BR", "pt_PT", "ro_MD", "sw_CD", "zh_Hans", "zh_Hant"
+			].forEach((sLanguageTag) => {
+				// for compatibility reasons, ensure that for these language tags the corresponding language names are
+				// available
+				if (!oLanguages[sLanguageTag]) {
+					oLanguages[sLanguageTag] = this.getLanguageName(sLanguageTag);
+				}
+			});
+
+			return oLanguages;
+		},
+
+		/**
+		 * Gets locale-specific script names, as available in the CLDR raw data.
+		 *
+		 * To avoid redundancies, with CLDR version 43 only scripts are contained for which the language-specific name
+		 * is different from the script key. If a script key is not contained in the map, use the script key as script
+		 * name.
+		 *
+		 * @returns {Object<string, string>} Maps a script key to the locale-specific script name
+		 *
 		 * @public
 		 */
 		getScripts: function() {
@@ -89,9 +284,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get locale specific territory names.
+		 * Gets locale-specific territory names, as available in the CLDR raw data.
 		 *
-		 * @returns {object} map of locale specific territory names
+		 * To avoid redundancies, with CLDR version 43 only territories are contained for which the language-specific
+		 * name is different from the territory key.
+		 *
+		 * @returns {Object<string, string>} Maps a territory key to the locale-specific territory name
+		 *
 		 * @public
 		 */
 		getTerritories: function() {
@@ -99,37 +298,49 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get month names in width "narrow", "abbreviated" or "wide".
+		 * Get month names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of month names (starting with January)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @returns {string[]}
+		 *   The array of month names
 		 * @public
 		 */
 		getMonths: function(sWidth, sCalendarType) {
-			assert(sWidth == "narrow" || sWidth == "abbreviated" || sWidth == "wide", "sWidth must be narrow, abbreviated or wide");
-			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth);
+			assert(aSupportedWidths.includes(sWidth), "sWidth must be narrow, abbreviated or wide");
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth).map((vMonthName) => {
+				return Array.isArray(vMonthName) ? vMonthName[0] : vMonthName;
+			});
 		},
 
 		/**
-		 * Get stand alone month names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone month names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of month names (starting with January)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @returns {string[]}
+		 *   The array of standalone month names
 		 * @public
 		 */
 		getMonthsStandAlone: function(sWidth, sCalendarType) {
-			assert(sWidth == "narrow" || sWidth == "abbreviated" || sWidth == "wide", "sWidth must be narrow, abbreviated or wide");
-			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth);
+			assert(aSupportedWidths.includes(sWidth), "sWidth must be narrow, abbreviated or wide");
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth).map((vMonthName) => {
+				return Array.isArray(vMonthName) ? vMonthName[0] : vMonthName;
+			});
 		},
 
 		/**
-		 * Get day names in width "narrow", "abbreviated" or "wide".
+		 * Get day names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day names (starting with Sunday)
+		 * @param {"abbreviated"|"narrow"|"short"|"wide"} sWidth the required width for the day names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day names (starting with Sunday)
 		 * @public
 		 */
 		getDays: function(sWidth, sCalendarType) {
@@ -138,11 +349,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get stand alone day names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone day names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day names (starting with Sunday)
+		 * @param {"abbreviated"|"narrow"|"short"|"wide"} sWidth the required width for the day names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day names (starting with Sunday)
 		 * @public
 		 */
 		getDaysStandAlone: function(sWidth, sCalendarType) {
@@ -151,11 +362,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get quarter names in width "narrow", "abbreviated" or "wide".
+		 * Get quarter names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the quarter names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of quarters
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the quarter names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of quarters
 		 * @public
 		 */
 		getQuarters: function(sWidth, sCalendarType) {
@@ -164,11 +375,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get stand alone quarter names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone quarter names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the quarter names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of quarters
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the quarter names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of quarters
 		 * @public
 		 */
 		getQuartersStandAlone: function(sWidth, sCalendarType) {
@@ -177,11 +388,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get day periods in width "narrow", "abbreviated" or "wide".
+		 * Get day periods in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day periods (AM, PM)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day periods (AM, PM)
 		 * @public
 		 */
 		getDayPeriods: function(sWidth, sCalendarType) {
@@ -190,11 +401,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get standalone day periods in width "narrow", "abbreviated" or "wide".
+		 * Get standalone day periods in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day periods (AM, PM)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day periods (AM, PM)
 		 * @public
 		 */
 		getDayPeriodsStandAlone: function(sWidth, sCalendarType) {
@@ -203,10 +414,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get date pattern in format "short", "medium", "long" or "full".
+		 * Get date pattern in the given style.
 		 *
-		 * @param {string} sStyle the required style for the date pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the date pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected date pattern
 		 * @public
 		 */
@@ -216,10 +427,142 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get time pattern in style "short", "medium", "long" or "full".
+		 * Get flexible day periods in style format "abbreviated", "narrow" or "wide".
 		 *
-		 * @param {string} sStyle the required style for the date pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {string} sWidth
+		 *   The required width for the flexible day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar. If it's not set, it falls back to the calendar type either set in
+		 *   configuration or calculated from locale.
+		 * @returns {object|undefined}
+		 *   Object of flexible day periods or 'undefined' if none can be found
+		 *
+		 * @example <caption>Output</caption>
+		 * {
+		 *   "midnight": "midnight",
+		 *   "noon": "noon",
+		 *   "morning1": "in the morning",
+		 *   "afternoon1": "in the afternoon",
+		 *   "evening1": "in the evening",
+		 *   "night1": "at night"
+		 * }
+		 *
+		 * @private
+		 */
+		getFlexibleDayPeriods : function (sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "flexibleDayPeriods", "format",
+				sWidth);
+		},
+
+		/**
+		 * Get flexible day periods in style format "abbreviated", "narrow" or "wide" for case
+		 * "stand-alone".
+		 *
+		 * @param {string} sWidth
+		 *   The required width for the flexible day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar. If it's not set, it falls back to the calendar type either set in
+		 *   configuration or calculated from locale.
+		 * @returns {object|undefined}
+		 *   Object of flexible day periods or 'undefined' if none can be found
+		 *
+		 * @example <caption>Output</caption>
+		 * {
+		 *   "midnight": "midnight",
+		 *   "noon": "noon",
+		 *   "morning1": "in the morning",
+		 *   "afternoon1": "in the afternoon",
+		 *   "evening1": "in the evening",
+		 *   "night1": "at night"
+		 * }
+		 *
+		 * @private
+		 */
+		getFlexibleDayPeriodsStandAlone : function (sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "flexibleDayPeriods",
+				"stand-alone", sWidth);
+		},
+
+		/**
+		 * Get flexible day period of time or a point in time
+		 *
+		 * @param {int} iHour Hour
+		 * @param {int} iMinute Minute
+		 * @returns {string} Key of flexible day period of time e.g. <code>afternoon2</code>
+		 *
+		 * @private
+		 */
+		getFlexibleDayPeriodOfTime : function (iHour, iMinute) {
+			var iAbsoluteMinutes, oDayPeriodRules, sPeriodMatch;
+
+			iAbsoluteMinutes = (iHour * 60 + iMinute) % 1440;
+			oDayPeriodRules = this._get("dayPeriodRules");
+
+			function parseToAbsoluteMinutes(sValue) {
+				var aSplit = sValue.split(":"),
+					sHour = aSplit[0],
+					sMinute = aSplit[1];
+
+				return parseInt(sHour) * 60 + parseInt(sMinute);
+			}
+
+			// unfortunately there are some overlaps:
+			// e.g. en.json
+			// "afternoon1": {
+			//   "_before": "18:00",
+			//   "_from": "12:00"
+			// },
+			// "noon": {
+			//   "_at": "12:00"
+			// }
+			// -> 12:00 can be either "noon" or "afternoon1" because "_from" is inclusive
+			// therefore first check all exact periods
+
+			sPeriodMatch = Object.keys(oDayPeriodRules).find(function (sDayPeriodRule) {
+				var oDayPeriodRule = oDayPeriodRules[sDayPeriodRule];
+
+				return oDayPeriodRule["_at"] &&
+					parseToAbsoluteMinutes(oDayPeriodRule["_at"]) === iAbsoluteMinutes;
+			});
+			if (sPeriodMatch) {
+				return sPeriodMatch;
+			}
+
+			return Object.keys(oDayPeriodRules).find(function (sDayPeriodRule) {
+				var iEndValue, aIntervals, iStartValue,
+					oDayPeriodRule = oDayPeriodRules[sDayPeriodRule];
+
+				if (oDayPeriodRule["_at"]) {
+					return false;
+				}
+
+				iStartValue = parseToAbsoluteMinutes(oDayPeriodRule["_from"]);
+				iEndValue = parseToAbsoluteMinutes(oDayPeriodRule["_before"]);
+
+				// periods which span across days need to be split into individual intervals
+				// e.g. "22:00 - 03:00" becomes "22:00 - 24:00" and "00:00 - 03:00"
+				if (iStartValue > iEndValue) {
+					aIntervals = [
+						{start : iStartValue, end : 1440}, // 24 * 60
+						{start : 0, end : iEndValue}
+					];
+				} else {
+					aIntervals = [
+						{start : iStartValue, end : iEndValue}
+					];
+				}
+
+				return aIntervals.some(function (oInterval) {
+					return oInterval.start <= iAbsoluteMinutes && oInterval.end > iAbsoluteMinutes;
+				});
+			});
+		},
+
+		/**
+		 * Get time pattern in the given style.
+		 *
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the time pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected time pattern
 		 * @public
 		 */
@@ -229,10 +572,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get datetime pattern in style "short", "medium", "long" or "full".
+		 * Get datetime pattern in the given style.
 		 *
-		 * @param {string} sStyle the required style for the datetime pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the datetime pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected datetime pattern
 		 * @public
 		 */
@@ -242,11 +585,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get combined datetime pattern with given date and and time style.
+		 * Get combined datetime pattern with given date and time style. The combined datetime pattern is the datetime
+		 * pattern as returned by {@link #getDateTimePattern}, where date and time placeholder are replaced with
+		 * the corresponding patterns for the given styles.
 		 *
-		 * @param {string} sDateStyle the required style for the date part
-		 * @param {string} sTimeStyle the required style for the time part
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sDateStyle the required style for the date part
+		 * @param {"full"|"long"|"medium"|"short"} sTimeStyle the required style for the time part
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the combined datetime pattern
 		 * @public
 		 */
@@ -260,6 +605,82 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
+		 * Get combined pattern with datetime and timezone for the given date and time style.
+		 *
+		 * @example
+		 * // locale de
+		 * oLocaleData.getCombinedDateTimeWithTimezonePattern("long", "long");
+		 * // "d. MMMM y 'um' HH:mm:ss z VV"
+		 *
+		 * // locale en_GB
+		 * oLocaleData.getCombinedDateTimeWithTimezonePattern("long", "long");
+		 * // "d MMMM y 'at' HH:mm:ss z VV"
+		 *
+		 * @param {string} sDateStyle The required style for the date part
+		 * @param {string} sTimeStyle The required style for the time part
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] The type of calendar. If it's not set,
+		 *   it falls back to the calendar type either set in the configuration or calculated from
+		 *   the locale.
+		 * @returns {string} the combined pattern with datetime and timezone
+		 * @private
+		 * @ui5-restricted sap.ui.core.format.DateFormat
+		 * @since 1.101
+		 */
+		getCombinedDateTimeWithTimezonePattern: function(sDateStyle, sTimeStyle, sCalendarType) {
+			return this.applyTimezonePattern(this.getCombinedDateTimePattern(sDateStyle, sTimeStyle, sCalendarType));
+		},
+
+		/**
+		 * Applies the timezone to the pattern
+		 *
+		 * @param {string} sPattern pattern, e.g. <code>y</code>
+		 * @returns {string} applied timezone, e.g. <code>y VV</code>
+		 * @private
+		 * @ui5-restricted sap.ui.core.format.DateFormat
+		 * @since 1.101
+		 */
+		applyTimezonePattern: function(sPattern) {
+			var aPatterns = [sPattern];
+			var aMissingTokens = [{
+				group: "Timezone",
+				length: 2,
+				field: "zone",
+				symbol: "V"
+			}];
+			this._appendItems(aPatterns, aMissingTokens);
+			return aPatterns[0];
+		},
+
+		/**
+		 * Retrieves all timezone translations.
+		 *
+		 * E.g. for locale "en"
+		 * <pre>
+		 * {
+		 *  "America/New_York": "Americas, New York"
+		 *  ...
+		 * }
+		 * </pre>
+		 *
+		 * @return {Object<string, string>} the mapping, with 'key' being the IANA timezone ID, and
+		 * 'value' being the translation.
+		 * @ui5-restricted sap.ui.core.format.DateFormat, sap.ui.export, sap.ushell
+		 * @private
+		 */
+		getTimezoneTranslations: function() {
+			var sLocale = this.oLocale.toString();
+			var mTranslations = LocaleData._mTimezoneTranslations[sLocale];
+
+			if (!mTranslations) {
+				LocaleData._mTimezoneTranslations[sLocale] = mTranslations =
+					_resolveTimezoneTranslationStructure(this._get("timezoneNames"));
+			}
+
+			// retrieve a copy such that the original object won't be modified.
+			return Object.assign({}, mTranslations);
+		},
+
+		/**
 		 * Get custom datetime pattern for a given skeleton format.
 		 *
 		 * The format string does contain pattern symbols (e.g. "yMMMd" or "Hms") and will be converted into the pattern in the used
@@ -267,10 +688,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D),
 		 * Hour (h/H/k/K/), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 		 *
-		 * See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+		 * See https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 		 *
 		 * @param {string} sSkeleton the wanted skeleton format for the datetime pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the best matching datetime pattern
 		 * @since 1.34
 		 * @public
@@ -287,7 +708,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * The empty Id ("") might be used to retrieve the interval format fallback.
 		 *
 		 * @param {string} sId Id of the interval format, e.g. "d-d"
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} interval format string with placeholders {0} and {1}
 		 * @public
 		 * @since 1.17.0
@@ -317,15 +738,20 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * pattern based on a given pattern, using the fallback interval pattern.
 		 *
 		 * @param {string} sPattern the single date pattern to use within the interval pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the calculated interval pattern
 		 * @since 1.46
 		 * @public
 		 */
-		getCombinedIntervalPattern : function(sPattern, sCalendarType) {
-			var oIntervalFormats = this._get(getCLDRCalendarName(sCalendarType), "dateTimeFormats", "intervalFormats"),
-				sFallbackPattern = oIntervalFormats.intervalFormatFallback;
-			return sFallbackPattern.replace(/\{(0|1)\}/g, sPattern);
+		getCombinedIntervalPattern: function (sPattern, sCalendarType) {
+			const oIntervalFormats = this._get(getCLDRCalendarName(sCalendarType), "dateTimeFormats",
+				"intervalFormats");
+			const [/*sAll*/, sTextBefore, sTextBetween, sTextAfter] =
+				rFallbackPatternTextParts.exec(oIntervalFormats.intervalFormatFallback);
+
+			// text part of intervalFormatFallback is not escaped
+			return LocaleData._escapeIfNeeded(sTextBefore) + sPattern + LocaleData._escapeIfNeeded(sTextBetween)
+				+ sPattern + LocaleData._escapeIfNeeded(sTextAfter);
 		},
 
 		/**
@@ -336,13 +762,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D),
 		 * Hour (h/H/k/K/), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 		 *
-		 * See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+		 * See https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 		 *
 		 * @param {string} sSkeleton the wanted skeleton format for the datetime pattern
 		 * @param {object|string} vGreatestDiff is either a string which represents the symbol matching the greatest difference in the two dates to format or an object which contains key-value pairs.
 		 *  The value is always true. The key is one of the date field symbol groups whose value are different between the two dates. The key can only be set with 'Year', 'Quarter', 'Month', 'Week',
 		 *  'Day', 'DayPeriod', 'Hour', 'Minute', or 'Second'.
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string|string[]} the best matching interval pattern if interval difference is given otherwise an array with all possible interval patterns which match the given skeleton format
 		 * @since 1.46
 		 * @public
@@ -632,7 +1058,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 							}
 						}
 					}
-					// if neither symbol or group matched, add it to the missing tokens and add distance
+					// if neither symbol nor group matched, add it to the missing tokens and add distance
 					aMissingTokens.push(oToken);
 					iDistance += 50 - i;
 				}
@@ -801,9 +1227,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get number symbol "decimal", "group", "plusSign", "minusSign", "percentSign".
+		 * Get number symbol for the given type.
 		 *
-		 * @param {string} sType the required type of symbol
+		 * @param {"decimal"|"group"|"minusSign"|"percentSign"|"plusSign"} sType the required type of symbol
 		 * @returns {string} the selected number symbol
 		 * @public
 		 */
@@ -813,10 +1239,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get lenient number symbols for "plusSign" or "minusSign".
+		 * Get lenient symbols for the sign of a number for the given symbol type.
 		 *
-		 * @param {string} sType the required type of symbol
-		 * @returns {string} the selected lenient number symbols, e.g. "-‒⁻₋−➖﹣"
+		 * @param {"minusSign"|"plusSign"} sType the required type of symbol
+		 * @returns {string} the selected lenient symbols for the sign of a number, e.g. "-‒⁻₋−➖﹣"
 		 * @public
 		 */
 		getLenientNumberSymbols: function(sType) {
@@ -835,7 +1261,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get currency format pattern.
+		 * Gets the currency format pattern for the given context or selects an alternative pattern if desired.
 		 *
 		 * CLDR format pattern:
 		 *
@@ -849,19 +1275,20 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * $100,000.00
 		 * ($100,000.00)
 		 *
-		 * @see http://cldr.unicode.org/translation/numbers-currency/number-patterns
+		 * @see https://cldr.unicode.org/translation/numbers-currency/number-patterns
 		 *
-		 * @param {string} sContext the context of the currency pattern (standard or accounting)
-		 * @returns {string} The pattern
+		 * @param {"accounting"|"sap-accounting"|"sap-standard"|"standard"} sContext
+		 *   The context of the currency pattern; "sap-" prefix is used for the trailing currency code variant
+		 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+		 *   The alternate currency pattern; since 1.133.0
+		 * @returns {string|undefined}
+		 *   The currency format pattern for the given parameters; <code>undefined</code> if no corresponding pattern is
+		 *   found
+		 *
 		 * @public
 		 */
-		getCurrencyPattern: function(sContext) {
-			// Undocumented contexts for NumberFormat internal use: "sap-standard" and "sap-accounting"
-			return this._get("currencyFormat")[sContext] || this._get("currencyFormat").standard;
-		},
-
-		getCurrencySpacing: function(sPosition) {
-			return this._get("currencyFormat", "currencySpacing", sPosition === "after" ? "afterCurrency" : "beforeCurrency");
+		getCurrencyPattern: function (sContext, sAlternative) {
+			return this._get("currencyFormat")[sAlternative ? sContext + "-" + sAlternative : sContext];
 		},
 
 		/**
@@ -875,9 +1302,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get miscellaneous pattern.
+		 * Get miscellaneous pattern for the given name.
 		 *
-		 * @param {string} sName the name of the misc pattern, can be "approximately", "atLeast", "atMost" or "range"
+		 * @param {"approximately"|"atLeast"|"atMost"|"range"} sName the name of the misc pattern
 		 * @returns {string} The pattern
 		 * @public
 		 */
@@ -982,34 +1409,42 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Returns the number of digits of the specified currency.
+		 * Returns the number of digits of the given currency considering a custom currency first and falling
+		 * back to the CLDR data if no custom currency is defined.
 		 *
-		 * @param {string} sCurrency ISO 4217 currency code
-		 * @returns {int} digits of the currency
+		 * @param {string} sCurrency The ISO 4217 currency code
+		 * @returns {int} The number of digits for the given currency
 		 * @public
 		 * @since 1.21.1
 		 */
 		getCurrencyDigits: function(sCurrency) {
+			const mCurrencyDigits = this.getAllCurrencyDigits();
+			return mCurrencyDigits[sCurrency] ?? mCurrencyDigits["DEFAULT"];
+		},
 
-			// try to lookup currency digits from custom currencies
-			var mCustomCurrencies = this._get("currency");
+		/**
+		 * Returns a language dependent map of ISO 4217 currency codes to the number of digits from the CLDR. The map
+		 * only contains currency codes for which the number of digits deviates from the value with the key
+		 * <code>DEFAULT</code>. If custom currencies are defined, they are merged into the map overwriting the CLDR
+		 * values including the default value if a custom default value is set.
+		 *
+		 * @returns {Object<string, number>} The map of currency codes to the number of digits
+		 * @private
+		 * @ui5-restricted sap.ui.export.Spreadsheet
+		 * @since 1.135
+		 */
+		getAllCurrencyDigits() {
+			const mCurrencyDigits = {...this._get("currencyDigits")};
+			const mCustomCurrencies = this._get("currency");
 			if (mCustomCurrencies) {
-				if (mCustomCurrencies[sCurrency] && mCustomCurrencies[sCurrency].hasOwnProperty("digits")) {
-					return mCustomCurrencies[sCurrency].digits;
-				} else if (mCustomCurrencies["DEFAULT"] && mCustomCurrencies["DEFAULT"].hasOwnProperty("digits")) {
-					return mCustomCurrencies["DEFAULT"].digits;
+				for (const sCurrencyCode in mCustomCurrencies) {
+					if (mCustomCurrencies[sCurrencyCode].digits !== undefined) {
+						mCurrencyDigits[sCurrencyCode] = mCustomCurrencies[sCurrencyCode].digits;
+					}
 				}
 			}
 
-			var iDigits = this._get("currencyDigits", sCurrency);
-			if (iDigits == null) {
-				iDigits = this._get("currencyDigits", "DEFAULT");
-
-				if (iDigits == null) {
-					iDigits = 2; // default
-				}
-			}
-			return iDigits;
+			return mCurrencyDigits;
 		},
 
 		/**
@@ -1047,7 +1482,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Returns the currency symbols available for this locale.
 		 * Currency symbols get accumulated by custom currency symbols.
 		 *
-		 * @returns {object} the map of all currency symbols available in this locale, e.g.
+		 * @returns {Object<string, string>} the map of all currency symbols available in this locale, e.g.
 		 * {
 		 *     "AUD": "A$",
 		 *     "BRL": "R$",
@@ -1088,6 +1523,20 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			return (mUnitFormat && mUnitFormat["displayName"]) || "";
 		},
 
+		/**
+		 * @typedef {object} sap.ui.core.LocaleData.RelativeTimePattern
+		 *
+		 * A relative time pattern.
+		 *
+		 * @property {string} pattern
+		 *   The string with the locale-specific representation of the relative time pattern
+		 * @property {"day"|"hour"|"minute"|"month"|"second"|"week"|"year"} scale
+		 *   The scale of the pattern
+		 * @property {number} sign
+		 *   <code>-1</code>, if the pattern is for the past; <code>1</code> otherwise
+		 *
+		 * @public
+		 */
 
 		/**
 		 * Returns relative time patterns for the given scales as an array of objects containing scale, value and pattern.
@@ -1104,9 +1553,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * }
 		 * </pre>
 		 *
-		 * @param {string[]} aScales The scales for which the available patterns should be returned
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 The style of the scale patterns. The valid values are "wide", "short" and "narrow".
-		 * @returns {object[]} An array of all relative time patterns
+		 * @param {Array<"day"|"hour"|"minute"|"month"|"second"|"week"|"year">} aScales The scales for which the available patterns should be returned
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the scale patterns
+		 * @returns {Array<sap.ui.core.LocaleData.RelativeTimePattern>} An array of all relative time patterns
 		 * @public
 		 * @since 1.34
 		 */
@@ -1142,11 +1592,15 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 						oTimeEntry = oScale[sEntry];
 						iSign = sEntry.substr(18) === "past" ? -1 : 1;
 						aPluralCategories.forEach(function(sKey) { // eslint-disable-line no-loop-func
-							aPatterns.push({
-								scale: sScale,
-								sign: iSign,
-								pattern: oTimeEntry["relativeTimePattern-count-" + sKey]
-							});
+							var sPattern = oTimeEntry["relativeTimePattern-count-" + sKey];
+
+							if (sPattern) {
+								aPatterns.push({
+									scale: sScale,
+									sign: iSign,
+									pattern: sPattern
+								});
+							}
 						});
 					}
 				}
@@ -1158,10 +1612,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		/**
 		 * Returns the relative format pattern with given scale (year, month, week, ...) and difference value.
 		 *
-		 * @param {string} sScale the scale the relative pattern is needed for
+		 * @param {"day"|"hour"|"minute"|"month"|"second"|"week"|"year"} sScale the scale the relative pattern is needed for
 		 * @param {int} iDiff the difference in the given scale unit
 		 * @param {boolean} [bFuture] whether a future or past pattern should be used
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative format pattern
 		 * @public
 		 * @since 1.34
@@ -1204,7 +1659,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * difference value (0 means now, positive value means in the future and negative value means in the past).
 		 *
 		 * @param {int} iDiff the difference in seconds
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative resource pattern in unit 'second'
 		 * @public
 		 * @since 1.31.0
@@ -1221,7 +1677,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * function to format the difference using unit 'second'.
 		 *
 		 * @param {int} iDiff the difference in minutes
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string|null} the relative resource pattern in unit 'minute'. The method returns null if 0 is given as parameter.
 		 * @public
 		 * @since 1.31.0
@@ -1241,7 +1698,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * function to format the difference using unit 'minute' or 'second'.
 		 *
 		 * @param {int} iDiff the difference in hours
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string|null} the relative resource pattern in unit 'hour'. The method returns null if 0 is given as parameter.
 		 * @public
 		 * @since 1.31.0
@@ -1255,10 +1713,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 		/**
 		 * Returns the relative day resource pattern (like "Today", "Yesterday", "{0} days ago") based on the given
-		 * difference of days (0 means today, 1 means tommorrow, -1 means yesterday, ...).
+		 * difference of days (0 means today, 1 means tomorrow, -1 means yesterday, ...).
 		 *
 		 * @param {int} iDiff the difference in days
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative day resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1272,7 +1731,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * difference of weeks (0 means this week, 1 means next week, -1 means last week, ...).
 		 *
 		 * @param {int} iDiff the difference in weeks
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative week resource pattern
 		 * @public
 		 * @since 1.31.0
@@ -1286,7 +1746,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * difference of months (0 means this month, 1 means next month, -1 means last month, ...).
 		 *
 		 * @param {int} iDiff the difference in months
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative month resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1296,11 +1757,12 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Returns the display name for a time unit (second, minute, hour, day, week, month, year).
+		 * Returns the display name for a time unit of the given type.
 		 *
-		 * @param {string} sType Type (second, minute, hour, day, week, month, year)
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
-		 * returns {string} display name
+		 * @param {"day"|"era"|"hour"|"minute"|"month"|"quarter"|"second"|"week"|"weekday"|"year"|"zone"} sType the type
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
+		 * @returns {string} display name
 		 * @public
 		 * @since 1.34.0
 		 */
@@ -1326,7 +1788,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * difference of years (0 means this year, 1 means next year, -1 means last year, ...).
 		 *
 		 * @param {int} iDiff the difference in years
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative year resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1336,77 +1799,55 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Returns the short decimal formats (like 1K, 1M....).
+		 * Returns the compact decimal format pattern (like "000K" or "0M") for the given power of ten in the given
+		 * style and plural category, see {@link topic:91f2f2866f4d1014b6dd926db0e91070 Number Format - Compact Format}.
 		 *
-		 * @param {string} sStyle short or long
-		 * @param {string} sNumber 1000, 10000 ...
-		 * @param {string} sPlural one or other (if not exists other is used)
-		 * @returns {string} decimal format
+		 * @param {"long"|"short"|"short-indian"} sStyle
+		 *   The style
+		 * @param {string} sPowerOfTen
+		 *   The power of ten, for example "1000" or "10000"
+		 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+		 *   The plural category; defaults to "other" if the given plural category does not exist for this locale
+		 * @returns {string|undefined}
+		 *   The compact decimal format pattern, or <code>undefined</code> if no decimal format for the given parameters
+		 *   is found
+		 *
 		 * @public
-		 * @since 1.25.0
+		 * @since 1.133.0
 		 */
-		getDecimalFormat: function(sStyle, sNumber, sPlural) {
+		getCompactDecimalPattern: function (sStyle, sPowerOfTen, sPlural = "other") {
+			const oFormats = this._get("decimalFormat-" + sStyle);
 
-			var sFormat;
-			var oFormats;
-
-			switch (sStyle) {
-			case "long":
-				oFormats = this._get("decimalFormat-long");
-				break;
-
-			default: //short
-				oFormats = this._get("decimalFormat-short");
-				break;
-			}
-
-			if (oFormats) {
-				var sName = sNumber + "-" + sPlural;
-				sFormat = oFormats[sName];
-				if (!sFormat) {
-					sName = sNumber + "-other";
-					sFormat = oFormats[sName];
-				}
-			}
-
-			return sFormat;
-
+			return oFormats && (oFormats[sPowerOfTen + "-" + sPlural] || oFormats[sPowerOfTen + "-other"]);
 		},
 
 		/**
-		 * Returns the short currency formats (like 1K USD, 1M USD....).
+		 * Returns the compact currency format pattern (like "¤000K" or "¤0M") for the given power of ten in the given
+		 * style, plural category, and in an optional alternative format if desired, see
+		 * {@link topic:91f2f2866f4d1014b6dd926db0e91070 Number Format - Compact Format}.
 		 *
-		 * @param {string} sStyle short
-		 * @param {string} sNumber 1000, 10000 ...
-		 * @param {string} sPlural one or other (if not exists other is used)
-		 * @returns {string} decimal format
+		 * @param {"short"|"sap-short"|"short-indian"|"sap-short-indian"} sStyle
+		 *   The style; "sap-" prefix is used for the trailing currency code variant
+		 * @param {string} sPowerOfTen
+		 *   The power of ten, for example "1000" or "10000"
+		 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+		 *   The plural category; defaults to "other" if the given plural category does not exist for this locale
+		 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+		 *   The alternate currency format
+		 * @returns {string|undefined}
+		 *   The compact currency format pattern, or <code>undefined</code> if no currency format pattern for the given
+		 *   parameters is found
+		 *
 		 * @public
-		 * @since 1.51.0
+		 * @since 1.133.0
 		 */
-		getCurrencyFormat: function(sStyle, sNumber, sPlural) {
+		getCompactCurrencyPattern: function (sStyle, sPowerOfTen, sPlural = "other", sAlternative = undefined) {
+			const oFormats = this._get("currencyFormat-" + sStyle);
+			const sAlternativeSuffix = sAlternative ? "-" + sAlternative : "";
 
-			var sFormat;
-			var oFormats = this._get("currencyFormat-" + sStyle);
-
-			// Defaults to "short" if not found
-			if (!oFormats) {
-				if (sStyle === "sap-short") {
-					throw new Error("Failed to get CLDR data for property \"currencyFormat-sap-short\"");
-				}
-				oFormats = this._get("currencyFormat-short");
-			}
-
-			if (oFormats) {
-				var sName = sNumber + "-" + sPlural;
-				sFormat = oFormats[sName];
-				if (!sFormat) {
-					sName = sNumber + "-other";
-					sFormat = oFormats[sName];
-				}
-			}
-
-			return sFormat;
-
+			return oFormats
+				&& (oFormats[sPowerOfTen + "-" + sPlural + sAlternativeSuffix]
+					|| oFormats[sPowerOfTen + "-other" + sAlternativeSuffix]);
 		},
 
 		/**
@@ -1428,8 +1869,19 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 		/**
 		 * Retrieves the unit format pattern for a specific unit name considering the unit mappings.
+		 *
+		 * @example  <caption>A unit format pattern which may be returned for the unit "duration-hour"</caption>
+		 * {
+		 *   displayName: "hours",
+		 *   unitPattern-count-one: "{0} hr",
+		 *   unitPattern-count-other: "{0} hr",
+		 *   perUnitPattern: "{0}/h"
+		 * }
+		 *
 		 * @param {string} sUnit unit name, e.g. "duration-hour" or "my"
-		 * @return {object} The unit format configuration for the given unit name
+		 * @return {Object<string, string>}
+		 *   The unit format pattern for the given unit name as a map from a pattern key like
+		 *   <code>"unitPattern-count-other"</code> to the corresponding pattern
 		 * @public
 		 * @since 1.54
 		 * @see sap.ui.core.LocaleData#getUnitFromMapping
@@ -1440,23 +1892,38 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Retrieves the unit format pattern for a specific unit name.
+		 * Retrieves the unit format pattern for a specific unit name, see {@link #getResolvedUnitFormat} for an example
+		 * of a unit format pattern.
 		 *
 		 * Note: Does not take unit mapping into consideration.
+		 *
 		 * @param {string} sUnit unit name, e.g. "duration-hour"
-		 * @return {object} The unit format configuration for the given unit name
+		 * @return {Object<string, string>|undefined}
+		 *  The unit format pattern for the given unit name as a map from a pattern key like
+		 *  <code>"unitPattern-count-other"</code> to the corresponding pattern or <code>undefined</code> if no
+		 *  corresponding pattern is found
 		 * @public
 		 * @since 1.54
 		 */
 		getUnitFormat: function (sUnit) {
-			return this._get("units", "short", sUnit);
+			var oResult = this._get("units", "short", sUnit);
+
+			/** @deprecated As of version 1.122.0, reason mLegacyUnit2CurrentUnit */
+			if (!oResult && mLegacyUnit2CurrentUnit[sUnit]) {
+				oResult = this._get("units", "short", mLegacyUnit2CurrentUnit[sUnit]);
+			}
+
+			return oResult;
 		},
 
 		/**
-		 * Retrieves all unit format patterns merged.
+		 * Retrieves unit format patterns for all units see {@link #getResolvedUnitFormat} for  an example of a unit
+		 * format pattern.
 		 *
 		 * Note: Does not take unit mapping into consideration.
-		 * @return {object} The unit format patterns
+		 *
+		 * @return {Object<string, Object<string, string>>} The unit format patterns as a map from a unit key to a map
+		 *   from a pattern key like <code>"unitPattern-count-other"</code> to the corresponding pattern
 		 * @public
 		 * @since 1.54
 		 */
@@ -1476,6 +1943,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 *
 		 * Call:
 		 * <code>getUnitFromMapping("my")</code> would result in <code>"my-custom-unit"</code>
+		 * @param {string} sMapping mapping identifier
 		 * @return {string} unit from the mapping
 		 * @public
 		 * @since 1.54
@@ -1486,11 +1954,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 
 		/**
-		 * Returns array of eras.
+		 * Returns array of eras in the given width.
 		 *
-		 * @param {string} sWidth the style of the era name. It can be 'wide', 'abbreviated' or 'narrow'
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar
-		 * @return {array} the array of eras
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the width of the era name
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @return {string[]} the array of eras
 		 * @public
 		 * @since 1.32.0
 		 */
@@ -1509,12 +1979,15 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		/**
 		 * Returns the map of era IDs to era dates.
 		 *
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar
-		 * @return {array} the array of eras containing objects with either an _end or _start property with a date
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set via the "calendar-type" formatting
+		 *   configuration option, see {@link topic:91f2d03b6f4d1014b6dd926db0e91070 Configuration Options and URL
+		 *   Parameters}, or determined from the current locale
+		 * @return {object[]} the array of eras containing objects with either an _end or _start property with a date
 		 * @public
 		 * @since 1.32.0
 		 */
-		getEraDates: function(sCalendarType) {
+		getEraDates: function(sCalendarType = Formatting.getCalendarType()) {
 			//TODO Adapt generation so that eradates are an array instead of object
 			var oEraDates = this._get("eras-" + sCalendarType.toLowerCase()),
 				aEraDates = [];
@@ -1525,11 +1998,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Returns the defined pattern for representing the calendar week number.
+		 * Returns the pattern for representing the calendar week number in the given style. If
+		 * <code>iWeekNumber</code> is given, the week number placeholder will be replaced by it.
 		 *
-		 * @param {string} sStyle the style of the pattern. It can only be either "wide" or "narrow".
-		 * @param {int} iWeekNumber the week number
-		 * @return {string} the week number string
+		 * @param {"narrow"|"wide"} sStyle The style of the pattern
+		 * @param {string} [sWeekNumber] The week number, e.g. "01" or "42"
+		 * @returns {string}
+		 *   The calendar week with the week number placeholder or the week number e.g. "Calendar Week {0}" or "CW 01"
 		 *
 		 * @public
 		 * @since 1.32.0
@@ -1537,23 +2012,34 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		getCalendarWeek: function(sStyle, iWeekNumber) {
 			assert(sStyle == "wide" || sStyle == "narrow" , "sStyle must be wide or narrow");
 
-			var oMessageBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core", this.oLocale.toString()),
-				sKey = "date.week.calendarweek." + sStyle;
+			const sText = this._get("sap-calendarWeek")[sStyle];
 
-			return oMessageBundle.getText(sKey, iWeekNumber);
+			return iWeekNumber ? sText.replace("{0}", iWeekNumber) : sText;
 		},
 
 		/**
-		 * Returns the preferred calendar type for the current locale which exists in {@link sap.ui.core.CalendarType}
+		 * Whether 1 January is the first day of the first calendar week.
+		 * This is the definition of the calendar week in the US.
 		 *
-		 * @returns {sap.ui.core.CalendarType} the preferred calendar type
+		 * @return {boolean} true if the first week of the year starts with 1 January.
+		 * @public
+		 * @since 1.92.0
+		 */
+		firstDayStartsFirstWeek: function() {
+			return this.oLocale.getLanguage() === "en" && this.oLocale.getRegion() === "US";
+		},
+
+		/**
+		 * Returns the preferred calendar type for the current locale which exists in
+		 * {@link module:sap/base/i18n/date/CalendarType}
+		 *
+		 * @returns {module:sap/base/i18n/date/CalendarType} the preferred calendar type
 		 * @public
 		 * @since 1.28.6
 		 */
 		getPreferredCalendarType: function() {
-			var sCalendarPreference = this._get("calendarPreference"),
-				aCalendars = sCalendarPreference ? sCalendarPreference.split(" ") : [],
-				sCalendarName, sType, i;
+			var sCalendarName, sType, i,
+				aCalendars = this._get("calendarPreference") || [];
 
 			for ( i = 0 ; i < aCalendars.length ; i++ ) {
 				// No support for calendar subtypes (islamic) yet, so ignore part after -
@@ -1569,9 +2055,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Returns the preferred hour pattern symbol (h for 12, H for 24 hours) for the current locale.
+		 * Returns the preferred hour pattern symbol ("h" for 12, "H" for 24 hours) for the current locale.
 		 *
-		 * @returns {string} the preferred hour symbol
+		 * @returns {"h"|"H"} the preferred hour symbol
 		 * @public
 		 * @since 1.34
 		 */
@@ -1582,7 +2068,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		/**
 		 * Returns an array of all plural categories available in this language.
 		 *
-		 * @returns {array} The array of plural categories
+		 * @returns {string[]} The array of plural categories
 		 * @public
 		 * @since 1.50
 		 */
@@ -1595,20 +2081,29 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 		/**
 		 * Returns the plural category (zero, one, two, few, many or other) for the given number value.
-		 * The number should be passed as a string with dot as decimal separator and the number of decimal/fraction digits
-		 * as used in the final output. This is needed in order to preserve trailing zeros which are relevant to
-		 * determine the right plural category.
+		 * The number must be passed as an unformatted number string with dot as decimal
+		 * separator (for example "12345.67"). To determine the correct plural category, it
+		 * is also necessary to keep the same number of decimal digits as given in the formatted
+		 * output string. For example "1" and "1.0" could be in different plural categories as
+		 * the number of decimal digits is different.
 		 *
-		 * @param {string|number} sNumber The number to find the plural category for
+		 * Compact numbers (for example in "short" format) must be provided in the
+		 * locale-independent CLDR compact notation. This notation uses the plural rule operand "c"
+		 * for the compact decimal exponent, for example "1.2c3" for "1.2K" (1200) or "4c6" for
+		 * "4M" (4000000).
+		 *
+		 * Note that the operand "e" is deprecated, but is a synonym corresponding to the CLDR
+		 * specification for "c" and may be redefined in the future.
+		 *
+		 * @param {string|number} vNumber The number to find the plural category for
 		 * @returns {string} The plural category
 		 * @public
 		 * @since 1.50
 		 */
-		getPluralCategory: function(sNumber) {
-			var oPlurals = this._get("plurals");
-			if (typeof sNumber === "number") {
-				sNumber = sNumber.toString();
-			}
+		getPluralCategory: function(vNumber) {
+			var sNumber = (typeof vNumber === "number") ? vNumber.toString() : vNumber,
+				oPlurals = this._get("plurals");
+
 			if (!this._pluralTest) {
 				this._pluralTest = {};
 			}
@@ -1618,13 +2113,23 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					fnTest = this._parsePluralRule(oPlurals[sCategory]);
 					this._pluralTest[sCategory] = fnTest;
 				}
-				if (fnTest(sNumber)) {
+				if (fnTest(sNumber).bMatch) {
 					return sCategory;
 				}
 			}
 			return "other";
 		},
 
+		/**
+		 * Parses a language plural rule as specified in
+		 * https://unicode.org/reports/tr35/tr35-numbers.html#table-plural-operand-meanings
+		 *
+		 * @param {string} sRule The plural rule as a string
+		 * @returns {function(string)} A function to determine for a number given as string parameter if it matches the
+		 *   plural rule.
+		 *
+		 * @private
+		 */
 		_parsePluralRule: function(sRule) {
 
 			var OP_OR = "or",
@@ -1638,6 +2143,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				OPD_T = "t",
 				OPD_V = "v",
 				OPD_W = "w",
+				OPD_C = "c",
+				OPD_E = "e",
 				RANGE = "..",
 				SEP = ",";
 
@@ -1743,6 +2250,14 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					return function(o) {
 						return o.w;
 					};
+				} else if (accept(OPD_C)) {
+					return function(o) {
+						return o.c;
+					};
+				} else if (accept(OPD_E)) {
+					return function(o) {
+						return o.c; // c is an alias for e
+					};
 				} else {
 					throw new Error("Unknown operand: " + consume());
 				}
@@ -1775,31 +2290,87 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				throw new Error("Not completely parsed");
 			}
 			return function(sValue) {
-				var iDotPos = sValue.indexOf("."),
-					sDecimal, sFraction, sFractionNoZeros, o;
+				var iDotPos, iExponent, iExponentPos, sFraction, sFractionNoZeros, sInteger, o;
 
+				// replace compact operand "c" to scientific "e" to be convertible in LocaleData.convertToDecimal
+				sValue = sValue.replace(rCIgnoreCase, "e");
+				iExponentPos = sValue.search(rEIgnoreCase);
+
+				iExponent = iExponentPos < 0 ? 0 : parseInt(sValue.slice(iExponentPos + 1));
+				sValue = LocaleData.convertToDecimal(sValue);
+
+				iDotPos = sValue.indexOf(".");
 				if (iDotPos === -1) {
-					sDecimal = sValue;
+					sInteger = sValue;
 					sFraction = "";
 					sFractionNoZeros = "";
 				} else {
-					sDecimal = sValue.substr(0, iDotPos);
-					sFraction = sValue.substr(iDotPos + 1);
-					sFractionNoZeros = sFraction.replace(/0+$/, '');
+					sInteger = sValue.slice(0, iDotPos);
+					sFraction = sValue.slice(iDotPos + 1);
+					sFractionNoZeros = sFraction.replace(rTrailingZeroes, "");
 				}
 
 				o = {
 					n: parseFloat(sValue),
-					i: parseInt(sDecimal),
+					i: parseInt(sInteger),
 					v: sFraction.length,
 					w: sFractionNoZeros.length,
-					f: parseInt(sFraction),
-					t: parseInt(sFractionNoZeros)
+					f: sFraction === "" ? 0 : parseInt(sFraction),
+					t: sFractionNoZeros === "" ? 0 : parseInt(sFractionNoZeros),
+					c: iExponent
 				};
-				return fnOr(o);
+				return {bMatch: fnOr(o), oOperands: o};
 			};
 		}
 	});
+
+	/**
+	 * Returns the non-scientific (=decimal) notation of the given numeric value which does not contain an exponent
+	 * value.
+	 * For numbers with a magnitude (ignoring sign) greater than or equal to 1e+21 or less than 1e-6, a conversion is
+	 * required, as Number#toString formats these in scientific notation.
+	 *
+	 * @param {float|string} vValue
+	 *   A number such as 10.1 or a string containing a number based on radix 10
+	 * @return {string} The number in decimal notation
+	 *
+	 * @private
+	 * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toString#description
+	 */
+	LocaleData.convertToDecimal = function (vValue) {
+		var iIntegerLength, iExponent, iFractionLength, bNegative, iNewIntegerLength, aResult,
+			sValue = String(vValue);
+
+		if (!sValue.includes("e") && !sValue.includes("E")) {
+			return sValue;
+		}
+
+		aResult = sValue.match(rNumberInScientificNotation);
+		bNegative = aResult[1] === "-";
+		sValue = aResult[2].replace(".", "");
+		if (rOnlyZeros.test(sValue)) {
+			return "0";
+		}
+
+		iIntegerLength = aResult[3] ? aResult[3].length : 0;
+		iFractionLength = aResult[4] ? aResult[4].length : 0;
+		iExponent = parseInt(aResult[5]);
+
+		iNewIntegerLength = iIntegerLength + iExponent;
+		if (iExponent > 0) {
+			sValue = iExponent < iFractionLength
+				? sValue.slice(0, iNewIntegerLength) + "." + sValue.slice(iNewIntegerLength)
+				: sValue = sValue.padEnd(iNewIntegerLength, "0");
+		} else {
+			sValue = -iExponent < iIntegerLength
+				? sValue = sValue.slice(0, iNewIntegerLength) + "." + sValue.slice(iNewIntegerLength)
+				: sValue = "0." + sValue.padStart(iFractionLength - iExponent, "0");
+		}
+		if (bNegative) {
+			sValue = "-" + sValue;
+		}
+		return sValue;
+	};
 
 	var mCLDRSymbolGroups = {
 		"Era": { field: "era", index: 0 },
@@ -1857,1394 +2428,113 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	};
 
 	/**
-	 * Default data, in case neither the region specific, nor the language specific fallback can be found.
+	 * A list of locales for which CLDR data is bundled with the UI5 runtime.
+	 * The value of this constant must only be updated by the CLDR generator; do not modify it manually.
 	 *
 	 * @private
 	 */
-	var M_DEFAULT_DATA = {
-			"orientation":"left-to-right",
-			"languages":{},
-			"scripts":{},
-			"territories":{},
-			"ca-gregorian": {
-				"dateFormats": {
-					"full":"EEEE, MMMM d, y",
-					"long":"MMMM d, y",
-					"medium":"MMM d, y",
-					"short":"M/d/yy"
-				},
-				"timeFormats": {
-					"full":"h:mm:ss a zzzz",
-					"long":"h:mm:ss a z",
-					"medium":"h:mm:ss a",
-					"short":"h:mm a"
-				},
-				"dateTimeFormats": {
-					"full":"{1} 'at' {0}",
-					"long":"{1} 'at' {0}",
-					"medium":"{1}, {0}",
-					"short":"{1}, {0}",
-					"availableFormats": {
-						"d": "d",
-						"E": "ccc",
-						"Ed": "d E",
-						"Ehm": "E h:mm a",
-						"EHm": "E HH:mm",
-						"Ehms": "E h:mm:ss a",
-						"EHms": "E HH:mm:ss",
-						"Gy": "y G",
-						"GyMMM": "MMM y G",
-						"GyMMMd": "MMM d, y G",
-						"GyMMMEd": "E, MMM d, y G",
-						"h": "h a",
-						"H": "HH",
-						"hm": "h:mm a",
-						"Hm": "HH:mm",
-						"hms": "h:mm:ss a",
-						"Hms": "HH:mm:ss",
-						"hmsv": "h:mm:ss a v",
-						"Hmsv": "HH:mm:ss v",
-						"hmv": "h:mm a v",
-						"Hmv": "HH:mm v",
-						"M": "L",
-						"Md": "M/d",
-						"MEd": "E, M/d",
-						"MMM": "LLL",
-						"MMMd": "MMM d",
-						"MMMEd": "E, MMM d",
-						"MMMMd": "MMMM d",
-						"ms": "mm:ss",
-						"y": "y",
-						"yM": "M/y",
-						"yMd": "M/d/y",
-						"yMEd": "E, M/d/y",
-						"yMMM": "MMM y",
-						"yMMMd": "MMM d, y",
-						"yMMMEd": "E, MMM d, y",
-						"yMMMM": "MMMM y",
-						"yQQQ": "QQQ y",
-						"yQQQQ": "QQQQ y"
-					},
-					"appendItems": {
-						"Day": "{0} ({2}: {1})",
-						"Day-Of-Week": "{0} {1}",
-						"Era": "{0} {1}",
-						"Hour": "{0} ({2}: {1})",
-						"Minute": "{0} ({2}: {1})",
-						"Month": "{0} ({2}: {1})",
-						"Quarter": "{0} ({2}: {1})",
-						"Second": "{0} ({2}: {1})",
-						"Timezone": "{0} {1}",
-						"Week": "{0} ({2}: {1})",
-						"Year": "{0} {1}"
-					},
-					"intervalFormats": {
-						"intervalFormatFallback":"{0} – {1}",
-						"d": {
-							"d": "d – d"
-						},
-						"h": {
-							"a": "h a – h a",
-							"h": "h – h a"
-						},
-						"H": {
-							"H": "HH – HH"
-						},
-						"hm": {
-							"a": "h:mm a – h:mm a",
-							"h": "h:mm – h:mm a",
-							"m": "h:mm – h:mm a"
-						},
-						"Hm": {
-							"H": "HH:mm – HH:mm",
-							"m": "HH:mm – HH:mm"
-						},
-						"hmv": {
-							"a": "h:mm a – h:mm a v",
-							"h": "h:mm – h:mm a v",
-							"m": "h:mm – h:mm a v"
-						},
-						"Hmv": {
-							"H": "HH:mm – HH:mm v",
-							"m": "HH:mm – HH:mm v"
-						},
-						"hv": {
-							"a": "h a – h a v",
-							"h": "h – h a v"
-						},
-						"Hv": {
-							"H": "HH – HH v"
-						},
-						"M": {
-							"M": "M – M"
-						},
-						"Md": {
-							"d": "M/d – M/d",
-							"M": "M/d – M/d"
-						},
-						"MEd": {
-							"d": "E, M/d – E, M/d",
-							"M": "E, M/d – E, M/d"
-						},
-						"MMM": {
-							"M": "MMM – MMM"
-						},
-						"MMMd": {
-							"d": "MMM d – d",
-							"M": "MMM d – MMM d"
-						},
-						"MMMEd": {
-							"d": "E, MMM d – E, MMM d",
-							"M": "E, MMM d – E, MMM d"
-						},
-						"y": {
-							"y": "y – y"
-						},
-						"yM": {
-							"M": "M/y – M/y",
-							"y": "M/y – M/y"
-						},
-						"yMd": {
-							"d": "M/d/y – M/d/y",
-							"M": "M/d/y – M/d/y",
-							"y": "M/d/y – M/d/y"
-						},
-						"yMEd": {
-							"d": "E, M/d/y – E, M/d/y",
-							"M": "E, M/d/y – E, M/d/y",
-							"y": "E, M/d/y – E, M/d/y"
-						},
-						"yMMM": {
-							"M": "MMM – MMM y",
-							"y": "MMM y – MMM y"
-						},
-						"yMMMd": {
-							"d": "MMM d – d, y",
-							"M": "MMM d – MMM d, y",
-							"y": "MMM d, y – MMM d, y"
-						},
-						"yMMMEd": {
-							"d": "E, MMM d – E, MMM d, y",
-							"M": "E, MMM d – E, MMM d, y",
-							"y": "E, MMM d, y – E, MMM d, y"
-						},
-						"yMMMM": {
-							"M": "MMMM – MMMM y",
-							"y": "MMMM y – MMMM y"
-						}
-					}
-				},
-				"months": {
-					"format": {
-						"abbreviated": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-						"narrow": ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
-						"wide": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-					},
-					"stand-alone": {
-						"abbreviated": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-						"narrow": ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
-						"wide": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-					}
-				},
-				"days": {
-					"format": {
-						"abbreviated": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-						"narrow": ["S", "M", "T", "W", "T", "F", "S"],
-						"short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-						"wide": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-					},
-					"stand-alone": {
-						"abbreviated": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-						"narrow": ["S", "M", "T", "W", "T", "F", "S"],
-						"short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-						"wide": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-					}
-				},
-				"quarters": {
-					"format": {
-						"abbreviated": ["Q1", "Q2", "Q3", "Q4"],
-						"narrow": ["1", "2", "3", "4"],
-						"wide": ["1st quarter", "2nd quarter", "3rd quarter", "4th quarter"]
-					},
-					"stand-alone": {
-						"abbreviated": ["Q1", "Q2", "Q3", "Q4"],
-						"narrow": ["1", "2", "3", "4"],
-						"wide": ["1st quarter", "2nd quarter", "3rd quarter", "4th quarter"]
-					}
-				},
-				"dayPeriods": {
-					"format": {
-						"abbreviated": ["AM", "PM"],
-						"narrow": ["a", "p"],
-						"wide": ["AM", "PM"]
-					},
-					"stand-alone": {
-						"abbreviated": ["AM", "PM"],
-						"narrow": ["AM", "PM"],
-						"wide": ["AM", "PM"]
-					}
-				},
-				"era-wide":{"0":"Before Christ","1":"Anno Domini"},
-				"era-abbreviated":{"0":"BC","1":"AD"},
-				"era-narrow":{"0":"B","1":"A"}
-			},
-			"eras-gregorian": {
-				"0":{"_end":"0-12-31"},
-				"1":{"_start":"1-01-01"}
-			},
-			"dateFields": {
-				"era": {
-					"displayName": "era"
-				},
-				"year-wide": {
-					"displayName": "year",
-					"relative-type--1": "last year",
-					"relative-type-0": "this year",
-					"relative-type-1": "next year",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} year",
-						"relativeTimePattern-count-other": "in {0} years"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} year ago",
-						"relativeTimePattern-count-other": "{0} years ago"
-					}
-				},
-				"year-short": {
-					"displayName": "yr.",
-					"relative-type--1": "last yr.",
-					"relative-type-0": "this yr.",
-					"relative-type-1": "next yr.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} yr.",
-						"relativeTimePattern-count-other": "in {0} yr."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} yr. ago",
-						"relativeTimePattern-count-other": "{0} yr. ago"
-					}
-				},
-				"year-narrow": {
-					"displayName": "yr.",
-					"relative-type--1": "last yr.",
-					"relative-type-0": "this yr.",
-					"relative-type-1": "next yr.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} yr.",
-						"relativeTimePattern-count-other": "in {0} yr."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} yr. ago",
-						"relativeTimePattern-count-other": "{0} yr. ago"
-					}
-				},
-				"quarter-wide": {
-					"displayName": "quarter",
-					"relative-type--1": "last quarter",
-					"relative-type-0": "this quarter",
-					"relative-type-1": "next quarter",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} quarter",
-						"relativeTimePattern-count-other": "in {0} quarters"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} quarter ago",
-						"relativeTimePattern-count-other": "{0} quarters ago"
-					}
-				},
-				"quarter-short": {
-					"displayName": "qtr.",
-					"relative-type--1": "last qtr.",
-					"relative-type-0": "this qtr.",
-					"relative-type-1": "next qtr.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} qtr.",
-						"relativeTimePattern-count-other": "in {0} qtrs."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} qtr. ago",
-						"relativeTimePattern-count-other": "{0} qtrs. ago"
-					}
-				},
-				"quarter-narrow": {
-					"displayName": "qtr.",
-					"relative-type--1": "last qtr.",
-					"relative-type-0": "this qtr.",
-					"relative-type-1": "next qtr.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} qtr.",
-						"relativeTimePattern-count-other": "in {0} qtrs."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} qtr. ago",
-						"relativeTimePattern-count-other": "{0} qtrs. ago"
-					}
-				},
-				"month-wide": {
-					"displayName": "month",
-					"relative-type--1": "last month",
-					"relative-type-0": "this month",
-					"relative-type-1": "next month",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} month",
-						"relativeTimePattern-count-other": "in {0} months"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} month ago",
-						"relativeTimePattern-count-other": "{0} months ago"
-					}
-				},
-				"month-short": {
-					"displayName": "mo.",
-					"relative-type--1": "last mo.",
-					"relative-type-0": "this mo.",
-					"relative-type-1": "next mo.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} mo.",
-						"relativeTimePattern-count-other": "in {0} mo."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} mo. ago",
-						"relativeTimePattern-count-other": "{0} mo. ago"
-					}
-				},
-				"month-narrow": {
-					"displayName": "mo.",
-					"relative-type--1": "last mo.",
-					"relative-type-0": "this mo.",
-					"relative-type-1": "next mo.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} mo.",
-						"relativeTimePattern-count-other": "in {0} mo."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} mo. ago",
-						"relativeTimePattern-count-other": "{0} mo. ago"
-					}
-				},
-				"week-wide": {
-					"displayName": "week",
-					"relative-type--1": "last week",
-					"relative-type-0": "this week",
-					"relative-type-1": "next week",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} week",
-						"relativeTimePattern-count-other": "in {0} weeks"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} week ago",
-						"relativeTimePattern-count-other": "{0} weeks ago"
-					},
-					"relativePeriod": "the week of {0}"
-				},
-				"week-short": {
-					"displayName": "wk.",
-					"relative-type--1": "last wk.",
-					"relative-type-0": "this wk.",
-					"relative-type-1": "next wk.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} wk.",
-						"relativeTimePattern-count-other": "in {0} wk."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} wk. ago",
-						"relativeTimePattern-count-other": "{0} wk. ago"
-					},
-					"relativePeriod": "the week of {0}"
-				},
-				"week-narrow": {
-					"displayName": "wk.",
-					"relative-type--1": "last wk.",
-					"relative-type-0": "this wk.",
-					"relative-type-1": "next wk.",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} wk.",
-						"relativeTimePattern-count-other": "in {0} wk."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} wk. ago",
-						"relativeTimePattern-count-other": "{0} wk. ago"
-					},
-					"relativePeriod": "the week of {0}"
-				},
-				"day-wide": {
-					"displayName": "day",
-					"relative-type--1": "yesterday",
-					"relative-type-0": "today",
-					"relative-type-1": "tomorrow",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} day",
-						"relativeTimePattern-count-other": "in {0} days"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} day ago",
-						"relativeTimePattern-count-other": "{0} days ago"
-					}
-				},
-				"day-short": {
-					"displayName": "day",
-					"relative-type--1": "yesterday",
-					"relative-type-0": "today",
-					"relative-type-1": "tomorrow",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} day",
-						"relativeTimePattern-count-other": "in {0} days"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} day ago",
-						"relativeTimePattern-count-other": "{0} days ago"
-					}
-				},
-				"day-narrow": {
-					"displayName": "day",
-					"relative-type--1": "yesterday",
-					"relative-type-0": "today",
-					"relative-type-1": "tomorrow",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} day",
-						"relativeTimePattern-count-other": "in {0} days"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} day ago",
-						"relativeTimePattern-count-other": "{0} days ago"
-					}
-				},
-				"weekday": {
-					"displayName": "day of the week"
-				},
-				"hour-wide": {
-					"displayName": "hour",
-					"relative-type-0": "this hour",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} hour",
-						"relativeTimePattern-count-other": "in {0} hours"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} hour ago",
-						"relativeTimePattern-count-other": "{0} hours ago"
-					}
-				},
-				"hour-short": {
-					"displayName": "hr.",
-					"relative-type-0": "this hour",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} hr.",
-						"relativeTimePattern-count-other": "in {0} hr."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} hr. ago",
-						"relativeTimePattern-count-other": "{0} hr. ago"
-					}
-				},
-				"hour-narrow": {
-					"displayName": "hr.",
-					"relative-type-0": "this hour",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} hr.",
-						"relativeTimePattern-count-other": "in {0} hr."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} hr. ago",
-						"relativeTimePattern-count-other": "{0} hr. ago"
-					}
-				},
-				"minute-wide": {
-					"displayName": "minute",
-					"relative-type-0": "this minute",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} minute",
-						"relativeTimePattern-count-other": "in {0} minutes"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} minute ago",
-						"relativeTimePattern-count-other": "{0} minutes ago"
-					}
-				},
-				"minute-short": {
-					"displayName": "min.",
-					"relative-type-0": "this minute",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} min.",
-						"relativeTimePattern-count-other": "in {0} min."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} min. ago",
-						"relativeTimePattern-count-other": "{0} min. ago"
-					}
-				},
-				"minute-narrow": {
-					"displayName": "min.",
-					"relative-type-0": "this minute",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} min.",
-						"relativeTimePattern-count-other": "in {0} min."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} min. ago",
-						"relativeTimePattern-count-other": "{0} min. ago"
-					}
-				},
-				"second-wide": {
-					"displayName": "second",
-					"relative-type-0": "now",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} second",
-						"relativeTimePattern-count-other": "in {0} seconds"
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} second ago",
-						"relativeTimePattern-count-other": "{0} seconds ago"
-					}
-				},
-				"second-short": {
-					"displayName": "sec.",
-					"relative-type-0": "now",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} sec.",
-						"relativeTimePattern-count-other": "in {0} sec."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} sec. ago",
-						"relativeTimePattern-count-other": "{0} sec. ago"
-					}
-				},
-				"second-narrow": {
-					"displayName": "sec.",
-					"relative-type-0": "now",
-					"relativeTime-type-future": {
-						"relativeTimePattern-count-one": "in {0} sec.",
-						"relativeTimePattern-count-other": "in {0} sec."
-					},
-					"relativeTime-type-past": {
-						"relativeTimePattern-count-one": "{0} sec. ago",
-						"relativeTimePattern-count-other": "{0} sec. ago"
-					}
-				},
-				"zone": {
-					"displayName": "time zone"
-				}
-			},
-			"decimalFormat": { "standard": "#,##0.###" },
-			"currencyFormat": {
-				"standard": "¤#,##0.00",
-				"currencySpacing": {
-					"beforeCurrency": {
-						"currencyMatch": "[:^S:]",
-						"surroundingMatch": "[:digit:]",
-						"insertBetween": " "
-					},
-					"afterCurrency": {
-						"currencyMatch": "[:^S:]",
-						"surroundingMatch": "[:digit:]",
-						"insertBetween": " "
-					}
-				}
-			},
-			"percentFormat": { "standard": "#,##0%"},
-			"miscPattern": {
-				"approximately": "~{0}",
-				"atLeast": "{0}+",
-				"atMost": "≤{0}",
-				"range": "{0}–{1}"
-			},
-			"symbols-latn-decimal":".",
-			"symbols-latn-group":",",
-			"symbols-latn-plusSign":"+",
-			"symbols-latn-minusSign":"-",
-			"symbols-latn-percentSign":"%",
-			"weekData-minDays":4,
-			"weekData-firstDay":1,
-			"weekData-weekendStart":6,
-			"weekData-weekendEnd":0,
-			"timeData": {
-				_allowed: "H h",
-				_preferred: "H"
-			},
-			"lenient-scope-number": {
-				"minusSign": "-‐‒–⁻₋−➖﹣",
-				"commaSign": ",،٫、︐︑﹐﹑，",
-				"plusSign": "+⁺₊➕﬩﹢"
-			},
-			"plurals": {},
-			"units": {
-			"short": {
-				"per": {
-					"compoundUnitPattern": "{0}/{1}"
-				},
-				"acceleration-g-force": {
-					"displayName": "g-force",
-					"unitPattern-count-one": "{0} G",
-					"unitPattern-count-other": "{0} G"
-				},
-				"acceleration-meter-per-second-squared": {
-					"displayName": "meters/sec²",
-					"unitPattern-count-one": "{0} m/s²",
-					"unitPattern-count-other": "{0} m/s²"
-				},
-				"angle-revolution": {
-					"displayName": "rev",
-					"unitPattern-count-one": "{0} rev",
-					"unitPattern-count-other": "{0} rev"
-				},
-				"angle-radian": {
-					"displayName": "radians",
-					"unitPattern-count-one": "{0} rad",
-					"unitPattern-count-other": "{0} rad"
-				},
-				"angle-degree": {
-					"displayName": "degrees",
-					"unitPattern-count-one": "{0} deg",
-					"unitPattern-count-other": "{0} deg"
-				},
-				"angle-arc-minute": {
-					"displayName": "arcmins",
-					"unitPattern-count-one": "{0} arcmin",
-					"unitPattern-count-other": "{0} arcmins"
-				},
-				"angle-arc-second": {
-					"displayName": "arcsecs",
-					"unitPattern-count-one": "{0} arcsec",
-					"unitPattern-count-other": "{0} arcsecs"
-				},
-				"area-square-kilometer": {
-					"displayName": "km²",
-					"unitPattern-count-one": "{0} km²",
-					"unitPattern-count-other": "{0} km²",
-					"perUnitPattern": "{0}/km²"
-				},
-				"area-hectare": {
-					"displayName": "hectares",
-					"unitPattern-count-one": "{0} ha",
-					"unitPattern-count-other": "{0} ha"
-				},
-				"area-square-meter": {
-					"displayName": "meters²",
-					"unitPattern-count-one": "{0} m²",
-					"unitPattern-count-other": "{0} m²",
-					"perUnitPattern": "{0}/m²"
-				},
-				"area-square-centimeter": {
-					"displayName": "cm²",
-					"unitPattern-count-one": "{0} cm²",
-					"unitPattern-count-other": "{0} cm²",
-					"perUnitPattern": "{0}/cm²"
-				},
-				"area-square-mile": {
-					"displayName": "sq miles",
-					"unitPattern-count-one": "{0} sq mi",
-					"unitPattern-count-other": "{0} sq mi",
-					"perUnitPattern": "{0}/mi²"
-				},
-				"area-acre": {
-					"displayName": "acres",
-					"unitPattern-count-one": "{0} ac",
-					"unitPattern-count-other": "{0} ac"
-				},
-				"area-square-yard": {
-					"displayName": "yards²",
-					"unitPattern-count-one": "{0} yd²",
-					"unitPattern-count-other": "{0} yd²"
-				},
-				"area-square-foot": {
-					"displayName": "sq feet",
-					"unitPattern-count-one": "{0} sq ft",
-					"unitPattern-count-other": "{0} sq ft"
-				},
-				"area-square-inch": {
-					"displayName": "inches²",
-					"unitPattern-count-one": "{0} in²",
-					"unitPattern-count-other": "{0} in²",
-					"perUnitPattern": "{0}/in²"
-				},
-				"concentr-karat": {
-					"displayName": "karats",
-					"unitPattern-count-one": "{0} kt",
-					"unitPattern-count-other": "{0} kt"
-				},
-				"concentr-milligram-per-deciliter": {
-					"displayName": "mg/dL",
-					"unitPattern-count-one": "{0} mg/dL",
-					"unitPattern-count-other": "{0} mg/dL"
-				},
-				"concentr-millimole-per-liter": {
-					"displayName": "millimol/liter",
-					"unitPattern-count-one": "{0} mmol/L",
-					"unitPattern-count-other": "{0} mmol/L"
-				},
-				"concentr-part-per-million": {
-					"displayName": "parts/million",
-					"unitPattern-count-one": "{0} ppm",
-					"unitPattern-count-other": "{0} ppm"
-				},
-				"consumption-liter-per-kilometer": {
-					"displayName": "liters/km",
-					"unitPattern-count-one": "{0} L/km",
-					"unitPattern-count-other": "{0} L/km"
-				},
-				"consumption-liter-per-100kilometers": {
-					"displayName": "L/100 km",
-					"unitPattern-count-one": "{0} L/100 km",
-					"unitPattern-count-other": "{0} L/100 km"
-				},
-				"consumption-mile-per-gallon": {
-					"displayName": "miles/gal",
-					"unitPattern-count-one": "{0} mpg",
-					"unitPattern-count-other": "{0} mpg"
-				},
-				"consumption-mile-per-gallon-imperial": {
-					"displayName": "miles/gal Imp.",
-					"unitPattern-count-one": "{0} mpg Imp.",
-					"unitPattern-count-other": "{0} mpg Imp."
-				},
-				"digital-terabyte": {
-					"displayName": "TByte",
-					"unitPattern-count-one": "{0} TB",
-					"unitPattern-count-other": "{0} TB"
-				},
-				"digital-terabit": {
-					"displayName": "Tbit",
-					"unitPattern-count-one": "{0} Tb",
-					"unitPattern-count-other": "{0} Tb"
-				},
-				"digital-gigabyte": {
-					"displayName": "GByte",
-					"unitPattern-count-one": "{0} GB",
-					"unitPattern-count-other": "{0} GB"
-				},
-				"digital-gigabit": {
-					"displayName": "Gbit",
-					"unitPattern-count-one": "{0} Gb",
-					"unitPattern-count-other": "{0} Gb"
-				},
-				"digital-megabyte": {
-					"displayName": "MByte",
-					"unitPattern-count-one": "{0} MB",
-					"unitPattern-count-other": "{0} MB"
-				},
-				"digital-megabit": {
-					"displayName": "Mbit",
-					"unitPattern-count-one": "{0} Mb",
-					"unitPattern-count-other": "{0} Mb"
-				},
-				"digital-kilobyte": {
-					"displayName": "kByte",
-					"unitPattern-count-one": "{0} kB",
-					"unitPattern-count-other": "{0} kB"
-				},
-				"digital-kilobit": {
-					"displayName": "kbit",
-					"unitPattern-count-one": "{0} kb",
-					"unitPattern-count-other": "{0} kb"
-				},
-				"digital-byte": {
-					"displayName": "byte",
-					"unitPattern-count-one": "{0} byte",
-					"unitPattern-count-other": "{0} byte"
-				},
-				"digital-bit": {
-					"displayName": "bit",
-					"unitPattern-count-one": "{0} bit",
-					"unitPattern-count-other": "{0} bit"
-				},
-				"duration-century": {
-					"displayName": "c",
-					"unitPattern-count-one": "{0} c",
-					"unitPattern-count-other": "{0} c"
-				},
-				"duration-year": {
-					"displayName": "years",
-					"unitPattern-count-one": "{0} yr",
-					"unitPattern-count-other": "{0} yrs",
-					"perUnitPattern": "{0}/y"
-				},
-				"duration-month": {
-					"displayName": "months",
-					"unitPattern-count-one": "{0} mth",
-					"unitPattern-count-other": "{0} mths",
-					"perUnitPattern": "{0}/m"
-				},
-				"duration-week": {
-					"displayName": "weeks",
-					"unitPattern-count-one": "{0} wk",
-					"unitPattern-count-other": "{0} wks",
-					"perUnitPattern": "{0}/w"
-				},
-				"duration-day": {
-					"displayName": "days",
-					"unitPattern-count-one": "{0} day",
-					"unitPattern-count-other": "{0} days",
-					"perUnitPattern": "{0}/d"
-				},
-				"duration-hour": {
-					"displayName": "hours",
-					"unitPattern-count-one": "{0} hr",
-					"unitPattern-count-other": "{0} hr",
-					"perUnitPattern": "{0}/h"
-				},
-				"duration-minute": {
-					"displayName": "mins",
-					"unitPattern-count-one": "{0} min",
-					"unitPattern-count-other": "{0} min",
-					"perUnitPattern": "{0}/min"
-				},
-				"duration-second": {
-					"displayName": "secs",
-					"unitPattern-count-one": "{0} sec",
-					"unitPattern-count-other": "{0} sec",
-					"perUnitPattern": "{0}/s"
-				},
-				"duration-millisecond": {
-					"displayName": "millisecs",
-					"unitPattern-count-one": "{0} ms",
-					"unitPattern-count-other": "{0} ms"
-				},
-				"duration-microsecond": {
-					"displayName": "μsecs",
-					"unitPattern-count-one": "{0} μs",
-					"unitPattern-count-other": "{0} μs"
-				},
-				"duration-nanosecond": {
-					"displayName": "nanosecs",
-					"unitPattern-count-one": "{0} ns",
-					"unitPattern-count-other": "{0} ns"
-				},
-				"electric-ampere": {
-					"displayName": "amps",
-					"unitPattern-count-one": "{0} A",
-					"unitPattern-count-other": "{0} A"
-				},
-				"electric-milliampere": {
-					"displayName": "milliamps",
-					"unitPattern-count-one": "{0} mA",
-					"unitPattern-count-other": "{0} mA"
-				},
-				"electric-ohm": {
-					"displayName": "ohms",
-					"unitPattern-count-one": "{0} Ω",
-					"unitPattern-count-other": "{0} Ω"
-				},
-				"electric-volt": {
-					"displayName": "volts",
-					"unitPattern-count-one": "{0} V",
-					"unitPattern-count-other": "{0} V"
-				},
-				"energy-kilocalorie": {
-					"displayName": "kcal",
-					"unitPattern-count-one": "{0} kcal",
-					"unitPattern-count-other": "{0} kcal"
-				},
-				"energy-calorie": {
-					"displayName": "cal",
-					"unitPattern-count-one": "{0} cal",
-					"unitPattern-count-other": "{0} cal"
-				},
-				"energy-foodcalorie": {
-					"displayName": "Cal",
-					"unitPattern-count-one": "{0} Cal",
-					"unitPattern-count-other": "{0} Cal"
-				},
-				"energy-kilojoule": {
-					"displayName": "kilojoule",
-					"unitPattern-count-one": "{0} kJ",
-					"unitPattern-count-other": "{0} kJ"
-				},
-				"energy-joule": {
-					"displayName": "joules",
-					"unitPattern-count-one": "{0} J",
-					"unitPattern-count-other": "{0} J"
-				},
-				"energy-kilowatt-hour": {
-					"displayName": "kW-hour",
-					"unitPattern-count-one": "{0} kWh",
-					"unitPattern-count-other": "{0} kWh"
-				},
-				"frequency-gigahertz": {
-					"displayName": "GHz",
-					"unitPattern-count-one": "{0} GHz",
-					"unitPattern-count-other": "{0} GHz"
-				},
-				"frequency-megahertz": {
-					"displayName": "MHz",
-					"unitPattern-count-one": "{0} MHz",
-					"unitPattern-count-other": "{0} MHz"
-				},
-				"frequency-kilohertz": {
-					"displayName": "kHz",
-					"unitPattern-count-one": "{0} kHz",
-					"unitPattern-count-other": "{0} kHz"
-				},
-				"frequency-hertz": {
-					"displayName": "Hz",
-					"unitPattern-count-one": "{0} Hz",
-					"unitPattern-count-other": "{0} Hz"
-				},
-				"length-kilometer": {
-					"displayName": "km",
-					"unitPattern-count-one": "{0} km",
-					"unitPattern-count-other": "{0} km",
-					"perUnitPattern": "{0}/km"
-				},
-				"length-meter": {
-					"displayName": "m",
-					"unitPattern-count-one": "{0} m",
-					"unitPattern-count-other": "{0} m",
-					"perUnitPattern": "{0}/m"
-				},
-				"length-decimeter": {
-					"displayName": "dm",
-					"unitPattern-count-one": "{0} dm",
-					"unitPattern-count-other": "{0} dm"
-				},
-				"length-centimeter": {
-					"displayName": "cm",
-					"unitPattern-count-one": "{0} cm",
-					"unitPattern-count-other": "{0} cm",
-					"perUnitPattern": "{0}/cm"
-				},
-				"length-millimeter": {
-					"displayName": "mm",
-					"unitPattern-count-one": "{0} mm",
-					"unitPattern-count-other": "{0} mm"
-				},
-				"length-micrometer": {
-					"displayName": "µmeters",
-					"unitPattern-count-one": "{0} µm",
-					"unitPattern-count-other": "{0} µm"
-				},
-				"length-nanometer": {
-					"displayName": "nm",
-					"unitPattern-count-one": "{0} nm",
-					"unitPattern-count-other": "{0} nm"
-				},
-				"length-picometer": {
-					"displayName": "pm",
-					"unitPattern-count-one": "{0} pm",
-					"unitPattern-count-other": "{0} pm"
-				},
-				"length-mile": {
-					"displayName": "miles",
-					"unitPattern-count-one": "{0} mi",
-					"unitPattern-count-other": "{0} mi"
-				},
-				"length-yard": {
-					"displayName": "yards",
-					"unitPattern-count-one": "{0} yd",
-					"unitPattern-count-other": "{0} yd"
-				},
-				"length-foot": {
-					"displayName": "feet",
-					"unitPattern-count-one": "{0} ft",
-					"unitPattern-count-other": "{0} ft",
-					"perUnitPattern": "{0}/ft"
-				},
-				"length-inch": {
-					"displayName": "inches",
-					"unitPattern-count-one": "{0} in",
-					"unitPattern-count-other": "{0} in",
-					"perUnitPattern": "{0}/in"
-				},
-				"length-parsec": {
-					"displayName": "parsecs",
-					"unitPattern-count-one": "{0} pc",
-					"unitPattern-count-other": "{0} pc"
-				},
-				"length-light-year": {
-					"displayName": "light yrs",
-					"unitPattern-count-one": "{0} ly",
-					"unitPattern-count-other": "{0} ly"
-				},
-				"length-astronomical-unit": {
-					"displayName": "au",
-					"unitPattern-count-one": "{0} au",
-					"unitPattern-count-other": "{0} au"
-				},
-				"length-furlong": {
-					"displayName": "furlongs",
-					"unitPattern-count-one": "{0} fur",
-					"unitPattern-count-other": "{0} fur"
-				},
-				"length-fathom": {
-					"displayName": "fathoms",
-					"unitPattern-count-one": "{0} ftm",
-					"unitPattern-count-other": "{0} ftm"
-				},
-				"length-nautical-mile": {
-					"displayName": "nmi",
-					"unitPattern-count-one": "{0} nmi",
-					"unitPattern-count-other": "{0} nmi"
-				},
-				"length-mile-scandinavian": {
-					"displayName": "smi",
-					"unitPattern-count-one": "{0} smi",
-					"unitPattern-count-other": "{0} smi"
-				},
-				"length-point": {
-					"displayName": "points",
-					"unitPattern-count-one": "{0} pt",
-					"unitPattern-count-other": "{0} pt"
-				},
-				"light-lux": {
-					"displayName": "lux",
-					"unitPattern-count-one": "{0} lx",
-					"unitPattern-count-other": "{0} lx"
-				},
-				"mass-metric-ton": {
-					"displayName": "t",
-					"unitPattern-count-one": "{0} t",
-					"unitPattern-count-other": "{0} t"
-				},
-				"mass-kilogram": {
-					"displayName": "kg",
-					"unitPattern-count-one": "{0} kg",
-					"unitPattern-count-other": "{0} kg",
-					"perUnitPattern": "{0}/kg"
-				},
-				"mass-gram": {
-					"displayName": "grams",
-					"unitPattern-count-one": "{0} g",
-					"unitPattern-count-other": "{0} g",
-					"perUnitPattern": "{0}/g"
-				},
-				"mass-milligram": {
-					"displayName": "mg",
-					"unitPattern-count-one": "{0} mg",
-					"unitPattern-count-other": "{0} mg"
-				},
-				"mass-microgram": {
-					"displayName": "µg",
-					"unitPattern-count-one": "{0} µg",
-					"unitPattern-count-other": "{0} µg"
-				},
-				"mass-ton": {
-					"displayName": "tons",
-					"unitPattern-count-one": "{0} tn",
-					"unitPattern-count-other": "{0} tn"
-				},
-				"mass-stone": {
-					"displayName": "stones",
-					"unitPattern-count-one": "{0} st",
-					"unitPattern-count-other": "{0} st"
-				},
-				"mass-pound": {
-					"displayName": "pounds",
-					"unitPattern-count-one": "{0} lb",
-					"unitPattern-count-other": "{0} lb",
-					"perUnitPattern": "{0}/lb"
-				},
-				"mass-ounce": {
-					"displayName": "oz",
-					"unitPattern-count-one": "{0} oz",
-					"unitPattern-count-other": "{0} oz",
-					"perUnitPattern": "{0}/oz"
-				},
-				"mass-ounce-troy": {
-					"displayName": "oz troy",
-					"unitPattern-count-one": "{0} oz t",
-					"unitPattern-count-other": "{0} oz t"
-				},
-				"mass-carat": {
-					"displayName": "carats",
-					"unitPattern-count-one": "{0} CD",
-					"unitPattern-count-other": "{0} CD"
-				},
-				"power-gigawatt": {
-					"displayName": "GW",
-					"unitPattern-count-one": "{0} GW",
-					"unitPattern-count-other": "{0} GW"
-				},
-				"power-megawatt": {
-					"displayName": "MW",
-					"unitPattern-count-one": "{0} MW",
-					"unitPattern-count-other": "{0} MW"
-				},
-				"power-kilowatt": {
-					"displayName": "kW",
-					"unitPattern-count-one": "{0} kW",
-					"unitPattern-count-other": "{0} kW"
-				},
-				"power-watt": {
-					"displayName": "watts",
-					"unitPattern-count-one": "{0} W",
-					"unitPattern-count-other": "{0} W"
-				},
-				"power-milliwatt": {
-					"displayName": "mW",
-					"unitPattern-count-one": "{0} mW",
-					"unitPattern-count-other": "{0} mW"
-				},
-				"power-horsepower": {
-					"displayName": "hp",
-					"unitPattern-count-one": "{0} hp",
-					"unitPattern-count-other": "{0} hp"
-				},
-				"pressure-hectopascal": {
-					"displayName": "hPa",
-					"unitPattern-count-one": "{0} hPa",
-					"unitPattern-count-other": "{0} hPa"
-				},
-				"pressure-millimeter-of-mercury": {
-					"displayName": "mmHg",
-					"unitPattern-count-one": "{0} mmHg",
-					"unitPattern-count-other": "{0} mmHg"
-				},
-				"pressure-pound-per-square-inch": {
-					"displayName": "psi",
-					"unitPattern-count-one": "{0} psi",
-					"unitPattern-count-other": "{0} psi"
-				},
-				"pressure-inch-hg": {
-					"displayName": "inHg",
-					"unitPattern-count-one": "{0} inHg",
-					"unitPattern-count-other": "{0} inHg"
-				},
-				"pressure-millibar": {
-					"displayName": "mbar",
-					"unitPattern-count-one": "{0} mbar",
-					"unitPattern-count-other": "{0} mbar"
-				},
-				"speed-kilometer-per-hour": {
-					"displayName": "km/hour",
-					"unitPattern-count-one": "{0} kph",
-					"unitPattern-count-other": "{0} kph"
-				},
-				"speed-meter-per-second": {
-					"displayName": "meters/sec",
-					"unitPattern-count-one": "{0} m/s",
-					"unitPattern-count-other": "{0} m/s"
-				},
-				"speed-mile-per-hour": {
-					"displayName": "miles/hour",
-					"unitPattern-count-one": "{0} mph",
-					"unitPattern-count-other": "{0} mph"
-				},
-				"speed-knot": {
-					"displayName": "kn",
-					"unitPattern-count-one": "{0} kn",
-					"unitPattern-count-other": "{0} kn"
-				},
-				"temperature-generic": {
-					"displayName": "°",
-					"unitPattern-count-other": "{0}°"
-				},
-				"temperature-celsius": {
-					"displayName": "deg. C",
-					"unitPattern-count-one": "{0}°C",
-					"unitPattern-count-other": "{0}°C"
-				},
-				"temperature-fahrenheit": {
-					"displayName": "deg. F",
-					"unitPattern-count-one": "{0}°F",
-					"unitPattern-count-other": "{0}°F"
-				},
-				"temperature-kelvin": {
-					"displayName": "K",
-					"unitPattern-count-one": "{0} K",
-					"unitPattern-count-other": "{0} K"
-				},
-				"volume-cubic-kilometer": {
-					"displayName": "km³",
-					"unitPattern-count-one": "{0} km³",
-					"unitPattern-count-other": "{0} km³"
-				},
-				"volume-cubic-meter": {
-					"displayName": "m³",
-					"unitPattern-count-one": "{0} m³",
-					"unitPattern-count-other": "{0} m³",
-					"perUnitPattern": "{0}/m³"
-				},
-				"volume-cubic-centimeter": {
-					"displayName": "cm³",
-					"unitPattern-count-one": "{0} cm³",
-					"unitPattern-count-other": "{0} cm³",
-					"perUnitPattern": "{0}/cm³"
-				},
-				"volume-cubic-mile": {
-					"displayName": "mi³",
-					"unitPattern-count-one": "{0} mi³",
-					"unitPattern-count-other": "{0} mi³"
-				},
-				"volume-cubic-yard": {
-					"displayName": "yards³",
-					"unitPattern-count-one": "{0} yd³",
-					"unitPattern-count-other": "{0} yd³"
-				},
-				"volume-cubic-foot": {
-					"displayName": "feet³",
-					"unitPattern-count-one": "{0} ft³",
-					"unitPattern-count-other": "{0} ft³"
-				},
-				"volume-cubic-inch": {
-					"displayName": "inches³",
-					"unitPattern-count-one": "{0} in³",
-					"unitPattern-count-other": "{0} in³"
-				},
-				"volume-megaliter": {
-					"displayName": "ML",
-					"unitPattern-count-one": "{0} ML",
-					"unitPattern-count-other": "{0} ML"
-				},
-				"volume-hectoliter": {
-					"displayName": "hL",
-					"unitPattern-count-one": "{0} hL",
-					"unitPattern-count-other": "{0} hL"
-				},
-				"volume-liter": {
-					"displayName": "liters",
-					"unitPattern-count-one": "{0} L",
-					"unitPattern-count-other": "{0} L",
-					"perUnitPattern": "{0}/L"
-				},
-				"volume-deciliter": {
-					"displayName": "dL",
-					"unitPattern-count-one": "{0} dL",
-					"unitPattern-count-other": "{0} dL"
-				},
-				"volume-centiliter": {
-					"displayName": "cL",
-					"unitPattern-count-one": "{0} cL",
-					"unitPattern-count-other": "{0} cL"
-				},
-				"volume-milliliter": {
-					"displayName": "mL",
-					"unitPattern-count-one": "{0} mL",
-					"unitPattern-count-other": "{0} mL"
-				},
-				"volume-pint-metric": {
-					"displayName": "mpt",
-					"unitPattern-count-one": "{0} mpt",
-					"unitPattern-count-other": "{0} mpt"
-				},
-				"volume-cup-metric": {
-					"displayName": "mcup",
-					"unitPattern-count-one": "{0} mc",
-					"unitPattern-count-other": "{0} mc"
-				},
-				"volume-acre-foot": {
-					"displayName": "acre ft",
-					"unitPattern-count-one": "{0} ac ft",
-					"unitPattern-count-other": "{0} ac ft"
-				},
-				"volume-bushel": {
-					"displayName": "bushels",
-					"unitPattern-count-one": "{0} bu",
-					"unitPattern-count-other": "{0} bu"
-				},
-				"volume-gallon": {
-					"displayName": "gal",
-					"unitPattern-count-one": "{0} gal",
-					"unitPattern-count-other": "{0} gal",
-					"perUnitPattern": "{0}/gal US"
-				},
-				"volume-gallon-imperial": {
-					"displayName": "Imp. gal",
-					"unitPattern-count-one": "{0} gal Imp.",
-					"unitPattern-count-other": "{0} gal Imp.",
-					"perUnitPattern": "{0}/gal Imp."
-				},
-				"volume-quart": {
-					"displayName": "qts",
-					"unitPattern-count-one": "{0} qt",
-					"unitPattern-count-other": "{0} qt"
-				},
-				"volume-pint": {
-					"displayName": "pints",
-					"unitPattern-count-one": "{0} pt",
-					"unitPattern-count-other": "{0} pt"
-				},
-				"volume-cup": {
-					"displayName": "cups",
-					"unitPattern-count-one": "{0} c",
-					"unitPattern-count-other": "{0} c"
-				},
-				"volume-fluid-ounce": {
-					"displayName": "fl oz",
-					"unitPattern-count-one": "{0} fl oz",
-					"unitPattern-count-other": "{0} fl oz"
-				},
-				"volume-tablespoon": {
-					"displayName": "tbsp",
-					"unitPattern-count-one": "{0} tbsp",
-					"unitPattern-count-other": "{0} tbsp"
-				},
-				"volume-teaspoon": {
-					"displayName": "tsp",
-					"unitPattern-count-one": "{0} tsp",
-					"unitPattern-count-other": "{0} tsp"
-				},
-				"coordinateUnit": {
-					"east": "{0} E",
-					"north": "{0} N",
-					"south": "{0} S",
-					"west": "{0} W"
-				}
-			}
-		}
-	};
-
-	var M_ISO639_OLD_TO_NEW = {
-			"iw" : "he",
-			"ji" : "yi",
-			"in" : "id",
-			"sh" : "sr"
-	};
+	const A_SUPPORTED_LOCALES = ["ar","ar_EG","ar_SA","bg","ca","cnr","cs","cy","da","de","de_AT","de_CH","el","el_CY",
+		"en","en_AU","en_GB","en_HK","en_IE","en_IN","en_NZ","en_PG","en_SG","en_ZA","es",
+		"es_AR","es_BO","es_CL","es_CO","es_MX","es_PE","es_UY","es_VE","et","fa","fi","fr",
+		"fr_BE","fr_CA","fr_CH","fr_LU","he","hi","hr","hu","id","it","it_CH","ja","kk","ko",
+		"lt","lv","mk","ms","nb","nl","nl_BE","pl","pt","pt_PT","ro","ru","ru_UA","sk","sl",
+		"sr","sr_Latn","sv","th","tr","uk","vi","zh_CN","zh_HK","zh_SG","zh_TW"];
 
 	/**
-	 * A set of locales for which the UI5 runtime contains a CLDR JSON file.
+	 * Creates a flat map from an object structure which contains a link to the parent ("_parent").
+	 * The values should contain the parent(s) and the element joined by <code>", "</code>.
+	 * The keys are the keys of the object structure joined by "/" excluding "_parent".
 	 *
-	 * Helps to avoid unsatisfiable backend calls.
+	 * E.g. input
+	 * <code>
+	 * {
+	 *     a: {
+	 *         a1: {
+	 *             a11: "A11",
+	 *             _parent: "A1"
+	 *         },
+	 *         _parent: "A"
+	 *     }
+	 * }
+	 * </code>
 	 *
+	 * output:
+	 * <code>
+	 * {
+	 *     "a/a1/a11": "A, A1, A11"
+	 * }
+	 * </code>
+	 *
+	 * @param {object} oNode the node which will be processed
+	 * @param {string} [sKey=""] the key inside the node which should be processed
+	 * @param {object} [oResult={}] the result which is passed through the recursion
+	 * @param {string[]} [aParentTranslations=[]] the list of parent translations, e.g. ["A", "A1"]
+	 * @returns {Object<string, string>} object map with key being the keys joined by "/" and the values joined by ", ".
 	 * @private
 	 */
-	var M_SUPPORTED_LOCALES = (function() {
-		var LOCALES = Locale._cldrLocales,
-			result = {},
-			i;
+	function _resolveTimezoneTranslationStructure (oNode, sKey, oResult, aParentTranslations) {
+		aParentTranslations = aParentTranslations ? aParentTranslations.slice() : [];
+		oResult = oResult || {};
 
-		if ( LOCALES ) {
-			for (i = 0; i < LOCALES.length; i++) {
-				result[LOCALES[i]] = true;
+		sKey = sKey || "";
+		Object.keys(oNode).forEach(function (sChildKey) {
+			var vChildNode = oNode[sChildKey];
+			if (typeof vChildNode === "object") {
+				var aParentTranslationForChild = aParentTranslations.slice();
+				var sParent = vChildNode["_parent"];
+				if (sParent) {
+					aParentTranslationForChild.push(sParent);
+				}
+				_resolveTimezoneTranslationStructure(vChildNode, sKey + sChildKey + "/", oResult, aParentTranslationForChild);
+			} else if (typeof vChildNode === "string" && sChildKey !== "_parent") {
+				var sParents = aParentTranslations.length ? aParentTranslations.join(", ") + ", " : "";
+				oResult[sKey + sChildKey] = sParents + vChildNode;
 			}
-		}
-
-		return result;
-	}());
-
-	/**
-	 * Locale data cache.
-	 *
-	 * @private
-	 */
-	var mLocaleDatas = {};
+		});
+		return oResult;
+	}
 
 	/**
 	 * Returns the corresponding calendar name in CLDR of the given calendar type, or the calendar type
 	 * from the configuration, in case sCalendarType is undefined.
 	 *
-	 * @param {sap.ui.core.CalendarType} sCalendarType the type defined in {@link sap.ui.core.CalendarType}.
+	 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType
+	 *   The type defined in {@link module:sap/base/i18n/date/CalendarType}.
+	 * @returns {string} calendar name
 	 * @private
 	 */
 	function getCLDRCalendarName(sCalendarType) {
 		if (!sCalendarType) {
-			sCalendarType = sap.ui.getCore().getConfiguration().getCalendarType();
+			sCalendarType = Formatting.getCalendarType();
 		}
 		return "ca-" + sCalendarType.toLowerCase();
 	}
 
 	/**
-	 * Load LocaleData data from the CLDR generated files.
+	 * Loads data from the generated CLDR files.
+	 *
+	 * @param {sap.ui.core.Locale} oLocale
+	 *   The locale to load the CLDR data for
+	 * @param {boolean} [bAsync]
+	 *   Whether to load the data asynchronously
+	 *
+	 * @returns {SyncPromise<{mData: Object<string, any>, sCLDRLocaleId: string}>}
+	 *   A <code>SyncPromise</code> which resolves with an object with two properties: <code>mData</code>
+	 *   containing the loaded CLDR data and <code>sCLDRLocaleId</code>, the used CLDR locale ID (e.g. "ar-SA");
+	 *   the <code>SyncPromise</code> never rejects; if neither the <language>_<region>.json nor the
+	 *   <language>.json data can be loaded via the second try, the English CLDR data is used as final fallback
 	 */
-	function getData(oLocale) {
+	function loadData(oLocale, bAsync) {
 
 		var sLanguage = oLocale.getLanguage() || "",
-			sScript = oLocale.getScript() || "",
 			sRegion = oLocale.getRegion() || "",
-			mData;
+			sScript = oLocale.getScript() || "";
 
 		/*
 		 * Merge a CLDR delta file and a CLDR fallback file.
 		 *
-		 * Note: the contract of this method reg. null values differs from both,
-		 * jQuery.extend as well as jQuery.sap.extend.
+		 * Note: this function can't be replaced by sap/base/util/extend or sap/base/util/merge
+		 * as its contract for null values differs from those modules.
 		 */
 		function merge(obj, fallbackObj) {
 			var name, value, fallbackValue;
@@ -3267,7 +2557,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					} else if ( value === null ) {
 						// 'null' is used by the delta tooling as a marker that a value must not be taken form the fallback
 						delete obj[name];
-					} else if ( typeof value === 'object' && typeof fallbackValue === 'object' ) {
+					} else if ( typeof value === 'object' && typeof fallbackValue === 'object' && !Array.isArray(value) ) {
 						// both values are objects, merge them recursively
 						merge(value, fallbackValue);
 					}
@@ -3279,27 +2569,39 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		}
 
 		function getOrLoad(sId) {
-			if ( !mLocaleDatas[sId] && (!M_SUPPORTED_LOCALES || M_SUPPORTED_LOCALES[sId] === true) ) {
-				var data = mLocaleDatas[sId] = LoaderExtensions.loadResource("sap/ui/core/cldr/" + sId + ".json", {
-					dataType: "json",
-					failOnError : false
-				});
+			if (!mLocaleIdToData[sId] && A_SUPPORTED_LOCALES.includes(sId)
+					|| mLocaleIdToData[sId] instanceof Promise && !bAsync) {
+				mLocaleIdToData[sId] = SyncPromise.resolve(LoaderExtensions.loadResource(`sap/ui/core/cldr/${sId}.json`,
+					{
+						"async" : bAsync,
+						dataType : "json",
+						failOnError : false
+					})).then((oData) => {
+						// Note: When preload bundles are created the files in those bundles are optimized, i.e. for
+						// language bundles similar entries/parts are aggregated inside a <language>.json
+						// (e.g. 'ar.json') and only the region specific entries remain in the <language>_<region>.json
+						// (e.g. 'ar_SA.json').
+						// When a <language>_<region>.json is loaded the "__fallbackLocale" property inside the bundle
+						// indicates that further CLDR data/entries have to be loaded from the referenced
+						// <fallbackLocale>.json.
+						if (oData) {
+							return getOrLoad(oData.__fallbackLocale).then((oFallBackData) => {
+								merge(oData, oFallBackData);
+								mLocaleIdToData[sId] = oData;
+								delete oData.__fallbackLocale;
+								return oData;
+							});
+						}
 
-				// check if the data is a minified delta file.
-				// If so, load the corresponding fallback data as well, merge it and remove the fallback marker
-				if ( data && data.__fallbackLocale ) {
-					merge(data, getOrLoad(data.__fallbackLocale));
-					delete data.__fallbackLocale;
-				}
-
-				// if load fails, null is returned
-				// -> caller will process the fallback chain, in the end a result is identified and stored in mDatas under the originally requested ID
+						return oData;
+					}).unwrap();
 			}
-			return mLocaleDatas[sId];
+
+			return SyncPromise.resolve(mLocaleIdToData[sId]);
 		}
 
 		// normalize language and handle special cases
-		sLanguage = (sLanguage && M_ISO639_OLD_TO_NEW[sLanguage]) || sLanguage;
+		sLanguage = (sLanguage && Localization.getModernLanguage(sLanguage)) || sLanguage;
 		// Special case 1: in an SAP context, the inclusive language code "no" always means Norwegian Bokmal ("nb")
 		if ( sLanguage === "no" ) {
 			sLanguage = "nb";
@@ -3313,19 +2615,42 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			}
 		}
 
-		var sId = sLanguage + "_" + sRegion; // the originally requested locale; this is the key under which the result (even a fallback one) will be stored in the end
-		// first try: load CLDR data for specific language / region combination
-		if ( sLanguage && sRegion ) {
-			mData = getOrLoad(sId);
+		// Special case 3: for Serbian, there is script cyrillic and latin, "sh" and "sr-latn" map to "latin", "sr" maps to cyrillic
+		// CLDR files: sr.json (cyrillic) and sr_Latn.json (latin)
+		if (sLanguage === "sh" || (sLanguage === "sr" && sScript === "Latn")) {
+			sLanguage = "sr_Latn";
 		}
-		// second try: load data for language only
-		if ( !mData && sLanguage ) {
-			mData = getOrLoad(sLanguage);
-		}
-		// last try: use fallback data
-		mLocaleDatas[sId] = mData || M_DEFAULT_DATA;
 
-		return mLocaleDatas[sId];
+		// sId is the originally requested locale.
+		// this is the key under which the result (even a fallback one) will be stored in the end
+		const sId = sLanguage + "_" + sRegion;
+
+		// the locale of the loaded json file
+		let sCLDRLocaleId = sId;
+
+		// first try: load CLDR data for specific language/region combination
+		return getOrLoad(sId).then((mData) => {
+			if (!mData) {
+				// second try: no data was found for the language/region combination, try with only the language
+				sCLDRLocaleId = sLanguage;
+				return getOrLoad(sLanguage);
+			}
+
+			return mData;
+		}).then((mData) => {
+			if (!mData) {
+				// last try: no data was found for language/region combination nor the language, load "en" locale data
+				sCLDRLocaleId = "en";
+				return getOrLoad("en");
+			}
+
+			return mData;
+		}).then((mData) => {
+			return {
+				mData: mData,
+				sCLDRLocaleId: sCLDRLocaleId.replace(/_/g, "-")
+			};
+		});
 	}
 
 
@@ -3338,7 +2663,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	var CustomLocaleData = LocaleData.extend("sap.ui.core.CustomLocaleData", {
 		constructor: function(oLocale) {
 			LocaleData.apply(this, arguments);
-			this.mCustomData = sap.ui.getCore().getConfiguration().getFormatSettings().getCustomLocaleData();
+			this.mCustomData = Formatting.getCustomLocaleData();
 		},
 
 		/**
@@ -3386,16 +2711,167 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			var mCustomData = this._getDeep(this.mCustomData, arguments);
 
 			return extend({}, mData, mCustomData);
+		},
+
+		/**
+		 * Returns the first day of the week defined by the calendar week numbering algorithm
+		 * set in the configuration, or if no specific calendar week numbering algorithm is configured, see
+		 * {@link module:sap/base/i18n/Formatting.setCalendarWeekNumbering Formatting.setCalendarWeekNumbering}.
+		 * Otherwise, the first day of the week is determined by the current locale, see
+		 * {@link sap.ui.core.LocaleData#getFirstDayOfWeek}.
+		 *
+		 * Days are encoded as integer where Sunday=0, Monday=1 etc.
+		 *
+		 * @returns {int} The first day of week
+		 * @override sap.ui.core.LocalData#getFirstDayOfWeek
+		 * @since 1.113.0
+		 */
+		getFirstDayOfWeek: function() {
+			var sCalendarWeekNumbering = Formatting.getCalendarWeekNumbering();
+
+			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
+				return LocaleData.prototype.getFirstDayOfWeek.call(this);
+			}
+
+			return CalendarWeekNumbering.getWeekConfigurationValues(sCalendarWeekNumbering).firstDayOfWeek;
+		},
+
+		/**
+		 * Returns the required minimal number of days for the first week of a year defined by the
+		 * calendar week numbering algorithm set in the configuration,
+		 * see {@link module:sap/base/i18n/Formatting.setCalendarWeekNumbering Formatting.setCalendarWeekNumbering}.
+		 * If no specific calendar week numbering algorithm is configured the required minimal number
+		 * of days for the first week of a year is determined by the current locale,
+		 * see {@link sap.ui.core.LocaleData#getMinimalDaysInFirstWeek}.
+		 *
+		 * @returns {int} The required minimal number of days for the first week of a year
+		 * @override sap.ui.core.LocalData#getMinimalDaysInFirstWeek
+		 * @since 1.113.0
+		 */
+		getMinimalDaysInFirstWeek: function() {
+			var sCalendarWeekNumbering = Formatting.getCalendarWeekNumbering();
+
+			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
+				return LocaleData.prototype.getMinimalDaysInFirstWeek.call(this);
+			}
+
+			return CalendarWeekNumbering.getWeekConfigurationValues(sCalendarWeekNumbering).minimalDaysInFirstWeek;
 		}
 	});
 
 	/**
+	 * Resets the locale data cache.
 	 *
+	 * @private
 	 */
-	LocaleData.getInstance = function(oLocale) {
-		return oLocale.hasPrivateUseSubtag("sapufmt") ? new CustomLocaleData(oLocale) : new LocaleData(oLocale);
+	LocaleData._resetLocaleDataCache = function() {
+		mLocaleIdToData = {};
 	};
 
-	return LocaleData;
+	/**
+	 * Creates an instance of <code>LocaleData</code> for the given locale.
+	 *
+	 * @param {sap.ui.core.Locale|module:sap/base/i18n/LanguageTag} vLocale The locale or language tag
+	 * @returns {sap.ui.core.LocaleData} An instance of <code>LocaleData</code>
+	 *
+	 * @public
+	 * @since 1.123
+	 */
+	LocaleData.getInstance = function(vLocale) {
+		vLocale = Locale._getCoreLocale(vLocale);
+		return vLocale.hasPrivateUseSubtag("sapufmt") ? new CustomLocaleData(vLocale) : new LocaleData(vLocale);
+	};
 
+	/**
+	 * Creates an instance of <code>LocaleData</code> asynchronously for the given language tag.
+	 *
+	 * @param {module:sap/base/i18n/LanguageTag} oLanguageTag
+	 *   The language tag
+	 * @returns {Promise<sap.ui.core.LocaleData>}
+	 *   A <code>Promise</code> which resolves with an instance of <code>LocaleData</code>; the <code>Promise</code>
+	 *   never rejects
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 * @since 1.127
+	 */
+	LocaleData.requestInstance = function (oLanguageTag) {
+		const oLocale = Locale._getCoreLocale(oLanguageTag);
+		const oLocaleData = oLocale.hasPrivateUseSubtag("sapufmt")
+			? new CustomLocaleData(oLocale, true)
+			: new LocaleData(oLocale, true);
+		return Promise.resolve(oLocaleData.loaded);
+	};
+
+	LocaleData._cldrLocales = A_SUPPORTED_LOCALES;
+	// maps a locale to a map of time zone translations, which maps an IANA time zone ID to the translated time zone
+	// name
+	LocaleData._mTimezoneTranslations = {};
+
+	const rContainsSymbol = new RegExp("[" + Object.keys(mCLDRSymbols).join("") + "]");
+	const rTextWithOptionalSpacesAtStartAndEnd = /^(\s)?(.*?)(\s)?$/;
+
+	/**
+	 * Returns the escaped value if the given value contains CLDR symbols.
+	 *
+	 * @param {string} [sValue=""]
+	 *   The value to be checked and escaped if needed; the value must not contain '
+	 * @returns {string}
+	 *   The escaped value; only the string between one optional space at the beginning and at the
+	 *   end is escaped
+	 */
+	LocaleData._escapeIfNeeded = function (sValue) {
+		if (sValue === undefined) {
+			return "";
+		}
+		if (rContainsSymbol.test(sValue)) {
+			return sValue.replace(rTextWithOptionalSpacesAtStartAndEnd, "$1'$2'$3");
+		}
+		return sValue;
+	};
+
+	/**
+	 * Replaced by {@link #getCompactCurrencyPattern}.
+	 *
+	 * @param {"short"|"sap-short"|"short-indian"|"sap-short-indian"} sStyle
+	 *   See {@link #getCompactCurrencyPattern}; "short-indian" and "sap-short-indian" are only available since 1.133.0
+	 *   for the "en-IN" locale
+	 * @param {string} sPowerOfTen
+	 *   See {@link #getCompactCurrencyPattern}
+	 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+	 *   See {@link #getCompactCurrencyPattern}
+	 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+	 *   See {@link #getCompactCurrencyPattern}; since 1.133.0
+	 * @returns {string|undefined}
+	 *   See {@link #getCompactCurrencyPattern}
+	 *
+	 * @function
+	 * @name sap.ui.core.LocaleData.prototype.getCurrencyFormat
+	 * @public
+	 * @since 1.51.0
+	 * @deprecated since 1.133.0, use {@link #getCompactCurrencyPattern} instead
+	 */
+	LocaleData.prototype.getCurrencyFormat = LocaleData.prototype.getCompactCurrencyPattern;
+
+	/**
+	 * Replaced by {@link #getCompactDecimalPattern}.
+	 *
+	 * @param {"long"|"short"|"short-indian"} sStyle
+	 *   See {@link #getCompactDecimalPattern}; "short-indian" is only available since 1.133.0 for the "en-IN" locale
+	 * @param {string} sPowerOfTen
+	 *   See {@link #getCompactDecimalPattern}
+	 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+	 *   See {@link #getCompactDecimalPattern}
+	 * @returns {string|undefined}
+	 *   See {@link #getCompactDecimalPattern}
+	 *
+	 * @function
+	 * @name sap.ui.core.LocaleData.prototype.getDecimalFormat
+	 * @public
+	 * @since 1.25.0
+	 * @deprecated since 1.133.0, use {@link #getCompactDecimalPattern} instead
+	 */
+	LocaleData.prototype.getDecimalFormat = LocaleData.prototype.getCompactDecimalPattern;
+
+	return LocaleData;
 });

@@ -1,24 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.f.DynamicPageHeader.
 sap.ui.define([
-    "./library",
-    "sap/ui/Device",
-    "sap/ui/core/Control",
+	"./library",
+	"sap/ui/Device",
+	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-    "sap/m/ToggleButton",
-    "sap/m/Button",
-    "./DynamicPageHeaderRenderer",
+	"sap/ui/core/IconPool",
+	"sap/ui/core/theming/Parameters",
+	"sap/m/ToggleButton",
+	"sap/m/Button",
+	"./DynamicPageHeaderRenderer",
 	"sap/ui/core/InvisibleMessage"
 ], function(
-    library,
+	library,
 	Device,
 	Control,
+	Library,
 	CoreLibrary,
+	IconPool,
+	ThemeParameters,
 	ToggleButton,
 	Button,
 	DynamicPageHeaderRenderer,
@@ -58,13 +64,12 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.42
 		 * @alias sap.f.DynamicPageHeader
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var DynamicPageHeader = Control.extend("sap.f.DynamicPageHeader", /** @lends sap.f.DynamicPageHeader.prototype */ {
 			metadata: {
@@ -104,7 +109,9 @@ sap.ui.define([
 					_collapseButton: {type: "sap.m.Button", multiple: false,  visibility: "hidden"}
 				},
 				designtime: "sap/f/designtime/DynamicPageHeader.designtime"
-			}
+			},
+
+			renderer: DynamicPageHeaderRenderer
 		});
 
 		/*************************************** Static members ******************************************/
@@ -114,17 +121,17 @@ sap.ui.define([
 		 * @returns {Object} the resource bundle object
 		 */
 		DynamicPageHeader._getResourceBundle = function () {
-			return sap.ui.getCore().getLibraryResourceBundle("sap.f");
+			return Library.getResourceBundleFor("sap.f");
 		};
+
+		DynamicPageHeader.UNPRESSED_PIN_ICON = "sap-icon://pushpin-off";
 
 		DynamicPageHeader.ARIA = {
 			ARIA_CONTROLS: "aria-controls",
-			ARIA_EXPANDED: "aria-expanded",
 			ARIA_LABEL: "aria-label",
 			LABEL_EXPANDED: DynamicPageHeader._getResourceBundle().getText("EXPANDED_HEADER"),
 			LABEL_COLLAPSED: DynamicPageHeader._getResourceBundle().getText("SNAPPED_HEADER"),
 			LABEL_PINNED: DynamicPageHeader._getResourceBundle().getText("PIN_HEADER"),
-			LABEL_UNPINNED: DynamicPageHeader._getResourceBundle().getText("UNPIN_HEADER"),
 			TOOLTIP_COLLAPSE_BUTTON: DynamicPageHeader._getResourceBundle().getText("COLLAPSE_HEADER_BUTTON_TOOLTIP"),
 			STATE_TRUE: "true",
 			STATE_FALSE: "false"
@@ -134,15 +141,22 @@ sap.ui.define([
 		DynamicPageHeader.prototype.init = function() {
 			this._bShowCollapseButton = true;
 			this._oInvisibleMessage = null;
+			this._oLandmarkInfo = null;
 		};
 
 		DynamicPageHeader.prototype.onAfterRendering = function () {
-			this._initARIAState();
 			this._initPinButtonARIAState();
 
 			if (!this._oInvisibleMessage) {
 				this._oInvisibleMessage = InvisibleMessage.getInstance();
 			}
+			// Required if the parent has "headerPinned" set to "true" initially.
+			// Without the explicit "_setPressedStatePinIcon" an empty button is rendered.
+			if (this.getPinnable()) {
+				this._setPressedStatePinIcon();
+			}
+
+			this._applyAriaAttributes();
 		};
 
 		/*************************************** Private members ******************************************/
@@ -154,6 +168,7 @@ sap.ui.define([
 		 */
 		DynamicPageHeader.prototype._togglePinButton = function (bValue) {
 			this._getPinButton().setPressed(bValue);
+			this._getPinButton().setIcon(bValue ? this._sPressedStatePinIconURI : DynamicPageHeader.UNPRESSED_PIN_ICON);
 		};
 
 		/**
@@ -162,15 +177,16 @@ sap.ui.define([
 		 * @private
 		 */
 		DynamicPageHeader.prototype._setShowPinBtn = function (bValue) {
-			this._getPinButton().$().toggleClass("sapUiHidden", !bValue);
+			this._getPinButton().toggleStyleClass("sapUiHidden", !bValue);
 		};
 
 		/**
 		 * Fires the pin/unpin press event.
 		 * @private
 		 */
-		DynamicPageHeader.prototype._pinUnpinFireEvent = function () {
+		DynamicPageHeader.prototype._pinUnpinFireEvent = function (oEvent) {
 			this.fireEvent("_pinUnpinPress");
+			this._togglePinButton(oEvent.getSource().getPressed());
 		};
 
 		/**
@@ -198,14 +214,25 @@ sap.ui.define([
 		};
 
 		/**
-		 * Initializes the <code>DynamicPageHeader</code> ARIA State.
+		 * Applies the <code>DynamicPageHeader</code> ARIA attributes.
 		 * @private
 		 */
-		DynamicPageHeader.prototype._initARIAState = function () {
-			var $header = this.$();
+		DynamicPageHeader.prototype._applyAriaAttributes = function () {
+			var $header = this.$(),
+				bHasHeaderContentLabel = this._oLandmarkInfo && this._oLandmarkInfo.getHeaderContentLabel();
 
-			$header.attr(DynamicPageHeader.ARIA.ARIA_EXPANDED, DynamicPageHeader.ARIA.STATE_TRUE);
-			$header.attr(DynamicPageHeader.ARIA.ARIA_LABEL, DynamicPageHeader.ARIA.LABEL_EXPANDED);
+			if (bHasHeaderContentLabel) {
+				var sHeaderContentLabel = this._oLandmarkInfo.getHeaderContentLabel();
+				$header.attr(DynamicPageHeader.ARIA.ARIA_LABEL, sHeaderContentLabel);
+			} else {
+				$header.attr(DynamicPageHeader.ARIA.ARIA_LABEL, DynamicPageHeader.ARIA.LABEL_EXPANDED);
+			}
+		};
+
+		DynamicPageHeader.prototype._setLandmarkInfo = function (oLandmarkInfo) {
+			this._oLandmarkInfo = oLandmarkInfo;
+
+			this._applyAriaAttributes();
 		};
 
 		/**
@@ -223,33 +250,16 @@ sap.ui.define([
 
 		/**
 		 * Updates <code>DynamicPageHeader</code> ARIA attributes values according to expanded/collapsed (snapped) state.
-		 * @param {Boolean} bExpanded expanded or collapsed (snapped)
+		 * @param {boolean} bExpanded expanded or collapsed (snapped)
 		 * @private
 		 */
 		DynamicPageHeader.prototype._updateARIAState = function (bExpanded) {
 			var $header = this.$();
 
 			if (bExpanded) {
-				$header.attr(DynamicPageHeader.ARIA.ARIA_EXPANDED, DynamicPageHeader.ARIA.STATE_TRUE);
 				$header.attr(DynamicPageHeader.ARIA.ARIA_LABEL, DynamicPageHeader.ARIA.LABEL_EXPANDED);
 			} else {
-				$header.attr(DynamicPageHeader.ARIA.ARIA_EXPANDED, DynamicPageHeader.ARIA.STATE_FALSE);
 				$header.attr(DynamicPageHeader.ARIA.ARIA_LABEL, DynamicPageHeader.ARIA.LABEL_COLLAPSED);
-			}
-		};
-
-		/**
-		 * Updates <code>DynamicPageHeader</code> pin/unpin button ARIA attributes values according to the pinned/unpinned state.
-		 * @param {Boolean} bPinned determines if the <code>DynamicPageHeader</code> is pinned or unpinned
-		 * @private
-		 */
-		DynamicPageHeader.prototype._updateARIAPinButtonState = function (bPinned) {
-			var oPinBtn = this._getPinButton();
-
-			if (bPinned) {
-				oPinBtn.setTooltip(DynamicPageHeader.ARIA.LABEL_UNPINNED);
-			} else {
-				oPinBtn.setTooltip(DynamicPageHeader.ARIA.LABEL_PINNED);
 			}
 		};
 
@@ -262,7 +272,7 @@ sap.ui.define([
 			if (!this.getAggregation("_pinButton")) {
 				var oPinButton = new ToggleButton({
 					id: this.getId() + "-pinBtn",
-					icon: "sap-icon://pushpin-off",
+					icon: DynamicPageHeader.UNPRESSED_PIN_ICON,
 					tooltip: DynamicPageHeader.ARIA.LABEL_PINNED,
 					press: this._pinUnpinFireEvent.bind(this)
 				}).addStyleClass("sapFDynamicPageHeaderPinButton");
@@ -302,7 +312,7 @@ sap.ui.define([
 		 */
 		DynamicPageHeader.prototype._toggleCollapseButton = function (bToggle) {
 			this._setShowCollapseButton(bToggle);
-			this._getCollapseButton().$().toggleClass("sapUiHidden", !bToggle);
+			this._getCollapseButton().toggleStyleClass("sapUiHidden", !bToggle);
 		};
 
 		/**
@@ -328,8 +338,9 @@ sap.ui.define([
 		 * @private
 		 */
 		DynamicPageHeader.prototype._focusCollapseButton = function () {
+			var sTextToAnnounce = DynamicPageHeader._getResourceBundle().getText("EXPANDED_HEADER");
 			this._getCollapseButton().$().trigger("focus");
-			this._oInvisibleMessage.announce(this._getCollapseButton().getTooltip(), InvisibleMessageMode.Polite);
+			this._oInvisibleMessage.announce(sTextToAnnounce, InvisibleMessageMode.Polite);
 		};
 
 		/**
@@ -371,6 +382,24 @@ sap.ui.define([
 				pinButton: oPinButton,
 				collapseButton: oCollapseButton
 			};
+		};
+
+		DynamicPageHeader.prototype.onThemeChanged = function () {
+			var oPinButton = this._getPinButton();
+			this._setPressedStatePinIcon();
+
+			// Theme change event may be fired after the control was rendered and _togglePinButton was already called (if icon should be pressed, we need to update it here)
+			oPinButton.setIcon(oPinButton.getPressed() ? this._sPressedStatePinIconURI : DynamicPageHeader.UNPRESSED_PIN_ICON);
+		};
+
+		/**
+		 * Sets the icon URI for the pressed state of the pin button
+		 * @private
+		 */
+		DynamicPageHeader.prototype._setPressedStatePinIcon = function () {
+			this._sPressedStatePinIconURI = IconPool.getIconURI(ThemeParameters.get({
+				name: "_sap_f_DynamicPageHeader_PinButton_Icon"
+			}));
 		};
 
 		return DynamicPageHeader;

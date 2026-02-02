@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,10 +19,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 *
-	 * @version 1.82.0
-	 *
-	 * @experimental Since 1.50.0 This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
+	 * @version 1.136.0
 	 */
 	var AddFormField = BaseAddViaDelegate.createAddViaDelegateChangeHandler({
 		addProperty : function(mPropertyBag) {
@@ -37,42 +34,51 @@ sap.ui.define([
 			var mFieldSelector = mChangeContent.newFieldSelector;
 
 			var oCreatedFormElement;
+			var oParentFormContainer;
 
-			// "layoutControl" property is present only when the control is returned from Delegate.createLayout()
-			if (!mInnerControls.layoutControl) {
-				oCreatedFormElement = oModifier.createControl(
-					"sap.ui.layout.form.FormElement",
-					oAppComponent,
-					oView,
-					mFieldSelector
-				);
-				oModifier.insertAggregation(oCreatedFormElement, "label", mInnerControls.label, 0, oView);
-				oModifier.insertAggregation(oCreatedFormElement, "fields", mInnerControls.control, 0, oView);
-			} else {
-				oCreatedFormElement = mInnerControls.control;
-			}
+			return Promise.resolve()
+				.then(function(){
+					// "layoutControl" property is present only when the control is returned from Delegate.createLayout()
+					if (!mInnerControls.layoutControl) {
+						return Promise.resolve()
+							.then(oModifier.createControl.bind(oModifier, "sap.ui.layout.form.FormElement", oAppComponent, oView, mFieldSelector))
+							.then(function(oCreatedControl) {
+								oCreatedFormElement = oCreatedControl;
+								return Promise.all([
+									oModifier.insertAggregation(oCreatedFormElement, "label", mInnerControls.label, 0, oView),
+									oModifier.insertAggregation(oCreatedFormElement, "fields", mInnerControls.control, 0, oView)
+								]);
+							});
+					}
+					oCreatedFormElement = mInnerControls.control;
+					return undefined;
+				})
+				.then(function(){
+					oParentFormContainer = oChange.getDependentControl("parentFormContainer", mPropertyBag);
+					return oModifier.insertAggregation(oParentFormContainer,
+						"formElements",
+						oCreatedFormElement,
+						iIndex,
+						oView
+					);
+				})
+				.then(function(){
+					if (mInnerControls.valueHelp) {
+						return oModifier.insertAggregation(
+							oParentFormContainer,
+							"dependents",
+							mInnerControls.valueHelp,
+							0,
+							oView
+						);
+					}
+					return undefined;
+				});
 
-			var oParentFormContainer = oChange.getDependentControl("parentFormContainer", mPropertyBag);
-			oModifier.insertAggregation(oParentFormContainer,
-				"formElements",
-				oCreatedFormElement,
-				iIndex,
-				oView
-			);
-			if (mInnerControls.valueHelp) {
-				oModifier.insertAggregation(
-					oParentFormContainer,
-					"dependents",
-					mInnerControls.valueHelp,
-					0,
-					oView
-				);
-			}
 		},
 		aggregationName: "formElements",
 		parentAlias: "parentFormContainer",
-		fieldSuffix: "-field",
-		supportsDefault: true
+		fieldSuffix: "-field"
 	});
 	return AddFormField;
 },

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.table.CreationRowRenderer
 	 */
-	var CreationRowRenderer = {
+	const CreationRowRenderer = {
 		apiVersion: 2
 	};
 
@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @param {sap.ui.table.CreationRow} oCreationRow The <code>CreationRow</code> that should be rendered
 	 */
 	CreationRowRenderer.render = function(oRm, oCreationRow) {
-		var oTable = oCreationRow._getTable();
+		const oTable = oCreationRow.getTable();
 
 		if (!oTable) {
 			return;
@@ -37,7 +37,7 @@ sap.ui.define([
 
 		oRm.openStart("div", oCreationRow);
 		oRm.attr("data-sap-ui-fastnavgroup", "true");
-		oTable._getAccRenderExtension().writeAriaAttributesFor(oRm, oTable, "CREATIONROW", {creationRow: oCreationRow});
+		oTable._getAccRenderExtension().writeAriaAttributesFor(oRm, oTable, "CreationRow", {creationRow: oCreationRow});
 		oRm.class("sapUiTableCreationRow");
 		oRm.openEnd();
 
@@ -106,12 +106,12 @@ sap.ui.define([
 		// This method is very similar to TableRenderer.renderTableControlCnt, but could not be reused without bloating it up heavily. A reusable
 		// solution requires major refactoring.
 
-		var iStartColumnIndex = bFixedTable ? 0 : oTable.getComputedFixedColumnCount();
-		var iEndColumnIndex = bFixedTable ? oTable.getComputedFixedColumnCount() : oTable.getColumns().length;
-		var oCreationRow = oTable.getCreationRow();
+		const iStartColumnIndex = bFixedTable ? 0 : oTable.getComputedFixedColumnCount();
+		const iEndColumnIndex = bFixedTable ? oTable.getComputedFixedColumnCount() : oTable.getColumns().length;
+		const oCreationRow = oTable.getCreationRow();
 
 		oRm.openStart("table");
-		oTable._getAccRenderExtension().writeAriaAttributesFor(oRm, oTable, "CREATIONROW_TABLE");
+		oTable._getAccRenderExtension().writeAriaAttributesFor(oRm, oTable, "Presentation");
 		oRm.class("sapUiTableCtrl");
 		oRm.style(bFixedTable ? "width" : "min-width", oTable._getColumnsWidth(iStartColumnIndex, iEndColumnIndex) + "px");
 		oRm.openEnd();
@@ -121,12 +121,12 @@ sap.ui.define([
 		oRm.class("sapUiTableCtrlCol");
 		oRm.openEnd();
 
-		var aColumns = oTable.getColumns();
-		var aColumnParams = new Array(iEndColumnIndex);
-		var iColumnIndex;
-		var oColumn;
-		var bRenderDummyColumn = !bFixedTable && iEndColumnIndex > iStartColumnIndex;
-		var oColParam;
+		const aColumns = oTable.getColumns();
+		const aColumnParams = new Array(iEndColumnIndex);
+		let iColumnIndex;
+		let oColumn;
+		let bRenderDummyColumn = !bFixedTable && iEndColumnIndex > iStartColumnIndex;
+		let oColParam;
 
 		for (iColumnIndex = iStartColumnIndex; iColumnIndex < iEndColumnIndex; iColumnIndex++) {
 			oColumn = aColumns[iColumnIndex];
@@ -134,7 +134,7 @@ sap.ui.define([
 				shouldRender: !!(oColumn && oColumn.shouldRender())
 			};
 			if (oColParam.shouldRender) {
-				var sWidth = oColumn.getWidth();
+				let sWidth = oColumn.getWidth();
 				if (TableUtils.isVariableWidth(sWidth)) {
 					// if some of the columns have variable width, they serve as the dummy column
 					// and take available place. Do not render a dummy column in this case.
@@ -180,8 +180,8 @@ sap.ui.define([
 		oRm.class("sapUiTableTr");
 		oRm.openEnd();
 
-		var aCells = oCreationRow.getCells();
-		var aVisibleColumns = oTable._getVisibleColumns();
+		const aCells = oCreationRow.getCells();
+		const aVisibleColumns = TableRenderer.getColumnsToRender(oTable, iStartColumnIndex, iEndColumnIndex);
 
 		for (iColumnIndex = iStartColumnIndex; iColumnIndex < iEndColumnIndex; iColumnIndex++) {
 			oColumn = aColumns[iColumnIndex];
@@ -191,13 +191,13 @@ sap.ui.define([
 				oRm.openStart("td");
 				oRm.attr("data-sap-ui-colid", oColumn.getId());
 
-				var oCell = oCreationRow._getCell(iColumnIndex);
-				var nColumns = aVisibleColumns.length;
-				var bIsFirstColumn = nColumns > 0 && aVisibleColumns[0] === oColumn;
-				var bIsLastColumn = nColumns > 0 && aVisibleColumns[nColumns - 1] === oColumn;
-				var oLastFixedColumn = aColumns[oTable.getFixedColumnCount() - 1];
-				var bIsLastFixedColumn = bFixedTable & oLastFixedColumn === oColumn;
-				var sHAlign = Renderer.getTextAlign(oColumn.getHAlign(), oCell && oCell.getTextDirection && oCell.getTextDirection());
+				const oCell = oCreationRow._getCell(iColumnIndex);
+				const nColumns = aVisibleColumns.length;
+				const bIsFirstColumn = nColumns > 0 && aVisibleColumns[0] === oColumn;
+				const bIsLastColumn = nColumns > 0 && aVisibleColumns[nColumns - 1] === oColumn;
+				const iLastFixedColumnIndex = TableRenderer.getLastFixedColumnIndex(oTable);
+				const bIsLastFixedColumn = bFixedTable & iLastFixedColumnIndex === iColumnIndex;
+				const sHAlign = Renderer.getTextAlign(oColumn.getHAlign(), oCell && oCell.getTextDirection && oCell.getTextDirection());
 
 				oRm.style("text-align", sHAlign);
 

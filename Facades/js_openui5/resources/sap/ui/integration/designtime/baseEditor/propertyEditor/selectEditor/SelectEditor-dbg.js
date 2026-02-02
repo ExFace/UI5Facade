@@ -1,14 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
-	"sap/ui/integration/designtime/baseEditor/util/isValidBindingString"
+	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor"
 ], function (
-	BasePropertyEditor,
-	isValidBindingString
+	BasePropertyEditor
 ) {
 	"use strict";
 
@@ -47,7 +45,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.selectEditor.SelectEditor
 	 * @author SAP SE
 	 * @since 1.81
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.81
@@ -55,6 +53,9 @@ sap.ui.define([
 	 */
 	var SelectEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.selectEditor.SelectEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.selectEditor.SelectEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 

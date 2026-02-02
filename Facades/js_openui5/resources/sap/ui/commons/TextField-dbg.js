@@ -1,23 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.TextField.
 sap.ui.define([
-    'sap/ui/thirdparty/jquery',
-    './library',
-    'sap/ui/core/Control',
-    'sap/ui/core/ValueStateSupport',
-    './TextFieldRenderer',
-    'sap/ui/core/library',
-    'sap/ui/Device',
-    'sap/ui/events/KeyCodes',
-    'sap/ui/dom/jquery/cursorPos', // jQuery.fn.cursorPos
-    'sap/ui/dom/jquery/selectText' // jQuery.fn.selectText
+	'sap/ui/thirdparty/jquery',
+	'./library',
+	'sap/ui/core/Control',
+	'sap/ui/core/ValueStateSupport',
+	'./TextFieldRenderer',
+	'sap/ui/core/library',
+	'sap/ui/Device',
+	'sap/ui/events/KeyCodes',
+	'sap/ui/core/Configuration',
+	// jQuery.fn.cursorPos
+	'sap/ui/dom/jquery/cursorPos',
+	// jQuery.fn.selectText
+	'sap/ui/dom/jquery/selectText'
 ],
-	function(jQuery, library, Control, ValueStateSupport, TextFieldRenderer, coreLibrary, Device, KeyCodes) {
+	function(jQuery, library, Control, ValueStateSupport, TextFieldRenderer, coreLibrary, Device, KeyCodes, Configuration) {
 	"use strict";
 
 	// shortcut for sap.ui.core.AccessibleRole
@@ -50,13 +53,12 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem, sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Input}
 	 * @alias sap.ui.commons.TextField
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var TextField = Control.extend("sap.ui.commons.TextField", /** @lends sap.ui.commons.TextField.prototype */ { metadata : {
 
@@ -65,6 +67,7 @@ sap.ui.define([
 			"sap.ui.core.IFormContent"
 		],
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -197,17 +200,6 @@ sap.ui.define([
 
 	};
 
-	TextField.prototype.onAfterRendering = function() {
-
-		if (Device.browser.msie) {
-			// as IE fires oninput event directly after rendering if value contains special characters (like Ü,Ö,Ä)
-			// compare first value in first oninput event with rendered one
-			var $input = jQuery(this.getInputDomRef());
-			this._sRenderedValue = $input.val();
-		}
-
-	};
-
 	/**
 	 * Event handler called when control is receiving the focus
 	 *
@@ -294,7 +286,7 @@ sap.ui.define([
 	//Special handling for TextFields in ItemNavigation
 
 	TextField.prototype._checkCursorPosForNav = function(oEvent, bForward) {
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Configuration.getRTL();
 		var bBack = bForward ? bRtl : !bRtl;
 		var $input = jQuery(this.getInputDomRef());
 		var iPos = $input.cursorPos();
@@ -459,53 +451,12 @@ sap.ui.define([
 			} else if ($FocusDomRef.data("sap.InNavArea") === false) { // check for false to avoid undefined
 				$FocusDomRef.data("sap.InNavArea", true);
 			}
-		} else if ((Device.browser.msie && Device.browser.version < 10) &&
-					(oEvent.which === KeyCodes.DELETE || oEvent.which === KeyCodes.BACKSPACE)) {
-			this._fireLiveChange(oEvent);
 		}
 	};
 
 	TextField.prototype.oninput = function(oEvent) {
 
-		if (!this._realOninput(oEvent)) {
-			return;
-		}
-
 		this._fireLiveChange(oEvent);
-
-	};
-
-	if (Device.browser.msie) {
-		//In IE pasting of strings with line endings cutoffs the text after the 1st line ending, so make sure line endings are removed
-		TextField.prototype.onpaste = function(oEvent) {
-			var clipboardData,
-				pastedData,
-				modifiedData;
-
-			clipboardData = oEvent.clipboardData || window.clipboardData;
-			pastedData = clipboardData.getData('Text');
-
-			if (pastedData) {
-				modifiedData = pastedData.replace(/(?:\r\n|\r|\n)/g, ' ').replace(/\s+$/, "");
-				clipboardData.setData("Text", modifiedData);
-			}
-		};
-	}
-
-	TextField.prototype._realOninput = function(oEvent) {
-
-		if (Device.browser.msie) {
-			// as IE fires oninput event directly after rendering if value contains special characters (like Ü,Ö,Ä)
-			// compare first value in first oninput event with rendered one
-			var $input = jQuery(this.getInputDomRef());
-			var sRenderedValue = this._sRenderedValue;
-			this._sRenderedValue = undefined;
-			if (sRenderedValue == $input.val()) {
-				return false;
-			}
-		}
-
-		return true;
 
 	};
 
@@ -528,7 +479,7 @@ sap.ui.define([
 	 * Property setter for the ValueState
 	 *
 	 * @param {sap.ui.core.ValueState} oValueState
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setValueState = function(oValueState) {
@@ -573,7 +524,7 @@ sap.ui.define([
 	 * Property setter for the editable state
 	 *
 	 * @param {boolean} bEditable
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setEditable = function(bEditable) {
@@ -595,7 +546,7 @@ sap.ui.define([
 	 * Property setter for the enabled state
 	 *
 	 * @param {boolean} bEnabled
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setEnabled = function(bEnabled) {
@@ -617,7 +568,7 @@ sap.ui.define([
 	 * Property setter for the Required-State
 	 *
 	 * @param {boolean} bRequired:
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setRequired = function(bRequired) {
@@ -645,7 +596,7 @@ sap.ui.define([
 	 * Property setter for the Design
 	 *
 	 * @param {sap.ui.core.Design} sDesign:
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setDesign = function(sDesign) {
@@ -670,7 +621,7 @@ sap.ui.define([
 	 * Property setter for the Value
 	 *
 	 * @param {string} sValue:
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setValue = function(sValue) {
@@ -710,7 +661,7 @@ sap.ui.define([
 	 * Property setter for the Tooltip
 	 *
 	 * @param oTooltip:
-	 * @return {sap.ui.commons.TextField} <code>this</code> to allow method chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	TextField.prototype.setTooltip = function(oTooltip) {
@@ -733,7 +684,7 @@ sap.ui.define([
 
 	/**
 	 * Method for accessing the DOM Ref of the input element.
-	 * @return {object} DOM reference or null
+	 * @returns {HTMLElement|null} DOM reference or <code>null</code>
 	 * @protected
 	 */
 	TextField.prototype.getInputDomRef = function(){
@@ -746,12 +697,22 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * @typedef {object} sap.ui.commons.FocusInfo
+	 * @description The object representing the serialized focus information.
+	 * @property {string} [id] ID of the component
+	 * @property {sap.ui.commons.UserInputInfo | null} [userinput] User input
+	 * @protected
+	 * @since 1.110
+	 * @deprecated As of version 1.110, as it is an integral part of the already deprecated {@link sap.ui.commons.TextField}.
+	 */
+
 	/*
 	 * Applies the focus info
 	 * overwrite of the Element method to set the just typed in text again
 	 * and restore the cursor position and selection.
-	 * @param {object} oFocusInfo Focus information
-	 * @return {object} reference to this
+	 * @param {sap.ui.commons.FocusInfo} oFocusInfo Focus information
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @protected
 	 */
 	TextField.prototype.applyFocusInfo = function (oFocusInfo) {
@@ -764,7 +725,7 @@ sap.ui.define([
 
 	/**
 	 * Returns an object representing the serialized focus information
-	 * @return {object} an object representing the serialized focus information
+	 * @returns {sap.ui.commons.FocusInfo} an object representing the serialized focus information
 	 * @protected
 	 * @function
 	 */
@@ -777,9 +738,8 @@ sap.ui.define([
 	 * In case of editing the <code>TextField</code> you can access the current value via this method.
 	 * The validated value is accessible via the property value.
 	 *
-	 * @return {string} live value
+	 * @returns {string} live value
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TextField.prototype.getLiveValue = function() {
 		var oIDomRef = this.getInputDomRef();
@@ -842,7 +802,20 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * @typedef {object} sap.ui.commons.UserInputInfo
+	 * @description The object representing the user's unsaved input.
+	 * @property {string} [userinput] Text input
+	 * @property {string} [value] Text input
+	 * @property {int} [cursorPos] Cursor position
+	 * @property {int} [selStart] Selection start position
+	 * @property {int} [selEnd] Selection end position
+	 * @private
+	 */
 
+	/**
+	 * @returns {sap.ui.commons.UserInputInfo|null} User input info
+	 */
 	TextField.prototype._getUnsavedUserInputInfo = function() {
 
 		var $tf = this.$();
@@ -885,7 +858,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control
+	 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control
 	 * @protected
 	 */
 	TextField.prototype.getAccessibilityInfo = function() {

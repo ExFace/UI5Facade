@@ -1,32 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Control",
-	"sap/f/CardRenderer",
 	"sap/f/library",
-	"sap/m/library",
-	"sap/ui/core/InvisibleText",
-	"sap/ui/core/Core",
-	"sap/m/BadgeEnabler"
+	"./CardBase",
+	"sap/f/CardRenderer"
 ], function (
-	Control,
-	CardRenderer,
 	library,
-	mLibrary,
-	InvisibleText,
-	Core,
-	BadgeEnabler
+	CardBase,
+	CardRenderer
 ) {
 	"use strict";
 
 	var HeaderPosition = library.cards.HeaderPosition;
-
-	var BadgeState = mLibrary.BadgeState;
-
-	var BADGE_AUTOHIDE_TIME = 3000;
 
 	/**
 	 * Constructor for a new <code>Card</code>.
@@ -80,32 +68,20 @@ sap.ui.define([
 	 * <li>When you need more header configuration flexibility.</li>
 	 * </ul>
 	 *
-	 * @extends sap.ui.core.Control
+	 * @extends sap.f.CardBase
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.64
 	 * @alias sap.f.Card
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Card = Control.extend("sap.f.Card", /** @lends sap.f.Card.prototype */ {
+	var Card = CardBase.extend("sap.f.Card", /** @lends sap.f.Card.prototype */ {
 		metadata: {
 			library: "sap.f",
-			interfaces: ["sap.f.ICard"],
 			properties: {
-
-				/**
-				 * Defines the width of the card.
-				 */
-				width: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%" },
-
-				/**
-				 * Defines the height of the card.
-				 */
-				height: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "auto" },
 
 				/**
 				 * Defines the position of the Card Header.
@@ -129,48 +105,12 @@ sap.ui.define([
 		renderer: CardRenderer
 	});
 
-	BadgeEnabler.call(Card.prototype);
-
-	/**
-	 * Initialization hook.
-	 *
-	 *
-	 * @private
-	 */
-	Card.prototype.init = function () {
-		this._oRb  = Core.getLibraryResourceBundle("sap.f");
-
-		this._ariaText = new InvisibleText({id: this.getId() + "-ariaText"});
-		this._ariaText.setText(this._oRb.getText("ARIA_ROLEDESCRIPTION_CARD"));
-
-		this._ariaContentText = new InvisibleText({id: this.getId() + "-ariaContentText"});
-		this._ariaContentText.setText(this._oRb.getText("ARIA_LABEL_CARD_CONTENT"));
-
-		this.initBadgeEnablement({
-			accentColor: "AccentColor6"
-		});
-	};
-
-	Card.prototype.exit = function () {
-
-		this._oRb = null;
-
-		if (this._ariaText) {
-			this._ariaText.destroy();
-			this._ariaText = null;
-		}
-
-		if (this._ariaContentText) {
-			this._ariaContentText.destroy();
-			this._ariaContentText = null;
-		}
-	};
-
 	/**
 	 * Implements sap.f.ICard interface.
 	 *
+	 * @ui5-restricted
+	 * @private
 	 * @returns {sap.f.cards.IHeader} The header of the card.
-	 * @protected
 	 */
 	Card.prototype.getCardHeader = function () {
 		return this.getHeader();
@@ -179,8 +119,9 @@ sap.ui.define([
 	/**
 	 * Implements sap.f.ICard interface.
 	 *
+	 * @ui5-restricted
+	 * @private
 	 * @returns {sap.f.cards.HeaderPosition} The position of the header of the card.
-	 * @protected
 	 * @since 1.65
 	 */
 	Card.prototype.getCardHeaderPosition = function () {
@@ -190,77 +131,12 @@ sap.ui.define([
 	/**
 	 * Implements sap.f.ICard interface.
 	 *
+	 * @ui5-restricted
+	 * @private
 	 * @returns {sap.ui.core.Control} The content of the card.
-	 * @protected
 	 */
 	Card.prototype.getCardContent = function () {
 		return this.getContent();
-	};
-
-	/**
-	 * Returns the DOM Element that should get the focus.
-	 *
-	 * @return {Element} Returns the DOM Element that should get the focus
-	 * @protected
-	 */
-	Card.prototype.getFocusDomRef = function () {
-		return this.getCardHeader() ? this.getCardHeader().getDomRef() : this.getDomRef() ;
-	};
-
-	Card.prototype.onfocusin = function () {
-		this._startBadgeHiding();
-	};
-
-	Card.prototype._startBadgeHiding = function () {
-		if (this._iHideBadgeTimeout) {
-			return;
-		}
-
-		this._iHideBadgeTimeout = setTimeout(this._hideBadge.bind(this), BADGE_AUTOHIDE_TIME);
-	};
-
-	Card.prototype._hideBadge = function () {
-
-		var oBadgeCustomData = this.getBadgeCustomData();
-		if (oBadgeCustomData) {
-			oBadgeCustomData.setVisible(false);
-		}
-
-		this._iHideBadgeTimeout = null;
-	};
-
-	Card.prototype.onBadgeUpdate = function (sValue, sState, sBadgeId) {
-
-		var oHeader = this.getCardHeader(),
-			oDomRef,
-			sAriaLabelledBy;
-
-		if (oHeader) {
-			oDomRef = oHeader.getDomRef();
-		} else {
-			oDomRef = this.getDomRef("contentSection");
-		}
-
-		if (!oDomRef) {
-			return;
-		}
-
-		sAriaLabelledBy = oDomRef.getAttribute("aria-labelledby") || "";
-
-		switch (sState) {
-			case BadgeState.Appear:
-				sAriaLabelledBy = sBadgeId + " " + sAriaLabelledBy;
-				oDomRef.setAttribute("aria-labelledby", sAriaLabelledBy);
-				break;
-			case BadgeState.Disappear:
-				sAriaLabelledBy =  sAriaLabelledBy.replace(sBadgeId, "").trim();
-				oDomRef.setAttribute("aria-labelledby", sAriaLabelledBy);
-				break;
-		}
-	};
-
-	Card.prototype.getAriaLabelBadgeText = function () {
-		return this.getBadgeCustomData().getValue();
 	};
 
 	return Card;

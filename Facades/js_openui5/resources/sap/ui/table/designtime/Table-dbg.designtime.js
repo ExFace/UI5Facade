@@ -1,33 +1,52 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.ui.table.Table control
-sap.ui.define(function() {
+sap.ui.define([
+	"sap/ui/table/rowmodes/Type"
+], function(
+	RowModeType
+) {
 	"use strict";
 
 	return {
-		domRef : function(oTable){
-			if (oTable._getRowMode().isA("sap.ui.table.rowmodes.AutoRowMode")){
+		domRef: function(oTable) {
+			const vRowMode = oTable.getRowMode();
+			let bIsTableInAutoMode = false;
+
+			/**
+			 * @deprecated As of version 1.119
+			 */
+			if (!vRowMode) {
+				bIsTableInAutoMode = oTable.getVisibleRowCountMode() === "Auto";
+			}
+
+			if (vRowMode) {
+				bIsTableInAutoMode = vRowMode === RowModeType.Auto || vRowMode.isA("sap.ui.table.rowmodes.Auto");
+			}
+
+			if (bIsTableInAutoMode) {
 				//control domRef has height:0px set, but footer & scrollbar is missing
 				return oTable.$("sapUiTableCnt").get(0);
 			}
+
 			return oTable.getDomRef();
 		},
-		aggregations : {
-			columns : {
-				domRef : ".sapUiTableCHA"
+		aggregations: {
+			columns: {
+				domRef: ".sapUiTableCHA"
 			},
-			rows : {
-				ignore : true
+			rows: {
+				ignore: true
 			},
 			// fake aggregations with a dom ref pointing to scrollbars
 			// since scrollbars aren't part of columns aggregation dom ref, this is needed to allow overlay scrolling
-			hScroll : {
+			hScroll: {
 				ignore: false,
-				domRef : function(oTable) {
+				domRef: function(oTable) {
 					return oTable.$("hsb").get(0);
 				}
 			},

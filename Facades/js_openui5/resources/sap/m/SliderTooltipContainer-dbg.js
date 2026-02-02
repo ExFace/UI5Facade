@@ -1,13 +1,15 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 sap.ui.define([
 	'./library',
 	'./SliderUtilities',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/core/Popup',
 	'./SliderTooltipContainerRenderer',
 	"sap/ui/thirdparty/jquery"
@@ -15,7 +17,9 @@ sap.ui.define([
 function(
 	Library,
 	SliderUtilities,
+	Localization,
 	Control,
+	Element,
 	Popup,
 	SliderTooltipContainerRenderer,
 	jQuery
@@ -35,7 +39,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -64,7 +68,9 @@ function(
 					 */
 					associatedTooltips: { type: "sap.m.SliderTooltipBase", multiple: true }
 				}
-			}
+			},
+
+			renderer: SliderTooltipContainerRenderer
 		});
 
 		SliderTooltipContainer.prototype.init = function () {
@@ -79,11 +85,11 @@ function(
 			this._bClosedFromOverflow = false;
 
 			// indicates whether RTL is switched on
-			this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			this._bRtl = Localization.getRTL();
 		};
 
 		SliderTooltipContainer.prototype._handleTabNavigation = function (oEvent) {
-			var bParentRangeSlider = this._oParentSlider instanceof sap.m.RangeSlider;
+			var bParentRangeSlider = this._oParentSlider && this._oParentSlider.isA("sap.m.RangeSlider");
 
 			oEvent.preventDefault();
 			this[bParentRangeSlider ? "_handleRangeSliderF2" : "_handleSliderF2"].apply(this, arguments);
@@ -149,7 +155,11 @@ function(
 		 * @public
 		 */
 		SliderTooltipContainer.prototype.repositionTooltips = function () {
-			var bParentRangeSlider = this._oParentSlider instanceof sap.m.RangeSlider,
+			if (!this._oParentSlider) {
+				return;
+			}
+
+			var bParentRangeSlider = this._oParentSlider.isA("sap.m.RangeSlider"),
 				aTooltips = this._oParentSlider.getUsedTooltips(),
 				// we are considering that both tooltips have the same rendering
 				fTooltipHeight = this.getAssociatedTooltipsAsControls()[0].$().outerHeight(true);
@@ -277,7 +287,7 @@ function(
 		 * @param {float} fMin Min property of the Slider/RangeSlider.
 		 * @param {float} fMax Max property of the Slider/RangeSlider.
 		 * @private
-		 * @return {String}
+		 * @return {string}
 		 */
 		SliderTooltipContainer.prototype._getTooltipPosition = function (fTooltipValue, fMin, fMax) {
 			var fPerValue = SliderUtilities.getPercentOfValue(+(fTooltipValue), fMin, fMax),
@@ -301,7 +311,7 @@ function(
 		/**
 		 * Sets the width of the SliderTooltipContainer.
 		 * @param {sap.ui.core.CSSSize} sWidth The width of the SliderTooltipContainer as CSS size.
-		 * @returns {sap.m.SliderTooltipContainer} Pointer to the control instance to allow method chaining.
+		 * @returns {this} Pointer to the control instance to allow method chaining.
 		 * @public
 		 */
 		SliderTooltipContainer.prototype.setWidth = function (sWidth) {
@@ -316,7 +326,7 @@ function(
 			var aAssociatedTooltips = this.getAssociation("associatedTooltips") || [];
 
 			return aAssociatedTooltips.map(function(sTooltipId) {
-				return sap.ui.getCore().byId(sTooltipId);
+				return Element.getElementById(sTooltipId);
 			});
 		};
 
@@ -347,7 +357,7 @@ function(
 		};
 
 		SliderTooltipContainer.prototype.onBeforeRendering = function () {
-			this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			this._bRtl = Localization.getRTL();
 		};
 
 		SliderTooltipContainer.prototype.exit = function () {

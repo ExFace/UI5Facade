@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,12 +14,12 @@ sap.ui.define([], function() {
 	 * Note: Do not access the functions of this helper directly, but via <code>sap.ui.table.utils.TableUtils.Binding...</code>
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @namespace
 	 * @alias sap.ui.table.utils._BindingUtils
 	 * @private
 	 */
-	var BindingUtils = {
+	const BindingUtils = {
 		TableUtils: null, // Avoid cyclic dependency. Will be filled by TableUtils.
 
 		/**
@@ -29,11 +29,11 @@ sap.ui.define([], function() {
 		 * @returns {Promise} A promise on the metadata loaded state.
 		 */
 		metadataLoaded: function(oTable) {
-			var oBinding = oTable.getBinding("rows");
-			var oModel = oBinding ? oBinding.getModel() : null;
-			var fResolvePromise = null;
-			var fRejectPromise = null;
-			var pMetadataLoaded = new Promise(function(resolve, reject) {
+			const oBinding = oTable.getBinding();
+			const oModel = oBinding ? oBinding.getModel() : null;
+			let fResolvePromise = null;
+			let fRejectPromise = null;
+			const pMetadataLoaded = new Promise(function(resolve, reject) {
 				fResolvePromise = resolve;
 				fRejectPromise = reject;
 			});

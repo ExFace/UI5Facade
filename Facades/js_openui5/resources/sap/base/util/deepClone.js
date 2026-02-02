@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./isPlainObject"],function(a){"use strict";var d=function(s,m){if(!m){m=10;}return c(s,0,m);};function c(s,f,m){if(f>m){throw new TypeError("The structure depth of the source exceeds the maximum depth ("+m+")");}if(s==null){return s;}else if(s instanceof Date){return new Date(s);}else if(Array.isArray(s)){return b(s,f,m);}else if(typeof s==="object"){return e(s,f,m);}else{return s;}}function b(s,f,m){var C=[];for(var i=0;i<s.length;i++){C.push(c(s[i],f+1,m));}return C;}function e(s,f,m){if(!a(s)){throw new TypeError("Cloning is only supported for plain objects");}var C={};for(var k in s){if(k==="__proto__"){continue;}C[k]=c(s[k],f+1,m);}return C;}return d;});
+sap.ui.define(["./isPlainObject"],function(e){"use strict";var r=function(e,r){if(!r){r=10}return n(e,0,r)};function n(e,r,n){if(r>n){throw new TypeError("The structure depth of the source exceeds the maximum depth ("+n+")")}if(e==null){return e}else if(e instanceof Date){if(e.clone){return e.clone()}return new Date(e.getTime())}else if(Array.isArray(e)){return t(e,r,n)}else if(typeof e==="object"){return i(e,r,n)}else{return e}}function t(e,r,t){var i=[];for(var o=0;o<e.length;o++){i.push(n(e[o],r+1,t))}return i}function i(r,t,i){if(!e(r)){throw new TypeError("Cloning is only supported for plain objects")}var o={};for(var u in r){if(u==="__proto__"){continue}o[u]=n(r[u],t+1,i)}return o}return r});
+//# sourceMappingURL=deepClone.js.map

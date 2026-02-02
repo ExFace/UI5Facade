@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides mixin sap.ui.model.odata.v4.lib._V2Requestor
 sap.ui.define([
 	"./_Helper",
 	"./_Parser",
-	"sap/ui/core/CalendarType",
+	"sap/base/i18n/date/CalendarType",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/odata/ODataUtils"
 ], function (_Helper, _Parser, CalendarType, DateFormat, ODataUtils) {
@@ -30,43 +30,38 @@ sap.ui.define([
 		oTimeFormatter;
 
 	/**
-	 * A mixin for a requestor using an OData V2 service.
-	 *
-	 * @alias sap.ui.model.odata.v4.lib._V2Requestor
-	 * @mixin
-	 *
-	 * @private
+	 * A bag of modified functions and properties for a requestor using an OData V2 service.
 	 */
-	function _V2Requestor() {}
+	const _V2Requestor = {};
 
 	/**
 	 * Final (cannot be overridden) request headers for OData V2.
 	 */
-	_V2Requestor.prototype.mFinalHeaders = {
+	_V2Requestor.mFinalHeaders = {
 		"Content-Type" : "application/json;charset=UTF-8"
 	};
 
 	/**
 	 * Predefined request headers in $batch parts for OData V2.
 	 */
-	_V2Requestor.prototype.mPredefinedPartHeaders = {
-		"Accept" : "application/json"
+	_V2Requestor.mPredefinedPartHeaders = {
+		Accept : "application/json"
 	};
 
 	/**
 	 * Predefined request headers for all requests for OData V2.
 	 */
-	_V2Requestor.prototype.mPredefinedRequestHeaders = {
-		"Accept" : "application/json",
-		"MaxDataServiceVersion" : "2.0",
-		"DataServiceVersion" : "2.0",
+	_V2Requestor.mPredefinedRequestHeaders = {
+		Accept : "application/json",
+		MaxDataServiceVersion : "2.0",
+		DataServiceVersion : "2.0",
 		"X-CSRF-Token" : "Fetch"
 	};
 
 	/**
 	 * OData V2 request headers reserved for internal use.
 	 */
-	_V2Requestor.prototype.mReservedHeaders = {
+	_V2Requestor.mReservedHeaders = {
 		accept : true,
 		"content-id" : true,
 		"content-transfer-encoding" : true,
@@ -91,7 +86,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertBinary = function (sV2Value) {
+	_V2Requestor.convertBinary = function (sV2Value) {
 		return sV2Value.replace(rPlus, "-").replace(rSlash, "_");
 	};
 
@@ -108,13 +103,14 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertDate = function (sV2Value) {
+	_V2Requestor.convertDate = function (sV2Value) {
 		var oDate,
 			aMatches = rDate.exec(sV2Value);
 
 		if (!aMatches) {
 			throw new Error("Not a valid Edm.DateTime value '" + sV2Value + "'");
 		}
+		// no need to use UI5Date.getInstance as only UTC is relevant
 		oDate = new Date(parseInt(aMatches[1]));
 		if (Number(aMatches[1] % (24 * 60 * 60 * 1000)) !== 0) {
 			throw new Error("Cannot convert Edm.DateTime value '" + sV2Value
@@ -138,7 +134,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertDateTimeOffset = function (sV2Value, oPropertyMetadata) {
+	_V2Requestor.convertDateTimeOffset = function (sV2Value, oPropertyMetadata) {
 		var aMatches = rDateTimeOffset.exec(sV2Value),
 			sOffset,
 			iOffsetHours,
@@ -159,18 +155,17 @@ sap.ui.define([
 		} else {
 			iOffsetSign = aMatches[2] === "-" ? -1 : 1;
 			iTicks += iOffsetSign * (iOffsetHours * 60 * 60 * 1000 + iOffsetMinutes * 60 * 1000);
-			sOffset = aMatches[2] + aMatches[3] + ":"  + aMatches[4];
+			sOffset = aMatches[2] + aMatches[3] + ":" + aMatches[4];
 		}
 		if (iPrecision > 0) {
 			sPattern += "." + "".padEnd(iPrecision, "S");
 		}
-		if (!mPattern2Formatter[sPattern]) {
-			mPattern2Formatter[sPattern] = DateFormat.getDateTimeInstance({
+		mPattern2Formatter[sPattern] ??= DateFormat.getDateTimeInstance({
 				calendarType : CalendarType.Gregorian,
-				pattern: sPattern,
+				pattern : sPattern,
 				UTC : true
 			});
-		}
+		// no need to use UI5Date.getInstance as only UTC is relevant
 		return mPattern2Formatter[sPattern].format(new Date(iTicks)) + sOffset;
 	};
 
@@ -185,7 +180,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertDoubleSingle = function (sV2Value) {
+	_V2Requestor.convertDoubleSingle = function (sV2Value) {
 		switch (sV2Value) {
 			case "NaN":
 			case "INF":
@@ -207,7 +202,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertFilter = function (sFilter, sMetaPath) {
+	_V2Requestor.convertFilter = function (sFilter, sMetaPath) {
 		var oFilterTree = _Parser.parseFilter(sFilter),
 			that = this;
 
@@ -314,7 +309,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertKeyPredicate = function (sV4KeyPredicate, sPath) {
+	_V2Requestor.convertKeyPredicate = function (sV4KeyPredicate, sPath) {
 		// Note: metadata can be fetched synchronously because ready() ensured that it's loaded
 		var oEntityType = this.fetchTypeForPath(_Helper.getMetaPath(sPath)).getResult(),
 			mKeyToValue = _Parser.parseKeyPredicate(decodeURIComponent(sV4KeyPredicate)),
@@ -347,65 +342,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Converts the resource path. Transforms literals in key predicates from V4 to V2 syntax.
-	 *
-	 * @param {string} sResourcePath The V4 resource path
-	 * @returns {string} The resource path as required for V2
-	 *
-	 * @private
-	 */
-	// @override
-	_V2Requestor.prototype.convertResourcePath = function (sResourcePath) {
-		var iIndex = sResourcePath.indexOf("?"),
-			sQueryString = "",
-			aSegments,
-			iSubPathLength = -1,
-			that = this;
-
-		if (iIndex > 0) {
-			sQueryString = sResourcePath.slice(iIndex);
-			sResourcePath = sResourcePath.slice(0, iIndex);
-		}
-		aSegments = sResourcePath.split("/");
-		return aSegments.map(function (sSegment, i) {
-			var aMatches = rSegmentWithPredicate.exec(sSegment);
-
-			iSubPathLength += sSegment.length + 1;
-			if (aMatches) {
-				sSegment = aMatches[1] + that.convertKeyPredicate(aMatches[2],
-					"/" + sResourcePath.slice(0, iSubPathLength));
-			}
-			return sSegment;
-		}).join("/") + sQueryString;
-	};
-
-	/**
-	 * Converts an OData V2 value of type Edm.Time to the corresponding OData V4 Edm.TimeOfDay value
-	 *
-	 *  @param {string} sV2Value
-	 *   The OData V2 value
-	 * @returns {string}
-	 *   The corresponding OData V4 value
-	 * @throws {Error}
-	 *   If the V2 value is not convertible
-	 *
-	 * @private
-	 */
-	_V2Requestor.prototype.convertTimeOfDay = function (sV2Value) {
-		var oDate,
-			aMatches = rTime.exec(sV2Value),
-			iTicks;
-
-		if (!aMatches) {
-			throw new Error("Not a valid Edm.Time value '" + sV2Value + "'");
-		}
-
-		iTicks = Date.UTC(1970, 0, 1, aMatches[1] || 0, aMatches[2] || 0, aMatches[3] || 0);
-		oDate = new Date(iTicks);
-		return oTimeFormatter.format(oDate) + (aMatches[4] || "");
-	};
-
-	/**
 	 * Converts a complex value or a collection of complex values from an OData V2 response payload
 	 * to an object in OData V4 JSON format.
 	 *
@@ -418,7 +354,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertNonPrimitive = function (oObject) {
+	_V2Requestor.convertNonPrimitive = function (oObject) {
 		var sPropertyName,
 			oType,
 			sTypeName,
@@ -483,8 +419,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.convertPrimitive = function (vValue, oPropertyMetadata, sTypeName,
-			sPropertyName) {
+	_V2Requestor.convertPrimitive = function (vValue, oPropertyMetadata, sTypeName, sPropertyName) {
 		switch (oPropertyMetadata && oPropertyMetadata.$Type) {
 			case "Edm.Binary":
 				return this.convertBinary(vValue);
@@ -515,6 +450,66 @@ sap.ui.define([
 	};
 
 	/**
+	 * Converts the resource path. Transforms literals in key predicates from V4 to V2 syntax.
+	 *
+	 * @param {string} sResourcePath The V4 resource path
+	 * @returns {string} The resource path as required for V2
+	 *
+	 * @public
+	 */
+	// @override sap.ui.model.odata.v4.lib._Requestor#convertResourcePath
+	_V2Requestor.convertResourcePath = function (sResourcePath) {
+		var iIndex = sResourcePath.indexOf("?"),
+			sQueryString = "",
+			aSegments,
+			iSubPathLength = -1,
+			that = this;
+
+		if (iIndex > 0) {
+			sQueryString = sResourcePath.slice(iIndex);
+			sResourcePath = sResourcePath.slice(0, iIndex);
+		}
+		aSegments = sResourcePath.split("/");
+		return aSegments.map(function (sSegment) {
+			var aMatches = rSegmentWithPredicate.exec(sSegment);
+
+			iSubPathLength += sSegment.length + 1;
+			if (aMatches) {
+				sSegment = aMatches[1] + that.convertKeyPredicate(aMatches[2],
+					"/" + sResourcePath.slice(0, iSubPathLength));
+			}
+			return sSegment;
+		}).join("/") + sQueryString;
+	};
+
+	/**
+	 * Converts an OData V2 value of type Edm.Time to the corresponding OData V4 Edm.TimeOfDay value
+	 *
+	 * @param {string} sV2Value
+	 *   The OData V2 value
+	 * @returns {string}
+	 *   The corresponding OData V4 value
+	 * @throws {Error}
+	 *   If the V2 value is not convertible
+	 *
+	 * @private
+	 */
+	_V2Requestor.convertTimeOfDay = function (sV2Value) {
+		var oDate,
+			aMatches = rTime.exec(sV2Value),
+			iTicks;
+
+		if (!aMatches) {
+			throw new Error("Not a valid Edm.Time value '" + sV2Value + "'");
+		}
+
+		iTicks = Date.UTC(1970, 0, 1, aMatches[1] || 0, aMatches[2] || 0, aMatches[3] || 0);
+		// no need to use UI5Date.getInstance as only UTC is relevant
+		oDate = new Date(iTicks);
+		return oTimeFormatter.format(oDate) + (aMatches[4] || "");
+	};
+
+	/**
 	 * Checks whether the "DataServiceVersion" header is not set or has the value "1.0" or "2.0"
 	 * otherwise an error is thrown.
 	 *
@@ -523,17 +518,16 @@ sap.ui.define([
 	 *   search by header name
 	 * @param {string} sResourcePath
 	 *   The resource path of the request
-	 * @param {boolean} [bVersionOptional=false]
+	 * @param {boolean} [_bVersionOptional]
 	 *   Indicates whether the OData service version is optional, which is the case for all OData V2
 	 *   responses. So this parameter is ignored.
 	 * @throws {Error} If the "DataServiceVersion" header is neither "1.0" nor "2.0" nor not set at
 	 *   all
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.doCheckVersionHeader = function (fnGetHeader, sResourcePath,
-			bVersionOptional) {
+	// @override sap.ui.model.odata.v4.lib._Requestor#doCheckVersionHeader
+	_V2Requestor.doCheckVersionHeader = function (fnGetHeader, sResourcePath, _bVersionOptional) {
 		var sDataServiceVersion = fnGetHeader("DataServiceVersion"),
 			vODataVersion = !sDataServiceVersion && fnGetHeader("OData-Version");
 
@@ -569,11 +563,12 @@ sap.ui.define([
 	 * @throws {Error}
 	 *   If the OData V2 response payload cannot be converted
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.doConvertResponse = function (oResponsePayload, sMetaPath) {
-		var oCandidate, bIsArray, aKeys, oPayload, oPropertyMetadata, that = this;
+	// @override sap.ui.model.odata.v4.lib._Requestor#doConvertResponse
+	_V2Requestor.doConvertResponse = function (oResponsePayload, sMetaPath) {
+		var oCandidate, bIsArray, aKeys, oPayload, oPropertyMetadata,
+			that = this;
 
 		oResponsePayload = oResponsePayload.d;
 		// 'results' may be an array of entities in case of a collection request or the value when
@@ -636,24 +631,24 @@ sap.ui.define([
 	 * @param {object} mQueryOptions The query options
 	 * @param {function (string,any)} fnResultHandler
 	 *   The function to process the converted options getting the name and the value
-	 * @param {boolean} [bDropSystemQueryOptions=false]
+	 * @param {boolean} [bDropSystemQueryOptions]
 	 *   Whether all system query options are dropped (useful for non-GET requests)
-	 * @param {boolean} [bSortExpandSelect=false]
+	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the query string
 	 * @throws {Error}
 	 *   If a system query option other than $expand and $select is used or if any $expand value is
 	 *   not an object
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.doConvertSystemQueryOptions = function (sMetaPath, mQueryOptions,
-			fnResultHandler, bDropSystemQueryOptions, bSortExpandSelect) {
+	// @override sap.ui.model.odata.v4.lib._Requestor#doConvertSystemQueryOptions
+	_V2Requestor.doConvertSystemQueryOptions = function (sMetaPath, mQueryOptions, fnResultHandler,
+			bDropSystemQueryOptions, bSortExpandSelect) {
 		var aSelects,
 			mSelects = {},
 			that = this;
 
-		/**
+		/*
 		 * Strips all selects to their first segment and adds them to mSelects.
 		 *
 		 * @param {string|string[]} vSelects The selects for the given expand path as
@@ -667,7 +662,7 @@ sap.ui.define([
 			vSelects.forEach(function (sSelect) {
 				var iIndex = sSelect.indexOf("/");
 
-				if (iIndex >= 0 && sSelect.indexOf(".") < 0) {
+				if (iIndex >= 0 && !sSelect.includes(".")) {
 					// only strip if there is no type cast and no bound action (avoid "correcting"
 					// unsupported selects in V2)
 					sSelect = sSelect.slice(0, iIndex);
@@ -676,7 +671,7 @@ sap.ui.define([
 			});
 		}
 
-		/**
+		/*
 		 * Converts the V4 $expand options to flat V2 $expand and $select structure.
 		 *
 		 * @param {string[]} aExpands The resulting list of $expand paths
@@ -724,7 +719,7 @@ sap.ui.define([
 		}
 
 		Object.keys(mQueryOptions).forEach(function (sName) {
-			var bIsSystemQueryOption = sName[0] === '$',
+			var bIsSystemQueryOption = sName[0] === "$",
 				vValue = mQueryOptions[sName];
 
 			if (bDropSystemQueryOptions && bIsSystemQueryOption) {
@@ -737,10 +732,11 @@ sap.ui.define([
 					vValue = vValue ? "allpages" : "none";
 					break;
 				case "$expand":
-					vValue = convertExpand([], vValue, "");
+					vValue = convertExpand([], vValue, ""); // Note: returns a new array
 					vValue = (bSortExpandSelect ? vValue.sort() : vValue).join(",");
 					break;
 				case "$orderby":
+				case "$search":
 					break;
 				case "$select":
 					addSelects(vValue);
@@ -758,7 +754,7 @@ sap.ui.define([
 
 		// only if all (nested) query options are processed, all selects are known
 		aSelects = Object.keys(mSelects);
-		if (aSelects.length > 0) {
+		if (aSelects.length) {
 			if (!mQueryOptions.$select) {
 				aSelects.push("*");
 			}
@@ -770,7 +766,7 @@ sap.ui.define([
 	 * Formats a given internal value into a literal suitable for usage in OData V2 URLs. See
 	 * http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
 	 *
-	 * @param {*} vValue
+	 * @param {any} vValue
 	 *   The value
 	 * @param {object} oPropertyMetadata
 	 *   The property metadata
@@ -780,14 +776,14 @@ sap.ui.define([
 	 *   When called for an unsupported type
 	 * @see sap.ui.model.odata.ODataUtils#formatValue
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.formatPropertyAsLiteral = function (vValue, oPropertyMetadata) {
-
+	// @override sap.ui.model.odata.v4.lib._Requestor#formatPropertyAsLiteral
+	_V2Requestor.formatPropertyAsLiteral = function (vValue, oPropertyMetadata) {
 		// Parse using the given formatter and check that the result is valid
 		function parseAndCheck(oDateFormat, sValue) {
 			var oDate = oDateFormat.parse(sValue);
+
 			if (!oDate) {
 				throw new Error("Not a valid " + oPropertyMetadata.$Type + " value: " + sValue);
 			}
@@ -858,9 +854,9 @@ sap.ui.define([
 	 *
 	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.getPathAndAddQueryOptions = function (sPath, oOperationMetadata,
-		mParameters, mQueryOptions, vEntity) {
+	// @override sap.ui.model.odata.v4.lib._Requestor#getPathAndAddQueryOptions
+	_V2Requestor.getPathAndAddQueryOptions = function (sPath, oOperationMetadata, mParameters,
+			mQueryOptions, vEntity) {
 		var sName,
 			oTypeMetadata,
 			that = this;
@@ -874,9 +870,9 @@ sap.ui.define([
 			}
 			// Note: $metadata is already available because oOperationMetadata has been read!
 			oTypeMetadata = this.getTypeForName(oOperationMetadata.$Parameter[0].$Type);
-			oTypeMetadata.$Key.forEach(function (sName) {
-				mQueryOptions[sName]
-					= that.formatPropertyAsLiteral(vEntity[sName], oTypeMetadata[sName]);
+			oTypeMetadata.$Key.forEach(function (sName0) {
+				mQueryOptions[sName0]
+					= that.formatPropertyAsLiteral(vEntity[sName0], oTypeMetadata[sName0]);
 			});
 		}
 
@@ -911,16 +907,10 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_V2Requestor.prototype.getTypeForName = function (sName) {
-		var oType;
-
-		this.mTypesByName = this.mTypesByName || {};
-		oType = this.mTypesByName[sName];
-		if (!oType) {
-			oType = this.mTypesByName[sName] =
-				this.oModelInterface.fetchMetadata("/" + sName).getResult();
-		}
-		return oType;
+	_V2Requestor.getTypeForName = function (sName) {
+		this.mTypesByName ??= {};
+		this.mTypesByName[sName] ??= this.oModelInterface.fetchMetadata("/" + sName).getResult();
+		return this.mTypesByName[sName];
 	};
 
 	/**
@@ -930,10 +920,10 @@ sap.ui.define([
 	 *
 	 * @returns {boolean} <code>true</code>
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.isActionBodyOptional = function () {
+	// @override sap.ui.model.odata.v4.lib._Requestor#isActionBodyOptional
+	_V2Requestor.isActionBodyOptional = function () {
 		return true;
 	};
 
@@ -943,10 +933,10 @@ sap.ui.define([
 	 *
 	 * @returns {boolean} <code>false</code>
 	 *
-	 * @private
+	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.isChangeSetOptional = function () {
+	// @override sap.ui.model.odata.v4.lib._Requestor#isChangeSetOptional
+	_V2Requestor.isChangeSetOptional = function () {
 		return false;
 	};
 
@@ -959,8 +949,8 @@ sap.ui.define([
 	 *
 	 * @public
 	 */
-	// @override
-	_V2Requestor.prototype.ready = function () {
+	// @override sap.ui.model.odata.v4.lib._Requestor#ready
+	_V2Requestor.ready = function () {
 		return this.oModelInterface.fetchEntityContainer().then(function () {});
 	};
 
@@ -968,9 +958,9 @@ sap.ui.define([
 	// "static" functions
 	//*********************************************************************************************
 	function asV2Requestor(oRequestor) {
-		Object.assign(oRequestor, _V2Requestor.prototype);
-		oRequestor.oModelInterface.reportBoundMessages = function () {};
-		oRequestor.oModelInterface.reportUnboundMessages = function () {};
+		Object.assign(oRequestor, _V2Requestor);
+		oRequestor.oModelInterface.reportStateMessages = function () {};
+		oRequestor.oModelInterface.reportTransitionMessages = function () {};
 	}
 
 	/**
@@ -981,16 +971,16 @@ sap.ui.define([
 	asV2Requestor._setDateTimeFormatter = function () {
 		oDateFormatter = DateFormat.getDateInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "yyyy-MM-dd",
+			pattern : "yyyy-MM-dd",
 			UTC : true
 		});
 		oDateTimeOffsetFormatter = DateFormat.getDateTimeInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+			pattern : "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 		});
 		oTimeFormatter = DateFormat.getTimeInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "HH:mm:ss",
+			pattern : "HH:mm:ss",
 			UTC : true
 		});
 	};

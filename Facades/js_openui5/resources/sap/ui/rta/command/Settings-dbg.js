@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/rta/command/FlexCommand"], function(FlexCommand) {
@@ -12,34 +12,31 @@ sap.ui.define(["sap/ui/rta/command/FlexCommand"], function(FlexCommand) {
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.44
-	 * @alias sap.ui.rta.command.BaseCommand
-	 * @experimental Since 1.44. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
+	 * @alias sap.ui.rta.command.Settings
 	 */
 	var Settings = FlexCommand.extend("sap.ui.rta.command.Settings", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				content : {
-					type : "any",
-					group: "content"
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				content: {
+					type: "any"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
 	/**
 	 * @override
 	 */
-	Settings.prototype.execute = function() {
+	Settings.prototype.execute = function(...aArgs) {
 		if (this.getElement()) {
-			return FlexCommand.prototype.execute.apply(this, arguments);
+			return FlexCommand.prototype.execute.apply(this, aArgs);
 		}
 		return Promise.resolve();
 	};
@@ -47,9 +44,9 @@ sap.ui.define(["sap/ui/rta/command/FlexCommand"], function(FlexCommand) {
 	/**
 	 * @override
 	 */
-	Settings.prototype.undo = function() {
+	Settings.prototype.undo = function(...aArgs) {
 		if (this.getElement()) {
-			return FlexCommand.prototype.undo.apply(this, arguments);
+			return FlexCommand.prototype.undo.apply(this, aArgs);
 		}
 		return Promise.resolve();
 	};

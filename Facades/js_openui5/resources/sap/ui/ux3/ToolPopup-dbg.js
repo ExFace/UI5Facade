@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,6 +18,7 @@ sap.ui.define([
     'sap/ui/core/library',
     'sap/base/assert',
     'sap/base/Log',
+    'sap/ui/core/Configuration',
     // jQuery Plugin 'rect'
     'sap/ui/dom/jquery/rect',
     // jQuery Plugin 'control'
@@ -37,7 +38,8 @@ sap.ui.define([
 		ResizeHandler,
 		coreLibrary,
 		assert,
-		Log
+		Log,
+		Configuration
 	) {
         "use strict";
 
@@ -63,17 +65,17 @@ sap.ui.define([
          *
          * @namespace
          * @author SAP SE
-         * @version 1.82.0
+         * @version 1.136.0
          *
          * @constructor
          * @public
          * @deprecated Since version 1.38. Instead, use the <code>sap.m.Popover</code> control.
          * @alias sap.ui.ux3.ToolPopup
-         * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
          */
         var ToolPopup = Control.extend("sap.ui.ux3.ToolPopup", /** @lends sap.ui.ux3.ToolPopup.prototype */ {
             metadata: {
 
+                deprecated: true,
                 interfaces: [
                     "sap.ui.core.PopupInterface"
                 ],
@@ -575,9 +577,7 @@ sap.ui.define([
 
                     // Compare the initial focus id with the current focus that is
                     // stored in the FocusHandler in the core.
-                    // If the initial focus was set properly already by the Popup
-                    // don't focus twice. Because Internet Explorer will be confused with// TODO remove after the end of support for Internet Explorer
-                    // two focusin and focusout events
+                    // If the initial focus was set properly already by the Popup don't focus twice.
                     if (sInitFocusId !== sap.ui.getCore().getCurrentFocusedControlId()) {
                         var oControl = jQuery(document.getElementById(sInitFocusId));
                         oControl.trigger("focus");
@@ -600,7 +600,6 @@ sap.ui.define([
              * Indicates whether the pop up is currently open
              *
              * @returns {boolean}
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              * @public
              */
             ToolPopup.prototype.isOpen = function () {
@@ -634,7 +633,7 @@ sap.ui.define([
              * reference position for docking
              * @param {sap.ui.core.Popup.Dock} [at=sap.ui.core.Popup.Dock.CenterCenter] The "of" element's
              * reference point for docking to
-             * @returns {sap.ui.ux3.ToolPopup}
+             * @returns {this}
              * @public
              */
             ToolPopup.prototype.open = function (my, at) {
@@ -676,8 +675,8 @@ sap.ui.define([
                                 iOffsetX = -this.iArrowWidth;
                                 break;
 
-                            default:
                             case "Left":
+                            default:
                                 iOffsetX = this.iArrowWidth;
                                 break;
                         }
@@ -758,20 +757,37 @@ sap.ui.define([
              * @private
              */
             var fnSetArrowDimensions = function (oThis) {
+                var mParams = Object.assign({
+                    sapUiUx3ToolPopupArrowWidth: "13px",
+                    sapUiUx3ToolPopupArrowHeight: "24px",
+                    sapUiUx3ToolPopupArrowRightMarginCorrection: "-2px",
+                    sapUiUx3ToolPopupArrowRightMarginCorrectionInverted: "-7px"
+                }, Parameters.get({
+                    name: [
+                        "sapUiUx3ToolPopupArrowWidth",
+                        "sapUiUx3ToolPopupArrowHeight",
+                        "sapUiUx3ToolPopupArrowRightMarginCorrection",
+                        "sapUiUx3ToolPopupArrowRightMarginCorrectionInverted"
+                    ],
+                    callback: function () {
+                        oThis.invalidate();
+                    }
+                }));
+
                 var sParam = "sapUiUx3ToolPopupArrowWidth";
-                oThis.sArrowWidth = Parameters.get(sParam);
+                oThis.sArrowWidth = mParams[sParam];
                 oThis.iArrowWidth = parseInt(oThis.sArrowWidth);
 
                 sParam = "sapUiUx3ToolPopupArrowHeight";
-                oThis.sArrowHeight = Parameters.get(sParam);
+                oThis.sArrowHeight = mParams[sParam];
                 oThis.iArrowHeight = parseInt(oThis.sArrowHeight);
 
                 sParam = "sapUiUx3ToolPopupArrowRightMarginCorrection";
-                oThis.sArrowPadding = Parameters.get(sParam);
+                oThis.sArrowPadding = mParams[sParam];
                 oThis.iArrowPadding = parseInt(oThis.sArrowPadding);
 
                 sParam = "sapUiUx3ToolPopupArrowRightMarginCorrectionInverted";
-                oThis.sArrowPaddingInverted = Parameters.get(sParam);
+                oThis.sArrowPaddingInverted = mParams[sParam];
                 oThis.iArrowPaddingInverted = parseInt(oThis.sArrowPaddingInverted);
             };
 
@@ -792,6 +808,10 @@ sap.ui.define([
                 // this is the default case if no match was found
                 var sDirection = "Left";
 
+				function splitDock(sDock) {
+					return sDock.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(" ");
+				}
+
                 // if 'my' is not set check if it was previously set via 'setPosition'
                 var my = oThis._my;
                 var at = oThis._at;
@@ -805,8 +825,8 @@ sap.ui.define([
                 oThis._bHorizontalArrow = false;
 
                 if (my && at) {
-                    var aMy = my.split(" ");
-                    var aAt = at.split(" ");
+                    var aMy = splitDock(my);
+                    var aAt = splitDock(at);
                     // create a rule like "my:top|left at:left|top"
                     var sRule = "my:" + aMy[0] + "|" + aMy[1];
                     sRule += " at:" + aAt[0] + "|" + aAt[1];
@@ -878,7 +898,7 @@ sap.ui.define([
                     iVal = 0,
                     iZero = 0, // this is the 0 of the  relative position between ToolPopup and Opener
                     iHalfArrow = oThis.iArrowHeight / 2,
-                    isRTL = sap.ui.getCore().getConfiguration().getRTL(),
+                    isRTL = Configuration.getRTL(),
                     sArrowDir,
                     oPopRect = oThis.$().rect(),
                     oOpener = jQuery(document.getElementById(oThis.getOpener())),
@@ -1038,9 +1058,8 @@ sap.ui.define([
              *         If set, the focus is NOT restored to the element that had the focus before the ToolPopup was opened.
              *         This makes sense when the ToolPopup is closed programmatically from a different area of the application
              *         (outside the ToolPopup) and the focus should not move aways from that place.
-             * @returns {sap.ui.ux3.ToolPopup}
+             * @returns {this}
              * @public
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              */
             ToolPopup.prototype.close = function (bPreventRestoreFocus) {
                 if (this.oPopup && this.oPopup.isOpen()) {
@@ -1081,7 +1100,6 @@ sap.ui.define([
              * @since 1.13.1
              * @returns {boolean}
              * @public
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              */
             ToolPopup.prototype.getEnabled = function () {
                 // assuming that a ToolPopup without a Popup can’t be open
@@ -1113,6 +1131,8 @@ sap.ui.define([
             };
 
             ToolPopup.prototype.onBeforeRendering = function () {
+                fnSetArrowDimensions(this);
+
                 var sInitialFocusId = this.getInitialFocus() || this._sInitialFocusId;
                 var sDefaultButtontId = this.getDefaultButton();
                 this._bFocusSet = true;
@@ -1125,7 +1145,7 @@ sap.ui.define([
                     this._bFocusSet = false;
                 }
 
-                this._bRTL = sap.ui.getCore().getConfiguration().getRTL();
+                this._bRTL = Configuration.getRTL();
             };
 
             ToolPopup.prototype._ensurePopup = function () {
@@ -1178,7 +1198,6 @@ sap.ui.define([
              * Sets the position of the pop up, the same parameters as for sap.ui.core.Popup can be used.
              *
              * @public
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              */
             ToolPopup.prototype.setPosition = function () {
                 this._ensurePopup();
@@ -1305,7 +1324,14 @@ sap.ui.define([
             var fnUpdateThemeInverted = function (oThis) {
                 var sParam = "sapUiUx3ToolPopupInverted";
 
-                sParam = Parameters.get(sParam);
+                sParam = Parameters.get({
+                    name: sParam,
+                    callback: function (_sParam) {
+                        oThis._bThemeInverted = sParam === "true";
+                        oThis.invalidate();
+                    }
+                }) || "true";
+
                 oThis._bThemeInverted = sParam === "true";
             };
 
@@ -1349,7 +1375,6 @@ sap.ui.define([
              * @param {string} [sID] ID of the corresponding element that should be focusable as well
              * @since 1.19.0
              * @public
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              */
             ToolPopup.prototype.addFocusableArea = function (sID) {
                 this._ensurePopup();
@@ -1372,7 +1397,6 @@ sap.ui.define([
              * @param {string} [sID] ID of the corresponding element
              * @since 1.19.0
              * @public
-             * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
              */
             ToolPopup.prototype.removeFocusableArea = function (sID) {
                 this._ensurePopup();
@@ -1393,7 +1417,7 @@ sap.ui.define([
          * Overriden setter for the Icon.
          *
          * @param {string} sIcon
-         * @returns {sap.ui.ux3.ToolPopup}
+         * @returns {this}
          */
         ToolPopup.prototype.setIcon = function (sIcon) {
             this.setProperty("icon", sIcon, true); // rerendering makes no sense, as this icon is not rendered by the ToolPopup
@@ -1405,7 +1429,7 @@ sap.ui.define([
          * Overriden setter for the icon hover.
          *
          * @param {string} sIconHover
-         * @returns {sap.ui.ux3.ToolPopup}
+         * @returns {this}
          */
         ToolPopup.prototype.setIconHover = function (sIconHover) {
             this.setProperty("iconHover", sIconHover, true); // rerendering makes no sense, as this icon is not rendered by the ToolPopup
@@ -1416,7 +1440,7 @@ sap.ui.define([
         /**
          * Overriden setter for the selected icon.
          * @param {string} sIconSelected
-         * @returns {sap.ui.ux3.ToolPopup}
+         * @returns {this}
          */
         ToolPopup.prototype.setIconSelected = function (sIconSelected) {
             this.setProperty("iconSelected", sIconSelected, true); // rerendering makes no sense, as this icon is not rendered by the ToolPopup
@@ -1437,7 +1461,7 @@ sap.ui.define([
          * Overriden setter for the max width internally.
          *
          * @param {sap.ui.core.CSSSize} sMaxWidth
-         * @returns {sap.ui.ux3.ToolPopup}
+         * @returns {this}
          */
         ToolPopup.prototype.setMaxWidth = function (sMaxWidth) {
             var pattern = /[0-9]+px/;

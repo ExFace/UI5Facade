@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/commons/CalloutBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/IconPool'],
-	function(CalloutBaseRenderer, Renderer, IconPool) {
+sap.ui.define(['sap/ui/commons/CalloutBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/IconPool', "sap/ui/core/Configuration"],
+	function(CalloutBaseRenderer, Renderer, IconPool, Configuration) {
 	"use strict";
 
 
@@ -25,7 +25,7 @@ sap.ui.define(['sap/ui/commons/CalloutBaseRenderer', 'sap/ui/core/Renderer', 'sa
 	QuickViewRenderer.renderContent = function(rm, oControl){
 
 		// accessibility
-		var bAcc = sap.ui.getCore().getConfiguration().getAccessibility();
+		var bAcc = Configuration.getAccessibility();
 
 		// control properties
 		var sType	= oControl.getType(),

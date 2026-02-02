@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/core/Renderer','sap/m/MultiInputRenderer'],function(R,M){"use strict";var F=R.extend(M);F.apiVersion=2;F.addOuterClasses=function(r,m){M.addOuterClasses.apply(this,arguments);r.class("sapUiMdcFieldMultiInput");};F.getAriaRole=function(m){var a=m.getAriaAttributes();if(a.role){return a.role;}else{return M.getAriaRole.apply(this,arguments);}};F.getAccessibilityState=function(m){var a=m.getAriaAttributes();var A=M.getAccessibilityState.apply(this,arguments);if(a.aria){for(var s in a.aria){A[s]=a.aria[s];}}return A;};F.writeInnerAttributes=function(r,m){M.writeInnerAttributes.apply(this,arguments);var a=m.getAriaAttributes();for(var A in a){if(A!=="aria"&&A!=="role"){r.attr(A,a[A]);}}};return F;});
+sap.ui.define(["sap/ui/core/Renderer","sap/m/MultiInputRenderer","sap/ui/mdc/field/FieldInputRenderUtil"],(e,t,i)=>{"use strict";const s=e.extend(t);s.apiVersion=2;s.addOuterClasses=function(e,i){t.addOuterClasses.apply(this,arguments);e.class("sapUiMdcFieldMultiInput")};s.getAriaRole=function(e){return i.getAriaRole.call(this,e,t)};s.getAccessibilityState=function(e){return i.getAccessibilityState.call(this,e,t)};s.writeInnerAttributes=function(e,s){return i.writeInnerAttributes.call(this,e,s,t)};return s});
+//# sourceMappingURL=FieldMultiInputRenderer.js.map

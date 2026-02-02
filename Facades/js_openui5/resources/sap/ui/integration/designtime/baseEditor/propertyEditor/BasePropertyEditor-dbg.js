@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -13,15 +13,15 @@ sap.ui.define([
 	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/PropertyEditorFactory",
 	"sap/ui/integration/designtime/baseEditor/util/createPromise",
+	"sap/base/util/restricted/_CancelablePromise",
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
 	"sap/base/util/isPlainObject",
-	"sap/base/util/values",
 	"sap/base/util/each",
 	"sap/ui/integration/designtime/baseEditor/validator/ValidatorRegistry",
 	"sap/ui/integration/designtime/baseEditor/util/BaseDefaultValidatorModules",
 	"sap/ui/integration/designtime/baseEditor/util/cleanupDesigntimeMetadata"
-], function(
+], function (
 	Control,
 	isTemplate,
 	JSONModel,
@@ -31,10 +31,10 @@ sap.ui.define([
 	ManagedObjectObserver,
 	PropertyEditorFactory,
 	createPromise,
+	CancelablePromise,
 	deepClone,
 	deepEqual,
 	isPlainObject,
-	values,
 	each,
 	ValidatorRegistry,
 	BaseDefaultValidatorModules,
@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.BasePropertyEditor
 	 * @author SAP SE
 	 * @since 1.70
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.70
@@ -58,9 +58,10 @@ sap.ui.define([
 	 */
 	var BasePropertyEditor = Control.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.BasePropertyEditor", {
 		metadata: {
-			interfaces : ["sap.ui.core.IFormContent"],
+			library: "sap.ui.integration",
+			interfaces: ["sap.ui.core.IFormContent"],
 			properties: {
-				"renderLabel" : {
+				"renderLabel": {
 					type: "boolean",
 					defaultValue: true
 				},
@@ -137,7 +138,7 @@ sap.ui.define([
 				/**
 				 * Fires when config is changed
 				 */
-				 configChange: {
+				configChange: {
 					parameters: {
 						previousConfig: {
 							type: "object"
@@ -146,12 +147,12 @@ sap.ui.define([
 							type: "object"
 						}
 					}
-				 },
+				},
 
 				/**
 				 * Fires when fragment is changed
 				 */
-				 fragmentChange: {
+				fragmentChange: {
 					parameters: {
 						previousFragment: {
 							type: "string"
@@ -160,7 +161,7 @@ sap.ui.define([
 							type: "string"
 						}
 					}
-				 },
+				},
 
 				/**
 				 * Fired when the editor fragment was loaded and the <code>asyncInit</code> method was executed
@@ -170,7 +171,20 @@ sap.ui.define([
 				/**
 				 * Fires when init is finished
 				 */
-				init: {}
+				init: {},
+
+				/**
+				 * Fires when the error state of the editor changes
+				 */
+				validationErrorChange: {
+					parameters: {
+						/**
+						 * Whether there is an error in the editor
+						 * @since 1.96.0
+						 */
+						hasError: { type: "boolean" }
+					}
+				}
 			}
 		},
 		/**
@@ -180,7 +194,7 @@ sap.ui.define([
 		_currentXmlFragment: null,
 		_bFragmentReady: false,
 
-		constructor: function() {
+		constructor: function () {
 			this._iExpectedWrapperCount = 0;
 			this._currentXmlFragment = this.xmlFragment;
 
@@ -261,22 +275,30 @@ sap.ui.define([
 			}
 		},
 
-		renderer: function (oRm, oPropertyEditor) {
-			oRm.openStart("div", oPropertyEditor);
-			oRm.addStyle("display", "inline-block");
-			oRm.addStyle("width", "100%");
-			oRm.openEnd();
-
-			if (oPropertyEditor.getRenderLabel() && oPropertyEditor.getLabel()) {
-				oRm.openStart("div");
+		renderer: {
+			apiVersion: 2,
+			render: function (oRm, oPropertyEditor) {
+				oRm.openStart("div", oPropertyEditor);
+				oRm.style("display", "inline-block");
+				oRm.style("width", "100%");
 				oRm.openEnd();
-				oRm.renderControl(oPropertyEditor.getLabel());
+
+				if (oPropertyEditor.getRenderLabel() && oPropertyEditor.getLabel()) {
+					oRm.openStart("div");
+					oRm.openEnd();
+					oRm.renderControl(oPropertyEditor.getLabel());
+					oRm.close("div");
+				}
+				oRm.renderControl(oPropertyEditor.getContent());
 				oRm.close("div");
 			}
-			oRm.renderControl(oPropertyEditor.getContent());
-			oRm.close("div");
 		}
 	});
+
+	BasePropertyEditor.prototype.initI18n = async function(oModel) {
+		this.setModel(oModel, "i18n");
+		this._oResourceBundle = await oModel.getResourceBundle();
+	};
 
 	BasePropertyEditor.prototype.init = function () {
 		this.attachFragmentChange(function (oEvent) {
@@ -298,7 +320,7 @@ sap.ui.define([
 	/**
 	 * Hook which is called when fragment is ready on initial start or when it's exchanged.
 	 */
-	BasePropertyEditor.prototype.onFragmentReady = function () {};
+	BasePropertyEditor.prototype.onFragmentReady = function () { };
 
 	/**
 	 * Sets the editor value. If no value is provided, the default value provided
@@ -313,6 +335,15 @@ sap.ui.define([
 		var vCurrentValue = this.getValue();
 		var oConfig = this.getConfig() || {};
 		var vNextValue = vValue;
+		if (oConfig.type === "integer" && Number.isInteger(Number(vValue))) {
+			vNextValue = parseInt(vValue);
+		}
+
+		// If the editor is not visible, don't allow setting new values
+		// to avoid unwanted updates and side effects like validation failures
+		if (oConfig.visible === false) {
+			return;
+		}
 
 		if (typeof vNextValue === "undefined" && typeof oConfig.defaultValue !== "undefined") {
 			vNextValue = deepClone(oConfig.defaultValue);
@@ -332,6 +363,7 @@ sap.ui.define([
 					value: vNextValue
 				});
 			}
+			this.setHasOwnError(!bResult);
 		}.bind(this));
 	};
 
@@ -383,10 +415,10 @@ sap.ui.define([
 
 	BasePropertyEditor.prototype._getValidators = function () {
 		var oPropertyValidators = this.getConfig().validators || {};
-		return values(Object.assign(
+		return Object.values(Object.assign(
 			{},
-			oPropertyValidators,
-			this.getDefaultValidators()
+			this.getDefaultValidators(),
+			oPropertyValidators
 		)).filter(function (oValidator) {
 			return oValidator.isEnabled !== false;
 		});
@@ -485,11 +517,20 @@ sap.ui.define([
 	 * @param {string} sErrorMessage - Error message
 	 */
 	BasePropertyEditor.prototype.setInputState = function (bHasError, sErrorMessage) {
+		this._sErrorMessage = bHasError && sErrorMessage;
+		if (this.isReady()) {
+			this._setInputState();
+		}
+	};
+
+	BasePropertyEditor.prototype._setInputState = function () {
 		var oInput = this.getContent();
 		if (!oInput || !oInput.setValueState) {
 			return;
 		}
-		if (bHasError) {
+
+		var sErrorMessage = this._sErrorMessage;
+		if (sErrorMessage) {
 			oInput.setValueState("Error");
 			oInput.setValueStateText(sErrorMessage);
 		} else {
@@ -600,12 +641,15 @@ sap.ui.define([
 							return oEditorWrapper !== oObservedWrapper;
 						});
 						this._checkReadyState();
+						this._checkForError();
 						break;
 					case 'parent':
 						// Observed elements might contain nested wrappers
 						findNestedWrappers(oObservedWrapper).forEach(function (oWrapper) {
 							if (!isTemplate(oWrapper, this)) {
 								this._registerWrapper(oWrapper);
+							} else {
+								observeRootParent(this._oWrapperObserver, oWrapper);
 							}
 						}.bind(this));
 						this._oWrapperObserver.unobserve(oObservedWrapper);
@@ -627,21 +671,25 @@ sap.ui.define([
 			// the wrapper is properly registered when the fragment content is added to the
 			// content aggregation of the parent BasePropertyEditor
 
-			var oRootElement = getRootParent(oWrapper);
-			if (
-				!this._oWrapperObserver.isObserved(oRootElement, {
-					parent: true
-				})
-			) {
-				this._oWrapperObserver.observe(oRootElement, {
-					parent: true
-				});
-			}
+			observeRootParent(this._oWrapperObserver, oWrapper);
 			return;
 		}
 
 		this._registerWrapper(oWrapper);
 	};
+
+	function observeRootParent(oWrapperObserver, oWrapper) {
+		var oRootElement = getRootParent(oWrapper);
+		if (
+			!oWrapperObserver.isObserved(oRootElement, {
+				parent: true
+			})
+		) {
+			oWrapperObserver.observe(oRootElement, {
+				parent: true
+			});
+		}
+	}
 
 	function getRootParent(oElement) {
 		var oParent = oElement.getParent();
@@ -658,7 +706,7 @@ sap.ui.define([
 
 	function isWrapper(oElement) {
 		return oElement.isA("sap.ui.integration.designtime.baseEditor.PropertyEditors")
-		|| oElement.isA("sap.ui.integration.designtime.baseEditor.PropertyEditor");
+			|| oElement.isA("sap.ui.integration.designtime.baseEditor.PropertyEditor");
 	}
 
 	BasePropertyEditor.prototype._registerWrapper = function (oWrapper) {
@@ -669,6 +717,8 @@ sap.ui.define([
 			this._setReady(false);
 			this._checkReadyState();
 		}.bind(this));
+
+		oWrapper.attachValidationErrorChange(this._checkForError.bind(this));
 
 		if (oWrapper.isA("sap.ui.integration.designtime.baseEditor.PropertyEditor")) {
 			oWrapper.attachPropertyEditorChange(function (oEvent) {
@@ -697,6 +747,28 @@ sap.ui.define([
 
 	BasePropertyEditor.prototype.isReady = function () {
 		return !!this._bIsReady;
+	};
+
+	BasePropertyEditor.prototype.setHasOwnError = function (bHasError) {
+		this._bHasOwnError = bHasError;
+		this._checkForError();
+	};
+
+	BasePropertyEditor.prototype._checkForError = function () {
+		var bHasError = this.hasError();
+		// If the error state switches, fire the event
+		if (bHasError !== this._bHasError) {
+			this._bHasError = bHasError;
+			this.fireValidationErrorChange({
+				hasError: bHasError
+			});
+		}
+	};
+
+	BasePropertyEditor.prototype.hasError = function () {
+		return !!this._bHasOwnError || this._aEditorWrappers.some(function(oWrapper) {
+			return oWrapper.hasError();
+		});
 	};
 
 	/**
@@ -736,22 +808,28 @@ sap.ui.define([
 		this._setReady(false);
 		this._bFragmentReady = false;
 
-		if (this._fnCancelFragmentLoading) {
-			this._fnCancelFragmentLoading();
+		if (this._oFragmentPromise) {
+			this._oFragmentPromise.cancel();
 		}
 
-		var oFragmentPromise = createPromise(function (fnResolve, fnReject) {
+		var oFragmentPromise = new CancelablePromise(function (fnResolve, fnReject, onCancel) {
+			onCancel.shouldReject = false;
+
 			this._loadFragment(sFragmentName).then(fnResolve, fnReject);
 		}.bind(this));
+		this._oFragmentPromise = oFragmentPromise;
 
-		this._fnCancelFragmentLoading = oFragmentPromise.cancel;
-
-		return oFragmentPromise.promise
+		return oFragmentPromise
 			.then(function (oFragment) {
-				delete this._fnCancelFragmentLoading;
+				if (oFragmentPromise.isCanceled) {
+					oFragment.destroy();
+					return;
+				}
+
 				this._bFragmentReady = true;
 				this.setContent(oFragment);
 				this.onFragmentReady();
+				this._setInputState();
 				// When the expected wrapper count was already set, initialization finished after the editor
 				// value was set and the ready check might already have been executed and failed
 				// Therefore execute the check again
@@ -766,7 +844,7 @@ sap.ui.define([
 		});
 	};
 
-	BasePropertyEditor.prototype.clone = function() {
+	BasePropertyEditor.prototype.clone = function () {
 		// as content is a public aggregation (to simplify creation of the property editors), we ensure it is not cloned
 		// otherwise if PropertyEditor is used as template for the list binding,
 		// constructor will be called once for the template and once for the cloned instance
@@ -774,7 +852,7 @@ sap.ui.define([
 		return Control.prototype.clone.apply(this, arguments);
 	};
 
-	BasePropertyEditor.prototype.exit = function() {
+	BasePropertyEditor.prototype.exit = function () {
 		this._oDefaultModel.destroy();
 
 		if (this._oConfigBinding) {
@@ -785,8 +863,8 @@ sap.ui.define([
 			this._oWrapperObserver.destroy();
 		}
 
-		if (this._fnCancelFragmentLoading) {
-			this._fnCancelFragmentLoading();
+		if (this._oFragmentPromise) {
+			this._oFragmentPromise.cancel();
 		}
 	};
 
@@ -799,6 +877,9 @@ sap.ui.define([
 		visible: {
 			defaultValue: true,
 			mergeStrategy: "mostRestrictiveWins"
+		},
+		typeLabel: {
+			defaultValue: "BASE_EDITOR.FALLBACK_TYPE"
 		}
 	};
 
@@ -806,7 +887,7 @@ sap.ui.define([
 		var oPreviousConfig = this.getConfig();
 
 		var oDefaultConfig = {};
-		var oConfigMetadata = PropertyEditorFactory.getType(this.getMetadata().getName()).configMetadata;
+		var oConfigMetadata = PropertyEditorFactory.getByClassName(this.getMetadata().getName()).configMetadata;
 		each(oConfigMetadata, function (sConfigKey, mConfigValue) {
 			oDefaultConfig[sConfigKey] = mConfigValue.defaultValue;
 		});
@@ -839,14 +920,14 @@ sap.ui.define([
 		return oConfig;
 	};
 
-	BasePropertyEditor.prototype.getI18nProperty = function(sName, aPlaceholders) {
-		if (this.getModel("i18n")) {
-			return this.getModel("i18n").getResourceBundle().getText(sName, aPlaceholders);
+	BasePropertyEditor.prototype.getI18nProperty = function (sName, aPlaceholders) {
+		if (this._oResourceBundle) {
+			return this._oResourceBundle.getText(sName, aPlaceholders);
 		}
 		return sName;
 	};
 
-	BasePropertyEditor.prototype.getLabel = function() {
+	BasePropertyEditor.prototype.getLabel = function () {
 		var oLabel = this.getAggregation("_label");
 		if (!oLabel) {
 			oLabel = new Label({
@@ -866,11 +947,9 @@ sap.ui.define([
 			// use Field as control, but aria properties of rendered inner control.
 			oParent.enhanceAccessibilityState(this, mAriaProps);
 		}
-
-		return mAriaProps;
 	};
 
-	BasePropertyEditor.prototype.getFocusDomRef = function() {
+	BasePropertyEditor.prototype.getFocusDomRef = function () {
 		var oControl = this.getContent();
 
 		if (oControl && oControl.isA("sap.ui.core.IFormContent")) {
@@ -878,7 +957,7 @@ sap.ui.define([
 		}
 	};
 
-	BasePropertyEditor.prototype.getIdForLabel = function() {
+	BasePropertyEditor.prototype.getIdForLabel = function () {
 		var oControl = this.getContent();
 
 		if (oControl && oControl.isA("sap.ui.core.IFormContent")) {

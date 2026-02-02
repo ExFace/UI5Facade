@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/fl/FakeLrepConnector","sap/ui/fl/write/_internal/connectors/SessionStorageConnector"],function(F,S){"use strict";return{enableFakeConnector:function(p){var j=p?p.sInitialComponentJsonPath:undefined;F.setFlexibilityServicesAndClearCache("SessionStorageConnector",j);},disableFakeConnector:function(){F.disableFakeConnector();},forTesting:{spyWrite:function(s,a){return F.forTesting.spyMethod(s,a,S,"write");},getNumberOfChanges:function(r){return F.forTesting.getNumberOfChanges(S,r);},clear:function(p){return F.forTesting.clear(S,p);},setStorage:function(n){F.forTesting.setStorage(S,n);},synchronous:{clearAll:function(){F.forTesting.synchronous.clearAll(window.sessionStorage);},getNumberOfChanges:function(r){return F.forTesting.synchronous.getNumberOfChanges(S.oStorage,r);}}}};},true);
+sap.ui.define(["sap/ui/fl/FakeLrepConnector","sap/ui/fl/write/_internal/connectors/SessionStorageConnector"],function(e,n){"use strict";return{enableFakeConnector(n){var r=n?n.sInitialComponentJsonPath:undefined;e.setFlexibilityServicesAndClearCache("SessionStorageConnector",r)},disableFakeConnector(){e.disableFakeConnector()},forTesting:{spyWrite(r,t){return e.forTesting.spyMethod(r,t,n,"write")},getNumberOfChanges(r){return e.forTesting.getNumberOfChanges(n,r)},clear(r){return e.forTesting.clear(n,r)},setStorage(r){e.forTesting.setStorage(n,r)},synchronous:{clearAll(){e.forTesting.synchronous.clearAll(window.sessionStorage)},getNumberOfChanges(r){return e.forTesting.synchronous.getNumberOfChanges(n.storage,r)}}}}},true);
+//# sourceMappingURL=FakeLrepConnectorSessionStorage.js.map

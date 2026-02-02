@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define(['./library'],
-	function(library) {
+	(library) => {
 		"use strict";
 
 		/**
 		 * Chart renderer.
 		 * @namespace
 		 */
-		var ChartRenderer = {
+		const ChartRenderer = {
 			apiVersion: 2
 		};
 
@@ -28,32 +28,38 @@ sap.ui.define(['./library'],
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+		 * @param {sap.ui.mdc.Chart} oChart An object representation of the control that should be rendered
 		 */
-		ChartRenderer.render = function(oRm, oControl) {
-			oRm.openStart("div", oControl);
+		ChartRenderer.render = function(oRm, oChart) {
+			oRm.openStart("div", oChart);
 			oRm.class(ChartRenderer.CSS_CLASS);
-			oRm.class("sapUiFixFlex");
-			oRm.style("overflow", "hidden");
-			oRm.style("height", oControl.getHeight());
-			oRm.style("width", oControl.getWidth());
-			oRm.style("min-height", oControl.getMinHeight());
-			oRm.style("min-width", oControl.getMinWidth());
+			//oRm.class("sapUiFixFlex");
+			//oRm.style("overflow", "hidden");
+			oRm.style("height", oChart.getHeight());
+			oRm.style("width", oChart.getWidth());
+			oRm.style("min-height", oChart.getMinHeight());
+			oRm.style("min-width", oChart.getMinWidth());
 			oRm.openEnd();
-			this.renderToolbar(oRm, oControl.getAggregation("_toolbar"));
-			this.renderBreadcrumbs(oRm, oControl.getAggregation("_breadcrumbs"));
-			this.renderChart(oRm, oControl.getAggregation("_chart"));
+			this.renderToolbar(oRm, oChart.getAggregation("_toolbar"));
+			this.renderInfoToolbar(oRm, oChart.getAggregation("_infoToolbar"));
+			this.renderBreadcrumbs(oRm, oChart.getAggregation("_breadcrumbs"));
+			this.renderInnerStructure(oRm, oChart.getAggregation("_innerChart"));
 			oRm.close("div");
 		};
 
-		ChartRenderer.renderToolbar = function(oRm, oToolbar) {
+		ChartRenderer.renderNoDataStruct = function(oRm, oNoDataStruct) {
+			if (oNoDataStruct) {
+				/*oRm.openStart("div");
+				 oRm.class("sapUiFixFlexFlexibleContainer");
+				 oRm.openEnd();
+				 oRm.renderControl(oNoDataStruct);
+				 oRm.close("div");*/
+			}
+		};
 
+		ChartRenderer.renderToolbar = function(oRm, oToolbar) {
 			if (oToolbar) {
-				oRm.openStart("div");
-				oRm.class("sapUiFixFlexFixed");
-				oRm.openEnd();
 				oRm.renderControl(oToolbar);
-				oRm.close("div");
 			}
 		};
 
@@ -64,21 +70,16 @@ sap.ui.define(['./library'],
 			}
 		};
 
-		ChartRenderer.renderChart = function(oRm, oChart) {
-
-			if (oChart) {
-				oRm.openStart("div");
-				oRm.class("sapUiFixFlexFlexible");
-				oRm.style("overflow", "hidden");
-				oRm.openEnd();
-				oRm.openStart("div");
-				oRm.class("sapUiFixFlexFlexibleContainer");
-				oRm.openEnd();
-				oRm.renderControl(oChart);
-				oRm.close("div");
-				oRm.close("div");
+		ChartRenderer.renderInfoToolbar = function(oRm, oInfoToolbar) {
+			if (oInfoToolbar) {
+				oRm.renderControl(oInfoToolbar);
 			}
 		};
 
+		ChartRenderer.renderInnerStructure = function(oRm, oInnerStructure) {
+			oRm.renderControl(oInnerStructure);
+		};
+
 		return ChartRenderer;
-	}, true);
+	},
+	true);

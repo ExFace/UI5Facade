@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,7 +16,7 @@ sap.ui.define([
 	 * @class
 	 * Constructor for a new <code>JsonEditor</code>.
 	 * This allows to set json text values for a specified property of a JSON object.
-	 * The editor is rendered as a {@link sap.ui.CodeEditor} inside a {@link sap.m.Dialog}.
+	 * The editor is rendered as a {@link sap.ui.codeeditor.CodeEditor} inside a {@link sap.m.Dialog}.
 	 * To get notified about changes made with the editor, you can use the <code>attachValueChange</code> method,
 	 * which passes the current property state as an object to the provided callback function when the user saves changes in the dialog.
 	 *
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.jsonEditor.JsonEditor
 	 * @author SAP SE
 	 * @since 1.72
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.72
@@ -32,11 +32,15 @@ sap.ui.define([
 	 */
 	var JsonEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.jsonEditor.JsonEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.jsonEditor.JsonEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 
 		_onLiveChange: function() {
 			var oInput = this.getContent();
 			var oJsonValue = this._parseJson(oInput.getValue());
 			if (oJsonValue instanceof Error) {
+				this.setHasOwnError(true);
 				oInput.setValueState("Error");
 				oInput.setValueStateText("Error: " + oJsonValue);
 			} else {
@@ -63,10 +67,15 @@ sap.ui.define([
 					this._oDialog = oDialog;
 					this._oErrorMsg = this._oDialog.getContent()[0];
 					this._oEditor = this._oDialog.getContent()[1];
-					this._oEditor._getEditorInstance().getSession().on("changeAnnotation", this.onShowError.bind(this));
+					this._oEditor.getAceEditor().getSession().on("changeAnnotation", this.onShowError.bind(this));
 					this._oDialog.attachAfterOpen(function () {
-						this._oEditor._getEditorInstance().focus();
-						this._oEditor._getEditorInstance().navigateFileEnd();
+						this._oEditor.getAceEditor().focus();
+						this._oEditor.getAceEditor().navigateFileEnd();
+					}, this);
+					this._oDialog.attachAfterClose(function () {
+						this._oDialog.close();
+						this._oDialog.destroy();
+						this._oDialog = null;
 					}, this);
 					this.addDependent(this._oDialog);
 					this._openDialog();
@@ -99,8 +108,8 @@ sap.ui.define([
 			try {
 				var sBeautifiedCode = JSON.stringify(JSON.parse(this._oEditor.getValue()), 0, "\t");
 				this._oEditor.setValue(sBeautifiedCode);
-			} finally {
-				return;
+			} catch (err) {
+				// ignore
 			}
 		},
 
@@ -114,7 +123,7 @@ sap.ui.define([
 		},
 
 		onShowError: function () {
-			var sErrors = (this._oEditor._getEditorInstance().getSession().getAnnotations() || []).map(function (oError) {
+			var sErrors = (this._oEditor.getAceEditor().getSession().getAnnotations() || []).map(function (oError) {
 				return "Line " + String(oError.row) + ": " + oError.text;
 			}).join("\n");
 			this._oErrorMsg.setText(sErrors);
@@ -137,7 +146,15 @@ sap.ui.define([
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
-	JsonEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata);
+	JsonEditor.configMetadata = Object.assign(
+		{},
+		BasePropertyEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.JSON"
+			}
+		}
+	);
 
 	return JsonEditor;
 });

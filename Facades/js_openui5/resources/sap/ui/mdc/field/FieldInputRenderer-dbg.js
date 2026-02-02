@@ -1,68 +1,44 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Renderer', 'sap/m/InputRenderer'],
-		function(Renderer, InputRenderer) {
-	"use strict";
+sap.ui.define(['sap/ui/core/Renderer', 'sap/m/InputRenderer', 'sap/ui/mdc/field/FieldInputRenderUtil'],
+	(Renderer, InputRenderer, FieldInputRenderUtil) => {
+		"use strict";
 
-	/**
-	 * FieldInput renderer.
-	 * @namespace
-	 */
-	var FieldInputRenderer = Renderer.extend(InputRenderer);
-	FieldInputRenderer.apiVersion = 2;
+		/**
+		 * FieldInput renderer.
+		 * @namespace
+		 */
+		const FieldInputRenderer = Renderer.extend(InputRenderer);
+		FieldInputRenderer.apiVersion = 2;
 
-	FieldInputRenderer.addOuterClasses = function(oRm, oInput) {
+		FieldInputRenderer.addOuterClasses = function(oRm, oInput) {
 
-		InputRenderer.addOuterClasses.apply(this, arguments);
-		oRm.class("sapUiMdcFieldInput");
+			InputRenderer.addOuterClasses.apply(this, arguments);
+			oRm.class("sapUiMdcFieldInput");
 
-	};
+		};
 
-	FieldInputRenderer.getAriaRole = function (oInput) {
+		FieldInputRenderer.getAriaRole = function(oInput) {
 
-		var oAriaAttributes = oInput.getAriaAttributes();
+			return FieldInputRenderUtil.getAriaRole.call(this, oInput, InputRenderer);
 
-		if (oAriaAttributes.role) {
-			return oAriaAttributes.role;
-		} else {
-			return InputRenderer.getAriaRole.apply(this, arguments);
-		}
+		};
 
-	};
+		FieldInputRenderer.getAccessibilityState = function(oInput) {
 
-	FieldInputRenderer.getAccessibilityState = function (oInput) {
+			return FieldInputRenderUtil.getAccessibilityState.call(this, oInput, InputRenderer);
 
-		var oAriaAttributes = oInput.getAriaAttributes();
-		var mAccessibilityState = InputRenderer.getAccessibilityState.apply(this, arguments);
+		};
 
-		// add aria attributes
-		if (oAriaAttributes.aria) {
-			for (var sAttribute in oAriaAttributes.aria) {
-				mAccessibilityState[sAttribute] = oAriaAttributes.aria[sAttribute];
-			}
-		}
+		FieldInputRenderer.writeInnerAttributes = function(oRm, oInput) {
 
-		return mAccessibilityState;
+			return FieldInputRenderUtil.writeInnerAttributes.call(this, oRm, oInput, InputRenderer);
 
-	};
+		};
 
-	FieldInputRenderer.writeInnerAttributes = function(oRm, oInput) {
-
-		InputRenderer.writeInnerAttributes.apply(this, arguments);
-
-		var oAriaAttributes = oInput.getAriaAttributes();
-
-		// add all not aria specific attributes
-		for (var sAttribute in oAriaAttributes) {
-			if (sAttribute !== "aria" && sAttribute !== "role") {
-				oRm.attr(sAttribute, oAriaAttributes[sAttribute]);
-			}
-		}
-
-	};
-	return FieldInputRenderer;
-});
+		return FieldInputRenderer;
+	});

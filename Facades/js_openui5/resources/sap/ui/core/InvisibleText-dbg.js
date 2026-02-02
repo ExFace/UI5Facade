@@ -1,12 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.InvisibleText.
-sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/encodeXML"],
-	function(Control, library, Log, encodeXML) {
+sap.ui.define([
+	"sap/base/Log",
+	"sap/base/i18n/Localization",
+	"sap/base/security/encodeXML",
+	"./Control",
+	"./ControlBehavior",
+	"./Element",
+	"./Lib",
+	"./StaticArea",
+	"./library" // ensure loading of CSS
+], function(Log, Localization, encodeXML, Control, ControlBehavior, Element, Library, StaticArea) {
 	"use strict";
 
 
@@ -25,12 +34,11 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @since 1.27.0
 	 * @alias sap.ui.core.InvisibleText
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var InvisibleText = Control.extend("sap.ui.core.InvisibleText", /** @lends sap.ui.core.InvisibleText.prototype */ {
 		metadata : {
@@ -79,41 +87,46 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	}
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, local BusyIndicator is not supported by control.
+	 * @ui5-not-supported
 	 * @function
 	 */
 	InvisibleText.prototype.setBusy = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, local BusyIndicator is not supported by control.
+	 * @ui5-not-supported
 	 * @function
 	 */
 	InvisibleText.prototype.setBusyIndicatorDelay = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.54, local BusyIndicator is not supported by control.
+	 * @ui5-not-supported
 	 * @function
 	 */
 	InvisibleText.prototype.setBusyIndicatorSize = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, property <code>visible</code> is not supported by control.
+	 * @ui5-not-supported
 	 * @function
 	 */
 	InvisibleText.prototype.setVisible = makeNotSupported("Property visible");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, tooltip is not supported by control.
+	 * @ui5-not-supported
 	 * @function
 	 */
 	InvisibleText.prototype.setTooltip = makeNotSupported("Aggregation tooltip");
@@ -137,15 +150,13 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	/**
 	 * Adds <code>this</code> control into the static, hidden area UI area container.
 	 *
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @see sap.ui.core.Control#placeAt
 	 */
 	InvisibleText.prototype.toStatic = function() {
-		var oCore = sap.ui.getCore();
-
 		try {
-			var oStatic = oCore.getStaticAreaRef();
+			var oStatic = StaticArea.getDomRef();
 			oStatic.insertAdjacentHTML("beforeend", this.getRendererMarkup());
 			this.bOutput = true;
 		} catch (e) {
@@ -153,6 +164,22 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 		}
 
 		return this;
+	};
+
+	/**
+	 * Overridden version of the 'exit' method to explicit remove the DOM element when the control is rendered
+	 * in the static UIArea because the control's DOM can't be removed when its parent gets invalidated
+	 *
+	 * @private
+	 */
+	InvisibleText.prototype.exit = function() {
+		var oDomRef = this.getDomRef();
+		if (oDomRef && StaticArea.contains(oDomRef)) {
+			// when a InvisibleText is rendered in the static UIArea, it has to remove itself when getting
+			// destroyed because its potential parent can't remove it since it's not rendered within its
+			// parent
+			oDomRef.remove();
+		}
 	};
 
 	// map of text IDs
@@ -176,15 +203,18 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	InvisibleText.getStaticId = function(sLibrary, sTextKey) {
 		var sTextId = "", sKey, oBundle, oText;
 
-		if ( sap.ui.getCore().getConfiguration().getAccessibility() && sTextKey ) {
+		if ( ControlBehavior.isAccessibilityEnabled() && sTextKey ) {
 			// Note: identify by lib and text key, not by text to avoid conflicts after a language change
 			sKey = sLibrary + "|" + sTextKey;
 			sTextId = mTextIds[sKey];
 			if ( sTextId == null ) {
-				oBundle = sap.ui.getCore().getLibraryResourceBundle(sLibrary);
-				oText = new InvisibleText().setText( oBundle.getText(sTextKey) );
+				oBundle = Library.getResourceBundleFor(sLibrary);
+				oText = new InvisibleText().setText(oBundle ? oBundle.getText(sTextKey) : sTextKey);
 				oText.toStatic();
 				sTextId = mTextIds[sKey] = oText.getId();
+				// A potential component-owner ID is unwanted for InvisibleTexts since its DOM is cached
+				// for infinity, its lifecycle needs to be decoupled from any currently active owner component.
+				delete oText._sOwnerId;
 			}
 		}
 
@@ -192,13 +222,12 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	};
 
 	// listen to localizationChange event and update shared texts
-	sap.ui.getCore().attachLocalizationChanged(function(oEvent) {
-		var oCore = sap.ui.getCore(),
-			sKey, p, oBundle, oText;
+	Localization.attachChange(function(oEvent) {
+		var sKey, p, oBundle, oText;
 		for ( sKey in mTextIds ) {
 			p = sKey.indexOf('|');
-			oBundle = oCore.getLibraryResourceBundle(sKey.slice(0, p));
-			oText = oCore.byId(mTextIds[sKey]);
+			oBundle = Library.getResourceBundleFor(sKey.slice(0, p));
+			oText = Element.getElementById(mTextIds[sKey]);
 			oText && oText.setText(oBundle.getText(sKey.slice(p + 1)));
 		}
 	});

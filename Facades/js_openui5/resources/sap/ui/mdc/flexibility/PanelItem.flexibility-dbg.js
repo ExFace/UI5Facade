@@ -1,13 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/changeHandler/HideControl",
-	"sap/ui/fl/changeHandler/UnhideControl"
-], function(HideControl, UnhideControl) {
+	"sap/ui/core/Element", "sap/ui/fl/changeHandler/HideControl", "sap/ui/fl/changeHandler/UnhideControl"
+], (Element, HideControl, UnhideControl) => {
 	"use strict";
 
 	/**
@@ -20,8 +19,8 @@ sap.ui.define([
 	 */
 	return {
 		createChanges: function(aDeltaMItems) {
-			return aDeltaMItems.map(function(oDeltaMItem) {
-				var oControl = sap.ui.getCore().byId(oDeltaMItem.id);
+			return aDeltaMItems.map((oDeltaMItem) => {
+				const oControl = Element.getElementById(oDeltaMItem.id);
 				if (!oControl) {
 					throw new Error("Invalid 'id'. For the id " + oDeltaMItem.id + " no existing control could be found");
 				}
@@ -46,4 +45,4 @@ sap.ui.define([
 			changeHandler: HideControl
 		}
 	};
-}, /* bExport= */true);
+}, /* bExport= */ true);

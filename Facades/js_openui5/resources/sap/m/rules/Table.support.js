@@ -1,20 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Link control of sap.m Table.
  */
-sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/library"],
-	function(SupportLib, ListBase, coreLibrary) {
+sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/message/MessageType"],
+	function(SupportLib, ListBase, MessageType) {
 		"use strict";
 
 		// shortcuts
 		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
 			Severity = SupportLib.Severity,	// Hint, Warning, Error
 			Audiences = SupportLib.Audiences; // Control, Internal, Application
-		var MessageType = coreLibrary.MessageType;
 
 		//**********************************************************
 		// Rule Definitions
@@ -31,13 +30,15 @@ sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/library"
 			minversion: "1.28",
 			title: "Table: Defining column widths",
 			description: "Defining column widths",
-			resolution: "Configure at least 1 column with width=auto or do not configure the width at all",
+			resolution: "Configure at least 1 column with width=auto or use fixedLayout=Strict",
 			resolutionurls: [{
 				text: "Documentation: Defining Column Widths",
-				href: "https://sapui5.hana.ondemand.com/#/topic/6f778a805bc3453dbb66e246d8271839"
+				href: "https://sdk.openui5.org/topic/6f778a805bc3453dbb66e246d8271839"
 			}],
 			check: function (oIssueManager, oCoreFacade, oScope) {
-				oScope.getElementsByClassName("sap.m.Table").forEach(function (oTable) {
+				oScope.getElementsByClassName("sap.m.Table").filter(function(oTable) {
+					return oTable.getFixedLayout() == true;
+				}).forEach(function (oTable) {
 					var aColumn = oTable.getColumns(),
 						bSomeColumnNoWidth;
 					if (!aColumn.length) {
@@ -50,7 +51,7 @@ sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/library"
 					if (!bSomeColumnNoWidth) {
 						oIssueManager.addIssue({
 							severity: Severity.Medium,
-							details: "All the columns are configured with a width. This should be avoided.",
+							details: "All the columns are configured with a width. Either set at least for one column width=auto, or fixedLayout=Strict for the table",
 							context: {
 								id: oTable.getId()
 							}
@@ -74,10 +75,10 @@ sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/library"
 			resolution: "Use the 'highlightText' property of the item to define the semantics of the 'highlight'.",
 			resolutionurls: [{
 				text: "API Reference: sap.m.ListItemBase#getHighlight",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ListItemBase/methods/getHighlight"
+				href: "https://sdk.openui5.org/api/sap.m.ListItemBase/methods/getHighlight"
 			}, {
 				text: "API Reference: sap.m.ListItemBase#getHighlightText",
-				href: "https://sapui5.hana.ondemand.com/#/api/sap.m.ListItemBase/methods/getHighlightText"
+				href: "https://sdk.openui5.org/api/sap.m.ListItemBase/methods/getHighlightText"
 			}],
 			check: function(oIssueManager, oCoreFacade, oScope) {
 				function checkItemHighlight(oListItemBase) {

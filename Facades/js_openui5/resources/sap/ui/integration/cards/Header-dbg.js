@@ -1,20 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
+	"sap/ui/model/json/JSONModel",
+	"sap/base/util/merge",
 	"sap/f/cards/Header",
 	"sap/f/cards/HeaderRenderer",
+	"sap/m/library",
+	"sap/m/Text",
 	"sap/ui/integration/util/BindingHelper",
-	'sap/ui/model/json/JSONModel',
-	"sap/ui/integration/util/LoadingProvider"
-], function (FHeader,
-			 FHeaderRenderer,
-			 BindingHelper,
-			 JSONModel,
-			 LoadingProvider) {
+	"sap/ui/integration/util/BindingResolver",
+	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/Utils",
+	"sap/ui/integration/formatters/IconFormatter"
+], function (
+	Element,
+	JSONModel,
+	merge,
+	FHeader,
+	FHeaderRenderer,
+	mLibrary,
+	Text,
+	BindingHelper,
+	BindingResolver,
+	LoadingProvider,
+	Utils,
+	IconFormatter
+) {
 	"use strict";
+
+	// shortcut for sap.m.AvatarColor
+	var AvatarColor = mLibrary.AvatarColor;
 
 	/**
 	 * Constructor for a new <code>Header</code>.
@@ -24,67 +43,107 @@ sap.ui.define([
 	 *
 	 * @class
 	 * Displays general information in the header of the {@link sap.ui.integration.widgets.Card}.
-	 * @extends sap.f.Header
+	 * @extends sap.f.cards.Header
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.77
 	 * @alias sap.ui.integration.cards.Header
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Header = FHeader.extend("sap.ui.integration.cards.Header", {
-
-		constructor: function (mConfiguration, oActionsToolbar, sAppId, oIconFormatter) {
-
-			mConfiguration = mConfiguration || {};
-			this._sAppId = sAppId;
-
-			var mSettings = {
-				title: mConfiguration.title,
-				subtitle: mConfiguration.subTitle
-			};
-
-			if (mConfiguration.status && typeof mConfiguration.status.text === "string") {
-				mSettings.statusText = mConfiguration.status.text;
-			}
-
-			if (mConfiguration.icon) {
-				mSettings.iconSrc = mConfiguration.icon.src;
-				mSettings.iconDisplayShape = mConfiguration.icon.shape;
-				mSettings.iconInitials = mConfiguration.icon.text;
-				mSettings.iconAlt = mConfiguration.icon.alt;
-			}
-
-			mSettings = BindingHelper.createBindingInfos(mSettings);
-
-			if (mSettings.iconSrc) {
-				mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
-					return oIconFormatter.formatSrc(sValue, sAppId);
-				});
-			}
-
-			mSettings.toolbar = oActionsToolbar;
-
-			FHeader.call(this, mSettings);
-		},
-
 		metadata: {
 			library: "sap.ui.integration",
 			properties: {
+				interactive: { type: "boolean", defaultValue: false }
+			},
+			aggregations: {
+				/**
+				 * The internally used LoadingProvider.
+				 */
+				_loadingProvider: { type: "sap.ui.core.Element", multiple: false, visibility: "hidden" }
+			},
+			associations: {
+				/**
+				 * Association with the parent Card that contains this filter.
+				 */
+				card: { type: "sap.ui.integration.widgets.Card", multiple: false }
 			}
 		},
 		renderer: FHeaderRenderer
 	});
 
-	Header.prototype.init = function () {
+	Header.create = function (sId, mConfiguration, oActionsToolbar, oIconFormatter) {
+		mConfiguration = mConfiguration || {};
 
+		var mSettings = {
+			title: mConfiguration.title,
+			titleMaxLines: mConfiguration.titleMaxLines,
+			subtitle: mConfiguration.subTitle,
+			subtitleMaxLines: mConfiguration.subTitleMaxLines,
+			dataTimestamp: mConfiguration.dataTimestamp,
+			visible: mConfiguration.visible,
+			wrappingType: mConfiguration.wrappingType
+		};
+
+		if (mConfiguration.status && mConfiguration.status.text && !mConfiguration.status.text.format) {
+			mSettings.statusText = mConfiguration.status.text;
+			mSettings.statusVisible = mConfiguration.status.visible;
+		}
+
+		if (mConfiguration.icon) {
+			var vInitials = mConfiguration.icon.initials || mConfiguration.icon.text;
+			var sBackgroundColor = mConfiguration.icon.backgroundColor || (vInitials ? AvatarColor.Accent6 : AvatarColor.Transparent);
+
+			mSettings.iconSrc = mConfiguration.icon.src;
+			mSettings.iconDisplayShape = mConfiguration.icon.shape;
+			mSettings.iconInitials = vInitials;
+			mSettings.iconAlt = mConfiguration.icon.alt;
+			mSettings.iconBackgroundColor = sBackgroundColor;
+			mSettings.iconVisible = mConfiguration.icon.visible;
+			mSettings.iconFitType = mConfiguration.icon.fitType;
+		}
+
+		if (mSettings.iconSrc) {
+			mSettings.iconSrc = BindingHelper.formattedProperty(mSettings.iconSrc, function (sValue) {
+				return oIconFormatter.formatSrc(sValue);
+			});
+		}
+
+		if (mConfiguration.banner) {
+			mSettings.bannerLines = mConfiguration.banner.map(function (mBannerLine) { // TODO validate that it is an array and with no more than 2 elements
+				var oBannerLine = new Text({
+					text: mBannerLine.text,
+					visible: mBannerLine.visible
+				});
+
+				if (mBannerLine.diminished) {
+					oBannerLine.addStyleClass("sapFCardHeaderBannerLineDiminished");
+				}
+
+				return oBannerLine;
+			});
+		}
+
+		mSettings.toolbar = oActionsToolbar;
+
+		const oHeader = new Header(sId, mSettings);
+
+		oHeader._oConfiguration = mConfiguration;
+		oHeader._oIconFormatter = oIconFormatter;
+
+		return oHeader;
+	};
+
+	Header.prototype.init = function () {
 		FHeader.prototype.init.call(this);
 
 		this._bReady = false;
-		this._oLoadingProvider = new LoadingProvider();
+
+		this.setAggregation("_loadingProvider", new LoadingProvider());
+
 		this._aReadyPromises = [];
 
 		// So far the ready event will be fired when the data is ready. But this can change in the future.
@@ -98,16 +157,10 @@ sap.ui.define([
 	};
 
 	Header.prototype.exit = function () {
-
 		FHeader.prototype.exit.call(this);
 
 		this._oServiceManager = null;
 		this._oDataProviderFactory = null;
-
-		if (this._oLoadingProvider) {
-			this._oLoadingProvider.destroy();
-			this._oLoadingProvider = null;
-		}
 
 		if (this._oDataProvider) {
 			this._oDataProvider.destroy();
@@ -121,6 +174,20 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 */
+	Header.prototype.shouldShowIcon = function () {
+		return this.getIconVisible() && this.getIconSrc() !== IconFormatter.SRC_FOR_HIDDEN_ICON;
+	};
+
+	/**
+	 * @override
+	 */
+	Header.prototype.isInteractive = function () {
+		return this.getInteractive();
+	};
+
+	/**
 	 * @public
 	 * @returns {boolean} If the header is ready or not.
 	 */
@@ -129,20 +196,21 @@ sap.ui.define([
 	};
 
 	Header.prototype.isLoading = function () {
-		var oLoadingProvider = this._oLoadingProvider,
-			oCard = this.getParent(),
-			cardLoading = oCard.getMetadata()._sClassName === 'sap.ui.integration.widgets.Card' ? oCard.isLoading() : false;
+		if (!this.isReady()) {
+			return true;
+		}
 
-		return !oLoadingProvider.getDataProviderJSON() && (oLoadingProvider.getLoadingState() || cardLoading);
+		if (this._oDataProvider) {
+			return this.getAggregation("_loadingProvider").getLoading();
+		}
+
+		var oCard = this.getCardInstance();
+
+		return oCard && oCard.isLoading();
 	};
 
-
-	Header.prototype._updateModel = function (oData) {
-		this.getModel().setData(oData);
-	};
-
-	Header.prototype._handleError = function (sLogMessage) {
-		this.fireEvent("_error", { logMessage: sLogMessage });
+	Header.prototype._handleError = function (mErrorInfo) {
+		this.fireEvent("_error", { errorInfo: mErrorInfo });
 	};
 
 	/**
@@ -159,7 +227,6 @@ sap.ui.define([
 		}.bind(this)));
 	};
 
-
 	Header.prototype.setServiceManager = function (oServiceManager) {
 		this._oServiceManager = oServiceManager;
 		return this;
@@ -171,16 +238,43 @@ sap.ui.define([
 	};
 
 	/**
+	 * @returns {object} Header configuration with static values.
+	 */
+	Header.prototype.getStaticConfiguration = function () {
+		var oConfiguration = merge({}, this._oConfiguration),
+			mFormat = Utils.getNestedPropertyValue(oConfiguration, "/status/text/format"),
+			oBindingInfo;
+
+		if (mFormat) {
+			oBindingInfo = Utils.getStatusTextBindingInfo(mFormat);
+		}
+
+		if (oBindingInfo) {
+			oConfiguration.status.text = oBindingInfo;
+		}
+
+		if (oConfiguration.icon && oConfiguration.icon.src) {
+			oConfiguration.icon.src = this._oIconFormatter.formatSrc(BindingResolver.resolveValue(oConfiguration.icon.src, this));
+		}
+
+		return oConfiguration;
+	};
+
+	/**
 	 * Sets a data settings to the header.
 	 *
 	 * @private
 	 * @param {object} oDataSettings The data settings
 	 */
 	Header.prototype._setDataConfiguration = function (oDataSettings) {
-		var sPath = "/";
+		var oCard = this.getCardInstance(),
+			sPath = "/",
+			oModel;
+
 		if (oDataSettings && oDataSettings.path) {
-			sPath = oDataSettings.path;
+			sPath = BindingResolver.resolveValue(oDataSettings.path, this.getCardInstance());
 		}
+
 		this.bindObject(sPath);
 
 		if (this._oDataProvider) {
@@ -189,22 +283,28 @@ sap.ui.define([
 
 		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
 
-		if (this._oDataProvider) {
-			// If a data provider is created use an own model. Otherwise bind to the one propagated from the card.
-			this.setModel(new JSONModel());
+		if (oDataSettings && oDataSettings.name) {
+			oModel = oCard.getModel(oDataSettings.name);
+		} else if (this._oDataProvider) {
+			oModel = new JSONModel();
+			this.setModel(oModel);
+		}
 
+		if (this._oDataProvider) {
 			this._oDataProvider.attachDataRequested(function () {
-				this.onDataRequested();
+				this.showLoadingPlaceholders();
 			}.bind(this));
 
-			//TODO Designers to decide if we have to keep loading status when an error occured during loading
 			this._oDataProvider.attachDataChanged(function (oEvent) {
-				this._updateModel(oEvent.getParameter("data"));
+				oModel.setData(oEvent.getParameter("data"));
 				this.onDataRequestComplete();
 			}.bind(this));
 
 			this._oDataProvider.attachError(function (oEvent) {
-				this._handleError(oEvent.getParameter("message"));
+				this._handleError({
+					requestErrorParams: oEvent.getParameters(),
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
+				});
 				this.onDataRequestComplete();
 			}.bind(this));
 
@@ -214,14 +314,52 @@ sap.ui.define([
 		}
 	};
 
-	Header.prototype.onDataRequested = function () {
-		this._oLoadingProvider.createLoadingState(this._oDataProvider);
+	Header.prototype.refreshData = function () {
+		if (this._oDataProvider) {
+			this._oDataProvider.triggerDataUpdate();
+		}
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted
+	 */
+	Header.prototype.showLoadingPlaceholders = function () {
+		if (!this._isDataProviderJson()) {
+			this.getAggregation("_loadingProvider").setLoading(true);
+		}
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted
+	 */
+	Header.prototype.hideLoadingPlaceholders = function () {
+		this.getAggregation("_loadingProvider").setLoading(false);
 	};
 
 	Header.prototype.onDataRequestComplete = function () {
+		var oCard = this.getCardInstance();
+		if (oCard) {
+			oCard._fireDataChange();
+		}
+
 		this.fireEvent("_dataReady");
-		this._oLoadingProvider.setLoading(false);
-		this._oLoadingProvider.removeHeaderPlaceholder(this);
+		this.hideLoadingPlaceholders();
+	};
+
+	/**
+	 * Gets the card instance of which this element is part of.
+	 * @ui5-restricted
+	 * @private
+	 * @returns {sap.ui.integration.widgets.Card} The card instance.
+	 */
+	Header.prototype.getCardInstance = function () {
+		return Element.getElementById(this.getCard());
+	};
+
+	Header.prototype._isDataProviderJson = function () {
+		return !!this._oDataProvider?.getConfiguration()?.json;
 	};
 
 	return Header;

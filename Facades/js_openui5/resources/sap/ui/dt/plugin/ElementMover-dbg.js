@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,14 +9,12 @@ sap.ui.define([
 	"sap/ui/base/Object",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/dt/ElementUtil",
-	"sap/ui/dt/DOMUtil",
 	"sap/ui/dt/OverlayUtil",
 	"sap/ui/dt/Util"
 ], function(
 	BaseObject,
 	ManagedObject,
 	ElementUtil,
-	DOMUtil,
 	OverlayUtil,
 	DtUtil
 ) {
@@ -32,27 +30,25 @@ sap.ui.define([
 	 * @class The ElementMover enables movement of UI5 elements based on aggregation types, which can be used by drag and
 	 *        drop or cut and paste behavior.
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.dt.plugin.ElementMover
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
 	var ElementMover = ManagedObject.extend("sap.ui.dt.plugin.ElementMover", /** @lends sap.ui.dt.plugin.ElementMover.prototype */ {
-		metadata : {
-			library : "sap.ui.dt",
-			properties : {
-				movableTypes : {
-					type : "string[]",
-					defaultValue : ["sap.ui.core.Element"]
+		metadata: {
+			library: "sap.ui.dt",
+			properties: {
+				movableTypes: {
+					type: "string[]",
+					defaultValue: ["sap.ui.core.Element"]
 				}
 			},
-			associations : {},
+			associations: {},
 			events: {
 				/** Event fired when the requested valid target zones are activated */
-				validTargetZonesActivated : {}
+				validTargetZonesActivated: {}
 			}
 		}
 	});
@@ -66,20 +62,21 @@ sap.ui.define([
 
 	/**
 	 * Predicate to compute movability of a type
+	 * @param {object} oElement - Element to be checked
+	 * @returns {boolean} <code>true</code> if type is movable, <code>false</code> otherwise
 	 * @public
-	 * @return true if type is movable, false otherwise
 	 */
 	ElementMover.prototype.isMovableType = function(oElement) {
 		var aMovableTypes = this._getMovableTypes();
 
 		return aMovableTypes.some(function(sType) {
-			return BaseObject.isA(oElement, sType);
+			return BaseObject.isObjectA(oElement, sType);
 		});
 	};
 
 	/**
 	 * @param {sap.ui.dt.Overlay} oOverlay - overlay instance
-	 * @return {promise} Resolved promise with true value
+	 * @return {Promise} Resolved promise with true value
 	 * @protected
 	 */
 	ElementMover.prototype.checkMovable = function() {
@@ -120,9 +117,9 @@ sap.ui.define([
 	 */
 	ElementMover.prototype.activateAllValidTargetZones = function(oDesignTime, sAdditionalStyleClass) {
 		return this._iterateAllAggregations(oDesignTime, this._activateValidTargetZone.bind(this), sAdditionalStyleClass, true)
-			.then(function() {
-				this.fireValidTargetZonesActivated();
-			}.bind(this));
+		.then(function() {
+			this.fireValidTargetZonesActivated();
+		}.bind(this));
 	};
 
 	/**
@@ -130,36 +127,20 @@ sap.ui.define([
 	 */
 	ElementMover.prototype._activateValidTargetZone = function(oAggregationOverlay, sAdditionalStyleClass) {
 		return this.checkTargetZone(oAggregationOverlay)
-			.then(function(bValidTargetZone) {
-				if (bValidTargetZone) {
-					oAggregationOverlay.setTargetZone(true);
-					if (sAdditionalStyleClass) {
-						oAggregationOverlay.addStyleClass(sAdditionalStyleClass);
-					}
+		.then(function(bValidTargetZone) {
+			if (bValidTargetZone) {
+				oAggregationOverlay.setTargetZone(true);
+				if (sAdditionalStyleClass) {
+					oAggregationOverlay.addStyleClass(sAdditionalStyleClass);
 				}
-			})
-			.catch(function(oError) {
-				throw DtUtil.createError(
-					"ElementMover#_activateValidTargetZone",
-					"An error occured during activation of valid target zones: " + oError
-				);
-			});
-	};
-
-	ElementMover.prototype._checkAggregationOverlayVisibility = function (oAggregationOverlay, oParentElement) {
-		// this function can get called on overlay registration, when there are no overlays in dom yet. In this case, DOMUtil.isVisible is always false.
-		var oAggregationOverlayDomRef = oAggregationOverlay.getDomRef();
-		var bAggregationOverlayVisibility = DOMUtil.isVisible(oAggregationOverlayDomRef);
-
-		// if there is no aggregation overlay domRef available the further check for domRef of the corresponding element is not required
-		if (!oAggregationOverlayDomRef) {
-			return bAggregationOverlayVisibility;
-		}
-		// additional check for corresponding element DomRef visibiltiy required for target zone checks during navigation mode.
-		// during navigation mode the domRef of valid overlays is given and the offsetWidth is 0. Therefor we need to check the visibility of the corresponding element additionally
-		var oParentElementDomRef = oParentElement && oParentElement.getDomRef && oParentElement.getDomRef();
-		var bAggregationElementVisibility = oParentElementDomRef ? DOMUtil.isVisible(oParentElementDomRef) : true;
-		return bAggregationOverlayVisibility || bAggregationElementVisibility;
+			}
+		})
+		.catch(function(oError) {
+			throw DtUtil.createError(
+				"ElementMover#_activateValidTargetZone",
+				`An error occurred during activation of valid target zones: ${oError}`
+			);
+		});
 	};
 
 	/**
@@ -170,30 +151,8 @@ sap.ui.define([
 	 * @protected
 	 */
 	ElementMover.prototype.checkTargetZone = function(oAggregationOverlay, oOverlay, bOverlayNotInDom) {
-		var oGeometry = oAggregationOverlay.getGeometry();
-		var bGeometryVisible = oGeometry && oGeometry.size.height > 0 && oGeometry.size.width > 0;
-		var oParentElement = oAggregationOverlay.getElement();
-
-		if (
-			(bOverlayNotInDom && !bGeometryVisible)
-			|| !bOverlayNotInDom && !this._checkAggregationOverlayVisibility(oAggregationOverlay, oParentElement)
-			|| !(oParentElement && oParentElement.getVisible && oParentElement.getVisible())
-		) {
-			return Promise.resolve(false);
-		}
-
-		// an aggregation can still have visible = true even if it has been removed from its parent
-		if (!oParentElement.getParent()) {
-			return Promise.resolve(false);
-		}
-
 		var oMovedOverlay = oOverlay || this.getMovedOverlay();
-		var oMovedElement = oMovedOverlay.getElement();
-		var sAggregationName = oAggregationOverlay.getAggregationName();
-		if (oMovedElement && ElementUtil.isValidForAggregation(oParentElement, sAggregationName, oMovedElement)) {
-			return Promise.resolve(true);
-		}
-		return Promise.resolve(false);
+		return ElementUtil.checkTargetZone(oAggregationOverlay, oMovedOverlay, bOverlayNotInDom);
 	};
 
 	/**
@@ -211,9 +170,9 @@ sap.ui.define([
 	 */
 	ElementMover.prototype.activateTargetZonesFor = function(oOverlay, sAdditionalStyleClass) {
 		return this._iterateOverlayAggregations(oOverlay, this._activateValidTargetZone.bind(this), sAdditionalStyleClass, true)
-			.then(function() {
-				this.fireValidTargetZonesActivated();
-			}.bind(this));
+		.then(function() {
+			this.fireValidTargetZonesActivated();
+		}.bind(this));
 	};
 
 	/**
@@ -248,7 +207,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ElementMover.prototype._iterateOverlayAggregations = function(oOverlay, fnStep, sAdditionalStyleClass, bAsync) {
-		var aAggregationOverlays = oOverlay.getAggregationOverlays();
+		var aAggregationOverlays = oOverlay.getChildren();
 		// if bAsync true the return value of fnStep should return promises
 		var aResultPromises = aAggregationOverlays.map(function(oAggregationOverlay) {
 			return fnStep(oAggregationOverlay, sAdditionalStyleClass);
@@ -298,6 +257,7 @@ sap.ui.define([
 			if (oAggregationDesignTimeMetadata && oAggregationDesignTimeMetadata.afterMove) {
 				oAggregationDesignTimeMetadata.afterMove(oRelevantContainerElement, oMovedElement);
 			}
+			this._setSourceAndTargetParentInformation();
 		}
 	};
 
@@ -339,6 +299,7 @@ sap.ui.define([
 			if (oAggregationDesignTimeMetadata && oAggregationDesignTimeMetadata.afterMove) {
 				oAggregationDesignTimeMetadata.afterMove(oRelevantContainerElement, oMovedElement);
 			}
+			this._setSourceAndTargetParentInformation();
 		}
 	};
 
@@ -346,7 +307,7 @@ sap.ui.define([
 		var vProperty;
 		for (vProperty in oSource) {
 			switch (typeof (oSource[vProperty])) {
-				case 'object':
+				case "object":
 					if (oSource[vProperty].getId() !== oTarget[vProperty].getId()) {return false;}
 					break;
 				default:
@@ -355,6 +316,41 @@ sap.ui.define([
 		}
 
 		return true;
+	};
+
+	ElementMover.prototype._setSourceAndTargetParentInformation = function() {
+		var oMovedOverlay = this.getMovedOverlay();
+		if (!oMovedOverlay) {
+			delete this._mSourceParentInformation;
+			delete this._mTargetParentInformation;
+			return;
+		}
+		var mSource = this._getSource();
+		if (mSource) {
+			this._mSourceParentInformation = {};
+			Object.assign(this._mSourceParentInformation, mSource);
+		} else {
+			delete this._mSourceParentInformation;
+		}
+		var mTarget = OverlayUtil.getParentInformation(oMovedOverlay);
+		if (mTarget) {
+			this._mTargetParentInformation = mTarget;
+		} else {
+			delete this._mTargetParentInformation;
+		}
+	};
+
+	/**
+	 * Returns a structure with objects containing information about the source and target
+	 * parents of the move. The structure contains the parent element, the aggregation name
+	 * and the index.
+	 * @returns {object} Object containing the move source and target parent information
+	 */
+	ElementMover.prototype.getSourceAndTargetParentInformation = function() {
+		return {
+			sourceParentInformation: this._mSourceParentInformation,
+			targetParentInformation: this._mTargetParentInformation
+		};
 	};
 
 	return ElementMover;

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/format/NumberFormat","sap/ui/integration/util/Utils"],function(N,U){"use strict";var n={currency:function(c,C,f,l){var s=U.processFormatArguments(f,l),o=N.getCurrencyInstance(s.formatOptions,s.locale);return o.format(c,C);},"float":function(f,F,l){var s=U.processFormatArguments(F,l),o=N.getFloatInstance(s.formatOptions,s.locale);return o.format(f);},integer:function(i,f,l){var s=U.processFormatArguments(f,l),I=N.getIntegerInstance(s.formatOptions,s.locale);return I.format(i);},percent:function(p,f,l){var s=U.processFormatArguments(f,l),P=N.getPercentInstance(s.formatOptions,s.locale);return P.format(p);},unit:function(u,s,f,l){var S=U.processFormatArguments(f,l),o=N.getUnitInstance(S.formatOptions,S.locale);return o.format(u,s);}};return n;});
+sap.ui.define(["sap/ui/core/format/NumberFormat","sap/ui/integration/util/Utils"],function(t,r){"use strict";var n={currency:function(n,e,o,a){var s=r.processFormatArguments(o,a),c=t.getCurrencyInstance(s.formatOptions,s.locale);return c.format(n,e)},float:function(n,e,o){var a=r.processFormatArguments(e,o),s=t.getFloatInstance(a.formatOptions,a.locale);return s.format(n)},integer:function(n,e,o){var a=r.processFormatArguments(e,o),s=t.getIntegerInstance(a.formatOptions,a.locale);return s.format(n)},percent:function(n,e,o){var a=r.processFormatArguments(e,o),s=t.getPercentInstance(a.formatOptions,a.locale);return s.format(n)},unit:function(n,e,o,a){var s=r.processFormatArguments(o,a),c=t.getUnitInstance(s.formatOptions,s.locale);return c.format(n,e)}};return n});
+//# sourceMappingURL=NumberFormatter.js.map

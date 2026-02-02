@@ -1,19 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/rta/plugin/Plugin",
-	"sap/ui/rta/Utils",
+	"sap/base/Log",
+	"sap/ui/dt/OverlayRegistry",
 	"sap/ui/dt/Util",
-	"sap/base/Log"
+	"sap/ui/fl/Utils",
+	"sap/ui/rta/plugin/Plugin",
+	"sap/ui/rta/Utils"
+
 ], function(
-	Plugin,
-	Utils,
+	BaseLog,
+	OverlayRegistry,
 	DtUtil,
-	BaseLog
+	FlUtils,
+	Plugin,
+	Utils
 ) {
 	"use strict";
 
@@ -25,27 +30,41 @@ sap.ui.define([
 	 * @class The Settings allows trigger change of settings operations on the overlay
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.44
 	 * @alias sap.ui.rta.plugin.Settings
-	 * @experimental Since 1.44. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
-	var Settings = Plugin.extend("sap.ui.rta.plugin.Settings", /** @lends sap.ui.rta.plugin.Settings.prototype */ {
+	const Settings = Plugin.extend("sap.ui.rta.plugin.Settings", /** @lends sap.ui.rta.plugin.Settings.prototype */ {
 		metadata: {
 			library: "sap.ui.rta",
-			properties: {
-				commandStack : {
-					type : "any"
-				}
-			},
 			associations: {},
 			events: {}
 		}
 	});
 
-	var sPluginId = "CTX_SETTINGS";
+	const sPluginId = "CTX_SETTINGS";
+
+	function getValidActions(vSettingsAction, oOverlay) {
+		if (vSettingsAction.handler) {
+			return [vSettingsAction];
+		}
+		const aSettingsActions = [];
+		Object.keys(vSettingsAction).forEach((sSettingsAction) => {
+			let oSettingsAction = vSettingsAction[sSettingsAction];
+			if (typeof oSettingsAction === "function") {
+				oSettingsAction = oSettingsAction(oOverlay.getElement());
+			}
+			if (oSettingsAction.handler) {
+				oSettingsAction.key = sSettingsAction;
+				aSettingsActions.push(oSettingsAction);
+			} else {
+				BaseLog.warning("Handler not found for settings action");
+			}
+		});
+		return aSettingsActions;
+	}
 
 	/**
 	 * @param {sap.ui.dt.ElementOverlay} oOverlay overlay to be checked for editable
@@ -53,20 +72,13 @@ sap.ui.define([
 	 * @private
 	 */
 	Settings.prototype._isEditable = function(oOverlay) {
-		var vSettingsAction = this.getAction(oOverlay);
+		const vSettingsAction = this.getAction(oOverlay);
 		// If no additional actions are defined in settings, a handler must be present to make it available
 		if (vSettingsAction) {
-			if (vSettingsAction.handler) {
-				return this.hasStableId(oOverlay);
-			}
-
-			var bHandlerAndStableIdFound = Object.keys(vSettingsAction).some(function(sSettingsAction) {
-				var oSettingsAction = vSettingsAction[sSettingsAction];
-				return oSettingsAction.handler && this._checkRelevantContainerStableID(oSettingsAction, oOverlay);
-			}.bind(this));
-			if (bHandlerAndStableIdFound) {
-				return this.hasStableId(oOverlay);
-			}
+			const aSettingsActions = getValidActions(vSettingsAction, oOverlay);
+			return aSettingsActions.some((oSettingsAction) => {
+				return this._checkRelevantContainerStableID(oSettingsAction, oOverlay);
+			});
 		}
 
 		return false;
@@ -80,29 +92,31 @@ sap.ui.define([
 	 * @public
 	 */
 	Settings.prototype.isEnabled = function(aElementOverlays) {
-		var oElementOverlay = aElementOverlays[0];
-		var oAction = this.getAction(oElementOverlay);
-		if (!oAction) {
-			return false;
+		const oElementOverlay = aElementOverlays[0];
+		const oResponsibleElementOverlay = this.getResponsibleElementOverlay(oElementOverlay);
+		const vSettingsAction = this.getAction(oResponsibleElementOverlay);
+		if (vSettingsAction) {
+			const oSettingsActions = getValidActions(vSettingsAction, oResponsibleElementOverlay);
+			return oSettingsActions.some((oSettingsAction) => {
+				if (typeof oSettingsAction.isEnabled !== "undefined") {
+					if (typeof oSettingsAction.isEnabled === "function") {
+						return oSettingsAction.isEnabled(oResponsibleElementOverlay.getElement());
+					}
+					return oSettingsAction.isEnabled;
+				}
+				return !!oSettingsAction.handler;
+			});
 		}
 
-		if (typeof oAction.isEnabled !== "undefined") {
-			if (typeof oAction.isEnabled === "function") {
-				return oAction.isEnabled(oElementOverlay.getElement());
-			}
-			return oAction.isEnabled;
-		}
-		return true;
+		return false;
 	};
 
 	Settings.prototype._getUnsavedChanges = function(sId, aChangeTypes) {
-		var sElementId;
+		let sElementId;
 
-		var aUnsavedChanges = this.getCommandStack().getAllExecutedCommands().filter(function(oCommand) {
+		const aUnsavedChanges = this.getCommandStack().getAllExecutedCommands().filter(function(oCommand) {
 			sElementId = oCommand.getElementId && oCommand.getElementId() || oCommand.getElement && oCommand.getElement().getId();
-			if (sElementId === sId && aChangeTypes.indexOf(oCommand.getChangeType()) >= 0) {
-				return true;
-			}
+			return sElementId === sId && aChangeTypes.indexOf(oCommand.getChangeType()) >= 0;
 		}).map(function(oCommand) {
 			return oCommand.getPreparedChange();
 		});
@@ -110,13 +124,13 @@ sap.ui.define([
 		return aUnsavedChanges;
 	};
 
-	Settings.prototype._handleFlexChangeCommand = function(mChange, aSelectedOverlays, oCompositeCommand) {
-		var mChangeSpecificData = mChange.changeSpecificData;
-		var sVariantManagementReference;
+	Settings.prototype._handleFlexChangeCommand = function(mChange, aSelectedOverlays, oCompositeCommand, oSettingsAction) {
+		const mChangeSpecificData = mChange.changeSpecificData;
+		let sVariantManagementReference;
 		// temporarily support both
-		var vSelector = mChange.selectorElement || mChange.selectorControl;
-		var sControlType;
-		var oControl;
+		const vSelector = mChange.selectorElement || mChange.selectorControl;
+		let sControlType;
+		let oControl;
 
 		if (vSelector.controlType) {
 			sControlType = vSelector.controlType;
@@ -125,46 +139,51 @@ sap.ui.define([
 		}
 
 		return this.hasChangeHandler(mChangeSpecificData.changeType, oControl, sControlType)
-			.then(function(bHasChangeHandler) {
-				if (aSelectedOverlays[0].getVariantManagement && bHasChangeHandler) {
-					sVariantManagementReference = aSelectedOverlays[0].getVariantManagement();
-				}
-				return this.getCommandFactory().getCommandFor(
-					vSelector,
-					"settings",
-					mChangeSpecificData,
-					undefined,
-					sVariantManagementReference);
-			}.bind(this))
-			.then(function(oSettingsCommand) {
-				return oCompositeCommand.addCommand(oSettingsCommand);
-			});
-	};
-
-	Settings.prototype._handleAppDescriptorChangeCommand = function(mChange, oElement, oCompositeCommand) {
-		var mChangeSpecificData = mChange.changeSpecificData;
-		var oComponent = mChange.appComponent;
-		var mManifest = oComponent.getManifest();
-		var sReference = mManifest["sap.app"].id;
-
-		return this.getCommandFactory().getCommandFor(
-			oElement,
-			"appDescriptor",
-			{
-				reference : sReference,
-				appComponent : oComponent,
-				changeType : mChangeSpecificData.appDescriptorChangeType,
-				parameters : mChangeSpecificData.content.parameters,
-				texts : mChangeSpecificData.content.texts
+		.then(function(bHasChangeHandler) {
+			if (aSelectedOverlays[0].getVariantManagement && bHasChangeHandler && !oSettingsAction.CAUTION_variantIndependent) {
+				sVariantManagementReference = aSelectedOverlays[0].getVariantManagement();
 			}
-		)
-		.then(function(oAppDescriptorCommand) {
-			return oCompositeCommand.addCommand(oAppDescriptorCommand);
+			return this.getCommandFactory().getCommandFor(
+				vSelector,
+				"settings",
+				mChangeSpecificData,
+				undefined,
+				sVariantManagementReference
+			);
+		}.bind(this))
+		.then(function(oSettingsCommand) {
+			const bRuntimeOnly = oSettingsAction.runtimeOnly;
+			if (oSettingsCommand && bRuntimeOnly) {
+				oSettingsCommand.setRuntimeOnly(bRuntimeOnly);
+			}
+			return oCompositeCommand.addCommand(oSettingsCommand);
 		});
 	};
 
-	Settings.prototype._handleCompositeCommand = function(aElementOverlays, oElement, aChanges) {
-		var oCompositeCommand;
+	Settings.prototype._handleManifestChangeCommand = function(mChange, oElement, oCompositeCommand) {
+		const mChangeSpecificData = mChange.changeSpecificData;
+		const oComponent = mChange.appComponent;
+		const mManifest = oComponent.getManifest();
+		const sReference = mManifest["sap.app"].id;
+
+		return this.getCommandFactory().getCommandFor(
+			oElement,
+			"manifest",
+			{
+				reference: sReference,
+				appComponent: oComponent,
+				changeType: mChangeSpecificData.appDescriptorChangeType,
+				parameters: mChangeSpecificData.content.parameters,
+				texts: mChangeSpecificData.content.texts
+			}
+		)
+		.then(function(oManifestCommand) {
+			return oCompositeCommand.addCommand(oManifestCommand);
+		});
+	};
+
+	Settings.prototype._handleCompositeCommand = function(aElementOverlays, oElement, aChanges, oSettingsAction) {
+		let oCompositeCommand;
 
 		return this.getCommandFactory().getCommandFor(oElement, "composite")
 
@@ -174,25 +193,28 @@ sap.ui.define([
 
 		.then(function() {
 			return aChanges.map(function(mChange) {
-				var mChangeSpecificData = mChange.changeSpecificData;
+				const mChangeSpecificData = mChange.changeSpecificData;
 				// Flex Change
 				if (mChangeSpecificData.changeType) {
-					return this._handleFlexChangeCommand(mChange, aElementOverlays, oCompositeCommand);
-				// App Descriptor Change
+					return () => this._handleFlexChangeCommand(mChange, aElementOverlays, oCompositeCommand, oSettingsAction);
+				// Manifest Change
 				} else if (mChangeSpecificData.appDescriptorChangeType) {
-					return this._handleAppDescriptorChangeCommand(mChange, oElement, oCompositeCommand);
+					return () => this._handleManifestChangeCommand(mChange, oElement, oCompositeCommand);
 				}
+				return undefined;
 			}, this);
 		}.bind(this))
 
 		.then(function(aPromises) {
-			return Promise.all(aPromises);
+			// Since oCompositeCommand gets modified by each handler, the promise execution must be sequential
+			// to ensure the correct order of the commands
+			return FlUtils.execPromiseQueueSequentially(aPromises);
 		})
 
 		.then(function() {
 			if (oCompositeCommand.getCommands().length > 0) {
 				this.fireElementModified({
-					command : oCompositeCommand
+					command: oCompositeCommand
 				});
 			}
 		}.bind(this));
@@ -202,20 +224,19 @@ sap.ui.define([
 	 * Retrieves the available actions from the DesignTime Metadata and creates
 	 * the corresponding commands for them.
 	 * @param {sap.ui.dt.ElementOverlay[]} aElementOverlays - Target Overlays of the action
-	 * @param {object} mPropertyBag Property bag
-	 * @param {function} [mPropertyBag.fnHandler] Handler function for the case of multiple settings actions
+	 * @param {object} mPropertyBag - Property bag
+	 * @param {function} [mPropertyBag.fnHandler] - Handler function for the case of multiple settings actions
+	 * @param {object} [oSettingsAction] - The action object defined in the designtime
 	 * @return {Promise} Returns promise resolving with the creation of the commands
 	 */
-	Settings.prototype.handler = function(aElementOverlays, mPropertyBag) {
-		mPropertyBag = mPropertyBag || {};
-		var oElement = aElementOverlays[0].getElement();
-		var fnHandler = mPropertyBag.fnHandler;
+	Settings.prototype.handler = function(aElementOverlays, mPropertyBag, oSettingsAction) {
+		mPropertyBag ||= {};
+		const oElement = aElementOverlays[0].getElement();
+		let {fnHandler} = mPropertyBag;
 
+		fnHandler ||= aElementOverlays[0].getDesignTimeMetadata().getAction("settings").handler;
 		if (!fnHandler) {
-			fnHandler = aElementOverlays[0].getDesignTimeMetadata().getAction("settings").handler;
-			if (!fnHandler) {
-				throw new Error("Handler not found for settings action");
-			}
+			throw new Error("Handler not found for settings action");
 		}
 		mPropertyBag.getUnsavedChanges = this._getUnsavedChanges.bind(this);
 		mPropertyBag.styleClass = Utils.getRtaStyleClassName();
@@ -224,15 +245,16 @@ sap.ui.define([
 
 		.then(function(aChanges) {
 			if (aChanges.length > 0) {
-				return this._handleCompositeCommand(aElementOverlays, oElement, aChanges);
+				return this._handleCompositeCommand(aElementOverlays, oElement, aChanges, oSettingsAction);
 			}
+			return undefined;
 		}.bind(this))
 
 		.catch(function(vError) {
 			throw DtUtil.propagateError(
 				vError,
 				"Settings#handler",
-				"Error occured during handler execution",
+				"Error occurred during handler execution",
 				"sap.ui.rta.plugin"
 			);
 		});
@@ -244,33 +266,34 @@ sap.ui.define([
 	 * @param {sap.ui.dt.ElementOverlay[]} aElementOverlays - Target overlays
 	 * @return {object[]} array of the items with required data
 	 */
-	Settings.prototype.getMenuItems = function(aElementOverlays) {
-		var oElementOverlay = aElementOverlays[0];
-		var vSettingsActions = this.getAction(oElementOverlay);
+	Settings.prototype.getMenuItems = async function(aElementOverlays) {
+		const oElementOverlay = aElementOverlays[0];
+		const oResponsibleElementOverlay = this.getResponsibleElementOverlay(oElementOverlay);
+		const vSettingsActions = this.getAction(oResponsibleElementOverlay);
 
-		var aMenuItems = [];
+		const aMenuItems = [];
 		if (vSettingsActions) {
-			var iRank = 110;
+			const iRank = this.getRank("CTX_SETTINGS");
 
-			if (vSettingsActions.handler) {
-				vSettingsActions = {
-					settings: vSettingsActions
-				};
+			const aSettingsActions = getValidActions(vSettingsActions, oResponsibleElementOverlay);
+
+			if (this._isEditableByPlugin(oResponsibleElementOverlay) === undefined) {
+				// The responsibleElement editableByPlugin state was not evaluated yet e.g. because it
+				// has no visible geometry, thus evaluateEditable now
+				await this.evaluateEditable([oResponsibleElementOverlay], { onRegistration: false });
 			}
-			var aSettingsActions = Object.keys(vSettingsActions);
-			aSettingsActions.forEach(function(sSettingsAction, iIndex, aActions) {
-				var oSettingsAction = vSettingsActions[sSettingsAction];
+			aSettingsActions.forEach(function(oSettingsAction, iIndex, aActions) {
 				if (
-					oSettingsAction.handler
-					&& this._checkRelevantContainerStableID(oSettingsAction, oElementOverlay)
-					&& this.isAvailable([oElementOverlay])
+					this._checkRelevantContainerStableID(oSettingsAction, oResponsibleElementOverlay)
+					&& this.isAvailable([oResponsibleElementOverlay])
 				) {
-					var bSingleAction = aActions.length === 1;
+					const bSingleAction = aActions.length === 1;
 
 					aMenuItems.push({
 						id: bSingleAction ? sPluginId : sPluginId + iIndex,
+						additionalInfo: this._getAdditionalInfo(oResponsibleElementOverlay, oSettingsAction),
 						rank: bSingleAction ? iRank : iRank + iIndex,
-						text: this.getActionText(oElementOverlay, oSettingsAction, sPluginId),
+						text: this.getActionText(oResponsibleElementOverlay, oSettingsAction, sPluginId),
 						icon: getActionIcon(oSettingsAction),
 						enabled: (
 							typeof oSettingsAction.isEnabled === "function"
@@ -278,17 +301,17 @@ sap.ui.define([
 								return oSettingsAction.isEnabled(aElementOverlays[0].getElement());
 							}
 							|| oSettingsAction.isEnabled
-							|| this.isEnabled([oElementOverlay])
+							|| this.isEnabled([oResponsibleElementOverlay])
 						),
 						handler: function(fnHandler, aElementOverlays, mPropertyBag) {
-							mPropertyBag = mPropertyBag || {};
+							mPropertyBag ||= {};
 							mPropertyBag.fnHandler = fnHandler;
-							return this.handler(aElementOverlays, mPropertyBag);
+							return this.handler(aElementOverlays, mPropertyBag, oSettingsAction);
 						}.bind(this, oSettingsAction.handler),
 						submenu: formatSubMenuItems(oSettingsAction.submenu)
 					});
 				} else {
-					BaseLog.warning("Handler not found for settings action '" + sSettingsAction + "' or relevant container has no stable id");
+					BaseLog.warning("Action is not available or relevant container has no stable id");
 				}
 			}, this);
 		}
@@ -300,18 +323,19 @@ sap.ui.define([
 		if (aSubMenu) {
 			return aSubMenu.map(function(oSubMenu, iIndex) {
 				return {
-					id: oSubMenu.key || sPluginId + "_SUB_" + iIndex,
+					id: oSubMenu.key || `${sPluginId}_SUB_${iIndex}`,
 					icon: oSubMenu.icon || "blank",
 					text: oSubMenu.name || "",
 					enabled: oSubMenu.hasOwnProperty("enabled") ? oSubMenu.enabled : true
 				};
 			});
 		}
+		return undefined;
 	}
 
 	function getActionIcon(oSettingsAction) {
-		var sDefaultSettingIcon = "sap-icon://key-user-settings";
-		var sActionIcon = oSettingsAction.icon;
+		const sDefaultSettingIcon = "sap-icon://key-user-settings";
+		const sActionIcon = oSettingsAction.icon;
 		if (!sActionIcon) {
 			return sDefaultSettingIcon;
 		}

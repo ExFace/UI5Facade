@@ -1,6 +1,7 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/base/EventProvider'],function(E){"use strict";var D=E.extend("sap.ui.core.util.serializer.delegate.Delegate",{constructor:function(){E.apply(this);}});D.prototype.start=function(c,a,i){return"";};D.prototype.middle=function(c,a,i){return"";};D.prototype.end=function(c,a,i){return"";};D.prototype.startAggregation=function(c,a){return"";};D.prototype.endAggregation=function(c,a){return"";};return D;});
+sap.ui.define(["sap/ui/base/EventProvider"],function(t){"use strict";var e=t.extend("sap.ui.core.util.serializer.delegate.Delegate",{constructor:function(){t.apply(this)}});e.prototype.start=function(t,e,r){return""};e.prototype.middle=function(t,e,r){return""};e.prototype.end=function(t,e,r){return""};e.prototype.startAggregation=function(t,e){return""};e.prototype.endAggregation=function(t,e){return""};return e});
+//# sourceMappingURL=Delegate.js.map

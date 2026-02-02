@@ -1,25 +1,68 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./BaseContentRenderer",
-	"sap/ui/core/Core",
+	"sap/f/cards/loading/GenericPlaceholder",
+	"sap/m/MessageStrip",
+	"sap/m/VBox",
+	"sap/m/library",
+	"sap/m/IllustratedMessageType",
+	"sap/m/IllustratedMessageSize",
 	"sap/ui/core/Control",
-	"sap/ui/model/json/JSONModel",
+	"sap/ui/core/Element",
+	"sap/ui/core/InvisibleMessage",
+	"sap/ui/core/library",
+	"sap/ui/integration/controls/BlockingMessage",
+	"sap/ui/integration/model/ObservableModel",
 	"sap/ui/base/ManagedObjectObserver",
-	"sap/ui/integration/util/LoadingProvider"
+	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/integration/util/BindingResolver",
+	"sap/ui/integration/delegate/OverflowHandler",
+	"sap/base/util/merge",
+	"sap/ui/integration/library",
+	"sap/ui/core/message/MessageType"
 ], function (
 	BaseContentRenderer,
-	Core,
+	GenericPlaceholder,
+	MessageStrip,
+	VBox,
+	mLibrary,
+	IllustratedMessageType,
+	IllustratedMessageSize,
 	Control,
-	JSONModel,
+	Element,
+	InvisibleMessage,
+	coreLibrary,
+	BlockingMessage,
+	ObservableModel,
 	ManagedObjectObserver,
-	LoadingProvider
+	LoadingProvider,
+	BindingHelper,
+	BindingResolver,
+	OverflowHandler,
+	merge,
+	library,
+	MessageType
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.InvisibleMessageMode
+	const InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
+
+	// shortcut for sap.ui.integration.CardDesign
+	const CardDesign = library.CardDesign;
+
+	// shortcut for sap.ui.integration.CardBlockingMessageType
+	const CardBlockingMessageType = library.CardBlockingMessageType;
+
+	const CardMessageType = library.CardMessageType;
+
+	const CardPreviewMode = library.CardPreviewMode;
 
 	/**
 	 * Constructor for a new <code>BaseContent</code>.
@@ -33,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -42,12 +85,76 @@ sap.ui.define([
 	 */
 	var BaseContent = Control.extend("sap.ui.integration.cards.BaseContent", {
 		metadata: {
-			aggregations: {
+			library: "sap.ui.integration",
+			properties: {
+				/**
+				 * Defines the design of the content.
+				 * @experimental Since 1.109
+				 * @since 1.109
+				 */
+				design: {
+					type: "sap.ui.integration.CardDesign",
+					group: "Appearance",
+					defaultValue: CardDesign.Solid
+				},
 
+				/**
+				 * Content configuration from the manifest
+				 */
+				configuration: {
+					type: "object"
+				},
+
+				/**
+				 * No data configuration from the manifest
+				 */
+				noDataConfiguration: {
+					type: "object"
+				},
+
+				/**
+				 * Set this property if the height is insufficient and the card should show a footer with "Show More" button.
+				 */
+				overflowWithShowMore:  {
+					type: "boolean",
+					defaultValue: false
+				}
+			},
+			aggregations: {
 				/**
 				 * Defines the content of the control.
 				 */
 				_content: {
+					multiple: false,
+					visibility: "hidden"
+				},
+
+				/**
+				 * Defines the internally used LoadingProvider.
+				 */
+				_loadingProvider: {
+					type: "sap.ui.core.Element",
+					multiple: false,
+					visibility: "hidden"
+				},
+
+				/**
+				 * Defines the internally used LoadingPlaceholder.
+				 */
+				_loadingPlaceholder: {
+					type: "sap.ui.core.Element",
+					multiple: false,
+					visibility: "hidden"
+				},
+
+				_messageContainer: {
+					type: "sap.m.VBox",
+					multiple: false,
+					visibility: "hidden"
+				},
+
+				_blockingMessage: {
+					type: "sap.ui.integration.controls.BlockingMessage",
 					multiple: false,
 					visibility: "hidden"
 				}
@@ -66,7 +173,19 @@ sap.ui.define([
 				/**
 				 * Fires when the user presses the control.
 				 */
-				press: {}
+				press: {
+					parameters: {
+						/**
+						 * The original Event.
+						 */
+						originalEvent: { type: "object" }
+					}
+				},
+
+				/**
+				 * Fires after all internally awaited events are fired.
+				 */
+				ready: {}
 			}
 		},
 		renderer: BaseContentRenderer
@@ -77,15 +196,42 @@ sap.ui.define([
 	 * @private
 	 */
 	BaseContent.prototype.init = function () {
-		this._iWaitingEventsCount = 0;
+		this._oAwaitedEvents = new Set();
 		this._bReady = false;
 		this._mObservers = {};
 
-		// So far the ready event will be fired when the data is ready. But this can change in the future.
-		this._awaitEvent("_dataReady");
-		this._awaitEvent("_actionContentReady");
+		this.setAggregation("_loadingProvider", new LoadingProvider());
+		this.awaitEvent("_dataReady");
+		this.awaitEvent("_actionContentReady");
+	};
 
-		this._oLoadingProvider = new LoadingProvider();
+	BaseContent.prototype.onBeforeRendering = function () {
+		const oCard = this.getCardInstance();
+
+		if (!oCard) {
+			return;
+		}
+
+		const oConfiguration = this.getParsedConfiguration();
+		let oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+
+		if (!oLoadingPlaceholder && oConfiguration) {
+			this.setAggregation("_loadingPlaceholder", this.createLoadingPlaceholder(oConfiguration));
+			oLoadingPlaceholder = this.getAggregation("_loadingPlaceholder");
+		}
+
+		if (oLoadingPlaceholder) {
+			oLoadingPlaceholder.setRenderTooltip(oCard.getPreviewMode() !== CardPreviewMode.Abstract);
+
+			if (typeof this._getTable === "function") {
+				oLoadingPlaceholder.setHasContent((this._getTable().getColumns().length > 0));
+			}
+		}
+
+		if (!this._oOverflowHandler && this.getOverflowWithShowMore() && this._supportsOverflow()) {
+			this._oOverflowHandler = new OverflowHandler(this);
+			this._oOverflowHandler.attach();
+		}
 	};
 
 	/**
@@ -96,12 +242,22 @@ sap.ui.define([
 	BaseContent.prototype.ontap = function (oEvent) {
 		if (!oEvent.isMarked()) {
 			this.firePress({
-				/* no parameters */
+				originalEvent: oEvent
 			});
 		}
 	};
 
 	BaseContent.prototype.exit = function () {
+		this.hideLoadingPlaceholders();
+		this._oAwaitedEvents = null;
+
+		if (this._mObservers) {
+			Object.keys(this._mObservers).forEach(function (sKey) {
+				this._mObservers[sKey].disconnect();
+				delete this._mObservers[sKey];
+			}, this);
+		}
+
 		this._oServiceManager = null;
 		this._oDataProviderFactory = null;
 		this._oIconFormatter = null;
@@ -116,24 +272,50 @@ sap.ui.define([
 			this._oActions = null;
 		}
 
-		if (this._oLoadingProvider) {
-			this._oLoadingProvider.destroy();
-			this._oLoadingProvider = null;
-		}
+		this._sContentBindingPath = null;
 
-		if (this._oLoadingPlaceholder) {
-			this._oLoadingPlaceholder.destroy();
-			this._oLoadingPlaceholder = null;
+		if (this._oOverflowHandler)	{
+			this._oOverflowHandler.destroy();
+			this._oOverflowHandler = null;
 		}
 	};
 
 	/**
+	 * @private
+	 * @param {object} oConfiguration the content configuration
+	 * @returns {sap.f.cards.loading.BasePlaceholder} placeholder instance
+	 */
+	BaseContent.prototype.createLoadingPlaceholder = function (oConfiguration) {
+		return new GenericPlaceholder();
+	};
+
+	/**
 	 * Can be used in subclasses to load lazy dependencies.
-	 * @param {object} oConfiguration The manifest configuration for the content.
+	 * @param {sap.ui.integration.util.Manifest} oCardManifest The card manifest.
 	 * @returns {Promise} A promise that would be resolved in case of successful loading or rejected with error message.
 	 */
-	BaseContent.prototype.loadDependencies = function (oConfiguration) {
+	BaseContent.prototype.loadDependencies = function (oCardManifest) {
 		return Promise.resolve();
+	};
+
+	/**
+	 * Called after the dependencies are loaded and it's safe to apply the configuration.
+	 * To be implemented by subclasses.
+	 * @abstract
+	 */
+	BaseContent.prototype.applyConfiguration = function () { };
+
+	BaseContent.prototype.setLoadDependenciesPromise = function (oPromise) {
+		this._pLoadDependencies = oPromise;
+		this.awaitEvent("_loadDependencies");
+
+		this._pLoadDependencies.then(function () {
+			this.fireEvent("_loadDependencies");
+		}.bind(this));
+	};
+
+	BaseContent.prototype.getLoadDependenciesPromise = function () {
+		return this._pLoadDependencies;
 	};
 
 	BaseContent.prototype.getActions = function () {
@@ -146,92 +328,305 @@ sap.ui.define([
 
 	/**
 	 * Await for an event which controls the overall "ready" state of the content.
+	 * When there is at least 1 event awaited, loading placeholders are shown.
+	 * After all awaited events happen loading placeholders are hidden and "ready" event is fired.
 	 *
-	 * @private
+	 * @protected
 	 * @param {string} sEvent The name of the event
 	 */
-	BaseContent.prototype._awaitEvent = function (sEvent) {
-		this._iWaitingEventsCount ++;
-		this.attachEventOnce(sEvent, function () {
-			this._iWaitingEventsCount --;
+	BaseContent.prototype.awaitEvent = function (sEvent) {
+		if (this._oAwaitedEvents.has(sEvent)) {
+			return;
+		}
 
-			if (this._iWaitingEventsCount === 0) {
+		this._bReady = false;
+		this._oAwaitedEvents.add(sEvent);
+		this.showLoadingPlaceholders(true);
+		this.attachEventOnce(sEvent, function () {
+			this._oAwaitedEvents.delete(sEvent);
+
+			if (this._oAwaitedEvents.size === 0) {
 				this._bReady = true;
-				this.fireEvent("_ready");
+				this.hideLoadingPlaceholders();
+				this.fireReady();
+			}
+		}.bind(this));
+	};
+
+	/**
+	 * Whether the content supports overflowing and needs the OverflowHandler.
+	 * @returns {boolean} True if the content can support overflow.
+	 */
+	BaseContent.prototype._supportsOverflow = function () {
+		return true;
+	};
+
+	BaseContent.prototype._forceCompleteAwaitedEvents = function () {
+		this._oAwaitedEvents.forEach(function (sEvent) {
+			this.fireEvent(sEvent);
+		}.bind(this));
+	};
+
+	/**
+	 * Parses the configuration. As binding infos are modified when used once,
+	 * new object is returned every time.
+	 * @protected
+	 * @returns {object} Parsed configuration - with binding infos
+	 */
+	BaseContent.prototype.getParsedConfiguration = function () {
+		var oResult = merge({}, this.getConfiguration()),
+			oDataSettings = oResult.data;
+
+		// do not create binding info for data
+		delete oResult.data;
+		oResult = BindingHelper.createBindingInfos(oResult, this.getCardInstance().getBindingNamespaces());
+
+		if (oDataSettings) {
+			oResult.data = oDataSettings;
+		}
+
+		return oResult;
+	};
+
+	/**
+	 * @protected
+	 * @returns {object} Content configuration with static items
+	 */
+	BaseContent.prototype.getStaticConfiguration = function () {
+		return this.getConfiguration();
+	};
+
+	/**
+	 * Displays a message strip above the content.
+	 *
+	 * @param {string} sMessage The message.
+	 * @param {sap.ui.integration.CardMessageType} sType Type of the message.
+	 * @param {boolean} bAutoClose Close the message automatically. Default is <code>false</code> for most message types.
+	 * 	It is <code>true</code> for message type <code>Toast</code>.
+	 * 	<b>Note</b> This property has no effect for message type <code>Loading</code>.
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	BaseContent.prototype.showMessage = function (sMessage, sType, bAutoClose) {
+		const oMessagePopup = this._getMessageContainer();
+
+		this.hideMessage();
+
+		if (sType === CardMessageType.Loading) {
+			bAutoClose = false;
+			this.addStyleClass("sapFCardBaseContentHasMessageLoading");
+			this.setBusyIndicatorDelay(0);
+			this.setBusy(true);
+		}
+
+		if (sType === CardMessageType.Toast) {
+			bAutoClose = bAutoClose ?? true;
+		}
+
+		const bIsSpecialType = sType === CardMessageType.Loading || sType === CardMessageType.Toast;
+		const oMessage = new MessageStrip({
+			text: BindingHelper.createBindingInfos(sMessage, this.getCardInstance().getBindingNamespaces()),
+			type: bIsSpecialType ? MessageType.Information : sType,
+			showCloseButton: true,
+			showIcon: sType === CardMessageType.Loading ? false : true,
+			close: function () {
+				this.hideMessage();
+			}.bind(this)
+		});
+
+		oMessage.addStyleClass("sapFCardContentMessage");
+		oMessage.addStyleClass("sapFCardContentMessage" + sType);
+
+		const fnAnimationEnd = (oEvent) => {
+			// prevents animations from re-appearing after re-render
+			oMessage.addStyleClass(oEvent.animationName + "Finished");
+		};
+
+		oMessage.addEventDelegate({
+			onBeforeRendering: () => {
+				const oRef = oMessage.getDomRef();
+				oRef?.removeEventListener("animationend", fnAnimationEnd);
+				oRef?.removeEventListener("animationcancel", fnAnimationEnd);
+			},
+			onAfterRendering: () => {
+				const oRef = oMessage.getDomRef();
+				oRef.addEventListener("animationend", fnAnimationEnd);
+				oRef.addEventListener("animationcancel", fnAnimationEnd);
 			}
 		});
-	};
 
-	BaseContent.prototype.destroy = function () {
-		this.setAggregation("_content", null);
-		this.setModel(null);
-		this._iWaitingEventsCount = 0;
-		if (this._mObservers) {
-			Object.keys(this._mObservers).forEach(function (sKey) {
-				this._mObservers[sKey].disconnect();
-				delete this._mObservers[sKey];
-			}, this);
-		}
-		return Control.prototype.destroy.apply(this, arguments);
-	};
+		oMessagePopup.addItem(oMessage);
 
-	BaseContent.prototype.setConfiguration = function (oConfiguration, sType) {
-
-		this._oConfiguration = oConfiguration;
-
-		if (!oConfiguration) {
-			return this;
+		if (bAutoClose) {
+			const iDuration = sMessage ? Math.max(sMessage.split(" ").length * 250, 3000) : 3000; // sMessage.split(" ").length * 250 is a rough estimation of the time needed to read the message 4 words per second
+			setTimeout(() => {
+				oMessage.close();
+			}, iDuration + 400 ); // 0.4s the duration of the closing animation
+			setTimeout(() => {
+				oMessage.addStyleClass("sapFCardContentMessageClosing");
+			}, iDuration);
 		}
 
-		this._oLoadingPlaceholder = this._oLoadingProvider.createContentPlaceholder(oConfiguration, sType);
-
-		this._setDataConfiguration(oConfiguration.data);
-
-		return this;
+		const oDomRef = this.getDomRef();
+		if (oDomRef && oDomRef.contains(document.activeElement)) {
+			InvisibleMessage.getInstance().announce(sMessage, InvisibleMessageMode.Assertive);
+		} else {
+			InvisibleMessage.getInstance().announce(sMessage, InvisibleMessageMode.Polite);
+		}
 	};
 
-	BaseContent.prototype.getConfiguration = function () {
-		return this._oConfiguration;
+	/**
+	 * Hides the message previously shown by showMessage.
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	BaseContent.prototype.hideMessage = function () {
+		var oMessagePopup = this._getMessageContainer();
+		oMessagePopup.destroyItems();
+
+		if (this.hasStyleClass("sapFCardBaseContentHasMessageLoading")) {
+			this.removeStyleClass("sapFCardBaseContentHasMessageLoading");
+			this.setBusy(false);
+		}
+	};
+
+	BaseContent.prototype.showBlockingMessage = function (mSettings) {
+		this.destroyAggregation("_blockingMessage");
+		this.setAggregation("_blockingMessage", BlockingMessage.create(mSettings, this.getCardInstance()));
+		this._forceCompleteAwaitedEvents();
+	};
+
+	BaseContent.prototype.hideBlockingMessage = function () {
+		this.destroyAggregation("_blockingMessage");
+	};
+
+	BaseContent.prototype.getBlockingMessage = function () {
+		var oBlockingMessage = this.getAggregation("_blockingMessage");
+
+		if (oBlockingMessage) {
+			return {
+				type: oBlockingMessage.getType(),
+				illustrationType: oBlockingMessage.getIllustrationType(),
+				illustrationSize: oBlockingMessage.getIllustrationSize(),
+				title: oBlockingMessage.getTitle(),
+				description: oBlockingMessage.getDescription(),
+				imageSrc: oBlockingMessage.getImageSrc(),
+				httpResponse: oBlockingMessage.getHttpResponse(),
+				additionalContent: oBlockingMessage.getAdditionalContent()
+			};
+		}
+
+		return null;
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {Object} The static configuration for the blocking message
+	 */
+	BaseContent.prototype.getBlockingMessageStaticConfiguration = function () {
+		return this.getAggregation("_blockingMessage")?.getStaticConfiguration();
+	};
+
+	/**
+	 * Show 'No Data' blocking message in the content. If there is configuration in the manifest, it will be applied.
+	 * @protected
+	 * @param {object} oSettings 'No Data' settings
+	 * @param {sap.m.IllustratedMessageType|string} oSettings.illustrationType Illustration type
+	 * @param {sap.m.IllustratedMessageSize} [oSettings.illustrationSize=sap.m.IllustratedMessageSize.Auto] Illustration size
+	 * @param {string} oSettings.title Title
+	 * @param {string} [oSettings.description] Description
+	 */
+	BaseContent.prototype.showNoDataMessage = function (oSettings) {
+		var oNoDataConfiguration = this.getNoDataConfiguration() || {};
+
+		oNoDataConfiguration = BindingResolver.resolveValue(oNoDataConfiguration, this.getCardInstance());
+
+		var oMessageSettings = {
+			type: CardBlockingMessageType.NoData,
+			illustrationType: IllustratedMessageType[oNoDataConfiguration.type] || oNoDataConfiguration.type || oSettings.illustrationType,
+			illustrationSize: IllustratedMessageSize[oNoDataConfiguration.size] || oSettings.illustrationSize,
+			title: oNoDataConfiguration.title || oSettings.title,
+			description: oNoDataConfiguration.description || oSettings.description
+		};
+
+		this.showBlockingMessage(oMessageSettings);
+	};
+
+	BaseContent.prototype.hideNoDataMessage = function () {
+		this.hideBlockingMessage();
 	};
 
 	/**
 	 * Requests data and bind it to the item template.
 	 *
 	 * @private
+	 * @ui5-restricted sap.ui.integration.util.ContentFactory
 	 * @param {Object} oDataSettings The data part of the configuration object
 	 */
-	BaseContent.prototype._setDataConfiguration = function (oDataSettings) {
+	BaseContent.prototype.setDataConfiguration = function (oDataSettings) {
+		var oCard = this.getCardInstance(),
+			oModel;
+
 		if (!oDataSettings) {
+			this._sContentBindingPath = null;
 			this.fireEvent("_dataReady");
 			return;
 		}
 
-		this.bindObject(oDataSettings.path || "/");
+		this._sContentBindingPath = BindingResolver.resolveValue(oDataSettings.path || "/", this.getCardInstance());
+		this.bindObject(this._sContentBindingPath);
 
 		if (this._oDataProvider) {
 			this._oDataProvider.destroy();
 		}
-		if (this._oDataProviderFactory) {
-			this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+
+		this._oDataProvider = this._oDataProviderFactory.create(oDataSettings, this._oServiceManager);
+
+		if (oDataSettings.name) {
+			oModel = oCard.getModel(oDataSettings.name);
+		} else if (this._oDataProvider) {
+			oModel = new ObservableModel();
+			oModel.setSizeLimit(oCard.getModelSizeLimit());
+			this.setModel(oModel);
 		}
 
+		if (!oModel) {
+			this.fireEvent("_dataReady");
+			return;
+		}
+
+		oModel.attachEvent("change", function () {
+			// It is possible to receive change event after the content is destroyed
+			this.getLoadDependenciesPromise().then(function (bLoadSuccessful){
+				if (bLoadSuccessful && !this.isDestroyed()) {
+					this.onDataChanged();
+					this.onDataRequestComplete();
+				}
+			}.bind(this));
+		}.bind(this));
+
 		if (this._oDataProvider) {
-
-			// If a data provider is created use an own model. Otherwise bind to the one propagated from the card.
-			this.setModel(new JSONModel());
-
 			this._oDataProvider.attachDataRequested(function () {
 				this.onDataRequested();
 			}.bind(this));
 
 			this._oDataProvider.attachDataChanged(function (oEvent) {
-				this._updateModel(oEvent.getParameter("data"));
-				this.onDataChanged();
-				this.onDataRequestComplete();
+				var oData = oEvent.getParameter("data");
+
+				this.getLoadDependenciesPromise().then(function (bLoadSuccessful){
+					if (bLoadSuccessful && !this.isDestroyed()) {
+						this.setModelData(oData, oModel);
+					}
+				}.bind(this));
 			}.bind(this));
 
 			this._oDataProvider.attachError(function (oEvent) {
-				this._handleError(oEvent.getParameter("message"));
+				this.handleError({
+					requestErrorParams: oEvent.getParameters(),
+					requestSettings: this._oDataProvider.getResolvedConfiguration()
+				});
 				this.onDataRequestComplete();
 			}.bind(this));
 
@@ -241,16 +636,71 @@ sap.ui.define([
 		}
 	};
 
-	BaseContent.prototype.destroyPlaceholder = function () {
-		var oContent =  this.getAggregation("_content");
-		if (oContent) {
-			//restore tab chain
-			oContent.removeStyleClass("sapFCardContentHidden");
+	/**
+	 * @protected
+	 */
+	BaseContent.prototype.onDataRequested = function () {
+		this.awaitEvent("_dataReady");
+	};
+
+	/**
+	 * @protected
+	 */
+	BaseContent.prototype.onDataRequestComplete = function () {
+		var oCard = this.getCardInstance();
+
+		this.fireEvent("_dataReady");
+
+		if (oCard) {
+			oCard._fireContentDataChange();
+		}
+	};
+
+	/**
+	 * @ui5-restricted
+	 */
+	BaseContent.prototype.refreshData = function () {
+		if (this._oDataProvider) {
+			this._oDataProvider.triggerDataUpdate();
+		}
+	};
+
+	/**
+	 * @private
+	 * @param {boolean} [bForce] Show the loading placeholders regardless of the data provider type
+	 * @ui5-restricted
+	 */
+	BaseContent.prototype.showLoadingPlaceholders = function (bForce) {
+		if (!bForce && this._isDataProviderJson()) {
+			return;
 		}
 
-		if (this._oLoadingPlaceholder) {
-			this._oLoadingPlaceholder.destroy();
-			this._oLoadingPlaceholder = null;
+		var oLoadingProvider = this.getAggregation("_loadingProvider"),
+			oCard = this.getCardInstance();
+
+		oLoadingProvider.setLoading(true);
+
+		if (oCard) {
+			oCard.addActiveLoadingProvider(oLoadingProvider);
+		}
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted
+	 */
+	BaseContent.prototype.hideLoadingPlaceholders = function () {
+		var oLoadingProvider = this.getAggregation("_loadingProvider"),
+			oCard = this.getCardInstance();
+
+		if (!oLoadingProvider.getLoading()) {
+			return;
+		}
+
+		oLoadingProvider.setLoading(false);
+
+		if (oCard) {
+			oCard.removeActiveLoadingProvider(oLoadingProvider);
 		}
 	};
 
@@ -261,44 +711,21 @@ sap.ui.define([
 	 */
 	BaseContent.prototype.onDataChanged = function () { };
 
-	/**
-	 * Helper function to bind an aggregation.
-	 *
-	 * @param {string} sAggregation The name of the aggregation to bind.
-	 * @param {sap.ui.core.Control} oControl The control which aggregation is going to be bound.
-	 * @param {Object} oBindingInfo The binding info.
-	 */
-	function _bind(sAggregation, oControl, oBindingInfo) {
-		var oBindingContext = this.getBindingContext(),
-			oAggregation = oControl.getAggregation(sAggregation);
-
-		if (oBindingContext) {
-			oBindingInfo.path = oBindingInfo.path || oBindingContext.getPath();
-			oControl.bindAggregation(sAggregation, oBindingInfo);
-
-			if (this.getModel("parameters") && oAggregation) {
-				this.getModel("parameters").setProperty("/visibleItems", oAggregation.length);
+	BaseContent.prototype.onCardDataChanged = function () {
+		this.getLoadDependenciesPromise().then(function (bLoadSuccessful){
+			if (bLoadSuccessful && !this.isDestroyed()) {
+				this.onDataChanged();
 			}
+		}.bind(this));
+	};
 
-			if (!this._mObservers[sAggregation]) {
-				this._mObservers[sAggregation] = new ManagedObjectObserver(function (oChanges) {
-					if (oChanges.name === sAggregation && (oChanges.mutation === "insert" || oChanges.mutation === "remove")) {
-						var oAggregation = oControl.getAggregation(sAggregation);
-						var iLength = oAggregation ? oAggregation.length : 0;
-						if (this.getModel("parameters")) {
-							this.getModel("parameters").setProperty("/visibleItems", iLength);
-						}
-					}
-				}.bind(this));
-				this._mObservers[sAggregation].observe(oControl, {
-					aggregations: [sAggregation]
-				});
-			}
-		}
-	}
+	BaseContent.prototype.setModelData = function (vData, oModel) {
+		oModel.setData(vData);
+	};
 
 	/**
-	 * Binds an aggregation to the binding context path of the BaseContent.
+	 * Binds an aggregation to the binding path of the BaseContent.
+	 * Observes the aggregation to update parameters>/visibleItems.
 	 *
 	 * NOTE:
 	 * For now items will always be bound to the content's binding context path.
@@ -311,18 +738,76 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl The control which aggregation is going to be bound.
 	 * @param {Object} oBindingInfo The binding info.
 	 */
-	BaseContent.prototype._bindAggregation = function (sAggregation, oControl, oBindingInfo) {
-		var bAggregation = sAggregation && typeof sAggregation === "string";
-		var bBindingInfo = oBindingInfo && typeof oBindingInfo === "object";
-		if (!bAggregation || !oControl || !bBindingInfo) {
+	BaseContent.prototype._bindAggregationToControl = function (sAggregation, oControl, oBindingInfo) {
+		var oCardBindingContext;
+
+		if (!oBindingInfo) {
 			return;
 		}
 
-		if (this.getBindingContext()) {
-			_bind.apply(this, arguments);
-		} else {
-			oControl.attachModelContextChange(_bind.bind(this, sAggregation, oControl, oBindingInfo));
+		if (!oBindingInfo.path) {
+			oBindingInfo.path = this._sContentBindingPath;
 		}
+
+		if (!oBindingInfo.path) {
+			// path is given only on card level, so take it from there
+			oCardBindingContext = this.getCardInstance().getBindingContext();
+			oBindingInfo.path = oCardBindingContext && oCardBindingContext.getPath();
+		}
+
+		if (!oBindingInfo.path) {
+			return;
+		}
+
+		this._observeAggregation(sAggregation, oControl);
+		oControl.bindAggregation(sAggregation, oBindingInfo);
+	};
+
+	/**
+	 * Observes the specified aggregation for changes and updates parameters>/visibleItems.
+	 * @param {string} sAggregation The name of the aggregation to bind.
+	 * @param {sap.ui.core.Control} oControl The control which aggregation is going to be bound.
+	 */
+	BaseContent.prototype._observeAggregation = function (sAggregation, oControl) {
+		var oParamsModel = this.getCardInstance().getModel("parameters"),
+			oObserver;
+
+		if (this._mObservers[sAggregation]) {
+			// already observed
+			return;
+		}
+
+		oObserver = new ManagedObjectObserver(function (oChanges) {
+			var oAggregation;
+
+			if (oChanges.name !== sAggregation) {
+				return;
+			}
+
+			if (!(oChanges.mutation === "insert" || oChanges.mutation === "remove")) {
+				return;
+			}
+
+			// Use high level getter for aggregation - getItems(), getContent(), ...
+			// Some controls like ListBase override the getter and it should be used.
+			oAggregation = oControl.getMetadata().getAggregation(sAggregation).get(oControl);
+
+			var sVisibleItemsCount = oAggregation.length;
+			oAggregation.forEach(function (oItem) {
+				if (oItem.isA("sap.m.GroupHeaderListItem")){
+					sVisibleItemsCount -= 1;
+				}
+			});
+
+			oParamsModel.setProperty("/visibleItems", sVisibleItemsCount);
+		});
+
+		oParamsModel.setProperty("/visibleItems", 0);
+		oObserver.observe(oControl, {
+			aggregations: [sAggregation]
+		});
+
+		this._mObservers[sAggregation] = oObserver;
 	};
 
 	/**
@@ -332,20 +817,12 @@ sap.ui.define([
 		return this._bReady;
 	};
 
-	/**
-	 * Updates the model and binds the data to the list.
-	 *
-	 * @private
-	 * @param {Object} oData The data to set.
-	 */
-	BaseContent.prototype._updateModel = function (oData) {
-		this.getModel().setData(oData);
-	};
-
-	BaseContent.prototype._handleError = function (sLogMessage) {
-		this.fireEvent("_error", {
-			logMessage: sLogMessage
-		});
+	/*
+	* @protected
+	@ param {object} mErrorInfo The error information object.
+	*/
+	BaseContent.prototype.handleError = function (mErrorInfo) {
+		this.fireEvent("_error", { errorInfo: mErrorInfo });
 	};
 
 	BaseContent.prototype.setServiceManager = function (oServiceManager) {
@@ -364,10 +841,17 @@ sap.ui.define([
 	};
 
 	BaseContent.prototype.isLoading  = function () {
-		var oLoadingProvider = this._oLoadingProvider,
-			oCard = this.getCardInstance();
+		if (!this.isReady()) {
+			return true;
+		}
 
-		return !oLoadingProvider.getDataProviderJSON() && (oLoadingProvider.getLoadingState() || (oCard && oCard.isLoading()));
+		if (this._oDataProvider) {
+			return this.getAggregation("_loadingProvider").getLoading();
+		}
+
+		var oCard = this.getCardInstance();
+
+		return oCard && oCard.isLoading();
 	};
 
 	BaseContent.prototype.attachPress = function () {
@@ -397,7 +881,7 @@ sap.ui.define([
 	 *
 	 * It's called before the request is sent.
 	 *
-	 * @param oFormData {object} Parameters
+	 * @param {object} oFormData Parameters
 	 */
 	BaseContent.prototype.onActionSubmitStart = function (oFormData) {
 	};
@@ -405,28 +889,75 @@ sap.ui.define([
 	/**
 	 * Callback after Submit Action
 	 *
-	 * It's called when the request completes- either successfully or not.
+	 * It's called when the request completes - either successfully or not.
 	 *
-	 * @param oResponse {object} The response from the server
-	 * @param oError {object} The error object
+	 * @param {object} oResponse The response from the server
+	 * @param {object} oError The error object
 	 */
 	BaseContent.prototype.onActionSubmitEnd = function (oResponse, oError) {
 	};
 
-	BaseContent.prototype.onDataRequested = function () {
-		if (this._oLoadingProvider) {
-			this._oLoadingProvider.createLoadingState(this._oDataProvider);
-		}
-	};
-
-	BaseContent.prototype.onDataRequestComplete = function () {
-		this.fireEvent("_dataReady");
-		this.destroyPlaceholder();
-		this._oLoadingProvider.setLoading(false);
-	};
+	/**
+	* @private
+	* @ui5-restricted sap.ui.integration
+	* @param {boolean} bShowValueState Defines if the input controls should display their value state
+	* @param {boolean} bSkipFiringStateChangedEvent Defines if the firing of stateChanged event should not happen
+	 */
+	BaseContent.prototype.validateControls = function (bShowValueState, bSkipFiringStateChangedEvent) { };
 
 	BaseContent.prototype.getCardInstance = function () {
-		return Core.byId(this.getCard());
+		return Element.getElementById(this.getCard());
+	};
+
+	BaseContent.prototype.isSkeleton = function () {
+		var oCard = this.getCardInstance();
+		return oCard && oCard.isSkeleton();
+	};
+
+	BaseContent.prototype.getDataLength = function () {
+		return 0;
+	};
+
+	BaseContent.prototype._getMessageContainer = function () {
+		var oMessageContainer = this.getAggregation("_messageContainer");
+
+		if (!oMessageContainer) {
+			oMessageContainer = new VBox({
+				renderType: mLibrary.FlexRendertype.Bare,
+				alignItems: mLibrary.FlexAlignItems.Center
+			}).addStyleClass("sapFCardContentMessageContainer");
+
+			this.setAggregation("_messageContainer", oMessageContainer);
+		}
+
+		return oMessageContainer;
+	};
+
+	BaseContent.prototype._isDataProviderJson = function () {
+		return !!this._oDataProvider?.getConfiguration()?.json;
+	};
+
+	/*
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 */
+	BaseContent.prototype.getHeaderTitleId = function () {
+		var oCard = this.getCardInstance();
+
+		if (!oCard) {
+			return undefined;
+		}
+
+		return oCard.getId() + "-header-title";
+	};
+
+	/**
+	 * @private
+	 * @ui5-restricted sap.ui.integration
+	 * @returns {boolean} Whether the card has attached actions that are defined at content level
+	 */
+	BaseContent.prototype.isInteractive = function () {
+		return this.hasListeners("press");
 	};
 
 	return BaseContent;

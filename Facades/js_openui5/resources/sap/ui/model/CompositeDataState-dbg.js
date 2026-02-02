@@ -1,58 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], function(DataState, deepEqual, each) {
 	"use strict";
 
 	/**
 	 * @class
-	 * Provides and update the status data of a binding.
-	 * Depending on the models state and controls state changes, the data state is used to propagated changes to a control.
-	 * The control can react on these changes by implementing the <code>refreshDataState</code> method for the control.
-	 * Here the data state object is passed as a parameter.
-	 *
-	 * Using the {@link #getChanges getChanges} method the control can determine the changed properties and their old and new value.
-	 * <pre>
-	 *     //sample implementation to handle message changes
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        var aMessages = oDataState.getChanges().messages;
-	 *        if (aMessages) {
-	 *            for (var i = 0; i &lt; aMessages.length; i++) {
-	 *                console.log(aMessages.message);
-	 *            }
-	 *        }
-	 *     }
-	 *
-	 *     //sample implementation to handle laundering state
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        var bLaundering = oDataState.getChanges().laundering || false;
-	 *        this.setBusy(bLaundering);
-	 *     }
-	 *
-	 *     //sample implementation to handle dirty state
-	 *     myControl.prototype.refreshDataState = function(oDataState) {
-	 *        if (oDataState.isDirty()) console.log("Control " + this.getId() + " is now dirty");
-	 *     }
-	 * </pre>
-	 *
-	 * Using the {@link #getProperty getProperty} method the control can read the properties of the data state. The properties are
-	 * <ul>
-	 *     <li><code>value</code> The value formatted by the formatter of the binding
-	 *     <li><code>originalValue</code> The original value of the model formatted by the formatter of the binding
-	 *     <li><code>invalidValue</code> The control value that was tried to be applied to the model but was rejected by a type validation
-	 *     <li><code>modelMessages</code> The messages that were applied to the binding by the <code>sap.ui.model.MessageModel</code>
-	 *     <li><code>controlMessages</code> The messages that were applied due to type validation errors
-	 *     <li><code>messages</code> All messages of the data state
-	 *      <li><code>dirty</code> true if the value was not yet confirmed by the server
-	 * </ul>
+	 * Holds the status data of a composite binding.
 	 *
 	 * @extends sap.ui.model.DataState
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.CompositeDataState
@@ -70,6 +32,9 @@ sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], 
 			this.mChangedProperties = Object.assign({},this.mProperties);
 
 			this.aDataStates = aDataStates;
+			aDataStates.forEach((oDataState) => {
+				oDataState.setParent(this);
+			});
 		}
 	});
 
@@ -143,9 +108,10 @@ sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], 
 	};
 
 	/**
-	 * Returns the array of state messages of the model or undefined.
+	 * Returns the array of current state messages of the model.
 	 *
-	 * @returns {sap.ui.core.Message[]} The array of messages of the model
+	 * @returns {sap.ui.core.message.Message[]} The array of messages of the model
+	 *
 	 * @public
 	 */
 	CompositeDataState.prototype.getModelMessages = function() {
@@ -153,9 +119,10 @@ sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], 
 	};
 
 	/**
-	 * Returns the array of state messages of the control.
+	 * Returns the array of current state messages of the control.
 	 *
-	 * @return {sap.ui.core.Message[]} The array of control messages
+	 * @return {sap.ui.core.message.Message[]} The array of control messages
+	 *
 	 * @public
 	 */
 	CompositeDataState.prototype.getControlMessages = function() {
@@ -163,9 +130,29 @@ sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], 
 	};
 
 	/**
-	 * Returns the array of all state messages combining the model and control messages.
+	 * Returns an array of all model and control messages of all parts of the composite binding,
+	 * regardless of whether they are old or new.
 	 *
-	 * @returns {sap.ui.core.Message[]} The array of all messages
+	 * @returns {sap.ui.core.message.Message[]} The array of all messages
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	 CompositeDataState.prototype.getAllMessages = function () {
+		var oResultSet = new Set();
+
+		this.aDataStates.forEach(function(oDataState) {
+			oDataState.getAllMessages().forEach(oResultSet.add.bind(oResultSet));
+		});
+
+		return Array.from(oResultSet);
+	};
+
+	/**
+	 * Returns the array of all current state messages combining the model and control messages.
+	 *
+	 * @returns {sap.ui.core.message.Message[]} The array of all messages
+	 *
 	 * @public
 	 */
 	CompositeDataState.prototype.getMessages = function() {
@@ -213,20 +200,16 @@ sap.ui.define(['./DataState', "sap/base/util/deepEqual", "sap/base/util/each"], 
 	};
 
 	/**
-	 * Returns whether the data state is dirty in the UI control.
-	 * A data state is dirty in the UI control if the entered value did not yet pass the type validation.
+	 * Returns whether the data state is dirty in the UI control. A data state is dirty in the UI control if an entered
+	 * value did not pass the type validation.
 	 *
-	 * @returns {boolean} Whether the control data state is dirty
+	 * @returns {boolean}
+	 *   Whether this data state or at least one of the aggregated data states is dirty in the UI control
 	 * @public
 	 */
-	CompositeDataState.prototype.isControlDirty = function() {
-		return this.aDataStates.reduce(function(bIsInvalid, oDataState) {
-			if (oDataState.isControlDirty()) {
-				return true;
-			} else {
-				return bIsInvalid;
-			}
-		}, DataState.prototype.isControlDirty.apply(this, arguments));
+	CompositeDataState.prototype.isControlDirty = function () {
+		return DataState.prototype.isControlDirty.call(this)
+			|| this.aDataStates.some((oDataState) => oDataState.isControlDirtyInternal());
 	};
 
 	/**

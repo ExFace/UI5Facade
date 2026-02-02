@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.integerEditor.IntegerEditor
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.76
@@ -32,6 +32,9 @@ sap.ui.define([
 	 */
 	var IntegerEditor = NumberEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.integerEditor.IntegerEditor", {
 		invalidInputError: "BASE_EDITOR.INTEGER.INVALID_BINDING_OR_INTEGER",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
@@ -47,7 +50,15 @@ sap.ui.define([
 		);
 	};
 
-	IntegerEditor.configMetadata = Object.assign({}, NumberEditor.configMetadata);
+	IntegerEditor.configMetadata = Object.assign(
+		{},
+		NumberEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.INTEGER"
+			}
+		}
+	);
 
 	IntegerEditor.prototype.validateNumber = function (vValue) {
 		return NumberEditor.prototype.validateNumber.call(this, vValue) && Number.isInteger(vValue);

@@ -1,23 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides inactive support for controls
-sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
-	function(Element, Log, assert) {
+sap.ui.define(["sap/base/assert", "sap/base/Log", "sap/ui/core/Element"],
+	function(assert, Log, Element) {
 		"use strict";
 
 		/**
 		 * @class Mixin for Controls which enables stashing of controls declaratively in XMLViews
 		 *
-		 * Two new SpecialSettings and belonging methods are added to the controls prototype. <code>stashed</code> Controls are not
-		 * created and added to the Control tree, but remain uncreated. Although they are not instances of their actual
-		 * class, a surrogate is created which serves as id holder. That means it is availyble with <code>sap.ui.getCore().byId</code>
-		 * and unstashable. Currently this is a one-time operation. Once unstashed, a control cannot be re-stashed again.
+		 * NOTE: stashing of <code>sap.ui.core.Fragments</code> and <code>sap.ui.core.mvc.View</code> is not supported!
 		 *
-		 * Parts of the code here are commented out, as the SpecialSetting <code>stashed</code> may change to be Property lateron.
+		 * <code>stashed</code> Controls are created as placeholder control without any content and bindings
+		 * and added to the Control tree. That means it is available with <code>Element.getElementById</code>
+		 * and as child in the parents aggregation. It is unstashable by calling <code>unstash</code>.
+		 * Currently this is a one-time operation. Once unstashed, a control cannot be re-stashed again.
 		 *
 		 * @name sap.ui.core.StashedControlSupport
 		 * @since 1.35
@@ -29,117 +29,53 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
 			 * inactive controls registry
 			 * @private
 			 */
-			stashedControls = {},
-
-			/**
-			 * @class surrogate for controls - serves as id holder
-			 *
-			 * Surrogate control which serves as id holder for its actual Control. The implementation uses an element for
-			 * economic reasons. The constructor should not be called directly, see {@link sap.ui.core.StashedControlSupport.createStashedControl}
-			 *
-			 * @name sap.ui.core.StashedControlSupport
-			 * @since 1.35
-			 * @private
-			 */
-			StashedControl = Element.extend("sap.ui.core._StashedControl", {
-				constructor: function(sId, mSettings) {
-					Element.apply(this, arguments);
-					// stashed is always true for instances of StashedControl
-					mSettings.stashed = true;
-					Object.assign(this, mSettings);
-					this._stash(mSettings.sParentId, mSettings.sParentAggregationName);
-					return this;
-				},
-				metadata: {
-					specialSettings : {
-						/**
-						 * the stashed state of the control
-						 */
-						stashed: { type: 'boolean', visibility: 'hidden' },
-						/**
-						 * id of the actual parent of the control (virtual control tree position)
-						 */
-						sParentId: { type: 'string', visibility: 'hidden' },
-						/**
-						 * name of the aggregation in which the actual control would be placed
-						 */
-						sParentAggregationName: { type: 'string', visibility: 'hidden' },
-						/**
-						 * hook for the later creation, which should return the actual control
-						 */
-						fnCreate: { type: 'function', visibility: 'hidden' }
-					}
-				}
-			});
-
-		/**
-		 * adding the Surrogate to the control tree should not be allowed
-		 *
-		 * @private
-		 */
-		StashedControl.prototype.setParent = function() {
-			Log.error("Cannot set parent on a StashedControl", this.getId());
-		};
-
-		/**
-		 * cloning requires special treatment
-		 *
-		 * @return {sap.ui.core._StashedControl} the clone
-		 * @private
-		 */
-		StashedControl.prototype.clone = function() {
-			Log.error("Cannot clone a StashedControl", this.getId());
-		};
-
-		/**
-		 * destruction requires special treatment
-		 *
-		 * @private
-		 */
-		StashedControl.prototype.destroy = function() {
-			delete stashedControls[this.getId()];
-			Element.prototype.destroy.apply(this, arguments);
-		};
-
-		// enable StashedControlSupport for surrogates
-		mixInto(StashedControl, true);
+			stashedControls = {};
 
 		/**
 		 * Mixin function to enhance control functionality
 		 *
 		 * @name sap.ui.core.StashedControlSupport.mixInto
 		 * @param {function} fnClass the class to be enhanced
-		 * @param {boolean} [bDefaultValue=true] default value for the stashed setting in the stashed control
 		 *
 		 * @private
 		 */
-		StashedControlSupport.mixInto = function(fnClass, bDefaultValue /*=true*/) {
-			assert(!fnClass.getMetadata().hasProperty("stashed"), "StashedControlSupport: fnClass already has property 'stashed', sideeffects possible", fnClass.getMetadata().getName());
-			assert(!fnClass.prototype.setStashed, "StashedControlSupport: fnClass already has method 'setStashed', sideeffects possible", fnClass.getMetadata().getName());
-			mixInto(fnClass, bDefaultValue);
+		StashedControlSupport.mixInto = function(fnClass) {
+			assert(!fnClass.prototype.unstash, "StashedControlSupport: fnClass already has method 'unstash', sideeffects possible", fnClass.getMetadata().getName());
+			if (fnClass.getMetadata().isA("sap.ui.core.Fragment") || fnClass.getMetadata().isA("sap.ui.core.mvc.View")) {
+				throw new Error("Stashing is not supported for sap.ui.core.Fragment or sap.ui.core.mvc.View");
+			}
+			mixInto(fnClass);
 		};
 
 		// private function without validity checks
-		function mixInto(fnClass, bDefaultValue) {
-			// add the properties
-			fnClass.getMetadata().addSpecialSetting("stashed", {type: "boolean", defaultValue: !!bDefaultValue});
-
+		function mixInto(fnClass) {
 			// mix the required methods into the target fnClass
-			fnClass.prototype.setStashed = function(bStashed) {
-				if (this.stashed === true && !bStashed) {
-					if (this.sParentId) {
-						var oControl = unstash(this, sap.ui.getCore().byId(this.sParentId));
-						// we need to set the property to the stashed control
-						oControl.stashed = false;
-						return;
+			/**
+			 * @param {boolean} bAsync Whether to unstash sync or async
+			 * @returns {sap.ui.core.Control|Promise<sap.ui.core.Control>} A Promise resolving with the unstashed Control.
+			 */
+			fnClass.prototype.unstash = function(bAsync) {
+				if (this.isStashed()) {
+					/**@deprecated */
+					if (!bAsync) {
+						Log.fatal("Unstashing synchronous is no longer supported. Please switch to the asynchronous variant!");
+						return unstash(this);
 					}
-				} else if (bStashed) {
-					Log.warning("Cannot re-stash a control", this.getId());
+					return unstashAsync(this);
 				}
+				return this;
 			};
 
-			fnClass.prototype.getStashed = function() {
-				return this.stashed;
+			fnClass.prototype.isStashed = function() {
+				return !!stashedControls[this.getId()];
+			};
+
+			var fnClone = fnClass.prototype.clone;
+			fnClass.prototype.clone = function() {
+				if (this.isStashed()) {
+					throw new Error("A stashed control cannot be cloned, id: '" + this.getId() + "'.");
+				}
+				return fnClone.apply(this, arguments);
 			};
 
 			var fnDestroy = fnClass.prototype.destroy;
@@ -147,47 +83,60 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
 				delete stashedControls[this.getId()];
 				fnDestroy.apply(this, arguments);
 			};
+		}
+		function createStashedInstanceOrPromise(oWrapperControl, bSync) {
+			var oStashedInfo = stashedControls[oWrapperControl.getId()];
 
-			fnClass.prototype._stash = function(sParentId, sParentAggregationName) {
-				// for later unstash these parent infos have to be kept
-				this.sParentId = sParentId;
-				this.sParentAggregationName = sParentAggregationName;
-				stashedControls[this.getId()] = this;
-			};
+			// find parent of wrapper control
+			var oWrapperParent = oWrapperControl.getParent();
+
+			// finally perform the real unstashing by starting the XMLTP again for the stashed part (scoped in XMLTP)
+			var Component = sap.ui.require("sap/ui/core/Component");
+			var oOwnerComponent = Component && oWrapperParent && Component.getOwnerComponentFor(oWrapperParent);
+			var vControls;
+			var fnCreate = oStashedInfo.fnCreate;
+
+			if (oOwnerComponent) {
+				vControls = oOwnerComponent.runAsOwner(fnCreate.bind(null, !!bSync));
+			} else {
+				vControls = fnCreate(!!bSync);
+			}
+			return vControls;
+		}
+		/**
+		 * @param {sap.ui.core.Control} oWrapperControl The Control to unstash
+		 * @returns {Promise<sap.ui.core.Control>} A Promise resolving with the unstashed Control
+		 */
+		async function unstashAsync(oWrapperControl) {
+			var aControls = await createStashedInstanceOrPromise(oWrapperControl);
+			delete stashedControls[oWrapperControl.getId()];
+			//TemplateProcessor returns an array. Should contain only one control in the stashed scenario.
+			return aControls[0];
 		}
 
-		function unstash(oControl, oParent) {
-			if (oControl instanceof StashedControl) {
-				// remember activation function and parent aggregation name of surrogate
-				var aControls, Component, oOwnerComponent,
-					fnCreate = oControl.fnCreate,
-					sParentAggregationName = oControl.sParentAggregationName;
-				// destroy obsolete surrogate control - free the id
-				oControl.destroy();
-
-				// as the runAsOwner context is missing here we need to call it
-				Component = sap.ui.require("sap/ui/core/Component");
-				oOwnerComponent = Component && Component.getOwnerComponentFor(oParent);
-				if (oOwnerComponent) {
-					aControls = oOwnerComponent.runAsOwner(fnCreate);
-				} else {
-					aControls = fnCreate();
-				}
-
-				// call hook to create the actual control (multiple controls in case of fragment)
-				aControls.forEach(function(c) {
-					oParent.getMetadata().getAggregation(sParentAggregationName).add(oParent, c);
-				});
-			}
-			delete stashedControls[oControl.getId()];
-			return oControl;
+		/**
+		 * @param {sap.ui.core.Control} oWrapperControl The Control to unstash
+		 * @returns {sap.ui.core.Control} The unstashed Control
+		 * @deprecated
+		 */
+		function unstash(oWrapperControl) {
+			var aControls = createStashedInstanceOrPromise(oWrapperControl, true);
+			delete stashedControls[oWrapperControl.getId()];
+			//TemplateProcessor returns an array. Should contain only one control in the stashed scenario.
+			return aControls[0];
 		}
 
 		function getStashedControls(bAsInstance, sParentId) {
 			var aStashedChildren = [];
 			for (var sId in stashedControls) {
-				var vInstanceOrId = bAsInstance ? stashedControls[sId] : stashedControls[sId].getId();
-				if (!sParentId || stashedControls[sId].sParentId === sParentId) {
+				// get placeholder for stashed-control
+				var oPlaceholder = Element.getElementById(stashedControls[sId].wrapperId);
+				var vInstanceOrId = bAsInstance ? oPlaceholder : sId;
+				// A stashed-control without a placeholder can happen if the placeholder was already destroyed.
+				// In this case we also don't have a parent.
+				var oPlaceholderParent = oPlaceholder && oPlaceholder.getParent();
+
+				if (!sParentId || (oPlaceholderParent && oPlaceholderParent.getId() === sParentId)) {
 					aStashedChildren.push(vInstanceOrId);
 				}
 			}
@@ -224,21 +173,20 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
 		 * StashedControl factory function
 		 *
 		 * @name sap.ui.core.StashedControlSupport.createStashedControl
-		 * @param {string} sId id of the actual control the StashedControl serves as surrogate for
 		 * @param {object} mSettings the settings object
-		 * @param {string} mSettings.sParentId id of the actual parent of the control (virtual control tree position)
-		 * @param {string} mSettings.sParentAggregationName name of the aggregation in which the actual control would be placed
+		 * @param {string} mSettings.wrapperId the ID for the placeholder control
 		 * @param {string} mSettings.fnCreate hook for the later creation, which should return the actual control
 		 * @return {sap.ui.core._StashedControl} the StashedControl
 		 *
 		 * @private
 		 */
-		StashedControlSupport.createStashedControl = function(sId, mSettings) {
-			if (!mSettings.sParentId) {
-				Log.error("Cannot create a StashedControl without a parent with stable ID.", "sap.ui.core.StashedControlSupport");
-			} else {
-				return new StashedControl(sId, mSettings);
-			}
+		StashedControlSupport.createStashedControl = function(mSettings) {
+			var oStashedInfo = {
+				wrapperId: mSettings.wrapperId,
+				fnCreate: mSettings.fnCreate
+			};
+			stashedControls[mSettings.wrapperId] = oStashedInfo;
+			return oStashedInfo;
 		};
 
 		return StashedControlSupport;

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.82.0"
+      "version": "1.136.0"
     },
     "title": "SAPUI5 library with responsive controls.",
     "description": "SAPUI5 library with responsive controls.",
@@ -22,13 +22,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.82",
+      "minUI5Version": "1.136",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         },
         "sap.m": {
-          "minVersion": "1.82.0"
+          "minVersion": "1.136.0"
         }
       }
     },
@@ -40,20 +40,27 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
           "en",
+          "en-GB",
           "en-US-sappsd",
+          "en-US-saprigi",
           "en-US-saptrc",
           "es",
+          "es-MX",
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -61,17 +68,19 @@
           "ko",
           "lt",
           "lv",
+          "mk",
           "ms",
           "nl",
           "no",
           "pl",
           "pt",
-          "rigi",
+          "pt-PT",
           "ro",
           "ru",
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -91,10 +100,14 @@
           "sap.tnt.InfoLabel"
         ],
         "elements": [
-          "sap.tnt.NavigationListItem"
+          "sap.tnt.NavigationListItem",
+          "sap.tnt.NavigationListGroup"
         ],
         "types": [
-          "sap.tnt.RenderMode"
+          "sap.tnt.IllustratedMessageType",
+          "sap.tnt.RenderMode",
+          "sap.tnt.NavigationListItemDesign",
+          "sap.tnt.SideNavigationDesign"
         ],
         "interfaces": [
           "sap.tnt.IToolHeader"

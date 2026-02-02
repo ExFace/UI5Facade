@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ValueStateHeader.
 sap.ui.define(
-	["./library", "sap/ui/core/library", "sap/ui/Device", "sap/ui/core/Core", "sap/ui/core/Control"],
-	function (library, coreLibrary, Device, Core, Control) {
+	["./library", "sap/ui/core/Element", "sap/ui/core/library", "sap/ui/Device", "sap/ui/core/Control"],
+	function (library, Element, coreLibrary, Device, Control) {
 		"use strict";
 
 		var ValueState = coreLibrary.ValueState;
@@ -23,12 +23,11 @@ sap.ui.define(
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
 		 * @alias sap.m.ValueStateHeader
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var ValueStateHeader = Control.extend("sap.m.ValueStateHeader", /** @lends sap.m.ValueStateHeader.prototype */ {
 			metadata: {
@@ -65,7 +64,7 @@ sap.ui.define(
 				apiVersion: 2,
 				render: function (oRM, oControl) {
 					var mapValueStateToClass = {
-						None: "",
+						None: "sapMValueStateHeaderNone",
 						Error: "sapMValueStateHeaderError",
 						Warning: "sapMValueStateHeaderWarning",
 						Success: "sapMValueStateHeaderSuccess",
@@ -113,7 +112,7 @@ sap.ui.define(
 		ValueStateHeader.prototype.setPopup = function (vPopup) {
 			var that = this;
 			var repositioned = false;
-			var oPopup = (typeof vPopup === "string") ? Core.byId(vPopup) : vPopup;
+			var oPopup = (typeof vPopup === "string") ? Element.getElementById(vPopup) : vPopup;
 
 			this.setAssociation("popup", oPopup);
 
@@ -136,7 +135,9 @@ sap.ui.define(
 
 					// schedule reposition after the list layout has been adjusted
 					setTimeout(function () {
-						oPopup._fnOrientationChange();
+						if (oPopup._getOpenByDomRef()) {
+							oPopup._fnOrientationChange();
+						}
 					}, 0);
 				}
 			};
@@ -145,19 +146,21 @@ sap.ui.define(
 		};
 
 		ValueStateHeader.prototype._getAssociatedPopupObject = function () {
-			return Core.byId(this.getPopup());
+			return Element.getElementById(this.getPopup());
 		};
 
 		ValueStateHeader.prototype.onAfterRendering = function () {
 			var oPopup = this._getAssociatedPopupObject();
 
 			if (oPopup) {
-				this.getDomRef().style.width = oPopup.getDomRef().getBoundingClientRect().width + "px";
-
 				// schedule reposition after header rendering
 				if (oPopup.isA("sap.m.Popover")) {
 					setTimeout(function () {
-						oPopup._fnOrientationChange();
+						if (oPopup._getOpenByDomRef()) {
+							oPopup._fnOrientationChange();
+							oPopup._storeScrollPosition();
+							oPopup.oPopup._applyPosition();
+						}
 					}, 0);
 				}
 			}

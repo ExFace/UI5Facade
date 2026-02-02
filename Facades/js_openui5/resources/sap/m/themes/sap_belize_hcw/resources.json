@@ -3,12 +3,12 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
+			"size": 181,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ActionListItem.less",
-			"size": 1655,
+			"size": 1320,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -19,8 +19,14 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
+			"name": "ActionTile.less",
+			"size": 562,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
 			"name": "Avatar.less",
-			"size": 814,
+			"size": 989,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -38,31 +44,37 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 6164,
+			"size": 5681,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Carousel.less",
-			"size": 1736,
+			"size": 594,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "CheckBox.less",
-			"size": 3209,
+			"size": 2843,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ColorPalette.less",
-			"size": 1349,
+			"size": 1037,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "ComboBox.less",
+			"size": 382,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ComboBoxBase.less",
-			"size": 1118,
+			"size": 896,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -92,13 +104,7 @@
 		},
 		{
 			"name": "Dialog.less",
-			"size": 936,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "FeedContent.less",
-			"size": 246,
+			"size": 1152,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -122,19 +128,19 @@
 		},
 		{
 			"name": "GenericTile.less",
-			"size": 3816,
+			"size": 3639,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "HeaderContainer.less",
-			"size": 788,
+			"size": 674,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "IconTabBar.less",
-			"size": 4791,
+			"size": 5405,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -157,32 +163,38 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
+			"name": "Input.less",
+			"size": 224,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
 			"name": "InputBase.less",
-			"size": 4779,
+			"size": 4172,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "LightBox.less",
-			"size": 415,
+			"size": 368,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Link.less",
-			"size": 979,
+			"size": 665,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ListBase.less",
-			"size": 1185,
+			"size": 1056,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ListItemBase.less",
-			"size": 553,
+			"size": 430,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -194,13 +206,19 @@
 		},
 		{
 			"name": "MenuListItem.less",
-			"size": 60,
+			"size": 303,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
+			"name": "MessageBox.less",
+			"size": 338,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "MessageStrip.less",
-			"size": 495,
+			"size": 470,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -211,14 +229,14 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "MultiInput.less",
-			"size": 160,
+			"name": "MultiComboBox.less",
+			"size": 363,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "NewsContent.less",
-			"size": 271,
+			"name": "MultiInput.less",
+			"size": 160,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -235,12 +253,6 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "NumericContent.less",
-			"size": 232,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
 			"name": "ObjectAttribute.less",
 			"size": 1548,
 			"designtime": true,
@@ -248,7 +260,7 @@
 		},
 		{
 			"name": "ObjectHeader.less",
-			"size": 5580,
+			"size": 3782,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -265,26 +277,32 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
+			"name": "ObjectNumber.less",
+			"size": 1274,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
 			"name": "ObjectStatus.less",
-			"size": 4497,
+			"size": 4875,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "OverflowToolbarAssociativePopover.less",
-			"size": 446,
+			"size": 601,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Page.less",
-			"size": 325,
+			"size": 366,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Panel.less",
-			"size": 681,
+			"size": 831,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -296,7 +314,7 @@
 		},
 		{
 			"name": "Popover.less",
-			"size": 552,
+			"size": 640,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -308,13 +326,13 @@
 		},
 		{
 			"name": "PullToRefresh.less",
-			"size": 396,
+			"size": 230,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "QuickView.less",
-			"size": 304,
+			"size": 240,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -325,14 +343,8 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "RangeSlider.less",
-			"size": 334,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
 			"name": "RatingIndicator.less",
-			"size": 1255,
+			"size": 747,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -344,25 +356,25 @@
 		},
 		{
 			"name": "SearchField.less",
-			"size": 2312,
+			"size": 1730,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "SegmentedButton.less",
-			"size": 4698,
+			"size": 3574,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Select.less",
-			"size": 5416,
+			"size": 4336,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "SelectList.less",
-			"size": 2688,
+			"size": 1088,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -374,25 +386,25 @@
 		},
 		{
 			"name": "SinglePlanningCalendarGrid.less",
-			"size": 3692,
+			"size": 1050,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "SinglePlanningCalendarMonthGrid.less",
-			"size": 156,
+			"size": 2359,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "SlideTile.less",
-			"size": 1006,
+			"size": 1026,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Slider.less",
-			"size": 1032,
+			"size": 1248,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -404,7 +416,7 @@
 		},
 		{
 			"name": "SplitButton.less",
-			"size": 873,
+			"size": 996,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -421,14 +433,8 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "SuggestionsPopover.less",
-			"size": 434,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
 			"name": "Switch.less",
-			"size": 2559,
+			"size": 2587,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -446,19 +452,19 @@
 		},
 		{
 			"name": "Table.less",
-			"size": 1354,
+			"size": 1708,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "TextArea.less",
-			"size": 330,
+			"size": 760,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Tile.less",
-			"size": 1835,
+			"size": 1571,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -481,8 +487,14 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
+			"name": "TimePickerClocks.less",
+			"size": 49,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
 			"name": "TimePickerSliders.less",
-			"size": 1992,
+			"size": 1288,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -494,19 +506,19 @@
 		},
 		{
 			"name": "Token.less",
-			"size": 609,
+			"size": 370,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Tokenizer.less",
-			"size": 946,
+			"size": 730,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "Toolbar.less",
-			"size": 1352,
+			"size": 858,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -523,6 +535,12 @@
 			"theme": "sap_belize_hcw"
 		},
 		{
+			"name": "ValueStateHeader.less",
+			"size": 130,
+			"designtime": true,
+			"theme": "sap_belize_hcw"
+		},
+		{
 			"name": "ValueStateMessage.less",
 			"size": 649,
 			"designtime": true,
@@ -530,79 +548,57 @@
 		},
 		{
 			"name": "ViewSettingsDialog.less",
-			"size": 856,
+			"size": 1297,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "WheelSlider.less",
-			"size": 1515,
+			"size": 866,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "WizardProgressNavigator.less",
-			"size": 1006,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 32193,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 123243,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 122875,
+			"size": 886,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 628813,
+			"size": 776303,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 13724,
+			"module": "sap/m/themes/sap_belize_hcw/library-parameters.json",
+			"size": 21571,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 628710,
+			"size": 776283,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 117277,
+			"size": 109135,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 3074,
+			"size": 3739,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 676060,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 675957,
-			"theme": "sap_belize_hcw"
+			"name": "resources.json",
+			"size": 10988
 		},
 		{
 			"name": "shared.less",
-			"size": 152,
+			"size": 217,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		}

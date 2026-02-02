@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,9 +13,10 @@ sap.ui.define([
     './Toolbar',
     './Paginator',
     './Button',
-    'sap/ui/model/FilterType'
+    'sap/ui/model/FilterType',
+    'sap/ui/core/Configuration'
 ],
-	function(jQuery, library, Control, RowRepeaterRenderer, Toolbar, Paginator, Button, FilterType) {
+	function(jQuery, library, Control, RowRepeaterRenderer, Toolbar, Paginator, Button, FilterType, Configuration) {
 	"use strict";
 
 
@@ -42,17 +43,17 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.ui.table.Table</code> control.
 	 * @alias sap.ui.commons.RowRepeater
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var RowRepeater = Control.extend("sap.ui.commons.RowRepeater", /** @lends sap.ui.commons.RowRepeater.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 			/**
 			 * Number of rows displayed.
@@ -288,9 +289,8 @@ sap.ui.define([
 	 *
 	 * This method will only trigger a showMore if the property showMoreSteps is set.
 	 *
-	 * @return {sap.ui.commons.RowRepeater} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.triggerShowMore = function() {
 
@@ -352,7 +352,6 @@ sap.ui.define([
 	 *         The new value of number of rows displayed.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.resize = function(numberOfRows) {
 
@@ -410,7 +409,6 @@ sap.ui.define([
 	 *         The ID if the filter.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.applyFilter = function(id) {
 
@@ -460,7 +458,6 @@ sap.ui.define([
 	 *         The ID of the sorter.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.triggerSort = function(id) {
 
@@ -508,7 +505,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.firstPage = function() {
 
@@ -567,7 +563,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.lastPage = function() {
 
@@ -627,7 +622,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.previousPage = function() {
 
@@ -686,7 +680,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.nextPage = function() {
 
@@ -748,7 +741,6 @@ sap.ui.define([
 	 *         The index of the page to go to.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	RowRepeater.prototype.gotoPage = function(iPageNumber) {
 
@@ -814,7 +806,7 @@ sap.ui.define([
 	 * Default value is <code>5</code>
 	 *
 	 * @param {int} iNumberOfRows  new value for property <code>numberOfRows</code>
-	 * @return {sap.ui.commons.RowRepeater} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	RowRepeater.prototype.setNumberOfRows = function(iNumberOfRows) {
@@ -839,7 +831,7 @@ sap.ui.define([
 	 * Setter for property <code>currentPage</code>.
 	 *
 	 * @param {int} iCurrentPage  new value for property <code>currentPage</code>
-	 * @return {sap.ui.commons.RowRepeater} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	RowRepeater.prototype.setCurrentPage = function(iCurrentPage) {
@@ -868,7 +860,7 @@ sap.ui.define([
 	 * page being set to the first page.
 	 *
 	 * @param {int} iShowMoreSteps  new value for property <code>showMoreSteps</code>
-	 * @return {sap.ui.commons.RowRepeater} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	RowRepeater.prototype.setShowMoreSteps = function(iShowMoreSteps) {
@@ -1097,7 +1089,7 @@ sap.ui.define([
 
 		// create UL for new page
 		var sDirection;
-		if (sap.ui.getCore() && sap.ui.getCore().getConfiguration() && sap.ui.getCore().getConfiguration().getRTL()) {
+		if (sap.ui.getCore() && Configuration && Configuration.getRTL()) {
 			sDirection = (iPageTo < iPageFrom) ? "left" : "right";
 		} else {
 			sDirection = (iPageTo < iPageFrom) ? "right" : "left";
@@ -1155,7 +1147,7 @@ sap.ui.define([
 
 		// remove positioning from new UL
 		var sDirection;
-		if (sap.ui.getCore() && sap.ui.getCore().getConfiguration() && sap.ui.getCore().getConfiguration().getRTL()) {
+		if (sap.ui.getCore() && Configuration && Configuration.getRTL()) {
 			sDirection = (this.getCurrentPage() < this.iPreviousPage) ? "left" : "right";
 		} else {
 			sDirection = (this.getCurrentPage() < this.iPreviousPage) ? "right" : "left";
@@ -1349,13 +1341,13 @@ sap.ui.define([
 				 break;
 		 }
 
-	 }
+	 };
 
 	/**
 	 * Update the state of aggregated child controls inside this row repeater.
 	 *
 	 * @private
-	 */;
+	 */
 	RowRepeater.prototype.updateChildControls = function() {
 
 		// local referenced to controls

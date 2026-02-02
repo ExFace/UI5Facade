@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,17 +15,20 @@ sap.ui.define([],
 			var oProductSwith = oControl._getProductSwitch(),
 				oAccessibilityState = {
 					role: "menuitemradio"
-				};
+				},
+				sTooltip = oControl.getTooltip_AsString();
 
 			if (oProductSwith) {
 				oAccessibilityState.setsize = oProductSwith._getItemsCount();
 				oAccessibilityState.posinset = oProductSwith._getItemPosition(oControl);
-				oAccessibilityState.checked = oControl.getId() === oProductSwith.getSelectedItem() ? "true" : undefined;
+				oAccessibilityState.checked = oControl.getId() === oProductSwith.getSelectedItem() ? "true" : "false";
 			}
 
 			oRm.openStart("div", oControl);
 			oRm.class("sapFPSItemContainer");
-			oRm.attr("tabindex", 0);
+			if (sTooltip) {
+				oRm.attr("title", sTooltip);
+			}
 			oRm.accessibilityState(oControl, oAccessibilityState);
 
 			oRm.openEnd();

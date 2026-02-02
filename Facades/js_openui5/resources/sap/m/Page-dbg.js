@@ -1,40 +1,44 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Page.
 sap.ui.define([
 	"./library",
+	"sap/ui/core/AnimationMode",
 	"sap/ui/core/Control",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	"sap/ui/core/delegate/ScrollEnablement",
 	"sap/m/Title",
 	"sap/m/Button",
 	"sap/m/Bar",
-	'sap/m/TitleAlignmentMixin',
 	"sap/ui/core/ContextMenuSupport",
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/core/library",
-	"sap/ui/Device",
 	"sap/ui/core/Element",
+	"sap/ui/core/InvisibleText",
 	"./TitlePropagationSupport",
 	"./PageRenderer",
 	"sap/ui/thirdparty/jquery"
 ],
 function(
 	library,
+	AnimationMode,
 	Control,
+	ControlBehavior,
+	Library,
 	ScrollEnablement,
 	Title,
 	Button,
 	Bar,
-	TitleAlignmentMixin,
 	ContextMenuSupport,
 	ResponsivePaddingsEnablement,
 	coreLibrary,
-	Device,
 	Element,
+	InvisibleText,
 	TitlePropagationSupport,
 	PageRenderer,
 	jQuery
@@ -93,11 +97,10 @@ function(
 		 * @extends sap.ui.core.Control
 		 * @mixes sap.ui.core.ContextMenuSupport
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @public
 		 * @alias sap.m.Page
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var Page = Control.extend("sap.m.Page", /** @lends sap.m.Page.prototype */ {
 			metadata: {
@@ -274,7 +277,9 @@ function(
 				},
 				dnd: { draggable: false, droppable: true },
 				designtime: "sap/m/designtime/Page.designtime"
-			}
+			},
+
+			renderer: PageRenderer
 		});
 
 		ContextMenuSupport.apply(Page.prototype);
@@ -294,6 +299,8 @@ function(
 
 		Page.FOOTER_ANIMATION_DURATION = 350;
 
+		Page.SHELLBAR_IN_HEADER_CLASS = "sapFShellBar-CTX";
+
 		Page.prototype.init = function () {
 			this._initTitlePropagationSupport();
 			this._initResponsivePaddingsEnablement();
@@ -305,6 +312,13 @@ function(
 		};
 
 		Page.prototype.onBeforeRendering = function () {
+			var oHeader = this.getCustomHeader() || this.getAggregation("_internalHeader"),
+				oFooter = this.getFooter();
+
+			if (oFooter && !oFooter.getAriaLabelledBy().length) {
+				oFooter.addAriaLabelledBy(this._getFooterToolbarAriaLabelledBy(oFooter.getId()));
+			}
+
 			if (this._oScroller && !this._hasScrolling()) {
 				this._oScroller.destroy();
 				this._oScroller = null;
@@ -321,6 +335,11 @@ function(
 			}
 
 			this._ensureNavButton(); // creates this._navBtn, if required
+
+			// title alignment
+			if (oHeader && oHeader.setTitleAlignment) {
+				oHeader.setTitleAlignment(this.getTitleAlignment());
+			}
 		};
 
 		Page.prototype.onAfterRendering = function () {
@@ -352,6 +371,14 @@ function(
 			if (this._appIcon) {
 				this._appIcon.destroy();
 				this._appIcon = null;
+			}
+			if (this._oHeaderToolbarInvisibleText) {
+				this._oHeaderToolbarInvisibleText.destroy();
+				this._oHeaderToolbarInvisibleText = null;
+			}
+			if (this._oFooterToolbarInvisibleText) {
+				this._oFooterToolbarInvisibleText.destroy();
+				this._oFooterToolbarInvisibleText = null;
 			}
 		};
 
@@ -385,12 +412,15 @@ function(
 				return;
 			}
 
-			var sBackText = this.getNavButtonTooltip() || sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("PAGE_NAVBUTTON_TEXT"); // any other types than "Back" do not make sense anymore in Blue Crystal
+			var sBackText = this.getNavButtonTooltip() || Library.getResourceBundleFor("sap.m").getText("PAGE_NAVBUTTON_TEXT"); // any other types than "Back" do not make sense anymore in Blue Crystal
 
 			if (!this._navBtn) {
 				this._navBtn = new Button(this.getId() + "-navButton", {
 					press: function () {
 						this.fireNavButtonPress();
+						/**
+						 * @deprecated As of version 1.12.2
+						 */
 						this.fireNavButtonTap();
 					}.bind(this)
 				});
@@ -428,7 +458,8 @@ function(
 			}
 
 			var $footer = jQuery(this.getDomRef()).find(".sapMPageFooter").last(),
-				useAnimation = sap.ui.getCore().getConfiguration().getAnimation();
+				sAnimationMode = ControlBehavior.getAnimationMode(),
+				bHasAnimations = sAnimationMode !== AnimationMode.none && sAnimationMode !== AnimationMode.minimal;
 
 			if (!this.getFloatingFooter()) {
 				this.setProperty("showFooter", bShowFooter);
@@ -445,9 +476,10 @@ function(
 				return this;
 			}
 
-			if (useAnimation) {
-				setTimeout(function () {
-					$footer.toggleClass("sapUiHidden", !bShowFooter);
+			if (bHasAnimations) {
+				setTimeout(() => {
+					// check if the footer should be hidden after the animation
+					$footer.toggleClass("sapUiHidden", !this.getShowFooter());
 				}, Page.FOOTER_ANIMATION_DURATION);
 			} else {
 				$footer.toggleClass("sapUiHidden", !bShowFooter);
@@ -519,11 +551,13 @@ function(
 		Page.prototype._getInternalHeader = function () {
 			var oInternalHeader = this.getAggregation("_internalHeader");
 			if (!oInternalHeader) {
-				this.setAggregation("_internalHeader", new Bar(this.getId() + "-intHeader"), true); // don"t invalidate - this is only called before/during rendering, where invalidation would lead to double rendering,  or when invalidation anyway happens
-				oInternalHeader = this.getAggregation("_internalHeader");
+				var sId = this.getId() + "-intHeader";
 
-				// call the method that registers this Bar for alignment
-				this._setupBarTitleAlignment(oInternalHeader, this.getId() + "_internalHeader");
+				this.setAggregation("_internalHeader", new Bar(sId, {
+					titleAlignment: this.getTitleAlignment(),
+					ariaLabelledBy: this._getHeaderToolbarAriaLabelledBy(sId)
+				}), true); // don"t invalidate - this is only called before/during rendering, where invalidation would lead to double rendering,  or when invalidation anyway happens
+				oInternalHeader = this.getAggregation("_internalHeader");
 
 				if (this.getShowNavButton() && this._navBtn) {
 					this._updateHeaderContent(this._navBtn, "left", 0);
@@ -552,8 +586,8 @@ function(
 		};
 
 		/**
-		 * Returns the sap.ui.core.ScrollEnablement delegate which is used with this control.
-		 * @returns {sap.ui.core.ScrollEnablement} The scroll enablement delegate
+		 * Returns the sap.ui.core.delegate.ScrollEnablement delegate which is used with this control.
+		 * @returns {sap.ui.core.delegate.ScrollEnablement} The scroll enablement delegate
 		 * @private
 		 */
 		Page.prototype.getScrollDelegate = function () {
@@ -594,7 +628,7 @@ function(
 		 * @private
 		 */
 		Page.prototype._getHeaderTag = function (oLandmarkInfo) {
-			if (oLandmarkInfo && oLandmarkInfo.getHeaderRole() !== AccessibleLandmarkRole.None) {
+			if (oLandmarkInfo && oLandmarkInfo.getHeaderRole()) {
 				return DIV;
 			}
 
@@ -609,7 +643,7 @@ function(
 		 * @private
 		 */
 		Page.prototype._getSubHeaderTag = function (oLandmarkInfo) {
-			if (oLandmarkInfo && oLandmarkInfo.getSubHeaderRole() !== AccessibleLandmarkRole.None) {
+			if (oLandmarkInfo && oLandmarkInfo.getSubHeaderRole()) {
 				return DIV;
 			}
 
@@ -624,7 +658,7 @@ function(
 		 * @private
 		 */
 		Page.prototype._getFooterTag = function (oLandmarkInfo) {
-			if (oLandmarkInfo && oLandmarkInfo.getFooterRole() !== AccessibleLandmarkRole.None) {
+			if (oLandmarkInfo && oLandmarkInfo.getFooterRole()) {
 				return DIV;
 			}
 
@@ -639,9 +673,8 @@ function(
 		 *
 		 * @param {int} y The vertical pixel position to scroll to. Scrolling down happens with positive values.
 		 * @param {int} [time=0] The duration of animated scrolling in milliseconds. The value <code>0</code> results in immediate scrolling without animation.
-		 * @returns {sap.m.Page} <code>this</code> to facilitate method chaining.
+		 * @returns {this} <code>this</code> to facilitate method chaining.
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		Page.prototype.scrollTo = function (y, time) {
 			if (this._oScroller) {
@@ -659,7 +692,7 @@ function(
 		 * @param {int[]} [aOffset=[0,0]]
 		 *           Specifies an additional left and top offset of the target scroll position, relative to
 		 *           the upper left corner of the DOM element
-		 * @returns {sap.m.Page} <code>this</code> to facilitate method chaining.
+		 * @returns {this} <code>this</code> to facilitate method chaining.
 		 * @since 1.30
 		 * @public
 		 */
@@ -678,7 +711,7 @@ function(
 
 			this.setAggregation("customHeader", oHeader);
 
-			this.toggleStyleClass("sapFShellBar-CTX", oHeader && oHeader.isA("sap.f.ShellBar"));
+			this.toggleStyleClass(Page.SHELLBAR_IN_HEADER_CLASS, oHeader?.isA("sap.f.ShellBar"));
 
 			/*
 			 * Runs Fiori 2.0 adaptation for the header
@@ -693,12 +726,70 @@ function(
 			return this;
 		};
 
+		Page.prototype.setSubHeader = function(oHeader) {
+
+			this.setAggregation("subHeader", oHeader);
+
+			this.toggleStyleClass(Page.SHELLBAR_IN_HEADER_CLASS, oHeader?.isA("sap.f.ShellBar"));
+
+			return this;
+		};
+
+		Page.prototype.destroyCustomHeader = function() {
+
+			this.destroyAggregation("customHeader");
+
+			this.removeStyleClass(Page.SHELLBAR_IN_HEADER_CLASS);
+
+			return this;
+		};
+
+		Page.prototype.destroySubHeader = function() {
+
+			this.destroyAggregation("subHeader");
+
+			this.removeStyleClass(Page.SHELLBAR_IN_HEADER_CLASS);
+
+			return this;
+		};
+
 		Page.prototype._getAdaptableContent = function () {
 			return this._getAnyHeader();
 		};
 
-		// enrich the control functionality with TitleAlignmentMixin
-		TitleAlignmentMixin.mixInto(Page.prototype);
+		/**
+		 * Returns an InvisibleText control for the ARIA labelled-by attribute of the header toolbar of the page.
+		 *
+		 * @param {string} sId - The ID of header toolbar aggregation.
+		 * @returns {sap.ui.core.InvisibleText} The InvisibleText control for the header toolbar ARIA labelled-by attribute.
+		 *
+		 */
+		Page.prototype._getHeaderToolbarAriaLabelledBy = function (sId) {
+			if (!this._oHeaderToolbarInvisibleText) {
+				this._oHeaderToolbarInvisibleText = new InvisibleText(sId + "-InvisibleText", {
+					text: Library.getResourceBundleFor("sap.m").getText("ARIA_LABEL_TOOLBAR_HEADER_ACTIONS")
+				}).toStatic();
+			}
+
+			return this._oHeaderToolbarInvisibleText;
+		};
+
+		/**
+		 * Returns an InvisibleText control for the ARIA labelled-by attribute of the footer toolbar of the page.
+		 *
+		 * @param {string} sId - The ID of the page.
+		 * @returns {sap.ui.core.InvisibleText} The InvisibleText control for the footer toolbar ARIA labelled-by attribute.
+		 *
+		 */
+		Page.prototype._getFooterToolbarAriaLabelledBy = function (sId) {
+			if (!this._oFooterToolbarInvisibleText) {
+				this._oFooterToolbarInvisibleText = new InvisibleText(sId + "-InvisibleText", {
+					text: Library.getResourceBundleFor("sap.m").getText("ARIA_LABEL_TOOLBAR_FOOTER_ACTIONS")
+				}).toStatic();
+			}
+
+			return this._oFooterToolbarInvisibleText;
+		};
 
 		return Page;
 	});

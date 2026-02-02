@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/fl/apply/_internal/connectors/ObjectStorageUtils","sap/ui/fl/initial/_internal/StorageUtils"],function(O,S){"use strict";function l(p){var f=[];return O.forEachObjectInStorage(p,function(F){f.push(F.changeDefinition);}).then(function(){return f;});}return{oStorage:undefined,layers:["ALL"],loadFlexData:function(p){return l({storage:this.oStorage,reference:p.reference}).then(function(f){var g=S.getGroupedFlexObjects(f);return S.filterAndSortResponses(g);});}};});
+sap.ui.define(["sap/base/util/merge","sap/ui/fl/apply/_internal/connectors/ObjectStorageUtils","sap/ui/fl/initial/_internal/StorageUtils","sap/ui/fl/interfaces/BaseLoadConnector"],function(e,t,n,r){"use strict";function a(e){var n=[];return t.forEachObjectInStorage(e,function(e){n.push(e.changeDefinition)}).then(function(){return n})}var o=e({},r,{oStorage:undefined,layers:["ALL"],loadFlexData(e){return a({storage:this.oStorage,reference:e.reference}).then(function(e){var t=n.getGroupedFlexObjects(e);return n.filterAndSortResponses(t)})}});o.storage=o.oStorage;return o});
+//# sourceMappingURL=ObjectStorageConnector.js.map

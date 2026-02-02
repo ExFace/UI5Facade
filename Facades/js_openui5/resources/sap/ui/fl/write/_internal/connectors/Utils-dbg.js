@@ -1,12 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/fl/initial/_internal/connectors/Utils"
-], function (
+], function(
 	Utils
 ) {
 	"use strict";
@@ -16,35 +16,17 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.Utils
 	 * @since 1.70
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.connectors, sap.ui.fl.write._internal.transport
 	 */
 
-	/**
-	 * Gets new X-CSRF token from the back end and update token value in the PropertyBag and apply connector.
-	 *
-	 * @param {object} mPropertyBag Object with parameters as properties
-	 * @param {sap.ui.fl.connector.BaseConnector} mPropertyBag.initialConnector Corresponding apply connector which stores an existing X-CSRF token
-	 * @param {string} mPropertyBag.tokenUrl The url to be called when new token fetching is necessary
-	 * @private
-	 * @returns {Promise} Promise resolves when new token is retrieved from response header
-	 */
-	function updateTokenInPropertyBagAndConnector (mPropertyBag) {
-		return Utils.sendRequest(mPropertyBag.tokenUrl, "HEAD").then(function (oResult) {
-			if (oResult && oResult.xsrfToken) {
-				if (mPropertyBag.initialConnector) {
-					mPropertyBag.initialConnector.xsrfToken = oResult.xsrfToken;
-				}
-				mPropertyBag.xsrfToken = oResult.xsrfToken;
-				return mPropertyBag;
-			}
-		});
-	}
-
-	function updateTokenInPropertyBagAndConnectorAndSendRequest (mPropertyBag, sUrl, sMethod) {
-		return updateTokenInPropertyBagAndConnector(mPropertyBag)
-			.then(Utils.sendRequest.bind(undefined, sUrl, sMethod));
+	function updateTokenInConnectorAndSendRequest(mPropertyBag, sUrl, sMethod) {
+		if (mPropertyBag.initialConnector) {
+			delete mPropertyBag.initialConnector.xsrfToken;
+		}
+		return Utils.sendRequest(mPropertyBag.tokenUrl, "HEAD", {initialConnector: mPropertyBag.initialConnector})
+		.then(Utils.sendRequest.bind(undefined, sUrl, sMethod, mPropertyBag));
 	}
 
 	/**
@@ -69,8 +51,8 @@ sap.ui.define([
 			return; // continue
 		}
 
-		if (typeof oTarget[sKey] === 'object') {
-			Object.keys(oSource[sKey]).forEach(function (sInnerKey) {
+		if (typeof oTarget[sKey] === "object") {
+			Object.keys(oSource[sKey]).forEach(function(sInnerKey) {
 				addToObject(oSource[sKey], oTarget[sKey], sInnerKey);
 			});
 		}
@@ -89,9 +71,8 @@ sap.ui.define([
 		 * @param {string} [sDataType] Expected data type of the response
 		 * @returns {object} Resolving with an object of options
 		 */
-		getRequestOptions: function (oInitialConnector, sTokenUrl, vFlexObjects, sContentType, sDataType) {
+		getRequestOptions(oInitialConnector, sTokenUrl, vFlexObjects, sContentType, sDataType) {
 			var oOptions = {
-				xsrfToken: oInitialConnector.xsrfToken,
 				tokenUrl: sTokenUrl,
 				initialConnector: oInitialConnector
 			};
@@ -121,25 +102,25 @@ sap.ui.define([
 		 * @param {string} [mPropertyBag.dataType] Expected data type of the response
 		 * @returns {Promise<object>} Promise resolving with the JSON parsed response of the request
 		 */
-		sendRequest:function (sUrl, sMethod, mPropertyBag) {
+		sendRequest(sUrl, sMethod, mPropertyBag) {
 			if (
 				!mPropertyBag.initialConnector
 				|| (
 					!mPropertyBag.initialConnector.xsrfToken
-					&& !(sMethod === 'GET') // For GET and HEAD operations, there is no need to fetch a token
-					&& !(sMethod === 'HEAD')
+					&& !(sMethod === "GET") // For GET and HEAD operations, there is no need to fetch a token
+					&& !(sMethod === "HEAD")
 				)
 			) {
-				return updateTokenInPropertyBagAndConnectorAndSendRequest(mPropertyBag, sUrl, sMethod);
+				return updateTokenInConnectorAndSendRequest(mPropertyBag, sUrl, sMethod);
 			}
 
 			return Utils.sendRequest(sUrl, sMethod, mPropertyBag).then(function(oResult) {
 				return oResult;
 			})
-			.catch(function (oFirstError) {
+			.catch(function(oFirstError) {
 				if (oFirstError.status === 403) {
-					//token is invalid, get a new token and retry
-					return updateTokenInPropertyBagAndConnectorAndSendRequest(mPropertyBag, sUrl, sMethod);
+					// token is invalid, get a new token and retry
+					return updateTokenInConnectorAndSendRequest(mPropertyBag, sUrl, sMethod);
 				}
 				throw oFirstError;
 			});
@@ -151,10 +132,10 @@ sap.ui.define([
 		 * @param {object[]} aResponses All responses provided by the different connectors
 		 * @returns {object} Merged result
 		 */
-		mergeResults: function(aResponses) {
+		mergeResults(aResponses) {
 			var oResult = {};
-			aResponses.forEach(function (oResponse) {
-				Object.keys(oResponse).forEach(function (sKey) {
+			aResponses.forEach(function(oResponse) {
+				Object.keys(oResponse).forEach(function(sKey) {
 					addToObject(oResponse, oResult, sKey);
 				});
 			});

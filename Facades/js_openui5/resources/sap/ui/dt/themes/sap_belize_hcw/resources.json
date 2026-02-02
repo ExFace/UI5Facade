@@ -3,68 +3,40 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 93,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "ContextMenu.less",
-			"size": 462,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 980,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 82260,
-			"designtime": true,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 81886,
-			"designtime": true,
+			"size": 181,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 4181,
+			"size": 5872,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 342,
+			"module": "sap/ui/dt/themes/sap_belize_hcw/library-parameters.json",
+			"size": 416,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 4175,
+			"size": 5865,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 1048,
+			"size": 1111,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 362,
+			"size": 921,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 3808,
-			"theme": "sap_belize_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 3802,
-			"theme": "sap_belize_hcw"
+			"name": "resources.json",
+			"size": 719
 		}
 	]
 }

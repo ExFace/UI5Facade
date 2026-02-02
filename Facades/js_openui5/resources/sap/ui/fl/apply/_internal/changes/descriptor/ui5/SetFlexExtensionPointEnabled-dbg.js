@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,9 +18,9 @@ sap.ui.define([
 	 *
 	 * Only available during build time {@link sap.ui.fl.apply._internal.changes.descriptor.RegistrationBuild}.
 	 *
-	 * @namespace sap.ui.fl.apply._internal.changes.descriptor.ui5.SetFlexExtensionPointEnabled
-	 * @experimental
-	 * @version 1.82.0
+	 * @namespace
+	 * @alias sap.ui.fl.apply._internal.changes.descriptor.ui5.SetFlexExtensionPointEnabled
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
@@ -28,15 +28,16 @@ sap.ui.define([
 
 		/**
 		 * Method to apply the <code>appdescr_ui5_setFlexExtensionPointEnabled</code> change to the manifest.
-		 * @param {object} oManifest Original manifest
-		 * @param {object} oChange Change with type <code>appdescr_ui5_setFlexExtensionPointEnabled</code>
-		 * @param {boolean} oChange.content.flexExtensionPointEnabled Boolean flag to enable extension point hook
+		 * @param {object} oManifest - Original manifest
+		 * @param {sap.ui.fl.apply._internal.flexObjects.AppDescriptorChange} oChange - Change with type <code>appdescr_ui5_setFlexExtensionPointEnabled</code>
+		 * @param {object} oChange.content - Details of the change
+		 * @param {boolean} oChange.content.flexExtensionPointEnabled - Boolean flag to enable extension point hook
 		 * @returns {object} Updated manifest with changed <code>appdescr_ui5_setFlexExtensionPointEnabled</code>
 		 *
 		 * @private
 		 * @ui5-restricted sap.ui.fl.apply._internal
 		 */
-		applyChange: function(oManifest, oChange) {
+		applyChange(oManifest, oChange) {
 			if (!oChange.getContent().flexExtensionPointEnabled) {
 				throw new Error("No flexExtensionPointEnabled in change content provided");
 			}
@@ -44,8 +45,7 @@ sap.ui.define([
 			return oManifest;
 		}
 
-
 	};
 
 	return SetFlexExtensionPointEnabled;
-}, true);
+});

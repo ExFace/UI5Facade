@@ -1,9 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/integration/designtime/baseEditor/propertyEditor/BasePropertyEditor",
 	"sap/ui/integration/designtime/baseEditor/util/isValidBindingString",
 	"sap/ui/core/Fragment",
@@ -15,7 +16,8 @@ sap.ui.define([
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/restricted/_omit",
 	"sap/ui/core/IconPool"
-], function (
+], function(
+	Element,
 	BasePropertyEditor,
 	isValidBindingString,
 	Fragment,
@@ -40,16 +42,29 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor
 	 * @author SAP SE
 	 * @since 1.81
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.81
 	 * @ui5-restricted
 	 */
 	var IconEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor", {
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		xmlFragment: "sap.ui.integration.designtime.cardEditor.propertyEditor.iconEditor.IconEditor",
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
+
+	IconEditor.configMetadata = Object.assign(
+		{},
+		BasePropertyEditor.configMetadata,
+		{
+			typeLabel: {
+				defaultValue: "BASE_EDITOR.TYPES.ICON"
+			}
+		}
+	);
 
 	// Editor Configuration for Editor for type "icon"
 	var oIconConfig = {
@@ -189,7 +204,7 @@ sap.ui.define([
 				if (
 					vValue.backgroundColor
 					|| vValue.color
-					|| (IconPool.isIconURI(vValue.src) && !!IconPool.getIconInfo(vValue.src))
+					|| (IconPool.isIconURI(vValue.src) && IconPool.getIconInfo(vValue.src))
 					|| isValidBindingString(vValue.src, false)
 				) {
 					return "icon";
@@ -387,18 +402,26 @@ sap.ui.define([
 	 * @private
 	 */
 	IconEditor.prototype._handleColorPickerChange = function (oEvent) {
-		var oInput = sap.ui.getCore().byId(this._inputId);
+		var oInput = Element.getElementById(this._inputId);
 		oInput.setValue(oEvent.getParameter("hex"));
 		oInput.setValueState("None");
 		this._inputId = "";
 	};
 
 	IconEditor.prototype.getFocusDomRef = function() {
-		return this.getContent().getItems()[0].getContent()[0].getFocusDomRef();
+		var oContent = this.getContent();
+
+		if (oContent) {
+			return this.getContent().getItems()[0].getContent()[0].getFocusDomRef();
+		}
 	};
 
 	IconEditor.prototype.getIdForLabel = function() {
-		return this.getContent().getItems()[0].getContent()[0].getIdForLabel();
+		var oContent = this.getContent();
+
+		if (oContent) {
+			return this.getContent().getItems()[0].getContent()[0].getIdForLabel();
+		}
 	};
 
 	return IconEditor;

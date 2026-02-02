@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/rta/command/FlexCommand",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
+	"sap/ui/fl/apply/api/ExtensionPointRegistryAPI",
 	"sap/ui/fl/write/api/ChangesWriteAPI",
-	"sap/ui/fl/write/api/ExtensionPointRegistryAPI",
 	"sap/ui/fl/Utils"
 ], function(
 	FlexCommand,
 	JsControlTreeModifier,
-	ChangesWriteAPI,
 	ExtensionPointRegistryAPI,
+	ChangesWriteAPI,
 	Utils
 ) {
 	"use strict";
@@ -24,47 +24,47 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.76
 	 * @alias sap.ui.rta.command.AddXMLAtExtensionPoint
-	 * @experimental Since 1.76. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
 	 */
 	var AddXMLAtExtensionPoint = FlexCommand.extend("sap.ui.rta.command.AddXMLAtExtensionPoint", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				fragment : {
-					type : "string",
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				fragment: {
+					type: "string",
 					group: "content"
 				},
-				fragmentPath : {
-					type : "string",
+				fragmentPath: {
+					type: "string",
 					group: "content"
 				},
-				changeType : {
-					type : "string",
-					defaultValue : "addXMLAtExtensionPoint"
+				changeType: {
+					type: "string",
+					defaultValue: "addXMLAtExtensionPoint"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
 	/**
-	 * @override to suppress the {} being recognized as binding strings
+	 * Overridden to suppress the {} being recognized as binding strings.
+	 * @override
 	 */
-	AddXMLAtExtensionPoint.prototype.bindProperty = function(sName, oBindingInfo) {
+	AddXMLAtExtensionPoint.prototype.bindProperty = function(...aArgs) {
+		const [sName, oBindingInfo] = aArgs;
 		if (sName === "fragment") {
 			return this.setFragment(oBindingInfo.bindingString);
 		}
-		return FlexCommand.prototype.bindProperty.apply(this, arguments);
+		return FlexCommand.prototype.bindProperty.apply(this, aArgs);
 	};
 
-	AddXMLAtExtensionPoint.prototype.getAppComponent = function () {
+	AddXMLAtExtensionPoint.prototype.getAppComponent = function() {
 		var oView = this.getSelector().view;
 		return Utils.getAppComponentForControl(oView);
 	};
@@ -77,7 +77,7 @@ sap.ui.define([
 	AddXMLAtExtensionPoint.prototype._applyChange = function(vChange) {
 		// preload the module to be applicable in this session
 		var mModulePreloads = {};
-		mModulePreloads[vChange.getModuleName()] = this.getFragment();
+		mModulePreloads[vChange.getFlexObjectMetadata().moduleName] = this.getFragment();
 		sap.ui.require.preload(mModulePreloads);
 
 		var oChange = vChange.change || vChange;
@@ -96,12 +96,13 @@ sap.ui.define([
 			appComponent: oAppComponent,
 			view: oView
 		};
-		return ChangesWriteAPI.apply(Object.assign({change: oChange, element: oSelectorElement}, mPropertyBag))
-			.then(function(oResult) {
-				if (!oResult.success) {
-					return Promise.reject(oResult.error);
-				}
-			});
+		return ChangesWriteAPI.apply({ change: oChange, element: oSelectorElement, ...mPropertyBag })
+		.then(function(oResult) {
+			if (!oResult.success) {
+				return Promise.reject(oResult.error);
+			}
+			return undefined;
+		});
 	};
 
 	return AddXMLAtExtensionPoint;

@@ -1,14 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.dt.test.Test.
 sap.ui.define([
 	"sap/ui/base/ManagedObject"
-],
-function(ManagedObject) {
+], function(ManagedObject) {
 	"use strict";
 
 	/**
@@ -23,46 +22,45 @@ function(ManagedObject) {
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.38
 	 * @alias sap.ui.dt.test.Test
-	 * @experimental Since 1.38. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var Test = ManagedObject.extend("sap.ui.dt.test.Test", /** @lends sap.ui.dt.test.Test.prototype */ {
-		metadata : {
-			"abstract" : true
+		metadata: {
+			"abstract": true
 		}
 	});
 
 	/**
-	 * @type {map} Status Enum. Provides all available status.
-	 * @static
+	 * Status Enum, provides all available status.
+	 * @type {Object<string, {key: string, text: string, value: int}>}
 	 */
 	Test.STATUS = {
-		SUPPORTED : {
+		SUPPORTED: {
 			key: "SUPPORTED",
 			text: "supported",
 			value: 3
 		},
-		PARTIAL_SUPPORTED : {
+		PARTIAL_SUPPORTED: {
 			key: "PARTIAL_SUPPORTED",
 			text: "partial supported",
 			value: 2
 		},
-		NOT_SUPPORTED : {
+		NOT_SUPPORTED: {
 			key: "NOT_SUPPORTED",
 			text: "not supported",
 			value: 1
 		},
-		ERROR : {
+		ERROR: {
 			key: "ERROR",
 			text: "error",
 			value: 0
 		},
-		UNKNOWN : {
+		UNKNOWN: {
 			key: "UNKNOWN",
 			text: "unknown",
 			value: 0
@@ -70,22 +68,22 @@ function(ManagedObject) {
 	};
 
 	/**
-	 * @type {map} Type Enum. Provides all availabe types.
+	 * Type Enum, provides all available types.
+	 * @type {Object<string, string>}
 	 * @static
 	 */
 	Test.TYPE = {
-		TEST : "Test",
-		GROUP : "Group",
-		SUITE : "Suite"
+		TEST: "Test",
+		GROUP: "Group",
+		SUITE: "Suite"
 	};
-
 
 	/**
 	 * Creates a new suite and returns it.
 	 *
-	 * @param {string} sName The name of the suite.
-	 * @param {string} sMessage A message to display
-	 * @return {map} the entry object
+	 * @param {string} sName - Name of the suite
+	 * @param {string} sMessage - Message to display
+	 * @return {map} Entry object
 	 *
 	 * @protected
 	 */
@@ -100,37 +98,36 @@ function(ManagedObject) {
 		);
 	};
 
-
 	/**
 	 * Adds a new group to an array.
 	 *
-	 * @param {object[]} aParentChildren the array to insert the group
-	 * @param {string} sName The name of the group.
-	 * @param {string} sMessage A message to display
-	 * @return {map} the entry object
+	 * @param {object[]} aParentChildren - Array to insert the group
+	 * @param {string} sName - Name of the group
+	 * @param {string} sMessage - Message to display
+	 * @param {string} sNamePostfix - Namepostfix
+	 * @returns {map} Entry object
 	 *
 	 * @protected
 	 */
 	Test.prototype.addGroup = function(aParentChildren, sName, sMessage, sNamePostfix) {
 		return this.add(aParentChildren,
 			true,
-			sName + (sNamePostfix ? (" (" + sNamePostfix + ")") : ""),
+			sName + (sNamePostfix ? (` (${sNamePostfix})`) : ""),
 			sMessage,
 			null,
 			Test.TYPE.GROUP
 		);
 	};
 
-
 	/**
 	 * Adds a new test to an array.
 	 *
-	 * @param {object[]} aParentChildren the array to insert the test
-	 * @param {boolean} bResult The result of the test.
-	 * @param {string} sName The name of the test.
-	 * @param {string} sMessage A message to display
-	 * @param {map} status The status of the test.
-	 * @return {map} the entry object
+	 * @param {object[]} aParentChildren - Array to insert the test
+	 * @param {boolean} bResult - Result of the test
+	 * @param {string} sName - Name of the test
+	 * @param {string} sMessage - Message to display
+	 * @param {map} mStatus - Status of the test
+	 * @return {map} Entry object
 	 *
 	 * @protected
 	 */
@@ -144,17 +141,16 @@ function(ManagedObject) {
 		);
 	};
 
-
 	/**
 	 * Adds a new entry to an array.
 	 *
-	 * @param {object[]} aParentChildren the array to insert the entry
-	 * @param {boolean} bResult The result of the entry.
-	 * @param {string} sName The name of the entry.
-	 * @param {string} sMessage A message to display
-	 * @param {map} mStatus The status of the entry.
-	 * @param {string} sType The type of the entry.
-	 * @return {map} the entry object
+	 * @param {object[]} aParentChildren - Array to insert the entry
+	 * @param {boolean} bResult - Result of the entry
+	 * @param {string} sName - Name of the entry
+	 * @param {string} sMessage - Message to display
+	 * @param {map} mStatus - Status of the entry
+	 * @param {string} sType - Type of the entry
+	 * @return {map} Entry object
 	 *
 	 * @protected
 	 */
@@ -168,13 +164,13 @@ function(ManagedObject) {
 		}
 
 		var mEntry = {
-			name : sName,
-			message : sMessage,
-			result : bResult,
-			status : mStatus,
-			type : sType,
-			statistic : {},
-			children : []
+			name: sName,
+			message: sMessage,
+			result: bResult,
+			status: mStatus,
+			type: sType,
+			statistic: {},
+			children: []
 		};
 
 		if (aParentChildren) {
@@ -183,7 +179,6 @@ function(ManagedObject) {
 
 		return mEntry;
 	};
-
 
 	/**
 	 * Runs the tests.
@@ -194,10 +189,10 @@ function(ManagedObject) {
 		throw new Error("Abstract method");
 	};
 
-
 	/**
 	 * Aggregates the tests results.
-	 * @return {map} the aggregated result
+	 * @param {map} mResult - Result to aggregate
+	 * @return {map} Aggregated result
 	 *
 	 * @protected
 	 */
@@ -208,8 +203,8 @@ function(ManagedObject) {
 			var aMappedResult = aChildren.map(function(mEntry) {
 				var mChildResult = this.aggregate(mEntry);
 				return {
-					result : mChildResult.result,
-					status : mChildResult.status
+					result: mChildResult.result,
+					status: mChildResult.status
 				};
 			}, this);
 
@@ -219,12 +214,11 @@ function(ManagedObject) {
 
 			var mReducedResult = aMappedResult.reduce(function(mPreviousValue, mCurrentValue) {
 				return {
-					result : this._getResult(mPreviousValue, mCurrentValue),
-					status : this._getStatus(mPreviousValue, mCurrentValue),
-					statistic : this._getStatistic(mPreviousValue, mCurrentValue)
+					result: this._getResult(mPreviousValue, mCurrentValue),
+					status: this._getStatus(mPreviousValue, mCurrentValue),
+					statistic: this._getStatistic(mPreviousValue, mCurrentValue)
 				};
 			}.bind(this));
-
 
 			mResult.result = mReducedResult.result;
 			mResult.status = mReducedResult.status;
@@ -234,14 +228,12 @@ function(ManagedObject) {
 		return mResult;
 	};
 
-
 	/**
 	 * @private
 	 */
 	Test.prototype._getResult = function(mPreviousValue, mCurrentValue) {
 		return !mPreviousValue.result ? false : mCurrentValue.result;
 	};
-
 
 	/**
 	 * @private
@@ -260,7 +252,6 @@ function(ManagedObject) {
 		}
 		return mStatistic;
 	};
-
 
 	/**
 	 * @private

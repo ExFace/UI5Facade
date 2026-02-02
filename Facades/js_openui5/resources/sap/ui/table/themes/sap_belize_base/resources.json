@@ -1,0 +1,114 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 161,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "AnalyticalTable.less",
+			"size": 1121,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Cell.less",
+			"size": 10621,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "CreationRow.less",
+			"size": 2146,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "DragDrop.less",
+			"size": 6617,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Grouping.less",
+			"size": 6580,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Row.less",
+			"size": 2304,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "RowAction.less",
+			"size": 1403,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "RowHighlight.less",
+			"size": 2575,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "RowSelection.less",
+			"size": 4346,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Scrolling.less",
+			"size": 9291,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "ScrollingIOS.less",
+			"size": 448,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "Table.less",
+			"size": 12619,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 63414,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/ui/table/themes/sap_belize_base/library-parameters.json",
+			"size": 5710,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.css",
+			"size": 63431,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.less",
+			"size": 64123,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "library.source.less",
+			"size": 3476,
+			"designtime": true,
+			"theme": "sap_belize_base"
+		},
+		{
+			"name": "resources.json",
+			"size": 2032
+		}
+	]
+}

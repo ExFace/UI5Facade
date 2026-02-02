@@ -1,22 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define([
 	'./library',
 	'./SinglePlanningCalendarView',
+	"sap/base/i18n/Formatting",
+	"sap/ui/core/Locale",
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/core/LocaleData'
 ],
-function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, LocaleData) {
+function(library, SinglePlanningCalendarView, Formatting, Locale, CalendarDate, CalendarUtils, LocaleData) {
 	"use strict";
 
 	/**
@@ -33,7 +30,7 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	 * @extends sap.m.SinglePlanningCalendarView
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -52,7 +49,7 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	/**
 	 * Returns the number of columns to be displayed in the grid of the <code>sap.m.SinglePlanningCalendar</code>.
 	 *
-	 * @return {int} the number of columns to be displayed
+	 * @returns {int} the number of columns to be displayed
 	 * @override
 	 * @public
 	 */
@@ -64,7 +61,7 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	 * Should return a number of entities until the next/previous startDate of the
 	 * <code>sap.m.SinglePlanningCalendar</code> after navigating forward or backwards.
 	 *
-	 * @return {int} the number of entities to be skipped by scrolling
+	 * @returns {int} the number of entities to be skipped by scrolling
 	 * @override
 	 * @public
 	 */
@@ -76,13 +73,13 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	 * Calculates the startDate which will be displayed in the <code>sap.m.SinglePlanningCalendar</code> based
 	 * on a given date.
 	 *
-	 * @param {object} oStartDate the given date
-	 * @return {object} the startDate of the view
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate The given date
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} The startDate of the view
 	 * @override
 	 * @public
 	 */
-	SinglePlanningCalendarWorkWeekView.prototype.calculateStartDate = function (oStartDate) {
-		var oCalDate = CalendarDate.fromLocalJSDate(oStartDate),
+	SinglePlanningCalendarWorkWeekView.prototype.calculateStartDate = function (oDate) {
+		var oCalDate = CalendarDate.fromLocalJSDate(oDate),
 			oCalFirstDateOfWeek = CalendarUtils._getFirstDateOfWeek(oCalDate),
 			oLocaleData = this._getFormatSettingsLocaleData();
 
@@ -96,11 +93,11 @@ function (library, SinglePlanningCalendarView, CalendarDate, CalendarUtils, Loca
 	/**
 	 * Returns local data about the current locale.
 	 *
-	 * @return {LocaleData} the local data
+	 * @returns {LocaleData} the local data
 	 * @private
 	 */
 	SinglePlanningCalendarWorkWeekView.prototype._getFormatSettingsLocaleData = function () {
-		return LocaleData.getInstance(sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale());
+		return LocaleData.getInstance(new Locale(Formatting.getLanguageTag()));
 	};
 
 	return SinglePlanningCalendarWorkWeekView;

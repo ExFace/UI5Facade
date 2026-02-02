@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.dateEditor.DateEditor
 	 * @author SAP SE
 	 * @since 1.76
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @experimental 1.76
@@ -30,6 +30,9 @@ sap.ui.define([
 	 */
 	var DateEditor = BasePropertyEditor.extend("sap.ui.integration.designtime.baseEditor.propertyEditor.dateEditor.DateEditor", {
 		xmlFragment: "sap.ui.integration.designtime.baseEditor.propertyEditor.dateEditor.DateEditor",
+		metadata: {
+			library: "sap.ui.integration"
+		},
 		renderer: BasePropertyEditor.getMetadata().getRenderer().render
 	});
 
@@ -48,23 +51,40 @@ sap.ui.define([
 					isEnabled: !oConfig.allowBindings
 				},
 				isDate: {
-					type: "isDate"
+					type: "isDate",
+					config: {
+						formatterInstance: function() {
+							var sDatePattern = (this.getConfig() || {}).pattern;
+							var oConfig = sDatePattern
+								? {
+									pattern: sDatePattern
+								}
+								: undefined;
+							return this.getFormatterInstance(oConfig);
+						}.bind(this)
+					}
 				}
 			}
 		);
 	};
 
 	DateEditor.prototype.formatValue = function (sValue) {
-		var oDate = new Date(sValue);
-		if (!this._isValidDate(oDate)) {
-			return sValue;
-		}
-		return this.getFormatterInstance().format(oDate);
+		var oDate = this._parse(sValue);
+		return this._format(oDate, true) || sValue;
 	};
 
 	DateEditor.configMetadata = Object.assign({}, BasePropertyEditor.configMetadata, {
 		allowBindings: {
 			defaultValue: true
+		},
+		typeLabel: {
+			defaultValue: "BASE_EDITOR.TYPES.DATE"
+		},
+		pattern: {
+			defaultValue: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+		},
+		utc: {
+			defaultValue: false
 		}
 	});
 
@@ -80,24 +100,55 @@ sap.ui.define([
 
 	DateEditor.prototype._onChange = function (oEvent) {
 		var sValue = oEvent.getParameter("newValue");
-		var sParsedValue = this._parse(sValue);
-		this.setValue(sParsedValue);
+		var oDate = this._parse(sValue, true);
+		var sDateString = this._format(oDate) || sValue;
+		this.setValue(sDateString);
 	};
 
-	DateEditor.prototype._parse = function (sValue) {
-		if (sValue === "") {
+	DateEditor.prototype._parse = function (sValue, bUseDefaultPattern) {
+		if (sValue == null || sValue === "") {
+			return sValue;
+		}
+		var bUTC = (this.getConfig() || {}).utc !== false;
+		if (bUseDefaultPattern) {
+			return this.getFormatterInstance().parse(sValue, bUTC);
+		}
+		var sDatePattern = (this.getConfig() || {}).pattern;
+		if (sDatePattern) {
+			var oDateFormatterInstance = this.getFormatterInstance({
+				pattern: sDatePattern
+			});
+			return oDateFormatterInstance.parse(sValue, bUTC);
+		}
+		return undefined;
+	};
+
+	DateEditor.prototype._format = function (oDate, bUseDefaultPattern) {
+		if (!this._isValidDate(oDate)) {
 			return undefined;
 		}
-		var sParsedDate = new Date(sValue);
-		return this._isValidDate(sParsedDate) ? sParsedDate.toISOString() : sValue;
+		var bUTC = (this.getConfig() || {}).utc !== false;
+		if (bUseDefaultPattern) {
+			return this.getFormatterInstance().format(oDate, bUTC);
+		}
+		var sDatePattern = (this.getConfig() || {}).pattern;
+		if (sDatePattern) {
+			var oDateFormatterInstance = this.getFormatterInstance({
+				pattern: sDatePattern
+			});
+			return oDateFormatterInstance.format(oDate, bUTC);
+		}
+		return undefined;
 	};
 
-	DateEditor.prototype._isValidDate = function (sDate) {
-		return sDate && !isNaN(sDate.getTime());
+	DateEditor.prototype._isValidDate = function (oDate) {
+		return oDate && !isNaN(oDate.getTime());
 	};
 
-	DateEditor.prototype.getFormatterInstance = function () {
-		return DateFormat.getDateInstance();
+	DateEditor.prototype.getFormatterInstance = function (mOptions) {
+		return DateFormat.getDateInstance(mOptions || {
+			pattern: "yyyy-MM-dd"
+		});
 	};
 
 	return DateEditor;

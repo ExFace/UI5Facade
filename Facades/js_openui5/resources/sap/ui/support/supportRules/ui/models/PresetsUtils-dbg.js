@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,10 @@ sap.ui.define([
 	"sap/ui/support/supportRules/ui/models/SelectionUtils",
 	"sap/ui/support/supportRules/ui/models/SharedModel",
 	"sap/ui/core/util/File",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/support/library"
-], function (Storage, constants, SelectionUtils, SharedModel, File, jQuery, library) {
+	"sap/base/util/extend",
+	"sap/ui/support/library",
+	"sap/ui/core/date/UI5Date"
+], function (Storage, constants, SelectionUtils, SharedModel, File, extend, library, UI5Date) {
 	"use strict";
 
 	var PresetsUtils = {
@@ -51,7 +52,7 @@ sap.ui.define([
 					if (oSystemPreset.id === oPreset.id) {
 						if (!oPreset.isModified) {
 							var bIsSelected = oPreset.selected;
-							oPreset = jQuery.extend({}, oSystemPreset);
+							oPreset = extend({}, oSystemPreset);
 							oPreset.selected = bIsSelected;
 							if (bIsSelected) {
 								SelectionUtils.setSelectedRules(oPreset.selections);
@@ -66,7 +67,7 @@ sap.ui.define([
 						disableDelete: true,
 						isSystemPreset: true
 					};
-					aPresets.splice(iLastSystemPresetPosition + 1, 0, jQuery.extend(mSystemPresetConfig, oSystemPreset));
+					aPresets.splice(iLastSystemPresetPosition + 1, 0, extend(mSystemPresetConfig, oSystemPreset));
 				}
 
 				iLastSystemPresetPosition++;
@@ -123,7 +124,7 @@ sap.ui.define([
 				id: sId,
 				title: sTitle,
 				description: sDescription,
-				dateExported: (new Date()).toISOString(),
+				dateExported: (UI5Date.getInstance()).toISOString(),
 				version: "1.0",
 				selections: aSelections
 			};

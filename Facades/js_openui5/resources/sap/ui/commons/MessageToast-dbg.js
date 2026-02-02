@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,10 +11,12 @@ sap.ui.define([
   'sap/ui/core/Control',
   './MessageToastRenderer',
   'sap/ui/core/Popup',
+  'sap/ui/core/Configuration',
   'sap/ui/thirdparty/jqueryui/jquery-ui-core',
-  'sap/ui/thirdparty/jqueryui/jquery-ui-position' // jQuery.fn.position
+  // jQuery.fn.position
+  'sap/ui/thirdparty/jqueryui/jquery-ui-position'
 ],
-	function(jQuery, library, Control, MessageToastRenderer, Popup) {
+	function(jQuery, library, Control, MessageToastRenderer, Popup, Configuration) {
 	"use strict";
 
 
@@ -33,13 +35,12 @@ sap.ui.define([
 	 * @class
 	 * Responsible for displaying the new incoming messages, one at the time, on top of the MessageBar.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.4.0. Instead, use the <code>sap.m.MessageToast</code> control.
 	 * @alias sap.ui.commons.MessageToast
-	 * @ui5-metamodel This control/element also will be described in the UI5 design-time metamodel
 	 */
 	var MessageToast = Control.extend("sap.ui.commons.MessageToast", /** @lends sap.ui.commons.MessageToast.prototype */ { metadata : {
 
@@ -108,7 +109,7 @@ sap.ui.define([
 	  // (That allows us to position the down-arrow without moving the MessageToast.)
 	  // The MessageToast Arrow aligns towards the proper MessageBar Icon.
 
-	  var rtl = sap.ui.getCore().getConfiguration().getRTL();
+	  var rtl = Configuration.getRTL();
 
 	  // 1) Calculating the distance between the Icon and the right side of its MessageBar container:
 	  var jIcon = jQuery(this.sAnchorId ? document.getElementById(this.sAnchorId) : null); // Anchor against which our Arrow has to align
@@ -139,7 +140,7 @@ sap.ui.define([
 									: (defaultArrowRightOffset - targetRightOffset - 2) + "px";
 			if (defaultArrowRightOffset >= targetRightOffset) {
 			var jArrow = jQuery(document.getElementById(this.getId() + "Arrow"));
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Configuration.getRTL()) {
 				jArrow.css('marginRight', moveRightOffset); // Positive padding
 			} else {
 				jArrow.css('marginLeft', moveRightOffset); // Positive padding
@@ -162,12 +163,12 @@ sap.ui.define([
 		// Toast done (allows for smooth toasting):
 	  this.bIdle = true;
 	  this.fireNext();
-	}
+	};
 
 	/**
 	 * This utility opens the MessageToast Popup.
 	 * @private
-	 */;
+	 */
 	MessageToast.prototype.open = function(iDuration) {
 		// For Multiple Messages, 1st we need to close the existing toast:
 	  if (!this.bIdle) {
@@ -177,7 +178,7 @@ sap.ui.define([
 		// Toast start (allows for no interruption):
 	  this.bIdle = false;
 
-	  var rtl = sap.ui.getCore().getConfiguration().getRTL();
+	  var rtl = Configuration.getRTL();
 
 		// Defining or fetching the Popup attributes:
 	  var popupSnapPoint  = rtl ? Dock.LeftBottom : Dock.RightBottom;
@@ -236,7 +237,6 @@ sap.ui.define([
 	 *         DOM ID of the anchor against which the Toast Arrow should align for a given Toast.
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 design-time metamodel
 	 */
 	MessageToast.prototype.toast = function(oMessage, sAnchorId) {
 	  // Storing the supplied data:
@@ -255,7 +255,6 @@ sap.ui.define([
 	 *
 	 * @type boolean
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 design-time metamodel
 	 */
 	MessageToast.prototype.isIdle = function() {
 	  return this.bIdle;

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log"],function(L){"use strict";L.setLogEntriesLimit(Infinity);var l=[];var d="DEBUG";var s=d;return{setLevel:function(n){n=n&&n.toUpperCase();if(n&&L.Level[n]){s=n;}l.forEach(function(c){L.setLevel(L.Level[s],c);});},getLogger:function(c){l.push(c);var a=L.getLogger(c,L.Level[s]);a.timestamp=function(m){if(console.timeStamp&&L.Level[this.getLevel()]>=L.Level[d]){console.timeStamp(m);}};return a;},getLevel:function(){return s;}};},true);
+sap.ui.define(["sap/base/Log"],function(e){"use strict";e.setLogEntriesLimit(Infinity);var t=[];var n="DEBUG";var i=n;return{setLevel:function(n){n=n&&n.toUpperCase();if(n&&e.Level[n]){i=n}t.forEach(function(t){e.setLevel(e.Level[i],t)})},getLogger:function(r){t.push(r);var o=e.getLogger(r,e.Level[i]);o.timestamp=function(t){if(console.timeStamp&&e.Level[this.getLevel()]>=e.Level[n]){console.timeStamp(t)}};return o},getLevel:function(){return i}}},true);
+//# sourceMappingURL=_OpaLogger.js.map

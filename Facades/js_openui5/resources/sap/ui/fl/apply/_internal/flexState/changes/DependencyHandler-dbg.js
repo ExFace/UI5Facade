@@ -1,15 +1,13 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/util/includes",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/fl/Utils"
 ], function(
-	includes,
 	JsControlTreeModifier,
 	Utils
 ) {
@@ -21,9 +19,8 @@ sap.ui.define([
 	 * Includes functionality needed for all change dependency handling
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.changes.DependencyHandler
-	 * @experimental
 	 * @since 1.74
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -33,7 +30,7 @@ sap.ui.define([
 		return JsControlTreeModifier.getControlIdBySelector(oSelector, oAppComponent);
 	}
 
-	function createNewDependencyObject (oChange) {
+	function createNewDependencyObject(oChange) {
 		return {
 			changeObject: oChange,
 			dependencies: [],
@@ -42,69 +39,79 @@ sap.ui.define([
 		};
 	}
 
-	function addMapEntry(sSelectorId, oChange, mChangesMap) {
-		addChangeIntoSelectorList(mChangesMap, oChange, sSelectorId);
-		addChangeIntoList(mChangesMap, oChange);
+	function addMapEntry(sSelectorId, oChange, oDependencyMap) {
+		addChangeIntoSelectorList(oDependencyMap, oChange, sSelectorId);
+		addChangeIntoList(oDependencyMap, oChange);
 	}
 
-	function addChangeIntoList(mChangesMap, oChange) {
-		if (!includes(mChangesMap.aChanges, oChange)) {
-			mChangesMap.aChanges.push(oChange);
+	function addChangeIntoList(oDependencyMap, oChange) {
+		if (!oDependencyMap.aChanges.includes(oChange)) {
+			oDependencyMap.aChanges.push(oChange);
 		}
 	}
 
-	function addChangeIntoSelectorList(mChangesMap, oChange, sSelectorId) {
-		if (!mChangesMap.mChanges[sSelectorId]) {
-			mChangesMap.mChanges[sSelectorId] = [];
-		}
+	function addChangeIntoSelectorList(oDependencyMap, oChange, sSelectorId) {
+		oDependencyMap.mChanges[sSelectorId] ||= [];
 
-		if (!includes(mChangesMap.mChanges[sSelectorId], oChange)) {
-			mChangesMap.mChanges[sSelectorId].push(oChange);
+		if (!oDependencyMap.mChanges[sSelectorId].includes(oChange)) {
+			oDependencyMap.mChanges[sSelectorId].push(oChange);
 		}
 	}
 
-	function addChangeIntoMap(oChange, oAppComponent, mChangesMap) {
+	function addChangeIntoMap(oChange, oAppComponent, oDependencyMap) {
 		var oSelector = oChange.getSelector();
 		if (oSelector) {
 			if (oSelector.id) {
-				addMapEntry(getCompleteIdFromSelector(oSelector, oAppComponent), oChange, mChangesMap);
+				addMapEntry(getCompleteIdFromSelector(oSelector, oAppComponent), oChange, oDependencyMap);
 			} else {
-				//If the selector id is not defined, add the change to the list to make sure it has the correct order
-				addChangeIntoList(mChangesMap, oChange);
+				// If the selector id is not defined, add the change to the list to make sure it has the correct order
+				addChangeIntoList(oDependencyMap, oChange);
 			}
 		}
-		return mChangesMap.aChanges;
+		return oDependencyMap.aChanges;
 	}
 
 	function isSelectorInArray(aExistingDependentSelectorList, oDependentSelector) {
 		return aExistingDependentSelectorList.some(function(oExistingDependentSelector) {
-			return (oExistingDependentSelector.id === oDependentSelector.id && oExistingDependentSelector.idIsLocal === oDependentSelector.idIsLocal);
+			return (
+				oExistingDependentSelector.id === oDependentSelector.id
+				&& oExistingDependentSelector.idIsLocal === oDependentSelector.idIsLocal
+			);
 		});
 	}
 
-	function addChangesDependencies(oTargetChange, aDependentSelectorsOfTargetChange, oExistingChange, bCheckingOrder, oAppComponent, aChanges, mChangesMap) {
+	function addChangesDependencies(
+		oTargetChange,
+		aDependentSelectorsOfTargetChange,
+		oExistingChange,
+		bCheckingOrder,
+		oAppComponent,
+		aChanges,
+		oDependencyMap
+	) {
 		var aDependentSelectorsOfExistingChange = oExistingChange.getDependentSelectorList();
 		aDependentSelectorsOfTargetChange.some(function(oDependentSelector) {
 			// If 2 changes have the same dependent selector, they are depend on each other
 			if (isSelectorInArray(aDependentSelectorsOfExistingChange, oDependentSelector)) {
 				var sDependentControlId = getCompleteIdFromSelector(oDependentSelector, oAppComponent);
-				//If checking order is required, the target change and the existing change can be in revert order
+				// If checking order is required, the target change and the existing change can be in revert order
 				var bIsChangesInRevertOrder = bCheckingOrder && aChanges.indexOf(oTargetChange) < aChanges.indexOf(oExistingChange);
 				if (bIsChangesInRevertOrder) {
-					addDependencyEntry(oExistingChange, oTargetChange, sDependentControlId, mChangesMap, true);
+					addDependencyEntry(oExistingChange, oTargetChange, sDependentControlId, oDependencyMap, true);
 				} else {
-					addDependencyEntry(oTargetChange, oExistingChange, sDependentControlId, mChangesMap);
+					addDependencyEntry(oTargetChange, oExistingChange, sDependentControlId, oDependencyMap);
 				}
 				return true;
 			}
+			return false;
 		});
 	}
 
-	function addDependencies(oTargetChange, oAppComponent, aChanges, mChangesMap) {
+	function addDependencies(oTargetChange, oAppComponent, aChanges, oDependencyMap) {
 		if (oTargetChange.isValidForDependencyMap()) {
 			var aDependentSelectors = oTargetChange.getDependentSelectorList();
 
-			addControlsDependencies(oTargetChange, aDependentSelectors, oAppComponent, mChangesMap);
+			addControlsDependencies(oTargetChange, aDependentSelectors, oAppComponent, oDependencyMap);
 
 			// Find and add dependencies between the target change and other changes in map
 			// If the target change is not at the end of array, the order checking is required
@@ -115,50 +122,59 @@ sap.ui.define([
 			aOtherChanges.splice(iIndexOfTargetChange, 1);
 			aOtherChanges.reverse().forEach(function(oExistingChange) {
 				if (oExistingChange.isValidForDependencyMap()) {
-					addChangesDependencies(oTargetChange, aDependentSelectors, oExistingChange, bCheckingOrder, oAppComponent, aChanges, mChangesMap);
+					addChangesDependencies(
+						oTargetChange,
+						aDependentSelectors,
+						oExistingChange,
+						bCheckingOrder,
+						oAppComponent,
+						aChanges,
+						oDependencyMap
+					);
 				}
 			});
 		}
 	}
 
-	function addControlsDependencies(oDependentChange, aDependentSelectorList, oAppComponent, mChangesMap) {
+	function addControlsDependencies(oDependentChange, aDependentSelectorList, oAppComponent, oDependencyMap) {
 		if (aDependentSelectorList.length) {
 			var aDependentIdList = aDependentSelectorList.map(function(oSelector) {
 				return getCompleteIdFromSelector(oSelector, oAppComponent);
 			});
 
-			if (!mChangesMap.mDependencies[oDependentChange.getId()]) {
-				mChangesMap.mDependencies[oDependentChange.getId()] = createNewDependencyObject(oDependentChange);
+			if (!oDependencyMap.mDependencies[oDependentChange.getId()]) {
+				oDependencyMap.mDependencies[oDependentChange.getId()] = createNewDependencyObject(oDependentChange);
 			}
-			mChangesMap.mDependencies[oDependentChange.getId()].controlsDependencies = aDependentIdList;
+			oDependencyMap.mDependencies[oDependentChange.getId()].controlsDependencies = aDependentIdList;
 
 			aDependentIdList.forEach(function(sId) {
-				mChangesMap.mControlsWithDependencies[sId] = mChangesMap.mControlsWithDependencies[sId] || [];
-				mChangesMap.mControlsWithDependencies[sId].push(oDependentChange.getId());
+				oDependencyMap.mControlsWithDependencies[sId] ||= [];
+				oDependencyMap.mControlsWithDependencies[sId].push(oDependentChange.getId());
 			});
 		}
 	}
 
-	function addDependencyEntry(oDependentChange, oChange, sDependentControlId, mChangesMap, bIsChangesInRevertOrder) {
-		if (isDependencyNeeded(oDependentChange, oChange, sDependentControlId, mChangesMap, bIsChangesInRevertOrder)) {
-			mChangesMap.mDependencies[oDependentChange.getId()].dependencies.push(oChange.getId());
-			if (!includes(mChangesMap.mDependencies[oDependentChange.getId()].dependentIds, sDependentControlId)) {
-				mChangesMap.mDependencies[oDependentChange.getId()].dependentIds.push(sDependentControlId);
+	function addDependencyEntry(oDependentChange, oChange, sDependentControlId, oDependencyMap, bIsChangesInRevertOrder) {
+		if (isDependencyNeeded(oDependentChange, oChange, sDependentControlId, oDependencyMap, bIsChangesInRevertOrder)) {
+			oDependencyMap.mDependencies[oDependentChange.getId()].dependencies.push(oChange.getId());
+			if (!oDependencyMap.mDependencies[oDependentChange.getId()].dependentIds.includes(sDependentControlId)) {
+				oDependencyMap.mDependencies[oDependentChange.getId()].dependentIds.push(sDependentControlId);
 			}
 
-			if (!mChangesMap.mDependentChangesOnMe[oChange.getId()]) {
-				mChangesMap.mDependentChangesOnMe[oChange.getId()] = [];
+			if (!oDependencyMap.mDependentChangesOnMe[oChange.getId()]) {
+				oDependencyMap.mDependentChangesOnMe[oChange.getId()] = [];
 			}
-			mChangesMap.mDependentChangesOnMe[oChange.getId()].push(oDependentChange.getId());
+			oDependencyMap.mDependentChangesOnMe[oChange.getId()].push(oDependentChange.getId());
 		}
 	}
 
-	function isDependencyNeeded(oDependentChange, oChange, sDependentControlId, mChangesMap, bIsChangesInRevertOrder) {
-		var bSelectorAlreadyThere = !bIsChangesInRevertOrder && includes(mChangesMap.mDependencies[oDependentChange.getId()].dependentIds, sDependentControlId);
+	function isDependencyNeeded(oDependentChange, oChange, sDependentControlId, oDependencyMap, bIsChangesInRevertOrder) {
+		var bSelectorAlreadyThere =
+			!bIsChangesInRevertOrder && oDependencyMap.mDependencies[oDependentChange.getId()].dependentIds.includes(sDependentControlId);
 		var bIndirectDependency = false;
-		if (mChangesMap.mDependentChangesOnMe[oChange.getId()]) {
-			mChangesMap.mDependentChangesOnMe[oChange.getId()].some(function(sChangeId) {
-				bIndirectDependency = includes(mChangesMap.mDependencies[oDependentChange.getId()].dependencies, sChangeId);
+		if (oDependencyMap.mDependentChangesOnMe[oChange.getId()]) {
+			oDependencyMap.mDependentChangesOnMe[oChange.getId()].some(function(sChangeId) {
+				bIndirectDependency = oDependencyMap.mDependencies[oDependentChange.getId()].dependencies.includes(sChangeId);
 				return bIndirectDependency;
 			});
 		}
@@ -166,21 +182,29 @@ sap.ui.define([
 		return !bSelectorAlreadyThere && !bIndirectDependency;
 	}
 
+	function removeChangeFromList(oDependencyMap, sChangeKey) {
+		const iIndex = oDependencyMap.aChanges.findIndex((oChange) => oChange.getId() === sChangeKey);
+
+		if (iIndex !== -1) {
+			oDependencyMap.aChanges.splice(iIndex, 1);
+		}
+	}
+
 	/**
 	 * Iterating over <code>mDependencies</code> once, executing relevant dependencies, and clearing dependencies queue.
 	 *
-	 * @param {object} mChangesMap - Changes map
+	 * @param {object} oDependencyMap - Changes map
 	 * @param {string} sControlId - ID of the control
 	 * @returns {Promise|sap.ui.fl.Utils.FakePromise} Returns promise for asynchronous or FakePromise for synchronous processing scenario
 	 * @private
 	 */
-	function iterateDependentQueue(mChangesMap, sControlId) {
+	function iterateDependentQueue(oDependencyMap, sControlId) {
 		var aCoveredChanges = [];
 		var aDependenciesToBeDeleted = [];
 		var aPromises = [];
-		if (mChangesMap.dependencyRemovedInLastBatch[sControlId]) {
-			mChangesMap.dependencyRemovedInLastBatch[sControlId].forEach(function(sDependencyKey) {
-				var oDependency = mChangesMap.mDependencies[sDependencyKey];
+		if (oDependencyMap.dependencyRemovedInLastBatch[sControlId]) {
+			oDependencyMap.dependencyRemovedInLastBatch[sControlId].forEach(function(sDependencyKey) {
+				var oDependency = oDependencyMap.mDependencies[sDependencyKey];
 				if (
 					oDependency
 					&& oDependency.dependencies.length === 0
@@ -198,13 +222,13 @@ sap.ui.define([
 		}
 
 		return Utils.execPromiseQueueSequentially(aPromises).then(function(aCoveredChanges, aDependenciesToBeDeleted, sControlId) {
-			delete mChangesMap.dependencyRemovedInLastBatch[sControlId];
+			delete oDependencyMap.dependencyRemovedInLastBatch[sControlId];
 			aDependenciesToBeDeleted.forEach(function(sDependencyKey) {
-				delete mChangesMap.mDependencies[sDependencyKey];
+				delete oDependencyMap.mDependencies[sDependencyKey];
 			});
 
 			aCoveredChanges.forEach(function(sChangeId) {
-				DependencyHandler.resolveDependenciesForChange(mChangesMap, sChangeId, sControlId);
+				DependencyHandler.resolveDependenciesForChange(oDependencyMap, sChangeId, sControlId);
 			});
 
 			return !!aCoveredChanges.length;
@@ -245,67 +269,80 @@ sap.ui.define([
 	/**
 	 * Adds a change to the map and adds the dependencies to the changes map
 	 *
-	 * @param {sap.ui.fl.changeObject} oChange - Change instance
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change instance
 	 * @param {sap.ui.core.UIComponent} oAppComponent - Component instance to get the whole ID for the control
-	 * @param {object} mChangesMap - Map with changes and dependencies
+	 * @param {object} oDependencyMap - Map with changes and dependencies
 	 */
-	DependencyHandler.addChangeAndUpdateDependencies = function(oChange, oAppComponent, mChangesMap) {
-		var aChanges = addChangeIntoMap(oChange, oAppComponent, mChangesMap);
-		addDependencies(oChange, oAppComponent, aChanges, mChangesMap);
+	DependencyHandler.addChangeAndUpdateDependencies = function(oChange, oAppComponent, oDependencyMap) {
+		var aChanges = addChangeIntoMap(oChange, oAppComponent, oDependencyMap);
+		addDependencies(oChange, oAppComponent, aChanges, oDependencyMap);
 	};
 
 	/**
-	 * Adds a change to the map during runtime and adds the dependencies to the initial changes map
+	 * Insert Change into changes map positioned right after the referenced change
 	 *
-	 * @param {sap.ui.fl.changeObject} oChange - Change instance
-	 * @param {sap.ui.core.UIComponent} oAppComponent - Component instance to get the whole ID for the control
-	 * @param {object} mChangesMap - Map with changes and dependencies
-	 * @param {object} mInitialChangesMap - Initial map with changes and dependencies
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change instance
+	 * @param {object} oDependencyMap - Map with changes and dependencies
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oReferenceChange - Reference change. New change is positioned right after this one in the changes map
 	 */
-	DependencyHandler.addRuntimeChangeAndUpdateDependencies = function(oChange, oAppComponent, mChangesMap, mInitialChangesMap) {
-		var aChanges = addChangeIntoMap(oChange, oAppComponent, mChangesMap);
-		addDependencies(oChange, oAppComponent, aChanges, mInitialChangesMap);
+	DependencyHandler.insertChange = function(oChange, oDependencyMap, oReferenceChange) {
+		var iIndex = oDependencyMap && oDependencyMap.aChanges && oDependencyMap.aChanges.indexOf(oReferenceChange);
+		if (iIndex > -1) {
+			oDependencyMap.aChanges.splice(iIndex + 1, 0, oChange);
+		}
+	};
+
+	/**
+	 * Adds a change to the dependency map during runtime
+	 *
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change instance
+	 * @param {sap.ui.core.UIComponent} oAppComponent - Component instance to get the whole ID for the control
+	 * @param {object} oDependencyMap - Map with changes and dependencies
+	 */
+	DependencyHandler.addRuntimeChangeToMap = function(oChange, oAppComponent, oDependencyMap) {
+		addChangeIntoMap(oChange, oAppComponent, oDependencyMap);
 	};
 
 	/**
 	 * Recursive iterations, which are processed sequentially, as long as dependent changes can be applied.
 	 *
-	 * @param {object} mChangesMap - Changes map
+	 * @param {object} oDependencyMap - Changes map
 	 * @param {sap.ui.core.Component} oAppComponent - Application component instance
 	 * @param {string} sControlId - ID of the control
 	 * @returns {Promise|sap.ui.fl.Utils.FakePromise} Promise that is resolved after all dependencies were processed for asynchronous or FakePromise for the synchronous processing scenario
 	 */
-	DependencyHandler.processDependentQueue = function(mChangesMap, oAppComponent, sControlId) {
-		return iterateDependentQueue(mChangesMap, sControlId).then(function(sControlId, bContinue) {
+	DependencyHandler.processDependentQueue = function(oDependencyMap, oAppComponent, sControlId) {
+		return iterateDependentQueue(oDependencyMap, sControlId).then(function(sControlId, bContinue) {
 			if (bContinue) {
-				return DependencyHandler.processDependentQueue(mChangesMap, oAppComponent, sControlId);
+				return DependencyHandler.processDependentQueue(oDependencyMap, oAppComponent, sControlId);
 			}
+			return undefined;
 		}.bind(undefined, sControlId));
 	};
 
 	/**
 	 * Saves a function in the dependency that will be called as soon as the dependency is resolved.
 	 *
-	 * @param {object} mChangesMap - Changes map
-	 * @param {sap.ui.fl.Change} sChangeId - Change ID
+	 * @param {object} oDependencyMap - Changes map
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} sChangeId - Change ID
 	 * @param {function} fnCallback - Function that will be saved in the dependency
 	 */
-	DependencyHandler.addChangeApplyCallbackToDependency = function(mChangesMap, sChangeId, fnCallback) {
-		mChangesMap.mDependencies[sChangeId][PENDING] = fnCallback;
+	DependencyHandler.addChangeApplyCallbackToDependency = function(oDependencyMap, sChangeId, fnCallback) {
+		oDependencyMap.mDependencies[sChangeId][PENDING] = fnCallback;
 	};
 
 	/**
 	 * Removes the dependencies to a control. Iterates through the list of changes saved in the <code>mControlsWithDependencies</code> map
 	 * and removes the <code>controlsDependencies</code> in the dependency of that change.
 	 *
-	 * @param {object} mChangesMap - Changes map
+	 * @param {object} oDependencyMap - Changes map
 	 * @param {string} sControlId - ID of the control
 	 */
-	DependencyHandler.removeControlsDependencies = function(mChangesMap, sControlId) {
-		var aDependentChanges = mChangesMap.mControlsWithDependencies[sControlId];
+	DependencyHandler.removeControlsDependencies = function(oDependencyMap, sControlId) {
+		var aDependentChanges = oDependencyMap.mControlsWithDependencies[sControlId];
 		if (aDependentChanges) {
 			aDependentChanges.forEach(function(sChangeKey) {
-				var oDependency = mChangesMap.mDependencies[sChangeKey];
+				var oDependency = oDependencyMap.mDependencies[sChangeKey];
 				if (
 					oDependency
 					&& oDependency.controlsDependencies
@@ -314,56 +351,59 @@ sap.ui.define([
 					var iIndex = oDependency.controlsDependencies.indexOf(sControlId);
 					if (iIndex > -1) {
 						oDependency.controlsDependencies.splice(iIndex, 1);
-						delete mChangesMap.mControlsWithDependencies[sControlId];
-						mChangesMap.dependencyRemovedInLastBatch[sControlId] = mChangesMap.dependencyRemovedInLastBatch[sControlId] || [];
-						if (!includes(mChangesMap.dependencyRemovedInLastBatch[sControlId], sChangeKey)) {
-							mChangesMap.dependencyRemovedInLastBatch[sControlId].push(sChangeKey);
+						delete oDependencyMap.mControlsWithDependencies[sControlId];
+						oDependencyMap.dependencyRemovedInLastBatch[sControlId] ||= [];
+						if (!oDependencyMap.dependencyRemovedInLastBatch[sControlId].includes(sChangeKey)) {
+							oDependencyMap.dependencyRemovedInLastBatch[sControlId].push(sChangeKey);
 						}
 					}
 				}
 			});
-			delete mChangesMap.mControlsWithDependencies[sControlId];
+			delete oDependencyMap.mControlsWithDependencies[sControlId];
 		}
 	};
 
 	/**
 	 * Resolves the dependency from the dependent changes;
 	 * Loops over all the dependent changes and removes the dependency to this change
+	 * After the dependency is resolved the change is removed from the list of changes (aChanges)
 	 *
-	 * @param {object} mChangesMap - Changes Map
+	 * @param {object} oDependencyMap - Changes Map
 	 * @param {string} sChangeKey - Key of the change which dependencies have to be resolved
 	 * @param {string} sControlId - ID of the control
 	 */
-	DependencyHandler.resolveDependenciesForChange = function(mChangesMap, sChangeKey, sControlId) {
-		var mDependentChangesOnMe = mChangesMap.mDependentChangesOnMe[sChangeKey];
+	DependencyHandler.resolveDependenciesForChange = function(oDependencyMap, sChangeKey, sControlId) {
+		var mDependentChangesOnMe = oDependencyMap.mDependentChangesOnMe[sChangeKey];
 		if (mDependentChangesOnMe) {
 			mDependentChangesOnMe.forEach(function(sKey) {
-				var oDependency = mChangesMap.mDependencies[sKey];
+				var oDependency = oDependencyMap.mDependencies[sKey];
 
-				// oDependency might be undefined, since initial dependencies were not copied yet from applyAllChangesForControl() for change with ID sKey
+				// oDependency might be undefined, since initial dependencies were not copied yet from applyAllChangesForControl()
+				// for change with ID sKey
 				var iIndex = oDependency ? oDependency.dependencies.indexOf(sChangeKey) : -1;
 				if (iIndex > -1) {
 					oDependency.dependencies.splice(iIndex, 1);
-					mChangesMap.dependencyRemovedInLastBatch[sControlId] = mChangesMap.dependencyRemovedInLastBatch[sControlId] || [];
-					if (!includes(mChangesMap.dependencyRemovedInLastBatch[sControlId], sKey)) {
-						mChangesMap.dependencyRemovedInLastBatch[sControlId].push(sKey);
+					oDependencyMap.dependencyRemovedInLastBatch[sControlId] ||= [];
+					if (!oDependencyMap.dependencyRemovedInLastBatch[sControlId].includes(sKey)) {
+						oDependencyMap.dependencyRemovedInLastBatch[sControlId].push(sKey);
 					}
 				}
 			});
-			delete mChangesMap.mDependentChangesOnMe[sChangeKey];
+			delete oDependencyMap.mDependentChangesOnMe[sChangeKey];
 		}
+		removeChangeFromList(oDependencyMap, sChangeKey);
 	};
 
 	/**
 	 * Removes the change from the maps;
 	 * Should be called together with DependencyHandler.removeChangeFromDependencies to also resolve dependencies
 	 *
-	 * @param {object} mChangesMap - Changes Map
+	 * @param {object} oDependencyMap - Changes Map
 	 * @param {string} sChangeKey - Key of the change which dependencies have to be resolved
 	 */
-	DependencyHandler.removeChangeFromMap = function(mChangesMap, sChangeKey) {
-		Object.keys(mChangesMap.mChanges).some(function(sCurrentControlId) {
-			var aChanges = mChangesMap.mChanges[sCurrentControlId];
+	DependencyHandler.removeChangeFromMap = function(oDependencyMap, sChangeKey) {
+		Object.keys(oDependencyMap.mChanges).some(function(sCurrentControlId) {
+			var aChanges = oDependencyMap.mChanges[sCurrentControlId];
 			var iIndexInMapElement = aChanges.map(function(oExistingChange) {
 				return oExistingChange.getId();
 			}).indexOf(sChangeKey);
@@ -372,90 +412,44 @@ sap.ui.define([
 				aChanges.splice(iIndexInMapElement, 1);
 				return true;
 			}
+			return false;
 		});
 
-		var iIndex = mChangesMap.aChanges.map(function(oExistingChange) {
-			return oExistingChange.getId();
-		}).indexOf(sChangeKey);
-
-		if (iIndex !== -1) {
-			mChangesMap.aChanges.splice(iIndex, 1);
-		}
+		removeChangeFromList(oDependencyMap, sChangeKey);
 	};
 
 	/**
 	 * Resolves all the dependencies of the current change and then removes it from the dependencies;
 	 * This does not trigger applying of changes that might now be free of dependencies
 	 *
-	 * @param {object} mChangesMap - Changes Map
+	 * @param {object} oDependencyMap - Changes Map
 	 * @param {string} sChangeKey - Key of the change which dependencies have to be resolved
 	 * @param {string} sControlId - ID of the control
 	 */
-	DependencyHandler.removeChangeFromDependencies = function(mChangesMap, sChangeKey, sControlId) {
-		DependencyHandler.resolveDependenciesForChange(mChangesMap, sChangeKey, sControlId);
-		delete mChangesMap.mDependencies[sChangeKey];
+	DependencyHandler.removeChangeFromDependencies = function(oDependencyMap, sChangeKey, sControlId) {
+		DependencyHandler.resolveDependenciesForChange(oDependencyMap, sChangeKey, sControlId);
+		delete oDependencyMap.mDependencies[sChangeKey];
 	};
 
 	/**
-	 * Checks the dependencies map for any unresolved dependencies belonging to the given control.
-	 * Returns <code>true</code> as soon as the first dependency is found, otherwise <code>false</code>
+	 * Checks the dependencies map for any open (unresolved) dependencies belonging to the given control and
+	 * returns the dependent changes.
 	 *
-	 * @param {object} mChangesMap - Map with changes and dependencies
+	 * @param {object} oDependencyMap - Map with changes and dependencies
 	 * @param {object} sControlId - ID of the control
 	 * @param {sap.ui.core.Component} oAppComponent - Application component instance that is currently loading
-	 * @returns {boolean} <code>true</code> if there are open dependencies
+	 * @returns {sap.ui.fl.apply._internal.flexObjects.FlexObject[]} Array of all open dependent changes for the control
 	 */
-	DependencyHandler.checkForOpenDependenciesForControl = function(mChangesMap, sControlId, oAppComponent) {
-		return Object.keys(mChangesMap.mDependencies).some(function(sKey) {
-			return mChangesMap.mDependencies[sKey].changeObject.getDependentSelectorList().some(function(oDependendSelector) {
-				return JsControlTreeModifier.getControlIdBySelector(oDependendSelector, oAppComponent) === sControlId;
-			});
-		});
-	};
-
-	/**
-	 * Checks the dependencies map for any unresolved dependencies belonging to the given control and returns the
-	 * the file name of the unresolved changes.
-	 *
-	 * @param {object} mChangesMap - Map with changes and dependencies
-	 * @param {object} sControlId - ID of the control
-	 * @param {sap.ui.core.Component} oAppComponent - Application component instance that is currently loading
-	 * @returns {string[]} file names of unresolved changes
-	 */
-	DependencyHandler.getOpenDependenciesForControl = function(mChangesMap, sControlId, oAppComponent) {
-		var aOpenDependencies = [];
-		Object.keys(mChangesMap.mDependencies).forEach(function(sKey) {
-			mChangesMap.mDependencies[sKey].changeObject.getDependentSelectorList().some(function(oDependendSelector) {
+	DependencyHandler.getOpenDependentChangesForControl = function(oDependencyMap, sControlId, oAppComponent) {
+		var aDependentChanges = [];
+		Object.keys(oDependencyMap.mDependencies).forEach(function(sKey) {
+			 oDependencyMap.mDependencies[sKey].changeObject.getDependentSelectorList().forEach(function(oDependendSelector) {
 				if (JsControlTreeModifier.getControlIdBySelector(oDependendSelector, oAppComponent) === sControlId) {
-					aOpenDependencies.push(sKey);
-					return true;
+					aDependentChanges.push(oDependencyMap.mDependencies[sKey].changeObject);
 				}
 			});
 		});
-
-		return aOpenDependencies;
-	};
-
-	/**
-	 * Removes the dependencies from the map with changes and dependencies for any unresolved dependencies belonging to the given control.
-	 *
-	 * @param {object} mChangesMap - Map with changes and dependencies
-	 * @param {sap.ui.core.Component} oAppComponent - Application component instance that is currently loading
-	 * @param {object} sControlId - ID of the control whose open dependencies should be removed.
-	 * @param {object} sEmbeddingControlId - ID of the control that contains the control with sControlId and for which the dependencies are going to be resolved.
-	 * @returns {sap.ui.fl.Change[]} Change instances that are removed from dependencies
-	 */
-	DependencyHandler.removeOpenDependentChanges = function(mChangesMap, oAppComponent, sControlId, sEmbeddingControlId) {
-		var aOpenDependencies = DependencyHandler.getOpenDependenciesForControl(mChangesMap, sControlId, oAppComponent);
-		var aChangesToBeDeleted = [];
-		aOpenDependencies.forEach(function(sChangeKey) {
-			if (mChangesMap.mDependencies[sChangeKey].controlsDependencies.length) {
-				aChangesToBeDeleted.push(mChangesMap.mDependencies[sChangeKey].changeObject);
-				DependencyHandler.removeChangeFromDependencies(mChangesMap, sChangeKey, sEmbeddingControlId);
-			}
-		});
-
-		return aChangesToBeDeleted;
+		return aDependentChanges;
 	};
 
 	return DependencyHandler;

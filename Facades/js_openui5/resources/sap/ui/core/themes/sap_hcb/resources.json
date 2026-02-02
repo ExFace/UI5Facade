@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 128,
+			"size": 162,
 			"theme": "sap_hcb"
 		},
 		{
@@ -25,66 +25,99 @@
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 138034,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 157974,
+			"name": "base_BlindLayer.less",
+			"size": 991,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 157674,
+			"name": "base_BrowserScrollbar.less",
+			"size": 1117,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_BusyIndicator.less",
+			"size": 389,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_CommandShortcutHints.less",
+			"size": 450,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_DragAndDrop.less",
+			"size": 1210,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_Icon.less",
+			"size": 3343,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_LocalBusyIndicator.less",
+			"size": 6554,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_SAP-icons.less",
+			"size": 342,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ScrollBar.less",
+			"size": 499,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_Shadow.less",
+			"size": 40,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_TechnicalInfo.less",
+			"size": 2599,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_View.less",
+			"size": 244,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_media.less",
+			"size": 1656,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_parameterClasses.less",
+			"size": 1849,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_shared.less",
+			"size": 9296,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "global.less",
-			"size": 44341,
+			"size": 186038,
 			"designtime": true,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Error.png",
-			"size": 94,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Information.png",
-			"size": 120,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Success.png",
-			"size": 409,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Warning.png",
-			"size": 167,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Error.png",
-			"size": 271,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Information.png",
-			"size": 224,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Success.png",
-			"size": 832,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Warning.png",
-			"size": 443,
 			"theme": "sap_hcb"
 		},
 		{
@@ -129,40 +162,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 95216,
+			"size": 128103,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 55389,
+			"module": "sap/ui/core/themes/sap_hcb/library-parameters.json",
+			"size": 77857,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 95202,
+			"size": 128090,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 2899,
+			"size": 35251,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 329,
+			"size": 1433,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 22238,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 22225,
-			"theme": "sap_hcb"
+			"name": "resources.json",
+			"size": 3616
 		},
 		{
 			"name": "shared.less",

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,8 +10,8 @@ sap.ui.define([
 	"./ShortcutHint",
 	"./Popup",
 	"./InvisibleText",
-	"sap/ui/dom/containsOrEquals",
-	"sap/ui/events/checkMouseEnterOrLeave"
+	"sap/ui/events/checkMouseEnterOrLeave",
+	"sap/ui/Device"
 ],
 	function(
 		EventProvider,
@@ -19,8 +19,8 @@ sap.ui.define([
 		ShortcutHint,
 		Popup,
 		InvisibleText,
-		containsOrEquals,
-		checkMouseEnterOrLeave
+		checkMouseEnterOrLeave,
+		Device
 	) {
 	"use strict";
 
@@ -68,6 +68,14 @@ sap.ui.define([
 	 * (e.g. the shortcut of a command registered to it)
 	 */
 	ShortcutHintsMixin.addConfig = function(oControl, oConfig, oHintProviderControl) {
+		if (Device.system.phone) {
+			return;
+		}
+
+		if (/sap-ui-xx-noshortcuthints=true/.test(document.location.search)) {
+			return;
+		}
+
 		var oMixin = oControl._shortcutHintsMixin;
 
 		if (!oMixin) {
@@ -87,7 +95,7 @@ sap.ui.define([
 		var oControl;
 
 		for (var sControlId in oHintRegistry.mControls) {
-			oControl = Element.registry.get(sControlId);
+			oControl = Element.getElementById(sControlId);
 
 			if (oControl) {
 				oControl._shortcutHintsMixin.hideShortcutHint();
@@ -118,7 +126,7 @@ sap.ui.define([
 		var oControl;
 
 		if (!ShortcutHintsMixin.isControlRegistered(this.sControlId)) {
-			oControl = Element.registry.get(this.sControlId);
+			oControl = Element.getElementById(this.sControlId);
 			oControl.addEventDelegate(oHintsEventDelegate, this);
 		}
 	};
@@ -130,6 +138,18 @@ sap.ui.define([
 	ShortcutHintsMixin.prototype.register = function(sDOMRefID, oConfig, oHintProviderControl) {
 		this._attachToEvents();
 
+		if (!ShortcutHintsMixin.isControlRegistered(this.sControlId)) {
+			var oControl = Element.getElementById(this.sControlId);
+
+			oControl._originalExit = oControl.exit;
+			oControl.exit = function() {
+				if (oControl._originalExit) {
+					oControl._originalExit.apply(oControl, arguments);
+				}
+				this.deregister();
+			}.bind(this);
+		}
+
 		oHintRegistry.mControls[this.sControlId] = true;
 
 		if (!oHintRegistry.mDOMNodes[sDOMRefID]) {
@@ -137,6 +157,17 @@ sap.ui.define([
 		}
 
 		oHintRegistry.mDOMNodes[sDOMRefID].push(new ShortcutHint(oHintProviderControl, oConfig));
+	};
+
+	ShortcutHintsMixin.prototype.deregister = function() {
+		var aInfos = this.getRegisteredShortcutInfos(),
+			i;
+
+		delete oHintRegistry.mControls[this.sControlId];
+
+		for (i = 0; i < aInfos.length; i++) {
+			delete oHintRegistry.mDOMNodes[aInfos[i].id];
+		}
 	};
 
 	ShortcutHintsMixin.prototype.initHint = function(oConfig, oHintProviderControl) {
@@ -245,6 +276,10 @@ sap.ui.define([
 			sShortcut = _getShortcutHintText(oHintInfos[0].id),
 			mTooltips;
 
+		if (!_isElementVisible($ShortcutHintRef) || !_isElementInViewport($ShortcutHintRef)) {
+			return;
+		}
+
 		// concatenate with the tooltip
 		mTooltips = this._getControlTooltips();
 		if (mTooltips[oHintInfos[0].id]) {
@@ -264,6 +299,9 @@ sap.ui.define([
 					clearTimeout(sTimeoutID);
 				}
 				sTimeoutID = setTimeout(function() {
+					if (!_isElementVisible($ShortcutHintRef) || !_isElementInViewport($ShortcutHintRef)) {
+						return;
+					}
 
 					oPopup.oContent.style.visibility = "visible";
 				}, 1000);
@@ -298,7 +336,7 @@ sap.ui.define([
 			oHintInfo = aInfos[i];
 			oHintInfo.ref = document.getElementById(oHintInfo.id);
 
-			if (containsOrEquals(oHintInfo.ref, domEventTarget)) {
+			if (oHintInfo.ref && oHintInfo.ref.contains(domEventTarget)) {
 				aResultInfos.push(oHintInfo);
 			}
 		}
@@ -315,7 +353,7 @@ sap.ui.define([
 	 */
 	ShortcutHintsMixin.prototype._getControlTooltips = function() {
 		var aInfos = this.getRegisteredShortcutInfos(),
-			oControl = Element.registry.get(this.sControlId);
+			oControl = Element.getElementById(this.sControlId);
 
 		return aInfos.reduce(function(mResult, oHintInfo) {
 			var sTooltip = oControl._getTitleAttribute && oControl._getTitleAttribute(oHintInfo.id);
@@ -348,19 +386,21 @@ sap.ui.define([
 			return;
 		}
 
-		oInvText = getInvisibleText();
+		oControl = Element.getElementById(this.sControlId);
+
+		if (!oControl.getAriaDescribedBy) {
+			return;
+		}
+
+		oInvText = getInvisibleText(oControl);
 		sInvTextId = oInvText.getId();
 
 		oInvText.setText(_getShortcutHintText(oHintInfo.id));
 
-		oControl = Element.registry.get(this.sControlId);
-
-		if (oInvText.getText()) {
-			if (oControl.getAriaDescribedBy().indexOf(sInvTextId) === -1) {
-				oControl.addAriaDescribedBy(sInvTextId);
-			}
-		} else {
+		if (!oInvText.getText()) {
 			oControl.removeAriaDescribedBy(sInvTextId);
+		} else if (oControl.getAriaDescribedBy().indexOf(sInvTextId) === -1) {
+			oControl.addAriaDescribedBy(sInvTextId);
 		}
 	};
 
@@ -372,6 +412,10 @@ sap.ui.define([
 	oHintRegistry.mDOMNodes = {};
 
 	var oHintsEventDelegate = {
+		/**
+		 * @type {sap.ui.core.Control}
+		 * @private
+		 */
 		"onfocusin": function(oEvent) {
 			var oShortcutHintRefs = this._findShortcutOptionsForRef(oEvent.target);
 
@@ -384,6 +428,10 @@ sap.ui.define([
 			this._updateShortcutHintAccLabel(oShortcutHintRefs[0]);
 			this.showShortcutHint(oShortcutHintRefs);
 		},
+		/**
+		 * @type {sap.ui.core.Control}
+		 * @private
+		 */
 		"onfocusout": function(oEvent) {
 			var oShortcutHintRefs = this._findShortcutOptionsForRef(oEvent.target);
 
@@ -393,19 +441,39 @@ sap.ui.define([
 
 			this.hideShortcutHint();
 		},
+		/**
+		 * @type {sap.ui.core.Control}
+		 * @private
+		 */
 		"onmouseover": function(oEvent) {
-			var oShortcutHintRefs = this._findShortcutOptionsForRef(oEvent.target);
+			var oShortcutHintRefs = this._findShortcutOptionsForRef(oEvent.target),
+				oDOMRef;
 
 			if (!oShortcutHintRefs.length) {
 				return;
 			}
 
-			if (checkMouseEnterOrLeave(oEvent, oShortcutHintRefs[0].ref)) {
+			oDOMRef = oShortcutHintRefs[0].ref;
+
+			if (!_isElementFocusable(oDOMRef)) {
+				return;
+			}
+
+			// add native tooltip to element so it can override the native tooltip of the container / parent element
+			if (!oDOMRef.getAttribute('title')) {
+				oDOMRef.setAttribute('title', '');
+			}
+
+			if (checkMouseEnterOrLeave(oEvent, oDOMRef)) {
 				ShortcutHintsMixin.hideAll();
 
 				this.showShortcutHint(oShortcutHintRefs);
 			}
 		},
+		/**
+		 * @type {sap.ui.core.Control}
+		 * @private
+		 */
 		"onmouseout": function(oEvent) {
 			var oShortcutHintRefs = this._findShortcutOptionsForRef(oEvent.target);
 
@@ -415,13 +483,21 @@ sap.ui.define([
 
 			if (checkMouseEnterOrLeave(oEvent, oShortcutHintRefs[0].ref)) {
 				// do not hide if the element is focused
-				if (containsOrEquals(oShortcutHintRefs[0].ref, document.activeElement)) {
+				if (oShortcutHintRefs[0].ref.contains(document.activeElement)) {
 					return;
 				}
 
+				// remove the native tooltip that was set onmouseover
+				if (oShortcutHintRefs[0].ref.getAttribute('title') === '') {
+					oShortcutHintRefs[0].ref.removeAttribute('title');
+				}
 				this.hideShortcutHint();
 			}
 		},
+		/**
+		 * @type {sap.ui.core.Control}
+		 * @private
+		 */
 		"onAfterRendering": function() {
 			var aInfos = this.getRegisteredShortcutInfos(),
 				oElement,
@@ -430,7 +506,7 @@ sap.ui.define([
 			for (var i = 0; i < aInfos.length; i++) {
 				sDOMRefID = aInfos[i].id;
 				oElement = document.getElementById(sDOMRefID);
-				oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
+				oElement && oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
 			}
 		}
 	};
@@ -453,15 +529,22 @@ sap.ui.define([
 	}
 
 	/**
-	 * Gets or creates an InvisibleText for the shortcut's accessiblity.
+	 * Gets or creates an InvisibleText for the control's shortcut accessiblity.
+	 *
+	 * @param {sap.ui.core.Control} oControl A control that have shortcut assigned
 	 */
-	function getInvisibleText() {
-		if (!ShortcutHintsMixin._invisibleText) {
-			ShortcutHintsMixin._invisibleText = new InvisibleText();
-			ShortcutHintsMixin._invisibleText.toStatic();
+	function getInvisibleText(oControl) {
+		if (!oControl._shortcutInvisibleText) {
+			var oFunc = oControl.exit;
+			oControl._shortcutInvisibleText = new InvisibleText();
+			oControl._shortcutInvisibleText.toStatic();
+			oControl.exit = function() {
+				this._shortcutInvisibleText.destroy();
+				oFunc.call(this);
+			};
 		}
 
-		return ShortcutHintsMixin._invisibleText;
+		return oControl._shortcutInvisibleText;
 	}
 
 	/**
@@ -507,6 +590,51 @@ sap.ui.define([
 		ShortcutHintsMixin._popup = oPopup;
 
 		return oPopup;
+	}
+
+	/**
+	 * Determines if a DOM element is inside the viewport.
+	 */
+	function _isElementInViewport(oDomElement) {
+		var mRect;
+		if (!oDomElement) {
+			return false;
+		}
+		mRect = oDomElement.getBoundingClientRect();
+		return (
+			mRect.top >= 0 &&
+			mRect.left >= 0 &&
+			mRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+			mRect.right <= (window.innerWidth || document.documentElement.clientWidth)
+		);
+	}
+
+	/**
+	 * Determines if a DOM element is visible.
+	 */
+	function _isElementVisible(elem) {
+		return elem.offsetWidth > 0 || elem.offsetHeight > 0 || elem.getClientRects().length > 0;
+	}
+
+	/**
+	 * Determines if a DOM element has a tabindex.
+	 */
+	function _elementHasTabIndex(elem) {
+		var iTabIndex = elem.tabIndex;
+
+		return iTabIndex != null
+			&& iTabIndex >= 0
+			&& (elem.getAttribute("disabled") == null
+				|| elem.getAttribute("tabindex"));
+	}
+
+	/**
+	 * Determines if a DOM element is focusable.
+	 */
+	function _isElementFocusable(elem) {
+		return elem.nodeType == 1
+			&& _isElementVisible(elem)
+			&& _elementHasTabIndex(elem);
 	}
 
 	return ShortcutHintsMixin;

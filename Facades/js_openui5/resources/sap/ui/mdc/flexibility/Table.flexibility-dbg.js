@@ -1,12 +1,18 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'./SortFlex', './ColumnFlex', './ConditionFlex'
-], function(SortFlex, ColumnFlex, ConditionFlex) {
+	'./SortFlex',
+	'./ColumnFlex',
+	'./ConditionFlex',
+	'./GroupFlex',
+	'./AggregateFlex',
+	'./xConfigFlex',
+	'sap/ui/fl/changeHandler/condenser/Classification'
+], (SortFlex, ColumnFlex, ConditionFlex, GroupFlex, AggregateFlex, xConfigFlex, CondenserClassification) => {
 	"use strict";
 
 	return {
@@ -19,7 +25,24 @@ sap.ui.define([
 		addSort: SortFlex.addSort,
 		moveSort: SortFlex.moveSort,
 		addCondition: ConditionFlex.addCondition,
-		removeCondition: ConditionFlex.removeCondition
+		removeCondition: ConditionFlex.removeCondition,
+		removeGroup: GroupFlex.removeGroup,
+		addGroup: GroupFlex.addGroup,
+		moveGroup: GroupFlex.moveGroup,
+		removeAggregate: AggregateFlex.removeAggregate,
+		addAggregate: AggregateFlex.addAggregate,
+		setColumnWidth: xConfigFlex.createSetChangeHandler({
+			aggregation: "columns",
+			property: "width"
+		}),
+		setShowDetails: xConfigFlex.createSetChangeHandler({
+			aggregation: "type",
+			property: "showDetails"
+		}),
+		setFixedColumnCount: xConfigFlex.createSetChangeHandler({
+			aggregation: "type",
+			property: "fixedColumnCount"
+		})
 	};
 
 });

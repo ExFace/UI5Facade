@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,10 @@
 	}
 
 sap.ui.define([
+	'sap/base/util/extend',
+	'sap/base/util/ObjectPath',
 	'sap/ui/thirdparty/jquery',
+	'sap/ui/Global',
 	'sap/ui/base/Object',
 	'sap/ui/core/Element',
 	'sap/ui/core/mvc/View',
@@ -26,7 +29,7 @@ sap.ui.define([
 	'sap/ui/test/matchers/MatcherFactory',
 	'sap/ui/test/pipelines/MatcherPipeline',
 	'sap/ui/test/_OpaLogger'
-], function ($, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
+], function (extend, ObjectPath, $, Global, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
 			MatcherPipeline, _OpaLogger) {
 
 		/**
@@ -40,6 +43,7 @@ sap.ui.define([
 		var OpaPlugin = UI5Object.extend("sap.ui.test.OpaPlugin", /** @lends sap.ui.test.OpaPlugin.prototype */ {
 
 			constructor : function() {
+				UI5Object.call(this);
 				this._oLogger = _OpaLogger.getLogger("sap.ui.test.Opa5");
 				this._oMatcherFactory = new MatcherFactory();
 			},
@@ -50,11 +54,11 @@ sap.ui.define([
 			 *
 			 * @param {Function} [fnConstructorType] the control type, e.g: sap.m.CheckBox
 			 * @param {string} [sControlType] optional control type name, e.g: "sap.m.CheckBox"
-			 * @returns {Array} an array of the found controls (can be empty)
+			 * @returns {Array<sap.ui.core.Element>} an array of the found controls (can be empty)
 			 * @public
 			 */
 			getAllControls : function (fnConstructorType, sControlType) {
-				var aControls = UI5Element.registry.filter( makeTypeFilterFn(fnConstructorType) );
+				var aControls = OpaPlugin.getElementRegistry().filter( makeTypeFilterFn(fnConstructorType) );
 				this._oLogger.debug("Found " + aControls.length + " controls" +
 					(fnConstructorType ? " of type '" + (sControlType || fnConstructorType) + "'" : "") + " in page");
 				return aControls;
@@ -64,8 +68,8 @@ sap.ui.define([
 			 * Returns the view with a specific name. The result should be a unique view.
 			 * If there are multiple visible views with that name, none will be returned.
 			 *
-			 * @param {string} sViewName the name of the view
-			 * @returns {sap.ui.core.mvc.View} or undefined
+			 * @param {string} sViewName Name of the view
+			 * @returns {sap.ui.core.mvc.View|undefined} Unique view or <code>undefined</code>
 			 * @public
 			 */
 			getView: function (sViewName) {
@@ -104,7 +108,7 @@ sap.ui.define([
 				}
 
 				if (oOptions.viewId) {
-					var oCoreElement = UI5Element.registry.get(oOptions.viewId);
+					var oCoreElement = OpaPlugin.getElementById(oOptions.viewId);
 					if (oCoreElement instanceof View && (!sViewName || oCoreElement.getViewName() === sViewName)) {
 						oView = oCoreElement;
 					}
@@ -128,8 +132,13 @@ sap.ui.define([
 			 * eg : { viewName : "bar", viewNamespace : "baz." } will return all the Controls in the view with the name baz.bar<br/>
 			 * eg : { viewId : "viewBar" } will return all the controls inside the view with the ID viewBar<br/>
 			 *
-			 * @param {object} oOptions can contain a viewName, viewNamespace, viewId, fragmentId, id and controlType properties.
-			 * oOptions.id can be string, array or regular expression
+			 * @param {object} options can contain a viewName, viewNamespace, viewId, fragmentId, id and controlType properties.
+			 * @param {string} [options.viewName]
+			 * @param {string} [options.viewNamespace]
+			 * @param {string} [options.viewId]
+			 * @param {string} [options.fragmentId]
+			 * @param {string|RegExp|Array<string|RegExp>} [options.id]
+			 * @param {function} [options.controlType]
 			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]|null}
 			 * If oOptions.id is a string, will return the control with such an ID or null.<br/>
 			 * If the view is not found or no control matches the given criteria, will return an empty array <br/>
@@ -137,8 +146,12 @@ sap.ui.define([
 			 * @public
 			 */
 			getControlInView : function (oOptions) {
-				var oView = this._getMatchingView(oOptions);
-				var bSearchForSingleControl = typeof oOptions.id === "string";
+				var bSearchForSingleControl = typeof oOptions.id === "string",
+					oView;
+
+				if (oOptions.viewName || oOptions.viewId) {
+					oView = this._getMatchingView(oOptions);
+				}
 
 				if (!oView) {
 					return bSearchForSingleControl ? null : [];
@@ -147,7 +160,8 @@ sap.ui.define([
 				var sViewName = oView.getViewName();
 				var sFragmentPrefix = oOptions.fragmentId ? oOptions.fragmentId + OpaPlugin.VIEW_ID_DELIMITER : "";
 
-				if ($.isArray(oOptions.id)) {
+				// first check for exact Ids, to skip searching through all the view's controls if possible
+				if (Array.isArray(oOptions.id)) {
 					var aControls = [];
 					var aUnmatchedIds = [];
 					oOptions.id.map(function (sId) {
@@ -161,18 +175,39 @@ sap.ui.define([
 						}
 					});
 
-					var sUnmatchedLog = aUnmatchedIds.length ? ". Found no controls matching the subset of IDs " + aUnmatchedIds : "";
-					this._oLogger.debug("Found " + aControls.length + " controls with ID contained in " + oOptions.id + " in view '" + sViewName + "'" + sUnmatchedLog);
+					this._oLogger.debug("Found " + aControls.length + " controls with ID contained in " + oOptions.id + " in view '" + sViewName + "'" +
+						aUnmatchedIds.length ? ". Found no controls matching the subset of IDs " + aUnmatchedIds : "");
+
+					if (aControls.length && oOptions.controlType) {
+						var aControlsWithCorrectType = this._filterUniqueControlsByCondition(aControls, makeTypeFilterFn(oOptions.controlType));
+						this._oLogger.debug("Found " + (aControlsWithCorrectType.length ? aControlsWithCorrectType.length : "no") + " controls in view '" + sViewName +
+							"' with control type matching '" + oOptions.sOriginalControlType + "' and ID contained in " + oOptions.id);
+						if (aControlsWithCorrectType.length !== aControls.length) {
+							this._oLogger.error("Some results don't match the desired controlType '" + oOptions.sOriginalControlType +
+								"'. Please double check the expected controlType - this might lead to unexpected test results!");
+						}
+					}
 					return aControls;
 				}
 
 				if (bSearchForSingleControl) {
 					var sId = sFragmentPrefix + oOptions.id;
 					var oControl = oView.byId(sId) || null;
-					this._oLogger.debug("Found " + (oControl ? "" : "no ") + "control with ID '" + sId + "' in view '" + sViewName + "'");
-					return oControl;
+					if (oControl) {
+						if (makeTypeFilterFn(oOptions.controlType)(oControl)) {
+							this._oLogger.debug("Found control with ID '" + sId + "' and controlType '" + oOptions.sOriginalControlType + "' in view '" + sViewName + "'");
+						} else {
+							this._oLogger.error("Found control with ID '" + sId + "' in view '" + sViewName + "' but it does not have required controlType '" +
+								oOptions.sOriginalControlType + "'. Please double check the expected controlType - this might lead to unexpected test results!");
+						}
+						return oControl;
+					} else {
+						this._oLogger.debug("Found no control with ID '" + sId + "' in view '" + sViewName + "'");
+						return oControl;
+					}
 				}
 
+				// if not exact Id is given, start a thorough search
 				var aAllControlsOfTheView = this.getAllControlsWithTheParent(oView, oOptions.controlType, oOptions.sOriginalControlType);
 				var bMatchById = this._isRegExp(oOptions.id);
 
@@ -207,13 +242,17 @@ sap.ui.define([
 
 			// get control in static area that matches a control type, ID (string, array, regex), viewId, viewName, fragmentId
 			_getControlsInStaticArea: function (oOptions) {
-				var oStaticArea = $(sap.ui.getCore().getStaticAreaRef());
-				var vControls = this._getControlsInContainer(oStaticArea) || [];
+				var oStaticAreaDomRef = $(OpaPlugin.getStaticAreaDomRef());
+				var vControls = this._getControlsInContainer(oStaticAreaDomRef) || [];
 
 				if (oOptions.id) {
 					vControls = this._filterUniqueControlsByCondition(vControls, function (oControl) {
-						var sUnprefixedControlId = oControl.getId();
-						var oView = this._getMatchingView(oOptions);
+						var sUnprefixedControlId = oControl.getId(),
+							oView;
+
+						if (oOptions.viewName || oOptions.viewId) {
+							oView = this._getMatchingView(oOptions);
+						}
 
 						if (oView) {
 							// the view could be set globally or from page object. in this case, search inside open dialogs should take priority:
@@ -232,7 +271,7 @@ sap.ui.define([
 						if (this._isRegExp(oOptions.id)) {
 							bIdMatches = oOptions.id.test(sUnprefixedControlId);
 						}
-						if ($.isArray(oOptions.id)) {
+						if (Array.isArray(oOptions.id)) {
 							bIdMatches = oOptions.id.filter(function (sId) {
 								return sId === sUnprefixedControlId;
 							}).length > 0;
@@ -248,8 +287,7 @@ sap.ui.define([
 				if (vControls.length && oOptions.controlType) {
 					var hasExpectedType = makeTypeFilterFn(oOptions.controlType);
 					vControls = this._filterUniqueControlsByCondition(vControls, hasExpectedType);
-
-					this._oLogger.debug("Found " + (vControls.length ? vControls.length : "no") + " controls in the static area with control type matching '" + oOptions.controlType + "'");
+					this._oLogger.debug("Found " + (vControls.length ? vControls.length : "no") + " controls in the static area with control type matching '" + oOptions.sOriginalControlType + "'");
 				}
 
 				if (oOptions.id && typeof oOptions.id === "string") {
@@ -261,17 +299,7 @@ sap.ui.define([
 
 			// get controls whose roots are in the subtree of oJQueryElement
 			_getControlsInContainer: function (oJQueryElement) {
-				var aAllControls = oJQueryElement.find("*").control();
-				var aResult = [];
-				aAllControls.forEach(function (oControl) {
-					var bUnique = !aResult.filter(function (oUniqueControl) {
-						return oUniqueControl.getId() === oControl.getId();
-					}).length;
-					if (bUnique) {
-						aResult.push(oControl);
-					}
-				});
-				return aResult;
+				return toUniqueControls(oJQueryElement.find("*"));
 			},
 
 			_isControlInView: function (oControl, sViewName) {
@@ -374,7 +402,7 @@ sap.ui.define([
 				// all controls are filtered out
 				if (!vPipelineResult) {
 					// backwards compatible - return empty array in this case
-					if ($.isArray(vResult)) {
+					if (Array.isArray(vResult)) {
 						return [];
 					}
 					// Single control - return null
@@ -398,7 +426,7 @@ sap.ui.define([
 			 */
 			_getFilteredControls : function(oOptions) {
 				var vControl = this._filterControlsByCondition(oOptions);
-				var oFilterOptions = $.extend({}, oOptions);
+				var oFilterOptions = extend({}, oOptions);
 
 				// when on the root level of oOptions, these options are already processed (see _filterControlsByCondition) and should not be processed again,
 				// as this results in error when no controls are passed to the matcher pipeline (see _filterControlsByMatchers)
@@ -424,8 +452,8 @@ sap.ui.define([
 				var aControlsNotFoundConditions = [
 					typeof oOptions.id === "string" && !vControl, // search for single control by string ID
 					this._isRegExp(oOptions.id) && !vControl.length, // search by regex ID
-					$.isArray(oOptions.id) && (!vControl || vControl.length !== oOptions.id.length), // search by array of IDs
-					oOptions.controlType && $.isArray(vControl) && !vControl.length, // search by control type globally
+					Array.isArray(oOptions.id) && (!vControl || vControl.length !== oOptions.id.length), // search by array of IDs
+					oOptions.controlType && Array.isArray(vControl) && !vControl.length, // search by control type globally
 					!oOptions.id && (oOptions.viewName || oOptions.viewId || oOptions.searchOpenDialogs) && !vControl.length // search by control type in view or staic area
 				];
 
@@ -435,7 +463,7 @@ sap.ui.define([
 
 			// instantiate any matchers with declarative syntax and run controls through matcher pipeline
 			_filterControlsByMatchers: function (oOptions, vControl) {
-				var oOptionsWithMatchers = $.extend({}, oOptions);
+				var oOptionsWithMatchers = extend({}, oOptions);
 				var aMatchers = this._oMatcherFactory.getFilteringMatchers(oOptionsWithMatchers);
 				var bPluginLooksForControls = this._isLookingForAControl(oOptions);
 				var vResult = null;
@@ -463,19 +491,16 @@ sap.ui.define([
 			},
 
 			/**
-			 * Find a control by its global ID
+			 * Find a control by its global ID.
 			 *
 			 * @param {object} oOptions a map of match conditions. Must contain an id property
 			 * @param {string|string[]} [oOptions.id] required - ID to match. Can be string, regex or array
 			 * @param {string|function} [oOptions.controlType] optional - control type to match
-			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]} all matching controls
+			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]|null} all matching controls
 			 * <ul>
 			 *     <li>if a oOptions.id is a string, will return the single matching control or null if no controls match</li>
 			 *     <li>otherwise, will return an array of matching controls, or an empty array, if no controls match</li>
 			 * </ul>
-			 *
-			 * @param oOptions must contain ID property of type string, regex or array of strings; optionally it can contain a controlType property.
-			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]|null} all controls matched by the regex or the control matched by the string or null
 			 * @public
 			 */
 			getControlByGlobalId : function (oOptions) {
@@ -483,7 +508,7 @@ sap.ui.define([
 				var hasExpectedType = makeTypeFilterFn(oOptions.controlType);
 
 				if (typeof oOptions.id === "string") {
-					var oControl = UI5Element.registry.get(oOptions.id) || null;
+					var oControl = OpaPlugin.getElementById(oOptions.id) || null;
 
 					if (oControl && !hasExpectedType(oControl)) {
 						this._oLogger.error("A control with global ID '" + oOptions.id + "' is found but does not have required controlType '" +
@@ -500,12 +525,12 @@ sap.ui.define([
 
 				if (bMatchById) {
 					//Performance critical
-					UI5Element.registry.forEach(function(oElement, sId) {
+					OpaPlugin.getElementRegistry().forEach(function(oElement, sId) {
 						if (oOptions.id.test(sId)) {
 							aMatchIds.push(sId);
 						}
 					});
-				} else if ($.isArray(oOptions.id)) {
+				} else if (Array.isArray(oOptions.id)) {
 					aMatchIds = oOptions.id;
 				}
 
@@ -513,7 +538,7 @@ sap.ui.define([
 				var aUnmatchedIds = [];
 
 				aMatchIds.forEach(function (sId) {
-					var oControl = UI5Element.registry.get(sId);
+					var oControl = OpaPlugin.getElementById(sId);
 					// only return defined controls
 					if (oControl && hasExpectedType(oControl) && !oControl.bIsDestroyed) {
 						aMatchingControls.push(oControl);
@@ -534,16 +559,25 @@ sap.ui.define([
 			 * Gets the constructor function of a certain controlType
 			 *
 			 * @param {string} sControlType the name of the type eg: "sap.m.Button"
-			 * @returns {null|function} When the type is loaded, the contstructor is returned, if it is a lazy stub or not yet loaded, null will be returned and there will be a log entry.
+			 * @returns {null|function} When the type is loaded, the constructor is returned, if it is a lazy stub or not yet loaded, null will be returned and there will be a log entry.
 			 * @public
 			 */
 			getControlConstructor : function (sControlType) {
-				if (sap.ui.lazyRequire._isStub(sControlType)) {
-					this._oLogger.debug("The control type " + sControlType + " is currently a lazy stub.");
-					return null;
+				var sModuleName = sControlType.replace(/\./g, "/");
+				var fnControlType = sap.ui.require(sModuleName);
+				if ( fnControlType == null ) {
+					/**
+					 * @deprecated since 1.56 together with lazy loading as it implies sync loading
+					 */
+					if (Global.lazyRequire._isStub(sControlType)) {
+						this._oLogger.debug("The control type " + sControlType + " is currently a lazy stub.");
+						return null;
+					}
+					fnControlType = ObjectPath.get(sControlType);
+					if ( typeof fnControlType === "function" ) {
+						this._oLogger.debug("The control type " + sControlType + " could only be retrieved via global name.");
+					}
 				}
-
-				var fnControlType = $.sap.getObject(sControlType);
 
 				// no control type
 				if (!fnControlType) {
@@ -551,7 +585,7 @@ sap.ui.define([
 					return null;
 				}
 
-				// some control types only have static methods and cannot be instanciated (e.g.: sap.m.MessageToast)
+				// some control types only have static methods and cannot be instantiated (e.g.: sap.m.MessageToast)
 				if (typeof fnControlType !== "function") {
 					this._oLogger.debug("The control type " + sControlType + " must be a function.");
 					return null;
@@ -589,6 +623,9 @@ sap.ui.define([
 				var vControlType = oOptions.controlType;
 				//retrieve the constructor instance
 				if (typeof vControlType !== "string") {
+					/**
+					 * @deprecated since 1.56 together with lazy loading as it implies sync loading
+					 */
 					if (vControlType && vControlType._sapUiLazyLoader) {
 						// no way of getting the control type's name without actually calling it
 						this._oLogger.debug("The control type is currently a lazy stub");
@@ -664,6 +701,134 @@ sap.ui.define([
 
 		// delimiter after view or fragment prefix in control IDs
 		OpaPlugin.VIEW_ID_DELIMITER = "--";
+
+		/**
+		 * Returns <code>true</code> if there are any pending rendering tasks or when
+		 * such rendering tasks are currently being executed.
+		 * Internally forwards to {@link sap.ui.core.Rendering#isPending} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {boolean} true if there are pending (or executing) rendering tasks.
+		 * @protected
+		 */
+		OpaPlugin.isUIDirty = function() {
+			var oRendering = sap.ui.require("sap/ui/core/Rendering");
+			if (typeof oRendering?.isPending === "function") {
+				return oRendering.isPending();
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getUIDirty === "function") {
+				return oCore.getUIDirty();
+			}
+		};
+
+		/**
+		 * Retrieves a resource bundle for the given library and locale.
+		 * Internally forwards to {@link sap.ui.core.Lib#getResourceBundleFor} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @param {string} sLibraryName
+		 * @protected
+		 */
+		OpaPlugin.getLibraryResourceBundle = function(sLibraryName) {
+			var oLibrary = sap.ui.require("sap/ui/core/Lib");
+			if (typeof oLibrary?.getResourceBundleFor === "function") {
+				return oLibrary.getResourceBundleFor(sLibraryName);
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getLibraryResourceBundle === "function") {
+				return oCore.getLibraryResourceBundle(sLibraryName);
+			}
+		};
+
+		/**
+		 * Returns the registered element with the given ID, if any.
+		 * Internally forwards to {@link sap.ui.core.Element#getElementById} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @param {sap.ui.core.ID|null|undefined} sId ID of the element to search for
+		 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
+		 * @protected
+		 */
+		OpaPlugin.getElementById = function(sId) {
+			var oUI5Element = sap.ui.require("sap/ui/core/Element");
+
+			if (typeof oUI5Element.getElementById === "function") {
+				return oUI5Element.getElementById(sId);
+			}
+			if (typeof oUI5Element.registry?.get === "function") {
+				return oUI5Element.registry.get(sId);
+			}
+		};
+
+		/**
+		 * Returns the root element of the static, hidden area.
+		 * Internally forwards to {@link sap.ui.core.StaticArea#getDomRef} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {Element} the root DOM element of the static, hidden area
+		 * @protected
+		 */
+		OpaPlugin.getStaticAreaDomRef = function() {
+			var oStaticArea = sap.ui.require("sap/ui/core/StaticArea");
+			if (typeof oStaticArea?.getDomRef === "function") {
+				return oStaticArea.getDomRef();
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getStaticAreaRef === "function") {
+				return oCore.getStaticAreaRef();
+			}
+		};
+
+		/**
+		 * Return an object with all instances of <code>sap.ui.core.Element</code>,
+	 	 * keyed by their ID.
+		 * Internally requires {@link sap.ui.core.ElementRegistry} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {Object<sap.ui.core.ID,sap.ui.core.Element>}
+		 */
+		OpaPlugin.getElementRegistry = function() {
+			var oElementRegistry = sap.ui.require("sap/ui/core/ElementRegistry");
+
+			if (oElementRegistry) {
+				return oElementRegistry;
+			}
+			return sap.ui.require("sap/ui/core/Element").registry;
+		};
+
+		let toUniqueControls = function($DOMElements) {
+			const aControls = [];
+			$DOMElements.each((_idx, oDomRef) => {
+				const oUI5Element = UI5Element.closestTo(oDomRef);
+				if (oUI5Element && !aControls.includes(oUI5Element)) {
+					aControls.push(oUI5Element);
+				}
+			});
+			return aControls;
+		};
+
+		/**
+		 * Fallback to an implementation based on jQuery plugin when UI5Element.closestTo does not
+		 * exist yet (when the application under test is executed with a much older UI5 version).
+		 *
+		 * @deprecated Since 1.106
+		 */
+		if (typeof UI5Element.closestTo !== "function") {
+			toUniqueControls = function ($DOMElements) {
+				var aAllControls = $DOMElements.control();
+				var aResult = [];
+				aAllControls.forEach(function (oControl) {
+					var bUnique = !aResult.filter(function (oUniqueControl) {
+						return oUniqueControl.getId() === oControl.getId();
+					}).length;
+					if (bUnique) {
+						aResult.push(oControl);
+					}
+				});
+				return aResult;
+			};
+		}
 
 		return OpaPlugin;
 	});

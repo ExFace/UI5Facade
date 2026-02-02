@@ -1,15 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/library',
-	'sap/ui/core/theming/Parameters',
 	'sap/ui/layout/library',
-	'sap/ui/layout/form/Form'
-	], function(coreLibrary, themingParameters, library, Form) {
+	'sap/ui/layout/form/Form',
+	'./FormHelper',
+	'sap/ui/core/IconPool' // side effect: as RenderManager.icon needs it
+	], function(coreLibrary, library, Form, FormHelper, _IconPool) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TitleLevel
@@ -30,7 +31,7 @@ sap.ui.define([
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oLayout an object representation of the control that should be rendered
+	 * @param {sap.ui.layout.form.FormLayout} oLayout an object representation of the control that should be rendered
 	 */
 	FormLayoutRenderer.render = function(rm, oLayout){
 		var oForm = oLayout.getParent();
@@ -44,8 +45,8 @@ sap.ui.define([
 	 * Renders the HTML for the given form content, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oLayout an object representation of the Layout control that should be rendered
-	 * @param {sap.ui.layout.form.Form} oForm, a form control to render its content
+	 * @param {sap.ui.layout.form.FormLayout} oLayout an object representation of the Layout control that should be rendered
+	 * @param {sap.ui.layout.form.Form} oForm a form control to render its content
 	 */
 	FormLayoutRenderer.renderForm = function(rm, oLayout, oForm){
 
@@ -60,11 +61,7 @@ sap.ui.define([
 		rm.openEnd();
 
 		// Form header
-		var sSize;
-		if (!oToolbar) {
-			sSize = themingParameters.get('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize');
-		}
-		this.renderHeader(rm, oToolbar, oForm.getTitle(), undefined, false, sSize, oForm.getId());
+		this.renderHeader(rm, oToolbar, oForm.getTitle(), undefined, false, oLayout._sFormTitleSize, oForm.getId());
 
 		this.renderContainers(rm, oLayout, oForm);
 
@@ -100,7 +97,7 @@ sap.ui.define([
 		var oToolbar = oContainer.getToolbar();
 		var oTitle = oContainer.getTitle();
 
-		rm.openStart("section", oContainer);
+		rm.openStart("div", oContainer);
 		rm.class("sapUiFormContainer");
 
 		if (oToolbar) {
@@ -113,11 +110,11 @@ sap.ui.define([
 			rm.attr('title', oContainer.getTooltip_AsString());
 		}
 
-		this.writeAccessibilityStateContainer(rm, oContainer);
+		this.writeAccessibilityStateContainer(rm, oContainer, oLayout.isContainerLabelled(oContainer) ? "form" : "");
 
 		rm.openEnd();
 
-		this.renderHeader(rm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, TitleLevel.H4, oContainer.getId());
+		this.renderHeader(rm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, oLayout._sFormSubTitleSize, oContainer.getId());
 
 		if (bExpandable) {
 			rm.openStart("div", oContainer.getId() + "-content");
@@ -130,7 +127,11 @@ sap.ui.define([
 		var aElements = oContainer.getVisibleFormElements();
 		for (var j = 0, jl = aElements.length; j < jl; j++) {
 			var oElement = aElements[j];
-			this.renderElement(rm, oLayout, oElement);
+			if (oElement.isA("sap.ui.layout.form.SemanticFormElement") && !oElement._getEditable()) {
+				this.renderSemanticElement(rm, oLayout, oElement);
+			} else {
+				this.renderElement(rm, oLayout, oElement);
+			}
 		}
 
 		if (bExpandable) {
@@ -166,23 +167,47 @@ sap.ui.define([
 
 	};
 
-	/*
-	 * Renders the title for a Form or a FormContainer
+	FormLayoutRenderer.renderSemanticElement = function(rm, oLayout, oElement){
+
+		// just render like standard Element as default
+		this.renderElement(rm, oLayout, oElement);
+
+	};
+
+	/**
+	 * Renders the title for a <code>Form</code> or a <code>FormContainer</code>
+	 *
 	 * If this function is overwritten in a Layout please use the right IDs to be sure aria-describedby works fine
+	 *
+	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {string|sap.ui.core.Title} oTitle Title text or <code>Title</code> element
+	 * @param {sap.ui.core.Control} [oExpandButton] Button control for expander
+	 * @param {boolean} [bExpander] If <code>true</code> an expander is rendered
+	 * @param {string} sLevel Level of the title. If not set <code>H5</code> is used as default
+	 * @param {string} sContentId ID of the header element (<code>Form</code> or <code>FormContainer</code>)
 	 */
-	FormLayoutRenderer.renderTitle = function(rm, oTitle, oExpandButton, bExpander, sLevelDefault, sContentId){
+	FormLayoutRenderer.renderTitle = function(rm, oTitle, oExpandButton, bExpander, sLevel, sContentId){
 
 		if (oTitle) {
-			//determine title level -> if not set use H4 as default
-			var sLevel = themingParameters.get('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize');
-			if (sLevelDefault) {
-				sLevel = sLevelDefault;
-			}
 			if (typeof oTitle !== "string" && oTitle.getLevel() != TitleLevel.Auto) {
 				sLevel = oTitle.getLevel();
 			}
+			if (!sLevel) {
+				// use H5 as fallback -> but it should be set from outside
+				sLevel = "H5";
+			}
 
-			// just reuse TextView class because there font size & co. is already defined
+			const bRenderExpander = bExpander && oExpandButton;
+
+			if (bRenderExpander) {
+				// if expander is rendered put a DIV around expander and title. (If expander inside title the screenreader announcement is somehow strange.)
+				rm.openStart("div", sContentId + "--head");
+				rm.class("sapUiFormTitle");
+				rm.class("sapUiFormTitleExpandable");
+				rm.openEnd();
+				rm.renderControl(oExpandButton);
+			}
+
 			if ( typeof oTitle !== "string" ) {
 				rm.openStart(sLevel.toLowerCase(), oTitle);
 				if (oTitle.getTooltip_AsString()) {
@@ -192,15 +217,14 @@ sap.ui.define([
 					rm.class("sapUiFormTitleEmph");
 				}
 			} else {
-				rm.openStart(sLevel, sContentId + "--title");
+				rm.openStart(sLevel.toLowerCase(), sContentId + "--title");
 			}
-			rm.class("sapUiFormTitle");
+			if (!bRenderExpander) {
+				rm.class("sapUiFormTitle");
+			}
 			rm.class("sapUiFormTitle" + sLevel);
 			rm.openEnd();
 
-			if (bExpander && oExpandButton) {
-				rm.renderControl(oExpandButton);
-			}
 			if (typeof oTitle === "string") {
 				// Title is just a string
 				oTitle.split(/\n/).forEach(function(sLine, iIndex) {
@@ -231,54 +255,82 @@ sap.ui.define([
 			}
 
 			rm.close(sLevel.toLowerCase());
+			if (bRenderExpander) {
+				rm.close("div");
+			}
 		}
 
 	};
 
-	/*
+	/**
 	 * Renders the header, containing Toolbar or Title, for a Form or a FormContainer
+	 *
 	 * If this function is overwritten in a Layout please use the right IDs to be sure aria-describedby works fine
+	 *
+	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {sap.ui.core.Toolbar} [oToolbar] <code>Toolbar</code> control
+	 * @param {string|sap.ui.core.Title} [oTitle] Title text or <code>Title</code> element
+	 * @param {sap.ui.core.Control} [oExpandButton] Button control for expander
+	 * @param {boolean} [bExpander] If <code>true</code> an expander is rendered
+	 * @param {string} sLevel Level of the title.
+	 * @param {string} sContentId ID of the header element (<code>Form</code> or <code>FormContainer</code>)
 	 */
-	FormLayoutRenderer.renderHeader = function(rm, oToolbar, oTitle, oExpandButton, bExpander, sLevelDefault, sContentId){
+	FormLayoutRenderer.renderHeader = function(rm, oToolbar, oTitle, oExpandButton, bExpander, sLevel, sContentId){
 
 		if (oToolbar) {
 			rm.renderControl(oToolbar);
 		} else {
-			this.renderTitle(rm, oTitle, oExpandButton, bExpander, sLevelDefault, sContentId);
+			this.renderTitle(rm, oTitle, oExpandButton, bExpander, sLevel, sContentId);
 		}
 
 	};
 
-	/*
-	 * Writes the accessibility attributes for FormContainers
+	/**
+	 * Writes the accessibility attributes for FormContainers.
+	 * @param {sap.ui.core.RenderManager} rm the RenderManager that can be used for writing to the Render-Output-Buffer
+	 * @param {sap.ui.layout.form.FormContainer} oContainer <code>FormContainer</code> to write accessibility attributes
+	 * @param {string} sRole if set the given role is rendered, if no role given the DOM node needs no role (e.g. Container has no title)
 	 */
-	FormLayoutRenderer.writeAccessibilityStateContainer = function(rm, oContainer){
+	FormLayoutRenderer.writeAccessibilityStateContainer = function(rm, oContainer, sRole){
 
-		var mAriaProps = {};
-		var oTitle = oContainer.getTitle();
-		var oToolbar = oContainer.getToolbar();
-		if (oToolbar) {
-			if (!oContainer.getAriaLabelledBy() || oContainer.getAriaLabelledBy().length == 0) {
-				// no aria-label -> use Title of Toolbar
-				var sToolbarTitleID = library.form.FormHelper.getToolbarTitle(oToolbar);
-				mAriaProps["labelledby"] = {value: sToolbarTitleID, append: true};
-			}
-		} else if (oTitle) {
-			var sId = "";
-			if (typeof oTitle == "string") {
-				sId = oContainer.getId() + "--title";
-			} else {
-				sId = oTitle.getId();
-			}
-			mAriaProps["labelledby"] = {value: sId, append: true};
+		const mAriaProps = {};
+		const sTitleID = this.getTitleId(oContainer);
+		if (sTitleID) {
+			mAriaProps["labelledby"] = {value: sTitleID, append: true};
 		}
 
-		if (mAriaProps["labelledby"] || oContainer.getAriaLabelledBy().length > 0) {
-			// if no title or label do not set role because of JAWS 18 issues
-			mAriaProps["role"] = "form";
+		if (sRole) {
+			mAriaProps["role"] = sRole;
 		}
 
 		rm.accessibilityState(oContainer, mAriaProps);
+
+	};
+
+	/**
+	 * Determines the ID if the title of Form or Container used for aria-labelledby
+	 * @param {sap.ui.layout.form.Form|sap.ui.layout.form.FormContainer} oContainer <code>Form</code> or <code>FormContainer</code> to determine the ID of it's title
+	 * @returns {string} title ID
+	 */
+	FormLayoutRenderer.getTitleId = function(oContainer){
+
+		const oTitle = oContainer.getTitle();
+		const oToolbar = oContainer.getToolbar();
+		let sID = "";
+		if (oToolbar) {
+			if (!oContainer.getAriaLabelledBy() || oContainer.getAriaLabelledBy().length == 0) {
+				// no aria-label -> use Title of Toolbar
+				sID = FormHelper.getToolbarTitle(oToolbar); // FormHelper must already be initialized by FormLayout
+			}
+		} else if (oTitle) {
+			if (typeof oTitle == "string") {
+				sID = oContainer.getId() + "--title";
+			} else {
+				sID = oTitle.getId();
+			}
+		}
+
+		return sID;
 
 	};
 

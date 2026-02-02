@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/util/Version"],function(V){"use strict";function _(m,c){var u={};if(c.minVersion){var M=new V(m.minVersion);u.minVersion=M.compareTo(c.minVersion)>=0?m.minVersion:c.minVersion;}if(c.lazy){u.lazy=m.lazy===c.lazy===true;}return u;}var A={applyChange:function(m,c){if(!m["sap.ui5"]["dependencies"]["libs"]){m["sap.ui5"]["dependencies"]["libs"]={};}var M=m["sap.ui5"]["dependencies"]["libs"];var C=c.getContent().libraries;Object.keys(C).forEach(function(l){if(M[l]){M[l]=_(M[l],C[l]);}else{M[l]=C[l];}});return m;}};return A;},true);
+sap.ui.define(["sap/base/util/Version"],function(e){"use strict";function i(i,n){var r={};if(n.minVersion){var s=new e(i.minVersion);r.minVersion=s.compareTo(n.minVersion)>=0?i.minVersion:n.minVersion}if(n.lazy){r.lazy=i.lazy===n.lazy===true}return r}var n={applyChange(e,n){e["sap.ui5"].dependencies.libs||={};var r=e["sap.ui5"].dependencies.libs;var s=n.getContent().libraries;Object.keys(s).forEach(function(e){if(r[e]){r[e]=i(r[e],s[e])}else{r[e]=s[e]}});return e}};return n});
+//# sourceMappingURL=AddLibrary.js.map

@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================ */
+/* Due to deprecation of the Belize theme family with SAPUI5 version 1.120 the  */
+/* inheritance of the base theme is now updated to an inheritance of a static   */
+/* copy of the base theme named sap_belize_base. The respective                 */
+/* control css files of base are copied to the sap_belize_base theme folder.    */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.125.   */
+/* ============================================================================ */
+
+
+@import "../sap_belize_base/library.less";
 @import "../../../../../Base/baseLib/sap_belize/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/sap_belize/base.less" */
 
 @import "../../../../sap/ui/core/themes/sap_belize/global.less";
@@ -39,7 +48,9 @@
    Variables and mixins
    ========================================================================== */
 
-@_sap_tnt_InfoLabel_LineHeight: 1.125rem;
+@_sap_tnt_InfoLabel_LineHeight: 1rem;
+@_sap_tnt_InfoLabel_HeightWithoutBorders: 1rem;
+@_sap_tnt_InfoLabel_PaddingWhenEmpty: 0 @_sap_tnt_InfoLabel_LineHeightDisplayOnly/2;
 
 @_sap_tnt_InfoLabel_ColorsArray:
 	@_sap_tnt_InfoLabel_BackgroundColor1,
@@ -77,19 +88,6 @@ color named with the passed prefix and the number of the color*/
 }
 /* END "InfoLabel.less" */
 
-/* START "NavigationList.less" */
-/* ======================================= */
-/* CSS for control sap.tnt/NavigationList  */
-/* Belize theme                            */
-/* ======================================= */
-
-@_sap_tnt_NavigationList_SelectedItemBorderColor: transparent;
-
- .sapTntNavLIGroupItem.sapTntNavLIItem {
-	background-color: darken(@sapUiListBackground, 3);
-}
-/* END "NavigationList.less" */
-
 /* START "ToolHeader.less" */
 /* =================================== */
 /* CSS for control sap.tnt/ToolHeader  */
@@ -98,12 +96,12 @@ color named with the passed prefix and the number of the color*/
 
 @_sap_tnt_ToolHeader_AvatarColor: @sapUiContentContrastTextColor;
 
-.sapTntToolHeader.sapMTB {
+.sapTntToolHeader:not(.sapUshellShellToolHeader).sapMTB {
 	background-color: darken(@sapUiPageHeaderBackground, 8);
 	border: 1px solid darken(@sapUiPageHeaderBorderColor, 8);
 }
 
-.sapTntToolHeader .sapMITH,
+.sapTntToolHeader:not(.sapUshellShellToolHeader) .sapMITH,
 .sapTntToolHeaderPopover.sapMOTAPopover.sapMPopover {
 	background-color: darken(@sapUiPageHeaderBackground, 8);
 }
@@ -122,7 +120,7 @@ color named with the passed prefix and the number of the color*/
 	}
 }
 
-.sapTntToolHeader .sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled) .sapMBtnInner.sapMBtnEmphasized.sapMBtnActive::after {
+.sapTntToolHeader:not(.sapUshellShellToolHeader) .sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled) .sapMBtnInner.sapMBtnEmphasized.sapMBtnActive::after {
 	color: @sapUiButtonEmphasizedTextColor;
 }
 
@@ -152,21 +150,76 @@ html.sap-desktop .sapTntToolHeader .sapMBtn:focus > .sapMBtnEmphasized.sapMFocus
 	}
 }
 
-.sapTntToolHeader .sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled)  .sapMBtnInner.sapMBtnActive {
+.sapTntToolHeader:not(.sapUshellShellToolHeader) .sapMMenuBtn.sapMMenuBtnRegular .sapMBtn:not(.sapMBtnDisabled)  .sapMBtnInner.sapMBtnActive {
 	background: @sapButton_Active_Background;
 }
 
 
-.sapTntToolHeader .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnEmphasized::after {
+.sapTntToolHeader:not(.sapUshellShellToolHeader) .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner.sapMBtnEmphasized::after {
 	color: @sapContent_IconColor;
 }
 
 .sapTntToolHeader span.sapMBtnInner.sapMBtnEmphasized .sapMBtnIcon {
-    color: @sapContent_IconColor;
+	color: @sapContent_IconColor;
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop .sapTntToolHeader .sapMBtn:focus > .sapMBtnEmphasized > .sapMBtnFocusDiv {
-	border-color: @sapUiContentFocusColor;
+.sapTntToolHeader:not(.sapUshellShellToolHeader) .sapMITH.sapMITBTextOnly .sapMITHEndOverflow {
+	margin-top: 0;
+}
+
+.sapTntToolHeader:not(.sapUshellShellToolHeader) {
+	.sapMITH {
+		.sapMITHStartOverflow,
+		.sapMITHEndOverflow {
+			.sapMITBItem {
+				background-color: transparent;
+				border-color: transparent;
+
+				&:hover {
+					background: fade(lighten(@sapPrimary1, 18%), 50%);
+				}
+
+				&:active {
+					background: @sapButton_Active_Background;
+
+					.sapMITBText {
+						color: @sapUiShellActiveTextColor;
+
+						.sapMITHShowSubItemsIcon .sapUiIcon {
+							color: @sapUiShellActiveTextColor;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// sap.m.Avatar / sap.f.Avatar overriding
+// ==========================================================================
+
+.sapTntToolHeader .sapFAvatar {
+	background-color: @_sap_tnt_ToolHeader_AvatarBackground;
+	.sapFAvatarInitialsHolder,
+	.sapUiIcon.sapFAvatarTypeIcon  {
+		color: @_sap_tnt_ToolHeader_AvatarColor;
+	}
+}
+
+/* ------------------------------------------------ */
+/* Shell overrides                        */
+/* ------------------------------------------------ */
+
+.sapTntToolHeader.sapUshellShellToolHeader {
+	.sapMITH {
+		border-bottom: none;
+		box-shadow: none;
+	}
+
+	height: 3.125rem;
+	box-sizing: border-box;
+	border-bottom: 0.125rem solid @sapUiObjectHeaderBackground;
 }
 /* END "ToolHeader.less" */
 
@@ -178,3 +231,23 @@ html[data-sap-ui-browser^="ie"].sap-desktop .sapTntToolHeader .sapMBtn:focus > .
 
 @_sap_tnt_SideNavigation_NavigationSeparatorBackgroundColor: @sapUiAccent6;
 /* END "SideNavigation.less" */
+
+/* START "NavigationList.less" */
+/* ======================================= */
+/* CSS for control sap.tnt/NavigationList  */
+/* Belize theme                            */
+/* ======================================= */
+
+@_sap_tnt_NavigationList_SelectedItemBorderColor: transparent;
+
+.sapTntNLISecondLevel.sapTntNLI {
+	background-color: darken(@sapUiListBackground, 3);
+}
+
+.sapTntNLMenu.sapUiMnu .sapUiMnuItmIco>.sapUiIcon {
+	line-height: 3rem;
+	font-size: 1.375rem;
+}
+
+/* END "NavigationList.less" */
+ // keep this order, it reuses variable @_sap_tnt_SideNavigation_BoxShadow defined in SideNavigation.less

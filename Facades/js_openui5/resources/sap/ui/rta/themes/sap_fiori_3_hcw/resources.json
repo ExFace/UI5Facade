@@ -7,106 +7,78 @@
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
+			"name": "ChangeVisualization.less",
+			"size": 580,
+			"designtime": true,
+			"theme": "sap_fiori_3_hcw"
+		},
+		{
 			"name": "ContextMenu.less",
-			"size": 2445,
+			"size": 649,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 881,
+			"size": 332,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "FieldRepository.less",
-			"size": 540,
+			"size": 339,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 2076,
+			"size": 841,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 864,
+			"size": 2756,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 2723,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "Toolbar.personalization.less",
-			"size": 500,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "Toolbar.standalone.less",
-			"size": 656,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 5311,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 87518,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 87142,
+			"size": 527,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 30353,
+			"size": 27215,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 2040,
+			"module": "sap/ui/rta/themes/sap_fiori_3_hcw/library-parameters.json",
+			"size": 3678,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 30350,
+			"size": 27190,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 11753,
+			"size": 7002,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 582,
+			"size": 537,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 32142,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 32139,
-			"theme": "sap_fiori_3_hcw"
+			"name": "resources.json",
+			"size": 1506
 		}
 	]
 }

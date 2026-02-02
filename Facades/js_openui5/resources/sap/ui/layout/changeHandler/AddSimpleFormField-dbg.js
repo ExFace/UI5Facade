@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/changeHandler/BaseAddViaDelegate"
+	"sap/ui/fl/changeHandler/BaseAddViaDelegate",
+	"sap/ui/core/util/reflection/JsControlTreeModifier"
 ], function(
-	BaseAddViaDelegate
+	BaseAddViaDelegate,
+	JsControlTreeModifier
 ) {
 	"use strict";
 
@@ -30,29 +32,29 @@ sap.ui.define([
 		// This logic is for insertIndex being a desired index of a form element inside a container
 		// However we cannot allow that new fields are added inside other FormElements, therefore
 		// we must find the end of the FormElement to add the new FormElement there
-		if (aContent.length === 1 || aContent.length === iIndexOfHeader + 1){
+		if (aContent.length === 1 || aContent.length === iIndexOfHeader + 1) {
 			// Empty container (only header or toolbar)
 			iNewIndex = aContent.length;
 		} else {
 			var j = 0;
-			for (j = iIndexOfHeader + 1; j < aContent.length; j++){
+			for (j = iIndexOfHeader + 1; j < aContent.length; j++) {
 				var sControlType = oModifier.getControlType(aContent[j]);
 				// When the next control is a label (= end of FormElement)
-				if (sControlType === sTypeLabel || sControlType === sTypeSmartLabel ){
-					if (iFormElementIndex == insertIndex){
+				if (sControlType === sTypeLabel || sControlType === sTypeSmartLabel) {
+					if (iFormElementIndex === insertIndex) {
 						iNewIndex = j;
 						break;
 					}
 					iFormElementIndex++;
 				}
 				// Next control is a title or toolbar (= end of container)
-				if (sControlType === sTypeTitle || sControlType === sTypeToolBar){
+				if (sControlType === sTypeTitle || sControlType === sTypeToolBar) {
 					iNewIndex = j;
 					break;
 				}
 
 				// If there are no more titles, toolbars or labels (= this is the last FormElement) -> insert at end
-				if (j === (aContent.length - 1)){
+				if (j === (aContent.length - 1)) {
 					iNewIndex = aContent.length;
 				}
 			}
@@ -66,18 +68,6 @@ sap.ui.define([
 		return aContentClone;
 	}
 
-	function recreateContentAggregation(oSimpleForm, aContentClone, oModifier, mPropertyBag) {
-		oModifier.removeAllAggregation(oSimpleForm, "content");
-			for (var i = 0; i < aContentClone.length; ++i) {
-				oModifier.insertAggregation(oSimpleForm,
-					"content",
-					aContentClone[i],
-					i,
-					mPropertyBag.view
-				);
-			}
-	}
-
 	/**
 	 * Change handler for adding a SmartField or Something from a Delegate to a SimpleForm
 	 *
@@ -87,41 +77,47 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 *
-	 * @version 1.82.0
-	 *
-	 * @experimental Since 1.49.0 This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
+	 * @version 1.136.0
 	 */
 	var AddSimpleFormField = BaseAddViaDelegate.createAddViaDelegateChangeHandler({
-		addProperty : function(mPropertyBag) {
+		addProperty: function(mPropertyBag) {
 			var oSimpleForm = mPropertyBag.control;
 
 			var mInnerControls = mPropertyBag.innerControls;
 			var oModifier = mPropertyBag.modifier;
 			var oAppComponent = mPropertyBag.appComponent;
+			var aContent;
+			var iNewIndex;
+			var aContentClone;
 
 			var oChange = mPropertyBag.change;
-			// as the label is stored independent of the field and will not be destroyed by destroying the field, is needs to be remembered
+			// as the label is stored independent of the field and will not be destroyed by destroying the field, it needs to be remembered
 			var oRevertData = oChange.getRevertData();
 			oRevertData.labelSelector = oModifier.getSelector(mInnerControls.label, oAppComponent);
+			oChange.setRevertData(oRevertData);
 
-			var aContent = oModifier.getAggregation(oSimpleForm, "content");
-			var iNewIndex = getIndex(aContent, mPropertyBag);
-			var aContentClone = insertLabelAndField(aContent, iNewIndex, mInnerControls);
-
-			recreateContentAggregation(oSimpleForm, aContentClone, oModifier, mPropertyBag);
-
-			if (mInnerControls.valueHelp) {
-				oModifier.insertAggregation(
-					oSimpleForm,
-					"dependents",
-					mInnerControls.valueHelp,
-					0,
-					mPropertyBag.view
-				);
-			}
+			return Promise.resolve()
+				.then(oModifier.getAggregation.bind(oModifier, oSimpleForm, "content"))
+				.then(function(aAggregationContent) {
+					aContent = aAggregationContent;
+					iNewIndex = getIndex(aContent, mPropertyBag);
+					aContentClone = insertLabelAndField(aContent, iNewIndex, mInnerControls);
+					return oModifier.replaceAllAggregation(oSimpleForm, "content", aContentClone);
+				})
+				.then(function() {
+					if (mInnerControls.valueHelp) {
+						return oModifier.insertAggregation(
+							oSimpleForm,
+							"dependents",
+							mInnerControls.valueHelp,
+							0,
+							mPropertyBag.view
+						);
+					}
+					return undefined;
+				});
 		},
-		revertAdditionalControls : function(mPropertyBag) {
+		revertAdditionalControls: function(mPropertyBag) {
 			var oSimpleForm = mPropertyBag.control;
 			var oChange = mPropertyBag.change;
 			var oModifier = mPropertyBag.modifier;
@@ -130,9 +126,11 @@ sap.ui.define([
 			var mLabelSelector = oChange.getRevertData().labelSelector;
 			if (mLabelSelector) {
 				var oLabel = oModifier.bySelector(mLabelSelector, oAppComponent);
-				oModifier.removeAggregation(oSimpleForm, "content", oLabel);
-				oModifier.destroy(oLabel);
+				return Promise.resolve()
+					.then(oModifier.removeAggregation.bind(oModifier, oSimpleForm, "content", oLabel))
+					.then(oModifier.destroy.bind(oModifier, oLabel));
 			}
+			return Promise.resolve();
 		},
 		aggregationName: "content",
 		mapParentIdIntoChange: function (oChange, mSpecificChangeInfo, mPropertyBag) {
@@ -150,9 +148,39 @@ sap.ui.define([
 		},
 		parentAlias: "_", //ensure to take the fallback
 		fieldSuffix: "", //no suffix needed
-		skipCreateLayout: true, //simple form needs field and label separately
-		supportsDefault: true
+		skipCreateLayout: true //simple form needs field and label separately
 	});
+
+	AddSimpleFormField.getChangeVisualizationInfo = function(oChange, oAppComponent) {
+		const oFormSelector = oChange.getSelector();
+		const oForm = JsControlTreeModifier.bySelector(oFormSelector, oAppComponent);
+		const oRevertData = oChange.getRevertData();
+		const oReturn = {
+			updateRequired: true
+		};
+
+		if (oRevertData && oRevertData.labelSelector) {
+			const oLabel = JsControlTreeModifier.bySelector(oRevertData.labelSelector, oAppComponent);
+			oReturn.affectedControls = [oLabel.getParent().getId()];
+			// If the label is currently invisible, the indicator should be on the form (it can't be the group because it could have been headerless)
+			if (!oLabel.getVisible()) {
+				oReturn.displayControls = [oForm];
+			}
+		} else {
+			const oElement = JsControlTreeModifier.bySelector(oChange.getContent().elementSelector, oAppComponent);
+			oReturn.affectedControls = [oChange.getContent().newFieldSelector];
+			// If the element is currently invisible, the indicator should be on on the form (it can't be the group because it could have been headerless)
+			if (!oElement.getVisible()) {
+				oReturn.displayControls = [oForm];
+			}
+		}
+
+		return oReturn;
+	};
+
+	AddSimpleFormField.getCondenserInfo = function() {
+		return undefined;
+	};
 
 	return AddSimpleFormField;
 },

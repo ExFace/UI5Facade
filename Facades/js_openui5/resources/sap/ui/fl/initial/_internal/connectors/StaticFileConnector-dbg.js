@@ -1,33 +1,40 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
-	"sap/base/util/LoaderExtensions"
+	"sap/base/util/LoaderExtensions",
+	"sap/base/util/merge",
+	"sap/ui/core/Component",
+	"sap/ui/core/Supportability",
+	"sap/ui/fl/interfaces/BaseLoadConnector"
 ], function(
 	Log,
-	LoaderExtensions
+	LoaderExtensions,
+	merge,
+	Component,
+	Supportability,
+	BaseConnector
 ) {
 	"use strict";
 
-	function _getBundle(sReference, sBundleName) {
-		var sBundleResourcePath = sReference.replace(/\./g, "/") + "/changes/" + sBundleName + ".json";
+	function getBundle(sReference, sBundleName) {
+		var sBundleResourcePath = `${sReference.replace(/\./g, "/")}/changes/${sBundleName}.json`;
 		var bBundleLoaded = !!sap.ui.loader._.getModuleState(sBundleResourcePath);
-		var oConfiguration = sap.ui.getCore().getConfiguration();
 		// the bundle is usually part of the component-preload
 		// if the preload is suppressed, we send a potentially failing request
-		if (bBundleLoaded || oConfiguration.getDebug() || oConfiguration.getComponentPreload() === "off") {
+		if (bBundleLoaded || Supportability.isDebugModeEnabled() || Component.getComponentPreloadMode() === "off") {
 			try {
 				return LoaderExtensions.loadResource(sBundleResourcePath);
 			} catch (e) {
-				//JSON parse error of bundle file --> log error
+				// JSON parse error of bundle file --> log error
 				if (e.name.includes("SyntaxError")) {
 					Log.error(e);
 				}
-				Log.warning("flexibility did not find a " + sBundleName + ".json for the application: " + sReference);
+				Log.warning(`flexibility did not find a ${sBundleName}.json for the application: ${sReference}`);
 			}
 		}
 	}
@@ -41,24 +48,22 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal.Storage
 	 */
-	return {
+	const StaticFileConnector = merge({}, BaseConnector, {
 		/**
 		 * Provides the flex data stored in the built flexibility- or changes-bundle JSON file.
 		 *
 		 * @param {object} mPropertyBag Properties needed by the connector
 		 * @param {string} mPropertyBag.reference Reference of the application
-		 * @param {string} [mComponent.componentName] Component name of the current application which may differ in case of an app variant
+		 * @param {string} [mPropertyBag.componentName] Component name of the current application which may differ in case of an app variant
 		 * @returns {Promise<Object>} Resolving with an object containing a data contained in the bundle
 		 */
-		loadFlexData: function (mPropertyBag) {
+		loadFlexData(mPropertyBag) {
 			var sComponentName = mPropertyBag.componentName;
 
-			if (!sComponentName) {
-				// fallback in case the loadFlexData was called without passing the component name
-				sComponentName = mPropertyBag.reference.replace(/.Component/g, "");
-			}
+			// fallback in case the loadFlexData was called without passing the component name
+			sComponentName ||= mPropertyBag.reference.replace(/.Component/g, "");
 
-			var oFlexBundle = _getBundle(sComponentName, "flexibility-bundle");
+			var oFlexBundle = getBundle(sComponentName, "flexibility-bundle");
 			if (oFlexBundle) {
 				// TODO: remove as soon as the client also does the separation of compVariants and changes
 				oFlexBundle.changes = oFlexBundle.changes.concat(oFlexBundle.compVariants);
@@ -66,14 +71,24 @@ sap.ui.define([
 				return Promise.resolve(oFlexBundle);
 			}
 
-			var oChangesBundle = _getBundle(sComponentName, "changes-bundle");
+			var oChangesBundle = getBundle(sComponentName, "changes-bundle");
 			if (oChangesBundle) {
 				return Promise.resolve({
-					changes : oChangesBundle
+					changes: oChangesBundle
 				});
 			}
 
 			return Promise.resolve();
+		},
+
+		loadFeatures() {
+			return Promise.resolve({});
+		},
+
+		loadVariantsAuthors() {
+			return Promise.resolve({});
 		}
-	};
+	});
+
+	return StaticFileConnector;
 });

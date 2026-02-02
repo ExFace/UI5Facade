@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -52,6 +52,9 @@
 	&:after {
 		border-color: @sapUiContentContrastFocusColor;
 	}
+	&:active:after {
+		border-color: @sapUiContentContrastFocusColor;
+	}
 }
 
 .sap-desktop .sapContrastPlus,
@@ -85,6 +88,10 @@
 // buttons on phone must stretch
 html.sap-phone .sapMDialog {
 	& > footer .sapMFooter-CTX {
+		.sapMTBSpacer {
+			display: none;
+		}
+
 		.sapMBtn {
 			-webkit-box-flex: 1; /* OLD - iOS 6-, Safari 3.1-6 */
 			-webkit-flex: 1; /* Chrome */
@@ -133,6 +140,7 @@ html.sap-desktop .sapMGenericTag {
 @_sap_m_IconTabBar_TextHoverColor: lighten(@sapUiGroupTitleTextColor, 2);
 @_sap_m_IconTabBar_SelectedTextColor: @sapUiSelected;
 @_sap_m_IconTabBar_SelectedTextHoverColor: lighten(@sapUiSelected, 10);
+@_sap_m_IconTabBar_HeaderMinHeight: 3rem;
 /* END "IconTabBar.less" */
 
 /* START "Link.less" */
@@ -152,6 +160,16 @@ html.sap-desktop .sapMGenericTag {
 
 @_sap_m_ListItemBase_ListTextShadowColor: @sapUiShadowText;
 /* END "ListItemBase.less" */
+
+/* START "MessageBox.less" */
+/* ================================= */
+/* CSS for control sap.m/MessageBox  */
+/* Belize theme                     */
+/* ================================= */
+
+@_sap_m_MessageBox_InformationShadow: @_sap_m_MessageBox_HeaderShadow @sapUiNeutralBorder;
+@_sap_m_MessageBox_QuestionShadow: @_sap_m_MessageBox_HeaderShadow @sapUiNeutralBorder;
+/* END "MessageBox.less" */
 
 /* START "NewsContent.less" */
 /* ================================== */
@@ -342,6 +360,30 @@ html.sap-desktop .sapMGenericTag {
 /* ========================================= */
 
 @_sap_m_ViewSettingsDialog_HeaderBorderColor: lighten(@sapUiGroupContentBackground, 8);
+
+.sapMVSD {
+	.sapMPageSubHeader .sapMVSDBar {
+		height: 2.75rem;
+	}
+	.sapMTB.sapMVSDFilterHeaderToolbar {
+		padding-left: 0;
+	}
+	.sapMPage > .sapMPageHeader + .sapMPageSubHeader + section {
+		top: 6rem;
+	}
+}
+
+.sapUiSizeCompact .sapMVSD {
+	.sapMPageSubHeader .sapMVSDBar {
+		height: 2rem;
+	}
+	.sapMTB.sapMVSDFilterHeaderToolbar {
+		padding-left: 0.75rem;
+	}
+	.sapMPage > .sapMPageHeader + .sapMPageSubHeader + section {
+		top: 4.75rem;
+	}
+}
 /* END "ViewSettingsDialog.less" */
 
 /* START "WheelSlider.less" */

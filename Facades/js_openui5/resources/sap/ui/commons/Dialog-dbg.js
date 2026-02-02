@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,11 +16,15 @@ sap.ui.define([
     './DialogRenderer',
     'sap/ui/core/library',
     'sap/ui/core/ResizeHandler',
-    "sap/ui/dom/jquery/rect", // jQuery Plugin "rect"
-    'sap/ui/dom/jquery/control', // jQuery.fn.control
-    'sap/ui/dom/jquery/Selectors' // sapTabbable
+    "sap/ui/core/Configuration",
+    // jQuery Plugin "rect"
+    "sap/ui/dom/jquery/rect",
+    // jQuery.fn.control
+    'sap/ui/dom/jquery/control',
+    // sapTabbable
+    'sap/ui/dom/jquery/Selectors'
 ],
-	function(jQuery, Log, containsOrEquals, library, Control, Popup, RenderManager, DialogRenderer, coreLibrary, ResizeHandler) {
+	function(jQuery, Log, containsOrEquals, library, Control, Popup, RenderManager, DialogRenderer, coreLibrary, ResizeHandler, Configuration) {
 		"use strict";
 
 
@@ -47,13 +51,12 @@ sap.ui.define([
 		 *
 		 * @namespace
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @deprecated Since version 1.38. Instead, use the <code>sap.m.Dialog</code> control.
 		 * @alias sap.ui.commons.Dialog
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var Dialog = Control.extend("sap.ui.commons.Dialog", /** @lends sap.ui.commons.Dialog.prototype */ {
 			metadata: {
@@ -62,6 +65,7 @@ sap.ui.define([
 					"sap.ui.core.PopupInterface"
 				],
 				library: "sap.ui.commons",
+				deprecated: true,
 				properties: {
 
 					/**
@@ -351,7 +355,7 @@ sap.ui.define([
 			// if content has 100% width, but Dialog has no width, set content width to auto
 			if (!this._isSizeSet(this.getWidth()) && !this._isSizeSet(this.getMaxWidth())) {
 				$content.children().each(function (index, element) {
-					if (jQuery.trim(this.style.width) == "100%") {
+					if (this.style.width.trim() == "100%") {
 						this.style.width = "auto";
 					}
 				});
@@ -387,7 +391,7 @@ sap.ui.define([
 			var sCloseBtnId = this.getId() + "-close";
 			if (oEvent.target.id === sCloseBtnId) {
 				this.close();
-				oEvent.preventDefault(); // avoid onbeforeunload event which happens at least in IE9 because of the "#" link target// TODO remove after the end of support for Internet Explorer
+				oEvent.preventDefault(); // avoid changing the URL fragment which happens because of the "#" link target on the close button
 			}
 			return false;
 		};
@@ -395,7 +399,6 @@ sap.ui.define([
 		/**
 		 * Opens the dialog control instance.
 		 *
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 * @public
 		 */
 		Dialog.prototype.open = function () {
@@ -476,7 +479,6 @@ sap.ui.define([
 		/**
 		 * Closes the dialog control instance.
 		 *
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 * @public
 		 */
 		Dialog.prototype.close = function () {
@@ -638,7 +640,6 @@ sap.ui.define([
 			this.sLastRelevantNavigation = null;
 
 			if (!this._bInitialFocusSet) {
-				// since IE9 calls first "onfocusin" it has to be checked if the initial focus was set already// TODO remove after the end of support for Internet Explorer
 				return;
 			}
 
@@ -738,7 +739,6 @@ sap.ui.define([
 		 * Indicates whether the Dialog is open (this includes opening and closing animations).
 		 * For more detailed information about the current state check Dialog.getOpenState().
 		 *
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 * @returns {boolean}
 		 * @public
 		 */
@@ -751,7 +751,6 @@ sap.ui.define([
 		/**
 		 * Indicates whether the Dialog is currently open, closed, or transitioning between these states.
 		 *
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 * @returns {sap.ui.core.OpenState}
 		 * @public
 		 */
@@ -821,7 +820,7 @@ sap.ui.define([
 			var oSource = oEvent.target,
 				sId = this.getId();
 
-			this._bRtlMode = sap.ui.getCore().getConfiguration().getRTL(); // remember the RTL mode for the starting resize operation
+			this._bRtlMode = Configuration.getRTL(); // remember the RTL mode for the starting resize operation
 			var oDomRef = this.getDomRef();
 			if (containsOrEquals(this.getDomRef("hdr"), oSource)) {
 				if (oSource.id != (sId + "-close")) {

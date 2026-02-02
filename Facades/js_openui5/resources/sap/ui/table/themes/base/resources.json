@@ -3,128 +3,112 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
 			"name": "AnalyticalTable.less",
-			"size": 1140,
+			"size": 1121,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Cell.less",
-			"size": 11061,
+			"size": 10953,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "CreationRow.less",
-			"size": 2146,
+			"size": 2176,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DragDrop.less",
-			"size": 5498,
+			"size": 7430,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Grouping.less",
-			"size": 8140,
+			"size": 6852,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Row.less",
-			"size": 2190,
+			"size": 2335,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "RowAction.less",
-			"size": 1403,
+			"size": 1411,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "RowHighlight.less",
-			"size": 2608,
+			"size": 3071,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "RowSelection.less",
-			"size": 4320,
+			"size": 4511,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Scrolling.less",
-			"size": 13076,
+			"size": 9614,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "ScrollingIOS.less",
+			"size": 448,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Table.less",
-			"size": 13425,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 16433,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 99324,
+			"size": 12352,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 83163,
+			"size": 68877,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 6643,
+			"module": "sap/ui/table/themes/base/library-parameters.json",
+			"size": 6075,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 83216,
+			"size": 68894,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 70608,
+			"size": 66336,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 5060,
+			"size": 3486,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 86550,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 86605,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 1823
 		}
 	]
 }

@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/core/ResizeHandler',
 	'sap/base/Log',
@@ -21,9 +23,11 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes"
 ],
 function(
+	Localization,
 	Control,
 	EnabledPropagator,
 	InvisibleText,
+	Library,
 	coreLibrary,
 	ResizeHandler,
 	log,
@@ -92,182 +96,202 @@ function(
 		 * </ul>
 		 *
 		 * @extends sap.ui.core.Control
-		 * @implements sap.ui.core.IFormContent
+		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
+		 *
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormObservingProperties as #getFormObservingProperties
+		 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
 		 * @alias sap.m.Slider
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/slider/ Slider}
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var Slider = Control.extend("sap.m.Slider", /** @lends sap.m.Slider.prototype */ { metadata: {
+		var Slider = Control.extend("sap.m.Slider", /** @lends sap.m.Slider.prototype */ {
+			metadata: {
 
-			interfaces: ["sap.ui.core.IFormContent"],
-			library: "sap.m",
-			properties: {
+				interfaces: [
+					"sap.ui.core.IFormContent",
+					"sap.ui.core.ISemanticFormContent",
+					"sap.m.IToolbarInteractiveControl"
+				],
+				library: "sap.m",
+				properties: {
 
-				/**
-				 * Defines the width of the control.
-				 */
-				width: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%" },
+					/**
+					 * Defines the width of the control.
+					 */
+					width: { type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: "100%" },
 
-				/**
-				 * Indicates whether the user can change the value.
-				 */
-				enabled: { type: "boolean", group: "Behavior", defaultValue: true },
+					/**
+					 * Indicates whether the user can change the value.
+					 */
+					enabled: { type: "boolean", group: "Behavior", defaultValue: true },
 
-				/**
-				 * The name property to be used in the HTML code for the slider (e.g. for HTML forms that send data to the server via submit).
-				 */
-				name: { type: "string", group: "Misc", defaultValue: "" },
+					/**
+					 * The name property to be used in the HTML code for the slider (e.g. for HTML forms that send data to the server via submit).
+					 */
+					name: { type: "string", group: "Misc", defaultValue: "" },
 
-				/**
-				 * The minimum value.
-				 */
-				min: { type: "float", group: "Data", defaultValue: 0 },
+					/**
+					 * The minimum value.
+					 */
+					min: { type: "float", group: "Data", defaultValue: 0 },
 
-				/**
-				 * The maximum value.
-				 */
-				max: { type: "float", group: "Data", defaultValue: 100 },
+					/**
+					 * The maximum value.
+					 */
+					max: { type: "float", group: "Data", defaultValue: 100 },
 
-				/**
-				 * Define the amount of units to change the slider when adjusting by drag and drop.
-				 *
-				 * Defines the size of the slider's selection intervals. (e.g. min = 0, max = 10, step = 5 would result in possible selection of the values 0, 5, 10).
-				 *
-				 * The step must be positive, if a negative number is provided, the default value will be used instead.
-				 * If the width of the slider converted to pixels is less than the range (max - min), the value will be rounded to multiples of the step size.
-				 */
-				step: { type: "float", group: "Data", defaultValue: 1 },
+					/**
+					 * Define the amount of units to change the slider when adjusting by drag and drop.
+					 *
+					 * Defines the size of the slider's selection intervals. (e.g. min = 0, max = 10, step = 5 would result in possible selection of the values 0, 5, 10).
+					 *
+					 * The step must be positive, if a negative number is provided, the default value will be used instead.
+					 * If the width of the slider converted to pixels is less than the range (max - min), the value will be rounded to multiples of the step size.
+					 */
+					step: { type: "float", group: "Data", defaultValue: 1 },
 
-				/**
-				 * Indicate whether a progress bar indicator is shown.
-				 */
-				progress: { type: "boolean", group: "Misc", defaultValue: true },
+					/**
+					 * Indicate whether a progress bar indicator is shown.
+					 */
+					progress: { type: "boolean", group: "Misc", defaultValue: true },
 
-				/**
-				 * Define the value.
-				 *
-				 * If the value is lower/higher than the allowed minimum/maximum, the value of the properties <code>min</code>/<code>max</code> are used instead.
-				 */
-				value: { type: "float", group: "Data", defaultValue: 0 },
+					/**
+					 * Define the value.
+					 *
+					 * If the value is lower/higher than the allowed minimum/maximum, the value of the properties <code>min</code>/<code>max</code> are used instead.
+					 */
+					value: { type: "float", group: "Data", defaultValue: 0 },
 
-				/**
-				 * Indicate whether the handle tooltip is shown.
-				 * @since 1.31
-				 *
-				 */
-				showHandleTooltip: { type: "boolean", group: "Appearance", defaultValue: true},
+					/**
+					 * Indicate whether the handle tooltip is shown.
+					 * @since 1.31
+					 *
+					 */
+					showHandleTooltip: { type: "boolean", group: "Appearance", defaultValue: true},
 
-				/**
-				 * Indicate whether the handle's advanced tooltip is shown. <b>Note:</b> Setting this option to <code>true</code>
-				 * will ignore the value set in <code>showHandleTooltip</code>. This will cause only the advanced tooltip to be shown.
-				 * @since 1.42
-				 *
-				 */
-				showAdvancedTooltip: { type: "boolean", group: "Appearance", defaultValue: false},
+					/**
+					 * Indicate whether the handle's advanced tooltip is shown. <b>Note:</b> Setting this option to <code>true</code>
+					 * will ignore the value set in <code>showHandleTooltip</code>. This will cause only the advanced tooltip to be shown.
+					 * @since 1.42
+					 *
+					 */
+					showAdvancedTooltip: { type: "boolean", group: "Appearance", defaultValue: false},
 
-				/**
-				 * Indicates whether input fields should be used as tooltips for the handles. <b>Note:</b> Setting this option to <code>true</code>
-				 * will only work if <code>showAdvancedTooltip</code> is set to <code>true</code>.
-				 * @since 1.42
-				 */
-				inputsAsTooltips: {type: "boolean", group: "Appearance", defaultValue: false},
+					/**
+					 * Indicates whether input fields should be used as tooltips for the handles. <b>Note:</b> Setting this option to <code>true</code>
+					 * will only work if <code>showAdvancedTooltip</code> is set to <code>true</code>.
+					 * **Note:** To comply with the accessibility standard, it is recommended to set the <code>inputsAsTooltips</code> property to true.
+					 * @since 1.42
+					 */
+					inputsAsTooltips: {type: "boolean", group: "Appearance", defaultValue: false},
 
-				/**
-				 * Enables tickmarks visualisation
-				 *
-				 * @since 1.44
-				 */
-				enableTickmarks: {type: "boolean", group: "Appearance", defaultValue: false}
-			},
-			defaultAggregation: "scale",
-			aggregations: {
-				/**
-				 * A Container popup that renders SliderTooltips
-				 * The actual type should be sap.m.SliderTooltipContainer
-				 *
-				 * @since 1.54
-				 */
-				_tooltipContainer: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
-				/**
-				 * Scale for visualisation of tickmarks and labels
-				 *
-				 * @since 1.46
-				 */
-				scale: { type: "sap.m.IScale", multiple: false, singularName: "scale" },
-				/**
-				 * Default scale for visualisation of tickmarks, if scale aggregation is not provided
-				 *
-				 * @since 1.56
-				 */
-				_defaultScale: { type: "sap.m.ResponsiveScale", multiple: false, visibility: "hidden" },
+					/**
+					 * Enables tickmarks visualisation
+					 *
+					 * @since 1.44
+					 */
+					enableTickmarks: {type: "boolean", group: "Appearance", defaultValue: false},
 
-				/**
-				 * Multiple Aggregation for Tooltips
-				 *
-				 * @since 1.56
-				 */
-				_defaultTooltips: { type: "sap.m.SliderTooltipBase", multiple: true, visibility: "hidden" },
+					/**
+					 * Indicates whether a handle is pressed
+					 *
+					 * @private
+					 */
+					handlePressed: {type: "boolean", defaultValue: false, group: "Appearance", visibility: "hidden" }
+				},
+				defaultAggregation: "scale",
+				aggregations: {
+					/**
+					 * A Container popup that renders SliderTooltips
+					 * The actual type should be sap.m.SliderTooltipContainer
+					 *
+					 * @since 1.54
+					 */
+					_tooltipContainer: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
+					/**
+					 * Scale for visualisation of tickmarks and labels
+					 *
+					 * @since 1.46
+					 */
+					scale: { type: "sap.m.IScale", multiple: false, singularName: "scale" },
+					/**
+					 * Default scale for visualisation of tickmarks, if scale aggregation is not provided
+					 *
+					 * @since 1.56
+					 */
+					_defaultScale: { type: "sap.m.ResponsiveScale", multiple: false, visibility: "hidden" },
 
-				/**
-				 * Aggregation for user-defined tooltips.
-				 * <b>Note:</b> In case of Slider, only the first tooltip of the aggregation is used. In the RangeSlider case - the first two.
-				 * If no custom tooltips are provided, the default are used
-				 *
-				 * @since 1.56
-				 */
-				customTooltips: { type: "sap.m.SliderTooltipBase", multiple: true },
+					/**
+					 * Multiple Aggregation for Tooltips
+					 *
+					 * @since 1.56
+					 */
+					_defaultTooltips: { type: "sap.m.SliderTooltipBase", multiple: true, visibility: "hidden" },
 
-				/**
-				 * Invisible text for handles and progress announcement
-				 *
-				 * @since 1.54
-				 */
-				_handlesLabels: { type: "sap.ui.core.InvisibleText", multiple: true, visibility: "hidden" }
-			},
-			associations: {
+					/**
+					 * Aggregation for user-defined tooltips.
+					 * <b>Note:</b> In case of Slider, only the first tooltip of the aggregation is used. In the RangeSlider case - the first two.
+					 * If no custom tooltips are provided, the default are used
+					 *
+					 * @since 1.56
+					 */
+					customTooltips: { type: "sap.m.SliderTooltipBase", multiple: true },
 
-				/**
-				 * Association to controls / IDs which label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
-				 * @since 1.27.0
-				 */
-				ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
-			},
-			events: {
+					/**
+					 * Invisible text for handles and progress announcement
+					 *
+					 * @since 1.54
+					 */
+					_handlesLabels: { type: "sap.ui.core.InvisibleText", multiple: true, visibility: "hidden" }
+				},
+				associations: {
 
-				/**
-				 * This event is triggered after the end user finishes interacting, if there is any change.
-				 */
-				change: {
-					parameters: {
+					/**
+					 * Association to controls / IDs which label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
+					 * @since 1.27.0
+					 */
+					ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
+				},
+				events: {
 
-						/**
-						 * The current value of the slider after a change.
-						 */
-						value: { type: "float" }
+					/**
+					 * This event is triggered after the end user finishes interacting, if there is any change.
+					 */
+					change: {
+						parameters: {
+
+							/**
+							 * The current value of the slider after a change.
+							 */
+							value: { type: "float" }
+						}
+					},
+
+					/**
+					 * This event is triggered during the dragging period, each time the slider value changes.
+					 */
+					liveChange: {
+						parameters: {
+
+							/**
+							 * The current value of the slider after a live change.
+							 */
+							value: { type: "float" }
+						}
 					}
 				},
-
-				/**
-				 * This event is triggered during the dragging period, each time the slider value changes.
-				 */
-				liveChange: {
-					parameters: {
-
-						/**
-						 * The current value of the slider after a live change.
-						 */
-						value: { type: "float" }
-					}
-				}
+				designtime: "sap/m/designtime/Slider.designtime"
 			},
-			designtime: "sap/m/designtime/Slider.designtime"
-		}});
+
+			renderer: SliderRenderer
+		});
 
 		EnabledPropagator.apply(Slider.prototype, [true]);
 
@@ -406,6 +430,19 @@ function(
 		};
 
 		/**
+		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+		 * Determines if the Control is interactive.
+		 *
+		 * @returns {boolean} If it is an interactive Control
+		 *
+		 * @private
+		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 */
+		Slider.prototype._getToolbarInteractive = function () {
+			return true;
+		};
+
+		/**
 		 * Checks whether the given step is of the proper type.
 		 *
 		 * @param {int} iStep The step size
@@ -530,7 +567,7 @@ function(
 			var sPerValue = Math.max(this._getPercentOfValue(+sNewValue), 0) + "%",
 				oHandleDomRef = this.getDomRef("handle");
 
-			if (!!this.getName()) {
+			if (this.getName()) {
 				this.getDomRef("input").setAttribute("value", sScaleLabel);
 			}
 
@@ -541,7 +578,7 @@ function(
 			}
 
 			// update the position of the handle
-			oHandleDomRef.style[sap.ui.getCore().getConfiguration().getRTL() ? "right" : "left"] = sPerValue;
+			oHandleDomRef.style[Localization.getRTL() ? "right" : "left"] = sPerValue;
 
 			// update the position of the advanced tooltip
 			if (this.getShowAdvancedTooltip() && oTooltipContainer.getDomRef()) {
@@ -800,7 +837,7 @@ function(
 			// resize handler of the slider
 			this._parentResizeHandler = null;
 
-			this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 			// a reference to the SliderTooltipContainer
 			this._oTooltipContainer = null;
@@ -854,7 +891,7 @@ function(
 		 */
 		Slider.prototype.forwardProperties = function (aProperties, oControl) {
 			aProperties.forEach(function (sProperty) {
-				oControl.setProperty(sProperty, this.getProperty(sProperty), true);
+				oControl.setProperty(sProperty, this.getProperty(sProperty));
 			}, this);
 		};
 
@@ -870,8 +907,8 @@ function(
 			for (var index = 0; index < iTooltipCount; index++) {
 				this.forwardProperties(["min", "max", "step"], aDefaultTooltips[index]);
 
-				aDefaultTooltips[index].setProperty("width", this._getMaxTooltipWidth() + "px", true);
-				aDefaultTooltips[index].setProperty("editable", this.getInputsAsTooltips(), true);
+				aDefaultTooltips[index].setWidth(this._getMaxTooltipWidth() + "px");
+				aDefaultTooltips[index].setEditable(this.getInputsAsTooltips());
 			}
 		};
 
@@ -1053,6 +1090,8 @@ function(
 			// add active state
 			this.$("inner").addClass(CSS_CLASS + "Pressed");
 
+			this.setProperty("handlePressed", true);
+
 			if (oTouch.target === this.getDomRef("handle")) {
 
 				this._fDiffX = (oTouch.pageX - jQuery(oNearestHandleDomRef).offset().left) + this._fSliderPaddingLeft - (this._fHandleWidth / 2);
@@ -1060,7 +1099,7 @@ function(
 
 				fNewValue = (((oTouch.pageX - this._fSliderPaddingLeft - this._fSliderOffsetLeft) / this._fSliderWidth) * (this.getMax() - fMin)) +  fMin;
 
-				if (sap.ui.getCore().getConfiguration().getRTL()) {
+				if (Localization.getRTL()) {
 					fNewValue = this._convertValueToRtlMode(fNewValue);
 				}
 
@@ -1109,7 +1148,7 @@ function(
 				fNewValue = (((iPageX - this._fDiffX - this._fSliderOffsetLeft) / this._fSliderWidth) * (this.getMax() - fMin)) +  fMin;
 
 			// RTL mirror
-			if (sap.ui.getCore().getConfiguration().getRTL()) {
+			if (Localization.getRTL()) {
 				fNewValue = this._convertValueToRtlMode(fNewValue);
 			}
 
@@ -1154,7 +1193,7 @@ function(
 			var fValue = this.getValue();
 
 			// remove the active state
-			this.$("inner").removeClass(CSS_CLASS + "Pressed");
+			this.setProperty("handlePressed", false);
 
 			if (this._fInitialValue !== fValue) {
 				this.fireChange({ value: fValue });
@@ -1518,8 +1557,7 @@ function(
 		 * Increments the value by multiplying the <code>step</code> with the given parameter.
 		 *
 		 * @param {int} [iStep=1] The number of steps the slider goes up.
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
-		 * @type {sap.m.Slider}
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.stepUp = function(iStep) {
@@ -1530,8 +1568,7 @@ function(
 		 * Decrements the value by multiplying the step the <code>step</code> with the given parameter.
 		 *
 		 * @param {int} [iStep=1] The number of steps the slider goes down.
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
-		 * @type {sap.m.Slider}
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.stepDown = function(iStep) {
@@ -1544,8 +1581,8 @@ function(
 		 * Default value is <code>0</code>.
 		 *
 		 * @param {float} fNewValue new value for property <code>value</code>.
-		 * @param {object} mOptions The options object
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
+		 * @param {{snapValue: boolean}|object} mOptions The options object
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.setValue = function(fNewValue, mOptions) {
@@ -1592,8 +1629,8 @@ function(
 			sNewValueFixedPoint = this.toFixed(fNewValue, this.getDecimalPrecisionOfNumber(fStep));
 			fNewValue = Number(sNewValueFixedPoint);
 
-			// update the value and suppress re-rendering
-			this.setProperty("value", fNewValue, true);
+			// update the value
+			this.setProperty("value", fNewValue);
 
 			// update the value in DOM only when it has changed
 			if (fValue !== this.getValue()) {
@@ -1601,6 +1638,23 @@ function(
 			}
 
 			return this;
+		};
+
+		// support for SemanticFormElement
+		Slider.prototype.getFormFormattedValue = function() {
+			return this.getValue();
+		};
+
+		Slider.prototype.getFormValueProperty = function () {
+			return "value";
+		};
+
+		Slider.prototype.getFormObservingProperties = function() {
+			return ["value"];
+		};
+
+		Slider.prototype.getFormRenderAsControl = function () {
+			return false;
 		};
 
 		return Slider;

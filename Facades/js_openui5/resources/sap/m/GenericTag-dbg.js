@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,7 @@ sap.ui.define([
 	"sap/ui/core/library",
 	"sap/ui/core/Icon",
 	"./GenericTagRenderer"
-], function(Control, KeyCodes, library, coreLibrary, Icon /* ,  GenericTagRenderer */) {
+], function(Control, KeyCodes, library, coreLibrary, Icon, GenericTagRenderer) {
 	"use strict";
 
 	//shortcut for sap.m.GenericTagValueState
@@ -26,10 +26,10 @@ sap.ui.define([
 
 		// map of the icon types, relative to the status message
 		Icons = {
-			Error: "sap-icon://message-error",
-			Warning: "sap-icon://message-warning",
-			Success: "sap-icon://message-success",
-			Information: "sap-icon://hint"
+			Error: "sap-icon://error",
+			Warning: "sap-icon://alert",
+			Success: "sap-icon://sys-enter-2",
+			Information: "sap-icon://information"
 		};
 
 	/**
@@ -53,19 +53,19 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.62.0
 	 * @alias sap.m.GenericTag
-	 * @ui5-metamodel This control will also be described in the UI5 (legacy) design time meta model.
 	 */
 	var GenericTag = Control.extend("sap.m.GenericTag", /** @lends sap.m.GenericTag.prototype */ {
 		metadata: {
 			library : "sap.m",
 			interfaces : [
 				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl",
 				"sap.m.IOverflowToolbarFlexibleContent"
 			],
 			properties : {
@@ -91,6 +91,13 @@ sap.ui.define([
 				valueState: {type : "sap.m.GenericTagValueState", defaultValue : GenericTagValueState.None }
 			},
 			defaultAggregation: "value",
+			associations : {
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledBy).
+	 			 * @since 1.97.0
+				 */
+				ariaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+			},
 			aggregations: {
 				/**
 				 * Numeric value rendered by the control.
@@ -111,7 +118,9 @@ sap.ui.define([
 				 */
 				press: {}
 			}
-		}
+		},
+
+		renderer: GenericTagRenderer
 	});
 
 	/**
@@ -125,7 +134,7 @@ sap.ui.define([
 	 *
 	 * Default value is <code>None</code>.
 	 * @param {sap.ui.core.ValueState} sStatus New value for property <code>status</code>.
-	 * @returns {sap.m.GenericTag} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 
@@ -138,10 +147,22 @@ sap.ui.define([
 	};
 
 	GenericTag.prototype.setValue = function(oValue) {
+		var oPreviousValue = this.getValue();
+		if (oPreviousValue) {
+			oValue.detachEvent("_change", this._fireValueChanged, this);
+		}
+
 		this.setAggregation("value", oValue);
-		this.fireEvent("_valueChanged");
+		oValue.attachEvent("_change", this._fireValueChanged, this);
+
+		this._fireValueChanged();
 
 		return this;
+	};
+
+	// Fires invalidation event for OverflowToolbar
+	GenericTag.prototype._fireValueChanged = function() {
+		this.fireEvent("_valueChanged");
 	};
 
 	/**
@@ -229,7 +250,7 @@ sap.ui.define([
 		}
 
 		if (oEvent.which === KeyCodes.ENTER) {
-			this.firePress(/* no parameters */);
+			this._firePress(oEvent);
 		}
 	};
 
@@ -245,7 +266,7 @@ sap.ui.define([
 
 		if (oEvent.which === KeyCodes.SPACE) {
 			if (!this._bShouldInterupt) {
-				this.firePress(/* no parameters */);
+				this._firePress(oEvent);
 			}
 			this._bShouldInterupt = false;
 			this._bSpacePressed = false;
@@ -257,8 +278,8 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	GenericTag.prototype.onclick = function(){
-		this.firePress(/* no parameters */);
+	GenericTag.prototype.onclick = function(oEvent) {
+		this._firePress(oEvent);
 	};
 
 	/**
@@ -273,12 +294,19 @@ sap.ui.define([
 	/**
 	 * @private
 	 */
+	GenericTag.prototype._firePress = function(oEvent) {
+		oEvent.setMarked();
+
+		this.firePress();
+	};
+
 	GenericTag.prototype._toggleActiveGenericTag = function(bToggle){
 		this.toggleStyleClass("sapMGenericTagActive", bToggle);
 	};
 
 	/**
-	 * @private used for OverflowToolbar functionality
+	 * Used for OverflowToolbar functionality.
+	 * @private
 	 */
 
 	GenericTag.prototype._onBeforeEnterOverflow = function(oControl) {
@@ -286,7 +314,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * @private used for OverflowToolbar functionality
+	 * Used for OverflowToolbar functionality.
+	 * @private
 	 */
 
 	GenericTag.prototype._onAfterExitOverflow = function(oControl) {
@@ -295,9 +324,10 @@ sap.ui.define([
 
 	/**
 	 * Sets the behavior of the <code>GenericTag</code> inside an <code>OverflowToolbar</code> configuration.
+	 * Required by the {@link sap.m.IOverflowToolbarContent} interface.
 	 *
 	 * @public
-	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
+	 * @returns {sap.m.OverflowToolbarConfig} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 */
 	GenericTag.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
@@ -311,6 +341,20 @@ sap.ui.define([
 
 		return oConfig;
 	};
+
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	GenericTag.prototype._getToolbarInteractive = function () {
+		return true;
+	};
+
 
 	return GenericTag;
 });

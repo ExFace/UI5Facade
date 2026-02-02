@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.commons.RichTooltip
-sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/library'],
-	function(ValueStateSupport, coreLibrary) {
+sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/library', "sap/ui/core/Configuration"],
+	function(ValueStateSupport, coreLibrary, Configuration) {
 	"use strict";
 
 
@@ -69,7 +69,7 @@ sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/library'],
 				// if there is a proper value state -> render corresponding image
 				if (sValueStateImage !== "") {
 					sValueStateImage = sap.ui.require.toUrl("sap/ui/commons/themes/"
-						+ sap.ui.getCore().getConfiguration().getTheme() + "/img/richtooltip/"
+						+ Configuration.getTheme() + "/img/richtooltip/"
 						+ sValueStateImage);
 					rm.write('<img id="' + sId + '-valueStateImage" class="sapUiRttValueStateImage" src="');
 					rm.writeEscaped(sValueStateImage);

@@ -660,6 +660,8 @@ JS;
         
         $selection_mode = $widget->getMultiSelect() ? 'sap.ui.table.SelectionMode.MultiToggle' : 'sap.ui.table.SelectionMode.Single';
         $selection_behavior = $widget->getMultiSelect() ? 'sap.ui.table.SelectionBehavior.Row' : 'sap.ui.table.SelectionBehavior.RowOnly';
+        $striped = $widget->getStriped() ? 'true' : 'false';
+        
         
         if ($this->getDynamicPageShowToolbar() === false) {
             $toolbar = $this->buildJsToolbar($oControllerJs, $this->getPaginatorElement()->buildJsConstructor($oControllerJs));
@@ -737,9 +739,10 @@ JS;
                     })
                 ],
                 rows: "{/rows}"
-        	})
+        	}).addStyleClass('rowAlternate-'+{$striped})
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
+
 JS;
             
             return $js;

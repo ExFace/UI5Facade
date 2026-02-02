@@ -1,0 +1,198 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 166,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ActionBar.less",
+			"size": 7407,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "CollectionInspector.less",
+			"size": 3879,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "DataSet.less",
+			"size": 484,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "DataSetSimpleView.less",
+			"size": 502,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Exact.less",
+			"size": 428,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ExactArea.less",
+			"size": 586,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ExactBrowser.less",
+			"size": 694,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ExactList.less",
+			"size": 8530,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "FacetFilter.less",
+			"size": 288,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "FacetFilterList.less",
+			"size": 1087,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Feed.less",
+			"size": 448,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "FeedChunk.less",
+			"size": 2140,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Feeder.less",
+			"size": 1338,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "NavigationBar.less",
+			"size": 4832,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "NotificationBar.less",
+			"size": 7882,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Overlay.less",
+			"size": 1505,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "OverlayContainer.less",
+			"size": 373,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "OverlayDialog.less",
+			"size": 447,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "QuickView.less",
+			"size": 974,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "Shell.less",
+			"size": 14014,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ShellColorPicker.less",
+			"size": 782,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ShellPersonalization.less",
+			"size": 358,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ThingInspector.less",
+			"size": 4505,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ThingViewer.less",
+			"size": 4953,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "ToolPopup.less",
+			"size": 2332,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 51579,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/ui/ux3/themes/sap_bluecrystal_base/library-parameters.json",
+			"size": 190,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.css",
+			"size": 51512,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.less",
+			"size": 72907,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "library.source.less",
+			"size": 998,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		},
+		{
+			"name": "resources.json",
+			"size": 3743
+		},
+		{
+			"name": "shared.less",
+			"size": 65,
+			"designtime": true,
+			"theme": "sap_bluecrystal_base"
+		}
+	]
+}

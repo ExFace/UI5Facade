@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,12 +11,12 @@ sap.ui.define([
 	"use strict";
 
 	// Shortcuts
-	var SelectionMode = library.SelectionMode;
+	const SelectionMode = library.SelectionMode;
 
 	/*
 	 * Renders a hidden element with the given id, text and css classes.
 	 */
-	var _writeAccText = function(oRm, sParentId, sId, sText, aCSSClasses) {
+	const _writeAccText = function(oRm, sParentId, sId, sText, aCSSClasses) {
 		aCSSClasses = aCSSClasses || [];
 		aCSSClasses.push("sapUiInvisibleText");
 
@@ -28,6 +28,8 @@ sap.ui.define([
 		oRm.openEnd();
 		if (sText) {
 			oRm.text(sText);
+		} else {
+			oRm.text("."); // This is a workaround for a Chrome bug, BCP: 2370127818
 		}
 		oRm.close("span");
 	};
@@ -42,12 +44,12 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.TableRenderer which handles ACC related things.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.AccessibilityRender
 	 */
-	var AccRenderExtension = ExtensionBase.extend("sap.ui.table.extensions.AccessibilityRender",
+	const AccRenderExtension = ExtensionBase.extend("sap.ui.table.extensions.AccessibilityRender",
 		/** @lends sap.ui.table.extensions.AccessibilityRender.prototype */ {
 		/**
 		 * @override
@@ -70,7 +72,7 @@ sap.ui.define([
 				return;
 			}
 
-			var sTableId = oTable.getId();
+			const sTableId = oTable.getId();
 
 			oRm.openStart("div");
 			oRm.class("sapUiTableHiddenTexts");
@@ -78,38 +80,14 @@ sap.ui.define([
 			oRm.attr("aria-hidden", "true");
 			oRm.openEnd();
 
-			// aria description for the row and column count
-			_writeAccText(oRm, sTableId, "ariacount");
-			// aria description for toggling the edit mode
-			_writeAccText(oRm, sTableId, "toggleedit", TableUtils.getResourceText("TBL_TOGGLE_EDIT_KEY"));
-			// aria description for select all button
-			var bAllRowsSelected = TableUtils.areAllRowsSelected(oTable);
-			var mRenderConfig = oTable._getSelectionPlugin().getRenderConfig();
-			var sSelectAllResourceTextID;
-			if (mRenderConfig.headerSelector.type === "toggle") {
-				sSelectAllResourceTextID = bAllRowsSelected ? "TBL_DESELECT_ALL" : "TBL_SELECT_ALL";
-			} else if (mRenderConfig.headerSelector.type === "clear") {
-				sSelectAllResourceTextID = "TBL_DESELECT_ALL";
-			}
-			_writeAccText(oRm, sTableId, "ariaselectall", TableUtils.getResourceText(sSelectAllResourceTextID));
-			// aria label for row headers
-			_writeAccText(oRm, sTableId, "ariarowheaderlabel", TableUtils.getResourceText("TBL_ROW_HEADER_LABEL"));
 			// aria label for group rows
 			_writeAccText(oRm, sTableId, "ariarowgrouplabel", TableUtils.getResourceText("TBL_ROW_GROUP_LABEL"));
 			// aria label for grand total sums
 			_writeAccText(oRm, sTableId, "ariagrandtotallabel", TableUtils.getResourceText("TBL_GRAND_TOTAL_ROW"));
 			// aria label for group total sums
 			_writeAccText(oRm, sTableId, "ariagrouptotallabel", TableUtils.getResourceText("TBL_GROUP_TOTAL_ROW"));
-			// aria label for column row header
-			_writeAccText(oRm, sTableId, "ariacolrowheaderlabel", TableUtils.getResourceText("TBL_ROW_COL_HEADER_LABEL"));
-			// aria description for table row count
-			_writeAccText(oRm, sTableId, "rownumberofrows");
-			// aria description for table column count
-			_writeAccText(oRm, sTableId, "colnumberofcols");
 			// aria description for table cell content
 			_writeAccText(oRm, sTableId, "cellacc");
-			// aria description for selected row
-			_writeAccText(oRm, sTableId, "ariarowselected", TableUtils.getResourceText("TBL_ROW_DESC_SELECTED"));
 			// aria description for column menu
 			_writeAccText(oRm, sTableId, "ariacolmenu", TableUtils.getResourceText("TBL_COL_DESC_MENU"));
 			// aria description for column header span
@@ -130,12 +108,14 @@ sap.ui.define([
 			_writeAccText(oRm, sTableId, "rowexpandtext", TableUtils.getResourceText("TBL_ROW_EXPAND_KEY"));
 			// aria description for row collapse via keyboard
 			_writeAccText(oRm, sTableId, "rowcollapsetext", TableUtils.getResourceText("TBL_ROW_COLLAPSE_KEY"));
+			// aria description for column with required content
+			_writeAccText(oRm, sTableId, "ariarequired", TableUtils.getResourceText("TBL_COL_REQUIRED"));
 
-			var oSelectionMode = oTable.getSelectionMode();
+			const oSelectionMode = oTable.getSelectionMode();
 			if (oSelectionMode !== SelectionMode.None) {
 				// aria description for selection mode in table
 				_writeAccText(oRm, sTableId, "ariaselection",
-					TableUtils.getResourceText(oSelectionMode == SelectionMode.MultiToggle ? "TBL_TABLE_SELECTION_MULTI" : "TBL_TABLE_SELECTION_SINGLE"));
+					TableUtils.getResourceText(oSelectionMode === SelectionMode.MultiToggle ? "TBL_TABLE_SELECTION_MULTI" : "TBL_TABLE_SELECTION_SINGLE"));
 			}
 
 			if (oTable.getComputedFixedColumnCount() > 0) {
@@ -161,15 +141,15 @@ sap.ui.define([
 		 * @public
 		 */
 		writeAriaAttributesFor: function(oRm, oTable, sType, mParams) {
-			var oExtension = oTable._getAccExtension();
+			const oExtension = oTable._getAccExtension();
 
 			if (!oExtension.getAccMode()) {
 				return;
 			}
 
-			var mAttributes = oExtension.getAriaAttributesFor(sType, mParams);
+			const mAttributes = oExtension.getAriaAttributesFor(sType, mParams);
 
-			var oValue, sKey;
+			let oValue; let sKey;
 			for (sKey in mAttributes) {
 				oValue = mAttributes[sKey];
 				if (Array.isArray(oValue)) {
@@ -187,18 +167,16 @@ sap.ui.define([
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer.
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 * @param {sap.ui.table.Row} oRow Instance of the row.
-		 * @param {int} iRowIndex The index of the row.
 		 * @see sap.ui.table.TableRenderer.writeRowSelectorContent
 		 * @public
 		 */
-		writeAccRowSelectorText: function(oRm, oTable, oRow, iRowIndex) {
-			if (!oTable._getAccExtension().getAccMode()) {
+		writeAccRowSelectorText: function(oRm, oTable, oRow) {
+			if (!oTable._getAccExtension().getAccMode() || oRow.isGroupHeader() || oRow.isSummary()) {
 				return;
 			}
 
-			var bIsSelected = oTable._getSelectionPlugin().isIndexSelected(iRowIndex);
-			var mTooltipTexts = oTable._getAccExtension().getAriaTextsForSelectionMode(true);
-			var sText = mTooltipTexts.keyboard[bIsSelected ? "rowDeselect" : "rowSelect"];
+			const mKeyboardTexts = oTable._getAccExtension().getKeyboardTexts();
+			const sText = oRow._isSelected() ? mKeyboardTexts.rowDeselect : mKeyboardTexts.rowSelect;
 
 			_writeAccText(oRm, oRow.getId(), "rowselecttext", oRow.isEmpty() ? "" : sText, ["sapUiTableAriaRowSel"]);
 		},
@@ -218,8 +196,8 @@ sap.ui.define([
 				return;
 			}
 
-			var oRowSettings = oRow.getAggregation("_settings");
-			var sHighlightText = oRowSettings._getHighlightText();
+			const oRowSettings = oRow.getAggregation("_settings");
+			const sHighlightText = oRowSettings._getHighlightText();
 
 			_writeAccText(oRm, oRow.getId(), "highlighttext", sHighlightText);
 		},

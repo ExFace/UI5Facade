@@ -1,13 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/base/Log"
+	"sap/ui/fl/LayerUtils",
+	"sap/ui/fl/changeHandler/condenser/Classification",
+	"sap/ui/core/util/reflection/JsControlTreeModifier"
 ], function(
-	Log
+	LayerUtils,
+	CondenserClassification,
+	JsControlTreeModifier
 ) {
 	"use strict";
 
@@ -15,71 +19,75 @@ sap.ui.define([
 	 * Change handler for stashing of a control.
 	 * @alias sap.ui.fl.changeHandler.StashControl
 	 * @author SAP SE
-	 * @version 1.82.0
-	 * @experimental Since 1.27.0
+	 * @version 1.136.0
+	 * @since 1.27.0
 	 */
-	var StashControl = {};
+	const StashControl = {};
 
 	/**
 	 * Stashes and hides a control.
 	 *
-	 * @param {sap.ui.fl.Change} oChange change object with instructions to be applied on the control map
-	 * @param {sap.ui.core.Control} oControl control that matches the change selector for applying the change
-	 * @param {object} mPropertyBag	- map of properties
-	 * @param {object} mPropertyBag.modifier - modifier for the controls
-	 * @returns {boolean} true - if change could be applied
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object with instructions to be applied on the control map
+	 * @param {sap.ui.core.Control} oControl - Control that matches the change selector for applying the change
+	 * @param {object} mPropertyBag - Map of properties
+	 * @param {sap.ui.core.util.reflection.BaseTreeModifier} mPropertyBag.modifier - Modifier for the controls
+	 * @returns {Promise} Promise resolving when the change is applied.
 	 * @public
 	 */
-	StashControl.applyChange = function(oChange, oControl, mPropertyBag) {
-		var bStashed = mPropertyBag.modifier.getStashed(oControl);
-		var iOriginalIndex = mPropertyBag.modifier.findIndexInParentAggregation(oControl);
+	StashControl.applyChange = async function(oChange, oControl, mPropertyBag) {
+		const oModifier = mPropertyBag.modifier;
+
+		const bStashed = await oModifier.getStashed(oControl);
+		const iOriginalIndex = await oModifier.findIndexInParentAggregation(oControl);
 		this.setChangeRevertData(oChange, bStashed, iOriginalIndex);
-		mPropertyBag.modifier.setStashed(oControl, true);
-		return true;
+		if (LayerUtils.isDeveloperLayer(oChange.getLayer())) {
+			return oModifier.setStashed(oControl, true);
+		}
+		return oModifier.setVisible(oControl, false);
 	};
 
 	/**
 	 * Reverts previously applied change
 	 *
-	 * @param {sap.ui.fl.Change} oChange change object with instructions to be applied on the control map
-	 * @param {sap.ui.core.Control} oControl control that matches the change selector for applying the change
-	 * @param {object} mPropertyBag	- map of properties
-	 * @param {object} mPropertyBag.modifier - modifier for the controls
-	 * @returns {boolean} true - if change has been reverted
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object with instructions to be applied on the control map
+	 * @param {sap.ui.core.Control} oControl - Control that matches the change selector for applying the change
+	 * @param {object} mPropertyBag - Map of properties
+	 * @param {sap.ui.core.util.reflection.BaseTreeModifier} mPropertyBag.modifier - Modifier for the controls
+	 * @returns {Promise} Promise resolving when change is reverted
 	 * @public
 	 */
-	StashControl.revertChange = function(oChange, oControl, mPropertyBag) {
-		var mRevertData = oChange.getRevertData();
-
-		if (mRevertData) {
-			var oUnstashedControl = mPropertyBag.modifier.setStashed(oControl, mRevertData.originalValue, mPropertyBag.appComponent);
+	StashControl.revertChange = async function(oChange, oControl, mPropertyBag) {
+		const mRevertData = oChange.getRevertData();
+		const oModifier = mPropertyBag.modifier;
+		if (LayerUtils.isDeveloperLayer(oChange.getLayer())) {
+			const oUnstashedControl = await oModifier.setStashed(oControl, mRevertData.originalValue, mPropertyBag.appComponent);
 			if (oUnstashedControl) {
-				var iUnstashedIndex = mPropertyBag.modifier.findIndexInParentAggregation((oUnstashedControl));
+				const iUnstashedIndex = await oModifier.findIndexInParentAggregation(oUnstashedControl);
 				if (iUnstashedIndex !== mRevertData.originalIndex) {
-					var oParent = mPropertyBag.modifier.getParent(oUnstashedControl);
-					var sAggregationName = mPropertyBag.modifier.getParentAggregationName(oUnstashedControl);
-					mPropertyBag.modifier.removeAggregation(oParent, sAggregationName, oUnstashedControl);
-					mPropertyBag.modifier.insertAggregation(oParent, sAggregationName, oUnstashedControl, mRevertData.originalIndex);
+					const oParent = oModifier.getParent(oUnstashedControl);
+					const sAggregationName = await oModifier.getParentAggregationName(oUnstashedControl);
+					await oModifier.moveAggregation(
+						oParent,
+						sAggregationName,
+						oParent,
+						sAggregationName,
+						oUnstashedControl,
+						mRevertData.originalIndex);
 				}
 			}
-			oChange.resetRevertData();
-		} else {
-			Log.error("Attempt to revert an unapplied change.");
-			return false;
 		}
-
-		return true;
+		oModifier.setVisible(oControl, !mRevertData.originalValue);
+		oChange.resetRevertData();
 	};
 
 	/**
 	 * Completes the change by adding change handler specific content
 	 *
-	 * @param {sap.ui.fl.Change} oChange change object to be completed
-	 * @param {object} oSpecificChangeInfo as an empty object since no additional attributes are required for this operation
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object to be completed
+	 * @param {object} oSpecificChangeInfo - As an empty object since no additional attributes are required for this operation
 	 * @public
 	 */
-	StashControl.completeChangeContent = function() {
-	};
+	StashControl.completeChangeContent = function() {};
 
 	StashControl.setChangeRevertData = function(oChange, bValue, iOriginalIndex) {
 		oChange.setRevertData({
@@ -91,18 +99,26 @@ sap.ui.define([
 	/**
 	 * Retrieves the condenser-specific information.
 	 *
-	 * @param {sap.ui.fl.Change} oChange - Change object with instructions to be applied on the control map
-	 * @returns {object} - Condenser-specific information
+	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange - Change object with instructions to be applied on the control map
+	 * @returns {object} Condenser specific information
 	 * @public
 	 */
 	StashControl.getCondenserInfo = function(oChange) {
 		return {
 			affectedControl: oChange.getSelector(),
-			classification: sap.ui.fl.condenser.Classification.Reverse,
+			classification: CondenserClassification.Reverse,
 			uniqueKey: "stashed"
 		};
 	};
 
+	StashControl.getChangeVisualizationInfo = function(oChange, oAppComponent) {
+		const oSelector = oChange.getSelector();
+		const oElement = JsControlTreeModifier.bySelector(oSelector, oAppComponent);
+		return {
+			affectedControls: [oSelector],
+			displayControls: [oElement.getParent().getId()]
+		};
+	};
+
 	return StashControl;
-},
-/* bExport= */true);
+});

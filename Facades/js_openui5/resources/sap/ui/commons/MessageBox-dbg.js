@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", 'sap/ui/core/library', 'sap/ui/core/E
 		 *
 		 * @namespace
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 * @public
 		 * @since 0.8.8
 		 * @deprecated Since version 1.38. Instead, use the <code>sap.m.MessageBox</code> control.
@@ -46,7 +46,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", 'sap/ui/core/library', 'sap/ui/core/E
 		 * specifying the set of allowed actions as well as reporting back the user choice.
 		 * @enum
 		 * @public
-		 * @deprecated as of version 1.38
+		 * @deprecated as of version 1.38 Instead, use the <code>sap.m.MessageBox.Action</code>.
 		 */
 		MessageBox.Action = {
 
@@ -103,7 +103,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", 'sap/ui/core/library', 'sap/ui/core/E
 		 * Enumeration of the pre-defined icons that can be used in a MessageBox.
 		 * @enum
 		 * @public
-		 * @deprecated as of version 1.38
+		 * @deprecated as of version 1.38 Instead, use the <code>sap.m.MessageBox.Icon</code>.
 		 */
 		MessageBox.Icon = {
 

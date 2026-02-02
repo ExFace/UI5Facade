@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,18 +50,18 @@ sap.ui.define([
 	 * @class
 	 * The InPlaceEdit is a functionality to have text in display mode that can be changed in place.
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.8.0
 	 * @deprecated as of version 1.38, replaced by {@link sap.m.Input}
 	 * @alias sap.ui.commons.InPlaceEdit
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var InPlaceEdit = Control.extend("sap.ui.commons.InPlaceEdit", /** @lends sap.ui.commons.InPlaceEdit.prototype */ { metadata : {
 
 		library : "sap.ui.commons",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -290,7 +290,6 @@ sap.ui.define([
 		 * Clear the old text after a change to disable the undo functionality. If undoEnabled is false this has no effect.
 		 *
 		 * @public
-		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		InPlaceEdit.prototype.clearOldText = function(){
 
@@ -514,7 +513,7 @@ sap.ui.define([
 	 * is used. A directly set tooltip to the InPlaceEdit is ignored in this case.
 	 *
 	 * @param {string|sap.ui.core.TooltipBase} oTooltip Tooltip as string or RichTooltip.
-	 * @return {sap.ui.commons.InPlaceEdit} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 		InPlaceEdit.prototype.setTooltip = function(oTooltip) {
@@ -643,7 +642,7 @@ sap.ui.define([
 
 		/**
 		 * @see sap.ui.core.Control#getAccessibilityInfo
-		 * @returns {Object} Current accessibility state of the control.
+		 * @returns {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 		 * @protected
 		 */
 		InPlaceEdit.prototype.getAccessibilityInfo = function() {
@@ -881,7 +880,7 @@ sap.ui.define([
 					// to be sure that text is updated in edit mode (e.g. Link case) - update edit control
 					oInPlaceEdit._oEditControl.setValue(oInPlaceEdit._sOldText);
 					oInPlaceEdit._oEditControl.fireChange({newValue:oInPlaceEdit._sOldText});
-				}else if (oContent.fireChange) {
+				} else if (oContent.fireChange) {
 					// fire change event
 					oContent.fireChange({newValue:oInPlaceEdit._sOldText});
 				} else {

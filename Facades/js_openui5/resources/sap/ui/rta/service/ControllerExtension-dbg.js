@@ -1,24 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/dt/Util",
+	"sap/ui/core/Element",
 	"sap/ui/dt/OverlayRegistry",
-	"sap/ui/fl/Utils",
+	"sap/ui/dt/Util",
+	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
 	"sap/ui/fl/write/api/ChangesWriteAPI",
 	"sap/ui/fl/write/api/PersistenceWriteAPI",
-	"sap/ui/thirdparty/jquery"
-],
-function (
-	DtUtil,
+	"sap/ui/fl/Utils"
+], function(
+	Element,
 	OverlayRegistry,
-	FlexUtils,
+	DtUtil,
+	FlexRuntimeInfoAPI,
 	ChangesWriteAPI,
 	PersistenceWriteAPI,
-	jQuery
+	FlexUtils
 ) {
 	"use strict";
 
@@ -28,33 +29,19 @@ function (
 	 * @namespace
 	 * @name sap.ui.rta.service.ControllerExtension
 	 * @author SAP SE
-	 * @experimental Since 1.58
 	 * @since 1.58
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @private
 	 * @ui5-restricted
 	*/
 
-	return function (oRta) {
-		function makeAjaxCall(sPath) {
-			return new Promise(function(resolve, reject) {
-				var sUrl;
-				jQuery.ajax({
-					url: sUrl = sap.ui.require.toUrl(sPath) + ".js",
-					async: true,
-					success: function(data) {
-						resolve(data);
-					},
-					error: function(xhr, textStatus, error) {
-						var oError = new Error("resource " + sPath + " could not be loaded from " + sUrl + ". Check for 'file not found' or parse errors. Reason: " + error);
-						oError.status = textStatus;
-						oError.error = error;
-						oError.statusCode = xhr.status;
-						reject(error);
-					},
-					dataType: "text"
-				});
-			});
+	return function(oRta) {
+		async function fetchTemplate(sPath) {
+			const oResponse = await fetch(`${sap.ui.require.toUrl(sPath)}.js`);
+			if (!oResponse.ok) {
+				throw new Error(`resource ${sPath} could not be loaded from ${sPath}. Check for 'file not found' or parse errors. Reason: ${oResponse.statusText}`);
+			}
+			return oResponse.text();
 		}
 
 		return {
@@ -72,45 +59,48 @@ function (
 				 * @return {object} Definition of the newly created change
 				 * @public
 				 */
-				add: function(sCodeRef, sViewId) {
+				add(sCodeRef, sViewId) {
 					var oFlexSettings = oRta.getFlexSettings();
 					if (!oFlexSettings.developerMode) {
-						throw DtUtil.createError("service.ControllerExtension#add", "code extensions can only be created in developer mode", "sap.ui.rta");
+						throw DtUtil.createError(
+							"service.ControllerExtension#add", "code extensions can only be created in developer mode",
+							"sap.ui.rta"
+						);
 					}
 
 					if (!sCodeRef) {
-						throw DtUtil.createError("service.ControllerExtension#add", "can't create controller extension without codeRef", "sap.ui.rta");
+						throw DtUtil.createError(
+							"service.ControllerExtension#add", "can't create controller extension without codeRef",
+							"sap.ui.rta"
+						);
 					}
 
 					if (!sCodeRef.endsWith(".js")) {
 						throw DtUtil.createError("service.ControllerExtension#add", "codeRef has to end with 'js'");
 					}
 
-					var oView = sap.ui.getCore().byId(sViewId);
+					var oView = Element.getElementById(sViewId);
 					var oAppComponent = FlexUtils.getAppComponentForControl(oView);
-					var sControllerName = oView.getControllerName && oView.getControllerName() || oView.getController() && oView.getController().getMetadata().getName();
-					//Calculate moduleName for code extension
-					var sReference = FlexUtils.getComponentClassName(oAppComponent);
+					var sControllerName = oView.getControllerModuleName() ? `module:${oView.getControllerModuleName()}` : oView.getController()?.getMetadata().getName();
+					// Calculate moduleName for code extension
+					var sReference = FlexRuntimeInfoAPI.getFlexReference({element: oAppComponent});
 					var sModuleName = sReference.replace(/\.Component/g, "").replace(/\./g, "/");
 					sModuleName += "/changes/";
 					sModuleName += sCodeRef.replace(/\.js/g, "");
 					var oChangeSpecificData = {
-						content: {
-							codeRef: sCodeRef
-						},
-						selector: {
-							controllerName: sControllerName
-						},
+						codeRef: sCodeRef,
+						controllerName: sControllerName,
 						changeType: "codeExt",
+						layer: oFlexSettings.layer,
 						namespace: oFlexSettings.namespace,
-						developerMode: oFlexSettings.developerMode,
-						scenario: oFlexSettings.scenario,
-						moduleName: sModuleName
+						reference: sReference,
+						moduleName: sModuleName,
+						generator: "rta.service.ControllerExtension"
 					};
 
 					var oPreparedChange = ChangesWriteAPI.create({changeSpecificData: oChangeSpecificData, selector: oAppComponent});
 					PersistenceWriteAPI.add({change: oPreparedChange, selector: oAppComponent});
-					return oPreparedChange.getDefinition();
+					return oPreparedChange.convertToFileContent();
 				},
 
 				/**
@@ -119,19 +109,19 @@ function (
 				 *
 				 * @method sap.ui.rta.service.ControllerExtension.getTemplate
 				 * @param {string} sViewId - ID of the view whose template should be retrieved
-				 * @return {Promise} Promise that resolves with the template as string or rejects when the file was not found
+				 * @return {Promise<string>} Promise that resolves with the template as string or rejects when the file was not found
 				 * @public
 				 */
-				getTemplate: function(sViewId) {
+				getTemplate(sViewId) {
 					var oViewOverlay = OverlayRegistry.getOverlay(sViewId);
 					if (!oViewOverlay) {
 						throw DtUtil.createError("service.ControllerExtension#getTemplate", "no overlay found for the given view ID", "sap.ui.rta");
 					}
 
 					var sControllerExtensionTemplatePath = oViewOverlay.getDesignTimeMetadata().getControllerExtensionTemplate();
-					return makeAjaxCall(sControllerExtensionTemplatePath + "-dbg")
+					return fetchTemplate(`${sControllerExtensionTemplatePath}-dbg`)
 					.catch(function() {
-						return makeAjaxCall(sControllerExtensionTemplatePath);
+						return fetchTemplate(sControllerExtensionTemplatePath);
 					});
 				}
 			}

@@ -1,13 +1,28 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.P13nDialog.
 sap.ui.define([
-	'./Dialog', './library', 'sap/ui/core/EnabledPropagator', './DialogRenderer', 'sap/ui/core/library', 'sap/ui/Device', './Bar', './Button', './Title', 'sap/m/OverflowToolbarLayoutData', 'sap/ui/base/ManagedObjectObserver', "sap/ui/thirdparty/jquery", "sap/base/Log", "sap/base/util/isEmptyObject"
-], function(Dialog, library, EnabledPropagator, DialogRenderer, coreLibrary, Device, Bar, Button, Title, OverflowToolbarLayoutData, ManagedObjectObserver, jQuery, Log, isEmptyObject) {
+	'./Dialog',
+	'./library',
+	"sap/ui/core/Element",
+	'sap/ui/core/EnabledPropagator',
+	'./DialogRenderer',
+	"sap/ui/core/Lib",
+	'sap/ui/core/message/MessageType',
+	'sap/ui/Device',
+	'./Bar',
+	'./Button',
+	'./Title',
+	'sap/m/OverflowToolbarLayoutData',
+	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/thirdparty/jquery",
+	"sap/base/Log",
+	"sap/base/util/isEmptyObject"
+], function(Dialog, library, Element, EnabledPropagator, DialogRenderer, Library, MessageType, Device, Bar, Button, Title, OverflowToolbarLayoutData, ManagedObjectObserver, jQuery, Log, isEmptyObject) {
 	"use strict";
 
 	// shortcut for sap.m.OverflowToolbarPriority
@@ -22,11 +37,11 @@ sap.ui.define([
 	// shortcut for sap.m.ListMode
 	var ListMode = library.ListMode;
 
-	// shortcut for sap.ui.core.MessageType
-	var MessageType = coreLibrary.MessageType;
-
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
+
+	// shortcut for sap.m.BackgroundDesign
+	var BackgroundDesign = library.BackgroundDesign;
 
 	var NavigationControl; // List in case of Device.system.phone and SegmentedButton else
 	var NavigationControlItem; // StandardListItem in case of Device.system.phone and SegmentedButtonItem else
@@ -57,18 +72,18 @@ sap.ui.define([
 	 *        tables.
 	 * @extends sap.m.Dialog
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @constructor
+	 * @deprecated As of version 1.98. Use the {@link sap.m.p13n.Popup} instead.
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nDialog
 	 * @see {@link topic:a3c3c5eb54bc4cc38e6cfbd8e90c6a01 Personalization Dialog}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var P13nDialog = Dialog.extend("sap.m.P13nDialog", /** @lends sap.m.P13nDialog.prototype */
 	{
 		metadata: {
-
+			deprecated:true,
 			library: "sap.m",
 			properties: {
 				/**
@@ -153,9 +168,10 @@ sap.ui.define([
 	P13nDialog.prototype.init = function(oEvent) {
 		this.addStyleClass("sapMP13nDialog");
 		Dialog.prototype.init.apply(this, arguments);
-		this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 		this._mValidationListener = {};
 		this._createDialog();
+		this._bTabBarUsed = true;
 
 		this._mVisibleNavigationItems = {};
 		this._bNavigationControlsPromiseResolved = false;
@@ -239,7 +255,7 @@ sap.ui.define([
 					});
 					MessageBox.show(sMessageText, {
 						icon: MessageBox.Icon.ERROR,
-						title: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VALIDATION_TITLE_ERROR"),
+						title: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_TITLE_ERROR"),
 						actions: [
 							MessageBox.Action.CLOSE
 						],
@@ -249,13 +265,14 @@ sap.ui.define([
 					aWarningMessages.forEach(function(oMessage, iIndex, aMessages) {
 						sMessageText = (aMessages.length > 1 ? "• " : "") + oMessage.messageText + "\n" + sMessageText;
 					});
-					sMessageText = sMessageText + sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VALIDATION_MESSAGE_QUESTION");
+					sMessageText = sMessageText + Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_MESSAGE_QUESTION");
 
 					MessageBox.show(sMessageText, {
 						icon: MessageBox.Icon.WARNING,
-						title: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VALIDATION_TITLE"),
+						title: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_TITLE"),
+						emphasizedAction: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_FIX"),
 						actions: [
-							sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VALIDATION_FIX"), MessageBox.Action.IGNORE
+							Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_FIX"), MessageBox.Action.IGNORE
 						],
 						onClose: function(oAction) {
 							// Fix: Stay on the current panel. There is incorrect entry and user decided to correct this.
@@ -289,13 +306,13 @@ sap.ui.define([
 				case P13nPanelType.filter:
 					aValidationResult.push({
 						messageType: MessageType.Warning,
-						messageText: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VALIDATION_MESSAGE")
+						messageText: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VALIDATION_MESSAGE")
 					});
 					break;
 				case P13nPanelType.columns:
 					aValidationResult.push({
 						messageType: MessageType.Warning,
-						messageText: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_VISIBLE_ITEMS_THRESHOLD_MESSAGE")
+						messageText: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_VISIBLE_ITEMS_THRESHOLD_MESSAGE")
 					});
 					break;
 				default:
@@ -370,7 +387,6 @@ sap.ui.define([
 			}, this);
 		}
 		this.invalidate();
-		this.rerender();
 	};
 
 	/**
@@ -421,6 +437,7 @@ sap.ui.define([
 	 * Returns panel.
 	 *
 	 * @private
+	 * @returns {sap.m.P13nPanel|null}
 	 */
 	P13nDialog.prototype._getPanelByNavigationItem = function(oNavigationItem) {
 		for (var i = 0, aPanels = this.getPanels(), iPanelsLength = aPanels.length; i < iPanelsLength; i++) {
@@ -435,6 +452,7 @@ sap.ui.define([
 	 * Returns NavigationItem.
 	 *
 	 * @private
+	 * @returns {sap.m.SegmentedButtonItem | sap.m.StandardListItem | null}
 	 */
 	P13nDialog.prototype._getNavigationItemByPanel = function(oPanel) {
 		return oPanel ? oPanel.data("sapMP13nDialogNavigationItem") : null;
@@ -644,7 +662,7 @@ sap.ui.define([
 			visible: this.getShowReset(),
 			enabled: this.getShowResetEnabled(),
 			press: function() {
-				sap.ui.getCore().byId(that.getId() + "-ok").focus();//set focus back to 'Ok' button after 'Restore' has been pressed
+				Element.getElementById(that.getId() + "-ok").focus();//set focus back to 'Ok' button after 'Restore' has been pressed
 				that.setShowResetEnabled(false);
 				var oPayload = {};
 				that.getPanels().forEach(function(oPanel) {
@@ -669,6 +687,7 @@ sap.ui.define([
 		Dialog.prototype.exit.apply(this, arguments);
 		this._oObserver.disconnect();
 		this._oObserver = undefined;
+		this._bTabBarUsed = false;
 
 		this._mValidationListener = {};
 		this._mVisibleNavigationItems = {};
@@ -801,8 +820,9 @@ sap.ui.define([
 		} else {
 			this.setSubHeader(new Bar(this.getId() + "-navigationBar", {
 				contentLeft: new NavigationControl(this.getId() + "-navigationItems", {
-					width: '100%',
-					selectionChange: function(oEvent) {
+					backgroundDesign: BackgroundDesign.Transparent,
+					expandable: false,
+					select: function(oEvent) {
 						this._switchPanel(oEvent.getParameter("item"));
 					}.bind(this)
 				})
@@ -829,9 +849,7 @@ sap.ui.define([
 			oPanel.setVisible(bVisible);
 
 			if (bVisible) {
-				if (!Device.system.phone) {
-					this.setVerticalScrolling(oPanel.getVerticalScrolling());
-				}
+				this.setVerticalScrolling(oPanel.getVerticalScrolling());
 			}
 
 			// Update NavigationControl
@@ -869,8 +887,8 @@ sap.ui.define([
 	};
 
 	P13nDialog.prototype._requestRequiredNavigationControls = function() {
-		var sNavigationControl = Device.system.phone ? "sap/m/List" : "sap/m/SegmentedButton";
-		var sNavigationControlItem = Device.system.phone ? "sap/m/StandardListItem" : "sap/m/SegmentedButtonItem";
+		var sNavigationControl = Device.system.phone ? "sap/m/List" : "sap/m/IconTabBar";
+		var sNavigationControlItem = Device.system.phone ? "sap/m/StandardListItem" : "sap/m/IconTabFilter";
 
 		NavigationControl = sap.ui.require(sNavigationControl);
 		NavigationControlItem = sap.ui.require(sNavigationControlItem);

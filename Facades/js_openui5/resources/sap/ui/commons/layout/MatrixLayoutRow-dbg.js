@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,18 +23,17 @@ sap.ui.define(['sap/ui/commons/library', 'sap/ui/core/CustomStyleClassSupport', 
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.38. Instead, use the <code>sap.ui.layout.Grid</code> control.
 	 * @alias sap.ui.commons.layout.MatrixLayoutRow
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var MatrixLayoutRow = Element.extend("sap.ui.commons.layout.MatrixLayoutRow", /** @lends sap.ui.commons.layout.MatrixLayoutRow.prototype */ { metadata : {
 
+		deprecated: true,
 		library : "sap.ui.commons",
-		aggregatingType : "MatrixLayout",
 		properties : {
 
 			/**
@@ -87,9 +86,8 @@ sap.ui.define(['sap/ui/commons/library', 'sap/ui/core/CustomStyleClassSupport', 
 	 * @function
 	 * @param {string} sStyleClass
 	 *         the CSS class name to be added
-	 * @type sap.ui.commons.layout.MatrixLayoutRow
+	 * @type this
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 
@@ -103,9 +101,8 @@ sap.ui.define(['sap/ui/commons/library', 'sap/ui/core/CustomStyleClassSupport', 
 	 * @function
 	 * @param {string} sStyleClass
 	 *         the style to be removed
-	 * @type sap.ui.commons.layout.MatrixLayoutRow
+	 * @type this
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 
@@ -118,7 +115,6 @@ sap.ui.define(['sap/ui/commons/library', 'sap/ui/core/CustomStyleClassSupport', 
 	 *         the style to check for
 	 * @type boolean
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	CustomStyleClassSupport.apply(MatrixLayoutRow.prototype);

@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
@@ -157,78 +157,6 @@
 			"theme": "base"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 668,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 80646,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/close.png",
-			"size": 483,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/close_button.png",
-			"size": 903,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/close_button_hover.png",
-			"size": 117,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/close_hover.png",
-			"size": 459,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/color-marker.png",
-			"size": 122,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/comment_hover.png",
-			"size": 148,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/comment_regular.png",
-			"size": 152,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/favorite_hover.png",
-			"size": 230,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/favorite_regular.png",
-			"size": 234,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/favorite_selected.png",
-			"size": 295,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/feed/person_placeholder_48.png",
-			"size": 349,
-			"theme": "base"
-		},
-		{
 			"name": "img-RTL/flag_hover.png",
 			"size": 192,
 			"theme": "base"
@@ -284,21 +212,6 @@
 			"theme": "base"
 		},
 		{
-			"name": "img-RTL/menu_follow.png",
-			"size": 345,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/menu_hold.png",
-			"size": 397,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/menu_unlisten.png",
-			"size": 422,
-			"theme": "base"
-		},
-		{
 			"name": "img-RTL/not_following_hover.png",
 			"size": 339,
 			"theme": "base"
@@ -306,56 +219,6 @@
 		{
 			"name": "img-RTL/not_following_regular.png",
 			"size": 342,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/open_in_new_window.png",
-			"size": 118,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/open_in_new_window_hover.png",
-			"size": 131,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/pending_hover.png",
-			"size": 404,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/pending_regular.png",
-			"size": 410,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/reload_hover.png",
-			"size": 253,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/reload_regular.png",
-			"size": 254,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/subscribe_hover.png",
-			"size": 347,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/subscribe_regular.png",
-			"size": 350,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/tools_hover.png",
-			"size": 292,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/tools_regular.png",
-			"size": 292,
 			"theme": "base"
 		},
 		{
@@ -565,40 +428,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 51316,
+			"size": 51355,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
+			"module": "sap/ui/ux3/themes/base/library-parameters.json",
 			"size": 174,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 51205,
+			"size": 51288,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 72688,
+			"size": 72683,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 1003,
+			"size": 998,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 56155,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 56044,
-			"theme": "base"
+			"name": "resources.json",
+			"size": 7675
 		},
 		{
 			"name": "shared.less",

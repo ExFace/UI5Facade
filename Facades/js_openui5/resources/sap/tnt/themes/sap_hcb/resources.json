@@ -3,68 +3,76 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 128,
+			"size": 162,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 575,
+			"size": 291,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.css",
-			"size": 3596,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 75268,
+			"name": "base_InfoLabel.less",
+			"size": 5303,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "css_variables.source.less",
-			"size": 74971,
+			"name": "base_NavigationList.less",
+			"size": 17973,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_SideNavigation.less",
+			"size": 3671,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ToolHeader.less",
+			"size": 2785,
+			"designtime": true,
+			"theme": "sap_hcb"
+		},
+		{
+			"name": "base_ToolPage.less",
+			"size": 5061,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 17652,
+			"size": 27716,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 1490,
+			"module": "sap/tnt/themes/sap_hcb/library-parameters.json",
+			"size": 6000,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 17647,
+			"size": 27711,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 999,
+			"size": 36610,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 284,
+			"size": 1105,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
-			"name": "library_skeleton-RTL.css",
-			"size": 18798,
-			"theme": "sap_hcb"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 18793,
-			"theme": "sap_hcb"
+			"name": "resources.json",
+			"size": 1314
 		}
 	]
 }

@@ -1,18 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.TabStripItem.
-sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton"],
-	function(library, Item, ManagedObject, IconPool, AccButton) {
+sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton", "sap/m/ImageHelper", "sap/ui/core/Lib"],
+	function(library, Item, ManagedObject, IconPool, AccButton, ImageHelper, Library) {
 		"use strict";
 
 		// shortcut for sap.m.ButtonType
 		var ButtonType = library.ButtonType;
-
-		// shortcut for sap.m.ImageHelper
-		var ImageHelper = library.ImageHelper;
 
 		/**
 		 * Constructor for a new <code>TabStripItem</code>.
@@ -25,7 +22,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.82.0
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -39,23 +36,20 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 
 					/**
 					 * Determines additional text to be displayed for the item.
-					 * @experimental
-					 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+					 * @since 1.63
 					 */
 					additionalText : {type : "string", group : "Misc", defaultValue : ""},
 
 					/**
 					 * Defines the icon to be displayed as graphical element within the <code>TabStripItem</code>.
 					 * It can be an image or an icon from the icon font.
-					 * @experimental
-					 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+					 * @since 1.63
 					 */
 					icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
 
 					/**
 					 * Determines the tooltip text of the <code>TabStripItem</code> icon.
-					 * @experimental
-					 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+					 * @since 1.63
 					 */
 					iconTooltip : {type : "string", group : "Accessibility", defaultValue : null},
 
@@ -96,6 +90,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 					/**
 					 * Sends information that some of the properties have changed.
 					 * @private
+					 * @ui5-restricted sap.m.TabStripItem
 					 */
 					itemPropertyChanged: {
 						parameters: {
@@ -213,7 +208,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			var oButton = new AccButton({
 				type: ButtonType.Transparent,
 				icon: IconPool.getIconURI("decline"),
-				tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("TABSTRIP_ITEM_CLOSE_BTN"),
+				tooltip: Library.getResourceBundleFor("sap.m").getText("TABSTRIP_ITEM_CLOSE_BTN"),
 				tabIndex: "-1",
 				ariaHidden: "true"
 			}).addStyleClass(TabStripItem.CSS_CLASS_CLOSE_BUTTON);
@@ -234,6 +229,12 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			}
 			ManagedObject.prototype.setProperty.call(this, sName, vValue, bSupressInvalidation);
 
+			if ((sName === "text" && this.getAdditionalText() !== "" && this.getAggregation("_image")) ||
+				(sName === "additionalText" && this.getText() !== "" && this.getAggregation("_image"))) {
+					// update the decorative state of the icon if the text or additional text is changed
+					this.getAggregation("_image").setDecorative(vValue !== "");
+			}
+
 			// optimisation to not invalidate and rerender the whole parent DOM, but only manipulate the CSS class
 			// for invisibility on the concrete DOM element that needs to change
 			if (this.getParent() && this.getParent().changeItemState) {
@@ -249,23 +250,12 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			return this;
 		};
 
-
-		/**
-		 * Property setter for the icon
-		 *
-		 * @param {sap.ui.core.URI} sIcon - new value of the Icon property
-		 * @return {sap.m.TabStripItem} this to allow method chaining
-		 * @public
-		 */
-		TabStripItem.prototype.setIcon = function(sIcon) {
-			return this._setIcon(sIcon);
-		};
-
-		TabStripItem.prototype._setIcon = function(sIcon, bSuppressRendering) {
+		TabStripItem.prototype.setIcon = function(sIcon, bSuppressRendering) {
 			var mProperties,
 				aCssClasses = ['sapMTabContIcon'],
 				oImage = this.getAggregation("_image"),
-				sImgId = this.getId() + "-img";
+				sImgId = this.getId() + "-img",
+				bDecorative = !!(this.getText() || this.getAdditionalText());
 
 			if (!sIcon) {
 				this.setProperty("icon", sIcon, bSuppressRendering);
@@ -281,6 +271,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 				mProperties = {
 					src : sIcon,
 					id: sImgId,
+					decorative: bDecorative,
 					tooltip: this.getIconTooltip()
 				};
 
@@ -293,7 +284,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		/**
 		 * Function is called when image control needs to be loaded.
 		 *
-		 * @return {sap.m.TabStripItem} this to allow method chaining
+		 * @returns {sap.ui.core.Control} the aggregated image
 		 * @private
 		 */
 		TabStripItem.prototype._getImage = function () {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,45 +34,50 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author Svetozar Buzdumovic
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @experimental Since version 1.2.
-	 * The API may change. User with care.
+	 * The API may change. Use with care.
 	 * @alias sap.ui.suite.VerticalProgressIndicator
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
+	 * @deprecated as of version 1.108, there's no replacement for this functionality as no active use cases are known
 	 */
-	var VerticalProgressIndicator = Control.extend("sap.ui.suite.VerticalProgressIndicator", /** @lends sap.ui.suite.VerticalProgressIndicator.prototype */ { metadata : {
+	var VerticalProgressIndicator = Control.extend("sap.ui.suite.VerticalProgressIndicator", /** @lends sap.ui.suite.VerticalProgressIndicator.prototype */ {
+		metadata : {
 
-		library : "sap.ui.suite",
-		properties : {
+			library : "sap.ui.suite",
+			deprecated: true,
+			properties : {
 
-			/**
-			 * The numerical value between 0 and 100 which determines the height of the vertical bar. Values higher than 100 will be displayed as 100%, values lower than zero will be displayed as 0%.
-			 */
-			percentage : {type : "int", group : "Misc", defaultValue : null}
+				/**
+				 * The numerical value between 0 and 100 which determines the height of the vertical bar. Values higher than 100 will be displayed as 100%, values lower than zero will be displayed as 0%.
+				 */
+				percentage : {type : "int", group : "Misc", defaultValue : null}
+			},
+			associations : {
+
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"},
+
+				/**
+				 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
+				 */
+				ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"}
+			},
+			events : {
+
+				/**
+				 * Event is fired when the user clicks the control.
+				 */
+				press : {}
+			}
 		},
-		associations : {
 
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"},
-
-			/**
-			 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
-			 */
-			ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"}
-		},
-		events : {
-
-			/**
-			 * Event is fired when the user clicks the control.
-			 */
-			press : {}
-		}
-	}});
+		renderer: VerticalProgressIndicatorRenderer
+	});
 
 
 
@@ -85,7 +90,7 @@ sap.ui.define([
 	 * A new rendering is not necessary, only the bar will be moved
 	 *
 	 * @param {int} iPercentage
-	 * @return {sap.ui.suite.VerticalProgressIndicator} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	VerticalProgressIndicator.prototype.setPercentage = function(iPercentage) {
@@ -97,11 +102,11 @@ sap.ui.define([
 	  }
 
 	  // get the ProgressBar
-	  this.oBar = window.document.getElementById(this.getId() + '-bar');
+	  this.oBar = this.getDomRef('bar');
 
 	  // get the new Value and calculate Pixels
 	  VerticalPercent = iPercentage;
-	  if (VerticalPercent < 0 || VerticalPercent == Number.NaN) {
+	  if (VerticalPercent < 0) {
 			VerticalPercent = 0;
 	  }
 	  if (VerticalPercent > 100) {
@@ -117,7 +122,7 @@ sap.ui.define([
 
 	  //set the ARIA property
 	  if (!this.oThis) {
-		this.oThis = jQuery(document.getElementById(this.getId()));
+		this.oThis = this.$();
 		}
 	  this.oThis.attr('aria-valuenow', iPercentage + '%');
 	  return this;
@@ -145,7 +150,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	VerticalProgressIndicator.prototype.focus = function() {
 		var oDomRef = this.getDomRef();

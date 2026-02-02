@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,8 @@
 sap.ui.define([
 	'sap/ui/commons/library',
 	'sap/ui/core/IconPool',
-	'sap/ui/Device',
 	'sap/base/security/encodeXML'
-], function(library, IconPool, Device, encodeXML) {
+], function(library, IconPool, encodeXML) {
 	"use strict";
 
 
@@ -20,7 +19,7 @@ sap.ui.define([
 
 	/**
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 * @namespace
 	 */
 	var ButtonRenderer = {
@@ -103,12 +102,6 @@ sap.ui.define([
 			this.renderButtonAttributes(rm, oButton);
 		}
 
-		// feature-dependent CSS class, written for browsers not understanding CSS gradients (=IE8, IE9)
-		// required to avoid a large number of browser selectors which is needed to NOT serve filter:... to IE10
-		if (Device.browser.msie && (!document.documentMode || document.documentMode < 10)) {
-			rm.addClass("sapUiBtnNoGradient");
-		}
-
 		rm.writeClasses();
 
 		rm.write(">");
@@ -182,9 +175,6 @@ sap.ui.define([
 	ButtonRenderer.onblur = function(oButton) {
 		oButton.$().removeClass("sapUiBtnFoc");
 		oButton.$("img").attr("src", this._getIconForState(oButton, "blur"));
-		if (Device.browser.msie) {
-			ButtonRenderer.onmouseout(oButton);
-		}
 	};
 
 	/**

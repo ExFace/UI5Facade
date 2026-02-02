@@ -1,11 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList', './SuggestionItem', 'sap/ui/Device', 'sap/m/library', 'sap/ui/core/Core'],
-	function(jQuery, Toolbar, Button, SuggestionsList, SuggestionItem, Device, library, Core) {
+sap.ui.define([
+	"./Toolbar",
+	"./Button",
+	"./Dialog",
+	"./Popover",
+	"./SuggestionsList",
+	"./SuggestionItem",
+	"sap/ui/Device",
+	"sap/m/library",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib"
+], function (
+	Toolbar,
+	Button,
+	Dialog,
+	Popover,
+	SuggestionsList,
+	SuggestionItem,
+	Device,
+	library,
+	InvisibleText,
+	Library
+) {
 	"use strict";
 
 	// shortcut for sap.m.PlacementType
@@ -36,11 +57,6 @@ sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList'
 			listUpdateTimeout,		// list is updated after a timeout to accumulate simultaneous updates
 			bUseDialog = Device.system.phone,
 			self = this;
-
-		// 1. Conditional loading depending on the device type.
-		// 2. Resolve circular dependency Dialog -> OverflowToolbar -> SearchField:
-		//TODO: global jquery call found
-		jQuery.sap.require(bUseDialog ? "sap.m.Dialog" : "sap.m.Popover");
 
 		/* =========================================================== */
 		/* events processing                                           */
@@ -111,13 +127,13 @@ sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList'
 			});
 
 			okButton = new Button({
-				text : Core.getLibraryResourceBundle("sap.m").getText("MSGBOX_OK"),
+				text : Library.getResourceBundleFor("sap.m").getText("MSGBOX_OK"),
 				press : function() {
 					dialog.close();
 				}
 			});
 
-			dialog = new (sap.ui.require('sap/m/Dialog'))({
+			dialog = new Dialog({
 				stretch: true,
 				customHeader: customHeader,
 				content: getList(),
@@ -148,7 +164,7 @@ sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList'
 		}
 
 		function createPopover() {
-			var popover = self._oPopover =  new (sap.ui.require('sap/m/Popover'))({
+			var popover = self._oPopover = new Popover({
 				showArrow: false,
 				showHeader: false,
 				horizontalScrolling: false,
@@ -156,13 +172,12 @@ sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList'
 				offsetX: 0,
 				offsetY: 0,
 				initialFocus: parent,
-				bounce: false,
+				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "INPUT_AVALIABLE_VALUES"),
 				afterOpen: function () {
-					oInput.$("I").attr("aria-haspopup","true");
 					oInput._applySuggestionAcc();
 				},
 				beforeClose: function() {
-					oInput.$("I").attr("aria-haspopup","false").removeAttr("aria-activedescendant");
+					oInput.$("I").removeAttr("aria-activedescendant");
 					oInput.$("SuggDescr").text("");
 				},
 				content: getList()

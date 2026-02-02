@@ -1,13 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
- /* global ActiveXObject:false */
-
-sap.ui.define(['sap/ui/Device', "sap/base/Log"],
-	function (Device, Log) {
+sap.ui.define(['sap/ui/Device', "sap/base/Log", "sap/base/security/URLListValidator"],
+	function (Device, Log, URLListValidator) {
 		"use strict";
 
 		function shouldShowToolbar(oControl) {
@@ -23,7 +21,9 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log"],
 		 * Pdf viewer renderer.
 		 * @namespace
 		 */
-		var PDFViewerRenderer = {};
+		var PDFViewerRenderer = {
+			apiVersion: 2
+		};
 
 		/**
 		 * Check whether Mime type is supported
@@ -46,24 +46,19 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log"],
 				return bIsEnabled;
 			}
 
-			if (Device.browser.internet_explorer) {
-				// hacky code how to recognize that pdf plugin is installed and enabled
-				try {
-					/* eslint-disable no-new */
-					new ActiveXObject("AcroPDF.PDF");
-					/* eslint-enable no-new */
-				} catch (e) {
+			if (typeof navigator.pdfViewerEnabled !== "undefined") {
+				if (navigator.pdfViewerEnabled || /HeadlessChrome/.test(window.navigator.userAgent)) {
+					return bIsEnabled;
+				} else {
 					bIsEnabled = false;
 				}
-
-				return bIsEnabled;
+			} else {
+				var aMimeTypes = navigator.mimeTypes;
+				bIsEnabled = aAllowedMimeTypes.some(function (sAllowedMimeType) {
+					var oMimeTypeItem = aMimeTypes.namedItem(sAllowedMimeType);
+					return oMimeTypeItem !== null;
+				});
 			}
-
-			var aMimeTypes = navigator.mimeTypes;
-			bIsEnabled = aAllowedMimeTypes.some(function (sAllowedMimeType) {
-				var oMimeTypeItem = aMimeTypes.namedItem(sAllowedMimeType);
-				return oMimeTypeItem !== null;
-			});
 
 			return bIsEnabled;
 		};
@@ -79,64 +74,102 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log"],
 		 *            the PdfViewer component to be rendered
 		 */
 		PDFViewerRenderer.render = function (oRm, oControl) {
-			oRm.write("<div");
-			oRm.writeControlData(oControl);
-			oRm.addStyle("width", oControl._getRenderWidth());
-			oRm.addStyle("height", oControl._getRenderHeight());
-			oRm.writeStyles();
-			oRm.writeClasses();
+			oRm.openStart("div", oControl);
+			oRm.style("width", oControl._getRenderWidth());
+			oRm.style("height", oControl._getRenderHeight());
 			this._writeAccessibilityTags(oRm, oControl);
-			oRm.write(">");
+			oRm.openEnd();
 
 			if (shouldShowToolbar(oControl)) {
 				oRm.renderControl(oControl._objectsRegister.getOverflowToolbarControl());
 			}
 
-			if (oControl._isEmbeddedModeAllowed()) {
-				this.renderPdfContent(oRm, oControl);
+			/**
+			 * Case1: If display is in Embedded Mode, PDF Plugin is disabled and is Desktop Device, We render Error Content.
+			 * Case2: If display is in Embedded Mode and PDF Plugin is enabled, We render PDF Content.
+			 * Case3: If display is in Embedded Mode, PDF Plugin is enabled and isTrustedSource = false, We render NonTrustedSource Content.
+			 */
+			var bRenderEmbededMode = (oControl._isDisplayTypeEmbedded() || oControl._isDisplayTypeAuto()) && Device.system.desktop;
+
+			if (bRenderEmbededMode) {
+				if (!this._isPdfPluginEnabled()) {
+					this.renderErrorContent(oRm, oControl);
+				} else if (!oControl.getIsTrustedSource()) {
+					this.renderNonTrustedSourceContent(oRm, oControl);
+				} else  {
+					this.renderPdfContent(oRm, oControl);
+				}
 			}
 
-			oRm.write("</div>");
+			oRm.close("div");
 		};
 
 		PDFViewerRenderer._writeAccessibilityTags = function (oRm, oControl) {
-			oRm.writeAttribute("role", "document");
-			oRm.writeAttribute("aria-label", oControl._getLibraryResourceBundle().getText("PDF_VIEWER_ACCESSIBILITY_LABEL"));
+			oRm.attr("role", "document");
+			oRm.attr("aria-label", oControl._getLibraryResourceBundle().getText("PDF_VIEWER_ACCESSIBILITY_LABEL"));
 		};
 
 		PDFViewerRenderer.renderPdfContent = function (oRm, oControl) {
-			if (oControl._shouldRenderPdfContent()) {
-				oRm.write("<iframe");
-				oRm.addClass("sapMPDFViewerContent");
-				oRm.addClass("sapMPDFViewerLoading");
-				if (shouldShowToolbar(oControl)) {
-					oRm.addClass("sapMPDFViewerReducedContent");
+			if (oControl._shouldRenderPdfContent() && !(/HeadlessChrome/.test(window.navigator.userAgent))) {
+				oRm.openStart("iframe", oControl.getId() + "-iframe");
+
+				var sParametrizedSource = oControl.getSource();
+				var iCrossPosition = oControl.getSource().indexOf("#");
+				if (iCrossPosition > -1) {
+					sParametrizedSource = sParametrizedSource.substr(0, iCrossPosition);
 				}
-				oRm.writeClasses();
-				oRm.write(">");
-				oRm.write("</iframe>");
+				if (!(Device.browser.safari && sParametrizedSource.startsWith("blob:"))) {
+					sParametrizedSource += "#view=FitH";
+				}
+				if (!URLListValidator.validate(sParametrizedSource)) {
+					sParametrizedSource = encodeURI(sParametrizedSource);
+				}
+
+				if (URLListValidator.validate(sParametrizedSource)) {
+					oControl._sParametrizedSource = sParametrizedSource;
+					oRm.attr("src", sParametrizedSource);
+				} else {
+					oControl._fireErrorEvent();
+				}
+
+				oRm.class("sapMPDFViewerContent");
+				oRm.class("sapMPDFViewerLoading");
+				oRm.attr("aria-label", oControl._getLibraryResourceBundle().getText("PDF_VIEWER_CONTENT_ACCESSIBILITY_LABEL"));
+				if (shouldShowToolbar(oControl)) {
+					oRm.class("sapMPDFViewerReducedContent");
+				}
+				oRm.openEnd();
+				oRm.close("iframe");
 			} else {
 				this.renderErrorContent(oRm, oControl);
-				if (!PDFViewerRenderer._isPdfPluginEnabled()) {
-					Log.warning("The PDF plug-in is not available on this device.");
-					oControl.fireEvent("error", {}, true);
-				}
 			}
 		};
 
 		PDFViewerRenderer.renderErrorContent = function (oRm, oControl) {
 			var oErrorContent = oControl.getErrorPlaceholder() ? oControl.getErrorPlaceholder() :
-					oControl._objectsRegister.getPlaceholderMessagePageControl();
+				oControl._objectsRegister.getErrorPlaceholderIllustratedMessageControl();
 
-			oRm.write("<div");
-			oRm.addClass("sapMPDFViewerError");
+			oRm.openStart("div");
+			oRm.class("sapMPDFViewerError");
 			if (!oControl._bIsPopupOpen) {
-				oRm.addClass("sapMPDFViewerEmbeddedContent");
+				oRm.class("sapMPDFViewerEmbeddedContent");
 			}
-			oRm.writeClasses();
-			oRm.write(">");
+			oRm.openEnd();
 			oRm.renderControl(oErrorContent);
-			oRm.write("</div>");
+			oRm.close("div");
+
+			if (!PDFViewerRenderer._isPdfPluginEnabled()) {
+				Log.warning("Either Inline viewing of pdf is disabled or pdf plug-in is unavailable on this device.");
+				oControl.fireEvent("error", {}, true);
+			}
+		};
+
+		PDFViewerRenderer.renderNonTrustedSourceContent = function (oRm, oControl) {
+			oRm.openStart("div");
+			oRm.class("sapMPDFViewerNonTrustedIllustratedMessage");
+			oRm.openEnd();
+			oRm.renderControl(oControl._getNonTrustedSourceIllustratedMessage());
+			oRm.close("div");
 		};
 
 		return PDFViewerRenderer;

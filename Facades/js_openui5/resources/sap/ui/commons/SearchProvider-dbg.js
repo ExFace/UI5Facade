@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,14 +20,13 @@ sap.ui.define(['./library', 'sap/ui/core/search/OpenSearchProvider'],
 	 * @class
 	 * A SearchProvider which can be attached to a Search Field.
 	 * @extends sap.ui.core.search.OpenSearchProvider
-	 * @version 1.82.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.6.0.
 	 * Replaced by sap.ui.core.search.OpenSearchProvider
 	 * @alias sap.ui.commons.SearchProvider
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var SearchProvider = OpenSearchProvider.extend("sap.ui.commons.SearchProvider", /** @lends sap.ui.commons.SearchProvider.prototype */ { metadata : {
 
