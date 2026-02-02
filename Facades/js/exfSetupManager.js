@@ -344,6 +344,35 @@
     datatable: {
 
         /**
+         * Re-calculate the fixedColumnCount property for a sap.ui.table. This might differ from the inital count due to 
+         * setups, mutations, and optional columns
+         * 
+         * 
+         * @param {string} sDataTableId 
+         * @param {integer} iFreezeColumnCount 
+         * @param {boolean} bHasDirtyColumn 
+         * @returns integer fixedColumnCount
+         */
+        getFreezeColumnsCount: function (sDataTableId, iFreezeColumnCount, bHasDirtyColumn) {
+            if (iFreezeColumnCount > 0){
+                let oDataTable = sap.ui.getCore().byId(sDataTableId); 
+                if (oDataTable){
+                    for (let i = 0; i < iFreezeColumnCount; i++) {
+                        if (oDataTable.getColumns()[i] && oDataTable.getColumns()[i].getVisible() === false){
+                            iFreezeColumnCount++;
+                        }
+                    }
+                }
+
+                if (bHasDirtyColumn === true){
+                    iFreezeColumnCount++;
+                }
+            }
+
+            return iFreezeColumnCount;
+        },
+
+        /**
          * Tracks changes made to the DataTable configuration, including columns, sorters, filters, and manual resizes.
          * This is done by attaching event listeners to the relevant UI5 components and models and updating a change flag and indicator.
          * (see @_onDataTableConfigChange for onchange event function)
