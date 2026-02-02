@@ -71,17 +71,25 @@ class UI5DataColumn extends UI5AbstractElement
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
         
+        $caption = $this->getCaption();
         $iconJs = '';
-        $labelClassJs = '';
+        $labelClass = '';
         if ($icon = $col->getIcon()) {
-            $iconJs = "icon: '{$this->getIconSrc($icon)}',";
+            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))},";
+            
+            // Icons should replace the caption in the colum header
+            $caption = '';
+            $labelClass = 'exf-icon-only';
+            
+            // SVG icons need a special CSS class to fix their positioning and color
             $iconSet = $col->getIconSet();
             if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
-                $labelClassJs .= '.addStyleClass("exf-svg-icon exf-svg-colored")';
+                $labelClass .= ' exf-svg-icon exf-svg-colored';
             } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
-                $labelClassJs .= '.addStyleClass("exf-svg-icon")';
+                $labelClass .= ' exf-svg-icon';
             }
         }
+        $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
         $expression = $this->buildJsAddDataExpression($col);
         
         // The tooltips for columns of the UI table also include the column caption
@@ -91,7 +99,7 @@ class UI5DataColumn extends UI5AbstractElement
 
 	 new sap.ui.table.Column('{$this->getId()}', {
 	    label: new sap.ui.commons.Label({
-            text: "{$this->getCaption()}",
+            text: "{$caption}",
             {$this->buildJsPropertyTooltip(true)}
             {$iconJs}
             {$labelWrappingJs}

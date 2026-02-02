@@ -356,6 +356,13 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* SVG icon for sap.ui.table.Table columns */ 
 .sapUiLbl.exf-svg-icon .sapUiLblIco {height: 18px; margin-top: auto; margin-bottom: auto;}
 .sapUiLbl.exf-svg-icon:not(.exf-svg-colored) .sapUiLblIco {filter: brightness(0) saturate(100%) invert(19%) sepia(1%) saturate(3230%) hue-rotate(174deg) brightness(105%) contrast(97%);}
+.sapUiLbl.exf-icon-only > img {margin-right: 0;}
+
+/* set placeholder icon invisible, if icon is css injected */
+.exf-svg-icon[class^="exf-injected-icon"],
+.exf-svg-icon[class*=" exf-injected-icon"] {
+    color: transparent;
+}
 
 /* NavTiles IconTabBar */
 .tileHeaderMarginTop {margin-top: 50px;}
