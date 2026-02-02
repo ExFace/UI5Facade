@@ -75,7 +75,7 @@ class UI5DataColumn extends UI5AbstractElement
         $iconJs = '';
         $labelClass = '';
         if ($icon = $col->getIcon()) {
-            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))},";
+            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))}, textAlign: sap.ui.core.TextAlign.Center,";
             
             // Icons should replace the caption in the colum header
             $caption = '';
