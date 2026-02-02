@@ -198,7 +198,7 @@ JS;
         
         switch (true) {
             // Icon properties of some controls like sap.m.Button accept data-URLs for SVG
-            case $iconSet === iHaveIcon::ICON_SET_SVG:
+            case Icons::isIconSetSVG($iconSet) === true:
                 $path = 'data:image/svg+xml;utf8,';
                 try {
                     $xml = SvgDataType::cast($icon_name);
