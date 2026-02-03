@@ -430,6 +430,7 @@ JS;
                             });
                         });
                         oModel.setProperty('/columns', aNewColModel);
+                        oModel.refresh(true);
                     },
                     type: "columns",
                     items: {

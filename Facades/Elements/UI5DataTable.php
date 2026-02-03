@@ -132,10 +132,14 @@ JS
                 setTimeout(() => {
                     let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
                     let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                    // attach listener for changes 
                     if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount("{$this->getId()}", {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn));
+                        exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
                     }
                 }, 0);
+
+                
                     
 JS, false);
 
