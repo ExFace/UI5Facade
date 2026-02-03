@@ -1958,6 +1958,21 @@ JS;
 				],
 				actions: [
 				    {$toolbar}
+				    new sap.m.Button('{$this->getId()}_driverButton', {
+				        icon: "sap-icon://travel-request",
+				        press: function(oEvent) {
+                            // This button needs to know, which widget is the start of the selected route. Would it
+                            // be possible to find all other nodes of this route right here via JS
+                            const driverObj = driver.js.driver();
+                            driverObj.highlight({
+                                element: "#{$this->getFacade()->getElement($this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getWidget(0))->getId()}",
+                                popover: {
+                                    title: "Hier kannnst suchen",
+                                    description: {$this->escapeString($this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getWidget(0)->getHint())}
+                                }
+                            });
+				        }
+                    })
 				],
                 {$titleAreaShrinkRatio}
             }),

@@ -139,6 +139,8 @@
 	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/ui5facade/Facades/js/openui5.controls.js",
 	
 	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",
+	"LIBS.DRIVER.JS": "exface/ui5facade/Facades/js/driver/driver.iife.js",
+	"LIBS.DRIVER.CSS": "exface/ui5facade/Facades/js/driver/driver.css",
 	"LIBS.EXFDEBUGGER.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfDebugger.js",
   	"LIBS.EXFCOLORTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js",
   
