@@ -207,6 +207,7 @@ JS;
         $keepScrollPosition = $widget->getKeepScrollPosition();
         $defaultDurationHours = $calItem->getDefaultDurationHours();
         $viewModesConfig = $this->getViewModesConfig();
+        $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
                 
@@ -257,6 +258,7 @@ JS;
         auto_move_label: true, // TODO SR: Implement as UXON property
         view_modes: buildedViewModes,
         infinite_padding: true, // TODO SR: It fixes the month view bug where the bars have wrong positions. This will be fixed in the future original frappe-gantt version. See: https://github.com/frappe/gantt/issues/498
+        readonly: !($editableJs),
         //column_width: 30,
         //step: 24,
         bar_height: 19,
@@ -369,7 +371,7 @@ JS;
                             progress: 0,
                             dependencies: '',
                             lineIndex: lineIndex,
-                            draggable: $draggableJs,
+                            draggable: $draggableJs, //TODO SR: depricated. Use readonly property of gantt instead.
                             color: sColor,
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
