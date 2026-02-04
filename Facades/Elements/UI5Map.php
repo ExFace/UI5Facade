@@ -143,7 +143,8 @@ JS);
         return $this->buildJsDataLoaderParamsViaTrait($oControlEventJsVar, $oParamsJs, $keepPagePosJsVar) . <<<JS
 
             $oParamsJs = $.extend(true, $oParamsJs, oLeafletParams);
-
+            // Maps do not support column setups yet - let the backend use its old fallback logic
+            delete $oParamsJs.data.columns;
 JS;
     }
     
