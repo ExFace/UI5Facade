@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 	 * The <code>RowActionItem</code> control represents a action for a row.
 	 * This control can only be used in the context of <code>sap.ui.mdc.Table</code> control to define row actions.
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public

@@ -85,7 +85,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 745250,
+			"size": 747120,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -167,23 +167,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 305481,
+			"size": 305922,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/base/library-parameters.json",
-			"size": 157861,
+			"size": 157994,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 305468,
+			"size": 305909,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 137311,
+			"size": 137567,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -217,7 +217,7 @@
 		},
 		{
 			"name": "skeleton.less",
-			"size": 105311,
+			"size": 105567,
 			"designtime": true,
 			"theme": "base"
 		}

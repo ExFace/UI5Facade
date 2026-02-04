@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 655,
+			"size": 656,
 			"theme": "sap_belize_hcb"
 		},
 		{
@@ -37,7 +37,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 237353,
+			"size": 237639,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -99,18 +99,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 231027,
+			"size": 231330,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_belize_hcb/library-parameters.json",
-			"size": 150599,
+			"size": 150770,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 231014,
+			"size": 231317,
 			"theme": "sap_belize_hcb"
 		},
 		{

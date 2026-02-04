@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 			mItem.visible = !!oExisting;
 			mItem.position = oExisting ? oExisting.position : -1;
 			mItem.alignment = oProperty.alignment;
-			mItem.enabled = !!oProperty.enabled;
+			mItem.enabled = typeof oProperty.enabled === "string" ? oProperty.enabled : !!oProperty.enabled;
 			return oProperty.visible;
 		});
 

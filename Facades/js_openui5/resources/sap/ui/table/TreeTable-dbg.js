@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @class
 	 * The TreeTable control provides a comprehensive set of features to display hierarchical data.
 	 * @extends sap.ui.table.Table
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -274,7 +274,7 @@ sap.ui.define([
 	};
 
 	TreeTable.prototype._getContexts = function(iStartIndex, iLength, iThreshold, bKeepCurrent) {
-		if (!this.getVisible()) {
+		if (!this.getVisible() && this.getBinding()?.isSuspended()) {
 			return [];
 		}
 

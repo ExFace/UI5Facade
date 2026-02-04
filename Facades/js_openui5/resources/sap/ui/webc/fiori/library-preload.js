@@ -1,772 +1,772 @@
 //@ui5-bundle sap/ui/webc/fiori/library-preload.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/Bar", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/Bar"],function(e,t){"use strict";var i=t.BarDesign;var r=e.extend("sap.ui.webc.fiori.Bar",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-bar-ui5",interfaces:["sap.ui.webc.fiori.IBar"],properties:{design:{type:"sap.ui.webc.fiori.BarDesign",defaultValue:i.Header},width:{type:"sap.ui.core.CSSSize",mapping:"style"}},defaultAggregation:"middleContent",aggregations:{endContent:{type:"sap.ui.core.Control",multiple:true,slot:"endContent"},middleContent:{type:"sap.ui.core.Control",multiple:true},startContent:{type:"sap.ui.core.Control",multiple:true,slot:"startContent"}}}});return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/BarcodeScannerDialog", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/BarcodeScannerDialog"],function(e,a){"use strict";var r=e.extend("sap.ui.webc.fiori.BarcodeScannerDialog",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-barcode-scanner-dialog-ui5",events:{scanError:{parameters:{message:{type:"string"}}},scanSuccess:{parameters:{text:{type:"string"},rawBytes:{type:"object"}}}},methods:["close","show"]}});return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/DynamicSideContent", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/DynamicSideContent"],function(e,t){"use strict";var i=t.SideContentFallDown;var n=t.SideContentPosition;var o=t.SideContentVisibility;var a=e.extend("sap.ui.webc.fiori.DynamicSideContent",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-dynamic-side-content-ui5",properties:{equalSplit:{type:"boolean",defaultValue:false},hideMainContent:{type:"boolean",defaultValue:false},hideSideContent:{type:"boolean",defaultValue:false},sideContentFallDown:{type:"sap.ui.webc.fiori.SideContentFallDown",defaultValue:i.OnMinimumWidth},sideContentPosition:{type:"sap.ui.webc.fiori.SideContentPosition",defaultValue:n.End},sideContentVisibility:{type:"sap.ui.webc.fiori.SideContentVisibility",defaultValue:o.ShowAboveS}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:true},sideContent:{type:"sap.ui.core.Control",multiple:true,slot:"sideContent"}},events:{layoutChange:{parameters:{currentBreakpoint:{type:"string"},previousBreakpoint:{type:"string"},mainContentVisible:{type:"boolean"},sideContentVisible:{type:"boolean"}}}},methods:["toggleContents"]}});return a});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/FilterItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/FilterItem"],function(e,t){"use strict";var i=e.extend("sap.ui.webc.fiori.FilterItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-filter-item-ui5",interfaces:["sap.ui.webc.fiori.IFilterItem"],properties:{additionalText:{type:"string",defaultValue:""},text:{type:"string",defaultValue:""}},aggregations:{values:{type:"sap.ui.webc.fiori.IFilterItemOption",multiple:true,slot:"values"}}}});return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/FilterItemOption", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/FilterItemOption"],function(e,t){"use strict";var i=e.extend("sap.ui.webc.fiori.FilterItemOption",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-filter-item-option-ui5",interfaces:["sap.ui.webc.fiori.IFilterItemOption"],properties:{selected:{type:"boolean",defaultValue:false},text:{type:"string",defaultValue:""}}}});return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/FlexibleColumnLayout", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/FlexibleColumnLayout"],function(e,t){"use strict";var l=t.FCLLayout;var o=e.extend("sap.ui.webc.fiori.FlexibleColumnLayout",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-flexible-column-layout-ui5",properties:{accessibilityRoles:{type:"object",defaultValue:{}},accessibilityTexts:{type:"object",defaultValue:{}},height:{type:"sap.ui.core.CSSSize",mapping:"style"},hideArrows:{type:"boolean",defaultValue:false},layout:{type:"sap.ui.webc.fiori.FCLLayout",defaultValue:l.OneColumn},width:{type:"sap.ui.core.CSSSize",mapping:"style"}},aggregations:{endColumn:{type:"sap.ui.core.Control",multiple:false,slot:"endColumn"},midColumn:{type:"sap.ui.core.Control",multiple:false,slot:"midColumn"},startColumn:{type:"sap.ui.core.Control",multiple:false,slot:"startColumn"}},events:{layoutChange:{parameters:{layout:{type:"sap.ui.webc.fiori.FCLLayout"},columnLayout:{type:"array"},startColumnVisible:{type:"boolean"},midColumnVisible:{type:"boolean"},endColumnVisible:{type:"boolean"},arrowsUsed:{type:"boolean"},resize:{type:"boolean"}}}},getters:["columnLayout","endColumnVisible","midColumnVisible","startColumnVisible","visibleColumns"]}});return o});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/IllustratedMessage", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/IllustratedMessage"],function(e,t){"use strict";var a=t.IllustrationMessageSize;var i=t.IllustrationMessageType;var s=e.extend("sap.ui.webc.fiori.IllustratedMessage",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-illustrated-message-ui5",properties:{name:{type:"sap.ui.webc.fiori.IllustrationMessageType",defaultValue:i.BeforeSearch},size:{type:"sap.ui.webc.fiori.IllustrationMessageSize",defaultValue:a.Auto},subtitleText:{type:"string",defaultValue:""},titleText:{type:"string",defaultValue:""}},defaultAggregation:"actions",aggregations:{actions:{type:"sap.ui.webc.main.IButton",multiple:true},subtitle:{type:"sap.ui.core.Control",multiple:false,slot:"subtitle"},title:{type:"sap.ui.core.Control",multiple:false,slot:"title"}},associations:{ariaLabelledBy:{type:"sap.ui.core.Control",multiple:true,mapping:{type:"property",to:"accessibleNameRef",formatter:"_getAriaLabelledByForRendering"}}}}});return s});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/MediaGallery", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/MediaGallery"],function(e,a){"use strict";var i=a.MediaGalleryLayout;var l=a.MediaGalleryMenuHorizontalAlign;var t=a.MediaGalleryMenuVerticalAlign;var r=e.extend("sap.ui.webc.fiori.MediaGallery",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-media-gallery-ui5",properties:{interactiveDisplayArea:{type:"boolean",defaultValue:false},layout:{type:"sap.ui.webc.fiori.MediaGalleryLayout",defaultValue:i.Auto},menuHorizontalAlign:{type:"sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign",defaultValue:l.Left},menuVerticalAlign:{type:"sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign",defaultValue:t.Bottom},showAllThumbnails:{type:"boolean",defaultValue:false}},defaultAggregation:"items",aggregations:{items:{type:"sap.ui.webc.fiori.IMediaGalleryItem",multiple:true}},events:{displayAreaClick:{parameters:{}},overflowClick:{parameters:{}},selectionChange:{parameters:{item:{type:"HTMLElement"}}}}}});return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/MediaGalleryItem", ["sap/ui/core/webc/WebComponent","./library","sap/ui/core/EnabledPropagator","./thirdparty/MediaGalleryItem"],function(e,a,t){"use strict";var l=a.MediaGalleryItemLayout;var i=e.extend("sap.ui.webc.fiori.MediaGalleryItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-media-gallery-item-ui5",interfaces:["sap.ui.webc.fiori.IMediaGalleryItem"],properties:{enabled:{type:"boolean",defaultValue:true,mapping:{type:"property",to:"disabled",formatter:"_mapEnabled"}},layout:{type:"sap.ui.webc.fiori.MediaGalleryItemLayout",defaultValue:l.Square},selected:{type:"boolean",defaultValue:false}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:false},thumbnail:{type:"sap.ui.core.Control",multiple:false,slot:"thumbnail"}}}});t.call(i.prototype);return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/NotificationAction", ["sap/ui/core/webc/WebComponent","./library","sap/ui/core/EnabledPropagator","sap/ui/webc/main/library","./thirdparty/NotificationAction"],function(e,t,i,a){"use strict";var n=a.ButtonDesign;var r=e.extend("sap.ui.webc.fiori.NotificationAction",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-notification-action-ui5",interfaces:["sap.ui.webc.fiori.INotificationAction"],properties:{design:{type:"sap.ui.webc.main.ButtonDesign",defaultValue:n.Transparent},enabled:{type:"boolean",defaultValue:true,mapping:{type:"property",to:"disabled",formatter:"_mapEnabled"}},icon:{type:"string",defaultValue:""},text:{type:"string",defaultValue:""}},events:{click:{parameters:{targetRef:{type:"HTMLElement"}}}}}});i.call(r.prototype);return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/NotificationListGroupItem", ["sap/ui/core/webc/WebComponent","./library","sap/ui/webc/main/library","./thirdparty/NotificationListGroupItem"],function(e,t,a){"use strict";var i=a.Priority;var o=e.extend("sap.ui.webc.fiori.NotificationListGroupItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-li-notification-group-ui5",interfaces:["sap.ui.webc.main.IListItem"],properties:{busy:{type:"boolean",defaultValue:false},busyDelay:{type:"int",defaultValue:1e3},collapsed:{type:"boolean",defaultValue:false},priority:{type:"sap.ui.webc.main.Priority",defaultValue:i.None},read:{type:"boolean",defaultValue:false},selected:{type:"boolean",defaultValue:false},showClose:{type:"boolean",defaultValue:false},showCounter:{type:"boolean",defaultValue:false},titleText:{type:"string",defaultValue:""}},defaultAggregation:"items",aggregations:{actions:{type:"sap.ui.webc.fiori.INotificationAction",multiple:true,slot:"actions"},items:{type:"sap.ui.webc.fiori.INotificationListItem",multiple:true}},events:{close:{parameters:{item:{type:"HTMLElement"}}},toggle:{parameters:{}}}}});return o});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/NotificationListItem", ["sap/ui/core/webc/WebComponent","./library","sap/ui/webc/main/library","./thirdparty/NotificationListItem"],function(e,t,i){"use strict";var a=i.Priority;var o=i.WrappingType;var s=e.extend("sap.ui.webc.fiori.NotificationListItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-li-notification-ui5",interfaces:["sap.ui.webc.fiori.INotificationListItem","sap.ui.webc.main.IListItem"],properties:{busy:{type:"boolean",defaultValue:false},busyDelay:{type:"int",defaultValue:1e3},description:{type:"string",defaultValue:"",mapping:"textContent"},priority:{type:"sap.ui.webc.main.Priority",defaultValue:a.None},read:{type:"boolean",defaultValue:false},selected:{type:"boolean",defaultValue:false},showClose:{type:"boolean",defaultValue:false},titleText:{type:"string",defaultValue:""},wrappingType:{type:"sap.ui.webc.main.WrappingType",defaultValue:o.None}},aggregations:{actions:{type:"sap.ui.webc.fiori.INotificationAction",multiple:true,slot:"actions"},avatar:{type:"sap.ui.webc.main.IAvatar",multiple:false,slot:"avatar"},footnotes:{type:"sap.ui.core.Control",multiple:true,slot:"footnotes"}},events:{close:{parameters:{item:{type:"HTMLElement"}}}},designtime:"sap/ui/webc/fiori/designtime/NotificationListItem.designtime"}});return s});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/Page", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/Page"],function(e,i){"use strict";var a=i.PageBackgroundDesign;var t=e.extend("sap.ui.webc.fiori.Page",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-page-ui5",properties:{backgroundDesign:{type:"sap.ui.webc.fiori.PageBackgroundDesign",defaultValue:a.Solid},disableScrolling:{type:"boolean",defaultValue:false},floatingFooter:{type:"boolean",defaultValue:true},height:{type:"sap.ui.core.CSSSize",mapping:"style"},hideFooter:{type:"boolean",defaultValue:false},width:{type:"sap.ui.core.CSSSize",mapping:"style"}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:true},footer:{type:"sap.ui.webc.fiori.IBar",multiple:false,slot:"footer"},header:{type:"sap.ui.webc.fiori.IBar",multiple:false,slot:"header"}},designtime:"sap/ui/webc/fiori/designtime/Page.designtime"}});return t});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/ProductSwitch", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/ProductSwitch"],function(i,t){"use strict";var e=i.extend("sap.ui.webc.fiori.ProductSwitch",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-product-switch-ui5",defaultAggregation:"items",aggregations:{items:{type:"sap.ui.webc.fiori.IProductSwitchItem",multiple:true}}}});return e});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/ProductSwitchItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/ProductSwitchItem"],function(t,e){"use strict";var i=t.extend("sap.ui.webc.fiori.ProductSwitchItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-product-switch-item-ui5",interfaces:["sap.ui.webc.fiori.IProductSwitchItem"],properties:{icon:{type:"string",defaultValue:""},subtitleText:{type:"string",defaultValue:""},target:{type:"string"},targetSrc:{type:"string",defaultValue:""},titleText:{type:"string",defaultValue:""}},events:{click:{parameters:{}}}}});return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/ShellBar", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/ShellBar"],function(e,t){"use strict";var a=e.extend("sap.ui.webc.fiori.ShellBar",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-shellbar-ui5",properties:{accessibilityAttributes:{type:"object",defaultValue:{}},accessibilityRoles:{type:"object",defaultValue:{}},accessibilityTexts:{type:"object",defaultValue:{}},notificationsCount:{type:"string",defaultValue:""},primaryTitle:{type:"string",defaultValue:""},secondaryTitle:{type:"string",defaultValue:""},showCoPilot:{type:"boolean",defaultValue:false},showNotifications:{type:"boolean",defaultValue:false},showProductSwitch:{type:"boolean",defaultValue:false},showSearchField:{type:"boolean",defaultValue:false}},defaultAggregation:"items",aggregations:{items:{type:"sap.ui.webc.fiori.IShellBarItem",multiple:true},logo:{type:"sap.ui.webc.main.IAvatar",multiple:false,slot:"logo"},menuItems:{type:"sap.ui.webc.main.IListItem",multiple:true,slot:"menuItems"},profile:{type:"sap.ui.webc.main.IAvatar",multiple:false,slot:"profile"},searchField:{type:"sap.ui.webc.main.IInput",multiple:false,slot:"searchField"},startButton:{type:"sap.ui.webc.main.IButton",multiple:false,slot:"startButton"}},events:{coPilotClick:{parameters:{targetRef:{type:"HTMLElement"}}},logoClick:{parameters:{targetRef:{type:"HTMLElement"}}},menuItemClick:{parameters:{item:{type:"HTMLElement"}}},notificationsClick:{allowPreventDefault:true,parameters:{targetRef:{type:"HTMLElement"}}},productSwitchClick:{allowPreventDefault:true,parameters:{targetRef:{type:"HTMLElement"}}},profileClick:{parameters:{targetRef:{type:"HTMLElement"}}}},methods:["closeOverflow"],getters:["copilotDomRef","logoDomRef","notificationsDomRef","overflowDomRef","productSwitchDomRef","profileDomRef"]}});return a});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/ShellBarItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/ShellBarItem"],function(e,t){"use strict";var a=e.extend("sap.ui.webc.fiori.ShellBarItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-shellbar-item-ui5",interfaces:["sap.ui.webc.fiori.IShellBarItem"],properties:{count:{type:"string",defaultValue:""},icon:{type:"string",defaultValue:""},text:{type:"string",defaultValue:""}},events:{click:{allowPreventDefault:true,parameters:{targetRef:{type:"HTMLElement"}}}}}});return a});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/SideNavigation", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/SideNavigation"],function(e,i){"use strict";var t=e.extend("sap.ui.webc.fiori.SideNavigation",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-side-navigation-ui5",properties:{collapsed:{type:"boolean",defaultValue:false}},defaultAggregation:"items",aggregations:{fixedItems:{type:"sap.ui.webc.fiori.ISideNavigationItem",multiple:true,slot:"fixedItems"},header:{type:"sap.ui.core.Control",multiple:true,slot:"header"},items:{type:"sap.ui.webc.fiori.ISideNavigationItem",multiple:true}},events:{selectionChange:{allowPreventDefault:true,parameters:{item:{type:"sap.ui.webc.fiori.ISideNavigationItem|sap.ui.webc.fiori.ISideNavigationSubItem"}}}},designtime:"sap/ui/webc/fiori/designtime/SideNavigation.designtime"}});return t});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/SideNavigationItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/SideNavigationItem"],function(e,i){"use strict";var t=e.extend("sap.ui.webc.fiori.SideNavigationItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-side-navigation-item-ui5",interfaces:["sap.ui.webc.fiori.ISideNavigationItem"],properties:{expanded:{type:"boolean",defaultValue:false},icon:{type:"string",defaultValue:""},selected:{type:"boolean",defaultValue:false},text:{type:"string",defaultValue:""},wholeItemToggleable:{type:"boolean",defaultValue:false}},defaultAggregation:"items",aggregations:{items:{type:"sap.ui.webc.fiori.ISideNavigationSubItem",multiple:true}},events:{click:{parameters:{}}},designtime:"sap/ui/webc/fiori/designtime/SideNavigationItem.designtime"}});return t});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/SideNavigationSubItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/SideNavigationSubItem"],function(e,i){"use strict";var t=e.extend("sap.ui.webc.fiori.SideNavigationSubItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-side-navigation-sub-item-ui5",interfaces:["sap.ui.webc.fiori.ISideNavigationSubItem"],properties:{icon:{type:"string",defaultValue:""},selected:{type:"boolean",defaultValue:false},text:{type:"string",defaultValue:""}},events:{click:{parameters:{}}},designtime:"sap/ui/webc/fiori/designtime/SideNavigationSubItem.designtime"}});return t});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/SortItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/SortItem"],function(e,t){"use strict";var i=e.extend("sap.ui.webc.fiori.SortItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-sort-item-ui5",interfaces:["sap.ui.webc.fiori.ISortItem"],properties:{selected:{type:"boolean",defaultValue:false},text:{type:"string",defaultValue:""}}}});return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/Timeline", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/Timeline"],function(e,i){"use strict";var t=i.TimelineLayout;var a=e.extend("sap.ui.webc.fiori.Timeline",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-timeline-ui5",properties:{accessibleName:{type:"string"},height:{type:"sap.ui.core.CSSSize",mapping:"style"},layout:{type:"sap.ui.webc.fiori.TimelineLayout",defaultValue:t.Vertical},width:{type:"sap.ui.core.CSSSize",mapping:"style"}},defaultAggregation:"items",aggregations:{items:{type:"sap.ui.webc.fiori.ITimelineItem",multiple:true}}}});return a});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/TimelineItem", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/TimelineItem"],function(e,t){"use strict";var i=e.extend("sap.ui.webc.fiori.TimelineItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-timeline-item-ui5",interfaces:["sap.ui.webc.fiori.ITimelineItem"],properties:{icon:{type:"string",defaultValue:""},name:{type:"string",defaultValue:""},nameClickable:{type:"boolean",defaultValue:false},subtitleText:{type:"string",defaultValue:""},titleText:{type:"string",defaultValue:""}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:true}},events:{nameClick:{parameters:{}}}}});return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/UploadCollection", ["sap/ui/core/webc/WebComponent","./library","sap/ui/webc/main/library","./thirdparty/UploadCollection"],function(e,t,a){"use strict";var i=a.ListMode;var r=e.extend("sap.ui.webc.fiori.UploadCollection",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-upload-collection-ui5",properties:{accessibleName:{type:"string",defaultValue:""},height:{type:"sap.ui.core.CSSSize",mapping:"style"},hideDragOverlay:{type:"boolean",defaultValue:false},mode:{type:"sap.ui.webc.main.ListMode",defaultValue:i.None},noDataDescription:{type:"string",defaultValue:""},noDataText:{type:"string",defaultValue:""},width:{type:"sap.ui.core.CSSSize",mapping:"style"}},defaultAggregation:"items",aggregations:{header:{type:"sap.ui.core.Control",multiple:true,slot:"header"},items:{type:"sap.ui.webc.fiori.IUploadCollectionItem",multiple:true}},events:{drop:{parameters:{dataTransfer:{type:"DataTransfer"}}},itemDelete:{parameters:{item:{type:"HTMLElement"}}},selectionChange:{parameters:{selectedItems:{type:"Array"}}}},designtime:"sap/ui/webc/fiori/designtime/UploadCollection.designtime"}});return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/UploadCollectionItem", ["sap/ui/core/webc/WebComponent","./library","sap/ui/webc/main/library","./thirdparty/UploadCollectionItem"],function(e,t,a){"use strict";var l=t.UploadState;var i=a.ListItemType;var o=e.extend("sap.ui.webc.fiori.UploadCollectionItem",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-upload-collection-item-ui5",interfaces:["sap.ui.webc.fiori.IUploadCollectionItem"],properties:{accessibilityAttributes:{type:"object",defaultValue:{}},disableDeleteButton:{type:"boolean",defaultValue:false},file:{type:"object",defaultValue:null},fileName:{type:"string",defaultValue:""},fileNameClickable:{type:"boolean",defaultValue:false},hideDeleteButton:{type:"boolean",defaultValue:false},hideRetryButton:{type:"boolean",defaultValue:false},hideTerminateButton:{type:"boolean",defaultValue:false},navigated:{type:"boolean"},progress:{type:"int",defaultValue:0},selected:{type:"boolean",defaultValue:false},type:{type:"sap.ui.webc.main.ListItemType",defaultValue:i.Active},uploadState:{type:"sap.ui.webc.fiori.UploadState",defaultValue:l.Ready}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:true},deleteButton:{type:"sap.ui.webc.main.IButton",multiple:false,slot:"deleteButton"},thumbnail:{type:"sap.ui.core.Control",multiple:false,slot:"thumbnail"}},events:{detailClick:{parameters:{}},fileNameClick:{parameters:{}},rename:{parameters:{}},retry:{parameters:{}},terminate:{parameters:{}}},designtime:"sap/ui/webc/fiori/designtime/UploadCollectionItem.designtime"}});return o});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/ViewSettingsDialog", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/ViewSettingsDialog"],function(e,t){"use strict";var r=e.extend("sap.ui.webc.fiori.ViewSettingsDialog",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-view-settings-dialog-ui5",properties:{sortDescending:{type:"boolean",defaultValue:false}},aggregations:{filterItems:{type:"sap.ui.webc.fiori.IFilterItem",multiple:true,slot:"filterItems"},sortItems:{type:"sap.ui.webc.fiori.ISortItem",multiple:true,slot:"sortItems"}},events:{beforeOpen:{parameters:{}},cancel:{parameters:{sortOrder:{type:"string"},sortBy:{type:"string"},sortByItem:{type:"HTMLElement"},sortDescending:{type:"boolean"},filters:{type:"Array"}}},confirm:{parameters:{sortOrder:{type:"string"},sortBy:{type:"string"},sortByItem:{type:"HTMLElement"},sortDescending:{type:"boolean"},filters:{type:"Array"}}}},methods:["setConfirmedSettings","show"]}});return r});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/Wizard", ["sap/ui/core/webc/WebComponent","./library","./thirdparty/Wizard"],function(e,i){"use strict";var t=i.WizardContentLayout;var a=e.extend("sap.ui.webc.fiori.Wizard",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-wizard-ui5",properties:{contentLayout:{type:"sap.ui.webc.fiori.WizardContentLayout",defaultValue:t.MultipleSteps},height:{type:"sap.ui.core.CSSSize",mapping:"style"}},defaultAggregation:"steps",aggregations:{steps:{type:"sap.ui.webc.fiori.IWizardStep",multiple:true}},events:{stepChange:{parameters:{step:{type:"sap.ui.webc.fiori.IWizardStep"},previousStep:{type:"sap.ui.webc.fiori.IWizardStep"},changeWithClick:{type:"boolean"}}}}}});return a});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/WizardStep", ["sap/ui/core/webc/WebComponent","./library","sap/ui/core/EnabledPropagator","./thirdparty/WizardStep"],function(e,t,a){"use strict";var i=e.extend("sap.ui.webc.fiori.WizardStep",{metadata:{library:"sap.ui.webc.fiori",tag:"ui5-wizard-step-ui5",interfaces:["sap.ui.webc.fiori.IWizardStep"],properties:{branching:{type:"boolean",defaultValue:false},enabled:{type:"boolean",defaultValue:true,mapping:{type:"property",to:"disabled",formatter:"_mapEnabled"}},icon:{type:"string",defaultValue:""},selected:{type:"boolean",defaultValue:false},subtitleText:{type:"string",defaultValue:""},titleText:{type:"string",defaultValue:""}},defaultAggregation:"content",aggregations:{content:{type:"sap.ui.core.Control",multiple:true}}}});a.call(i.prototype);return i});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/flexibility/SideNavigation.flexibility", ["sap/ui/fl/changeHandler/BaseRename"],function(e){"use strict";return{hideControl:"default",rename:e.createRenameChangeHandler({propertyName:"text",translationTextType:"XBUT"}),unhideControl:"default"}});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/flexibility/SideNavigationItem.flexibility", ["sap/ui/fl/changeHandler/BaseRename"],function(e){"use strict";return{rename:e.createRenameChangeHandler({propertyName:"text",translationTextType:"XTIT"})}});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/flexibility/SideNavigationSubItem.flexibility", ["sap/ui/fl/changeHandler/BaseRename"],function(e){"use strict";return{rename:e.createRenameChangeHandler({propertyName:"text",translationTextType:"XTIT"})}});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/flexibility/UploadCollectionItem.flexibility", ["sap/ui/fl/changeHandler/BaseRename"],function(e){"use strict";return{renameUploadCollectionItem:e.createRenameChangeHandler({propertyName:"fileName",translationTextType:"XACT"}),hideControl:"default",unhideControl:"default"}});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/AddColumn", ["sap/ui/webc/fiori/thirdparty/illustrations/AddColumn"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/AddDimensions", ["sap/ui/webc/fiori/thirdparty/illustrations/AddDimensions"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/AddPeople", ["sap/ui/webc/fiori/thirdparty/illustrations/AddPeople"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/AllIllustrations", ["sap/ui/webc/fiori/thirdparty/illustrations/AllIllustrations"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/BalloonSky", ["sap/ui/webc/fiori/thirdparty/illustrations/BalloonSky"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/BeforeSearch", ["sap/ui/webc/fiori/thirdparty/illustrations/BeforeSearch"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/Connection", ["sap/ui/webc/fiori/thirdparty/illustrations/Connection"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/EmptyCalendar", ["sap/ui/webc/fiori/thirdparty/illustrations/EmptyCalendar"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/EmptyList", ["sap/ui/webc/fiori/thirdparty/illustrations/EmptyList"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/EmptyPlanningCalendar", ["sap/ui/webc/fiori/thirdparty/illustrations/EmptyPlanningCalendar"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/ErrorScreen", ["sap/ui/webc/fiori/thirdparty/illustrations/ErrorScreen"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/FilterTable", ["sap/ui/webc/fiori/thirdparty/illustrations/FilterTable"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/GroupTable", ["sap/ui/webc/fiori/thirdparty/illustrations/GroupTable"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoActivities", ["sap/ui/webc/fiori/thirdparty/illustrations/NoActivities"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoColumnsSet", ["sap/ui/webc/fiori/thirdparty/illustrations/NoColumnsSet"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoData", ["sap/ui/webc/fiori/thirdparty/illustrations/NoData"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoDimensionsSet", ["sap/ui/webc/fiori/thirdparty/illustrations/NoDimensionsSet"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoEntries", ["sap/ui/webc/fiori/thirdparty/illustrations/NoEntries"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoFilterResults", ["sap/ui/webc/fiori/thirdparty/illustrations/NoFilterResults"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoMail", ["sap/ui/webc/fiori/thirdparty/illustrations/NoMail"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoMail_v1", ["sap/ui/webc/fiori/thirdparty/illustrations/NoMail_v1"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoNotifications", ["sap/ui/webc/fiori/thirdparty/illustrations/NoNotifications"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoSavedItems", ["sap/ui/webc/fiori/thirdparty/illustrations/NoSavedItems"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoSavedItems_v1", ["sap/ui/webc/fiori/thirdparty/illustrations/NoSavedItems_v1"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoSearchResults", ["sap/ui/webc/fiori/thirdparty/illustrations/NoSearchResults"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoTasks", ["sap/ui/webc/fiori/thirdparty/illustrations/NoTasks"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/NoTasks_v1", ["sap/ui/webc/fiori/thirdparty/illustrations/NoTasks_v1"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/PageNotFound", ["sap/ui/webc/fiori/thirdparty/illustrations/PageNotFound"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/ReloadScreen", ["sap/ui/webc/fiori/thirdparty/illustrations/ReloadScreen"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/ResizeColumn", ["sap/ui/webc/fiori/thirdparty/illustrations/ResizeColumn"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SearchEarth", ["sap/ui/webc/fiori/thirdparty/illustrations/SearchEarth"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SearchFolder", ["sap/ui/webc/fiori/thirdparty/illustrations/SearchFolder"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleBalloon", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleBalloon"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleBell", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleBell"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleCalendar", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleCalendar"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleCheckMark", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleCheckMark"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleConnection", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleConnection"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleEmptyDoc", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleEmptyDoc"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleEmptyList", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleEmptyList"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleError", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleError"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleMagnifier", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleMagnifier"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleMail", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleMail"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleNoSavedItems", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleNoSavedItems"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleNotFoundMagnifier", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleNotFoundMagnifier"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleReload", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleReload"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SimpleTask", ["sap/ui/webc/fiori/thirdparty/illustrations/SimpleTask"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SleepingBell", ["sap/ui/webc/fiori/thirdparty/illustrations/SleepingBell"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SortColumn", ["sap/ui/webc/fiori/thirdparty/illustrations/SortColumn"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SuccessBalloon", ["sap/ui/webc/fiori/thirdparty/illustrations/SuccessBalloon"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SuccessCheckMark", ["sap/ui/webc/fiori/thirdparty/illustrations/SuccessCheckMark"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SuccessHighFive", ["sap/ui/webc/fiori/thirdparty/illustrations/SuccessHighFive"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/SuccessScreen", ["sap/ui/webc/fiori/thirdparty/illustrations/SuccessScreen"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/Survey", ["sap/ui/webc/fiori/thirdparty/illustrations/Survey"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/Tent", ["sap/ui/webc/fiori/thirdparty/illustrations/Tent"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/UnableToLoad", ["sap/ui/webc/fiori/thirdparty/illustrations/UnableToLoad"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/UnableToLoadImage", ["sap/ui/webc/fiori/thirdparty/illustrations/UnableToLoadImage"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/UnableToUpload", ["sap/ui/webc/fiori/thirdparty/illustrations/UnableToUpload"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/UploadCollection", ["sap/ui/webc/fiori/thirdparty/illustrations/UploadCollection"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/UploadToCloud", ["sap/ui/webc/fiori/thirdparty/illustrations/UploadToCloud"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartArea", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartArea"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartArea2", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartArea2"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartBPMNFlow", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartBPMNFlow"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartBar", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartBar"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartBullet", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartBullet"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartDoughnut", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartDoughnut"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartFlow", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartFlow"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartGantt", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartGantt"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartOrg", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartOrg"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ChartPie", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ChartPie"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/CodePlaceholder", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/CodePlaceholder"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Company", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Company"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Components", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Components"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/ExternalLink", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/ExternalLink"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/FaceID", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/FaceID"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Fingerprint", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Fingerprint"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Lock", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Lock"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Mission", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Mission"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/NoApplications", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/NoApplications"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/NoFlows", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/NoFlows"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/NoUsers", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/NoUsers"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Radar", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Radar"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Secrets", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Secrets"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Services", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Services"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/SessionExpired", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/SessionExpired"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/SessionExpiring", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/SessionExpiring"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Success", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Success"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/SuccessfulAuth", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/SuccessfulAuth"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Systems", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Systems"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Teams", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Teams"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Tools", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Tools"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/UnableToLoad", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/UnableToLoad"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/Unlock", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/Unlock"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/UnsuccessfulAuth", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/UnsuccessfulAuth"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/illustrations/tnt/User2", ["sap/ui/webc/fiori/thirdparty/illustrations/tnt/User2"],function(){"use strict"});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/webc/fiori/library.config", ["sap/ui/webc/common/thirdparty/base/CSP"],function(i){"use strict";window.sap.ui.loader.config({shim:{"sap/ui/webc/fiori/lib/zxing":{amd:true,exports:"ZXing"}}});i.setPackageCSSRoot("@ui5/webcomponents-fiori",sap.ui.require.toUrl("sap/ui/webc/fiori/thirdparty/css/"))});
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/webc/fiori/library", ["sap/ui/webc/common/library","sap/ui/core/Lib","sap/ui/base/DataType","./thirdparty/Assets","./library.config"],function(e,i,o){"use strict";var t=i.init({name:"sap.ui.webc.fiori",apiVersion:2,version:"1.136.0",dependencies:["sap.ui.core","sap.ui.webc.common"],noLibraryCSS:true,designtime:"sap/ui/webc/fiori/designtime/library.designtime",interfaces:["sap.ui.webc.fiori.IBar","sap.ui.webc.fiori.IFilterItem","sap.ui.webc.fiori.IFilterItemOption","sap.ui.webc.fiori.IMediaGalleryItem","sap.ui.webc.fiori.INotificationAction","sap.ui.webc.fiori.INotificationListItem","sap.ui.webc.fiori.IProductSwitchItem","sap.ui.webc.fiori.IShellBarItem","sap.ui.webc.fiori.ISideNavigationItem","sap.ui.webc.fiori.ISideNavigationSubItem","sap.ui.webc.fiori.ISortItem","sap.ui.webc.fiori.ITimelineItem","sap.ui.webc.fiori.IUploadCollectionItem","sap.ui.webc.fiori.IWizardStep"],types:["sap.ui.webc.fiori.BarDesign","sap.ui.webc.fiori.FCLLayout","sap.ui.webc.fiori.IllustrationMessageSize","sap.ui.webc.fiori.IllustrationMessageType","sap.ui.webc.fiori.MediaGalleryItemLayout","sap.ui.webc.fiori.MediaGalleryLayout","sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign","sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign","sap.ui.webc.fiori.PageBackgroundDesign","sap.ui.webc.fiori.SideContentFallDown","sap.ui.webc.fiori.SideContentPosition","sap.ui.webc.fiori.SideContentVisibility","sap.ui.webc.fiori.TimelineLayout","sap.ui.webc.fiori.UploadState","sap.ui.webc.fiori.ViewSettingsDialogMode","sap.ui.webc.fiori.WizardContentLayout"],controls:["sap.ui.webc.fiori.Bar","sap.ui.webc.fiori.BarcodeScannerDialog","sap.ui.webc.fiori.DynamicSideContent","sap.ui.webc.fiori.FilterItem","sap.ui.webc.fiori.FilterItemOption","sap.ui.webc.fiori.FlexibleColumnLayout","sap.ui.webc.fiori.IllustratedMessage","sap.ui.webc.fiori.MediaGallery","sap.ui.webc.fiori.MediaGalleryItem","sap.ui.webc.fiori.NotificationAction","sap.ui.webc.fiori.NotificationListGroupItem","sap.ui.webc.fiori.NotificationListItem","sap.ui.webc.fiori.Page","sap.ui.webc.fiori.ProductSwitch","sap.ui.webc.fiori.ProductSwitchItem","sap.ui.webc.fiori.ShellBar","sap.ui.webc.fiori.ShellBarItem","sap.ui.webc.fiori.SideNavigation","sap.ui.webc.fiori.SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem","sap.ui.webc.fiori.SortItem","sap.ui.webc.fiori.Timeline","sap.ui.webc.fiori.TimelineItem","sap.ui.webc.fiori.UploadCollection","sap.ui.webc.fiori.UploadCollectionItem","sap.ui.webc.fiori.ViewSettingsDialog","sap.ui.webc.fiori.Wizard","sap.ui.webc.fiori.WizardStep"],elements:[],extensions:{flChangeHandlers:{"sap.ui.webc.fiori.NotificationListItem":{hideControl:"default",unhideControl:"default",moveControls:"default"},"sap.ui.webc.fiori.Page":{moveControls:"default"},"sap.ui.webc.fiori.SideNavigation":{hideControl:"default",unhideControl:"default"},"sap.ui.webc.fiori.SideNavigationItem":"sap/ui/webc/fiori/flexibility/SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem":"sap/ui/webc/fiori/flexibility/SideNavigationSubItem","sap.ui.webc.fiori.UploadCollection":{hideControl:"default",unhideControl:"default",moveControls:"default"},"sap.ui.webc.fiori.UploadCollectionItem":"sap/ui/webc/fiori/flexibility/UploadCollectionItem"}}});t.BarDesign={FloatingFooter:"FloatingFooter",Footer:"Footer",Header:"Header",Subheader:"Subheader"};t.FCLLayout={EndColumnFullScreen:"EndColumnFullScreen",MidColumnFullScreen:"MidColumnFullScreen",OneColumn:"OneColumn",ThreeColumnsEndExpanded:"ThreeColumnsEndExpanded",ThreeColumnsMidExpanded:"ThreeColumnsMidExpanded",ThreeColumnsMidExpandedEndHidden:"ThreeColumnsMidExpandedEndHidden",ThreeColumnsStartExpandedEndHidden:"ThreeColumnsStartExpandedEndHidden",TwoColumnsMidExpanded:"TwoColumnsMidExpanded",TwoColumnsStartExpanded:"TwoColumnsStartExpanded"};t.IllustrationMessageSize={Auto:"Auto",Base:"Base",Dialog:"Dialog",Scene:"Scene",Spot:"Spot"};t.IllustrationMessageType={AddColumn:"AddColumn",AddDimensions:"AddDimensions",AddPeople:"AddPeople",BalloonSky:"BalloonSky",BeforeSearch:"BeforeSearch",Connection:"Connection",EmptyCalendar:"EmptyCalendar",EmptyList:"EmptyList",EmptyPlanningCalendar:"EmptyPlanningCalendar",ErrorScreen:"ErrorScreen",FilterTable:"FilterTable",GroupTable:"GroupTable",NoActivities:"NoActivities",NoColumnsSet:"NoColumnsSet",NoData:"NoData",NoDimensionsSet:"NoDimensionsSet",NoEntries:"NoEntries",NoFilterResults:"NoFilterResults",NoMail:"NoMail",NoMail_v1:"NoMail_v1",NoNotifications:"NoNotifications",NoSavedItems:"NoSavedItems",NoSavedItems_v1:"NoSavedItems_v1",NoSearchResults:"NoSearchResults",NoTasks:"NoTasks",NoTasks_v1:"NoTasks_v1",PageNotFound:"PageNotFound",ReloadScreen:"ReloadScreen",ResizeColumn:"ResizeColumn",SearchEarth:"SearchEarth",SearchFolder:"SearchFolder",SimpleBalloon:"SimpleBalloon",SimpleBell:"SimpleBell",SimpleCalendar:"SimpleCalendar",SimpleCheckMark:"SimpleCheckMark",SimpleConnection:"SimpleConnection",SimpleEmptyDoc:"SimpleEmptyDoc",SimpleEmptyList:"SimpleEmptyList",SimpleError:"SimpleError",SimpleMagnifier:"SimpleMagnifier",SimpleMail:"SimpleMail",SimpleNoSavedItems:"SimpleNoSavedItems",SimpleNotFoundMagnifier:"SimpleNotFoundMagnifier",SimpleReload:"SimpleReload",SimpleTask:"SimpleTask",SleepingBell:"SleepingBell",SortColumn:"SortColumn",SuccessBalloon:"SuccessBalloon",SuccessCheckMark:"SuccessCheckMark",SuccessHighFive:"SuccessHighFive",SuccessScreen:"SuccessScreen",Survey:"Survey",Tent:"Tent",TntChartArea:"TntChartArea",TntChartArea2:"TntChartArea2",TntChartBar:"TntChartBar",TntChartBPMNFlow:"TntChartBPMNFlow",TntChartBullet:"TntChartBullet",TntChartDoughnut:"TntChartDoughnut",TntChartFlow:"TntChartFlow",TntChartGantt:"TntChartGantt",TntChartOrg:"TntChartOrg",TntChartPie:"TntChartPie",TntCodePlaceholder:"TntCodePlaceholder",TntCompany:"TntCompany",TntComponents:"TntComponents",TntExternalLink:"TntExternalLink",TntFaceID:"TntFaceID",TntFingerprint:"TntFingerprint",TntLock:"TntLock",TntMission:"TntMission",TntNoApplications:"TntNoApplications",TntNoFlows:"TntNoFlows",TntNoUsers:"TntNoUsers",TntRadar:"TntRadar",TntSecrets:"TntSecrets",TntServices:"TntServices",TntSessionExpired:"TntSessionExpired",TntSessionExpiring:"TntSessionExpiring",TntSuccess:"TntSuccess",TntSuccessfulAuth:"TntSuccessfulAuth",TntSystems:"TntSystems",TntTeams:"TntTeams",TntTools:"TntTools",TntUnableToLoad:"TntUnableToLoad",TntUnlock:"TntUnlock",TntUnsuccessfulAuth:"TntUnsuccessfulAuth",TntUser2:"TntUser2",UnableToLoad:"UnableToLoad",UnableToLoadImage:"UnableToLoadImage",UnableToUpload:"UnableToUpload",UploadCollection:"UploadCollection",UploadToCloud:"UploadToCloud"};t.MediaGalleryItemLayout={Square:"Square",Wide:"Wide"};t.MediaGalleryLayout={Auto:"Auto",Horizontal:"Horizontal",Vertical:"Vertical"};t.MediaGalleryMenuHorizontalAlign={Left:"Left",Right:"Right"};t.MediaGalleryMenuVerticalAlign={Bottom:"Bottom",Top:"Top"};t.PageBackgroundDesign={List:"List",Solid:"Solid",Transparent:"Transparent"};t.SideContentFallDown={BelowL:"BelowL",BelowM:"BelowM",BelowXL:"BelowXL",OnMinimumWidth:"OnMinimumWidth"};t.SideContentPosition={End:"End",Start:"Start"};t.SideContentVisibility={AlwaysShow:"AlwaysShow",NeverShow:"NeverShow",ShowAboveL:"ShowAboveL",ShowAboveM:"ShowAboveM",ShowAboveS:"ShowAboveS"};t.TimelineLayout={Horizontal:"Horizontal",Vertical:"Vertical"};t.UploadState={Complete:"Complete",Error:"Error",Ready:"Ready",Uploading:"Uploading"};t.ViewSettingsDialogMode={Filter:"Filter",Sort:"Sort"};t.WizardContentLayout={MultipleSteps:"MultipleSteps",SingleStep:"SingleStep"};o.registerEnum("sap.ui.webc.fiori.BarDesign",t.BarDesign);o.registerEnum("sap.ui.webc.fiori.FCLLayout",t.FCLLayout);o.registerEnum("sap.ui.webc.fiori.IllustrationMessageSize",t.IllustrationMessageSize);o.registerEnum("sap.ui.webc.fiori.IllustrationMessageType",t.IllustrationMessageType);o.registerEnum("sap.ui.webc.fiori.MediaGalleryItemLayout",t.MediaGalleryItemLayout);o.registerEnum("sap.ui.webc.fiori.MediaGalleryLayout",t.MediaGalleryLayout);o.registerEnum("sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign",t.MediaGalleryMenuHorizontalAlign);o.registerEnum("sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign",t.MediaGalleryMenuVerticalAlign);o.registerEnum("sap.ui.webc.fiori.PageBackgroundDesign",t.PageBackgroundDesign);o.registerEnum("sap.ui.webc.fiori.SideContentFallDown",t.SideContentFallDown);o.registerEnum("sap.ui.webc.fiori.SideContentPosition",t.SideContentPosition);o.registerEnum("sap.ui.webc.fiori.SideContentVisibility",t.SideContentVisibility);o.registerEnum("sap.ui.webc.fiori.TimelineLayout",t.TimelineLayout);o.registerEnum("sap.ui.webc.fiori.UploadState",t.UploadState);o.registerEnum("sap.ui.webc.fiori.ViewSettingsDialogMode",t.ViewSettingsDialogMode);o.registerEnum("sap.ui.webc.fiori.WizardContentLayout",t.WizardContentLayout);return t});
+sap.ui.predefine("sap/ui/webc/fiori/library", ["sap/ui/webc/common/library","sap/ui/core/Lib","sap/ui/base/DataType","./thirdparty/Assets","./library.config"],function(e,i,o){"use strict";var t=i.init({name:"sap.ui.webc.fiori",apiVersion:2,version:"1.136.12",dependencies:["sap.ui.core","sap.ui.webc.common"],noLibraryCSS:true,designtime:"sap/ui/webc/fiori/designtime/library.designtime",interfaces:["sap.ui.webc.fiori.IBar","sap.ui.webc.fiori.IFilterItem","sap.ui.webc.fiori.IFilterItemOption","sap.ui.webc.fiori.IMediaGalleryItem","sap.ui.webc.fiori.INotificationAction","sap.ui.webc.fiori.INotificationListItem","sap.ui.webc.fiori.IProductSwitchItem","sap.ui.webc.fiori.IShellBarItem","sap.ui.webc.fiori.ISideNavigationItem","sap.ui.webc.fiori.ISideNavigationSubItem","sap.ui.webc.fiori.ISortItem","sap.ui.webc.fiori.ITimelineItem","sap.ui.webc.fiori.IUploadCollectionItem","sap.ui.webc.fiori.IWizardStep"],types:["sap.ui.webc.fiori.BarDesign","sap.ui.webc.fiori.FCLLayout","sap.ui.webc.fiori.IllustrationMessageSize","sap.ui.webc.fiori.IllustrationMessageType","sap.ui.webc.fiori.MediaGalleryItemLayout","sap.ui.webc.fiori.MediaGalleryLayout","sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign","sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign","sap.ui.webc.fiori.PageBackgroundDesign","sap.ui.webc.fiori.SideContentFallDown","sap.ui.webc.fiori.SideContentPosition","sap.ui.webc.fiori.SideContentVisibility","sap.ui.webc.fiori.TimelineLayout","sap.ui.webc.fiori.UploadState","sap.ui.webc.fiori.ViewSettingsDialogMode","sap.ui.webc.fiori.WizardContentLayout"],controls:["sap.ui.webc.fiori.Bar","sap.ui.webc.fiori.BarcodeScannerDialog","sap.ui.webc.fiori.DynamicSideContent","sap.ui.webc.fiori.FilterItem","sap.ui.webc.fiori.FilterItemOption","sap.ui.webc.fiori.FlexibleColumnLayout","sap.ui.webc.fiori.IllustratedMessage","sap.ui.webc.fiori.MediaGallery","sap.ui.webc.fiori.MediaGalleryItem","sap.ui.webc.fiori.NotificationAction","sap.ui.webc.fiori.NotificationListGroupItem","sap.ui.webc.fiori.NotificationListItem","sap.ui.webc.fiori.Page","sap.ui.webc.fiori.ProductSwitch","sap.ui.webc.fiori.ProductSwitchItem","sap.ui.webc.fiori.ShellBar","sap.ui.webc.fiori.ShellBarItem","sap.ui.webc.fiori.SideNavigation","sap.ui.webc.fiori.SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem","sap.ui.webc.fiori.SortItem","sap.ui.webc.fiori.Timeline","sap.ui.webc.fiori.TimelineItem","sap.ui.webc.fiori.UploadCollection","sap.ui.webc.fiori.UploadCollectionItem","sap.ui.webc.fiori.ViewSettingsDialog","sap.ui.webc.fiori.Wizard","sap.ui.webc.fiori.WizardStep"],elements:[],extensions:{flChangeHandlers:{"sap.ui.webc.fiori.NotificationListItem":{hideControl:"default",unhideControl:"default",moveControls:"default"},"sap.ui.webc.fiori.Page":{moveControls:"default"},"sap.ui.webc.fiori.SideNavigation":{hideControl:"default",unhideControl:"default"},"sap.ui.webc.fiori.SideNavigationItem":"sap/ui/webc/fiori/flexibility/SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem":"sap/ui/webc/fiori/flexibility/SideNavigationSubItem","sap.ui.webc.fiori.UploadCollection":{hideControl:"default",unhideControl:"default",moveControls:"default"},"sap.ui.webc.fiori.UploadCollectionItem":"sap/ui/webc/fiori/flexibility/UploadCollectionItem"}}});t.BarDesign={FloatingFooter:"FloatingFooter",Footer:"Footer",Header:"Header",Subheader:"Subheader"};t.FCLLayout={EndColumnFullScreen:"EndColumnFullScreen",MidColumnFullScreen:"MidColumnFullScreen",OneColumn:"OneColumn",ThreeColumnsEndExpanded:"ThreeColumnsEndExpanded",ThreeColumnsMidExpanded:"ThreeColumnsMidExpanded",ThreeColumnsMidExpandedEndHidden:"ThreeColumnsMidExpandedEndHidden",ThreeColumnsStartExpandedEndHidden:"ThreeColumnsStartExpandedEndHidden",TwoColumnsMidExpanded:"TwoColumnsMidExpanded",TwoColumnsStartExpanded:"TwoColumnsStartExpanded"};t.IllustrationMessageSize={Auto:"Auto",Base:"Base",Dialog:"Dialog",Scene:"Scene",Spot:"Spot"};t.IllustrationMessageType={AddColumn:"AddColumn",AddDimensions:"AddDimensions",AddPeople:"AddPeople",BalloonSky:"BalloonSky",BeforeSearch:"BeforeSearch",Connection:"Connection",EmptyCalendar:"EmptyCalendar",EmptyList:"EmptyList",EmptyPlanningCalendar:"EmptyPlanningCalendar",ErrorScreen:"ErrorScreen",FilterTable:"FilterTable",GroupTable:"GroupTable",NoActivities:"NoActivities",NoColumnsSet:"NoColumnsSet",NoData:"NoData",NoDimensionsSet:"NoDimensionsSet",NoEntries:"NoEntries",NoFilterResults:"NoFilterResults",NoMail:"NoMail",NoMail_v1:"NoMail_v1",NoNotifications:"NoNotifications",NoSavedItems:"NoSavedItems",NoSavedItems_v1:"NoSavedItems_v1",NoSearchResults:"NoSearchResults",NoTasks:"NoTasks",NoTasks_v1:"NoTasks_v1",PageNotFound:"PageNotFound",ReloadScreen:"ReloadScreen",ResizeColumn:"ResizeColumn",SearchEarth:"SearchEarth",SearchFolder:"SearchFolder",SimpleBalloon:"SimpleBalloon",SimpleBell:"SimpleBell",SimpleCalendar:"SimpleCalendar",SimpleCheckMark:"SimpleCheckMark",SimpleConnection:"SimpleConnection",SimpleEmptyDoc:"SimpleEmptyDoc",SimpleEmptyList:"SimpleEmptyList",SimpleError:"SimpleError",SimpleMagnifier:"SimpleMagnifier",SimpleMail:"SimpleMail",SimpleNoSavedItems:"SimpleNoSavedItems",SimpleNotFoundMagnifier:"SimpleNotFoundMagnifier",SimpleReload:"SimpleReload",SimpleTask:"SimpleTask",SleepingBell:"SleepingBell",SortColumn:"SortColumn",SuccessBalloon:"SuccessBalloon",SuccessCheckMark:"SuccessCheckMark",SuccessHighFive:"SuccessHighFive",SuccessScreen:"SuccessScreen",Survey:"Survey",Tent:"Tent",TntChartArea:"TntChartArea",TntChartArea2:"TntChartArea2",TntChartBar:"TntChartBar",TntChartBPMNFlow:"TntChartBPMNFlow",TntChartBullet:"TntChartBullet",TntChartDoughnut:"TntChartDoughnut",TntChartFlow:"TntChartFlow",TntChartGantt:"TntChartGantt",TntChartOrg:"TntChartOrg",TntChartPie:"TntChartPie",TntCodePlaceholder:"TntCodePlaceholder",TntCompany:"TntCompany",TntComponents:"TntComponents",TntExternalLink:"TntExternalLink",TntFaceID:"TntFaceID",TntFingerprint:"TntFingerprint",TntLock:"TntLock",TntMission:"TntMission",TntNoApplications:"TntNoApplications",TntNoFlows:"TntNoFlows",TntNoUsers:"TntNoUsers",TntRadar:"TntRadar",TntSecrets:"TntSecrets",TntServices:"TntServices",TntSessionExpired:"TntSessionExpired",TntSessionExpiring:"TntSessionExpiring",TntSuccess:"TntSuccess",TntSuccessfulAuth:"TntSuccessfulAuth",TntSystems:"TntSystems",TntTeams:"TntTeams",TntTools:"TntTools",TntUnableToLoad:"TntUnableToLoad",TntUnlock:"TntUnlock",TntUnsuccessfulAuth:"TntUnsuccessfulAuth",TntUser2:"TntUser2",UnableToLoad:"UnableToLoad",UnableToLoadImage:"UnableToLoadImage",UnableToUpload:"UnableToUpload",UploadCollection:"UploadCollection",UploadToCloud:"UploadToCloud"};t.MediaGalleryItemLayout={Square:"Square",Wide:"Wide"};t.MediaGalleryLayout={Auto:"Auto",Horizontal:"Horizontal",Vertical:"Vertical"};t.MediaGalleryMenuHorizontalAlign={Left:"Left",Right:"Right"};t.MediaGalleryMenuVerticalAlign={Bottom:"Bottom",Top:"Top"};t.PageBackgroundDesign={List:"List",Solid:"Solid",Transparent:"Transparent"};t.SideContentFallDown={BelowL:"BelowL",BelowM:"BelowM",BelowXL:"BelowXL",OnMinimumWidth:"OnMinimumWidth"};t.SideContentPosition={End:"End",Start:"Start"};t.SideContentVisibility={AlwaysShow:"AlwaysShow",NeverShow:"NeverShow",ShowAboveL:"ShowAboveL",ShowAboveM:"ShowAboveM",ShowAboveS:"ShowAboveS"};t.TimelineLayout={Horizontal:"Horizontal",Vertical:"Vertical"};t.UploadState={Complete:"Complete",Error:"Error",Ready:"Ready",Uploading:"Uploading"};t.ViewSettingsDialogMode={Filter:"Filter",Sort:"Sort"};t.WizardContentLayout={MultipleSteps:"MultipleSteps",SingleStep:"SingleStep"};o.registerEnum("sap.ui.webc.fiori.BarDesign",t.BarDesign);o.registerEnum("sap.ui.webc.fiori.FCLLayout",t.FCLLayout);o.registerEnum("sap.ui.webc.fiori.IllustrationMessageSize",t.IllustrationMessageSize);o.registerEnum("sap.ui.webc.fiori.IllustrationMessageType",t.IllustrationMessageType);o.registerEnum("sap.ui.webc.fiori.MediaGalleryItemLayout",t.MediaGalleryItemLayout);o.registerEnum("sap.ui.webc.fiori.MediaGalleryLayout",t.MediaGalleryLayout);o.registerEnum("sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign",t.MediaGalleryMenuHorizontalAlign);o.registerEnum("sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign",t.MediaGalleryMenuVerticalAlign);o.registerEnum("sap.ui.webc.fiori.PageBackgroundDesign",t.PageBackgroundDesign);o.registerEnum("sap.ui.webc.fiori.SideContentFallDown",t.SideContentFallDown);o.registerEnum("sap.ui.webc.fiori.SideContentPosition",t.SideContentPosition);o.registerEnum("sap.ui.webc.fiori.SideContentVisibility",t.SideContentVisibility);o.registerEnum("sap.ui.webc.fiori.TimelineLayout",t.TimelineLayout);o.registerEnum("sap.ui.webc.fiori.UploadState",t.UploadState);o.registerEnum("sap.ui.webc.fiori.ViewSettingsDialogMode",t.ViewSettingsDialogMode);o.registerEnum("sap.ui.webc.fiori.WizardContentLayout",t.WizardContentLayout);return t});
 sap.ui.predefine("sap/ui/webc/fiori/thirdparty/Assets", ["sap/ui/webc/main/thirdparty/Assets","./generated/json-imports/Themes","./generated/json-imports/i18n"],function(e,s,i){"use strict"});
 sap.ui.predefine("sap/ui/webc/fiori/thirdparty/Bar", ["exports","sap/ui/webc/common/thirdparty/base/UI5Element","sap/ui/webc/common/thirdparty/base/decorators/customElement","sap/ui/webc/common/thirdparty/base/decorators/property","sap/ui/webc/common/thirdparty/base/decorators/slot","sap/ui/webc/common/thirdparty/base/renderer/LitRenderer","sap/ui/webc/common/thirdparty/base/delegate/ResizeHandler","./types/BarDesign","./generated/templates/BarTemplate.lit","./generated/themes/Bar.css"],function(e,t,r,o,a,s,i,n,d,l){"use strict";Object.defineProperty(e,"__esModule",{value:true});e.default=void 0;t=u(t);r=u(r);o=u(o);a=u(a);s=u(s);i=u(i);n=u(n);d=u(d);l=u(l);function u(e){return e&&e.__esModule?e:{default:e}}var c=void 0&&(void 0).__decorate||function(e,t,r,o){var a=arguments.length,s=a<3?t:o===null?o=Object.getOwnPropertyDescriptor(t,r):o,i;if(typeof Reflect==="object"&&typeof Reflect.decorate==="function")s=Reflect.decorate(e,t,r,o);else for(var n=e.length-1;n>=0;n--)if(i=e[n])s=(a<3?i(s):a>3?i(t,r,s):i(t,r))||s;return a>3&&s&&Object.defineProperty(t,r,s),s};let f=class e extends t.default{get accInfo(){return{label:this.design}}constructor(){super();this._handleResizeBound=this.handleResize.bind(this)}handleResize(){const e=this.getDomRef();const t=e.offsetWidth;const r=Array.from(e.children).some(e=>e.offsetWidth>t/3);e.classList.toggle("ui5-bar-root-shrinked",r)}get classes(){return{root:{"ui5-bar-root":true}}}onEnterDOM(){i.default.register(this,this._handleResizeBound);this.getDomRef().querySelectorAll(".ui5-bar-content-container").forEach(e=>{i.default.register(e,this._handleResizeBound)},this)}onExitDOM(){i.default.deregister(this,this._handleResizeBound);this.getDomRef().querySelectorAll(".ui5-bar-content-container").forEach(e=>{i.default.deregister(e,this._handleResizeBound)},this)}};c([(0,o.default)({type:n.default,defaultValue:n.default.Header})],f.prototype,"design",void 0);c([(0,a.default)({type:HTMLElement})],f.prototype,"startContent",void 0);c([(0,a.default)({type:HTMLElement,default:true})],f.prototype,"middleContent",void 0);c([(0,a.default)({type:HTMLElement})],f.prototype,"endContent",void 0);f=c([(0,r.default)({tag:"ui5-bar",fastNavigation:true,renderer:s.default,styles:l.default,template:d.default})],f);f.define();var p=f;e.default=p});
 sap.ui.predefine("sap/ui/webc/fiori/thirdparty/BarcodeScannerDialog", ["exports","sap/ui/webc/common/thirdparty/base/UI5Element","sap/ui/webc/common/thirdparty/base/renderer/LitRenderer","sap/ui/webc/common/thirdparty/base/i18nBundle","sap/ui/webc/main/thirdparty/Dialog","sap/ui/webc/main/thirdparty/Button","sap/ui/webc/main/thirdparty/BusyIndicator","sap/ui/webc/fiori/lib/zxing","sap/ui/webc/common/thirdparty/base/decorators/customElement","sap/ui/webc/common/thirdparty/base/decorators/property","sap/ui/webc/common/thirdparty/base/decorators/event","./generated/i18n/i18n-defaults","./generated/templates/BarcodeScannerDialogTemplate.lit","./generated/themes/BarcodeScannerDialog.css"],function(e,t,a,r,i,n,s,o,c,d,l,u,f,g){"use strict";Object.defineProperty(e,"__esModule",{value:true});e.default=void 0;t=m(t);a=m(a);i=m(i);n=m(n);s=m(s);o=h(o);c=m(c);d=m(d);l=m(l);f=m(f);g=m(g);function p(e){if(typeof WeakMap!=="function")return null;var t=new WeakMap;var a=new WeakMap;return(p=function(e){return e?a:t})(e)}function h(e,t){if(!t&&e&&e.__esModule){return e}if(e===null||typeof e!=="object"&&typeof e!=="function"){return{default:e}}var a=p(t);if(a&&a.has(e)){return a.get(e)}var r={};var i=Object.defineProperty&&Object.getOwnPropertyDescriptor;for(var n in e){if(n!=="default"&&Object.prototype.hasOwnProperty.call(e,n)){var s=i?Object.getOwnPropertyDescriptor(e,n):null;if(s&&(s.get||s.set)){Object.defineProperty(r,n,s)}else{r[n]=e[n]}}}r.default=e;if(a){a.set(e,r)}return r}function m(e){return e&&e.__esModule?e:{default:e}}var y=void 0&&(void 0).__decorate||function(e,t,a,r){var i=arguments.length,n=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,a):r,s;if(typeof Reflect==="object"&&typeof Reflect.decorate==="function")n=Reflect.decorate(e,t,a,r);else for(var o=e.length-1;o>=0;o--)if(s=e[o])n=(i<3?s(n):i>3?s(t,a,n):s(t,a))||n;return i>3&&n&&Object.defineProperty(t,a,n),n};var _;const w={...o,...window.ZXing};const{BrowserMultiFormatReader:b,NotFoundException:v}=w;const D={audio:false,video:{height:{min:480,ideal:960,max:1440},aspectRatio:1.333333333,facingMode:"environment"}};let B=_=class e extends t.default{constructor(){super();this._codeReader=new b}static async onDefine(){_.i18nBundle=await(0,r.getI18nBundle)("@ui5/webcomponents-fiori")}show(){if(this.loading){console.warn("Barcode scanning is already in progress.");return}if(!this._hasGetUserMedia()){this.fireEvent("scan-error",{message:"getUserMedia() is not supported by your browser"});return}this.loading=true;this._getUserPermission().then(()=>this._showDialog()).catch(e=>{this.fireEvent("scan-error",{message:e});this.loading=false})}close(){this._closeDialog();this.loading=false}_hasGetUserMedia(){return!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)}_getUserPermission(){return navigator.mediaDevices.getUserMedia(D)}async _getDialog(){const e=await this.getStaticAreaItemDomRef();return e.querySelector("[ui5-dialog]")}async _getVideoElement(){const e=await this.getStaticAreaItemDomRef();return e.querySelector(".ui5-barcode-scanner-dialog-video")}async _showDialog(){this.dialog=await this._getDialog();this.dialog.show()}_closeDialog(){if(this.dialog&&this.dialog.opened){this.dialog.close()}}_startReader(){this._decodeFromCamera()}async _resetReader(){const e=await this._getVideoElement();e.pause();this._codeReader.reset()}async _decodeFromCamera(){const e=await this._getVideoElement();this._codeReader.decodeFromVideoDevice(null,e,(e,t)=>{this.loading=false;if(e){this.fireEvent("scan-success",{text:e.getText(),rawBytes:e.getRawBytes()})}if(t&&!(t instanceof v)){this.fireEvent("scan-error",{message:t.message})}}).catch(e=>this.fireEvent("scan-error",{message:e.message}))}get _cancelButtonText(){return _.i18nBundle.getText(u.BARCODE_SCANNER_DIALOG_CANCEL_BUTTON_TXT)}get _busyIndicatorText(){return _.i18nBundle.getText(u.BARCODE_SCANNER_DIALOG_LOADING_TXT)}};y([(0,d.default)({type:Boolean})],B.prototype,"loading",void 0);B=_=y([(0,c.default)({tag:"ui5-barcode-scanner-dialog",languageAware:true,renderer:a.default,staticAreaTemplate:f.default,staticAreaStyles:[g.default],dependencies:[i.default,s.default,n.default]}),(0,l.default)("scan-success",{detail:{text:{type:String},rawBytes:{type:Object}}}),(0,l.default)("scan-error",{detail:{message:{type:String}}})],B);B.define();var O=B;e.default=O});
@@ -2920,6 +2920,6 @@ sap.ui.require.preload({
     * limitations under the License.
     */class nn{encode(e,t,r,n){return this.encodeWithHints(e,t,r,n,null)}encodeWithHints(e,t,r,n,i){let s=Lr.ISO_8859_1;let o=rn.DEFAULT_EC_PERCENT;let a=rn.DEFAULT_AZTEC_LAYERS;if(i!=null){if(i.has(mr.CHARACTER_SET)){s=Pr.forName(i.get(mr.CHARACTER_SET).toString())}if(i.has(mr.ERROR_CORRECTION)){o=A.parseInt(i.get(mr.ERROR_CORRECTION).toString())}if(i.has(mr.AZTEC_LAYERS)){a=A.parseInt(i.get(mr.AZTEC_LAYERS).toString())}}return nn.encodeLayers(e,t,r,n,s,o,a)}static encodeLayers(e,t,r,n,i,s,o){if(t!==V.AZTEC){throw new l("Can only encode AZTEC, but got "+t)}let a=rn.encode(R.getBytes(e,i),s,o);return nn.renderResult(a,r,n)}static renderResult(e,t,r){let n=e.getMatrix();if(n==null){throw new K}let i=n.getWidth();let s=n.getHeight();let o=Math.max(t,i);let a=Math.max(r,s);let l=Math.min(o/i,a/s);let h=(o-i*l)/2;let c=(a-s*l)/2;let u=new y(o,a);for(let e=0,t=c;e<s;e++,t+=l){for(let r=0,s=h;r<i;r++,s+=l){if(n.get(r,e)){u.setRegion(s,t,l,l)}}}return u}}e.AbstractExpandedDecoder=xe;e.ArgumentException=a;e.ArithmeticException=z;e.AztecCode=Fr;e.AztecCodeReader=ce;e.AztecCodeWriter=nn;e.AztecDecoder=j;e.AztecDetector=he;e.AztecDetectorResult=re;e.AztecEncoder=rn;e.AztecHighLevelEncoder=tn;e.AztecPoint=le;e.BarcodeFormat=V;e.Binarizer=u;e.BinaryBitmap=h;e.BitArray=C;e.BitMatrix=y;e.BitSource=lt;e.BrowserAztecCodeReader=ue;e.BrowserBarcodeReader=rt;e.BrowserCodeReader=k;e.BrowserDatamatrixCodeReader=gt;e.BrowserMultiFormatReader=wr;e.BrowserPDF417Reader=Ar;e.BrowserQRCodeReader=Cr;e.BrowserQRCodeSvgWriter=Dr;e.CharacterSetECI=S;e.ChecksumException=c;e.Code128Reader=fe;e.Code39Reader=ge;e.DataMatrixDecodedBitStreamParser=ct;e.DataMatrixReader=ft;e.DecodeHintType=m;e.DecoderResult=G;e.DefaultGridSampler=oe;e.DetectorResult=te;e.EAN13Reader=Ie;e.EncodeHintType=mr;e.Exception=o;e.FormatException=_;e.GenericGF=Y;e.GenericGFPoly=W;e.GlobalHistogramBinarizer=O;e.GridSampler=ie;e.GridSamplerInstance=ae;e.HTMLCanvasElementLuminanceSource=P;e.HybridBinarizer=M;e.ITFReader=we;e.IllegalArgumentException=l;e.IllegalStateException=K;e.InvertedLuminanceSource=B;e.LuminanceSource=b;e.MathUtils=J;e.MultiFormatOneDReader=tt;e.MultiFormatReader=gr;e.MultiFormatWriter=Mr;e.NotFoundException=D;e.OneDReader=de;e.PDF417DecodedBitStreamParser=cr;e.PDF417DecoderErrorCorrection=Xt;e.PDF417Reader=dr;e.PDF417ResultMetadata=$t;e.PerspectiveTransform=se;e.PlanarYUVLuminanceSource=br;e.QRCodeByteMatrix=Sr;e.QRCodeDataMask=St;e.QRCodeDecodedBitStreamParser=yt;e.QRCodeDecoderErrorCorrectionLevel=At;e.QRCodeDecoderFormatInformation=Ct;e.QRCodeEncoder=yr;e.QRCodeEncoderQRCode=pr;e.QRCodeMaskUtil=Ir;e.QRCodeMatrixUtil=Rr;e.QRCodeMode=Nt;e.QRCodeReader=kt;e.QRCodeVersion=_t;e.QRCodeWriter=Or;e.RGBLuminanceSource=Br;e.RSS14Reader=et;e.RSSExpandedReader=Je;e.ReaderException=fr;e.ReedSolomonDecoder=q;e.ReedSolomonEncoder=_r;e.ReedSolomonException=Z;e.Result=v;e.ResultMetadataType=H;e.ResultPoint=ee;e.StringUtils=R;e.UnsupportedOperationException=p;e.VideoInputDevice=L;e.WhiteRectangleDetector=ne;e.WriterException=Tr;e.ZXingArrays=w;e.ZXingCharset=Pr;e.ZXingInteger=A;e.ZXingStandardCharsets=Lr;e.ZXingStringBuilder=N;e.ZXingStringEncoding=T;e.ZXingSystem=d;e.createAbstractExpandedDecoder=qe;Object.defineProperty(e,"__esModule",{value:true})});
 },
-	"sap/ui/webc/fiori/manifest.json":'{"_version":"1.21.0","sap.app":{"id":"sap.ui.webc.fiori","type":"library","embeds":[],"applicationVersion":{"version":"1.136.0"},"title":"UI5 Web Components Retrofit Fiori Components","description":"UI5 Web Components Retrofit Fiori Components","ach":"CA-UI5-CTR","resources":"resources.json","offline":true,"openSourceComponents":[{"name":"ui5-web-components","packagedWithMySelf":true,"version":"1.18.0"},{"name":"ZXing","packagedWithMySelf":true,"version":"0.17.1"}]},"sap.ui":{"technology":"UI5","supportedThemes":[]},"sap.ui5":{"dependencies":{"minUI5Version":"1.136","libs":{"sap.ui.core":{"minVersion":"1.136.0"},"sap.ui.webc.common":{"minVersion":"1.136.0"},"sap.ui.webc.main":{"minVersion":"1.136.0"}}},"library":{"i18n":false,"css":false,"content":{"controls":["sap.ui.webc.fiori.Bar","sap.ui.webc.fiori.BarcodeScannerDialog","sap.ui.webc.fiori.DynamicSideContent","sap.ui.webc.fiori.FilterItem","sap.ui.webc.fiori.FilterItemOption","sap.ui.webc.fiori.FlexibleColumnLayout","sap.ui.webc.fiori.IllustratedMessage","sap.ui.webc.fiori.MediaGallery","sap.ui.webc.fiori.MediaGalleryItem","sap.ui.webc.fiori.NotificationAction","sap.ui.webc.fiori.NotificationListGroupItem","sap.ui.webc.fiori.NotificationListItem","sap.ui.webc.fiori.Page","sap.ui.webc.fiori.ProductSwitch","sap.ui.webc.fiori.ProductSwitchItem","sap.ui.webc.fiori.ShellBar","sap.ui.webc.fiori.ShellBarItem","sap.ui.webc.fiori.SideNavigation","sap.ui.webc.fiori.SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem","sap.ui.webc.fiori.SortItem","sap.ui.webc.fiori.Timeline","sap.ui.webc.fiori.TimelineItem","sap.ui.webc.fiori.UploadCollection","sap.ui.webc.fiori.UploadCollectionItem","sap.ui.webc.fiori.ViewSettingsDialog","sap.ui.webc.fiori.Wizard","sap.ui.webc.fiori.WizardStep"],"elements":[],"types":["sap.ui.webc.fiori.BarDesign","sap.ui.webc.fiori.FCLLayout","sap.ui.webc.fiori.IllustrationMessageSize","sap.ui.webc.fiori.IllustrationMessageType","sap.ui.webc.fiori.MediaGalleryItemLayout","sap.ui.webc.fiori.MediaGalleryLayout","sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign","sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign","sap.ui.webc.fiori.PageBackgroundDesign","sap.ui.webc.fiori.SideContentFallDown","sap.ui.webc.fiori.SideContentPosition","sap.ui.webc.fiori.SideContentVisibility","sap.ui.webc.fiori.TimelineLayout","sap.ui.webc.fiori.UploadState","sap.ui.webc.fiori.ViewSettingsDialogMode","sap.ui.webc.fiori.WizardContentLayout"],"interfaces":["sap.ui.webc.fiori.IBar","sap.ui.webc.fiori.IFilterItem","sap.ui.webc.fiori.IFilterItemOption","sap.ui.webc.fiori.IMediaGalleryItem","sap.ui.webc.fiori.INotificationAction","sap.ui.webc.fiori.INotificationListItem","sap.ui.webc.fiori.IProductSwitchItem","sap.ui.webc.fiori.IShellBarItem","sap.ui.webc.fiori.ISideNavigationItem","sap.ui.webc.fiori.ISideNavigationSubItem","sap.ui.webc.fiori.ISortItem","sap.ui.webc.fiori.ITimelineItem","sap.ui.webc.fiori.IUploadCollectionItem","sap.ui.webc.fiori.IWizardStep"]}}}}'
+	"sap/ui/webc/fiori/manifest.json":'{"_version":"1.21.0","sap.app":{"id":"sap.ui.webc.fiori","type":"library","embeds":[],"applicationVersion":{"version":"1.136.12"},"title":"UI5 Web Components Retrofit Fiori Components","description":"UI5 Web Components Retrofit Fiori Components","ach":"CA-UI5-CTR","resources":"resources.json","offline":true,"openSourceComponents":[{"name":"ui5-web-components","packagedWithMySelf":true,"version":"1.18.0"},{"name":"ZXing","packagedWithMySelf":true,"version":"0.17.1"}]},"sap.ui":{"technology":"UI5","supportedThemes":[]},"sap.ui5":{"dependencies":{"minUI5Version":"1.136","libs":{"sap.ui.core":{"minVersion":"1.136.12"},"sap.ui.webc.common":{"minVersion":"1.136.12"},"sap.ui.webc.main":{"minVersion":"1.136.12"}}},"library":{"i18n":false,"css":false,"content":{"controls":["sap.ui.webc.fiori.Bar","sap.ui.webc.fiori.BarcodeScannerDialog","sap.ui.webc.fiori.DynamicSideContent","sap.ui.webc.fiori.FilterItem","sap.ui.webc.fiori.FilterItemOption","sap.ui.webc.fiori.FlexibleColumnLayout","sap.ui.webc.fiori.IllustratedMessage","sap.ui.webc.fiori.MediaGallery","sap.ui.webc.fiori.MediaGalleryItem","sap.ui.webc.fiori.NotificationAction","sap.ui.webc.fiori.NotificationListGroupItem","sap.ui.webc.fiori.NotificationListItem","sap.ui.webc.fiori.Page","sap.ui.webc.fiori.ProductSwitch","sap.ui.webc.fiori.ProductSwitchItem","sap.ui.webc.fiori.ShellBar","sap.ui.webc.fiori.ShellBarItem","sap.ui.webc.fiori.SideNavigation","sap.ui.webc.fiori.SideNavigationItem","sap.ui.webc.fiori.SideNavigationSubItem","sap.ui.webc.fiori.SortItem","sap.ui.webc.fiori.Timeline","sap.ui.webc.fiori.TimelineItem","sap.ui.webc.fiori.UploadCollection","sap.ui.webc.fiori.UploadCollectionItem","sap.ui.webc.fiori.ViewSettingsDialog","sap.ui.webc.fiori.Wizard","sap.ui.webc.fiori.WizardStep"],"elements":[],"types":["sap.ui.webc.fiori.BarDesign","sap.ui.webc.fiori.FCLLayout","sap.ui.webc.fiori.IllustrationMessageSize","sap.ui.webc.fiori.IllustrationMessageType","sap.ui.webc.fiori.MediaGalleryItemLayout","sap.ui.webc.fiori.MediaGalleryLayout","sap.ui.webc.fiori.MediaGalleryMenuHorizontalAlign","sap.ui.webc.fiori.MediaGalleryMenuVerticalAlign","sap.ui.webc.fiori.PageBackgroundDesign","sap.ui.webc.fiori.SideContentFallDown","sap.ui.webc.fiori.SideContentPosition","sap.ui.webc.fiori.SideContentVisibility","sap.ui.webc.fiori.TimelineLayout","sap.ui.webc.fiori.UploadState","sap.ui.webc.fiori.ViewSettingsDialogMode","sap.ui.webc.fiori.WizardContentLayout"],"interfaces":["sap.ui.webc.fiori.IBar","sap.ui.webc.fiori.IFilterItem","sap.ui.webc.fiori.IFilterItemOption","sap.ui.webc.fiori.IMediaGalleryItem","sap.ui.webc.fiori.INotificationAction","sap.ui.webc.fiori.INotificationListItem","sap.ui.webc.fiori.IProductSwitchItem","sap.ui.webc.fiori.IShellBarItem","sap.ui.webc.fiori.ISideNavigationItem","sap.ui.webc.fiori.ISideNavigationSubItem","sap.ui.webc.fiori.ISortItem","sap.ui.webc.fiori.ITimelineItem","sap.ui.webc.fiori.IUploadCollectionItem","sap.ui.webc.fiori.IWizardStep"]}}}}'
 });
 //# sourceMappingURL=library-preload.js.map

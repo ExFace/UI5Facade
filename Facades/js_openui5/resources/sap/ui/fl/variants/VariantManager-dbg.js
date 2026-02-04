@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.variants.VariantManager
 	 * @since 1.132
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.rta
 	 */
@@ -99,13 +99,13 @@ sap.ui.define([
 	 * @returns {Promise<undefined>} Resolves when the variant model is not busy anymore
 	 * @private
 	 */
-	function executeAfterSwitch(fnCallback, oModel) {
+	function executeAfterSwitch(fnCallback, oModel, sVMReference) {
 		// if there are multiple switches triggered very quickly this makes sure that they are being executed one after another
-		oModel._oVariantSwitchPromise = oModel._oVariantSwitchPromise
+		oModel._oVariantSwitchPromises[sVMReference] = oModel._oVariantSwitchPromises[sVMReference]
 		.catch(function() {})
 		.then(fnCallback);
-		VariantManagementState.setVariantSwitchPromise(oModel.sFlexReference, oModel._oVariantSwitchPromise);
-		return oModel._oVariantSwitchPromise;
+		VariantManagementState.setVariantSwitchPromise(oModel.sFlexReference, oModel._oVariantSwitchPromises[sVMReference], sVMReference);
+		return oModel._oVariantSwitchPromises[sVMReference];
 	}
 
 	async function handleDirtyChanges(oFlexController, aDirtyChanges, sVariantManagementReference, oAppComponent, oVariantModel) {
@@ -189,7 +189,7 @@ sap.ui.define([
 			if (!bVariantSwitch) {
 				oModel.callVariantSwitchListeners(sVMReference, oModel.oData[sVMReference].currentVariant);
 			}
-		}.bind(null, oEvent.getParameters(), mPropertyBag), mPropertyBag.model);
+		}.bind(null, oEvent.getParameters(), mPropertyBag), mPropertyBag.model, mPropertyBag.vmReference);
 	};
 
 	VariantManager.handleManageEvent = async function(oEvent, oData, oVariantModel) {
@@ -336,7 +336,7 @@ sap.ui.define([
 				oAppComponent,
 				oVariantModel
 			);
-		}.bind(oVariantModel, sVMReference, oAppComponent, mParameters), oVariantModel);
+		}.bind(oVariantModel, sVMReference, oAppComponent, mParameters), oVariantModel, sVMReference);
 		return aNewVariantDirtyChanges;
 	};
 

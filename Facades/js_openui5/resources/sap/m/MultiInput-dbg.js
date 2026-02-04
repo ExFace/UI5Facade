@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -110,7 +110,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.136.0
+	* @version 1.136.12
 	*
 	* @constructor
 	* @public
@@ -1215,7 +1215,7 @@ function(
 		const oTokenizer = this.getAggregation("tokenizer");
 		const bNMoreLabelClick = oEvent.target?.className && oEvent.target.className.indexOf("sapMTokenizerIndicator") > -1;
 
-		if (bNMoreLabelClick) {
+		if (bNMoreLabelClick && this.getEditable()) {
 			this._handleNMoreIndicatorPress();
 		}
 

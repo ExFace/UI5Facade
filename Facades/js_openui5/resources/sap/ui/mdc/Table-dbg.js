@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1398,6 +1398,8 @@ sap.ui.define([
 
 		if (!deepEqual(aOldP13nMode.sort(), this.getP13nMode().sort())) {
 			updateP13nSettings(this);
+			updateColumnMenu(this);
+			this.invalidate(); // Inner columns must update aria-haspopup
 		}
 
 		return this;
@@ -1442,6 +1444,16 @@ sap.ui.define([
 
 		this.getEngine().register(this, oRegisterConfig);
 	};
+
+	function updateColumnMenu(oTable) {
+		const bIsColumnMenuEnabled = oTable.getActiveP13nModes().length > 0;
+
+		if (bIsColumnMenuEnabled) {
+			oTable._createColumnHeaderMenu();
+		} else {
+			oTable._destroyColumnHeaderMenu();
+		}
+	}
 
 	function updateP13nSettings(oTable) {
 		oTable._updateP13nButton();
@@ -2702,21 +2714,33 @@ sap.ui.define([
 			insertFilterInfoBar(this);
 		}
 
-		if (!this._oColumnHeaderMenu) {
-			this._oQuickActionContainer = new QuickActionContainer({ table: this });
-			this._oColumnHeaderMenu = new ColumnMenu({
-				id: this.getId() + "-columnHeaderMenu",
-				showTableSettingsButton: true
-			});
-			this._oColumnHeaderMenu.addAggregation("_quickActions", this._oQuickActionContainer);
-			this.addDependent(this._oColumnHeaderMenu);
-
-			FESRHelper.setSemanticStepname(this._oColumnHeaderMenu, "beforeOpen", "mdc:tbl:p13n:col");
-
-			this._oColumnHeaderMenu.attachBeforeOpen(this._createColumnMenuContent, this);
-		}
+		updateColumnMenu(this);
 
 		this._updateInvisibleTitle();
+	};
+
+	Table.prototype._createColumnHeaderMenu = function() {
+		if (this._oColumnHeaderMenu) {
+			return;
+		}
+
+		this._oQuickActionContainer = new QuickActionContainer({table: this});
+		this._oColumnHeaderMenu = new ColumnMenu({
+			id: this.getId() + "-columnHeaderMenu",
+			showTableSettingsButton: true
+		});
+		this._oColumnHeaderMenu.addAggregation("_quickActions", this._oQuickActionContainer);
+		this.addDependent(this._oColumnHeaderMenu);
+
+		FESRHelper.setSemanticStepname(this._oColumnHeaderMenu, "beforeOpen", "mdc:tbl:p13n:col");
+
+		this._oColumnHeaderMenu.attachBeforeOpen(this._createColumnMenuContent, this);
+	};
+
+	Table.prototype._destroyColumnHeaderMenu = function() {
+		this._oColumnHeaderMenu?.destroy();
+		delete this._oColumnHeaderMenu;
+		delete this._oQuickActionContainer;
 	};
 
 	Table.prototype._createColumnMenuContent = function(oEvent) {
@@ -2733,6 +2757,7 @@ sap.ui.define([
 			this._oQuickActionContainer.initializeQuickActions();
 			this._oColumnHeaderMenu.detachTableSettingsPressed(this._showTableP13nDialog, this);
 			this._oColumnHeaderMenu.attachTableSettingsPressed(oColumn, this._showTableP13nDialog, this);
+			this._oColumnHeaderMenu.setShowTableSettingsButton(this._isP13nSettingVisible());
 			this._oColumnHeaderMenu.openBy(oInnerColumn, true);
 			PersonalizationUtils.detectUserPersonalizationCompletion(this, this._oColumnHeaderMenu);
 		});
@@ -2740,6 +2765,14 @@ sap.ui.define([
 
 	Table.prototype._showTableP13nDialog = function(oEvent, oColumn) {
 		PersonalizationUtils.openSettingsDialog(this, oColumn);
+	};
+
+	Table.prototype._isP13nSettingVisible = function() {
+		const aP13nMode = this.getActiveP13nModes();
+
+		// Note: 'Aggregate' does not have a p13n UI, if only 'Aggregate' is enabled no settings icon is necessary
+		const bAggregateP13nOnly = aP13nMode.length === 1 && aP13nMode[0] === "Aggregate";
+		return aP13nMode.length > 0 && !bAggregateP13nOnly && !this._bHideP13nButton;
 	};
 
 	/**

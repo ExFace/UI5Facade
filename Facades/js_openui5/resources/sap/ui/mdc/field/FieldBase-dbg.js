@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -101,7 +101,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.m.IOverflowToolbarContent, sap.ui.core.ILabelable
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @alias sap.ui.mdc.field.FieldBase
@@ -764,7 +764,7 @@ sap.ui.define([
 	};
 
 	FieldBase.prototype.setProperty = function(sPropertyName, vValue, bSuppressInvalidate) {
-
+		const aExcemptionProperties = ["width", "multipleLines", "showEmptyIndicator", "visible"];
 		// most properties are rendered from content controls. Only invalidate whole Field if needed
 		// (multipleLines mostly changed together with editMode -> update once on rendering)
 		if (sPropertyName === "editMode") {
@@ -773,7 +773,7 @@ sap.ui.define([
 			if (sOld !== FieldEditMode.Display && sOld !== FieldEditMode.EditableDisplay && vValue !== FieldEditMode.Display && vValue !== FieldEditMode.EditableDisplay) {
 				bSuppressInvalidate = true;
 			}
-		} else if (sPropertyName !== "width" && sPropertyName !== "multipleLines" && sPropertyName !== "showEmptyIndicator") {
+		} else if (!aExcemptionProperties.includes(sPropertyName)) {
 			bSuppressInvalidate = true;
 		}
 
@@ -925,6 +925,7 @@ sap.ui.define([
 		const oValueHelp = _getValueHelp.call(this);
 		if (oValueHelp && oValueHelp.isOpen()) {
 			oValueHelp.close();
+			oEvent.setMarked();
 		}
 		this._sFilterValue = "";
 		if (this._oNavigateCondition) {
@@ -2643,11 +2644,6 @@ sap.ui.define([
 							const _handleTypeahead = function() {
 								if (_isFocused.call(this)) { // only if still connected and focussed
 									const bIsFHOpen = oValueHelp.isOpen();
-									if (this.getMaxConditionsForHelp() === 1 && oValueHelp.getConditions().length > 0) {
-										// While single-suggestion no item is selected
-										oValueHelp.setConditions([]);
-									}
-									oValueHelp.setFilterValue(this._sFilterValue);
 									if (!bIsFHOpen) {
 										/*
 											sap.ui.mdc.ValueHelp can only be "asked" to open a typeahead by a connected control.
@@ -2664,6 +2660,11 @@ sap.ui.define([
 							}.bind(this);
 
 							if (this._bConnected && this.getCurrentContent()[0]) {
+								if (this.getMaxConditionsForHelp() === 1 && oValueHelp.getConditions().length > 0) {
+									// While single-suggestion no item is selected
+									oValueHelp.setConditions([]);
+								}
+								oValueHelp.setFilterValue(this._sFilterValue);
 								oValueHelp.requestShowTypeahead(RequestShowContainerReason.Typing).then((bTypeahead) => {
 									return !!bTypeahead && _handleTypeahead();
 								});
@@ -2671,11 +2672,6 @@ sap.ui.define([
 							}
 						}, 300, { leading: false, trailing: true });
 					}
-					oValueHelp.requestShowTypeahead(RequestShowContainerReason.Typing).then((bOpenByTyping) => { // keeping this for compatibility, as it allows service handling before the debounce interval
-						if (_isFocused.call(this) && this._fnLiveChangeTimer) { // if destroyed this._fnLiveChangeTimer is removed
-							this._fnLiveChangeTimer(); // if resolved while initial debounce-time frame, it will not triggered twice
-						}
-					});
 					this._fnLiveChangeTimer();
 				}
 			}

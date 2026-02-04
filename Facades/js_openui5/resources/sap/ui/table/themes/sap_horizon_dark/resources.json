@@ -44,18 +44,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 71552,
+			"size": 71508,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_horizon_dark/library-parameters.json",
-			"size": 6096,
+			"size": 6074,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 71570,
+			"size": 71526,
 			"theme": "sap_horizon_dark"
 		},
 		{

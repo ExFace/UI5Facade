@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -55,7 +55,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.controlVariants.VariantManagementState
 	 * @since 1.74
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -235,9 +235,9 @@ sap.ui.define([
 		return oGroupedFlexObjects;
 	}
 
-	function createVariantsMap(aFlexObjects) {
+	function createVariantsMap(aFlexObjects, mPropertyBag) {
 		const oGroupedFlexObjects = groupFlexObjects(aFlexObjects);
-		const sReference = aFlexObjects[0]?.getFlexObjectMetadata().reference;
+		const sReference = mPropertyBag.reference;
 
 		const oVariantManagementsMap = {};
 		oGroupedFlexObjects.variants.forEach((oVariantInstance) => {
@@ -795,9 +795,11 @@ sap.ui.define([
 	 *
 	 * @param {string} sReference - Flex reference of the app
 	 * @param {Promise<undefined>} oPromise - Variant Switch Promise
+	 * @param {string} sVMReference - Variant Management reference
 	 */
-	VariantManagementState.setVariantSwitchPromise = function(sReference, oPromise) {
-		mVariantSwitchPromises[sReference] = oPromise;
+	VariantManagementState.setVariantSwitchPromise = function(sReference, oPromise, sVMReference) {
+		mVariantSwitchPromises[sReference] ||= {};
+		mVariantSwitchPromises[sReference][sVMReference] = oPromise;
 	};
 
 	/**
@@ -806,8 +808,8 @@ sap.ui.define([
 	 * @param {string} sReference - Flex reference of the app
 	 * @returns {Promise<undefined>} Variant Switch Promise
 	 */
-	VariantManagementState.getVariantSwitchPromise = function(sReference) {
-		return mVariantSwitchPromises[sReference];
+	VariantManagementState.waitForVariantSwitch = function(sReference) {
+		return Promise.all(Object.values(mVariantSwitchPromises[sReference] || {}));
 	};
 
 	return VariantManagementState;

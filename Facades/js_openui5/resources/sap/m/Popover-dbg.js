@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -121,7 +121,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.136.0
+		* @version 1.136.12
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -3012,6 +3012,10 @@ sap.ui.define([
 		 * Helps to prevent temporary appearance of a scrollbar in documentElement during Popover calculations.
 		 */
 		Popover.prototype._preventDocumentElementScrolling = function () {
+			if (this._sDocumentElementOverflow !== undefined) {
+				return;
+			}
+
 			const bDocumentElementHasVerticalScrollbar = document.documentElement.scrollHeight > document.documentElement.clientHeight;
 
 			if (!bDocumentElementHasVerticalScrollbar) {

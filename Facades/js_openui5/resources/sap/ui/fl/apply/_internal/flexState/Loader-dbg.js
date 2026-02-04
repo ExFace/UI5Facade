@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -135,7 +135,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.Loader
 	 * @since 1.74
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal.flexState
 	 */
@@ -196,11 +196,10 @@ sap.ui.define([
 		 * @param {string} sReference - Flex reference of application
 		 * @returns {Promise<object>} Resolving with a list of maps between user's ID and name
 		 */
-		loadVariantsAuthors(sReference) {
-			// the settings are available due to previous loadFlexData calls or
-			// not available due to an async hint stating that no changes are available, thus also no author mapping needed
-			const oSettings = Settings.getInstanceOrUndef();
-			return oSettings?.isVariantAuthorNameAvailable() ? ApplyStorage.loadVariantsAuthors(sReference) : Promise.resolve({});
+		async loadVariantsAuthors(sReference) {
+			// Loading settings to check the naming feature availability
+			const oSettings = await Settings.getInstance();
+			return oSettings?.isVariantAuthorNameAvailable() ? ApplyStorage.loadVariantsAuthors(sReference) : {};
 		}
 	};
 });

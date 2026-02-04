@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,14 +27,14 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.table
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 0.8
 	 * @public
 	 */
 	const thisLib = Library.init({
 		name: "sap.ui.table",
 		apiVersion: 2,
-		version: "1.136.0",
+		version: "1.136.12",
 		dependencies: ["sap.ui.core", "sap.ui.unified"],
 		...{
 			interactionDocumentation: true
@@ -98,7 +98,7 @@ sap.ui.define([
 	/**
 	 * Navigation mode of the table
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @deprecated As of version 1.38, the concept has been discarded.
 	 * @public
@@ -129,7 +129,7 @@ sap.ui.define([
 	/**
 	 * Row Action types.
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @public
 	 */
@@ -160,7 +160,7 @@ sap.ui.define([
 	/**
 	 * Selection behavior of the table
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @public
 	 */
@@ -191,7 +191,7 @@ sap.ui.define([
 	/**
 	 * Selection mode of the table
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @public
 	 */
@@ -229,7 +229,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @public
 	 * @deprecated As of version 1.120, replaced with <code>sap.ui.core.SortOrder</code>
@@ -256,7 +256,7 @@ sap.ui.define([
 	/**
 	 * VisibleRowCountMode of the table
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @deprecated As of version 1.119, see the <code>rowMode</code> aggregation of <code>sap.ui.table.Table</code> for more details.
 	 * @public
@@ -301,7 +301,7 @@ sap.ui.define([
 	 *
 	 * Contains IDs of shared DOM references, which should be accessible to inheriting controls via getDomRef() function.
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @enum {string}
 	 * @public
 	 */
@@ -402,7 +402,7 @@ sap.ui.define([
 	 *
 	 * This is an alias for {@link sap.ui.model.TreeAutoExpandMode} and kept for compatibility reasons.
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @typedef {sap.ui.model.TreeAutoExpandMode}
 	 * @public
 	 * @deprecated As of version 1.120, replaced by <code>sap.ui.model.TreeAutoExpandMode</code>

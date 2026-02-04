@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -116,7 +116,7 @@ function(
 		 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.136.12
 		 *
 		 * @constructor
 		 * @public
@@ -1306,7 +1306,12 @@ function(
 				sWidth = this.$().outerWidth() + "px"; // set popover content min-width in px due to rendering issue in Chrome and small %
 
 			if (oPopover) {
-				oPopover.setContentMinWidth(sWidth);
+				// Don't set min-width for wrapped items - let them size to content
+				if (!this.getWrapItemsText()) {
+					oPopover.setContentMinWidth(sWidth);
+				} else {
+					oPopover.setContentMinWidth("");
+				}
 			}
 		};
 
@@ -2204,6 +2209,11 @@ function(
 						onAfterRendering: this.onAfterRenderingPicker
 					}, this)
 					.addContent(this.getSimpleFixFlex());
+
+			// Apply the wrapItemsText styling if the property is already set
+			if (sPickerType === "Popover" && this.getWrapItemsText()) {
+				oPicker.addStyleClass("sapMPickerWrappedItems");
+			}
 
 					return oPicker;
 		};

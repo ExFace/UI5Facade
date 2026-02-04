@@ -3,11 +3,11 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2682
+			"size": 2683
 		},
 		{
 			"name": ".theming",
-			"size": 101
+			"size": 102
 		},
 		{
 			"name": "Configuration-dbg.js",
@@ -68,7 +68,7 @@
 		{
 			"name": "WebComponent-dbg.js",
 			"module": "sap/ui/webc/common/WebComponent.js",
-			"size": 4205,
+			"size": 4206,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -94,7 +94,7 @@
 		{
 			"name": "WebComponentMetadata-dbg.js",
 			"module": "sap/ui/webc/common/WebComponentMetadata.js",
-			"size": 1310,
+			"size": 1311,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponentMetadata.js"
@@ -116,7 +116,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/webc/common/library.js",
-			"size": 2258,
+			"size": 2261,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/DataType.js",
@@ -135,7 +135,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/webc/common/library-preload.js",
-			"size": 1585933,
+			"size": 1585936,
 			"merged": true,
 			"required": [
 				"exports.js",
@@ -370,7 +370,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/webc/common/library.js",
-			"size": 1194,
+			"size": 1195,
 			"required": [
 				"sap/ui/base/DataType.js",
 				"sap/ui/core/Lib.js",
@@ -393,7 +393,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/webc/common/manifest.json",
-			"size": 1114
+			"size": 1116
 		},
 		{
 			"name": "resources.json",

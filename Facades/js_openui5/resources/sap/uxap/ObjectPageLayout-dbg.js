@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1720,7 +1720,7 @@ sap.ui.define([
 	 * @param {boolean} bInvalidate request the invalidation of the sectionBase that would turn into visible or hidden. This may not be necessary if you are already within a rendering process.
 	 */
 	ObjectPageLayout.prototype._applyUxRules = function (bInvalidate) {
-		var aSections, aSubSections, iVisibleSubSections, iVisibleSection, iVisibleBlocks,
+		var aSections, aSubSections, iVisibleSubSections, iVisibleSection, iVisibleBlocks, oAnchorBar, aAnchorBarItems,
 			bVisibleAnchorBar, bUseIconTabBar, oFirstVisibleSection, oFirstVisibleSubSection, oTitleVisibilityInfo = {};
 
 		aSections = this.getSections() || [];
@@ -1784,6 +1784,9 @@ sap.ui.define([
 				});
 			}
 
+			var bHasPromotedSubSection = this.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnTop &&
+				iVisibleSubSections === 1 && oFirstVisibleSubSection.getTitle().trim() !== "";
+
 			//rule noVisibleSubSection: If a section has no content (or only empty subsections) the section will be hidden.
 			if (iVisibleSubSections == 0) {
 				oSection._setInternalVisible(false, bInvalidate);
@@ -1795,9 +1798,6 @@ sap.ui.define([
 					oFirstVisibleSection = oSection;
 					oFirstVisibleSection.addStyleClass("sapUxAPObjectPageSectionFirstVisible");
 				}
-
-				var bHasPromotedSubSection = this.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnTop &&
-					iVisibleSubSections === 1 && oFirstVisibleSubSection.getTitle().trim() !== "";
 
 				//rule TitleOnTop.sectionGetSingleSubSectionTitle: If a section as only 1 subsection and the subsection title is not empty, the SubSection takes the Section's title level with titleOnTop layout only
 				if (bHasPromotedSubSection) {
@@ -1814,6 +1814,8 @@ sap.ui.define([
 
 			if (bUseIconTabBar) {
 				oTitleVisibilityInfo[oSection.getId()] = false;
+				// hide the title of the promoted subsection in iconTabBar mode only
+				bHasPromotedSubSection && oFirstVisibleSubSection && (oTitleVisibilityInfo[oFirstVisibleSubSection.getId()] = false);
 				oSection.addStyleClass("sapUxAPObjectPageSectionFirstVisible");
 			}
 		}, this);
@@ -1824,7 +1826,12 @@ sap.ui.define([
 			Log.info("ObjectPageLayout :: notEnoughVisibleSection UX rule matched", "anchorBar forced to hidden");
 			//rule firstSectionTitleHidden: the first section title is never visible if there is an anchorBar
 			if (bUseIconTabBar && oFirstVisibleSection) {
-				oTitleVisibilityInfo[oFirstVisibleSection.getId()] = true;
+				if (oFirstVisibleSection._hasPromotedSubSection() && oFirstVisibleSubSection) {
+					oTitleVisibilityInfo[oFirstVisibleSubSection.getId()] = true; // SubSection has title - show SubSection title
+				} else {
+					oTitleVisibilityInfo[oFirstVisibleSection.getId()] = true; // SubSection does not have title - show Section title
+				}
+
 			}
 		}
 
@@ -1837,6 +1844,15 @@ sap.ui.define([
 		// the AnchorBar needs to reflect the dom state
 		if (bVisibleAnchorBar) {
 			this._oABHelper._buildAnchorBar();
+		}
+
+		oAnchorBar = this.getAggregation("_anchorBar");
+		aAnchorBarItems = oAnchorBar?.getItems() || [];
+		for (var i = 0; i < aSections.length; i++) {
+			var oSection = aSections[i];
+			if (oSection._getInternalVisible()) {
+				oSection._setAriaLabelledByAnchorButton(aAnchorBarItems[i]);
+			}
 		}
 
 		this._setInternalAnchorBarVisible(bVisibleAnchorBar, bInvalidate);
@@ -3146,6 +3162,10 @@ sap.ui.define([
 
 	ObjectPageLayout.prototype._adjustTitlePositioning = function (oEvent) {
 		if (!this._$titleArea?.length || !this._$opWrapper?.length) {
+			return;
+		}
+
+		if (ResizeHandler.isSuspended(this._$titleArea.get(0), this._adjustTitlePositioning.bind(this))) {
 			return;
 		}
 

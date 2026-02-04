@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -118,7 +118,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -674,16 +674,31 @@ sap.ui.define([
 		this._headerBiggerThanAllowedHeight = this._headerBiggerThanAllowedToBeFixed();
 		bChange = bOldValue !== this._headerBiggerThanAllowedHeight;
 
-		if (!this._headerBiggerThanAllowedHeight || !bChange) {
+		if (!bChange) {
 			return;
 		}
-		//move the header to content
+
+		this._repositionHeaderBasedOnHeight();
+
+		this._adjustStickyContent();
+		this._updateTitlePositioning();
+	};
+
+	DynamicPage.prototype._repositionHeaderBasedOnHeight = function () {
+		var bMoveHeaderToContent = this._headerBiggerThanAllowedHeight;
 		if (this.getHeaderExpanded()) {
+			this._repositionExpandedHeader(bMoveHeaderToContent);
+		} else {
+			this._repositionSnappedHeader(); // will automatically move to content if possible
+		}
+	};
+
+	DynamicPage.prototype._repositionExpandedHeader = function (bMoveHeaderToContent) {
+		if (bMoveHeaderToContent) {
 			this._moveHeaderToContentArea();
 		} else {
-			this._adjustSnap(); // moves the snapped header to content if possible
+			this._moveHeaderToTitleArea();
 		}
-		this._updateTitlePositioning();
 	};
 
 	/**
@@ -1780,7 +1795,7 @@ sap.ui.define([
 	 * (2) snapping with hiding the header - when not enough content is available to allow snap header on scroll
 	 * @private
 	 */
-	DynamicPage.prototype._adjustSnap = function () {
+	DynamicPage.prototype._repositionSnappedHeader = function () {
 		var oDynamicPageHeader,
 			bIsSnapped,
 			bCanSnapWithScroll,
@@ -1889,7 +1904,7 @@ sap.ui.define([
 			this._toggleScrollingStyles(bNeedsVerticalScrollBar);
 		}
 
-		this._adjustSnap();
+		this._repositionSnappedHeader();
 
 		if (!this._bExpandingWithAClick) {
 			this._updateTitlePositioning();
@@ -1903,6 +1918,8 @@ sap.ui.define([
 			this._updateHeaderVisualState(bCurrentHeight !== bOldHeight);
 			this._adaptScrollPositionOnHeaderChange(bCurrentHeight, bOldHeight);
 		}
+
+		this._expandHeaderIfNeeded(oEvent);
 	};
 
 	/**
@@ -1925,20 +1942,24 @@ sap.ui.define([
 			oDynamicPageTitle._onResize(iCurrentWidth);
 		}
 
+		this._expandHeaderIfNeeded(oEvent);
+
+		this._repositionSnappedHeader();
+		this._updateTitlePositioning();
+		this._updateMedia(iCurrentWidth);
+	};
+
+	DynamicPage.prototype._expandHeaderIfNeeded = function (oEvent) {
 		if (this._shouldAutoExpandHeaderOnResize(oEvent)) {
 			this._expandHeader(true, false /* bUserInteraction */);
 			this.getHeader().$().removeClass("sapFDynamicPageHeaderHidden");
 		}
-
-		this._adjustSnap();
-		this._updateTitlePositioning();
-		this._updateMedia(iCurrentWidth);
 	};
 
 	DynamicPage.prototype._shouldAutoExpandHeaderOnResize = function (oResizeEvent) {
 		var oDynamicPageHeader = this.getHeader(),
 			bHeaderSnappedByUser = exists(oDynamicPageHeader) && !this.getHeaderExpanded() && this._bIsLastToggleUserInitiated,
-			bPageResized = oResizeEvent.target === this.getDomRef(),
+			bPageResized = oResizeEvent.target === this.getDomRef() || oResizeEvent.target === this.$contentFitContainer?.get(0),
 			canToggleHeaderOnScroll = this._canSnapHeaderOnScroll.bind(this);
 
 		// auto-expand the header if the user had snapped it but

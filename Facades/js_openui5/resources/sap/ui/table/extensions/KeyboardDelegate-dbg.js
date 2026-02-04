@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -64,7 +64,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.KeyboardDelegate
@@ -811,7 +811,13 @@ sap.ui.define([
 			const oBusyIndicator = this.getDomRef("busyIndicator");
 			if (oBusyIndicator) {
 				oKeyboardExtension.setSilentFocus(oBusyIndicator);
-			} else if (this.getColumnHeaderVisible() && (TableUtils.getVisibleColumnCount(this) || TableUtils.hasRowHeader(this))) {
+			} else if (!this.getColumnHeaderVisible()) {
+				if (this.getRows().length && !TableUtils.isNoDataVisible(this)) {
+					restoreFocusOnLastFocusedDataCell(this, oEvent);
+				} else if (bNoData) {
+					oKeyboardExtension.setSilentFocus(this.$("noDataCnt"));
+				}
+			} else if (TableUtils.getVisibleColumnCount(this) || TableUtils.hasRowHeader(this)) {
 				setFocusOnColumnHeaderOfLastFocusedDataCell(this, oEvent);
 			} else if (bNoData) {
 				oKeyboardExtension.setSilentFocus(this.$("noDataCnt"));

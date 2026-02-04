@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -100,7 +100,7 @@ sap.ui.define([
 
 		formatTooltip(sDescription) {
 			this.oI18n ||= this.getView().getModel("i18n").getResourceBundle();
-			return sDescription.length === 0 ? this.oI18n.getText("NO_DESCRIPTION") : sDescription;
+			return sDescription?.trim() ? sDescription : this.oI18n.getText("NO_DESCRIPTION");
 		},
 
 		/**

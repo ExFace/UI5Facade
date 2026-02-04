@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.apply._internal.flexState.FlexObjectState
 	 * @since 1.83
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -224,7 +224,7 @@ sap.ui.define([
 		}
 		const sFlexReference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
 
-		await VariantManagementState.getVariantSwitchPromise(sFlexReference);
+		await VariantManagementState.waitForVariantSwitch(sFlexReference);
 		await Promise.all(aSelectorInformation.map((oSelector) => {
 			const oControl = oSelector.selector.id && Element.getElementById(oSelector.selector.id) || oSelector.selector;
 

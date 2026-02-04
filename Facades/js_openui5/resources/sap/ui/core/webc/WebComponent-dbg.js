@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -54,6 +54,20 @@ function(
 		if (obj.id && Element.getElementById(obj.id)) {
 			return Element.getElementById(obj.id);
 		}
+	};
+
+	/**
+	 * Returns the active element in the shadow DOM, if any
+	 *
+	 * @param obj
+	 * @returns {HTMLElement}
+	 * @private
+	 */
+	var fnGetActiveElement = function(obj) {
+		while (obj && obj.shadowRoot && obj.shadowRoot.activeElement) {
+			obj = obj.shadowRoot.activeElement;
+		}
+		return obj;
 	};
 
 	/**
@@ -122,7 +136,7 @@ function(
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @public
 	 * @since 1.118.0
 	 * @alias sap.ui.core.webc.WebComponent
@@ -334,6 +348,61 @@ function(
 			var sSlot = this.getMetadata().getAggregationSlot(sAggregationName);
 			oElement.__slot = sSlot;
 		}
+	};
+
+	/**
+	 * Return the DOM element that should get the focus.
+	 * This is the Web Component itself, or the element that is returned by the
+	 * getFocusDomRef method of the Web Component.
+	 *
+	 * @override
+	 * @return {Element} Returns the DOM Element that should get the focus
+	 * @protected
+	 */
+	WebComponent.prototype.getFocusDomRef = function() {
+		const component = this.getDomRef();
+
+		if (component && typeof component.getFocusDomRef === "function") {
+			return component.getFocusDomRef();
+		}
+
+		return component;
+	};
+
+	/**
+	 * Sets the focus to the Web Component.
+	 * If the focus information is provided, the focus will be set to the element that is
+	 * represented by the <code>oFocusedElement</code> property of the <code>oFocusInfo</code>.
+	 *
+	 * @override
+	 * @param {object} [oFocusInfo={}] Options for setting the focus
+	 * @param {boolean} [oFocusInfo.preventScroll=false] @since 1.60 if it's set to true, the focused
+	 *   element won't be shifted into the viewport if it's not completely visible before the focus is set
+	 * @param {any} [oFocusInfo.targetInfo] Further control-specific setting of the focus target within the control @since 1.98
+	 * @public
+	 */
+	WebComponent.prototype.focus = function(oFocusInfo) {
+		if (oFocusInfo && oFocusInfo.oFocusedElement) {
+			oFocusInfo.oFocusedElement.focus({ preventScroll: oFocusInfo.preventScroll });
+			return;
+		}
+		Control.prototype.focus.apply(this, arguments);
+	};
+
+	/**
+	 * Returns object with the focused element within the Web Component.
+	 *
+	 * @override
+	 * @returns {object} an object representing the serialized focus information
+	 * @protected
+	 */
+	WebComponent.prototype.getFocusInfo = function () {
+		const oFocusedElement = fnGetActiveElement(this.getDomRef());
+
+		return {
+			id: oFocusedElement ? oFocusedElement.id : null,
+			oFocusedElement
+		};
 	};
 
 	/**

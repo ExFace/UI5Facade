@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -80,7 +80,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -352,6 +352,21 @@ function(
 			this.getDomRef().removeEventListener("keydown", this._handleKeyNavigationBound);
 			this.getDomRef().addEventListener("keydown", this._handleKeyNavigationBound);
 		}
+		this._updateActiveButtonText();
+	};
+
+	/**
+	 * @returns {Array} Toolbar interactive, visible and enabled Controls that should be included in the arrow navigation
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarNavigatableControls = function () {
+		return this._getToolbarInteractiveControls().filter(function (oControl) {
+			var oDomRef = oControl.getDomRef(),
+				bDomVisible = oDomRef && oDomRef.offsetParent !== null,
+				bEnabled = (typeof oControl.getEnabled !== "function" || oControl.getEnabled() !== false);
+
+			return bDomVisible && bEnabled;
+		});
 	};
 
 	Toolbar.prototype._handleKeyNavigation = function(oEvent) {
@@ -400,7 +415,7 @@ function(
 	};
 
 	Toolbar.prototype._moveFocus = function(sDirection, oEvent) {
-		var aFocusableElements = this._getToolbarInteractiveControls(),
+		var aFocusableElements = this._getToolbarNavigatableControls(),
 			oActiveElement = Toolbar._getActiveElement(),
 			oActiveDomElement = document.activeElement;
 
@@ -411,9 +426,9 @@ function(
 			bIsFirst = this._isFirst(sDirection, iCurrentIndex),
 			bIsLast = this._isLast(sDirection, iCurrentIndex, aFocusableElements);
 
-			if (this._shouldAllowDefaultBehavior(oActiveElement, oEvent)) {
-				return;
-			}
+		if (this._shouldAllowDefaultBehavior(oActiveDomElement, oActiveElement, oEvent)) {
+			return;
+		}
 
 		// Handle specific behaviour for the input based controls
 		if (this._isInputBasedControl(oActiveDomElement, oActiveElement, oEvent)) {
@@ -443,17 +458,23 @@ function(
 		return (iCurrentIndex === aFocusableElements.length - 1) && (sDirection === "forward" || sDirection === "down");
 	};
 
-	Toolbar.prototype._shouldAllowDefaultBehavior = function(oActiveElement, oEvent) {
+	Toolbar.prototype._shouldAllowDefaultBehavior = function(oActiveDomElement, oActiveElement, oEvent) {
 		if (!oActiveElement) {
 			return false;
 		}
-		var sActiveElementName = oActiveElement.getMetadata().getName(),
-			bIsSelectOrCombobox = ["sap.m.Select", "sap.m.ComboBox"].includes(sActiveElementName),
+		var oClosestElement = Element.closestTo(oActiveDomElement),
+			fnHasType = function(vType) {
+				return [oActiveElement, oClosestElement].some(function(oElement) {
+					return oElement && oElement.isA(vType);
+				});
+			},
+			bIsSelectOrComboBox = fnHasType(["sap.m.Select", "sap.m.ComboBox"]),
 			bIsUpOrDownArrowKey = [KeyCodes.ARROW_UP, KeyCodes.ARROW_DOWN].includes(oEvent.keyCode),
-			bIsBreadcrumbs = sActiveElementName === "sap.m.Breadcrumbs",
-			bIsSlider = ["sap.m.Slider", "sap.m.RangeSlider"].includes(sActiveElementName);
+			bIsBreadcrumbs = fnHasType("sap.m.Breadcrumbs"),
+			bIsSlider = fnHasType(["sap.m.Slider", "sap.m.RangeSlider"]),
+			bIsTokenizer = fnHasType("sap.m.Tokenizer");
 
-		if (bIsUpOrDownArrowKey && bIsSelectOrCombobox || bIsBreadcrumbs || bIsSlider) {
+		if (bIsUpOrDownArrowKey && bIsSelectOrComboBox || bIsBreadcrumbs || bIsSlider || bIsTokenizer) {
 			return true;
 		}
 
@@ -603,6 +624,21 @@ function(
 		if (oLayout instanceof ToolbarLayoutData) {
 			oLayout.applyProperties();
 		}
+
+		var oToolbar = this.getParent();
+		if (oToolbar && oToolbar.isA("sap.m.Toolbar")) {
+			oToolbar._updateActiveButtonText();
+		}
+	};
+
+	/**
+	 * Updates the text of the active button when toolbar content changes
+	 * @private
+	 */
+	Toolbar.prototype._updateActiveButtonText = function() {
+		if (this.getActive()) {
+			this._getActiveButton().setText(this._getToolbarTextContent());
+		}
 	};
 
 	// gets called when any content property is changed
@@ -658,12 +694,42 @@ function(
 			return oControl.getVisible()
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
+		}, this);
+	};
+
+	/**
+	 * Gets the text content of the toolbar for accessibility purposes
+	 * @returns {string} The concatenated text content from all toolbar items
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarTextContent = function() {
+		const aContent = this.getContent();
+		const aTexts = [];
+
+		aContent.forEach(function(oControl) {
+			if (oControl.getVisible?.()) {
+				let sText = "";
+				const oDomRef = oControl.getDomRef();
+
+				if (oDomRef) {
+					sText = oDomRef.textContent?.trim();
+				}
+
+				if (sText) {
+					aTexts.push(sText);
+				}
+			}
 		});
+
+		return aTexts.join(" ");
 	};
 
 	Toolbar.prototype._getActiveButton = function() {
 		if (!this._activeButton) {
-			this._activeButton = new Button({text: "", id:"sapMTBActiveButton" + this.getId()}).addStyleClass("sapMTBActiveButton");
+			this._activeButton = new Button({
+				text: this._getToolbarTextContent(),
+				id:"sapMTBActiveButton" + this.getId()
+			}).addStyleClass("sapMTBActiveButton");
 			this._activeButton.onfocusin = function() {
 				this.addStyleClass("sapMTBFocused");
 				if (typeof Button.prototype.onfocusin === "function") {

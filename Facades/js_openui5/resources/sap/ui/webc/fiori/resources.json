@@ -3,16 +3,16 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2662
+			"size": 2663
 		},
 		{
 			"name": ".theming",
-			"size": 100
+			"size": 101
 		},
 		{
 			"name": "Bar-dbg.js",
 			"module": "sap/ui/webc/fiori/Bar.js",
-			"size": 3604,
+			"size": 3605,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -38,7 +38,7 @@
 		{
 			"name": "BarcodeScannerDialog-dbg.js",
 			"module": "sap/ui/webc/fiori/BarcodeScannerDialog.js",
-			"size": 2998,
+			"size": 2999,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -64,7 +64,7 @@
 		{
 			"name": "DynamicSideContent-dbg.js",
 			"module": "sap/ui/webc/fiori/DynamicSideContent.js",
-			"size": 8141,
+			"size": 8142,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -90,7 +90,7 @@
 		{
 			"name": "FilterItem-dbg.js",
 			"module": "sap/ui/webc/fiori/FilterItem.js",
-			"size": 1963,
+			"size": 1964,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -116,7 +116,7 @@
 		{
 			"name": "FilterItemOption-dbg.js",
 			"module": "sap/ui/webc/fiori/FilterItemOption.js",
-			"size": 1816,
+			"size": 1817,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -142,7 +142,7 @@
 		{
 			"name": "FlexibleColumnLayout-dbg.js",
 			"module": "sap/ui/webc/fiori/FlexibleColumnLayout.js",
-			"size": 9269,
+			"size": 9270,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -168,7 +168,7 @@
 		{
 			"name": "IllustratedMessage-dbg.js",
 			"module": "sap/ui/webc/fiori/IllustratedMessage.js",
-			"size": 5117,
+			"size": 5118,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -194,7 +194,7 @@
 		{
 			"name": "MediaGallery-dbg.js",
 			"module": "sap/ui/webc/fiori/MediaGallery.js",
-			"size": 5621,
+			"size": 5622,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -220,7 +220,7 @@
 		{
 			"name": "MediaGalleryItem-dbg.js",
 			"module": "sap/ui/webc/fiori/MediaGalleryItem.js",
-			"size": 3531,
+			"size": 3532,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -248,7 +248,7 @@
 		{
 			"name": "NotificationAction-dbg.js",
 			"module": "sap/ui/webc/fiori/NotificationAction.js",
-			"size": 3156,
+			"size": 3157,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -278,7 +278,7 @@
 		{
 			"name": "NotificationListGroupItem-dbg.js",
 			"module": "sap/ui/webc/fiori/NotificationListGroupItem.js",
-			"size": 5404,
+			"size": 5405,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -306,7 +306,7 @@
 		{
 			"name": "NotificationListItem-dbg.js",
 			"module": "sap/ui/webc/fiori/NotificationListItem.js",
-			"size": 6424,
+			"size": 6425,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -334,7 +334,7 @@
 		{
 			"name": "Page-dbg.js",
 			"module": "sap/ui/webc/fiori/Page.js",
-			"size": 4827,
+			"size": 4828,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -360,7 +360,7 @@
 		{
 			"name": "ProductSwitch-dbg.js",
 			"module": "sap/ui/webc/fiori/ProductSwitch.js",
-			"size": 2356,
+			"size": 2357,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -386,7 +386,7 @@
 		{
 			"name": "ProductSwitchItem-dbg.js",
 			"module": "sap/ui/webc/fiori/ProductSwitchItem.js",
-			"size": 3652,
+			"size": 3653,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -412,7 +412,7 @@
 		{
 			"name": "ShellBar-dbg.js",
 			"module": "sap/ui/webc/fiori/ShellBar.js",
-			"size": 10880,
+			"size": 10881,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -438,7 +438,7 @@
 		{
 			"name": "ShellBarItem-dbg.js",
 			"module": "sap/ui/webc/fiori/ShellBarItem.js",
-			"size": 2223,
+			"size": 2224,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -464,7 +464,7 @@
 		{
 			"name": "SideNavigation-dbg.js",
 			"module": "sap/ui/webc/fiori/SideNavigation.js",
-			"size": 4563,
+			"size": 4564,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -490,7 +490,7 @@
 		{
 			"name": "SideNavigationItem-dbg.js",
 			"module": "sap/ui/webc/fiori/SideNavigationItem.js",
-			"size": 3520,
+			"size": 3521,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -516,7 +516,7 @@
 		{
 			"name": "SideNavigationSubItem-dbg.js",
 			"module": "sap/ui/webc/fiori/SideNavigationSubItem.js",
-			"size": 2575,
+			"size": 2576,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -542,7 +542,7 @@
 		{
 			"name": "SortItem-dbg.js",
 			"module": "sap/ui/webc/fiori/SortItem.js",
-			"size": 1735,
+			"size": 1736,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -568,7 +568,7 @@
 		{
 			"name": "Timeline-dbg.js",
 			"module": "sap/ui/webc/fiori/Timeline.js",
-			"size": 2947,
+			"size": 2948,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -594,7 +594,7 @@
 		{
 			"name": "TimelineItem-dbg.js",
 			"module": "sap/ui/webc/fiori/TimelineItem.js",
-			"size": 3043,
+			"size": 3044,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -620,7 +620,7 @@
 		{
 			"name": "UploadCollection-dbg.js",
 			"module": "sap/ui/webc/fiori/UploadCollection.js",
-			"size": 5238,
+			"size": 5239,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -648,7 +648,7 @@
 		{
 			"name": "UploadCollectionItem-dbg.js",
 			"module": "sap/ui/webc/fiori/UploadCollectionItem.js",
-			"size": 8888,
+			"size": 8889,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -676,7 +676,7 @@
 		{
 			"name": "ViewSettingsDialog-dbg.js",
 			"module": "sap/ui/webc/fiori/ViewSettingsDialog.js",
-			"size": 5671,
+			"size": 5672,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -702,7 +702,7 @@
 		{
 			"name": "Wizard-dbg.js",
 			"module": "sap/ui/webc/fiori/Wizard.js",
-			"size": 7094,
+			"size": 7095,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -728,7 +728,7 @@
 		{
 			"name": "WizardStep-dbg.js",
 			"module": "sap/ui/webc/fiori/WizardStep.js",
-			"size": 4796,
+			"size": 4797,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -3519,7 +3519,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/webc/fiori/library.js",
-			"size": 32996,
+			"size": 32998,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/DataType.js",
@@ -3533,7 +3533,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/webc/fiori/library-preload.js",
-			"size": 3173074,
+			"size": 3173079,
 			"merged": true,
 			"required": [
 				"exports.js",
@@ -4337,7 +4337,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/webc/fiori/library.js",
-			"size": 8909,
+			"size": 8910,
 			"required": [
 				"sap/ui/base/DataType.js",
 				"sap/ui/core/Lib.js",
@@ -4355,7 +4355,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/webc/fiori/manifest.json",
-			"size": 4035
+			"size": 4039
 		},
 		{
 			"name": "resources.json",

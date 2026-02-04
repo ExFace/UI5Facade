@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -39,7 +39,7 @@ sap.ui.define([
 		 * @param {int[]|function} [oConfiguration.defaultValues] Array of values for the defaults of <code>RangeOperators</code> parameter. This can be a function, which returns the array of values. If not used the default for the values is 1.
 		 * @constructor
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.136.12
 		 * @public
 		 * @alias sap.ui.mdc.condition.RangeOperator
 		 * @since 1.74.0

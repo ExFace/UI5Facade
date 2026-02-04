@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element.
 	 * @extends sap.ui.mdc.valuehelp.base.Content
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @abstract
 	 * @public

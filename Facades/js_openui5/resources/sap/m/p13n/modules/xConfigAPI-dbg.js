@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -80,10 +80,13 @@ sap.ui.define([
 				const oAppComponent = mPropertyBag ? mPropertyBag.appComponent : undefined;
 
 				let pDelete = Promise.resolve();
-				if (oXConfig && oControl.isA) {
+				if (oXConfig) {
 					pDelete = oModifier.removeAggregation(oControl, "customData", oXConfig)
 						.then(() => {
-							return oModifier.destroy(oXConfig);
+							if (oControl.isA) {
+								return oModifier.destroy(oXConfig);
+							}
+							return Promise.resolve();
 						});
 				}
 

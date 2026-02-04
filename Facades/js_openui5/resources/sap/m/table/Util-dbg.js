@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m.table.Util
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 1.96.0
 	 * @private
 	 * @ui5-restricted sap.fe, sap.ui.mdc, sap.ui.comp
@@ -504,6 +504,7 @@ sap.ui.define([
 	 */
 	Util.isExportable = function(oBinding) {
 		return !Util.isEmpty(oBinding)
+			&& oBinding?.getCount?.() !== 0
 			&& (!oBinding?.getDownloadUrl
 				|| (oBinding.isResolved() && oBinding.getDownloadUrl() !== null));
 	};

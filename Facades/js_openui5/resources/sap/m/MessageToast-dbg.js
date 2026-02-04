@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,8 +44,8 @@ sap.ui.define([
 		 * sap.m.MessageToast.show("This message should appear in the message toast", {
 		 *     duration: 3000,                  // default
 		 *     width: "15em",                   // default
-		 *     my: "center bottom",             // default
-		 *     at: "center bottom",             // default
+		 *     my: "CenterBottom",             // default
+		 *     at: "CenterBottom",             // default
 		 *     of: window,                      // default
 		 *     offset: "0 0",                   // default
 		 *     collision: "fit fit",            // default
@@ -74,7 +74,7 @@ sap.ui.define([
 		 * The message toast has the same behavior on all devices. However, you can adjust the width of the control, for example, for use on a desktop device.
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.136.12
 		 *
 		 * @namespace
 		 * @public
@@ -97,8 +97,8 @@ sap.ui.define([
 		MessageToast._mSettings = {
 			duration: 3000,
 			width: "15em",
-			my: "center bottom",
-			at: "center bottom",
+			my: "CenterBottom",
+			at: "CenterBottom",
 			of: document.defaultView,
 			offset: "0 0",
 			collision: "fit fit",

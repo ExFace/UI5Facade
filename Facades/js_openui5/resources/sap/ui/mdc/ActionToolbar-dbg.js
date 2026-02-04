@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * The content aggregation of the control must not be used.
 	 * @extends sap.m.OverflowToolbar
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @since 1.58
 	 * @private
@@ -432,14 +432,14 @@ sap.ui.define([
 	ActionToolbar.prototype.initPropertyHelper = async function() {
 		const aProperties = await Promise.all(this.getActions().map(async (oAction) => {
 			const oDesignTime = await oAction.getAction().getMetadata().loadDesignTime(oAction);
-			const bEnabled = this._getEnabledFromDesignTime(oDesignTime);
+			const vEnabled = this._getEnabledFromDesignTime(oDesignTime);
 
 			return {
 				name: oAction.getId(),
 				alignment: oAction.getLayoutInformation().alignment,
 				label: oAction.getLabel(),
 				visible: true,
-				enabled: bEnabled
+				enabled: vEnabled
 			};
 		}));
 
@@ -458,11 +458,11 @@ sap.ui.define([
 		}
 
 		if (oDesignTime.actions.reveal === null) {
-			return false;
+			return "visibility";
 		}
 
 		if (oDesignTime.actions.remove === null) {
-			return false;
+			return "visibility";
 		}
 
 		return true;

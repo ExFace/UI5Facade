@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -309,7 +309,7 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Them
 				oRm.openStart("div", oControl.getId() + "-wrapper-content").class("sapMGTWrapperCnt").openEnd();
 			}
 
-			oRm.openStart("div");
+			oRm.openStart("div",oControl.getId() + "-hdrContent");
 			oRm.class("sapMGTHdrContent");
 			if (oControl._isIconMode() ){
 				if (frameType === frameTypes.OneByOne) {

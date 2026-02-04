@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/Element","sap/ui/model/json/JSONModel","sap/ui/core/Core","sap/ui/core/Fragment"],function(e,t,n,a){"use strict";var r=function(r,o){var i=n.getLibraryResourceBundle("sap.ui.webc.main.designtime");return new Promise(function(n){var c={selectedKey:r.getTarget(),titleText:i.getText("LINK_DIALOG_TITLE_CHANGE_TARGET"),cancelBtn:i.getText("LINK_DIALOG_CANCEL_BTN"),okBtn:i.getText("LINK_DIALOG_OK_BTN")};var s=new t;s.setData(c);a.load({name:"sap.m.designtime.LinkTargetSelectDialog",controller:this}).then(function(t){t.setModel(s);t.getBeginButton().attachPress(function(a){var r=e.getElementById("targetCombo").getValue();n(r);t.close()});t.getEndButton().attachPress(function(e){t.close()});t.attachEventOnce("afterClose",function(e){t.destroy()});t.addStyleClass(o.styleClass);t.open()})}).then(function(e){return[{selectorControl:r,changeSpecificData:{changeType:"changeLinkTarget",content:e}}]})};return{name:{singular:"LINK_NAME",plural:"LINK_NAME_PLURAL"},actions:{remove:{changeType:"hideControl"},reveal:{changeType:"unhideControl"},rename:function(){return{changeType:"rename",domRef:function(e){return e.getDomRef()}}},settings:function(){return{changeLinkTarget:{name:"LINK_CHANGE_TARGET",isEnabled:function(e){return!!e.getHref()},handler:r}}}}}});

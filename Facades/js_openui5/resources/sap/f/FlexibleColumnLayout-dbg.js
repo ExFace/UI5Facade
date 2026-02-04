@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -108,7 +108,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -733,7 +733,7 @@ sap.ui.define([
 		this._boundColumnSeparatorMove = this._onColumnSeparatorMove.bind(this);
 		this._boundColumnSeparatorMoveEnd = this._onColumnSeparatorMoveEnd.bind(this);
 		this._oLocalStorage = {};
-		this._bNeverRendered = true;
+		this._bInitialColumnsResizeDone = false;
 
 		this._oBeginColumnWidth =  {
 			tablet: 0,
@@ -998,7 +998,6 @@ sap.ui.define([
 		this._flushColumnContent("end");
 
 		this._fireStateChange(false, false);
-		this._bNeverRendered = false;
 	};
 
 	FlexibleColumnLayout.prototype.setLayoutData = function (oLayoutData) {
@@ -1423,6 +1422,8 @@ sap.ui.define([
 		} else {
 			this._updateSeparatorsAriaPositionInfo();
 		}
+
+		this._bInitialColumnsResizeDone = true;
 	};
 
 	/**
@@ -2540,8 +2541,8 @@ sap.ui.define([
 			return oColumn.width() !== iNewWidth;
 		}
 
-		if (this._bNeverRendered || oOptions.autoSize) {
-			return false; // initial rendering or autosized
+		if (!this._bInitialColumnsResizeDone || oOptions.autoSize) {
+			return false; // initial columns-resize or autosized
 		}
 
 		return this._getColumnWidth(sColumn) !== iNewWidth;

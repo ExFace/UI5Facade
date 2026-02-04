@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -412,10 +412,6 @@ sap.ui.define([
 				if (this._oTemplateClone.setWrapping) {
 					this._oTemplateClone.setWrapping(false);
 				}
-
-				if (this._oTemplateClone.setRenderWhitespace) {
-					this._oTemplateClone.setRenderWhitespace(false);
-				}
 			}
 		}
 
@@ -432,10 +428,6 @@ sap.ui.define([
 			if (!oTable._isOfType(TableType.ResponsiveTable)) {
 				if (this._oCreationTemplateClone.setWrapping) {
 					this._oCreationTemplateClone.setWrapping(false);
-				}
-
-				if (this._oCreationTemplateClone.setRenderWhitespace) {
-					this._oCreationTemplateClone.setRenderWhitespace(false);
 				}
 			}
 		}

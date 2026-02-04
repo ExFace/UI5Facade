@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
@@ -123,8 +123,8 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/InvisibleText'],
 	 * @param {sap.m.Tokenizer} oControl an object representation of the control that should be rendered
 	 */
 	TokenizerRenderer._renderIndicator = function(oRm, oControl){
-		var bExpanded = !!oControl._oPopup && oControl._oPopup.isOpen();
-		var sPopoverId = oControl._oPopup && oControl._oPopup.getId();
+		var bExpanded = !!oControl._oPopup?.isOpen();
+		var sPopoverId = oControl._oPopup?.getDomRef() && oControl._oPopup?._oControl.getId();
 
 		oRm.openStart("span");
 		oRm.class("sapMTokenizerIndicator");

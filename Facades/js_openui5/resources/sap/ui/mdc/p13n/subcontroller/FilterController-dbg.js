@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -124,14 +124,14 @@ sap.ui.define([
 		});
 	};
 
-	FilterController.prototype.update = function(oPropertyHelper) {
+	FilterController.prototype.update = async function(oPropertyHelper) {
 		if (this._oPanel) {
 			const oAdaptationData = this.mixInfoAndState(oPropertyHelper);
 			this._oPanel.setP13nData(oAdaptationData);
 			const oAdaptationControl = this.getAdaptationControl();
 			const oInbuiltFilter = oAdaptationControl && oAdaptationControl.getInbuiltFilter();
 			if (oInbuiltFilter) {
-				oInbuiltFilter.createFilterFields();
+				await oInbuiltFilter.createFilterFields();
 			}
 		}
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @see https://github.com/SAP/odata-vocabularies/blob/main/docs/v2-annotations.md
 	 *
 	 * @extends sap.ui.table.Table
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -193,17 +193,13 @@ sap.ui.define([
 	};
 
 	AnalyticalTable.prototype._getContexts = function(iStartIndex, iLength, iThreshold) {
-		if (!this.getVisible()) {
+		const oBinding = this.getBinding();
+
+		if (!oBinding || !this.getVisible() && oBinding.isSuspended()) {
 			return [];
 		}
 
-		const oBinding = this.getBinding();
-		if (oBinding) {
-			// first call getContexts to trigger data load but return nodes instead of contexts
-			return oBinding.getNodes(iStartIndex, iLength, iThreshold);
-		} else {
-			return [];
-		}
+		return oBinding.getNodes(iStartIndex, iLength, iThreshold);
 	};
 
 	AnalyticalTable.prototype._getRowContexts = TreeTable.prototype._getRowContexts;

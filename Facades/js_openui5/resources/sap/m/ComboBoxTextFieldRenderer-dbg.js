@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -68,8 +68,8 @@ sap.ui.define([
 		 */
 		ComboBoxTextFieldRenderer.writeIcons = function (oRm, aIcons) {
 			oRm.openStart("div")
-				.attr("tabindex", "-1")
 				.attr("aria-hidden", "true")
+				.attr("tabindex", "-1")
 				.class("sapMInputBaseIconContainer")
 				.openEnd();
 			aIcons.forEach(oRm.renderControl, oRm);

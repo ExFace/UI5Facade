@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * <code>sap.ui.webc.main.MenuItem</code> is an abstract element, representing a node in a <code>sap.ui.webc.main.Menu</code>. The menu itself is rendered as a list, and each <code>sap.ui.webc.main.MenuItem</code> is represented by a list item (<code>sap.ui.webc.main.StandardListItem</code>) in that list. Therefore, you should only use <code>sap.ui.webc.main.MenuItem</code> directly in your apps. The <code>sap.ui.webc.main.StandardListItem</code> list item is internal for the list, and not intended for public use.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public

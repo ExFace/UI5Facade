@@ -44,7 +44,7 @@
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 2036,
+			"size": 2124,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 81072,
+			"size": 80272,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 81064,
+			"size": 80264,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 27153,
+			"size": 27241,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},

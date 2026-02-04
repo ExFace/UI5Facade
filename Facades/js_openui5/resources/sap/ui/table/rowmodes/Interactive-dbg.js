@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @public
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 */
 	const InteractiveRowMode = RowMode.extend("sap.ui.table.rowmodes.Interactive", /** @lends sap.ui.table.rowmodes.Interactive.prototype */ {
 		metadata: {
@@ -372,12 +372,6 @@ sap.ui.define([
 		return Math.max(0, Math.floor(iViewportHeight - oTableDomRef.getBoundingClientRect().height + oRowContainer.getBoundingClientRect().height));
 	};
 
-	InteractiveRowMode.prototype.setRowCount = function(iRowCount) {
-		this.setProperty("rowCount", iRowCount);
-		setNewRowCount.call(this, iRowCount);
-		return this;
-	};
-
 	InteractiveRowMode.prototype.updateTable = function(sReason) {
 		this.getTable().getDomRef("heightResizer")?.setAttribute("aria-valuenow", this.getActualRowCount());
 
@@ -557,7 +551,7 @@ sap.ui.define([
 						shortcutText: TableUtils.getResourceText("TBL_RSZ_ROW_UP_SHORTCUT"),
 						press: function() {
 							const iRowCount = oMode.getActualRowCount();
-							_private(oMode).rowCount = Math.max(iRowCount - 1, oMode.getMinRowCount());
+							setNewRowCount.call(oMode, Math.max(iRowCount - 1, oMode.getMinRowCount()));
 							oMode.updateTable(TableUtils.RowsUpdateReason.Render);
 						}
 					}),
@@ -566,7 +560,7 @@ sap.ui.define([
 						shortcutText: TableUtils.getResourceText("TBL_RSZ_ROW_DOWN_SHORTCUT"),
 						press: function() {
 							const iRowCount = oMode.getActualRowCount();
-							_private(oMode).rowCount = Math.min(iRowCount + 1, oMode._getMaxRowCount());
+							setNewRowCount.call(oMode, Math.min(iRowCount + 1, oMode._getMaxRowCount()));
 							oMode.updateTable(TableUtils.RowsUpdateReason.Render);
 						}
 					}),
@@ -574,7 +568,7 @@ sap.ui.define([
 						text: TableUtils.getResourceText("TBL_RSZ_MINIMIZE"),
 						shortcutText: TableUtils.getResourceText("TBL_RSZ_MINIMIZE_SHORTCUT"),
 						press: function() {
-							_private(oMode).rowCount = oMode.getMinRowCount();
+							setNewRowCount.call(oMode, oMode.getMinRowCount());
 							oMode.updateTable(TableUtils.RowsUpdateReason.Render);
 						}
 					}),
@@ -582,7 +576,7 @@ sap.ui.define([
 						text: TableUtils.getResourceText("TBL_RSZ_MAXIMIZE"),
 						shortcutText: TableUtils.getResourceText("TBL_RSZ_MAXIMIZE_SHORTCUT"),
 						press: function() {
-							_private(oMode).rowCount = oMode._getMaxRowCount();
+							setNewRowCount.call(oMode, oMode._getMaxRowCount());
 							oMode.updateTable(TableUtils.RowsUpdateReason.Render);
 						}
 					})

@@ -896,7 +896,7 @@
 		},
 		{
 			"name": "TimePicker.less",
-			"size": 1707,
+			"size": 1123,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -1046,7 +1046,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 677579,
+			"size": 677461,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
@@ -1057,12 +1057,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 677578,
+			"size": 677460,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 756581,
+			"size": 755997,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

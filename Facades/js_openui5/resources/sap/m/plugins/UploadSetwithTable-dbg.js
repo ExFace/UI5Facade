@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -75,7 +75,7 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @author SAP SE
 	 * @public
 	 * @since 1.124
@@ -801,7 +801,7 @@ sap.ui.define([
 		this.getConfig("download", {
 			oBindingContext: oBindingContext,
 			bAskForLocation: bAskForLocation
-		}, this.getControl(), this);
+		}, this, this.getControl());
 	};
 
 	/**
@@ -1069,23 +1069,29 @@ sap.ui.define([
 				};
 
 				var oPromise = this.getItemValidationHandler()(oItemInfo);
-				if (oPromise && oPromise instanceof Promise) {
-					oPromise
-					.then((item) => {
-						if (item instanceof UploadItem) {
-							this._initateItemUpload(item);
-						}
-					})
-					.catch((item) => {
-						// Reset variable to avoid update if upload rejected.
-						if (item && this._oItemToUpdate && item instanceof UploadItem && item.getId() === this._oItemToUpdate.getId()) {
-							this._oItemToUpdate = null;
-						}
-					});
-				} else {
+				try {
+					if (oPromise && typeof oPromise?.then === "function") {
+						oPromise
+						.then((item) => {
+							if (item instanceof UploadItem) {
+								this._initateItemUpload(item);
+							}
+						})
+						.catch((item) => {
+							// Reset variable to avoid update if upload rejected.
+							if (item && this._oItemToUpdate && item instanceof UploadItem && item.getId() === this._oItemToUpdate.getId()) {
+								this._oItemToUpdate = null;
+							}
+						});
+					} else {
+						oItem.destroy();
+						// if promise is not returned to the ItemValidation hook log error and destroy the item
+						Log.error("Invalid usage, missing Promise: ItemValidationHandler callback expects Promise to be returned.");
+					}
+				} catch (error) {
 					oItem.destroy();
-					// if promise is not returned to the ItemValidation hook log error and destroy the item
-					Log.error("Invalid usage, missing Promise: ItemValidationHandler callback expects Promise to be returned.");
+					// If the ItemValidationHandler throws an error, log it and destroy the item
+					Log.error("Invalid usage, missing Promise: ItemValidationHandler callback expects Promise to be returned.", error);
 				}
 			} else {
 				/* if no validation handler is provided control continues with normal upload else waits for the application to manually

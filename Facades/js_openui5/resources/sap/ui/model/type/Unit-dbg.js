@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -49,7 +49,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]
@@ -325,6 +325,9 @@ sap.ui.define([
 	 */
 	Unit.prototype.processPartTypes = function (aPartTypes) {
 		const oQuantityType = aPartTypes[0];
+		if (oQuantityType?.isA(["sap.ui.model.odata.type.Int", "sap.ui.model.odata.type.Int64"])) {
+			this.iScale = 0;
+		}
 		if (oQuantityType?.isA("sap.ui.model.odata.type.Decimal")) {
 			this.iScale = oQuantityType.oConstraints?.scale || 0;
 		}

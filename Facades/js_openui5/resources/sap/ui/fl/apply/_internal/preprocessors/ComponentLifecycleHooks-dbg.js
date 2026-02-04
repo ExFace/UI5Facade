@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -268,11 +268,16 @@ sap.ui.define([
 
 			const aReturn = [];
 			for (const oAnnotationChange of aRelevantAnnotationChanges) {
-				const oChangeHandler = await ChangeHandlerRegistration.getAnnotationChangeHandler({
-					changeType: oAnnotationChange.getChangeType()
-				});
-				aReturn.push(await oChangeHandler.applyChange(oAnnotationChange));
-				oAnnotationChange._appliedOnModel = true;
+				try {
+					const oChangeHandler = await ChangeHandlerRegistration.getAnnotationChangeHandler({
+						changeType: oAnnotationChange.getChangeType()
+					});
+					aReturn.push(await oChangeHandler.applyChange(oAnnotationChange));
+					oAnnotationChange._appliedOnModel = true;
+				} catch (oError) {
+					// Continue with next change
+					Log.error(`Annotation change with id ${oAnnotationChange.getId()} could not be applied to the model`, oError);
+				}
 			}
 			return aReturn;
 		} catch (oError) {

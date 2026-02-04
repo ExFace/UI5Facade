@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define([
 		 * @class The <code>ChartImplementationContainer</code> creates a container for the <code>content</code> (chart) and <code>noDataContent</code>. Based on the <code>showNoDataStruct</code> the <code>content</code> or <code>noDataContent</code> will be shown.
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.136.12
 		 * @constructor
 		 *
 		 * @public

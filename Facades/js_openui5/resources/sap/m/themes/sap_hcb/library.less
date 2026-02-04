@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24006,6 +24006,20 @@ html[data-sap-ui-os^="Android"] {
 	}
 }
 
+/* When wrapItemsText is true, make the picker fit its content width */
+.sapMSltPicker-CTX.sapMPickerWrappedItems {
+	max-width: max-content;
+	width: fit-content;
+
+	.sapMSelectList.sapMSelectListWrappedItems {
+		width: fit-content;
+
+		.sapMSelectListTableLayout {
+			width: auto;
+		}
+	}
+}
+
 // defines the ratio of columns inside selectList, when text is truncated
 .sapMSltPicker-CTX .sapMSelectList:not(.sapMSelectListWrappedItems){
 	.sapMSelectListFirstCell {
@@ -30424,22 +30438,6 @@ html.sap-phone .sapMTC .sapMTCEdgeRight {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	user-select: none;
-	box-shadow: @sapUiShadowLevel1 !important; //Need to override this with important because of popover stronger selectors
-}
-
-/* ======================================== */
-/* COMPACT MODE STYLES                      */
-/* ======================================== */
-
-.sapUiSizeCompact {
-
-	/* ======================================== */
-	/* TimePicker Dropdown                      */
-	/* ======================================== */
-
-	.sapMTimePickerDropDown {
-		box-shadow: @sapUiShadowLevel1 !important; //Need to override this with important because of popover stronger selectors
-	}
 }
 
 /* PHONE STYLES */

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1098,6 +1098,28 @@ sap.ui.define([
 			});
 		}
 
+		if (!bContains && this._aExtraContent) {
+			bContains = this._aExtraContent.some(({ref}) => {
+				if (ref instanceof Element) {
+					ref = ref.getDomRef();
+				}
+
+				if (!ref) {
+					return false;
+				}
+
+				const aDomAreas = [ref];
+
+				if (ref.shadowRoot) {
+					aDomAreas.push(ref.shadowRoot);
+				}
+
+				return aDomAreas.some((oDomArea) => {
+					return oDomArea.contains?.(oDomRef);
+				});
+			});
+		}
+
 		if (!bContains) {
 			oPopupExtraContentSelectorSet.forEach(function(sSelector) {
 				bContains = bContains || jQuery(oDomRef).closest(sSelector).length > 0;
@@ -1131,6 +1153,14 @@ sap.ui.define([
 			var oDomRef = this._$().get(0);
 			if (oDomRef) {
 				bContains = this._contains(oEvent.target);
+
+				let oTarget = oEvent.target;
+
+				// also check the shadow dom active element in case the event target has a shadow dom attached
+				while (!bContains && oTarget.shadowRoot && oTarget.shadowRoot.activeElement) {
+					bContains = this._contains(oTarget.shadowRoot.activeElement);
+					oTarget = oTarget.shadowRoot.activeElement;
+				}
 
 				Log.debug("focus event on " + oEvent.target.id + ", contains: " + bContains);
 
@@ -2081,7 +2111,8 @@ sap.ui.define([
 				this.addChildPopup(sId);
 
 				oExtraContentRef = {
-					id: sId
+					id: sId,
+					ref: oExtraContent
 				};
 
 				if (oExtraContent instanceof Element) {

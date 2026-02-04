@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -71,7 +71,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.120
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @extends sap.ui.core.Element
 	 * @name sap.m.upload.FilePreviewDialog
 	 */
@@ -502,7 +502,7 @@ sap.ui.define([
 				content: this._oCarousel,
 				horizontalScrolling: false,
 				verticalScrolling: false,
-				contentWidth: "auto",
+				contentWidth: "100%",
 				contentHeight: "80vh",
 				buttons: [
 					this.getAdditionalFooterButtons(),

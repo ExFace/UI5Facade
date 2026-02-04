@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.136.0
+		 * @version 1.136.12
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -773,7 +773,7 @@ sap.ui.define([
 
 		iCount ??= this.oCache.collapse(
 			_Helper.getRelativePath(oContext.getPath(), this.oHeaderContext.getPath()),
-			bAll ? this.lockGroup() : undefined, bSilent);
+			bAll ? this.lockGroup() : undefined, bSilent, false, this.getKeepAlivePredicates());
 
 		if (iCount > 0) {
 			const aContexts = this.aContexts;
@@ -2660,7 +2660,7 @@ sap.ui.define([
 			oContext.oBinding = that;
 		});
 		oCache = oBinding.oCache;
-		oCache.setQueryOptions(mQueryOptions);
+		oCache.setQueryOptions(mQueryOptions, /*bForce*/true);
 		// avoid that the cache is set inactive or that contexts are destroyed
 		oBinding.oCache = null;
 		oBinding.oCachePromise = SyncPromise.resolve(null);

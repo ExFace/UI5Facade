@@ -92,7 +92,7 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 21594,
+			"size": 21546,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -260,7 +260,7 @@
 		},
 		{
 			"name": "FeedListItem.less",
-			"size": 9576,
+			"size": 9544,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -284,7 +284,7 @@
 		},
 		{
 			"name": "GenericTile.less",
-			"size": 59614,
+			"size": 59498,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -314,7 +314,7 @@
 		},
 		{
 			"name": "IllustratedMessage.less",
-			"size": 2970,
+			"size": 2935,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -362,7 +362,7 @@
 		},
 		{
 			"name": "LightBox.less",
-			"size": 6405,
+			"size": 6412,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -608,7 +608,7 @@
 		},
 		{
 			"name": "PlanningCalendar.less",
-			"size": 9780,
+			"size": 9768,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -626,7 +626,7 @@
 		},
 		{
 			"name": "Popover.less",
-			"size": 9971,
+			"size": 10050,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -698,7 +698,7 @@
 		},
 		{
 			"name": "Select.less",
-			"size": 11530,
+			"size": 11819,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -764,7 +764,7 @@
 		},
 		{
 			"name": "SlideTile.less",
-			"size": 9234,
+			"size": 11034,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -794,7 +794,7 @@
 		},
 		{
 			"name": "SplitContainer.less",
-			"size": 5019,
+			"size": 5020,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -908,7 +908,7 @@
 		},
 		{
 			"name": "TimePicker.less",
-			"size": 1238,
+			"size": 879,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -2519,7 +2519,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 752874,
+			"size": 755267,
 			"theme": "base"
 		},
 		{
@@ -2530,12 +2530,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 752884,
+			"size": 755281,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 795910,
+			"size": 797531,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -2559,13 +2559,13 @@
 		},
 		{
 			"name": "p13n.SelectionPanel.less",
-			"size": 1520,
+			"size": 1567,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "resources.json",
-			"size": 49432
+			"size": 49433
 		},
 		{
 			"name": "shared.less",

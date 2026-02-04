@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @private
@@ -64,7 +64,7 @@ sap.ui.define([
 				/**
 				 * Determines the URL of the content.
 				 */
-				url: {type: "sap.ui.core.URI", group: "Misc", defaultValue: "" },
+				url: {type: "sap.ui.core.URI", group: "Misc", defaultValue: "about:blank" },
 
 				/**
 				 * Defines the <code>IFrame</code> width.
@@ -140,12 +140,15 @@ sap.ui.define([
 		setUrl(sUrl) {
 			// Could contain special characters from bindings that need to be encoded
 			// Make sure that it was not encoded before
-			var sEncodedUrl = decodeURI(sUrl) === sUrl ? encodeURI(sUrl) : sUrl;
+			let sEncodedUrl = decodeURI(sUrl) === sUrl ? encodeURI(sUrl) : sUrl;
+
+			// Falsy values coming from bindings can lead to unexpected relative navigation
+			sEncodedUrl ||= "about:blank";
 
 			if (IFrame.isValidUrl(sEncodedUrl).result) {
 				// Set by replacing the last entry
 				const oNewUrl = IFrame._toUrl(sEncodedUrl);
-				const oOldUrl = IFrame._toUrl(this.getUrl() || "about:blank");
+				const oOldUrl = IFrame._toUrl(this.getUrl());
 				if (oOldUrl.searchParams.has("sap-ui-xx-fl-forceEmbeddedContentRefresh")) {
 					// Always keep the refresh parameter and update it to avoid false negatives
 					// when the URL doesn't change except for the refresh parameter itself + hash
@@ -170,6 +173,16 @@ sap.ui.define([
 		// Used for testing since retrieving or spying on the Iframe location
 		// is not possible due to cross-origin restrictions
 		_replaceIframeLocation(sNewUrl) {
+			// If the embedded content is doing internal same-origin navigation (e.g. hash change),
+			// Safari might ignore the location replacement in favor of the internal navigation
+			// This can e.g. happen when an embedded UI5 app crashes due to missing parameters and redirects to the FLP Home
+			// To prevent this, try to stop all ongoing loading of resources in the iframe and avoid such race conditions
+			try {
+				this.getDomRef().contentWindow.stop();
+			} catch (oError) {
+				// Cross-origin restrictions
+			}
+
 			this.getDomRef().contentWindow.location.replace(sNewUrl);
 		},
 
@@ -243,6 +256,14 @@ sap.ui.define([
 
 	IFrame.isValidUrl = function(sUrl) {
 		try {
+			// Explicitly allow about:blank as a way to reset the iframe content
+			// e.g. if the control is reused and no valid URL is provided
+			if (sUrl === "about:blank") {
+				return {
+					result: true
+				};
+			}
+
 			const oUrl = IFrame._toUrl(sUrl);
 
 			// Forbid dangerous javascript pseudo protocol

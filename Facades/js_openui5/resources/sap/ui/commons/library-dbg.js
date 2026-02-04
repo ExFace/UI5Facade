@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,14 +21,14 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @namespace
 	 * @alias sap.ui.commons
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 0.8
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.ui.commons",
-		version: "1.136.0",
+		version: "1.136.12",
 		dependencies : ["sap.ui.core","sap.ui.layout","sap.ui.unified"],
 		types: [
 			"sap.ui.commons.ButtonStyle",

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,7 @@ sap.ui.define([
 	 * Default change handler for annotations.
 	 * @alias sap.ui.fl.changeHandler.ChangeAnnotation
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 1.132
 	 * @public
 	 */
@@ -41,7 +41,12 @@ sap.ui.define([
 
 		const oObjectTemplateInfo = oContent.objectTemplateInfo;
 		if (oObjectTemplateInfo) {
-			oReturn.value = JSON.parse(oObjectTemplateInfo.templateAsString.replace(oObjectTemplateInfo.placeholder, sValue));
+			// Parse the object before replacing the placeholder to avoid issues with escaped special characters
+			const oParsedTemplate = JSON.parse(oObjectTemplateInfo.templateAsString);
+			Object.keys(oParsedTemplate).forEach((sKey) => {
+				oParsedTemplate[sKey] = oParsedTemplate[sKey].replace(oObjectTemplateInfo.placeholder, sValue);
+			});
+			oReturn.value = oParsedTemplate;
 		} else {
 			oReturn.value = sValue;
 		}
@@ -61,6 +66,7 @@ sap.ui.define([
 	 * @param {string} oSpecificChangeInfo.content.annotationPath - Path of the annotation to be changed
 	 * @param {string} oSpecificChangeInfo.content.value - Value of the annotation to be changed
 	 * @param {string} oSpecificChangeInfo.content.text - Translatable value of the annotation. If given, the value is ignored
+	 * @param {string} oSpecificChangeInfo.content.textType - Translation text type
 	 * @param {object} [oSpecificChangeInfo.content.objectTemplateInfo] - Object template to construct a return object
 	 * @param {string} [oSpecificChangeInfo.content.objectTemplateInfo.templateAsString] - Stringified template to be used for constructing the return object
 	 * @param {string} [oSpecificChangeInfo.content.objectTemplateInfo.placeholder] - Placeholder in the template string
@@ -75,7 +81,7 @@ sap.ui.define([
 		}
 
 		if (oSpecificChangeInfo.content.text) {
-			oChange.setText("annotationText", oSpecificChangeInfo.content.text);
+			oChange.setText("annotationText", oSpecificChangeInfo.content.text, oSpecificChangeInfo.content.textType);
 		} else {
 			oNewContent.value = oSpecificChangeInfo.content.value;
 		}

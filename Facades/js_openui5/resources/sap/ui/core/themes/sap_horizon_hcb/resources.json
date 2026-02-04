@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 658,
+			"size": 659,
 			"theme": "sap_horizon_hcb"
 		},
 		{
@@ -37,7 +37,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 238081,
+			"size": 238367,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -129,18 +129,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 311554,
+			"size": 311995,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_horizon_hcb/library-parameters.json",
-			"size": 158174,
+			"size": 158307,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 311541,
+			"size": 311982,
 			"theme": "sap_horizon_hcb"
 		},
 		{

@@ -26,7 +26,7 @@
 		},
 		{
 			"name": "DragDrop.less",
-			"size": 7430,
+			"size": 7425,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -80,23 +80,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 68877,
+			"size": 68833,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/base/library-parameters.json",
-			"size": 6075,
+			"size": 6053,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 68894,
+			"size": 68850,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 66336,
+			"size": 66331,
 			"designtime": true,
 			"theme": "base"
 		},

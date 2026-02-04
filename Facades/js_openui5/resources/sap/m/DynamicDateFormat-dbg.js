@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -287,6 +287,9 @@ sap.ui.define([
 		DynamicDateFormat.prototype.parse = function(sValue, sKey) {
 			var aResult,
 				aStaticParts = _staticParts[sKey],
+				sSpecialCharsPattern = /[+\./\*]/g,
+				sSanitizedString = aStaticParts[0].replace(sSpecialCharsPattern, (match) => '\\' + match),
+				aStaticParts = [sSanitizedString].concat(aStaticParts.slice(1)),
 				sRegexPattern = "^" + aStaticParts.join("(.*)") + "$",
 				rRegex = new RegExp(sRegexPattern, "i"),
 				match = sValue.match(rRegex);

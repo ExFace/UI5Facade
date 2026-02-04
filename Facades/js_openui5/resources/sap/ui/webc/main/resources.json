@@ -3,16 +3,16 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2038
+			"size": 2039
 		},
 		{
 			"name": ".theming",
-			"size": 99
+			"size": 100
 		},
 		{
 			"name": "Avatar-dbg.js",
 			"module": "sap/ui/webc/main/Avatar.js",
-			"size": 7874,
+			"size": 7875,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -40,7 +40,7 @@
 		{
 			"name": "AvatarGroup-dbg.js",
 			"module": "sap/ui/webc/main/AvatarGroup.js",
-			"size": 6073,
+			"size": 6074,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -66,7 +66,7 @@
 		{
 			"name": "Badge-dbg.js",
 			"module": "sap/ui/webc/main/Badge.js",
-			"size": 2909,
+			"size": 2910,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -92,7 +92,7 @@
 		{
 			"name": "Breadcrumbs-dbg.js",
 			"module": "sap/ui/webc/main/Breadcrumbs.js",
-			"size": 5243,
+			"size": 5244,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -118,7 +118,7 @@
 		{
 			"name": "BreadcrumbsItem-dbg.js",
 			"module": "sap/ui/webc/main/BreadcrumbsItem.js",
-			"size": 2731,
+			"size": 2732,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -144,7 +144,7 @@
 		{
 			"name": "BusyIndicator-dbg.js",
 			"module": "sap/ui/webc/main/BusyIndicator.js",
-			"size": 4222,
+			"size": 4223,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -170,7 +170,7 @@
 		{
 			"name": "Button-dbg.js",
 			"module": "sap/ui/webc/main/Button.js",
-			"size": 7079,
+			"size": 7080,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -200,7 +200,7 @@
 		{
 			"name": "Calendar-dbg.js",
 			"module": "sap/ui/webc/main/Calendar.js",
-			"size": 8348,
+			"size": 8349,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -228,7 +228,7 @@
 		{
 			"name": "CalendarDate-dbg.js",
 			"module": "sap/ui/webc/main/CalendarDate.js",
-			"size": 1838,
+			"size": 1839,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -254,7 +254,7 @@
 		{
 			"name": "Card-dbg.js",
 			"module": "sap/ui/webc/main/Card.js",
-			"size": 3352,
+			"size": 3353,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -280,7 +280,7 @@
 		{
 			"name": "CardHeader-dbg.js",
 			"module": "sap/ui/webc/main/CardHeader.js",
-			"size": 3880,
+			"size": 3881,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -306,7 +306,7 @@
 		{
 			"name": "Carousel-dbg.js",
 			"module": "sap/ui/webc/main/Carousel.js",
-			"size": 7151,
+			"size": 7152,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -332,7 +332,7 @@
 		{
 			"name": "CheckBox-dbg.js",
 			"module": "sap/ui/webc/main/CheckBox.js",
-			"size": 7948,
+			"size": 7949,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -364,7 +364,7 @@
 		{
 			"name": "ColorPalette-dbg.js",
 			"module": "sap/ui/webc/main/ColorPalette.js",
-			"size": 2341,
+			"size": 2342,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -392,7 +392,7 @@
 		{
 			"name": "ColorPaletteItem-dbg.js",
 			"module": "sap/ui/webc/main/ColorPaletteItem.js",
-			"size": 1868,
+			"size": 1869,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -418,7 +418,7 @@
 		{
 			"name": "ColorPalettePopover-dbg.js",
 			"module": "sap/ui/webc/main/ColorPalettePopover.js",
-			"size": 3755,
+			"size": 3756,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -446,7 +446,7 @@
 		{
 			"name": "ColorPicker-dbg.js",
 			"module": "sap/ui/webc/main/ColorPicker.js",
-			"size": 2216,
+			"size": 2217,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -472,7 +472,7 @@
 		{
 			"name": "ComboBox-dbg.js",
 			"module": "sap/ui/webc/main/ComboBox.js",
-			"size": 6913,
+			"size": 6914,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -502,7 +502,7 @@
 		{
 			"name": "ComboBoxGroupItem-dbg.js",
 			"module": "sap/ui/webc/main/ComboBoxGroupItem.js",
-			"size": 1805,
+			"size": 1806,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -528,7 +528,7 @@
 		{
 			"name": "ComboBoxItem-dbg.js",
 			"module": "sap/ui/webc/main/ComboBoxItem.js",
-			"size": 1845,
+			"size": 1846,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -554,7 +554,7 @@
 		{
 			"name": "CustomListItem-dbg.js",
 			"module": "sap/ui/webc/main/CustomListItem.js",
-			"size": 5653,
+			"size": 5654,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -580,7 +580,7 @@
 		{
 			"name": "DatePicker-dbg.js",
 			"module": "sap/ui/webc/main/DatePicker.js",
-			"size": 11570,
+			"size": 11571,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -612,7 +612,7 @@
 		{
 			"name": "DateRangePicker-dbg.js",
 			"module": "sap/ui/webc/main/DateRangePicker.js",
-			"size": 10252,
+			"size": 10253,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -644,7 +644,7 @@
 		{
 			"name": "DateTimePicker-dbg.js",
 			"module": "sap/ui/webc/main/DateTimePicker.js",
-			"size": 10883,
+			"size": 10884,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -676,7 +676,7 @@
 		{
 			"name": "Dialog-dbg.js",
 			"module": "sap/ui/webc/main/Dialog.js",
-			"size": 10296,
+			"size": 10297,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -704,7 +704,7 @@
 		{
 			"name": "FileUploader-dbg.js",
 			"module": "sap/ui/webc/main/FileUploader.js",
-			"size": 5992,
+			"size": 5993,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -736,7 +736,7 @@
 		{
 			"name": "GroupHeaderListItem-dbg.js",
 			"module": "sap/ui/webc/main/GroupHeaderListItem.js",
-			"size": 2173,
+			"size": 2174,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -762,7 +762,7 @@
 		{
 			"name": "Icon-dbg.js",
 			"module": "sap/ui/webc/main/Icon.js",
-			"size": 8102,
+			"size": 8103,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -788,7 +788,7 @@
 		{
 			"name": "Input-dbg.js",
 			"module": "sap/ui/webc/main/Input.js",
-			"size": 10099,
+			"size": 10100,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -822,7 +822,7 @@
 		{
 			"name": "Label-dbg.js",
 			"module": "sap/ui/webc/main/Label.js",
-			"size": 3942,
+			"size": 3943,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/LabelEnablement.js",
@@ -850,7 +850,7 @@
 		{
 			"name": "Link-dbg.js",
 			"module": "sap/ui/webc/main/Link.js",
-			"size": 7338,
+			"size": 7339,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -878,7 +878,7 @@
 		{
 			"name": "List-dbg.js",
 			"module": "sap/ui/webc/main/List.js",
-			"size": 9991,
+			"size": 9992,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -904,7 +904,7 @@
 		{
 			"name": "Menu-dbg.js",
 			"module": "sap/ui/webc/main/Menu.js",
-			"size": 5695,
+			"size": 5696,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -930,7 +930,7 @@
 		{
 			"name": "MenuItem-dbg.js",
 			"module": "sap/ui/webc/main/MenuItem.js",
-			"size": 4489,
+			"size": 4490,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -958,7 +958,7 @@
 		{
 			"name": "MessageStrip-dbg.js",
 			"module": "sap/ui/webc/main/MessageStrip.js",
-			"size": 3779,
+			"size": 3780,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -984,7 +984,7 @@
 		{
 			"name": "MultiComboBox-dbg.js",
 			"module": "sap/ui/webc/main/MultiComboBox.js",
-			"size": 8318,
+			"size": 8319,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1014,7 +1014,7 @@
 		{
 			"name": "MultiComboBoxGroupItem-dbg.js",
 			"module": "sap/ui/webc/main/MultiComboBoxGroupItem.js",
-			"size": 1861,
+			"size": 1862,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1040,7 +1040,7 @@
 		{
 			"name": "MultiComboBoxItem-dbg.js",
 			"module": "sap/ui/webc/main/MultiComboBoxItem.js",
-			"size": 2040,
+			"size": 2041,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1066,7 +1066,7 @@
 		{
 			"name": "MultiInput-dbg.js",
 			"module": "sap/ui/webc/main/MultiInput.js",
-			"size": 10933,
+			"size": 10934,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -1102,7 +1102,7 @@
 		{
 			"name": "Option-dbg.js",
 			"module": "sap/ui/webc/main/Option.js",
-			"size": 3033,
+			"size": 3034,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1130,7 +1130,7 @@
 		{
 			"name": "Panel-dbg.js",
 			"module": "sap/ui/webc/main/Panel.js",
-			"size": 6710,
+			"size": 6711,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1156,7 +1156,7 @@
 		{
 			"name": "Popover-dbg.js",
 			"module": "sap/ui/webc/main/Popover.js",
-			"size": 8349,
+			"size": 8350,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1182,7 +1182,7 @@
 		{
 			"name": "ProgressIndicator-dbg.js",
 			"module": "sap/ui/webc/main/ProgressIndicator.js",
-			"size": 3954,
+			"size": 3955,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1212,7 +1212,7 @@
 		{
 			"name": "RadioButton-dbg.js",
 			"module": "sap/ui/webc/main/RadioButton.js",
-			"size": 6381,
+			"size": 6382,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1244,7 +1244,7 @@
 		{
 			"name": "RangeSlider-dbg.js",
 			"module": "sap/ui/webc/main/RangeSlider.js",
-			"size": 7684,
+			"size": 7685,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1272,7 +1272,7 @@
 		{
 			"name": "RatingIndicator-dbg.js",
 			"module": "sap/ui/webc/main/RatingIndicator.js",
-			"size": 4948,
+			"size": 4949,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1300,7 +1300,7 @@
 		{
 			"name": "ResponsivePopover-dbg.js",
 			"module": "sap/ui/webc/main/ResponsivePopover.js",
-			"size": 7875,
+			"size": 7876,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1326,7 +1326,7 @@
 		{
 			"name": "SegmentedButton-dbg.js",
 			"module": "sap/ui/webc/main/SegmentedButton.js",
-			"size": 4500,
+			"size": 4501,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1352,7 +1352,7 @@
 		{
 			"name": "SegmentedButtonItem-dbg.js",
 			"module": "sap/ui/webc/main/SegmentedButtonItem.js",
-			"size": 6111,
+			"size": 6112,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1380,7 +1380,7 @@
 		{
 			"name": "Select-dbg.js",
 			"module": "sap/ui/webc/main/Select.js",
-			"size": 8515,
+			"size": 8516,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1412,7 +1412,7 @@
 		{
 			"name": "SelectMenu-dbg.js",
 			"module": "sap/ui/webc/main/SelectMenu.js",
-			"size": 2306,
+			"size": 2307,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1438,7 +1438,7 @@
 		{
 			"name": "SelectMenuOption-dbg.js",
 			"module": "sap/ui/webc/main/SelectMenuOption.js",
-			"size": 2386,
+			"size": 2387,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1464,7 +1464,7 @@
 		{
 			"name": "Slider-dbg.js",
 			"module": "sap/ui/webc/main/Slider.js",
-			"size": 7586,
+			"size": 7587,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1492,7 +1492,7 @@
 		{
 			"name": "SplitButton-dbg.js",
 			"module": "sap/ui/webc/main/SplitButton.js",
-			"size": 5365,
+			"size": 5366,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1520,7 +1520,7 @@
 		{
 			"name": "StandardListItem-dbg.js",
 			"module": "sap/ui/webc/main/StandardListItem.js",
-			"size": 8049,
+			"size": 8050,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -1548,7 +1548,7 @@
 		{
 			"name": "StepInput-dbg.js",
 			"module": "sap/ui/webc/main/StepInput.js",
-			"size": 6592,
+			"size": 6593,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1580,7 +1580,7 @@
 		{
 			"name": "SuggestionGroupItem-dbg.js",
 			"module": "sap/ui/webc/main/SuggestionGroupItem.js",
-			"size": 1880,
+			"size": 1881,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1606,7 +1606,7 @@
 		{
 			"name": "SuggestionItem-dbg.js",
 			"module": "sap/ui/webc/main/SuggestionItem.js",
-			"size": 3874,
+			"size": 3875,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -1634,7 +1634,7 @@
 		{
 			"name": "Switch-dbg.js",
 			"module": "sap/ui/webc/main/Switch.js",
-			"size": 6028,
+			"size": 6029,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1664,7 +1664,7 @@
 		{
 			"name": "Tab-dbg.js",
 			"module": "sap/ui/webc/main/Tab.js",
-			"size": 4748,
+			"size": 4749,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1692,7 +1692,7 @@
 		{
 			"name": "TabContainer-dbg.js",
 			"module": "sap/ui/webc/main/TabContainer.js",
-			"size": 7453,
+			"size": 7454,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1718,7 +1718,7 @@
 		{
 			"name": "TabSeparator-dbg.js",
 			"module": "sap/ui/webc/main/TabSeparator.js",
-			"size": 1985,
+			"size": 1986,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1744,7 +1744,7 @@
 		{
 			"name": "Table-dbg.js",
 			"module": "sap/ui/webc/main/Table.js",
-			"size": 10406,
+			"size": 10407,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1770,7 +1770,7 @@
 		{
 			"name": "TableCell-dbg.js",
 			"module": "sap/ui/webc/main/TableCell.js",
-			"size": 2155,
+			"size": 2156,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1796,7 +1796,7 @@
 		{
 			"name": "TableColumn-dbg.js",
 			"module": "sap/ui/webc/main/TableColumn.js",
-			"size": 3805,
+			"size": 3806,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1822,7 +1822,7 @@
 		{
 			"name": "TableGroupRow-dbg.js",
 			"module": "sap/ui/webc/main/TableGroupRow.js",
-			"size": 2153,
+			"size": 2154,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1848,7 +1848,7 @@
 		{
 			"name": "TableRow-dbg.js",
 			"module": "sap/ui/webc/main/TableRow.js",
-			"size": 3153,
+			"size": 3154,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1874,7 +1874,7 @@
 		{
 			"name": "TextArea-dbg.js",
 			"module": "sap/ui/webc/main/TextArea.js",
-			"size": 7166,
+			"size": 7167,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1906,7 +1906,7 @@
 		{
 			"name": "TimePicker-dbg.js",
 			"module": "sap/ui/webc/main/TimePicker.js",
-			"size": 8978,
+			"size": 8979,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -1936,7 +1936,7 @@
 		{
 			"name": "Title-dbg.js",
 			"module": "sap/ui/webc/main/Title.js",
-			"size": 2474,
+			"size": 2475,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1962,7 +1962,7 @@
 		{
 			"name": "Toast-dbg.js",
 			"module": "sap/ui/webc/main/Toast.js",
-			"size": 3320,
+			"size": 3321,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -1988,7 +1988,7 @@
 		{
 			"name": "ToggleButton-dbg.js",
 			"module": "sap/ui/webc/main/ToggleButton.js",
-			"size": 5996,
+			"size": 5997,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -2016,7 +2016,7 @@
 		{
 			"name": "Token-dbg.js",
 			"module": "sap/ui/webc/main/Token.js",
-			"size": 2578,
+			"size": 2579,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -2042,7 +2042,7 @@
 		{
 			"name": "Toolbar-dbg.js",
 			"module": "sap/ui/webc/main/Toolbar.js",
-			"size": 3019,
+			"size": 3020,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -2068,7 +2068,7 @@
 		{
 			"name": "ToolbarButton-dbg.js",
 			"module": "sap/ui/webc/main/ToolbarButton.js",
-			"size": 5614,
+			"size": 5615,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -2098,7 +2098,7 @@
 		{
 			"name": "ToolbarSelect-dbg.js",
 			"module": "sap/ui/webc/main/ToolbarSelect.js",
-			"size": 4259,
+			"size": 4260,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/EnabledPropagator.js",
@@ -2128,7 +2128,7 @@
 		{
 			"name": "ToolbarSelectOption-dbg.js",
 			"module": "sap/ui/webc/main/ToolbarSelectOption.js",
-			"size": 2012,
+			"size": 2013,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -2154,7 +2154,7 @@
 		{
 			"name": "ToolbarSeparator-dbg.js",
 			"module": "sap/ui/webc/main/ToolbarSeparator.js",
-			"size": 1672,
+			"size": 1673,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -2180,7 +2180,7 @@
 		{
 			"name": "ToolbarSpacer-dbg.js",
 			"module": "sap/ui/webc/main/ToolbarSpacer.js",
-			"size": 2028,
+			"size": 2029,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -2208,7 +2208,7 @@
 		{
 			"name": "Tree-dbg.js",
 			"module": "sap/ui/webc/main/Tree.js",
-			"size": 8024,
+			"size": 8025,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/webc/WebComponent.js",
@@ -2234,7 +2234,7 @@
 		{
 			"name": "TreeItem-dbg.js",
 			"module": "sap/ui/webc/main/TreeItem.js",
-			"size": 8237,
+			"size": 8238,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -2262,7 +2262,7 @@
 		{
 			"name": "TreeItemCustom-dbg.js",
 			"module": "sap/ui/webc/main/TreeItemCustom.js",
-			"size": 8437,
+			"size": 8438,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -2290,7 +2290,7 @@
 		{
 			"name": "changeHandler/ChangeLinkTarget-dbg.js",
 			"module": "sap/ui/webc/main/changeHandler/ChangeLinkTarget.js",
-			"size": 2532,
+			"size": 2533,
 			"isDebug": true
 		},
 		{
@@ -3124,7 +3124,7 @@
 		{
 			"name": "designtime/messagebundle_fr_CA.properties",
 			"module": "sap/ui/webc/main/designtime/messagebundle_fr_CA.properties",
-			"size": 1625,
+			"size": 1619,
 			"designtime": true,
 			"locale": "fr_CA",
 			"raw": "designtime/messagebundle.properties"
@@ -3734,7 +3734,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/webc/main/library.js",
-			"size": 48814,
+			"size": 48816,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/DataType.js",
@@ -3748,7 +3748,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/webc/main/library-preload.js",
-			"size": 1568516,
+			"size": 1568520,
 			"merged": true,
 			"required": [
 				"exports.js",
@@ -4379,7 +4379,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/webc/main/library.js",
-			"size": 14754,
+			"size": 14755,
 			"required": [
 				"sap/ui/base/DataType.js",
 				"sap/ui/core/Lib.js",
@@ -4397,11 +4397,11 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/webc/main/manifest.json",
-			"size": 7595
+			"size": 7598
 		},
 		{
 			"name": "resources.json",
-			"size": 630014
+			"size": 630015
 		},
 		{
 			"name": "thirdparty/Assets-dbg.js",

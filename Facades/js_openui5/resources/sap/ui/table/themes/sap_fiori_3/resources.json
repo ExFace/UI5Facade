@@ -26,18 +26,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 69275,
+			"size": 69231,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_fiori_3/library-parameters.json",
-			"size": 6191,
+			"size": 6169,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 69292,
+			"size": 69248,
 			"theme": "sap_fiori_3"
 		},
 		{

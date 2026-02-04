@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 650,
+			"size": 651,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 177856,
+			"size": 178140,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -87,18 +87,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 299921,
+			"size": 300374,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_fiori_3_dark/library-parameters.json",
-			"size": 153720,
+			"size": 153861,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 299908,
+			"size": 300361,
 			"theme": "sap_fiori_3_dark"
 		},
 		{

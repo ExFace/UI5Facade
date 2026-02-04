@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 648,
+			"size": 649,
 			"theme": "sap_horizon_dark"
 		},
 		{
@@ -31,7 +31,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 176658,
+			"size": 176956,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -123,18 +123,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 306750,
+			"size": 307194,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_horizon_dark/library-parameters.json",
-			"size": 156682,
+			"size": 156817,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 306737,
+			"size": 307181,
 			"theme": "sap_horizon_dark"
 		},
 		{

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * The metadata information is provided via the {@link module:sap/ui/mdc/FilterBarDelegate FilterBarDelegate} implementation. This implementation has to be provided by the application.
 	 * @extends sap.ui.mdc.filterbar.FilterBarBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @public
 	 * @since 1.61.0

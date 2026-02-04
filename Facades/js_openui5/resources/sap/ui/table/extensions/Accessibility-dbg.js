@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -371,9 +371,9 @@ sap.ui.define([
 		 * @see ExtensionHelper.getRowColChange
 		 * @see ExtensionHelper.storeDefaultsBeforeCellModifications
 		 */
-		performCellModifications: function(oExtension, $Cell, aDefaultLabels, aDefaultDescriptions, aLabels, aDescriptions, sText, fAdapt) {
+		performCellModifications: function(oExtension, $Cell, aDefaultLabels, aDefaultDescriptions, aLabels, aDescriptions, sText, oChangeInfo, fAdapt) {
 			ExtensionHelper.storeDefaultsBeforeCellModifications(oExtension, $Cell, aDefaultLabels, aDefaultDescriptions);
-			const oChangeInfo = ExtensionHelper.getRowColChange(oExtension);
+
 			const oTable = oExtension.getTable();
 			const sTableId = oTable.getId();
 			oTable.$("cellacc").text(sText || "."); //set the custom text to the prepared hidden element
@@ -406,7 +406,7 @@ sap.ui.define([
 		 * Modifies the labels and descriptions of a data cell.
 		 * @see ExtensionHelper.performCellModifications
 		 */
-		modifyAccOfDataCell: function(oCellInfo) {
+		modifyAccOfDataCell: function(oCellInfo, oChangeInfo) {
 			const oTable = this.getTable();
 			const sTableId = oTable.getId();
 			const oIN = oTable._getItemNavigation();
@@ -425,9 +425,7 @@ sap.ui.define([
 			const bHidden = ExtensionHelper.isHiddenCell($Cell, oTableInstances.cell);
 			const bIsTreeColumnCell = ExtensionHelper.isTreeColumnCell(this, $Cell);
 			const aDefaultLabels = ExtensionHelper.getAriaAttributesForDataCell(this, {
-					index: iCol,
-					column: oTableInstances.column,
-					fixed: TableUtils.isFixedColumn(oTable, iCol)
+					index: iCol
 				})["aria-labelledby"] || [];
 			const aDescriptions = [];
 			let aLabels = [];
@@ -442,7 +440,7 @@ sap.ui.define([
 				aLabels.push(sTableId + "-ariagrouptotallabel");
 			}
 
-			if (TableUtils.hasRowHighlights(oTable) && !bIsGroupHeader && !bIsSummary) {
+			if (TableUtils.hasRowHighlights(oTable) && !bIsGroupHeader && !bIsSummary && oChangeInfo.rowChange) {
 				aLabels.push(sRowId + "-highlighttext");
 			}
 
@@ -468,7 +466,7 @@ sap.ui.define([
 				}
 			}
 
-			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, null, aLabels, aDescriptions, sText,
+			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, null, aLabels, aDescriptions, sText, oChangeInfo,
 				function(aLabels, aDescriptions, bRowChange, bColChange) {
 					if (bIsGroupHeader && bRowChange) {
 						aLabels.splice(1, 0, sRowId + "-groupHeader");
@@ -488,7 +486,7 @@ sap.ui.define([
 		 * Modifies the labels and descriptions of a row header cell.
 		 * @see ExtensionHelper.performCellModifications
 		 */
-		modifyAccOfRowHeader: function(oCellInfo) {
+		modifyAccOfRowHeader: function(oCellInfo, oChangeInfo) {
 			const oTable = this.getTable();
 			const sTableId = oTable.getId();
 			const $Cell = jQuery(oCellInfo.cell);
@@ -500,7 +498,7 @@ sap.ui.define([
 			if (!oRow.isSummary() && !oRow.isGroupHeader() && !oRow.isContentHidden()) {
 				aLabels.push(sRowId + "-rowselecttext");
 
-				if (TableUtils.hasRowHighlights(oTable)) {
+				if (TableUtils.hasRowHighlights(oTable) && oChangeInfo.rowChange) {
 					aLabels.push(sRowId + "-highlighttext");
 				}
 			}
@@ -517,30 +515,25 @@ sap.ui.define([
 				aLabels.push(sTableId + "-ariagrouptotallabel");
 			}
 
-			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, null, aLabels, null, null);
+			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, null, aLabels, null, null, oChangeInfo);
 		},
 
 		/*
 		 * Modifies the labels and descriptions of a column header cell.
 		 * @see ExtensionHelper.performCellModifications
 		 */
-		modifyAccOfColumnHeader: function(oCellInfo) {
+		modifyAccOfColumnHeader: function(oCellInfo, oChangeInfo) {
 			const oTable = this.getTable();
 			const $Cell = jQuery(oCellInfo.cell);
 			const oColumn = Element.getElementById($Cell.attr("data-sap-ui-colid"));
-			const oColumnLabel = TableUtils.Column.getHeaderLabel(oColumn);
 			const mAttributes = ExtensionHelper.getAriaAttributesForColumnHeader(this, {
 					headerId: $Cell.attr("id"),
 					column: oColumn,
-					index: $Cell.attr("data-sap-ui-colindex")
+					index: oTable._getVisibleColumns().indexOf(oColumn)
 				});
 			const sText = ExtensionHelper.getColumnTooltip(oColumn);
 			const aLabels = mAttributes["aria-labelledby"] || [];
 			const iSpan = oCellInfo.columnSpan;
-
-			if (oColumnLabel?.getRequired?.()) {
-				aLabels.push(oTable.getId() + "-ariarequired");
-			}
 
 			if (iSpan > 1) {
 				aLabels.push(oTable.getId() + "-ariacolspan");
@@ -556,12 +549,8 @@ sap.ui.define([
 				aLabels.push(oTable.getId() + "-ariacolfiltered");
 			}
 
-			if (aLabels.length > 0) {
-				aLabels.unshift($Cell.attr("id") + "-inner");
-			}
-
 			ExtensionHelper.performCellModifications(this, $Cell, mAttributes["aria-labelledby"], mAttributes["aria-describedby"],
-				aLabels, mAttributes["aria-describedby"], sText
+				aLabels, mAttributes["aria-describedby"], sText, oChangeInfo
 			);
 		},
 
@@ -569,7 +558,7 @@ sap.ui.define([
 		 * Modifies the labels and descriptions of the column row header.
 		 * @see ExtensionHelper.performCellModifications
 		 */
-		modifyAccOfColumnRowHeader: function(oCellInfo) {
+		modifyAccOfColumnRowHeader: function(oCellInfo, oChangeInfo) {
 			const oTable = this.getTable();
 			const $Cell = jQuery(oCellInfo.cell);
 			const bEnabled = $Cell.hasClass("sapUiTableSelAllVisible");
@@ -580,7 +569,7 @@ sap.ui.define([
 			);
 			const aLabels = mAttributes["aria-labelledby"] || [];
 			ExtensionHelper.performCellModifications(this, $Cell, [], mAttributes["aria-describedby"],
-				aLabels, mAttributes["aria-describedby"], null
+				aLabels, mAttributes["aria-describedby"], null, oChangeInfo
 			);
 		},
 
@@ -588,7 +577,7 @@ sap.ui.define([
 		 * Modifies the labels and descriptions of a row action cell.
 		 * @see ExtensionHelper.performCellModifications
 		 */
-		modifyAccOfRowAction: function(oCellInfo) {
+		modifyAccOfRowAction: function(oCellInfo, oChangeInfo) {
 			const oTable = this.getTable();
 			const sTableId = oTable.getId();
 			const $Cell = jQuery(oCellInfo.cell);
@@ -611,7 +600,7 @@ sap.ui.define([
 				aLabels.push(sTableId + "-ariagrouptotallabel");
 			}
 
-			if (TableUtils.hasRowHighlights(oTable) && !oRow.isGroupHeader() && !oRow.isSummary()) {
+			if (TableUtils.hasRowHighlights(oTable) && !oRow.isGroupHeader() && !oRow.isSummary() && oChangeInfo.rowChange) {
 				aLabels.push(sRowId + "-highlighttext");
 			}
 
@@ -627,7 +616,7 @@ sap.ui.define([
 				}
 			}
 
-			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, [], aLabels, aDescriptions, sText,
+			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, [], aLabels, aDescriptions, sText, oChangeInfo,
 				function(aLabels, aDescriptions, bRowChange) {
 					if (bIsGroupHeader && bRowChange) {
 						const iIndex = aLabels.indexOf(sTableId + "-ariarowgrouplabel") + 1;
@@ -650,10 +639,26 @@ sap.ui.define([
 
 		/**
 		 * Returns the aria attributes for the column row header cell.
+		 *
+		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
+		 * @param {{bLabel: boolean}} mParams Whether an aria-label should be added
 		 * @returns {object} An object containing the aria attributes
 		 */
-		getAriaAttributesForColumnRowHeaderCell: function() {
-			return {"role": "columnheader"};
+		getAriaAttributesForColumnRowHeaderCell: function(oExtension, mParams) {
+			const mAttributes = {"role": "columnheader"};
+			const oTable = oExtension.getTable();
+			const sSelectionMode = oTable.getSelectionMode();
+
+			if (mParams.bLabel) {
+				if (sSelectionMode !== SelectionMode.None) {
+					mAttributes["aria-label"] = TableUtils.getResourceText("TBL_TABLE_SELECTION_COLUMNHEADER");
+				} else if (TableUtils.hasRowHeader(oTable)) {
+					// Table has no selection, but because group mode is active, selection column is still visible with focusable row header cells.
+					mAttributes["aria-label"] = TableUtils.getResourceText("TBL_ROW_SELECTION_COLUMN_LABEL");
+				}
+			}
+
+			return mAttributes;
 		},
 
 		/**
@@ -741,8 +746,8 @@ sap.ui.define([
 		 * Returns the aria attributes for a column header.
 		 *
 		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
-		 * @param {{column: sap.ui.table.Column, headerId: string, index: int, colspan: boolean}} mParams An object containing the instance of the
-		 * column, the id of the header cell, the index of the column and whether the column has span
+		 * @param {{column: sap.ui.table.Column, headerId: string, colspan: boolean}} mParams An object containing the instance of the
+		 * column, the id of the header cell, and whether the column has span
 		 * @returns {object} An object containing the aria attributes
 		 */
 		getAriaAttributesForColumnHeader: function(oExtension, mParams) {
@@ -751,13 +756,20 @@ sap.ui.define([
 			const sTableId = oTable.getId();
 
 			const oColumn = mParams && mParams.column;
+			const iColIndex = oTable._getVisibleColumns().indexOf(oColumn);
 			const bHasColSpan = mParams && mParams.colspan;
+			const oColumnLabel = TableUtils.Column.getHeaderLabel(oColumn);
 
 			mAttributes["role"] = "columnheader";
-			mAttributes["aria-colindex"] = mParams.index + 1 + (TableUtils.hasRowHeader(oTable) ? 1 : 0);
+			mAttributes["aria-colindex"] = iColIndex + 1 + (TableUtils.hasRowHeader(oTable) ? 1 : 0);
 
-			if (mParams && (mParams.index < oTable.getComputedFixedColumnCount())) {
-				mAttributes["aria-labelledby"] = [sTableId + "-ariafixedcolumn"];
+			mAttributes["aria-labelledby"] = [mParams.headerId + "-inner"];
+			if (iColIndex < oTable.getComputedFixedColumnCount()) {
+				mAttributes["aria-labelledby"].push([sTableId + "-ariafixedcolumn"]);
+			}
+
+			if (oColumnLabel?.getRequired?.()) {
+				mAttributes["aria-labelledby"].push(sTableId + "-ariarequired");
 			}
 
 			if (!bHasColSpan && oColumn) {
@@ -787,22 +799,17 @@ sap.ui.define([
 		 * Returns the aria attributes for a data cell.
 		 *
 		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
-		 * @param {{index: int, column: sap.ui.table.Column, row: sap.ui.table.Row,	fixed: boolean,	rowSelected: boolean}} mParams An object
-		 * containing the index of the row, the instance of the column, the instance of the row, whether the column is fixed and whether the row is
-		 * selected
+		 * @param {{column: sap.ui.table.Column}} mParams An object containing the instance of the column
 		 * @returns {object} An object containing the aria attributes
 		 */
 		getAriaAttributesForDataCell: function(oExtension, mParams) {
 			const mAttributes = {};
 			const oTable = oExtension.getTable();
-			const sTableId = oTable.getId();
+			const oColumn = mParams.column;
 
 			mAttributes["role"] = "gridcell";
-			mAttributes["aria-colindex"] = mParams.index + 1 + (TableUtils.hasRowHeader(oTable) ? 1 : 0);
+			mAttributes["aria-colindex"] = oTable._getVisibleColumns().indexOf(oColumn) + 1 + (TableUtils.hasRowHeader(oTable) ? 1 : 0);
 
-			if (mParams.column && mParams.fixed) {
-				mAttributes["aria-labelledby"] = [sTableId + "-ariafixedcolumn"];
-			}
 			return mAttributes;
 		},
 
@@ -832,7 +839,9 @@ sap.ui.define([
 			const sTableId = oTable.getId();
 
 			mAttributes["role"] = TableUtils.Grouping.isInGroupMode(oTable) || TableUtils.Grouping.isInTreeMode(oTable) ? "treegrid" : "grid";
-			mAttributes["aria-describedby"] = [sTableId + "-ariaselection"];
+			if (oTable.getSelectionMode() !== SelectionMode.None) {
+				mAttributes["aria-describedby"] = [sTableId + "-ariaselection"];
+			}
 			mAttributes["aria-labelledby"] = [].concat(oTable.getAriaLabelledBy());
 			if (oTable.getTitle()) {
 				mAttributes["aria-labelledby"].push(oTable.getTitle().getId());
@@ -903,23 +912,37 @@ sap.ui.define([
 		 * Returns the aria attributes for the row that contains the column headers.
 		 *
 		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
-		 * @param {object} mParams An object for additional parameters
-		 * @param {int} mParams.rowIndex The index of the row
+		 * @param {{rowIndex: int, fixedCol: boolean}} mParams An object containing the index of the row and whether the column is fixed
 		 * @returns {object} An object containing the aria attributes
 		 */
 		getAriaAttributesForColumnHeaderRow: function(oExtension, mParams) {
 			const mAttributes = {"role": "row"};
+			if (mParams.fixedCol) {
+				return mAttributes;
+			}
 			const oTable = oExtension.getTable();
 			const sTableId = oTable.getId();
 
 			mAttributes["aria-rowindex"] = mParams.rowIndex + 1;
 			mAttributes["aria-owns"] = [];
-			if (TableUtils.hasRowHeader(oTable)) {
-				mAttributes["aria-owns"].push(sTableId + "-rowcolhdr");
-			}
 
-			for (let j = 0; j < TableUtils.getVisibleColumnCount(oTable); j++) {
-				mAttributes["aria-owns"].push(oTable._getVisibleColumns()[j].getId());
+			const aVisibleColumns = oTable._getVisibleColumns();
+			if (TableUtils.getHeaderRowCount(oTable) > 1) {
+				if (TableUtils.hasRowHeader(oTable)) {
+					mAttributes["aria-owns"].push(sTableId + "-rowcolhdr" + mParams.rowIndex);
+				}
+				let j = 0;
+				while (j < TableUtils.getVisibleColumnCount(oTable)) {
+					mAttributes["aria-owns"].push(aVisibleColumns[j].getId() + (mParams.rowIndex > 0 ? "_" + mParams.rowIndex : ""));
+					j += parseInt(aVisibleColumns[j].getHeaderSpan()[mParams.rowIndex]) || 1;
+				}
+			} else {
+				if (TableUtils.hasRowHeader(oTable)) {
+					mAttributes["aria-owns"].push(sTableId + "-rowcolhdr");
+				}
+				for (let j = 0; j < TableUtils.getVisibleColumnCount(oTable); j++) {
+					mAttributes["aria-owns"].push(aVisibleColumns[j].getId());
+				}
 			}
 
 			if (TableUtils.hasRowActions(oTable)) {
@@ -988,6 +1011,10 @@ sap.ui.define([
 			mAttributes["role"] = "row";
 			if (mParams.rowNavigated) {
 				mAttributes["aria-current"] = true;
+			}
+
+			if (mParams.fixedCol) {
+				return mAttributes;
 			}
 
 			mAttributes["aria-owns"] = [];
@@ -1126,10 +1153,15 @@ sap.ui.define([
 		/**
 		 * Returns the aria attributes for the header of the row actions column.
 		 *
+		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
 		 * @returns {object} An object containing the aria attributes
 		 */
-		getAriaAttributesForRowActionHeader: function() {
-			return {"aria-hidden": "true"};
+		getAriaAttributesForRowActionHeader: function(oExtension) {
+			const oTable = oExtension.getTable();
+			return {
+				"role": "columnheader",
+				"aria-colindex": TableUtils.getVisibleColumnCount(oTable) + 1 + (TableUtils.hasRowHeader(oTable) ? 1 : 0)
+			};
 		},
 
 		/**
@@ -1150,7 +1182,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table which handles ACC related things.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Accessibility
@@ -1374,7 +1406,8 @@ sap.ui.define([
 			}
 		}
 
-		ExtensionHelper["modifyAccOf" + sCellType].apply(this, [oInfo]);
+		const oChangeInfo = ExtensionHelper.getRowColChange(this);
+		ExtensionHelper["modifyAccOf" + sCellType].apply(this, [oInfo, oChangeInfo]);
 	};
 
 	/**
@@ -1503,19 +1536,27 @@ sap.ui.define([
 	 */
 	AccExtension.prototype.getKeyboardTexts = function() {
 		const sSelectionMode = this.getTable().getSelectionMode();
-		const mTexts = {
-			rowSelect: "",
-			rowDeselect: ""
-		};
 
 		if (sSelectionMode === SelectionMode.None) {
-			return mTexts;
+			return {
+				rowSelect: "",
+				rowDeselect: ""
+			};
 		}
 
-		mTexts.rowSelect = TableUtils.getResourceText("TBL_ROW_SELECT_KEY");
-		mTexts.rowDeselect = TableUtils.getResourceText("TBL_ROW_DESELECT_KEY");
+		return this.getSelectionTexts();
+	};
 
-		return mTexts;
+	/**
+	 * Retrieve the resource texts for row selection.
+	 *
+	 * @returns {{rowSelect: string, rowDeselect: string}} The resource texts for row selection.
+	 */
+	AccExtension.prototype.getSelectionTexts = function() {
+		return {
+			rowSelect: TableUtils.getResourceText("TBL_ROW_SELECT_KEY"),
+			rowDeselect: TableUtils.getResourceText("TBL_ROW_DESELECT_KEY")
+		};
 	};
 
 	/**

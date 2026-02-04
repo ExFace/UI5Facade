@@ -1,19 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/m/Input',
 	'sap/ui/mdc/field/FieldInputRenderer',
-	'sap/ui/base/ManagedObjectObserver'
+	'sap/ui/base/ManagedObjectObserver',
+	'sap/ui/core/Lib'
 ], (
 	Input,
 	FieldInputRenderer,
-	ManagedObjectObserver
+	ManagedObjectObserver,
+	Library
 ) => {
 	"use strict";
+
+	const oRbM = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Constructor for a new <code>FieldInput</code>.
@@ -24,7 +28,7 @@ sap.ui.define([
 	 * The <code>FieldInput</code> control is used to render an input field inside a control based on {@link sap.ui.mdc.field.FieldBase FieldBase}.
 	 * It enhances the {@link sap.m.Input Input} control to add ARIA attributes and other {@link sap.ui.mdc.field.FieldBase FieldBase}-specific logic.
 	 * @extends sap.m.Input
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @abstract
 	 * @private
@@ -70,6 +74,18 @@ sap.ui.define([
 
 		this._oObserver.disconnect();
 		this._oObserver = undefined;
+
+	};
+
+	FieldInput.prototype.getAccessibilityInfo = function() {
+
+		const oInfo = Input.prototype.getAccessibilityInfo.apply(this, arguments);
+
+		if (oInfo.role === "combobox") { // use text like in ComboBox
+			oInfo.type = oRbM.getText("ACC_CTR_TYPE_COMBO");
+		}
+
+		return oInfo;
 
 	};
 

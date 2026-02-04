@@ -50,7 +50,7 @@
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 1626,
+			"size": 1810,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 79029,
+			"size": 78296,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
@@ -73,12 +73,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 79023,
+			"size": 78290,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 24794,
+			"size": 24978,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},

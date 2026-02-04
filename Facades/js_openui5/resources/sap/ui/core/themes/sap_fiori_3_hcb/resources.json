@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 657,
+			"size": 658,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
@@ -37,7 +37,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 238644,
+			"size": 238930,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
@@ -99,18 +99,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 310338,
+			"size": 310779,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_fiori_3_hcb/library-parameters.json",
-			"size": 158095,
+			"size": 158228,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 310325,
+			"size": 310766,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{

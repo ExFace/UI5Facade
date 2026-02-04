@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @class The ControlDragDrop enables D&D functionality for the overlays based on aggregation types
 	 * @extends sap.ui.dt.plugin.DragDrop
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @private
 	 * @since 1.30

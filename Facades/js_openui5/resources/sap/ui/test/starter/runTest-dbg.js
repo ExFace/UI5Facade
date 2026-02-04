@@ -2,7 +2,7 @@
 //@ui5-bundle-raw-include ui5loader.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,26 @@
 
 (function(__global) {
 	"use strict";
+
+	// Polyfill `Promise.withResolvers` for older browsers.
+	if (typeof Promise.withResolvers === "undefined") {
+		Object.defineProperty(Promise, "withResolvers", {
+			writable: true,
+			configurable: true,
+			// enumerable: false
+			value: function() {
+				let resolve, reject;
+				return {
+					promise: new this((_resolve, _reject) => {
+						resolve = _resolve;
+						reject = _reject;
+					}),
+					resolve,
+					reject
+				};
+			}
+		});
+	}
 
 	/*
 	 * Helper function that removes any query and/or hash parts from the given URL.
@@ -2698,7 +2718,7 @@
 	/**
 	 * Root namespace for JavaScript functionality provided by SAP SE.
 	 *
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -3397,7 +3417,7 @@
 //@ui5-bundle-raw-include sap/ui/test/starter/_configureLoader.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -3435,7 +3455,7 @@
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -3962,7 +3982,7 @@
 		function registerProvider(oProvider) {
 			if (aProvider.indexOf(oProvider) === -1) {
 				aProvider.push(oProvider);
-				invalidate();
+				Configuration._.invalidate();
 				bGlobalIgnoreExternal = get(mUrlParamOptions);
 			}
 		}

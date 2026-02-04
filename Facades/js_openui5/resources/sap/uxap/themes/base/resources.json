@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 4092,
+			"size": 3970,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 7480,
+			"size": 6676,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 54907,
+			"size": 54008,
 			"theme": "base"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 54901,
+			"size": 54002,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 55869,
+			"size": 54943,
 			"designtime": true,
 			"theme": "base"
 		},

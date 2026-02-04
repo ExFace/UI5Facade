@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 	 * Base type for <code>MultiValueFieldItem</code> control.
 	 * The {@link sap.ui.mdc.MultiValueField MultiValueField} holds its values as items. The <code>MultiValueFieldItem</code> element defines these items.
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @since 1.93.0
 	 * @public

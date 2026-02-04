@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 @import "../base/library.less";
@@ -100,9 +100,9 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
 /******************************************************************
 	Style of the RTA Contextmenu - Horizon Theme
 *******************************************************************/
-@_sap_ui_rta_ContextMenu_BorderLightColor: @sapUiShellBorderColor; //#fff
-@_sap_ui_rta_ContextMenu_BorderDarkColor: @sapUiShellSelectedTextColor; //#0070f2
-@_sap_ui_rta_ContextMenu_BorderRadius: @sapUiGroupBorderCornerRadius; // 0.5rem
+@_sap_ui_rta_ContextMenu_BorderLightColor: var(--sapToolbar_Background); //#fff
+@_sap_ui_rta_ContextMenu_BorderDarkColor: var(--sapInformationBorderColor); //#0070f2
+@_sap_ui_rta_ContextMenu_BorderRadius: var(--sapGroup_BorderCornerRadius); // 0.75rem
 
 .sapUiRtaMode {
 	.sapUiDtContextMenu {
@@ -119,8 +119,8 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
 /******************************************************************
 	Style of the RTA Dialogs - Horizon Theme
 *******************************************************************/
-@_sap_ui_rta_Dialogs_BorderLightColor: @sapUiShellBorderColor; //#fff
-@_sap_ui_rta_Dialogs_BorderDarkColor: @sapUiShellSelectedTextColor; //#0070f2
+@_sap_ui_rta_Dialogs_BorderLightColor: var(--sapToolbar_Background); //#fff
+@_sap_ui_rta_Dialogs_BorderDarkColor: var(--sapInformationBorderColor); //#0070f2
 
 .sapMDialog.sapUiRTABorder {
 	border-image: none;
@@ -243,17 +243,17 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
 /******************************************************************
 	Style of the RTA Toolbar (type: adaptation) - Horizon Theme
 *******************************************************************/
-@_sap_ui_rta_Toolbar_Adaptation_TextColor: @sapUiShellTextColor; //#1d2d3e
+@_sap_ui_rta_Toolbar_Adaptation_TextColor: var(--sapShell_TextColor); //#131e29
 @_sap_ui_rta_Toolbar_Adaptation_BtnFocusBorderColor: transparent;
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnTextColor: @sapUiButtonEmphasizedTextColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnBackgroundColor: @sapUiShellBorderColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnFocusColor: @sapUiShellBorderColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnSelectedBackgroundColor: darken(@sapUiButtonEmphasizedBackground, 5%); //#0064d9
-@_sap_ui_rta_Toolbar_Adaptation_BorderRadius: @sapUiButtonBorderCornerRadius; //0.5rem
-@_sap_ui_rta_Toolbar_Adaptation_DraftVersionColor: darken(@sapUiContentRatedColor, 10%); //#9f5a00
-@_sap_ui_rta_Toolbar_Adaptation_ActiveVersionColor: @sapUiShellPositiveColor; //#256f3a
-@_sap_ui_rta_Toolbar_Adaptation_FocusOutlineColor: @sapUiContentFocusColor; //#0032a5
-@_sap_ui_rta_Toolbar_Adaptation_VersionListBackgroundColor: @sapUiShellBorderColor; //#fff
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnTextColor: var(--sapButton_Emphasized_TextColor); //#fff
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnBackgroundColor: var(--sapToolbar_Background); //#fff
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnFocusColor: var(--sapToolbar_Background); //#fff
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnSelectedBackgroundColor: ~"hsl(from var(--sapButton_Emphasized_Background) h s calc(l - 5) / alpha)"; // #0064d9, darken the emphasized button background by 5%
+@_sap_ui_rta_Toolbar_Adaptation_BorderRadius: var(--sapButton_BorderCornerRadius); //0.5rem
+@_sap_ui_rta_Toolbar_Adaptation_DraftVersionColor: ~"hsl(from var(--sapContent_RatedColor) h s calc(l - 10) / alpha)"; // #9f5a00, darken the rated color by 10%
+@_sap_ui_rta_Toolbar_Adaptation_ActiveVersionColor: var(--sapShell_PositiveColor); //#256f3a
+@_sap_ui_rta_Toolbar_Adaptation_FocusOutlineColor: var(--sapContent_FocusColor); //#0032a5
+@_sap_ui_rta_Toolbar_Adaptation_VersionListBackgroundColor: var(--sapToolbar_Background); //#fff
 
 .sapUiRtaMode {
 	.sapUiRtaToolbar.sapUiRtaToolbarAdaptation {
@@ -388,8 +388,8 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
 /******************************************************************
 	Style of the RTA Toolbar (all types) - Horizon Theme
 *******************************************************************/
-@_sap_ui_rta_Toolbar_Base_BackgroundColor: @sapUiShellBorderColor; //#fff
-@_sap_ui_rta_Toolbar_Base_OutlineColor: @sapUiShellSelectedTextColor; //#0070f2
+@_sap_ui_rta_Toolbar_Base_BackgroundColor: var(--sapToolbar_Background); //#fff
+@_sap_ui_rta_Toolbar_Base_OutlineColor: var(--sapInformationBorderColor); //#0070f2
 
 .sapUiRtaMode {
 	.sapUiRtaToolbar {

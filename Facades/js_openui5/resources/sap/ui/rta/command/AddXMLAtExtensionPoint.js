@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/rta/command/FlexCommand","sap/ui/core/util/reflection/JsControlTreeModifier","sap/ui/fl/apply/api/ExtensionPointRegistryAPI","sap/ui/fl/write/api/ChangesWriteAPI","sap/ui/fl/Utils"],function(e,t,n,r,o){"use strict";var i=e.extend("sap.ui.rta.command.AddXMLAtExtensionPoint",{metadata:{library:"sap.ui.rta",properties:{fragment:{type:"string",group:"content"},fragmentPath:{type:"string",group:"content"},changeType:{type:"string",defaultValue:"addXMLAtExtensionPoint"}},associations:{},events:{}}});i.prototype.bindProperty=function(...t){const[n,r]=t;if(n==="fragment"){return this.setFragment(r.bindingString)}return e.prototype.bindProperty.apply(this,t)};i.prototype.getAppComponent=function(){var e=this.getSelector().view;return o.getAppComponentForControl(e)};i.prototype._applyChange=function(e){var o={};o[e.getFlexObjectMetadata().moduleName]=this.getFragment();sap.ui.require.preload(o);var i=e.change||e;var a=this.getAppComponent();var p=i.getSelector();var s=t.bySelector(p.viewSelector,a);var u=n.getExtensionPointInfo({name:p.name,view:s});var g=u.targetControl;i.setExtensionPointInfo(u);var c={modifier:t,appComponent:a,view:s};return r.apply({change:i,element:g,...c}).then(function(e){if(!e.success){return Promise.reject(e.error)}return undefined})};return i},true);

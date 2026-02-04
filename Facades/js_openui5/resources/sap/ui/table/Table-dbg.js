@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -106,7 +106,7 @@ sap.ui.define([
 	 *     the data model and binding being used.
 	 * </p>
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -2506,12 +2506,13 @@ sap.ui.define([
 	 * @see sap.ui.model.ListBinding#getContexts
 	 */
 	Table.prototype._getContexts = function(iStartIndex, iLength, iThreshold, bKeepCurrent) {
-		if (!this.getVisible()) {
+		const oBinding = this.getBinding();
+
+		if (!oBinding || !this.getVisible() && oBinding.isSuspended()) {
 			return [];
 		}
 
-		const oBinding = this.getBinding();
-		return oBinding ? oBinding.getContexts(iStartIndex, iLength, iThreshold, bKeepCurrent) : [];
+		return oBinding.getContexts(iStartIndex, iLength, iThreshold, bKeepCurrent);
 	};
 
 	/**

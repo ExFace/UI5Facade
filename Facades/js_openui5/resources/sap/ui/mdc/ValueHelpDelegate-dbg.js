@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -389,7 +389,9 @@ sap.ui.define([
 			oListBindingInfo.template.mAggregations.cells.forEach((oCell) => {
 				Object.values(oCell.mBindingInfos).forEach((oBindingInfo) => {
 					oBindingInfo.parts.forEach((oPartInfo) => {
-						oConditionTypes[oPartInfo.path] = { type: oPartInfo.type || null, baseType: oPartInfo.type ? oTypeMap.getBaseTypeForType(oPartInfo.type) : BaseType.String };
+						const {type, formatOptions, constraints, path} = oPartInfo;
+						const oTypeInstance = typeof type === "string" ? oTypeMap.getDataTypeInstance(type, formatOptions, constraints) : type;
+						oConditionTypes[path] = { type: oTypeInstance || null, baseType: oTypeInstance ? oTypeMap.getBaseTypeForType(oTypeInstance) : BaseType.String };
 					});
 				});
 			}, {});

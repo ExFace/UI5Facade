@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.Variant
 	 * @alias sap.ui.fl.apply._internal.flexObjects.CompVariant
 	 * @since 1.103
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.comp
 	 */
@@ -131,13 +131,15 @@ sap.ui.define([
 		} else if (sLayer === Layer.USER) {
 			return true;
 		}
-		var oSettings = Settings.getInstanceOrUndef();
+		const oSettings = Settings.getInstanceOrUndef();
 
 		if (LayerUtils.isSapUiLayerParameterProvided()) {
 			sActiveLayer = LayerUtils.getCurrentLayer();
 		} else {sActiveLayer ||= oSettings.isPublicLayerAvailable() ? Layer.PUBLIC : Layer.CUSTOMER;}
-		var bLayerWritable = sLayer === sActiveLayer;
-		var bUserAuthorized = oSettings.isKeyUser() || isUserAuthor(sUserId);
+		// In the PUBLIC layer, the variant is only editable if the user is key user OR the author with variant sharing enabled
+		const bPublicLayerCheck = sActiveLayer !== Layer.PUBLIC || oSettings.isVariantSharingEnabled();
+		const bLayerWritable = sLayer === sActiveLayer;
+		const bUserAuthorized = oSettings.isKeyUser() || (isUserAuthor(sUserId) && bPublicLayerCheck);
 
 		return bLayerWritable && bUserAuthorized;
 	}
@@ -186,7 +188,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Checks whenever the variant can be renamed updating the entity or crating an <code>updateChange</code>.
+	 * Checks whenever the variant can be renamed updating the entity or creating an <code>updateChange</code>.
 	 * @param {sap.ui.fl.Layer} [sLayer] - Layer in which the edition may take place
 	 * @returns {boolean} <code>true</code> if the variant can be updated
 	 */

@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @private
 	 * @alias sap.ui.fl.write._internal.transport.TransportSelection
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 1.74.0
 	 * Helper object to select an ABAP transport for an LREP object. This is not a generic utility to select a transport request, but part
 	 *        of the SmartVariant control.

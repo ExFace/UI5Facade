@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/library"
-], function (flLibrary) {
+	"sap/ui/fl/changeHandler/condenser/Classification"
+], function (Classification) {
 	"use strict";
 
 	/**
@@ -14,7 +14,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.SelectIconTabBarFilter
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 1.96
 	 * @private
 	 */
@@ -90,8 +90,8 @@ sap.ui.define([
 	SelectIconTabBarFilter.getCondenserInfo = function (oChange) {
 		return {
 			affectedControl: oChange.getSelector(),
-			classification: flLibrary.condenser.Classification.LastOneWins,
-			uniqueKey: oChange.getContent().selectedKey
+			classification: Classification.LastOneWins,
+			uniqueKey: "selectIconTabBarFilter"
 		};
 	};
 

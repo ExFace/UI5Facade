@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,7 +34,7 @@ function(
 	 * @extends sap.ui.rta.toolbar.Adaptation
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @private
@@ -71,8 +71,10 @@ function(
 			const sLogoPath = this.getUshellApi().getLogo();
 
 			if (sLogoPath) {
-				// Unstable: if FLP changes ID of <img> element, logo could be not found
-				const oLogo = this._oFioriHeader.getDomRef().querySelector("#shell-header-icon");
+				// get all images from the Fiori Header
+				const aHeaderImages = this._oFioriHeader.getDomRef().querySelectorAll("img");
+				// check if one of the images is the logo
+				const oLogo = Array.from(aHeaderImages).find((oImage) => oImage.src.includes(sLogoPath));
 				let iWidth;
 				let iHeight;
 

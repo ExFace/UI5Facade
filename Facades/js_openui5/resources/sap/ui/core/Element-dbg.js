@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -142,7 +142,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -639,8 +639,13 @@ sap.ui.define([
 				oParent = oParent?.getParent();
 				oParentDomRef = oParent?.getDomRef?.();
 			} else {
-				// If the lost focus element is outside the parent, look for the parent's first focusable element
-				oFocusTarget = oParentDomRef && jQuery(oParentDomRef).firstFocusableDomRef();
+				// If the lost focus element is outside the parent, look for the parent's first focusable element (including the parent itself)
+				if (jQuery(oParentDomRef).is(":sapFocusable")) {
+					// If the parent is focusable, we can focus it
+					oFocusTarget = oParentDomRef;
+				} else {
+					oFocusTarget = oParentDomRef && jQuery(oParentDomRef).firstFocusableDomRef();
+				}
 				break;
 			}
 		} while ((!oRes || oRes.startOver) && oDomRef);
@@ -1383,7 +1388,8 @@ sap.ui.define([
 			// should not fire 'FocusFail' even when the oFocusDomRef isn't
 			// focusable because not all controls defines the 'getFocusDomRef'
 			// method properly
-			if (oDomRef && !oDomRef.contains(document.activeElement) ) {
+			if ((document.activeElement?.closest(".sapUiSkipFocusFail"))
+					|| (oDomRef && !oDomRef.contains(document.activeElement))) {
 				Element.fireFocusFail.call(this, FocusMode.DEFAULT);
 			}
 		}
@@ -2227,6 +2233,8 @@ sap.ui.define([
 		FocusHandler?.updateControlFocusInfo(oElement);
 	}
 
+	const fnGetNodeName = Object.getOwnPropertyDescriptor(Node.prototype, 'nodeName')?.get;
+
 	/**
 	 * Returns the nearest {@link sap.ui.core.Element UI5 Element} that wraps the given DOM element.
 	 *
@@ -2257,7 +2265,7 @@ sap.ui.define([
 			oDomRef = document.querySelector(vParam);
 		} else if (typeof vParam === "object"
 			&& vParam.nodeType === Node.ELEMENT_NODE
-			&& typeof vParam.nodeName === "string") {
+			&& typeof fnGetNodeName?.call(vParam) === "string") {
 			// can't use 'instanceof window.Element' because DOM node may be
 			// created by using the constructor in another frame in Chrome/Edge.
 			oDomRef = vParam;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 	function filterAvailableBurgerMenuActions(oGeneralTour) {
 		const oControlsModelData = Element.getElementById("sapUIRta_toolbar").getModel("controls").getData();
 		const aAvailableBurgerMenuActions = {
-			newFeaturesOverview: oControlsModelData.newFeaturesOverview.visible,
+			newFeaturesOverview: true,
 			translation: oControlsModelData.translation.visible,
 			generalTour: true,
 			appVariantMenu: oControlsModelData.appVariantMenu.visible,
@@ -180,7 +180,7 @@ sap.ui.define([
 				title: oTextResources.getText("TIT_TOUR_GENERAL_STEP_CONTEXT_BASED_ADAPTATIONS_TITLE"),
 				description: oTextResources.getText("TXT_TOUR_GENERAL_STEP_CONTEXT_BASED_ADAPTATIONS_DESCRIPTION"),
 				listContent: [],
-				markerSelector: "sapUIRta_toolbar_fragment--sapUiRta_contextBasedAdaptationsButton"
+				markerSelector: "sapUIRta_toolbar_fragment--sapUiRta_contextBasedAdaptationMenu"
 			},
 			{
 				title: oTextResources.getText("TIT_TOUR_GENERAL_STEP_FEEDBACK_BUTTON_TITLE"),

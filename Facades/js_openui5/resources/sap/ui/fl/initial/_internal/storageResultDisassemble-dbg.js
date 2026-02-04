@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -51,7 +51,7 @@ function(
 	 * @name sap.ui.fl.initial._internal.storageResultDisassemble
 	 * @function
 	 * @since 1.70
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.Storage
 	 * Disassembles a response with a variant section into one or more plain responses.

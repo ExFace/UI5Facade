@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.support.apps.contentbrowser.controller.ContentDetails
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @since 1.45
 	 * @private
 	 */

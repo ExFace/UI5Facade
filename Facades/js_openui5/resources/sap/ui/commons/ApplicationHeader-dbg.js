@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,7 +41,7 @@ sap.ui.define([
 	 * @class
 	 * The application header control stands on the top of any application page. It consists of 4 areas: Logo area, Function area provided by application, Search area, Logout area.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public

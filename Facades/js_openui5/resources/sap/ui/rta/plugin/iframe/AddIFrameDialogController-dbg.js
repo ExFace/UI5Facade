@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -64,7 +64,15 @@ sap.ui.define([
 			this._importSettings(mSettings);
 		},
 
-		configureMultiInput() {
+		onBeforeOpen() {
+			if (this._buildPreviewURL()) {
+				// If a URL is set initially (updateIframe), validate it
+				this.onValidateUrl();
+			} else {
+				// Disable the save button but don't show an error message
+				this._checkIfAllFieldsValid(false);
+			}
+			// Configure the MultiInput field
 			// This syntax is the suggested way by the UI5 documentation to trigger a submit on the input field on focus loss
 			const oMultiInput = Element.getElementById("sapUiRtaAddIFrameDialog_AddAdditionalParametersInput");
 			oMultiInput.addValidator(multiInputValidator);
@@ -103,8 +111,7 @@ sap.ui.define([
 		 */
 		onValidationSuccess(oEvent) {
 			oEvent.getSource().setValueState(ValueState.None);
-			this._oJSONModel.setProperty("/areAllFieldsValid",
-				this._areAllTextFieldsValid() && this._areAllValueStateNones());
+			this._checkIfAllFieldsValid(true);
 		},
 
 		/**
@@ -113,7 +120,7 @@ sap.ui.define([
 		 */
 		onValidationError(oEvent) {
 			oEvent.getSource().setValueState(ValueState.Error);
-			this._oJSONModel.setProperty("/areAllFieldsValid", false);
+			this._checkIfAllFieldsValid(false);
 			this._setFocusOnInvalidInput();
 		},
 
@@ -237,6 +244,16 @@ sap.ui.define([
 			return urlCleaner(this._oJSONModel.getProperty("/frameUrl/value"));
 		},
 
+		_checkIfAllFieldsValid(bExternalValidationSuccess) {
+			const bAllFieldsValid = (
+				bExternalValidationSuccess
+				&& !this._oJSONModel.getProperty("/frameUrlError/value")
+				&& this._areAllTextFieldsValid()
+				&& this._areAllValueStateNones()
+			);
+			this._oJSONModel.setProperty("/areAllFieldsValid", bAllFieldsValid);
+		},
+
 		onValidateUrl() {
 			const sUrl = this._buildPreviewURL();
 			const { result: bResult, error: sError } = isValidUrl(sUrl);
@@ -252,6 +269,7 @@ sap.ui.define([
 				const sErrorText = _oTextResources.getText(sErrorKey);
 				this._oJSONModel.setProperty("/frameUrlError/value", sErrorText);
 			}
+			this._checkIfAllFieldsValid(bResult);
 		},
 
 		/**
@@ -281,8 +299,7 @@ sap.ui.define([
 				bValidationError = true;
 			}
 
-			const bAllFieldsValid = this._areAllTextFieldsValid() && this._areAllValueStateNones() && !bValidationError;
-			this._oJSONModel.setProperty("/areAllFieldsValid", bAllFieldsValid);
+			this._checkIfAllFieldsValid(!bValidationError);
 			oInput.setValueState(sValueState);
 			return bValidationError;
 		},

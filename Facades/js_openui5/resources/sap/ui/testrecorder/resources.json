@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 751
+			"size": 752
 		},
 		{
 			"name": ".supportrc",
@@ -11,7 +11,7 @@
 		},
 		{
 			"name": ".theming",
-			"size": 102
+			"size": 103
 		},
 		{
 			"name": "Bootstrap-dbg.js",
@@ -776,7 +776,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/testrecorder/library.js",
-			"size": 1109,
+			"size": 1111,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Lib.js",
@@ -788,7 +788,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/testrecorder/library-preload.js",
-			"size": 61975,
+			"size": 61978,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -899,7 +899,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/testrecorder/library.js",
-			"size": 526,
+			"size": 527,
 			"required": [
 				"sap/ui/core/Lib.js",
 				"sap/ui/core/library.js",
@@ -915,7 +915,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/testrecorder/manifest.json",
-			"size": 770
+			"size": 772
 		},
 		{
 			"name": "mutationObservers/AppMutationObserver-dbg.js",

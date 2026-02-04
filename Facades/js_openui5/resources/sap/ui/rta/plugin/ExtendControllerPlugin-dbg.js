@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Lib",
 	"sap/ui/dt/Util",
+	"sap/ui/fl/Utils",
 	"sap/ui/rta/plugin/Plugin"
 ], function(
 	Lib,
 	DtUtil,
+	Utils,
 	Plugin
 ) {
 	"use strict";
@@ -30,7 +32,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @constructor
 	 * @private
 	 * @since 1.134
@@ -52,6 +54,11 @@ sap.ui.define([
 
 	const FLEX_CHANGE_TYPE = "codeExt";
 
+	function isControlInAsyncView(oOverlay) {
+		// Currently there is no better way to get this information. When this changes, this code must be adapted.
+		return !!Utils.getViewForControl(oOverlay.getElement())?.oAsyncState;
+	}
+
 	/**
 	 * Check if the given overlay should be editable.
 	 *
@@ -70,8 +77,9 @@ sap.ui.define([
 	 * @public
 	 */
 	ExtendControllerPlugin.prototype.isEnabled = function(aElementOverlays) {
-		const bEnabled = aElementOverlays.length === 1 && !this.isInReuseComponentOnS4HanaCloud(aElementOverlays[0]);
-		return bEnabled;
+		return aElementOverlays.length === 1
+			&& !this.isInReuseComponentOnS4HanaCloud(aElementOverlays[0])
+			&& isControlInAsyncView(aElementOverlays[0]);
 	};
 
 	/**
@@ -97,6 +105,11 @@ sap.ui.define([
 		// is not enabled and has a special text in parenthesis on the context menu
 		if (this.isInReuseComponentOnS4HanaCloud(oOverlay)) {
 			sText += ` (${Lib.getResourceBundleFor("sap.ui.rta").getText("CTX_DISABLED_REUSE")})`;
+		}
+		// The case where the control is not in an async view
+		// is not enabled and has a special text in parenthesis on the context menu
+		if (!isControlInAsyncView(oOverlay)) {
+			sText += ` (${Lib.getResourceBundleFor("sap.ui.rta").getText("CTX_DISABLED_NOT_ASYNC")})`;
 		}
 		return sText;
 	};

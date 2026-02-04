@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -192,11 +192,14 @@ sap.ui.define([
 	 * @param {string} sResourcePath The resource path with possible query options and placeholders
 	 * @param {string} sMetaPath The absolute meta path matching the resource path
 	 * @param {object} mQueryOptions Query options to add to the resource path
+	 * @param {boolean} [bSortSystemQueryOptions]
+	 *   Whether system query options are sorted alphabetically and moved to the query string's end
 	 * @returns {string} The resource path with the query options
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.addQueryString = function (sResourcePath, sMetaPath, mQueryOptions) {
+	_Requestor.prototype.addQueryString = function (sResourcePath, sMetaPath, mQueryOptions,
+			bSortSystemQueryOptions) {
 		var sQueryString;
 
 		mQueryOptions = this.convertQueryOptions(sMetaPath, mQueryOptions, false, true);
@@ -209,7 +212,7 @@ sap.ui.define([
 				return _Helper.encodePair(sOption, sValue);
 			});
 
-		sQueryString = _Helper.buildQuery(mQueryOptions);
+		sQueryString = _Helper.buildQuery(mQueryOptions, bSortSystemQueryOptions);
 		if (!sQueryString) {
 			return sResourcePath;
 		}
@@ -1266,6 +1269,9 @@ sap.ui.define([
 					if (oCandidate.$mergeRequests && oRequest.$mergeRequests) {
 						oCandidate.$mergeRequests(oRequest.$mergeRequests());
 					}
+					oCandidate.$sortSystemQueryOptions
+						||= oCandidate.$queryOptions.$$sortIfMerged
+							|| oRequest.$queryOptions.$$sortIfMerged;
 
 					return true;
 				}
@@ -1283,10 +1289,12 @@ sap.ui.define([
 			var mQueryOptions = oRequest.$queryOptions;
 
 			if (mQueryOptions) {
-				if (mQueryOptions.$expand && !mQueryOptions.$select.length) {
+				// if there was no $select, don't introduce one
+				if (mQueryOptions.$expand && mQueryOptions.$select?.length === 0) {
 					mQueryOptions.$select = Object.keys(mQueryOptions.$expand).sort().slice(0, 1);
 				}
-				oRequest.url = that.addQueryString(oRequest.url, oRequest.$metaPath, mQueryOptions);
+				oRequest.url = that.addQueryString(oRequest.url, oRequest.$metaPath, mQueryOptions,
+					oRequest.$sortSystemQueryOptions);
 			}
 		});
 		aResultingRequests.iChangeSet = aRequests.iChangeSet;
@@ -1400,7 +1408,7 @@ sap.ui.define([
 						oResponse = vRequest.method === "GET" ? null : {};
 					}
 					that.reportHeaderMessages(vRequest.$resourcePath,
-						getResponseHeader.call(vResponse, "sap-messages"), oResponse);
+						getResponseHeader.call(vResponse, "sap-messages"), oResponse, vRequest.url);
 					sETag = getResponseHeader.call(vResponse, "ETag");
 					if (sETag) {
 						oResponse["@odata.etag"] = sETag;
@@ -1751,7 +1759,8 @@ sap.ui.define([
 
 	/**
 	 * Reports OData messages from the "sap-messages" response header (or forwards them via the
-	 * response object).
+	 * response object). When reporting, the longtext URL is already resolved w.r.t. the request URL
+	 * and the original message is preserved early on.
 	 *
 	 * @param {string} sResourcePath
 	 *   The resource path of the request whose response contained the messages, see also
@@ -1761,15 +1770,24 @@ sap.ui.define([
 	 * @param {object} oResponse
 	 *   The response object, needed in case <code>sResourcePath === "R#V#C"</code> as described
 	 *   at {@link #request}
+	 * @param {string} [sRequestUrl]
+	 *   A resource path relative to the service URL for which this requestor has been created
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.reportHeaderMessages = function (sResourcePath, sMessages, oResponse) {
+	_Requestor.prototype.reportHeaderMessages = function (sResourcePath, sMessages, oResponse,
+			sRequestUrl) {
 		if (sMessages) {
 			const aMessages = JSON.parse(sMessages);
 			if (sResourcePath === "R#V#C") {
 				_Helper.setPrivateAnnotation(oResponse, "headerMessages", aMessages);
 			} else {
+				const sAbsoluteRequestUrl = this.sServiceUrl + sRequestUrl;
+				aMessages.forEach((oMessage) => {
+					oMessage["@$ui5.originalMessage"] = _Helper.clone(oMessage);
+					oMessage.longtextUrl
+						&&= _Helper.makeAbsolute(oMessage.longtextUrl, sAbsoluteRequestUrl);
+				});
 				this.oModelInterface.reportTransitionMessages(aMessages, sResourcePath);
 			}
 		}
@@ -1833,10 +1851,12 @@ sap.ui.define([
 	 *   contain $expand
 	 * @param {any} [vOwner]
 	 *   An additional precondition for the merging of GET requests: the owner must be identical.
+	 *   This is probably relevant when using parameter <code>fnMergeRequests</code> to ensure both
+	 *   functions work well together.
 	 * @param {function(string[]):string[]} [fnMergeRequests]
 	 *   Function which is called during merging of GET or PATCH requests. If a merged request has a
-	 *   function given, this function will be called and its return value is
-	 *   given to the one remaining request's function as a parameter.
+	 *   function given, this function will be called and its return value is given to the one
+	 *   remaining request's function as a parameter. See also <code>vOwner</code>.
 	 * @returns {Promise}
 	 *   A promise on the outcome of the HTTP request; it will be rejected with an error having the
 	 *   property <code>canceled = true</code> instead of sending a request if
@@ -1949,7 +1969,8 @@ sap.ui.define([
 				// Note: "text/plain" used for $count
 				typeof oResponse.body === "string" ? JSON.parse(oResponse.body) : oResponse.body,
 				sMetaPath);
-			that.reportHeaderMessages(sOriginalResourcePath, oResponse.messages, oResult);
+			that.reportHeaderMessages(sOriginalResourcePath, oResponse.messages, oResult,
+				sResourcePath);
 			return oResult;
 		});
 	};

@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 1565
+			"size": 1566
 		},
 		{
 			"name": ".supportrc",
@@ -11,12 +11,12 @@
 		},
 		{
 			"name": ".theming",
-			"size": 74
+			"size": 75
 		},
 		{
 			"name": "ActionToolbar-dbg.js",
 			"module": "sap/ui/mdc/ActionToolbar.js",
-			"size": 14255,
+			"size": 14270,
 			"isDebug": true,
 			"required": [
 				"sap/m/OverflowToolbar.js",
@@ -34,7 +34,7 @@
 		{
 			"name": "ActionToolbar.js",
 			"module": "sap/ui/mdc/ActionToolbar.js",
-			"size": 8123,
+			"size": 8135,
 			"required": [
 				"sap/m/OverflowToolbar.js",
 				"sap/m/OverflowToolbarRenderer.js",
@@ -108,7 +108,7 @@
 		{
 			"name": "Chart-dbg.js",
 			"module": "sap/ui/mdc/Chart.js",
-			"size": 62004,
+			"size": 62005,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -232,7 +232,7 @@
 		{
 			"name": "Control-dbg.js",
 			"module": "sap/ui/mdc/Control.js",
-			"size": 3730,
+			"size": 3731,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Control.js",
@@ -260,7 +260,7 @@
 		{
 			"name": "DefaultTypeMap-dbg.js",
 			"module": "sap/ui/mdc/DefaultTypeMap.js",
-			"size": 3886,
+			"size": 3887,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/enums/BaseType.js",
@@ -284,7 +284,7 @@
 		{
 			"name": "Element-dbg.js",
 			"module": "sap/ui/mdc/Element.js",
-			"size": 3739,
+			"size": 3740,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js",
@@ -312,7 +312,7 @@
 		{
 			"name": "Field-dbg.js",
 			"module": "sap/ui/mdc/Field.js",
-			"size": 33476,
+			"size": 33478,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/deepEqual.js",
@@ -352,7 +352,7 @@
 		{
 			"name": "FilterBar-dbg.js",
 			"module": "sap/ui/mdc/FilterBar.js",
-			"size": 10129,
+			"size": 10130,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -426,7 +426,7 @@
 		{
 			"name": "FilterField-dbg.js",
 			"module": "sap/ui/mdc/FilterField.js",
-			"size": 18112,
+			"size": 18114,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/deepEqual.js",
@@ -458,7 +458,7 @@
 		{
 			"name": "Link-dbg.js",
 			"module": "sap/ui/mdc/Link.js",
-			"size": 25168,
+			"size": 25169,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -534,7 +534,7 @@
 		{
 			"name": "MultiValueField-dbg.js",
 			"module": "sap/ui/mdc/MultiValueField.js",
-			"size": 20344,
+			"size": 20345,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/condition/Condition.js",
@@ -566,7 +566,7 @@
 		{
 			"name": "Table-dbg.js",
 			"module": "sap/ui/mdc/Table.js",
-			"size": 106612,
+			"size": 107662,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -626,7 +626,7 @@
 		{
 			"name": "Table.js",
 			"module": "sap/ui/mdc/Table.js",
-			"size": 43706,
+			"size": 44321,
 			"required": [
 				"sap/base/Log.js",
 				"sap/base/strings/capitalize.js",
@@ -684,7 +684,7 @@
 		},
 		{
 			"name": "Table.js.map",
-			"size": 51152,
+			"size": 51848,
 			"isDebug": true
 		},
 		{
@@ -730,7 +730,7 @@
 		{
 			"name": "ValueHelp-dbg.js",
 			"module": "sap/ui/mdc/ValueHelp.js",
-			"size": 47766,
+			"size": 47767,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -772,7 +772,7 @@
 		{
 			"name": "ValueHelpDelegate-dbg.js",
 			"module": "sap/ui/mdc/ValueHelpDelegate.js",
-			"size": 31334,
+			"size": 31513,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -795,7 +795,7 @@
 		{
 			"name": "ValueHelpDelegate.js",
 			"module": "sap/ui/mdc/ValueHelpDelegate.js",
-			"size": 5147,
+			"size": 5239,
 			"required": [
 				"sap/ui/Device.js",
 				"sap/ui/mdc/BaseDelegate.js",
@@ -816,13 +816,13 @@
 		},
 		{
 			"name": "ValueHelpDelegate.js.map",
-			"size": 8176,
+			"size": 8346,
 			"isDebug": true
 		},
 		{
 			"name": "actiontoolbar/ActionToolbarAction-dbg.js",
 			"module": "sap/ui/mdc/actiontoolbar/ActionToolbarAction.js",
-			"size": 5848,
+			"size": 5849,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -866,7 +866,7 @@
 		{
 			"name": "chart/ChartImplementationContainer-dbg.js",
 			"module": "sap/ui/mdc/chart/ChartImplementationContainer.js",
-			"size": 6524,
+			"size": 6525,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Control.js",
@@ -910,7 +910,7 @@
 		{
 			"name": "chart/ChartSelectionDetails-dbg.js",
 			"module": "sap/ui/mdc/chart/ChartSelectionDetails.js",
-			"size": 8694,
+			"size": 8695,
 			"isDebug": true,
 			"required": [
 				"sap/m/List.js",
@@ -994,7 +994,7 @@
 		{
 			"name": "chart/PropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/chart/PropertyHelper.js",
-			"size": 3131,
+			"size": 3132,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Lib.js",
@@ -1144,7 +1144,7 @@
 		{
 			"name": "chart/ToolbarControlFactory-dbg.js",
 			"module": "sap/ui/mdc/chart/ToolbarControlFactory.js",
-			"size": 6871,
+			"size": 6872,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -1218,7 +1218,7 @@
 		{
 			"name": "condition/Condition-dbg.js",
 			"module": "sap/ui/mdc/condition/Condition.js",
-			"size": 6885,
+			"size": 6886,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/enums/ConditionValidated.js",
@@ -1242,7 +1242,7 @@
 		{
 			"name": "condition/ConditionConverter-dbg.js",
 			"module": "sap/ui/mdc/condition/ConditionConverter.js",
-			"size": 5601,
+			"size": 5602,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -1272,7 +1272,7 @@
 		{
 			"name": "condition/ConditionModel-dbg.js",
 			"module": "sap/ui/mdc/condition/ConditionModel.js",
-			"size": 19630,
+			"size": 19631,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1368,7 +1368,7 @@
 		{
 			"name": "condition/FilterConverter-dbg.js",
 			"module": "sap/ui/mdc/condition/FilterConverter.js",
-			"size": 12513,
+			"size": 12514,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1398,7 +1398,7 @@
 		{
 			"name": "condition/FilterOperatorUtil-dbg.js",
 			"module": "sap/ui/mdc/condition/FilterOperatorUtil.js",
-			"size": 95929,
+			"size": 95930,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1462,7 +1462,7 @@
 		{
 			"name": "condition/Operator-dbg.js",
 			"module": "sap/ui/mdc/condition/Operator.js",
-			"size": 44315,
+			"size": 44316,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1514,7 +1514,7 @@
 		{
 			"name": "condition/OperatorDynamicDateOption-dbg.js",
 			"module": "sap/ui/mdc/condition/OperatorDynamicDateOption.js",
-			"size": 15597,
+			"size": 15598,
 			"isDebug": true,
 			"required": [
 				"sap/m/DynamicDateOption.js",
@@ -1560,7 +1560,7 @@
 		{
 			"name": "condition/RangeOperator-dbg.js",
 			"module": "sap/ui/mdc/condition/RangeOperator.js",
-			"size": 7220,
+			"size": 7221,
 			"isDebug": true,
 			"required": [
 				"sap/base/strings/escapeRegExp.js",
@@ -3184,7 +3184,7 @@
 		{
 			"name": "field/ConditionType-dbg.js",
 			"module": "sap/ui/mdc/field/ConditionType.js",
-			"size": 45849,
+			"size": 45850,
 			"isDebug": true,
 			"required": [
 				"sap/base/strings/whitespaceReplacer.js",
@@ -3242,7 +3242,7 @@
 		{
 			"name": "field/ConditionTypeMixin-dbg.js",
 			"module": "sap/ui/mdc/field/ConditionTypeMixin.js",
-			"size": 6981,
+			"size": 6982,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js",
@@ -3274,7 +3274,7 @@
 		{
 			"name": "field/ConditionsType-dbg.js",
 			"module": "sap/ui/mdc/field/ConditionsType.js",
-			"size": 23435,
+			"size": 23436,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -3326,7 +3326,7 @@
 		{
 			"name": "field/CustomFieldInfo-dbg.js",
 			"module": "sap/ui/mdc/field/CustomFieldInfo.js",
-			"size": 3159,
+			"size": 3160,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -3352,7 +3352,7 @@
 		{
 			"name": "field/DynamicDateRangeConditionsType-dbg.js",
 			"module": "sap/ui/mdc/field/DynamicDateRangeConditionsType.js",
-			"size": 12029,
+			"size": 12030,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -3402,7 +3402,7 @@
 		{
 			"name": "field/FieldBase-dbg.js",
 			"module": "sap/ui/mdc/field/FieldBase.js",
-			"size": 144641,
+			"size": 144260,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/deepEqual.js",
@@ -3443,7 +3443,7 @@
 		{
 			"name": "field/FieldBase.js",
 			"module": "sap/ui/mdc/field/FieldBase.js",
-			"size": 56480,
+			"size": 56401,
 			"required": [
 				"sap/base/util/deepEqual.js",
 				"sap/base/util/merge.js",
@@ -3482,7 +3482,7 @@
 		},
 		{
 			"name": "field/FieldBase.js.map",
-			"size": 69743,
+			"size": 69696,
 			"isDebug": true
 		},
 		{
@@ -3548,7 +3548,7 @@
 		{
 			"name": "field/FieldInfoBase-dbg.js",
 			"module": "sap/ui/mdc/field/FieldInfoBase.js",
-			"size": 8248,
+			"size": 8249,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -3584,33 +3584,35 @@
 		{
 			"name": "field/FieldInput-dbg.js",
 			"module": "sap/ui/mdc/field/FieldInput.js",
-			"size": 2638,
+			"size": 3003,
 			"isDebug": true,
 			"required": [
 				"sap/m/Input.js",
 				"sap/ui/base/ManagedObjectObserver.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/mdc/field/FieldInputRenderer.js"
 			]
 		},
 		{
 			"name": "field/FieldInput.js",
 			"module": "sap/ui/mdc/field/FieldInput.js",
-			"size": 1081,
+			"size": 1321,
 			"required": [
 				"sap/m/Input.js",
 				"sap/ui/base/ManagedObjectObserver.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/mdc/field/FieldInputRenderer.js"
 			]
 		},
 		{
 			"name": "field/FieldInput.js.map",
-			"size": 1299,
+			"size": 1595,
 			"isDebug": true
 		},
 		{
 			"name": "field/FieldInputRenderUtil-dbg.js",
 			"module": "sap/ui/mdc/field/FieldInputRenderUtil.js",
-			"size": 2321,
+			"size": 2322,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/InvisibleText.js"
@@ -3658,7 +3660,7 @@
 		{
 			"name": "field/FieldMultiInput-dbg.js",
 			"module": "sap/ui/mdc/field/FieldMultiInput.js",
-			"size": 9621,
+			"size": 10358,
 			"isDebug": true,
 			"required": [
 				"sap/m/MultiInput.js",
@@ -3666,25 +3668,27 @@
 				"sap/ui/Device.js",
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/core/Element.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/mdc/field/FieldMultiInputRenderer.js"
 			]
 		},
 		{
 			"name": "field/FieldMultiInput.js",
 			"module": "sap/ui/mdc/field/FieldMultiInput.js",
-			"size": 4470,
+			"size": 4794,
 			"required": [
 				"sap/m/MultiInput.js",
 				"sap/m/Tokenizer.js",
 				"sap/ui/Device.js",
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/core/Element.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/mdc/field/FieldMultiInputRenderer.js"
 			]
 		},
 		{
 			"name": "field/FieldMultiInput.js.map",
-			"size": 5827,
+			"size": 6257,
 			"isDebug": true
 		},
 		{
@@ -3716,7 +3720,7 @@
 		{
 			"name": "field/ListFieldHelpItem-dbg.js",
 			"module": "sap/ui/mdc/field/ListFieldHelpItem.js",
-			"size": 1188,
+			"size": 1189,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/valuehelp/content/FixedListItem.js"
@@ -3760,7 +3764,7 @@
 		{
 			"name": "field/MultiValueFieldItem-dbg.js",
 			"module": "sap/ui/mdc/field/MultiValueFieldItem.js",
-			"size": 1643,
+			"size": 1644,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -3782,7 +3786,7 @@
 		{
 			"name": "field/TokenDisplay-dbg.js",
 			"module": "sap/ui/mdc/field/TokenDisplay.js",
-			"size": 1859,
+			"size": 1860,
 			"isDebug": true,
 			"required": [
 				"sap/m/Token.js",
@@ -3832,7 +3836,7 @@
 		{
 			"name": "field/TokenizerDisplay-dbg.js",
 			"module": "sap/ui/mdc/field/TokenizerDisplay.js",
-			"size": 4668,
+			"size": 4669,
 			"isDebug": true,
 			"required": [
 				"sap/m/Tokenizer.js",
@@ -4126,7 +4130,7 @@
 		{
 			"name": "field/content/UnitContent-dbg.js",
 			"module": "sap/ui/mdc/field/content/UnitContent.js",
-			"size": 11590,
+			"size": 11887,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/isEmptyObject.js",
@@ -4140,7 +4144,7 @@
 		{
 			"name": "field/content/UnitContent.js",
 			"module": "sap/ui/mdc/field/content/UnitContent.js",
-			"size": 5977,
+			"size": 6118,
 			"required": [
 				"sap/base/util/isEmptyObject.js",
 				"sap/base/util/merge.js",
@@ -4152,7 +4156,7 @@
 		},
 		{
 			"name": "field/content/UnitContent.js.map",
-			"size": 7308,
+			"size": 7533,
 			"isDebug": true
 		},
 		{
@@ -4174,7 +4178,7 @@
 		{
 			"name": "filterbar/FilterBarBase-dbg.js",
 			"module": "sap/ui/mdc/filterbar/FilterBarBase.js",
-			"size": 68551,
+			"size": 68552,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -4288,7 +4292,7 @@
 		{
 			"name": "filterbar/PropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/filterbar/PropertyHelper.js",
-			"size": 2181,
+			"size": 2182,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/util/PropertyHelper.js"
@@ -4392,7 +4396,7 @@
 		{
 			"name": "filterbar/p13n/AdaptationFilterBar-dbg.js",
 			"module": "sap/ui/mdc/filterbar/p13n/AdaptationFilterBar.js",
-			"size": 20113,
+			"size": 20114,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -4564,7 +4568,7 @@
 		{
 			"name": "filterbar/vh/FilterBar-dbg.js",
 			"module": "sap/ui/mdc/filterbar/vh/FilterBar.js",
-			"size": 2007,
+			"size": 2008,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/valuehelp/FilterBar.js"
@@ -4702,7 +4706,7 @@
 		{
 			"name": "flexibility/Chart.flexibility-dbg.js",
 			"module": "sap/ui/mdc/flexibility/Chart.flexibility.js",
-			"size": 922,
+			"size": 923,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/flexibility/ChartItemFlex.js",
@@ -4840,7 +4844,7 @@
 		{
 			"name": "flexibility/FilterBar.flexibility-dbg.js",
 			"module": "sap/ui/mdc/flexibility/FilterBar.flexibility.js",
-			"size": 980,
+			"size": 981,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/flexibility/ConditionFlex.js",
@@ -4866,7 +4870,7 @@
 		{
 			"name": "flexibility/FilterItemFlex-dbg.js",
 			"module": "sap/ui/mdc/flexibility/FilterItemFlex.js",
-			"size": 2722,
+			"size": 2723,
 			"isDebug": true,
 			"required": [
 				"sap/ui/fl/changeHandler/common/ChangeCategories.js",
@@ -5026,7 +5030,7 @@
 		{
 			"name": "flexibility/SortFlex-dbg.js",
 			"module": "sap/ui/mdc/flexibility/SortFlex.js",
-			"size": 8614,
+			"size": 9525,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -5034,25 +5038,27 @@
 				"sap/ui/fl/changeHandler/common/ChangeCategories.js",
 				"sap/ui/fl/changeHandler/condenser/Classification.js",
 				"sap/ui/mdc/flexibility/Util.js",
-				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js"
+				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js",
+				"sap/ui/mdc/flexibility/helpers/getAffectedSorter.js"
 			]
 		},
 		{
 			"name": "flexibility/SortFlex.js",
 			"module": "sap/ui/mdc/flexibility/SortFlex.js",
-			"size": 4312,
+			"size": 4332,
 			"required": [
 				"sap/base/util/merge.js",
 				"sap/ui/fl/changeHandler/Base.js",
 				"sap/ui/fl/changeHandler/common/ChangeCategories.js",
 				"sap/ui/fl/changeHandler/condenser/Classification.js",
 				"sap/ui/mdc/flexibility/Util.js",
-				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js"
+				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js",
+				"sap/ui/mdc/flexibility/helpers/getAffectedSorter.js"
 			]
 		},
 		{
 			"name": "flexibility/SortFlex.js.map",
-			"size": 5880,
+			"size": 5897,
 			"isDebug": true
 		},
 		{
@@ -5092,7 +5098,7 @@
 		{
 			"name": "flexibility/Util-dbg.js",
 			"module": "sap/ui/mdc/flexibility/Util.js",
-			"size": 6790,
+			"size": 7148,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -5104,7 +5110,7 @@
 		{
 			"name": "flexibility/Util.js",
 			"module": "sap/ui/mdc/flexibility/Util.js",
-			"size": 2213,
+			"size": 2397,
 			"required": [
 				"sap/base/Log.js",
 				"sap/m/p13n/Engine.js",
@@ -5114,13 +5120,13 @@
 		},
 		{
 			"name": "flexibility/Util.js.map",
-			"size": 3238,
+			"size": 3384,
 			"isDebug": true
 		},
 		{
 			"name": "flexibility/actiontoolbar/CombineAction-dbg.js",
 			"module": "sap/ui/mdc/flexibility/actiontoolbar/CombineAction.js",
-			"size": 11155,
+			"size": 11156,
 			"isDebug": true,
 			"required": [
 				"sap/base/i18n/Localization.js",
@@ -5144,7 +5150,7 @@
 		{
 			"name": "flexibility/actiontoolbar/SplitAction-dbg.js",
 			"module": "sap/ui/mdc/flexibility/actiontoolbar/SplitAction.js",
-			"size": 5591,
+			"size": 5592,
 			"isDebug": true,
 			"required": [
 				"sap/m/changeHandler/SplitMenuButton.js"
@@ -5177,6 +5183,28 @@
 		{
 			"name": "flexibility/helpers/addKeyOrName.js.map",
 			"size": 437,
+			"isDebug": true
+		},
+		{
+			"name": "flexibility/helpers/getAffectedSorter-dbg.js",
+			"module": "sap/ui/mdc/flexibility/helpers/getAffectedSorter.js",
+			"size": 625,
+			"isDebug": true,
+			"required": [
+				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js"
+			]
+		},
+		{
+			"name": "flexibility/helpers/getAffectedSorter.js",
+			"module": "sap/ui/mdc/flexibility/helpers/getAffectedSorter.js",
+			"size": 325,
+			"required": [
+				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js"
+			]
+		},
+		{
+			"name": "flexibility/helpers/getAffectedSorter.js.map",
+			"size": 381,
 			"isDebug": true
 		},
 		{
@@ -5260,9 +5288,205 @@
 			"size": 1304
 		},
 		{
+			"name": "i18n/interaction_ar.xml",
+			"size": 1445
+		},
+		{
+			"name": "i18n/interaction_bg.xml",
+			"size": 1601
+		},
+		{
+			"name": "i18n/interaction_ca.xml",
+			"size": 1320
+		},
+		{
+			"name": "i18n/interaction_cnr.xml",
+			"size": 1296
+		},
+		{
+			"name": "i18n/interaction_cs.xml",
+			"size": 1312
+		},
+		{
+			"name": "i18n/interaction_cy.xml",
+			"size": 1293
+		},
+		{
+			"name": "i18n/interaction_da.xml",
+			"size": 1332
+		},
+		{
+			"name": "i18n/interaction_de.xml",
+			"size": 1338
+		},
+		{
+			"name": "i18n/interaction_el.xml",
+			"size": 1516
+		},
+		{
+			"name": "i18n/interaction_en.xml",
+			"size": 1283
+		},
+		{
+			"name": "i18n/interaction_en_GB.xml",
+			"size": 1291
+		},
+		{
+			"name": "i18n/interaction_en_US_saprigi.xml",
+			"size": 2669
+		},
+		{
+			"name": "i18n/interaction_es.xml",
+			"size": 1342
+		},
+		{
+			"name": "i18n/interaction_es_MX.xml",
+			"size": 1328
+		},
+		{
+			"name": "i18n/interaction_et.xml",
+			"size": 1280
+		},
+		{
+			"name": "i18n/interaction_fi.xml",
+			"size": 1335
+		},
+		{
+			"name": "i18n/interaction_fr.xml",
+			"size": 1389
+		},
+		{
+			"name": "i18n/interaction_fr_CA.xml",
+			"size": 1412
+		},
+		{
+			"name": "i18n/interaction_hi.xml",
+			"size": 1648
+		},
+		{
+			"name": "i18n/interaction_hr.xml",
+			"size": 1304
+		},
+		{
+			"name": "i18n/interaction_hu.xml",
+			"size": 1343
+		},
+		{
+			"name": "i18n/interaction_id.xml",
+			"size": 1300
+		},
+		{
+			"name": "i18n/interaction_it.xml",
+			"size": 1352
+		},
+		{
+			"name": "i18n/interaction_iw.xml",
+			"size": 1375
+		},
+		{
+			"name": "i18n/interaction_ja.xml",
+			"size": 1427
+		},
+		{
+			"name": "i18n/interaction_kk.xml",
+			"size": 1519
+		},
+		{
+			"name": "i18n/interaction_ko.xml",
+			"size": 1378
+		},
+		{
+			"name": "i18n/interaction_lt.xml",
+			"size": 1359
+		},
+		{
+			"name": "i18n/interaction_lv.xml",
+			"size": 1286
+		},
+		{
+			"name": "i18n/interaction_mk.xml",
+			"size": 1523
+		},
+		{
+			"name": "i18n/interaction_ms.xml",
+			"size": 1272
+		},
+		{
+			"name": "i18n/interaction_nl.xml",
+			"size": 1373
+		},
+		{
+			"name": "i18n/interaction_no.xml",
+			"size": 1326
+		},
+		{
+			"name": "i18n/interaction_pl.xml",
+			"size": 1366
+		},
+		{
+			"name": "i18n/interaction_pt.xml",
+			"size": 1328
+		},
+		{
+			"name": "i18n/interaction_pt_PT.xml",
+			"size": 1308
+		},
+		{
+			"name": "i18n/interaction_ro.xml",
+			"size": 1338
+		},
+		{
+			"name": "i18n/interaction_ru.xml",
+			"size": 1484
+		},
+		{
+			"name": "i18n/interaction_sh.xml",
+			"size": 1296
+		},
+		{
+			"name": "i18n/interaction_sk.xml",
+			"size": 1359
+		},
+		{
+			"name": "i18n/interaction_sl.xml",
+			"size": 1309
+		},
+		{
+			"name": "i18n/interaction_sr.xml",
+			"size": 1460
+		},
+		{
+			"name": "i18n/interaction_sv.xml",
+			"size": 1331
+		},
+		{
+			"name": "i18n/interaction_th.xml",
+			"size": 1587
+		},
+		{
+			"name": "i18n/interaction_tr.xml",
+			"size": 1298
+		},
+		{
+			"name": "i18n/interaction_uk.xml",
+			"size": 1589
+		},
+		{
+			"name": "i18n/interaction_vi.xml",
+			"size": 1352
+		},
+		{
+			"name": "i18n/interaction_zh_CN.xml",
+			"size": 1271
+		},
+		{
+			"name": "i18n/interaction_zh_TW.xml",
+			"size": 1257
+		},
+		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/mdc/library.js",
-			"size": 46463,
+			"size": 46465,
 			"isDebug": true,
 			"required": [
 				"sap/m/library.js",
@@ -5275,7 +5499,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/mdc/library-preload.js",
-			"size": 938629,
+			"size": 940419,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -5386,6 +5610,7 @@
 				"sap/ui/base/Object.js",
 				"sap/ui/base/SyncPromise.js",
 				"sap/ui/core/Control.js",
+				"sap/ui/core/Core.js",
 				"sap/ui/core/CustomData.js",
 				"sap/ui/core/Element.js",
 				"sap/ui/core/Icon.js",
@@ -5631,6 +5856,7 @@
 				"sap/ui/mdc/flexibility/actiontoolbar/CombineAction.js",
 				"sap/ui/mdc/flexibility/actiontoolbar/SplitAction.js",
 				"sap/ui/mdc/flexibility/helpers/addKeyOrName.js",
+				"sap/ui/mdc/flexibility/helpers/getAffectedSorter.js",
 				"sap/ui/mdc/flexibility/xConfigFlex.js",
 				"sap/ui/mdc/flp/FlpLinkDelegate.js",
 				"sap/ui/mdc/library.js",
@@ -5739,7 +5965,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 1188119,
+			"size": 1190373,
 			"isDebug": true
 		},
 		{
@@ -5764,7 +5990,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/mdc/library.js",
-			"size": 5113,
+			"size": 5114,
 			"required": [
 				"sap/m/library.js",
 				"sap/ui/base/DataType.js",
@@ -5790,7 +6016,7 @@
 		{
 			"name": "link/Factory-dbg.js",
 			"module": "sap/ui/mdc/link/Factory.js",
-			"size": 1193,
+			"size": 1194,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js"
@@ -5812,7 +6038,7 @@
 		{
 			"name": "link/LinkItem-dbg.js",
 			"module": "sap/ui/mdc/link/LinkItem.js",
-			"size": 3347,
+			"size": 3348,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -5862,7 +6088,7 @@
 		{
 			"name": "link/Panel-dbg.js",
 			"module": "sap/ui/mdc/link/Panel.js",
-			"size": 19312,
+			"size": 19313,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -5932,7 +6158,7 @@
 		{
 			"name": "link/PanelItem-dbg.js",
 			"module": "sap/ui/mdc/link/PanelItem.js",
-			"size": 2867,
+			"size": 2868,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -5970,7 +6196,7 @@
 		{
 			"name": "link/SemanticObjectMapping-dbg.js",
 			"module": "sap/ui/mdc/link/SemanticObjectMapping.js",
-			"size": 1200,
+			"size": 1201,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -5992,7 +6218,7 @@
 		{
 			"name": "link/SemanticObjectMappingItem-dbg.js",
 			"module": "sap/ui/mdc/link/SemanticObjectMappingItem.js",
-			"size": 1075,
+			"size": 1076,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -6014,7 +6240,7 @@
 		{
 			"name": "link/SemanticObjectUnavailableAction-dbg.js",
 			"module": "sap/ui/mdc/link/SemanticObjectUnavailableAction.js",
-			"size": 1158,
+			"size": 1159,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -6036,7 +6262,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/mdc/manifest.json",
-			"size": 4732
+			"size": 4736
 		},
 		{
 			"name": "messagebundle.properties",
@@ -6048,7 +6274,7 @@
 		{
 			"name": "messagebundle_ar.properties",
 			"module": "sap/ui/mdc/messagebundle_ar.properties",
-			"size": 40524,
+			"size": 40548,
 			"locale": "ar",
 			"raw": "messagebundle.properties"
 		},
@@ -6095,7 +6321,7 @@
 		{
 			"name": "messagebundle_de.properties",
 			"module": "sap/ui/mdc/messagebundle_de.properties",
-			"size": 18667,
+			"size": 18670,
 			"locale": "de",
 			"raw": "messagebundle.properties"
 		},
@@ -6144,14 +6370,14 @@
 		{
 			"name": "messagebundle_es.properties",
 			"module": "sap/ui/mdc/messagebundle_es.properties",
-			"size": 18731,
+			"size": 18723,
 			"locale": "es",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_es_MX.properties",
 			"module": "sap/ui/mdc/messagebundle_es_MX.properties",
-			"size": 18742,
+			"size": 18733,
 			"locale": "es_MX",
 			"raw": "messagebundle.properties"
 		},
@@ -6172,7 +6398,7 @@
 		{
 			"name": "messagebundle_fr.properties",
 			"module": "sap/ui/mdc/messagebundle_fr.properties",
-			"size": 19993,
+			"size": 19994,
 			"locale": "fr",
 			"raw": "messagebundle.properties"
 		},
@@ -6193,7 +6419,7 @@
 		{
 			"name": "messagebundle_hr.properties",
 			"module": "sap/ui/mdc/messagebundle_hr.properties",
-			"size": 17892,
+			"size": 17896,
 			"locale": "hr",
 			"raw": "messagebundle.properties"
 		},
@@ -6207,14 +6433,14 @@
 		{
 			"name": "messagebundle_id.properties",
 			"module": "sap/ui/mdc/messagebundle_id.properties",
-			"size": 17478,
+			"size": 17522,
 			"locale": "id",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_it.properties",
 			"module": "sap/ui/mdc/messagebundle_it.properties",
-			"size": 18127,
+			"size": 18141,
 			"locale": "it",
 			"raw": "messagebundle.properties"
 		},
@@ -6228,14 +6454,14 @@
 		{
 			"name": "messagebundle_ja.properties",
 			"module": "sap/ui/mdc/messagebundle_ja.properties",
-			"size": 29151,
+			"size": 29144,
 			"locale": "ja",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_kk.properties",
 			"module": "sap/ui/mdc/messagebundle_kk.properties",
-			"size": 48222,
+			"size": 48344,
 			"locale": "kk",
 			"raw": "messagebundle.properties"
 		},
@@ -6284,21 +6510,21 @@
 		{
 			"name": "messagebundle_no.properties",
 			"module": "sap/ui/mdc/messagebundle_no.properties",
-			"size": 17580,
+			"size": 17581,
 			"locale": "no",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_pl.properties",
 			"module": "sap/ui/mdc/messagebundle_pl.properties",
-			"size": 19104,
+			"size": 19108,
 			"locale": "pl",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_pt.properties",
 			"module": "sap/ui/mdc/messagebundle_pt.properties",
-			"size": 19100,
+			"size": 19101,
 			"locale": "pt",
 			"raw": "messagebundle.properties"
 		},
@@ -6319,7 +6545,7 @@
 		{
 			"name": "messagebundle_ru.properties",
 			"module": "sap/ui/mdc/messagebundle_ru.properties",
-			"size": 46558,
+			"size": 46539,
 			"locale": "ru",
 			"raw": "messagebundle.properties"
 		},
@@ -6340,7 +6566,7 @@
 		{
 			"name": "messagebundle_sl.properties",
 			"module": "sap/ui/mdc/messagebundle_sl.properties",
-			"size": 17741,
+			"size": 17739,
 			"locale": "sl",
 			"raw": "messagebundle.properties"
 		},
@@ -6382,28 +6608,28 @@
 		{
 			"name": "messagebundle_vi.properties",
 			"module": "sap/ui/mdc/messagebundle_vi.properties",
-			"size": 29694,
+			"size": 29365,
 			"locale": "vi",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_zh_CN.properties",
 			"module": "sap/ui/mdc/messagebundle_zh_CN.properties",
-			"size": 21766,
+			"size": 21773,
 			"locale": "zh_CN",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "messagebundle_zh_TW.properties",
 			"module": "sap/ui/mdc/messagebundle_zh_TW.properties",
-			"size": 21931,
+			"size": 21941,
 			"locale": "zh_TW",
 			"raw": "messagebundle.properties"
 		},
 		{
 			"name": "mixin/AdaptationMixin-dbg.js",
 			"module": "sap/ui/mdc/mixin/AdaptationMixin.js",
-			"size": 5523,
+			"size": 5524,
 			"isDebug": true,
 			"required": [
 				"sap/m/p13n/Engine.js"
@@ -6431,7 +6657,7 @@
 		{
 			"name": "mixin/DelegateMixin-dbg.js",
 			"module": "sap/ui/mdc/mixin/DelegateMixin.js",
-			"size": 8323,
+			"size": 8324,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -6457,7 +6683,7 @@
 		{
 			"name": "mixin/FilterIntegrationMixin-dbg.js",
 			"module": "sap/ui/mdc/mixin/FilterIntegrationMixin.js",
-			"size": 8472,
+			"size": 8473,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -6483,7 +6709,7 @@
 		{
 			"name": "mixin/PromiseMixin-dbg.js",
 			"module": "sap/ui/mdc/mixin/PromiseMixin.js",
-			"size": 3094,
+			"size": 3095,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/util/PromiseCache.js"
@@ -6517,7 +6743,7 @@
 		{
 			"name": "mixin/PropertyHelperMixin.js",
 			"module": "sap/ui/mdc/mixin/PropertyHelperMixin.js",
-			"size": 6654,
+			"size": 6679,
 			"required": [
 				"sap/base/future.js",
 				"sap/base/util/Deferred.js",
@@ -6527,7 +6753,7 @@
 		},
 		{
 			"name": "mixin/PropertyHelperMixin.js.map",
-			"size": 7234,
+			"size": 7256,
 			"isDebug": true
 		},
 		{
@@ -6559,7 +6785,7 @@
 		{
 			"name": "odata/TypeMap-dbg.js",
 			"module": "sap/ui/mdc/odata/TypeMap.js",
-			"size": 8394,
+			"size": 8395,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/DefaultTypeMap.js",
@@ -6689,7 +6915,7 @@
 		{
 			"name": "odata/v4/TypeMap-dbg.js",
 			"module": "sap/ui/mdc/odata/v4/TypeMap.js",
-			"size": 3517,
+			"size": 3518,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/enums/BaseType.js",
@@ -6931,7 +7157,7 @@
 		{
 			"name": "p13n/PropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/p13n/PropertyHelper.js",
-			"size": 1471,
+			"size": 1472,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/util/PropertyHelper.js"
@@ -6975,7 +7201,7 @@
 		{
 			"name": "p13n/panels/ActionToolbarPanel-dbg.js",
 			"module": "sap/ui/mdc/p13n/panels/ActionToolbarPanel.js",
-			"size": 8573,
+			"size": 8574,
 			"isDebug": true,
 			"required": [
 				"sap/m/p13n/MessageStrip.js",
@@ -6987,7 +7213,7 @@
 		{
 			"name": "p13n/panels/ActionToolbarPanel.js",
 			"module": "sap/ui/mdc/p13n/panels/ActionToolbarPanel.js",
-			"size": 4745,
+			"size": 4746,
 			"required": [
 				"sap/m/p13n/MessageStrip.js",
 				"sap/m/p13n/SelectionPanel.js",
@@ -7059,7 +7285,7 @@
 		{
 			"name": "p13n/panels/ChartItemPanel-dbg.js",
 			"module": "sap/ui/mdc/p13n/panels/ChartItemPanel.js",
-			"size": 36483,
+			"size": 36626,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -7095,7 +7321,7 @@
 		{
 			"name": "p13n/panels/ChartItemPanel.js",
 			"module": "sap/ui/mdc/p13n/panels/ChartItemPanel.js",
-			"size": 21202,
+			"size": 21281,
 			"required": [
 				"sap/base/Log.js",
 				"sap/m/Button.js",
@@ -7129,7 +7355,7 @@
 		},
 		{
 			"name": "p13n/panels/ChartItemPanel.js.map",
-			"size": 25565,
+			"size": 25667,
 			"isDebug": true
 		},
 		{
@@ -7251,7 +7477,7 @@
 		{
 			"name": "p13n/subcontroller/ActionToolbarController-dbg.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/ActionToolbarController.js",
-			"size": 2779,
+			"size": 2839,
 			"isDebug": true,
 			"required": [
 				"sap/m/Column.js",
@@ -7265,7 +7491,7 @@
 		{
 			"name": "p13n/subcontroller/ActionToolbarController.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/ActionToolbarController.js",
-			"size": 1599,
+			"size": 1637,
 			"required": [
 				"sap/m/Column.js",
 				"sap/ui/core/Element.js",
@@ -7277,7 +7503,7 @@
 		},
 		{
 			"name": "p13n/subcontroller/ActionToolbarController.js.map",
-			"size": 2134,
+			"size": 2164,
 			"isDebug": true
 		},
 		{
@@ -7413,7 +7639,7 @@
 		{
 			"name": "p13n/subcontroller/ColumnFreezeController-dbg.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/ColumnFreezeController.js",
-			"size": 4884,
+			"size": 4885,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -7441,7 +7667,7 @@
 		{
 			"name": "p13n/subcontroller/FilterController-dbg.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/FilterController.js",
-			"size": 7110,
+			"size": 7122,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -7456,7 +7682,7 @@
 		{
 			"name": "p13n/subcontroller/FilterController.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/FilterController.js",
-			"size": 3698,
+			"size": 3710,
 			"required": [
 				"sap/base/Log.js",
 				"sap/base/util/deepEqual.js",
@@ -7469,7 +7695,7 @@
 		},
 		{
 			"name": "p13n/subcontroller/FilterController.js.map",
-			"size": 5079,
+			"size": 5087,
 			"isDebug": true
 		},
 		{
@@ -7559,7 +7785,7 @@
 		{
 			"name": "p13n/subcontroller/ShowDetailsController-dbg.js",
 			"module": "sap/ui/mdc/p13n/subcontroller/ShowDetailsController.js",
-			"size": 4871,
+			"size": 4872,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -7614,7 +7840,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 250559
+			"size": 254612
 		},
 		{
 			"name": "rules/Table.support.js",
@@ -7628,7 +7854,7 @@
 		{
 			"name": "table/Column-dbg.js",
 			"module": "sap/ui/mdc/table/Column.js",
-			"size": 17396,
+			"size": 17154,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -7648,7 +7874,7 @@
 		{
 			"name": "table/Column.js",
 			"module": "sap/ui/mdc/table/Column.js",
-			"size": 8529,
+			"size": 8327,
 			"required": [
 				"sap/base/Log.js",
 				"sap/m/Label.js",
@@ -7666,13 +7892,13 @@
 		},
 		{
 			"name": "table/Column.js.map",
-			"size": 9165,
+			"size": 9003,
 			"isDebug": true
 		},
 		{
 			"name": "table/ColumnSettings-dbg.js",
 			"module": "sap/ui/mdc/table/ColumnSettings.js",
-			"size": 875,
+			"size": 876,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -7694,7 +7920,7 @@
 		{
 			"name": "table/CreationRow-dbg.js",
 			"module": "sap/ui/mdc/table/CreationRow.js",
-			"size": 6784,
+			"size": 6785,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js",
@@ -7720,7 +7946,7 @@
 		{
 			"name": "table/DragDropConfig-dbg.js",
 			"module": "sap/ui/mdc/table/DragDropConfig.js",
-			"size": 13736,
+			"size": 13737,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -7748,7 +7974,7 @@
 		{
 			"name": "table/GridTableType-dbg.js",
 			"module": "sap/ui/mdc/table/GridTableType.js",
-			"size": 18831,
+			"size": 18826,
 			"isDebug": true,
 			"required": [
 				"sap/m/table/Util.js",
@@ -7773,7 +7999,7 @@
 		{
 			"name": "table/GridTableType.js",
 			"module": "sap/ui/mdc/table/GridTableType.js",
-			"size": 9289,
+			"size": 9286,
 			"required": [
 				"sap/m/table/Util.js",
 				"sap/ui/core/Lib.js",
@@ -7796,13 +8022,13 @@
 		},
 		{
 			"name": "table/GridTableType.js.map",
-			"size": 12106,
+			"size": 12100,
 			"isDebug": true
 		},
 		{
 			"name": "table/PropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/table/PropertyHelper.js",
-			"size": 12961,
+			"size": 12962,
 			"isDebug": true,
 			"required": [
 				"sap/m/table/Util.js",
@@ -7828,7 +8054,7 @@
 		{
 			"name": "table/ResponsiveColumnSettings-dbg.js",
 			"module": "sap/ui/mdc/table/ResponsiveColumnSettings.js",
-			"size": 1893,
+			"size": 1894,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/table/ColumnSettings.js"
@@ -7900,7 +8126,7 @@
 		{
 			"name": "table/RowActionItem-dbg.js",
 			"module": "sap/ui/mdc/table/RowActionItem.js",
-			"size": 2678,
+			"size": 2679,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js",
@@ -7924,7 +8150,7 @@
 		{
 			"name": "table/RowSettings-dbg.js",
 			"module": "sap/ui/mdc/table/RowSettings.js",
-			"size": 4919,
+			"size": 4920,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -8050,7 +8276,7 @@
 		{
 			"name": "table/V4AnalyticsPropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/table/V4AnalyticsPropertyHelper.js",
-			"size": 9594,
+			"size": 9595,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/table/PropertyHelper.js",
@@ -8144,7 +8370,7 @@
 		{
 			"name": "table/utils/Personalization-dbg.js",
 			"module": "sap/ui/mdc/table/utils/Personalization.js",
-			"size": 10703,
+			"size": 10704,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/library.js",
@@ -8256,7 +8482,7 @@
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 15998,
+			"size": 16062,
 			"theme": "base"
 		},
 		{
@@ -8267,7 +8493,7 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 15995,
+			"size": 16059,
 			"theme": "base"
 		},
 		{
@@ -8329,7 +8555,7 @@
 		{
 			"name": "ushell/SemanticObjectMapping-dbg.js",
 			"module": "sap/ui/mdc/ushell/SemanticObjectMapping.js",
-			"size": 1110,
+			"size": 1111,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -8351,7 +8577,7 @@
 		{
 			"name": "ushell/SemanticObjectMappingItem-dbg.js",
 			"module": "sap/ui/mdc/ushell/SemanticObjectMappingItem.js",
-			"size": 979,
+			"size": 980,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -8373,7 +8599,7 @@
 		{
 			"name": "ushell/SemanticObjectUnavailableAction-dbg.js",
 			"module": "sap/ui/mdc/ushell/SemanticObjectUnavailableAction.js",
-			"size": 1056,
+			"size": 1057,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js"
@@ -8519,7 +8745,7 @@
 		{
 			"name": "util/InfoBar-dbg.js",
 			"module": "sap/ui/mdc/util/InfoBar.js",
-			"size": 3804,
+			"size": 3805,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -8581,7 +8807,7 @@
 		{
 			"name": "util/PromiseCache-dbg.js",
 			"module": "sap/ui/mdc/util/PromiseCache.js",
-			"size": 8876,
+			"size": 8877,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/Object.js"
@@ -8603,7 +8829,7 @@
 		{
 			"name": "util/PropertyHelper-dbg.js",
 			"module": "sap/ui/mdc/util/PropertyHelper.js",
-			"size": 34050,
+			"size": 34051,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -8641,27 +8867,29 @@
 		{
 			"name": "util/PropertyHelperUtil-dbg.js",
 			"module": "sap/ui/mdc/util/PropertyHelperUtil.js",
-			"size": 2487,
+			"size": 2490,
 			"isDebug": true,
 			"required": [
 				"sap/ui/VersionInfo.js",
 				"sap/ui/base/Object.js",
+				"sap/ui/core/Core.js",
 				"sap/ui/core/Lib.js"
 			]
 		},
 		{
 			"name": "util/PropertyHelperUtil.js",
 			"module": "sap/ui/mdc/util/PropertyHelperUtil.js",
-			"size": 1187,
+			"size": 1138,
 			"required": [
 				"sap/ui/VersionInfo.js",
 				"sap/ui/base/Object.js",
+				"sap/ui/core/Core.js",
 				"sap/ui/core/Lib.js"
 			]
 		},
 		{
 			"name": "util/PropertyHelperUtil.js.map",
-			"size": 1396,
+			"size": 1289,
 			"isDebug": true
 		},
 		{
@@ -8781,7 +9009,7 @@
 		{
 			"name": "valuehelp/Dialog-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/Dialog.js",
-			"size": 32649,
+			"size": 32650,
 			"isDebug": true,
 			"required": [
 				"sap/base/i18n/Localization.js",
@@ -8831,7 +9059,7 @@
 		{
 			"name": "valuehelp/FilterBar-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/FilterBar.js",
-			"size": 11847,
+			"size": 11848,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -8921,7 +9149,7 @@
 		{
 			"name": "valuehelp/Popover-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/Popover.js",
-			"size": 30221,
+			"size": 30222,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -8957,7 +9185,7 @@
 		{
 			"name": "valuehelp/base/Container-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/Container.js",
-			"size": 33430,
+			"size": 33431,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -8985,7 +9213,7 @@
 		{
 			"name": "valuehelp/base/Content-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/Content.js",
-			"size": 27251,
+			"size": 27252,
 			"isDebug": true,
 			"required": [
 				"sap/base/strings/formatMessage.js",
@@ -9023,7 +9251,7 @@
 		{
 			"name": "valuehelp/base/DefineConditionPanel-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/DefineConditionPanel.js",
-			"size": 70990,
+			"size": 70991,
 			"isDebug": true,
 			"required": [
 				"sap/base/i18n/Localization.js",
@@ -9127,7 +9355,7 @@
 		{
 			"name": "valuehelp/base/DialogTab-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/DialogTab.js",
-			"size": 3240,
+			"size": 3241,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Control.js"
@@ -9149,7 +9377,7 @@
 		{
 			"name": "valuehelp/base/FilterableListContent-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/FilterableListContent.js",
-			"size": 22018,
+			"size": 22019,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -9195,7 +9423,7 @@
 		{
 			"name": "valuehelp/base/ListContent-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/base/ListContent.js",
-			"size": 4328,
+			"size": 4329,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/enums/ConditionValidated.js",
@@ -9219,7 +9447,7 @@
 		{
 			"name": "valuehelp/content/Bool-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/Bool.js",
-			"size": 10367,
+			"size": 10368,
 			"isDebug": true,
 			"required": [
 				"sap/ui/mdc/util/loadModules.js",
@@ -9245,7 +9473,7 @@
 		{
 			"name": "valuehelp/content/Conditions-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/Conditions.js",
-			"size": 10242,
+			"size": 10243,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Lib.js",
@@ -9277,7 +9505,7 @@
 		{
 			"name": "valuehelp/content/FixedList-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/FixedList.js",
-			"size": 21826,
+			"size": 21827,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/deepEqual.js",
@@ -9313,7 +9541,7 @@
 		{
 			"name": "valuehelp/content/FixedListItem-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/FixedListItem.js",
-			"size": 1343,
+			"size": 1344,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/ListItem.js"
@@ -9335,7 +9563,7 @@
 		{
 			"name": "valuehelp/content/MDCTable-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/MDCTable.js",
-			"size": 14568,
+			"size": 14569,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -9379,7 +9607,7 @@
 		{
 			"name": "valuehelp/content/MTable-dbg.js",
 			"module": "sap/ui/mdc/valuehelp/content/MTable.js",
-			"size": 47669,
+			"size": 47670,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",

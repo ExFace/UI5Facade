@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 1299
+			"size": 1300
 		},
 		{
 			"name": ".supportrc",
@@ -11,7 +11,7 @@
 		},
 		{
 			"name": ".theming",
-			"size": 72
+			"size": 73
 		},
 		{
 			"name": "AnchorBar-dbg.js",
@@ -112,7 +112,7 @@
 		{
 			"name": "BlockBase-dbg.js",
 			"module": "sap/uxap/BlockBase.js",
-			"size": 29190,
+			"size": 29215,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -134,7 +134,7 @@
 		{
 			"name": "BlockBase.js",
 			"module": "sap/uxap/BlockBase.js",
-			"size": 10590,
+			"size": 10603,
 			"required": [
 				"sap/base/Log.js",
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -154,13 +154,13 @@
 		},
 		{
 			"name": "BlockBase.js.map",
-			"size": 12870,
+			"size": 12884,
 			"isDebug": true
 		},
 		{
 			"name": "BlockBaseMetadata-dbg.js",
 			"module": "sap/uxap/BlockBaseMetadata.js",
-			"size": 3397,
+			"size": 3398,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -408,7 +408,7 @@
 		{
 			"name": "ObjectPageAccessibleLandmarkInfo-dbg.js",
 			"module": "sap/uxap/ObjectPageAccessibleLandmarkInfo.js",
-			"size": 5039,
+			"size": 5040,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Element.js",
@@ -432,7 +432,7 @@
 		{
 			"name": "ObjectPageDynamicHeaderContent-dbg.js",
 			"module": "sap/uxap/ObjectPageDynamicHeaderContent.js",
-			"size": 3615,
+			"size": 3616,
 			"isDebug": true,
 			"required": [
 				"sap/f/DynamicPageHeader.js",
@@ -482,7 +482,7 @@
 		{
 			"name": "ObjectPageDynamicHeaderTitle-dbg.js",
 			"module": "sap/uxap/ObjectPageDynamicHeaderTitle.js",
-			"size": 4937,
+			"size": 4938,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -744,7 +744,7 @@
 		{
 			"name": "ObjectPageLayout-dbg.js",
 			"module": "sap/uxap/ObjectPageLayout.js",
-			"size": 196980,
+			"size": 197889,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -788,7 +788,7 @@
 		{
 			"name": "ObjectPageLayout.js",
 			"module": "sap/uxap/ObjectPageLayout.js",
-			"size": 78737,
+			"size": 79079,
 			"required": [
 				"sap/base/Log.js",
 				"sap/base/assert.js",
@@ -830,13 +830,13 @@
 		},
 		{
 			"name": "ObjectPageLayout.js.map",
-			"size": 87880,
+			"size": 88429,
 			"isDebug": true
 		},
 		{
 			"name": "ObjectPageLayoutABHelper-dbg.js",
 			"module": "sap/uxap/ObjectPageLayoutABHelper.js",
-			"size": 9518,
+			"size": 9989,
 			"isDebug": true,
 			"required": [
 				"sap/m/IconTabFilter.js",
@@ -846,13 +846,14 @@
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/base/Object.js",
 				"sap/ui/core/Element.js",
-				"sap/uxap/ObjectPageSection.js"
+				"sap/uxap/ObjectPageSection.js",
+				"sap/uxap/library.js"
 			]
 		},
 		{
 			"name": "ObjectPageLayoutABHelper.js",
 			"module": "sap/uxap/ObjectPageLayoutABHelper.js",
-			"size": 4523,
+			"size": 4663,
 			"required": [
 				"sap/m/IconTabFilter.js",
 				"sap/m/IconTabHeader.js",
@@ -861,12 +862,13 @@
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/base/Object.js",
 				"sap/ui/core/Element.js",
-				"sap/uxap/ObjectPageSection.js"
+				"sap/uxap/ObjectPageSection.js",
+				"sap/uxap/library.js"
 			]
 		},
 		{
 			"name": "ObjectPageLayoutABHelper.js.map",
-			"size": 6885,
+			"size": 7078,
 			"isDebug": true
 		},
 		{
@@ -894,7 +896,7 @@
 		{
 			"name": "ObjectPageLazyLoader-dbg.js",
 			"module": "sap/uxap/ObjectPageLazyLoader.js",
-			"size": 2525,
+			"size": 2526,
 			"isDebug": true,
 			"required": [
 				"sap/base/assert.js",
@@ -924,7 +926,7 @@
 		{
 			"name": "ObjectPageSection-dbg.js",
 			"module": "sap/uxap/ObjectPageSection.js",
-			"size": 17349,
+			"size": 17744,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -945,7 +947,7 @@
 		{
 			"name": "ObjectPageSection.js",
 			"module": "sap/uxap/ObjectPageSection.js",
-			"size": 9004,
+			"size": 9214,
 			"required": [
 				"sap/m/Button.js",
 				"sap/m/Title.js",
@@ -964,13 +966,13 @@
 		},
 		{
 			"name": "ObjectPageSection.js.map",
-			"size": 10283,
+			"size": 10502,
 			"isDebug": true
 		},
 		{
 			"name": "ObjectPageSectionBase-dbg.js",
 			"module": "sap/uxap/ObjectPageSectionBase.js",
-			"size": 31450,
+			"size": 31275,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -991,7 +993,7 @@
 		{
 			"name": "ObjectPageSectionBase.js",
 			"module": "sap/uxap/ObjectPageSectionBase.js",
-			"size": 12713,
+			"size": 12925,
 			"required": [
 				"sap/base/Log.js",
 				"sap/base/i18n/Localization.js",
@@ -1010,13 +1012,13 @@
 		},
 		{
 			"name": "ObjectPageSectionBase.js.map",
-			"size": 15607,
+			"size": 15806,
 			"isDebug": true
 		},
 		{
 			"name": "ObjectPageSectionRenderer-dbg.js",
 			"module": "sap/uxap/ObjectPageSectionRenderer.js",
-			"size": 2627,
+			"size": 2550,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/ControlBehavior.js"
@@ -1025,20 +1027,20 @@
 		{
 			"name": "ObjectPageSectionRenderer.js",
 			"module": "sap/uxap/ObjectPageSectionRenderer.js",
-			"size": 1609,
+			"size": 1549,
 			"required": [
 				"sap/ui/core/ControlBehavior.js"
 			]
 		},
 		{
 			"name": "ObjectPageSectionRenderer.js.map",
-			"size": 2062,
+			"size": 2003,
 			"isDebug": true
 		},
 		{
 			"name": "ObjectPageSubSection-dbg.js",
 			"module": "sap/uxap/ObjectPageSubSection.js",
-			"size": 49848,
+			"size": 51136,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1051,6 +1053,7 @@
 				"sap/ui/base/DataType.js",
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/core/Element.js",
+				"sap/ui/core/IntervalTrigger.js",
 				"sap/ui/core/Lib.js",
 				"sap/ui/core/ResizeHandler.js",
 				"sap/ui/core/StashedControlSupport.js",
@@ -1068,7 +1071,7 @@
 		{
 			"name": "ObjectPageSubSection.js",
 			"module": "sap/uxap/ObjectPageSubSection.js",
-			"size": 22304,
+			"size": 22856,
 			"required": [
 				"sap/base/Log.js",
 				"sap/m/Button.js",
@@ -1080,6 +1083,7 @@
 				"sap/ui/base/DataType.js",
 				"sap/ui/base/ManagedObjectObserver.js",
 				"sap/ui/core/Element.js",
+				"sap/ui/core/IntervalTrigger.js",
 				"sap/ui/core/Lib.js",
 				"sap/ui/core/ResizeHandler.js",
 				"sap/ui/core/StashedControlSupport.js",
@@ -1096,13 +1100,13 @@
 		},
 		{
 			"name": "ObjectPageSubSection.js.map",
-			"size": 26643,
+			"size": 27491,
 			"isDebug": true
 		},
 		{
 			"name": "ObjectPageSubSectionRenderer-dbg.js",
 			"module": "sap/uxap/ObjectPageSubSectionRenderer.js",
-			"size": 2505,
+			"size": 2563,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/ControlBehavior.js"
@@ -1111,20 +1115,20 @@
 		{
 			"name": "ObjectPageSubSectionRenderer.js",
 			"module": "sap/uxap/ObjectPageSubSectionRenderer.js",
-			"size": 1550,
+			"size": 1573,
 			"required": [
 				"sap/ui/core/ControlBehavior.js"
 			]
 		},
 		{
 			"name": "ObjectPageSubSectionRenderer.js.map",
-			"size": 2082,
+			"size": 2140,
 			"isDebug": true
 		},
 		{
 			"name": "ThrottledTaskHelper-dbg.js",
 			"module": "sap/uxap/ThrottledTaskHelper.js",
-			"size": 2785,
+			"size": 2800,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/Object.js",
@@ -1134,7 +1138,7 @@
 		{
 			"name": "ThrottledTaskHelper.js",
 			"module": "sap/uxap/ThrottledTaskHelper.js",
-			"size": 1500,
+			"size": 1503,
 			"required": [
 				"sap/ui/base/Object.js",
 				"sap/ui/thirdparty/jquery.js"
@@ -1142,13 +1146,13 @@
 		},
 		{
 			"name": "ThrottledTaskHelper.js.map",
-			"size": 1908,
+			"size": 1914,
 			"isDebug": true
 		},
 		{
 			"name": "changeHandler/AddIFrameObjectPageLayout-dbg.js",
 			"module": "sap/uxap/changeHandler/AddIFrameObjectPageLayout.js",
-			"size": 5039,
+			"size": 5040,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Lib.js",
@@ -1178,7 +1182,7 @@
 		{
 			"name": "changeHandler/MoveObjectPageSection-dbg.js",
 			"module": "sap/uxap/changeHandler/MoveObjectPageSection.js",
-			"size": 5953,
+			"size": 5954,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/merge.js",
@@ -1206,7 +1210,7 @@
 		{
 			"name": "changeHandler/RenameObjectPageSection-dbg.js",
 			"module": "sap/uxap/changeHandler/RenameObjectPageSection.js",
-			"size": 4850,
+			"size": 4851,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1232,7 +1236,7 @@
 		{
 			"name": "changeHandler/UnstashObjectPageSection-dbg.js",
 			"module": "sap/uxap/changeHandler/UnstashObjectPageSection.js",
-			"size": 1792,
+			"size": 1793,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/util/reflection/JsControlTreeModifier.js",
@@ -1720,9 +1724,205 @@
 			"size": 335
 		},
 		{
+			"name": "i18n/interaction_ar.xml",
+			"size": 380
+		},
+		{
+			"name": "i18n/interaction_bg.xml",
+			"size": 409
+		},
+		{
+			"name": "i18n/interaction_ca.xml",
+			"size": 371
+		},
+		{
+			"name": "i18n/interaction_cnr.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_cs.xml",
+			"size": 373
+		},
+		{
+			"name": "i18n/interaction_cy.xml",
+			"size": 379
+		},
+		{
+			"name": "i18n/interaction_da.xml",
+			"size": 370
+		},
+		{
+			"name": "i18n/interaction_de.xml",
+			"size": 378
+		},
+		{
+			"name": "i18n/interaction_el.xml",
+			"size": 398
+		},
+		{
+			"name": "i18n/interaction_en.xml",
+			"size": 371
+		},
+		{
+			"name": "i18n/interaction_en_GB.xml",
+			"size": 371
+		},
+		{
+			"name": "i18n/interaction_en_US_saprigi.xml",
+			"size": 509
+		},
+		{
+			"name": "i18n/interaction_es.xml",
+			"size": 380
+		},
+		{
+			"name": "i18n/interaction_es_MX.xml",
+			"size": 380
+		},
+		{
+			"name": "i18n/interaction_et.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_fi.xml",
+			"size": 375
+		},
+		{
+			"name": "i18n/interaction_fr.xml",
+			"size": 373
+		},
+		{
+			"name": "i18n/interaction_fr_CA.xml",
+			"size": 373
+		},
+		{
+			"name": "i18n/interaction_hi.xml",
+			"size": 398
+		},
+		{
+			"name": "i18n/interaction_hr.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_hu.xml",
+			"size": 384
+		},
+		{
+			"name": "i18n/interaction_id.xml",
+			"size": 370
+		},
+		{
+			"name": "i18n/interaction_it.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_iw.xml",
+			"size": 391
+		},
+		{
+			"name": "i18n/interaction_ja.xml",
+			"size": 391
+		},
+		{
+			"name": "i18n/interaction_kk.xml",
+			"size": 403
+		},
+		{
+			"name": "i18n/interaction_ko.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_lt.xml",
+			"size": 375
+		},
+		{
+			"name": "i18n/interaction_lv.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_mk.xml",
+			"size": 388
+		},
+		{
+			"name": "i18n/interaction_ms.xml",
+			"size": 370
+		},
+		{
+			"name": "i18n/interaction_nl.xml",
+			"size": 378
+		},
+		{
+			"name": "i18n/interaction_no.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_pl.xml",
+			"size": 371
+		},
+		{
+			"name": "i18n/interaction_pt.xml",
+			"size": 370
+		},
+		{
+			"name": "i18n/interaction_pt_PT.xml",
+			"size": 370
+		},
+		{
+			"name": "i18n/interaction_ro.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_ru.xml",
+			"size": 388
+		},
+		{
+			"name": "i18n/interaction_sh.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_sk.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_sl.xml",
+			"size": 374
+		},
+		{
+			"name": "i18n/interaction_sr.xml",
+			"size": 386
+		},
+		{
+			"name": "i18n/interaction_sv.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_th.xml",
+			"size": 397
+		},
+		{
+			"name": "i18n/interaction_tr.xml",
+			"size": 372
+		},
+		{
+			"name": "i18n/interaction_uk.xml",
+			"size": 407
+		},
+		{
+			"name": "i18n/interaction_vi.xml",
+			"size": 378
+		},
+		{
+			"name": "i18n/interaction_zh_CN.xml",
+			"size": 373
+		},
+		{
+			"name": "i18n/interaction_zh_TW.xml",
+			"size": 367
+		},
+		{
 			"name": "library-dbg.js",
 			"module": "sap/uxap/library.js",
-			"size": 17465,
+			"size": 17467,
 			"isDebug": true,
 			"required": [
 				"sap/f/library.js",
@@ -1740,7 +1940,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/uxap/library-preload.js",
-			"size": 250033,
+			"size": 251474,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1796,6 +1996,7 @@
 				"sap/ui/core/EventBus.js",
 				"sap/ui/core/Icon.js",
 				"sap/ui/core/IconPool.js",
+				"sap/ui/core/IntervalTrigger.js",
 				"sap/ui/core/InvisibleText.js",
 				"sap/ui/core/Item.js",
 				"sap/ui/core/LayoutData.js",
@@ -1891,7 +2092,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 291593,
+			"size": 293620,
 			"isDebug": true
 		},
 		{
@@ -1917,7 +2118,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/uxap/library.js",
-			"size": 4056,
+			"size": 4057,
 			"required": [
 				"sap/f/library.js",
 				"sap/m/library.js",
@@ -1948,7 +2149,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/uxap/manifest.json",
-			"size": 3143
+			"size": 3148
 		},
 		{
 			"name": "messagebundle.properties",
@@ -2314,7 +2515,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 65472
+			"size": 68708
 		},
 		{
 			"name": "rules/ObjectPageLayout.support.js",
@@ -2369,19 +2570,19 @@
 		},
 		{
 			"name": "themes/base/ObjectPageSection.less",
-			"size": 4092,
+			"size": 3970,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/ObjectPageSubSection.less",
-			"size": 7480,
+			"size": 6676,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 54907,
+			"size": 54008,
 			"theme": "base"
 		},
 		{
@@ -2392,12 +2593,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 54901,
+			"size": 54002,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 55869,
+			"size": 54943,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -2456,7 +2657,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/ObjectPageSubSection.less",
-			"size": 636,
+			"size": 386,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -2504,13 +2705,13 @@
 		},
 		{
 			"name": "themes/sap_hcb/base_ObjectPageSubSection.less",
-			"size": 6406,
+			"size": 5868,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "themes/sap_hcb/library-RTL.css",
-			"size": 59786,
+			"size": 59061,
 			"theme": "sap_hcb"
 		},
 		{
@@ -2521,12 +2722,12 @@
 		},
 		{
 			"name": "themes/sap_hcb/library.css",
-			"size": 59776,
+			"size": 59051,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "themes/sap_hcb/library.less",
-			"size": 64969,
+			"size": 64181,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

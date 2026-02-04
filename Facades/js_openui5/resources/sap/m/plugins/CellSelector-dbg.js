@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -10,8 +10,9 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/ui/core/Element",
 	"sap/m/library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/InvisibleRenderer"
-], function (PluginBase, Localization, deepEqual, KeyCodes, Element, library, InvisibleRenderer) {
+], function (PluginBase, Localization, deepEqual, KeyCodes, Element, library, Lib, InvisibleRenderer) {
 	"use strict";
 
 	const ListMode = library.ListMode;
@@ -63,7 +64,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.136.12
 	 * @author SAP SE
 	 *
 	 * @public
@@ -245,7 +246,7 @@ sap.ui.define([
 			}
 		},
 		onmousedown: function(oEvent) {
-			if (oEvent.isMarked?.() || oEvent.button != 0) {
+			if (oEvent.isMarked?.() || oEvent.button != 0 || !this.getConfig("isSupported", this.getControl(), this)) {
 				return;
 			}
 
@@ -1181,10 +1182,26 @@ sap.ui.define([
 			onActivate: function(oTable, oPlugin) {
 				oTable.attachEvent("_change", oPlugin, this._onPropertyChange);
 				oTable.attachEvent("EventHandlerChange", oPlugin, this._onEventHandlerChange);
+
+				this._getSelectionTexts = oTable._getAccExtension().getSelectionTexts;
+				oTable._getAccExtension().getSelectionTexts = function() {
+					return {
+						rowSelect: Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_SELECT_KEY_ALTERNATIVE"),
+						rowDeselect: Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_DESELECT_KEY_ALTERNATIVE")
+					};
+				};
+
+				oTable.$("rowexpandtext").text(Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_EXPAND_KEY_ALTERNATIVE"));
+				oTable.$("rowcollapsetext").text(Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_COLLAPSE_KEY_ALTERNATIVE"));
 			},
 			onDeactivate: function(oTable, oPlugin) {
 				oTable.detachEvent("_change", this._onPropertyChange);
 				oTable.detachEvent("EventHandlerChange", this._onEventHandlerChange);
+
+				oTable._getAccExtension().getSelectionTexts = this._getSelectionTexts;
+
+				oTable.$("rowexpandtext").text(Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_EXPAND_KEY"));
+				oTable.$("rowcollapsetext").text(Lib.getResourceBundleFor("sap.ui.table").getText("TBL_ROW_COLLAPSE_KEY"));
 			},
 			_onPropertyChange: function(oEvent, oPlugin) {
 				oEvent.getParameter("name") == "selectionBehavior" && oPlugin._onSelectableChange();

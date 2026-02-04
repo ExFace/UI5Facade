@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 @import "../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/base/base.less" */
@@ -1901,10 +1901,6 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 	height: auto;
 	padding-bottom: 0;
 }
-
-.sapUxAPObjectPageSection.sapUxAPObjectPageSectionWrapTitle .sapUxAPObjectPageSubSectionHeaderToolbar {
-	height: auto;
-}
 /* END "ObjectPageSection.less" */
 
 /* START "ObjectPageSubSection.less" */
@@ -1926,6 +1922,13 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 
 .sapUxAPObjectPageSubSectionHeader {
 	width: 100%;
+}
+
+.sapUxAPObjectPageSubSection .sapUxAPObjectPageSubSectionHeader {
+	.sapMTB.sapUxAPObjectPageSubSectionHeaderToolbar {
+		height: auto;
+		min-height: 2.75rem;
+	}
 }
 
 .sapUxAPObjectPageSubSectionHeader > .sapMBtn {
@@ -1989,16 +1992,6 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeader {
 	padding: 0 1rem;
 }
 
-.sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSectionHeaderTitle,
-html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeaderTitle {
-	height: auto;
-	overflow: auto;
-	float: none;
-	white-space: normal;
-	word-wrap: break-word;
-	word-break: break-all;
-}
-
 /* tablet display */
 
 .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSubSectionHeader,
@@ -2030,13 +2023,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 		box-sizing: border-box;
 		display: inline-block;
 		margin-left: 0;
-	}
-
-	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderTitle {
-		height: auto;
-		white-space: normal;
-		word-wrap: break-word;
-		line-height: normal;
 	}
 
 	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderActions {
@@ -2130,10 +2116,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 
 /* compact size */
 .sapUiSizeCompact {
-	.sapUxAPObjectPageSubSectionHeaderTitle {
-		height: 2rem;
-		line-height: 2rem;
-	}
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormResGrid > div,
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormCLContainer {
 		padding: 1rem 0;
@@ -2167,27 +2149,9 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 }
 
 // Styles needed for wrapTitle property
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle
-.sapUxAPObjectPageSubSectionHeader
-.sapUxAPObjectPageSubSectionTitle  {
+.sapUxAPObjectPageSubSection .sapUxAPObjectPageSubSectionHeader .sapUxAPObjectPageSubSectionTitle  {
 	height: auto;
-	word-break: break-word;
-	white-space: break-spaces;
-	overflow: auto;
-	line-height: inherit;
-	border-bottom: none;
-	position: relative;
-	top: 0rem;
-}
-
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle
-.sapUxAPObjectPageSubSectionHeader {
-	height: auto;
-	padding-bottom: 0;
-}
-
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle .sapUxAPObjectPageSubSectionHeaderToolbar {
-	height: auto;
+	line-height: normal;
 }
 
 /* END "ObjectPageSubSection.less" */

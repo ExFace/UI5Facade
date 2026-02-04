@@ -50,13 +50,13 @@
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 2496,
+			"size": 2356,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 93489,
+			"size": 92459,
 			"theme": "sap_horizon_dark"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 93479,
+			"size": 92449,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 40366,
+			"size": 40226,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},

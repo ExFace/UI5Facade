@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -648,24 +648,6 @@ html[data-sap-ui-browser^="ff"].sap-desktop .sapMBarTitleAlignAuto .sapMBarPH {
 /* Custom focus border:                                                 */
 /* ---------------------------------------------------------------------*/
 
-.sapMBtn:focus-visible > .sapMBtnEmphasized.sapMBtnActive.sapMFocusable,
-html.sap-desktop .sapMBtn:focus > .sapMBtnEmphasized.sapMBtnActive.sapMFocusable {
-	border-color: var(--sapContent_FocusColor);
-}
-
-// Value State Message buttons
-:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnCritical.sapMBtnActive {
-	border-color: var(--sapButton_Critical_BorderColor);
-}
-
-:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnNegative.sapMBtnActive {
-	border-color: var(--sapButton_Negative_BorderColor);
-}
-
-:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnSuccess.sapMBtnActive {
-	border-color: var(--sapButton_Success_BorderColor);
-}
-
 .sapMBtn:focus-visible > .sapMFocusable:not(.sapMBadgeIndicator)::before,
 html.sap-desktop .sapMBtn:focus > .sapMFocusable:not(.sapMBadgeIndicator)::before {
 	content: '';
@@ -698,6 +680,19 @@ html.sap-desktop .sapMBtn:focus > .sapMBtnSuccess.sapMFocusable:not(.sapMBtnActi
 
 .sapMBtn .sapMBtnNeutral.sapMBtnInner {
 	text-shadow: var(--sapContent_TextShadow);
+}
+
+// Value State Message buttons
+:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnCritical.sapMBtnActive {
+	border-color: var(--sapButton_Critical_BorderColor);
+}
+
+:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnNegative.sapMBtnActive {
+	border-color: var(--sapButton_Negative_BorderColor);
+}
+
+:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnSuccess.sapMBtnActive {
+	border-color: var(--sapButton_Success_BorderColor);
 }
 
 .sapMBtn {
@@ -2433,10 +2428,6 @@ large.sapUiSizeCompact .sapMGT.sapMGTLineMode,
 @_sap_m_IconTabBar_SelectedTextColor: var(--sapTab_Selected_Background);
 @_sap_m_IconTabBar_SelectedTextHoverColor: darken(@sapUiSelected, 10);
 @_sap_m_IconTabBar_ArrowScroll_AfterHeight: 1px;
-@_sap_m_IconTabBar_HeaderFocusBorderTopOffset: -4px;
-@_sap_m_IconTabBar_HeaderFocusBorderBottomOffset: -4px;
-@_sap_m_IconTabBar_HeaderFocusBorderRightOffset: -3px;
-@_sap_m_IconTabBar_HeaderFocusBorderLeftOffset: -3px;
 @_sap_m_IconTabBar_HeaderBorderRadius: 0.25rem;
 @_sap_m_IconTab_Bar_Separator_Line: var(--sapGroup_TitleBorderColor);
 
@@ -3131,10 +3122,6 @@ html.sap-desktop {
 			left: -1px !important;
 		}
 	}
-}
-
-.sapMITBFilter .sapMITBText {
-	font-weight: bold;
 }
 
 /* ------------------------------------------------ */
@@ -7413,7 +7400,7 @@ html.sap-desktop .sapMSlt.sapMSltFocused:not(.sapMSltExpanded):not(.sapMSltDisab
 	background-size: 100% var(--sapField_InvalidBorderWidth);
 	background-repeat: repeat-x;
 	background-position: bottom;
-	background-color: var(--sapField_InvalidBackgroundStyle);
+	background-color: var(--sapField_InvalidBackground);
 	box-shadow: var(--sapField_InvalidShadow);
 }
 

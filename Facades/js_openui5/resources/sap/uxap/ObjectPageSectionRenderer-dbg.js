@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -61,8 +61,6 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 		}
 
 		oRm.openStart("div", oControl.getId() + "-header")
-			.attr("role", "heading")
-			.attr("aria-level", oControl._getARIALevel())
 			.class("sapUxAPObjectPageSectionHeader")
 			.class(bTitleAriaHidden ? "sapUxAPObjectPageSectionHeaderHidden" : "")
 			.class(bHasMoreThanOneVisibleSubSection && !bShouldDisplayButtonsInHeader ? "sapUxAPObjectPageSectionHeaderCompact" : "");

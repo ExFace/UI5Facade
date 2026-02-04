@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -2462,11 +2462,7 @@ span.sapMBtnInner.sapMBtnEmphasized {
 	border-color: var(--sapButton_Emphasized_Active_BorderColor);
 	text-shadow: none;
 	font-weight: var(--sapButton_Emphasized_FontWeight);
-	color: var(--sapButton_Emphasized_TextColor);
-
-	bdi {
-		color: var(--sapButton_Active_TextColor);
-	}
+	color: var(--sapButton_Emphasized_Active_TextColor);
 }
 
 .sapMBtn .sapMBtnCritical,
@@ -6373,7 +6369,7 @@ html.sap-desktop .sapMFC:focus:not([tabindex]) {
 /* =================================== */
 
 .sapMFeedListItem {
-	display: flex;
+	display: block;
 }
 
 .sapMFeedListItem .sapUiSelectable > * {
@@ -6475,8 +6471,7 @@ html.sap-desktop .sapMFC:focus:not([tabindex]) {
 
 html.sap-tablet .sapMFeedListItemHasFigure,
 html.sap-desktop .sapMFeedListItemHasFigure {
-	margin-left: 1rem;
-	width: 100%;
+	margin-left: 3.75rem;
 }
 
 .sapMFeedListItemTextText {
@@ -6644,7 +6639,6 @@ html.sap-tablet .sapMFeedListItem .sapMLnk:focus {
 /* Allow image outline(-left) to be rendered completely */
 .sapMFeedListShowSeparatorsAll .sapMFeedListItem {
 	padding-left: 1rem;
-	padding-right: 1rem;
 }
 
 .sapMFeedListItemTitleDiv.sapMLIB {
@@ -9663,13 +9657,6 @@ html[data-sap-ui-browser*='ff'] {
 	margin-bottom: 0.5rem;
 }
 
-.sapMGTPriorityBadge,
-.sapMGTBackgroundBadge .sapMGTPriorityBadge {
-	height: 1.625rem;
-	cursor: not-allowed;
-	pointer-events: none;
-}
-
 .sapMGTArticleMode {
 	display: flex;
 	flex-direction: column;
@@ -9679,6 +9666,7 @@ html[data-sap-ui-browser*='ff'] {
 
 		.sapMGTPriorityBadge {
 			display: flex;
+			flex-shrink: 0;
 			padding-top: 0;
 			padding-bottom: 0.5rem;
 		}
@@ -11287,10 +11275,10 @@ html.sap-desktop .sapMHrdrCntrInner:focus {
 @_sap_m_IconTabBar_ShellOverflowBorderColor: transparent;
 @_sap_m_IconTabBar_ShellOverflowHoverBorderColor: transparent;
 @_sap_m_IconTabBar_ShellOverflowPressedBorderColor: var(--sapShell_Navigation_Active_Background);
-@_sap_m_IconTabBar_HeaderFocusBorderTopOffset: -1px;
-@_sap_m_IconTabBar_HeaderFocusBorderBottomOffset: -1px;
-@_sap_m_IconTabBar_HeaderFocusBorderRightOffset: -1px;
-@_sap_m_IconTabBar_HeaderFocusBorderLeftOffset: -1px;
+@_sap_m_IconTabBar_HeaderFocusBorderTopOffset: -4px;
+@_sap_m_IconTabBar_HeaderFocusBorderBottomOffset: -4px;
+@_sap_m_IconTabBar_HeaderFocusBorderRightOffset: -3px;
+@_sap_m_IconTabBar_HeaderFocusBorderLeftOffset: -3px;
 @_sap_m_IconTabBar_HeaderBorderRadius: 0px;
 @_sap_m_IconTabBar_Filter_Expand_Shell_BackgroundColor_Hover: var(--sapShell_Hover_Background);
 @_sap_m_IconTabBar_Filter_Expand_Shell_BorderColor_Hover: transparent;
@@ -13165,7 +13153,7 @@ html[data-sap-ui-animation='off'] {
 	}
 
 	.sapMIllustratedMessageDescription {
-		font-size: @sapFontSize;
+		font-size: var(--sapFontSize);
 		font-family: var(--sapFontFamily);
 		color: var(--sapTextColor);
 	}
@@ -13294,12 +13282,11 @@ html[data-sap-ui-animation='off'] {
 
 		.sapMTitle {
 			margin-bottom: 1rem;
-			font-size: var(--sapMFontHeader2Size);
+			font-size: var(--sapFontHeader2Size);
 		}
 
 		.sapMIllustratedMessageDescription {
 			margin-bottom: 0.5rem;
-			font-size: var(--sapMFontLargeSize);
 		}
 
 		.sapMIllustratedMessageAdditionalContent {
@@ -14674,7 +14661,7 @@ td.sapUiFormElementLbl:not(.sapUiGridLabelFull) > .sapMLabel {
 	max-height: 100%;
 	border-radius: var(--sapElement_BorderCornerRadius);
 	background-color: @_sap_m_LightBox_ContainerBackground;
-	box-shadow: @sapUiShadowLevel3;
+	box-shadow: var(--sapContent_Shadow3);
 	outline: none;
 }
 
@@ -21635,6 +21622,7 @@ html.sap-desktop .sapMP13nColumnsPanel .sapMLIBSelected:not(.sapMLIBActive):not(
 /* text should be centered vertically */
 .sapMSelectionPanelFilters {
 	display: flex;
+	font-family: var(--sapFontFamily) !important;
 }
 /* END "p13n.SelectionPanel.less" */
 
@@ -22547,7 +22535,7 @@ html.sap-desktop .sapUiFioriObjectPage > section > .sapMPanel {
 }
 .sapMPlanCal .sapMListBGTransparent .sapMLIB:not(.sapMLIBActive):not(.sapMLIBSelected):not(:hover),
 .sapMPlanCal .sapMListBGTranslucent .sapMLIB:not(.sapMLIBActive):not(.sapMLIBSelected):not(:hover),
-.sapMPlanCal .sapMListBGSolid .sapMLIB:not(.sapMLIBActive):not(.sapMLIBSelected):not(:hover) {
+.sapMPlanCal .sapMListBGSolid .sapMLIB:not(.sapMLIBActive):not(.sapMLIBSelected) {
 	background: transparent;
 }
 
@@ -22855,9 +22843,13 @@ html.sapUiMedia-Std-Phone:not(.sapUiMedia-Std-Tablet) {
 	max-height: 100%;
 	background: var(--sapGroup_ContentBackground);
 	border: none;
-	box-shadow: var(--sapContent_Shadow2);
+	box-shadow: var(--sapContent_Shadow1);
 	border-radius: 0.25rem;
 	min-height: 2rem;
+}
+
+.sapMPopover.sapMPopoverWithArrow {
+	box-shadow: var(--sapContent_Shadow2);
 }
 
 .sapMPopoverHeader .sapMTitle {
@@ -25356,6 +25348,20 @@ html[data-sap-ui-os^='Android'] {
 
 		.sapMSelectListRow {
 			max-width: 600px;
+		}
+	}
+}
+
+/* When wrapItemsText is true, make the picker fit its content width */
+.sapMSltPicker-CTX.sapMPickerWrappedItems {
+	max-width: max-content;
+	width: fit-content;
+
+	.sapMSelectList.sapMSelectListWrappedItems {
+		width: fit-content;
+
+		.sapMSelectListTableLayout {
+			width: auto;
 		}
 	}
 }
@@ -28065,6 +28071,114 @@ html.sap-phone {
 	}
 }
 
+.sapMST.sapMSTPhone.Stretch {
+	.sapMSTIconClickTapArea{
+		top: 0.5rem;
+		left: 0.5rem;
+	}
+	.sapMSTIconDisplayArea {
+		top: 0.5rem;
+		right: 0.5rem;
+	}
+	.sapMSTIconNestedArea {
+		top: 0.5rem;
+		right: 0.5rem;
+	}
+	.sapMGT.sapMGT.Stretch.sapMGTArticleMode.sapMGTBackgroundImage{
+		.sapMGTHdrContent {
+			height: 4rem;
+			.sapMGTBackgroundBadge {
+				margin-bottom: 0.3125rem;
+			}
+		}
+		.sapMTileCnt.News {
+			.sapMTileCntContent {
+				margin-top: 0.25rem;
+			}
+		}
+	}
+}
+
+.sapMST.Stretch.sapMSTLargeScreen {
+	.sapMGT.Stretch.sapMGTArticleMode.sapMGTBackgroundImage {
+		.sapMGTHdrContent {
+			position: absolute;
+			top: 0;
+			right: 0;
+			width: 50%;
+			height: 100%;
+			background-size: cover;
+			background-position: center center;
+			background-repeat: no-repeat;
+			z-index: 0;
+			padding: 0;
+		}
+		.sapMGTContent {
+			width: 50%;
+			margin: 0;
+			.sapMTileCnt.News {
+				margin: 0;
+				.sapMObjStatus {
+					top: 1.5rem;
+					left: 1.5rem;
+				}
+				.sapMTileCntContent {
+					margin: 0;
+    				padding: 3.375rem 1.5rem 0 1.5rem;
+				}
+			}
+		}
+	}
+	.sapMSTBulleted {
+		left: 25%;
+		transform: translateX(-50%);
+	}
+	.sapMSTIconClickTapArea {
+		top: 1.5rem;
+		right: 1.5rem;
+	}
+	.sapMSTIconDisplayArea {
+		top: 1.5rem;
+		right: 1.5rem;
+	}
+	.sapMSTIconNestedArea {
+		top: 1.5rem;
+		right: 1.5rem;
+	}
+}
+
+.sapMST.Stretch {
+	.sapMGT.Stretch.sapMGTArticleMode.sapMGTBackgroundImage {
+		.sapMGTContent {
+			overflow: initial;
+			.sapMTileCnt.News {
+				.sapMObjStatus {
+					position: absolute;
+					top: -2rem;
+					left: 0.5rem;
+					padding-bottom: 0;
+				}
+				.sapMTileCntContent {
+					margin-top: 0.5rem;
+				}
+			}
+		}
+	}
+	.sapMSTIconClickTapArea {
+		top: 1rem;
+		right: 1rem;
+	}
+	.sapMSTIconDisplayArea {
+		top: 1rem;
+		right: 1rem;
+	}
+	.sapMSTIconNestedArea {
+		top: 1rem;
+		right: 1rem;
+	}
+}
+
+
 .sapMST {
 
 	.sapMGT.sapMGTStateLoading {
@@ -28680,7 +28794,6 @@ html.sap-tablet .sapMST .sapMSTIconClickTapArea {
 	width: 20rem;
 	float: left;
 	left: 0;
-	z-index: 1;
 	background-color: var(--sapGroup_ContentBackground);
 	border-right: 0.0625rem solid var(--sapGroup_ContentBorderColor);
 }
@@ -28706,7 +28819,7 @@ html.sap-tablet .sapMST .sapMSTIconClickTapArea {
 	z-index: 5;
 	top: 0;
 	height: 100%;
-	box-shadow: @sapUiShadowLevel2;
+	box-shadow: var(--sapContent_Shadow2);
 	border-right: var(--sapGroup_ContentBorderColor);
 	background-clip: padding-box;
 }
@@ -28731,7 +28844,7 @@ html.sap-tablet .sapMST .sapMSTIconClickTapArea {
 .sapMSplitContainerHideMode > .sapMSplitContainerMasterHidden {
 	transform: translate3d(-330px,0,0);
 	transition: all 300ms;
-	box-shadow: @sapUiShadowLevel2;
+	box-shadow: var(--sapContent_Shadow2);
 	visibility: hidden;
 }
 
@@ -32193,22 +32306,11 @@ html.sap-phone .sapMTC .sapMTCEdgeRight {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	user-select: none;
-	box-shadow: @sapUiShadowLevel1 !important; /* Need to override this with important because of popover stronger selectors */
 
 	.sapMTPClocksContainer .sapMSegB .sapMSegBBtn .sapMSegBBtnInner {
 		text-overflow: initial;
 	}
 
-}
-
-/* COMPACT MODE STYLES */
-
-.sapUiSizeCompact {
-
-	/* TimePicker Dropdown */
-	.sapMTimePickerDropDown {
-		box-shadow: @sapUiShadowLevel1 !important; /* Need to override this with important because of popover stronger selectors */
-	}
 }
 
 /* PHONE STYLES */
