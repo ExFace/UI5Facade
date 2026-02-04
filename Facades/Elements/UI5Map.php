@@ -5,11 +5,11 @@ use exface\Core\Actions\ReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\LeafletTrait;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Parts\Maps\Interfaces\DataMapLayerInterface;
+use exface\Core\Widgets\Parts\Maps\Interfaces\DataSelectionMapLayerInterface;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\StringDataType;
-use exface\Core\Widgets\Parts\Maps\DataSelectionMarkerLayer;
 use exface\Core\Interfaces\Widgets\iUseData;
 use exface\Core\CommonLogic\DataSheets\DataColumn;
 use exface\Core\Factories\WidgetFactory;
@@ -432,7 +432,7 @@ JS;
                 if ($link) {
                     $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
                     if ($linked_element) {
-                        if ($layer instanceof DataSelectionMarkerLayer) {
+                        if ($layer instanceof DataSelectionMapLayerInterface) {
                             $linked_element->addOnSelectScript($this->buildJsLeafletRefresh($layer, 'linked_selection_changed'));
                         } else {
                             $linked_element->addOnRefreshScript("setTimeout(function(){ {$this->buildJsLeafletRefresh($layer, 'linked_data_changed')} }, 100);");

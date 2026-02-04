@@ -132,10 +132,14 @@ JS
                 setTimeout(() => {
                     let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
                     let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                    // attach listener for changes 
                     if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
-                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount("{$this->getId()}", {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn));
+                        exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
                     }
                 }, 0);
+
+                
                     
 JS, false);
 
@@ -193,6 +197,37 @@ JS, false);
         }
   
         switch (true) {
+            case $functionName === DataTable::FUNCTION_CLEAR_APPLIED_SETUP:
+                return <<<JS
+                /*
+                    check if the deleted setup is the one currently applied. If so, clear it from the dexie db and reset the table
+
+                    Parameters: None
+                */
+
+                (function () {
+                    if ({$jsRequestData} !== null && {$jsRequestData}.rows[0] === undefined){
+                        return;
+                    }
+
+                    // if the deleted setup is the one currently saved in dexie for this page and widget,
+                    // delete it and reset the table to original state
+                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}')
+                    .then(entry => {
+                        if (entry && entry.setup_uid === {$jsRequestData}.rows[0]['UID']) {
+                            // delete from dexie db
+                            exfSetupManager.dexie.deleteCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}');
+
+                            // reset table
+                            let oP13nDialogResetBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                            if (oP13nDialogResetBtn){
+                                oP13nDialogResetBtn.firePress();
+                            }
+                        }
+                    });
+                })();
+                
+JS;
             case $functionName === DataTable::FUNCTION_RESET_CHANGE_TRACKING:
                 return <<<JS
                 /*

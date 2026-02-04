@@ -168,7 +168,7 @@
 	"LIBS.LEAFLET.GEOMAN.JS": "npm-asset/geoman-io--leaflet-geoman-free/dist/leaflet-geoman.min.js",
 	"LIBS.LEAFLET.GEOMAN.CSS": "npm-asset/geoman-io--leaflet-geoman-free/dist/leaflet-geoman.css",
 	"LIBS.LEAFLET.PROJ4.PROJ4LEAFLETJS": "npm-asset/proj4leaflet/src/proj4leaflet.js",
-	"LIBS.LEAFLET.TRUF.JS": "exface/core/Facades/AbstractAjaxFacade/js/leaflet/turf.min.js",
+	"LIBS.LEAFLET.TURF.JS": "exface/core/Facades/AbstractAjaxFacade/js/leaflet/turf.min.js",
 	
 	"LIBS.FONT_AWESOME.CSS": "bower-asset/font-awesome/css/font-awesome.min.css",
     "LIBS.FONT_AWESOME.PLUGIN": "bower-asset/font-awesome-openui5/dist/font-awesome-openui5.min",
