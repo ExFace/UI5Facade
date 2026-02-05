@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-step-input</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @since 1.74
@@ -36,7 +36,7 @@ sap.ui.define([
 	};
 
 	UI5InputNumber.prototype.internalRender = function () {
-		this._numberInputElement = document.createElement("ui5-step-input");
+		this._numberInputElement = document.createElement("ui5-step-input-ac");
 
 		this._numberInputElement.id = this.id;
 		this._numberInputElement.placeholder = this.placeholder || "";
@@ -67,7 +67,7 @@ sap.ui.define([
 
 	UI5InputNumber.prototype.showValidationErrorMessage = function () {
 		if (this.renderedInputControlElement) {
-			this.renderedInputControlElement.valueState = "Error";
+			this.renderedInputControlElement.valueState = "Negative";
 		}
 	};
 

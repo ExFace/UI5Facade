@@ -8,15 +8,20 @@ sap.ui.define([
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/fl/apply/_internal/controlVariants/Utils",
 	"sap/ui/fl/apply/_internal/flexObjects/FlexObjectFactory",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/apply/_internal/flexObjects/States",
+	"sap/ui/fl/initial/_internal/FlexInfoSession",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
 	"sap/ui/fl/write/_internal/Storage",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], (
 	JsControlTreeModifier,
 	ControlVariantsUtils,
 	FlexObjectFactory,
+	States,
+	FlexInfoSession,
 	ManifestUtils,
 	FlexObjectManager,
 	Storage,
@@ -31,7 +36,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias module:sap/ui/fl/write/api/BusinessNetworkAPI
 	 * @since 1.135
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted SAP Business Network
 	 */
@@ -45,7 +50,7 @@ sap.ui.define([
 	 * @param {string} mPropertyBag.variantManagementReference - Reference to the variant management control
 	 * @param {string} mPropertyBag.variantName - Name of the new variant
 	 * @param {string} mPropertyBag.reference - Flex reference of the app the variant belongs to
-	 * @param {string} [mPropertyBag.id] - Id of the new variant
+	 * @param {string} [mPropertyBag.id] - ID of the new variant
 	 * @param {string} [mPropertyBag.variantReference] - Reference to the variant the new one should be based on
 	 * @param {sap.ui.fl.Layer} [mPropertyBag.layer="CUSTOMER"] - Layer of the new variant
 	 * @param {string} [mPropertyBag.generator="BusinessNetworkAPI.createVariant"] - Generator of the new variant
@@ -66,11 +71,13 @@ sap.ui.define([
 			generator: mPropertyBag.generator || "BusinessNetworkAPI.createVariant"
 		};
 
-		const aFlexObjects = [FlexObjectFactory.createFlVariant(mProperties).convertToFileContent()];
+		const aFlexObjects = [FlexObjectFactory.createFlVariant(mProperties)];
 
-		const oResponse = await Storage.write({
-			layer: mProperties.layer,
-			flexObjects: aFlexObjects
+		const oResponse = await Storage.condense({
+			layer: mPropertyBag.layer || Layer.CUSTOMER,
+			reference: mPropertyBag.reference,
+			allChanges: aFlexObjects,
+			condensedChanges: aFlexObjects
 		});
 		return oResponse.response;
 	};
@@ -81,7 +88,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag - Object with parameters as properties
 	 * @param {sap.ui.fl.variants.VariantManagement} mPropertyBag.control - Variant Management control instance
 	 * @param {string} mPropertyBag.variantName - Name of the new variant
-	 * @param {string} [mPropertyBag.id] - Id of the new variant
+	 * @param {string} [mPropertyBag.id] - ID of the new variant
 	 * @param {string} [mPropertyBag.variantReference] - Reference to the variant the new one should be based on.
 	 * If non is given, the new variant will be based on the standard variant
 	 * @param {sap.ui.fl.Layer} [mPropertyBag.layer="USER"] - Layer of the new variant
@@ -114,7 +121,7 @@ sap.ui.define([
 				defaultVariant: mProperties.variantReference
 			}
 		}));
-		FlexObjectManager.addDirtyFlexObjects(sReference, aFlexObjects);
+		FlexObjectManager.addDirtyFlexObjects(sReference, oAppComponent.getId(), aFlexObjects);
 		return aFlexObjects;
 	};
 
@@ -122,7 +129,7 @@ sap.ui.define([
 	 * Saves all the changes.
 	 *
 	 * @param {sap.ui.core.Element} oControl - Control instance
-	 * @returns {Promise<sap.ui.fl.apply._internal.flexObjects.FlexObject[]>} All saved Flex objects
+	 * @returns {Promise<sap.ui.fl.apply._internal.flexObjects.FlexObject[]>} Resolves with all saved Flex Objects
 	 * @private
 	 * @ui5-restricted SAP Business Network
 	 */
@@ -130,6 +137,86 @@ sap.ui.define([
 		return FlexObjectManager.saveFlexObjects({
 			selector: oControl,
 			includeCtrlVariants: true
+		});
+	};
+
+	/**
+	 * Set the max layer to CUSTOMER to disable personalization.
+	 *
+	 * @param {string} sReference - Flex reference of the app
+	 * @throws {Error} If the provided reference is invalid
+	 * @private
+	 * @ui5-restricted SAP Business Network
+	 */
+	BusinessNetworkAPI.disablePersonalization = function(sReference) {
+		const oFlexInfoSession = FlexInfoSession.getByReference(sReference);
+		if (!oFlexInfoSession || Object.keys(oFlexInfoSession).length === 0) {
+			throw new Error(`Invalid reference provided: ${sReference}`);
+		}
+
+		oFlexInfoSession.maxLayer = Layer.CUSTOMER;
+		// The flag can't be cleared here because the app is started in a different flow. But not clearing the flag will only have an effect
+		// if the user would start the app again in that session, which is not a supported scenario.
+		oFlexInfoSession.saveChangeKeepSession = true;
+		FlexInfoSession.setByReference(oFlexInfoSession, sReference);
+		window.sessionStorage.setItem("sap.ui.rta.skipReload", true);
+	};
+
+	/**
+	 * Deletes a list of control variants and their associated changes, and saves.
+	 * This API method does not need a running application.
+	 *
+	 * @param {object} mPropertyBag - Object with parameters as properties
+	 * @param {string} mPropertyBag.reference - Flex reference of the app the variant belongs to
+	 * @param {string[]} mPropertyBag.variants - Variant IDs to be deleted
+	 * @param {sap.ui.fl.Layer} [mPropertyBag.layer="CUSTOMER"] - Layer of the variants to be deleted
+	 * @returns {Promise<sap.ui.fl.apply._internal.flexObjects.FlexObject[]>} Resolves with an array of Flex Objects that were deleted
+	 * @private
+	 * @ui5-restricted SAP Business Network
+	 */
+	BusinessNetworkAPI.deleteVariants = async function(mPropertyBag) {
+		const sLayer = mPropertyBag.layer || Layer.CUSTOMER;
+		const sNamespaceSubfolder = "variants";
+		const aDeletedVariants = mPropertyBag.variants
+		.map((sVariantId) => {
+			return {
+				fileName: sVariantId,
+				fileType: "ctrl_variant",
+				layer: sLayer,
+				reference: mPropertyBag.reference,
+				namespace: `apps/${mPropertyBag.reference}/${sNamespaceSubfolder}/`
+			};
+		})
+		.map((mChangeProperties) => FlexObjectFactory.createFromFileContent(mChangeProperties));
+		aDeletedVariants.forEach((oVariant) => {
+			oVariant.condenserState = "delete";
+			oVariant.setState(States.LifecycleState.DELETED);
+		});
+
+		await Storage.condense({
+			layer: sLayer,
+			reference: mPropertyBag.reference,
+			allChanges: aDeletedVariants,
+			condensedChanges: aDeletedVariants
+		});
+	};
+
+	/**
+	 * Deletes all USER layer variants for a given variant management.
+	 * This API method does not need a running application.
+	 *
+	 * @param {object} mPropertyBag - Object with parameters as properties
+	 * @param {string} mPropertyBag.reference - Flex reference of the app
+	 * @param {string} mPropertyBag.variantManagementReference - Reference of the variant management control
+	 * @returns {Promise<undefined>} Resolves when all variants are deleted
+	 * @private
+	 * @ui5-restricted SAP Business Network
+	 */
+	BusinessNetworkAPI.resetPersonalizationVariants = function(mPropertyBag) {
+		return Storage.deleteUserVariantsForVM({
+			flexReference: mPropertyBag.reference,
+			variantManagementReferences: [mPropertyBag.variantManagementReference],
+			layer: Layer.USER
 		});
 	};
 

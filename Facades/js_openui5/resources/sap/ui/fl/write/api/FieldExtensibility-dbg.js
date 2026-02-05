@@ -6,14 +6,9 @@
 
 sap.ui.define([
 	"sap/ui/fl/write/_internal/fieldExtensibility/ABAPAccess",
-	"sap/ui/fl/write/_internal/fieldExtensibility/cap/CAPAccess",
-	"sap/ui/base/ManagedObject",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/write/_internal/init"
 ], function(
-	ABAPAccess,
-	CAPAccess,
-	ManagedObject,
-	FlUtils
+	ABAPAccess
 ) {
 	"use strict";
 
@@ -22,7 +17,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write.api.FieldExtensibility
 	 * @since 1.87
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.rta, sap.ui.mdc
 	 */
@@ -31,29 +26,16 @@ sap.ui.define([
 
 	var _oCurrentScenario;
 
-	function getImplementationForCurrentScenario(oControl) {
-		if (!_oCurrentScenario) {
-			if (!(oControl instanceof ManagedObject)) {
-				return undefined;
-			}
-			var oAppComponent = FlUtils.getAppComponentForControl(oControl);
-			var oManifestConfig = (oAppComponent && oAppComponent.getManifestEntry("/sap.ui5/config")) || {};
-			var oUriParams = new URLSearchParams(window.location.search);
-			if (
-				oManifestConfig.experimentalCAPScenario
-				|| oUriParams.get("sap-ui-fl-xx-capScenario") === "true"
-			) {
-				_oCurrentScenario = CAPAccess;
-			} else {
-				_oCurrentScenario = ABAPAccess;
-			}
-		}
+	function getImplementationForCurrentScenario() {
+		// currently there is only one case, but here would be the differentiation between the scenarios (CAP, ABAP, ...)
+		_oCurrentScenario ||= ABAPAccess;
+
 		return _oCurrentScenario;
 	}
 
 	function callFunctionInImplementation(...aArgs) {
-		var sFunctionName = aArgs.shift();
-		var oImplementation = getImplementationForCurrentScenario(...aArgs);
+		const sFunctionName = aArgs.shift();
+		const oImplementation = getImplementationForCurrentScenario();
 		if (!oImplementation) {
 			return Promise.reject("Could not determine field extensibility scenario");
 		}

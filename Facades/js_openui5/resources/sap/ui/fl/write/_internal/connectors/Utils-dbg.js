@@ -16,7 +16,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.Utils
 	 * @since 1.70
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.connectors, sap.ui.fl.write._internal.transport
 	 */
@@ -25,7 +25,7 @@ sap.ui.define([
 		if (mPropertyBag.initialConnector) {
 			delete mPropertyBag.initialConnector.xsrfToken;
 		}
-		return Utils.sendRequest(mPropertyBag.tokenUrl, "HEAD", {initialConnector: mPropertyBag.initialConnector})
+		return Utils.sendRequest(mPropertyBag.tokenUrl, "HEAD", { initialConnector: mPropertyBag.initialConnector })
 		.then(Utils.sendRequest.bind(undefined, sUrl, sMethod, mPropertyBag));
 	}
 

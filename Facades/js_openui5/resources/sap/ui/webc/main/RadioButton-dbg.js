@@ -39,7 +39,7 @@ sap.ui.define([
 	 * <b>Note:</b> On entering radio button group, the focus goes to the currently selected radio button.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

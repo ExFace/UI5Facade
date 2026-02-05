@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @alias sap.ui.mdc.Control
 	 *
 	 * @borrows sap.ui.mdc.mixin.DelegateMixin.awaitControlDelegate as #awaitControlDelegate

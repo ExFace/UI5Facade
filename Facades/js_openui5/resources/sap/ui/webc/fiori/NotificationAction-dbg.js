@@ -28,7 +28,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.fiori.NotificationAction</code> represents an abstract action, used in the <code>sap.ui.webc.fiori.NotificationListItem</code> and the <code>sap.ui.webc.fiori.NotificationListGroupItem</code> items.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

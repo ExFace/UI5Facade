@@ -12,7 +12,7 @@ sap.ui.define([], function() {
 	 *
 	 * @name sap.ui.fl.interfaces.BaseLoadConnector
 	 * @since 1.79
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @ui5-restricted SAP Web IDE (Visual Editor), UX Tools

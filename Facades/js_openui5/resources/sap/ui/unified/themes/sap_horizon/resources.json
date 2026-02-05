@@ -8,25 +8,25 @@
 		},
 		{
 			"name": "Calendar.less",
-			"size": 32502,
+			"size": 31622,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "CalendarLegend.less",
-			"size": 1831,
+			"size": 1870,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 5148,
+			"size": 4546,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "ColorPicker.less",
-			"size": 4405,
+			"size": 4454,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -42,53 +42,53 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 1851,
+			"size": 1518,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "Menu.less",
-			"size": 2506,
+			"size": 2544,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 750,
+			"size": 850,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 1338,
+			"size": 1308,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 663,
+			"size": 790,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 185168,
+			"size": 197434,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/unified/themes/sap_horizon/library-parameters.json",
-			"size": 8053,
+			"size": 8825,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.css",
-			"size": 185043,
+			"size": 197325,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 52051,
+			"size": 50559,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},

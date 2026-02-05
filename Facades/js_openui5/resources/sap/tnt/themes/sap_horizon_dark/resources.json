@@ -8,53 +8,53 @@
 		},
 		{
 			"name": "InfoLabel.less",
-			"size": 2426,
+			"size": 2506,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 3809,
+			"size": 3729,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "SideNavigation.less",
-			"size": 943,
+			"size": 844,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ToolHeader.less",
-			"size": 6775,
+			"size": 7498,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ToolPage.less",
-			"size": 699,
+			"size": 651,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 43932,
+			"size": 46977,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_horizon_dark/library-parameters.json",
-			"size": 7638,
+			"size": 8019,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 43924,
+			"size": 46969,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 15582,
+			"size": 16158,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},

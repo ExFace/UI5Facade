@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 677,
+			"size": 763,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -92,13 +92,13 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 21240,
+			"size": 21251,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "Carousel.less",
-			"size": 13415,
+			"size": 13420,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -170,7 +170,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 600,
+			"size": 683,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -410,7 +410,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 1928,
+			"size": 2013,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -794,7 +794,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 3773,
+			"size": 3858,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -878,13 +878,13 @@
 		},
 		{
 			"name": "Tile.less",
-			"size": 1579,
+			"size": 1656,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 5917,
+			"size": 6003,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -896,7 +896,7 @@
 		},
 		{
 			"name": "TimePicker.less",
-			"size": 1123,
+			"size": 1265,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -974,13 +974,13 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 12608,
+			"size": 12697,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "UploadSet.less",
-			"size": 2287,
+			"size": 2377,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -1046,23 +1046,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 677461,
+			"size": 677439,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_bluecrystal_base/library-parameters.json",
-			"size": 21395,
+			"size": 21394,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.css",
-			"size": 677460,
+			"size": 677437,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 755997,
+			"size": 756836,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

@@ -16,13 +16,13 @@ sap.ui.predefine("sap/ui/mdc/designtime/actiontoolbar/ActionToolbar.designtime",
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/mdc/designtime/actiontoolbar/ActionToolbarAction.designtime", ["sap/ui/mdc/actiontoolbar/ActionToolbarAction","../Util","sap/m/designtime/MenuButton.designtime"],(e,t,n)=>{"use strict";const i={description:"{description}",name:"{name}",aggregations:{action:{propagateMetadata:function(e){if(e.isA("sap.m.MenuButton")){return{actions:{remove:null,reveal:null,split:{CAUTION_variantIndependent:true},combine:{CAUTION_variantIndependent:true}}}}return{actions:{rename:{changeType:"rename",domRef:function(e){return e.$()},getTextMutators:function(e){return{getText:function(){return e.getDomRef().textContent},setText:function(t){e.getDomRef().textContent=t}}},CAUTION_variantIndependent:true},remove:null,reveal:null,combine:{CAUTION_variantIndependent:true}}}}}},properties:{},actions:{}};const o=["action"];const r=[];return t.getDesignTime(e,r,o,i)});
+sap.ui.predefine("sap/ui/mdc/designtime/actiontoolbar/ActionToolbarAction.designtime", ["sap/ui/mdc/actiontoolbar/ActionToolbarAction","../Util","sap/m/designtime/MenuButton.designtime"],(e,n,t)=>{"use strict";const i={description:"{description}",name:"{name}",aggregations:{action:{propagateMetadata:function(e){if(e.isA("sap.m.MenuButton")){return{actions:{remove:null,reveal:null,split:{CAUTION_variantIndependent:true},combine:{CAUTION_variantIndependent:true}}}}return{actions:{rename:{changeType:"rename",domRef:function(e){return e.$()},CAUTION_variantIndependent:true},remove:null,reveal:null,combine:{CAUTION_variantIndependent:true}}}}}},properties:{},actions:{}};const a=["action"];const r=[];return n.getDesignTime(e,r,a,i)});
 /*!
  * OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/mdc/designtime/chart/Chart.designtime", ["sap/m/p13n/Engine","sap/ui/mdc/Chart","../Util"],(e,n,t)=>{"use strict";const i={actions:{settings:{"sap.ui.mdc":function(n){return e.getInstance()._runWithPersistence(n,n=>({name:"p13nDialog.VIEW_SETTINGS",handler:function(n,t){const i=n.getP13nMode();const r=i.indexOf("Type");if(r>-1){i.splice(r,1)}if(n.isPropertyHelperFinal()){return e.getInstance().getRTASettingsActionHandler(n,t,i)}else{return n.finalizePropertyHelper().then(()=>e.getInstance().getRTASettingsActionHandler(n,t,i))}},CAUTION_variantIndependent:n}))}}},aggregations:{_toolbar:{propagateMetadata:function(e){return null}}}};const r=["_toolbar"],a=["headerLevel","headerVisible"];return t.getDesignTime(n,a,r,i)});
+sap.ui.predefine("sap/ui/mdc/designtime/chart/Chart.designtime", ["sap/m/p13n/Engine","sap/ui/mdc/Chart","../Util"],(e,n,t)=>{"use strict";const i={actions:{settings:{"sap.ui.mdc":function(n){const t=e.getInstance()._getKeyUserPersistence(n);return{name:"p13nDialog.VIEW_SETTINGS",handler:function(n,t){const i=n.getP13nMode();const r=i.indexOf("Type");if(r>-1){i.splice(r,1)}if(n.isPropertyHelperFinal()){return e.getInstance().getRTASettingsActionHandler(n,t,i)}else{return n.finalizePropertyHelper().then(()=>e.getInstance().getRTASettingsActionHandler(n,t,i))}},CAUTION_variantIndependent:t}}}},aggregations:{_toolbar:{propagateMetadata:function(e){return null}}}};const r=["_toolbar"],a=["headerLevel","headerVisible"];return t.getDesignTime(n,a,r,i)});
 /*!
  * OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
@@ -52,7 +52,7 @@ sap.ui.predefine("sap/ui/mdc/designtime/field/MultiValueField.designtime", [],()
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/mdc/designtime/filterbar/FilterBar.designtime", ["sap/m/p13n/Engine"],e=>{"use strict";return{actions:{settings:{"sap.ui.mdc":function(t){return e.getInstance()._runWithPersistence(t,t=>({name:"filterbar.ADAPT_TITLE",handler:function(t,n){return t.initializedWithMetadata().then(()=>e.getInstance().getRTASettingsActionHandler(t,n,"Item"))},CAUTION_variantIndependent:t}))}}},aggregations:{layout:{ignore:true},basicSearchField:{ignore:true},filterItems:{ignore:true}},properties:{showAdaptFiltersButton:{ignore:false},showClearButton:{ignore:false},p13nMode:{ignore:false}}}});
+sap.ui.predefine("sap/ui/mdc/designtime/filterbar/FilterBar.designtime", ["sap/m/p13n/Engine","sap/ui/core/Lib"],(e,t)=>{"use strict";return{actions:{settings:{"sap.ui.mdc":function(n){const r=e.getInstance()._getKeyUserPersistence(n);return{name:function(){return t.getResourceBundleFor("sap.ui.mdc").getText("filterbar.ADAPT_TITLE")},handler:function(t,n){return t.initializedWithMetadata().then(()=>e.getInstance().getRTASettingsActionHandler(t,n,"Item"))},CAUTION_variantIndependent:r}}}},aggregations:{layout:{ignore:true},basicSearchField:{ignore:true},filterItems:{ignore:true}},properties:{showAdaptFiltersButton:{ignore:false},showClearButton:{ignore:false},p13nMode:{ignore:false},enableLegacyUI:{ignore:true},adaptFiltersText:{ignore:true},adaptFiltersTextNonZero:{ignore:true}}}});
 /*!
  * OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
@@ -64,11 +64,17 @@ sap.ui.predefine("sap/ui/mdc/designtime/filterbar/FilterBarBase.designtime", [],
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+sap.ui.predefine("sap/ui/mdc/designtime/geomap/Geomap.designtime", ["sap/ui/mdc/Geomap","../Util"],(e,i)=>{"use strict";const s={actions:{},aggregations:{}};const t=["items"],a=["header","zoom"];return i.getDesignTime(e,a,t,s)});
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
 sap.ui.predefine("sap/ui/mdc/designtime/library.designtime", [],()=>{"use strict";return{}});
 /*!
  * OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/mdc/designtime/table/Table.designtime", ["sap/m/p13n/Engine","sap/ui/mdc/Table","../Util"],(e,t,n)=>{"use strict";const i={name:"{name}",description:"{description}",actions:{settings:{"sap.ui.mdc":function(t){return e.getInstance()._runWithPersistence(t,t=>({name:"p13nDialog.VIEW_SETTINGS",handler:function(t,n){return t.finalizePropertyHelper().then(()=>e.getInstance().getRTASettingsActionHandler(t,n,t.getActiveP13nModes()))},CAUTION_variantIndependent:t}))}}},properties:{},aggregations:{_content:{domRef:":sap-domref",propagateMetadata:function(e){if(e.isA("sap.ui.fl.variants.VariantManagement")||e.isA("sap.ui.mdc.ActionToolbar")||e.isA("sap.ui.mdc.actiontoolbar.ActionToolbarAction")||e.isA("sap.ui.mdc.Field")||e.getParent()&&(e.getParent().isA("sap.ui.mdc.actiontoolbar.ActionToolbarAction")||e.getParent().isA("sap.ui.mdc.Field"))){return null}return{actions:"not-adaptable"}}}}};const a=["width","headerLevel","header","headerVisible","showRowCount","threshold","enableExport","busyIndicatorDelay","enableColumnResize","showPasteButton","multiSelectMode"],o=["_content"];return n.getDesignTime(t,a,o,i)});
+sap.ui.predefine("sap/ui/mdc/designtime/table/Table.designtime", ["sap/m/p13n/Engine","sap/ui/mdc/Table","../Util"],(e,t,n)=>{"use strict";const a={name:{singular:"TABLE_NAME",plural:"TABLE_NAME_PLURAL"},description:"{description}",actions:{settings:{"sap.ui.mdc":function(t){const n=e.getInstance()._getKeyUserPersistence(t);return{name:"p13nDialog.VIEW_SETTINGS",handler:function(t,n){return t.finalizePropertyHelper().then(()=>e.getInstance().getRTASettingsActionHandler(t,n,t.getActiveP13nModes()))},CAUTION_variantIndependent:n}}}},properties:{},aggregations:{_content:{domRef:":sap-domref",propagateMetadata:function(e){if(e.isA("sap.ui.fl.variants.VariantManagement")||e.isA("sap.ui.mdc.ActionToolbar")||e.isA("sap.ui.mdc.actiontoolbar.ActionToolbarAction")||e.isA("sap.ui.mdc.Field")||e.getParent()&&(e.getParent().isA("sap.ui.mdc.actiontoolbar.ActionToolbarAction")||e.getParent().isA("sap.ui.mdc.Field"))){return null}return{actions:"not-adaptable"}}}}};const i=["width","headerLevel","header","headerVisible","showRowCount","threshold","enableExport","busyIndicatorDelay","enableColumnResize","showPasteButton","multiSelectMode"],o=["_content"];return n.getDesignTime(t,i,o,a)});
 //# sourceMappingURL=library-preload.designtime.js.map

@@ -20,18 +20,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 28255,
+			"size": 27924,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_bluecrystal/library-parameters.json",
-			"size": 5937,
+			"size": 6167,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.css",
-			"size": 28250,
+			"size": 27921,
 			"theme": "sap_bluecrystal"
 		},
 		{

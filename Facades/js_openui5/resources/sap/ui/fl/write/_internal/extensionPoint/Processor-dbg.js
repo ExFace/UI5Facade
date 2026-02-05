@@ -14,7 +14,7 @@ function(
 	"use strict";
 
 	function applyExtensionPoint(oExtensionPoint, bSkipInsertContent) {
-		var mExtensionPointInfo = merge({defaultContent: []}, oExtensionPoint);
+		var mExtensionPointInfo = merge({ defaultContent: [] }, oExtensionPoint);
 		return ApplyProcessor.registerExtensionPoint(mExtensionPointInfo)
 		.then(ApplyProcessor.createDefaultContent.bind(
 			this,
@@ -35,7 +35,7 @@ function(
 	 * @class
 	 * @constructor
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 */
 	var Processor = {
 		applyExtensionPoint(oExtensionPoint) {

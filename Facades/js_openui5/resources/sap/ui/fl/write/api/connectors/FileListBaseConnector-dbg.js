@@ -7,7 +7,8 @@ sap.ui.define([
 	"sap/base/util/merge",
 	"sap/base/util/LoaderExtensions",
 	"sap/ui/fl/initial/_internal/StorageUtils",
-	"sap/ui/fl/write/connectors/BaseConnector"
+	"sap/ui/fl/write/connectors/BaseConnector",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	merge,
 	LoaderExtensions,
@@ -29,7 +30,7 @@ sap.ui.define([
 	 */
 	return merge({}, BaseConnector, {
 		/**
-		 * @param {string} sReference - Application ID for which changes should be loaded
+		 * @param {string} sReference - Flexibility reference of the app
 		 * @returns {Promise<string[]>} List of URLs that should be requested and will contain a JSON of a flex object like changes,
 		 * i.e.: <code>["/some/url/id_12345_123_propertyChange.change", "/some/url/id_67890_456_.ctrl_variant", ...]</code>
 		 */

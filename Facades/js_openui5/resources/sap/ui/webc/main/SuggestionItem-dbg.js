@@ -28,7 +28,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.SuggestionItem</code> represents the suggestion item of the <code>sap.ui.webc.main.Input</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -42,9 +42,13 @@ sap.ui.define([
 	"./Manifest",
 	"./Merger",
 	"./Settings",
+	"./Constants",
 	"sap/m/FlexItemData",
 	"sap/m/FlexBox",
-	"sap/m/Button"
+	"sap/m/Button",
+	"sap/ui/core/UIArea",
+	"sap/m/Tree",
+	"sap/m/StandardTreeItem"
 ], function(
 	Localization,
 	Control,
@@ -80,12 +84,16 @@ sap.ui.define([
 	MessageStrip,
 	Separator,
 	ResourceModel,
-	EditorManifest,
+	Manifest,
 	Merger,
 	Settings,
+	Constants,
 	FlexItemData,
 	FlexBox,
-	Button
+	Button,
+	UIArea,
+	Tree,
+	StandardTreeItem
 ) {
 	"use strict";
 
@@ -133,7 +141,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.94
 	 * @private
@@ -150,7 +158,7 @@ sap.ui.define([
 				 */
 				mode: {
 					type: "string",
-					defaultValue: "admin"
+					defaultValue: Constants.EDITOR_MODE.ADMIN
 				},
 				language: {
 					type: "string",
@@ -232,7 +240,7 @@ sap.ui.define([
 			apiVersion: 2,
 			render: function (oRm, oControl) {
 				var oPreview = oControl.getAggregation("_preview");
-				var bShowPreview = oControl.getMode() !== "translation" && oControl.hasPreview();
+				var bShowPreview = oControl.getMode() !== Constants.EDITOR_MODE.TRANSLATION && oControl.hasPreview();
 				var sPreviewPosition = oControl.getPreviewPosition();
 				if (bShowPreview && (sPreviewPosition === "top" || sPreviewPosition === "bottom")) {
 					oRm.openStart("div", oControl);
@@ -258,15 +266,72 @@ sap.ui.define([
 					oRm.class("sapUiIntegrationEditor");
 					oRm.openEnd();
 				}
+				// render the Child editors tree
+				var oRef = oControl.getId() + "_childsTreeContainer";
+				var bChildTreeRendered;
+				var renderChildsTreePromise;
+				if (oControl.isFieldReady() && oControl._oChildTree) {
+					bChildTreeRendered = false;
+					// render the container for Child editors tree
+					oRm.openStart("div", oRef);
+					oRm.class("childsTreeContainer");
+					oRm.openEnd();
+					oRm.close("div");
+
+					// if the container is not rendered in body immediately by above codes, wait for it to be created
+					var waitForContainer = new Promise((resolve) => {
+						const observer = new MutationObserver((mutations, obs) => {
+							const container = document.getElementById(oRef);
+							if (container) {
+								obs.disconnect();
+								resolve(container);
+							}
+						});
+						observer.observe(document.body, {
+							childList: true,
+							subtree: true
+						});
+					});
+
+					// wait for the container to be created and then render the nodes tree
+					renderChildsTreePromise = waitForContainer.then((container) => {
+						// create a UIArea for the container and render the tree into it
+						var oUIArea = UIArea.create(oRef);
+						oUIArea.addContent(oControl._oChildTree);
+						// focus the selected item in the nodes tree
+						var expandTreeItemPromise = new Promise(function (resolve, reject) {
+							setTimeout(function () {
+								if (oControl._oChildTree._itemIndex) {
+									var oItem = oControl._oChildTree.getItems().find(function(item) {
+										return item.getBindingContext().getPath() === oControl._oChildTree._itemIndex;
+									});
+									if (oItem) {
+										oItem.focus();
+										if (!oItem.isLeaf() && !oItem.getExpanded()) {
+											oControl._oChildTree.expand(oControl._oChildTree.indexOfItem(oItem));
+										}
+									}
+								} else {
+									oControl._oChildTree.expand(0);
+								}
+								bChildTreeRendered = true;
+								setTimeout(function () {
+									resolve({});
+								}, 100);
+							}, 100);
+						});
+						return expandTreeItemPromise;
+					});
+				}
 				if (oControl.isFieldReady()) {
 					//surrounding div tag for form <div class="sapUiIntegrationEditorForm"
 					oRm.openStart("div");
 					oRm.class("sapUiIntegrationEditorForm");
-					if (oControl.getMode() !== "translation") {
+					if (oControl.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 						oRm.class("settingsButtonSpace");
 					}
 					oRm.openEnd();
-					if (oControl.getMode() !== "translation") {
+					if (oControl.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 						oRm.renderControl(oControl.getAggregation("_messageStrip"));
 					}
 					var oItems = oControl.getAggregation("_formContent");
@@ -354,7 +419,7 @@ sap.ui.define([
 						};
 						for (var i = 0; i < oItems.length; i++) {
 							var oItem = oItems[i];
-							if (oControl.getMode() !== "translation") {
+							if (oControl.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 								if (oItem.isA("sap.ui.integration.editor.fields.GroupField")) {
 									var oGroupControl = oItem.getAggregation("_field");
 									if (!oGroupControl) {
@@ -868,9 +933,27 @@ sap.ui.define([
 							oControl._aFieldDataReadyPromise = [];
 							// check ready status again since this is in async promise
 							if (!oControl.isReady()) {
+								if (bChildTreeRendered === false && renderChildsTreePromise) {
+									renderChildsTreePromise.then(function() {
+										// add a timeout to make sure all UI updates are done before firing ready
+										setTimeout(function () {
+											oControl._ready = true;
+											oControl.fireReady();
+										}, 200);
+									});
+								} else {
+									oControl._ready = true;
+									oControl.fireReady();
+								}
+							}
+						});
+					} else if (bChildTreeRendered === false && renderChildsTreePromise) {
+						renderChildsTreePromise.then(function() {
+							// add a timeout to make sure all UI updates are done before firing ready
+							setTimeout(function () {
 								oControl._ready = true;
 								oControl.fireReady();
-							}
+							}, 200);
 						});
 					} else {
 						oControl._ready = true;
@@ -894,8 +977,9 @@ sap.ui.define([
 		this._aFieldReadyPromise = [];
 		this._aFieldDataReadyPromise = [];
 		this._oResourceBundle = Library.getResourceBundleFor("sap.ui.integration", Utils._language);
-		this._appliedLayerManifestChanges = [];
-		this._currentLayerManifestChanges = {};
+		this._aAppliedLayerChanges = [];
+		this._oBeforeLayerChange = {};
+		this._oCurrentLayerChange = {};
 		this._mDestinationDataProviders = {};
 		var oMessageStrip = new MessageStrip(this.getId() + MessageStripId, {
 			showIcon: false
@@ -911,7 +995,7 @@ sap.ui.define([
 		 * @experimental since 1.94
 		 * @public
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @borrows sap.ui.integration.editor.Editor#getParameters as getParameters
 		 * @borrows sap.ui.integration.editor.Editor#resolveDestination as resolveDestination
 		 * @borrows sap.ui.integration.editor.Editor#request as request
@@ -931,7 +1015,7 @@ sap.ui.define([
 			return null;
 		}
 
-		var oParams = this._oEditorManifest.getProcessedParameters(),
+		var oParams = this._oManifest.getProcessedParameters(),
 			oResultParams = {},
 			sKey;
 
@@ -1010,6 +1094,7 @@ sap.ui.define([
 	};
 
 	Editor.prototype.setJson = function (vIdOrSettings, bSuppress) {
+		this._vIdOrSettings = deepClone(vIdOrSettings, 500);
 		this._fieldReady = false;
 		this._ready = false;
 		if (deepEqual(vIdOrSettings, this._preIdOrSettings)) {
@@ -1027,10 +1112,12 @@ sap.ui.define([
 			if (vIdOrSettings.manifestChanges) {
 				//map translations of unmatch languages
 				Utils.mapLanguagesInManifestChanges(vIdOrSettings.manifestChanges);
-				//remove the changes from the current layer
+				//filter the child changes from the current layer
+				this._filterChildManifestChanges(vIdOrSettings);
+				//filter the changes from the current layer
 				this._filterManifestChangesByLayer(vIdOrSettings);
 			}
-			if (this._manifestModel) {
+			if (this._oManifestModel) {
 				//already created
 				return;
 			}
@@ -1043,7 +1130,7 @@ sap.ui.define([
 			if (vIdOrSettings.baseUrl) {
 				this.setProperty("baseUrl", vIdOrSettings.baseUrl);
 			}
-			this._appliedLayerManifestChanges = vIdOrSettings.manifestChanges;
+			this._aAppliedLayerChanges = vIdOrSettings.manifestChanges;
 
 			this.createManifest(vIdOrSettings, bSuppress);
 		}
@@ -1060,40 +1147,40 @@ sap.ui.define([
 			vManifest = null;
 		}
 
-		if (this._oEditorManifest) {
-			this._oEditorManifest.destroy();
+		if (this._oManifest) {
+			this._oManifest.destroy();
 		}
 		this.destroyAggregation("_extension");
 		var iCurrentModeIndex = Merger.layers[this.getMode()];
 
-		this._oEditorManifest = new EditorManifest(this.getSection(), vManifest, sBaseUrl, vIdOrSettings.manifestChanges);
-		this._oEditorManifest
+		this._oManifest = new Manifest(this.getSection(), vManifest, sBaseUrl, vIdOrSettings.manifestChanges);
+		this._oManifest
 			.load(mOptions)
 			.then(async function () {
 				this._registerManifestModulePath();
-				this._oInitialManifestModel = new JSONModel(this._oEditorManifest._oInitialJson);
-				this.setProperty("json", this._oEditorManifest._oInitialJson, bSuppress);
-				var oManifestJson = this._oEditorManifest.oJson;
-				var _beforeCurrentLayer = merge({}, oManifestJson);
-				this._beforeManifestModel = new JSONModel(_beforeCurrentLayer);
-				if (iCurrentModeIndex < Merger.layers["translation"] && this._currentLayerManifestChanges) {
+				this._oInitialManifestModel = new JSONModel(this._oManifest._oInitialJson);
+				this.setProperty("json", this._oManifest._oInitialJson, bSuppress);
+				var oManifestJson = this._oManifest.oJson;
+				var oBeforeLayerManifestJson = merge({}, oManifestJson);
+				this._oBeforeLayerManifestModel = new JSONModel(oBeforeLayerManifestJson);
+				if (iCurrentModeIndex < Merger.layers[Constants.EDITOR_MODE.TRANSLATION] && this._oCurrentLayerChange) {
 					//merge if not translation
-					oManifestJson = Merger.mergeDelta(oManifestJson, [this._currentLayerManifestChanges], this.getSection());
+					oManifestJson = Merger.mergeDelta(oManifestJson, [this._oCurrentLayerChange], this.getSection());
 				}
 				//create a manifest model after the changes are merged
-				this._manifestModel = new JSONModel(oManifestJson);
+				this._oManifestModel = new JSONModel(oManifestJson);
 				this._isManifestReady = true;
 				this.fireManifestReady();
 				this._initResourceBundlesForMultiTranslation();
 				//use the translations
 				this._loadDefaultTranslations();
-				if (this.getMode() === "translation") {
+				if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 					await this._loadSpecialTranslations();
 				}
 				//add a context model
 				this._createContextModel();
-				if (this._oEditorManifest.getResourceBundle()) {
-					this._enhanceI18nModel(this._oEditorManifest.getResourceBundle());
+				if (this._oManifest.getResourceBundle()) {
+					this._enhanceI18nModel(this._oManifest.getResourceBundle());
 				}
 				return this._loadExtension().then(function() {
 					this._initInternal();
@@ -1105,7 +1192,7 @@ sap.ui.define([
 	 * Init the Resource Bundles for Multi Translation
 	 */
 	Editor.prototype._initResourceBundlesForMultiTranslation = function () {
-		var vI18n = this._oEditorManifest.get("/sap.app/i18n");
+		var vI18n = this._oManifest.get("/sap.app/i18n");
 		var sResourceBundleURL;
 		var aSupportedLocales;
 		if (typeof vI18n === "string") {
@@ -1130,12 +1217,12 @@ sap.ui.define([
 	 * Registers the manifest ID as a module path.
 	 */
 	Editor.prototype._registerManifestModulePath = function () {
-		if (!this._oEditorManifest) {
+		if (!this._oManifest) {
 			return;
 		}
-		this._sAppId = this._oEditorManifest.get("/sap.app/id");
+		this._sAppId = this._oManifest.get("/sap.app/id");
 		if (this._sAppId) {
-			LoaderExtensions.registerResourcePath(this._sAppId.replace(/\./g, "/"), this._oEditorManifest.getUrl() || "/");
+			LoaderExtensions.registerResourcePath(this._sAppId.replace(/\./g, "/"), this._oManifest.getUrl() || "/");
 		} else {
 			Log.error("sap.ui.integration.editor.Editor: sap.app/id entry in the manifest is mandatory");
 		}
@@ -1166,7 +1253,7 @@ sap.ui.define([
 	};
 
 	Editor.prototype._loadExtension = function () {
-		var sExtensionPath = this._oEditorManifest.get(this.getConfigurationPath() + "/extension") || this._oEditorManifest.get("/" + this.getSection() + "/extension"),
+		var sExtensionPath = this._oManifest.get(this.getConfigurationPath() + "/extension") || this._oManifest.get("/" + this.getSection() + "/extension"),
 			sFullExtensionPath;
 		if (!sExtensionPath) {
 			Log.info("sap.ui.integration.editor.Editor: extension is not defined in manifest, do not load it.");
@@ -1221,8 +1308,8 @@ sap.ui.define([
 	};
 
 	Editor.prototype.initDestinations = function (vHost) {
-		this._destinationsModel = new JSONModel({});
-		this.setModel(this._destinationsModel, "destinations");
+		this._oDestinationsModel = new JSONModel({});
+		this.setModel(this._oDestinationsModel, "destinations");
 		var oHostInstance = this.getHostInstance();
 
 		if (vHost && !oHostInstance) {
@@ -1239,7 +1326,8 @@ sap.ui.define([
 			var sConfigurationPath = this.getConfigurationPath();
 			this._oDestinations = new Destinations({
 				host: oHostInstance,
-				manifestConfig: this._manifestModel.getProperty(sConfigurationPath + "/destinations")
+				manifestConfig: this._oManifestModel.getProperty(sConfigurationPath + "/destinations"),
+				prefix: "destinations"
 			});
 		}
 	};
@@ -1252,7 +1340,7 @@ sap.ui.define([
 		this._oDataProviderFactory = new DataProviderFactory({
 			destinations: this._oDestinations,
 			extension: oExtension,
-			csrfTokensConfig: this._oEditorManifest.get(this.getConfigurationPath() + "/csrfTokens"),
+			csrfTokensConfig: this._oManifest.get(this.getConfigurationPath() + "/csrfTokens"),
 			editor: this
 		});
 	};
@@ -1352,6 +1440,7 @@ sap.ui.define([
 		}
 		return this;
 	};
+
 	/**
 	 * Increases the zIndex to a higher value for all popups
 	 */
@@ -1361,26 +1450,88 @@ sap.ui.define([
 			Popup.setInitialZIndex(this._iZIndex);
 		}
 	};
+
 	/**
-		 * Filters the manifestChanges array in the oManifestSettings
-		 * All changes that are done for layers > than current layer are removed (see also layers)
-		 * The current layers changes are stored in this._currentLayerManifestChanges to be applied later in the editor code.
-		 * All changes that are done for layers < that the current layer are kept in oManifestSettings.manifestChanges
-		 *
-		 * @param {*} oManifestSettings
-		 */
-	 Editor.prototype._filterManifestChangesByLayer = function (oManifestSettings) {
+	 * Filter out the manifestChanges of Child editors in the oManifestSettings
+	 *
+	 * @param {*} oManifestSettings
+	 */
+	Editor.prototype._filterChildManifestChanges = function (oManifestSettings) {
+		var that = this;
+		if (that._bChildManifestChangesFiltered) {
+			return;
+		}
+		that._aMainEditorChanges = deepClone(oManifestSettings.manifestChanges, 500);
+		that._oChildEditorChanges = {};
+		var processObject = function(obj, parentKey) {
+			parentKey = parentKey ? (parentKey + "/") : "";
+			Object.keys(obj).forEach(function(sKey) {
+				if (sKey.startsWith(that.getConfigurationPath() + "/childCards/") && sKey.endsWith("_manifestChanges")) {
+					var sRest = sKey.substring("/sap.card/configuration/childCards/".length);
+					var sChildEditorName = sRest.split("/")[0];
+					if (sChildEditorName) {
+						var sChildEditorPath = parentKey + sChildEditorName;
+						that._oChildEditorChanges[sChildEditorPath] = that._oChildEditorChanges[sChildEditorPath] || [];
+						that._oChildEditorChanges[sChildEditorPath].push(obj[sKey]);
+						if (obj[sKey] !== null) {
+							processObject(obj[sKey], sChildEditorPath);
+						}
+					}
+				}
+			});
+		};
+
+		// first process child changes
+		//   - move all the /sap.card/configuration/childCards/.../_manifestChanges to oChildChanges
+		that._aMainEditorChanges.forEach(function(oChange) {
+			processObject(oChange);
+		});
+
+		// clean up child changes
+		//  - remove all /sap.card/configuration/childCards/.../_manifestChanges
+		Object.keys(that._oChildEditorChanges).forEach(function(sKey) {
+			that._oChildEditorChanges[sKey].forEach(function(oChange) {
+				Object.keys(oChange).forEach(function(sKey1) {
+					if (sKey1.startsWith(that.getConfigurationPath() + "/childCards/") && sKey1.endsWith("_manifestChanges")) {
+						delete oChange[sKey1];
+					}
+				});
+			});
+		});
+
+		// clean up main changes
+		//  - remove all /sap.card/configuration/childCards/.../_manifestChanges
+		that._aMainEditorChanges.forEach(function(oChange) {
+			Object.keys(oChange).forEach(function(sKey1) {
+				if (sKey1.startsWith(that.getConfigurationPath() + "/childCards/") && sKey1.endsWith("_manifestChanges")) {
+					delete oChange[sKey1];
+				}
+			});
+		});
+
+		that._bChildManifestChangesFiltered = true;
+	};
+
+	/**
+	 * Filters the manifestChanges array in the oManifestSettings
+	 * All changes that are done for layers > than current layer are removed (see also layers)
+	 * The changes of current layer will be stored in this._oCurrentLayerChange to be applied later in the editor code.
+	 * All changes that are done for layers < that the current layer are kept in oManifestSettings.manifestChanges
+	 *
+	 * @param {*} oManifestSettings
+	 */
+	Editor.prototype._filterManifestChangesByLayer = function (oManifestSettings) {
 		var aChanges = [],
 			that = this,
-			oBeforeLayerChanges = {},
-			oCurrentLayerChanges = { ":layer": Merger.layers[this.getMode()] },
+			oBeforeLayerChange = {},
+			oCurrentLayerChange = { ":layer": Merger.layers[this.getMode()] },
 			iCurrentModeIndex = Merger.layers[that.getMode()];
 		oManifestSettings.manifestChanges.forEach(function (oChange) {
 			//filter manifest changes. only the changes before the current layer are needed
 			//editor will merge the last layer locally to allow "reset" or properties
 			//also for translation layer, the "original" value is needed
 			var iLayer = oChange.hasOwnProperty(":layer") ? oChange[":layer"] : 1000;
-			if (iLayer === Merger.layers["translation"]) {
+			if (iLayer === Merger.layers[Constants.EDITOR_MODE.TRANSLATION]) {
 				var sLanguage = that._language;
 				if (sLanguage === "") {
 					sLanguage = Localization.getLanguage().replaceAll('_', '-');
@@ -1402,16 +1553,256 @@ sap.ui.define([
 			}
 			if (iLayer < iCurrentModeIndex) {
 				aChanges.push(oChange);
-				oBeforeLayerChanges = merge(oBeforeLayerChanges, oChange);
+				oBeforeLayerChange = merge(oBeforeLayerChange, oChange);
 			} else if (iLayer === iCurrentModeIndex) {
 				//store the current layer changes locally for later processing
-				oCurrentLayerChanges = oChange;
+				oCurrentLayerChange = oChange;
 			}
 		});
 		oManifestSettings.manifestChanges = aChanges;
-		this._currentLayerManifestChanges = oCurrentLayerChanges;
-		this._beforeLayerManifestChanges = oBeforeLayerChanges;
+		this._oCurrentLayerChange = oCurrentLayerChange;
+		this._oBeforeLayerChange = oBeforeLayerChange;
 	};
+
+	/**
+	 * Create the tree of Child editors
+	 *
+	 * @param {*} oChildNodes
+	 */
+	Editor.prototype.createChildTree = function (oChildNodes) {
+		var that = this;
+		var sBaseUrl = this.getBaseUrl();
+
+		var sMainManifest = that._vIdOrSettings.manifest;
+		if (typeof that._vIdOrSettings.manifest === "object") {
+			sMainManifest = JSON.stringify(that._vIdOrSettings.manifest);
+		}
+		var mainTitle = this._oManifest.get("/sap.app/title") || this._oResourceBundle.getText("EDITOR_CHILD_TREE_MAIN_NODE_TEXT");
+		// Create data model with main node
+		var oData = [{
+			text: mainTitle,
+			baseUrl: sBaseUrl,
+			manifest: sMainManifest,
+			path: "",
+			selected: true,
+			nodes: []
+		}];
+		var oModel = new JSONModel(oData);
+
+		var loadChildNode = function (sName, oChildConfig, sPath, sBaseUrl, sParentName) {
+			// calculate base url and manifest path for childs
+			var sManifestPath = sBaseUrl + oChildConfig.manifest;
+			sBaseUrl = sManifestPath.substring(0, sManifestPath.lastIndexOf("/") + 1);
+			var oNode = {
+				text: sName,
+				baseUrl: sBaseUrl,
+				manifest: sManifestPath,
+				isChild: true,
+				path: sPath,
+				selected: false,
+				nodes: []
+			};
+			if (oChildConfig.manifest) {
+				try {
+					var sManifestUrl = that._sAppId.replace(/\./g, "/");
+					if (sParentName) {
+						sManifestUrl += "/" + sParentName;
+					}
+					sManifestUrl += "/" + oChildConfig.manifest;
+					// load child manifest to get title and sub child nodes
+					LoaderExtensions.loadResource(sManifestUrl, {
+						dataType: "json",
+						async: true,
+						failOnError: false
+					}).then(function (oManifest) {
+						if (oManifest && oManifest["sap.card"]?.configuration?.childCards) {
+							var oSubChildNodes = oManifest["sap.card"].configuration.childCards;
+							for (var sSubName in oSubChildNodes) {
+								var oSubNode = loadChildNode(sSubName, oSubChildNodes[sSubName], sPath ? (sPath + "/" + sSubName) : sSubName, sBaseUrl, sName);
+								oNode.nodes.push(oSubNode);
+							}
+						}
+						if (oManifest) {
+							oNode.text = oChildConfig.title || oManifest["sap.app"].title || oNode.text;
+						} else if (oChildConfig.title) {
+							oNode.text = oChildConfig.title;
+						}
+						oModel.checkUpdate(true);
+					});
+				} catch (e) {
+					if (oChildConfig.title) {
+						oNode.text = oChildConfig.title;
+					}
+					oModel.checkUpdate(true);
+					Log.error("sap.ui.integration.editor.Editor: child edtior tree manifest load error: " + e);
+				}
+			} else if (oChildConfig.title) {
+				oNode.text = oChildConfig.title;
+			}
+			return oNode;
+		};
+
+		for (var sChildNodeName in oChildNodes) {
+			var oNode = loadChildNode(sChildNodeName, oChildNodes[sChildNodeName], sChildNodeName, sBaseUrl);
+			oData[0].nodes.push(oNode);
+		}
+		that._oChildTree = new Tree({
+			items: {
+				path: "/",
+				template: new StandardTreeItem({
+					title: "{text}",
+					tooltip: "{text}",
+					type: "Active",
+					highlight: "{= ${selected} ? 'Information' : 'None'}"
+				})
+			},
+			toggleOpenState: that.onToggleOpenState,
+			itemPress: that.onTreeItemPress.bind(that)
+		}).addStyleClass("sapUiIntegrationEditorChildTreeItem");
+		that._oChildTree.setModel(oModel);
+	};
+
+	Editor.prototype.onToggleOpenState = function(oEvent) {
+		var oControl = oEvent.getSource();
+		var bExpanded = oEvent.getParameter("expanded");
+		if (bExpanded) {
+			Log.info("sap.ui.integration.editor.Editor: child edtior tree item expanded: " + oEvent.getParameter("itemIndex"));
+			oControl.expand([oEvent.getParameter("itemIndex")]);
+		} else {
+			Log.info("sap.ui.integration.editor.Editor: child edtior tree item collapsed: " + oEvent.getParameter("itemIndex"));
+			oControl.collapse([oEvent.getParameter("itemIndex")]);
+		}
+	};
+
+	/**
+	 * process the pressed tree item event
+	 * @param {sap.ui.base.Event} oEvent the event object
+	 */
+	Editor.prototype.onTreeItemPress = function(oEvent) {
+		// get the pressed item
+		var oItem = oEvent.getParameter("srcControl");
+		if (!oItem || !oItem.getBindingContext() || !oItem.getBindingContext().getObject()) {
+			Log.error("sap.ui.integration.editor.Editor: child editor tree item pressed without binding context or binding object");
+			return;
+		}
+
+		// get the binding object and the manifest
+		var oItemObject = oItem.getBindingContext().getObject();
+		var oManifest = oItemObject.manifest;
+		if (!oManifest) {
+			Log.error("sap.ui.integration.editor.Editor: child editor tree item pressed without manifest");
+			return;
+		}
+		// check if manifest is json
+		try {
+			oManifest = JSON.parse(oManifest);
+		} catch (e) {
+			//manifest is not json
+			Log.info("sap.ui.integration.editor.Editor: child editor tree item pressed with manifest not json");
+		}
+		// check if same item pressed, if yes do nothing
+		var path = oItemObject.path || "/";
+		this._oChildTree._path = this._oChildTree._path || "/";
+		if (this._oChildTree._path === path) {
+			Log.info("sap.ui.integration.editor.Editor: same item pressed, do nothing");
+			return;
+		}
+
+		// update current settings to manifest changes (main editor or Child editor)
+		var oCurrentSettings = this.getCurrentSettings(true);
+		this._oChildEditorChanges = this._oChildEditorChanges || {};
+		this._aMainEditorChanges = this._aMainEditorChanges || [];
+		var sLayer = oCurrentSettings[":layer"];
+		var oMatchedChange, oMatchedChangeCloned;
+		if (!this.isChild) {
+			// find current layer change in main editor changes
+			oMatchedChange = this._aMainEditorChanges.find(function(oChange) {
+				return oChange[":layer"] === sLayer;
+			});
+			if (oMatchedChange) {
+				oMatchedChangeCloned = merge({}, oMatchedChange, oCurrentSettings);
+				var iIndex = this._aMainEditorChanges.indexOf(oMatchedChange);
+				if (iIndex > -1) {
+					this._aMainEditorChanges.splice(iIndex, 1);
+				}
+				oMatchedChange = oMatchedChangeCloned;
+			} else {
+				oMatchedChange = oCurrentSettings;
+			}
+			this._aMainEditorChanges.push(oMatchedChange);
+		} else {
+			this._oChildEditorChanges[this._oChildTree._path] = this._oChildEditorChanges[this._oChildTree._path] || [];
+			var aChildChanges = this._oChildEditorChanges[this._oChildTree._path];
+			// find current layer change in Child editor changes
+			oMatchedChange = aChildChanges.find(function(oChange) {
+				return oChange[":layer"] === sLayer;
+			});
+			if (oMatchedChange) {
+				oMatchedChangeCloned = merge({}, oMatchedChange, oCurrentSettings);
+				var iIndex = aChildChanges.indexOf(oMatchedChange);
+				if (iIndex > -1) {
+					aChildChanges.splice(iIndex, 1);
+				}
+				oMatchedChange = oMatchedChangeCloned;
+			} else {
+				oMatchedChange = oCurrentSettings;
+			}
+			aChildChanges.push(oMatchedChange);
+		}
+
+		// clean editor and reset flags
+		this.cleanAndReset();
+
+		// switch to the pressed editor
+		this.switchToEditor(oManifest, oItemObject, path);
+
+		// unHighlignt the previous selected item and highlight the current selected item
+		var oTreeModel = this._oChildTree.getModel();
+		var sCurrentItemIndex = this._oChildTree._itemIndex || "/0";
+		oTreeModel.setProperty(sCurrentItemIndex + "/selected", false);
+		oItemObject.selected = true;
+		oTreeModel.checkUpdate(true);
+
+		// update the item index and path
+		this._oChildTree._itemIndex = oItem.getBindingContext().getPath();
+		this._oChildTree._path = path;
+		Log.info("sap.ui.integration.editor.Editor: child editor tree item pressed");
+	};
+
+	/**
+	 * Switch to another editor based on the manifest and item object
+	 *
+	 * @param {*} oManifest the manifest of the editor to switch to
+	 * @param {*} oItemObject the binding object of the pressed tree item
+	 * @param {string} sPath the path of the pressed tree item
+	 */
+	Editor.prototype.switchToEditor = function(oManifest, oItemObject, sPath) {
+		// save the current settings, to avoid creating new instance when switching between child editors
+		this._oChildTreeSettings = this._oChildTreeSettings || {};
+		if (!this._oChildTreeSettings[this._oChildTree._path]) {
+			this._oChildTreeSettings[this._oChildTree._path] = deepClone(this._vIdOrSettings, 500);
+		}
+
+		// get settings for the pressed item
+		this.isChild = oItemObject.isChild;
+		var oManifestChanges;
+		if (!this.isChild) {
+			oManifestChanges = this._aMainEditorChanges;
+		} else {
+			oManifestChanges = this._oChildEditorChanges[sPath] || [];
+		}
+		if (this._oChildTreeSettings[sPath]) {
+			this._vIdOrSettings = this._oChildTreeSettings[sPath];
+		} else {
+			this._vIdOrSettings.baseUrl = oItemObject.baseUrl;
+			this._vIdOrSettings.manifest = oManifest;
+		}
+		this._vIdOrSettings.manifestChanges = oManifestChanges;
+
+		// switch to the pressed editor
+		this.setJson(this._vIdOrSettings, true); //suppress rerendering as the editor will be rerendered anyway
+	};
+
 	/**
 	 * Initializes the editor after the json is set
 	 */
@@ -1419,12 +1810,19 @@ sap.ui.define([
 		var that = this;
 		//handle keyword designtime removal
 		var sConfigurationPath = that.getConfigurationPath();
-		var sDesigntime = that._oEditorManifest.get(sConfigurationPath + "/editor");
+		var sDesigntime = that._oManifest.get(sConfigurationPath + "/editor");
 		if (!sDesigntime) {
-			sDesigntime = that._oEditorManifest.get("/" + that.getSection() + "/designtime");
+			sDesigntime = that._oManifest.get("/" + that.getSection() + "/designtime");
+		}
+		if (!that._oChildTree) {
+			// create Child editors tree if Child editors are defined and tree not created yet
+			var oChildEditors = that._oManifest.get(sConfigurationPath + "/childCards");
+			if (oChildEditors && typeof oChildEditors === "object") {
+				that.createChildTree(oChildEditors);
+			}
 		}
 		//load the designtime control and bundles lazy
-		var	oConfiguration = that._manifestModel.getProperty(sConfigurationPath),
+		var	oConfiguration = that._oManifestModel.getProperty(sConfigurationPath),
 			oPromise,
 			oDesigntimeConfig = that.getDesigntime();
 		if (oDesigntimeConfig) {
@@ -1461,17 +1859,17 @@ sap.ui.define([
 			that._oDesigntimeInstance = oDesigntime;
 			that.initDestinations();
 			that.initDataProviderFactory();
-			if (that.getMode() === "admin" || that.getMode() === "all") {
-				//always add destination settings for admin and all modes
+			if (!that.isChild && (that.getMode() === Constants.EDITOR_MODE.ADMIN || that.getMode() === Constants.EDITOR_MODE.ALL)) {
+				//always add destination settings for admin and all modes if not child editor
 				that._addDestinationSettings(oConfiguration);
 			} else {
 				//delete destination settings in dt for other modes
 				that._deleleDestinationSettings();
 			}
 			//create a settings model
-			that._settingsModel = new JSONModel(that._oDesigntimeInstance.getSettings());
-			that.setModel(that._settingsModel, "currentSettings");
-			that.setModel(that._settingsModel, "items");
+			that._oSettingsModel = new JSONModel(that._oDesigntimeInstance.getSettings());
+			that.setModel(that._oSettingsModel, "currentSettings");
+			that.setModel(that._oSettingsModel, "items");
 			return that._loadValueContextInDesigntime();
 		}).then(function () {
 			that._applyDesigntimeLayers(); //changes done from admin to content on the dt values
@@ -1488,7 +1886,7 @@ sap.ui.define([
 			return Promise.resolve(this._oDesigntime);
 		}
 
-		if (!this._oEditorManifest) {
+		if (!this._oManifest) {
 			return new Promise(function (resolve, reject) {
 				this.attachManifestReady(function () {
 					this.loadDesigntime().then(resolve, reject);
@@ -1503,9 +1901,9 @@ sap.ui.define([
 		return new Promise(function (resolve, reject) {
 			//build the module path to load as part of the widgets module path
 			//handle keyword designtime removal
-			var sDesigntimePath = this._oEditorManifest.get(this.getConfigurationPath() + "/editor");
+			var sDesigntimePath = this._oManifest.get(this.getConfigurationPath() + "/editor");
 			if (!sDesigntimePath) {
-				sDesigntimePath = this._oEditorManifest.get("/" + this.getSection() + "/designtime");
+				sDesigntimePath = this._oManifest.get("/" + this.getSection() + "/designtime");
 			}
 			var	sFullDesigntimePath = this._sAppId.replace(/\./g, "/") + "/" + sDesigntimePath;
 			if (sFullDesigntimePath) {
@@ -1535,29 +1933,33 @@ sap.ui.define([
 	/**
 	 * Returns the current settings as a json with a manifest path and the current value
 	 * additionally there is a layer number added as ":layer"
+	 *
+	 * @param {boolean} bOnlyCurrentEditor If true, only the settings of the current editor are returned (without child editors)
+	 * @returns {object} The current settings in manifest format
 	 */
-	Editor.prototype.getCurrentSettings = function () {
-		var oSettings = this._settingsModel.getProperty("/"),
+	Editor.prototype.getCurrentSettings = function (bOnlyCurrentEditor) {
+		bOnlyCurrentEditor = bOnlyCurrentEditor || false;
+		var oSettings = this._oSettingsModel.getProperty("/"),
 			mResult = {},
 			mNext;
 		if (oSettings && oSettings.form && oSettings.form.items) {
 			for (var n in oSettings.form.items) {
 				var oItem = oSettings.form.items[n];
 				if (oItem.editable && oItem.visible) {
-					if (this.getMode() !== "translation") {
-						if (oItem.translatable && !oItem._changed && oItem._translatedPlaceholder && !this._currentLayerManifestChanges[oItem.manifestpath]) {
+					if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
+						if (oItem.translatable && !oItem._changed && oItem._translatedPlaceholder && !this._oCurrentLayerChange[oItem.manifestpath]) {
 							//do not save a value that was not changed and comes from a translated default value
 							//mResult[oItem.manifestpath] = oItem._translatedPlaceholder;
 							//but we need to save the setting changes for the next layer, so remove the continue sentence.
 							//continue;
 						} else {
-							if (oItem.valueItems && !deepEqual(this._beforeLayerManifestChanges[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueItems"], oItem.valueItems)) {
+							if (oItem.valueItems && !deepEqual(this._oBeforeLayerChange[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueItems"], oItem.valueItems)) {
 								mResult[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueItems"] = oItem.valueItems;
 							}
-							if (oItem.valueTokens && !deepEqual(this._beforeLayerManifestChanges[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueTokens"], oItem.valueTokens)) {
+							if (oItem.valueTokens && !deepEqual(this._oBeforeLayerChange[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueTokens"], oItem.valueTokens)) {
 								mResult[oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueTokens"] = oItem.valueTokens;
 							}
-							var beforeLayerChange = this._beforeLayerManifestChanges[oItem.manifestpath];
+							var beforeLayerChange = this._oBeforeLayerChange[oItem.manifestpath];
 							if (typeof oItem.value !== "undefined" && !deepEqual(beforeLayerChange, oItem.value)) {
 								switch (oItem.type) {
 									case "string":
@@ -1567,8 +1969,8 @@ sap.ui.define([
 											// if value is dynamic value of a translatable parameter, save it and delete all the current translations
 											mResult[oItem.manifestpath] = oItem.value;
 											this.deleteAllTranslationValuesInTexts(oItem.manifestpath);
-										} else if (oItem._beforeValue && (oItem._beforeValue.indexOf("{context>") === 0 || oItem._beforeValue.indexOf("{{parameters") === 0)) {
-											// if before value is dynamic value of a translatable parameter, save it
+										} else if (oItem._beforeLayerValue && (oItem._beforeLayerValue.indexOf("{context>") === 0 || oItem._beforeLayerValue.indexOf("{{parameters") === 0)) {
+											// if before layer value is dynamic value or a translatable parameter, save it
 											mResult[oItem.manifestpath] = oItem.value;
 										}
 										break;
@@ -1614,7 +2016,9 @@ sap.ui.define([
 										}
 										break;
 									default:
-										mResult[oItem.manifestpath] = oItem.value;
+										if (oItem.manifestpath) {
+											mResult[oItem.manifestpath] = oItem.value;
+										}
 								}
 							}
 						}
@@ -1622,9 +2026,9 @@ sap.ui.define([
 						if (oItem._changed) {
 							//in translation mode create an entry if value changes
 							mResult[oItem.manifestpath] = oItem.value;
-						} else if (this._currentLayerManifestChanges && this._currentLayerManifestChanges.texts && this._currentLayerManifestChanges.texts[this._language] && this._currentLayerManifestChanges.texts[this._language][oItem.manifestpath]) {
+						} else if (this._oCurrentLayerChange && this._oCurrentLayerChange.texts && this._oCurrentLayerChange.texts[this._language] && this._oCurrentLayerChange.texts[this._language][oItem.manifestpath]) {
 							//if translation layer has changed value before, save it again
-							mResult[oItem.manifestpath] = this._currentLayerManifestChanges.texts[this._language][oItem.manifestpath];
+							mResult[oItem.manifestpath] = this._oCurrentLayerChange.texts[this._language][oItem.manifestpath];
 						}
 					}
 					if (oItem._next && (this.getAllowSettings())) {
@@ -1658,13 +2062,13 @@ sap.ui.define([
 				}
 			}
 		}
-		if (this.getMode() === "translation") {
+		if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 			// translation mode don't have texts property
 			delete mResult.texts;
 		} else if (oSettings.texts) {
 			mResult.texts = deepClone(oSettings.texts, 500) || {};
 			// get the before layer translation texts
-			var beforeLayerTexts = merge({}, this._beforeLayerManifestChanges.texts);
+			var beforeLayerTexts = merge({}, this._oBeforeLayerChange.texts);
 			if (deepEqual(beforeLayerTexts, mResult.texts)) {
 				// if no change, DO NOT return the transtalion texts
 				delete mResult.texts;
@@ -1723,13 +2127,50 @@ sap.ui.define([
 				}
 			}
 		}
-		mResult[":layer"] = Merger.layers[this.getMode()];
+		var iLayer = Merger.layers[this.getMode()];
+		mResult[":layer"] = iLayer;
 		mResult[":errors"] = this.checkCurrentSettings()[":errors"];
 		if (mNext) {
 			mResult[":designtime"] = mNext;
 		}
 		if (oSettings[":designtime"]) {
 			mResult[":designtime"] = merge(mResult[":designtime"], oSettings[":designtime"]);
+		}
+
+		// handle child editor settings
+		if (this._oChildTree) {
+			this._childSettings = this._childSettings || [];
+			this._mainSettings = this._mainSettings || {};
+			if (this.isChild) {
+				this._childSettings[this._oChildTree._path] = mResult;
+			} else {
+				this._mainSettings = mResult;
+			}
+			// return whole settings including child editors
+			if (!bOnlyCurrentEditor){
+				// merge main settings and child settings into one object
+				var mAllSettings = deepClone(this._mainSettings, 500);
+				Object.keys(this._childSettings).forEach(function (childKey) {
+					var oChildSetting = this._childSettings[childKey];
+					var paths = childKey.split("/");
+					var oParent = mAllSettings;
+					paths.forEach(function (sPath, iIndex) {
+						if (sPath && oChildSetting) {
+							var fullPath = this.getConfigurationPath() + "/childCards/" + sPath + "/_manifestChanges";
+							if (iIndex === paths.length - 1) {
+								oParent[fullPath] = oChildSetting;
+							} else {
+								oParent[fullPath] = oParent[fullPath] || {
+									":layer": iLayer,
+									":errors": false
+								};
+								oParent = oParent[fullPath];
+							}
+						}
+					}.bind(this));
+				}.bind(this));
+				return mAllSettings;
+			}
 		}
 		return mResult;
 	};
@@ -1738,7 +2179,7 @@ sap.ui.define([
 	 * TODO: highlight issues and add states...
 	 */
 	Editor.prototype.checkCurrentSettings = function () {
-		var oSettings = this._settingsModel.getProperty("/"),
+		var oSettings = this._oSettingsModel.getProperty("/"),
 			mChecks = {};
 		if (oSettings && oSettings.form && oSettings.form.items) {
 			for (var n in oSettings.form.items) {
@@ -1746,7 +2187,7 @@ sap.ui.define([
 				if (oItem.editable) {
 					if (oItem.validateCheck === "failed") {
 						mChecks[oItem.manifestpath] = false;
-					} else if ((oItem.isValid || oItem.required) && !(this.getMode() === "translation" && oItem.translatable)) {
+					} else if ((oItem.isValid || oItem.required) && !(this.getMode() === Constants.EDITOR_MODE.TRANSLATION && oItem.translatable)) {
 						if (oItem.isValid) {
 							mChecks[oItem.manifestpath] = oItem.isValid(oItem);
 						}
@@ -1950,7 +2391,16 @@ sap.ui.define([
 				for (var n in Editor.fieldMap) {
 					Editor.Fields[n] = arguments[Object.keys(Editor.fieldMap).indexOf(n)];
 				}
-				resolve();
+
+				const aFieldsDependencies = [];
+
+				for (const FieldClass of Object.values(Editor.Fields)) {
+					if (FieldClass.loadDependencies) {
+						aFieldsDependencies.push(FieldClass.loadDependencies());
+					}
+				}
+
+				Promise.all(aFieldsDependencies).then(resolve);
 			});
 		});
 	};
@@ -2154,7 +2604,7 @@ sap.ui.define([
 					var oMsgIcon = this._createMessageIcon(oField, sParameterKey);
 					oField.setAssociation("_messageIcon", oMsgIcon);
 				}
-				if (oConfig.description && this.getMode() !== "translation") {
+				if (oConfig.description && this.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
 					oField._descriptionIcon = this._createDescription(oConfig, sParameterKey);
 				}
 				if (oConfig._changeDynamicValues) {
@@ -2165,7 +2615,7 @@ sap.ui.define([
 		}.bind(this)));
 		if (oConfig.type !== "group") {
 			// listen to value changes on the settings
-			oField._oValueBinding = this._settingsModel.bindProperty(oConfig._settingspath + "/value");
+			oField._oValueBinding = this._oSettingsModel.bindProperty(oConfig._settingspath + "/value");
 			oField._oValueBinding.attachChange(function () {
 				if (!this._bIgnoreUpdates) {
 					oConfig._changed = true;
@@ -2177,7 +2627,7 @@ sap.ui.define([
 			}.bind(this));
 			if (oField.isFilterBackend()) {
 				// listen to suggest value changes on the settings if current field support filter backend feature
-				var oSuggestValueBinding = this._settingsModel.bindProperty(oConfig._settingspath + "/suggestValue");
+				var oSuggestValueBinding = this._oSettingsModel.bindProperty(oConfig._settingspath + "/suggestValue");
 				oSuggestValueBinding.attachChange(function () {
 					var oConfigTemp = merge({}, oConfig);
 					oConfigTemp._cancel = false;
@@ -2269,7 +2719,7 @@ sap.ui.define([
 		}).then(function (oData) {
 			if (oConfig._cancel) {
 				oConfig._values = [];
-				this._settingsModel.setProperty(oConfig._settingspath + "/_loading", false);
+				this._oSettingsModel.setProperty(oConfig._settingspath + "/_loading", false);
 				return;
 			}
 			// filter data for page admin
@@ -2295,7 +2745,7 @@ sap.ui.define([
 					};
 				});
 			}
-			if (this.getMode() === "content" && oConfig.pageAdminValues && oConfig.pageAdminValues.length > 0) {
+			if (this.getMode() === Constants.EDITOR_MODE.CONTENT && oConfig.pageAdminValues && oConfig.pageAdminValues.length > 0) {
 				var paValues = oConfig.pageAdminValues,
 				    selValues = oConfig.value,
 					selValueItems = oConfig.valueItems || [],
@@ -2386,7 +2836,7 @@ sap.ui.define([
 			if (oConfig.type === "object" || oConfig.type === "object[]") {
 				oField.mergeValueWithRequestResult(tResult);
 			}
-			this._settingsModel.setProperty(oConfig._settingspath + "/_loading", false);
+			this._oSettingsModel.setProperty(oConfig._settingspath + "/_loading", false);
 			oField._hideValueState(true, true);
 		}.bind(this))
 		.catch(function (oError) {
@@ -2431,7 +2881,7 @@ sap.ui.define([
 				if (oConfig.type === "object" || oConfig.type === "object[]") {
 					oField.mergeValueWithRequestResult();
 				}
-				this._settingsModel.setProperty(oConfig._settingspath + "/_loading", false);
+				this._oSettingsModel.setProperty(oConfig._settingspath + "/_loading", false);
 				oField._showValueState("error", sError, true);
 			}.bind(this));
 
@@ -2448,11 +2898,11 @@ sap.ui.define([
 		}
 		var bHasExtensionData = false;
 		var oExtensionConfig = {};
-		var oExtensionProperty = this._oEditorManifest.get(this.getConfigurationPath() + "/data/extension");
+		var oExtensionProperty = this._oManifest.get(this.getConfigurationPath() + "/data/extension");
 		var sPath;
 		if (oExtensionProperty) {
 			bHasExtensionData = true;
-			sPath = this._oEditorManifest.get(this.getConfigurationPath() + "/data/path");
+			sPath = this._oManifest.get(this.getConfigurationPath() + "/data/path");
 			oExtensionConfig = {
 				"extension": oExtensionProperty
 			};
@@ -2460,10 +2910,10 @@ sap.ui.define([
 				oExtensionConfig.path = sPath;
 			}
 		} else {
-			oExtensionProperty = this._oEditorManifest.get("/" + this.getSection() + "/data/extension");
+			oExtensionProperty = this._oManifest.get("/" + this.getSection() + "/data/extension");
 			if (oExtensionProperty) {
 				bHasExtensionData = true;
-				sPath = this._oEditorManifest.get("/" + this.getSection() + "/data/path");
+				sPath = this._oManifest.get("/" + this.getSection() + "/data/path");
 				oExtensionConfig = {
 					"extension": oExtensionProperty
 				};
@@ -2539,7 +2989,7 @@ sap.ui.define([
 						oValueModel = new JSONModel({});
 						oField.setModel(oValueModel, undefined);
 					}
-					this._settingsModel.setProperty(oConfig._settingspath + "/_loading", true);
+					this._oSettingsModel.setProperty(oConfig._settingspath + "/_loading", true);
 					if (!nTimeout) {
 						return this._requestData(oConfig, oField);
 					} else {
@@ -2551,7 +3001,7 @@ sap.ui.define([
 			} else if (this.getAggregation("_extension")) {
 				oValueModel = this.getAggregation("_extension").getModel();
 				//filter data for page admin
-				if (oValueModel && this.getMode() === "content" && oConfig.pageAdminValues && oConfig.pageAdminValues.length > 0) {
+				if (oValueModel && this.getMode() === Constants.EDITOR_MODE.CONTENT && oConfig.pageAdminValues && oConfig.pageAdminValues.length > 0) {
 					this.prepareFieldsInKey(oConfig);
 					var ePath = oConfig.values.path;
 					if (ePath.length > 1) {
@@ -2652,22 +3102,15 @@ sap.ui.define([
 		}
 	};
 
-	Editor.prototype.getBeforeLayerChange = function (sManifestPath) {
-		if (!this._beforeLayerManifestChanges) {
-			this._beforeLayerManifestChanges = {};
-		}
-		return this._beforeLayerManifestChanges[sManifestPath];
-	};
-
 	Editor.prototype.getTranslationValueInTexts = function (sLanguage, sManifestPath) {
 		var sTranslationPath = "/texts/" + sLanguage;
-		var oProperty = this._settingsModel.getProperty(sTranslationPath) || {};
+		var oProperty = this._oSettingsModel.getProperty(sTranslationPath) || {};
 		return oProperty[sManifestPath];
 	};
 
 	Editor.prototype.deleteAllTranslationValuesInTexts = function (sManifestPath) {
 		var that = this;
-		var oData = that._settingsModel.getData();
+		var oData = that._oSettingsModel.getData();
 		if (!oData || !oData.texts) {
 			return;
 		}
@@ -2678,7 +3121,7 @@ sap.ui.define([
 				delete oTexts[n][sManifestPath];
 			}
 		}
-		this._settingsModel.setProperty(sTranslationPath, oTexts);
+		this._oSettingsModel.setProperty(sTranslationPath, oTexts);
 	};
 
 	/**
@@ -2698,7 +3141,7 @@ sap.ui.define([
 		oConfig.__cols = oConfig.cols || 2;
 
 		//if the item is not visible or translation mode, continue immediately
-		if (oConfig.visible === false || (!oConfig.translatable && sMode === "translation" && oConfig.type !== "group")) {
+		if (oConfig.visible === false || (!oConfig.translatable && sMode === Constants.EDITOR_MODE.TRANSLATION && oConfig.type !== "group")) {
 			return;
 		}
 		//display subPanel as iconTabBar or Panel
@@ -2720,7 +3163,7 @@ sap.ui.define([
 		}
 		var oNewLabel = null;
 		var sLanguage = Utils._language;
-		if (sMode === "translation") {
+		if (sMode === Constants.EDITOR_MODE.TRANSLATION) {
 			if (oConfig.type !== "string") {
 				return;
 			}
@@ -2769,7 +3212,7 @@ sap.ui.define([
 			//even if a item is not visible or not editable by another layer for translations it should always be editable and visible
 			oConfig.editable = oConfig.visible = oConfig.translatable;
 			sLanguage = this._language;
-			if (!this.getBeforeLayerChange(oConfig.manifestpath)) {
+			if (!this._oBeforeLayerChange[oConfig.manifestpath]) {
 				oConfig.value = oConfig._translatedValue || "";
 			}
 			var sTranslateText = this.getTranslationValueInTexts(sLanguage, oConfig.manifestpath);
@@ -2796,14 +3239,14 @@ sap.ui.define([
 			this.addAggregation("_formContent",
 				oNewLabel
 			);
-			var sBeforeLayerChange = this.getBeforeLayerChange(oConfig.manifestpath);
+			var sBeforeLayerChange = this._oBeforeLayerChange[oConfig.manifestpath];
 			if (sBeforeLayerChange) {
 				oConfig._beforeLayerChange = sBeforeLayerChange;
 			}
 			//if there are changes for the current layer, read the already translated value from there
 			//now merge these changes for translation into the item configs
-			if (this._currentLayerManifestChanges && this._currentLayerManifestChanges[oConfig.manifestpath]) {
-				oConfig.value = this._currentLayerManifestChanges[oConfig.manifestpath];
+			if (this._oCurrentLayerChange && this._oCurrentLayerChange[oConfig.manifestpath]) {
+				oConfig.value = this._oCurrentLayerChange[oConfig.manifestpath];
 				oConfig._beforeLayerChange = oConfig.value;
 			}
 			//only get translations of string fields
@@ -2870,7 +3313,7 @@ sap.ui.define([
 		if (!sLanguage) {
 			return;
 		}
-		var vI18n = this._oEditorManifest.get("/sap.app/i18n"),
+		var vI18n = this._oManifest.get("/sap.app/i18n"),
 			sResourceBundleURL,
 			aSupportedLocales;
 		if (!vI18n) {
@@ -2942,12 +3385,12 @@ sap.ui.define([
 			this.destroyAggregation("_formContent");
 		}
 
-		var oSettingsData = this._settingsModel.getData();
+		var oSettingsData = this._oSettingsModel.getData();
 		var oItems;
 		if (oSettingsData.form && oSettingsData.form.items) {
 			oItems = oSettingsData.form.items;
 			// ### check if need to add general configuration group ###
-			// since the items had already reordered in _addDestinationSettings function according by this._destinationGroupAtTop,
+			// since the items had already reordered in _addDestinationSettings function according by this._bDestinationGroupAtTop,
 			// if destination group is at top:
 			//    a. check item from 2nd position (the 1st item is the destination group itme)
 			//    b. if item is a destination item, set iInsertPosition to current position number, then check the next item
@@ -2959,14 +3402,14 @@ sap.ui.define([
 			//    c. if item is a group and not a sub group, break, no need to add general configuration group
 			//    d. if item is not a group and visible is true, which means it is a valid item, so need to add general configuration group, or check the next item
 			var bAddGeneralSettingsPanel = false,
-				iStartIndex = this._destinationGroupAtTop ? 1 : 0,
+				iStartIndex = this._bDestinationGroupAtTop ? 1 : 0,
 				aKeys = Object.keys(oItems),
 				iLength = aKeys.length,
 				iInsertPosition = 0;
 			for (var i = iStartIndex; i < iLength; i++) {
 				var oItem = oItems[aKeys[i]];
 				if (oItem.type === "destination") {
-					if (!this._destinationGroupAtTop) {
+					if (!this._bDestinationGroupAtTop) {
 						break;
 					}
 					iInsertPosition = i;
@@ -2987,7 +3430,7 @@ sap.ui.define([
 					_settingspath: "/form/items/generalPanel"
 				};
 				//insert general settings panel in position iInsertPosition
-				if (this._destinationGroupAtTop) {
+				if (this._bDestinationGroupAtTop) {
 					var oNewItems = {};
 					var iPosition = 0;
 					aKeys.forEach(function(sKey) {
@@ -3006,17 +3449,17 @@ sap.ui.define([
 					);
 				}
 				oSettingsData.form.items = oItems;
-				this._settingsModel.setData(oSettingsData);
+				this._oSettingsModel.setData(oSettingsData);
 			}
 		}
 
-		var oSettings = this._settingsModel.getProperty("/");
+		var oSettings = this._oSettingsModel.getProperty("/");
 		this._mItemsByPaths = {};
 		if (oSettings.form && oSettings.form.items) {
 			oItems = oSettings.form.items;
 			//get current language
 			var sLanguage = this._language || this.getLanguage() || Utils._language;
-			if (this.getMode() === "translation") {
+			if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 				//add top panel of translation editor
 				this._addItem({
 					type: "group",
@@ -3035,24 +3478,24 @@ sap.ui.define([
 					var sCurrentLayerValue;
 					if (oItem.manifestpath) {
 						this._mItemsByPaths[oItem.manifestpath] = oItem;
-						if (this.getMode() !== "translation") {
-							sCurrentLayerValue = this._currentLayerManifestChanges[oItem.manifestpath];
+						if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION) {
+							sCurrentLayerValue = this._oCurrentLayerChange[oItem.manifestpath];
 						}
 					}
 					//if not changed it should be undefined, and ignore changes in tranlation layer
-					oItem._changed = sCurrentLayerValue !== undefined && this.getMode() !== "translation";
+					oItem._changed = sCurrentLayerValue !== undefined && this.getMode() !== Constants.EDITOR_MODE.TRANSLATION;
 
 					if (oItem.values) {
 						oItem.translatable = false;
 					}
 
-					oItem._beforeValue = this._getManifestBeforelValue(oItem.manifestpath);
+					oItem._beforeLayerValue = this._getBeforeLayerValue(oItem.manifestpath);
 
 					//check if the provided value from the parameter or designtime default value is a translated value
 					//restrict this to string types for now
 					if (oItem.type === "string") {
 						//check if is translatable via default value, if default value match "{{sTranslationTextKey}}" or "{i18n>sTranslationTextKey}", it is translatable
-						oItem._translatedDefaultPlaceholder = this._getManifestDefaultValue(oItem.manifestpath);
+						oItem._translatedDefaultPlaceholder = this._getInitialValue(oItem.manifestpath);
 						var sTranslationTextKey = null,
 							sPlaceholder = oItem._translatedDefaultPlaceholder;
 						if (sPlaceholder) {
@@ -3070,15 +3513,15 @@ sap.ui.define([
 							if (sTranslationTextKey) {
 								//force translatable, even if it was not explicitly set already
 								oItem.translatable = true;
-							} else if (oItem.translatable  && this.getMode() === "translation" && !this.getBeforeLayerChange(oItem.manifestpath)) {
+							} else if (oItem.translatable  && this.getMode() === Constants.EDITOR_MODE.TRANSLATION && !this._oBeforeLayerChange[oItem.manifestpath]) {
 								//if no translation key which means item defined as string value directly.
 								//set the _translatedValue with item manifest value.
 								oItem._translatedValue  = oItem._translatedDefaultPlaceholder;
 								oItem.value = oItem._translatedValue;
 							}
 						}
-						//check if before value still has tranlation key
-						oItem._translatedPlaceholder = oItem._beforeValue;
+						//check if before layer value still has tranlation key
+						oItem._translatedPlaceholder = oItem._beforeLayerValue;
 						sPlaceholder = oItem._translatedPlaceholder;
 						if (sPlaceholder) {
 							//value with parameter syntax will not be translated
@@ -3107,7 +3550,7 @@ sap.ui.define([
 							} else if (oItem.value === oItem._translatedDefaultPlaceholder) {
 								oItem.value = oItem._translatedValue;
 							}
-							if (this.getMode() === "translation") {
+							if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 								//if we are in translation mode the default value differs and depends on the language
 								//TODO this does not work in SWZ, the base path is not taken into account...
 								//get the translated default value for the language we want to translate this.getLanguage()
@@ -3119,10 +3562,10 @@ sap.ui.define([
 							} else if (sTranslationValueinTexts) {
 								oItem.value = sTranslationValueinTexts;
 							}
-						} else if (this.getMode() !== "translation" && oItem.translatable && sTranslationValueinTexts) {
+						} else if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION && oItem.translatable && sTranslationValueinTexts) {
 							oItem.value = sTranslationValueinTexts;
 						}
-						if (this.getMode() === "translation") {
+						if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 							if (this._isValueWithHandlebarsTranslation(oItem.label)) {
 								oItem._translatedLabel = this._getCurrentLanguageSpecificText(oItem.label.substring(2, oItem.label.length - 2), true);
 							} else if (oItem.label && oItem.label.startsWith("{i18n>")) {
@@ -3133,13 +3576,13 @@ sap.ui.define([
 						}
 					} else if (oItem.type === "string[]") {
 						var sValueItemsPath = oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueItems";
-						var oValueItems = this._manifestModel.getProperty(sValueItemsPath);
+						var oValueItems = this._oManifestModel.getProperty(sValueItemsPath);
 						if (oValueItems) {
 							oItem.valueItems = oValueItems;
 						}
 						// get value tokens of MultiInput from manifest change for current item
 						var sValueTokensPath = oItem.manifestpath.substring(0, oItem.manifestpath.lastIndexOf("/")) + "/valueTokens";
-						var oValueTokens = this._manifestModel.getProperty(sValueTokensPath);
+						var oValueTokens = this._oManifestModel.getProperty(sValueTokensPath);
 						if (oValueTokens) {
 							oItem.valueTokens = oValueTokens;
 						}
@@ -3178,9 +3621,9 @@ sap.ui.define([
 			var oItem = oItems[n];
 			this._addItem(oItem, n);
 		}
-		// customize the size of card editor, define the size in dt.js
-		var editorHeight = this._settingsModel.getProperty("/form/height") !== undefined ? this._settingsModel.getProperty("/form/height") : "350px",
-		editorWidth = this._settingsModel.getProperty("/form/width") !== undefined ? this._settingsModel.getProperty("/form/width") : "100%";
+		// customize the size of editor, define the size in dt.js
+		var editorHeight = this._oSettingsModel.getProperty("/form/height") !== undefined ? this._oSettingsModel.getProperty("/form/height") : "350px",
+		editorWidth = this._oSettingsModel.getProperty("/form/width") !== undefined ? this._oSettingsModel.getProperty("/form/width") : "100%";
 		if (this.getProperty("height") === "") {
 			this.setProperty("height", editorHeight);
 			document.body.style.setProperty("--sapUiIntegrationEditorFormHeight", editorHeight);
@@ -3191,13 +3634,13 @@ sap.ui.define([
 			document.body.style.setProperty("--sapUiIntegrationEditorFormWidth", editorWidth);
 		}
 		//add preview
-		if (this.getMode() !== "translation" && this.getPreviewPosition() !== "separate") {
+		if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION && this.getPreviewPosition() !== "separate") {
 			this._initPreview();
 		}
 		Promise.all(this._aFieldReadyPromise).then(function () {
 			this._fieldReady = true;
 			this.fireFieldReady();
-			if (this.getMode() !== "admin" && this.getMode() !== "all") {
+			if (this.getMode() !== Constants.EDITOR_MODE.ADMIN && this.getMode() !== Constants.EDITOR_MODE.ALL) {
 				setTimeout(function () {
 					this.fireDestinationReady();
 				}.bind(this), 100);
@@ -3224,35 +3667,59 @@ sap.ui.define([
 	 * Destroy the editor and the internal instances that it created
 	 */
 	Editor.prototype.destroy = function () {
+		this.cleanAndReset();
 		if (this._oPopover) {
 			this._oPopover.destroy();
-		}
-		if (this._oDesigntimeInstance) {
-			this._oDesigntimeInstance.destroy();
-		}
-		var oPreview = this.getAggregation("_preview");
-		if (oPreview && oPreview.destroy) {
-			oPreview.destroy();
 		}
 		var oMessageStrip = Element.getElementById(MessageStripId);
 		if (oMessageStrip) {
 			oMessageStrip.destroy();
 		}
-		this._manifestModel = null;
-		this._beforeManifestModel = null;
-		this._oInitialManifestModel = null;
-		this._settingsModel = null;
-		this._destinationsModel = null;
+		this._oDestinationsModel = null;
 		this._oEditorResourceBundles = null;
 		document.body.style.removeProperty("--sapUiIntegrationEditorFormWidth");
 		document.body.style.removeProperty("--sapUiIntegrationEditorFormHeight");
 		Control.prototype.destroy.apply(this, arguments);
 	};
 
+	Editor.prototype.cleanAndReset = function () {
+		if (this._oDesigntimeInstance) {
+			this._oDesigntimeInstance.destroy();
+		}
+		this._oInitialManifestModel = null;
+		this._oBeforeLayerManifestModel = null;
+		this._oManifestModel = null;
+		this._oSettingsModel = null;
+		this._oDesigntime = null;
+		this._aAppliedLayerChanges = [];
+		this._oBeforeLayerChange = {};
+		this._oCurrentLayerChange = {};
+
+		this.resetProperty("designtime");
+		this.destroyAggregation("_formContent");
+
+		// destory preview
+		this._destoryPreview();
+
+		this._ready = false;
+		this._fieldReady = false;
+	};
+
 	/**
-	 * Initializes the additional content
+	 * Initializes the preview content
 	 */
 	Editor.prototype._initPreview = function () {
+	};
+
+	/**
+	 * Destory the preview content
+	 */
+	Editor.prototype._destoryPreview = function () {
+		var oPreview = this.getAggregation("_preview");
+		if (oPreview) {
+			oPreview.destroy();
+			this.setAggregation("_preview", null);
+		}
 	};
 
 	/**
@@ -3270,7 +3737,7 @@ sap.ui.define([
 				continue;
 			}
 			if (oItem.manifestpath) {
-				oItem.value = this._manifestModel.getProperty(oItem.manifestpath);
+				oItem.value = this._oManifestModel.getProperty(oItem.manifestpath);
 			}
 			if (oItem.visible === undefined || oItem.visible === null) {
 				oItem.visible = true;
@@ -3278,7 +3745,7 @@ sap.ui.define([
 			if (oItem.editable === undefined || oItem.editable === null) {
 				oItem.editable = true;
 			}
-			if (this.getMode() !== "admin") {
+			if (this.getMode() !== Constants.EDITOR_MODE.ADMIN) {
 				if (oItem.visibleToUser !== undefined) {
 					oItem.visible = oItem.visibleToUser;
 				}
@@ -3297,7 +3764,7 @@ sap.ui.define([
 
 				oItem.type = "string";
 			}
-			//only if the value is undefined from the this._manifestModel.getProperty(oItem.manifestpath)
+			//only if the value is undefined from the this._oManifestModel.getProperty(oItem.manifestpath)
 			//false, "", 0... are valid values and should not apply the default
 			if (oItem.value === undefined || oItem.value === null) {
 				switch (oItem.type) {
@@ -3325,9 +3792,9 @@ sap.ui.define([
 		var oTexts = {};
 		var oDesigntime = {};
 		//pull current values
-		if (this._appliedLayerManifestChanges && Array.isArray(this._appliedLayerManifestChanges)) {
-			for (var i = 0; i < this._appliedLayerManifestChanges.length; i++) {
-				var oChanges = this._appliedLayerManifestChanges[i][":designtime"];
+		if (this._aAppliedLayerChanges && Array.isArray(this._aAppliedLayerChanges)) {
+			for (var i = 0; i < this._aAppliedLayerChanges.length; i++) {
+				var oChanges = this._aAppliedLayerChanges[i][":designtime"];
 				if (oChanges) {
 					var aKeys = Object.keys(oChanges);
 					for (var j = 0; j < aKeys.length; j++) {
@@ -3339,9 +3806,9 @@ sap.ui.define([
 								//if it is a parameter transformed from destination, add it into form/items as new parameter for this layer
 								var oNewParameterConfig = vValue.configuration;
 								delete oNewParameterConfig.parameterFromDestination;
-								oNewParameterConfig.value = this._manifestModel.getProperty(oNewParameterConfig.manifestpath);
+								oNewParameterConfig.value = this._oManifestModel.getProperty(oNewParameterConfig.manifestpath);
 								oNewParameterConfig._settingspath = "/form/items/" + vValue.parameter;
-								this._settingsModel.setProperty(oNewParameterConfig._settingspath, oNewParameterConfig);
+								this._oSettingsModel.setProperty(oNewParameterConfig._settingspath, oNewParameterConfig);
 							} else {
 								// else it should for the object field/object list field
 								// add it into designtime of settings
@@ -3349,18 +3816,18 @@ sap.ui.define([
 								continue;
 							}
 						} else {
-							this._settingsModel.setProperty(aKeys[j], vValue);
+							this._oSettingsModel.setProperty(aKeys[j], vValue);
 						}
 					}
 				}
-				var oAppliedLayerManifestChangeTexts = this._appliedLayerManifestChanges[i]["texts"];
+				var oAppliedLayerManifestChangeTexts = this._aAppliedLayerChanges[i]["texts"];
 				if (oAppliedLayerManifestChangeTexts) {
 					oTexts = merge(oTexts, oAppliedLayerManifestChangeTexts);
 				}
 			}
 		}
-		if (this._currentLayerManifestChanges) {
-			var oChanges = this._currentLayerManifestChanges[":designtime"];
+		if (this._oCurrentLayerChange) {
+			var oChanges = this._oCurrentLayerChange[":designtime"];
 			if (oChanges) {
 				var aKeys = Object.keys(oChanges);
 				for (var j = 0; j < aKeys.length; j++) {
@@ -3377,25 +3844,25 @@ sap.ui.define([
 							continue;
 						}
 					}
-					if (!this._settingsModel.getProperty(sNext)) {
+					if (!this._oSettingsModel.getProperty(sNext)) {
 						//create a _next entry if it does not exist
-						this._settingsModel.setProperty(sNext, {});
+						this._oSettingsModel.setProperty(sNext, {});
 					}
 					var sNext = sPath.substring(0, sPath.lastIndexOf("/") + 1) + "_next",
 						sProp = sPath.substring(sPath.lastIndexOf("/") + 1);
-					this._settingsModel.setProperty(sNext + "/" + sProp, vValue);
+					this._oSettingsModel.setProperty(sNext + "/" + sProp, vValue);
 				}
 			}
-			var ocurrentLayerManifestChangeTexts = this._currentLayerManifestChanges["texts"];
+			var ocurrentLayerManifestChangeTexts = this._oCurrentLayerChange["texts"];
 			if (ocurrentLayerManifestChangeTexts) {
 				oTexts = merge(oTexts, ocurrentLayerManifestChangeTexts);
 			}
 		}
 		if (!deepEqual(oTexts, {})) {
-			this._settingsModel.setProperty("/texts", oTexts);
+			this._oSettingsModel.setProperty("/texts", oTexts);
 		}
 		if (!deepEqual(oDesigntime, {})) {
-			this._settingsModel.setProperty("/:designtime", oDesigntime);
+			this._oSettingsModel.setProperty("/:designtime", oDesigntime);
 		}
 	};
 	/**
@@ -3413,7 +3880,7 @@ sap.ui.define([
 			Object.keys(oConfiguration.parameters).forEach(function (n) {
 				oItems[n] = merge({
 					manifestpath: sBasePath + "/" + n + "/value",
-					editable: (sMode !== "translation"),
+					editable: (sMode !== Constants.EDITOR_MODE.TRANSLATION),
 					_settingspath: "/form/items/" + n
 				}, oConfiguration.parameters[n]);
 				var oItem = oItems[n];
@@ -3438,7 +3905,7 @@ sap.ui.define([
 		oSettings.form = oSettings.form || {};
 		oSettings.form.items = oSettings.form.items || {};
 		if (oSettings && oConfiguration && oConfiguration.destinations) {
-			this._destinationGroupAtTop = false;
+			this._bDestinationGroupAtTop = false;
 			var oItems = oSettings.form.items,
 				oDestinations = {},
 				oHost = this.getHostInstance();
@@ -3450,8 +3917,8 @@ sap.ui.define([
 				_settingspath: "/form/items/destination.group"
 			};
 			if (oItems["destination.group"]) {
-				// if the 1st item is destination group, set this._destinationGroupAtTop to true. Then render destination group at top
-				this._destinationGroupAtTop = Object.keys(oItems)[0] === "destination.group";
+				// if the 1st item is destination group, set this._bDestinationGroupAtTop to true. Then render destination group at top
+				this._bDestinationGroupAtTop = Object.keys(oItems)[0] === "destination.group";
 				oDestinationGroup = merge(oDestinationGroup, oItems["destination.group"]);
 				delete oItems["destination.group"];
 			}
@@ -3479,22 +3946,22 @@ sap.ui.define([
 				}
 				oDestinations[n + ".destination"] = oDestination;
 			});
-			// reorder the items according by this._destinationGroupAtTop
-			if (this._destinationGroupAtTop) {
+			// reorder the items according by this._bDestinationGroupAtTop
+			if (this._bDestinationGroupAtTop) {
 				oSettings.form.items = merge(oDestinations, oItems);
 			} else {
 				oSettings.form.items = merge(oItems, oDestinations);
 			}
 			var getDestinationsDone = false;
 			if (oHost) {
-				this._destinationsModel.setProperty("/_loading", true);
-				this._destinationsModel.checkUpdate(true);
+				this._oDestinationsModel.setProperty("/_loading", true);
+				this._oDestinationsModel.checkUpdate(true);
 				this.getHostInstance().getDestinations().then(function (a) {
 					getDestinationsDone = true;
-					this._destinationsModel.setProperty("/_values", a);
-					this._destinationsModel.setProperty("/_loading", false);
-					this._destinationsModel.setSizeLimit(a.length);
-					this._destinationsModel.checkUpdate(true);
+					this._oDestinationsModel.setProperty("/_values", a);
+					this._oDestinationsModel.setProperty("/_loading", false);
+					this._oDestinationsModel.setSizeLimit(a.length);
+					this._oDestinationsModel.checkUpdate(true);
 					setTimeout(function () {
 						this.fireDestinationReady();
 					}.bind(this), 100);
@@ -3505,16 +3972,16 @@ sap.ui.define([
 					if (getDestinationsDone) {
 						return;
 					}
-					this._destinationsModel.setProperty("/_values", b);
-					this._destinationsModel.setProperty("/_loading", false);
-					this._destinationsModel.setSizeLimit(b.length);
-					this._destinationsModel.checkUpdate(true);
+					this._oDestinationsModel.setProperty("/_values", b);
+					this._oDestinationsModel.setProperty("/_loading", false);
+					this._oDestinationsModel.setSizeLimit(b.length);
+					this._oDestinationsModel.checkUpdate(true);
 					setTimeout(function () {
 						this.fireDestinationReady();
 					}.bind(this), 100);
 				}.bind(this)).catch(function (e) {
-					this._destinationsModel.setProperty("/_loading", false);
-					this._destinationsModel.checkUpdate(true);
+					this._oDestinationsModel.setProperty("/_loading", false);
+					this._oDestinationsModel.checkUpdate(true);
 					setTimeout(function () {
 						this.fireDestinationReady();
 					}.bind(this), 100);
@@ -3541,15 +4008,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the default value that was given by the developer for the given path
+	 * Returns the initial value that was given by the developer for the given path
 	 * @param {string} sPath
 	 */
-	Editor.prototype._getManifestDefaultValue = function (sPath) {
+	Editor.prototype._getInitialValue = function (sPath) {
 		return this._oInitialManifestModel.getProperty(sPath);
 	};
-	Editor.prototype._getManifestBeforelValue = function (sPath) {
-		return this._beforeManifestModel.getProperty(sPath);
+
+	/**
+	 * Returns the value including changes in the before layer manifest model for the given path
+	 * @param {string} sPath
+	 */
+	Editor.prototype._getBeforeLayerValue = function (sPath) {
+		return this._oBeforeLayerManifestModel.getProperty(sPath);
 	};
+
 	/**
 	 * Returns whether the value is translatable via the handlbars translation syntax {{KEY}}
 	 * For other than string values false is returned

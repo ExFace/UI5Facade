@@ -20,7 +20,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element to provide a value help for boolean fields.
 	 * @extends sap.ui.mdc.valuehelp.content.FixedList
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @ui5-restricted sap.ui.mdc
@@ -49,6 +49,9 @@ sap.ui.define([
 			properties: ["config"]
 		});
 
+		this.setEmptyText(this._oResourceBundle.getText("valuehelp.NOT_SELECTED"));
+		this.setRestrictedToFixedValues(true);
+
 	};
 
 	Bool.prototype.exit = function() {
@@ -71,23 +74,25 @@ sap.ui.define([
 					return null;
 				}
 
-				const FixedListItem = aModules[0];
-				const JSONModel = aModules[1];
+				const [FixedListItem, JSONModel] = aModules;
 				this._oModel = new JSONModel({
 					"type": "",
 					"items": [{
-						"key": true,
-						"text": "true"
-					}, {
-						"key": false,
-						"text": "false"
+						"key": true
+					},
+					{
+						"key": false
 					}]
 				});
-				_updateModel.call(this, this.getConfig());
+
+				const fFormatKey = (vKey) => { // use formatter function as type isset late an can change
+					const oConfig = this.getConfig();
+					return oConfig?.dataType?.formatValue(vKey, "string");
+				};
 
 				const oItem = new FixedListItem(this.getId() + "-Item", {
-					key: { path: "$Bool>key" },
-					text: { path: "$Bool>text" }
+					key: { path: "$Bool>key", formatter: fFormatKey }, // as Item has Data-Type String, key needs to be formatted using Type, in FixedList the internalValue is used for Condition
+					text: { path: "$Bool>key", formatter: fFormatKey } // text is the same
 				});
 
 				this.bindAggregation("items", { path: "$Bool>/items", template: oItem });
@@ -110,6 +115,11 @@ sap.ui.define([
 				if (oConfig.checkKey) {
 					if (oConfig.parsedValue === true || oConfig.parsedValue === false) {
 						return { key: oConfig.parsedValue, description: oType.formatValue(oConfig.parsedValue, "string") };
+					} else if (oConfig.parsedValue === null) {
+						// check if there is an empty-description
+						if (oConfig.emptyAllowed) {
+							return { key: null, description: this._oResourceBundle.getText("valuehelp.NOT_SELECTED") };
+						}
 					} else {
 						// as in bool case the description is comming from the type, search for description (first match) if parsing fails
 						oConfig.checkDescription = true;
@@ -135,17 +145,6 @@ sap.ui.define([
 
 	};
 
-	/**
-	 * Determines if the value help should be opened when the user clicks into the connected control.
-	 *
-	 * @returns {boolean} If <code>true</code>, the value help should open when user clicks into the connected field control
-	 */
-	Bool.prototype.shouldOpenOnClick = function() {
-
-		return false;
-
-	};
-
 	Bool.prototype.isNavigationEnabled = function(iStep) {
 
 		return true; // always enable, even if items are created lately on opening or navigation
@@ -154,7 +153,7 @@ sap.ui.define([
 
 	Bool.prototype.observeChanges = function(oChanges) {
 
-		if (oChanges.type === "property" && oChanges.name === "config") {
+		if (oChanges.name === "config" && (oChanges.current?.dataType !== oChanges.old?.dataType)) {
 			_updateModel.call(this, oChanges.current);
 		}
 
@@ -162,27 +161,15 @@ sap.ui.define([
 	};
 
 	function _updateModel(oConfig) {
-		if (this._oModel && oConfig) {
-			// use texts of used type
-			const oType = oConfig.dataType;
-			const oData = this._oModel.getData();
-			if (oType && oData["type"] !== oType.getMetadata().getName()) {
-				oData["type"] = oType.getMetadata().getName();
-				const aItems = oData["items"];
 
-				for (const oItem of aItems) {
-					oItem["text"] = oType.formatValue(oItem["key"], "string");
-				}
+		this._oModel?.checkUpdate(true);
 
-				this._oModel.checkUpdate(true);
-			}
-		}
 	}
 
 	/**
 	 * Adds some item to the aggregation <code>items</code>.
 	 *
-	 * <b>Note:</b> Do not add items to the <code>Bool</code> content. The items will be filled by itself
+	 * <b>Note:</b> Do not add items to the <code>Bool</code> content. The items will be filled by <code>Bool</code> itself.
 	 *
 	 * @param {sap.ui.mdc.valuehelp.content.FixedListItem} oItem The item to add; if empty, nothing is inserted
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
@@ -197,7 +184,7 @@ sap.ui.define([
 	/**
 	 * Inserts a item to the aggregation <code>items</code>.
 	 *
-	 * <b>Note:</b> Do not add items to the <code>Bool</code> content. The items will be filled by itself
+	 * <b>Note:</b> Do not add items to the <code>Bool</code> content. The items will be filled by <code>Bool</code> itself.
 	 *
 	 * @param {sap.ui.mdc.valuehelp.content.FixedListItem} oItem The item to add; if empty, nothing is inserted
 	 * @param {int} iIndex The 0-based index the item should be inserted at; for a negative value of iIndex, the item is inserted at position 0; for a value greater than the current size of the aggregation, the item is inserted at the last position
@@ -213,7 +200,7 @@ sap.ui.define([
 	/**
 	 * Destroys all the items in the aggregation <code>items</code>.
 	 *
-	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by itself
+	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by <code>Bool</code> itself.
 	 *
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
 	 * @private
@@ -227,7 +214,7 @@ sap.ui.define([
 	/**
 	 * Removes all the controls from the aggregation <code>items</code>.
 	 *
-	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by itself
+	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by <code>Bool</code> itself.
 	 *
 	 * @returns {sap.ui.mdc.valuehelp.content.FixedListItem[]} An array of the removed elements (might be empty)
 	 * @private
@@ -241,7 +228,7 @@ sap.ui.define([
 	/**
 	 * Removes a item from the aggregation <code>items</code>.
 	 *
-	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by itself
+	 * <b>Note:</b> Do not change items to the <code>Bool</code> content. The items will be filled by <code>Bool</code> itself.
 	 *
 	 * @param {int|string|sap.ui.mdc.valuehelp.content.FixedListItem} vItem The item to remove or its index or ID
 	 * @returns {sap.ui.mdc.valuehelp.content.FixedListItem|null} The removed item or <code>null</code>
@@ -256,7 +243,7 @@ sap.ui.define([
 	/**
 	 * Sets a new value for property <code>useFirstMatch</code>.
 	 *
-	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by itself
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
 	 *
 	 * @param {boolean} [bUseFirstMatch=true] New value for property <code>useFirstMatch</code>
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
@@ -271,7 +258,7 @@ sap.ui.define([
 	/**
 	 * Sets a new value for property <code>useAsValueHelp</code>.
 	 *
-	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by itself
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
 	 *
 	 * @param {boolean} [bUseAsValueHelp=true] New value for property <code>useAsValueHelp</code>
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
@@ -286,7 +273,7 @@ sap.ui.define([
 	/**
 	 * Sets a new value for property <code>filterList</code>.
 	 *
-	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by itself
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
 	 *
 	 * @param {boolean} [bFilterList=false] New value for property <code>filterList</code>
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
@@ -301,7 +288,7 @@ sap.ui.define([
 	/**
 	 * Sets a new value for property <code>caseSensitive</code>.
 	 *
-	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by itself
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
 	 *
 	 * @param {boolean} [bCaseSensitive=false] New value for property <code>caseSensitive</code>
 	 * @returns {this} Reference to <code>this</code> to allow method chaining
@@ -310,6 +297,36 @@ sap.ui.define([
 	 * @deprecated Not supported, the property is automatically set.
 	 * @ui5-not-supported
 	 * @name sap.ui.mdc.valuehelp.content.Bool#setCaseSensitive
+	 * @function
+	 */
+
+	/**
+	 * Sets a new value for property <code>emptyText</code>.
+	 *
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
+	 *
+	 * @param {string} [sText] New value for property <code>emptyText</code>
+	 * @returns {this} Reference to <code>this</code> to allow method chaining
+	 * @public
+	 * @since 1.138
+	 * @deprecated As of version 1.138, setting of this property is not supported, the property is automatically set.
+	 * @ui5-not-supported
+	 * @name sap.ui.mdc.valuehelp.content.Bool#setEmptyText
+	 * @function
+	 */
+
+	/**
+	 * Sets a new value for property <code>cestrictedToFixedValues</code>.
+	 *
+	 * <b>Note:</b> Do not set this property for the <code>Bool</code> content. It will be set by <code>Bool</code> itself.
+	 *
+	 * @param {boolean} [bnlyFixedValuesAllowed=false] New value for property <code>restrictedToFixedValues</code>
+	 * @returns {this} Reference to <code>this</code> to allow method chaining
+	 * @public
+	 * @since 1.138
+	 * @deprecated As of version 1.138, setting of this property is not supported, the property is automatically set.
+	 * @ui5-not-supported
+	 * @name sap.ui.mdc.valuehelp.content.Bool#setRestrictedToFixedValues
 	 * @function
 	 */
 

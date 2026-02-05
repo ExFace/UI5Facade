@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @since 1.61.0
 	 * @private
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 */
 	const FlexCustomData = {};
 

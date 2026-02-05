@@ -22,14 +22,14 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.rta
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.50
 	 * @private
 	 */
 	var thisLib = Lib.init({
 		name: "sap.ui.rta",
 		apiVersion: 2,
-		version: "1.136.12",
+		version: "1.144.0",
 		dependencies: ["sap.ui.core", "sap.m", "sap.ui.fl", "sap.ui.dt"],
 		types: [],
 		interfaces: [],

@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.dt.plugin.CutPaste
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -74,7 +74,7 @@ sap.ui.define([
 	 */
 	CutPaste.prototype.init = function(...aArgs) {
 		ControlCutPaste.prototype.init.apply(this, aArgs);
-		this.setElementMover(new RTAElementMover({commandFactory: this.getCommandFactory()}));
+		this.setElementMover(new RTAElementMover({ commandFactory: this.getCommandFactory() }));
 	};
 
 	/**

@@ -21,7 +21,7 @@ sap.ui.define([
 	 * Provides validation functions for checking the (required) usage of the PropertyHelper.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @alias sap.ui.mdc.util.PropertyHelperUtil
 	 * @namespace
 	 * @since 1.132.0

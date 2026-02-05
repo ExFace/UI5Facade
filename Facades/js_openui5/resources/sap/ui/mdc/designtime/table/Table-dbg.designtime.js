@@ -10,12 +10,16 @@ sap.ui.define([
 
 	// initial structure of designTime object
 	const oDesignTime = {
-		name: "{name}",
+		name: {
+			singular: "TABLE_NAME",
+			plural: "TABLE_NAME_PLURAL"
+		},
 		description: "{description}",
 		actions: {
 			settings: {
 				"sap.ui.mdc": function(oControl) {
-					return Engine.getInstance()._runWithPersistence(oControl, (bIsGlobal) => ( {
+					const bIsGlobal = Engine.getInstance()._getKeyUserPersistence(oControl);
+					return {
 						name: "p13nDialog.VIEW_SETTINGS",
 						handler: function (oControl, mPropertyBag) {
 							return oControl.finalizePropertyHelper().then(() => {
@@ -23,7 +27,7 @@ sap.ui.define([
 							});
 						},
 						CAUTION_variantIndependent: bIsGlobal
-					}));
+					};
 				}
 			}
 		},

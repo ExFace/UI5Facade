@@ -25,7 +25,7 @@ sap.ui.define([
 	 * Helper object to build the RTA commands resulting from the AdditionalElements Plugin
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @since 1.94
 	 */

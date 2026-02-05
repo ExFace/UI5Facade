@@ -27,7 +27,7 @@ sap.ui.define(['./Panel', './library', 'sap/ui/core/library'],
 	 * @extends sap.ui.commons.Panel
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

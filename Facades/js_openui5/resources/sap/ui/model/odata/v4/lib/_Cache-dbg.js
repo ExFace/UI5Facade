@@ -19,7 +19,7 @@ sap.ui.define([
 	var sClassName = "sap.ui.model.odata.v4.lib._Cache",
 		// Matches if ending with a transient key predicate:
 		//   EMPLOYEE($uid=id-1550828854217-16) -> aMatches[0] === "($uid=id-1550828854217-16)"
-		//   @see sap.base.util.uid
+		//   @see sap/base/util/uid
 		rEndsWithTransientPredicate = /\(\$uid=[-\w]+\)$/,
 		rInactive = /^\$inactive\./,
 		sMessagesAnnotation = "@com.sap.vocabularies.Common.v1.Messages",
@@ -113,7 +113,7 @@ sap.ui.define([
 	 *  A function which is called immediately when an entity has been deleted from the cache, or
 	 *   when it was re-inserted; the index of the entity and an offset (-1 for deletion, 1 for
 	 *   re-insertion) are passed as parameter
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a result in case of success, or rejected with an
 	 *   instance of <code>Error</code> in case of failure
 	 * @throws {Error} If the cache is shared
@@ -458,7 +458,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group ID
-	 * @param {sap.ui.base.SyncPromise} oPostPathPromise
+	 * @param {sap.ui.base.SyncPromise<string>} oPostPathPromise
 	 *   A SyncPromise resolving with the resource path for the POST request
 	 * @param {string} sPath
 	 *   The collection's path within the cache (as used by change listeners)
@@ -478,7 +478,7 @@ sap.ui.define([
 	 *   A function which is called when the create has been canceled (after internal clean-up and
 	 *   just before {@link sap.ui.model.odata.v4.lib._GroupLock#cancel}), except if the entity is
 	 *   simply inactive
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise which is resolved with the created entity when the POST request has been
 	 *   successfully sent and the entity has been marked as non-transient
 	 * @throws {Error} If the cache is shared
@@ -696,7 +696,7 @@ sap.ui.define([
 	 *   An unlocked lock for the group to associate a request for late properties with
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise that is resolved with the result matching to <code>sPath</code>
 	 *
 	 * @protected
@@ -726,7 +726,7 @@ sap.ui.define([
 		 * @param {string} sSegment - The path segment that is missing
 		 * @param {number} iPathLength - The length of the path of the missing value
 		 * @param {boolean} [bAgain] - Whether we are trying again and must not cause a request
-		 * @returns {sap.ui.base.SyncPromise|undefined}
+		 * @returns {sap.ui.base.SyncPromise<any>|undefined}
 		 *   Returns a SyncPromise which resolves with the value or returns undefined in some
 		 *   special cases.
 		 */
@@ -782,8 +782,7 @@ sap.ui.define([
 						return invalidSegment(sSegment);
 					}
 					if (oProperty.$Type === "Edm.Stream" && !sPropertyName) {
-						sReadLink = oValue[sSegment + "@odata.mediaReadLink"]
-							|| oValue[sSegment + "@mediaReadLink"];
+						sReadLink = oValue[sSegment + "@odata.mediaReadLink"];
 						if (sReadLink) {
 							return sReadLink;
 						}
@@ -804,7 +803,7 @@ sap.ui.define([
 							oEntity = oData;
 							iEntityPathLength = 0;
 						}
-						if (oEntity && !bAgain) {
+						if (oEntity && !bAgain && !that.isAggregated?.(oEntity)) {
 							vResult = that.fetchLateProperty(oGroupLock, oEntity,
 								aSegments.slice(0, iEntityPathLength).join("/"),
 								aSegments.slice(iEntityPathLength).join("/"));
@@ -1091,7 +1090,7 @@ sap.ui.define([
 	 * "@com.sap.vocabularies.Common.v1.Messages" annotation for messages, the type is enriched by
 	 * the property "@com.sap.vocabularies.Common.v1.Messages" containing the annotation object.
 	 *
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise that is resolved with a map from resource path + entity path to the type
 	 *
 	 * @private
@@ -1124,7 +1123,7 @@ sap.ui.define([
 			aPromises = [];
 			mTypeForMetaPath = {};
 			aPromises.push(this.oRequestor.fetchType(mTypeForMetaPath, this.sMetaPath));
-			fetchExpandedTypes(this.sMetaPath, this.mQueryOptions);
+			fetchExpandedTypes(this.sMetaPath, this.mLateExpandSelect || this.mQueryOptions);
 			this.oTypePromise = SyncPromise.all(aPromises).then(function () {
 				return mTypeForMetaPath;
 			});
@@ -1148,7 +1147,7 @@ sap.ui.define([
 	 *   called with the new value if the property at that path is modified later
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the requested data. It is rejected if the request for the
 	 *   data failed.
 	 * @throws {Error}
@@ -1301,7 +1300,7 @@ sap.ui.define([
 	/**
 	 * Returns this cache's query options.
 	 *
-	 * @returns {object|undefined} The query options, if any
+	 * @returns {object|undefined} The query options, if any (requires "copy on write"!)
 	 *
 	 * @public
 	 * @see #setQueryOptions
@@ -1432,7 +1431,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath The path (as used by change listeners)
 	 * @param {object} oData The data to patch with
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise to be resolved with the patched data
 	 * @throws {Error} If the cache is shared
 	 *
@@ -1471,7 +1470,7 @@ sap.ui.define([
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before the back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise which resolves with the refreshed entity after it was updated in the cache, and
 	 *   rejects with an error when no key predicate is known.
 	 * @throws {Error} If the cache is shared
@@ -1544,13 +1543,13 @@ sap.ui.define([
 	 * @param {string} sPath
 	 *   The entity's path relative to the cache; it must end with a single-valued navigation
 	 *   property and contain no key predicates, except maybe one right at the start
-	 * @returns {Promise<void>|sap.ui.base.SyncPromise}
+	 * @returns {Promise<void>|sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result, or rejected with an error if loading
 	 *   of side effects fails
 	 *
 	 * @abstract
 	 * @function
-	 * @name sap.ui.model.odata.lib._Cache#refreshSingleNoCollection
+	 * @name sap.ui.model.odata.v4.lib._Cache#refreshSingleNoCollection
 	 * @private
 	 */
 
@@ -1580,7 +1579,7 @@ sap.ui.define([
 	 *   see {@link sap.ui.model.odata.v4.ODataListBinding#filter}. Since 1.84.0, if the entity is
 	 *   kept alive and still exists, the function is called with <code>true</code>, otherwise with
 	 *   <code>false</code>
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which resolves with <code>undefined</code> when the entity is updated in
 	 *   the cache; it rejects with an error when no key predicate is known.
 	 * @throws {Error} If the cache is shared
@@ -2062,7 +2061,7 @@ sap.ui.define([
 	 *   Path of the entity, relative to the cache (as used by change listeners)
 	 * @param {boolean} [bUpdating]
 	 *   Whether the given property will not be overwritten by a creation POST(+GET) response
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which resolves with <code>undefined</code> once the value has been set, or is
 	 *   rejected with an error if setting fails somehow
 	 * @throws {Error} If the cache is shared
@@ -2084,7 +2083,7 @@ sap.ui.define([
 	 * Updates this cache's query options if it has not yet sent a request.
 	 *
 	 * @param {object} [mQueryOptions={}]
-	 *   The new query options
+	 *   The new query options (requires "copy on write"!)
 	 * @param {boolean} [bForce]
 	 *   Forces an update even if a request has been already sent
 	 * @throws {Error}
@@ -2100,7 +2099,7 @@ sap.ui.define([
 			throw new Error("Cannot set query options: Cache has already sent a request");
 		}
 
-		this.mQueryOptions = mQueryOptions;
+		this.mQueryOptions = mQueryOptions; // Note: requires "copy on write"!
 		this.sQueryString = this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions, false,
 			this.bSortExpandSelect);
 	};
@@ -2172,7 +2171,7 @@ sap.ui.define([
 	 *   A function to tell whether the entity is kept alive
 	 * @param {function} fnSetUpsertPromise
 	 *   A function to (re)set a sync promise for the "upsert" use case
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise for the PATCH request (resolves with <code>undefined</code>); rejected in case of
 	 *   cancellation or if no <code>fnErrorCallback</code> is given
 	 * @throws {Error} If the cache is shared
@@ -2216,7 +2215,7 @@ sap.ui.define([
 			 *   A lock for the group to associate the request with
 			 * @param {boolean} [bAtFront]
 			 *   Whether the request is added at the front of the first change set
-			 * @returns {sap.ui.base.SyncPromise}
+			 * @returns {sap.ui.base.SyncPromise<void>}
 			 *   A promise for the PATCH request (resolves with <code>undefined</code>); rejected in
 			 *   case of cancellation or if no <code>fnErrorCallback</code> is given
 			 */
@@ -2612,31 +2611,29 @@ sap.ui.define([
 			}
 
 			Object.keys(oInstance).forEach(function (sProperty) {
-				var sCount,
-					sPropertyMetaPath = sMetaPath + "/" + sProperty,
-					vPropertyValue = oInstance[sProperty],
-					sPropertyPath = _Helper.buildPath(sInstancePath, sProperty);
+				var sPropertyMetaPath = sMetaPath + "/" + sProperty,
+					sPropertyPath = _Helper.buildPath(sInstancePath, sProperty),
+					vPropertyValue = oInstance[sProperty];
 
-				if (sProperty.endsWith("@odata.mediaReadLink")
-						|| sProperty.endsWith("@mediaReadLink")) {
-					oInstance[sProperty] = _Helper.makeAbsolute(vPropertyValue, sContextUrl);
-				}
-				if (sProperty === sMessageProperty || sProperty.includes("@")) {
-					return; // ignore message property and other annotations
+				if (sProperty.includes("@")) {
+					if (sProperty.endsWith("@odata.mediaReadLink")) {
+						oInstance[sProperty] = _Helper.makeAbsolute(vPropertyValue, sContextUrl);
+					}
+					return; // ignore other annotations
 				}
 				if (Array.isArray(vPropertyValue)) {
 					vPropertyValue.$created = 0; // number of (client-side) created elements
 					// compute count
-					sCount = oInstance[sProperty + "@odata.count"];
+					const sCount = oInstance[sProperty + "@odata.count"];
 					// Note: ignore change listeners, because any change listener that is already
 					// registered, is still waiting for its value and gets it via fetchValue
 					if (sCount) {
 						vPropertyValue.$count = parseInt(sCount);
-					} else if (!oInstance[sProperty + "@odata.nextLink"]) {
+					} else if (oInstance[sProperty + "@odata.nextLink"]) {
+						vPropertyValue.$count = undefined; // see _Helper.setCount
+					} else {
 						// Note: This relies on the fact that $skip/$top is not used on nested lists
 						vPropertyValue.$count = vPropertyValue.length;
-					} else {
-						vPropertyValue.$count = undefined; // see _Helper.setCount
 					}
 					visitArray(vPropertyValue, sPropertyMetaPath, sPropertyPath,
 						buildContextUrl(sContextUrl, oInstance[sProperty + "@odata.context"]));
@@ -2675,7 +2672,7 @@ sap.ui.define([
 	 * @param {string} sResourcePath
 	 *   A resource path relative to the service URL
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
 	 * @param {string} [sDeepResourcePath=sResourcePath]
@@ -2711,6 +2708,7 @@ sap.ui.define([
 		// - iStart: the start (inclusive)
 		// - iEnd: the end (exclusive)
 		this.aReadRequests = [];
+		this.iResetCount = 0;
 		this.aSeparateProperties = []; // properties to be loaded separately
 		// maps separate property to an array of requested $skip/$top ranges (see aReadRequests)
 		this.mSeparateProperty2ReadRequests = {};
@@ -2738,7 +2736,7 @@ sap.ui.define([
 	/**
 	 * Checks the given range of currently available elements to contain the given promise.
 	 *
-	 * @param {sap.ui.base.SyncPromise} oPromise
+	 * @param {sap.ui.base.SyncPromise<any>} oPromise
 	 *   The promise
 	 * @param {number} iStart
 	 *   The start index
@@ -2837,7 +2835,7 @@ sap.ui.define([
 	 *   called with the new value if the property at that path is modified later
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the requested data. It is rejected if the request for the
 	 *   data failed.
 	 * @throws {Error}
@@ -2884,7 +2882,7 @@ sap.ui.define([
 	 * collection count is unknown and it is not an option to enlarge the array to accommodate
 	 * <code>iEnd - 1</code>, the promise is stored in <code>aElements.$tail</code>.
 	 *
-	 * @param {sap.ui.base.SyncPromise} oPromise
+	 * @param {sap.ui.base.SyncPromise<any>} oPromise
 	 *   The promise
 	 * @param {number} iStart
 	 *   The start index
@@ -3389,14 +3387,15 @@ sap.ui.define([
 	 * @param {function} [fnSeparateReceived]
 	 *   The function is called for each completed separate property request; may be omitted only if
 	 *   there are no separate properties
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise to be resolved with the requested range given as an OData response object (with
-	 *   "@odata.context" and the rows as an array in the property <code>value</code>, enhanced
-	 *   with a number property <code>$count</code> representing the element count on server-side;
-	 *   <code>$count</code> may be <code>undefined</code>, but not <code>Infinity</code>). If an
-	 *   HTTP request fails, the error from the _Requestor is returned and the requested range is
-	 *   reset to <code>undefined</code>. If the request has been obsoleted by a {@link #reset}, the
-	 *   promise is rejected with an error having a property <code>canceled = true</code>.
+	 *   "@$ui5.resetCount", "@odata.context", and the rows as an array in the property
+	 *   <code>value</code>, enhanced with a number property <code>$count</code> representing the
+	 *   element count on server-side; <code>$count</code> may be <code>undefined</code>, but not
+	 *   <code>Infinity</code>). If an HTTP request fails, the error from the _Requestor is returned
+	 *   and the requested range is reset to <code>undefined</code>. If the request has been
+	 *   obsoleted by a {@link #reset}, the promise is rejected with an error having a property
+	 *   <code>canceled = true</code>.
 	 * @throws {Error} If given index or length is less than 0
 	 *
 	 * @public
@@ -3482,6 +3481,7 @@ sap.ui.define([
 			aElements.$count = that.aElements.$count;
 
 			return {
+				"@$ui5.resetCount" : that.iResetCount,
 				"@odata.context" : that.sContext,
 				value : aElements
 			};
@@ -3566,7 +3566,8 @@ sap.ui.define([
 			return _Helper.getPrivateAnnotation(oElement, "predicate") === sPredicate
 				&& Object.keys(oElement).length > 1 // entity has key properties
 				&& !oElement["@$ui5.context.isDeleted"]
-				&& !that.hasPendingChangesForPath(sPredicate, bIgnorePendingChanges);
+				&& !that.hasPendingChangesForPath(sPredicate, bIgnorePendingChanges)
+				&& !that.isAggregated?.(oElement); // no refresh needed for aggregated elements
 		}
 
 		this.checkSharedRequest();
@@ -3606,7 +3607,7 @@ sap.ui.define([
 
 	/**
 	 * @override
-	 * @see sap.ui.model.odata.lib._Cache#refreshSingleNoCollection
+	 * @see sap.ui.model.odata.v4.lib._Cache#refreshSingleNoCollection
 	 */
 	_CollectionCache.prototype.refreshSingleNoCollection = function (oGroupLock, sPath) {
 		return this.requestSideEffects(oGroupLock.getUnlockedCopy(), [_Helper.getMetaPath(sPath)],
@@ -3645,7 +3646,7 @@ sap.ui.define([
 	 * @param {function} [fnSeparateReceived]
 	 *   The function is called for each completed separate property request; may be omitted only if
 	 *   there are no separate properties
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result when the request is finished and
 	 *   rejected in case of error; if the request has been obsoleted by a {@link #reset} the error
 	 *   has a property <code>canceled = true</code>)
@@ -3779,7 +3780,7 @@ sap.ui.define([
 	 *   The start index of the range
 	 * @param {number} iEnd
 	 *   The index after the last element
-	 * @param {sap.ui.base.SyncPromise} oMainPromise
+	 * @param {sap.ui.base.SyncPromise<void>} oMainPromise
 	 *   A promise which is resolved when the main request is finished; the caller must take care of
 	 *   error handling
 	 * @param {function} [fnSeparateReceived]
@@ -3792,7 +3793,9 @@ sap.ui.define([
 	 */
 	_CollectionCache.prototype.requestSeparateProperties = async function (iStart, iEnd,
 			oMainPromise, fnSeparateReceived) {
-		if (!this.aSeparateProperties.length) {
+		const mExpand = this.mQueryOptions.$expand ?? {};
+		const aProperties = this.aSeparateProperties.filter((sProperty) => sProperty in mExpand);
+		if (!aProperties.length) {
 			return;
 		}
 
@@ -3802,7 +3805,7 @@ sap.ui.define([
 		// This function resolves at no defined point in time as it is not (yet) relevant for the
 		// function caller. This may changes in the future. The completion of each separate property
 		// can be observed with the below oReadRange.promise
-		this.aSeparateProperties.forEach(async (sProperty) => {
+		aProperties.forEach(async (sProperty) => {
 			let fnResolve;
 			let fnReject;
 			const oReadRange = {
@@ -3810,8 +3813,9 @@ sap.ui.define([
 				end : iEnd,
 				promise : new SyncPromise(function (resolve, reject) {
 					fnResolve = resolve;
-					fnReject = function () {
-						const oError = new Error("$$separate: canceled " + sProperty);
+					fnReject = function (oError0) {
+						const oError = new Error("$$separate: canceled " + sProperty,
+							{cause : oError0});
 						oError.canceled = true;
 						reject(oError);
 					};
@@ -3824,9 +3828,9 @@ sap.ui.define([
 				const oResult = await this.oRequestor.request("GET", sReadUrl,
 					this.oRequestor.lockGroup("$single", this));
 
-				let bMainFailed;
-				await oMainPromise.catch(() => { /* handled by caller */
-					bMainFailed = true;
+				let oMainError;
+				await oMainPromise.catch((oError) => { /* handled by caller */
+					oMainError = oError;
 				});
 
 				const iIndex = this.mSeparateProperty2ReadRequests[sProperty].indexOf(oReadRange);
@@ -3836,8 +3840,8 @@ sap.ui.define([
 				}
 
 				this.mSeparateProperty2ReadRequests[sProperty].splice(iIndex, 1);
-				if (bMainFailed) {
-					fnReject();
+				if (oMainError) {
+					fnReject(oMainError);
 					return;
 				}
 
@@ -3847,6 +3851,10 @@ sap.ui.define([
 					const oElement = this.aElements.$byPredicate[sPredicate];
 					if (oElement) {
 						if (oElement["@odata.etag"] === oSeparateData["@odata.etag"]) {
+							if (oElement[sProperty]?.["@odata.etag"]
+									!== oSeparateData[sProperty]?.["@odata.etag"]) {
+								delete oElement[sProperty];
+							}
 							_Helper.updateSelected(this.mChangeListeners, sPredicate, oElement,
 								oSeparateData, [sProperty]);
 						} else {
@@ -3858,7 +3866,7 @@ sap.ui.define([
 				fnResolve();
 				fnSeparateReceived(sProperty, iStart, iEnd);
 			} catch (oError) {
-				fnReject();
+				fnReject(oError);
 				// do not clean up mSeparateProperty2ReadRequests to avoid late property requests
 				fnSeparateReceived(sProperty, iStart, iEnd, oError);
 			}
@@ -3873,9 +3881,9 @@ sap.ui.define([
 	 *   A lock for the ID of the group that is associated with the request;
 	 *   see {@link sap.ui.model.odata.v4.lib._Requestor#request} for details
 	 * @param {string[]} aPaths
-	 *   The "14.5.11 Expression edm:NavigationPropertyPath" or
-	 *   "14.5.13 Expression edm:PropertyPath" strings describing which properties need to be loaded
-	 *   because they may have changed due to side effects of a previous update
+	 *   The "14.4.1.5 Expression edm:NavigationPropertyPath" or
+	 *   "14.4.1.6 Expression edm:PropertyPath" strings describing which properties need to be
+	 *   loaded because they may have changed due to side effects of a previous update
 	 * @param {string[]} aPredicates
 	 *   The key predicates of the root elements to request side effects for
 	 * @param {boolean} bSingle
@@ -3883,7 +3891,7 @@ sap.ui.define([
 	 *   in this case
 	 * @param {boolean} bWithMessages
 	 *   Whether the "@com.sap.vocabularies.Common.v1.Messages" path is treated specially
-	 * @returns {Promise<void>|sap.ui.base.SyncPromise}
+	 * @returns {Promise<void>|sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result, or rejected with an error if loading
 	 *   of side effects fails
 	 * @throws {Error}
@@ -4000,7 +4008,7 @@ sap.ui.define([
 	 *   rows and transient elements with a different batch group shall be kept in place and a
 	 *   backup shall be remembered for a later {@link #restore}
 	 * @param {object} [mQueryOptions]
-	 *   The new query options
+	 *   The new query options (requires "copy on write"!)
 	 * @param {object} [_oAggregation]
 	 *   An object holding the information needed for data aggregation; see also "OData Extension
 	 *   for Data Aggregation Version 4.0"; must already be normalized by
@@ -4036,6 +4044,7 @@ sap.ui.define([
 				iLimit : this.iLimit
 			};
 		}
+		this.iResetCount += 1;
 
 		if (mQueryOptions) {
 			this.setQueryOptions(mQueryOptions, true);
@@ -4118,6 +4127,7 @@ sap.ui.define([
 			this.aElements.$count = this.oBackup.$count;
 			this.aElements.$created = this.oBackup.$created;
 			this.iLimit = this.oBackup.iLimit;
+			this.iResetCount -= 1;
 		}
 		this.oBackup = null;
 	};
@@ -4202,7 +4212,7 @@ sap.ui.define([
 	 * @param {string} sResourcePath
 	 *   A resource path relative to the service URL
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 	 *
 	 * @alias sap.ui.model.odata.v4.lib._PropertyCache
 	 * @constructor
@@ -4255,7 +4265,7 @@ sap.ui.define([
 	 *   called with the new value if the property at that path is modified later
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Unsupported
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the value. It is rejected if the request for the data failed.
 	 * @throws {Error}
 	 *   If <code>bCreateOnDemand</code> is set or if group ID is '$cached' and the value is not
@@ -4312,7 +4322,7 @@ sap.ui.define([
 	 * @param {string} sResourcePath
 	 *   A resource path relative to the service URL
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
 	 * @param {boolean} [bSharedRequest]
@@ -4390,7 +4400,7 @@ sap.ui.define([
 	 *   called with the new value if the property at that path is modified later
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the element. It is rejected if the request for the data
 	 *   failed.
 	 * @param {function(object):string} [fnGetOriginalResourcePath]
@@ -4476,7 +4486,7 @@ sap.ui.define([
 	 * @param {function(object):string} [fnGetOriginalResourcePath]
 	 *   A function returning the cache's original resource path to be used to build the target path
 	 *   for bound messages; it is called once with the response object as parameter
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise to be resolved with the result of the request.
 	 * @throws {Error}
 	 *   If the cache does not allow POST, another POST is still being processed, or the cache is
@@ -4542,7 +4552,8 @@ sap.ui.define([
 
 						if (bConfirm) {
 							delete mHeaders["Prefer"];
-							return post(oGroupLock0.getUnlockedCopy());
+							// decomposed error indicates request inside change set (but not alone)
+							return post(oGroupLock0.getUnlockedCopy(!oError.decomposed));
 						}
 
 						oCanceledError = Error("Action canceled due to strict handling");
@@ -4599,7 +4610,7 @@ sap.ui.define([
 
 	/**
 	 * @override
-	 * @see sap.ui.model.odata.lib._Cache#refreshSingleNoCollection
+	 * @see sap.ui.model.odata.v4.lib._Cache#refreshSingleNoCollection
 	 */
 	_SingleCache.prototype.refreshSingleNoCollection = function (oGroupLock, sPath) {
 		return this.requestSideEffects(oGroupLock.getUnlockedCopy(), [_Helper.getMetaPath(sPath)]);
@@ -4613,12 +4624,12 @@ sap.ui.define([
 	 *   A lock for the ID of the group that is associated with the request;
 	 *   see {@link sap.ui.model.odata.v4.lib._Requestor#request} for details
 	 * @param {string[]} aPaths
-	 *   The "14.5.11 Expression edm:NavigationPropertyPath" or
-	 *   "14.5.13 Expression edm:PropertyPath" strings describing which properties need to be loaded
-	 *   because they may have changed due to side effects of a previous update
+	 *   The "14.4.1.5 Expression edm:NavigationPropertyPath" or
+	 *   "14.4.1.6 Expression edm:PropertyPath" strings describing which properties need to be
+	 *   loaded because they may have changed due to side effects of a previous update
 	 * @param {string} [sResourcePath=this.sResourcePath]
 	 *   A resource path relative to the service URL; it must not contain a query string
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result, or rejected with an error if loading
 	 *   of side effects fails.
 	 * @throws {Error} If the side effects require a $expand, if group ID is '$cached' (the error
@@ -4735,7 +4746,7 @@ sap.ui.define([
 	 * @param {string} sResourcePath
 	 *   A resource path relative to the service URL
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 	 * @private
 	 */
 	function _SingletonPropertyCache(oRequestor, sResourcePath, mQueryOptions) {
@@ -4775,7 +4786,7 @@ sap.ui.define([
 	 *   called with the new value if the property at that path is modified later
 	 * @param {boolean} [bCreateOnDemand]
 	 *   Unsupported
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the value. It is rejected if the request for the data failed.
 	 * @throws {Error}
 	 *   If <code>bCreateOnDemand</code> is set or if group ID is '$cached' and the value is not
@@ -4831,9 +4842,9 @@ sap.ui.define([
 	 *   <br>
 	 *   Example: Products
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string, the value in this pair has to
-	 *   be a string or an array of strings; if it is an array, the resulting query string
-	 *   repeats the key for each array value.
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!), the
+	 *   value in this pair has to be a string or an array of strings; if it is an array, the
+	 *   resulting query string repeats the key for each array value.
 	 *   Examples:
 	 *   {foo : "bar", "bar" : "baz"} results in the query string "foo=bar&bar=baz"
 	 *   {foo : ["bar", "baz"]} results in the query string "foo=bar&foo=baz"
@@ -4901,9 +4912,9 @@ sap.ui.define([
 	 *   <br>
 	 *   Example: Products
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string, the value in this pair has to
-	 *   be a string or an array of strings; if it is an array, the resulting query string
-	 *   repeats the key for each array value.
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!), the
+	 *   value in this pair has to be a string or an array of strings; if it is an array, the
+	 *   resulting query string repeats the key for each array value.
 	 *   Examples:
 	 *   {foo : "bar", "bar" : "baz"} results in the query string "foo=bar&bar=baz"
 	 *   {foo : ["bar", "baz"]} results in the query string "foo=bar&foo=baz"
@@ -4929,9 +4940,9 @@ sap.ui.define([
 	 *   <br>
 	 *   Example: Products
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string, the value in this pair has to
-	 *   be a string or an array of strings; if it is an array, the resulting query string
-	 *   repeats the key for each array value.
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!), the
+	 *   value in this pair has to be a string or an array of strings; if it is an array, the
+	 *   resulting query string repeats the key for each array value.
 	 *   Examples:
 	 *   {foo : "bar", "bar" : "baz"} results in the query string "foo=bar&bar=baz"
 	 *   {foo : ["bar", "baz"]} results in the query string "foo=bar&foo=baz"

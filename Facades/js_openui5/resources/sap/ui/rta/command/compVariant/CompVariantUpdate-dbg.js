@@ -22,13 +22,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.87
 	 * @alias sap.ui.rta.command.compVariant.CompVariantUpdate
 	 */
-	var CompVariantUpdate = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantUpdate", {
+	const CompVariantUpdate = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantUpdate", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -69,7 +69,7 @@ sap.ui.define([
 	};
 
 	function callFlAPIFunction(sFunctionName, sKey, oValue) {
-		var mPropertyBag = {
+		const mPropertyBag = {
 			...oValue,
 			...this.mInformation,
 			id: sKey,
@@ -87,25 +87,25 @@ sap.ui.define([
 		if (this.getOnlySave()) {
 			this.setIsModifiedBefore(this.getElement().getModified());
 			this.getElement().setModified(false);
-			var sKey = Object.keys(this.getNewVariantProperties())[0];
+			const sKey = Object.keys(this.getNewVariantProperties())[0];
 			callFlAPIFunction.call(this, "saveVariantContent", sKey, this.getNewVariantProperties()[sKey]);
 		} else {
-			each(this.getNewVariantProperties(), function(sVariantId, oValue) {
+			each(this.getNewVariantProperties(), (sVariantId, oValue) => {
 				if (oValue.deleted) {
 					callFlAPIFunction.call(this, "removeVariant", sVariantId, {});
-					this.getElement().removeVariant({variantId: sVariantId});
+					this.getElement().removeVariant({ variantId: sVariantId });
 					// Redo of delete command without direct UI interaction in VM dialog can keep deleted variant in the control.
 					// In this case we need to reactivate the *standard* variant
 					if (this.getElement().getCurrentVariantId() === sVariantId) {
 						this.getElement().activateVariant("*standard*");
 					}
 				} else {
-					var oVariant = callFlAPIFunction.call(this, "updateVariantMetadata", sVariantId, oValue);
+					const oVariant = callFlAPIFunction.call(this, "updateVariantMetadata", sVariantId, oValue);
 					this.getElement().updateVariant(oVariant);
 				}
-			}.bind(this));
+			});
 			if (this.getNewDefaultVariantId()) {
-				callFlAPIFunction.call(this, "setDefaultVariantId", undefined, {defaultVariantId: this.getNewDefaultVariantId()});
+				callFlAPIFunction.call(this, "setDefaultVariantId", undefined, { defaultVariantId: this.getNewDefaultVariantId() });
 				this.getElement().setDefaultVariantId(this.getNewDefaultVariantId());
 			}
 		}
@@ -119,12 +119,12 @@ sap.ui.define([
 	 */
 	CompVariantUpdate.prototype.undo = function() {
 		if (this.getOnlySave()) {
-			var sVariantId = Object.keys(this.getNewVariantProperties())[0];
+			const sVariantId = Object.keys(this.getNewVariantProperties())[0];
 			callFlAPIFunction.call(this, "revert", sVariantId, {});
 			this.getElement().setModified(this.getIsModifiedBefore());
 		} else {
-			each(this.getNewVariantProperties(), function(sVariantId, oValue) {
-				var oVariant = callFlAPIFunction.call(this, "revert", sVariantId, {});
+			each(this.getNewVariantProperties(), (sVariantId, oValue) => {
+				const oVariant = callFlAPIFunction.call(this, "revert", sVariantId, {});
 				if (oValue.deleted) {
 					this.getElement().addVariant(oVariant);
 					// If the current selected variant is deleted, the undo action should reactivate it
@@ -134,7 +134,7 @@ sap.ui.define([
 				} else {
 					this.getElement().updateVariant(oVariant);
 				}
-			}.bind(this));
+			});
 			if (this.getNewDefaultVariantId()) {
 				callFlAPIFunction.call(this, "revertSetDefaultVariantId", this.getOldDefaultVariantId());
 				this.getElement().setDefaultVariantId(this.getOldDefaultVariantId());

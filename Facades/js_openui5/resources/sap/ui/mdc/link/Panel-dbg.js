@@ -43,7 +43,7 @@ sap.ui.define([
 	 * supposed that the properties of the item structure is not changed.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.54.0

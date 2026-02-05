@@ -23,7 +23,7 @@ sap.ui.predefine("sap/ui/fl/library.support", [
 ) {
 	"use strict";
 
-	const {Categories, Audiences, Severity} = SupportLib;
+	const { Categories, Audiences, Severity } = SupportLib;
 
 	function findAppComponent(aElements) {
 		var oAppComponent;

@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @extends sap.ui.mdc.p13n.subcontroller.SelectionController
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.mdc.p13n.subcontroller.ColumnFreezeController

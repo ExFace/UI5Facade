@@ -8,7 +8,7 @@ sap.ui.define([
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/core/Element",
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils"
+	"sap/ui/fl/initial/_internal/ManifestUtils"
 ], function(
 	JsControlTreeModifier,
 	Element,
@@ -127,7 +127,7 @@ sap.ui.define([
 		}
 	}
 
-	return function(oAppComponent) {
+	function extractChangeDependencies(oAppComponent) {
 		if (!oAppComponent) {
 			return undefined;
 		}
@@ -150,5 +150,9 @@ sap.ui.define([
 		enhanceExportWithControlData(oExport);
 
 		return oExport;
+	}
+
+	return {
+		extract: extractChangeDependencies
 	};
 });

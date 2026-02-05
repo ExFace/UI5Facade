@@ -133,17 +133,19 @@ sap.ui.define([
 				throw new Error("The id must be specified.");
 			}
 
-			oTable.getRenderer().renderHSbExternal(oRM, oTable, sId, iScrollWidth);
+			oTable.getRenderer().renderHSbExternal(oRM, oTable, {
+				id: sId,
+				scrollWidth: iScrollWidth
+			});
 		}
 	};
 
 	const ExtensionDelegate = {
 		onBeforeRendering: function(oEvent) {
 			const oSyncExtension = this._getSyncExtension();
-			const bRenderedRows = oEvent && oEvent.isMarked("renderRows");
 			const oContentDomRef = this.getDomRef("tableCCnt");
 
-			if (!bRenderedRows && oContentDomRef && oSyncExtension._onTableContainerScrollEventHandler) {
+			if (oContentDomRef && oSyncExtension._onTableContainerScrollEventHandler) {
 				oContentDomRef.removeEventListener("scroll", oSyncExtension._onTableContainerScrollEventHandler);
 				delete oSyncExtension._onTableContainerScrollEventHandler;
 			}
@@ -151,29 +153,25 @@ sap.ui.define([
 
 		onAfterRendering: function(oEvent) {
 			const oScrollExtension = this._getScrollExtension();
-			const bRenderedRows = oEvent && oEvent.isMarked("renderRows");
+			const oSyncExtension = this._getSyncExtension();
 			const oContentDomRef = this.getDomRef("tableCCnt");
 
 			// On a full re-rendering of the table, the newly rendered scrollbar would have the correct attributes already. The external
 			// scrollbar is independent from the tables rendering and therefore needs to be updated after rendering.
-			if (oScrollExtension.isVerticalScrollbarExternal() && !bRenderedRows) {
+			if (oScrollExtension.isVerticalScrollbarExternal()) {
 				oScrollExtension.updateVerticalScrollbarHeight();
 				oScrollExtension.updateVerticalScrollHeight();
 			}
 
-			if (!bRenderedRows) {
-				const oSyncExtension = this._getSyncExtension();
+			oSyncExtension.syncInnerVerticalScrollPosition(oContentDomRef.scrollTop);
 
-				oSyncExtension.syncInnerVerticalScrollPosition(oContentDomRef.scrollTop);
-
-				if (!oSyncExtension._onTableContainerScrollEventHandler) {
-					oSyncExtension._onTableContainerScrollEventHandler = function(oEvent) {
-						oSyncExtension.syncInnerVerticalScrollPosition(oEvent.target.scrollTop);
-					};
-				}
-
-				oContentDomRef.addEventListener("scroll", oSyncExtension._onTableContainerScrollEventHandler);
+			if (!oSyncExtension._onTableContainerScrollEventHandler) {
+				oSyncExtension._onTableContainerScrollEventHandler = function(oEvent) {
+					oSyncExtension.syncInnerVerticalScrollPosition(oEvent.target.scrollTop);
+				};
 			}
+
+			oContentDomRef.addEventListener("scroll", oSyncExtension._onTableContainerScrollEventHandler);
 		}
 	};
 
@@ -185,7 +183,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table that allows synchronization with a table.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Synchronization
@@ -197,7 +195,7 @@ sap.ui.define([
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
-		_init: function(oTable, sTableType, mSettings) {
+		_init: function(oTable, mSettings) {
 			this._delegate = ExtensionDelegate;
 			this._oPublicInterface = {
 				syncRowSelection: ExtensionHelper.setRowSelection.bind(this),

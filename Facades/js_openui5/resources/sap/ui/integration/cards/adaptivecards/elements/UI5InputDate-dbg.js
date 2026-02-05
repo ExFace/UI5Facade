@@ -19,7 +19,7 @@ sap.ui.define([
 	 * <code>ui5-datepicker</code> web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @since 1.74
@@ -37,7 +37,7 @@ sap.ui.define([
 	};
 
 	UI5InputDate.prototype.internalRender = function () {
-		this._dateInputElement = document.createElement("ui5-date-picker");
+		this._dateInputElement = document.createElement("ui5-date-picker-ac");
 
 		this._dateInputElement.id = this.id;
 		this._dateInputElement.placeholder = this.placeholder;
@@ -62,7 +62,7 @@ sap.ui.define([
 
 	UI5InputDate.prototype.showValidationErrorMessage = function () {
 		if (this.renderedInputControlElement) {
-			this.renderedInputControlElement.valueState = "Error";
+			this.renderedInputControlElement.valueState = "Negative";
 		}
 	};
 

@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @alias sap.ui.rta.Client
 	 * @author SAP SE
 	 * @since 1.56.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -86,7 +86,6 @@ sap.ui.define([
 		 */
 		_bInit: false,
 
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			ManagedObject.apply(this, aArgs);
 

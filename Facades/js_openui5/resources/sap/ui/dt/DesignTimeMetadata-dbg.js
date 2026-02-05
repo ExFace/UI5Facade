@@ -5,6 +5,7 @@
  */
 
 sap.ui.define([
+	"sap/base/i18n/ResourceBundle",
 	"sap/base/util/merge",
 	"sap/base/util/ObjectPath",
 	"sap/base/Log",
@@ -13,6 +14,7 @@ sap.ui.define([
 	"sap/ui/dt/DOMUtil",
 	"sap/ui/dt/ElementUtil"
 ], function(
+	ResourceBundle,
 	merge,
 	ObjectPath,
 	Log,
@@ -45,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -143,20 +145,18 @@ sap.ui.define([
 
 			if (typeof (vDomRef) === "function") {
 				try {
-					// TODO: replace jQuery when we know that vDomRef will always return a DOM Element
 					var vRes = vDomRef(...aArgs);
-					// convert Nodelist and jQuery-Selection to an Array
-					if ((vRes.jquery && vRes.length > 1) || vRes instanceof NodeList) {
+					// convert NodeList to an Array
+					if (vRes instanceof NodeList) {
 						vRes = Array.from(vRes);
 					}
-					// we return an Array or a Node
-					return vRes.jquery ? vRes.get(0) : vRes;
+					// we return an Array of DOM elements
+					return vRes;
 				} catch (error) {
 					return undefined;
 				}
 			} else if (oElementDomRef && typeof (vDomRef) === "string") {
-				// TODO: replace jQuery when we know that getDomRefForCSSSelector will always return a DOM Element
-				return DOMUtil.getDomRefForCSSSelector(oElementDomRef, vDomRef).get(0);
+				return DOMUtil.getDomRefForCSSSelector(oElementDomRef, vDomRef);
 			}
 		}
 		return undefined;
@@ -269,17 +269,17 @@ sap.ui.define([
 	};
 
 	DesignTimeMetadata.prototype._getTextFromLibrary = function(sLibraryName, sKey, aArgs) {
-		var oLibResourceBundle = Lib.getResourceBundleFor(`${sLibraryName}.designtime`);
+		let oLibResourceBundle = ResourceBundle.create({ bundleName: `${sLibraryName}/designtime/messagebundle` });
 		if (oLibResourceBundle && oLibResourceBundle.hasText(sKey)) {
 			return oLibResourceBundle.getText(sKey, aArgs);
 		}
-
 		// Fallback to old logic that tries to get the text from the libraries resource bundle
-		// TODO: remove the fallback after all libraries have introduced a library.designtime.js that will provide the resource bundle and texts
+		// TODO#12
 		oLibResourceBundle = Lib.getResourceBundleFor(sLibraryName);
 		if (oLibResourceBundle && oLibResourceBundle.hasText(sKey)) {
 			return oLibResourceBundle.getText(sKey, aArgs);
 		}
+
 		return undefined;
 	};
 

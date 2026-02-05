@@ -8,35 +8,35 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 579,
+			"size": 476,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 1457,
+			"size": 1444,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 6399,
+			"size": 8318,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/dt/themes/sap_horizon/library-parameters.json",
-			"size": 598,
+			"size": 1131,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.css",
-			"size": 6392,
+			"size": 8313,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 2661,
+			"size": 2545,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -48,7 +48,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 904
+			"size": 905
 		}
 	]
 }

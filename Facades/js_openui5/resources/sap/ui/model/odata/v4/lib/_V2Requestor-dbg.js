@@ -764,7 +764,7 @@ sap.ui.define([
 
 	/**
 	 * Formats a given internal value into a literal suitable for usage in OData V2 URLs. See
-	 * http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
+	 * https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
 	 *
 	 * @param {any} vValue
 	 *   The value
@@ -944,8 +944,8 @@ sap.ui.define([
 	 * Returns a sync promise that is resolved when the requestor is ready to be used. Waits for the
 	 * metadata to be available.
 	 *
-	 * @returns {sap.ui.base.SyncPromise} A sync promise that is resolved with no result when the
-	 * metadata is available
+	 * @returns {sap.ui.base.SyncPromise<void>}
+	 *   A sync promise that is resolved with no result when the metadata is available
 	 *
 	 * @public
 	 */

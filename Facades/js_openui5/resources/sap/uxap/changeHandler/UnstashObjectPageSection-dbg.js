@@ -19,8 +19,8 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.uxap.changeHandler.UnstashObjectPageSection
 	 * @author SAP SE
-	 * @version 1.136.12
-	 * @experimental Since 1.115
+	 * @version 1.144.0
+	 * @since 1.115
 	 */
 
 	var UnstashObjectPageSection = Object.assign({}, UnstashControl);

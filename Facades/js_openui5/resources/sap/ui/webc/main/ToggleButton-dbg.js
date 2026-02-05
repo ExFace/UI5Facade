@@ -32,7 +32,7 @@ sap.ui.define([
 	 * Clicking or tapping on a <code>sap.ui.webc.main.ToggleButton</code> changes its state to <code>pressed</code>. The button returns to its initial state when the user clicks or taps on it again. By applying additional custom CSS-styling classes, apps can give a different style to any <code>sap.ui.webc.main.ToggleButton</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

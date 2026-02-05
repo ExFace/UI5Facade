@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 1235,
+			"size": 1321,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -68,7 +68,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 232,
+			"size": 315,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -368,13 +368,13 @@
 		},
 		{
 			"name": "Tile.less",
-			"size": 1481,
+			"size": 1558,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 524,
+			"size": 610,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -428,7 +428,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 1299,
+			"size": 1388,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -470,7 +470,7 @@
 		},
 		{
 			"name": "base_ActionSelect.less",
-			"size": 677,
+			"size": 763,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -548,7 +548,7 @@
 		},
 		{
 			"name": "base_Carousel.less",
-			"size": 14555,
+			"size": 14560,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -620,7 +620,7 @@
 		},
 		{
 			"name": "base_CustomTile.less",
-			"size": 600,
+			"size": 683,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -860,7 +860,7 @@
 		},
 		{
 			"name": "base_MessagePage.less",
-			"size": 1928,
+			"size": 2013,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -986,7 +986,7 @@
 		},
 		{
 			"name": "base_OverflowToolbarAssociativePopover.less",
-			"size": 2021,
+			"size": 2100,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -1250,7 +1250,7 @@
 		},
 		{
 			"name": "base_StandardTile.less",
-			"size": 3773,
+			"size": 3858,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -1334,13 +1334,13 @@
 		},
 		{
 			"name": "base_Tile.less",
-			"size": 1579,
+			"size": 1656,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_TileContainer.less",
-			"size": 5917,
+			"size": 6003,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -1352,7 +1352,7 @@
 		},
 		{
 			"name": "base_TimePicker.less",
-			"size": 1123,
+			"size": 1265,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -1430,13 +1430,13 @@
 		},
 		{
 			"name": "base_UploadCollection.less",
-			"size": 12608,
+			"size": 12697,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_UploadSet.less",
-			"size": 2287,
+			"size": 2377,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -1526,7 +1526,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 742743,
+			"size": 742749,
 			"theme": "sap_hcb"
 		},
 		{
@@ -1537,12 +1537,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 742712,
+			"size": 742717,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 862895,
+			"size": 864223,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

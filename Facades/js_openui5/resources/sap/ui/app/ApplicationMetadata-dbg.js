@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @deprecated Since 1.15.1. The Component class is enhanced to take care about the Application code.
 	 * @class
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.13.2
 	 * @alias sap.ui.app.ApplicationMetadata
 	 * @extends sap.ui.core.ComponentMetadata

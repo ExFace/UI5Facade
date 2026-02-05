@@ -21,7 +21,7 @@ function(
 	 * The TaskManager keeps list of task and allows to manage them via simple API.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -50,7 +50,6 @@ function(
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			ManagedObject.apply(this, aArgs);
 			this._mQueuedTasks = {};

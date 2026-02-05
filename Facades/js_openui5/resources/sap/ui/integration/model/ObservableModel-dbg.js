@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.json.JSONModel
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.integration.model.ObservableModel

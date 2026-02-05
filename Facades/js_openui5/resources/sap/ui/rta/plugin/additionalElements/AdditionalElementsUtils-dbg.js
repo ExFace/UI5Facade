@@ -17,7 +17,7 @@ sap.ui.define([
 	 * Helper object containing methods for the AdditionalElements plugin
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @since 1.94
 	 */

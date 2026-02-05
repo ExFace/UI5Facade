@@ -43,7 +43,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -422,8 +422,8 @@ function(
 	Tree.prototype.getAccessbilityPosition = function(oItem) {
 		var iIndex = this.indexOfItem(oItem);
 		return {
-			setSize: this._oProxy.getSiblingCount(iIndex),
-			posInset: this._oProxy.getPositionInParent(iIndex) + 1
+			setsize: this._oProxy.getSiblingCount(iIndex),
+			posinset: this._oProxy.getPositionInParent(iIndex) + 1
 		};
 	};
 

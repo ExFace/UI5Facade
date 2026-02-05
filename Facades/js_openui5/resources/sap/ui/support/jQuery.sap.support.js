@@ -34,7 +34,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery",
 		 * @namespace
 		 * @deprecated Since version 1.60.0. Please use sap/ui/support/RuleAnalyzer instead.
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @public
 		 */
 		jQuery.sap.support = {

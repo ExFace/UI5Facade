@@ -15,18 +15,15 @@ sap.ui.define([
 	"sap/ui/base/SyncPromise",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
-	"sap/ui/thirdparty/URI"
+	"sap/ui/util/_URL"
 ], function (_Parser, Log, deepEqual, isEmptyObject, merge, uid, SyncPromise, Filter,
-		FilterOperator, URI) {
+		FilterOperator, _URL) {
 	"use strict";
 
 	var rAmpersand = /&/g,
 		rApplicationGroupID = /^\w+$/,
 		sClassName = "sap.ui.model.odata.v4.lib._Helper",
 		rEquals = /\=/g,
-		rEscapedCloseBracket = /%29/g,
-		rEscapedOpenBracket = /%28/g,
-		rEscapedTick = /%27/g,
 		rGroupID = /^(\$auto(\.\w+)?|\$direct|\w+)$/,
 		rHash = /#/g,
 		// matches the rest of a segment after '(' and any segment that consists only of a number
@@ -39,18 +36,6 @@ sap.ui.define([
 		 * @alias sap.ui.model.odata.v4.lib._Helper
 		 */
 		_Helper;
-
-	/**
-	 * Ensures that the key predicates in the given URL are not %-encoded.
-	 *
-	 * @param {string} sUrl - The URL
-	 * @returns {string} The converted URL
-	 */
-	function preserveKeyPredicates(sUrl) {
-		return sUrl.replace(rEscapedTick, "'")
-			.replace(rEscapedOpenBracket, "(")
-			.replace(rEscapedCloseBracket, ")");
-	}
 
 	_Helper = {
 		/**
@@ -115,7 +100,7 @@ sap.ui.define([
 		 * Adds a rejectable SyncPromise to a private annotation of the element and returns it.
 		 *
 		 * @param {object} oElement - The cache element
-		 * @returns {sap.ui.base.SyncPromise} The promise
+		 * @returns {sap.ui.base.SyncPromise<void>} The promise
 		 *
 		 * @public
 		 */
@@ -144,8 +129,8 @@ sap.ui.define([
 		/**
 		 * Adds the given paths to $select of the given query options.
 		 *
-		 * @param {object} mQueryOptions The query options
-		 * @param {string[]} aSelectPaths The paths to add to $select
+		 * @param {object} mQueryOptions - The query options to be MODIFIED
+		 * @param {string[]} aSelectPaths - The paths to add to $select
 		 *
 		 * @public
 		 */
@@ -237,9 +222,10 @@ sap.ui.define([
 		 * Recursively merges $select and $expand from mQueryOptions into mAggregatedQueryOptions.
 		 * All other query options in mAggregatedQueryOptions remain untouched.
 		 *
-		 * @param {object} mAggregatedQueryOptions The aggregated query options
-		 * @param {object} mQueryOptions The query options to merge into the aggregated query
-		 *   options
+		 * @param {object} mAggregatedQueryOptions
+		 *   The aggregated query options to be MODIFIED
+		 * @param {object} mQueryOptions
+		 *   The read-only query options to merge into the aggregated query options
 		 *
 		 * @public
 		 */
@@ -494,7 +480,7 @@ sap.ui.define([
 		 *
 		 * $expand must not contain collection-valued navigation properties.
 		 *
-		 * @param {object} mQueryOptions - The query options
+		 * @param {object} mQueryOptions - The read-only query options
 		 * @returns {string[]} The paths
 		 *
 		 * @public
@@ -592,8 +578,6 @@ sap.ui.define([
 		 *       response JSON object (if available)
 		 *     <li> <code>isConcurrentModification</code>: (optional) <code>true</code> In case of a
 		 *       concurrent modification detected via ETags (i.e. HTTP status code 412)
-		 *     <li> <code>strictHandlingFailed</code>: (optional) <code>true</code> In case of HTTP
-		 *       status code 412 and response header "Preference-Applied:handling=strict"
 		 *     <li> <code>message</code>: Error message
 		 *     <li> <code>requestUrl</code>: (optional) The absolute request URL
 		 *     <li> <code>resourcePath</code>: (optional) The path by which this resource has
@@ -603,10 +587,12 @@ sap.ui.define([
 		 *       that header value was an HTTP date or a delay in seconds.
 		 *     <li> <code>status</code>: HTTP status code
 		 *     <li> <code>statusText</code>: (optional) HTTP status text
+		 *     <li> <code>strictHandlingFailed</code>: (optional) <code>true</code> In case of HTTP
+		 *       status code 412 and response header "Preference-Applied:handling=strict"
 		 *   </ul>
 		 * @see <a href=
-		 * "http://docs.oasis-open.org/odata/odata-json-format/v4.0/os/odata-json-format-v4.0-os.html#_Representing_Errors_in"
-		 * >"19 Error Response"</a>
+		 * "https://docs.oasis-open.org/odata/odata-json-format/v4.01/odata-json-format-v4.01.html#sec_ErrorResponse"
+		 * >"21.1 Error Response"</a>
 		 *
 		 * @public
 		 */
@@ -711,6 +697,10 @@ sap.ui.define([
 		 *   <code>null</code> value
 		 *
 		 * @public
+		 * @see .deleteProperty
+		 * @see .drillDown
+		 * @see .inheritPathValue
+		 * @see .makeUpdateData
 		 */
 		createMissing : function (oObject, aSegments) {
 			aSegments.reduce(function (oCurrent, sSegment, i) {
@@ -808,7 +798,8 @@ sap.ui.define([
 		 *   URL of the service document used to resolve relative request URLs
 		 * @returns {Error[]}
 		 *   One error for each request given, suitable for
-		 *   {@link sap.ui.model.odata.v4.ODataModel#reportError}
+		 *   {@link sap.ui.model.odata.v4.ODataModel#reportError} and marked as
+		 *   <code>decomposed</code>
 		 *
 		 * @public
 		 */
@@ -843,6 +834,7 @@ sap.ui.define([
 					return sContentID === oRequest.$ContentID;
 				}
 
+				oClone.decomposed = true;
 				oClone.error = _Helper.clone(oError.error);
 				oClone.requestUrl = sServiceUrl + oRequest.url;
 				oClone.resourcePath = oRequest.$resourcePath;
@@ -864,7 +856,7 @@ sap.ui.define([
 		},
 
 		// Trampoline property to allow for mocking function module in unit tests.
-		// @see sap.base.util.deepEqual
+		// @see sap/base/util/deepEqual
 		deepEqual : deepEqual,
 
 		/**
@@ -894,6 +886,10 @@ sap.ui.define([
 		 * @param {string} sPath - Some relative path
 		 *
 		 * @public
+		 * @see .createMissing
+		 * @see .drillDown
+		 * @see .inheritPathValue
+		 * @see .makeUpdateData
 		 */
 		deleteProperty : function (oObject, sPath) {
 			var aSegments;
@@ -949,6 +945,10 @@ sap.ui.define([
 		 *   into void
 		 *
 		 * @public
+		 * @see .createMissing
+		 * @see .deleteProperty
+		 * @see .inheritPathValue
+		 * @see .makeUpdateData
 		 */
 		drillDown : function (oObject, vSegments) {
 			if (typeof vSegments === "string") {
@@ -1113,8 +1113,8 @@ sap.ui.define([
 		 *
 		 * @param {function} fnFetchMetadata Function which fetches metadata for a given meta path
 		 * @param {string} sMetaPath The meta path
-		 * @returns {sap.ui.base.SyncPromise<object>} A promise resolving with the property reached
-		 *   by the meta path or <code>undefined</code> otherwise.
+		 * @returns {sap.ui.base.SyncPromise<object|undefined>} A promise resolving with the
+		 *   property reached by the meta path or <code>undefined</code> otherwise.
 		 *
 		 * @public
 		 */
@@ -1223,12 +1223,12 @@ sap.ui.define([
 		 * Formats a given internal value into a literal suitable for usage in URLs.
 		 *
 		 * @param {any} vValue
-		 *   The value according to "OData JSON Format Version 4.0" section "7.1 Primitive Value"
+		 *   The value according to "OData JSON Format Version 4.01" section "7.1 Primitive Value"
 		 * @param {string} sType
 		 *   The OData Edm type, e.g. "Edm.String"
 		 * @returns {string}
-		 *   The literal according to "OData Version 4.0 Part 2: URL Conventions" section
-		 *   "5.1.1.6.1 Primitive Literals"
+		 *   The literal according to "OData Version 4.01 Part 2: URL Conventions" section
+		 *   "5.1.1.14.1 Primitive Literals"
 		 * @throws {Error}
 		 *   If the value is undefined or the type is not supported
 		 *
@@ -1664,7 +1664,8 @@ sap.ui.define([
 		 * care of the details).
 		 *
 		 * @param {object|object[]} vEntityOrCollection - The entity (collection)
-		 * @param {object} mQueryOptions - The query options (only $select and $expand required)
+		 * @param {object} mQueryOptions
+		 *   The read-only query options (only $select and $expand required)
 		 * @returns {string[]}
 		 *   A list of paths relative to vEntityOrCollection for which the property value is missing
 		 * @throws {Error} If there is a path containing "*"
@@ -1751,7 +1752,7 @@ sap.ui.define([
 		 * Returns the query options corresponding to the given path.
 		 *
 		 * @param {object} [mQueryOptions]
-		 *   A map of query options as returned by
+		 *   A map of read-only query options as returned by
 		 *   {@link sap.ui.model.odata.v4.ODataModel#buildQueryOptions}
 		 * @param {string} sPath
 		 *   The path of the cache value in the cache
@@ -1817,6 +1818,22 @@ sap.ui.define([
 				}
 			}
 			return sPath;
+		},
+
+		/**
+		 * Parses the URL parameters from a given query string. Takes care of array parameters.
+		 *
+		 * @param {string} sQuery - A query string
+		 * @returns {object} - A map of URL parameters
+		 */
+		getUrlParameters : function (sQuery) {
+			const mUrlParameters = {};
+			const oUrlParams = new URLSearchParams(sQuery);
+			for (const sKey of oUrlParams.keys()) {
+				const aValues = oUrlParams.getAll(sKey);
+				mUrlParameters[sKey] = aValues.length > 1 ? aValues : aValues[0];
+			}
+			return mUrlParameters;
 		},
 
 		/**
@@ -1942,6 +1959,10 @@ sap.ui.define([
 		 *   untolerated <code>null</code> value
 		 *
 		 * @public
+		 * @see .createMissing
+		 * @see .deleteProperty
+		 * @see .drillDown
+		 * @see .makeUpdateData
 		 */
 		inheritPathValue : function (aSegments, oSource, oTarget, bTolerateNull) {
 			aSegments.forEach(function (sSegment, i) {
@@ -1993,11 +2014,11 @@ sap.ui.define([
 		 * key predicate.
 		 *
 		 * @param {object} [mCacheQueryOptions]
-		 *   A map of query options as returned by
+		 *   A read-only map of query options as returned by
 		 *   {@link sap.ui.model.odata.v4.ODataModel#buildQueryOptions}
 		 * @param {string[]} aPaths
-		 *   The "14.5.11 Expression edm:NavigationPropertyPath" or
-		 *   "14.5.13 Expression edm:PropertyPath" strings describing which properties need to be
+		 *   The "14.4.1.5 Expression edm:NavigationPropertyPath" or
+		 *   "14.4.1.6 Expression edm:PropertyPath" strings describing which properties need to be
 		 *   loaded because they may have changed due to side effects of a previous update; must not
 		 *   be empty; "*" means all structural properties
 		 * @param {function} fnFetchMetadata
@@ -2145,7 +2166,7 @@ sap.ui.define([
 		},
 
 		// Trampoline property to allow for mocking function module in unit tests.
-		// @see sap.base.util.isEmptyObject
+		// @see sap/base/util/isEmptyObject
 		isEmptyObject : isEmptyObject,
 
 		/**
@@ -2202,7 +2223,7 @@ sap.ui.define([
 			// The safe integers consist of all integers from -(2^53 - 1) inclusive to 2^53 - 1
 			// inclusive.
 			// 2^53 - 1 = 9007199254740991
-			return iNumber <= 9007199254740991 && Math.floor(iNumber) === iNumber;
+			return iNumber <= Number.MAX_SAFE_INTEGER && Math.floor(iNumber) === iNumber;
 		},
 
 		/**
@@ -2223,7 +2244,7 @@ sap.ui.define([
 		 * ok, because within all known scenarios such combinations do not happen.
 		 *
 		 * @param {string} sPropertyPath The path to the structural property as meta path
-		 * @param {object} [mQueryOptions] The query options to be analyzed
+		 * @param {object} [mQueryOptions] The read-only query options to be analyzed
 		 * @returns {boolean} Whether the property for the given path was already selected
 		 *
 		 * @public
@@ -2250,37 +2271,50 @@ sap.ui.define([
 		},
 
 		/**
-		 * Make the given URL absolute using the given base URL. The URLs must not contain a host
-		 * or protocol part. Ensures that key predicates are not %-encoded.
+		 * Resolves the given URL with the given base URL to create either a root-relative (relative
+		 * to the origin, e.g. "/service") or an absolute (including the origin, e.g.
+		 * "protocol://host:port/service") URL. If <code>sBase</code> is a cross-origin URL, the
+		 * result will be an absolute URL, otherwise a root-relative URL is returned. Note that an
+		 * absolute <code>sUrl</code> overrules the <code>sBase</code>, and a root-relative
+		 * <code>sUrl</code> only takes the origin of <code>sBase</code> into account.
 		 *
 		 * @param {string} sUrl
 		 *   The URL
 		 * @param {string} sBase
-		 *   The base URL
+		 *   The absolute or root-relative base URL
+		 * @param {boolean} [bServiceUrl]
+		 *   Whether to turn a metadata URL ("/service/$metadata") into a service URL ("/service/")
+		 *   as needed by an ODataModel
 		 * @returns {string}
-		 *   The absolute URL
+		 *   The resolved absolute or root-relative URL
 		 *
 		 * @public
 		 */
-		makeAbsolute : function (sUrl, sBase) {
-			return preserveKeyPredicates(new URI(sUrl).absoluteTo(sBase).toString());
+		makeAbsolute : function (sUrl, sBase, bServiceUrl) {
+			const oUrl = new URL(sUrl, new URL(sBase, document.baseURI));
+			if (bServiceUrl) {
+				oUrl.pathname = oUrl.pathname.slice(0, oUrl.pathname.lastIndexOf("/") + 1);
+			}
+			return oUrl.origin === new URL(document.baseURI).origin
+				? oUrl.toString().slice(oUrl.origin.length)
+				: oUrl.toString();
 		},
 
 		/**
-		 * Make the given absolute URL relative to the given base URL. The URLs must not contain a
-		 * host or protocol part. Ensures that key predicates are not %-encoded.
+		 * Make the given absolute path relative to the given base path. The paths must be OData
+		 * resource paths (ABNF rule resourcePath).
 		 *
-		 * @param {string} sUrl
-		 *   The URL
+		 * @param {string} sPath
+		 *   The absolute path
 		 * @param {string} sBase
-		 *   The base URL
+		 *   The base path
 		 * @returns {string}
-		 *   The relative URL
+		 *   The relative path
 		 *
 		 * @public
 		 */
-		makeRelativeUrl : function (sUrl, sBase) {
-			return preserveKeyPredicates(new URI(sUrl).relativeTo(sBase).toString());
+		makeRelativePath : function (sPath, sBase) {
+			return new _URL(sPath).relativeTo(new _URL(sBase));
 		},
 
 		/**
@@ -2303,6 +2337,10 @@ sap.ui.define([
 		 *   The resulting object
 		 *
 		 * @public
+		 * @see .createMissing
+		 * @see .deleteProperty
+		 * @see .drillDown
+		 * @see .inheritPathValue
 		 */
 		makeUpdateData : function (aPropertyPath, vValue, bUpdating) {
 			return aPropertyPath.reduceRight(function (vValue0, sSegment) {
@@ -2318,7 +2356,7 @@ sap.ui.define([
 		},
 
 		// Trampoline property to allow for mocking function module in unit tests.
-		// @see sap.base.util.merge
+		// @see sap/base/util/merge
 		merge : merge,
 
 		/**
@@ -2326,7 +2364,7 @@ sap.ui.define([
 		 * Ensures that the original map is left unchanged, but creates a copy only if necessary.
 		 *
 		 * @param {object} [mQueryOptions]
-		 *   The map of query options
+		 *   The read-only map of query options
 		 * @param {string} [sOrderby]
 		 *   The new value for the query option "$orderby"
 		 * @param {string[]} [aFilters]
@@ -2636,10 +2674,8 @@ sap.ui.define([
 		/**
 		 * Adds the key properties of the given entity type to $select of the given query options.
 		 *
-		 * @param {object} mQueryOptions
-		 *   The query options
-		 * @param {object} oType
-		 *   The entity type's metadata "JSON"
+		 * @param {object} mQueryOptions - The query options to be MODIFIED
+		 * @param {object} oType - The entity type's metadata "JSON"
 		 *
 		 * @public
 		 */
@@ -2786,7 +2822,7 @@ sap.ui.define([
 		},
 
 		// Trampoline property to allow for mocking function module in unit tests.
-		// @see sap.base.util.uid
+		// @see sap/base/util/uid
 		uid : uid,
 
 		/**
@@ -2937,7 +2973,7 @@ sap.ui.define([
 		 * regarding order and count.
 		 *
 		 * @param {object} mChangeListeners - A map of change listeners by path
-		 * @param {object} mQueryOptions - The query options
+		 * @param {object} mQueryOptions - The read-only query options
 		 * @param {string} sPath
 		 *   The path of the target entity relative to mChangeListeners and mQueryOptions
 		 * @param {object} oTargetEntity - The target entity

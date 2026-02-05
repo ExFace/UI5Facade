@@ -28,7 +28,7 @@ sap.ui.define([
 	*
 	* @namespace
 	* @alias sap.ui.fl.apply._internal.changes.descriptor.app.AddNewInbound
-	* @version 1.136.12
+	* @version 1.144.0
 	* @private
 	* @ui5-restricted sap.ui.fl.apply._internal
 	*/
@@ -51,7 +51,14 @@ sap.ui.define([
 			oManifest["sap.app"].crossNavigation.inbounds ||= {};
 
 			const oChangeContent = oChange.getContent();
-			const sInboundId = DescriptorChangeCheck.getAndCheckContentObject(oChangeContent, "inbound", oChange.getChangeType(), MANDATORY_PROPERTIES, SUPPORTED_PROPERTIES, PROPERTIES_PATTERNS);
+			const sInboundId = DescriptorChangeCheck.getAndCheckContentObject(oChangeContent, {
+				sKey: "inbound",
+				sChangeType: oChange.getChangeType(),
+				iMaxNumberOfKeys: 1,
+				aMandatoryProperties: MANDATORY_PROPERTIES,
+				aSupportedProperties: SUPPORTED_PROPERTIES,
+				oSupportedPropertyPattern: PROPERTIES_PATTERNS
+			});
 			const oInboundInManifest = oManifest["sap.app"].crossNavigation.inbounds[sInboundId];
 			if (!oInboundInManifest) {
 				DescriptorChangeCheck.checkIdNamespaceCompliance(sInboundId, oChange);

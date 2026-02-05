@@ -6,6 +6,7 @@
 sap.ui.define([
 	"./BaseFactory",
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/cards/actions/CardActions",
 	"sap/ui/integration/cards/AdaptiveContent",
@@ -22,6 +23,7 @@ sap.ui.define([
 ], function (
 	BaseFactory,
 	Log,
+	Library,
 	IllustratedMessageType,
 	CardActions,
 	AdaptiveContent,
@@ -38,6 +40,8 @@ sap.ui.define([
 ) {
 	"use strict";
 
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
+
 	/**
 	 * Constructor for a new <code>ContentFactory</code>.
 	 *
@@ -46,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.util.BaseFactory
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -101,9 +105,9 @@ sap.ui.define([
 				if (sError) {
 					Log.error(sError, "sap.ui.integration.util.ContentFactory");
 					oCard._handleError({
-						type: IllustratedMessageType.ErrorScreen,
-						title: oCard.getTranslatedText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
-						description: oCard.getTranslatedText("CARD_ERROR_REQUEST_DESCRIPTION"),
+						type: IllustratedMessageType.UnableToLoad,
+						title: oResourceBundle.getText("CARD_DATA_LOAD_DEPENDENCIES_ERROR"),
+						description: oResourceBundle.getText("CARD_ERROR_REQUEST_DESCRIPTION"),
 						details: sError
 					});
 				}

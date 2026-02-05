@@ -40,7 +40,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.KeyUserConnector
 	 * @since 1.70
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.Storage
 	 */
@@ -73,7 +73,7 @@ sap.ui.define([
 			var mParameters = _pick(mPropertyBag, aParameters);
 
 			var sContextsUrl = InitialUtils.getUrl(this.ROUTES.CONTEXTS, mPropertyBag, mParameters);
-			return InitialUtils.sendRequest(sContextsUrl, "GET", {initialConnector: InitialConnector}).then(function(oResult) {
+			return InitialUtils.sendRequest(sContextsUrl, "GET", { initialConnector: InitialConnector }).then(function(oResult) {
 				return oResult.response;
 			});
 		},
@@ -91,16 +91,6 @@ sap.ui.define([
 			});
 		},
 
-		/**
-		 * Check if context sharing is enabled in the backend.
-		 *
-		 * @returns {Promise<boolean>} Promise resolves with true
-		 * @deprecated
-		 */
-		isContextSharingEnabled() {
-			return Promise.resolve(true);
-		},
-
 		getFlexInfo(mPropertyBag) {
 			return FlexInfoSession.getByReference(mPropertyBag.reference);
 		}
@@ -108,7 +98,7 @@ sap.ui.define([
 
 	function _enhancePropertyBagWithTokenInfo(mPropertyBag) {
 		mPropertyBag.initialConnector = InitialConnector;
-		mPropertyBag.tokenUrl = this.ROUTES.TOKEN;
+		mPropertyBag.tokenUrl = InitialUtils.getUrl(this.ROUTES.TOKEN, { url: mPropertyBag.url });
 	}
 
 	function _enhancePropertyBagForDraftActivation(mPropertyBag) {
@@ -142,7 +132,7 @@ sap.ui.define([
 		activate(mPropertyBag) {
 			_enhancePropertyBagWithTokenInfo.call(this, mPropertyBag);
 			_enhancePropertyBagForDraftActivation(mPropertyBag);
-			var mParameters = {version: mPropertyBag.version};
+			var mParameters = { version: mPropertyBag.version };
 			InitialUtils.addLanguageInfo(mParameters);
 			var sVersionsUrl = InitialUtils.getUrl(this.ROUTES.VERSIONS.ACTIVATE, mPropertyBag, mParameters);
 			return WriteUtils.sendRequest(sVersionsUrl, "POST", mPropertyBag).then(function(oResult) {
@@ -170,7 +160,7 @@ sap.ui.define([
 				return "Error";
 			};
 			_enhancePropertyBagWithTokenInfo.call(this, mPropertyBag);
-			var mParameters = {version: mPropertyBag.version};
+			var mParameters = { version: mPropertyBag.version };
 			var sVersionsUrl = InitialUtils.getUrl(this.ROUTES.VERSIONS.PUBLISH, mPropertyBag, mParameters);
 			return WriteUtils.sendRequest(sVersionsUrl, "POST", mPropertyBag).then(function() {
 				BusyIndicator.hide();

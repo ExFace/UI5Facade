@@ -21,7 +21,7 @@ sap.ui.define([
 		 * @class The <code>ChartImplementationContainer</code> creates a container for the <code>content</code> (chart) and <code>noDataContent</code>. Based on the <code>showNoDataStruct</code> the <code>content</code> or <code>noDataContent</code> will be shown.
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @constructor
 		 *
 		 * @public

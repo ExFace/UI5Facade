@@ -19,7 +19,7 @@ function(
 	 *
 	 * @alias sap.ui.fl.changeHandler.MoveControls
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.46
 	 */
 	const MoveControls = { };
@@ -274,7 +274,7 @@ function(
 	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject} oChange change object to be completed
 	 * @param {object} mSpecificChangeInfo as an empty object since no additional attributes are required for this operation
 	 * @param {object} mPropertyBag - map of properties
-	 * @param {sap.ui.core.UiComponent} mPropertyBag.appComponent component in which the change should be applied
+	 * @param {sap.ui.core.UIComponent} mPropertyBag.appComponent component in which the change should be applied
 	 * @return {Promise} Promise resolving when all change content is completed
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal

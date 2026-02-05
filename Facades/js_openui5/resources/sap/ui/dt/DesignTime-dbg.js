@@ -28,8 +28,7 @@ sap.ui.define([
 	"sap/ui/dt/TaskManager",
 	"sap/ui/dt/TaskRunner",
 	"sap/ui/dt/util/ZIndexManager",
-	"sap/ui/dt/Util",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/dt/Util"
 ], function(
 	_curry,
 	_difference,
@@ -54,8 +53,7 @@ sap.ui.define([
 	TaskManager,
 	TaskRunner,
 	ZIndexManager,
-	Util,
-	jQuery
+	Util
 ) {
 	"use strict";
 
@@ -71,7 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -188,16 +186,16 @@ sap.ui.define([
 				elementOverlayAdded: {
 					parameters: {
 						// id of the added overlay
-						id: {type: "string"},
+						id: { type: "string" },
 
 						// index of element overlay in the target aggregation overlay
-						targetIndex: {type: "int"},
+						targetIndex: { type: "int" },
 
 						// id of target aggregation overlay
-						targetId: {type: "string"},
+						targetId: { type: "string" },
 
 						// aggregation where element overlay is inserted
-						targetAggregation: {type: "string"}
+						targetAggregation: { type: "string" }
 					}
 				},
 
@@ -207,16 +205,16 @@ sap.ui.define([
 				elementOverlayMoved: {
 					parameters: {
 						// id of the moved overlay
-						id: {type: "string"},
+						id: { type: "string" },
 
 						// index of element overlay in the target aggregation overlay
-						targetIndex: {type: "int"},
+						targetIndex: { type: "int" },
 
 						// id of target aggregation overlay
-						targetId: {type: "string"},
+						targetId: { type: "string" },
 
 						// aggregation where element overlay is inserted
-						targetAggregation: {type: "string"}
+						targetAggregation: { type: "string" }
 					}
 				},
 
@@ -225,9 +223,9 @@ sap.ui.define([
 				 */
 				elementOverlayEditableChanged: {
 					parameters: {
-						id: {type: "string"},
-						elementId: {type: "string"},
-						editable: {type: "boolean"}
+						id: { type: "string" },
+						elementId: { type: "string" },
+						editable: { type: "boolean" }
 					}
 				},
 
@@ -236,10 +234,10 @@ sap.ui.define([
 				 */
 				elementPropertyChanged: {
 					parameters: {
-						id: {type: "string"},
-						name: {type: "string"},
-						oldValue: {type: "any"},
-						value: {type: "any"}
+						id: { type: "string" },
+						name: { type: "string" },
+						oldValue: { type: "any" },
+						value: { type: "any" }
 					}
 				},
 
@@ -259,7 +257,6 @@ sap.ui.define([
 				syncFailed: {}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			// Storage for promises of pending overlays (overlays that are in creation phase)
 			this._sStatus = DesignTimeStatus.SYNCED;
@@ -634,8 +631,7 @@ sap.ui.define([
 		})
 		.then(
 			function(oElementOverlay) {
-				// TODO remove jQuery when Overlay.render() returns DOM Element
-				jQuery(Overlay.getOverlayContainer()).append(oElementOverlay.render());
+				Overlay.getOverlayContainer().append(oElementOverlay.render());
 				this._oTaskManager.add({
 					type: "applyStyles",
 					callbackFn: oElementOverlay.applyStyles.bind(oElementOverlay),
@@ -1116,9 +1112,9 @@ sap.ui.define([
 						// If creation of one of the children is aborted, we still continue our execution
 						.catch(function(oError) {
 							const mError = this._enrichChildCreationError(oError, oChildElement, sParentElementClassName, sAggregationName);
-							// Omit error message if the parent was already destroyed
+							// Omit error message if the parent or the DesignTime instance was already destroyed
 							// e.g. SimpleForm move where many elements are created/destroyed in a row
-							if (!oElement.isDestroyed() && !oElementOverlay.isDestroyed()) {
+							if (!oElement.isDestroyed() && !oElementOverlay.isDestroyed() && !this.bIsDestroyed) {
 								Log[mError.severity](mError.message);
 							}
 							return mError.errorObject;

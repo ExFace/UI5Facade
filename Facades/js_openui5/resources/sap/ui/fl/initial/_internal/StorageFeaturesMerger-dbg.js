@@ -6,10 +6,12 @@
 
 sap.ui.define([
 	"sap/base/util/merge",
-	"sap/ui/fl/Layer"
+	"sap/ui/fl/Layer",
+	"sap/base/Log"
 ], function(
 	merge,
-	Layer
+	Layer,
+	Log
 ) {
 	"use strict";
 
@@ -18,29 +20,10 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.intial._internal.StorageFeaturesMerger
 	 * @since 1.70
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.Storage
 	 */
-
-	var DEFAULT_FEATURES = {
-		isKeyUser: false,
-		isKeyUserTranslationEnabled: false,
-		isVariantSharingEnabled: false,
-		isPublicFlVariantEnabled: false,
-		isVariantPersonalizationEnabled: true,
-		isContextSharingEnabled: true,
-		isAtoAvailable: false,
-		isAtoEnabled: false,
-		versioning: {},
-		isProductiveSystem: true,
-		isPublicLayerAvailable: false,
-		isLocalResetEnabled: false,
-		isZeroDowntimeUpgradeRunning: false,
-		isVariantAuthorNameAvailable: false,
-		system: "",
-		client: ""
-	};
 
 	function _getVersioningFromResponse(oResponse) {
 		var oVersioning = {};
@@ -64,15 +47,26 @@ sap.ui.define([
 		 * @returns {object} Merged result
 		 */
 		mergeResults(aResponses) {
-			var oResult = DEFAULT_FEATURES;
+			var oResult = {};
 
 			aResponses.forEach(function(oResponse) {
 				Object.keys(oResponse.features).forEach(function(sKey) {
+					// only allow the connector in charge of the customer layer to determine the key user property
+					if
+					(
+						sKey === "isKeyUser" &&
+						oResponse.features.isKeyUser !== undefined &&
+						![Layer.CUSTOMER, "ALL"].some((sLayer) => oResponse.layers.includes(sLayer))
+					) {
+						Log.warning("removed a layer specific setting from a connector not configure for the specific layer");
+						return;
+					}
+
 					if (sKey !== "isVersioningEnabled") {
 						oResult[sKey] = oResponse.features[sKey];
 					}
 				});
-				oResult.versioning = merge(oResult.versioning, _getVersioningFromResponse(oResponse));
+				oResult.versioning = merge((oResult.versioning || {}), _getVersioningFromResponse(oResponse));
 				if (oResponse.isContextSharingEnabled !== undefined) {
 					oResult.isContextSharingEnabled = oResponse.isContextSharingEnabled;
 				}

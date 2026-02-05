@@ -14,7 +14,7 @@ sap.ui.define([
 	/**
 	 * Base functionality for all change handlers, which provides some reuse methods
 	 * @namespace sap.ui.fl.changeHandler.Base
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted change handlers
 	 */
@@ -66,7 +66,8 @@ sap.ui.define([
 
 			const oModifier = mPropertyBag.modifier;
 			const oView = mPropertyBag.view;
-			const sFragment = LoaderExtensions.loadResource(sModuleName, {dataType: "text"});
+			const sFragment = mPropertyBag.fragment || LoaderExtensions.loadResource(sModuleName, { dataType: "text" });
+
 			try {
 				return await oModifier.instantiateFragment(sFragment, sIdPrefix, oView);
 			} catch (oError) {

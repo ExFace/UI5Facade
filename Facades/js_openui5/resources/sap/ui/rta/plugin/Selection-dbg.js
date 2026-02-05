@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @class The Selection plugin allows you to select or focus overlays with mouse or keyboard and navigate to others.
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
@@ -270,7 +270,7 @@ sap.ui.define([
 	};
 
 	Selection.prototype._selectOverlay = function(oEvent) {
-		var oOverlay = OverlayRegistry.getOverlay(oEvent.currentTarget.id);
+		const oOverlay = OverlayRegistry.getOverlay(oEvent.currentTarget.id);
 		if (!this.getIsActive()) {
 			// Propagation should be stopped at the root overlay to prevent the selection of the underlying elements
 			if (oOverlay.isRoot()) {
@@ -278,19 +278,26 @@ sap.ui.define([
 			}
 			return;
 		}
-		var bMultiSelection = oEvent.metaKey || oEvent.ctrlKey || oEvent.shiftKey;
-		var bContextMenu = oEvent.type === "contextmenu";
+		const oSelectionManager = this.getDesignTime().getSelectionManager();
+		const bMultipleOverlaysSelected = oSelectionManager.get().length > 1;
+		const bMultiSelection = oEvent.metaKey || oEvent.ctrlKey || oEvent.shiftKey;
+		const bContextMenu = oEvent.type === "contextmenu";
 
 		if (oOverlay && oOverlay.getSelectable()) {
 			if (oOverlay.isSelected()) {
 				// don't deselect on right click!
 				if (!bContextMenu) {
-					this.getDesignTime().getSelectionManager().remove(oOverlay);
+					if (!bMultiSelection && bMultipleOverlaysSelected) {
+						// if the overlay is already selected and the user left clicks on it we deselect all other overlays
+						oSelectionManager.set([oOverlay]);
+					} else {
+						oSelectionManager.remove(oOverlay);
+					}
 				}
 			} else if (bMultiSelection) {
-				this.getDesignTime().getSelectionManager().add(oOverlay);
+				oSelectionManager.add(oOverlay);
 			} else {
-				this.getDesignTime().getSelectionManager().set(oOverlay);
+				oSelectionManager.set(oOverlay);
 			}
 
 			preventEventDefaultAndPropagation(oEvent);

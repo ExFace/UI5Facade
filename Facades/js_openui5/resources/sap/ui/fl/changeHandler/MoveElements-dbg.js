@@ -12,7 +12,7 @@ sap.ui.define([], function() {
 	 *
 	 * @alias sap.ui.fl.changeHandler.MoveElements
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.34.0
 	 */
 	var MoveElements = { };

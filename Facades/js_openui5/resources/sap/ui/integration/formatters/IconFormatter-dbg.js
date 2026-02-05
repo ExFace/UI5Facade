@@ -56,11 +56,8 @@ sap.ui.define([
 			return sUrl;
 		}
 
-		return this._format(sUrl);
-	};
-
-	IconFormatter.prototype._format = function (sUrl) {
-		return this._getCardInstance().getRuntimeUrl(sUrl);
+		const oCard = this._getCardInstance();
+		return oCard.getRuntimeUrl(sUrl);
 	};
 
 	IconFormatter.prototype._getCardInstance = function () {

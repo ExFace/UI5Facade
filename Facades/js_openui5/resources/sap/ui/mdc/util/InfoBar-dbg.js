@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @class The <code>InfoBar</code> control provides an easy way of displaying filter information inside an <code>sap.ui.mdc.Chart</code> and an <code>sap.ui.mdc.Table</code>.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @ui5-restricted sap.ui.mdc

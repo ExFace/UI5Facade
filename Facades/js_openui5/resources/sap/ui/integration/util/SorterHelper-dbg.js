@@ -17,7 +17,7 @@ sap.ui.define([
 	 * Utility class helping with sap.ui.model.Sorter control.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.SorterHelper

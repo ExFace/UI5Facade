@@ -26,13 +26,13 @@
 		},
 		{
 			"name": "DynamicPage.less",
-			"size": 5123,
+			"size": 5067,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "DynamicPageHeader.less",
-			"size": 835,
+			"size": 827,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -67,14 +67,8 @@
 			"theme": "sap_horizon_hcb"
 		},
 		{
-			"name": "ProductSwitchItem.less",
-			"size": 233,
-			"designtime": true,
-			"theme": "sap_horizon_hcb"
-		},
-		{
 			"name": "ShellBar.less",
-			"size": 10422,
+			"size": 10563,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -86,23 +80,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 130478,
+			"size": 133910,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/f/themes/sap_horizon_hcb/library-parameters.json",
-			"size": 2917,
+			"size": 2931,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 130488,
+			"size": 133923,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 25004,
+			"size": 25081,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -114,7 +108,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2165
+			"size": 2050
 		}
 	]
 }

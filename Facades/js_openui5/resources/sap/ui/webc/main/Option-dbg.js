@@ -27,7 +27,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.Option</code> component defines the content of an option in the <code>sap.ui.webc.main.Select</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

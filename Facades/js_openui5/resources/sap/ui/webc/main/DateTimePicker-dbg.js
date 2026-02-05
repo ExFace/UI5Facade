@@ -72,7 +72,7 @@ sap.ui.define([
 	 * The <code>DateTimePicker</code> is responsive and fully adapts to all devices. For larger screens, such as tablet or desktop, it is displayed as a popover, while on phone devices, it is displayed full screen.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 4418,
+			"size": 4513,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 369,
+			"size": 464,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 1370,
+			"size": 1470,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -83,7 +83,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 31128,
+			"size": 31418,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},

@@ -10,6 +10,7 @@ sap.ui.define([
 	"sap/ui/integration/util/BindingResolver",
 	"sap/m/IllustratedMessageType",
 	"sap/ui/integration/library",
+	"sap/ui/core/Lib",
 	"sap/base/Log"
 ], function (
 	BaseContent,
@@ -17,6 +18,7 @@ sap.ui.define([
 	BindingResolver,
 	IllustratedMessageType,
 	library,
+	Library,
 	Log
 ) {
 	"use strict";
@@ -33,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -77,7 +79,7 @@ sap.ui.define([
 		} else {
 			this.showNoDataMessage({
 				illustrationType: IllustratedMessageType.NoEntries,
-				title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_LISTS")
+				title: Library.getResourceBundleFor("sap.ui.integration").getText("CARD_NO_ITEMS_ERROR_LISTS")
 			});
 		}
 

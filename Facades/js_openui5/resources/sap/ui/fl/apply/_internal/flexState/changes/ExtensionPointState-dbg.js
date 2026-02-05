@@ -9,20 +9,21 @@ sap.ui.define([
 	"sap/base/util/merge",
 	"sap/base/Log",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
+	"sap/ui/fl/apply/_internal/changeHandlers/ChangeHandlerStorage",
 	"sap/ui/fl/apply/_internal/changes/Utils",
 	"sap/ui/fl/apply/_internal/flexObjects/FlexObjectFactory",
 	"sap/ui/fl/apply/_internal/flexObjects/States",
 	"sap/ui/fl/apply/_internal/flexState/changes/DependencyHandler",
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
 	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/ui/fl/initial/_internal/changeHandlers/ChangeHandlerStorage",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/Utils"
 ], (
 	_omit,
 	merge,
 	Log,
 	JsControlTreeModifier,
+	ChangeHandlerStorage,
 	ChangesUtils,
 	FlexObjectFactory,
 	FlexObjectStates,
@@ -30,7 +31,6 @@ sap.ui.define([
 	FlexObjectState,
 	FlexState,
 	ManifestUtils,
-	ChangeHandlerStorage,
 	Utils
 ) => {
 	"use strict";
@@ -41,7 +41,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.changes.ExtensionPointState
 	 * @since 1.79
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -73,9 +73,9 @@ sap.ui.define([
 			if (bOriginalSelectorNeedsToBeAdjusted) {
 				oChange.originalSelectorToBeAdjusted = mOriginalSelector;
 			} else {
-				oChange.setDependentSelectors({originalSelector: mOriginalSelector});
+				oChange.setDependentSelectors({ originalSelector: mOriginalSelector });
 			}
-			oChange.setContent({boundAggregation: oExtensionPoint.closestAggregationBinding});
+			oChange.setContent({ boundAggregation: oExtensionPoint.closestAggregationBinding });
 		} else {
 			mSelector = merge(mSelector, {
 				id: oExtensionPoint.targetControl.getId(),

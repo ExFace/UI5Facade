@@ -71,16 +71,19 @@ sap.ui.define([
 	 * By default, this method returns a <code>Promise</code> that resolves with an empty array.
 	 *
 	 * <b>Note:</b>
-	 * The result of this function must be kept stable throughout the lifecycle of your application.
-	 * Any changes of the returned values might result in undesired effects.
-	 *
-	 * <b>Note</b>:
-	 * Existing properties (set via <code>sap.ui.mdc.Table#setPropertyInfo</code>) must not be removed and their attributes must not be changed during the {@link module:sap/ui/mdc/TableDelegate.fetchProperties fetchProperties} callback. Otherwise validation errors might occur whenever personalization-related control features (such as the opening of any personalization dialog) are activated.
+	 * <ul>
+	 *   <li>The result of this function must be kept stable throughout the lifecycle of your application. Any changes of the returned values
+	 *       might result in undesired effects.</li>
+	 *   <li>Existing properties (set via <code>sap.ui.mdc.Table#setPropertyInfo</code>) must not be removed and their attributes must not be changed
+	 *       during the {@link module:sap/ui/mdc/TableDelegate.fetchProperties fetchProperties} callback. Otherwise validation errors might occur
+	 *       whenever personalization-related control features (such as the opening of any personalization dialog) are activated.</li>
+	 * </ul>
 	 *
 	 * @name module:sap/ui/mdc/TableDelegate.fetchProperties
 	 * @function
 	 * @param {sap.ui.mdc.Table} oTable Instance of the table
-	 * @returns {Promise<sap.ui.mdc.table.PropertyInfo[]>} A <code>Promise</code> that resolves with the property information
+	 * @returns {Promise<Array<sap.ui.mdc.table.PropertyInfo|sap.ui.mdc.table.ComplexPropertyInfo>>}
+	 *     A <code>Promise</code> that resolves with the property information
 	 * @protected
 	 */
 
@@ -118,11 +121,14 @@ sap.ui.define([
 	 *
 	 * @typedef {object} sap.ui.mdc.TableDelegate.ExpandAndCollapseConfiguration
 	 *
-	 * @property {function(sap.ui.mdc.Table): void} [expandAll] Function to expand all rows
-	 * @property {function(sap.ui.mdc.Table): void} [collapseAll] Function to collapse all rows
-	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): void} [expandAllFromNode] Function to expand all rows from a specific node
-	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): void} [collapseAllFromNode] Function to collapse all rows from a specific node
-	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): void} [isNodeExpanded] Function to check if a specific node is expanded
+	 * @property {function(sap.ui.mdc.Table): void} [expandAll] Function to expand the entire tree
+	 * @property {function(sap.ui.mdc.Table): void} [collapseAll] Function to collapse the entire tree
+	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): void} [expandEntireNode]
+	 *     Function to expand a node and all the nodes in its entire subtree.
+	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): void} [collapseEntireNode]
+	 *     Function to collapse a node and all the nodes in its entire subtree.
+	 * @property {function(sap.ui.mdc.Table, sap.ui.model.Context): boolean|undefined} [isNodeExpanded]
+	 *     Function to check if a specific node is expanded. Returns <code>undefined</code> if the node is a leaf.
 	 *
 	 * @protected
 	 */
@@ -155,7 +161,6 @@ sap.ui.define([
 			oBindingInfo.sorter.push(oGroupSorter);
 		}
 
-
 		const aSorters = this.getSorters(oTable);
 		oBindingInfo.sorter = oBindingInfo.sorter.concat(
 			oBindingInfo.sorter.length === 1 ?
@@ -177,16 +182,17 @@ sap.ui.define([
 	 * @protected
 	 */
 	TableDelegate.getGroupSorter = function(oTable) {
+		const oPropertyHelper = oTable.getPropertyHelper();
 		const oGroupLevel = oTable._getGroupedProperties()[0];
 
-		if (!oGroupLevel || !oTable._isOfType(TableType.ResponsiveTable)) {
+		if (!oGroupLevel || !oTable._isOfType(TableType.ResponsiveTable) || !oPropertyHelper.hasProperty(oGroupLevel.name)) {
 			return undefined;
 		}
 
 		const oSortedProperty = oTable._getSortedProperties().find((oSortCondition) => {
 			return oSortCondition.name === oGroupLevel.name;
 		});
-		const sPath = oTable.getPropertyHelper().getProperty(oGroupLevel.name).path;
+		const sPath = oPropertyHelper.getProperty(oGroupLevel.name).path;
 		const bDescending = oSortedProperty ? oSortedProperty.descending : false;
 
 		if (!oTable._mFormatGroupHeaderInfo || oTable._mFormatGroupHeaderInfo.propertyKey !== oGroupLevel.name) {
@@ -280,17 +286,26 @@ sap.ui.define([
 	/**
 	 * Returns the filter delegate of the table that provides basic filter functionality, such as adding filter fields.
 	 *
-	 * <b>Note:</b> The functionality provided in this delegate acts as a subset of a <code>FilterBarDelegate</code> to enable the table for
-	 * inbuilt filtering.<br>
-	 *
 	 * @example
-	 * TableDelegate.getFilterDelegate = {
+	 * oFilterDelegate = {
 	 * 		addItem: function() {
-	 * 			var oFilterFieldPromise = new Promise(...);
+	 * 			const oFilterFieldPromise = new Promise(...);
 	 * 			return oFilterFieldPromise;
+	 * 		},
+	 * 		addCondition: function() {
+	 * 			const oConditionPromise = new Promise(...);
+	 * 			return oConditionPromise;
+	 * 		},
+	 * 		removeCondition: function() {
+	 * 			const oConditionPromise = new Promise(...);
+	 * 			return oConditionPromise;
+	 * 		},
+	 * 		determineValidationState: function() {
+	 * 			const oValidationPromise = new Promise(...);
+	 * 			return oValidationPromise;
 	 * 		}
 	 * }
-	 * @returns {{addItem: (function(sap.ui.mdc.Table, string): Promise<sap.ui.mdc.FilterField>)}} Object for the tables filter personalization
+	 * @returns {sap.ui.mdc.FilterDelegateObject} Object for the tables filter personalization
 	 * @protected
 	 */
 	TableDelegate.getFilterDelegate = function() {
@@ -321,6 +336,7 @@ sap.ui.define([
 			 * @param {string} sPropertyKey The property key
 			 * @param {Object} mPropertyBag Instance of a property bag from the SAPUI5 flexibility API
 			 * @returns {Promise} A <code>Promise</code> that resolves once the properyInfo property has been updated
+			 * @see sap.ui.mdc.FilterBarDelegate#addCondition
 			 */
 			addCondition: function(oTable, sPropertyKey, mPropertyBag) {
 				return Promise.resolve();
@@ -336,6 +352,7 @@ sap.ui.define([
 			 * @param {string} sPropertyKey The property key
 			 * @param {Object} mPropertyBag Instance of a property bag from the SAPUI5 flexibility API
 			 * @returns {Promise} A <code>Promise</code> that resolves once the properyInfo property has been updated
+			 * @see sap.ui.mdc.FilterBarDelegate#removeCondition
 			 */
 			removeCondition: function(oTable, sPropertyKey, mPropertyBag) {
 				return Promise.resolve();
@@ -353,7 +370,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	TableDelegate.fetchExportCapabilities = function(oTable) {
-		return Promise.resolve({ XLSX: {} });
+		return Promise.resolve({XLSX: {}});
 	};
 
 	/**
@@ -365,11 +382,13 @@ sap.ui.define([
 	 * <ul>
 	 *   <li>To enable <b>Expand Entire Tree</b>, the <code>expandAll</code> function needs to be implemented.</li>
 	 *   <li>To enable <b>Collapse Entire Tree</b>, the <code>collapseAll</code> function needs to be implemented.</li>
-	 *   <li>To enable <b>Expand Entire Node</b>, the <code>expandAllFromNode</code> and <code>isNodeExpanded</code> functions need to be implemented.</li>
-	 *   <li>To enable <b>Collapse Entire Node</b>, the <code>collapseAllFromNode</code> and <code>isNodeExpanded</code> functions need to be implemented.</li>
+	 *   <li>To enable <b>Expand Entire Node</b>, the <code>expandEntireNode</code> and <code>isNodeExpanded</code> functions need to be
+	 *       implemented.</li>
+	 *   <li>To enable <b>Collapse Entire Node</b>, the <code>collapseEntireNode</code> and <code>isNodeExpanded</code> functions need to be
+	 *       implemented.</li>
 	 * </ul>
 	 *
-	 * <b>Note:</b> Expand and collapse all from a specific node is only supported if the table rows are selectable.
+	 * <b>Note:</b> Expanding and collapsing an entire node is only supported if the table rows are selectable.
 	 *
 	 * @example
 	 * TableDelegate.fetchExpandAndCollapseConfiguration = function(oTable) {
@@ -383,7 +402,8 @@ sap.ui.define([
 	 * 		});
 	 * }
 	 * @param {sap.ui.mdc.Table} oTable Table instance
-	 * @returns {Promise<sap.ui.mdc.TableDelegate.ExpandAndCollapseConfiguration>} A <code>Promise</code> that resolves with an object containing the expand and collapse functions
+	 * @returns {Promise<sap.ui.mdc.TableDelegate.ExpandAndCollapseConfiguration>}
+	 *   A <code>Promise</code> that resolves with an object containing the expand and collapse functions
 	 * @protected
 	 */
 	TableDelegate.fetchExpandAndCollapseConfiguration = function(oTable) {
@@ -416,7 +436,7 @@ sap.ui.define([
 	 * @inheritDoc
 	 */
 	TableDelegate.validateState = function(oTable, oState, sKey) {
-		if (sKey == "Filter" && oTable._oMessageFilter) {
+		if (sKey === "Filter" && oTable._oMessageFilter) {
 			const oResourceBundle = Lib.getResourceBundleFor("sap.ui.mdc");
 			return {
 				validation: MessageType.Information,
@@ -535,7 +555,7 @@ sap.ui.define([
 	 * Provides the possibility to set a selection state for the table programmatically.
 	 *
 	 * @param {sap.ui.mdc.Table} oTable Instance of the table
-	 * @param {array<sap.ui.model.Context>} aContexts The set of contexts which should be flagged as selected
+	 * @param {Array<sap.ui.model.Context>} aContexts The set of contexts which should be flagged as selected
 	 * @private
 	 * @throws {Error} If the delegate cannot support the table/select configuration.
 	 */

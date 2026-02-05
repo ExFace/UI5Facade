@@ -11,53 +11,62 @@
 @import "../../../../../sap/ui/core/themes/sap_fiori_3/global.less";
 
 /* START "ContextMenu.less" */
-/******************************************************************
-	Style of the RTA Contextmenu - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_ContextMenu_BorderLightColor: @sapUiContentContrastShadowColor; //#fff
-@_sap_ui_rta_ContextMenu_BorderDarkColor: @sapUiShellBorderColor; //#354a5f
+/* ======================================= */
+/* CSS for control sap.ui.rta/ContextMenu  */
+/* Quartz Light theme                      */
+/* ======================================= */
+
+@_sap_ui_rta_ContextMenu_BorderLightColor: var(--sapContent_ContrastShadowColor); /* #fff */
+@_sap_ui_rta_ContextMenu_BorderDarkColor: var(--sapShell_BorderColor); /* #354a5f */
 /* END "ContextMenu.less" */
 
 /* START "Dialogs.less" */
-/******************************************************************
-	Style of Dialogs and Popovers shown in RTA - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_Dialogs_BorderLightColor: @sapUiContentContrastShadowColor; //#fff
-@_sap_ui_rta_Dialogs_BorderDarkColor: @sapUiShellBorderColor; //#354a5f
+/* =================================== */
+/* CSS for control sap.ui.rta/Dialogs  */
+/* Quartz Light theme                  */
+/* =================================== */
+
+@_sap_ui_rta_Dialogs_BorderLightColor: var(--sapContent_ContrastShadowColor); /* #fff */
+@_sap_ui_rta_Dialogs_BorderDarkColor: var(--sapShell_BorderColor); /* #354a5f */
 /* END "Dialogs.less" */
 
 /* START "FieldRepository.less" */
-/******************************************************************
-	Style of the RTA Add Fields Dialog  - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_FieldRepository_BtnHoverBorderColor: @sapUiButtonBorderColor; //#0854a0
+/* =========================================== */
+/* CSS for control sap.ui.rta/FieldRepository  */
+/* Quartz Light theme                          */
+/* =========================================== */
+
+@_sap_ui_rta_FieldRepository_BtnHoverBorderColor: var(--sapButton_BorderColor); /* #0854a0 */
 @_sap_ui_rta_FieldRepository_BtnBorderColor: transparent;
-@_sap_ui_rta_FieldRepository_BtnFocusBorderColor: @sapUiContentFocusColor; //#000000
-@_sap_ui_rta_FieldRepository_BtnEmphasizedFocusBorderColor: @sapUiButtonEmphasizedTextColor; //#fff
-@_sap_ui_rta_FieldRepository_ListSelectedBorderColor: @sapUiListBackground; //#fff
+@_sap_ui_rta_FieldRepository_BtnFocusBorderColor: var(--sapContent_FocusColor); /* #000000 */
+@_sap_ui_rta_FieldRepository_BtnEmphasizedFocusBorderColor: var(--sapButton_Emphasized_TextColor); /* #fff */
+@_sap_ui_rta_FieldRepository_ListSelectedBorderColor: var(--sapList_Background); /* #fff */
 
 .sapUiRtaMode {
 
 	.sapUIRtaFieldRepositoryDialog {
 
 		.sapMBtn {
+
 			&:hover {
+
 				.sapMBtnInner {
-					border: 0.0625rem solid @_sap_ui_rta_FieldRepository_BtnHoverBorderColor!important; //1px
+					border: 0.0625rem solid @_sap_ui_rta_FieldRepository_BtnHoverBorderColor !important; /* 1px */
 				}
 			}
 
-			>.sapMBtnInner {
-				border: 0.0625rem solid @_sap_ui_rta_FieldRepository_BtnBorderColor; //1px
+			> .sapMBtnInner {
+				border: 0.0625rem solid @_sap_ui_rta_FieldRepository_BtnBorderColor; /* 1px */
 			}
 
 			&:focus {
 				&:not(:hover) > .sapMFocusable {
-					border: 0.0625rem dotted @_sap_ui_rta_FieldRepository_BtnFocusBorderColor; //1px
+					border: 0.0625rem dotted @_sap_ui_rta_FieldRepository_BtnFocusBorderColor; /* 1px */
 					outline: none;
 				}
+
 				&:not(:hover) > .sapMFocusable.sapMBtnEmphasized {
-					border: 0.0625rem dotted @_sap_ui_rta_FieldRepository_BtnEmphasizedFocusBorderColor; //1px
+					border: 0.0625rem dotted @_sap_ui_rta_FieldRepository_BtnEmphasizedFocusBorderColor; /* 1px */
 					outline: none;
 				}
 			}
@@ -71,29 +80,38 @@
 /* END "FieldRepository.less" */
 
 /* START "Overlay.less" */
-/******************************************************************
-	Style of the RTA Overlays - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_Overlay_PlaceholderBackgroundColor: @sapUiContentImagePlaceholderBackground; //#ccc
+/* =================================== */
+/* CSS for control sap.ui.rta/Overlay  */
+/* Quartz Light theme                  */
+/* =================================== */
+
+@_sap_ui_rta_Overlay_PlaceholderBackgroundColor: var(--sapContent_ImagePlaceholderBackground); /* #ccc */
 
 .sapUiRta {
+
 	.sapUiDtOverlayDropZone {
+
 		> .sapUiDtOverlayChildren {
+
 			> .sapUiRtaOverlayPlaceholder {
 				background: @_sap_ui_rta_Overlay_PlaceholderBackgroundColor !important;
-				// no "focus" border
+
+				/* no "focus" border */
 				&:focus {
-					&:before {
+
+					&::before {
 						content: none;
 					}
 				}
 
-				// all descendants
+				/* all descendants */
 				* {
 					background: @_sap_ui_rta_Overlay_PlaceholderBackgroundColor;
-					// no "focus" border
+
+					/* no "focus" border */
 					&:focus {
-						&:before {
+
+						&::before {
 							content: none;
 						}
 					}
@@ -105,39 +123,47 @@
 /* END "Overlay.less" */
 
 /* START "Toolbar.adaptation.less" */
-/******************************************************************
-	Style of the RTA Toolbar (type: adaptation) - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_Toolbar_Adaptation_TextColor: @sapUiShellTextColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_BtnFocusBorderColor: @sapUiShellTextColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnHoverTextColor: @sapUiShellInteractiveTextColor; //#d1e8ff
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnBackgroundColor: @sapUiShellColor; //#354a5f
-@_sap_ui_rta_Toolbar_Adaptation_SegBBtnHoverBackgroundColor: @sapUiShellColor; //#354a5f
-@_sap_ui_rta_Toolbar_Adaptation_DraftVersionColor: lighten(@sapUiContentRatedColor, 25%); //#f1bb72
-@_sap_ui_rta_Toolbar_Adaptation_ActiveVersionColor: @sapUiShellPositiveColor; // #ace1c2
-@_sap_ui_rta_Toolbar_Adaptation_FocusOutlineColor: @sapUiShellTextColor; //#fff
-@_sap_ui_rta_Toolbar_Adaptation_VersionHistoryBackgroundColor: @sapUiShellColor; //#354a5f
-@_sap_ui_rta_Toolbar_Adaptation_BtnHoverTextColor: @sapUiButtonLiteHoverTextColor; //#0854a0
+/* ============================================== */
+/* CSS for control sap.ui.rta/Toolbar.adaptation  */
+/* Quartz Light theme                             */
+/* ============================================== */
+
+@_sap_ui_rta_Toolbar_Adaptation_TextColor: var(--sapShell_TextColor); /* #fff */
+@_sap_ui_rta_Toolbar_Adaptation_BtnFocusBorderColor: var(--sapShell_TextColor); /* #fff */
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnHoverTextColor: var(--sapShell_InteractiveTextColor); /* #d1e8ff */
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnBackgroundColor: var(--sapShellColor); /* #354a5f */
+@_sap_ui_rta_Toolbar_Adaptation_SegBBtnHoverBackgroundColor: var(--sapShellColor); /* #354a5f */
+@_sap_ui_rta_Toolbar_Adaptation_DraftVersionColor: lighten(@sapUiContentRatedColor, 25%); /* #f1bb72 */
+@_sap_ui_rta_Toolbar_Adaptation_ActiveVersionColor: var(--sapShell_PositiveColor); /* #ace1c2 */
+@_sap_ui_rta_Toolbar_Adaptation_FocusOutlineColor: var(--sapShell_TextColor); /* #fff */
+@_sap_ui_rta_Toolbar_Adaptation_VersionHistoryBackgroundColor: @sapUiShellColor; /* #354a5f */
+@_sap_ui_rta_Toolbar_Adaptation_BtnHoverTextColor: var(--sapButton_Lite_Hover_TextColor); /* #0854a0 */
 
 .sapUiRtaMode {
+
 	.sapUiRtaToolbar.sapUiRtaToolbarAdaptation {
+
 		.sapMBtn {
+
 			&.sapMBtnDisabled .sapMBtnInner {
 				opacity: 1.0;
 			}
+
 			.sapMBtnTransparent,
-			.sapMBtnTransparent>.sapMBtnIcon {
+			.sapMBtnTransparent > .sapMBtnIcon {
 				color: @_sap_ui_rta_Toolbar_Adaptation_TextColor;
 			}
 		}
 
 		.sapMSegBBtn.sapMSegBBtnFocusable {
+
 			.sapMSegBBtnInner {
 				background-color: @_sap_ui_rta_Toolbar_Adaptation_SegBBtnBackgroundColor;
 				color: @_sap_ui_rta_Toolbar_Adaptation_TextColor;
 			}
 
 			&.sapMSegBBtnSel {
+
 				&:hover .sapMSegBBtnInner::after {
 					border-bottom: 0.125rem solid @_sap_ui_rta_Toolbar_Adaptation_SegBBtnHoverTextColor;
 				}
@@ -170,9 +196,11 @@
 		}
 	}
 	.sapUiRtaVersionHistory {
+
 		.sapMListUl > .sapMLIB {
 			background: @_sap_ui_rta_Toolbar_Adaptation_VersionHistoryBackgroundColor;
 		}
+
 		.sapMLIBHoverable:hover {
 			background: darken(@_sap_ui_rta_Toolbar_Adaptation_VersionHistoryBackgroundColor, 5%);
 		}
@@ -180,11 +208,15 @@
 }
 
 .sapUiSizeCozy.sapUiRtaMode {
+
 	.sapUiRtaToolbar {
+
 		.sapMSegB {
+
 			.sapMSegBBtn {
+
 				.sapMSegBBtnInner {
-					line-height: 2rem; //32px
+					line-height: 2rem; /* 32px */
 				}
 			}
 		}
@@ -193,10 +225,12 @@
 /* END "Toolbar.adaptation.less" */
 
 /* START "Toolbar.base.less" */
-/******************************************************************
-	Style of the RTA Toolbar (all types) - sap_fiori_3 Theme
-*******************************************************************/
-@_sap_ui_rta_Toolbar_Base_BorderDarkColor: @sapUiShellBorderColor; //#354a5f
-@_sap_ui_rta_Toolbar_Base_BorderLiteColor: @sapUiContentContrastShadowColor; //#fff
-@_sap_ui_rta_Toolbar_Base_BackgroundColor: @sapUiShellBorderColor; //#354a5f
+/* ======================================== */
+/* CSS for control sap.ui.rta/Toolbar.base  */
+/* Quartz Light theme                       */
+/* ======================================== */
+
+@_sap_ui_rta_Toolbar_Base_BorderDarkColor: var(--sapShell_BorderColor); /* #354a5f */
+@_sap_ui_rta_Toolbar_Base_BorderLiteColor: var(--sapContent_ContrastShadowColor); /* #fff */
+@_sap_ui_rta_Toolbar_Base_BackgroundColor: var(--sapShell_BorderColor); /* #354a5f */
 /* END "Toolbar.base.less" */

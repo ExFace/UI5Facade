@@ -20,7 +20,7 @@ sap.ui.define(['./ColumnMenu', "sap/ui/unified/MenuRenderer", './utils/TableUtil
 	 * @extends sap.ui.table.ColumnMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

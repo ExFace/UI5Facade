@@ -69,7 +69,7 @@ sap.ui.define([
 	 * and {@link sap.ui.mdc.FilterField FilterField} controls using the <code>valueHelp</code> association. One <code>ValueHelp</code> element instance can be
 	 * assigned to multiple fields (like in different table rows). It should be placed in the control tree on the container holding the fields.
 	 * @extends sap.ui.mdc.Element
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @abstract
 	 * @public
@@ -406,6 +406,8 @@ sap.ui.define([
 	 * @param {object} [delegate] Field delegate to handle model-specific logic (required for condition panel)
 	 * @param {object} [delegateName] Field delegate name to handle model-specific logic (required for condition panel)
 	 * @param {object} [payload] Payload of the field delegate (required for condition panel)
+	 * @param {string} [defaultOperatorName] Name of the default <code>Operator</code>
+	 * @param {boolean} [emptyAllowed] If <code>true</code> the connected control could be made empty (no Conditions)
 	 * @private
 	 * @ui5-restricted sap.ui.mdc
 	 */
@@ -474,7 +476,7 @@ sap.ui.define([
 	 *
 	 * @returns {sap.ui.core.Control} Control to which the <code>ValueHelp</code> element is connected to
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.field.FieldBase, sap.ui.mdc.valueHelp.base.Container
+	 * @ui5-restricted sap.ui.mdc.field.FieldBase, sap.ui.mdc.valuehelp.base.Container
 	 */
 	ValueHelp.prototype.getControl = function() {
 		return this._oControl;
@@ -742,6 +744,7 @@ sap.ui.define([
 	 * @returns {Promise<boolean>} if <code>true</code>, the field help should open by typing. The result might be returned asynchronously, so a Promise is used.
 	 * @private
 	 * @ui5-restricted sap.ui.mdc.field.FieldBase
+	 * @deprecated As of version 1.137, replaced by {@link sap.ui.mdc.ValueHelp#requestShowContainer}.
 	 */
 	ValueHelp.prototype.isTypeaheadSupported = function() { // always return promise ?
 
@@ -818,6 +821,7 @@ sap.ui.define([
 	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user focuses the connected field control
 	 * @private
 	 * @ui5-restricted sap.ui.mdc.field.FieldBase
+	 * @deprecated As of version 1.137, replaced by {@link sap.ui.mdc.ValueHelp#requestShowContainer}.
 	 */
 	ValueHelp.prototype.shouldOpenOnFocus = function() {
 		const oContainer = _getValueHelpContainer.call(this, true);
@@ -838,6 +842,7 @@ sap.ui.define([
 	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user clicks into the connected field control
 	 * @private
 	 * @ui5-restricted sap.ui.mdc.field.FieldBase
+ 	 * @deprecated As of version 1.137, replaced by {@link sap.ui.mdc.ValueHelp#requestShowContainer}.
 	 */
 	ValueHelp.prototype.shouldOpenOnClick = function() {
 		const oContainer = _getValueHelpContainer.call(this, true);
@@ -973,6 +978,7 @@ sap.ui.define([
 	 * @property {boolean} [caseSensitive] If set, the check is done case-sensitively
 	 * @property {boolean} [exactMatch] If set, only exact matches and no suggestions are requested
 	 * @property {sap.ui.core.Control} control Instance of the calling control
+	 * @param {boolean} [emptyAllowed] If <code>true</code> the connected control could be made empty (no Conditions)
 	 * @public
 	 */
 
@@ -1330,6 +1336,19 @@ sap.ui.define([
 
 		return oClone;
 
+	};
+
+	/**
+	 * If set, the connected field must not allow other values than the items of the <code>FixedList</code>. Free text must be prevented.
+	 *
+	 * @returns {boolean} If set, only fixed values are allowed
+	 * @private
+	 * @ui5-restricted sap.ui.mdc.field.FieldBase
+	 * @since 1.138
+	 */
+	ValueHelp.prototype.isRestrictedToFixedValues = function() {
+		const oTypeahead = this.getTypeahead();
+		return oTypeahead?.isRestrictedToFixedValues();
 	};
 
 	PromiseMixin.call(ValueHelp.prototype);

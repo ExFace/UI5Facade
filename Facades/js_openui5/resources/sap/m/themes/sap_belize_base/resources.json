@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 677,
+			"size": 763,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -92,13 +92,13 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 21240,
+			"size": 21251,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "Carousel.less",
-			"size": 13466,
+			"size": 13471,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -170,7 +170,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 600,
+			"size": 683,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -410,7 +410,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 1928,
+			"size": 2013,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -794,7 +794,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 3773,
+			"size": 3858,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -878,13 +878,13 @@
 		},
 		{
 			"name": "Tile.less",
-			"size": 1579,
+			"size": 1656,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 5917,
+			"size": 6003,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -896,7 +896,7 @@
 		},
 		{
 			"name": "TimePicker.less",
-			"size": 1123,
+			"size": 1265,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -974,13 +974,13 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 12608,
+			"size": 12697,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "UploadSet.less",
-			"size": 2287,
+			"size": 2377,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -1046,23 +1046,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 698194,
+			"size": 698172,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_belize_base/library-parameters.json",
-			"size": 21444,
+			"size": 21443,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.css",
-			"size": 698192,
+			"size": 698169,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.less",
-			"size": 777109,
+			"size": 777948,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},

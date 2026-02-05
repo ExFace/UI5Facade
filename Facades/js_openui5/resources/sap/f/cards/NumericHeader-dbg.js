@@ -6,25 +6,21 @@
 sap.ui.define([
 	"./BaseHeader",
 	"./NumericIndicators",
-	"sap/base/Log",
 	"sap/m/library",
 	"sap/m/Text",
-	"sap/m/ObjectStatus",
 	"sap/f/cards/NumericHeaderRenderer",
 	"sap/ui/core/library",
 	"sap/m/Avatar",
-	"sap/ui/core/InvisibleText"
+	"sap/f/library"
 ], function (
 	BaseHeader,
 	NumericIndicators,
-	Log,
 	mLibrary,
 	Text,
-	ObjectStatus,
 	NumericHeaderRenderer,
 	coreLibrary,
 	Avatar,
-	InvisibleText
+	fLibrary
 ) {
 	"use strict";
 
@@ -33,6 +29,7 @@ sap.ui.define([
 	const AvatarColor = mLibrary.AvatarColor;
 	const AvatarImageFitType = mLibrary.AvatarImageFitType;
 	const AvatarSize = mLibrary.AvatarSize;
+
 
 	/**
 	 * Constructor for a new <code>NumericHeader</code>.
@@ -58,7 +55,7 @@ sap.ui.define([
 	 * @implements sap.f.cards.IHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -515,7 +512,9 @@ sap.ui.define([
 			aIds.push(this.getParent()._ariaText.getId());
 		}
 
-		if (this.getTitle()) {
+		if (this.getTitle()
+			&& this.isParentCard()
+			&& this.getParent().isTileDisplayVariant()) {
 			aIds.push(this._getTitle().getId());
 		}
 
@@ -531,7 +530,9 @@ sap.ui.define([
 			aIds.push(this.getId() + "-dataTimestamp");
 		}
 
-		aIds.push(this._getUnitOfMeasurement().getId());
+		if (this.getAggregation("_unitOfMeasurement").getText()) {
+			aIds.push(this._getUnitOfMeasurement().getId());
+		}
 
 		if (this.getIconSrc() || this.getIconInitials()) {
 			aIds.push(this._getAvatar().getId());

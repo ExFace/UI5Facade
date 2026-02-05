@@ -25,12 +25,6 @@
 			"theme": "sap_horizon"
 		},
 		{
-			"name": "RowSelection.less",
-			"size": 894,
-			"designtime": true,
-			"theme": "sap_horizon"
-		},
-		{
 			"name": "Scrolling.less",
 			"size": 472,
 			"designtime": true,
@@ -44,35 +38,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 71550,
+			"size": 78891,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_horizon/library-parameters.json",
-			"size": 6080,
+			"size": 5700,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.css",
-			"size": 71568,
+			"size": 78928,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 5899,
+			"size": 4941,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.source.less",
-			"size": 736,
+			"size": 707,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "resources.json",
-			"size": 1315
+			"size": 1209
 		}
 	]
 }

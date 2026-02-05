@@ -16,7 +16,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.dt.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.61
@@ -55,7 +55,7 @@ sap.ui.define([
 		oOverlay
 		.getDesignTimeMetadata()
 		.getToolHooks()
-		.stop(oOverlay.getElement(), {versionWasActivated: this.getVersionWasActivated()});
+		.stop(oOverlay.getElement(), { versionWasActivated: this.getVersionWasActivated() });
 	};
 
 	return ToolHooks;

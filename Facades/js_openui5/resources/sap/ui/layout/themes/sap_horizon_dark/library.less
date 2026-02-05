@@ -348,9 +348,6 @@
 }
 
 .sapUiForm .sapUiFormTitle {
-	border-width: 1px;
-	border-color: var(--sapGroup_TitleBorderColor);
-	font-family: var(--sapFontHeaderFamily);
 	height: 2.75rem;
 	line-height: 2.75rem;
 }
@@ -370,12 +367,11 @@
 }
 
 /* Title levels should be all rendered in same style. Levels can be changed by application to meet page structure without visual effect */
-/* Form Titles are rendered using H4 level, but H5 size */
+/* Form Titles are rendered using H4 level, but H5 size (no need to overwrite H5 class, as already set in Base-Theme)*/
 .sapUiFormTitleH1,
 .sapUiFormTitleH2,
 .sapUiFormTitleH3,
 .sapUiFormTitleH4,
-.sapUiFormTitleH5,
 .sapUiFormTitleH6 {
 	font-size: var(--sapFontHeader5Size);
 }
@@ -388,15 +384,9 @@
 .sapUiFormContainerTitle .sapUiFormTitleH5,
 .sapUiFormContainerTitle .sapUiFormTitleH6 {
 	font-size: var(--sapFontHeader6Size);
-	color: var(--sapGroup_TitleTextColor);
-	font-weight: bold;
 }
 
 /* Toolbar */
-.sapUiFormContainerToolbar > div:first-child > .sapMTitle {
-	font-weight: bold;
-}
-
 .sapUiFormToolbar > div:first-child >.sapMTitle.sapMTitleStyleAuto {
 	font-size: var(--sapFontHeader5Size);
 }
@@ -438,6 +428,10 @@
 /* END "ColumnLayout.less" */
 
 /* START "GridLayout.less" */
+/**
+ * @file
+ * @deprecated Since version 1.67.0, together with sap.ui.layout.form.GridLayout
+ */
 /* ========================================= */
 /* CSS for control sap.ui.layout/GridLayout  */
 /* Evening Horizon theme                     */
@@ -517,6 +511,10 @@
 /* END "ResponsiveGridLayout.less" */
 
 /* START "ResponsiveLayout.less" */
+/**
+ * @file
+ * @deprecated As of version 1.93, together with sap.ui.layout.form.ResponsiveLayout
+ */
 /* =============================================== */
 /* CSS for control sap.ui.layout/ResponsiveLayout  */
 /* Evening Horizon theme                           */

@@ -6,11 +6,12 @@
 
 sap.ui.define([
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/write/_internal/Storage",
 	"sap/ui/fl/Utils",
 	"sap/base/util/isEmptyObject",
-	"sap/base/i18n/Localization"
+	"sap/base/i18n/Localization",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	FlexObjectState,
 	ManifestUtils,

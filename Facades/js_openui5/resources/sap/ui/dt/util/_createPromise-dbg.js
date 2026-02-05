@@ -22,14 +22,14 @@ sap.ui.define(function() {
 				function(...aArgs) {
 					if (!bCancelled) {
 						fnResolve.apply(this, aArgs);
-					} else if (fnCancelResolve) {
+					} else {
 						fnCancelResolve.apply(this, aArgs);
 					}
 				},
 				function(...aArgs) {
 					if (!bCancelled) {
 						fnReject.apply(this, aArgs);
-					} else if (fnCancelReject) {
+					} else {
 						fnCancelReject.apply(this, aArgs);
 					}
 				}

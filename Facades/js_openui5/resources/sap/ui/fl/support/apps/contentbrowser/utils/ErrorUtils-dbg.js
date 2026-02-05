@@ -17,7 +17,7 @@ function(MessageItem, MessagePopover, JSONModel) {
 		 * @constructor
 		 * @alias sap.ui.fl.support.apps.contentbrowser.utils.ErrorUtils
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @since 1.45
 		 * @private
 		 */

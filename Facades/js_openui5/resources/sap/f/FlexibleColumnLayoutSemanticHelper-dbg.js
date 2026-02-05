@@ -49,7 +49,7 @@ sap.ui.define([
 	 *
 	 * For more information, see {@link sap.f.FlexibleColumnLayoutSemanticHelper#getCurrentUIState} and {@link sap.f.FlexibleColumnLayoutSemanticHelper#getNextUIState}
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @param {sap.f.FlexibleColumnLayout} oFlexibleColumnLayout
 	 * The <code>sap.f.FlexibleColumnLayout</code> object whose state will be manipulated.
 	 *
@@ -138,7 +138,7 @@ sap.ui.define([
 	/**
 	 * Instances of the class per flexible column layout object.
 	 *
-	 * @type {Object<string,sap.m.FlexibleColumnLayoutSemanticHelper>}
+	 * @type {Object<string,sap.f.FlexibleColumnLayoutSemanticHelper>}
 	 * @private
 	 */
 	FlexibleColumnLayoutSemanticHelper._oInstances = {};

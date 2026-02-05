@@ -39,7 +39,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @alias sap.ui.mdc.mixin.PropertyHelperMixin
 	 * @namespace
 	 * @since 1.100.0
@@ -310,8 +310,8 @@ sap.ui.define([
 			const [aProperties, PropertyHelper, bValidationDisabled] = aResult;
 
 			if (bValidationDisabled) {
-				future.errorThrows(`PropertyInfo validation is disabled for control ${this.getId()}.`, {
-					suffix: `Migrate this control's propertyInfo to avoid breaking changes in the future.`
+				future.warningThrows(`PropertyInfo validation is disabled for control ${this.getId()}.`, {
+					suffix: "This exemption will be removed in UI5 2.0."
 				});
 			}
 

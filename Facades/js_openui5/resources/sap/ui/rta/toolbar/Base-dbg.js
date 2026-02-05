@@ -7,21 +7,21 @@
 sap.ui.define([
 	"sap/m/HBox",
 	"sap/ui/core/Element",
-	"sap/ui/core/StaticArea",
 	"sap/ui/core/Lib",
+	"sap/ui/core/StaticArea",
 	"sap/ui/dt/util/ZIndexManager",
 	"sap/ui/model/resource/ResourceModel",
-	"sap/ui/rta/util/Animation",
-	"./BaseRenderer"
+	"sap/ui/rta/toolbar/BaseRenderer",
+	"sap/ui/rta/util/Animation"
 ], function(
 	HBox,
 	Element,
-	StaticArea,
 	Lib,
+	StaticArea,
 	ZIndexManager,
 	ResourceModel,
-	Animation,
-	BaseRenderer
+	BaseRenderer,
+	Animation
 ) {
 	"use strict";
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.m.HBox
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -71,7 +71,6 @@ sap.ui.define([
 				textResources: "object"
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			// call parent constructor
 			HBox.apply(this, aArgs);
@@ -133,7 +132,7 @@ sap.ui.define([
 	 */
 	Base.prototype.getExtension = function(sName, Extension) {
 		if (!Object.keys(this._oExtensions).includes(sName)) {
-			this._oExtensions[sName] = new Extension({toolbar: this});
+			this._oExtensions[sName] = new Extension({ toolbar: this });
 		}
 		return this._oExtensions[sName];
 	};

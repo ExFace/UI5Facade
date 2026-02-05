@@ -21,7 +21,7 @@ sap.ui.define([
 	 *
 	 * @namespace
 	 * @alias sap.ui.fl.apply._internal.changes.descriptor.ui5.SetMinUI5Version
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
@@ -64,7 +64,7 @@ sap.ui.define([
 				mChangeMinUi5Version[oVersion.getMajor()] = [changeMinUI5Version, oVersion];
 			});
 
-			var {minUI5Version: aMinUI5Version} = oManifest["sap.ui5"].dependencies;
+			var { minUI5Version: aMinUI5Version } = oManifest["sap.ui5"].dependencies;
 			if (!aMinUI5Version) {
 				throw new Error("sap.ui5/dependencies/minUI5Version missing in base manifest");
 			}

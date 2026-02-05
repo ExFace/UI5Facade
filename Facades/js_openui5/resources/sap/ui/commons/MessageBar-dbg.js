@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @class
 	 * Creates an instance of a MessageBar Control, for displaying messages.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -115,7 +115,7 @@ sap.ui.define([
 	 * @namespace sap.ui.fl.write._internal.fieldExtensibility.ABAPExtensibilityVariantFactory
 	 * @since 1.87.0
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 */
 	var ABAPExtensibilityVariantFactory = {};

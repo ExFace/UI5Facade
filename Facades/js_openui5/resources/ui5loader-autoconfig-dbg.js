@@ -420,62 +420,62 @@
 		 * @enum {string}
 		 * @alias module:sap/base/config.Type
 		 * @private
-		 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+		 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 		 */
 		var TypeEnum = {
 			/**
 			 * defaultValue: false
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Boolean": "boolean",
 			/**
 			 * defaultValue: undefined
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 * @deprecated As of Version 1.120
 			 */
 			"Code": "code",
 			/**
 			 * defaultValue: 0
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Integer": "integer",
 			/**
 			 * defaultValue: ""
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"String": "string",
 			/**
 			 * defaultValue: []
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"StringArray": "string[]",
 			/**
 			 * defaultValue: []
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"FunctionArray": "function[]",
 			/**
 			 * defaultValue: undefined
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Function": "function",
 			/**
 			 * defaultValue: {}
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Object":  "object",
 			/**
 			 * defaultValue: {}
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"MergedObject":  "mergedObject"
 		};
@@ -514,6 +514,14 @@
 			}
 
 			return oClone;
+		}
+
+		function getCachedValue(sCacheKey, mOptions) {
+			var vCachedValue = mCache[sCacheKey];
+			if (mOptions.type === TypeEnum.StringArray || mOptions.type === TypeEnum.Object || mOptions.type === TypeEnum.MergedObject) {
+				vCachedValue = deepClone(vCachedValue);
+			}
+			return vCachedValue;
 		}
 
 		/** Register a new Configuration provider
@@ -663,59 +671,58 @@
 		 * @returns {any} Value of the configuration parameter
 		 * @throws {TypeError} Throws an error if the given parameter name does not match the definition.
 		 * @private
-		 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+		 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 		 */
 		function get(mOptions) {
+			var sCacheKey = mOptions.name;
+			if (mOptions.provider) {
+				sCacheKey += "-" + mOptions.provider.getId();
+			}
+			if (sCacheKey in mCache) {
+				return getCachedValue(sCacheKey, mOptions);
+			}
+
 			if (typeof mOptions.name !== "string" || !rValidKey.test(mOptions.name)) {
 				throw new TypeError(
 					"Invalid configuration key '" + mOptions.name + "'!"
 				);
 			}
-			var sCacheKey = mOptions.name;
-			if (mOptions.provider) {
-				sCacheKey += "-" + mOptions.provider.getId();
-			}
-			if (!(sCacheKey in mCache)) {
-				mOptions = Object.assign({}, mOptions);
-				var vValue;
 
-				var bIgnoreExternal = bGlobalIgnoreExternal || !mOptions.external;
-				var sName = mOptions.name;
-				var vMatch = sName.match(rXXAlias);
-				var vDefaultValue = mOptions.hasOwnProperty("defaultValue") ? mOptions.defaultValue : mInternalDefaultValues[mOptions.type];
+			mOptions = Object.assign({}, mOptions);
+			var vValue;
 
-				const aAllProvider = [...aProvider, ...(mOptions.provider ? [mOptions.provider] : [])];
+			var bIgnoreExternal = bGlobalIgnoreExternal || !mOptions.external;
+			var sName = mOptions.name;
+			var vMatch = sName.match(rXXAlias);
+			var vDefaultValue = mOptions.hasOwnProperty("defaultValue") ? mOptions.defaultValue : mInternalDefaultValues[mOptions.type];
 
-				for (var i = aAllProvider.length - 1; i >= 0; i--) {
-					if (!aAllProvider[i].external || !bIgnoreExternal) {
-						const vProviderValue = convertToType(aAllProvider[i].get(sName, mOptions.freeze), mOptions.type, mOptions.name);
-						if (vProviderValue !== undefined) {
-							if (mOptions.type === TypeEnum.MergedObject) {
-								vValue = Object.assign({}, vProviderValue, vValue);
-							} else {
-								vValue = vProviderValue;
-								break;
-							}
+			const aAllProvider = [...aProvider, ...(mOptions.provider ? [mOptions.provider] : [])];
+
+			for (var i = aAllProvider.length - 1; i >= 0; i--) {
+				if (!aAllProvider[i].external || !bIgnoreExternal) {
+					const vProviderValue = convertToType(aAllProvider[i].get(sName, mOptions.freeze), mOptions.type, mOptions.name);
+					if (vProviderValue !== undefined) {
+						if (mOptions.type === TypeEnum.MergedObject) {
+							vValue = Object.assign({}, vProviderValue, vValue);
+						} else {
+							vValue = vProviderValue;
+							break;
 						}
 					}
 				}
-				if (vValue === undefined && (vMatch && vMatch[1] === "sapUi")) {
-					mOptions.name = vMatch[1] + "Xx" + vMatch[2];
-					vValue = get(mOptions);
-				}
-				if (vValue === undefined) {
-					if (typeof vDefaultValue === 'function') {
-						vDefaultValue = vDefaultValue();
-					}
-					vValue = vDefaultValue;
-				}
-				mCache[sCacheKey] = vValue;
 			}
-			var vCachedValue = mCache[sCacheKey];
-			if (typeof mOptions.type !== 'function' && (mOptions.type === TypeEnum.StringArray || mOptions.type === TypeEnum.Object || mOptions.type === TypeEnum.MergedObject)) {
-				vCachedValue = deepClone(vCachedValue);
+			if (vValue === undefined && (vMatch && vMatch[1] === "sapUi")) {
+				mOptions.name = vMatch[1] + "Xx" + vMatch[2];
+				vValue = get(mOptions);
 			}
-			return vCachedValue;
+			if (vValue === undefined) {
+				if (typeof vDefaultValue === 'function') {
+					vDefaultValue = vDefaultValue();
+				}
+				vValue = vDefaultValue;
+			}
+			mCache[sCacheKey] = vValue;
+			return getCachedValue(sCacheKey, mOptions);
 		}
 
 		function invalidate() {
@@ -1066,8 +1073,7 @@
 				'sinon': 'sap/ui/thirdparty/sinon',
 				'signals': 'sap/ui/thirdparty/signals',
 				'URI': 'sap/ui/thirdparty/URI',
-				'URITemplate': 'sap/ui/thirdparty/URITemplate',
-				'esprima': 'sap/ui/documentation/sdk/thirdparty/esprima'
+				'URITemplate': 'sap/ui/thirdparty/URITemplate'
 			}
 		},
 
@@ -1111,14 +1117,6 @@
 			'sap/ui/thirdparty/IPv6': {
 				amd: true,
 				exports: 'IPv6'
-			},
-			'sap/ui/thirdparty/iscroll-lite': {
-				amd: false,
-				exports: 'iScroll'
-			},
-			'sap/ui/thirdparty/iscroll': {
-				amd: false,
-				exports: 'iScroll'
 			},
 			'sap/ui/thirdparty/jquery': {
 				amd: true,
@@ -1230,14 +1228,6 @@
 			'sap/ui/thirdparty/zyngascroll': {
 				amd: false,
 				exports: 'Scroller' // 'requestAnimationFrame', 'cancelRequestAnimationFrame', 'core'
-			},
-			'sap/ui/demokit/js/esprima': {
-				amd: true,
-				exports: 'esprima'
-			},
-			'sap/ui/documentation/sdk/thirdparty/esprima': {
-				amd: true,
-				exports: 'esprima'
 			},
 			'sap/viz/libs/canvg': {
 				deps: ['sap/viz/libs/rgbcolor']

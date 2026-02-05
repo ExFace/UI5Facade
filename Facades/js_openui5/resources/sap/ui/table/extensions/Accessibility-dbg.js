@@ -220,20 +220,20 @@ sap.ui.define([
 			return aLabels;
 		},
 
-		/*
-		 * Returns whether the given cell is hidden
+		/**
+		 * Checks whether the given cell is hidden.
+		 *
+		 * @param {jQuery} $Cell The cell DOM element
+		 * @param {sap.ui.table.Column} oCell The control in the cell
+		 * @param {sap.ui.table.Row} oRow The row the cell is inside
+		 * @returns {boolean} Whether the cell is hidden
 		 */
-		isHiddenCell: function($Cell, oCell) {
-			const bGroup = TableUtils.Grouping.isInGroupHeaderRow($Cell);
-			const bSum = TableUtils.Grouping.isInSummaryRow($Cell);
-			const bSupportStyleClass = !!oCell && !!oCell.hasStyleClass;
-
-			const bIsRowHidden = $Cell.parent().hasClass("sapUiTableRowHidden");
+		isHiddenCell: function($Cell, oCell, oRow) {
 			const bIsCellHidden = $Cell.hasClass("sapUiTableCellHidden");
-			const bGroupCellHiddenByApp = bGroup && bSupportStyleClass && oCell.hasStyleClass("sapUiAnalyticalTableGroupCellHidden");
-			const bSumCellHiddenByApp = bSum && bSupportStyleClass && oCell.hasStyleClass("sapUiAnalyticalTableSumCellHidden");
+			const bGroupCellHiddenByApp = oRow.isGroupHeader() && (oCell?.hasStyleClass?.("sapUiAnalyticalTableGroupCellHidden") ?? false);
+			const bSumCellHiddenByApp = oRow.isSummary() && (oCell?.hasStyleClass?.("sapUiAnalyticalTableSumCellHidden") ?? false);
 
-			return bIsRowHidden || bIsCellHidden || bGroupCellHiddenByApp || bSumCellHiddenByApp;
+			return oRow.isContentHidden() || bIsCellHidden || bGroupCellHiddenByApp || bSumCellHiddenByApp;
 		},
 
 		/*
@@ -385,7 +385,7 @@ sap.ui.define([
 			if (oChangeInfo.initial || oChangeInfo.rowChange) {
 				if (TableUtils.hasRowNavigationIndicators(oTable)) {
 					const oCellInfo = TableUtils.getCellInfo($Cell);
-					if (oCellInfo.type !== TableUtils.CELLTYPE.COLUMNHEADER && oCellInfo.type !== TableUtils.CELLTYPE.COLUMNROWHEADER) {
+					if (oCellInfo.isOfType(CellType.ANYCONTENTCELL)) {
 						const oRowSettings = oTable.getRows()[oCellInfo.rowIndex].getAggregation("_settings");
 						if (oRowSettings.getNavigated()) {
 							aLabels.push(sTableId + "-rownavigatedtext");
@@ -422,13 +422,10 @@ sap.ui.define([
 			let oInfo = null;
 			const oRow = oTableInstances.row;
 			const sRowId = oRow.getId();
-			const bHidden = ExtensionHelper.isHiddenCell($Cell, oTableInstances.cell);
+			const bHidden = ExtensionHelper.isHiddenCell($Cell, oTableInstances.cell, oRow);
 			const bIsTreeColumnCell = ExtensionHelper.isTreeColumnCell(this, $Cell);
-			const aDefaultLabels = ExtensionHelper.getAriaAttributesForDataCell(this, {
-					index: iCol
-				})["aria-labelledby"] || [];
 			const aDescriptions = [];
-			let aLabels = [];
+			const aLabels = [];
 			const bIsGroupHeader = oRow.isGroupHeader();
 			const bIsSummary = oRow.isSummary();
 
@@ -444,9 +441,7 @@ sap.ui.define([
 				aLabels.push(sRowId + "-highlighttext");
 			}
 
-			aLabels = aLabels.concat(aDefaultLabels);
-
-			if (!bHidden) {
+			if (!bHidden && oTableInstances.cell) {
 				oInfo = ACCInfoHelper.getAccInfoOfControl(oTableInstances.cell);
 				aLabels.push(oInfo ? (sTableId + "-cellacc") : oTableInstances.cell.getId());
 			}
@@ -454,6 +449,12 @@ sap.ui.define([
 			let sText = "";
 			if (oInfo) {
 				sText = oInfo.description;
+				if (bIsTreeColumnCell && !bHidden) {
+					const sExpandCollapseButtonText = oTableInstances.row.isExpanded() ?
+						TableUtils.getResourceText("TBL_COLLAPSE_BUTTON") : TableUtils.getResourceText("TBL_EXPAND_BUTTON");
+
+					sText = sExpandCollapseButtonText.concat(" ", oInfo.description);
+				}
 				if (TableUtils.getInteractiveElements($Cell) !== null) {
 					sText = TableUtils.getResourceText("TBL_CELL_INCLUDES", [sText]);
 				}
@@ -466,7 +467,7 @@ sap.ui.define([
 				}
 			}
 
-			ExtensionHelper.performCellModifications(this, $Cell, aDefaultLabels, null, aLabels, aDescriptions, sText, oChangeInfo,
+			ExtensionHelper.performCellModifications(this, $Cell, null, null, aLabels, aDescriptions, sText, oChangeInfo,
 				function(aLabels, aDescriptions, bRowChange, bColChange) {
 					if (bIsGroupHeader && bRowChange) {
 						aLabels.splice(1, 0, sRowId + "-groupHeader");
@@ -555,25 +556,6 @@ sap.ui.define([
 		},
 
 		/*
-		 * Modifies the labels and descriptions of the column row header.
-		 * @see ExtensionHelper.performCellModifications
-		 */
-		modifyAccOfColumnRowHeader: function(oCellInfo, oChangeInfo) {
-			const oTable = this.getTable();
-			const $Cell = jQuery(oCellInfo.cell);
-			const bEnabled = $Cell.hasClass("sapUiTableSelAllVisible");
-
-			const mAttributes = ExtensionHelper.getAriaAttributesForColumnRowHeader(
-				this,
-				{enabled: bEnabled, checked: bEnabled && !oTable.$().hasClass("sapUiTableSelAll")}
-			);
-			const aLabels = mAttributes["aria-labelledby"] || [];
-			ExtensionHelper.performCellModifications(this, $Cell, [], mAttributes["aria-describedby"],
-				aLabels, mAttributes["aria-describedby"], null, oChangeInfo
-			);
-		},
-
-		/*
 		 * Modifies the labels and descriptions of a row action cell.
 		 * @see ExtensionHelper.performCellModifications
 		 */
@@ -583,7 +565,7 @@ sap.ui.define([
 			const $Cell = jQuery(oCellInfo.cell);
 			const oRow = oTable.getRows()[oCellInfo.rowIndex];
 			const sRowId = oRow.getId();
-			const bHidden = ExtensionHelper.isHiddenCell($Cell);
+			const bHidden = ExtensionHelper.isHiddenCell($Cell, null, oRow);
 			const aDefaultLabels = ExtensionHelper.getAriaAttributesForRowAction(this)["aria-labelledby"] || [];
 			const aLabels = [].concat(aDefaultLabels);
 			const aDescriptions = [];
@@ -665,32 +647,27 @@ sap.ui.define([
 		 * Returns the aria attributes for the column row header content (select all checkbox/deselect all icon).
 		 *
 		 * @param {sap.ui.table.extensions.Accessibility} oExtension The accessibility extension
-		 * @param {{enabled: boolean, checked: boolean}} mParams Whether the select all checkbox is enabled and checked
+		 * @param {sap.ui.table.HeaderSelector} oHeaderSelector The header selector control
 		 * @returns {object} An object containing the aria attributes
 		 */
-		getAriaAttributesForColumnRowHeader: function(oExtension, mParams) {
+		getAriaAttributesForColumnRowHeader: function(oExtension, oHeaderSelector) {
 			const mAttributes = {};
-			const oTable = oExtension.getTable();
 
-			const mRenderConfig = oTable._getSelectionPlugin().getRenderConfig();
-
-			if (oTable.getSelectionMode() !== SelectionMode.None) {
-				mAttributes["aria-label"] = TableUtils.getResourceText("TBL_TABLE_SELECTION_COLUMNHEADER");
+			if (!oHeaderSelector.getVisible()) {
+				return mAttributes;
 			}
 
-			if (mRenderConfig.headerSelector.visible) {
-				if (mRenderConfig.headerSelector.type === "toggle") {
-					mAttributes["role"] = ["checkbox"];
-					if (mParams && mParams.enabled) {
-						mAttributes["aria-checked"] = mParams.checked ? "true" : "false";
-					}
-				} else if (mRenderConfig.headerSelector.type === "custom") {
-					mAttributes["role"] = ["button"];
-					if (!mParams || !mParams.enabled) {
-						mAttributes["aria-disabled"] = "true";
-					}
-				}
+			const sHeaderSelectorType = oHeaderSelector.getType();
+
+			if (sHeaderSelectorType === "CheckBox") {
+				mAttributes["role"] = ["checkbox"];
+				mAttributes["aria-checked"] = oHeaderSelector.getCheckBoxSelected().toString();
+			} else if (sHeaderSelectorType === "Icon") {
+				mAttributes["role"] = ["button"];
 			}
+
+			mAttributes["aria-disabled"] = !oHeaderSelector.getEnabled() ? "true" : "false";
+
 			return mAttributes;
 		},
 
@@ -755,9 +732,9 @@ sap.ui.define([
 			const oTable = oExtension.getTable();
 			const sTableId = oTable.getId();
 
-			const oColumn = mParams && mParams.column;
+			const oColumn = mParams.column;
 			const iColIndex = oTable._getVisibleColumns().indexOf(oColumn);
-			const bHasColSpan = mParams && mParams.colspan;
+			const bHasColSpan = mParams.colspan;
 			const oColumnLabel = TableUtils.Column.getHeaderLabel(oColumn);
 
 			mAttributes["role"] = "columnheader";
@@ -918,6 +895,7 @@ sap.ui.define([
 		getAriaAttributesForColumnHeaderRow: function(oExtension, mParams) {
 			const mAttributes = {"role": "row"};
 			if (mParams.fixedCol) {
+				mAttributes["aria-hidden"] = "true";
 				return mAttributes;
 			}
 			const oTable = oExtension.getTable();
@@ -1014,6 +992,7 @@ sap.ui.define([
 			}
 
 			if (mParams.fixedCol) {
+				mAttributes["aria-hidden"] = "true";
 				return mAttributes;
 			}
 
@@ -1051,7 +1030,7 @@ sap.ui.define([
 					"role": ""
 				};
 				if (oTable.getBinding()) {
-					if (mParams && mParams.row) {
+					if (mParams.row) {
 						if (mParams.row.isExpandable()) {
 							const sText = TableUtils.getResourceText("TBL_COLLAPSE_EXPAND");
 							mAttributes["title"] = sText;
@@ -1182,7 +1161,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table which handles ACC related things.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Accessibility
@@ -1193,7 +1172,7 @@ sap.ui.define([
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
-		_init: function(oTable, sTableType, mSettings) {
+		_init: function(oTable, mSettings) {
 			this._accMode = ControlBehavior.isAccessibilityEnabled();
 			this._busyCells = [];
 
@@ -1253,6 +1232,10 @@ sap.ui.define([
 		 */
 		getAriaAttributesFor: function(sType, mParams) {
 			return ExtensionHelper["getAriaAttributesFor" + sType](this, mParams);
+		},
+
+		onAfterRendering: function() {
+			this.updateAriaStateForOverlayAndNoData();
 		},
 
 		/**
@@ -1557,20 +1540,6 @@ sap.ui.define([
 			rowSelect: TableUtils.getResourceText("TBL_ROW_SELECT_KEY"),
 			rowDeselect: TableUtils.getResourceText("TBL_ROW_DESELECT_KEY")
 		};
-	};
-
-	/**
-	 * Applies corresponding ARIA properties of the given state to the select all button.
-	 *
-	 * @param {boolean} bSelectAll The select all state to be applied to the select all button.
-	 * @public
-	 */
-	AccExtension.prototype.setSelectAllState = function(bSelectAll) {
-		const oTable = this.getTable();
-
-		if (this._accMode && oTable) {
-			oTable.$("selall").attr("aria-checked", bSelectAll ? "true" : "false");
-		}
 	};
 
 	/**

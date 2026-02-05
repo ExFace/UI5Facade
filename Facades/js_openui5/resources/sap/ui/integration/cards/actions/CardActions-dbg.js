@@ -6,6 +6,7 @@
 sap.ui.define([
 	"sap/ui/integration/library",
 	"sap/base/Log",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/integration/cards/actions/CustomAction",
 	"sap/ui/integration/cards/actions/DateChangeAction",
@@ -21,6 +22,7 @@ sap.ui.define([
 ], function (
 	library,
 	Log,
+	BindingInfo,
 	ManagedObject,
 	CustomAction,
 	DateChangeAction,
@@ -35,6 +37,17 @@ sap.ui.define([
 	HideCardAction
 ) {
 	"use strict";
+
+	function detectTextSelection(oDomRef) {
+		if (!oDomRef || typeof window === "undefined" || typeof window.getSelection !== "function") {
+			return false;
+		}
+
+		const oSelection = window.getSelection();
+		const sTextSelection = oSelection.toString().replace("\n", "");
+
+		return sTextSelection && (oDomRef !== oSelection.focusNode && oDomRef.contains(oSelection.focusNode));
+	}
 
 	function _getServiceName(vService) {
 		if (vService && typeof vService === "object") {
@@ -59,7 +72,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -79,6 +92,14 @@ sap.ui.define([
 				 * By default getBindingContext().getPath() is used.
 				 */
 				bindingPathResolver: {
+					type: "function"
+				},
+
+				/**
+				 * Set this function if specific parameter resolution is needed.
+				 * By default BindingResolver.resolveValue is used.
+				 */
+				parametersResolver: {
 					type: "function"
 				}
 			}
@@ -179,7 +200,7 @@ sap.ui.define([
 			sEnabledPropertyName = oConfig.enabledPropertyName,
 			vEnabled = oConfig.enabledPropertyValue,
 			vDisabled = oConfig.disabledPropertyValue,
-			oBindingInfo = ManagedObject.bindingParser("{path:''}");
+			oBindingInfo = BindingInfo.parse("{path:''}");
 
 		// Async formatter to set oActionControl's property depending
 		// if the list item context is a correct navigation target (decided by the navigation service).
@@ -340,7 +361,7 @@ sap.ui.define([
 			.catch(function (e) {
 				Log.error("Navigation service unavailable", e);
 			}).finally(function () {
-				this._processAction(oSource, oAction, sPath);
+				this._processAction(oSource, oAction, sPath, oEvent);
 			}.bind(this));
 	};
 
@@ -350,9 +371,15 @@ sap.ui.define([
 		oConfig.actionControl["attach" + capitalize(oConfig.eventName)](function (oEvent) {
 			const oSource = oEvent.getSource();
 			const oOriginalEvent = oEvent.getParameter("originalEvent");
+			const oDomRef = oConfig.actionControl.getDomRef();
 
 			if (oOriginalEvent) {
 				oOriginalEvent.stopPropagation();
+
+				if (detectTextSelection(oDomRef)) {
+					oOriginalEvent.preventDefault();
+					return;
+				}
 
 				if (oConfig.actionControl.getFocusDomRef()?.matches(":has(:focus-within)")) {
 					return;
@@ -362,20 +389,27 @@ sap.ui.define([
 			if (oAction.service) {
 				this._handleServiceAction(oEvent, oAction, oConfig.control);
 			} else {
-				this._processAction(oSource, oAction, this._resolveBindingPath(oEvent));
+				this._processAction(oSource, oAction, this._resolveBindingPath(oEvent), oEvent);
 			}
 		}.bind(this));
 	};
 
-	CardActions.prototype._processAction = function (oSource, oAction, sPath) {
+	CardActions.prototype._processAction = function (oSource, oAction, sPath, oEvent) {
 		var oHost = this._getHostInstance(),
-			oCard = this.getCard();
+			oCard = this.getCard(),
+			mParameters;
+
+		if (this.getParametersResolver()) {
+			mParameters = this.getParametersResolver()(oAction, oSource, sPath, oEvent);
+		} else {
+			mParameters = BindingResolver.resolveValue(oAction.parameters, oSource, sPath);
+		}
 
 		CardActions.fireAction({
 			card: oCard,
 			host: oHost,
 			action: oAction,
-			parameters: BindingResolver.resolveValue(oAction.parameters, oSource, sPath),
+			parameters: mParameters,
 			source: oSource
 		});
 	};

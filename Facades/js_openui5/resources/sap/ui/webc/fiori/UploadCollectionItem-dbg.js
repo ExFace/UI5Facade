@@ -28,7 +28,7 @@ sap.ui.define([
 	 * <h3>Overview</h3> A component to be used within the <code>sap.ui.webc.fiori.UploadCollection</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

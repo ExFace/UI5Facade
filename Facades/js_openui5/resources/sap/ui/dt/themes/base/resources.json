@@ -8,35 +8,35 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 1438,
+			"size": 2925,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 4774,
+			"size": 4874,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 5253,
+			"size": 7120,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/dt/themes/base/library-parameters.json",
-			"size": 500,
+			"size": 990,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 5246,
+			"size": 7115,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 6906,
+			"size": 8493,
 			"designtime": true,
 			"theme": "base"
 		},

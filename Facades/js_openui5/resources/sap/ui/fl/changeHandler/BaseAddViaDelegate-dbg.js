@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.changeHandler.BaseAddViaDelegate
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted change handlers
 	 */

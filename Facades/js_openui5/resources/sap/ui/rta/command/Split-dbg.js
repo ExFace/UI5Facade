@@ -14,13 +14,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.46
 	 * @alias sap.ui.rta.command.Split
 	 */
-	var Split = FlexCommand.extend("sap.ui.rta.command.Split", {
+	const Split = FlexCommand.extend("sap.ui.rta.command.Split", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @override
 	 */
 	Split.prototype._getChangeSpecificData = function() {
-		var mSpecificInfo = {
+		const mSpecificInfo = {
 			changeType: this.getChangeType(),
 			content: {
 				newElementIds: this.getNewElementIds(),

@@ -4,7 +4,7 @@
 		{
 			"name": "Component-dbg.js",
 			"module": "sap/ui/fl/variants/context/Component.js",
-			"size": 3489,
+			"size": 3491,
 			"isDebug": true,
 			"required": [
 				"sap/m/library.js",
@@ -36,7 +36,7 @@
 		{
 			"name": "controller/ContextVisibility-dbg.controller.js",
 			"module": "sap/ui/fl/variants/context/controller/ContextVisibility.controller.js",
-			"size": 7142,
+			"size": 7150,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/restricted/_isEqual.js",
@@ -432,7 +432,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/fl/variants/context/manifest.json",
-			"size": 3066
+			"size": 3078
 		},
 		{
 			"name": "resources.json",

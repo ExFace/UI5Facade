@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "Card.less",
-			"size": 8089,
+			"size": 8503,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "CardHeaders.less",
-			"size": 7655,
+			"size": 9795,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "CardNumericIndicators.less",
-			"size": 850,
+			"size": 874,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DynamicPage.less",
-			"size": 10299,
+			"size": 9521,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DynamicPageHeader.less",
-			"size": 1643,
+			"size": 1662,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -104,71 +104,71 @@
 		},
 		{
 			"name": "ObjectPlaceholder.less",
-			"size": 893,
+			"size": 918,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ProductSwitch.less",
-			"size": 74,
+			"size": 247,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ProductSwitchItem.less",
-			"size": 3086,
+			"size": 3241,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "SemanticPage.less",
-			"size": 740,
+			"size": 744,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ShellBar.less",
-			"size": 9624,
+			"size": 9492,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "SidePanel.less",
-			"size": 17056,
+			"size": 16948,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "TablePlaceholder.less",
-			"size": 767,
+			"size": 770,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "TimelinePlaceholder.less",
-			"size": 1439,
+			"size": 1450,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 111216,
+			"size": 113190,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/f/themes/base/library-parameters.json",
-			"size": 3027,
+			"size": 3041,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 111219,
+			"size": 113196,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 100584,
+			"size": 102534,
 			"designtime": true,
 			"theme": "base"
 		},

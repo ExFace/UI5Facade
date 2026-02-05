@@ -823,9 +823,9 @@ h2.sapUxAPObjectPageHeaderIdentifierTitleForce {
 /* Evening Horizon theme                             */
 /* ================================================= */
 
-@sapUiFiori3AnchorBarBottomShadow: inset 0 -0.0625rem @sapUiObjectHeaderBorderColor;
-@sapUiFiori3AnchorBarTopShadow: inset 0 0.0625rem @sapUiObjectHeaderBorderColor;
-@sapUiFiori3AnchorBarShadow: @sapUiFiori3AnchorBarBottomShadow, 0 0.125rem 0.25rem 0 fade(@sapUiContentShadowColor, 7.5);
+@_sap_uxap_ObjectPageHeaderContent_AnchorBarBottomShadow: inset 0 -0.0625rem var(--sapObjectHeader_BorderColor);
+@_sap_uxap_ObjectPageHeaderContent_AnchorBarTopShadow: inset 0 0.0625rem var(--sapObjectHeader_BorderColor);
+@_sap_uxap_ObjectPageHeaderContent_AnchorBarShadow: @_sap_uxap_ObjectPageHeaderContent_AnchorBarBottomShadow, 0 0.125rem 0.25rem 0 fade(@sapUiContentShadowColor, 7.5);
 
 .sapUxAPObjectPageHeaderContent .sapMObjStatus, .sapUxAPObjectPageContainer .sapMObjStatus {
 	font-size: @sapMFontMediumSize;
@@ -833,7 +833,7 @@ h2.sapUxAPObjectPageHeaderIdentifierTitleForce {
 
 .sapUxAPObjectPageHeaderIdentifierTitleInContent,
 .sapUxAPObjectPageHeaderIdentifierSubTitleInContent {
-	color: @sapUiGroupTitleTextColor;
+	color: var(--sapGroup_TitleTextColor);
 }
 
 .sapUxAPObjectPageHeaderIdentifier .sapUxAPObjectPageHeaderObjectImageForce .sapUxAPObjectPageHeaderObjectImage,
@@ -848,6 +848,7 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 		width: 5rem;
 		height: 5rem;
 	}
+
 	.sapUxAPObjectPageHeaderIdentifier .sapUxAPObjectPageHeaderObjectImageForce .sapUxAPObjectPageHeaderObjectImage,
 	.sapUxAPObjectPageHeaderStickied .sapUxAPObjectPageHeaderIdentifier .sapUxAPObjectPageHeaderObjectImage {
 		margin: 0.25rem 1rem 0.25rem 0;
@@ -861,15 +862,18 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 
 .sapUxAPObjectPageLayout-Std-Tablet,
 .sapUxAPObjectPageLayout-Std-Desktop {
+
 	.sapUxAPObjectPageHeaderContentCellRight {
 		padding-right: 2rem;
 	}
+
 	.sapUxAPObjectPageHeaderContent:only-child {
 		padding: 1rem 2rem;
 	}
 }
 
 .sapUxAPObjectPageLayout-Std-Phone  {
+
 	.sapUxAPObjectPageHeaderContent:only-child {
 		padding: 1rem;
 	}
@@ -880,33 +884,37 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 }
 
 .sapUxAPObjectPageHeaderContent {
+
 	.sapUxAPObjectChildPage {
 		margin-top: -1rem;
 	}
 
 	> .sapUiSimpleForm {
+
 		.sapMText, .sapMLabel, .sapMLnk {
 			font-size: @sapMFontMediumSize;
 		}
 	}
 
 	&:empty {
+
 		.sapUxAPObjectPageLayout-Std-Desktop &,
 		.sapUxAPObjectPageLayout-Std-Tablet &,
-		.sapUxAPObjectPageLayout-Std-Phone &
-		{
+		.sapUxAPObjectPageLayout-Std-Phone & {
 			padding: 0;
 		}
 	}
 }
 
 .sapUxAPObjectPageLayout:not(.sapUxAPObjectPageLayoutNoAnchorBar) {
+
 	.sapFDynamicPageHeader.sapFDynamicPageHeaderWithContent {
 		box-shadow: none;
 	}
-	.sapUxAPObjectPageNavigation:not(:empty):after {
-		content: "";
-		box-shadow: @sapUiFiori3AnchorBarShadow;
+
+	.sapUxAPObjectPageNavigation:not(:empty)::after {
+		content: '';
+		box-shadow: @_sap_uxap_ObjectPageHeaderContent_AnchorBarShadow;
 		pointer-events: none;
 		position: absolute;
 		height: 0.25rem;
@@ -914,25 +922,25 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 		left: 0;
 		width: 100%;
 		z-index: 10;
+
 		&.sapUxAPObjectPageHeaderStickied {
 			box-shadow: none;
 		}
 	}
 }
 
-// =====================================
-// =====================================
-// Delta Styles for Horizon
-// =====================================
+/* ========================= */
+/* Delta Styles for Horizon  */
+/* ========================= */
 
 .sapUxAPObjectPageHeaderContent {
-    padding-top: 0;
-    padding-bottom: 0;
+	padding-top: 0;
+	padding-bottom: 0;
 }
 
-.sapUxAPObjectPageHeaderStickied .sapFDynamicPageTitleMain>.sapFDynamicPageTitleMainInner .sapFDynamicPageTitleMainHeading .sapFDynamicPageTitleMainHeadingInner .sapMTitle {
-	font-size: @sapObjectHeader_Title_SnappedFontSize;
-    font-family: @sapFontBlackFamily;
+.sapUxAPObjectPageHeaderStickied .sapFDynamicPageTitleMain > .sapFDynamicPageTitleMainInner .sapFDynamicPageTitleMainHeading .sapFDynamicPageTitleMainHeadingInner .sapMTitle {
+	font-size: var(--sapObjectHeader_Title_SnappedFontSize);
+	font-family: var(--sapFontBlackFamily);
 }
 /* END "ObjectPageHeaderContent.less" */
 
@@ -1064,8 +1072,8 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 }
 
 .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageSubSectionHeader {
-	padding-left: 2rem;
-	padding-right: 2rem;
+	padding-left: 1rem;
+	padding-right: 1.25rem;
 }
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionHeader,
@@ -1126,10 +1134,18 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
     border-radius: @sapUiElementBorderCornerRadius;
 }
 
-// Page Section Focus - Experimental
-.sapUxAPObjectPageSection:focus {
-	outline: 2px solid @sapUiContentFocusColor;
-    outline-offset: -0.1875rem;
+// Page Section Focus
+.sapUxAPObjectPageSection:focus::before {
+	content: '';
+	position: absolute;
+	display: block;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	z-index: 6;
+	pointer-events: none;
 }
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionTitle {
@@ -1189,10 +1205,15 @@ html .sapUxAPObjectPageLayout-Std-Desktop, html .sapUxAPObjectPageLayout-Std-Tab
 // Delta Styles for Horizon
 // =====================================
 
-// Page Sub Section Focus - Experimental
-.sapUxAPObjectPageSubSectionFocusable:focus {
-    outline: 2px solid @sapUiContentFocusColor;
-    outline-offset: -0.1875rem;
+// Page Sub Section Focus
+.sapUxAPObjectPageSubSectionFocusable:focus .sapUxAPObjectPageSubSectionFocusSpan {
+	content: '';
+	position: absolute;
+	display: block;
+	inset: 0;
+	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	z-index: 6;
+	pointer-events: none;
 }
 
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSection .sapUiRespGrid.sapUiRespGridHSpace1 {
@@ -1224,4 +1245,5 @@ div[class^="sapUiRespGrid"]:first-child > .sapUxAPObjectPageSubSection:not(.sapU
 .sapUxAPBlockContainer .sapUxAPObjectPageSubSectionAlignContent {
 	padding: 0 1rem;
 }
+
 /* END "ObjectPageSubSection.less" */

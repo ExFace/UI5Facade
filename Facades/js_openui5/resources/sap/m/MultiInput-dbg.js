@@ -74,6 +74,8 @@ function(
 	* <li> When a single value is copied and pasted in the field, it is shown as a text value, as further editing might be required before it is converted into a token.</li>
 	* <li> Provide meaningful labels for all input fields. Do not use the placeholder as a replacement for the label.</li>
 	* <li> The <code>showValueHelp</code> property is overwritten and after initialization of the control, its value becomes <code>truthy</code>.</li>
+	* <li> A mix of read-only and deletable tokens isn't supported. </li>
+	* <li> The read-only state of tokens should be controlled using the <code>editable</code> property of the MultiInput control.</li>
 	* </ul>
 	* <h3>Usage</h3>
 	* <h4>When to use:</h4>
@@ -110,7 +112,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.136.12
+	* @version 1.144.0
 	*
 	* @constructor
 	* @public
@@ -272,7 +274,6 @@ function(
 
 			this.destroyTokens();
 			this.updateAggregation("tokens");
-
 		};
 
 		// Override "focusfail" handler, see sap.ui.core.Element#onfocusfail
@@ -357,6 +358,7 @@ function(
 
 			this.updateFormValueProperty();
 			this.invalidate();
+			this._updateFilterSelectedButtonState();
 		}.bind(this));
 
 		this._oTokenizerObserver.observe(oTokenizer, {
@@ -449,9 +451,15 @@ function(
 	 */
 	MultiInput.prototype.onAfterRendering = function () {
 		var oTokenizer = this.getAggregation("tokenizer");
+		var oTokenizerOpener = Element.getElementById(oTokenizer.getProperty("opener"))?.getDomRef();
+
 		this._bTokenIsValidated = false;
 
 		oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+
+		if (oTokenizerOpener !== this.getDomRef()) {
+			oTokenizer.setProperty("opener", this.getId(), true);
+		}
 
 		this._registerResizeHandler();
 
@@ -937,7 +945,7 @@ function(
 
 		// ctrl/meta + I -> Open suggestions
 		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I && oTokenizer.getTokens().length) {
-			oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+			oTokenizer._togglePopup();
 			oEvent.preventDefault();
 		}
 	};
@@ -1138,7 +1146,7 @@ function(
 		if (!this.getEditable()
 			&& oTokenizer.getHiddenTokensCount()
 			&& oEvent.target === this.getFocusDomRef()) {
-			oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+			oTokenizer._togglePopup();
 		}
 
 		if (!containsOrEquals(oTokenizer.getFocusDomRef(), document.activeElement)) {
@@ -1199,7 +1207,7 @@ function(
 		}
 
 		if (!bFocusIsInSelectedItemPopup && !bNewFocusIsInTokenizer) {
-			oSelectedItemsPopup.isOpen() && !this.isMobileDevice() && oTokenizer._togglePopup(oSelectedItemsPopup, this.getDomRef());
+			oSelectedItemsPopup.isOpen() && !this.isMobileDevice() && oTokenizer._togglePopup();
 			oTokenizer.setRenderMode(TokenizerRenderMode.Narrow);
 		}
 
@@ -1229,7 +1237,10 @@ function(
 			return;
 		}
 
-		Input.prototype.ontap.apply(this, arguments);
+		if (!bNMoreLabelClick) {
+			Input.prototype.ontap.apply(this, arguments);
+			this._getSuggestionsPopover()?.getInput()?.setValueHelpIconSrc("sap-icon://search");
+		}
 	};
 
 	/**
@@ -1278,7 +1289,7 @@ function(
 		this.selectText(0, 0);
 
 		if (oPopup.isOpen()) {
-			oTokenizer._togglePopup(oPopup, this.getDomRef());
+			oTokenizer._togglePopup();
 		}
 
 		Input.prototype.onsapescape.apply(this, arguments);
@@ -1403,6 +1414,7 @@ function(
 		this.detachValueHelpRequest(this._onValueHelpRequested, this);
 
 		oClone = Input.prototype.clone.apply(this, arguments);
+		oClone.setProperty("selectedKey", '', true);
 
 		this.attachSuggestionItemSelected(this._onSuggestionItemSelected, this);
 		this.attachLiveChange(this._onLiveChange, this);
@@ -1799,7 +1811,7 @@ function(
 		const oTokenizer = this.getAggregation("tokenizer");
 
 		oTokenizer._bIsOpenedByNMoreIndicator = true;
-		oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+		oTokenizer._togglePopup();
 	};
 
 	/**
@@ -2228,6 +2240,28 @@ function(
 	 */
 	MultiInput.prototype.updateFormValueProperty = function () {
 		this.setProperty("_semanticFormValue", this.getFormFormattedValue(), true);
+	};
+
+	/**
+	 * Updates the state of the mobile dialog's filter-selected button
+	 * @private
+	 */
+	MultiInput.prototype._updateFilterSelectedButtonState = function() {
+		const oSuggestionsPopover = this._getSuggestionsPopover();
+		if (!this.isMobileDevice() || !oSuggestionsPopover) {
+			return;
+		}
+
+		const oButton = oSuggestionsPopover.getFilterSelectedButton();
+		if (!oButton) {
+			return;
+		}
+
+		const iHasTokens = this.getTokens().length > 0;
+
+		if (oButton.getEnabled() !== iHasTokens) {
+			oButton.setEnabled(iHasTokens);
+		}
 	};
 
 	return MultiInput;

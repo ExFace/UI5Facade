@@ -12,10 +12,11 @@ sap.ui.define([
 	"sap/ui/fl/apply/_internal/changes/FlexCustomData",
 	"sap/ui/fl/apply/_internal/flexObjects/UIChange",
 	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
 	"sap/ui/fl/initial/_internal/FlexInfoSession",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/_internal/Loader",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/_internal/condenser/Condenser",
 	"sap/ui/fl/write/_internal/flexState/changes/UIChangeManager",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
@@ -23,7 +24,8 @@ sap.ui.define([
 	"sap/ui/fl/write/api/FeaturesAPI",
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/LayerUtils",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	_omit,
 	Log,
@@ -32,9 +34,10 @@ sap.ui.define([
 	FlexCustomData,
 	UIChange,
 	FlexState,
-	ManifestUtils,
 	FlexRuntimeInfoAPI,
 	FlexInfoSession,
+	Loader,
+	ManifestUtils,
 	Settings,
 	Condenser,
 	UIChangeManager,
@@ -79,8 +82,7 @@ sap.ui.define([
 	 * @returns {Promise<boolean>} Promise that resolves to a boolean indicating if changes exist
 	 */
 	function hasChanges(mPropertyBag) {
-		mPropertyBag.includeCtrlVariants = true;
-		return PersistenceWriteAPI._getUIChanges(mPropertyBag)
+		return PersistenceWriteAPI._getUIChanges({ ...mPropertyBag, includeCtrlVariants: true })
 		.then(function(aChanges) {
 			return aChanges.length > 0;
 		});
@@ -112,23 +114,19 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted
 	 */
-	PersistenceWriteAPI.hasHigherLayerChanges = function(mPropertyBag) {
+	PersistenceWriteAPI.hasHigherLayerChanges = async function(mPropertyBag) {
 		mPropertyBag.upToLayer ||= LayerUtils.getCurrentLayer();
 
-		return FlexObjectManager.getFlexObjects(mPropertyBag)
-		.then(function(aFlexObjects) {
-			return aFlexObjects.filter(function(oFlexObject) {
-				return LayerUtils.isOverLayer(oFlexObject.getLayer(), mPropertyBag.upToLayer);
-			});
-		})
-		.then(function(aFilteredFlexObjects) {
-			if (aFilteredFlexObjects.length === 0) {
-				return false;
-			}
-			// Hidden control variants and their related changes might be necessary for referenced variants, but are not relevant for this check
-			// Same apply for changes of deleted comp variants
-			return FlexObjectManager.filterHiddenFlexObjects(aFilteredFlexObjects, mPropertyBag.reference).length > 0;
-		});
+		const aFlexObjects = await FlexObjectManager.getFlexObjects(mPropertyBag);
+		const aFilteredFlexObjects = aFlexObjects.filter(
+			(oFlexObject) => LayerUtils.isOverLayer(oFlexObject.getLayer(), mPropertyBag.upToLayer)
+		);
+		if (aFilteredFlexObjects.length === 0) {
+			return false;
+		}
+		// Hidden control variants and their related changes might be necessary for referenced variants, but are not relevant for this check
+		// Same apply for changes of deleted comp variants
+		return FlexObjectManager.filterHiddenFlexObjects(aFilteredFlexObjects, mPropertyBag.reference).length > 0;
 	};
 
 	/**
@@ -141,8 +139,7 @@ sap.ui.define([
 	 * @param {string} [mPropertyBag.layer=CUSTOMER] - Proposed layer (might be overwritten by the backend) when creating a new app variant - Smart Business must pass the layer
 	 * @param {boolean} [mPropertyBag.draft=false] - Indicates if changes should be written as a draft
 	 * @param {boolean} [mPropertyBag.removeOtherLayerChanges=false] - Whether to remove changes on other layers before saving
-	 *
-	 * @returns {Promise} Promise that resolves with an array of responses or is rejected with the first error
+	 * @returns {Promise<sap.ui.fl.apply._internal.flexObjects.FlexObject[]>} Resolves with all loaded flex objects after saving
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.rta
 	 */
@@ -150,11 +147,24 @@ sap.ui.define([
 		// when save or activate a version in rta no reload is triggered but flex/data request is send
 		// and will delete version and maxLayer without saveChangeKeepSession
 		// after the request saveChangeKeepSession needs to be delete again
-		const sReference = ManifestUtils.getFlexReferenceForControl(mPropertyBag.selector);
+		const sReference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 		let oFlexInfoSession = FlexInfoSession.getByReference(sReference);
 		oFlexInfoSession.saveChangeKeepSession = true;
 		FlexInfoSession.setByReference(oFlexInfoSession, sReference);
-		const aFlexObjects = await FlexObjectManager.saveFlexObjects(mPropertyBag);
+		await FlexObjectManager.saveFlexObjects(mPropertyBag);
+
+		// When activating a new version or saving a new draft the request has to be made with the new version as parameter
+		oFlexInfoSession.version = mPropertyBag.version;
+		FlexInfoSession.setByReference(oFlexInfoSession, sReference);
+
+		// This is needed as long the save requests does not return the necessary information to update the FlexState without a new request
+		const aFlexObjects = await FlexObjectManager.getFlexObjects({
+			..._omit(mPropertyBag, ["skipUpdateCache", "layer", "version"]),
+			invalidateCache: true,
+			currentLayer: mPropertyBag.layer,
+			includeCtrlVariants: true
+		});
+
 		if (aFlexObjects?.length > 0) {
 			await PersistenceWriteAPI.updateResetAndPublishInfo(mPropertyBag);
 		}
@@ -176,6 +186,7 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.fl, sap.ui.rta
 	 */
 	PersistenceWriteAPI.updateResetAndPublishInfo = async function(mPropertyBag) {
+		const sReference = ManifestUtils.getFlexReferenceForSelector(mPropertyBag.selector);
 		const [bHasChanges, bIsPublishAvailable] = await Promise.all([
 			hasChanges(mPropertyBag),
 			FeaturesAPI.isPublishAvailable()
@@ -192,7 +203,10 @@ sap.ui.define([
 		// If the layer is transportable, fetch additional information from the backend
 		if (bIsLayerTransportable) {
 			try {
-				const oResponse = await Storage.getFlexInfo(mPropertyBag);
+				const oResponse = await Storage.getFlexInfo({
+					...mPropertyBag,
+					reference: sReference
+				});
 				// default is true, so only set to false if explicitly set to false
 				oFlexInfo.allContextsProvided = oResponse.allContextsProvided !== false;
 				oFlexInfo.isResetEnabled = oResponse.isResetEnabled;
@@ -203,7 +217,6 @@ sap.ui.define([
 		}
 
 		// Update the Flex Info Session
-		const sReference = ManifestUtils.getFlexReferenceForControl(mPropertyBag.selector);
 		const oOldFlexInfoSession = FlexInfoSession.getByReference(sReference);
 		const oNewFlexInfoSession = {
 			...oOldFlexInfoSession,
@@ -211,7 +224,7 @@ sap.ui.define([
 		};
 
 		FlexInfoSession.setByReference(oNewFlexInfoSession, sReference);
-		FlexState.setAllContextsProvided(sReference, oNewFlexInfoSession.allContextsProvided);
+		Loader.setAllContextsProvided(sReference, oNewFlexInfoSession.allContextsProvided);
 	};
 
 	/**
@@ -276,7 +289,7 @@ sap.ui.define([
 			if (oFlexObject instanceof UIChange) {
 				return UIChangeManager.addDirtyChanges(sFlexReference, [oFlexObject], oAppComponent)?.[0];
 			}
-			return FlexObjectManager.addDirtyFlexObjects(sFlexReference, [oFlexObject])?.[0];
+			return FlexObjectManager.addDirtyFlexObjects(sFlexReference, oAppComponent.getId(), [oFlexObject])?.[0];
 		}
 
 		if (mPropertyBag.change && mPropertyBag.flexObjects) {
@@ -307,7 +320,7 @@ sap.ui.define([
 			}
 		});
 
-		const aAddedFlexObjects = FlexObjectManager.addDirtyFlexObjects(sFlexReference, aFlexObjects);
+		const aAddedFlexObjects = FlexObjectManager.addDirtyFlexObjects(sFlexReference, oAppComponent.getId(), aFlexObjects);
 		const aAddedUIChanges = UIChangeManager.addDirtyChanges(sFlexReference, aUIChanges, oAppComponent);
 
 		// Ensure that the added changes are returned in the same order as they were passed
@@ -379,21 +392,26 @@ sap.ui.define([
 	 */
 	PersistenceWriteAPI.getChangesWarning = function(mPropertyBag) {
 		return this._getUIChanges(mPropertyBag).then(function(aChanges) {
-			var bHasChangesFromOtherSystem = aChanges.some(function(oChange) {
+			const bHasChangesFromOtherSystem = aChanges.some(function(oChange) {
 				return oChange.isChangeFromOtherSystem();
 			});
 
-			var oSettingsInstance = Settings.getInstanceOrUndef();
-			var isProductiveSystemWithTransports = oSettingsInstance && oSettingsInstance.isProductiveSystemWithTransports();
-			var bHasNoChanges = aChanges.length === 0;
-			var oChangesWarning = {showWarning: false};
+			const oSettingsInstance = Settings.getInstanceOrUndef();
+			// TODO System and Client info have nothing to do with the transport system
+			const isProductiveSystemWithTransports =
+				oSettingsInstance
+				&& oSettingsInstance.getIsProductiveSystem()
+				&& oSettingsInstance.getSystem()
+				&& oSettingsInstance.getClient();
+			const bHasNoChanges = aChanges.length === 0;
+			let oChangesWarning = { showWarning: false };
 
 			if (bHasChangesFromOtherSystem) {
-				oChangesWarning = {showWarning: true, warningType: "mixedChangesWarning"};
+				oChangesWarning = { showWarning: true, warningType: "mixedChangesWarning" };
 			}
 
 			if (isProductiveSystemWithTransports && bHasNoChanges) {
-				oChangesWarning = {showWarning: true, warningType: "noChangesAndPSystemWarning"};
+				oChangesWarning = { showWarning: true, warningType: "noChangesAndPSystemWarning" };
 			}
 			return oChangesWarning;
 		});

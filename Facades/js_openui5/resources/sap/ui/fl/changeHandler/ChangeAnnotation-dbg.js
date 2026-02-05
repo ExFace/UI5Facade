@@ -15,7 +15,7 @@ sap.ui.define([
 	 * Default change handler for annotations.
 	 * @alias sap.ui.fl.changeHandler.ChangeAnnotation
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.132
 	 * @public
 	 */

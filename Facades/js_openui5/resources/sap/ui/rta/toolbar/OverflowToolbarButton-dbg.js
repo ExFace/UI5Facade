@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.m.OverflowToolbarButton
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -38,7 +38,7 @@ sap.ui.define([
 				"sap.m.IOverflowToolbarContent"
 			],
 			properties: {
-				visibleIcon: {type: "string", defaultValue: ""}
+				visibleIcon: { type: "string", defaultValue: "" }
 			}
 		},
 		renderer: ButtonRenderer

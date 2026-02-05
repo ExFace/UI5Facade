@@ -24,7 +24,7 @@ sap.ui.define([
 	 * <h3>Overview</h3> The <code>sap.ui.webc.main.ToolbarSeparator</code> is an element, used for visual separation between two elements. It takes no space in calculating toolbar items width.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

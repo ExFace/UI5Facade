@@ -34,7 +34,7 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
-	var {ButtonType} = mobileLibrary;
+	var { ButtonType } = mobileLibrary;
 
 	/**
 	 * Controller for displaying detail of content in Content Browser.
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.support.apps.contentbrowser.controller.ContentDetails
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.45
 	 * @private
 	 */
@@ -191,7 +191,7 @@ sap.ui.define([
 			var oDialog = new Dialog({
 				title: "{i18n>confirmDeletionTitle}",
 				type: "Message",
-				content: new Text({text: "{i18n>questionFileDeletion}"}),
+				content: new Text({ text: "{i18n>questionFileDeletion}" }),
 				beginButton: new Button({
 					text: "{i18n>confirm}",
 					type: ButtonType.Reject,
@@ -266,12 +266,12 @@ sap.ui.define([
 				that._deleteFile(sContentLayer, sNamespace, sFileName, sFileType, sTransportId, sSelectedLayer, bOnActivatedVersion);
 			} else {
 				// Bring up an simple transport input dialog
-				var oTransportInput = new Input({placeholder: "Transport ID or ATO_NOTIFICATION" });
+				var oTransportInput = new Input({ placeholder: "Transport ID or ATO_NOTIFICATION" });
 				var oDialog = new Dialog({
 					title: "{i18n>transportInput}",
 					type: "Message",
 					content: [
-						new Text({text: "{i18n>transportInputDescription}"}),
+						new Text({ text: "{i18n>transportInputDescription}" }),
 						oTransportInput],
 					beginButton: new Button({
 						text: "{i18n>confirm}",

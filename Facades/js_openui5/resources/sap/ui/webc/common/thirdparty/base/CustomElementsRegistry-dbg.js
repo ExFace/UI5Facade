@@ -80,7 +80,7 @@ sap.ui.define(["exports", "./getSharedResource", "./Runtimes"], function (_expor
         message = `${message}\nSince the above web components were defined by the same or newer version runtime, they should be compatible with your code.`;
       }
     });
-    message = `${message}\n\nTo prevent other runtimes from defining tags that you use, consider using scoping or have third-party libraries use scoping: https://github.com/SAP/ui5-webcomponents/blob/main/docs/2-advanced/03-scoping.md.`;
+    message = `${message}\n\nTo prevent other runtimes from defining tags that you use, consider using scoping or have third-party libraries use scoping: https://ui5.github.io/webcomponents/docs/advanced/scoping/.`;
     console.warn(message); // eslint-disable-line
   };
 });

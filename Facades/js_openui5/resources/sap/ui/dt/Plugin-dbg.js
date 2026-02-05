@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -55,7 +55,7 @@ sap.ui.define([
 			events: {
 				processingStatusChange: {
 					parameters: {
-						processing: {type: "boolean"}
+						processing: { type: "boolean" }
 					}
 				}
 			}
@@ -317,12 +317,11 @@ sap.ui.define([
 	 * @param {sap.ui.dt.ElementOverlay} oOverlay Overlay containing the Designtime Metadata
 	 * @param {object} mAction The action data from the Designtime Metadata
 	 * @param {string} sPluginId The ID of the plugin
-	 * @param {sap.ui.core.Element} [oPropagatingControl] The control where the action is executed
 	 * @return {string} The text for the menu item
 	 */
-	Plugin.prototype.getActionText = function(oOverlay, mAction, sPluginId, oPropagatingControl) {
+	Plugin.prototype.getActionText = function(oOverlay, mAction, sPluginId) {
 		const vName = mAction.name;
-		const oElement = oPropagatingControl || oOverlay.getElement();
+		const oElement = oOverlay.getElement();
 		if (vName) {
 			if (typeof vName === "function") {
 				return vName(oElement);
@@ -497,7 +496,7 @@ sap.ui.define([
 				return true;
 			}
 		}.bind(this));
-		return { ...oMenuItem, ...(bEnhanceMenuItem && {responsible: aResponsibleElementOverlays}) };
+		return { ...oMenuItem, ...(bEnhanceMenuItem && { responsible: aResponsibleElementOverlays }) };
 	};
 
 	return Plugin;

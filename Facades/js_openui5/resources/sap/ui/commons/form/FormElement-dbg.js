@@ -22,7 +22,7 @@ sap.ui.define(['sap/ui/commons/library', 'sap/ui/layout/form/FormElement'],
 	 * @extends sap.ui.layout.form.FormElement
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -4,7 +4,7 @@
 		{
 			"name": "Component-dbg.js",
 			"module": "sap/ui/rta/appVariant/manageApps/webapp/Component.js",
-			"size": 1230,
+			"size": 1183,
 			"isDebug": true,
 			"required": [
 				"sap/m/library.js",
@@ -478,7 +478,7 @@
 		},
 		{
 			"name": "index.js.map",
-			"size": 422,
+			"size": 416,
 			"isDebug": true
 		},
 		{

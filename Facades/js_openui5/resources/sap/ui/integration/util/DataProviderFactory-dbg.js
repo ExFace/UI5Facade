@@ -40,7 +40,7 @@ sap.ui.define([
 	 * When destroyed, all data providers created by this class are also destroyed.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.integration, shell-toolkit
@@ -238,14 +238,14 @@ sap.ui.define([
 		const oEditor = this._oEditor;
 
 		if (oCard) {
-			oSettings.baseRuntimeUrl = oCard.getRuntimeUrl("/");
+			oSettings.baseRuntimeUrl = oCard.getRuntimeUrl();
 			oSettings.card = oCard;
 
 			if (!bConfigurationResolved) {
 				oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oCard.getBindingNamespaces());
 			}
 		} else if (oEditor) {
-			oSettings.baseRuntimeUrl = oEditor.getRuntimeUrl("/");
+			oSettings.baseRuntimeUrl = oEditor.getRuntimeUrl("/"); // @todo should behave the same as card.getRuntimeUrl
 			oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, oEditor.getBindingNamespaces());
 		} else {
 			oSettings.configurationJson = JSONBindingHelper.createJsonWithBindingInfos(oDataConfiguration, {});

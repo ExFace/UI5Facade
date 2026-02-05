@@ -11,7 +11,7 @@ sap.ui.define([], function () {
 	 * Utility class helping with sap.m.ComboBox control.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.ComboBoxHelper

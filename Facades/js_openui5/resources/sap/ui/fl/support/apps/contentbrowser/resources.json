@@ -58,7 +58,7 @@
 		{
 			"name": "controller/ContentDetails-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetails.controller.js",
-			"size": 10059,
+			"size": 10065,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -102,7 +102,7 @@
 		{
 			"name": "controller/ContentDetailsEdit-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetailsEdit.controller.js",
-			"size": 8584,
+			"size": 8589,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -144,7 +144,7 @@
 		{
 			"name": "controller/LayerContentMaster-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/LayerContentMaster.controller.js",
-			"size": 6494,
+			"size": 6497,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js",
@@ -182,7 +182,7 @@
 		{
 			"name": "controller/Layers-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/Layers.controller.js",
-			"size": 1428,
+			"size": 1429,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js",
@@ -217,7 +217,7 @@
 		{
 			"name": "lrepConnector/LRepConnector-dbg.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/lrepConnector/LRepConnector.js",
-			"size": 11531,
+			"size": 11530,
 			"isDebug": true,
 			"required": [
 				"sap/ui/fl/Utils.js",
@@ -260,7 +260,7 @@
 		{
 			"name": "utils/DataUtils-dbg.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/utils/DataUtils.js",
-			"size": 4233,
+			"size": 4232,
 			"isDebug": true,
 			"required": [
 				"sap/m/GroupHeaderListItem.js"
@@ -282,7 +282,7 @@
 		{
 			"name": "utils/ErrorUtils-dbg.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/utils/ErrorUtils.js",
-			"size": 2330,
+			"size": 2329,
 			"isDebug": true,
 			"required": [
 				"sap/m/MessageItem.js",

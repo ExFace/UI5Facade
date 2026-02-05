@@ -84,7 +84,7 @@ sap.ui.define([
 	 * @alias sap.ui.rta.util.changeVisualization.ChangeVisualization
 	 * @author SAP SE
 	 * @since 1.84.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 */
 	const ChangeVisualization = Control.extend("sap.ui.rta.util.changeVisualization.ChangeVisualization", {
@@ -114,7 +114,6 @@ sap.ui.define([
 		},
 		renderer: null,
 
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			this._oChangeIndicatorRegistry = new ChangeIndicatorRegistry({
 				changeCategories: ChangeCategories.getCategories()
@@ -133,7 +132,6 @@ sap.ui.define([
 			});
 			this._oChangeVisualizationModel.setDefaultBindingMode("TwoWay");
 			this._sSelectedChangeCategory = ChangeCategories.ALL;
-			this._bSetModeChanged = false;
 
 			// For the event handlers to work, the function instance has to remain stable
 			this._fnOnClickHandler = _onClick.bind(this);
@@ -266,10 +264,7 @@ sap.ui.define([
 
 		// Filter allRegisteredChanges for independent changes and get the ids
 		const aRegisteredIndependentChanges = aAllRegisteredChanges.filter(function(oChange) {
-			if (!oChange.dependent) {
-				return true;
-			}
-			return false;
+			return !oChange.dependent;
 		});
 
 		const oSortedChanges = this._determineChangeVisibility(
@@ -336,29 +331,21 @@ sap.ui.define([
 		return `${sBaseText} (${sStateText})`;
 	};
 
-	ChangeVisualization.prototype.openChangeCategorySelectionPopover = function(oEvent) {
+	ChangeVisualization.prototype.openChangeCategorySelectionPopover = async function(oEvent) {
 		// Event bubbled through the toolbar, get original source
-		this._oToolbarButton ||= Element.getElementById(oEvent.getParameter("id"));
-		const oPopover = this.getPopover();
+		this._oToolbarButton ||= Element.getElementById(oEvent?.getParameter("id"));
+		const oPopover = this.getPopover?.();
 
 		if (!oPopover) {
-			Fragment.load({
+			const oPopover = await Fragment.load({
 				name: "sap.ui.rta.util.changeVisualization.ChangeIndicatorCategorySelection",
 				id: `${this._oToolbarButton.sId}--ChangeIndicatorCategorySelection`,
 				controller: this
-			})
-			.then(function(oPopover) {
-				this._oToolbarButton.addDependent(oPopover);
-				oPopover.setModel(this._oChangeVisualizationModel, "visualizationModel");
-				oPopover.openBy(this._oToolbarButton);
-				this.setPopover(oPopover);
-				// Currently required because of an binding issue from the control
-				// At the first opening of the popover the controls don't get updated when the bound
-				// model changes. With the reopening this Problem gets fixed
-				// TODO Remove once control owners have fixed the issue
-				oPopover.close();
-				oPopover.openBy(this._oToolbarButton);
-			}.bind(this));
+			});
+			this._oToolbarButton.addDependent(oPopover);
+			oPopover.setModel(this._oChangeVisualizationModel, "visualizationModel");
+			oPopover.openBy(this._oToolbarButton);
+			this.setPopover(oPopover);
 			return;
 		}
 
@@ -633,7 +620,7 @@ sap.ui.define([
 		// Set the tabindex according the sorting
 		// Focus the first visible indicator
 		await this._oChangeIndicatorRegistry.waitForIndicatorRendering();
-		const aVisibleIndicators = [];
+
 		this._oChangeIndicatorRegistry.getChangeIndicators().forEach((oIndicator) => {
 			const oOverlay = OverlayRegistry.getOverlay(oIndicator.getOverlayId());
 			// As setting the focus happens asynchronously after rendering,
@@ -643,12 +630,12 @@ sap.ui.define([
 			}
 			if (oIndicator.getVisible()) {
 				oOverlay.setFocusable(true);
-				aVisibleIndicators.push(oIndicator);
 			} else {
 				oOverlay.setFocusable(false);
 			}
 		});
 
+		const aVisibleIndicators = this._oChangeIndicatorRegistry.getChangeIndicators().filter((oIndicator) => oIndicator.getVisible());
 		if (aVisibleIndicators.length > 0) {
 			aVisibleIndicators.sort(function(oIndicator1, oIndicator2) {
 				const iDeltaY = oIndicator1.getPosY() - oIndicator2.getPosY();

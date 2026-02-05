@@ -27,7 +27,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.Tab</code> represents a selectable item inside a <code>sap.ui.webc.main.TabContainer</code>. It defines both the item in the tab strip (top part of the <code>sap.ui.webc.main.TabContainer</code>) and the content that is presented to the user once the tab is selected.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

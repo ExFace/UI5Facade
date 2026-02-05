@@ -12,65 +12,74 @@
 @import "../../../../../sap/ui/core/themes/sap_fiori_3_dark/global.less";
 
 /* START "ContextMenu.less" */
-/******************************************************************
-	Style of the DT Contextmenu - sap_fiori_3_dark Theme
-*******************************************************************/
-@_sap_ui_dt_ContextMenu_MnuItemTextColor: @sapUiListSelectionBorderColor; //#91c8f6
-@_sap_ui_dt_ContextMenu_MnuItemBackgroundColor: @sapUiListBackground; // #29313a
-@_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor: @sapUiListSelectionBackgroundColor; // #334b5f
-@_sap_ui_dt_ContextMenu_BorderRadius: @sapUiButtonBorderCornerRadius; // 0.25rem
-@_sap_ui_dt_ContextMenu_FocusColor: @sapUiListSelectionBorderColor; //#91c8f6
-@_sap_ui_dt_ContextMenu_DisabledMnuItemHoverTextColor: @sapUiListSelectionBorderColor; //#91c8f6
+/* ====================================== */
+/* CSS for control sap.ui.dt/ContextMenu  */
+/* Quartz Dark theme                      */
+/* ====================================== */
 
-.sapUiDtContextMenu {
-	.sapUiMnuLst {
-		.sapUiMnuItm {
+@_sap_ui_dt_ContextMenu_MnuItemTextColor: var(--sapList_SelectionBorderColor); /* #91c8f6 */
+@_sap_ui_dt_ContextMenu_MnuItemBackgroundColor: var(--sapList_Background); /* #29313a */
+@_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor: var(--sapList_SelectionBackgroundColor); /* #334b5f */
+@_sap_ui_dt_ContextMenu_BorderRadius: var(--sapButton_BorderCornerRadius); /* 0.25rem */
+@_sap_ui_dt_ContextMenu_FocusColor: var(--sapList_SelectionBorderColor); /* #91c8f6 */
+@_sap_ui_dt_ContextMenu_MnuItemIconColor: var(--sapList_SelectionBorderColor); /* #91c8f6 */
+
+.sapUiDtContextMenu.sapMMenu {
+
+	.sapMMenuList {
+
+		.sapMMenuItem {
 			color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
-			background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
-			border: 0.0625rem dotted transparent;
 
-			.sapUiMnuItmIco {
+			.sapMMenuItemIcon {
 				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
 			}
 
-			.sapUiMnuItmSbMnu > div:after,
-			.sapUiMnuItm.sapUiMnuItmHov .sapUiMnuItmSbMnu > div:after {
+			.sapMMenuItemSubMenu > div::after,
+			.sapMMenuItem:hover .sapMMenuItemSubMenu > div::after {
 				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
-				background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
 			}
 
-			&.sapUiMnuItmHov {
+			&:hover {
 				color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
 				background-color: @_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor;
 
-				.sapUiMnuItmIco {
+				.sapMMenuItemIcon {
 					color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
-					background: @_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor;
+					background-color: @_sap_ui_dt_ContextMenu_MnuItemHoverBackgroundColor;
 				}
-				&.sapUiMnuItmDsbl {
-					background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
-					.sapUiMnuItmIco {
-						background: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+
+				&.sapMMenuItemDisabled {
+					background-color: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
+
+					.sapMMenuItemIcon {
+						background-color: @_sap_ui_dt_ContextMenu_MnuItemBackgroundColor;
 					}
 				}
 			}
 
-			&:focus:not(.sapUiMnuItmDsbl) {
+			&:focus:not(.sapMMenuItemDisabled) {
 				outline: 0.0625rem dotted @_sap_ui_dt_ContextMenu_FocusColor;
-				outline-offset: -0.0625rem;
 				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
 			}
 
-			&.sapUiMnuItmSubMnuOpen {
-				border-bottom: none !important;
-			}
-
-			&.sapUiMnuItmDsbl {
-				&.sapUiMnuItmHov {
-					color: @_sap_ui_dt_ContextMenu_DisabledMnuItemHoverTextColor;
-				}
+			&.sapMMenuItemDisabled {
 				&:focus {
 					outline: none;
+				}
+			}
+
+			&.sapUiDtContextMenuExtendedActionsTitle {
+
+				&:hover {
+					background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor!important;
+				}
+			}
+
+			&.sapUiDtContextMenuPropagatedControlTitle {
+
+				&:hover {
+					background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor!important;
 				}
 			}
 		}
@@ -79,22 +88,26 @@
 /* END "ContextMenu.less" */
 
 /* START "Overlay.less" */
-/******************************************************************
-	Style of the DT Overlays - sap_fiori_3_dark Theme
-*******************************************************************/
-@_sap_ui_dt_Overlay_CuttedBackgroundColor: fade(@sapUiContentImagePlaceholderBackground, 50%); //rgba(104, 125, 148, 0.5)
+/* ================================== */
+/* CSS for control sap.ui.dt/Overlay  */
+/* Quartz Dark theme                  */
+/* ================================== */
+
+@_sap_ui_dt_Overlay_CuttedBackgroundColor: fade(@sapUiContentImagePlaceholderBackground, 50%); /* rgba(104, 125, 148, 0.5) */
 
 .sapUiDtOverlayDropZone {
+
 	> .sapUiDtOverlayChildren {
+
 		> .sapUiDtOverlayMovable {
 			background: inherit;
 
-			&:before {
+			&::before {
 				content: none;
 			}
 
 			&.sapUiDtOverlayHover {
-				&:after {
+				&::after {
 					content: none;
 				}
 			}
@@ -107,7 +120,8 @@
 }
 
 .sapUiDtOverlayTargetZone {
-	&:after {
+
+	&::after {
 		transition: box-shadow .25s;
 		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
 	}

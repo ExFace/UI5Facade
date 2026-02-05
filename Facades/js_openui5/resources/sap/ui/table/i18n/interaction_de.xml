@@ -92,7 +92,7 @@
 				</ul>
 			</description>
 		</interaction>
-		<interaction> <kbd>ESC</kbd> <description>
+		<interaction> <kbd>Escape</kbd> <description>
 				<p><span class="emphasis">Wenn die Zellenmarkierung aktiviert ist:</span></p>
 				<p>Wenn der Fokus innerhalb der Tabelle liegt und Zellen markiert sind, wird die Markierung der Zellen entfernt.</p>
 			</description>
@@ -174,9 +174,9 @@
 				<p>Wenn der Fokus auf dem Spaltenkopf liegt, wird das Spaltenkopfmenü geöffnet.</p>
 			</description>
 		</interaction>
-		<interaction> <kbd>Shift + mouse click</kbd> <description>
+		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Wenn die Zellenmarkierung aktiviert ist:</span></p>
-				<p>Wenn Zellen markiert sind, erweitert <kbd>Shift + click</kbd> auf eine andere Zelle die Markierung bis zur angeklickten Zelle.</p>
+				<p>Wenn Zellen markiert sind, erweitert <kbd>Shift + MouseClick</kbd> auf eine andere Zelle die Markierung bis zur angeklickten Zelle.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>

@@ -14,6 +14,9 @@ sap.ui.define([],
 				singular: "POPOVER_NAME",
 				plural: "POPOVER_NAME_PLURAL"
 			},
+			getLabel: function(oControl) {
+				return oControl.getDomRef().getAttribute("header-text");
+			},
 			actions: {
 				remove: {
 					changeType: "hideControl"
@@ -22,16 +25,6 @@ sap.ui.define([],
 					changeType: "rename",
 					domRef: function (oControl) {
 						return oControl.getDomRef().shadowRoot.querySelector(".ui5-popup-header-text");
-					},
-					getTextMutators: function (oControl) {
-						return {
-							getText: function () {
-								return oControl.getDomRef().getAttribute("header-text");
-							},
-							setText: function (sNewText) {
-								oControl.getDomRef().setAttribute("header-text", sNewText);
-							}
-						};
 					}
 				},
 				reveal: {

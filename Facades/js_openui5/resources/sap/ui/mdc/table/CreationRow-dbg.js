@@ -5,8 +5,12 @@
  */
 
 sap.ui.define([
-	"sap/ui/core/Element", "sap/ui/mdc/enums/TableType"
-], (Element, TableType) => {
+	"sap/ui/core/Element",
+	"sap/ui/mdc/enums/TableType"
+], (
+	Element,
+	TableType
+) => {
 	"use strict";
 
 	/**
@@ -19,7 +23,7 @@ sap.ui.define([
 	 * {@link sap.ui.mdc.table.Column#getCreationTemplate creationTemplate} aggregation of the {@link sap.ui.mdc.table.Column}.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @ui5-restricted sap.fe

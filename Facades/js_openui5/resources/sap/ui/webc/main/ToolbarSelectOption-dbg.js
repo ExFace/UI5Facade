@@ -26,7 +26,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.ToolbarSelectOption</code> component defines the content of an option in the <code>sap.ui.webc.main.ToolbarSelect</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

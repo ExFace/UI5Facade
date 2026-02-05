@@ -41,7 +41,7 @@ sap.ui.define([
 				{
 					changeType: oAction.changeType,
 					serviceUrl: oChange.serviceUrl,
-					content: {...oChange.content, objectTemplateInfo: oAction.objectTemplateInfo},
+					content: { ...oChange.content, objectTemplateInfo: oAction.objectTemplateInfo },
 					// aLegacyRenameChanges is only passed for singleRename scenarios, where there is only one annotation change to be saved
 					// so we can simply add it in the loop
 					changesToDelete: aLegacyRenameChanges
@@ -57,9 +57,9 @@ sap.ui.define([
 		}
 	}
 
-	function getActionText(oElementOverlay, oAction, oPropagatingControl) {
+	function getActionText(oElementOverlay, oAction) {
 		const vName = oAction.title;
-		const oElement = oPropagatingControl || oElementOverlay.getElement();
+		const oElement = oElementOverlay.getElement();
 		if (vName) {
 			if (typeof vName === "function") {
 				return vName(oElement);
@@ -105,7 +105,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.132

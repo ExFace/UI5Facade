@@ -15,6 +15,7 @@ sap.ui.define([
 	'sap/ui/mdc/condition/Condition',
 	'sap/ui/mdc/condition/FilterOperatorUtil',
 	'sap/ui/mdc/field/ConditionsType',
+	'sap/ui/mdc/field/ConditionType',
 	'sap/ui/mdc/field/splitValue',
 	'sap/ui/mdc/enums/FieldEditMode',
 	'sap/ui/mdc/enums/FieldDisplay',
@@ -58,6 +59,7 @@ sap.ui.define([
 	Condition,
 	FilterOperatorUtil,
 	ConditionsType,
+	ConditionType,
 	splitValue,
 	FieldEditMode,
 	FieldDisplay,
@@ -121,7 +123,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @alias sap.ui.mdc.valuehelp.base.DefineConditionPanel
@@ -304,6 +306,8 @@ sap.ui.define([
 				onpaste: this.onPaste
 			};
 
+			this._oConditionType = new ConditionType();
+
 			_createInnerControls.call(this);
 			this.setModel(this._oManagedObjectModel, "$this");
 			this.setModel(this._oManagedObjectModel, "$condition"); // TODO: better solution to have 2 bindingContexts on one control
@@ -326,6 +330,9 @@ sap.ui.define([
 
 			this._oManagedObjectModel.destroy();
 			delete this._oManagedObjectModel;
+
+			this._oConditionType.destroy();
+			delete this._oConditionType;
 		},
 
 		byId: function(sId) {
@@ -479,7 +486,7 @@ sap.ui.define([
 		onChange: function(oEvent) {
 			const oPromise = oEvent && oEvent.getParameter("promise");
 			const oSourceControl = oEvent && oEvent.getSource();
-			const fnHandleChange = function(oEvent) {
+			const fnHandleChange = function(oEvent, oControl) {
 				const aOperators = _getOperators.call(this);
 				const aConditions = this.getConditions();
 				FilterOperatorUtil.checkConditionsEmpty(aConditions, aOperators);
@@ -496,28 +503,39 @@ sap.ui.define([
 				}
 
 				this.setProperty("conditions", aConditions, true); // do not invalidate whole DefineConditionPanel
+				if (deepEqual(aConditions, this.getConditions())) {
+					const oInvisibleText = _getInvisibleTextForField(oControl);
+					if (oInvisibleText) {
+						oInvisibleText.getBinding("text").checkUpdate(true);
+					}
+				}
 			}.bind(this);
 
 			if (oPromise) {
 				oPromise.then((vResult) => {
 					this._bPendingChange = false;
-					fnHandleChange({ mParameters: { value: vResult } }); // TODO: use a real event?
+					fnHandleChange({ mParameters: { value: vResult } }, oSourceControl); // TODO: use a real event?
 					if (this._bPendingValidateCondition) {
 						_validateCondition.call(this, oSourceControl);
 						delete this._bPendingValidateCondition;
 					}
 				}).catch((oError) => { // cleanup pending stuff
 					this._bPendingChange = false;
+					_setInvalidInvisibleText(oSourceControl);
 					if (this._bPendingValidateCondition) {
 						_validateCondition.call(this, oSourceControl);
 						delete this._bPendingValidateCondition;
 					}
 				});
 
+				if (oSourceControl) {
+					_resetInvisibleRemoveText(oSourceControl);
+				}
+
 				this._bPendingChange = true; // TODO: handle multiple changes
 				return;
 			} else {
-				fnHandleChange();
+				fnHandleChange(undefined, oSourceControl);
 			}
 
 		},
@@ -576,8 +594,7 @@ sap.ui.define([
 								bInvalid = true;
 								oCondition.invalid = true;
 								bUpdate = true;
-								oField.setValueState(ValueState.Error);
-								oField.setValueStateText(oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [sKey]));
+								_updateErrorValueState(oField, oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [sKey]));
 								break;
 							}
 						}
@@ -666,12 +683,8 @@ sap.ui.define([
 				const sConditionPath = oSource.getBindingContext("$condition").getPath(); // Path to condition of the active control
 				const iIndex = parseInt(sConditionPath.split("/")[2]); // index of current condition - to remove before adding new ones
 				const aConditions = this.getConditions();
-				const oFormatOptions = merge({}, this.getConfig());
-				oFormatOptions.display = FieldDisplay.Value;
-				oFormatOptions.getConditions = function() { return aConditions; }; // as condition where inserted will be removed
-				oFormatOptions.defaultOperatorName = aConditions[iIndex].operator; // use current operator as default
-				oFormatOptions.valueType = oFormatOptions.dataType;
-				delete oFormatOptions.dataType;
+
+				const oFormatOptions = _adjustFormatOptions(this.getConfig(), aConditions, iIndex);
 				const oConditionsType = new ConditionsType(oFormatOptions);
 
 				aConditions.splice(iIndex, 1); // remove old condition that is overwitten by pasting
@@ -738,13 +751,58 @@ sap.ui.define([
 			return oCtrl;
 		},
 
-		// TODO: remove this function and replace by getValueHelp once FieldHelp association is completetly removed.
+		getFocusControlAfterTokenRemoval: function () {
+			const oGrid = this.getAggregation("_content").getContent()[1];
+			const aContent = oGrid.getContent();
+			const oCtrl = aContent[2] ? aContent[2] : aContent[0]; // If value field exist take it, otherwise operator
+			return oCtrl;
+		},
+
+		/**
+		 * @deprecated As of 1.114.0, together with `fieldHelp` association
+		 * @ui5-transform-hint replace-call getValueHelp
+		 * @private
+		 */
 		_getValueHelp: function() {
 
 			return this.getValueHelp() || (this.getFieldHelp && this.getFieldHelp()); // as getFieldHelp not exist in legacy-free UI5
 
 		}
 	});
+
+	function _adjustFormatOptions(oOrigFormatOptions, aConditions, iCurrentCondition) {
+		const oCurrentCondition = aConditions[iCurrentCondition];
+
+		const oFormatOptions = merge({}, oOrigFormatOptions);
+		oFormatOptions.display = FieldDisplay.Value;
+		oFormatOptions.getConditions = function() { return aConditions; }; // as condition where inserted will be removed
+		oFormatOptions.defaultOperatorName = oCurrentCondition?.operator; // use current operator as default
+		oFormatOptions.valueType = oFormatOptions.dataType;
+		delete oFormatOptions.dataType;
+
+		return oFormatOptions;
+	}
+	// resetting the InvisibleText is necessary because conditions are updated async.
+	// the InvisibleText will be updated after the value is changed.
+	// and reading the old value again
+	function _resetInvisibleRemoveText(oField) {
+		const oInvisibleText = _getInvisibleTextForField(oField);
+		if (oInvisibleText) {
+			oInvisibleText.setText("");
+		}
+	}
+
+
+	function _getInvisibleTextForField(oField) {
+		if (!oField) {
+			return null;
+		}
+
+		const oGrid = oField.getParent();
+		const oFieldIndex = oGrid.getContent().indexOf(oField);
+		const oInvisibleText = oGrid.getContent().find((oControl, iIndex) => oControl.isA("sap.ui.core.InvisibleText") && iIndex > oFieldIndex);
+		return oInvisibleText;
+	}
 
 	function _observeChanges(oChanges) {
 
@@ -773,6 +831,10 @@ sap.ui.define([
 			const oFormatOptionsOld = oTypeOld && oTypeOld.getFormatOptions();
 			const oConstraints = oType && oType.getConstraints();
 			const oConstraintsOld = oTypeOld && oTypeOld.getConstraints();
+
+			const oCopiedFormatOptions = _adjustFormatOptions(oChanges.current, aConditions, -1);
+			this._oConditionType.setFormatOptions(oCopiedFormatOptions);
+
 			if (sType !== sTypeOld || !deepEqual(oFormatOptions, oFormatOptionsOld) || !deepEqual(oConstraints, oConstraintsOld)) {
 				// operators might be changed if type changed
 				// Field binding needs to be updated if type changed
@@ -815,6 +877,9 @@ sap.ui.define([
 		// return aValueHelpSupportedOperators.length === 0 || aValueHelpSupportedOperators.indexOf(sKey) >= 0;
 	}
 
+	/**
+	 * @this {sap.ui.mdc.valuehelp.base.DefineConditionPanel}
+	 */
 	function _operatorChanged(oField, sKey, sOldKey) {
 		oField._sOldKey = sOldKey; // to know in change event
 
@@ -901,9 +966,12 @@ sap.ui.define([
 
 		oField.setAdditionalValue(sDescription);
 
-		this.onChange();
+		this.onChange(undefined);
 	}
 
+	/**
+	 * @this {sap.ui.mdc.valuehelp.base.DefineConditionPanel}
+	 */
 	function _createControl(oCondition, iIndex, sId, oBindingContext) {
 
 		const oOperator = FilterOperatorUtil.getOperator(oCondition.operator);
@@ -1071,13 +1139,15 @@ sap.ui.define([
 	function _hasMultipleOperatorGroups() {
 		let firstGroupId;
 		const aOperators = _getOperators.call(this);
+		const oType = _getType.call(this);
+		const sType = _getBaseType.call(this, oType);
 
 		for (const sOperator of aOperators) {
 			const oOperator = FilterOperatorUtil.getOperator(sOperator);
 
 			if (!firstGroupId) {
-				firstGroupId = oOperator.group.id;
-			} else if (firstGroupId !== oOperator.group.id) {
+				firstGroupId = oOperator.getGroup(sType).id;
+			} else if (firstGroupId !== oOperator.getGroup(sType).id) {
 				return true;
 			}
 		}
@@ -1091,6 +1161,7 @@ sap.ui.define([
 		}
 
 		const oType = _getType.call(this);
+		const sType = _getBaseType.call(this, oType);
 		// assert(oOperatorConfig == null, "oOperatorConfig does not exist - no operators for Select control can be added");
 		const aOperators = _getOperators.call(this);
 		const aOperatorsData = [];
@@ -1119,7 +1190,8 @@ sap.ui.define([
 			}
 
 			// try to load the operator longText which is type dependent
-			const sText = oOperator.getLongText(_getBaseType.call(this, oType));
+			const sText = oOperator.getLongText(sType);
+			const oGroup = oOperator.getGroup(sType);
 
 			//Update the additionalInfo text for the operator
 			let sAdditionalText = oOperator.additionalInfo;
@@ -1127,26 +1199,26 @@ sap.ui.define([
 				if (sAdditionalText !== "" && oOperator.formatRange) {
 					sAdditionalText = oOperator.formatRange(oOperator._getRange(undefined, oType), oType);
 				} else if (!bHasMultipleGroups) {
-					sAdditionalText = oOperator.group.text;
+					sAdditionalText = oGroup.text;
 				}
 			}
 
 			let sGroupId = oOperator.exclude ? "2" : "1";
-			if (oOperator.group.text && oOperator.group.id) {
+			if (oGroup.text && oGroup.id) {
 				// only use the group.id when a text exist. This might be not the case for DynamicDatRange custom operators inside existing groups
-				sGroupId = oOperator.group.id;
+				sGroupId = oGroup.id;
 			}
 			aOperatorsData.push({
 				key: oOperator.name,
 				text: sText,
 				additionalText: sAdditionalText,
 				groupId: sGroupId,
-				groupText: oOperator.group.text
+				groupText: oGroup.text
 			});
 		}
 
 		oFixedList.destroyItems(); // to destroy old bindings and internal items and let them create new.
-		this.oOperatorModel.setData(); // to make sure taht model data changed
+		this.oOperatorModel.setData(); // to make sure that model data changed
 		this.oOperatorModel.setData(aOperatorsData);
 	}
 
@@ -1259,7 +1331,7 @@ sap.ui.define([
 			press: _handleRemoveAll.bind(this)
 		});
 		const oButtonInsert = new Button(this.getId() + "--insert", {
-			icon: IconPool.getIconURI("add"),
+			text: "{$i18n>valuehelp.DEFINECONDITIONS_ADDCONDITION}",
 			visible: { path: "$this>/_pagination" },
 			enabled: { path: "$this>/inputOK" },
 			layoutData: new OverflowToolbarLayoutData({
@@ -1322,11 +1394,6 @@ sap.ui.define([
 		oPanel.addContent(oInvisibleOperatorText);
 		oPanel.addContent(oGrid);
 
-		this._oInvisibleAddOperatorButtonText = new InvisibleText({
-			text: oMessageBundle.getText("valuehelp.DEFINECONDITIONS_ADDCONDITION_DESCRIPTION")
-		});
-		oPanel.addContent(this._oInvisibleAddOperatorButtonText);
-
 		const oAddBtn = new Button(this.getId() + "--addBtn", {
 			press: this.addCondition.bind(this),
 			type: ButtonType.Default,
@@ -1339,8 +1406,7 @@ sap.ui.define([
 				visibleM: { parts: [{ path: "$this>/conditions" }, { path: "$this>/config" }], formatter: _getAddButtonVisible.bind(this) },
 				visibleL: { parts: [{ path: "$this>/conditions" }, { path: "$this>/config" }], formatter: _getAddButtonVisible.bind(this) },
 				visibleXL: { parts: [{ path: "$this>/conditions" }, { path: "$this>/config" }], formatter: _getAddButtonVisible.bind(this) }
-			}),
-			ariaDescribedBy: this._oInvisibleAddOperatorButtonText
+			})
 		});
 
 		oGrid.addContent(oAddBtn);
@@ -1534,11 +1600,26 @@ sap.ui.define([
 		oGrid.insertContent(oOperatorField, iIndex); // insert as add-Button is already at the end
 		iIndex++;
 
+		const oInvisibleRemoveText = new InvisibleText(sIdPrefix + "--ivtRemove", {
+			text: {
+				parts: [{ path: "$this>" }],
+				formatter: _getRemoveTextForCondition.bind(this)
+			}
+		}).setLayoutData(new GridData({
+			span: "XL1 L1 M1 S1",
+			visibleS: false,
+			visibleM: false,
+			visibleL: false,
+			visibleXL: false
+		}))
+		.setBindingContext(oBindingContext, "$this"); // to find condition on remove
+
 		const oRemoveButton = new Button(sIdPrefix + "--removeBtnSmall", {
 				press: this.removeCondition.bind(this),
 				type: ButtonType.Transparent,
 				icon: "sap-icon://decline",
-				tooltip: "{$i18n>valuehelp.DEFINECONDITIONS_REMOVECONDITION}"
+				tooltip: "{$i18n>valuehelp.DEFINECONDITIONS_REMOVECONDITION}",
+				ariaLabelledBy: oInvisibleRemoveText
 			})
 			.setLayoutData(new GridData({
 				span: "XL1 L1 M1 S2",
@@ -1549,6 +1630,7 @@ sap.ui.define([
 				visibleXL: false
 			}))
 			.setBindingContext(oBindingContext, "$this"); // to find condition on remove
+
 		if (oBindingContext) {
 			// as Button is between Operatot and Value don't trigger validation on tabbing between
 			oRemoveButton.setFieldGroupIds([oBindingContext.getPath()]); // use path to have a ID for every condition
@@ -1571,7 +1653,8 @@ sap.ui.define([
 				press: this.removeCondition.bind(this),
 				type: ButtonType.Transparent,
 				icon: "sap-icon://decline",
-				tooltip: "{$i18n>valuehelp.DEFINECONDITIONS_REMOVECONDITION}"
+				tooltip: "{$i18n>valuehelp.DEFINECONDITIONS_REMOVECONDITION}",
+				ariaLabelledBy: oInvisibleRemoveText
 			})
 			.setLayoutData(new GridData({
 				span: "XL1 L1 M1 S1",
@@ -1583,11 +1666,28 @@ sap.ui.define([
 			}))
 			.setBindingContext(oBindingContext, "$this"); // to find condition on remove
 
-		oGrid.insertContent(oRemoveButton2, iIndex);
-		iIndex++;
+			oGrid.insertContent(oRemoveButton2, iIndex);
+			iIndex++;
+			oGrid.insertContent(oInvisibleRemoveText, iIndex);
+			iIndex++;
 
 		return iIndex;
 
+	}
+
+	function _getRemoveTextForCondition(oCondition) {
+		const sRemoveUndefinedConditionText = oMessageBundle.getText("valuehelp.DEFINECONDITIONS_REMOVECONDITION_ARIALABEL_UNDEFINED");
+		const sFormatedValue = this._oConditionType.formatValue(oCondition);
+		if (!oCondition) { // can only happen on delete
+			return "";
+		}
+
+		if (oCondition.isEmpty || !sFormatedValue) {
+			return sRemoveUndefinedConditionText;
+		}
+
+		const sRemoveConditionText = oMessageBundle.getText("valuehelp.DEFINECONDITIONS_REMOVECONDITION_ARIALABEL", [sFormatedValue]);
+		return sRemoveConditionText;
 	}
 
 	function _getEditModeFromOperator(sOperator, bInvalid) {
@@ -1678,6 +1778,9 @@ sap.ui.define([
 		}
 	}
 
+	/**
+	 * @this {sap.ui.mdc.valuehelp.base.DefineConditionPanel}
+	 */
 	function _updateRow(oCondition, oGrid, iIndex, oBindingContext, iRow) {
 
 		const sIdPrefix = this.getId() + "--" + iRow;
@@ -1767,6 +1870,10 @@ sap.ui.define([
 		oRemoveButton2.setBindingContext(oBindingContext, "$this");
 		iIndex++;
 
+		const oInvisibleText = aGridContent[iIndex];
+		oInvisibleText.setBindingContext(oBindingContext, "$this");
+		iIndex++;
+
 		return iIndex;
 
 	}
@@ -1788,6 +1895,22 @@ sap.ui.define([
 		_validateCondition.call(this, oField);
 
 	}
+
+	function _updateErrorValueState(oField, sMessage) {
+		oField.setValueState(ValueState.Error);
+		oField.setValueStateText(sMessage);
+		// update aria-label text
+		_setInvalidInvisibleText(oField);
+	}
+
+	function _setInvalidInvisibleText(oField) {
+		const sInvalidMessage = oMessageBundle.getText("valuehelp.DEFINECONDITIONS_REMOVECONDITION_ARIALABEL_INVALID");
+		const oInvisibleText = _getInvisibleTextForField(oField);
+		if (oInvisibleText) {
+			oInvisibleText.setText(sInvalidMessage);
+		}
+	}
+
 
 	function _validateCondition(oField) {
 
@@ -1838,11 +1961,9 @@ sap.ui.define([
 					}
 				} catch (oException) {
 					bInvalid = true;
-					oField.setValueState(ValueState.Error);
-					oField.setValueStateText(oException.message);
+					_updateErrorValueState(oField, oException.message);
 					if (oField2 && oField2.getMetadata().getAllProperties().valueState) {
-						oField2.setValueState(ValueState.Error);
-						oField2.setValueStateText(oException.message);
+						_updateErrorValueState(oField2, oException.message);
 					}
 				}
 			}
@@ -1855,11 +1976,9 @@ sap.ui.define([
 				for (let i = 0; i < aConditions.length; i++) {
 					if (i !== iIndex && !oCondition.isEmpty && FilterOperatorUtil.compareConditions(oCondition, aConditions[i])) {
 						bInvalid = true;
-						oField.setValueState(ValueState.Error);
-						oField.setValueStateText(oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [oCondition.values[0]]));
+						_updateErrorValueState(oField, oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [oCondition.values[0]]));
 						if (oField2 && oField2.getMetadata().getAllProperties().valueState) {
-							oField2.setValueState(ValueState.Error);
-							oField2.setValueStateText(oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [oCondition.values[1]]));
+							_updateErrorValueState(oField2, oMessageBundle.getText("field.CONDITION_ALREADY_EXIST", [oCondition.values[1]]));
 						}
 						break;
 					}

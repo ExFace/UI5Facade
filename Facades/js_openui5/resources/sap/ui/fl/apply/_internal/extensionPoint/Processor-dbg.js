@@ -13,7 +13,7 @@ sap.ui.define([
 	"sap/ui/fl/apply/_internal/changes/Applier",
 	"sap/ui/fl/apply/_internal/extensionPoint/Registry",
 	"sap/ui/fl/apply/_internal/flexState/changes/ExtensionPointState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/Utils"
 ], function(
 	merge,
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class
 	 * @constructor
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 */
 	var Processor;
 
@@ -103,7 +103,7 @@ sap.ui.define([
 	function applyExtensionPoint(oExtensionPoint, bSkipInsertContent) {
 		var oAppComponent = Utils.getAppComponentForControl(oExtensionPoint.targetControl);
 		var mPropertyBag = {};
-		var mExtensionPointInfo = merge({defaultContent: []}, oExtensionPoint);
+		var mExtensionPointInfo = merge({ defaultContent: [] }, oExtensionPoint);
 		mPropertyBag.appComponent = oAppComponent;
 		mPropertyBag.modifier = JsControlTreeModifier;
 		mPropertyBag.viewId = oExtensionPoint.view.getId();

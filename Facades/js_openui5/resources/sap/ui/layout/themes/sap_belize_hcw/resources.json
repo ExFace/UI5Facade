@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 380,
+			"size": 478,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 418,
+			"size": 520,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -60,7 +60,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 4069,
+			"size": 4269,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},

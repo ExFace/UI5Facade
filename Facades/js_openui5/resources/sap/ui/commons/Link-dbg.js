@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @implements sap.ui.commons.ToolbarItem,sap.ui.commons.FormattedTextViewControl, sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

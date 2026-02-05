@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.table.Column
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -165,7 +165,7 @@ sap.ui.define([
 						if (oBinding) {
 							this._oBindingLabel = TableUtils._getTableTemplateHelper().createLabel();
 							this.addDependent(this._oBindingLabel);
-							TableUtils.Binding.metadataLoaded(oParent).then(function() {
+							oParent._metadataLoaded().then(function() {
 								this._oBindingLabel.setText(oBinding.getPropertyLabel(this.getLeadingProperty()));
 							}.bind(this));
 						}

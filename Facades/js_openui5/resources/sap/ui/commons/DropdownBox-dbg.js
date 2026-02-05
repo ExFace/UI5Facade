@@ -39,7 +39,7 @@ sap.ui.define([
 	 * The control provides a field that allows end users to an entry out of a list of pre-defined items.
 	 * The choosable items can be provided in the form of a complete <code>ListBox</code>, single <code>ListItems</code>.
 	 * @extends sap.ui.commons.ComboBox
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

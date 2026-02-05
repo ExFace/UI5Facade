@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @alias sap.ui.table.menus.ContextMenu
 	 */
@@ -126,7 +126,7 @@ sap.ui.define([
 
 	function onCellFilterSelect(oEvent, {row: oRow, column: oColumn}) {
 		const oTable = this.getTable();
-		const oRowContext = oRow.getRowBindingContext();
+		const oRowContext = TableUtils.getBindingContextOfRow(oRow);
 		const sFilterProperty = oColumn.getFilterProperty();
 		let sFilterValue = oRowContext.getProperty(sFilterProperty);
 

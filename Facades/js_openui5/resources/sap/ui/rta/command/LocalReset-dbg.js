@@ -20,13 +20,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.90
 	 * @alias sap.ui.rta.command.LocalReset
 	 */
-	var LocalReset = BaseCommand.extend("sap.ui.rta.command.LocalReset", {
+	const LocalReset = BaseCommand.extend("sap.ui.rta.command.LocalReset", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -49,7 +49,7 @@ sap.ui.define([
 	 * @override
 	 */
 	LocalReset.prototype.prepare = function(mFlexSettings) {
-		var oContainerControl = this.getElement();
+		const oContainerControl = this.getElement();
 		this._oAppComponent = FlUtils.getAppComponentForControl(oContainerControl);
 		this._aAffectedChanges = LocalResetAPI.getNestedUIChangesForControl(
 			oContainerControl,

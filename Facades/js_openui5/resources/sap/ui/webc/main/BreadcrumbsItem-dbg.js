@@ -26,7 +26,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.BreadcrumbsItem</code> component defines the content of an item in <code>sap.ui.webc.main.Breadcrumbs</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

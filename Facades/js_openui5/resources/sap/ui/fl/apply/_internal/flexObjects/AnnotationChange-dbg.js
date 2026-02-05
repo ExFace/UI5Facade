@@ -18,7 +18,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.AnnotationChange
 	 * @since 1.128
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -33,7 +33,6 @@ sap.ui.define([
 			}
 		},
 
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			FlexObject.apply(this, aArgs);
 			this.setFileType("annotation_change");
@@ -64,6 +63,8 @@ sap.ui.define([
 	/**
 	 * Returns either the 'annotationText' text or the value in the content
 	 * @returns {string} The value of the annotation
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	AnnotationChange.prototype.getValue = function() {
 		return this.getText("annotationText") ? this.getText("annotationText") : this.getContent().value;

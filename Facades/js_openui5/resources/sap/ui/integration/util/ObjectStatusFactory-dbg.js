@@ -19,7 +19,7 @@ sap.ui.define([
 	 * Utility class for creating objects.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.ObjectFactory

@@ -18,7 +18,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.EditorResourceBundles
 	 * @author SAP SE
 	 * @since 1.94.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 */
 	var EditorResourceBundles = ManagedObject.extend("sap.ui.integration.editor.EditorResourceBundles", {
@@ -35,6 +35,9 @@ sap.ui.define([
 				supportedLocales: {
 					type: "array"
 				}
+			},
+			events: {
+				ready: {}
 			}
 		}
 	});
@@ -105,10 +108,12 @@ sap.ui.define([
 				});
 				Log.info("sap.ui.integration.editor.EditorResourceBundles: resource bundles loaded.");
 				that._ready = true;
+				that.fireReady();
 			});
 		} else {
 			Log.info("sap.ui.integration.editor.EditorResourceBundles: no resource bundles.");
 			that._ready = true;
+			that.fireReady();
 		}
 	};
 

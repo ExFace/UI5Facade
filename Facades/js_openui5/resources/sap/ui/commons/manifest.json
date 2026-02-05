@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.12"
+      "version": "1.144.0"
     },
     "title": "Common basic controls, mainly intended for desktop scenarios",
     "description": "Common basic controls, mainly intended for desktop scenarios",
@@ -34,16 +34,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.136",
+      "minUI5Version": "1.144",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.136.12"
+          "minVersion": "1.144.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.136.12"
+          "minVersion": "1.144.0"
         },
         "sap.ui.unified": {
-          "minVersion": "1.136.12"
+          "minVersion": "1.144.0"
         }
       }
     },
@@ -178,6 +178,7 @@
           "sap.ui.commons.AccordionSection",
           "sap.ui.commons.Area",
           "sap.ui.commons.FileUploaderParameter",
+          "sap.ui.commons.FileUploaderXHRSettings",
           "sap.ui.commons.MenuItem",
           "sap.ui.commons.MenuItemBase",
           "sap.ui.commons.MenuTextFieldItem",
@@ -228,11 +229,13 @@
           "sap.ui.commons.layout.Padding",
           "sap.ui.commons.layout.Separation",
           "sap.ui.commons.layout.VAlign",
-          "sap.ui.commons.ColorPickerMode"
+          "sap.ui.commons.ColorPickerMode",
+          "sap.ui.commons.FileUploaderHttpRequestMethod"
         ],
         "interfaces": [
           "sap.ui.commons.FormattedTextViewControl",
-          "sap.ui.commons.ToolbarItem"
+          "sap.ui.commons.ToolbarItem",
+          "sap.ui.commons.IProcessableBlobs"
         ]
       }
     }

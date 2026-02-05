@@ -3,5 +3,5 @@
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log","./library","sap/ui/unified/FileUploaderParameter"],function(e,a,r){"use strict";var i=r.extend("sap.ui.commons.FileUploaderParameter",{metadata:{deprecated:true,library:"sap.ui.commons"}});try{sap.ui.getCore().loadLibrary("sap.ui.unified")}catch(a){e.error("The element 'sap.ui.commons.FileUploaderParameter' needs library 'sap.ui.unified'.");throw a}return i});
+sap.ui.define(["sap/ui/core/Element","./library"],function(e,a){"use strict";var r=e.extend("sap.ui.commons.FileUploaderParameter",{metadata:{library:"sap.ui.commons",properties:{name:{type:"string",group:"Data",defaultValue:null},value:{type:"string",group:"Data",defaultValue:null}}}});return r});
 //# sourceMappingURL=FileUploaderParameter.js.map

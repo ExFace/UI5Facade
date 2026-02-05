@@ -163,7 +163,7 @@ sap.ui.define([
 	 * @see {@link sap.f.dnd.GridDropInfo}
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @extends sap.ui.core.Control
 	 *
@@ -1009,7 +1009,7 @@ sap.ui.define([
 			default: break;
 		}
 
-		// sap.m.ScrollEnablement scrolls every time Ctrl + arrow are pressed, so stop propagation here.
+		// ScrollEnablement scrolls every time Ctrl + arrow are pressed, so stop propagation here.
 		oEvent.stopPropagation();
 
 		GridKeyboardDragAndDrop.fireDnD(oItem, aDropConfigs, oEvent);

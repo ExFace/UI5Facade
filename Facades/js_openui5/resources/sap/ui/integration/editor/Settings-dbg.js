@@ -82,7 +82,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.Settings
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -114,7 +114,7 @@ sap.ui.define([
 		iOffsetMaxHeight = 450,
 		iOffsetMaxWidth = 360;
 	Settings.prototype.setConfiguration = function (oConfig) {
-		this._originalConfig = oConfig;
+		this._oOriginalConfig = oConfig;
 		oConfig = merge({}, oConfig);
 		var oModel = new JSONModel(oConfig);
 		this.setModel(oModel, "currentSettings");
@@ -192,7 +192,7 @@ sap.ui.define([
 	};
 
 	Settings.prototype._cancelCurrentSettings = function () {
-		this.fnCancel(this._originalConfig);
+		this.fnCancel(this._oOriginalConfig);
 	};
 
 	Settings.prototype.destroy = function () {
@@ -391,7 +391,7 @@ sap.ui.define([
 	    oResetToDefaultButton = new Button(sParameterId + "_settings_popover_reset_btn", {
 			type: "Transparent",
 			text: oResourceBundle.getText("EDITOR_MORE_RESET"),
-			enabled: "{= ${currentSettings>_next/visible} === (typeof(${currentSettings>visibleToUser}) === 'undefined' ? false : !${currentSettings>visibleToUser}) || ${currentSettings>_next/editable} === (typeof(${currentSettings>editableToUser}) === 'undefined' ? false : !${currentSettings>editableToUser}) || ${currentSettings>_next/allowDynamicValues} === (typeof(${currentSettings>allowDynamicValues}) === 'undefined' ? false : !${currentSettings>allowDynamicValues}) || ${currentSettings>_beforeValue} !== ${currentSettings>value} || ${currentSettings>type} === 'destination'}",
+			enabled: "{= ${currentSettings>_next/visible} === (typeof(${currentSettings>visibleToUser}) === 'undefined' ? false : !${currentSettings>visibleToUser}) || ${currentSettings>_next/editable} === (typeof(${currentSettings>editableToUser}) === 'undefined' ? false : !${currentSettings>editableToUser}) || ${currentSettings>_next/allowDynamicValues} === (typeof(${currentSettings>allowDynamicValues}) === 'undefined' ? false : !${currentSettings>allowDynamicValues}) || ${currentSettings>_beforeLayerValue} !== ${currentSettings>value} || ${currentSettings>type} === 'destination'}",
 			tooltip: oResourceBundle.getText("EDITOR_MORE_SETTINGS_P_ADMIN_RESET"),
 			press: function () {
 				if (oData.type === "destination") {
@@ -413,9 +413,9 @@ sap.ui.define([
 						}
 						oCurrentModel.setProperty("/_changed", false);
 					} else {
-						oCurrentModel.setProperty("/value", oCurrentModel.getProperty("/_beforeValue"));
+						oCurrentModel.setProperty("/value", oCurrentModel.getProperty("/_beforeLayerValue"));
 						if (oData.type.indexOf("object") > -1) {
-							oField.setValue(oCurrentModel.getProperty("/_beforeValue"));
+							oField.setValue(oCurrentModel.getProperty("/_beforeLayerValue"));
 							oField.resetControl();
 						}
 					}

@@ -49,7 +49,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.fieldExtensibility.SingleTenantABAPExtensibilityVariant
 	 * @since 1.87
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @public
 	 */
 	const SingleTenantABAPExtensibilityVariant = ABAPExtensibilityVariant.extend(sNamespace, {

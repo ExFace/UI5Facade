@@ -17,7 +17,7 @@ sap.ui.define([
 	 * P13n utilities.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @namespace
 	 * @alias sap.ui.mdc.table.utils.Personalization
 	 * @private
@@ -159,7 +159,7 @@ sap.ui.define([
 	 */
 	PersonalizationUtils.createGroupChange = function(oTable, mSettings) {
 		const bIsGrouped = (oTable.getCurrentState().groupLevels || []).some((oGroupLevel) => {
-			return oGroupLevel.name == mSettings.propertyKey;
+			return oGroupLevel.name === mSettings.propertyKey;
 		});
 
 		oTable.getEngine().createChanges({

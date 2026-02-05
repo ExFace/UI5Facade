@@ -6,7 +6,9 @@
 
 sap.ui.define([
 	"./ColumnSettings"
-], (ColumnSettings) => {
+], (
+	ColumnSettings
+) => {
 	"use strict";
 
 	/**
@@ -17,7 +19,7 @@ sap.ui.define([
 	 *
 	 * @class The table type info class for the metadata-driven table.
 	 * @extends sap.ui.mdc.table.ColumnSettings
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @author SAP SE
 	 * @constructor
 	 * @public

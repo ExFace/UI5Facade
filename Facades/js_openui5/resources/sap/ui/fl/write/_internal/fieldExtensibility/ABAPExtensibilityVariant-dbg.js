@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @class
 	 * @namespace sap.ui.fl.write._internal.fieldExtensibility.ABAPExtensibilityVariant
 	 * @since 1.87
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @public
 	 * @param {sap.ui.base.ManagedObject} oControl - Control to add extensions
 	 */
@@ -34,7 +34,6 @@ sap.ui.define([
 		 * @param {map} mServiceInfo - map containing <code>serviceName</code>, <code>serviceVersion</code> and <code>serviceType</code>
 		 * @param {map} mBindingInfo - map containing <code>entitySetName</code> and <code>entityTypeName</code>
 		 */
-		// eslint-disable-next-line object-shorthand
 		constructor: function(sServiceUri, mServiceInfo, mBindingInfo) {
 			this._sServiceUri = sServiceUri;
 			this._mBindingInfo = mBindingInfo;

@@ -4,31 +4,25 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides control sap.ui.table.TreeTable.
 sap.ui.define([
-	'./Table',
+	"./Table",
 	"./TableRenderer",
-	'sap/ui/model/ClientTreeBindingAdapter',
-	'sap/ui/model/TreeBindingCompatibilityAdapter',
-	'./library',
-	'./utils/TableUtils',
+	"./utils/TableUtils",
 	"./plugins/BindingSelection",
 	"sap/base/Log",
-	"sap/base/assert",
+	"sap/ui/model/ClientTreeBindingAdapter",
+	"sap/ui/model/TreeBindingCompatibilityAdapter",
 	"sap/ui/model/controlhelper/TreeBindingProxy"
-],
-	function(
-		Table,
-		TableRenderer,
-		ClientTreeBindingAdapter,
-		TreeBindingCompatibilityAdapter,
-		library,
-		TableUtils,
-		BindingSelectionPlugin,
-		Log,
-		assert,
-		TreeBindingProxy
-	) {
+], function(
+	Table,
+	TableRenderer,
+	TableUtils,
+	BindingSelectionPlugin,
+	Log,
+	ClientTreeBindingAdapter,
+	TreeBindingCompatibilityAdapter,
+	TreeBindingProxy
+) {
 	"use strict";
 
 	const _private = TableUtils.createWeakMapFacade();
@@ -41,8 +35,10 @@ sap.ui.define([
 	 *
 	 * @class
 	 * The TreeTable control provides a comprehensive set of features to display hierarchical data.
+	 * The control can be used in combination with {@link sap.ui.model.json.JSONModel JSONModel} and {@link sap.ui.model.odata.v2.ODataModel ODataModel V2}.
+	 * For a tree-table-like behavior with OData V4 services, use the {@link sap.ui.table.Table Table} control with the {@link sap.ui.table.plugins.ODataV4Hierarchy ODataV4Hierarchy} plugin.
 	 * @extends sap.ui.table.Table
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -52,10 +48,8 @@ sap.ui.define([
 	 * @see {@link fiori:/tree-table/ Tree Table}
 	 */
 	const TreeTable = Table.extend("sap.ui.table.TreeTable", /** @lends sap.ui.table.TreeTable.prototype */ {metadata: {
-
 		library: "sap.ui.table",
 		properties: {
-
 			/**
 			 * Specifies whether the first level is expanded.
 			 *
@@ -129,7 +123,6 @@ sap.ui.define([
 			rootLevel: {type: "int", group: "Data", defaultValue: 0, deprecated: true}
 		},
 		events: {
-
 			/**
 			 * Fired when a row has been expanded or collapsed by user interaction. Only available in hierarchical mode.
 			 */
@@ -164,7 +157,7 @@ sap.ui.define([
 
 		_private(this).bPendingRequest = false;
 
-		TableUtils.Grouping.setToDefaultTreeMode(this);
+		TableUtils.Grouping.setHierarchyMode(this, TableUtils.Grouping.HierarchyMode.Tree);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.UpdateState, updateRowState, this);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.Expand, expandRow, this);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.Collapse, collapseRow, this);
@@ -213,7 +206,7 @@ sap.ui.define([
 		const bIsExpanded = this._oProxy.isExpanded(iIndex);
 
 		if (typeof bIsExpanded === "boolean") {
-			this._onGroupHeaderChanged(iIndex, bIsExpanded);
+			this._onGroupHeaderChanged(oRow, bIsExpanded);
 		}
 	}
 
@@ -224,7 +217,7 @@ sap.ui.define([
 		const bIsExpanded = this._oProxy.isExpanded(iIndex);
 
 		if (typeof bIsExpanded === "boolean") {
-			this._onGroupHeaderChanged(iIndex, bIsExpanded);
+			this._onGroupHeaderChanged(oRow, bIsExpanded);
 		}
 	}
 
@@ -309,10 +302,10 @@ sap.ui.define([
 		return aRowContexts;
 	}
 
-	TreeTable.prototype._onGroupHeaderChanged = function(iRowIndex, bExpanded) {
+	TreeTable.prototype._onGroupHeaderChanged = function(oRow, bExpanded) {
 		this.fireToggleOpenState({
-			rowIndex: iRowIndex,
-			rowContext: this.getContextByIndex(iRowIndex),
+			rowIndex: oRow.getIndex(),
+			rowContext: TableUtils.getBindingContextOfRow(oRow),
 			expanded: bExpanded
 		});
 	};
@@ -465,13 +458,6 @@ sap.ui.define([
 	 * @name sap.ui.table.TreeTable#selectAll
 	 */
 
-	/**
-	 * @inheritDoc
-	 */
-	TreeTable.prototype.getContextByIndex = function(iRowIndex) {
-		return this._oProxy.getContextByIndex(iRowIndex);
-	};
-
 	/*
 	 * Set the rootLevel for the hierarchy
 	 * The root level is the level of the topmost tree nodes, which will be used as an entry point for OData services.
@@ -576,9 +562,9 @@ sap.ui.define([
 		if (oTable.getUseGroupMode()) {
 			TableUtils.Grouping.setHierarchyMode(oTable, TableUtils.Grouping.HierarchyMode.GroupedTree);
 		} else if (oTable._bFlatMode) {
-			TableUtils.Grouping.setToDefaultFlatMode(oTable);
+			TableUtils.Grouping.setHierarchyMode(oTable, TableUtils.Grouping.HierarchyMode.Flat);
 		} else if (!oTable._bFlatMode) {
-			TableUtils.Grouping.setToDefaultTreeMode(oTable);
+			TableUtils.Grouping.setHierarchyMode(oTable, TableUtils.Grouping.HierarchyMode.Tree);
 		}
 	}
 

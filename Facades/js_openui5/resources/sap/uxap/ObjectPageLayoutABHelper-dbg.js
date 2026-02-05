@@ -6,6 +6,8 @@
 
 sap.ui.define([
 	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
 	"sap/ui/base/Object",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/ManagedObjectObserver",
@@ -14,7 +16,7 @@ sap.ui.define([
 	"sap/m/library",
 	"./library",
 	"sap/uxap/ObjectPageSection"
-], function(Element, BaseObject, ManagedObject, ManagedObjectObserver, IconTabFilter, IconTabHeader, mobileLibrary, library, ObjectPageSection) {
+], function(Element, coreLib, coreLibrary, BaseObject, ManagedObject, ManagedObjectObserver, IconTabFilter, IconTabHeader, mobileLibrary, library, ObjectPageSection) {
 	"use strict";
 
 	// shortcut for sap.m.TabsOverflowMode
@@ -112,6 +114,31 @@ sap.ui.define([
 		var oAnchorBarParentNode = oAnchorBar.getDomRef()?.parentNode;
 		if (oAnchorBarParentNode) {
 			oAnchorBarParentNode.style.height = "auto";
+		}
+	};
+
+	ABHelper.prototype._setLandmarkInfo = function (oLandmarkInfo) {
+		this._oLandmarkInfo = oLandmarkInfo;
+
+		this._applyAriaAttributes();
+	};
+
+	ABHelper.prototype._applyAriaAttributes = function () {
+		var $oAnchorBar = this._getAnchorBar().$(),
+			oObjectPageLayout = this.getObjectPageLayout(),
+			oFormattedLandmarkInfo = oObjectPageLayout._formatLandmarkInfo(this._oLandmarkInfo, "Navigation"),
+			oRb = coreLib.getResourceBundleFor("sap.uxap");
+
+		if (oFormattedLandmarkInfo.role) {
+			$oAnchorBar.attr("role", oFormattedLandmarkInfo.role);
+		} else if (oFormattedLandmarkInfo.role === ""){
+			$oAnchorBar.removeAttr("role");
+		}
+
+		if (oFormattedLandmarkInfo.label) {
+			$oAnchorBar.attr("aria-label", oFormattedLandmarkInfo.label);
+		} else if (this._oLandmarkInfo?.getNavigationRole() !== coreLibrary.AccessibleLandmarkRole.None) {
+			$oAnchorBar.attr("aria-label", oRb.getText("NAVIGATION_ROLE_DESCRIPTION"));
 		}
 	};
 

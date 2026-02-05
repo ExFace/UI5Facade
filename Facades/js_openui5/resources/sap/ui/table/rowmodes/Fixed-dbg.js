@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @public
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 */
 	const FixedRowMode = RowMode.extend("sap.ui.table.rowmodes.Fixed", /** @lends sap.ui.table.rowmodes.Fixed.prototype */ {
 		metadata: {
@@ -84,7 +84,7 @@ sap.ui.define([
 
 	FixedRowMode.prototype.detachEvents = function() {
 		RowMode.prototype.detachEvents.apply(this, arguments);
-		TableUtils.removeDelegate(this.getTable(), TableDelegate);
+		this.getTable()?.removeEventDelegate(TableDelegate);
 	};
 
 	FixedRowMode.prototype.registerHooks = function() {
@@ -275,9 +275,8 @@ sap.ui.define([
 	 */
 	TableDelegate.onAfterRendering = function(oEvent) {
 		const oTable = this.getTable();
-		const bRenderedRows = oEvent && oEvent.isMarked("renderRows");
 
-		if (!bRenderedRows && oTable.getRows().length > 0) {
+		if (oTable.getRows().length > 0) {
 			this.fireRowsUpdated(TableUtils.RowsUpdateReason.Render);
 		}
 	};

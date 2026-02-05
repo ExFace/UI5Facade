@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @class
 	 * Instantiated by the "MessageBar" Control if the user requests to generate the corresponding "MessageList".
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -19,7 +19,7 @@ function(CoreWebComponentMetadata) {
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.92.0
 	 * @experimental Since 1.92.0 The API might change. It is not intended for productive usage yet!
 	 * @deprecated Since 1.118.0 Use sap.ui.core.webc.WebComponentMetadata instead!

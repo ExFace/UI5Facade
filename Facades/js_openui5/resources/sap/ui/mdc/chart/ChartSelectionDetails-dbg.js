@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @class The <code>ChartSelectionDetails</code> control creates a <code>sap.m.SelectionDetails</code> popover based on metadata and the configuration specified.
 	 * @extends sap.m.SelectionDetails
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @experimental As of version 1.88

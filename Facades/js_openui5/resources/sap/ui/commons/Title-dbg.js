@@ -22,7 +22,7 @@ sap.ui.define(['./library', 'sap/ui/core/Title'],
 	 * @extends sap.ui.core.Title
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

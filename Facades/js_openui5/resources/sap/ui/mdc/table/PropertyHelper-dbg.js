@@ -5,7 +5,9 @@
  */
 
 sap.ui.define([
-	"../util/PropertyHelper", "sap/m/table/Util", "sap/ui/base/Object"
+	"../util/PropertyHelper",
+	"sap/m/table/Util",
+	"sap/ui/base/Object"
 ], (
 	PropertyHelperBase,
 	TableUtil,
@@ -16,7 +18,7 @@ sap.ui.define([
 	/**
 	 * Constructor for a new table property helper.
 	 *
-	 * @param {sap.ui.mdc.table.PropertyInfo[]} aProperties
+	 * @param {Array<sap.ui.mdc.table.PropertyInfo|sap.ui.mdc.table.ComplexPropertyInfo>} aProperties
 	 *     The properties to process in this helper
 	 * @param {sap.ui.base.ManagedObject} [oParent]
 	 *     A reference to an instance that will act as the parent of this helper
@@ -32,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.mdc.util.PropertyHelper
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @since 1.83
@@ -318,25 +320,19 @@ sap.ui.define([
 	 * Sets defaults to export settings and returns a new export settings object.
 	 *
 	 * @param {sap.ui.mdc.table.Column} oColumn The column from which to get default values
-	 * @param {sap.ui.mdc.table.PropertyInfo} oProperty The property from which to get default values
+	 * @param {sap.ui.mdc.table.PropertyInfo|sap.ui.mdc.table.ComplexPropertyInfo} oProperty The property from which to get default values
 	 * @param {Object} oExportSettings The export settings for which to set defaults
 	 * @returns {Object} The new export settings object
 	 * @private
 	 */
 	function getColumnExportSettingsObject(oColumn, oProperty, oExportSettings) {
-		const aPaths = [];
-		if (oProperty.isComplex()) {
-			oProperty.getSimpleProperties().forEach((oProperty) => {
-				aPaths.push(oProperty.path);
-			});
-		}
 		return Object.assign({
 			columnId: oColumn.getId(),
 			label: oProperty.label,
 			width: getColumnWidthNumber(oColumn.getWidth()),
 			textAlign: oColumn.getHAlign(),
 			type: "String",
-			property: aPaths.length ? aPaths : oProperty.path
+			property: oProperty.getSimpleProperties().map((oProperty) => oProperty.path)
 		}, oExportSettings);
 	}
 
@@ -368,7 +364,8 @@ sap.ui.define([
 	/**
 	 * Calculates the column width based on the provided <code>PropertyInfo</code>.
 	 *
-	 * @param {sap.ui.mdc.table.PropertyInfo} oProperty The property of the <code>Column</code> instance for which to set the width
+	 * @param {sap.ui.mdc.table.PropertyInfo|sap.ui.mdc.table.ComplexPropertyInfo} oProperty
+	 *     The property of the <code>Column</code> instance for which to set the width
 	 * @param {sap.ui.mdc.table.Column} oMDCColumn The <code>Column</code> instance for which the width is calculated
 	 * @return {string} The calculated column width
 	 * @since 1.95
@@ -385,7 +382,7 @@ sap.ui.define([
 		}, oProperty.visualSettings && oProperty.visualSettings.widthCalculation);
 
 		const oMDCTable = oMDCColumn.getParent();
-		if (oMDCTable && oMDCTable._isOfType("TreeTable") && oMDCTable.indexOfColumn(oMDCColumn) == 0) {
+		if (oMDCTable && oMDCTable._isOfType("TreeTable") && oMDCTable.indexOfColumn(oMDCColumn) === 0) {
 			mWidthCalculation.treeColumn = true;
 		}
 

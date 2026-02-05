@@ -6,22 +6,26 @@
 
 sap.ui.define([
 	"sap/ui/fl/apply/_internal/flexState/compVariants/Utils",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/api/ContextBasedAdaptationsAPI",
-	"sap/ui/fl/write/_internal/flexState/compVariants/CompVariantState",
+	"sap/ui/fl/write/_internal/flexState/compVariants/CompVariantManager",
 	"sap/ui/fl/write/_internal/transport/TransportSelection",
-	"sap/ui/fl/registry/Settings"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	CompVariantUtils,
 	ManifestUtils,
+	Settings,
 	ContextBasedAdaptationsAPI,
-	CompVariantState,
+	CompVariantManager,
 	TransportSelection,
-	Settings
+	Utils
 ) {
 	"use strict";
 
 	function setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, fnFunction) {
+		mPropertyBag.componentId = Utils.getAppComponentForControl(mPropertyBag.control).getId();
 		mPropertyBag.persistencyKey = CompVariantUtils.getPersistencyKey(mPropertyBag.control);
 		mPropertyBag.reference ||= ManifestUtils.getFlexReferenceForControl(mPropertyBag.control);
 		return fnFunction(mPropertyBag);
@@ -82,7 +86,7 @@ sap.ui.define([
 		 */
 		addVariant(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.addVariant);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.addVariant);
 		},
 
 		/**
@@ -114,7 +118,7 @@ sap.ui.define([
 		 */
 		updateVariant(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.updateVariant);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.updateVariant);
 		},
 
 		/**
@@ -135,8 +139,8 @@ sap.ui.define([
 		 */
 		updateVariantContent(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			mPropertyBag.action = CompVariantState.updateActionType.UPDATE;
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.updateVariant);
+			mPropertyBag.action = CompVariantManager.updateActionType.UPDATE;
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.updateVariant);
 		},
 
 		/**
@@ -155,8 +159,8 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.rta.command
 		 */
 		saveVariantContent(mPropertyBag) {
-			mPropertyBag.action = CompVariantState.updateActionType.SAVE;
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.updateVariant);
+			mPropertyBag.action = CompVariantManager.updateActionType.SAVE;
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.updateVariant);
 		},
 
 		/**
@@ -175,8 +179,8 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.rta.command
 		 */
 		discardVariantContent(mPropertyBag) {
-			mPropertyBag.action = CompVariantState.updateActionType.DISCARD;
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.discardVariantContent);
+			mPropertyBag.action = CompVariantManager.updateActionType.DISCARD;
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.discardVariantContent);
 		},
 
 		/**
@@ -200,12 +204,12 @@ sap.ui.define([
 		 */
 		updateVariantMetadata(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			mPropertyBag.action = CompVariantState.updateActionType.UPDATE_METADATA;
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.updateVariant);
+			mPropertyBag.action = CompVariantManager.updateActionType.UPDATE_METADATA;
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.updateVariant);
 		},
 
 		/**
-		 * Removes a variant; this may result in an deletion of the variant or the creation of a change.
+		 * Removes a variant; this may result in a deletion of the variant or the creation of a change.
 		 *
 		 * @param {object} mPropertyBag - Object with parameters as properties
 		 * @param {string} mPropertyBag.reference - Flex reference of the application
@@ -222,7 +226,7 @@ sap.ui.define([
 		 */
 		removeVariant(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.removeVariant);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.removeVariant);
 		},
 
 		/**
@@ -240,7 +244,7 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.rta.command
 		 */
 		revert(mPropertyBag) {
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.revert);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.revert);
 		},
 
 		/**
@@ -256,7 +260,7 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.comp.smartvariant.SmartVariantManagement
 		 */
 		save(mPropertyBag) {
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.persist);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.persist);
 		},
 
 		/**
@@ -279,7 +283,7 @@ sap.ui.define([
 		 */
 		setDefaultVariantId(mPropertyBag) {
 			setAdaptationIdInPropertyBag(mPropertyBag);
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.setDefault);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.setDefault);
 		},
 
 		/**
@@ -293,7 +297,7 @@ sap.ui.define([
 		 */
 		isVariantSharingEnabled() {
 			return Settings.getInstance().then(function(oInstance) {
-				return oInstance.isVariantSharingEnabled();
+				return oInstance.getIsVariantSharingEnabled();
 			});
 		},
 
@@ -308,7 +312,7 @@ sap.ui.define([
 		 */
 		isVariantPersonalizationEnabled() {
 			return Settings.getInstance().then(function(oInstance) {
-				return oInstance.isVariantPersonalizationEnabled();
+				return oInstance.getIsVariantPersonalizationEnabled();
 			});
 		},
 
@@ -323,7 +327,7 @@ sap.ui.define([
 		 */
 		isVariantAdaptationEnabled() {
 			return Settings.getInstance().then(function(oInstance) {
-				return oInstance.isVariantAdaptationEnabled();
+				return oInstance.getIsVariantAdaptationEnabled();
 			});
 		},
 
@@ -338,7 +342,7 @@ sap.ui.define([
 		 * @param {boolean} mPropertyBag.executeOnSelection - Flag if 'apply automatically' should be set
 		 */
 		overrideStandardVariant(mPropertyBag) {
-			setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.overrideStandardVariant);
+			setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.overrideStandardVariant);
 		},
 
 		/**
@@ -358,7 +362,7 @@ sap.ui.define([
 		 * @since 1.90.0
 		 */
 		revertSetDefaultVariantId(mPropertyBag) {
-			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantState.revertSetDefaultVariantId);
+			return setReferenceAndPersistencyKeyInPropertyBagAndCallFunction(mPropertyBag, CompVariantManager.revertSetDefaultVariantId);
 		},
 
 		/**
@@ -378,7 +382,7 @@ sap.ui.define([
 			// of non-PUBLIC enabled back end and UI5 version. Therefore, only a layer parameter set in the url leads to a transport selection
 			oTransportSelection.selectTransport = function(oObjectInfo, fOkay, fError, bCompactMode, oControl, sStyleClass) {
 				if (!transportSelectionRequired()) {
-					fOkay(oTransportSelection._createEventObject(oObjectInfo, {transportId: ""}));
+					fOkay(oTransportSelection._createEventObject(oObjectInfo, { transportId: "" }));
 					return;
 				}
 				TransportSelection.prototype.selectTransport.call(this, oObjectInfo, fOkay, fError, bCompactMode, oControl, sStyleClass);

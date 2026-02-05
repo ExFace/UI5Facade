@@ -92,7 +92,7 @@
 				</ul>
 			</description>
 		</interaction>
-		<interaction> <kbd>ESC</kbd> <description>
+		<interaction> <kbd>Escape</kbd> <description>
 				<p><span class="emphasis">Якщо вибір комірки активовано:</span></p>
 				<p>Якщо курсор знаходиться всередині таблиці, а комірки виділено, то виділення комірок буде знято.</p>
 			</description>
@@ -174,9 +174,9 @@
 				<p>Якщо курсор знаходиться у заголовку стовпчика, то відкривається меню заголовка стовпчика.</p>
 			</description>
 		</interaction>
-		<interaction> <kbd>Shift + mouse click</kbd> <description>
+		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Якщо вибір комірки активовано:</span></p>
-				<p>Якщо вибрано комірки, то <kbd>Shift + click</kbd> в іншій комірці розширює вибір аж до клацнутої комірки.</p>
+				<p>Якщо вибрано комірки, то <kbd>Shift + MouseClick</kbd> в іншій комірці розширює вибір аж до клацнутої комірки.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>

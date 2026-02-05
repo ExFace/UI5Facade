@@ -17,7 +17,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	// shortcuts for sap.ui.core.ValueState
@@ -34,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.m.ObjectStatus
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private

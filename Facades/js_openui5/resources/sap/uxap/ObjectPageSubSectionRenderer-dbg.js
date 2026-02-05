@@ -16,7 +16,7 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 	};
 
 	ObjectPageSubSectionRenderer.render = function (oRm, oControl) {
-		var aActions, bHasTitle, bHasTitleLine, bUseTitleOnTheLeft, bHasActions, bHasVisibleActions,
+		var bHasTitle, bHasTitleLine, bUseTitleOnTheLeft,
 			bAccessibilityOn = ControlBehavior.isAccessibilityEnabled(),
 			oLabelledByTitleID = oControl._getAriaLabelledById(),
 			bIsPromoted = oControl._isPromoted();
@@ -25,11 +25,8 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 			return;
 		}
 
-		aActions = oControl._getHeaderToolbar()?.getContent() || [];
-		bHasActions = aActions.length > 2;
-		bHasVisibleActions = oControl._hasVisibleActions();
-		bHasTitle = oControl._isTitleVisible();
-		bHasTitleLine = bHasTitle || bHasActions;
+		bHasTitle = oControl.getTitleVisible();
+		bHasTitleLine = oControl._shouldHaveVisibleTitleLine();
 
 		oRm.openStart("div", oControl)
 		.style("height", oControl._getHeight());
@@ -52,13 +49,11 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 
 		oRm.openEnd();
 
+		oRm.openStart("span").class("sapUxAPObjectPageSubSectionFocusSpan").openEnd().close("span");
+
 		if (bHasTitleLine) {
 			oRm.openStart("div", oControl.getId() + "-header")
 				.class("sapUxAPObjectPageSubSectionHeader");
-
-			if (!bHasTitle && !bHasVisibleActions) {
-				oRm.class("sapUiHidden");
-			}
 
 			bUseTitleOnTheLeft = oControl._getUseTitleOnTheLeft();
 			if (bUseTitleOnTheLeft) {

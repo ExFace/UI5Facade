@@ -18,10 +18,12 @@ sap.ui.define([
 	'sap/base/util/merge',
 	'sap/ui/mdc/enums/ValueHelpSelectionType',
 	'sap/base/Log',
+	'sap/base/util/isEmptyObject',
 	'sap/ui/core/Element',
 	'sap/ui/Device',
 	'sap/ui/dom/containsOrEquals',
-	"sap/m/table/Util"
+	"sap/m/table/Util",
+	"sap/ui/events/KeyCodes"
 ], (
 	Library,
 	FilterableListContent,
@@ -36,10 +38,12 @@ sap.ui.define([
 	merge,
 	ValueHelpSelectionType,
 	Log,
+	isEmptyObject,
 	Element,
 	Device,
 	containsOrEquals,
-	MTableUtil
+	MTableUtil,
+	KeyCodes
 ) => {
 	"use strict";
 
@@ -53,7 +57,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element using a {@link sap.m.Table}.
 	 * @extends sap.ui.mdc.valuehelp.base.FilterableListContent
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @since 1.95.0
@@ -638,7 +642,7 @@ sap.ui.define([
 
 		let oFilter = aFilters.length > 1 ? new Filter({ filters: aFilters, and: false }) : aFilters[0];
 
-		if (oFilter && oConditions) {
+		if (oFilter && oConditions && !isEmptyObject(oConditions)) {
 			const oConditionTypes = this._getTypesForConditions(oConditions);
 			const oConditionsFilter = FilterConverter.createFilters(oConditions, oConditionTypes, undefined, this.getCaseSensitive());
 			if (oConditionsFilter) {
@@ -1185,7 +1189,7 @@ sap.ui.define([
 
 		switch (oEvent.type) {
 			case "sapprevious":
-				if (oItem.isA("sap.m.ListItemBase")) {
+				if (oEvent.which !== KeyCodes.ARROW_LEFT && oItem.isA("sap.m.ListItemBase")) {
 					if (oTable.indexOfItem(oItem) === 0) {
 						this.fireNavigated({ condition: undefined, itemId: undefined, leaveFocus: true });
 						oEvent.preventDefault();
@@ -1195,7 +1199,7 @@ sap.ui.define([
 				}
 				break;
 			case "sapnext":
-				if (oItem.isA("sap.m.ListItemBase") && this._oShowAllItemsButton) {
+				if (oEvent.which !== KeyCodes.ARROW_RIGHT && oItem.isA("sap.m.ListItemBase") && this._oShowAllItemsButton) {
 					const aItems = oTable.getItems();
 					if (aItems.indexOf(oItem) === aItems.length - 1) { // end reached, focus show-all to behave similar to single-select
 						oEvent.preventDefault();

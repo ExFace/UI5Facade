@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @class
 	 * The column menu provides all common actions that can be performed on a column.
 	 * @extends sap.ui.unified.Menu
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

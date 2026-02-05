@@ -14,13 +14,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.78
 	 * @alias sap.ui.rta.command.AddProperty
 	 */
-	var AddProperty = FlexCommand.extend("sap.ui.rta.command.AddProperty", {
+	const AddProperty = FlexCommand.extend("sap.ui.rta.command.AddProperty", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {

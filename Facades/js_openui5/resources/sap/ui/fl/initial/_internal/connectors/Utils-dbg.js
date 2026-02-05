@@ -15,7 +15,10 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var DEFAULT_TIMEOUT = 20000; // 20 seconds
+	// The flex data request can contain manifest changes and so potentially block the app loading.
+	// Therefore, a default timeout keeps the app working when a technical difficulty makes flex data request not responsible.
+	// 20 seconds is applied unless there is valid use case that requires a longer response time.
+	var DEFAULT_TIMEOUT = 20000;
 
 	/**
 	 * Creates <code>Error<code> object from <code>XMLHttpRequest<code> and an additional message for end user
@@ -59,7 +62,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.initial._internal.connectors.Utils
 	 * @since 1.70
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.connectors, sap.ui.fl.write._internal.connectors, sap.ui.fl.write._internal.transport
 	 */
@@ -185,7 +188,12 @@ sap.ui.define([
 
 							if (xhr.status !== 204 && xhr.status !== 205) {
 								// mockservers using sinon servers have the response in responseText, not in response
-								if (!xhr.response && xhr.responseText) {
+								// responseText must only be accessed if the type is empty or text
+								if (
+									["", "text"].includes(xhr.responseType)
+									&& !xhr.response
+									&& xhr.responseText
+								) {
 									xhr.response = xhr.responseText;
 								}
 

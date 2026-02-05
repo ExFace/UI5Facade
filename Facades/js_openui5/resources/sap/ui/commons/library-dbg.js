@@ -8,10 +8,11 @@
  * Initialization Code and shared classes of library sap.ui.commons.
  */
 sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
+	"./FileUploaderHttpRequestMethod",
 	'sap/ui/core/library', // library dependency
 	'sap/ui/layout/library', // library dependency
 	'sap/ui/unified/library'], // library dependency
-	function(DataType, ObjectPath) {
+	function(DataType, ObjectPath, FileUploaderHttpRequestMethod) {
 
 	"use strict";
 
@@ -21,14 +22,14 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 	 * @namespace
 	 * @alias sap.ui.commons
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 0.8
 	 * @public
 	 * @deprecated as of version 1.38
 	 */
 	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.ui.commons",
-		version: "1.136.12",
+		version: "1.144.0",
 		dependencies : ["sap.ui.core","sap.ui.layout","sap.ui.unified"],
 		types: [
 			"sap.ui.commons.ButtonStyle",
@@ -59,11 +60,13 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 			"sap.ui.commons.layout.Padding",
 			"sap.ui.commons.layout.Separation",
 			"sap.ui.commons.layout.VAlign",
-			"sap.ui.commons.ColorPickerMode"
+			"sap.ui.commons.ColorPickerMode",
+			"sap.ui.commons.FileUploaderHttpRequestMethod"
 		],
 		interfaces: [
 			"sap.ui.commons.FormattedTextViewControl",
-			"sap.ui.commons.ToolbarItem"
+			"sap.ui.commons.ToolbarItem",
+			"sap.ui.commons.IProcessableBlobs"
 		],
 		controls: [
 			"sap.ui.commons.Accordion",
@@ -137,6 +140,7 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 			"sap.ui.commons.AccordionSection",
 			"sap.ui.commons.Area",
 			"sap.ui.commons.FileUploaderParameter",
+			"sap.ui.commons.FileUploaderXHRSettings",
 			"sap.ui.commons.MenuItem",
 			"sap.ui.commons.MenuItemBase",
 			"sap.ui.commons.MenuTextFieldItem",
@@ -1196,6 +1200,37 @@ sap.ui.define(['sap/ui/base/DataType', 'sap/base/util/ObjectPath',
 		Top : "Top"
 
 	};
+
+	// expose imported enum as property of library namespace, for documentation see FileUploaderHttpRequestMethod.js
+	thisLib.FileUploaderHttpRequestMethod = FileUploaderHttpRequestMethod;
+
+
+	/**
+	 * Marker interface for controls that process instances of <code>window.Blob</code>, such as <code>window.File</code>.
+	 * The implementation of this Interface should implement the following Interface methods:
+	 * <ul>
+	 * <li><code>getProcessedBlobsFromArray</code></li>
+	 * </ul>
+	 *
+	 * @name sap.ui.commons.IProcessableBlobs
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 * Allows to process Blobs before they get uploaded. This API can be used to create custom Blobs
+	 * and upload these custom Blobs instead of the received/initials Blobs in the parameter <code>aBlobs</code>.
+	 * One use case could be to create and upload zip archives based on the passed Blobs.
+	 * The default implementation of this API should simply resolve with the received Blobs (parameter <code>aBlobs</code>).
+	 * @public
+	 * @since 1.144
+	 * @deprecated Since version 1.144
+	 * Please use the IProcessableBlobs of the library sap.ui.unified instead.
+	 * @param {Blob[]} aBlobs The initial Blobs which can be used to determine a new array of Blobs for further processing.
+	 * @returns {Promise<Blob[]>} A Promise that resolves with an array of Blobs which is used for the final uploading.
+	 * @function
+	 * @name sap.ui.commons.IProcessableBlobs.getProcessedBlobsFromArray
+	 */
 
 	// lazy imports for MessageBox
 	sap.ui.lazyRequire("sap.ui.commons.MessageBox", "alert confirm show");

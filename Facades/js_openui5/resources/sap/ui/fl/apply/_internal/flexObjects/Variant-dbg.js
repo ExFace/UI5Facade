@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.Variant
 	 * @since 1.103
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -75,7 +75,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			FlexObject.apply(this, aArgs);
 
@@ -83,7 +82,7 @@ sap.ui.define([
 				this.setVariantId(this.getId());
 			}
 			if (!this.getAuthor()) {
-				this.setAuthor(getVariantAuthor(this.getSupportInformation().user, this.getLayer(), {}));
+				this.setAuthor(getVariantAuthor(this.getSupportInformation().user, this.getLayer(), this.getFlexObjectMetadata().reference));
 			}
 		}
 	});
@@ -114,6 +113,8 @@ sap.ui.define([
 	/**
 	 * Retrieves the variant name from the <code>texts</code> FlexObject property
 	 * @returns {string} Variant name
+	 * @private
+	 * @ui5-restricted sap.ui.fl
 	 */
 	Variant.prototype.getName = function() {
 		return this.getText("variantName");

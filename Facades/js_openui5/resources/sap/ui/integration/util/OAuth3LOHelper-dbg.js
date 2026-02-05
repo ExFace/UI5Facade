@@ -18,7 +18,7 @@ sap.ui.define([], function () {
 	 * Utility class helping with OAuth 3LO flow handling.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.OAuth3LOHelper

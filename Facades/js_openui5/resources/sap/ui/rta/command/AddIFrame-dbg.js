@@ -16,13 +16,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.75
 	 * @alias sap.ui.rta.command.AddIFrame
 	 */
-	var AddIFrame = FlexCommand.extend("sap.ui.rta.command.AddIFrame", {
+	const AddIFrame = FlexCommand.extend("sap.ui.rta.command.AddIFrame", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -72,12 +72,10 @@ sap.ui.define([
 	// Override to avoid url to be 'bound'
 	AddIFrame.prototype.applySettings = function(...aArgs) {
 		const mSettings = aArgs[0];
-		var mSettingsWithoutUrl = {};
+		const mSettingsWithoutUrl = {};
 		Object.keys(mSettings)
-		.filter(function(sSettingName) {
-			return sSettingName !== "url";
-		})
-		.forEach(function(sSettingName) {
+		.filter((sSettingName) => sSettingName !== "url")
+		.forEach((sSettingName) => {
 			mSettingsWithoutUrl[sSettingName] = mSettings[sSettingName];
 		});
 		aArgs[0] = mSettingsWithoutUrl;
@@ -86,12 +84,19 @@ sap.ui.define([
 	};
 
 	AddIFrame.prototype._getChangeSpecificData = function() {
-		var mChangeSpecificData = FlexCommand.prototype._getChangeSpecificData.call(this);
-		var sChangeType = mChangeSpecificData.changeType;
-		delete mChangeSpecificData.changeType;
+		const mChangeSpecificData = FlexCommand.prototype._getChangeSpecificData.call(this);
+		const { title: sTitle, ...oContent } = mChangeSpecificData.content;
 		return {
-			changeType: sChangeType,
-			content: mChangeSpecificData.content
+			changeType: mChangeSpecificData.changeType,
+			content: oContent,
+			texts: sTitle
+				? {
+					title: {
+						value: sTitle,
+						type: "XTIT"
+					}
+				}
+				: {}
 		};
 	};
 

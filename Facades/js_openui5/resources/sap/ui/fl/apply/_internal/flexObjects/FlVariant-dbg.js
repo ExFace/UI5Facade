@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.Variant
 	 * @alias sap.ui.fl.apply._internal.flexObjects.FlVariant
 	 * @since 1.104
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -30,7 +30,7 @@ sap.ui.define([
 		metadata: {
 			properties: {
 				/**
-				 * ID of the base variant this variant was created from.
+				 * ID of the base variant this variant was created from. The referenced variant must always be in a lower layer
 				 */
 				variantReference: {
 					type: "string"
@@ -44,7 +44,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			let [sId, mSettings] = aArgs;
 			if (typeof sId !== "string" && sId !== undefined) {

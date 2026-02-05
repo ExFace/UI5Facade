@@ -17,7 +17,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.MoveTableColumns
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @since 1.48.0
 	 */
@@ -213,7 +213,7 @@ sap.ui.define([
 	 * @param {sap.ui.fl.Change} oChange Change object to be completed
 	 * @param {object} mSpecificChangeInfo Determines the attributes <code>source</code>, <code>target</code> and <code>movedElements</code> which are included in the change
 	 * @param {object} mPropertyBag Map of properties
-	 * @param {sap.ui.core.UiComponent} mPropertyBag.appComponent Component in which the change should be applied
+	 * @param {sap.ui.core.UIComponent} mPropertyBag.appComponent Component in which the change should be applied
 	 * @public
 	 */
 	MoveTableColumns.completeChangeContent = function (oChange, mSpecificChangeInfo, mPropertyBag) {

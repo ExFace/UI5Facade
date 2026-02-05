@@ -24,7 +24,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.GroupHeaderListItem</code> is a special list item, used only to separate other list items into logical groups.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

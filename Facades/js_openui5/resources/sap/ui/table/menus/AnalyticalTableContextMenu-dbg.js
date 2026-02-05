@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.table.menus.ContextMenu
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @alias sap.ui.table.menus.AnalyticalTableContextMenu
 	 */
@@ -58,7 +58,7 @@ sap.ui.define([
 		const bExtendedMenu = !!oTable.getProperty("extendedGroupHeaderMenu");
 
 		if (!oRow.isGroupHeader()) {
-			this._mItems.values().forEach((oMenuItem) => oMenuItem.setVisible(false));
+			this._mItems.forEach((oMenuItem) => oMenuItem.setVisible(false));
 			return;
 		}
 

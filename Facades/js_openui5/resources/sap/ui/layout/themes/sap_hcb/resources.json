@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 263,
+			"size": 361,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 300,
+			"size": 402,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -116,7 +116,7 @@
 		},
 		{
 			"name": "base_GridLayout.less",
-			"size": 5926,
+			"size": 6024,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -140,7 +140,7 @@
 		},
 		{
 			"name": "base_ResponsiveLayout.less",
-			"size": 8457,
+			"size": 8559,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -186,7 +186,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 92658,
+			"size": 93058,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

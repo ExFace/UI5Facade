@@ -31,7 +31,7 @@ sap.ui.define([
 	 * <code>sap.ui.webc.main.MenuItem</code> is an abstract element, representing a node in a <code>sap.ui.webc.main.Menu</code>. The menu itself is rendered as a list, and each <code>sap.ui.webc.main.MenuItem</code> is represented by a list item (<code>sap.ui.webc.main.StandardListItem</code>) in that list. Therefore, you should only use <code>sap.ui.webc.main.MenuItem</code> directly in your apps. The <code>sap.ui.webc.main.StandardListItem</code> list item is internal for the list, and not intended for public use.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

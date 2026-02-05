@@ -20,7 +20,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 * @class Content for the <code>sap.ui.mdc.valuehelp.content.Dialog</code> element.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @ui5-restricted sap.ui.mdc

@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -166,7 +166,7 @@ sap.ui.define([
 			sDetails = mSettings.details;
 
 		if (mSettings.type === CardBlockingMessageType.Error) {
-			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.ErrorScreen;
+			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.UnableToLoad;
 		} else if (mSettings.type === CardBlockingMessageType.NoData) {
 			sIllustratedMessageType = sIllustratedMessageType || IllustratedMessageType.NoData;
 		}

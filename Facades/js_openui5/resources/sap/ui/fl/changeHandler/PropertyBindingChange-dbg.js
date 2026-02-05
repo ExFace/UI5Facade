@@ -18,7 +18,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.PropertyBindingChange
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.38
 	 * @private
 	 */

@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 2653,
+			"size": 2739,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 10633,
+			"size": 10663,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "CheckBox.less",
-			"size": 5462,
+			"size": 5687,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -98,7 +98,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 205,
+			"size": 288,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -152,7 +152,7 @@
 		},
 		{
 			"name": "IconTabBar.less",
-			"size": 21112,
+			"size": 20992,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -170,7 +170,7 @@
 		},
 		{
 			"name": "InputBase.less",
-			"size": 4492,
+			"size": 4554,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -218,7 +218,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 632,
+			"size": 717,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -236,7 +236,7 @@
 		},
 		{
 			"name": "MessageView.less",
-			"size": 1951,
+			"size": 1948,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -296,7 +296,7 @@
 		},
 		{
 			"name": "ObjectStatus.less",
-			"size": 20241,
+			"size": 20242,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -308,13 +308,13 @@
 		},
 		{
 			"name": "Page.less",
-			"size": 4186,
+			"size": 4508,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "Panel.less",
-			"size": 2820,
+			"size": 2819,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -392,7 +392,7 @@
 		},
 		{
 			"name": "SegmentedButton.less",
-			"size": 10057,
+			"size": 10051,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -446,7 +446,7 @@
 		},
 		{
 			"name": "SliderTooltip.less",
-			"size": 809,
+			"size": 904,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -464,7 +464,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 619,
+			"size": 704,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -476,7 +476,7 @@
 		},
 		{
 			"name": "Switch.less",
-			"size": 7626,
+			"size": 7662,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -512,13 +512,13 @@
 		},
 		{
 			"name": "TextArea.less",
-			"size": 2234,
+			"size": 2284,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 688,
+			"size": 774,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -572,7 +572,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 352,
+			"size": 441,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -620,23 +620,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 1024721,
+			"size": 1052317,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_horizon/library-parameters.json",
-			"size": 25850,
+			"size": 26234,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.css",
-			"size": 1024692,
+			"size": 1052281,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 273299,
+			"size": 274504,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},

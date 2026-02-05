@@ -41,7 +41,7 @@ sap.ui.define([
 	 * <h3>Usage</h3> <code>sap.ui.webc.fiori.IllustratedMessage</code> is meant to be used inside container component, for example a <code>sap.ui.webc.main.Card</code>, a <code>sap.ui.webc.main.Dialog</code> or a <code>sap.ui.webc.fiori.Page</code>
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

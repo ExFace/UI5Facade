@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "ObjectPageHeaderContent.less",
-			"size": 1496,
+			"size": 1823,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 106599,
+			"size": 107040,
 			"theme": "sap_belize"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 106590,
+			"size": 107032,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.less",
-			"size": 21379,
+			"size": 21706,
 			"designtime": true,
 			"theme": "sap_belize"
 		},

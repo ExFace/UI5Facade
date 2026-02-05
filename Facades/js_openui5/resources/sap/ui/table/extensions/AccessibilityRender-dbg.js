@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.TableRenderer which handles ACC related things.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.AccessibilityRender
@@ -56,7 +56,7 @@ sap.ui.define([
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
-		_init: function(oTable, sTableType, mSettings) {
+		_init: function(oTable, mSettings) {
 			return "AccRenderExtension";
 		},
 
@@ -187,11 +187,10 @@ sap.ui.define([
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer.
 		 * @param {sap.ui.table.Table} oTable Instance of the table.
 		 * @param {sap.ui.table.Row} oRow Instance of the row.
-		 * @param {int} iRowIndex The index of the row.
 		 * @see sap.ui.table.TableRenderer#writeRowHighlightContent
 		 * @public
 		 */
-		writeAccRowHighlightText: function(oRm, oTable, oRow, iRowIndex) {
+		writeAccRowHighlightText: function(oRm, oTable, oRow) {
 			if (!oTable._getAccExtension().getAccMode()) {
 				return;
 			}

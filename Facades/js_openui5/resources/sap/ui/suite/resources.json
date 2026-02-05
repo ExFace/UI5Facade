@@ -3,11 +3,11 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 1440
+			"size": 1439
 		},
 		{
 			"name": ".theming",
-			"size": 77
+			"size": 76
 		},
 		{
 			"name": "QuickViewUtils-dbg.js",
@@ -54,7 +54,7 @@
 		{
 			"name": "TaskCircle-dbg.js",
 			"module": "sap/ui/suite/TaskCircle.js",
-			"size": 3346,
+			"size": 3345,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Control.js",
@@ -108,7 +108,7 @@
 		{
 			"name": "VerticalProgressIndicator-dbg.js",
 			"module": "sap/ui/suite/VerticalProgressIndicator.js",
-			"size": 4368,
+			"size": 4367,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Control.js",
@@ -160,7 +160,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/suite/library.js",
-			"size": 1247,
+			"size": 1244,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/Core.js",
@@ -171,7 +171,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/suite/library-preload.js",
-			"size": 10029,
+			"size": 10026,
 			"merged": true,
 			"required": [
 				"sap/base/util/each.js",
@@ -209,7 +209,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/suite/library.js",
-			"size": 596,
+			"size": 595,
 			"required": [
 				"sap/ui/core/Core.js",
 				"sap/ui/core/library.js",
@@ -224,7 +224,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/suite/manifest.json",
-			"size": 978
+			"size": 976
 		},
 		{
 			"name": "resources.json",
@@ -237,19 +237,19 @@
 		},
 		{
 			"name": "themes/base/TaskCircle.less",
-			"size": 355,
+			"size": 395,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/VerticalProgressIndicator.less",
-			"size": 457,
+			"size": 531,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 767,
+			"size": 788,
 			"theme": "base"
 		},
 		{
@@ -260,12 +260,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 767,
+			"size": 788,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 1541,
+			"size": 1655,
 			"designtime": true,
 			"theme": "base"
 		},

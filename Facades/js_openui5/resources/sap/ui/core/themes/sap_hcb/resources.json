@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "LocalBusyIndicator.less",
-			"size": 537,
+			"size": 641,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "base_LocalBusyIndicator.less",
-			"size": 6554,
+			"size": 6658,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "base_ScrollBar.less",
-			"size": 499,
+			"size": 599,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -178,7 +178,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 35251,
+			"size": 35559,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

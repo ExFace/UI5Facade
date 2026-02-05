@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "ContentSwitcher.less",
-			"size": 4682,
+			"size": 4781,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -68,25 +68,25 @@
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 14079,
+			"size": 14174,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 3979,
+			"size": 4074,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 9257,
+			"size": 9357,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "SplitContainer.less",
-			"size": 1945,
+			"size": 2047,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -108,7 +108,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 126781,
+			"size": 127272,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @class Constructor for a new sap.ui.rta.util.guidedTour.GuidedTour
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.136
 	 * @private
@@ -99,6 +99,13 @@ sap.ui.define([
 		}
 	}
 
+	function restorePopoverModality() {
+		// If the affected control was a Popover, we need to restore the modal state
+		if (this._oAffectedControl?.isA("sap.m.Popover")) {
+			this._oAffectedControl.setModal(this._oAffectedControlOriginalModalState);
+		}
+	}
+
 	GuidedTour.prototype.autoStart = async function(oTourContent) {
 		const sResponse = await Utils.showMessageBox(
 			"information",
@@ -152,16 +159,23 @@ sap.ui.define([
 		try {
 			for (const sActionSelector of aActionSelectors) {
 				const oActionControl = await waitForElementVisibility.call(this, sActionSelector);
-				oActionControl.firePress();
+				await oActionControl.firePress();
 			}
 
-			const oAffectedControl = oStepConfig.waitForElement
+			this._oAffectedControl = oStepConfig.waitForElement
 				? await waitForElementVisibility.call(this, sSelector)
 				: Element.getElementById(sSelector);
 
 			// Open the popover if the element is visible
-			if (oAffectedControl && oAffectedControl.getVisible()) {
-				this._oPopover.openBy(oAffectedControl);
+			if (this._oAffectedControl && this._oAffectedControl.getVisible()) {
+				// If the affected control is a Popover, we need to open it modal
+				// because if the affected control is not modal, it could be closed
+				// this would also close the Guided Tour Popover
+				if (this._oAffectedControl.isA("sap.m.Popover")) {
+					this._oAffectedControlOriginalModalState = this._oAffectedControl.getModal();
+					this._oAffectedControl.setModal(true);
+				}
+				this._oPopover.openBy(this._oAffectedControl);
 			} else {
 				skipStep.call(this);
 			}
@@ -184,6 +198,7 @@ sap.ui.define([
 	};
 
 	GuidedTour.prototype.onNextPress = function() {
+		restorePopoverModality.call(this);
 		this.setProperty("forwardDirection", true);
 		this._oPopover.close();
 		const nCurrentStep = this.getCurrentStep();
@@ -200,6 +215,7 @@ sap.ui.define([
 	};
 
 	GuidedTour.prototype.onPreviousPress = function() {
+		restorePopoverModality.call(this);
 		this.setProperty("forwardDirection", false);
 		this._oPopover.close();
 		const nCurrentStep = this.getCurrentStep();
@@ -225,6 +241,7 @@ sap.ui.define([
 	};
 
 	GuidedTour.prototype.onClosePress = async function() {
+		restorePopoverModality.call(this);
 		this._oPopover.close();
 		this.fireTourClosed();
 		this.destroy();

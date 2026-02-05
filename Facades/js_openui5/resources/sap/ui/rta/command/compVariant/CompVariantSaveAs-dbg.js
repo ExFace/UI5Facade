@@ -20,13 +20,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.87
 	 * @alias sap.ui.rta.command.compVariant.CompVariantSaveAs
 	 */
-	var CompVariantSaveAs = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantSaveAs", {
+	const CompVariantSaveAs = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantSaveAs", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -71,8 +71,8 @@ sap.ui.define([
 	 * @returns {Promise} Returns resolve after execution
 	 */
 	CompVariantSaveAs.prototype.execute = function() {
-		var oNewVariantProperties = this.getNewVariantProperties();
-		var mPropertyBag = {
+		const oNewVariantProperties = this.getNewVariantProperties();
+		const mPropertyBag = {
 			changeSpecificData: {
 				// in case of redo the variant is still saved and the ID should be reused
 				id: this._oVariant ? this._oVariant.getVariantId() : undefined,

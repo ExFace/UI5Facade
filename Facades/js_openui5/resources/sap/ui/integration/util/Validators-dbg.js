@@ -11,7 +11,7 @@ sap.ui.define([], function () {
 	 * Utility class helping with input validations.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Validators
@@ -122,6 +122,12 @@ sap.ui.define([], function () {
 		dateRange: {
 			required: function (v, b) {
 				return !b || !!v.value;
+			},
+			requiredTxt: "EDITOR_VAL_FIELDREQ"
+		},
+		radioButtonGroup: {
+			required: function (v, b) {
+				return !b || v.selectedIndex !== -1 || !!v.selectedKey;
 			},
 			requiredTxt: "EDITOR_VAL_FIELDREQ"
 		}

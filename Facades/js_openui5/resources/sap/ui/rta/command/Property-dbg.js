@@ -16,13 +16,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.rta.command.Property
 	 */
-	var Property = FlexCommand.extend("sap.ui.rta.command.Property", {
+	const Property = FlexCommand.extend("sap.ui.rta.command.Property", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -49,7 +49,7 @@ sap.ui.define([
 	});
 
 	Property.prototype._getChangeSpecificData = function() {
-		var oElement = this.getElement();
+		const oElement = this.getElement();
 		// general format
 		return {
 			changeType: this.getChangeType(),

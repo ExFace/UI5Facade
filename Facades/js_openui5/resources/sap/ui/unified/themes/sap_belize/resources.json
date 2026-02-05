@@ -54,19 +54,19 @@
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 880,
+			"size": 975,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 1338,
+			"size": 1433,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 663,
+			"size": 763,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -88,7 +88,7 @@
 		},
 		{
 			"name": "library.less",
-			"size": 25798,
+			"size": 26088,
 			"designtime": true,
 			"theme": "sap_belize"
 		},

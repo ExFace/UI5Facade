@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 2056,
+			"size": 2142,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 12261,
+			"size": 12634,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -68,7 +68,7 @@
 		},
 		{
 			"name": "CheckBox.less",
-			"size": 4915,
+			"size": 5091,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -92,7 +92,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 205,
+			"size": 288,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -146,7 +146,7 @@
 		},
 		{
 			"name": "InputBase.less",
-			"size": 3023,
+			"size": 3084,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -175,6 +175,12 @@
 			"theme": "sap_fiori_3_dark"
 		},
 		{
+			"name": "Menu.less",
+			"size": 721,
+			"designtime": true,
+			"theme": "sap_fiori_3_dark"
+		},
+		{
 			"name": "MenuButton.less",
 			"size": 689,
 			"designtime": true,
@@ -194,7 +200,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 632,
+			"size": 717,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -212,7 +218,7 @@
 		},
 		{
 			"name": "MessageView.less",
-			"size": 2016,
+			"size": 2013,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -260,7 +266,7 @@
 		},
 		{
 			"name": "Page.less",
-			"size": 3531,
+			"size": 3852,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -344,7 +350,7 @@
 		},
 		{
 			"name": "SegmentedButton.less",
-			"size": 5328,
+			"size": 5322,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -398,7 +404,7 @@
 		},
 		{
 			"name": "SliderTooltip.less",
-			"size": 1136,
+			"size": 1083,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -416,7 +422,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 621,
+			"size": 706,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -464,7 +470,7 @@
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 380,
+			"size": 466,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -512,7 +518,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 352,
+			"size": 441,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -548,35 +554,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 887350,
+			"size": 915961,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_fiori_3_dark/library-parameters.json",
-			"size": 26282,
+			"size": 26666,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 887349,
+			"size": 915953,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 155058,
+			"size": 157210,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 3019,
+			"size": 3040,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "resources.json",
-			"size": 10746
+			"size": 10849
 		}
 	]
 }

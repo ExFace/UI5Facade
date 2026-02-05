@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 17993,
+			"size": 17569,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -38,23 +38,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 27841,
+			"size": 27461,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_bluecrystal_base/library-parameters.json",
-			"size": 6029,
+			"size": 6259,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.css",
-			"size": 27836,
+			"size": 27458,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 35680,
+			"size": 35256,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

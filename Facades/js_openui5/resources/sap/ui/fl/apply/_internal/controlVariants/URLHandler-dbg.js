@@ -5,25 +5,29 @@
  */
 
 sap.ui.define([
-	"sap/ui/core/Component",
-	"sap/base/Log",
 	"sap/base/util/deepEqual",
+	"sap/base/util/isEmptyObject",
 	"sap/base/util/merge",
 	"sap/base/util/ObjectPath",
-	"sap/base/util/isEmptyObject",
+	"sap/base/Log",
 	"sap/ui/base/ManagedObjectObserver",
-	"sap/ui/thirdparty/hasher",
-	"sap/ui/fl/apply/_internal/controlVariants/Utils"
+	"sap/ui/core/Component",
+	"sap/ui/fl/apply/_internal/controlVariants/Utils",
+	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagementState",
+	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagerApply",
+	"sap/ui/thirdparty/hasher"
 ], function(
-	Component,
-	Log,
 	deepEqual,
+	isEmptyObject,
 	merge,
 	ObjectPath,
-	isEmptyObject,
+	Log,
 	ManagedObjectObserver,
-	hasher,
-	VariantUtil
+	Component,
+	VariantUtil,
+	VariantManagementState,
+	VariantManagerApply,
+	hasher
 ) {
 	"use strict";
 
@@ -77,7 +81,7 @@ sap.ui.define([
 			}
 
 			return oResultantParameters;
-		}, {updateRequired: false, parameters: []});
+		}, { updateRequired: false, parameters: [] });
 	}
 
 	function checkAndUpdateURLParameters(oModel, sHash) {
@@ -231,7 +235,7 @@ sap.ui.define([
 	 * @private
 	 */
 	function getVariantIndexInURL(mPropertyBag) {
-		var mReturnObject = {index: -1};
+		var mReturnObject = { index: -1 };
 		var oModel = mPropertyBag.model;
 
 		// if ushell container is not present an empty object is returned
@@ -271,7 +275,7 @@ sap.ui.define([
 			mReturnObject,
 			mURLParameters
 			&& mURLParameters[VariantUtil.VARIANT_TECHNICAL_PARAMETER]
-			&& {parameters: mURLParameters[VariantUtil.VARIANT_TECHNICAL_PARAMETER]}
+			&& { parameters: mURLParameters[VariantUtil.VARIANT_TECHNICAL_PARAMETER] }
 		);
 	}
 
@@ -389,7 +393,7 @@ sap.ui.define([
 		async function observerHandler() {
 			// variant switch promise needs to be checked, since there might be a pending on-going variants switch
 			// which might result in unnecessary data being stored
-			await mPropertyBag.model.waitForAllVMSwitchPromises();
+			await VariantManagementState.waitForAllVariantSwitches(mPropertyBag.model.sFlexReference);
 			mPropertyBag.model._oHashData.controlPropertyObservers.forEach(function(oObserver) {
 				oObserver.destroy();
 			});
@@ -400,7 +404,7 @@ sap.ui.define([
 			// which will also destroy the variant model anyway,
 			// but this is just to ensure the model is in sync with the variants state (which is persisted)
 			mPropertyBag.model.destroy();
-			mPropertyBag.model.oComponentDestroyObserver.unobserve(mPropertyBag.model.oAppComponent, {destroy: true});
+			mPropertyBag.model.oComponentDestroyObserver.unobserve(mPropertyBag.model.oAppComponent, { destroy: true });
 			mPropertyBag.model.oComponentDestroyObserver.destroy();
 		}
 
@@ -409,7 +413,7 @@ sap.ui.define([
 
 		if (!mPropertyBag.model.oComponentDestroyObserver && mPropertyBag.model.oAppComponent instanceof Component) {
 			mPropertyBag.model.oComponentDestroyObserver = new ManagedObjectObserver(observerHandler.bind(null));
-			mPropertyBag.model.oComponentDestroyObserver.observe(mPropertyBag.model.oAppComponent, {destroy: true});
+			mPropertyBag.model.oComponentDestroyObserver.observe(mPropertyBag.model.oAppComponent, { destroy: true });
 		}
 	};
 
@@ -479,7 +483,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag - Property bag
 	 * @param {sap.ui.fl.variants.VariantManagement} mPropertyBag.vmControl - Variant management control
 	 * @param {sap.ui.fl.variants.VariantModel} mPropertyBag.model - Variant model
-	 *
+	 * @param {sap.ui.core.Component} mPropertyBag.appComponent - App Component
 	 * @private
 	 * @ui5-restricted sap.ui.fl.variants.VariantModel
 	 */
@@ -487,7 +491,7 @@ sap.ui.define([
 		var sContextChangeEvent = "modelContextChange";
 
 		function handleContextChange(oEvent, oParams) {
-			var sVariantManagementReference = oParams.model.getVariantManagementReferenceForControl(oEvent.getSource());
+			var sVariantManagementReference = oEvent.getSource().getVariantManagementReference();
 			var aVariantManagements = oParams.model._oHashData.variantControlIds;
 			// variant management will only exist in the hash data if 'updateInVariantURL' property is set (see attachHandlers())
 			var iIndex = aVariantManagements.indexOf(sVariantManagementReference);
@@ -499,7 +503,15 @@ sap.ui.define([
 							vmReference: sVariantManagementToBeReset,
 							model: mPropertyBag.model
 						}).index === -1) {
-							oParams.model.switchToDefaultForVariantManagement(sVariantManagementToBeReset);
+							const oAffectedVMControl = VariantUtil.getVariantManagementControlByVMReference(
+								sVariantManagementToBeReset,
+								mPropertyBag.appComponent
+							);
+							VariantManagerApply.updateCurrentVariant({
+								newVariantReference: oAffectedVMControl.getDefaultVariantKey(),
+								vmControl: oAffectedVMControl,
+								appComponent: mPropertyBag.appComponent
+							});
 						}
 					}
 				);
@@ -508,18 +520,18 @@ sap.ui.define([
 
 		var oControlPropertyObserver = new ManagedObjectObserver(function(oEvent) {
 			if (oEvent.current === true && oEvent.old === false) {
-				oEvent.object.attachEvent(sContextChangeEvent, {model: mPropertyBag.model}, handleContextChange);
+				oEvent.object.attachEvent(sContextChangeEvent, { model: mPropertyBag.model }, handleContextChange);
 			} else if (oEvent.current === false && oEvent.old === true) {
 				oEvent.object.detachEvent(sContextChangeEvent, handleContextChange);
 			}
 		});
 
-		oControlPropertyObserver.observe(mPropertyBag.vmControl, {properties: ["resetOnContextChange"]});
+		oControlPropertyObserver.observe(mPropertyBag.vmControl, { properties: ["resetOnContextChange"] });
 
 		mPropertyBag.model._oHashData.controlPropertyObservers.push(oControlPropertyObserver);
 
 		if (mPropertyBag.vmControl.getResetOnContextChange() !== false) {
-			mPropertyBag.vmControl.attachEvent(sContextChangeEvent, {model: mPropertyBag.model}, handleContextChange);
+			mPropertyBag.vmControl.attachEvent(sContextChangeEvent, { model: mPropertyBag.model }, handleContextChange);
 		}
 	};
 

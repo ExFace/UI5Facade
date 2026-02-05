@@ -44,6 +44,9 @@ sap.ui.define([
 
 	var TitleLevel = coreLibrary.TitleLevel;
 
+	// // shortcut for sap.uxap.ObjectPageSubSectionLayout
+	// var ObjectPageSubSectionLayout = library.ObjectPageSubSectionLayout;
+
 	/**
 	 * Constructor for a new <code>ObjectPageSection</code>.
 	 *
@@ -243,6 +246,18 @@ sap.ui.define([
 
 	ObjectPageSection.prototype._getTitle = function () {
 		return this._hasPromotedSubSection() ? this._getFirstVisibleSubSection().getTitle() : this.getTitle();
+	};
+
+	ObjectPageSection.prototype._hasMoreThanOneVisibleSubSection = function () {
+		return this._getVisibleSubSections().length > 1;
+	};
+
+	ObjectPageSection.prototype._shouldHaveStickyHeader = function () {
+		var bHasMoreThanOneVisibleSubSection = this._hasMoreThanOneVisibleSubSection(),
+			bTitleAriaVisible = this._isTitleAriaVisible();
+
+		// Title aria is visible, has one visible subsection and the subsection's header is not visible
+		return bTitleAriaVisible && !bHasMoreThanOneVisibleSubSection && !this._getFirstVisibleSubSection()?._shouldHaveVisibleTitleLine();
 	};
 
 	/**@deprecated */

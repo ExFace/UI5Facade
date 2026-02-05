@@ -26,6 +26,7 @@ sap.ui.define([
 	"./library",
 	"sap/ui/core/library",
 	"sap/ui/events/F6Navigation",
+	"sap/base/i18n/Localization",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/KeyCodes"
 ], function(
@@ -49,6 +50,7 @@ sap.ui.define([
 	library,
 	coreLibrary,
 	F6Navigation,
+	Localization,
 	jQuery,
 	KeyCodes
 ) {
@@ -151,7 +153,7 @@ sap.ui.define([
  	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -488,7 +490,7 @@ sap.ui.define([
 			if (bSplitterFocused){
 				this._bContextMenuFromSplitter = true;
 			}
-			this._showResizeContextMenu(oEvent);
+			this._showResizeContextMenu(oEvent, !bSplitterFocused);
 		}
 	};
 
@@ -500,6 +502,10 @@ sap.ui.define([
 			bCtrlOrCmd = oEvent.ctrlKey || oEvent.metaKey,
 			bSplitterFocused = document.activeElement === this.getDomRef().querySelector(".sapFSPSplitterBar"),
 			iDirectionModifier = this.getSidePanelPosition() === SidePanelPosition.Right ? 1 : -1;
+
+		if (Localization.getRTL()) {
+			iDirectionModifier = -iDirectionModifier;
+		}
 
 		if (bCtrlOrCmd && oEvent.which === KeyCodes.ARROW_LEFT) {
 			oEvent.preventDefault();
@@ -1343,6 +1349,10 @@ sap.ui.define([
 			iDeltaX = -iDeltaX;
 		}
 
+		if (Localization.getRTL()) {
+			iDeltaX = -iDeltaX;
+		}
+
 		oEvent.preventDefault();
 
 		if (iSidePanelWidth) {
@@ -1387,11 +1397,16 @@ sap.ui.define([
 		}
 	};
 
-	SidePanel.prototype._showResizeContextMenu = function(oEvent) {
-		var oContextMenu = this._getContextMenu();
+	SidePanel.prototype._showResizeContextMenu = function(oEvent, bSkipOpener) {
+		const oContextMenu = this._getContextMenu(),
+			oOpener = !bSkipOpener ? this : null;
 
 		this._bResizeStarted = false;
-		(this._bContextMenuFromSplitter && oContextMenu.openBy(this.getDomRef().querySelector(".sapFSPSplitterBarGrip"))) || oContextMenu.openAsContextMenu(oEvent, this);
+		if (this._bContextMenuFromSplitter) {
+			oContextMenu.openBy(this.getDomRef().querySelector(".sapFSPSplitterBarGrip"));
+		} else {
+			oContextMenu.openAsContextMenu(oEvent, oOpener);
+		}
 	};
 
 	return SidePanel;

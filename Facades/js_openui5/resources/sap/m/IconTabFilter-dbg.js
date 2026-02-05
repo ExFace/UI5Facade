@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -448,6 +448,7 @@ sap.ui.define([
 
 		if (this._isOverflow()) {
 			mAriaParams.role = "button";
+			mAriaParams.expanded = false;
 		}
 
 		if (this.getItems().length && bIsSelectable) {
@@ -957,6 +958,9 @@ sap.ui.define([
 
 			this._oPopover.attachAfterClose(function () {
 				this._getSelectList().destroyItems();
+				if (this._isOverflow()) {
+					this.getDomRef().setAttribute("aria-expanded", "false");
+				}
 			}, this);
 
 			if (Device.system.phone) {
@@ -997,6 +1001,10 @@ sap.ui.define([
 		this._oPopover.removeAllContent();
 
 		if (this.getItems().length || this._isOverflow()) {
+			if (this._isOverflow()) {
+				this.getDomRef().setAttribute("aria-expanded", "true");
+			}
+
 			this._oPopover.addContent(oSelectList);
 			this._oPopover.setInitialFocus(bHasSelectedItem ? oSelectList.getSelectedItem() : oSelectList.getVisibleTabFilters()[0]);
 			this._oPopover.openBy(this);
@@ -1214,6 +1222,16 @@ sap.ui.define([
 			aCustomData = oItem.getCustomData();
 			for (iCustomDataItemIndex = 0; iCustomDataItemIndex < aCustomData.length; iCustomDataItemIndex++) {
 				oListItem.addCustomData(aCustomData[iCustomDataItemIndex].clone());
+			}
+
+			// clone tooltip aggregation
+			var oTooltip = oItem.getTooltip();
+			if (oTooltip) {
+				if (typeof oTooltip === "string") {
+					oListItem.setTooltip(oTooltip);
+				} else if (oTooltip.clone) {
+					oListItem.setTooltip(oTooltip.clone());
+				}
 			}
 
 			oListItem._oRealItem = oItem; // link list item to its underlying item from the items aggregation

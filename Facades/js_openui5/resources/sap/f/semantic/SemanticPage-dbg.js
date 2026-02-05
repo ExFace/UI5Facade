@@ -101,7 +101,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.136.12
+	* @version 1.144.0
 	*
 	* @constructor
 	* @public
@@ -590,7 +590,7 @@ sap.ui.define([
 				customShareActions: {type: "sap.m.Button", multiple: true},
 
 				/**
-				 * Accessible landmark settings to be applied to the containers of the <code>sap.f.SemanticPage</code> control.
+				 * Accessible landmark settings to be applied to the containers of the <code>sap.f.semantic.SemanticPage</code> control.
 				 *
 				 * If not set, no landmarks will be written.
 				 *
@@ -1230,7 +1230,7 @@ sap.ui.define([
 	};
 
 	/**
-	* Opens the <code>sap.m.ActionSheet</code> container of <code>sap.m.SemanticShareMenu</code>.
+	* Opens the <code>sap.m.ActionSheet</code> container of <code>sap.f.semantic.SemanticShareMenu</code>.
 	*
 	* @private
 	*/

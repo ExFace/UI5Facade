@@ -48,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @private
@@ -262,6 +262,10 @@ function(
 			return sText.charAt(0).toUpperCase() + sText.slice(1);
 		}
 
+		SplitButton.prototype._fireKeyboardArrowPress = function() {
+			this._getArrowButton().firePress({keyboard: true});
+		};
+
 		SplitButton.prototype.onkeydown = function(oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
 				oEvent.preventDefault();
@@ -275,23 +279,48 @@ function(
 		};
 
 		SplitButton.prototype.onsapup = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress();
 		};
 
 		SplitButton.prototype.onsapdown = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress();
 		};
 
 		SplitButton.prototype.onsapupmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress();
 		};
 
 		SplitButton.prototype.onsapdownmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress();
+			oEvent.stopImmediatePropagation();
 		};
 
 		//F4
 		SplitButton.prototype.onsapshow = function(oEvent) {
+			if (!this.getEnabled()) {
+				return;
+			}
+
 			this._getArrowButton().firePress();
 			oEvent.preventDefault();
 		};

@@ -10,10 +10,14 @@ sap.ui.define([
 	'sap/ui/mdc/enums/BaseType',
 	'sap/ui/mdc/enums/OperatorName',
 	'sap/ui/mdc/condition/Condition',
+	'sap/base/Log',
 	'sap/base/util/deepEqual',
 	'sap/base/util/merge',
 	'sap/ui/model/BindingMode',
-	'sap/ui/model/Context'
+	'sap/ui/model/Context',
+	'sap/ui/core/library',
+	'sap/ui/core/Element',
+	'sap/ui/core/LabelEnablement'
 ], (
 	FieldBase,
 	FieldBaseRenderer,
@@ -21,12 +25,18 @@ sap.ui.define([
 	BaseType,
 	OperatorName,
 	Condition,
+	Log,
 	deepEqual,
 	merge,
 	BindingMode,
-	Context
+	Context,
+	coreLibrary,
+	Element,
+	LabelEnablement
 ) => {
 	"use strict";
+
+	const { ValueState } = coreLibrary;
 
 	/**
 	 * Constructor for a new <code>Field</code>.
@@ -40,10 +50,10 @@ sap.ui.define([
 	 *
 	 * <ul>
 	 * <li>In display mode, usually a {@link sap.m.Text Text} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
-	 * <li>If <code>fieldInfo</code> is set and it is configured to be triggerable, a {@link sap.m.Link Link} control is rendered. The <code>multipleLines</code> property is forwarded to the <code>wrapping</code> property of the {@link sap.m.Link Link} control.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getFieldInfo fieldInfo} is set and it is configured to be triggerable, a {@link sap.m.Link Link} control is rendered. The {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} property is forwarded to the {@link sap.m.Link#setWrapping wrapping} property of the {@link sap.m.Link Link} control.</li>
 	 * <li>In edit mode, usually an {@link sap.m.Input Input} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
 	 * <li>If a date type is used, a {@link sap.m.DatePicker DatePicker} control is rendered.</li>
 	 * <li>If a date/time type is used, a {@link sap.m.DateTimePicker DateTimePicker} control is rendered.</li>
 	 * <li>If a time type is used, a {@link sap.m.TimePicker TimePicker} control is rendered.</li>
@@ -54,13 +64,13 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.m.IOverflowToolbarContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @alias sap.ui.mdc.Field
 	 * @see {@link topic:1dd2aa91115d43409452a271d11be95b sap.ui.mdc}
 	 * @see {@link topic:5260b9ca249f465ab33769b9edb442aa Field Building Block (OData V4)}
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.54.0
 	 * @public
 	 */
@@ -74,6 +84,9 @@ sap.ui.define([
 				 *
 				 * To display the key and the description in one field,
 				 * the key must be set on the <code>value</code> property.
+				 *
+				 * <b>Warning:</b> Don't use a <code>Formatter</code> in the binding of this property since this only allows one-way binding.
+				 * Therefore, no parsing of user input and no model updates are possible.
 				 */
 				value: {
 					type: "any",
@@ -86,6 +99,9 @@ sap.ui.define([
 				 *
 				 * To display the key and the description in one field,
 				 * the description must be set on the <code>additionalValue</code> property.
+				 *
+				 * <b>Warning:</b> Don't use a <code>Formatter</code> in the binding of this property since this only allows one-way binding.
+				 * Therefore, no parsing of user input and no model updates are possible.
 				 */
 				additionalValue: {
 					type: "any",
@@ -95,7 +111,7 @@ sap.ui.define([
 			},
 			events: {
 				/**
-				 * This event is fired when the <code>value</code> property of the field is changed by user interaction.
+				 * This event is fired when the {@link #getValue value} property of the field is changed by user interaction.
 				 *
 				 * <b>Note</b> This event is only triggered if the used content control has a change event.
 				 */
@@ -105,7 +121,7 @@ sap.ui.define([
 						/**
 						 * The new value of the <code>Field</code>.
 						 *
-						 * If a <code>ValueHelp</code> is assigned to the <code>Field</code>, the <code>value</code> is used as key for the <code>ValueHelp</code> items.
+						 * If a {@link sap.ui.mdc.field.FieldBase#getValueHelp ValueHelp} is assigned to the <code>Field</code>, the <code>value</code> is used as key for the {@link sap.ui.mdc.field.FieldBase#getValueHelp ValueHelp} items.
 						 */
 						value: { type: "string" },
 
@@ -229,6 +245,8 @@ sap.ui.define([
 				this.getContentFactory().updateConditionType();
 				this.invalidate(); // as new inner control might be needed
 			}
+		} else if (oBindingInfo.formatter && (sName === "value" || sName === "additionalValue")) { // a formatter is used -> not really supported (no parsing, no model update....)
+			Log.error("Binding for property '" + sName + " uses Formatter, this is not fully supported. Field: " + this);
 		}
 
 		FieldBase.prototype.bindProperty.apply(this, arguments);
@@ -693,6 +711,181 @@ sap.ui.define([
 				}
 			}
 		}
+
+	};
+
+	// fire events on "value" property as this is the main-propery
+	Field.prototype.getBindingEventParameter = function (oEvent) {
+
+		const oBinding = this.getBinding("value");
+
+		if (!oBinding) {
+			return null; // only fire event if there is a Binding
+		}
+
+		const oParameter = FieldBase.prototype.getBindingEventParameter.apply(this, arguments);
+
+		if (oParameter) {
+			oParameter.property = "value";
+			oParameter.type = oBinding.getType();
+		}
+
+		return oParameter;
+
+	};
+
+	Field.prototype.shouldFireValidationSuccessOnConditionUpdate = function (aConditions) {
+
+		const vOldValue = this.getValue();
+		let vValue = this.getResultForChangePromise(aConditions);
+		vValue = _updateEmptyValue.call(this, vValue, vOldValue);
+
+		if (_compareValues.call(this, vValue, vOldValue, true)) {
+			// value will not be updated, therefore ValidationSuccess need to be fired manually
+			return true;
+		}
+
+		return false;
+
+	};
+
+	const HANDLEDBYMIXIN = Symbol("sap.ui.core.message.MessageMixin");
+	Field.prototype.refreshDataState = function (sName, oDataState) {
+
+		// TODO: make logic of MessageMixIn reusable
+
+		// as bindings vor other properties (e.g. valueState) can exist that uses CompositeBindings or Formatters with same binding path as value-binding
+		// do it for all properties
+		if (oDataState.getChanges().messages && this.getBinding(sName) && this.getBinding(sName).isA("sap.ui.model.PropertyBinding")) {
+			const aMessages = oDataState.getMessages();
+			const aLabels = LabelEnablement.getReferencingLabels(this);
+			const sLabelId = aLabels[0];
+			let bForceUpdate = false;
+
+			aMessages.forEach((oMessage) => {
+				if (aLabels && aLabels.length > 0) {
+					// we simply take the first label text and ignore all others
+					const oLabel = Element.getElementById(sLabelId);
+					if (oLabel.getMetadata().isInstanceOf("sap.ui.core.Label") && oLabel.getText) {
+						let sAdditionalText = oMessage.getAdditionalText() || '';
+						const sLabel = oLabel.getText();
+						if (!sAdditionalText.split(',').includes(sLabel)) {
+							if (oMessage[HANDLEDBYMIXIN]) {
+								sAdditionalText = sAdditionalText ? `${sAdditionalText}, ${sLabel}` : sLabel;
+							} else {
+								sAdditionalText = sLabel;
+								oMessage[HANDLEDBYMIXIN] = true;
+							}
+							oMessage.setAdditionalText(sAdditionalText);
+							bForceUpdate = true;
+						}
+					} else {
+						Log.warning(
+							"sap.ui.core.message.Message: Can't create labelText." +
+							"Label with id " + sLabelId + " is no valid sap.ui.core.Label.",
+							this
+						);
+					}
+				}
+
+				// map message to inner control, if needed
+				const oBinding = this.getBinding("value"); // only check value binding
+				let sControlId = this.getId();
+				if (oBinding?.isA("sap.ui.model.CompositeBinding") && this.getContentFactory().isMeasure()) {
+					const aContent = this.getCurrentContent();
+					if (aContent.length > 0) {
+						if (oMessage.getMessageProcessor().isA("sap.ui.model.Model")) {
+							// use control the binding-part belongs to
+							const aBindings = oBinding.getBindings();
+							const aTargets = oMessage.getTargets();
+							for (let j = 0; j < aTargets.length; j++) {
+								for (let i = 0; i < aBindings.length; i++) {
+									if (aTargets[j] === aBindings[i].getResolvedPath()) {
+										sControlId = aContent[i].getId();
+										break;
+									}
+								}
+							}
+						} else if (oMessage.getMessageProcessor().isA("sap.ui.core.message.ControlMessageProcessor")){
+							// check if message exists on one content-control
+							for (let i = 0; i < aContent.length; i++) {
+								const sId = aContent[i].getId();
+								const oValueState = this.getValueStateForContent(sId);
+								if (oValueState?.valueState === oMessage.getType() && oValueState?.valueStateText === oMessage.getMessage()) {
+									sControlId = sId;
+									break;
+								}
+							}
+						}
+					}
+				}
+
+				if (!oMessage.getControlIds().includes(sControlId)){
+					oMessage.addControlId(sControlId);
+					bForceUpdate = true;
+				}
+			});
+
+			const Messaging = sap.ui.require("sap/ui/core/Messaging");
+			if (Messaging) {
+				// Update the model to apply the changes
+				const oMessageModel = Messaging.getMessageModel();
+				oMessageModel.checkUpdate(bForceUpdate, true);
+			}
+			// propagate messages
+			const aContent = this.getCurrentContent();
+			const aContentSet = [];
+			if (aMessages && aMessages.length > 0) {
+				// set message to inner control, if needed
+				for (let i = 0; i < aMessages.length; i++) {
+					const oMessage = aMessages[i];
+					// check if the message type is a valid sap.ui.core.ValueState
+					if (ValueState[oMessage.getType()]) {
+						const aControlIds = oMessage.getControlIds();
+
+						for (let j = 0; j < aControlIds.length; j++) {
+							const sControlId = aControlIds[j];
+							if (aContentSet.indexOf(sControlId) < 0 && aContent.find((oContent) => oContent.getId() === sControlId)) {
+								// message for content -> store
+								this.setValueStateForContent(sControlId, oMessage.getType(), oMessage.getMessage());
+								aContentSet.push(sControlId); // to only set the first valid message
+							}
+						}
+						if (i == 0) { // set first message on Field itself
+							this.setValueState(oMessage.getType());
+							this.setValueStateText(oMessage.getMessage());
+						}
+					}
+				}
+			} else {
+				this.setValueState(ValueState.None);
+				this.setValueStateText('');
+				this.resetInvalidInput(false); // remove errors if valueState removed
+			}
+
+			this._oManagedObjectModel?.checkUpdate(true, false, (oBinding) => { // as ValueState or ValueStateText might be unchanged trigger binding update for inner controls (needed in unit case)
+				const sPath = oBinding.getPath();
+				return ["/valueState", "/valueStateText"].indexOf(sPath) >= 0;
+			}); // must be sync, as if other async call with different filter-function all bindings would be updatet what might lead to unwanted updates
+		}
+	};
+
+	Field.prototype.isEmptyAllowed = function () {
+
+		let bAllowed = FieldBase.prototype.isEmptyAllowed.call(this, arguments);
+
+		if (bAllowed) {
+			const oType = this.getContentFactory().retrieveDataType();
+			try {
+				const vResult = oType.parseValue("", "string");
+				oType.validateValue(vResult);
+			} catch (oError) {
+				// if type is not nullable, empty is invalid
+				bAllowed = false;
+			}
+		}
+
+		return bAllowed;
 
 	};
 

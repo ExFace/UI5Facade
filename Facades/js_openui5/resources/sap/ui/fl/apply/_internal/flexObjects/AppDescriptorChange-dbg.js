@@ -20,7 +20,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.AppDescriptorChange
 	 * @since 1.105
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */

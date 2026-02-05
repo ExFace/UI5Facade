@@ -29,7 +29,7 @@ sap.ui.define([
 	 * <h3>Overview</h3> The <code>sap.ui.webc.main.ToolbarButton</code> represents an abstract action, used in the <code>sap.ui.webc.main.Toolbar</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

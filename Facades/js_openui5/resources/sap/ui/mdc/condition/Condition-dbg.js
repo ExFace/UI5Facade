@@ -33,7 +33,7 @@ sap.ui.define([
 		 *
 		 * @namespace
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @since 1.61.0
 		 * @alias sap.ui.mdc.condition.Condition
 		 *

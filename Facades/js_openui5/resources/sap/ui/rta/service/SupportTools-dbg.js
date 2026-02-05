@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @name sap.ui.rta.service.SupportTools
 	 * @author SAP SE
 	 * @since 1.106
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */

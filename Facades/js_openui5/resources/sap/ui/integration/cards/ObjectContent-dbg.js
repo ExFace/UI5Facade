@@ -6,6 +6,7 @@
 sap.ui.define([
 	"./BaseContent",
 	"./ObjectContentRenderer",
+	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
 	"sap/m/library",
 	"sap/m/IllustratedMessageType",
@@ -22,6 +23,8 @@ sap.ui.define([
 	"sap/m/TextArea",
 	"sap/m/Input",
 	"sap/m/TimePicker",
+	"sap/m/RadioButton",
+	"sap/m/RadioButtonGroup",
 	"sap/base/Log",
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/isPlainObject",
@@ -36,6 +39,7 @@ sap.ui.define([
 	"sap/ui/integration/util/Form",
 	"sap/ui/integration/util/DateRangeHelper",
 	"sap/ui/integration/util/Duration",
+	"sap/ui/integration/util/subtitleToSubTitle",
 	"sap/ui/integration/controls/ImageWithOverlay",
 	"sap/f/AvatarGroup",
 	"sap/f/AvatarGroupItem",
@@ -49,6 +53,7 @@ sap.ui.define([
 ], function (
 	BaseContent,
 	ObjectContentRenderer,
+	Library,
 	library,
 	mLibrary,
 	IllustratedMessageType,
@@ -65,6 +70,8 @@ sap.ui.define([
 	TextArea,
 	Input,
 	TimePicker,
+	RadioButton,
+	RadioButtonGroup,
 	Log,
 	isEmptyObject,
 	isPlainObject,
@@ -79,6 +86,7 @@ sap.ui.define([
 	Form,
 	DateRangeHelper,
 	Duration,
+	subtitleToSubTitle,
 	ImageWithOverlay,
 	AvatarGroup,
 	AvatarGroupItem,
@@ -127,7 +135,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.integration.cards.BaseContent
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @since 1.64
@@ -142,6 +150,23 @@ sap.ui.define([
 		},
 		renderer: ObjectContentRenderer
 	});
+
+	ObjectContent.prototype.onAfterRendering = function () {
+		BaseContent.prototype.onAfterRendering.apply(this, arguments);
+
+		const oRootContainer = this._getRootContainer();
+
+		if (oRootContainer.getDomRef()) {
+			const iWidth = oRootContainer.getDomRef().offsetWidth;
+			const aItems = oRootContainer.getItems();
+
+			aItems.forEach((oItem, i) => {
+				if (oItem.isA("sap.ui.layout.AlignedFlowLayout")) {
+					this._resizeAlignedFlowLayout(oItem, iWidth, i === aItems.length - 1);
+				}
+			});
+		}
+	};
 
 	ObjectContent.prototype.exit = function () {
 		BaseContent.prototype.exit.apply(this, arguments);
@@ -170,7 +195,7 @@ sap.ui.define([
 		} else {
 			this.showNoDataMessage({
 				illustrationType: IllustratedMessageType.NoData,
-				title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_CHART")
+				title: Library.getResourceBundleFor("sap.ui.integration").getText("CARD_NO_ITEMS_ERROR_CHART")
 			});
 		}
 
@@ -234,28 +259,8 @@ sap.ui.define([
 	 * @override
 	 */
 	ObjectContent.prototype.getStaticConfiguration = function () {
-		var oConfiguration = this.getParsedConfiguration(),
-			sObjectContentPath;
-
-		if (!this.getBindingContext()) {
-			if (oConfiguration && oConfiguration.groups) {
-				oConfiguration.groups.forEach(function (oGroup) {
-					if (oGroup.items) {
-						oGroup.items.forEach(function (oItem) {
-							if (oItem.icon && oItem.icon.src) {
-								oItem.icon.src = this._oIconFormatter.formatSrc(oItem.icon.src);
-							}
-							if (oItem.src) {
-								oItem.src = this._oIconFormatter.formatSrc(oItem.src);
-							}
-						}.bind(this));
-					}
-				}.bind(this));
-			}
-			return oConfiguration;
-		} else {
-			sObjectContentPath = this.getBindingContext().getPath();
-		}
+		const oConfiguration = this.getParsedConfiguration();
+		const sObjectContentPath = BindingHelper.prependPath(this.getDataPath(), this.getCardDataPath());
 
 		if (oConfiguration.groups) {
 			oConfiguration.groups.forEach(function (oGroup) {
@@ -263,8 +268,7 @@ sap.ui.define([
 
 				if (oGroup.items) {
 					oGroup.items.forEach(function (oItem) {
-						var oResolvedGroupItem = this._resolveGroupItem(oItem, oItem.path, sObjectContentPath);
-						aResolvedGroupItems.push(oResolvedGroupItem);
+						aResolvedGroupItems.push(this._resolveGroupItem(oItem, sObjectContentPath));
 					}.bind(this));
 				}
 
@@ -275,11 +279,11 @@ sap.ui.define([
 		return oConfiguration;
 	};
 
-	ObjectContent.prototype._resolveGroupItem = function (oItem, sItemPath, sObjectContentPath) {
+	ObjectContent.prototype._resolveGroupItem = function (oItem, sObjectContentPath) {
 		var oResolvedGroupItem = merge({}, oItem),
-			aResolvedItems = [],
-			sFullPath = sObjectContentPath + sItemPath,
-			bIsFormInput = ["TextArea", "Input", "ComboBox", "Duration", "DateRange"].includes(oItem.type),
+			sItemPath = oItem.path || "/",
+			oTemplate = oItem.template,
+			bIsFormInput = ["TextArea", "Input", "ComboBox", "Duration", "DateRange", "RadioButtonGroup"].includes(oItem.type),
 			bHasItemsToResolve = ["ButtonGroup", "IconGroup"].includes(oItem.type);
 
 		if (bIsFormInput) {
@@ -289,28 +293,27 @@ sap.ui.define([
 		if (oItem.type === "ComboBox") {
 			if (oItem.item) {
 				bHasItemsToResolve = true;
-				sFullPath = sObjectContentPath + oItem.item.path.substring(1);
-				oItem.template = oItem.item.template;
+				sItemPath = oItem.item.path;
+				oTemplate = oItem.item.template;
 				delete oResolvedGroupItem.item;
 			} else {
 				bHasItemsToResolve = false;
 			}
 		}
 
+		if (oItem.type === "Image" && oResolvedGroupItem.overlay) {
+			subtitleToSubTitle(oResolvedGroupItem.overlay);
+		}
+
 		if (bHasItemsToResolve) {
-			var oTemplate = oItem.template,
-				aData = this.getModel().getProperty(sFullPath);
+			const aResolvedItems = BindingResolver.resolveListBinding(sItemPath, sObjectContentPath, oTemplate, this);
 
-			aData.forEach(function (oItemData, iIndex) {
-				var oResolvedItem = BindingResolver.resolveValue(oTemplate, this, sFullPath + "/" + iIndex + "/");
-
+			aResolvedItems.forEach(function (oResolvedItem) {
 				if (oResolvedItem.icon && oResolvedItem.icon.src) {
 					oResolvedItem.icon.src = this._oIconFormatter.formatSrc(oResolvedItem.icon.src);
 				} else if (oResolvedItem.icon && typeof oResolvedItem.icon === "string") {
 					oResolvedItem.icon = this._oIconFormatter.formatSrc(oResolvedItem.icon);
 				}
-
-				aResolvedItems.push(oResolvedItem);
 			}.bind(this));
 
 			oResolvedGroupItem.items = aResolvedItems;
@@ -505,7 +508,7 @@ sap.ui.define([
 				oControl = this._createNumericDataItem(oItem, vVisible);
 				break;
 			case "Status":
-				oControl = ObjectStatusFactory.createStatusItem(oItem);
+				oControl = this._createStatusItem(oItem);
 				break;
 			case "IconGroup":
 				oControl = this._createIconGroupItem(oItem, vVisible);
@@ -533,6 +536,9 @@ sap.ui.define([
 				break;
 			case "DateRange":
 				oControl = this._createDateRangeItem(oItem, vVisible, oLabel, sPath);
+				break;
+			case "RadioButtonGroup":
+				oControl = this._createRadioButtonGroupItem(oItem, vVisible, oLabel, sPath);
 				break;
 
 			// deprecated types
@@ -626,6 +632,19 @@ sap.ui.define([
 		}
 
 		return oVbox;
+	};
+
+	ObjectContent.prototype._createStatusItem = function (oItem) {
+		const oStatus = ObjectStatusFactory.createStatusItem(oItem);
+
+		this._oActions.attach({
+			area: ActionArea.ContentItemDetail,
+			actions: oItem.actions,
+			control: oStatus,
+			enabledPropertyName: "active"
+		});
+
+		return oStatus;
 	};
 
 	ObjectContent.prototype._createTextItem = function (oItem, vVisible, oLabel) {
@@ -906,10 +925,12 @@ sap.ui.define([
 			height: oItem.height
 		});
 
-		if (oItem.imageFit || oItem.imagePosition) {
-			oImage.setMode(ImageMode.Background);
-			oImage.setBackgroundSize(oItem.imageFit);
-			oImage.setBackgroundPosition(oItem.imagePosition);
+		if (oItem.hasOwnProperty("imageFit") || oItem.hasOwnProperty("imagePosition")) {
+			oImage.applySettings({
+				mode: ImageMode.Background,
+				backgroundSize: oItem.imageFit,
+				backgroundPosition: oItem.imagePosition
+			});
 		}
 
 		if (oItem.overlay) {
@@ -920,7 +941,7 @@ sap.ui.define([
 				tooltip: oItem.tooltip,
 				supertitle:  oItem.overlay.supertitle,
 				title: oItem.overlay.title,
-				subTitle: oItem.overlay.subTitle,
+				subtitle: oItem.overlay.subtitle || oItem.overlay.subTitle,
 				verticalPosition: oItem.overlay.verticalPosition,
 				horizontalPosition: oItem.overlay.horizontalPosition,
 				textColor: oItem.overlay.textColor,
@@ -984,6 +1005,58 @@ sap.ui.define([
 		return oControl;
 	};
 
+	ObjectContent.prototype._createRadioButtonGroupItem = function (oItem, vVisible, oLabel, sPath) {
+		const oForm = this._getForm(),
+			oSettings = {
+				visible: BindingHelper.reuse(vVisible),
+				selectedIndex: oItem.selectedIndex ?? -1,
+				columns: 1
+			};
+
+		const oControl = new RadioButtonGroup(oSettings);
+
+		if (oLabel) {
+			oLabel.setLabelFor(oControl);
+			oLabel.setRequired(oForm.getRequiredValidationValue(oItem));
+		}
+
+		if (oItem.item) {
+			const oItemTemplate = new RadioButton({
+				text: oItem.item.template.title,
+				enabled: oItem.item.template.enabled,
+				wrapping: true
+			});
+
+			oItemTemplate.data("key", oItem.item.template.key);
+
+			oControl.bindAggregation("buttons", {
+				path: oItem.item.path || "/",
+				template: oItemTemplate,
+				templateShareable: false
+			});
+
+			if (oItem.selectedIndex === undefined || oItem.selectedIndex === -1) {
+				oControl.attachModelContextChange(function() {
+					const aButtons = this.getButtons();
+					const sTargetKey = BindingResolver.resolveValue(oItem.selectedKey, oControl, oControl.getBindingContext()?.getPath() || "");
+
+					const iSelectedIndex = aButtons.findIndex(function(oButton) {
+						const sKey = oButton.data("key");
+						return sKey && sKey.toString() === sTargetKey;
+					});
+
+					if (iSelectedIndex !== -1) {
+						this.setSelectedIndex(iSelectedIndex);
+					}
+				});
+			}
+		}
+
+		oForm.addControl("select", oControl, oItem, sPath);
+
+		return oControl;
+	};
+
 	ObjectContent.prototype._createAFLayout = function () {
 		var oAlignedFlowLayout = new AlignedFlowLayout();
 
@@ -1005,16 +1078,10 @@ sap.ui.define([
 			return;
 		}
 
-		var aItems = this._getRootContainer().getItems();
-
-		aItems.forEach(function (oItem, i) {
-			if (oItem.isA("sap.ui.layout.AlignedFlowLayout")) {
-				this._onAlignedFlowLayoutResize(oItem, oEvent, i === aItems.length - 1);
-			}
-		}.bind(this));
+		this.invalidate();
 	};
 
-	ObjectContent.prototype._onAlignedFlowLayoutResize = function (oAFLayout, oEvent, bLast) {
+	ObjectContent.prototype._resizeAlignedFlowLayout = function (oAFLayout, iWidth, bLast) {
 		var sMinItemWidth = oAFLayout.getMinItemWidth(),
 			iMinItemWidth,
 			iNumberOfGroups = oAFLayout.getContent().filter(function (oContent) {
@@ -1029,7 +1096,7 @@ sap.ui.define([
 			iMinItemWidth = parseFloat(sMinItemWidth);
 		}
 
-		var iColumns = Math.floor(oEvent.size.width / iMinItemWidth);
+		var iColumns = Math.floor(iWidth / iMinItemWidth);
 
 		// This check is to catch the case when the width of the card is bigger and
 		// can have more columns than groups

@@ -26,13 +26,13 @@
 		},
 		{
 			"name": "DynamicPage.less",
-			"size": 3105,
+			"size": 3175,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "DynamicPageHeader.less",
-			"size": 472,
+			"size": 454,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -61,14 +61,8 @@
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
-			"name": "ProductSwitchItem.less",
-			"size": 223,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
 			"name": "ShellBar.less",
-			"size": 1130,
+			"size": 1100,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -80,23 +74,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 119135,
+			"size": 121394,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/f/themes/sap_fiori_3_hcw/library-parameters.json",
-			"size": 3036,
+			"size": 3050,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 119134,
+			"size": 121396,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 12709,
+			"size": 12731,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -108,7 +102,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2058
+			"size": 1943
 		}
 	]
 }

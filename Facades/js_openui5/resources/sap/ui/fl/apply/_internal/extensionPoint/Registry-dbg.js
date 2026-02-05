@@ -18,7 +18,7 @@ sap.ui.define([
 	 * @alias sap.ui.fl.apply._internal.extensionPoint.Registry
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.fl
@@ -93,7 +93,7 @@ sap.ui.define([
 				aggregations: [sAggregationName]
 			};
 		} else {
-			var bIsObserved = mObservers[sParentId].observer.isObserved(oParent, {aggregations: [sAggregationName]});
+			var bIsObserved = mObservers[sParentId].observer.isObserved(oParent, { aggregations: [sAggregationName] });
 			if (!bIsObserved) {
 				mObservers[sParentId].aggregations.push(sAggregationName);
 				mObservers[sParentId].observer.observe(oParent, {

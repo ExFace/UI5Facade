@@ -29,13 +29,15 @@ sap.ui.define([
 
 	/**
 	 * The `aWhatsNewFeaturesContent` array defines the features that will be displayed inside the "What's New" dialog.
-	 * To add a new feature, add a new object to this array. Each feature object should have the following structure:
+	 * The features are displayed in the order they are defined in this array.
+	 * To add a new feature, add a new object to the BEGINNING of this array. Each feature object should have the following structure:
 	 *
 	 *	{
 	 *		featureId: <Unique identifier for the feature, saved in the backend>,
 	 *		title: <Title of the new feature>,
 	 *		description: <Description of the new feature>,
-	 *		documentationUrls: {
+	 *		documentationUrls: <can be either null if no documentation is available or an object with the following structure>
+	 *		{
 	 *			btpUrl: <Url to the btp documentation of the feature>
 	 *			s4HanaCloudUrl: <Url to the s4HanaCloud documentation of the feature>
 	 *			s4HanaOnPremUrl: <Url to the ABAP on-Premise documentation of the feature>
@@ -69,11 +71,7 @@ sap.ui.define([
 			featureId: "GuidedTour",
 			title: oTextResources.getText("TIT_WHATS_NEW_RTA_TOUR_TITLE"),
 			description: oTextResources.getText("TXT_WHATS_NEW_DIALOG_RTA_TOUR_DESCRIPTION"),
-			documentationUrls: {
-				btpUrl: "https://help.sap.com/docs/ui5-flexibility-for-key-users/ui5-flexibility-for-key-users/adapting-ui",
-				s4HanaCloudUrl: "https://help.sap.com/docs/SAP_S4HANA_CLOUD/4fc8d03390c342da8a60f8ee387bca1a/d868950a1e8c4b0f9b9453176939a19b.html",
-				s4HanaOnPremUrl: "https://help.sap.com/docs/ABAP_PLATFORM_NEW/a7b390faab1140c087b8926571e942b7/d868950a1e8c4b0f9b9453176939a19b.html"
-			},
+			documentationUrls: null,
 			information: [
 				{
 					text: oTextResources.getText("TXT_WHATS_NEW_DIALOG_RTA_TOUR_TEXT"),
@@ -133,11 +131,7 @@ sap.ui.define([
 			featureId: "ExtendedActions",
 			title: oTextResources.getText("TIT_WHATS_NEW_EXTENDED_ACTIONS_TITLE"),
 			description: oTextResources.getText("TXT_WHATS_NEW_DIALOG_EXTENDED_ACTIONS_DESCRIPTION"),
-			documentationUrls: {
-				btpUrl: "https://help.sap.com/docs/ui5-flexibility-for-key-users/ui5-flexibility-for-key-users/adapting-ui",
-				s4HanaCloudUrl: "https://help.sap.com/docs/SAP_S4HANA_CLOUD/4fc8d03390c342da8a60f8ee387bca1a/d868950a1e8c4b0f9b9453176939a19b.html",
-				s4HanaOnPremUrl: "https://help.sap.com/docs/ABAP_PLATFORM_NEW/a7b390faab1140c087b8926571e942b7/d868950a1e8c4b0f9b9453176939a19b.html"
-			},
+			documentationUrls: null,
 			information: [
 				{
 					text: oTextResources.getText("TXT_WHATS_NEW_DIALOG_EXTENDED_ACTIONS_TEXT_1"),
@@ -153,11 +147,7 @@ sap.ui.define([
 			featureId: "WhatsNewFeature",
 			title: oTextResources.getText("TIT_WHATS_NEW_DIALOG_WHATS_NEW_FEATURE_TITLE"),
 			description: oTextResources.getText("TXT_WHATS_NEW_DIALOG_WHATS_NEW_FEATURE_DESCRIPTION"),
-			documentationUrls: {
-				btpUrl: "https://help.sap.com/docs/ui5-flexibility-for-key-users/ui5-flexibility-for-key-users/adapting-ui",
-				s4HanaCloudUrl: "https://help.sap.com/docs/SAP_S4HANA_CLOUD/4fc8d03390c342da8a60f8ee387bca1a/d868950a1e8c4b0f9b9453176939a19b.html",
-				s4HanaOnPremUrl: "https://help.sap.com/docs/ABAP_PLATFORM_NEW/a7b390faab1140c087b8926571e942b7/d868950a1e8c4b0f9b9453176939a19b.html"
-			},
+			documentationUrls: null,
 			information: [
 				{
 					text: oTextResources.getText("TXT_WHATS_NEW_DIALOG_WHATS_NEW_FEATURE_TEXT"),
@@ -197,11 +187,7 @@ sap.ui.define([
 			featureId: "MinimenuRemoval",
 			title: oTextResources.getText("TIT_WHATS_NEW_DIALOG_MINIMENU_REMOVAL_TITLE"),
 			description: oTextResources.getText("TXT_WHATS_NEW_DIALOG_MINIMENU_REMOVAL_DESCRIPTION"),
-			documentationUrls: {
-				btpUrl: "https://help.sap.com/docs/ui5-flexibility-for-key-users/ui5-flexibility-for-key-users/adapting-ui",
-				s4HanaCloudUrl: "https://help.sap.com/docs/SAP_S4HANA_CLOUD/4fc8d03390c342da8a60f8ee387bca1a/d868950a1e8c4b0f9b9453176939a19b.html",
-				s4HanaOnPremUrl: "https://help.sap.com/docs/ABAP_PLATFORM_NEW/a7b390faab1140c087b8926571e942b7/d868950a1e8c4b0f9b9453176939a19b.html"
-			},
+			documentationUrls: null,
 			information: [
 				{
 					text: oTextResources.getText("TXT_WHATS_NEW_DIALOG_MINIMENU_REMOVAL_TEXT"),

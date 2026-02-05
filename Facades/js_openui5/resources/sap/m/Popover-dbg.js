@@ -121,7 +121,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.136.12
+		* @version 1.144.0
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -266,6 +266,7 @@ sap.ui.define([
 
 					/**
 					 * Any control that needed to be displayed in the header area. When this is set, the showHeader property is ignored, and only this customHeader is shown on the top of popover.
+					* <br/><b>Note:</b> To improve accessibility, titles with heading level <code>H1</code> should be used inside the custom header.
 					 */
 					customHeader: {type: "sap.ui.core.Control", multiple: false},
 
@@ -436,14 +437,39 @@ sap.ui.define([
 			this.oPopup.setAnimations(jQuery.proxy(this._openAnimation, this), jQuery.proxy(this._closeAnimation, this));
 
 			// This is data used to position the popover depending on the placement property
-			this._placements = [PlacementType.Top, PlacementType.Right, PlacementType.Bottom, PlacementType.Left,
-				PlacementType.Vertical, PlacementType.Horizontal, PlacementType.Auto,
-				PlacementType.VerticalPreferedTop, PlacementType.VerticalPreferedBottom,
-				PlacementType.HorizontalPreferedLeft, PlacementType.HorizontalPreferedRight,
-				PlacementType.VerticalPreferredTop, PlacementType.VerticalPreferredBottom,
-				PlacementType.HorizontalPreferredLeft, PlacementType.HorizontalPreferredRight,
-				PlacementType.PreferredRightOrFlip, PlacementType.PreferredLeftOrFlip,
-				PlacementType.PreferredTopOrFlip, PlacementType.PreferredBottomOrFlip];
+			this._placements = [
+				PlacementType.Top,
+				PlacementType.Right,
+				PlacementType.Bottom,
+				PlacementType.Left,
+				PlacementType.Vertical,
+				PlacementType.Horizontal,
+				PlacementType.Auto,
+				/**
+				* @deprecated As of version 1.36
+				*/
+				PlacementType.VerticalPreferedTop,
+				/**
+				* @deprecated As of version 1.36
+				*/
+				PlacementType.VerticalPreferedBottom,
+				/**
+				* @deprecated As of version 1.36
+				*/
+				PlacementType.HorizontalPreferedLeft,
+				/**
+				* @deprecated As of version 1.36
+				*/
+				PlacementType.HorizontalPreferedRight,
+				PlacementType.VerticalPreferredTop,
+				PlacementType.VerticalPreferredBottom,
+				PlacementType.HorizontalPreferredLeft,
+				PlacementType.HorizontalPreferredRight,
+				PlacementType.PreferredRightOrFlip,
+				PlacementType.PreferredLeftOrFlip,
+				PlacementType.PreferredTopOrFlip,
+				PlacementType.PreferredBottomOrFlip
+			];
 
 			this._myPositions = ["center bottom", "begin center", "center top", "end center"];
 			this._atPositions = ["center top", "end center", "center bottom", "begin center"];
@@ -706,7 +732,9 @@ sap.ui.define([
 					oNavContent.attachEvent("afterNavigate", function (oEvent) {
 						var oDomRef = this.getDomRef();
 						if (oDomRef) {
-							var oFocusableElement = this.$().firstFocusableDomRef() || oDomRef;
+							var oFocusableElement = this.$().firstFocusableDomRef({
+								includeScroller: true
+							}) || oDomRef;
 							oFocusableElement.focus();
 						}
 					}, this);
@@ -739,6 +767,9 @@ sap.ui.define([
 				oHeader.setTitleAlignment(this.getTitleAlignment());
 			}
 
+			[oHeader, this.getSubHeader(), this.getFooter()].forEach(function (oControl) {
+				oControl?.addStyleClass("sapMIBar-CTX");
+			});
 		};
 
 		/**
@@ -1193,8 +1224,10 @@ sap.ui.define([
 			//If the invisible FIRST focusable element (suffix '-firstfe') has got focus, move focus to the last focusable element inside
 			if (oSourceDomRef.id === sFirstFeId) {
 				// Search for anything focusable from bottom to top
-				var oLastFocusableDomref = $this.lastFocusableDomRef();
-				if (oLastFocusableDomref){
+				var oLastFocusableDomref = $this.lastFocusableDomRef({
+					includeScroller: true
+				});
+				if (oLastFocusableDomref) {
 					oLastFocusableDomref.focus();
 				} else {
 					//force the focus to stay in the popover when the content is not focusable.
@@ -1202,8 +1235,10 @@ sap.ui.define([
 				}
 			} else if (oSourceDomRef.id === sLastFeId) {
 				// Search for anything focusable from top to bottom
-				var oFirstFocusableDomref = $this.firstFocusableDomRef();
-				if (oFirstFocusableDomref){
+				var oFirstFocusableDomref = $this.firstFocusableDomRef({
+					includeScroller: true
+				});
+				if (oFirstFocusableDomref) {
 					oFirstFocusableDomref.focus();
 				} else {
 					//force the focus to stay in the popover when the content is not focusable.
@@ -1482,7 +1517,6 @@ sap.ui.define([
 
 			this.resizedWidth = `${width}px`;
 			this.resizedHeight = `${height}px`;
-			this.invalidate();
 
 			this._calcPlacement();
 		};
@@ -1527,7 +1561,7 @@ sap.ui.define([
 		/*                      begin: internal methods                  */
 		/* =========================================================== */
 		/**
-		 * This method detects if there's an sap.m.NavContainer instance added as a single child into Popover's content aggregation or through one or more sap.ui.mvc.View controls.
+		 * This method detects if there's an sap.m.NavContainer instance added as a single child into Popover's content aggregation or through one or more sap.ui.core.mvc.View controls.
 		 * If there is, sapMPopoverNav style class will be added to the root node of the control in order to apply some special css styles to the inner dom nodes.
 		 * @returns {boolean} True is there is a single NavContainer within the Popover's content
 		 */
@@ -1564,7 +1598,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * This method detects if there's an sap.m.Page instance added as a single child into popover's content aggregation or through one or more sap.ui.mvc.View controls.
+		 * This method detects if there's an sap.m.Page instance added as a single child into popover's content aggregation or through one or more sap.ui.core.mvc.View controls.
 		 * If there is, sapMPopoverPage style class will be added to the root node of the control in order to apply some special css styles to the inner dom nodes.
 		 *
 		 * @returns {boolean} True is there is a Page within the Popover's content
@@ -1584,7 +1618,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * If a scrollable control (sap.m.NavContainer, sap.m.ScrollContainer, sap.m.Page) is added to popover's content aggregation as a single child or through one or more sap.ui.mvc.View instances,
+		 * If a scrollable control (sap.m.NavContainer, sap.m.ScrollContainer, sap.m.Page) is added to popover's content aggregation as a single child or through one or more sap.ui.core.mvc.View instances,
 		 * the scrolling inside popover will be disabled in order to avoid wrapped scrolling areas.
 		 *
 		 * If more than one scrollable control is added to popover, the scrolling needs to be disabled manually.
@@ -1685,7 +1719,7 @@ sap.ui.define([
 			this._bPosCalced = true;
 
 			//set position of popover to calculated position
-			var iPlacePos = this._placements.indexOf(this._oCalcedPos);
+			var iPlacePos = this._placements.indexOf(this._getCalculatedPlacement());
 			this.oPopup.setPosition(this._myPositions[iPlacePos], this._atPositions[iPlacePos], oParentDomRef, this._calcOffset(this._offsets[iPlacePos]), "fit");
 		};
 
@@ -2567,7 +2601,10 @@ sap.ui.define([
 		Popover.prototype._getFirstFocusableContentElementId = function () {
 			var sResult = "";
 			var $popoverContent = this.$("cont");
-			var oFirstFocusableDomRef = $popoverContent.firstFocusableDomRef();
+			var oFirstFocusableDomRef = $popoverContent.firstFocusableDomRef({
+				includeSelf: true,
+				includeScroller: true
+			});
 
 			if (oFirstFocusableDomRef) {
 				sResult = oFirstFocusableDomRef.id;
@@ -2667,6 +2704,12 @@ sap.ui.define([
 			}
 		};
 
+		Popover.prototype._getTitles = function (oContainer) {
+			return oContainer.findAggregatedObjects(true, function(oObject) {
+				return oObject.isA("sap.m.Title");
+			});
+		};
+
 		/**
 		 * Provides the accessibility options of the control.
 		 *
@@ -2685,10 +2728,23 @@ sap.ui.define([
 				return mAccOptions;
 			}
 
-			var oHeaderId = oCustomHeader ? oCustomHeader.getId() : this.getHeaderTitle().getId();
+			if (oCustomHeader) {
+				// if there are titles in the header, add all of them to labels, else use the full header
+				var aTitles = this._getTitles(oHeader);
+
+				if (aTitles.length) {
+					aAriaLabels = aTitles.map(function (oTitle) {
+						return oTitle.getId();
+					});
+				} else {
+					aAriaLabels = oHeader.getId();
+				}
+			} else {
+				aAriaLabels = this.getHeaderTitle().getId();
+			}
 
 			// If we have a header/title, we add a reference to it in the beginning of the aria-labelledby attribute
-			aAriaLabels = Array.prototype.concat(oHeaderId, this.getAssociation("ariaLabelledBy", []));
+			aAriaLabels = Array.prototype.concat(aAriaLabels, this.getAssociation("ariaLabelledBy", []));
 			mAccOptions.labelledby = aAriaLabels.join(' ');
 
 			return mAccOptions;

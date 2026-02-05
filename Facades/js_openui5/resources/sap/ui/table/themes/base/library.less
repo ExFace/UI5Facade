@@ -37,12 +37,16 @@
 @_sap_ui_table_RowActionItemSizeCozy: calc(@_sap_ui_table_BaseSizeCozy ~"-" 0.5rem);
 @_sap_ui_table_RowActionItemSizeCondensed: calc(@_sap_ui_table_BaseSizeCondensed ~"-" 0.125rem);
 @_sap_ui_table_RowActionPadding: 0.25rem;
-@_sap_ui_table_RowActionColumnWidth: calc(~"2 *" @_sap_ui_table_RowActionItemSize ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
-@_sap_ui_table_RowActionColumnWidthCozy: calc(~"2 *" @_sap_ui_table_RowActionItemSizeCozy ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
-@_sap_ui_table_RowActionColumnWidthCondensed: calc(~"2 *" @_sap_ui_table_RowActionItemSizeCondensed ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+
 @_sap_ui_table_RowActionColumnSmallWidth: calc(@_sap_ui_table_RowActionItemSize ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
 @_sap_ui_table_RowActionColumnSmallWidthCozy: calc(@_sap_ui_table_RowActionItemSizeCozy ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
 @_sap_ui_table_RowActionColumnSmallWidthCondensed: calc(@_sap_ui_table_RowActionItemSizeCondensed ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnWidth: calc(~"2 *" @_sap_ui_table_RowActionItemSize ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnWidthCozy: calc(~"2 *" @_sap_ui_table_RowActionItemSizeCozy ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnWidthCondensed: calc(~"2 *" @_sap_ui_table_RowActionItemSizeCondensed ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnLargeWidth: calc(~"3 *" @_sap_ui_table_RowActionItemSize ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnLargeWidthCozy: calc(~"3 *" @_sap_ui_table_RowActionItemSizeCozy ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
+@_sap_ui_table_RowActionColumnLargeWidthCondensed: calc(~"3 *" @_sap_ui_table_RowActionItemSizeCondensed ~"+ 2 *" @_sap_ui_table_RowActionPadding ~"+ 2 *" @_sap_ui_table_BaseBorderWidth);
 
 @_sap_ui_table_NavigationIcon: navigation-right-arrow;
 @_sap_ui_table_DeleteIcon: sys-cancel;
@@ -135,7 +139,7 @@
 	min-height: @_sap_ui_table_Table_FooterHeight;
 	background-color: var(--sapList_Background);
 	padding-left: @_sap_ui_table_Table_FooterPaddingLeft;
-	padding-right: @_sap_ui_table_Table_FooterPaddingLeft;
+	padding-right: @_sap_ui_table_Table_FooterPaddingRight;
 	font-weight: bold;
 
 	> * {
@@ -606,10 +610,6 @@
 
 @_sap_ui_table_Row_Color: var(--sapList_TextColor);
 @_sap_ui_table_Row_ColorHovered: @_sap_ui_table_Row_Color;
-@_sap_ui_table_Row_AlternateBackground: darken(@sapUiListBackground, 2);
-@_sap_ui_table_Row_AlternateBackgroundHovered: darken(@sapUiListHoverBackground, 3);
-@_sap_ui_table_Row_AlternateBackgroundSelected: darken(@sapUiListSelectionBackgroundColor, 2);
-@_sap_ui_table_Row_AlternateBackgroundSelectedHovered: darken(@sapUiListSelectionHoverBackground, 2);
 @_sap_ui_table_Row_NavigationIndicatorColor: var(--sapList_SelectionBorderColor);
 
 .sapUiTableHeaderRow {
@@ -621,19 +621,7 @@
 	background-color: var(--sapList_Background);
 
 	&.sapUiTableRowAlternate {
-		background-color: @_sap_ui_table_Row_AlternateBackground;
-
-		&.sapUiTableRowHvr {
-			background-color: @_sap_ui_table_Row_AlternateBackgroundHovered;
-		}
-
-		&.sapUiTableRowSel {
-			background-color: @_sap_ui_table_Row_AlternateBackgroundSelected;
-
-			&.sapUiTableRowHvr {
-				background-color: @_sap_ui_table_Row_AlternateBackgroundSelectedHovered;
-			}
-		}
+		background-color: var(--sapList_AlternatingBackground);
 	}
 
 	&.sapUiTableRowSel {
@@ -651,7 +639,7 @@
 	}
 
 	&.sapUiTableRowSel.sapUiTableRowHvr {
-		background-color: @sapUiListSelectionHoverBackground;
+		background-color: var(--sapList_Hover_SelectionBackground);
 	}
 
 	.sapUiTableRowActionScr & {
@@ -819,6 +807,29 @@
 			outline-offset: @_sap_ui_table_Cell_FocusOutlineOffsetInZoomedChrome;
 		}
 	}
+
+	.sapUiTableRowNavIndicator & {
+
+		&.sapUiTableRowActionCell::before,
+		&.sapUiTableRowActionHeaderCell::before {
+			right: @_sap_ui_table_NavIndicatorWidth;
+		}
+	}
+
+	.sapUiTableRowNavIndicator:not(.sapUiTableRAct) & {
+
+		&.sapUiTableCellLast::before {
+			right: @_sap_ui_table_NavIndicatorWidth;
+		}
+	}
+
+	.sapUiTableRowHighlights & {
+
+		&.sapUiTableRowSelectionCell::before,
+		&.sapUiTableRowSelectionHeaderCell::before {
+			left: @_sap_ui_table_RowHighlightWidth;
+		}
+	}
 }
 
 /*
@@ -869,7 +880,7 @@
 
 	&.sapUiTableRowActionCell {
 
-		.sapUiTableRowNavIndicator & {
+		.sapUiTableRowNavIndicator:not(.sapUiTableRAct) & {
 			border-right: none;
 			border-left: none;
 		}
@@ -931,7 +942,7 @@
 	}
 }
 
-.sapUiTableRowSelectionHeaderCell { /* Contains highlight and SelectAll selector. */
+.sapUiTableRowSelectionHeaderCell { /* Contains highlight and header selector. */
 	display: none;
 	vertical-align: bottom;
 	position: absolute;
@@ -980,19 +991,6 @@
 
 		.sapUiSizeCozy & {
 			width: calc(@_sap_ui_table_RowSelectorWidthCozy ~"+" @_sap_ui_table_RowHighlightWidth);
-		}
-	}
-
-	&.sapUiTableSelAllDisabled > * {
-		opacity: 0.3;
-		pointer-events: none;
-	}
-
-	&:not(.sapUiTableSelAllDisabled) {
-		cursor: pointer;
-
-		> * {
-			cursor: pointer;
 		}
 	}
 }
@@ -1116,33 +1114,45 @@
 	height: 100%;
 	display: none;
 	z-index: 4; /* Ensure Action Area before Resize/Reorder bars */
-	width: @_sap_ui_table_RowActionColumnWidth;
 
-	.sapUiTableRAct &,
-	.sapUiTableRActS & {
+	.sapUiTableRAct & {
 		display: block;
 	}
 
 	.sapUiTableRActS & {
 		width: @_sap_ui_table_RowActionColumnSmallWidth;
+
+		.sapUiSizeCozy & {
+			width: @_sap_ui_table_RowActionColumnSmallWidthCozy;
+		}
+
+		.sapUiSizeCondensed & {
+			width: @_sap_ui_table_RowActionColumnSmallWidthCondensed;
+		}
 	}
 
-	.sapUiSizeCozy & {
-		width: @_sap_ui_table_RowActionColumnWidthCozy;
+	.sapUiTableRActM & {
+		width: @_sap_ui_table_RowActionColumnWidth;
+
+		.sapUiSizeCozy & {
+			width: @_sap_ui_table_RowActionColumnWidthCozy;
+		}
+
+		.sapUiSizeCondensed & {
+			width: @_sap_ui_table_RowActionColumnWidthCondensed;
+		}
 	}
 
-	.sapUiSizeCozy .sapUiTableRActS &,
-	.sapUiSizeCozy.sapUiTableRActS & {
-		width: @_sap_ui_table_RowActionColumnSmallWidthCozy;
-	}
+	.sapUiTableRActL & {
+		width: @_sap_ui_table_RowActionColumnLargeWidth;
 
-	.sapUiSizeCondensed & {
-		width: @_sap_ui_table_RowActionColumnWidthCondensed;
-	}
+		.sapUiSizeCozy & {
+			width: @_sap_ui_table_RowActionColumnLargeWidthCozy;
+		}
 
-	.sapUiSizeCondensed .sapUiTableRActS &,
-	.sapUiSizeCondensed.sapUiTableRActS & {
-		width: @_sap_ui_table_RowActionColumnSmallWidthCondensed;
+		.sapUiSizeCondensed & {
+			width: @_sap_ui_table_RowActionColumnLargeWidthCondensed;
+		}
 	}
 
 	> span {
@@ -1173,31 +1183,44 @@
 .sapUiTableRowActionCell {
 	display: flex;
 	align-items: center;
-	min-width: @_sap_ui_table_RowActionColumnWidth;
 
 	.sapUiTableRActS & {
 		min-width: @_sap_ui_table_RowActionColumnSmallWidth;
+
+		.sapUiSizeCozy & {
+			min-width: @_sap_ui_table_RowActionColumnSmallWidthCozy;
+		}
+
+		.sapUiSizeCondensed & {
+			min-width: @_sap_ui_table_RowActionColumnSmallWidthCondensed;
+		}
 	}
 
-	.sapUiSizeCozy & {
-		min-width: @_sap_ui_table_RowActionColumnWidthCozy;
+	.sapUiTableRActM & {
+		min-width: @_sap_ui_table_RowActionColumnWidth;
+
+		.sapUiSizeCozy & {
+			min-width: @_sap_ui_table_RowActionColumnWidthCozy;
+		}
+
+		.sapUiSizeCondensed & {
+			min-width: @_sap_ui_table_RowActionColumnWidthCondensed;
+		}
 	}
 
-	.sapUiSizeCozy .sapUiTableRActS &,
-	.sapUiSizeCozy.sapUiTableRActS & {
-		min-width: @_sap_ui_table_RowActionColumnSmallWidthCozy;
+	.sapUiTableRActL & {
+		min-width: @_sap_ui_table_RowActionColumnLargeWidth;
+
+		.sapUiSizeCozy & {
+			min-width: @_sap_ui_table_RowActionColumnLargeWidthCozy;
+		}
+
+		.sapUiSizeCondensed & {
+			min-width: @_sap_ui_table_RowActionColumnLargeWidthCondensed;
+		}
 	}
 
-	.sapUiSizeCondensed & {
-		min-width: @_sap_ui_table_RowActionColumnWidthCondensed;
-	}
-
-	.sapUiSizeCondensed .sapUiTableRActS &,
-	.sapUiSizeCondensed.sapUiTableRActS & {
-		min-width: @_sap_ui_table_RowActionColumnSmallWidthCondensed;
-	}
-
-	.sapUiTableRowNavIndicator & {
+	.sapUiTableRowNavIndicator:not(.sapUiTableRAct) & {
 		min-width: @_sap_ui_table_NavIndicatorWidth;
 		pointer-events: none;
 	}
@@ -1245,6 +1268,124 @@
 	padding-right: .25rem;
 }
 /* END "Cell.less" */
+
+/* START "CheckBox.less" */
+/* ================================== */
+/* CSS for sap.ui.table/CheckBox      */
+/* Base theme                         */
+/* ================================== */
+
+@_sap_ui_table_CheckBox_Size: 1rem;
+@_sap_ui_table_CheckBox_SizeCozy: 1.375rem;
+@_sap_ui_table_CheckBox_CheckMarkColor: var(--sapContent_Selected_ForegroundColor);
+@_sap_ui_table_CheckBox_BackgroundColorHover: var(--sapField_Selector_Hover_Background);
+
+.sapUiTableCheckBox {
+	&::after {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		content: '';
+		width: @_sap_ui_table_CheckBox_Size;
+		height: @_sap_ui_table_CheckBox_Size;
+		font-family: var(--sapContent_IconFontFamily);
+		font-size: 0.625rem;
+		border-radius: var(--sapField_BorderCornerRadius);
+		border: var(--sapField_BorderWidth) var(--sapField_Selector_BorderStyle) var(--sapField_BorderColor);
+		background-color: var(--sapField_Background);
+		color: @_sap_ui_table_CheckBox_CheckMarkColor;
+		box-sizing: border-box;
+		margin: auto;
+		position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+
+		.sapUiSizeCozy & {
+			width: @_sap_ui_table_CheckBox_SizeCozy;
+			height: @_sap_ui_table_CheckBox_SizeCozy;
+			font-size: 1rem;
+		}
+	}
+
+	&.sapUiTableCheckBoxSelected::after {
+		content: '\e05b';
+		border-color: var(--sapContent_FocusColor);
+	}
+
+	&:hover::after {
+		border-color: var(--sapField_Hover_BorderColor);
+		background-color: @_sap_ui_table_CheckBox_BackgroundColorHover;
+		box-shadow: var(--sapContent_Interaction_Shadow);
+	}
+}
+/* END "CheckBox.less" */
+
+/* START "HeaderSelector.less" */
+/* ==================================== */
+/* CSS for sap.ui.table/HeaderSelector  */
+/* Base theme                           */
+/* ==================================== */
+
+.sapUiTableHeaderSelector {
+	&.sapUiTableHeaderSelectorDisabled > * {
+		opacity: var(--sapContent_DisabledOpacity);
+		pointer-events: none;
+	}
+
+	&:not(.sapUiTableHeaderSelectorDisabled) {
+		cursor: pointer;
+
+		> * {
+			cursor: pointer;
+		}
+	}
+
+	> .sapUiTableCheckBox {
+		height: 100%;
+		width: 100%;
+
+		&::after {
+			/* The checkbox should always be at the bottom if a custom column header height is specified, or the table has multiple header rows */
+			top: auto;
+			bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeight ~"-" @_sap_ui_table_CheckBox_Size ~") / 2");
+
+			.sapUiSizeCozy & {
+				bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeightCozy ~"-" @_sap_ui_table_CheckBox_SizeCozy ~") / 2");
+			}
+		}
+	}
+
+	.sapUiTableHeaderSelectorIcon {
+		width: 100%;
+		height: 100%;
+
+		&::before {
+			display: block !important; /* otherwise will be overwritten by icon css rules in RTL */
+			position: absolute;
+			width: 100%;
+			font-size: 1rem;
+			line-height: @_sap_ui_table_CheckBox_SizeCozy;
+			bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeight ~"-" @_sap_ui_table_CheckBox_SizeCozy ~") / 2");
+
+			.sapUiSizeCozy & {
+				bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeightCozy ~"-" @_sap_ui_table_CheckBox_SizeCozy ~") / 2");
+			}
+
+			.sapUiTableRowHighlights.sapUiTableRowSelectors & {
+				padding: 0 calc(~"(" @_sap_ui_table_RowHighlightWidth ~") / 2");
+			}
+		}
+
+		&:active {
+			background-color: var(--sapList_Active_Background);
+			color: var(--sapList_Active_TextColor);
+		}
+	}
+}
+/* END "HeaderSelector.less" */
 
 /* START "RowHighlight.less" */
 /* ================================== */
@@ -1345,154 +1486,25 @@
 /* Base theme                         */
 /* ================================== */
 
-@_sap_ui_table_RowSelection_CheckBoxSize: 1rem;
-@_sap_ui_table_RowSelection_CheckBoxSizeCozy: 1.375rem;
-@_sap_ui_table_RowSelection_CheckBoxBorderWidth: 0.125rem;
-@_sap_ui_table_RowSelection_CheckBoxBorderRadius: 0;
-@_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy: 0.125rem;
-@_sap_ui_table_RowSelection_CheckBoxBorderColor: var(--sapField_BorderColor);
-@_sap_ui_table_RowSelection_CheckBoxBorderColorHovered: var(--sapField_Hover_BorderColor);
-@_sap_ui_table_RowSelection_CheckBoxIconSize: 0.625rem;
-@_sap_ui_table_RowSelection_CheckBoxIconSizeCozy: 1rem;
-@_sap_ui_table_RowSelection_CheckBoxIconColor: var(--sapSelectedColor);
-
-.sapUiTableSelectAllCheckBox,
+/* For historical reasons, the row selection cell does not contain the checkbox, it is the checkbox */
 .sapUiTableRowSelectionCell {
+	
+	&::after:extend(.sapUiTableCheckBox::after) {
+		display: none;
 
-	&::after {
-		content: '';
-		position: absolute;
-		border: @_sap_ui_table_RowSelection_CheckBoxBorderWidth solid @_sap_ui_table_RowSelection_CheckBoxBorderColor;
-		background-color: var(--sapField_Background);
-		font-family: var(--sapContent_IconFontFamily);
-		text-align: center;
-		color: @_sap_ui_table_RowSelection_CheckBoxIconColor;
-		box-sizing: border-box;
-		margin: auto;
-		top: 0;
-		left: 0;
-		bottom: 0;
-		right: 0;
-		width: @_sap_ui_table_RowSelection_CheckBoxSize;
-		height: @_sap_ui_table_RowSelection_CheckBoxSize;
-		font-size: @_sap_ui_table_RowSelection_CheckBoxIconSize;
-		border-radius: @_sap_ui_table_RowSelection_CheckBoxBorderRadius;
-
-		.sapUiSizeCozy & {
-			width: @_sap_ui_table_RowSelection_CheckBoxSizeCozy;
-			height: @_sap_ui_table_RowSelection_CheckBoxSizeCozy;
-			font-size: @_sap_ui_table_RowSelection_CheckBoxIconSizeCozy;
-			border-radius: @_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy;
-		}
-	}
-}
-
-.sapUiTableSelectAllCheckBox {
-	display: none;
-	height: 100%;
-	width: 100%;
-
-	.sapUiTableSelModeMultiToggle .sapUiTableRowSelectionHeaderCell.sapUiTableSelAllVisible & {
-		display: block;
-	}
-
-	&::after {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-
-		/* Select All Checkbox should always be at the bottom */
-		top: auto;
-		bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeight ~"-" @_sap_ui_table_RowSelection_CheckBoxSize ~") / 2");
-
-		.sapUiSizeCozy & {
-			/* Select All Checkbox should always be at the bottom */
-			bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeightCozy ~"-" @_sap_ui_table_RowSelection_CheckBoxSizeCozy ~") / 2");
+		.sapUiTableSelModeMultiToggle.sapUiTableRowSelectors .sapUiTableRow:not(.sapUiTableRowHidden, .sapUiTableGroupHeaderRow, .sapUiTableSummaryRow) & {
+			display: flex;
 		}
 
-		.sapUiTableRowSelectionHeaderCell:not(.sapUiTableSelAll) & {
-			content: '\e05b';
-		}
+		.sapUiTableRowSel &:extend(.sapUiTableCheckBox.sapUiTableCheckBoxSelected::after) {}
+		.sapUiTableRowHvr &:extend(.sapUiTableCheckBox:hover::after) {}
 
 		.sapUiTableRowHighlights & {
 			left: @_sap_ui_table_RowHighlightWidth;
 		}
 	}
 
-	&:hover::after {
-		border-color: @_sap_ui_table_RowSelection_CheckBoxBorderColorHovered;
-	}
-}
-
-.sapUiTableRowSelectionCell::after {
-	display: none;
-
-	.sapUiTableSelModeMultiToggle.sapUiTableRowSelectors & {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.sapUiTableGroupHeaderRow > &,
-	.sapUiTableRowHidden > &,
-	.sapUiTableSummaryRow > & {
-
-		.sapUiTableSelModeMultiToggle & {
-			display: none;
-		}
-	}
-
-	.sapUiSizeCozy & {
-		width: @_sap_ui_table_RowSelection_CheckBoxSizeCozy;
-		height: @_sap_ui_table_RowSelection_CheckBoxSizeCozy;
-		font-size: @_sap_ui_table_RowSelection_CheckBoxIconSizeCozy;
-	}
-
-	.sapUiTableRowHighlights & {
-		left: @_sap_ui_table_RowHighlightWidth;
-	}
-
-	.sapUiTableRowSel & {
-
-		.sapUiTableSelModeMultiToggle & {
-			content: '\e05b';
-		}
-	}
-
-	.sapUiTableRowHvr & {
-		border-color: @_sap_ui_table_RowSelection_CheckBoxBorderColorHovered;
-	}
-}
-
-.sapUiTableSelectClear {
-	width: 100%;
-	height: 100%;
-
-	&::before {
-		display: block !important; /* otherwise will be overwritten by icon css rules in RTL */
-		position: absolute;
-		width: 100%;
-		font-size: @_sap_ui_table_RowSelection_CheckBoxIconSizeCozy;
-		line-height: @_sap_ui_table_RowSelection_CheckBoxSizeCozy;
-		bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeight ~"-" @_sap_ui_table_RowSelection_CheckBoxSizeCozy ~") / 2");
-
-		.sapUiSizeCozy & {
-			bottom: calc(~"(" @_sap_ui_table_ColumnHeaderHeightCozy ~"-" @_sap_ui_table_RowSelection_CheckBoxSizeCozy ~") / 2");
-		}
-
-		.sapUiTableRowHighlights.sapUiTableRowSelectors & {
-			padding: 0 calc(~"(" @_sap_ui_table_RowHighlightWidth ~") / 2");
-		}
-	}
-
-	&:active {
-
-		/* The active state background color and text color should not be applied if column reordering is in progress. */
-		.sapUiTable:not(.sapUiTableDragDrop) & {
-			background-color: var(--sapList_Active_Background);
-			color: var(--sapList_Active_TextColor);
-		}
-	}
+	.sapUiSizeCozy &::after:extend(.sapUiSizeCozy .sapUiTableCheckBox::after) {}
 }
 /* END "RowSelection.less" */
 
@@ -1693,23 +1705,6 @@
 	}
 }
 
-.sapUiTableVScr.sapUiTableRAct {
-
-	._sapUiTableVScrWithActionsInnerMixin();
-}
-
-.sapUiSizeCozy.sapUiTableVScr.sapUiTableRAct,
-.sapUiSizeCozy .sapUiTableVScr.sapUiTableRAct {
-
-	._sapUiTableVScrWithActionsInnerMixin("WidthCozy");
-}
-
-.sapUiSizeCondensed.sapUiTableVScr.sapUiTableRAct,
-.sapUiSizeCondensed .sapUiTableVScr.sapUiTableRAct {
-
-	._sapUiTableVScrWithActionsInnerMixin("WidthCondensed");
-}
-
 .sapUiTableVScr.sapUiTableRActS {
 
 	._sapUiTableVScrWithActionsInnerMixin("SmallWidth");
@@ -1727,21 +1722,38 @@
 	._sapUiTableVScrWithActionsInnerMixin("SmallWidthCondensed");
 }
 
-.sapUiTableRAct:not(.sapUiTableVScr) {
+.sapUiTableVScr.sapUiTableRActM {
 
-	._sapUiTableNoVScrWithActionsInnerMixin();
+	._sapUiTableVScrWithActionsInnerMixin();
 }
 
-.sapUiSizeCozy.sapUiTableRAct:not(.sapUiTableVScr),
-.sapUiSizeCozy .sapUiTableRAct:not(.sapUiTableVScr) {
+.sapUiSizeCozy.sapUiTableVScr.sapUiTableRActM,
+.sapUiSizeCozy .sapUiTableVScr.sapUiTableRActM {
 
-	._sapUiTableNoVScrWithActionsInnerMixin("WidthCozy");
+	._sapUiTableVScrWithActionsInnerMixin("WidthCozy");
 }
 
-.sapUiSizeCondensed.sapUiTableRAct:not(.sapUiTableVScr),
-.sapUiSizeCondensed .sapUiTableRAct:not(.sapUiTableVScr) {
+.sapUiSizeCondensed.sapUiTableVScr.sapUiTableRActM,
+.sapUiSizeCondensed .sapUiTableVScr.sapUiTableRActM {
 
-	._sapUiTableNoVScrWithActionsInnerMixin("WidthCondensed");
+	._sapUiTableVScrWithActionsInnerMixin("WidthCondensed");
+}
+
+.sapUiTableVScr.sapUiTableRActL {
+
+	._sapUiTableVScrWithActionsInnerMixin("LargeWidth");
+}
+
+.sapUiSizeCozy.sapUiTableVScr.sapUiTableRActL,
+.sapUiSizeCozy .sapUiTableVScr.sapUiTableRActL {
+
+	._sapUiTableVScrWithActionsInnerMixin("LargeWidthCozy");
+}
+
+.sapUiSizeCondensed.sapUiTableVScr.sapUiTableRActL,
+.sapUiSizeCondensed .sapUiTableVScr.sapUiTableRActL {
+
+	._sapUiTableVScrWithActionsInnerMixin("LargeWidthCondensed");
 }
 
 .sapUiTableRActS:not(.sapUiTableVScr) {
@@ -1759,6 +1771,40 @@
 .sapUiSizeCondensed .sapUiTableRActS:not(.sapUiTableVScr) {
 
 	._sapUiTableNoVScrWithActionsInnerMixin("SmallWidthCondensed");
+}
+
+.sapUiTableRActM:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin();
+}
+
+.sapUiSizeCozy.sapUiTableRActM:not(.sapUiTableVScr),
+.sapUiSizeCozy .sapUiTableRActM:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin("WidthCozy");
+}
+
+.sapUiSizeCondensed.sapUiTableRActM:not(.sapUiTableVScr),
+.sapUiSizeCondensed .sapUiTableRActM:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin("WidthCondensed");
+}
+
+.sapUiTableRActL:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin("LargeWidth");
+}
+
+.sapUiSizeCozy.sapUiTableRActL:not(.sapUiTableVScr),
+.sapUiSizeCozy .sapUiTableRActL:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin("LargeWidthCozy");
+}
+
+.sapUiSizeCondensed.sapUiTableRActL:not(.sapUiTableVScr),
+.sapUiSizeCondensed .sapUiTableRActL:not(.sapUiTableVScr) {
+
+	._sapUiTableNoVScrWithActionsInnerMixin("LargeWidthCondensed");
 }
 
 /* Hide last border right of column header and cell when no vertical scroll is available */
@@ -1957,6 +2003,7 @@ html.sap-phone {
 .sapUiTableVSbIOS {
 	position: absolute;
 	width: 100%;
+	bottom: 0;
 	z-index: 5;
 
 	.sapUiTableVSbIOSThumb {
@@ -2113,6 +2160,8 @@ html[data-sap-ui-animation^='on'] .sapUiTableColReorderIndicator {
 
 .sapUiTableColRsz.sapUiTableColRszActive {
 	z-index: 5; /* Ensure be above Row Action Area */
+	padding: 0 12px; /* Increase clickable area (width) to 24px */
+	margin: 0 -12px;
 }
 
 html[dir=rtl] .sapUiTableColRsz {
@@ -2128,7 +2177,12 @@ html.sap-desktop .sapUiTableColRsz:hover {
 
 .sapUiTableColRszActive,
 html.sap-desktop .sapUiTableColRsz.sapUiTableColRszActive:hover {
-	background-color: @_sap_ui_table_DragDrop_ColumnDnDHighlightColor;
+	background: linear-gradient(
+		to left,
+		transparent 0% 40%,
+		@_sap_ui_table_DragDrop_ColumnDnDHighlightColor 40% 60%,
+		transparent 60%
+	);
 	opacity: 1;
 }
 

@@ -28,7 +28,7 @@ sap.ui.define([
 	 * Note: We recommend the usage of <code>sap.ui.webc.main.CardHeader</code> for the header slot, so advantage can be taken for keyboard handling, styling and accessibility.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

@@ -8,6 +8,7 @@ sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/core/Lib",
 	"sap/ui/integration/editor/Editor",
+	"sap/ui/integration/editor/Constants",
 	"sap/ui/integration/widgets/Card",
 	"sap/ui/integration/editor/Merger",
 	"sap/ui/model/json/JSONModel",
@@ -17,11 +18,13 @@ sap.ui.define([
 	"sap/ui/integration/designtime/editor/CardPreview",
 	"sap/base/util/extend",
 	"sap/ui/integration/util/Utils",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/base/util/deepClone"
 ], function(
 	Element,
 	Library,
 	Editor,
+	Constants,
 	Card,
 	Merger,
 	JSONModel,
@@ -31,7 +34,8 @@ sap.ui.define([
 	CardPreview,
 	extend,
 	Utils,
-	Log
+	Log,
+	deepClone
 ) {
 	"use strict";
 
@@ -49,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.editor.Editor
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @see {@link topic:5b46b03f024542ba802d99d67bc1a3f4 Cards}
 	 * @since 1.83
@@ -102,7 +106,7 @@ sap.ui.define([
 
 	CardEditor.prototype.getSeparatePreview = function() {
 		var sPreviewPosition = this.getPreviewPosition();
-		if (!this.isReady() || sPreviewPosition !== "separate") {
+		if (!this.isFieldReady() || sPreviewPosition !== "separate") {
 			return null;
 		}
 		return this._initPreview();
@@ -116,6 +120,41 @@ sap.ui.define([
 		if (oCardPreview && oCardPreview.update && oCardPreview._getCurrentMode() !== "None") {
 			oCardPreview.update();
 		}
+	};
+
+	/**
+	 * Switch to another editor based on the manifest and item object
+	 *
+	 * @param {*} oManifest the manifest of the editor to switch to
+	 * @param {*} oItemObject the binding object of the pressed tree item
+	 * @param {string} sPath the path of the pressed tree item
+	 */
+	CardEditor.prototype.switchToEditor = function(oManifest, oItemObject, sPath) {
+		// save the current card instance, to avoid creating new instance when switching between child cards
+		this._oChildTreeSettings = this._oChildTreeSettings || {};
+		if (!this._oChildTreeSettings[this._oChildTree._path]) {
+			this._oChildTreeSettings[this._oChildTree._path] = this._oEditorCard;
+		}
+
+		// get settings for the pressed item
+		this.isChild = oItemObject.isChild;
+		var oManifestChanges;
+		if (!this.isChild) {
+			oManifestChanges = this._aMainEditorChanges;
+		} else {
+			oManifestChanges = this._oChildEditorChanges[sPath] || [];
+		}
+		if (this._oChildTreeSettings[sPath]) {
+			this._vIdOrSettings = this._oChildTreeSettings[sPath];
+			this._vIdOrSettings.setManifestChanges(oManifestChanges);
+		} else {
+			this._vIdOrSettings.baseUrl = oItemObject.baseUrl;
+			this._vIdOrSettings.manifest = oManifest;
+			this._vIdOrSettings.manifestChanges = oManifestChanges;
+		}
+
+		// switch to the pressed item card
+		this.setCard(this._vIdOrSettings, true); //suppress rerendering as the editor will be rerendered anyway
 	};
 
 	/**
@@ -179,8 +218,8 @@ sap.ui.define([
 	};
 
 	CardEditor.prototype.initDestinations = function (vHost) {
-		this._destinationsModel = new JSONModel({});
-		this.setModel(this._destinationsModel, "destinations");
+		this._oDestinationsModel = new JSONModel({});
+		this.setModel(this._oDestinationsModel, "destinations");
 		var oHostInstance = this.getHostInstance();
 
 		if (vHost && !oHostInstance) {
@@ -233,43 +272,43 @@ sap.ui.define([
 
 	CardEditor.prototype.createManifest = async function (vIdOrSettings, bSuppress) {
 		this._isManifestReady = false;
-		if (this._oEditorManifest) {
-			this._oEditorManifest.destroy();
+		if (this._oManifest) {
+			this._oManifest.destroy();
 		}
 		this.destroyAggregation("_extension");
 		var iCurrentModeIndex = Merger.layers[this.getMode()];
 
-		this._oEditorManifest = this._oEditorCard._oCardManifest;
+		this._oManifest = this._oEditorCard._oCardManifest;
 		this._registerManifestModulePath();
 		// since Manifest.js will translate i18n values in the manifest.json which we don't want to,
 		// so we need to get inital manifest json, merge it with before layer changes by ourself to keep the i18n key
-		var oInitialJson = this._oEditorManifest._oInitialJson;
+		var oInitialJson = this._oManifest._oInitialJson;
 		this._oInitialManifestModel = new JSONModel(oInitialJson);
 		this.setProperty("json", oInitialJson, bSuppress);
 		var oManifestJson;
-		if (this._beforeLayerManifestChanges) {
-			oManifestJson = Merger.mergeDelta(oInitialJson, [this._beforeLayerManifestChanges]);
+		if (this._oBeforeLayerChange) {
+			oManifestJson = Merger.mergeDelta(oInitialJson, [this._oBeforeLayerChange]);
 		} else {
 			oManifestJson = oInitialJson;
 		}
-		var _beforeCurrentLayer = merge({}, oManifestJson);
-		this._beforeManifestModel = new JSONModel(_beforeCurrentLayer);
-		if (iCurrentModeIndex < Merger.layers["translation"] && this._currentLayerManifestChanges) {
+		var oBeforeLayerManifestJson = merge({}, oManifestJson);
+		this._oBeforeLayerManifestModel = new JSONModel(oBeforeLayerManifestJson);
+		if (iCurrentModeIndex < Merger.layers["translation"] && this._oCurrentLayerChange) {
 			//merge if not translation
-			oManifestJson = Merger.mergeDelta(oManifestJson, [this._currentLayerManifestChanges]);
+			oManifestJson = Merger.mergeDelta(oManifestJson, [this._oCurrentLayerChange]);
 		}
 		//create a manifest model after the changes are merged
-		this._manifestModel = new JSONModel(oManifestJson);
+		this._oManifestModel = new JSONModel(oManifestJson);
 		this._isManifestReady = true;
 		this.fireManifestReady();
 		this._initResourceBundlesForMultiTranslation();
-		if (this.getMode() === "translation") {
+		if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 			await this._loadSpecialTranslations();
 		}
 		//add a context model
 		this._createContextModel();
-		if (this._oEditorManifest && this._oEditorManifest.getResourceBundle()) {
-			var oResourceBundle = this._oEditorManifest.getResourceBundle();
+		if (this._oManifest && this._oManifest.getResourceBundle()) {
+			var oResourceBundle = this._oManifest.getResourceBundle();
 			var oResourceModel = new ResourceModel({
 				bundle: oResourceBundle
 			});
@@ -289,7 +328,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Initializes the additional content
+	 * Initializes the preview content
 	 */
 	CardEditor.prototype._initPreview = function () {
 		var oSettings = this._oDesigntimeInstance.getSettings() || {};
@@ -298,12 +337,31 @@ sap.ui.define([
 		var oCardPreview = new CardPreview({
 			settings: oSettings,
 			card: this._oEditorCard,
-			parentWidth: this.getWidth(),
+			parentWidth: this._oChildTree && this._editorWidth ? this._editorWidth : this.getWidth(),
 			parentHeight: this.getHeight()
 		});
+		// set preview size type if has child cards
+		if (this._oChildTree && this._previewSize) {
+			oCardPreview._currentSize = this._previewSize;
+		}
 		this.setAggregation("_preview", oCardPreview);
 		oCardPreview.setAssociation("_editor", this);
 		return oCardPreview;
+	};
+
+	/**
+	 * Destory the preview content
+	 */
+	CardEditor.prototype._destoryPreview = function () {
+		var oPreview = this.getAggregation("_preview");
+		if (oPreview) {
+			// save the editor width and preview size type for the next card editor
+			this._editorWidth = oPreview.getParentWidth();
+			this._previewSize = oPreview._currentSize;
+			// do not remove css properties here, as they will be used for the next card editor
+			oPreview.destroy(false);
+			this.setAggregation("_preview", null);
+		}
 	};
 
 	CardEditor.prototype._loadExtension = function () {

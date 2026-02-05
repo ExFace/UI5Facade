@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @class
 	 * Creates the "Message"s to be supplied to the "MessageBar" Control.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

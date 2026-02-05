@@ -28,7 +28,7 @@ sap.ui.define([
 	 * The <code>FieldInput</code> control is used to render an input field inside a control based on {@link sap.ui.mdc.field.FieldBase FieldBase}.
 	 * It enhances the {@link sap.m.Input Input} control to add ARIA attributes and other {@link sap.ui.mdc.field.FieldBase FieldBase}-specific logic.
 	 * @extends sap.m.Input
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @abstract
 	 * @private

@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariantInlineChange
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -36,7 +36,6 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.fl"
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(mPropertyBag) {
 			ManagedObject.apply(this);
 			if (!isPlainObject(mPropertyBag)) {

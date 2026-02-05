@@ -8,43 +8,37 @@
 		},
 		{
 			"name": "BlindLayer.less",
-			"size": 991,
+			"size": 706,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BrowserScrollbar.less",
-			"size": 1117,
+			"size": 337,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BusyIndicator.less",
-			"size": 381,
+			"size": 6828,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "CommandShortcutHints.less",
-			"size": 450,
+			"size": 486,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DragAndDrop.less",
-			"size": 1210,
+			"size": 1243,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Icon.less",
-			"size": 3343,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "LocalBusyIndicator.less",
-			"size": 6581,
+			"size": 3471,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -61,19 +55,7 @@
 		},
 		{
 			"name": "ScrollBar.less",
-			"size": 499,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "Shadow.less",
-			"size": 40,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "TechnicalInfo.less",
-			"size": 2599,
+			"size": 599,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -85,23 +67,23 @@
 		},
 		{
 			"name": "base.less",
-			"size": 747120,
+			"size": 749094,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "fonts/SAP-icons.ttf",
-			"size": 334984,
+			"size": 333764,
 			"theme": "base"
 		},
 		{
 			"name": "fonts/SAP-icons.woff2",
-			"size": 111880,
+			"size": 107696,
 			"theme": "base"
 		},
 		{
 			"name": "global.less",
-			"size": 132159,
+			"size": 132516,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -167,29 +149,29 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 305922,
+			"size": 305146,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/base/library-parameters.json",
-			"size": 157994,
+			"size": 158315,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 305909,
+			"size": 305134,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 137567,
+			"size": 134360,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 635,
+			"size": 547,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -201,23 +183,23 @@
 		},
 		{
 			"name": "parameterClasses.less",
-			"size": 1849,
+			"size": 2009,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "resources.json",
-			"size": 3768
+			"size": 3469
 		},
 		{
 			"name": "shared.less",
-			"size": 9335,
+			"size": 9456,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "skeleton.less",
-			"size": 105567,
+			"size": 105814,
 			"designtime": true,
 			"theme": "base"
 		}

@@ -53,6 +53,10 @@ sap.ui.define([
 			_settings: {
 				ignore: true
 			}
+		},
+		name: {
+			singular: "CTX_IFRAME_NAME_SINGULAR",
+			plural: "CTX_IFRAME_NAME_PLURAL"
 		}
 	};
 });

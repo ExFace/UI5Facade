@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "ObjectPageHeaderContent.less",
-			"size": 2932,
+			"size": 3072,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
@@ -50,35 +50,35 @@
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 2267,
+			"size": 2400,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 1294,
+			"size": 1514,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 81988,
+			"size": 82231,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/uxap/themes/sap_horizon_hcw/library-parameters.json",
-			"size": 374,
+			"size": 533,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 81981,
+			"size": 82224,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 28739,
+			"size": 29232,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},

@@ -20,13 +20,13 @@
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 2102,
+			"size": 1890,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 1317,
+			"size": 1415,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 1163,
+			"size": 1265,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 200248,
+			"size": 199689,
 			"theme": "sap_horizon_dark"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 199781,
+			"size": 199222,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 22042,
+			"size": 22030,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},

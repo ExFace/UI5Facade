@@ -22,7 +22,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddIFrame
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.72
 	 * @private
 	 */

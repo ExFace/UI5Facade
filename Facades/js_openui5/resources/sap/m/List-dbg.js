@@ -30,7 +30,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer", "sap/ui/core/Lib", "
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -102,9 +102,9 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer", "sap/ui/core/Lib", "
 	 * <li>The description is only applied when the role is 'list'.</li>
 	 * </ul>
 	 *
-	 * @param {string} [sTextKey] role attribute for the control
+	 * @param {string} [sTextKey] aria role description text key
 	 * @private
-	 * @ui5-restricted sap.m.UploadSet
+	 * @ui5-restricted sap.m.upload.UploadSet
 	 * @since 1.120
 	 */
 	List.prototype.applyAriaRoleDescription = function(sTextKey) {

@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "ObjectPageHeaderContent.less",
-			"size": 1236,
+			"size": 1562,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 69935,
+			"size": 70376,
 			"theme": "sap_belize_hcb"
 		},
 		{
@@ -73,12 +73,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 69928,
+			"size": 70370,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 19606,
+			"size": 19932,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},

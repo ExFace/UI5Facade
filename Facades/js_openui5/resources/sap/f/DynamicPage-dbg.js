@@ -118,7 +118,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -835,9 +835,8 @@ sap.ui.define([
 					"sapFDynamicPageTitleSnappedTitleOnMobile" : "sapFDynamicPageTitleSnapped");
 			this._updateToggleHeaderVisualIndicators();
 			this._togglePinButtonVisibility(false);
-			this._updateTitlePositioning();
 		}
-
+		this._updateTitlePositioning();
 		this._toggleHeaderInTabChain(false);
 		this._updateARIAStates(false);
 		this._toggleHeaderBackground(true);
@@ -878,9 +877,8 @@ sap.ui.define([
 			if (!this.getPreserveHeaderStateOnScroll() && !this._headerBiggerThanAllowedToPin()) {
 				this._togglePinButtonVisibility(true);
 			}
-			this._updateTitlePositioning();
 		}
-
+		this._updateTitlePositioning();
 		this._toggleHeaderInTabChain(true);
 		this._updateARIAStates(true);
 		this._toggleHeaderBackground(false);
@@ -1273,18 +1271,31 @@ sap.ui.define([
 	/**
 	 * Determines if the content is scrollable.
 	 * <code>Note:</code>
-	 * For IE and Edge we use 1px threshold,
-	 * because the clientHeight returns results in 1px difference compared to the scrollHeight,
-	 * the reason is not defined.
+	 * We use 1px threshold, because the clientHeight sometimes returns results in 1px
+	 * difference compared to the scrollHeight, the reason is not defined.
 	 *
 	 * @returns {boolean}
 	 * @private
 	 */
 	DynamicPage.prototype._needsVerticalScrollBar = function () {
+		return this._isContentOverflowingScrollContainer()
+			|| this.isContentOverflowingIntoFooter();
+	};
+
+	DynamicPage.prototype._isContentOverflowingScrollContainer = function () {
 		// treat maxScrollHeight values in the range [0, 1] as 0,
 		// to cover the known cases where the nested content overflows
 		// the container with up to 1px because of rounding issues
 		return Math.floor(this._getMaxScrollPosition()) > 1;
+	};
+
+	DynamicPage.prototype._isContentOverflowingFullscreenContainer = function () {
+		return exists(this.$contentFitContainer)
+			&& this.$contentFitContainer[0].scrollHeight > this.$contentFitContainer[0].clientHeight;
+	};
+
+	DynamicPage.prototype.isContentOverflowingIntoFooter = function () {
+		return this.getShowFooter() && this._isContentOverflowingFullscreenContainer();
 	};
 
 	/**

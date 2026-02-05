@@ -6,7 +6,8 @@
 
 sap.ui.define([
 	"../../TableDelegate",
-	"../../table/V4AnalyticsPropertyHelper",
+	"../../table/ODataV4PropertyHelper",
+	"sap/ui/mdc/Table",
 	"sap/ui/mdc/enums/TableP13nMode",
 	"sap/ui/mdc/enums/TableType",
 	"sap/ui/mdc/enums/TableSelectionMode",
@@ -18,7 +19,8 @@ sap.ui.define([
 	"sap/ui/core/message/MessageType"
 ], (
 	TableDelegate,
-	V4AnalyticsPropertyHelper,
+	ODataV4PropertyHelper,
+	Table,
 	P13nMode,
 	TableType,
 	SelectionMode,
@@ -34,36 +36,8 @@ sap.ui.define([
 	/**
 	 * @typedef {sap.ui.mdc.table.PropertyInfo} sap.ui.mdc.odata.v4.TableDelegate.PropertyInfo
 	 *
-	 * An object literal describing a data property in the context of a {@link sap.ui.mdc.Table} with
+	 * An object literal describing a data property in the context of an {@link sap.ui.mdc.Table} with
 	 * {@link module:sap/ui/mdc/odata/v4/TableDelegate sap/ui/mdc/odata/v4/TableDelegate}.
-	 *
-	 * When specifying the <code>PropertyInfo</code> objects in the {@link sap.ui.mdc.Table#getPropertyInfo propertyInfo} property, the following
-	 * attributes need to be specified:
-	 * <ul>
-	 *   <li><code>key</code></li>
-	 *   <li><code>path</code></li>
-	 *   <li><code>dataType</code></li>
-	 *   <li><code>formatOptions</code></li>
-	 *   <li><code>constraints</code></li>
-	 *   <li><code>maxConditions</code></li>
-	 *   <li><code>caseSensitive</code></li>
-	 *   <li><code>visualSettings.widthCalculation</code></li>
-	 *   <li><code>propertyInfos</code></li>
-	 *   <li><code>groupable</code></li>
-	 *   <li><code>isKey</code></li>
-	 *   <li><code>unit</code></li>
-	 *   <li><code>text</code></li>
-	 *   <li><code>aggregatable</code></li>
-	 *   <li><code>extension.technicallyGroupable</code></li>
-	 *   <li><code>extension.technicallyAggregatable</code></li>
-	 * </ul>
-	 *
-	 * If the property is complex, the following attributes need to be specified:
-	 * <ul>
-	 *   <li><code>key</code></li>
-	 *   <li><code>visualSettings.widthCalculation</code></li>
-	 *   <li><code>propertyInfos</code> (all referenced properties must be specified)</li>
-	 * </ul>
 	 *
 	 * @property {boolean} [isKey=false]
 	 *   Defines whether a property is a key or part of a key in the data. A key property must be technically groupable.
@@ -83,7 +57,7 @@ sap.ui.define([
 	 * @public
 	 */
 
-	 /*
+	/*
 	 * restricted for sap.fe (there's no way to make a property of a type private, therefore it's defined outside of the typedef)
 	 * TODO: Rename to "contextDefiningProperties" before making it public.
 	 * property {string[]} [extension.additionalProperties]
@@ -159,6 +133,9 @@ sap.ui.define([
 	 * {@link sap.ui.mdc.table.GridTableType GridTable}. The <code>p13nMode</code> <code>Group</code> is not supported if the table type is
 	 * {@link sap.ui.mdc.table.TreeTableType TreeTable}. This cannot be changed in your delegate implementation.
 	 *
+	 * All binding-related limitations regarding selection also apply in the context of this delegate. For details, see
+	 * {@link sap.ui.model.odata.v4.Context#setSelected} and {@link sap.ui.model.odata.v4.ODataModel#bindList}.
+	 *
 	 * @author SAP SE
 	 * @namespace
 	 * @alias module:sap/ui/mdc/odata/v4/TableDelegate
@@ -176,7 +153,8 @@ sap.ui.define([
 	 * @name module:sap/ui/mdc/odata/v4/TableDelegate.fetchProperties
 	 * @function
 	 * @param {sap.ui.mdc.Table} oTable Instance of the table
-	 * @returns {Promise<sap.ui.mdc.odata.v4.TableDelegate.PropertyInfo[]>} A <code>Promise</code> that resolves with the property information
+	 * @returns {Promise<Array<sap.ui.mdc.odata.v4.TableDelegate.PropertyInfo|sap.ui.mdc.table.ComplexPropertyInfo>>}
+	 *     A <code>Promise</code> that resolves with the property information
 	 * @protected
 	 */
 
@@ -187,12 +165,12 @@ sap.ui.define([
 	/**
 	 * Gets the model-specific <code>PropertyHelper</code> class to create an instance of.
 	 *
-	 * @returns {sap.ui.mdc.table.V4AnalyticsPropertyHelper} The <code>PropertyHelper</code> class.
+	 * @returns {sap.ui.mdc.table.ODataV4PropertyHelper} The <code>PropertyHelper</code> class.
 	 * @private
 	 * @ui5-restricted sap.ui.mdc
 	 */
 	Delegate.getPropertyHelperClass = function() {
-		return V4AnalyticsPropertyHelper;
+		return ODataV4PropertyHelper;
 	};
 
 	/**
@@ -210,7 +188,7 @@ sap.ui.define([
 			oBindingInfo.parameters.$$aggregation = {expandTo: oCurrentAggregation.expandTo};
 		}
 
-		if (!isAnalyticsEnabled(oTable)) {
+		if (!isDataAggregationEnabled(oTable)) {
 			const aInResultPropertyKeys = getInResultPropertyKeys(oTable);
 
 			if (aInResultPropertyKeys.length > 0) {
@@ -245,7 +223,7 @@ sap.ui.define([
 		let aSorters = TableDelegate.getSorters.apply(this, arguments);
 
 		// Sorting by a property that is not in the aggregation info (sorting by a property that is not requested) causes a back end error.
-		if (isAnalyticsEnabled(oTable)) {
+		if (isDataAggregationEnabled(oTable)) {
 			const oPropertyHelper = oTable.getPropertyHelper();
 			const aVisiblePropertyPaths = getVisiblePropertyKeys(oTable).map((sPropertyKey) => oPropertyHelper.getProperty(sPropertyKey).path);
 
@@ -254,6 +232,36 @@ sap.ui.define([
 
 		return aSorters;
 	};
+
+	/**
+	 * Extracts the model name and path from a binding path string.
+	 *
+	 * @param {string} sPath The binding path that might contain a model name (e.g. "myModel>/Products" or "/Products")
+	 * @returns {{modelName: string, path: string}} Model name and path
+	 */
+	function extractModelNameAndPath(sPath) {
+		const aMatch = sPath?.match(/^([^>]+)>(.*)$/);
+
+		if (aMatch) {
+			return {modelName: aMatch[1], path: aMatch[2]};
+		} else {
+			return {modelName: undefined, path: sPath};
+		}
+	}
+
+	/**
+	 * Compares two binding paths, taking into account that one might contain a model name while the other doesn't.
+	 *
+	 * @param {string} sPath1 The first path to compare
+	 * @param {string} sPath2 The second path to compare
+	 * @returns {boolean} Whether the paths are different
+	 */
+	function hasPathChanged(sPath1, sPath2) {
+		const oPath1 = extractModelNameAndPath(sPath1);
+		const oPath2 = extractModelNameAndPath(sPath2);
+
+		return oPath1.path !== oPath2.path;
+	}
 
 	/**
 	 * Updates the binding of the table with the binding info object returned from
@@ -277,12 +285,16 @@ sap.ui.define([
 	 * @override
 	 */
 	Delegate.updateBinding = function(oTable, oBindingInfo, oBinding, mSettings) {
-		// Custom $$aggregation is not supported if analytical features are enabled.
-		if (isAnalyticsEnabled(oTable)) {
+		// Custom $$aggregation is not supported if data aggregation is enabled.
+		if (isDataAggregationEnabled(oTable)) {
 			updateAggregation(oTable, oBindingInfo);
+		} else {
+			const oModel = oTable.getModel("$sap.ui.mdc.Table");
+			oModel.setProperty("/@custom/hasDataAggregation", false);
+			oModel.setProperty("/@custom/hasGrandTotal", false);
 		}
 
-		if (!oBinding || oBinding.getPath() != oBindingInfo.path) {
+		if (!oBinding || hasPathChanged(oBinding.getPath(), oBindingInfo.path)) {
 			this.rebind(oTable, oBindingInfo);
 			return;
 		}
@@ -310,7 +322,7 @@ sap.ui.define([
 			}
 		} catch (e) {
 			this.rebind(oTable, oBindingInfo);
-			if (oRootBinding == oBinding) {
+			if (oRootBinding === oBinding) {
 				// If we resume before the rebind, you get an extra request therefore we must
 				// resume after rebind, but only if the list binding was not the root binding.
 				bHasRootBindingAndWasNotSuspended = false;
@@ -320,6 +332,21 @@ sap.ui.define([
 				oRootBinding.resume();
 			}
 		}
+	};
+
+	/**
+	 * @inheritDoc
+	 */
+	Delegate.rebind = function(oTable, oBindingInfo) {
+		Table._addBindingListener(oBindingInfo, "createActivate", () => {
+			Promise.resolve().then(() => { // The count is updated after the event is fired
+				oTable._updateRowCountForHeader();
+			});
+		});
+		Table._addBindingListener(oBindingInfo, "createCompleted", () => {
+			oTable._updateRowCountForHeader();
+		});
+		TableDelegate.rebind.apply(this, arguments);
 	};
 
 	Delegate.fetchExpandAndCollapseConfiguration = function(oTable) {
@@ -334,10 +361,10 @@ sap.ui.define([
 			collapseAll: function(oTable) {
 				expandRowsToLevel(oTable, 1);
 			},
-			expandAllFromNode: function(oTable, oContext) {
+			expandEntireNode: function(oTable, oContext) {
 				oContext.expand(Number.MAX_SAFE_INTEGER);
 			},
-			collapseAllFromNode: function(oTable, oContext) {
+			collapseEntireNode: function(oTable, oContext) {
 				oContext.collapse(true);
 			},
 			isNodeExpanded: function(oTable, oContext) {
@@ -414,11 +441,11 @@ sap.ui.define([
 		const oBaseValidationResult = TableDelegate.validateState.apply(this, arguments);
 		let oValidationResult;
 
-		if (sKey == "Sort") {
+		if (sKey === "Sort") {
 			oValidationResult = validateSortState(oTable, oState);
-		} else if (sKey == "Group") {
+		} else if (sKey === "Group") {
 			oValidationResult = validateGroupState(oTable, oState);
-		} else if (sKey == "Column") {
+		} else if (sKey === "Column") {
 			oValidationResult = validateColumnState(oTable, oState);
 		}
 
@@ -426,8 +453,8 @@ sap.ui.define([
 	};
 
 	function validateSortState(oTable, oState) {
-		if (isAnalyticsEnabled(oTable) && hasStateForInvisibleColumns(oTable, oState.items, oState.sorters)) {
-			// Sorting by properties that are not visible in the table (not requested from the backend) is not possible in analytical scenarios.
+		if (isDataAggregationEnabled(oTable) && hasStateForInvisibleColumns(oTable, oState.items, oState.sorters)) {
+			// Sorting by properties that are not visible in the table (not requested from the backend) is not possible with data aggregation.
 			// Corresponding sort conditions are not applied.
 			return {
 				validation: MessageType.Information,
@@ -494,13 +521,13 @@ sap.ui.define([
 		}
 
 		if (hasStateForInvisibleColumns(oTable, oState.items, aAggregateProperties)) {
-			// Aggregating by properties that are not visible in the table (not requested from the backend) is not possible in analytical scenarios.
+			// Aggregating by properties that are not visible in the table (not requested from the backend) is not possible with data aggregation.
 			// Corresponding aggregate conditions are not applied.
 			sMessage = oResourceBundle.getText("table.PERSONALIZATION_DIALOG_TOTAL_RESTRICTION");
 		}
 
-		if (isAnalyticsEnabled(oTable) && hasStateForInvisibleColumns(oTable, oState.items, oState.sorters)) {
-			// Sorting by properties that are not visible in the table (not requested from the backend) is not possible in analytical scenarios.
+		if (isDataAggregationEnabled(oTable) && hasStateForInvisibleColumns(oTable, oState.items, oState.sorters)) {
+			// Sorting by properties that are not visible in the table (not requested from the backend) is not possible with data aggregation.
 			// Corresponding sort conditions are not applied.
 			const sSortMessage = oResourceBundle.getText("table.PERSONALIZATION_DIALOG_SORT_RESTRICTION");
 			sMessage = sMessage ? sMessage + "\n" + sSortMessage : sSortMessage;
@@ -532,19 +559,10 @@ sap.ui.define([
 	};
 
 	async function configureGridTable(oTable) {
-		const [V4AggregationPlugin] = await loadModules("sap/ui/table/plugins/V4Aggregation");
+		const [ODataV4AggregationPlugin] = await loadModules("sap/ui/table/plugins/ODataV4Aggregation");
 
-		oTable._oTable.addDependent(new V4AggregationPlugin({
-			enabled: {
-				parts: [
-					{path: "$sap.ui.mdc.Table>/p13nMode"},
-					{path: "$sap.ui.mdc.Table>/groupConditions"},
-					{path: "$sap.ui.mdc.Table>/aggregateConditions"}
-				],
-				formatter: function(sP13nMode, aGroupConditions, aAggregateConditions) {
-					return isAnalyticsEnabled(oTable);
-				}
-			},
+		oTable._oTable.addDependent(new ODataV4AggregationPlugin({
+			enabled: "{= !!${$sap.ui.mdc.Table>/@custom/hasDataAggregation} }",
 			groupHeaderFormatter: function(oContext) {
 				const aGroupedPropertyKeys = oTable._getGroupedProperties().map((mGroupLevel) => mGroupLevel.name);
 				const sGroupLevelKey = aGroupedPropertyKeys[oContext.getProperty("@$ui5.node.level") - 1];
@@ -565,37 +583,49 @@ sap.ui.define([
 	};
 
 	function initializeGridTableSelection(oTable) {
-		const mSelectionModeMap = {
-			Single: "Single",
-			SingleMaster: "Single",
-			Multi: "MultiToggle"
-		};
+		return loadModules([
+			"sap/ui/table/plugins/ODataV4MultiSelection",
+			"sap/ui/table/plugins/ODataV4SingleSelection"
+		]).then((aModules) => {
+			const [ODataV4MultiSelectionPlugin, ODataV4SingleSelectionPlugin] = aModules;
 
-		return loadModules("sap/ui/table/plugins/ODataV4Selection").then((aModules) => {
-			const ODataV4SelectionPlugin = aModules[0];
+			function initSelection(oEvent) {
+				if (!oTable._isOfType(TableType.Table, true)) {
+					return;
+				}
 
-			oTable._oTable.addDependent(new ODataV4SelectionPlugin({
-				limit: "{$sap.ui.mdc.Table#type>/selectionLimit}",
-				enableNotification: true,
-				hideHeaderSelector: "{= !${$sap.ui.mdc.Table#type>/showHeaderSelector} }",
-				selectionMode: {
-					path: "$sap.ui.mdc.Table>/selectionMode",
-					formatter: function(sSelectionMode) {
-						return mSelectionModeMap[sSelectionMode];
-					}
-				},
-				enabled: {
-					path: "$sap.ui.mdc.Table>/selectionMode",
-					formatter: function(sSelectionMode) {
-						return sSelectionMode in mSelectionModeMap;
-					}
-				},
-				selectionChange: function(oEvent) {
-					oTable._onSelectionChange({
-						selectAll: oEvent.getParameter("selectAll")
+				const sSelectionMode = oTable.getSelectionMode();
+				let oSelectionPlugin;
+
+				if (oEvent && oTable.getSelectedContexts().length > 0) {
+					oTable.clearSelection();
+					oTable.fireSelectionChange();
+				}
+
+				PluginBase.getPlugin(oTable._oTable, "sap.ui.table.plugins.ODataV4Selection")?.destroy();
+
+				if (sSelectionMode === SelectionMode.Multi) {
+					oSelectionPlugin = new ODataV4MultiSelectionPlugin({
+						limit: "{$sap.ui.mdc.Table#type>/selectionLimit}",
+						enableNotification: true,
+						hideHeaderSelector: "{= !${$sap.ui.mdc.Table#type>/showHeaderSelector} }",
+						selectionChange: () => oTable._onSelectionChange({selectAll: undefined})
+					});
+				} else if (sSelectionMode === SelectionMode.Single || sSelectionMode === SelectionMode.SingleMaster) {
+					oSelectionPlugin = new ODataV4SingleSelectionPlugin({
+						selectionChange: () => oTable._onSelectionChange({selectAll: undefined})
 					});
 				}
-			}));
+
+				oTable._oTable.addDependent(oSelectionPlugin);
+			}
+
+			initSelection();
+
+			if (!oTable._oSelectionModeBinding) {
+				oTable._oSelectionModeBinding = oTable.getModel("$sap.ui.mdc.Table").bindProperty("/selectionMode");
+				oTable._oSelectionModeBinding.attachChange(initSelection);
+			}
 		});
 	}
 
@@ -651,14 +681,15 @@ sap.ui.define([
 		}
 
 		oBindingInfo.parameters.$$aggregation = mAggregation;
+		oTable.getModel("$sap.ui.mdc.Table").setProperty("/@custom/hasDataAggregation", !!mAggregation);
 
 		const bHasGrandTotal = Object.keys(mAggregation?.aggregate || {}).some((sKey) => {
 			return mAggregation.aggregate[sKey].grandTotal;
 		});
 		oTable.getModel("$sap.ui.mdc.Table").setProperty("/@custom/hasGrandTotal", bHasGrandTotal);
 
-		const V4AggregationPlugin = PluginBase.getPlugin(oTable._oTable, "sap.ui.table.plugins.V4Aggregation");
-		V4AggregationPlugin?.declareColumnsHavingTotals(getColumnsWithTotals(oTable).map((oColumn) => oColumn.getInnerColumn()));
+		const oODataV4AggregationPlugin = PluginBase.getPlugin(oTable._oTable, "sap.ui.table.plugins.ODataV4Aggregation");
+		oODataV4AggregationPlugin?.declareColumnsHavingTotals(getColumnsWithTotals(oTable).map((oColumn) => oColumn.getInnerColumn()));
 	}
 
 	function getVisiblePropertyKeys(oTable) {
@@ -781,7 +812,7 @@ sap.ui.define([
 	 * @returns {boolean} Whether aggregation features are used
 	 * @see sap.ui.model.odata.v4.ODataListBinding#setAggregation
 	 */
-	function isAnalyticsEnabled(oTable) {
+	function isDataAggregationEnabled(oTable) {
 		return oTable._isOfType(TableType.Table) && (oTable._getGroupedProperties().length > 0 || oTable.isGroupingEnabled() ||
 			Object.keys(oTable._getAggregatedProperties()).length > 0 || oTable.isAggregationEnabled());
 	}
@@ -824,6 +855,10 @@ sap.ui.define([
 
 		for (const sPropertyKey of aVisiblePropertyKeys) {
 			const oProperty = oPropertyHelper.getProperty(sPropertyKey);
+
+			if (!oProperty) {
+				continue;
+			}
 
 			if (oProperty.extension.technicallyGroupable) {
 				addGroupablePropertyTo$$Aggregation(mAggregation, oTable, oProperty);

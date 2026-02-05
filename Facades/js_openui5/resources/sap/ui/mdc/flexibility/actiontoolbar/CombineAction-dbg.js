@@ -17,7 +17,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.mdc.flexibility.actiontoolbar.CombineAction
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 */
 	const CombineAction = {
 		...CombineButtonsHandler

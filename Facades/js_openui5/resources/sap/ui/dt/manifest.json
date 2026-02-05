@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.12"
+      "version": "1.144.0"
     },
     "title": "SAP UI library: sap.ui.dt (by SAP, Author)",
     "description": "SAP UI library: sap.ui.dt (by SAP, Author)",
@@ -22,15 +22,69 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.136",
+      "minUI5Version": "1.144",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.136.12"
+          "minVersion": "1.144.0"
         }
       }
     },
     "library": {
-      "i18n": false,
+      "i18n": {
+        "bundleUrl": "messagebundle.properties",
+        "supportedLocales": [
+          "",
+          "ar",
+          "bg",
+          "ca",
+          "cnr",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "el",
+          "en",
+          "en-GB",
+          "en-US-saprigi",
+          "es",
+          "es-MX",
+          "et",
+          "fi",
+          "fr",
+          "fr-CA",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "iw",
+          "ja",
+          "kk",
+          "ko",
+          "lt",
+          "lv",
+          "mk",
+          "ms",
+          "nl",
+          "no",
+          "pl",
+          "pt",
+          "pt-PT",
+          "ro",
+          "ru",
+          "sh",
+          "sk",
+          "sl",
+          "sr",
+          "sv",
+          "th",
+          "tr",
+          "uk",
+          "vi",
+          "zh-CN",
+          "zh-TW"
+        ]
+      },
       "content": {
         "controls": [],
         "elements": [],

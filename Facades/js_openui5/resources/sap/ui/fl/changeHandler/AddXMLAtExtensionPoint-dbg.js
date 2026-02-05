@@ -5,10 +5,10 @@
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/api/ExtensionPointRegistryAPI",
+	"sap/ui/fl/apply/_internal/extensionPoint/Registry",
 	"sap/ui/fl/changeHandler/BaseAddXml"
 ], function(
-	ExtensionPointRegistryAPI,
+	ExtensionPointRegistry,
 	BaseAddXml
 ) {
 	"use strict";
@@ -18,7 +18,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddXMLAtExtensionPoint
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.75
 	 * @private
 	 */
@@ -79,7 +79,7 @@ sap.ui.define([
 			// Confirm with ready function in sync apply scenario (preprocessing with JSView)
 			mExtensionPointInfo.ready(aNewControls);
 		}
-		ExtensionPointRegistryAPI.addCreatedControlsToExtensionPointInfo({
+		ExtensionPointRegistry.addCreatedControls({
 			name: oSelector.name,
 			viewId: sViewId,
 			createdControlsIds: aNewControls.map((oNewControl) => oModifier.getId(oNewControl))

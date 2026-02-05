@@ -15,7 +15,7 @@ sap.ui.define([
 	 * @namespace
 	 * @name sap.ui.fl.descriptorRelated
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @namespace
 	 * @name sap.ui.fl.descriptorRelated.api
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.descriptorRelated.api.DescriptorChangeFactory
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -77,7 +77,7 @@ sap.ui.define([
 		// default to 'CUSTOMER'
 		mPropertyBag.layer = sLayer || "CUSTOMER";
 
-		return Promise.resolve(new DescriptorChange(mPropertyBag, oInlineChange));
+		return Promise.resolve(new DescriptorChange(mPropertyBag, oInlineChange, oAppComponent));
 	};
 
 	return DescriptorChangeFactory;

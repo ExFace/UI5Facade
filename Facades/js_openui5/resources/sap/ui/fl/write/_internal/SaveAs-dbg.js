@@ -10,13 +10,12 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/fl/apply/_internal/appVariant/DescriptorChangeTypes",
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/_internal/appVariant/AppVariantFactory",
 	"sap/ui/fl/write/_internal/appVariant/AppVariantInlineChangeFactory",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
-	"sap/ui/fl/FlexControllerFactory",
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/Utils"
 ], function(
@@ -25,13 +24,12 @@ sap.ui.define([
 	Log,
 	DescriptorChangeTypes,
 	FlexObjectState,
-	ManifestUtils,
 	FlexRuntimeInfoAPI,
+	ManifestUtils,
 	Settings,
 	AppVariantFactory,
 	AppVariantInlineChangeFactory,
 	FlexObjectManager,
-	FlexControllerFactory,
 	Layer,
 	Utils
 ) {
@@ -46,7 +44,7 @@ sap.ui.define([
 					mPropertyBag.layer === Layer.VENDOR
 					|| (
 						mPropertyBag.layer === Layer.CUSTOMER_BASE
-						&& !oSettings.isAtoEnabled()
+						&& !oSettings.getIsAtoEnabled()
 					)
 				)
 			) {
@@ -61,7 +59,7 @@ sap.ui.define([
 					&& mPropertyBag.package !== ""
 				)
 				&& !mPropertyBag.transport
-				&& !oSettings.isAtoEnabled()
+				&& !oSettings.getIsAtoEnabled()
 			) {
 				return Promise.reject("Transport must be provided");
 			}
@@ -155,7 +153,8 @@ sap.ui.define([
 	}
 
 	function _deleteDescrChangesFromPersistence(vSelector) {
-		const sReference = ManifestUtils.getFlexReferenceForSelector(vSelector);
+		const oAppComponent = Utils.getAppComponentForSelector(vSelector);
+		const sReference = ManifestUtils.getFlexReferenceForSelector(oAppComponent);
 		var aChangesToBeDeleted = [];
 		// In case of app variant, both persistencies hold descriptor changes and have to be removed from one of the persistencies
 		_getDirtyDescrChanges(vSelector).forEach(function(oChange) {
@@ -166,6 +165,7 @@ sap.ui.define([
 		});
 		FlexObjectManager.deleteFlexObjects({
 			reference: sReference,
+			componentId: oAppComponent.getId(),
 			flexObjects: aChangesToBeDeleted
 		});
 	}
@@ -226,12 +226,13 @@ sap.ui.define([
 				oAppVariantResultClosure = merge({}, oResult);
 				_deleteDescrChangesFromPersistence(mPropertyBag.selector);
 
-				var oFlexController = FlexControllerFactory.createForSelector(mPropertyBag.selector);
-
 				var aUIChanges = _getDirtyChanges(mPropertyBag.selector); // after removing descr changes, all remaining dirty changes are UI changes
 				if (aUIChanges.length) {
 					// Save the dirty UI changes to backend => firing PersistenceWriteApi.save
-					return oFlexController.saveAll(Utils.getAppComponentForSelector(mPropertyBag.selector), true)
+					return FlexObjectManager.saveFlexObjects({
+						selector: mPropertyBag.selector,
+						skipUpdateCache: true
+					})
 					.then(function() {
 						const sReference = FlexRuntimeInfoAPI.getFlexReference({ element: mPropertyBag.selector });
 						FlexObjectManager.removeDirtyFlexObjects({ reference: sReference });

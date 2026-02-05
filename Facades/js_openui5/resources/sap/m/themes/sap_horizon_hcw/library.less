@@ -86,6 +86,10 @@
 /* END "ActionListItem.less" */
 
 /* START "ActionSelect.less" */
+/**
+ * @file
+ * @deprecated As of version 1.111, together with sap.m.ActionSelect
+ */
 /* =================================== */
 /* CSS for control sap.m/ActionSelect  */
 /* Horizon High Contrast White theme   */
@@ -529,7 +533,7 @@ html[data-sap-ui-browser^="ff"].sap-desktop .sapMBarTitleAlignAuto .sapMBarPH {
 
 .sapMBtnEmphasized {
 	font-weight: var(--sapButton_Emphasized_FontWeight);
-	border: 0.125rem solid;
+	border: var(--sapButton_Emphasized_BorderWidth) solid;
 
 	.sapMBtnContent {
 		line-height: 2rem;
@@ -561,7 +565,7 @@ html[data-sap-ui-browser^="ff"].sap-desktop .sapMBarTitleAlignAuto .sapMBarPH {
 /* ------------------- */
 /* Button Icon         */
 /* ------------------- */
-.sapMBtnIcon {
+.sapMBtnIcon.sapUiIcon {
 	width: 2.125rem;
 	font-size: 1rem;
 	line-height: 2.125rem;
@@ -1052,6 +1056,10 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 	padding-left: 2.75rem;
 }
 
+.sapUiForm:not(.sapUiFormEdit-CTX) .sapMCb.sapMCbDisplayOnly .sapMCbBg {
+	top: -0.1075rem;
+}
+
 .sapMCbDisplayOnly .sapMCbBg {
 	top: 0.5625rem;
 	left: 0.5625rem;
@@ -1104,7 +1112,7 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 	bottom: 0.3125rem;
 	right: 0;
 	position: absolute;
-	border-radius: 0.5rem;
+	border-radius:var(--sapField_BorderCornerRadius);
 }
 
 /* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
@@ -1166,6 +1174,17 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 		left: 0.5625rem;
 	}
 
+	.sapMCb:focus::before {
+		inset: 0.125rem;
+	}
+
+	.sapMCb.sapMCbHasLabel:focus::before {
+		top: 0.125rem;
+		left: 0.125rem;
+		bottom: 0.125rem;
+		right: 0;
+	}
+
 	/* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
 	.sapUiForm {
 
@@ -1185,6 +1204,10 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 /* END "CheckBox.less" */
 
 /* START "CustomTile.less" */
+/**
+ * @file
+ * @deprecated As of version 1.50, together with sap.m.CustomTile
+ */
 /* ================================== */
 /* CSS for control sap.m/CustomTile   */
 /* Horizon High Contrast White theme  */
@@ -2826,11 +2849,21 @@ html.sap-desktop .sapMLIB-CTX:focus .sapMGrowingListTrigger {
 /* Horizon High Contrast White theme  */
 /* ================================== */
 
-html.sap-phone .sapMRespMenuDialog .sapMPage {
-  .sapMBar-CTX.sapMHeader-CTX,.sapMBarPH {
-    box-shadow: var(--sapContent_HeaderShadow);
-  }
+.sapMMenu {
+
+	box-shadow: @sapUiContentShadow1;
+
+	.sapMMenuItem.sapMMenuItemSubMenuOpen {
+		background-color: @sapUiListSelectionBackgroundColor
+	}
+
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:hover,
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:focus {
+		background-color: @sapUiListActiveBackground;
+	}
+
 }
+
 /* END "Menu.less" */
 
 /* START "MenuButton.less" */
@@ -2912,6 +2945,10 @@ html.sap-phone .sapMRespMenuDialog .sapMPage {
 /* END "MessageBox.less" */
 
 /* START "MessagePage.less" */
+/**
+ * @file
+ * @deprecated as of version 1.112, together with sap.m.MessagePage
+ */
 /* ================================== */
 /* CSS for control sap.m/MessagePage  */
 /* Horizon High Contrast White theme  */
@@ -3026,7 +3063,7 @@ html.sap-phone .sapMRespMenuDialog .sapMPage {
 
 .sapMMsgView .sapMIBar.sapMHeader-CTX {
 	background-color: var(--sapGroup_ContentBackground);
-	padding-left: 1rem;
+	padding: 0 1rem;
 }
 
 .sapMMsgViewDescIcon {
@@ -3306,6 +3343,7 @@ html.sap-phone {
 .sapMLIBHoverable:hover .sapMObjectNumberText,
 .sapMLIBHoverable:hover .sapMObjectNumberUnit {
 	color: var(--sapList_Active_TextColor);
+	text-shadow: none;
 }
 
 .sapMText.sapMObjLTitle {
@@ -3409,6 +3447,14 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 
 .sapMListTblCell > .sapMObjectNumber {
 
+	.sapMObjectNumberText,
+	.sapMObjectNumberUnit {
+		text-shadow: none;
+	}
+}
+
+.sapMListTblRow:hover + .sapMListTblSubRow,
+.sapMListTblSubRow:hover {
 	.sapMObjectNumberText,
 	.sapMObjectNumberUnit {
 		text-shadow: none;
@@ -3599,6 +3645,10 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 .sapMObjStatusInverted:not(.sapMObjectStatusLarge) .sapMObjStatusIcon.sapMObjStatusIconOnly,
 .sapMObjStatusInverted:not(.sapMObjectStatusLarge) .sapMObjStatusLink .sapMObjStatusIcon.sapMObjStatusIconOnly {
 	padding: 0.1875rem 0.313rem;
+}
+
+.sapMObjStatusInverted .sapMObjStatusTitle {
+	vertical-align: middle;
 }
 
 .sapMObjStatusInverted .sapMObjStatusText {
@@ -3996,34 +4046,31 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 	background-color: var(--sapIndicationColor_10b_Hover_Background);
 }
 
-html.sap-desktop .sapMObjStatusActive:focus .sapMObjStatusLink::after {
-	top: 0.125rem;
-	left: 0.125rem;
-	bottom: 0.0625rem;
-	right: 0.125rem;
-	outline: 0.125rem dotted var(--sapContent_FocusColor);
-}
 
 .sapMListTbl .sapMObjStatusInverted .sapMObjStatusIcon > .sapUiIcon:not(.sapMLIBImgNav):not(.sapMBtnIcon),
 .sapMObjStatusInverted:not(.sapMObjectStatusLarge) .sapMObjStatusIcon > .sapUiIcon {
 	height: 0.875rem;
 }
 
+.sapMObjStatusLink {
+	line-height: 0.5rem;
+}
+
 html.sap-desktop .sapMObjStatusActive:focus {
 
 	.sapMObjStatusLink::after {
-		top: -1px;
-		left: 1px;
-		bottom: -1px;
-		right: 1px;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
 		outline: 2px dotted var(--sapContent_FocusColor);
 	}
 
 	&.sapMObjStatusInverted .sapMObjStatusLink::after {
-		top: -1px;
-		left: 2px;
-		bottom: -1px;
-		right: 2px;
+		top: 3px;
+		left: 3px;
+		bottom: 3px;
+		right: 3px;
 
 		.sapMObjStatusIcon > .sapUiIcon {
 			line-height: 0.875rem;
@@ -4296,12 +4343,13 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 }
 
 .sapMPageWithHeader {
-
-	&.sapFShellBar-CTX > section {
+	.sapMPageHeader:has(.sapFShellBar) + section,
+	.sapMPageHeader:has([ui5-shellbar]) + section {
 		top: 3.25rem;
 	}
 
-	&.sapMPageWithSubHeader.sapFShellBar-CTX > section {
+	&.sapMPageWithSubHeader .sapMPageSubHeader:has(.sapFShellBar) + section,
+	&.sapMPageWithSubHeader .sapMPageSubHeader:has([ui5-shellbar]) + section {
 		top: 6rem;
 	}
 }
@@ -4357,16 +4405,18 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 	}
 
 	.sapMPageWithHeader {
-
-		&.sapFShellBar-CTX > section {
+		.sapMPageHeader:has(.sapFShellBar) + section,
+		.sapMPageHeader:has([ui5-shellbar]) + section {
 			top: 3.25rem;
 		}
 
-		&.sapMPageWithSubHeader.sapFShellBar-CTX > section {
+		&.sapMPageWithSubHeader .sapMPageSubHeader:has(.sapFShellBar) + section,
+		&.sapMPageWithSubHeader .sapMPageSubHeader:has([ui5-shellbar]) + section {
 			top: 5.75rem;
 		}
 	}
 }
+
 /* END "Page.less" */
 
 /* START "Panel.less" */
@@ -6518,11 +6568,10 @@ html.sap-desktop .sapMSPCMonthDay.sapMSPCMonthDayToday:focus .sapMSPCMonthNowMar
 /* Slider Tooltip styles          */
 
 .sapMSliderTooltip {
-	background: var(--sapField_Background);
-	border-radius: var(--sapElement_BorderCornerRadius);
+	background: var(--sapBackgroundColor);
+	border-radius: 0.0625rem;
 	border: 1px solid var(--sapField_BorderColor);
 	box-shadow: none;
-	height: 1.375rem;
 	min-width: 2rem;
 	padding: 0.25rem;
 	font-size: var(--sapFontSmallSize);
@@ -6544,8 +6593,8 @@ html.sap-desktop .sapMSPCMonthDay.sapMSPCMonthDayToday:focus .sapMSPCMonthNowMar
 }
 
 .sapMSliderTooltip.sapMSliderTooltipNonEditableWrapper {
-	border-radius: 0.25rem;
-	height: 0.875rem;
+	border-radius: 0.0625rem;
+	height: 1rem;
 	padding: 0.25rem;
 	font-size: var(--sapFontSmallSize);
 	color: var(--sapContent_LabelColor);
@@ -6778,28 +6827,31 @@ html.sap-desktop .sapMSPCMonthDay.sapMSPCMonthDayToday:focus .sapMSPCMonthNowMar
 .sapMSwtCont {
 	overflow: hidden;
 	/* in order to have a touchable area of 2.75rem height and 3.5rem width */
-	padding: 0.625rem 0.5rem;
+	padding: 0.625rem 0.3125rem;
 }
 
 /* focus */
 html.sap-desktop {
 
-	.sapMSwtCont:focus > .sapMSwt::before {
+	.sapMSwtCont:focus::after {
 		content: ' ';
 		position: absolute;
 		display: block;
-		top: -0.3125rem;
-		left: -0.3125rem;
-		bottom: -0.3125rem;
-		right: -0.3125rem;
+		top: 0.375rem;
+		left: 0.0625rem;
+		bottom: 0.375rem;
+		right: 0.0625rem;
 		border: 0.125rem solid var(--sapContent_FocusColor);
 		border-radius: 1rem;
+		pointer-events: none;
 	}
 
 	.sapUiSizeCompact {
 
-		.sapMSwtCont:focus > .sapMSwt::before {
+		.sapMSwtCont:focus::after {
 			border-radius: 0.875rem;
+			top: 0.125rem;
+			bottom: 0.125rem;
 		}
 	}
 }
@@ -7528,6 +7580,10 @@ html.sap-desktop:not(.sapUiNativeScrollbars) .sapMTextArea {
 /* END "TextArea.less" */
 
 /* START "Tile.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.Tile
+ */
 /* ================================== */
 /* CSS for control sap.m/Tile         */
 /* Horizon High Contrast White theme  */
@@ -7605,6 +7661,10 @@ html.sap-desktop:not(.sapUiNativeScrollbars) .sapMTextArea {
 /* END "Tile.less" */
 
 /* START "TileContainer.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.TileContainer
+ */
 /* ==================================== */
 /* CSS for control sap.m/TileContainer  */
 /* Horizon High Contrast White theme    */
@@ -8195,6 +8255,10 @@ html.sap-desktop .sapMTBActive.sapMTBFocused {
 /* END "Title.less" */
 
 /* START "UploadCollection.less" */
+/**
+ * @file
+ * @deprecated as of version 1.88, together with sap.m.UploadCollection
+ */
 /* ======================================= */
 /* CSS for control sap.m/UploadCollection  */
 /* Horizon High Contrast White theme       */

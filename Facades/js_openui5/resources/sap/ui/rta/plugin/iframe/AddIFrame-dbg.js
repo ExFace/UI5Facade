@@ -119,7 +119,7 @@ sap.ui.define([
 	 * @class The AddIFrame allows trigger AddIFrame operations on the overlay.
 	 * @extends sap.ui.rta.plugin.BaseCreate
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.75

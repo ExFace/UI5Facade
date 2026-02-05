@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "Cell.less",
-			"size": 10621,
+			"size": 10995,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "Row.less",
-			"size": 2304,
+			"size": 1642,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -56,13 +56,13 @@
 		},
 		{
 			"name": "RowSelection.less",
-			"size": 4346,
+			"size": 4353,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "Scrolling.less",
-			"size": 9291,
+			"size": 10177,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -74,41 +74,41 @@
 		},
 		{
 			"name": "Table.less",
-			"size": 12619,
+			"size": 12620,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 62522,
+			"size": 70686,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_bluecrystal_base/library-parameters.json",
-			"size": 5300,
+			"size": 5392,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.css",
-			"size": 62541,
+			"size": 70723,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 62925,
+			"size": 64068,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 3397,
+			"size": 3934,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "resources.json",
-			"size": 2127
+			"size": 2128
 		}
 	]
 }

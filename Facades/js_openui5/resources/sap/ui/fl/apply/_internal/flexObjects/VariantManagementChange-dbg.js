@@ -20,7 +20,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.VariantManagementChange
 	 * @since 1.135
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -37,7 +37,6 @@ sap.ui.define([
 			}
 		},
 
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			FlexObject.apply(this, aArgs);
 			this.setFileType("ctrl_variant_management_change");

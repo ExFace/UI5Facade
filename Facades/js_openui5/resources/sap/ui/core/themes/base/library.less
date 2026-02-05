@@ -9,12 +9,12 @@
 /* START "skeleton.less" */
 // /**
 // * Copyright (c) 2012-2025 SAP SE or an SAP affiliate company. All rights reserved.
-// * Theming Engine 16.0.7
-// * data:{"sModified":"2025-06-12T08:20:09Z"}
+// * Theming Engine 16.0.25
+// * data:{"sModified":"2025-08-27T14:01:23Z"}
 // */
 
 
-/******************* FILE /Base/baseLib/baseTheme/skeleton.less (Version 11.31.0) *******************/
+/******************* FILE /Base/baseLib/baseTheme/skeleton.less (Version 11.32.2-20250827135846+79bb30d311678435d61b21db26ecbe07d6b05079) *******************/
 
 /*!SAP_POSTPROCESS_REDUCE_START*/
 
@@ -1020,6 +1020,10 @@
   --sapChart_Data_ContrastTextColor: @sapChart_Data_ContrastTextColor;
   --sapChart_Data_InteractiveColor: @sapChart_Data_InteractiveColor;
   --sapChart_Data_Active_Background: @sapChart_Data_Active_Background;
+  --sapChart_IBCS_Actual: @sapChart_IBCS_Actual;
+  --sapChart_IBCS_Previous: @sapChart_IBCS_Previous;
+  --sapChart_IBCS_Good: @sapChart_IBCS_Good;
+  --sapChart_IBCS_Bad: @sapChart_IBCS_Bad;
   --sapChart_OrderedColor_1: @sapChart_OrderedColor_1;
   --sapChart_OrderedColor_2: @sapChart_OrderedColor_2;
   --sapChart_OrderedColor_3: @sapChart_OrderedColor_3;
@@ -1596,7 +1600,10 @@ link[id^="sap-ui-theme-"]::after,
 	font-family: @sapUiFontFamily;
 	font-size: @sapUiFontSize;
 	-webkit-tap-highlight-color: rgba(0,0,0,0); /* to prevent touch highlight on the entire body */
-	forced-color-adjust: @sapUiContentForcedColorAdjust;
+}
+
+html:has(> body.sapUiBody) {
+	forced-color-adjust: var(--sapContent_ForcedColorAdjust);
 }
 
 .sapUiArea {
@@ -1919,6 +1926,11 @@ link[id^="sap-ui-theme-"]::after,
 	border-top-left-radius: 0 !important;
 	border-bottom-left-radius: 0 !important;
 }
+
+/* Declarations moved from shadow.less */
+.sapUiShd {
+	box-shadow: @sapUiShadow;
+}
 /* END "shared.less" */
 
 
@@ -1940,25 +1952,20 @@ link[id^="sap-ui-theme-"]::after,
 	padding: 0;
 	position: absolute;
 	opacity: 0.01;
-	filter: alpha(opacity=1);
 	width: 100%;
 	height: 100%;
 }
 
 .sapUiNotUserSelectable {
 	-webkit-touch-callout: none; /* iOS Safari */
-	-webkit-user-select: none;   /* Chrome/Safari/Opera */
-	-khtml-user-select: none;    /* Konqueror */
-	-moz-user-select: none;      /* Firefox */
-	user-select: none;           /* Non-prefixed version */
+	-webkit-user-select: none; /* Chrome/Safari/Opera */
+	user-select: none;
 }
 
 .sapUiUserSelectable {
 	-webkit-touch-callout: text; /* iOS Safari */
-	-webkit-user-select: text;   /* Chrome/Safari/Opera */
-	-khtml-user-select: text;    /* Konqueror */
-	-moz-user-select: text;      /* Firefox */
-	user-select: text;           /* Non-prefixed version */
+	-webkit-user-select: text; /* Chrome/Safari/Opera */
+	user-select: text;
 }
 /* END "BlindLayer.less" */
 
@@ -1968,36 +1975,8 @@ link[id^="sap-ui-theme-"]::after,
 /* Base theme                                    */
 /* ============================================= */
 
-/****** Firefox ******/
-
 html.sap-desktop:not(.sapUiNativeScrollbars) {
-	scrollbar-color: @sapUiScrollBarFaceColor @sapUiScrollBarTrackColor;
-}
-
-/****** Safari + Chrome on Desktop ******/
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar:horizontal {
-	height: @sapUiScrollBarDimension;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar:vertical {
-	width: @sapUiScrollBarDimension;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
-	background-color: @sapUiScrollBarTrackColor;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb {
-	background-color: @sapUiScrollBarFaceColor;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb:hover {
-	background-color: @sapUiScrollBarHoverFaceColor;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-corner {
-	background-color: @sapUiScrollBarTrackColor;
+	scrollbar-color: var(--sapScrollBar_FaceColor) var(--sapScrollBar_TrackColor);
 }
 /* END "BrowserScrollbar.less" */
 
@@ -2007,6 +1986,12 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-corner {
 /* Base theme                                 */
 /* ========================================== */
 
+@_sap_ui_core_LocalBusyIndicator_Background: fade(@sapBackgroundColor, 72%);
+@_sap_ui_core_LocalBusyIndicator_Color: @sapBrandColor;
+@_sap_ui_core_LocalBusyIndicator_BorderRadius: 100%;
+@_sap_ui_core_LocalBusyIndicator_SizeMedium: 1rem;
+@_sap_ui_core_LocalBusyIndicator_SizeBig: 2rem;
+
 .sapUiBusy {
 	background-image: url(img/Busy.gif);
 	display: block;
@@ -2014,298 +1999,19 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-corner {
 	height: 48px;
 	outline: none;
 	cursor: wait;
-
 	top: 0 !important;
 }
 
 .sapUiBlyBusy {
 	cursor: wait;
 }
-/* END "BusyIndicator.less" */
-
-/* START "CommandShortcutHints.less" */
-/* =============================== */
-/* CSS for a command shortcut hint */
-/* Base theme                      */
-/* =============================== */
-
-.sapUiHintContainer {
-	background: @sapUiBaseBG;
-	border: none;
-	border-radius: 0.0625rem;
-	box-shadow: @sapUiContentShadow1;
-	white-space: nowrap;
-}
-
-.sapUiHintText {
-	font-family: @sapUiFontFamily;
-	font-size: @sapMFontSmallSize;
-	color: @sapUiBaseText;
-	padding: 0 0.5rem;
-	line-height: 1rem;
-}
-/* END "CommandShortcutHints.less" */
-
-/* START "DragAndDrop.less" */
-.sapUiDnDDragging {
-	opacity: 0.5;
-}
-
-.sapUiDnDNoScrolling {
-	overflow: hidden;
-}
-
-.sapUiDnDGhostContainer {
-	position: absolute;
-	top: -9999px;
-	left: -9999px;
-}
-
-.sapUiDnDIndicator {
-	position: absolute;
-	pointer-events: none;
-	z-index: 99;
-
-	&[data-drop-position=Between] {
-		background: @sapUiContentDragAndDropActiveColor;
-
-		&:before {
-			content: "";
-			position: absolute;
-			width: 0.25rem;
-			height: 0.25rem;
-			border-radius: 0.25rem;
-			border: 0.125rem solid @sapUiContentDragAndDropActiveColor;
-			background: @sapUiWhiteBG;
-			pointer-events: none;
-		}
-
-		&[data-drop-layout=Vertical] {
-			height: 0.125rem;
-
-			&:before {
-				top: -0.175rem;
-			}
-
-			&:before {
-				left: 0;
-			}
-		}
-
-		&[data-drop-layout=Horizontal] {
-			width: 0.125rem;
-
-			&:before {
-				left: -0.175rem;
-			}
-
-			&:before {
-				top: 0;
-			}
-		}
-	}
-
-	&[data-drop-position=On] {
-		background: @sapUiDragAndDropActiveBackground;
-		border: 0.125rem solid @sapUiContentDragAndDropActiveColor;
-		box-sizing: border-box;
-	}
-}
-
-[data-sap-ui-draggable=true] {
-	cursor: grab;
-	cursor: -moz-grab;
-	cursor: -webkit-grab;
-}
-
-[data-sap-ui-draggable=true]:active {
-	cursor: grabbing;
-	cursor: -moz-grabbing;
-	cursor: -webkit-grabbing;
-}
-/* END "DragAndDrop.less" */
-
-
-/* START "SAP-icons.less" */
-// NOTE: This file must be kept in sync with SAP-icons.css
-
-@font-face {
-	font-family: "SAP-icons";
-	src:
-		@sapUiIconFontUrl format('woff2'),
-		local('SAP-icons'); /* fallback to local installed font in case it can't be loaded (e.g. font download is disabled due to browser security settings) */
-	font-weight: normal;
-	font-style: normal;
-}
-
-/* END "SAP-icons.less" */
-
-/* START "Icon.less" */
-/* ================================= */
-/* CSS for control sap.ui.core/Icon  */
-/* Base theme                        */
-/* ================================= */
-
-.sapUiIcon {
-	cursor: default;
-	text-align: center;
-	display: inline-block;
-	vertical-align: baseline;
-	line-height: 1;
-	position: relative;
-}
-
-.sapUiTableCell > .sapUiTableCellInner > .sapUiIcon,
-.sapMListTblCell > .sapUiIcon {
-	vertical-align: middle;
-}
-
-.sapUiIconPointer {
-	cursor: pointer;
-}
-
-.sapUiIcon:focus {
-	outline-width: @sapUiContentFocusWidth;
-	outline-style: @sapUiContentFocusStyle;
-	outline-color: @sapUiContentFocusColor;
-}
-
-.sapUiIcon::before {
-	content: attr(data-sap-ui-icon-content);
-	speak: none;
-	font-weight: normal;
-	-webkit-font-smoothing: antialiased;
-}
-
-.sapUiIcon > .sapUiIconTitle {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	left: 0;
-	top: 0;
-}
-
-/*
- * The mirroring of icon is done on the pesudo element and not the root DOM.
- * Because:
- *  1. All direction related css styles are flipped in RTL, for example padding-left
- *   is changed to padding right in RTL.
- *  2. The mirroring of an icon in RTL mode flips the css style again which results
- *   in the wrong direction.
- *  3. Custom CSS style should be set on the root DOM and not the pesudo element.
- */
-html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
-	&::before, &::after /* some controls render the icon using 'after' pesudo element */ {
-		transform: scale(-1,1);
-		-webkit-transform: scale(-1,1); /* Safari and Chrome */
-		display: inline-block; /* pesudo element has display: inline by default and can't apply the transform css style for RTL mode*/
-	}
-}
 
 /**
- * The Default color and the semantic colors for Icon which always points to the variable across themes.
+ * Style classes and definitions for the busy indicator implementation of the sap.ui.core.Control.
  */
-.sapUiIconColorDefault {
-	color: @sapUiContentIconColor;
-}
 
-.sapUiIconColorContrast {
-	color: @sapUiContentContrastIconColor;
-}
-
-.sapUiIconColorNeutral {
-	color: @sapUiNeutralElement;
-}
-
-.sapUiIconColorCritical {
-	color: @sapUiCriticalElement;
-}
-
-.sapUiIconColorPositive {
-	color: @sapUiPositiveElement;
-}
-
-.sapUiIconColorNegative {
-	color: @sapUiNegativeElement;
-}
-
-.sapUiIconColorNonInteractive {
-	color: @sapUiContentNonInteractiveIconColor;
-}
-
-.sapUiIconColorTile {
-	color: @sapUiTileIconColor;
-}
-
-.sapUiIconColorMarker {
-	color: @sapUiContentMarkerIconColor;
-}
-
-.sapUiIconBGColorDefault {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiContentIconColor;
-}
-
-.sapUiIconBGColorContrast {
-	color: @sapUiContentIconColor;
-	background-color: @sapUiContentContrastIconColor;
-}
-
-.sapUiIconBGColorNeutral {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiNeutralElement;
-}
-
-.sapUiIconBGColorCritical {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiCriticalElement;
-}
-
-.sapUiIconBGColorPositive {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiPositiveElement;
-}
-
-.sapUiIconBGColorNegative {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiNegativeElement;
-}
-
-.sapUiIconBGColorNonInteractive {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiContentNonInteractiveIconColor;
-}
-
-.sapUiIconBGColorTile {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiTileIconColor;
-}
-
-.sapUiIconBGColorMarker {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiContentMarkerIconColor;
-}
-
-/* END "Icon.less" */
-
-
-/* START "LocalBusyIndicator.less" */
-/* =============================================== */
-/* CSS for control sap.ui.core/LocalBusyIndicator  */
-/* Base theme                                      */
-/* =============================================== */
-
-@_sap_ui_core_LocalBusyIndicator_Background: fade(@sapBackgroundColor, 72%);
-@_sap_ui_core_LocalBusyIndicator_BackgroundIE: @sapBackgroundColor;
-
-@_sap_ui_core_LocalBusyIndicator_Color: @sapBrandColor;
-
-@_sap_ui_core_LocalBusyIndicator_BorderRadius: 100%;
-
-@_sap_ui_core_LocalBusyIndicator_SizeMedium: 1rem;
-@_sap_ui_core_LocalBusyIndicator_SizeBig: 2rem;
-
-.sapUiBlockLayer, .sapUiLocalBusyIndicator {
+.sapUiBlockLayer,
+.sapUiLocalBusyIndicator {
 	background-color: @_sap_ui_core_LocalBusyIndicator_Background;
 	position: absolute;
 	top: 0;
@@ -2319,15 +2025,15 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 	transition: opacity 0.3s ease-in;
 	outline: none;
 
-	&:focus:after {
-		content: "";
+	&:focus::after {
+		content: '';
 		position: absolute;
 		left: 0;
 		top: 0;
 		right: 0;
 		bottom: 0;
 		border-radius: 0.375rem;
-		border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+		border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 		pointer-events: none;
 	}
 }
@@ -2341,7 +2047,7 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 	z-index: 1;
 }
 
-//  Make sure blocked layers are not "nested", and in case of busy indicators the animations do not overlay each other
+/* Make sure blocked layers are not "nested", and in case of busy indicators the animations do not overlay each other */
 [__is-busy] .sapUiLocalBusy .sapUiBlockLayer,
 .sapUiLocalBusy .sapUiLocalBusy .sapUiBlockLayer {
 	display: none;
@@ -2365,7 +2071,6 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 .sapUiLocalBusyIndicatorSizeBig {
 	font-size: @_sap_ui_core_LocalBusyIndicator_SizeBig;
 	background-color: transparent;
-
 }
 
 /* Centers the busy indicator markers */
@@ -2384,7 +2089,7 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 	border-radius: @_sap_ui_core_LocalBusyIndicator_BorderRadius;
 	display: block;
 	float: left;
-	margin: 0px;
+	margin: 0;
 	position: relative;
 	text-indent: 1px;
 }
@@ -2392,7 +2097,7 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 /* General pseudo-element styles for background/shadow animation */
 .sapUiLocalBusyIndicatorAnimation > div::before,
 .sapUiLocalBusyIndicatorAnimation > div::after {
-	content: "";
+	content: '';
 	opacity: 1;
 	position: absolute;
 	z-index: -1;
@@ -2410,7 +2115,7 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 
 /* Shadow animation element */
 .sapUiLocalBusyIndicatorAnimation > div::after {
-	box-shadow: inset 0px 0px 2px 1px fade(@_sap_ui_core_LocalBusyIndicator_Color, 80%);
+	box-shadow: inset 0 0 2px 1px fade(@_sap_ui_core_LocalBusyIndicator_Color, 80%);
 }
 
 /* Animations Starting Classes */
@@ -2454,13 +2159,15 @@ html[dir=rtl] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
 	animation: sapUiBusyAnimationSmallShadow 1.6s infinite ease-in-out;
 }
 
-html[data-sap-ui-animation-mode="none"] {
+html[data-sap-ui-animation-mode='none'] {
+
 	.sapUiLocalBusyIndicator {
 		transition: none;
 	}
 
 	.sapUiLocalBusyIndicatorAnimStandard,
 	.sapUiLocalBusyIndicatorAnimSmall {
+
 		> div,
 		> div::before,
 		> div::after {
@@ -2470,10 +2177,12 @@ html[data-sap-ui-animation-mode="none"] {
 	}
 }
 
-html[data-sap-ui-animation-mode="basic"],
-html[data-sap-ui-animation-mode="minimal"] {
+html[data-sap-ui-animation-mode='basic'],
+html[data-sap-ui-animation-mode='minimal'] {
+
 	.sapUiLocalBusyIndicatorAnimStandard,
 	.sapUiLocalBusyIndicatorAnimSmall {
+
 		> div,
 		> div::before,
 		> div::after {
@@ -2508,36 +2217,50 @@ html[data-sap-ui-animation-mode="minimal"] {
  * Keyframe definitions
  */
 .mixin-standard-background-animation-frames {
-	0%, 80%, 100% {
+
+	0%,
+	80%,
+	100% {
 		opacity: 1;
 	}
+
 	40% {
 		opacity: 0.1;
 	}
 }
 
 .mixin-standard-shadow-animation-frames {
-	0%, 80%, 100% {
+
+	0%,
+	80%,
+	100% {
 		opacity: 0;
 	}
+
 	40% {
 		opacity: 1;
 	}
 }
 
 .mixin-small-background-animation-frames {
-	0%, 100% {
+
+	0%,
+	100% {
 		opacity: 1;
 	}
+
 	50% {
 		opacity: 0.1;
 	}
 }
 
 .mixin-small-shadow-animation-frames {
-	0%, 100% {
+
+	0%,
+	100% {
 		opacity: 0;
 	}
+
 	50% {
 		opacity: 1;
 	}
@@ -2547,43 +2270,324 @@ html[data-sap-ui-animation-mode="minimal"] {
  * Animations
  */
 @keyframes sapUiBusyAnimationStandard {
-	0%, 80%, 100% {
+
+	0%,
+	80%,
+	100% {
 		transform: scale(0.4);
 	}
+
 	40% {
 		transform: scale(1);
 	}
 }
 
-@keyframes sapUiBusyAnimationStandardBackground { .mixin-standard-background-animation-frames; }
+@keyframes sapUiBusyAnimationStandardBackground {
+	.mixin-standard-background-animation-frames;
+}
 
-@keyframes sapUiBusyAnimationStandardShadow { .mixin-standard-shadow-animation-frames; }
+@keyframes sapUiBusyAnimationStandardShadow {
+	.mixin-standard-shadow-animation-frames;
+}
 
 @keyframes sapUiBusyAnimationSmall {
-	0%, 100% {
+
+	0%,
+	100% {
 		transform: scale(0.2);
 	}
+
 	50% {
 		transform: scale(1);
 	}
 }
-@keyframes sapUiBusyAnimationSmallBackground { .mixin-small-background-animation-frames; }
 
-@keyframes sapUiBusyAnimationSmallShadow { .mixin-small-shadow-animation-frames; }
+@keyframes sapUiBusyAnimationSmallBackground {
+	.mixin-small-background-animation-frames;
+}
 
+@keyframes sapUiBusyAnimationSmallShadow {
+	.mixin-small-shadow-animation-frames;
+}
 
-// #### RETROFIT ####
+/* #### RETROFIT #### */
 
 :root {
 	--ui5_web_components_busy_indicator_display: flex;
 	--ui5_web_components_busy_indicator_background-color: @_sap_ui_core_LocalBusyIndicator_Background;
 }
 
-//  Make sure blocked layers are not "nested", and in case of busy indicators the animations do not overlay each other
+/* Make sure blocked layers are not "nested", and in case of busy indicators the animations do not overlay each other */
 .sapUiLocalBusy {
 	--ui5_web_components_busy_indicator_display: none;
 }
-/* END "LocalBusyIndicator.less" */
+/* END "BusyIndicator.less" */
+
+/* START "CommandShortcutHints.less" */
+/* ================================ */
+/* CSS for a command shortcut hint  */
+/* Base theme                       */
+/* ================================ */
+
+.sapUiHintContainer {
+	background: var(--sapBackgroundColor);
+	border: none;
+	border-radius: 0.0625rem;
+	box-shadow: var(--sapContent_Shadow1);
+	white-space: nowrap;
+}
+
+.sapUiHintText {
+	font-family: var(--sapFontFamily);
+	font-size: var(--sapFontSmallSize);
+	color: var(--sapTextColor);
+	padding: 0 0.5rem;
+	line-height: 1rem;
+}
+/* END "CommandShortcutHints.less" */
+
+/* START "DragAndDrop.less" */
+/* ==================== */
+/* CSS for Drag & Drop  */
+/* Base theme           */
+/* ==================== */
+
+.sapUiDnDDragging {
+	opacity: 0.5;
+}
+
+.sapUiDnDNoScrolling {
+	overflow: hidden;
+}
+
+.sapUiDnDGhostContainer {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+}
+
+.sapUiDnDIndicator {
+	position: absolute;
+	pointer-events: none;
+
+	&[data-drop-position='Between'] {
+		background: var(--sapContent_DragAndDropActiveColor);
+
+		&::before {
+			content: '';
+			position: absolute;
+			width: 0.25rem;
+			height: 0.25rem;
+			border-radius: 0.25rem;
+			border: 0.125rem solid var(--sapContent_DragAndDropActiveColor);
+			background: @sapUiWhiteBG;
+			pointer-events: none;
+		}
+
+		&[data-drop-layout='Vertical'] {
+			height: 0.125rem;
+
+			&::before {
+				top: -0.175rem;
+			}
+
+			&::before {
+				left: 0;
+			}
+		}
+
+		&[data-drop-layout='Horizontal'] {
+			width: 0.125rem;
+
+			&::before {
+				left: -0.175rem;
+			}
+
+			&::before {
+				top: 0;
+			}
+		}
+	}
+
+	&[data-drop-position='On'] {
+		background: var(--sapGroup_ContentBackground);
+		border: 0.125rem solid var(--sapContent_DragAndDropActiveColor);
+		box-sizing: border-box;
+	}
+}
+
+[data-sap-ui-draggable='true'] {
+	cursor: grab;
+}
+
+[data-sap-ui-draggable='true']:active {
+	cursor: grabbing;
+}
+/* END "DragAndDrop.less" */
+
+
+/* START "SAP-icons.less" */
+// NOTE: This file must be kept in sync with SAP-icons.css
+
+@font-face {
+	font-family: "SAP-icons";
+	src:
+		@sapUiIconFontUrl format('woff2'),
+		local('SAP-icons'); /* fallback to local installed font in case it can't be loaded (e.g. font download is disabled due to browser security settings) */
+	font-weight: normal;
+	font-style: normal;
+}
+
+/* END "SAP-icons.less" */
+
+/* START "Icon.less" */
+/* ================================= */
+/* CSS for control sap.ui.core/Icon  */
+/* Base theme                        */
+/* ================================= */
+
+.sapUiIcon {
+	cursor: default;
+	text-align: center;
+	display: inline-block;
+	vertical-align: baseline;
+	line-height: 1;
+	position: relative;
+}
+
+.sapUiTableCell > .sapUiTableCellInner > .sapUiIcon,
+.sapMListTblCell > .sapUiIcon {
+	vertical-align: middle;
+}
+
+.sapUiIconPointer {
+	cursor: pointer;
+}
+
+.sapUiIcon:focus {
+	outline-width: var(--sapContent_FocusWidth);
+	outline-style: var(--sapContent_FocusStyle);
+	outline-color: var(--sapContent_FocusColor);
+}
+
+.sapUiIcon::before {
+	content: attr(data-sap-ui-icon-content);
+	speak: none;
+	font-weight: normal;
+	-webkit-font-smoothing: antialiased;
+}
+
+.sapUiIcon > .sapUiIconTitle {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	left: 0;
+	top: 0;
+}
+
+/*
+ * The mirroring of icon is done on the pesudo element and not the root DOM.
+ * Because:
+ *  1. All direction related css styles are flipped in RTL, for example padding-left
+ *   is changed to padding right in RTL.
+ *  2. The mirroring of an icon in RTL mode flips the css style again which results
+ *   in the wrong direction.
+ *  3. Custom CSS style should be set on the root DOM and not the pesudo element.
+ */
+html[dir='rtl'] .sapUiIconMirrorInRTL:not(.sapUiIconSuppressMirrorInRTL) {
+
+	&::before,
+	&::after /* some controls render the icon using 'after' pesudo element */ {
+		transform: scale(-1, 1);
+		display: inline-block; /* pesudo element has display: inline by default and can't apply the transform css style for RTL mode*/
+	}
+}
+
+/**
+ * The Default color and the semantic colors for Icon which always points to the variable across themes.
+ */
+.sapUiIconColorDefault {
+	color: var(--sapContent_IconColor);
+}
+
+.sapUiIconColorContrast {
+	color: var(--sapContent_ContrastIconColor);
+}
+
+.sapUiIconColorNeutral {
+	color: var(--sapNeutralElementColor);
+}
+
+.sapUiIconColorCritical {
+	color: var(--sapCriticalElementColor);
+}
+
+.sapUiIconColorPositive {
+	color: var(--sapPositiveElementColor);
+}
+
+.sapUiIconColorNegative {
+	color: var(--sapNegativeElementColor);
+}
+
+.sapUiIconColorNonInteractive {
+	color: var(--sapContent_NonInteractiveIconColor);
+}
+
+.sapUiIconColorTile {
+	color: var(--sapTile_IconColor);
+}
+
+.sapUiIconColorMarker {
+	color: var(--sapContent_MarkerIconColor);
+}
+
+.sapUiIconBGColorDefault {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapContent_IconColor);
+}
+
+.sapUiIconBGColorContrast {
+	color: var(--sapContent_IconColor);
+	background-color: var(--sapContent_ContrastIconColor);
+}
+
+.sapUiIconBGColorNeutral {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapNeutralElementColor);
+}
+
+.sapUiIconBGColorCritical {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapCriticalElementColor);
+}
+
+.sapUiIconBGColorPositive {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapPositiveElementColor);
+}
+
+.sapUiIconBGColorNegative {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapNegativeElementColor);
+}
+
+.sapUiIconBGColorNonInteractive {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapContent_NonInteractiveIconColor);
+}
+
+.sapUiIconBGColorTile {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapTile_IconColor);
+}
+
+.sapUiIconBGColorMarker {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapContent_MarkerIconColor);
+}
+/* END "Icon.less" */
+
 
 /* START "media.less" */
 /************ Media queries for screen sizes ************
@@ -2625,17 +2629,18 @@ Usage:
 /* END "media.less" */
 
 /* START "parameterClasses.less" */
-
 /* CSS parameters which are available in base theme */
 
 /* font */
 .sapThemeFont {
-	font-family: @sapUiFontFamily !important;
+	font-family: var(--sapFontFamily) !important;
 	font-size: @sapUiFontSize !important;
 }
+
 .sapThemeFontFamily {
-	font-family: @sapUiFontFamily !important;
+	font-family: var(--sapFontFamily) !important;
 }
+
 .sapThemeFontSize {
 	font-size: @sapUiFontSize !important;
 }
@@ -2643,74 +2648,89 @@ Usage:
 /* text color */
 .sapThemeText,
 .sapThemeText-asColor {
-	color: @sapUiBaseText !important;
+	color: var(--sapTextColor) !important;
 }
+
 .sapThemeText-asBackgroundColor {
-	background-color: @sapUiBaseText !important;
+	background-color: var(--sapTextColor) !important;
 }
+
 .sapThemeText-asBorderColor {
-	border-color: @sapUiBaseText !important;
+	border-color: var(--sapTextColor) !important;
 }
+
 .sapThemeText-asOutlineColor {
-	outline-color: @sapUiBaseText !important;
+	outline-color: var(--sapTextColor) !important;
 }
 
 /* text color inverted */
 .sapThemeTextInverted,
 .sapThemeTextInverted-asColor {
-	color: @sapUiContentContrastTextColor !important;
+	color: var(--sapContent_ContrastTextColor) !important;
 }
 
 /* base bg */
 .sapThemeBaseBG,
 .sapThemeBaseBG-asBackgroundColor {
-	background-color: @sapUiBaseBG !important;
+	background-color: var(--sapBackgroundColor) !important;
 }
+
 .sapThemeBaseBG-asBorderColor {
-	border-color: @sapUiBaseBG !important;
+	border-color: var(--sapBackgroundColor) !important;
 }
+
 .sapThemeBaseBG-asColor {
-	color: @sapUiBaseBG !important;
+	color: var(--sapBackgroundColor) !important;
 }
 
 /* brand color */
 .sapThemeBrand,
 .sapThemeBrand-asColor {
-	color: @sapUiBrand !important;
+	color: var(--sapBrandColor) !important;
 }
+
 .sapThemeBrand-asBorderColor {
-	border-color: @sapUiBrand !important;
+	border-color: var(--sapBrandColor) !important;
 }
+
 .sapThemeBrand-asBackgroundColor {
-	background-color: @sapUiBrand !important;
+	background-color: var(--sapBrandColor) !important;
 }
+
 .sapThemeBrand-asOutlineColor {
-	outline-color: @sapUiBrand !important;
+	outline-color: var(--sapBrandColor) !important;
 }
 
 /* highlight color */
 .sapThemeHighlight,
 .sapThemeHighlight-asColor {
-	color: @sapUiHighlight !important;
+	color: var(--sapHighlightColor) !important;
 }
+
 .sapThemeHighlight-asBorderColor {
-	border-color: @sapUiHighlight !important;
+	border-color: var(--sapHighlightColor) !important;
 }
+
 .sapThemeHighlight-asBackgroundColor {
-	background-color: @sapUiHighlight !important;
+	background-color: var(--sapHighlightColor) !important;
 }
+
 .sapThemeHighlight-asOutlineColor {
-	outline-color: @sapUiHighlight !important;
+	outline-color: var(--sapHighlightColor) !important;
 }
 
 /* border color */
 .sapThemeForegroundBorderColor,
 .sapThemeForegroundBorderColor-asBorderColor {
-	border-color: @sapUiContentForegroundBorderColor  !important;
+	border-color: var(--sapContent_ForegroundBorderColor) !important;
 }
 /* END "parameterClasses.less" */
 
 /* START "ScrollBar.less" */
+/**
+ * @file
+ * @deprecated As of version 1.56, together with the sap.ui.core.ScrollBar control
+ */
 /* ====================================== */
 /* CSS for control sap.ui.core/ScrollBar  */
 /* Base theme                             */
@@ -2732,173 +2752,6 @@ Usage:
 	-webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
 /* END "ScrollBar.less" */
-
-/* START "Shadow.less" */
-.sapUiShd {
-	box-shadow: @sapUiShadow;
-}
-/* END "Shadow.less" */
-
-/* START "TechnicalInfo.less" */
-.sapUiTInf {
-	border: 1px solid @sapUiMediumBorder;
-	background: @sapUiExtraLightBG;
-	padding: 6px;
-}
-
-.sapUiTInfCfg {
-	font-size:0.9em;
-	overflow-y:auto;
-	max-height:12em;
-}
-
-.sapUiTInfMList {
-	font-size:0.9em;
-	color: @sapUiTextDisabled;
-	overflow-y:auto;
-	max-height:12em;
-}
-
-.sapUiTInf > table > tbody > tr > td,
-.sapUiTInfMList,
-.sapUiTInfM {
-	-webkit-user-select: text;
-	user-select: text;
-}
-
-.sapUiTInfMEmbd {
-	color:#aaaaaa;
-}
-
-.sapUiTInfMFail {
-	text-decoration:line-through;
-}
-
-.sapUiTInfMMore, .sapUiTInfPCfg {
-	text-decoration: none;
-	color: @sapLinkColor;
-	cursor:pointer;
-}
-
-.sapUiTInfPMoreHidden {
-	display:none;
-}
-
-.sapUiTInfPDiag {
-	border: 1px solid @sapUiMediumBorder;
-	background: @sapUiExtraLightBG;
-	padding: 6px;
-	font-size:0.9em;
-}
-
-.sapUiTInfPDiag > h1 {
-	font-size: 1em;
-	font-weight: normal;
-}
-
-.sapUiTInfPDiag > h3 {
-	font-size: 0.9em;
-	font-weight: normal;
-	margin-bottom: 0px;
-}
-
-.sapUiTInfPList {
-	font-size: 0.75em;
-	color: @sapUiTextDisabled;
-	background: white;
-	overflow-y: scroll;
-	max-height: 30em;
-}
-
-.sapUiTInfPList .package > .expander {
-	display: inline-block;
-	color: black;
-	background-color: #fcfcfc;
-	width: 12px;
-	text-align: center;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.sapUiTInfPList .package > .name,
-.sapUiTInfPList .module > .name {
-	margin: 2px;
-	padding: 2px 4px;
-	display: inline-block;
-	border-radius: 3px;
-	cursor: pointer;
-}
-
-.sapUiTInfPList .package > .name {
-	color: black;
-	background-color: @sapBackgroundColor;
-}
-
-.sapUiTInfPList .module > .name {
-	margin-left: 14px; /* 12px + 2px standard margin */
-	color: black;
-	background-color: @sapBackgroundColor;
-}
-
-.sapUiTInfPList .children {
-	padding-left: 1em;
-	/* border: 1px dotted lightgrey; */
-}
-
-.sapUiTInfPList .children.none {
-	display: none;
-}
-
-.sapUiTInfPList .children.packages {
-	display: block;
-}
-
-.sapUiTInfPList .children.packages > .package {
-}
-
-.sapUiTInfPList .children.packages > .module {
-	display: none;
-}
-
-.sapUiTInfPList .children.all {
-	display: block;
-}
-
-.sapUiTInfPList .package.selected > .name, .sapUiTInfPList .module.selected > .name {
-	color: white;
-	background-color: blue !important;
-}
-
-.sapUiTInfPList .package.selected .name, .sapUiTInfPList .module.selected > .name {
-	color: white;
-	background-color: lightblue;
-}
-
-.sapUiTInfPList .selected .name {
-	color: white;
-	background-color: #ccccff;
-}
-
-.sapUiTInfPDiag .result {
-	font-size: 0.9em;
-	margin: 8px 4px;
-	width: 600px;
-}
-
-.sapUiTInfPDiag .result > span {
-	word-wrap: break-word;
-}
-
-.sapUiTInfPDiag .footer {
-	padding-top: 5px;
-}
-
-.sapUiTInfPDiag .footer > * {
-	float: right;
-	margin: 2px 8px;
-}
-
-/* END "TechnicalInfo.less" */
 
 /* START "View.less" */
 /* ================================= */

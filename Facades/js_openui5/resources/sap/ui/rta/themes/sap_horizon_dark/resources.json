@@ -8,83 +8,77 @@
 		},
 		{
 			"name": "AddIFrame.less",
-			"size": 1708,
+			"size": 892,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ChangeVisualization.less",
-			"size": 762,
+			"size": 801,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 661,
+			"size": 675,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 795,
-			"designtime": true,
-			"theme": "sap_horizon_dark"
-		},
-		{
-			"name": "FieldRepository.less",
-			"size": 1516,
+			"size": 901,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 780,
+			"size": 786,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 4841,
+			"size": 4949,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 538,
+			"size": 540,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 36045,
+			"size": 30431,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/rta/themes/sap_horizon_dark/library-parameters.json",
-			"size": 5300,
+			"size": 4030,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 36020,
+			"size": 30425,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 12640,
+			"size": 10513,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 565,
+			"size": 533,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "resources.json",
-			"size": 1631
+			"size": 1515
 		}
 	]
 }

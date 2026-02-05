@@ -32,7 +32,7 @@ sap.ui.define([
 	 * For a list of supported barcode formats, see the {@link https://github.com/zxing-js/library zxing-js/library} documentation.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

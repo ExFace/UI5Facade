@@ -21,7 +21,8 @@ sap.ui.define([
 	"sap/base/util/restricted/_debounce",
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
-	"sap/ui/integration/util/Utils"
+	"sap/ui/integration/util/Utils",
+	"sap/ui/integration/editor/Constants"
 ], function (
 	BaseField,
 	Input,
@@ -39,7 +40,8 @@ sap.ui.define([
 	_debounce,
 	deepClone,
 	deepEqual,
-	Utils
+	Utils,
+	Constants
 ) {
 	"use strict";
 	var REGEXP_PARAMETERS = /parameters\.([^\}\}]+)/g;
@@ -55,7 +57,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.StringField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -117,9 +119,9 @@ sap.ui.define([
 					var sValue = oEvent.getSource().getValue();
 					var sSettingspath = this.getBindingContext("currentSettings").sPath;
 					//clean the value in data model
-					this._settingsModel.setProperty(sSettingspath + "/value", sValue);
+					this._oSettingsModel.setProperty(sSettingspath + "/value", sValue);
 					//update the dependent fields via bindings
-					var aBindings = this._settingsModel.getBindings();
+					var aBindings = this._oSettingsModel.getBindings();
 					var sParameter = sSettingspath.substring(sSettingspath.lastIndexOf("/") + 1);
 					each(aBindings, function(iIndex, oBinding) {
 						if (oBinding.sPath === "/form/items/" + sParameter + "/value") {
@@ -128,7 +130,7 @@ sap.ui.define([
 					});
 				}.bind(this);
 			}
-			if (this.getMode() === "translation") {
+			if (this.getMode() === Constants.EDITOR_MODE.TRANSLATION) {
 				if (oConfig.editable) {
 					oVisualization = {
 						type: Input,
@@ -224,7 +226,7 @@ sap.ui.define([
 						}
 					};
 				}
-			} else if (this.getMode() !== "translation" && oConfig.translatable) {
+			} else if (this.getMode() !== Constants.EDITOR_MODE.TRANSLATION && oConfig.translatable) {
 				//use value help function of input to show the multi language popup
 				oVisualization = {
 					type: Input,
@@ -325,7 +327,7 @@ sap.ui.define([
 		var oSelectedItem = oEvent.getParameter("selectedItem") || {};
 		var sKey = oSelectedItem.getKey();
 		var sSettingspath = this.getBindingContext("currentSettings").sPath;
-		this._settingsModel.setProperty(sSettingspath + "/value", sKey);
+		this._oSettingsModel.setProperty(sSettingspath + "/value", sKey);
 		//oSettingsModel.setProperty(sSettingspath + "/suggestValue", "");
 	};
 
@@ -334,12 +336,12 @@ sap.ui.define([
 		var sTerm = oEvent.target.value;
 		var sSettingspath = this.getBindingContext("currentSettings").sPath;
 		//set the suggestion value into data model property "suggestValue" for filter backend
-		this._settingsModel.setProperty(sSettingspath + "/suggestValue", sTerm.replaceAll("'", "\'\'"));
-		this._settingsModel.setProperty(sSettingspath + "/_loading", true);
+		this._oSettingsModel.setProperty(sSettingspath + "/suggestValue", sTerm.replaceAll("'", "\'\'"));
+		this._oSettingsModel.setProperty(sSettingspath + "/_loading", true);
 		//clean the value in data model
-		this._settingsModel.setProperty(sSettingspath + "/value", "");
+		this._oSettingsModel.setProperty(sSettingspath + "/value", "");
 		//update the dependent fields via bindings
-		var aBindings = this._settingsModel.getBindings();
+		var aBindings = this._oSettingsModel.getBindings();
 		var sParameter = sSettingspath.substring(sSettingspath.lastIndexOf("/") + 1);
 		each(aBindings, function(iIndex, oBinding) {
 			if (oBinding.sPath === "/form/items/" + sParameter + "/value") {
@@ -400,14 +402,14 @@ sap.ui.define([
 
 	StringField.prototype.getTranslationValueInTexts = function (sLanguage, sManifestPath) {
 		var sTranslationPath = "/texts/" + sLanguage;
-		var oProperty = this._settingsModel.getProperty(sTranslationPath) || {};
+		var oProperty = this._oSettingsModel.getProperty(sTranslationPath) || {};
 		return oProperty[sManifestPath];
 	};
 
 	StringField.prototype.setTranslationValueInTexts = function (sLanguage, sValue) {
 		var sManifestPath = this.getConfiguration().manifestpath;
 		var sTranslationPath = "/texts";
-		var oData = this._settingsModel.getData();
+		var oData = this._oSettingsModel.getData();
 		if (!oData) {
 			return;
 		}
@@ -415,7 +417,7 @@ sap.ui.define([
 			var oTexts = {};
 			oTexts[sLanguage] = {};
 			oTexts[sLanguage][sManifestPath] = sValue;
-			this._settingsModel.setProperty(sTranslationPath, oTexts);
+			this._oSettingsModel.setProperty(sTranslationPath, oTexts);
 		} else {
 			sTranslationPath = "/texts/" + sLanguage;
 			var oLanguage;
@@ -425,13 +427,13 @@ sap.ui.define([
 				oLanguage = oData.texts[sLanguage];
 			}
 			oLanguage[sManifestPath] = sValue;
-			this._settingsModel.setProperty(sTranslationPath, oLanguage);
+			this._oSettingsModel.setProperty(sTranslationPath, oLanguage);
 		}
 	};
 
 	StringField.prototype.deleteTranslationValueInTexts = function (sLanguage) {
 		var sManifestPath = this.getConfiguration().manifestpath;
-		var oData = this._settingsModel.getData();
+		var oData = this._oSettingsModel.getData();
 		if (oData && oData.texts && oData.texts[sLanguage]) {
 			delete oData.texts[sLanguage][sManifestPath];
 		}
@@ -441,7 +443,7 @@ sap.ui.define([
 		if (deepEqual(oData.texts, {})) {
 			delete oData.texts;
 		}
-		this._settingsModel.setData(oData);
+		this._oSettingsModel.setData(oData);
 	};
 
 	//open the translation popup
@@ -449,9 +451,9 @@ sap.ui.define([
 		var that = this;
 		if (!that._oEditorResourceBundles.isReady()) {
 			// waiting for loading resource bundles
-			setTimeout(function() {
+			that._oEditorResourceBundles.attachEventOnce("ready", function() {
 				that.openTranslationListPopup(oEvent);
-			}, 100);
+			});
 			return;
 		}
 		var oControl = oEvent.getSource();
@@ -541,6 +543,13 @@ sap.ui.define([
 			oTranslatonsModel.checkUpdate(true);
 		}
 		that._oTranslationPopover.openBy(oControl._oValueHelpIcon);
+	};
+
+	StringField.prototype.exit = function () {
+		if (this._oTranslationPopover) {
+			this._oTranslationPopover.destroy();
+			this._oTranslationPopover = null;
+		}
 	};
 
 	StringField.prototype.buildTranslationsData = function(oControl) {

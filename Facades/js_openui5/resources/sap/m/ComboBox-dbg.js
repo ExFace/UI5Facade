@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -647,10 +647,6 @@ sap.ui.define([
 				this.setSelectable(oItem, oItem.getEnabled());
 			}
 
-			if (oItem.isA("sap.ui.core.SeparatorItem")) {
-				oListItem.addAriaLabelledBy(this._getGroupHeaderInvisibleText().getId());
-			}
-
 			oListItem.addStyleClass(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "NonInteractiveItem");
 
 			return oListItem;
@@ -769,6 +765,15 @@ sap.ui.define([
 				});
 
 				oListItem = ListHelpers.getListItem(this.getSelectedItem());
+			}
+
+			const sSelectedItemText = this.getSelectedItem()?.getText();
+			const slastInputValue = this.getLastValue();
+
+			if (sValue.toLowerCase() === sSelectedItemText?.toLowerCase()) {
+				this.setValue(sSelectedItemText);
+				sValue = sSelectedItemText;
+				this.setLastValue(slastInputValue);
 			}
 
 			this._sInputValueBeforeOpen = sValue;
@@ -1210,7 +1215,6 @@ sap.ui.define([
 				this.updateDomValue(sTypedValue);
 				this.fireSelectionChange({ selectedItem: null });
 
-				this._getGroupHeaderInvisibleText().setText(this._oRb.getText("LIST_ITEM_GROUP_HEADER") + " " + oItem.getText());
 				return;
 			}
 
@@ -1964,7 +1968,7 @@ sap.ui.define([
 		 * @returns {boolean} If it is an interactive Control
 		 *
 		 * @private
-		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 		 */
 		ComboBox.prototype._getToolbarInteractive = function () {
 			return true;

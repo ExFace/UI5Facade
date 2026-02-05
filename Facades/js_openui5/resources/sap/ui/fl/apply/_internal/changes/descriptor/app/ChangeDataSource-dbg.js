@@ -30,7 +30,7 @@ sap.ui.define([
 	 *
 	 * @namespace
 	 * @alias sap.ui.fl.apply._internal.changes.descriptor.app.ChangeDataSource
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */

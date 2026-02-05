@@ -5,8 +5,8 @@
  */
 
 sap.ui.define([
-	"./Adaptation",
-	"./AdaptationRenderer"
+	"sap/ui/rta/toolbar/Adaptation",
+	"sap/ui/rta/toolbar/AdaptationRenderer"
 ],
 function(
 	Adaptation,
@@ -22,7 +22,7 @@ function(
 	 * @extends sap.ui.rta.toolbar.Adaptation
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private

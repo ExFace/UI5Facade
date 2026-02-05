@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @class Constructor for a new sap.ui.rta.plugin.annotations.AnnotationChangeDialog.
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.132
 	 * @private

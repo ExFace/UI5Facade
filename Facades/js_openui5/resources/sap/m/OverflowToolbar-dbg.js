@@ -107,6 +107,7 @@ sap.ui.define([
 	 * <li>{@link sap.m.SegmentedButton}</li>
 	 * <li>{@link sap.m.Select}</li>
 	 * <li>{@link sap.m.TimePicker}</li>
+	 * <li>{@link sap.m.OverflowToolbarTokenizer}</li>
 	 * <li>{@link sap.m.ToggleButton}</li>
 	 * <li>{@link sap.m.ToolbarSeparator}</li>
 	 * <li>{@link sap.ui.comp.smartfield.SmartField}</li>
@@ -132,7 +133,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -261,7 +262,6 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
 	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
-	 * @protected
 	 */
 	OverflowToolbar.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
 		Toolbar.prototype.enhanceAccessibilityState.apply(this, arguments);
@@ -1227,7 +1227,7 @@ sap.ui.define([
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
 		}, this);
-		aInteractiveControls.push(this._getOverflowButton());
+		this._getOverflowButtonNeeded() && aInteractiveControls.push(this._getOverflowButton());
 
 		return aInteractiveControls;
 	};
@@ -1704,7 +1704,11 @@ sap.ui.define([
 	 * @private
 	 */
 	OverflowToolbar._getControlMargins = function (oControl) {
-		return oControl.$().outerWidth(true) - oControl.$().outerWidth();
+		if (oControl.$().length) {
+			return oControl.$().outerWidth(true) - oControl.$().outerWidth();
+		}
+
+		return 0;
 	};
 
 	/**

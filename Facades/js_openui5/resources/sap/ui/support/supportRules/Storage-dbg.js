@@ -53,7 +53,7 @@ sap.ui.define([
 	 *
 	 * @name sap.ui.support.Storage
 	 * @author SAP SE.
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 */
 	return /** @lends sap.ui.support.Storage */ {

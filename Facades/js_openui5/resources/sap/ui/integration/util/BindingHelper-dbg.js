@@ -55,7 +55,7 @@ sap.ui.define([
 	 * Helper class for working with bindings.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.BindingHelper
@@ -68,6 +68,7 @@ sap.ui.define([
 	var mFormatters = {
 		date: DateTimeFormatter.date,
 		dateTime: DateTimeFormatter.dateTime,
+		dateTimeWithTimezone: DateTimeFormatter.dateTimeWithTimezone,
 		currency: NumberFormatter.currency,
 		"float": NumberFormatter.float,
 		integer: NumberFormatter.integer,
@@ -239,7 +240,13 @@ sap.ui.define([
 	};
 
 	BindingHelper.isAbsolutePath = function (sPath) {
-		return sPath.startsWith("/");
+		const aParts = sPath.split(">");
+
+		if (aParts.length > 1) {
+			return aParts[1].startsWith("/");
+		}
+
+		return aParts[0].startsWith("/");
 	};
 
 	/**
@@ -256,8 +263,8 @@ sap.ui.define([
 		if (BindingHelper.isBindingInfo(vItem)) {
 			var oBindingInfoClone = extend({}, vItem);
 
-			if (oBindingInfoClone.path && !this.isAbsolutePath(oBindingInfoClone.path)) {
-				oBindingInfoClone.path = sPath + "/" + oBindingInfoClone.path;
+			if (oBindingInfoClone.path) {
+				oBindingInfoClone.path = BindingHelper.prependPath(oBindingInfoClone.path, sPath);
 			}
 
 			if (oBindingInfoClone.parts) {
@@ -286,6 +293,34 @@ sap.ui.define([
 		}
 
 		return vItem;
+	};
+
+	/**
+	 * Prepends path with root path, depending on the model name.
+	 * @param {string} sPath The path to prepend.
+	 * @param {string} sRootPath The root path to prepend to the given path.
+	 * @returns {string} The full path with the root path prepended.
+	 */
+	BindingHelper.prependPath = function (sPath, sRootPath) {
+		if (typeof sPath !== "string") {
+			return sPath;
+		}
+
+		const sModelName = BindingHelper.getModelName(sPath);
+		let sFullPath = sPath;
+
+		if (sPath === "" || BindingHelper.getModelName(sRootPath) === sModelName && !BindingHelper.isAbsolutePath(sPath)) {
+			let sPathErasedModelName = sPath;
+
+			if (sModelName) {
+				sPathErasedModelName = sPath.replace(new RegExp("^" + sModelName + ">"), "");
+			}
+
+			const _sRootPath = sRootPath.endsWith("/") ? sRootPath : sRootPath + "/";
+			sFullPath = _sRootPath + sPathErasedModelName;
+		}
+
+		return sFullPath;
 	};
 
 	/**
@@ -340,7 +375,19 @@ sap.ui.define([
 		return oObj.hasOwnProperty("path") || (oObj.hasOwnProperty("parts") && (oObj.hasOwnProperty("formatter") || oObj.hasOwnProperty("binding")));
 	};
 
+	BindingHelper.getModelName = function (sPath) {
+		if (typeof sPath !== "string") {
+			return undefined;
+		}
 
+		const aParts = sPath.split(">");
+
+		if (aParts.length > 1) {
+			return aParts[0].trim();
+		}
+
+		return undefined;
+	};
 
 	return BindingHelper;
 });

@@ -27,7 +27,7 @@ sap.ui.define([
 		 * <b>Note:</b> The <code>FilterBar</code> can only be used for a {@link sap.ui.mdc.valuehelp.Dialog Dialog} and not on its own.
 		 * @extends sap.ui.mdc.valuehelp.FilterBar
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @constructor
 		 * @public
 		 * @since 1.84.0

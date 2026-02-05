@@ -5,17 +5,19 @@
  */
 
 sap.ui.define([
+	"sap/base/util/isEmptyObject",
+	"sap/base/util/ObjectPath",
 	"sap/base/Log",
 	"sap/ui/fl/initial/_internal/FlexConfiguration",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/LayerUtils",
-	"sap/base/util/isEmptyObject"
+	"sap/ui/fl/LayerUtils"
 ], function(
+	isEmptyObject,
+	ObjectPath,
 	Log,
 	FlexConfiguration,
 	Layer,
-	LayerUtils,
-	isEmptyObject
+	LayerUtils
 ) {
 	"use strict";
 
@@ -25,7 +27,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.initial._internal.StorageUtils
 	 * @since 1.74
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.initial._internal.Storage, sap.ui.fl.write._internal.Storage,
 	 * 	sap.ui.fl.initial._internal.connectors.ObjectStorageConnector, sap.ui.fl.initial._internal.connectors.ObjectPathConnector
@@ -104,6 +106,34 @@ sap.ui.define([
 		});
 	}
 
+	function getChangeCategoryPath(oChangeDefinition) {
+		switch (oChangeDefinition.fileType) {
+			case "change":
+				if (oChangeDefinition.selector && oChangeDefinition.selector.persistencyKey) {
+					return ["comp", "changes"];
+				}
+				if (oChangeDefinition.variantReference) {
+					return "variantDependentControlChanges";
+				}
+				if (oChangeDefinition.appDescriptorChange) {
+					return "appDescriptorChanges";
+				}
+				return "changes";
+			case "ctrl_variant":
+				return "variants";
+			case "ctrl_variant_change":
+				return "variantChanges";
+			case "ctrl_variant_management_change":
+				return "variantManagementChanges";
+			case "variant":
+				return ["comp", "variants"];
+			case "annotation_change":
+				return "annotationChanges";
+			default:
+				return "";
+		}
+	}
+
 	/**
 	 * Loads the connectors from the given namespaces.
 	 * This function is replaced in the Vanilla Flex bundle with a custom implementation.
@@ -140,14 +170,15 @@ sap.ui.define([
 	/**
 	 * Provides all mandatory connectors required to apply or write data depending on the given namespace.
 	 *
-	 * @param {string} sNameSpace Namespace to determine the path to the configured connectors
-	 * @param {boolean} bLoadConnectors Flag to determine if the loading scenario is used and the StaticFileConnector should be included
+	 * @param {string} sNameSpace - Namespace to determine the path to the configured connectors
+	 * @param {boolean} bLoadConnectors - Flag to determine if the loading scenario is used and the StaticFileConnector should be included
+	 * @param {boolean} bSkipAddStaticFileConnector - Flag to determine if the StaticFileConnector should be added
 	 * @returns {Promise<map[]>} Resolving with a list of maps for all configured connectors and their requested modules
 	 */
-	StorageUtils.getConnectors = function(sNameSpace, bLoadConnectors) {
+	StorageUtils.getConnectors = function(sNameSpace, bLoadConnectors, bSkipAddStaticFileConnector) {
 		var aConfiguredConnectors = FlexConfiguration.getFlexibilityServices();
 		var mConnectors = [];
-		if (bLoadConnectors) {
+		if (bLoadConnectors && !bSkipAddStaticFileConnector) {
 			mConnectors = [STATIC_FILE_CONNECTOR_CONFIGURATION];
 		}
 
@@ -160,10 +191,11 @@ sap.ui.define([
 	 * Provides all mandatory connectors required to read data for the initial case; these are the static
 	 * file connector as well as all connectors mentioned in the core-Configuration.
 	 *
+	 * @param {boolean} bSkipAddStaticFileConnector - Flag to determine if the StaticFileConnector should be added
 	 * @returns {Promise<map[]>} Resolving with a list of maps for all configured initial connectors and their requested modules
 	 */
-	StorageUtils.getLoadConnectors = function() {
-		return this.getConnectors(INITIAL_CONNECTOR_NAME_SPACE, true);
+	StorageUtils.getLoadConnectors = function(bSkipAddStaticFileConnector) {
+		return this.getConnectors(INITIAL_CONNECTOR_NAME_SPACE, true, bSkipAddStaticFileConnector);
 	};
 
 	/**
@@ -340,12 +372,40 @@ sap.ui.define([
 	 * @returns {boolean} Indicated if storage response contains flex objects
 	 * @ui5-restricted sap.ui.fl
 	 */
-	StorageUtils.isStorageResponseFilled = function(oResponse) {
-		return Object.keys(oResponse || {}).some(function(sKey) {
-			if (Array.isArray(oResponse[sKey])) {
-				return oResponse[sKey].length !== 0;
+	StorageUtils.isStorageResponseFilled = function(oResponse = {}) {
+		const oUI2Available = !isEmptyObject(oResponse.ui2personalization);
+		return oUI2Available || StorageUtils.getAllFlexObjectNamespaces().some(function(sKey) {
+			return ObjectPath.get(sKey, oResponse)?.length > 0;
+		});
+	};
+
+	/**
+	 * Updates the storage response with the provided updates by directly mutating the given response.
+	 *
+	 * @param {object} oResponse - Storage response to apply the updates to.
+	 * @param {sap.ui.fl.apply._internal.flexState.dataSelector.UpdateInfo[]} aUpdates - The updates to apply to the storage response.
+	 */
+	StorageUtils.updateStorageResponse = function(oResponse, aUpdates) {
+		aUpdates.forEach((oUpdate) => {
+			if (oUpdate.type === "ui2") {
+				oResponse.changes.ui2personalization = oUpdate.newData;
+			} else {
+				const vPath = getChangeCategoryPath(oUpdate.flexObject);
+				const sFileName = oUpdate.flexObject.fileName;
+				const aCache = ObjectPath.get(vPath, oResponse.changes);
+				switch (oUpdate.type) {
+					case "add":
+						aCache.push(oUpdate.flexObject);
+						break;
+					case "delete":
+						aCache.splice(aCache.findIndex((oFlexObject) => oFlexObject.fileName === sFileName), 1);
+						break;
+					case "update":
+						aCache.splice(aCache.findIndex((oFlexObject) => oFlexObject.fileName === sFileName), 1, oUpdate.flexObject);
+						break;
+					default:
+				}
 			}
-			return !isEmptyObject(oResponse[sKey]);
 		});
 	};
 

@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.support.apps.contentbrowser.utils.DataUtils
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.45
 	 * @private
 	 */

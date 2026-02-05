@@ -6,12 +6,14 @@
 
 sap.ui.define([
 	"sap/ui/core/Lib",
-	"sap/ui/fl/Layer",
-	"sap/ui/fl/registry/Settings"
+	"sap/ui/fl/initial/_internal/Loader",
+	"sap/ui/fl/initial/_internal/Settings",
+	"sap/ui/fl/Layer"
 ], function(
 	Lib,
-	Layer,
-	Settings
+	Loader,
+	Settings,
+	Layer
 ) {
 	"use strict";
 
@@ -21,19 +23,20 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @since 1.121
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 * @alias module:sap/ui/fl/apply/_internal/flexState/compVariants/getVariantAuthor
 	 *
 	 * @param {string} sUserId - UserId of variant author
 	 * @param {sap.ui.fl.Layer} sLayer - Layer in which the variant should be stored
-	 * @param {object} mMapIdsNames - Map of user IDs and users' names
+	 * @param {string} sReference - Reference of the application
 	 * @returns {string} The resolved author of variant
 	 */
-	return (sUserId, sLayer, mMapIdsNames) => {
+	return (sUserId, sLayer, sReference) => {
 		const sAuthor = sUserId || "";
 		const oSettings = Settings.getInstanceOrUndef();
+		const mMapIdsNames = Loader.getCachedFlexData(sReference).authors || {};
 
 		if (sLayer === Layer.USER || sAuthor === oSettings?.getUserId()) {
 			return Lib.getResourceBundleFor("sap.ui.fl").getText("VARIANT_SELF_OWNER_NAME");

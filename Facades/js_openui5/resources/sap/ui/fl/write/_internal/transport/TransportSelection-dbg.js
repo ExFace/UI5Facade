@@ -5,28 +5,28 @@
  */
 
 sap.ui.define([
-	"sap/ui/fl/Utils",
-	"sap/ui/fl/LayerUtils",
-	"sap/ui/fl/Layer",
-	"sap/ui/fl/write/_internal/transport/Transports",
+	"sap/ui/core/BusyIndicator",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/_internal/transport/TransportDialog",
-	"sap/ui/fl/registry/Settings",
-	"sap/ui/core/BusyIndicator"
+	"sap/ui/fl/write/_internal/transport/Transports",
+	"sap/ui/fl/Layer",
+	"sap/ui/fl/LayerUtils",
+	"sap/ui/fl/Utils"
 ], function(
-	FlUtils,
-	LayerUtils,
-	Layer,
-	Transports,
-	TransportDialog,
+	BusyIndicator,
 	FlexSettings,
-	BusyIndicator
+	TransportDialog,
+	Transports,
+	Layer,
+	LayerUtils,
+	FlUtils
 ) {
 	"use strict";
 	/**
 	 * @private
 	 * @alias sap.ui.fl.write._internal.transport.TransportSelection
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.74.0
 	 * Helper object to select an ABAP transport for an LREP object. This is not a generic utility to select a transport request, but part
 	 *        of the SmartVariant control.
@@ -56,7 +56,7 @@ sap.ui.define([
 	TransportSelection.prototype.selectTransport = function(oObjectInfo, fOkay, fError, bCompactMode, oControl, sStyleClass, bLocalObjectVisible) {
 		// No transport selection unless Lrep connector is available
 		if (!FlUtils.getLrepUrl()) {
-			fOkay(this._createEventObject(oObjectInfo, {transportId: ""}));
+			fOkay(this._createEventObject(oObjectInfo, { transportId: "" }));
 			return;
 		}
 		var retrieveTransportInfo = function(oObjectInfo, fOkay, fError, bCompactMode, sStyleClass, bATOActive) {
@@ -83,7 +83,7 @@ sap.ui.define([
 		if (sLayerType && ((sLayerType === Layer.CUSTOMER) || (sLayerType === Layer.CUSTOMER_BASE))) {
 			// CUSTOMER layer --> retrieve the settings and check if ATO is enabled
 			FlexSettings.getInstance().then(function(oSettings) {
-				if (oSettings.isAtoEnabled()) {
+				if (oSettings.getIsAtoEnabled()) {
 					// ATO is enabled
 					if (!(oObjectInfo && oObjectInfo.name && oObjectInfo.namespace && oObjectInfo.type)) {
 						// Object info is not completed (public scenario)+ ATO is enabled + CUSTOMER layer: No getTransport is necessary
@@ -368,7 +368,7 @@ sap.ui.define([
 	 * @param {Array} aAllLocalChanges - Array that includes all local changes
 	 * @param {Array} [aAppVariantDescriptors] - Array that includes all app variant descriptors
 	 * @param {object} oContentParameters - Object containing parameters added into the publish request
-	 * @param {string} oContentParameters.reference - Application ID of the changes which should be transported
+	 * @param {string} oContentParameters.reference - Flexibility reference of the app
 	 * @param {string} oContentParameters.layer - Layer in which the changes are stored
 	 * @returns {Promise} Promise which resolves without parameters
 	 */

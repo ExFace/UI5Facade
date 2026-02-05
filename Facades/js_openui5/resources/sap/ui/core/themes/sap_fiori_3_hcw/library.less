@@ -200,62 +200,33 @@
 	padding-left: 3rem !important;
 	padding-right: 3rem !important;
 }
-/* END "shared.less" */
-
-
-/* START "BrowserScrollbar.less" */
-/* ============================================= */
-/* CSS for control sap.ui/core/BrowserScrollbar  */
-/* Quartz High Contrast White theme              */
-/* ============================================= */
-
-/****** Safari + Chrome on Desktop ******/
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar {
-	border: 1px solid @sapUiScrollBarFaceColor;
-}
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb {
-	border-radius: @sapUiElementBorderCornerRadius;
-	border: 1px solid @sapUiScrollBarFaceColor;
-}
-/* END "BrowserScrollbar.less" */
-
-/* START "Icon.less" */
-/* ================================ */
-/* CSS for control sap.ui/core/Icon */
-/* Quartz High Contrast White theme */
-/* ================================ */
-
-.sapUiIconBGColorContrast {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiContentContrastIconColor;
-}
-
-/* END "Icon.less" */
-
-/* START "LocalBusyIndicator.less" */
-/* =============================================== */
-/* CSS for control sap.ui/core/LocalBusyIndicator  */
-/* Quartz High Contrast White theme                */
-/* =============================================== */
-
-@_sap_ui_core_LocalBusyIndicator_Background: fade(@sapUiHcStandardBackground, 30%);
-@_sap_ui_core_LocalBusyIndicator_BackgroundIE: @sapUiHcStandardBackground;
-
-// Color the BusyIndicator with the standard FG color in HCB
-// The brandColor default is black, and thus invisible in HCB
-@_sap_ui_core_LocalBusyIndicator_Color: @sapUiHcStandardForeground;
-/* END "LocalBusyIndicator.less" */
-
-/* START "Shadow.less" */
-/* =================================== */
-/* CSS for control sap.ui/core/Shadow  */
-/* Quartz High Contrast White theme    */
-/* =================================== */
 
 .sapUiShd {
 	box-shadow: none;
 }
-/* END "Shadow.less" */
+/* END "shared.less" */
 
+/* START "Icon.less" */
+/* ================================= */
+/* CSS for control sap.ui/core/Icon  */
+/* Quartz High Contrast White theme  */
+/* ================================= */
+
+.sapUiIconBGColorContrast {
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapContent_ContrastIconColor);
+}
+/* END "Icon.less" */
+
+/* START "BusyIndicator.less" */
+/* ======================================================================== */
+/* CSS for control BusyIndicator implementation of the sap.ui.core.Control  */
+/* Quartz High Contrast White theme                                         */
+/* ======================================================================== */
+
+@_sap_ui_core_LocalBusyIndicator_Background: fade(@sapUiHcStandardBackground, 30%);
+
+/* Color the BusyIndicator with the standard FG color in HCB */
+/* The brandColor default is black, and thus invisible in HCB */
+@_sap_ui_core_LocalBusyIndicator_Color: @sapUiHcStandardForeground;
+/* END "BusyIndicator.less" */

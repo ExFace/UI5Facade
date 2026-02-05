@@ -18,7 +18,7 @@ sap.ui.define([
 	 * Available for both runtime and build {@link sap.ui.fl.apply._internal.changes.descriptor.Registration}.
 	 *
 	 * @namespace sap.ui.fl.apply._internal.changes.descriptor.ovp.DeleteCard
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */

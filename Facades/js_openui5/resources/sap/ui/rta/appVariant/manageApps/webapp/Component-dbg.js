@@ -27,7 +27,6 @@ sap.ui.define([
 			}
 		},
 
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			_sIdRunningApp = aArgs[1].idRunningApp;
 			_bKeyUser = aArgs[1].isOverviewForKeyUser;

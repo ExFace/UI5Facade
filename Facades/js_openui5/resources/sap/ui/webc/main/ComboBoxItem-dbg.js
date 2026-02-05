@@ -24,7 +24,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.ComboBoxItem</code> represents the item for a <code>sap.ui.webc.main.ComboBox</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

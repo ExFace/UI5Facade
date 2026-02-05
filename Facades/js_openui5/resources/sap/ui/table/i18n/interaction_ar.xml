@@ -92,7 +92,7 @@
 				</ul>
 			</description>
 		</interaction>
-		<interaction> <kbd>ESC</kbd> <description>
+		<interaction> <kbd>Escape</kbd> <description>
 				<p><span class="emphasis">إذا تم تمكين تحديد الخلية:</span></p>
 				<p>إذا كان التركيز داخل الجدول وتم تحديد الخلايا، فسيتم إزالة تحديد الخلايا.</p>
 			</description>
@@ -174,9 +174,9 @@
 				<p>إذا كان التركيز على مقدمة العمود، فسيتم فتح قائمة مقدمة العمود.</p>
 			</description>
 		</interaction>
-		<interaction> <kbd>Shift + mouse click</kbd> <description>
+		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">إذا تم تمكين تحديد الخلية:</span></p>
-				<p>في حالة تحديد الخلايا، يقوم <kbd>Shift + click</kbd> في خلية مختلفة بتحسين التحديد حتى الخلية التي تم النقر فوقها.</p>
+				<p>في حالة تحديد الخلايا، يقوم <kbd>Shift + MouseClick</kbd> في خلية مختلفة بتحسين التحديد حتى الخلية التي تم النقر فوقها.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>

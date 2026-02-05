@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.46
@@ -154,7 +154,7 @@ sap.ui.define([
 	 * @return {object[]} - array of the items with required data
 	 */
 	Split.prototype.getMenuItems = function(vElementOverlays) {
-		return this._getMenuItems(vElementOverlays, {pluginId: "CTX_UNGROUP_FIELDS", icon: "sap-icon://split"});
+		return this._getMenuItems(vElementOverlays, { pluginId: "CTX_UNGROUP_FIELDS", icon: "sap-icon://split" });
 	};
 
 	/**

@@ -6,20 +6,19 @@
 
 sap.ui.define([
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
-	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/ui/fl/initial/_internal/FlexInfoSession",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/initial/api/Version",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
 	"sap/ui/fl/write/_internal/Versions",
 	"sap/ui/fl/write/api/ContextBasedAdaptationsAPI",
 	"sap/ui/fl/write/api/FeaturesAPI",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	FlexObjectState,
-	FlexState,
-	ManifestUtils,
 	FlexInfoSession,
+	ManifestUtils,
 	Version,
 	FlexObjectManager,
 	Versions,
@@ -196,8 +195,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Removes the internal stored state of a given application and refreshes the state including a draft for the given layer;
-	 * an actual reload of the application has to be triggered by the caller.
+	 * Prepares the State for loading a specific version after a reload;
+	 * the actual reload of the application has to be triggered by the caller.
 	 *
 	 * @param {object} mPropertyBag - Property bag
 	 * @param {sap.ui.core.Control} mPropertyBag.control - Control for which the request is done
@@ -208,12 +207,12 @@ sap.ui.define([
 	 *
 	 * @returns {Promise} Resolves as soon as the clearance and the requesting is triggered.
 	 */
-	VersionsAPI.loadVersionForApplication = function(mPropertyBag) {
+	VersionsAPI.loadVersionForApplication = async function(mPropertyBag) {
 		if (!mPropertyBag.control) {
-			return Promise.reject("No control was provided");
+			throw Error("No control was provided");
 		}
 		if (!mPropertyBag.layer) {
-			return Promise.reject("No layer was provided");
+			throw Error("No layer was provided");
 		}
 		const oModel = getVersionsModel(mPropertyBag);
 		if (oModel) {
@@ -222,7 +221,8 @@ sap.ui.define([
 			}
 			oModel.setProperty("/displayedVersion", mPropertyBag.version);
 			oModel.setProperty("/persistedVersion", mPropertyBag.version);
-			if (mPropertyBag.version !== Version.Number.Draft && FeaturesAPI.isPublishAvailable()) {
+			const bIsPublishAvailable = await FeaturesAPI.isPublishAvailable();
+			if (mPropertyBag.version !== Version.Number.Draft && bIsPublishAvailable) {
 				const aVersions = oModel.getProperty("/versions");
 				if (aVersions.length) {
 					const oVersion = aVersions.find(function(oVersion) {
@@ -235,16 +235,13 @@ sap.ui.define([
 			}
 		}
 
-		return incorporateAdaptationIdInSwitch(mPropertyBag)
-		.then(function(sDisplayedAdaptationId) {
-			const oAppComponent = Utils.getAppComponentForControl(mPropertyBag.control);
-			const sReference = getFlexReferenceForControl(oAppComponent);
-			const oFlexInfo = FlexInfoSession.getByReference(sReference);
-			oFlexInfo.version = mPropertyBag.version;
-			oFlexInfo.displayedAdaptationId = sDisplayedAdaptationId;
-			FlexInfoSession.setByReference(oFlexInfo, sReference);
-			FlexState.clearState(sReference);
-		});
+		const sDisplayedAdaptationId = await incorporateAdaptationIdInSwitch(mPropertyBag);
+		const oAppComponent = Utils.getAppComponentForControl(mPropertyBag.control);
+		const sReference = getFlexReferenceForControl(oAppComponent);
+		const oFlexInfo = FlexInfoSession.getByReference(sReference);
+		oFlexInfo.version = mPropertyBag.version;
+		oFlexInfo.displayedAdaptationId = sDisplayedAdaptationId;
+		FlexInfoSession.setByReference(oFlexInfo, sReference);
 	};
 
 	/**
@@ -348,15 +345,9 @@ sap.ui.define([
 						const oFlexInfo = FlexInfoSession.getByReference(sReference);
 						oFlexInfo.displayedAdaptationId = sDisplayedAdaptationId;
 						FlexInfoSession.setByReference(oFlexInfo, sReference);
-						if (!mPropertyBag.discardDraftAndKeepActiveVersion) {
-							FlexState.clearState(sReference);
-						}
 						return oDiscardInfo;
 					});
 				}
-			}
-			if (!mPropertyBag.discardDraftAndKeepActiveVersion) {
-				FlexState.clearState(sReference);
 			}
 			return oDiscardInfo;
 		});
@@ -389,6 +380,21 @@ sap.ui.define([
 		mPropertyBag.reference = getFlexReferenceForControl(mPropertyBag.selector);
 
 		return Versions.publish(mPropertyBag);
+	};
+
+	/**
+	 * Returns the list of versions created by a specific user
+	 *
+	 * @param {object} mPropertyBag - Property bag
+	 * @param {sap.ui.core.Control} mPropertyBag.control - Control for which the request is done
+	 * @param {string} mPropertyBag.layer - Layer for which the versions should be retrieved
+	 * @param {string} sUser - User ID for which the versions should be retrieved
+	 * @returns {Array} List of versions created by the user
+	 */
+	VersionsAPI.getCreatedVersionsByUser = function(mPropertyBag, sUser) {
+		const oModel = getVersionsModel(mPropertyBag);
+		const aVersions = oModel.getProperty("/versions");
+		return aVersions.filter((oVersion) => oVersion.activatedBy === sUser);
 	};
 
 	return VersionsAPI;

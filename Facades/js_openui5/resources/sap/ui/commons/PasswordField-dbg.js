@@ -22,7 +22,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', './TextField', './library', './Passwo
 	 * @extends sap.ui.commons.TextField
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

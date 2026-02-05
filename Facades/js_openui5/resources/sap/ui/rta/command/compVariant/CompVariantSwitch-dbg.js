@@ -18,13 +18,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.87
 	 * @alias sap.ui.rta.command.compVariant.CompVariantSwitch
 	 */
-	var CompVariantSwitch = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantSwitch", {
+	const CompVariantSwitch = BaseCommand.extend("sap.ui.rta.command.compVariant.CompVariantSwitch", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -39,7 +39,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			BaseCommand.apply(this, aArgs);
 			this.setRelevantForSave(false);

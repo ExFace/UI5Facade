@@ -222,70 +222,47 @@
 	padding-left: 3rem !important;
 	padding-right: 3rem !important;
 }
+
+.sapUiShd {
+	box-shadow: none;
+}
 /* END "shared.less" */
 
-
-/* START "BrowserScrollbar.less" */
-/* ============================================= */
-/* CSS for control sap.ui.core/BrowserScrollbar  */
-/* Horizon High Contrast White theme             */
-/* ============================================= */
-
-/****** Safari + Chrome on Desktop ******/
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb {
-	border-radius: @sapUiElementBorderCornerRadius;
-	border: 0.125rem solid @sapUiScrollBarTrackColor;
-}
-/* END "BrowserScrollbar.less" */
-
 /* START "Icon.less" */
-/* ================================= */
-/* CSS for control sap.ui/core/Icon  */
-/* Horizon High Contrast White theme */
-/* ================================= */
+/* ================================== */
+/* CSS for control sap.ui/core/Icon   */
+/* Horizon High Contrast White theme  */
+/* ================================== */
 
 .sapUiIconBGColorContrast {
-	color: @sapUiGroupContentBackground;
-	background-color: @sapUiContentContrastIconColor;
+	color: var(--sapGroup_ContentBackground);
+	background-color: var(--sapContent_ContrastIconColor);
 }
-
 /* END "Icon.less" */
 
-/* START "LocalBusyIndicator.less" */
-/* =============================================== */
-/* CSS for control sap.ui.core/LocalBusyIndicator  */
-/* Horizon High Contrast White theme               */
-/* =============================================== */
+/* START "BusyIndicator.less" */
+/* ================================================================= */
+/* CSS for BusyIndicator implementation of the sap.ui.core.Control   */
+/* Horizon High Contrast White theme                                 */
+/* ================================================================= */
 
 @_sap_ui_core_LocalBusyIndicator_Background: fade(@sapUiHcStandardBackground, 30%);
 @_sap_ui_core_LocalBusyIndicator_Color: @sapContent_BusyColor;
 
 .sapUiLocalBusyIndicatorSizeSection,
 .sapUiLocalBusyIndicatorSizeBig {
-    font-size: @_sap_ui_core_LocalBusyIndicator_SizeMedium;
+	font-size: @_sap_ui_core_LocalBusyIndicator_SizeMedium;
 }
 
-.sapUiLocalBusyIndicatorShowContainer>div.sapUiLocalBusyIndicatorAnimation {
-    background-color: @sapList_Background;
-    box-shadow: @sapContent_Shadow2;
-    border-radius: @sapElement_BorderCornerRadius;
-    padding: 1rem 2rem;
-    max-width: 15rem;
-    /* Centers the busy indicator markers considering the size of the white container */
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+.sapUiLocalBusyIndicatorShowContainer > div.sapUiLocalBusyIndicatorAnimation {
+	background-color: var(--sapList_Background);
+	box-shadow: var(--sapContent_Shadow2);
+	border-radius: var(--sapElement_BorderCornerRadius);
+	padding: 1rem 2rem;
+	max-width: 15rem;
+	/* Centers the busy indicator markers considering the size of the white container */
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
-/* END "LocalBusyIndicator.less" */
-
-/* START "Shadow.less" */
-/* =================================== */
-/* CSS for control sap.ui.core/Shadow  */
-/* Horizon High Contrast White theme   */
-/* =================================== */
-
-.sapUiShd {
-	box-shadow: none;
-}
-/* END "Shadow.less" */
+/* END "BusyIndicator.less" */

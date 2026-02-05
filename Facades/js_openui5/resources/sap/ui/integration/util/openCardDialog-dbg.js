@@ -68,9 +68,6 @@ sap.ui.define([
 			return;
 		}
 
-		// propagetes any inherited models from the card before move
-		BindingHelper.propagateModels(oHeader, oHeader);
-
 		oDialog.setCustomHeader(oHeader);
 		oChildCard.setAssociation("dialogHeader", oHeader);
 
@@ -135,11 +132,18 @@ sap.ui.define([
 		oParentCard.addDependent(oDialog);
 
 		oChildCard.attachEvent("_ready", () => {
-			_setDialogHeader(oDialog, oChildCard);
+			oDialog.bindObject(oChildCard.getBindingContext()?.getPath() ?? "/");
+			BindingHelper.propagateModels(oChildCard, oDialog);
+
 			_setAriaAttributes(oDialog, oChildCard);
+			_setDialogHeader(oDialog, oChildCard);
+
 			if (!oChildCard._isComponentCard()) {
 				oDialog.open();
 			}
+
+			oChildCard.getCardContent()?.onOpenInDialog();
+
 			_setFocus(oChildCard, oDialog);
 		});
 
@@ -181,6 +185,10 @@ sap.ui.define([
 			oChildCard = Element.getElementById(oParameters._cardId);
 		} else {
 			oChildCard = oParentCard._createChildCard(oParameters);
+		}
+
+		if (oParameters.isPaginationCard) {
+			oParentCard.setAssociation("showMoreChildCard", oChildCard);
 		}
 
 		return _openDialog(oChildCard, oParentCard, oParameters);

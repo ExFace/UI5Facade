@@ -16,7 +16,7 @@ sap.ui.define([
 	 * The flexibility Configuration.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @alias module:sap/ui/fl/initial/_internal/FlexConfiguration
 	 * @namespace

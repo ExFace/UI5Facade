@@ -30,7 +30,7 @@ sap.ui.define([
 	 * <h3>Responsive Behavior</h3> You can change the size of the Progress Indicator by changing its <code>width</code> or <code>height</code> CSS properties.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

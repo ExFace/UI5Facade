@@ -12,31 +12,31 @@
 @import "../../../../sap/ui/core/themes/sap_fiori_3_hcw/global.less";
 
 /* START "InfoLabel.less" */
-/* ================================= */
-/* CSS for control sap.tnt/InfoLabel */
-/* Quartz High Contrast White theme  */
-/* ================================= */
+/* ================================== */
+/* CSS for control sap.tnt/InfoLabel  */
+/* Quartz High Contrast White theme   */
+/* ================================== */
 
-// ==========================================================================
-// Variables overriding
-// ==========================================================================
+/* ========================================================================== */
+/* Variables overriding                                                       */
+/* ========================================================================== */
 
 @_sap_tnt_InfoLabel_LineHeightDisplayOnly: 0.875rem;
 
 .sapTntInfoLabel {
-	background: @sapUiGroupContentBackground;
-	border: solid 0.0625rem @sapUiGroupContentBorderColor;
+	background: var(--sapGroup_ContentBackground);
+	border: solid 0.0625rem var(--sapGroup_ContentBorderColor);
 
 	.sapTntInfoLabelInner {
-		color: @sapUiBaseText;
+		color: var(--sapTextColor);
 	}
 
 	&.sapTntInfoLabelDisplayOnly {
-		background: @sapUiGroupContentBackground;
-		border: solid 1px @sapUiGroupContentBorderColor;
+		background: var(--sapGroup_ContentBackground);
+		border: solid 1px var(--sapGroup_ContentBorderColor);
 
 		.sapTntInfoLabelInner {
-			color: @sapUiBaseText;
+			color: var(--sapTextColor);
 			line-height: 0.875rem;
 		}
 
@@ -45,7 +45,6 @@
 		}
 	}
 }
-
 /* END "InfoLabel.less" */
 
 /* START "SideNavigation.less" */
@@ -54,8 +53,8 @@
 /* Quartz High Contrast White theme        */
 /* ======================================= */
 
-@_sap_tnt_SideNavigation_NavigationSeparatorBackgroundColor: @sapUiListGroupHeaderBorderColor;
-@_sap_tnt_SideNavigation_NavigationSeparatorHeight: 2 * @sapUiListBorderWidth;
+@_sap_tnt_SideNavigation_NavigationSeparatorBackgroundColor: var(--sapList_GroupHeaderBorderColor);
+@_sap_tnt_SideNavigation_NavigationSeparatorHeight: ~"calc(2 * @sapUiListBorderWidth)";
 
 /* END "SideNavigation.less" */
 
@@ -68,8 +67,8 @@
 @_sap_tnt_NavigationList_ItemHeight: 2.75rem;
 @_sap_tnt_NavigationList_NoIconsNestedItemPadding: 2rem;
 @_sap_tnt_NavigationList_GroupExpandedBorderWidth: 0;
-@_sap_tnt_NavigationList_Collapsed_SelectedItemBackground: @sapUiListSelectionBackgroundColor;
-@_sap_tnt_NavigationList_HoverBorderStyleColor: solid @sapUiListBorderColor;
+@_sap_tnt_NavigationList_Collapsed_SelectedItemBackground: var(--sapList_SelectionBackgroundColor);
+@_sap_tnt_NavigationList_HoverBorderStyleColor: solid var(--sapList_BorderColor);
 @_sap_tnt_NavigationList_HoverBorderWidth: 0 0 0.0625rem 0;
 @_sap_tnt_NavigationList_PaddingInlineEnd: 0;
 /* END "NavigationList.less" */
@@ -77,18 +76,19 @@
 /* START "ToolHeader.less" */
 /* =================================== */
 /* CSS for control sap.tnt/ToolHeader  */
-/* Quartz HCW theme                    */
+/* Quartz High Contrast White theme    */
 /* =================================== */
 
 @_sap_tnt_ToolHeader_Height: 2.75rem;
 @_sap_tnt_ToolHeader_IconHeight: 0.75rem;
 
-// ==========================================================================
-// sap.m.Avatar / sap.f.Avatar overriding
-// ==========================================================================
+/* ========================================================================== */
+/* sap.m.Avatar / sap.f.Avatar overriding                                     */
+/* ========================================================================== */
 
 .sapTntToolHeader .sapFAvatar {
 	background-color: @_sap_tnt_ToolHeader_AvatarBackground;
+
 	.sapFAvatarInitialsHolder,
 	.sapUiIcon.sapFAvatarTypeIcon  {
 		color: @_sap_tnt_ToolHeader_AvatarColor;

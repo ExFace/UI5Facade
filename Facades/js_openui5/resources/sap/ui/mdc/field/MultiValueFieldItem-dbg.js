@@ -20,7 +20,7 @@ sap.ui.define([
 	 * Base type for <code>MultiValueFieldItem</code> control.
 	 * The {@link sap.ui.mdc.MultiValueField MultiValueField} holds its values as items. The <code>MultiValueFieldItem</code> element defines these items.
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.93.0
 	 * @public

@@ -29,7 +29,7 @@
 /* Horizon High Contrast White theme              */
 /* ============================================== */
 
-.sapUiLayoutAbs{
+.sapUiLayoutAbs {
 	font-size: @sapUiDesktopFontSize;
 }
 /* END "AbsoluteLayout.less" */
@@ -40,9 +40,9 @@
 /* Horizon High Contrast White theme         */
 /* ========================================= */
 
-.sapUiAcd{
-	border: 1px solid @sapUiContentForegroundBorderColor;
-  	font-size: @sapUiDesktopFontSize;
+.sapUiAcd {
+	border: 1px solid var(--sapContent_ForegroundBorderColor);
+	font-size: @sapUiDesktopFontSize;
 }
 /* END "Accordion.less" */
 
@@ -57,7 +57,7 @@
 }
 
 .sapUiAcdSectionHdr {
-	border-bottom: 1px solid @sapUiContentForegroundBorderColor;
+	border-bottom: 1px solid var(--sapContent_ForegroundBorderColor);
 	font-size: @sapUiDesktopFontSize;
 }
 
@@ -81,11 +81,11 @@
 }
 
 .sapUiAcdSectionMinBtn {
-	background-image: url(img/panel/minimize.png);
+	background-image: url('img/panel/minimize.png');
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionMinBtn {
-	background-image: url(img/panel/maximize.png);
+	background-image: url('img/panel/maximize.png');
 }
 
 .sapUiAcdSectionTb {
@@ -95,7 +95,7 @@
 .sapUiAcdSectionCont {
 	border-top: none;
 	padding: 8px;
-	border-bottom: 1px solid @sapUiContentForegroundBorderColor;
+	border-bottom: 1px solid var(--sapContent_ForegroundBorderColor);
 }
 
 .sapUiAcdSectionWithTb .sapUiAcdSectionCont {
@@ -103,17 +103,17 @@
 }
 
 .sapUiAcdSectionArea .sapUiAcdSectionCont {
-	background-color: @sapUiGroupContentBackground;
+	background-color: var(--sapGroup_ContentBackground);
 }
 
 .sapUiAcdSectionMinArrow {
 	padding-right:5px;
 	margin-top:3px;
-	background-image: url(img/accordion/expanded.gif);
+	background-image: url('img/accordion/expanded.gif');
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionMinArrow {
-	background-image: url(img/accordion/collapsed.gif);
+	background-image: url('img/accordion/collapsed.gif');
 }
 
 .sapUiAcdSectionHdr > div > span > span {
@@ -535,7 +535,7 @@ html[data-sap-ui-browser^="ie"] .sapUiCb:focus:after {
 }
 
 .sapUiInverted-CTX .sapUiFTV {
-	color: @sapUiBaseText;
+	color: var(--sapTextColor);
 }
 /* END "FormattedTextView.less" */
 

@@ -8,17 +8,17 @@ sap.ui.define([
 	"sap/base/util/restricted/_pick",
 	"sap/ui/fl/apply/_internal/flexObjects/States",
 	"sap/ui/fl/apply/_internal/flexObjects/Variant",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/LayerUtils",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/registry/Settings",
 	"sap/ui/fl/Utils"
 ], function(
 	_pick,
 	States,
 	Variant,
+	Settings,
 	LayerUtils,
 	Layer,
-	Settings,
 	Utils
 ) {
 	"use strict";
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.Variant
 	 * @alias sap.ui.fl.apply._internal.flexObjects.CompVariant
 	 * @since 1.103
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.comp
 	 */
@@ -60,18 +60,11 @@ sap.ui.define([
 				revertData: {
 					type: "sap.ui.base.ManagedObject", // "sap.ui.fl.apply._internal.flexObjects.CompVariantRevertData"
 					multiple: true,
-					singularName: "revertData"
-				},
-				/**
-				 * Changes belonging to the variant
-				 */
-				changes: {
-					type: "sap.ui.base.ManagedObject", // "sap.ui.fl.apply._internal.flexObjects.FlexObject"
-					multiple: true
+					singularName: "revertData",
+					defaultValue: []
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			const [mPropertyBag] = aArgs;
 			Variant.apply(this, aArgs);
@@ -79,7 +72,16 @@ sap.ui.define([
 			// fileType "variant" is only for compVariant
 			this.setFileType("variant");
 
-			if (mPropertyBag.favorite !== undefined) {
+			// set executeOnSelection
+			if (!mPropertyBag.executeOnSelection) {
+				this.setExecuteOnSelection(!!(mPropertyBag.content?.executeOnSelect || mPropertyBag.content?.executeOnSelection));
+			}
+			const bIsStandardVariant = this.getVariantId() === CompVariant.STANDARD_VARIANT_ID || !!this.getContent()?.standardvariant;
+
+			if (bIsStandardVariant) {
+				this.setFavorite(true);
+				this.setStandardVariant(true);
+			} else if (mPropertyBag.favorite !== undefined) {
 				this.setFavorite(!!mPropertyBag.favorite);
 			} else if (mPropertyBag.layer === Layer.VENDOR || mPropertyBag.layer === Layer.CUSTOMER_BASE) {
 				this.setFavorite(true);
@@ -114,7 +116,7 @@ sap.ui.define([
 
 	function isUserAuthor(sAuthor) {
 		var oSettings = Settings.getInstanceOrUndef();
-		var vUserId = oSettings && oSettings.getUserId();
+		var vUserId = oSettings?.getUserId();
 		return !vUserId || !sAuthor || vUserId.toUpperCase() === sAuthor.toUpperCase();
 	}
 
@@ -135,11 +137,11 @@ sap.ui.define([
 
 		if (LayerUtils.isSapUiLayerParameterProvided()) {
 			sActiveLayer = LayerUtils.getCurrentLayer();
-		} else {sActiveLayer ||= oSettings.isPublicLayerAvailable() ? Layer.PUBLIC : Layer.CUSTOMER;}
+		} else {sActiveLayer ||= oSettings.getIsPublicLayerAvailable() ? Layer.PUBLIC : Layer.CUSTOMER;}
 		// In the PUBLIC layer, the variant is only editable if the user is key user OR the author with variant sharing enabled
-		const bPublicLayerCheck = sActiveLayer !== Layer.PUBLIC || oSettings.isVariantSharingEnabled();
+		const bPublicLayerCheck = sActiveLayer !== Layer.PUBLIC || oSettings.getIsVariantSharingEnabled();
 		const bLayerWritable = sLayer === sActiveLayer;
-		const bUserAuthorized = oSettings.isKeyUser() || (isUserAuthor(sUserId) && bPublicLayerCheck);
+		const bUserAuthorized = oSettings.getIsKeyUser() || (isUserAuthor(sUserId) && bPublicLayerCheck);
 
 		return bLayerWritable && bUserAuthorized;
 	}

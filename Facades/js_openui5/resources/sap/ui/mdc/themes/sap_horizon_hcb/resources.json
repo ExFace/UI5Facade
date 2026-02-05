@@ -8,7 +8,7 @@
 		},
 		{
 			"name": "Chart.less",
-			"size": 213,
+			"size": 208,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 16824,
+			"size": 18747,
 			"theme": "sap_horizon_hcb"
 		},
 		{
@@ -49,12 +49,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 16820,
+			"size": 18742,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 2649,
+			"size": 2644,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},

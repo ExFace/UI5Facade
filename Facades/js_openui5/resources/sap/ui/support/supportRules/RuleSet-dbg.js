@@ -34,7 +34,7 @@ function (Log, Version, library, storage) {
 	 * @private
 	 * @alias sap.ui.support.RuleSet
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @param {object} oSettings Name of the initiated
 	 */
 	var RuleSet = function (oSettings) {

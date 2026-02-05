@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.support.apps.contentbrowser.controller.Layers
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.45
 	 * @private
 	 */
@@ -34,7 +34,7 @@ sap.ui.define([
 			var sLayerName = oLayerModelData[sLayerBindingPath].name;
 
 			var oRouter = UIComponent.getRouterFor(this);
-			oRouter.navTo("LayerContentMaster", {layer: sLayerName});
+			oRouter.navTo("LayerContentMaster", { layer: sLayerName });
 		},
 
 		/**

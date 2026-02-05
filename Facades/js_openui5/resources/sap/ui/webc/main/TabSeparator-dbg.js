@@ -24,7 +24,7 @@ sap.ui.define([
 	 * The <code>sap.ui.webc.main.TabSeparator</code> represents a vertical line to separate tabs inside a <code>sap.ui.webc.main.TabContainer</code>.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

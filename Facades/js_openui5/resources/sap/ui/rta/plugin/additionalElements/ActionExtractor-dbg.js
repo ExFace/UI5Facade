@@ -32,7 +32,7 @@ sap.ui.define([
 	 * handled by the AdditionalElements Plugin (Reveal, Add Via Delegate, Add Custom)
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @since 1.94
 	 */
@@ -157,7 +157,7 @@ sap.ui.define([
 		const aRequiredLibraries = Object.keys(mRequiredLibraries || {});
 		try {
 			for (const sLibrary of aRequiredLibraries) {
-				await Lib.load({name: sLibrary});
+				await Lib.load({ name: sLibrary });
 			}
 			return true;
 		} catch (vError) {
@@ -284,7 +284,7 @@ sap.ui.define([
 		]);
 		// join and condense all action data
 		const mAllActions = merge(oRevealAction, oAddViaDelegateAction);
-		oSourceElementOverlay._mAddActions ||= {asSibling: {}, asChild: {}};
+		oSourceElementOverlay._mAddActions ||= { asSibling: {}, asChild: {} };
 		oSourceElementOverlay._mAddActions[sSiblingOrChild] = mAllActions;
 		return mAllActions;
 	};
@@ -302,6 +302,16 @@ sap.ui.define([
 
 	let mRevealCache = {};
 	let bIsSyncRegistered = true;
+
+	/**
+	 * Clears the cache of the Reveal actions data.
+	 * It also registers a sync event to clear the cache after the DesignTime is synced.
+	 * This should only be used in tests.
+	 */
+	ActionExtractor.clearCache = function() {
+		mRevealCache = {};
+		bIsSyncRegistered = true;
+	};
 
 	/**
 	 * Returns the Reveal actions data (parameters + elements) for an Overlay

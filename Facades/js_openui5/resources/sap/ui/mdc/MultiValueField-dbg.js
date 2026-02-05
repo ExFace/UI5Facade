@@ -33,9 +33,9 @@ sap.ui.define([
 	 *
 	 * <ul>
 	 * <li>In display mode, usually a {@link sap.m.Tokenizer Tokenizer} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
 	 * <li>In edit mode, usually a {@link sap.m.MultiInput MultiInput} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
 	 * </ul>
 	 *
 	 * @extends sap.ui.mdc.field.FieldBase
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.mdc.MultiValueField
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.93.0
 	 *
 	 * @public
@@ -83,7 +83,7 @@ sap.ui.define([
 				 * Items of the <code>MultiValueField</code> control.
 				 *
 				 * The items are not updated by user input or value help selection automatically. That's because an aggregation binding can only be updated by the model,
-				 * not by the bound aggregation. Therefore, the {@link module:sap/ui/mdc/field/MultiValueFieldDelegate.updateItems MultiValueFieldDelegate.updateItems} function needs to be implemented
+				 * not by the bound aggregation. Therefore, the {@link module:sap/ui/mdc/field/MultiValueFieldDelegate.updateItemsFromConditions MultiValueFieldDelegate.updateItemsFromConditions} function needs to be implemented
 				 * to update the items after a user interaction.
 				 */
 				items: {
@@ -96,7 +96,7 @@ sap.ui.define([
 			defaultAggregation: "items",
 			events: {
 				/**
-				 * This event is fired when the <code>items</code> aggregation of the field is changed by user interaction.
+				 * This event is fired when the {@link #getItems items} aggregation of the field is changed by user interaction.
 				 *
 				 * <b>Note</b> This event is only triggered if the used content control has a change event.
 				 */
@@ -106,7 +106,7 @@ sap.ui.define([
 						/**
 						 * The new items of the <code>MultiValueField</code> control.
 						 *
-						 * If a <code>ValueHelp</code> element is assigned to the <code>MultiValueField</code> control, the <code>key</code> of the items is used as key for the <code>ValueHelp</code> items.
+						 * If a {@link sap.ui.mdc.field.FieldBase#getValueHelp ValueHelp} element is assigned to the <code>MultiValueField</code> control, the {@link sap.ui.mdc.field.MultiValueFieldItem#getKey key} of the items is used as key for the {@link sap.ui.mdc.field.FieldBase#getValueHelp ValueHelp} items.
 						 */
 						items: { type: "sap.ui.mdc.field.MultiValueFieldItem[]" },
 
@@ -288,7 +288,7 @@ sap.ui.define([
 			return;
 		}
 
-		this.getControlDelegate().updateItems(this.getPayload(), aConditions, this);
+		this.getControlDelegate().updateItemsFromConditions(this, aConditions);
 
 	}
 
@@ -324,7 +324,15 @@ sap.ui.define([
 
 		for (const oItem of aItems) {
 			const oCurrentCondition = aCurrentConditions[iIndex];
-			const oCondition = oDelegate.createCondition(this, this, [_getInternalValue(oItem, "key"), _getInternalValue(oItem, "description")], oCurrentCondition);
+			const vKey = _getInternalValue(oItem, "key");
+			const vDescription = _getInternalValue(oItem, "description");
+			let oCondition;
+			if (vKey === undefined && vDescription === undefined) {
+				// item exist but binding for key and description pending or has no values right now -> just create dummy condition for index.
+				oCondition = Condition.createCondition(OperatorName.EQ, [vKey, vDescription], undefined, undefined, ConditionValidated.NotValidated, undefined);
+			} else {
+				oCondition = oDelegate.createCondition(this, this, [vKey, vDescription], oCurrentCondition);
+			}
 			aConditions.push(oCondition);
 			if (!oCurrentCondition || !Condition.compareConditions(oCurrentCondition, oCondition)) { // We do a full comparison here as FilterOperatorUtils.compareConditions may ignore text changes
 				bChanged = true;
@@ -384,6 +392,10 @@ sap.ui.define([
 
 		return false; // MultiValueField cannot be a searchField (as this only supports single-value)
 
+	};
+
+	Field.prototype.getBindingEventParameter = function (oEvent) {
+		return null; // fire event on inner control until messaging on aggregations has been clarified
 	};
 
 	/**

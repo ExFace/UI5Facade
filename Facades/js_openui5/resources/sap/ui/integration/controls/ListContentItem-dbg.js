@@ -48,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -121,7 +121,7 @@ sap.ui.define([
 				iconVisible: { type: "boolean", defaultValue: true },
 
 				/**
-				 * Defines whether the info is specified.
+				 * Defines whether the info is specified or not.
 				 */
 				hasInfo: { type: "boolean", defaultValue: false },
 
@@ -131,7 +131,12 @@ sap.ui.define([
 				info: { type : "string", group: "Misc", defaultValue: null },
 
 				/**
-				 * Defines whether the info should be visible.
+				 * Defines whether the info is active or not.
+				 */
+				infoActive: { type : "boolean", defaultValue: false },
+
+				/**
+				 * Defines whether the info should be visible or not.
 				 * @since 1.115
 				 */
 				infoVisible: {type: "boolean", defaultValue: true },
@@ -177,6 +182,9 @@ sap.ui.define([
 				 * Defines the inner object status control.
 				 */
 				_objectStatus: { type: "sap.m.ObjectStatus", multiple: false, visibility: "hidden" }
+			},
+			events: {
+				infoPress: {}
 			}
 		},
 		renderer: ListContentItemRenderer
@@ -329,7 +337,9 @@ sap.ui.define([
 		var oObjectStatus = this.getAggregation("_objectStatus");
 
 		if (!oObjectStatus) {
-			oObjectStatus = new ObjectStatus();
+			oObjectStatus = new ObjectStatus({
+				press: this.fireInfoPress.bind(this)
+			});
 			this.setAggregation("_objectStatus", oObjectStatus);
 		}
 
@@ -338,7 +348,8 @@ sap.ui.define([
 			.setState(this.getInfoState())
 			.setShowStateIcon(this.getShowInfoStateIcon())
 			.setCustomIcon(this.getCustomInfoStatusIcon())
-			.setInverted(this.getInfoStateInverted());
+			.setInverted(this.getInfoStateInverted())
+			.setActive(this.getInfoActive());
 
 		return oObjectStatus;
 	};

@@ -8,35 +8,35 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 791,
+			"size": 876,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 1834,
+			"size": 1879,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 6661,
+			"size": 8926,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/dt/themes/sap_horizon_hcw/library-parameters.json",
-			"size": 675,
+			"size": 1196,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 6654,
+			"size": 8921,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 3262,
+			"size": 3392,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
@@ -48,7 +48,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 940
+			"size": 941
 		}
 	]
 }

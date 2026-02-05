@@ -14,7 +14,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/base/security/encodeXML', 'sap/u
 	 * ListBox Renderer
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @namespace
 	 */
 	var ListBoxRenderer = {

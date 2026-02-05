@@ -50,18 +50,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 64057,
+			"size": 72227,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_belize_hcb/library-parameters.json",
-			"size": 5719,
+			"size": 5814,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 64074,
+			"size": 72262,
 			"theme": "sap_belize_hcb"
 		},
 		{

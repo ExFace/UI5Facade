@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @class
 	 * The InPlaceEdit is a functionality to have text in display mode that can be changed in place.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public

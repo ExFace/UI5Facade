@@ -20,7 +20,7 @@
 		},
 		{
 			"name": "base_NavigationList.less",
-			"size": 17973,
+			"size": 17547,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -44,23 +44,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 27780,
+			"size": 27397,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_hcb/library-parameters.json",
-			"size": 6000,
+			"size": 6228,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 27775,
+			"size": 27394,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 36610,
+			"size": 36184,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

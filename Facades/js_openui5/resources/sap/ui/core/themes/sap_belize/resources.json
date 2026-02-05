@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 628,
+			"size": 627,
 			"theme": "sap_belize"
 		},
 		{
@@ -19,7 +19,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 180755,
+			"size": 181215,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -81,18 +81,18 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 340754,
+			"size": 341124,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_belize/library-parameters.json",
-			"size": 224566,
+			"size": 224824,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.css",
-			"size": 340737,
+			"size": 341107,
 			"theme": "sap_belize"
 		},
 		{

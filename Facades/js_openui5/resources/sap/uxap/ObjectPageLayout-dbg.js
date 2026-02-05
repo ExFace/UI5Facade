@@ -1007,7 +1007,7 @@ sap.ui.define([
 			bAppendHeaderToContent;
 
 		if (bExpand) {
-			bIsPageTop = (this._$opWrapper.scrollTop() <= (this._getSnapPosition() + 1));
+			bIsPageTop = (Math.floor(this._$opWrapper.scrollTop()) <= (this._getSnapPosition() + 1));
 			bAppendHeaderToTitle = !this._headerBiggerThanAllowedToBeExpandedInTitleArea() && (this._shouldPreserveHeaderInTitleArea() || !bIsPageTop);
 			this._expandHeader(bAppendHeaderToTitle);
 			if (!bAppendHeaderToTitle) {
@@ -1220,6 +1220,7 @@ sap.ui.define([
 
 		if (this._hasDynamicTitle()) {
 			this.addStyleClass("sapUxAPObjectPageHasDynamicTitle");
+			this._updateMedia(iWidth, ObjectPageLayout.DYNAMIC_HEADERS_MEDIA);
 		}
 
 		if (iWidth > 0) {
@@ -1252,6 +1253,9 @@ sap.ui.define([
 			oHeaderContent._setLandmarkInfo(this.getLandmarkInfo());
 		}
 
+		if (exists(this._oABHelper) && this._oABHelper._setLandmarkInfo) {
+			this._oABHelper._setLandmarkInfo(this.getLandmarkInfo());
+		}
 	};
 
 	ObjectPageLayout.prototype._onAfterRenderingDomReady = function () {
@@ -1851,9 +1855,14 @@ sap.ui.define([
 		for (var i = 0; i < aSections.length; i++) {
 			var oSection = aSections[i];
 			if (oSection._getInternalVisible()) {
-				oSection._setAriaLabelledByAnchorButton(aAnchorBarItems[i]);
+				if (aSections.length === 1) {
+					oSection._setAriaLabelledByAnchorButton(undefined);
+				} else {
+					oSection._setAriaLabelledByAnchorButton(aAnchorBarItems[i]);
+				}
 			}
 		}
+
 
 		this._setInternalAnchorBarVisible(bVisibleAnchorBar, bInvalidate);
 		this._oFirstVisibleSection = oFirstVisibleSection;
@@ -3183,10 +3192,7 @@ sap.ui.define([
 		// (1) add top padding for the area underneath the title element
 		// so that the title does not overlap the content of the scroll container
 		oWrapperElement.style.paddingTop = iTitleHeight + "px";
-		oWrapperElement.style.scrollPaddingTop = iTitleHeight + "px";
-		if (this._oScroller) {
-			this._oScroller.setScrollPaddingTop(iTitleHeight);
-		}
+		this._adjustScrollPaddingTop();
 
 		// (2) also make the area underneath the title invisible (using clip-path)
 		// to allow usage of *transparent background* of the title element
@@ -3203,6 +3209,29 @@ sap.ui.define([
 		oWrapperElement.style.clipPath = sClipPath;
 
 		this.getHeaderTitle() && this._shiftHeaderTitle();
+	};
+
+	ObjectPageLayout.prototype._adjustScrollPaddingTop = function () {
+		if (!this._$opWrapper?.length) {
+			return;
+		}
+
+		var oTitleElement = this._$titleArea?.length && this._$titleArea.get(0),
+			iTitleHeight = (oTitleElement && oTitleElement.getBoundingClientRect().height) || 0,
+			iScrollPosition = this._oScrollContainerLastState.iScrollTop,
+			iOffsetScrollPaddingTop = 0,
+			oSelectedSection = Element.getElementById(this.getSelectedSection());
+
+		// when the selected section is scrolled below the header
+		if (this._oSectionInfo[oSelectedSection?.getId()]?.positionTop < iScrollPosition) {
+			// to avoid focused content being hidden under the sticky Section's header, when browser automatically scrolls it into view
+			iOffsetScrollPaddingTop = oSelectedSection?.$().find(".sapUxAPObjectPageSectionHeader").outerHeight() || 0;
+		}
+
+		this._$opWrapper.get(0).style.scrollPaddingTop = (iTitleHeight + iOffsetScrollPaddingTop) + "px";
+		if (this._oScroller) {
+			this._oScroller.setScrollPaddingTop(iTitleHeight + iOffsetScrollPaddingTop);
+		}
 	};
 
 	/**
@@ -3485,6 +3514,7 @@ sap.ui.define([
 		//don't apply parallax effects if there are not enough space for it
 		if (!bShouldPreserveHeaderInTitleArea && ((oHeader && this.getShowHeaderContent()) || this.getShowAnchorBar())) {
 			this._toggleHeader(bShouldStick, !!(oEvent && oEvent.type === "scroll"));
+			this._scrollTo(iScrollTop); // to avoid snap/unsnap caused by the change in header height when there is a difference between the snapped and expanded title heights
 		}
 
 		if (!bShouldPreserveHeaderInTitleArea) {
@@ -3514,6 +3544,8 @@ sap.ui.define([
 				this.$("scroll").css("z-index", "0");
 			}
 		}
+
+		this._adjustScrollPaddingTop();
 	};
 
 	/**

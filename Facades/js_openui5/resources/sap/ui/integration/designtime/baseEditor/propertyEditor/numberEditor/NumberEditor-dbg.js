@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.numberEditor.NumberEditor
 	 * @author SAP SE
 	 * @since 1.72
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @experimental 1.72

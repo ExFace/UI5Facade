@@ -100,7 +100,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -545,7 +545,7 @@ sap.ui.define([
 	/**
 	 * Adjustes the number of <code>Avatars</code> to be shown in case ShowMoreButton is visible
 	 *
-	 * @param {int} iAvatarGroupItems - the number of <code>sap.f.AvatarGroupItems</code>
+	 * @param {int} iAvatarGroupItems - the number of <code>sap.f.AvatarGroupItem</code>s
 	 * @private
 	 */
 	AvatarGroup.prototype._adjustAvatarsToShow = function (iAvatarGroupItems) {

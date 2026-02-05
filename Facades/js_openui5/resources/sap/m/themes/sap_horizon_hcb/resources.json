@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 2146,
+			"size": 2232,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "Button.less",
-			"size": 7458,
+			"size": 7499,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "CheckBox.less",
-			"size": 5579,
+			"size": 5860,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -104,7 +104,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 241,
+			"size": 324,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -224,7 +224,7 @@
 		},
 		{
 			"name": "Menu.less",
-			"size": 308,
+			"size": 469,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -248,7 +248,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 632,
+			"size": 717,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -266,7 +266,7 @@
 		},
 		{
 			"name": "MessageView.less",
-			"size": 1845,
+			"size": 1842,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -296,7 +296,7 @@
 		},
 		{
 			"name": "ObjectListItem.less",
-			"size": 681,
+			"size": 701,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -308,13 +308,13 @@
 		},
 		{
 			"name": "ObjectNumber.less",
-			"size": 1475,
+			"size": 1738,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "ObjectStatus.less",
-			"size": 22104,
+			"size": 22009,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -326,7 +326,7 @@
 		},
 		{
 			"name": "Page.less",
-			"size": 4126,
+			"size": 4447,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -458,7 +458,7 @@
 		},
 		{
 			"name": "SliderTooltip.less",
-			"size": 1063,
+			"size": 1014,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -488,7 +488,7 @@
 		},
 		{
 			"name": "Switch.less",
-			"size": 7645,
+			"size": 7681,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -530,13 +530,13 @@
 		},
 		{
 			"name": "Tile.less",
-			"size": 1568,
+			"size": 1645,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 539,
+			"size": 625,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -590,7 +590,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 832,
+			"size": 921,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -638,23 +638,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 951851,
+			"size": 979967,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_horizon_hcb/library-parameters.json",
-			"size": 25062,
+			"size": 25446,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 951843,
+			"size": 979952,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 216718,
+			"size": 218200,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},

@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides default renderer for control sap.f.AvatarGroupItemRenderer
+// Provides default renderer for control sap.f.AvatarGroupItem
 sap.ui.define(["sap/f/library"],
 	function (library) {
 		"use strict";

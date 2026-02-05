@@ -111,7 +111,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.apply._internal.changes.descriptor.app.AddNewDataSource
 	 * @since 1.87
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
@@ -133,7 +133,15 @@ sap.ui.define([
 			oManifest["sap.app"].dataSources ||= {};
 			const oChangeContent = oChange.getContent();
 
-			const aDataSources = DescriptorChangeCheck.getAndCheckContentObject(oChangeContent, "dataSource", oChange.getChangeType(), MANDATORY_PROPERTIES, SUPPORTED_PROPERTIES, PROPERTIES_PATTERNS, SUPPORTED_TYPES);
+			const aDataSources = DescriptorChangeCheck.getAndCheckContentObject(oChangeContent, {
+				sKey: "dataSource",
+				sChangeType: oChange.getChangeType(),
+				iMaxNumberOfKeys: 2,
+				aMandatoryProperties: MANDATORY_PROPERTIES,
+				aSupportedProperties: SUPPORTED_PROPERTIES,
+				oSupportedPropertyPattern: PROPERTIES_PATTERNS,
+				oSupportedPropertyTypes: SUPPORTED_TYPES
+			});
 
 			aDataSources.forEach(function(sDataSource) {
 				DescriptorChangeCheck.checkIdNamespaceCompliance(sDataSource, oChange);

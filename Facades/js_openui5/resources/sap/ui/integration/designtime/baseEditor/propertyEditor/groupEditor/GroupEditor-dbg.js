@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.propertyEditor.groupEditor.GroupEditor
 	 * @author SAP SE
 	 * @since 1.85
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @experimental 1.85

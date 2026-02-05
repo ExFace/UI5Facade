@@ -385,7 +385,7 @@
 @_sap_f_Card_BoxShadow: var(--sapContent_Shadow0);
 @_sap_f_Card_HeaderBorder: 0.0625rem solid var(--sapTile_SeparatorColor); /* used as top or bottom border */
 @_sap_f_Card_FocusBorderRadius: none;
-@_sap_f_Card_BorderRadius: var(--sapElement_BorderCornerRadius);
+@_sap_f_Card_BorderRadius: var(--sapTile_BorderCornerRadius);
 @_sap_f_Card_ContentPadding: 1rem;
 @_sap_f_Card_FocusBorderBottomOffset: 1px;
 @_sap_f_Card_FocusBorderTopOffset: 1px;
@@ -471,6 +471,11 @@ ui-integration-card.sapFCardTransparent > [data-sap-ui-area] > .sapFCard {
 	.sapFCardHeaderMainPart {
 		border-radius: @_sap_f_Card_BorderRadius @_sap_f_Card_BorderRadius 0 0;
 	}
+}
+
+/* Styling for toolbar container when badge is present */
+.sapFCard:has(.sapFCardBadgePlaceholder) .sapFCardHeaderToolbarCont {
+	padding-top: 0.125rem;
 }
 
 .sapFCard .sapFCardIcon.sapFAvatar {
@@ -633,12 +638,16 @@ html[data-sap-ui-browser^='cr'] .sapFCard {
 
 	&:not(.sapFCardTransparent) {
 
-		.sapFCardSectionClickable:hover {
-			background: var(--sapTile_Hover_Background);
-		}
+		.sapFCardSectionClickable {
+			border-radius: var(--sapTile_BorderCornerRadius);
 
-		.sapFCardSectionClickable:active {
-			background: var(--sapTile_Active_Background);
+			&:hover {
+				background: var(--sapTile_Hover_Background);
+			}
+
+			&:active {
+				background: var(--sapTile_Active_Background);
+			}
 		}
 	}
 
@@ -748,8 +757,9 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		&:hover::before {
 			content: '\e010';
 			font-family: var(--sapContent_IconFontFamily);
-			margin-right: 4px;
-			font-size: 0.7rem;
+			margin-right: 0.125rem;
+			color: var(--sapButton_Lite_TextColor);
+			line-height: normal;
 		}
 	}
 }
@@ -773,6 +783,14 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		box-shadow: @sapUiShadow;
 	}
 }
+
+.sapUiIntCardAnalytical .v-info {
+	user-select: text !important;
+}
+
+.sapUiIntCardAnalytical .sapUiIntegrationAnalyticalForcePointer {
+	cursor: pointer !important;
+}
 /* END "Card.less" */
 
 /* START "CardHeaders.less" */
@@ -794,15 +812,58 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	background: @sapUiTileBackground;
 	display: flex;
 	flex-direction: column;
+	overflow: hidden;
+	border-radius: inherit;
+
+	.sapFCardHeaderMainWrapper {
+		display: flex;
+		border-radius: inherit;
+		flex-direction: column;
+		height: 100%;
+
+		.sapFCardHeaderTopRow {
+			display: flex;
+			flex-direction: row;
+			height: 100%;
+			position: relative;
+			border-radius: inherit;
+		}
+
+		>:has(.sapFCardHeaderInfoSection) {
+			flex-wrap: wrap;
+		}
+	}
 
 	.sapFCardHeaderMainPart {
 		outline: none;
 		display: flex;
 		min-width: 0;
 		height: fit-content;
-		padding: @_sap_f_CardHeaders_Padding @_sap_f_CardHeaders_Padding 0.75rem @_sap_f_CardHeaders_Padding;
+		padding: @_sap_f_CardHeaders_Padding @_sap_f_CardHeaders_Padding 0.25rem @_sap_f_CardHeaders_Padding;
 		position: relative;
 		border-radius: 0;
+		flex-grow: 1;
+
+		&.sapFCardHeaderLastPart{
+			padding: @_sap_f_CardHeaders_Padding;
+		}
+
+		&:has(+ .sapFCardHeaderToolbarCont),
+		&.sapFCardHeaderLastPart:has(+ .sapFCardHeaderToolbarCont)  {
+			padding-right: 0;
+		}
+	}
+
+	.sapFCardHeaderTopRow:has(.sapFCardSectionClickable) {
+		cursor: pointer;
+
+		&:hover {
+			background: @sapUiTileHoverBackground;
+		}
+
+		&:active {
+			background: @sapUiTileActiveBackground;
+		}
 	}
 
 	.sapFCardHeaderImage {
@@ -855,6 +916,18 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		flex-grow: 1;
 	}
 
+	&:not(.sapFCardHeaderHasToolbar) {
+		.sapFCardStatusWrapper{
+			padding-top: 1rem;
+		}
+	}
+
+	.sapFCardStatusWrapper {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+	}
+
 	.sapFCardStatus {
 		position: relative;
 		font-family: @sapUiFontFamily;
@@ -862,7 +935,6 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		color: @sapUiTileTextColor;
 		text-align: right;
 		line-height: normal;
-		margin-left: 1rem;
 		margin-top: 0.188rem;
 		display: inline-block;
 		white-space: nowrap;
@@ -876,7 +948,7 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	}
 
 	.sapFCardHeaderTextSecondLine {
-		margin-top: 0.25rem;
+		margin-top: 0.5rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-end;
@@ -885,18 +957,33 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	.sapFCardDataTimestamp {
 		color: @sapUiTileTextColor;
 		font-size: @sapMFontSmallSize;
-		margin-left: auto;
 		flex-shrink: 0;
+		text-align: right;
+		line-height: normal;
+		display: inline-flex;
+		justify-content: flex-end;
+		align-items: center;
 	}
 
-	.sapFCardHeaderLineIncludesDataTimestamp .sapFCardSubtitle {
-		margin-right: 1rem;
+	.sapFCardStatusWrapper.sapFCardHeaderLineIncludesDataTimestamp  .sapFCardStatus{
+		padding-bottom: 0.25rem;
 	}
 
 	.sapFCardHeaderToolbarCont {
-		position: absolute;
-		right: 0.65rem;
-		top: 0.45rem;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		padding-right: 1rem;
+		padding-left: 0.5rem;
+		padding-bottom: 0.25rem;
+
+		&:not(:has(> :not(:empty))) {
+			display: none;
+		}
+	}
+
+	.sapFCardHeaderLastPart + .sapFCardHeaderToolbarCont {
+		padding-bottom: @_sap_f_CardHeaders_Padding;
 	}
 
 	&.sapFCardHeaderHasToolbar {
@@ -919,7 +1006,6 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 			padding-inline-start: 0.25rem;
 			padding-inline-end: @_sap_f_CardHeaders_Padding;
 			background-color: @sapUiInfobarNonInteractiveBackground;
-			border-radius: 0.125rem 0 0 0.125rem;
 			min-width: 0;
 
 			.sapFCardHeaderBannerLine {
@@ -945,13 +1031,18 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		.sapMText {
 			cursor: pointer;
 		}
+	}
 
-		&:hover {
-			background: @sapUiTileHoverBackground;
-		}
+	.sapMBtn {
+		right: -0.5rem;
+		padding-top: 0.5rem;
+		padding-bottom: 0.25rem;
+		height: auto;
+	} 
 
-		&:active {
-			background: @sapUiTileActiveBackground;
+	&:not(:has(.sapFCardSubtitle)) {
+		.sapFCardHeaderToolbarCont {
+			justify-content: center;
 		}
 	}
 }
@@ -967,7 +1058,7 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 }
 
 .sapFCardHeaderInfoSection {
-	padding: 0.5rem 1rem 0.25rem 1rem;
+	padding: 0.25rem @_sap_f_CardHeaders_Padding 0.25rem @_sap_f_CardHeaders_Padding;
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
@@ -979,8 +1070,12 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 
 .sapFCardHeader.sapFCardNumericHeader {
 
+	.sapFCardHeaderMainWrapper {
+		flex-direction: column;
+	}
+
 	.sapFCardNumericHeaderNumericPart {
-		padding: 0.25rem 1rem 0.5rem 1rem;
+		padding: 0rem @_sap_f_CardHeaders_Padding @_sap_f_CardHeaders_Padding @_sap_f_CardHeaders_Padding;
 
 		.sapFCardHeaderNumericPartFirstLine {
 			display: flex;
@@ -998,7 +1093,7 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	}
 
 	.sapFCardSubtitle {
-		margin: 0.25rem 0 0 0;
+		margin: 0.5rem 0 0 0;
 		display: flex;
 		align-items: flex-end;
 
@@ -1029,7 +1124,7 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 		}
 
 		.sapFCardNumericIndicatorsSide {
-			padding: 0.5rem 0;
+			padding: 0.25rem 0;
 		}
 	}
 
@@ -1114,7 +1209,7 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	}
 }
 
-.sapFCardHeader:not(.sapFCardHeaderToolbarFocused) .sapFCardHeaderFocusable:focus::before {
+.sapFCardHeader:not(.sapFCardHeaderToolbarFocused) .sapFCardHeaderTopRow:has(.sapFCardHeaderMainPart:focus)::before {
 	content: '';
 	display: block;
 	position: absolute;
@@ -1129,11 +1224,33 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 }
 
 .sapFCardHeader .sapFCardIcon.sapFAvatar {
-	margin-right: 0.75rem;
+	margin-right: 0.5rem;
 
 	&:not(.sapFAvatarImage):not(.sapFAvatarInitials) {
 		border: none;
 	}
+}
+
+.sapFAvatar[class*="sapFCardHeaderImageState"] {
+    background-color: transparent;
+    font-size: 2rem;
+    color: var(--avatar-state-color);
+}
+
+.sapFAvatar.sapFCardHeaderImageStateError {
+    --avatar-state-color: var(--sapNegativeElementColor);
+}
+
+.sapFAvatar.sapFCardHeaderImageStateWarning {
+    --avatar-state-color: var(--sapCriticalElementColor);
+}
+
+.sapFAvatar.sapFCardHeaderImageStateInformation {
+    --avatar-state-color: var(--sapInformativeElementColor);
+}
+
+.sapFAvatar.sapFCardHeaderImageStateSuccess {
+    --avatar-state-color: var(--sapPositiveElementColor);
 }
 /* END "CardHeaders.less" */
 
@@ -1491,10 +1608,10 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 /* END "CardLoading.less" */
 
 /* START "CardNumericIndicators.less" */
-/* ============================================= */
-/* CSS for control sap.f.cards/NumericIndicators */
-/* Base theme                                    */
-/* ============================================= */
+/* ================================================== */
+/* CSS for control sap.f/cards/CardNumericIndicators  */
+/* Base theme                                         */
+/* ================================================== */
 
 .sapFCardNumericIndicators {
 	display: flex;
@@ -1517,13 +1634,14 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	}
 
 	.sapFCardNumericIndicatorsSide {
-		min-width: 0; // allows items to shrink and truncate the content inside
+		min-width: 0; /* allows items to shrink and truncate the content inside */
 		display: flex;
 
 		.sapFCardHeaderSideIndicator {
 			margin-right: 1rem;
 			position: relative;
 		}
+
 		.sapFCardHeaderSideIndicator:last-child {
 			margin-right: 0;
 		}
@@ -1550,21 +1668,22 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 
 	.sapFDynamicPageContentWrapperStandard,
 	.sapFDynamicPageContentWrapperSolid {
-		&>.sapFDynamicPageContent {
-			background: @sapUiBaseBG;
+
+		& > .sapFDynamicPageContent {
+			background: var(--sapBackgroundColor);
 		}
 	}
 
 	.sapFDynamicPageHeaderSolid {
-		background: @sapUiBaseBG;
+		background: var(--sapBackgroundColor);
 	}
 
-	.sapFDynamicPageContentWrapperTransparent>.sapFDynamicPageContent {
+	.sapFDynamicPageContentWrapperTransparent > .sapFDynamicPageContent {
 		background: transparent;
 	}
 
-	.sapFDynamicPageContentWrapperList>.sapFDynamicPageContent {
-		background: @sapUiGroupContentBackground;
+	.sapFDynamicPageContentWrapperList > .sapFDynamicPageContent {
+		background: var(--sapGroup_ContentBackground);
 	}
 }
 
@@ -1581,8 +1700,9 @@ ui-integration-card.sapFCardFocusFullCard > [data-sap-ui-area] > .sapFCard {
 	z-index: 3;
 }
 
-html[data-sap-ui-browser^="ff"].sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll,
-html[data-sap-ui-os^="win"][data-sap-ui-browser^="cr"].sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
+html[data-sap-ui-browser^='ff'].sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll,
+html[data-sap-ui-os^='win'][data-sap-ui-browser^='cr'].sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
+
 	 .sapFDynamicPageTitleWrapper {
 		right: 17px;
 	}
@@ -1594,19 +1714,11 @@ html[data-sap-ui-os^="win"][data-sap-ui-browser^="cr"].sap-desktop .sapFDynamicP
 
 .sapFDynamicPageContent {
 	flex-grow: 1;
-	-webkit-flex-grow: 1;
 	z-index: 0;
 
 	.sapFDynamicPageAlignContent {
 		margin-left: -@sapUiMarginSmall;
 		margin-right: -@sapUiMarginSmall;
-	}
-}
-
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"] {
-	.sapFDynamicPageContent {
-		flex-shrink: 0;
 	}
 }
 
@@ -1625,29 +1737,32 @@ html[data-sap-ui-browser^="ie"] {
 	bottom: 0;
 }
 
-// adds space underneath the footer (when page in scrollable mode)
+/* adds space underneath the footer (when page in scrollable mode) */
 .sapFDynamicPageContentFitContainerFooterVisible:not(.sapFDynamicPageContentFitContainer) {
 	padding-bottom: ~"calc(@{_sap_f_DynamicPage_FooterHeight} + ( @{_sap_f_DynamicPage_FooterMarginBottom} * 2 ) )";
 }
 
 .sapUiSizeCompact {
+
 	.sapFDynamicPageContentFitContainerFooterVisible:not(.sapFDynamicPageContentFitContainer) {
 		padding-bottom: ~"calc(@{_sap_f_DynamicPage_FooterHeight_Compact} + ( @{_sap_f_DynamicPage_FooterMarginBottom} * 2 ) )";
 	}
 }
 
-// adds space underneath the footer (when page in non-scrollable mode)
+/* adds space underneath the footer (when page in non-scrollable mode) */
 .sapFDynamicPageContentFitContainerFooterVisible.sapFDynamicPageContentFitContainer {
 	max-height: ~"calc(100% - (@{_sap_f_DynamicPage_FooterHeight} + ( @{_sap_f_DynamicPage_FooterMarginBottom} * 2 ) ))";
 }
 
 .sapUiSizeCompact {
+
 	.sapFDynamicPageContentFitContainerFooterVisible.sapFDynamicPageContentFitContainer {
 		max-height: ~"calc(100% - (@{_sap_f_DynamicPage_FooterHeight_Compact} + ( @{_sap_f_DynamicPage_FooterMarginBottom} * 2 ) ))";
 	}
 }
 
 .sapFDynamicPage-Std-Tablet {
+
 	.sapFDynamicPageContent,
 	.sapFDynamicPageContentFitContainer {
 		padding: 2rem 2rem 0 2rem;
@@ -1655,6 +1770,7 @@ html[data-sap-ui-browser^="ie"] {
 }
 
 .sapFDynamicPage-Std-Phone {
+
 	.sapFDynamicPageContent,
 	.sapFDynamicPageContentFitContainer {
 		padding: 2rem 1rem 0 1rem;
@@ -1662,18 +1778,26 @@ html[data-sap-ui-browser^="ie"] {
 }
 
 .sapUiContainerContentPadding(~".sapFDynamicPage", ~".sapFDynamicPageContent");
+
 .sapUiContainerContentPadding(~".sapFDynamicPage", ~".sapFDynamicPageContentFitContainer");
+
+.sapFDynamicPage.sapUiResponsiveContentPadding .sapFDynamicPageContent {
+	padding-bottom: 0;
+}
 
 .sapFDynamicPage.sapUiContentPadding,
 .sapFDynamicPage.sapUiNoContentPadding,
 .sapFDynamicPage.sapUiResponsiveContentPadding {
+
 	.sapFDynamicPageAlignContent {
 		margin: 0;
 	}
 }
 
 .sapFDynamicPage.sapUiContentPadding {
+
 	.sapFDynamicPage-Std-Phone {
+
 		.sapFDynamicPageAlignContent {
 			margin: 0 -1rem;
 		}
@@ -1681,7 +1805,9 @@ html[data-sap-ui-browser^="ie"] {
 }
 
 .sapFDynamicPage.sapUiResponsiveContentPadding {
+
 	&.sapFDynamicPage-Std-Phone {
+
 		.sapFDynamicPageContent,
 		.sapFDynamicPageContentFitContainer {
 			padding: 0;
@@ -1690,28 +1816,32 @@ html[data-sap-ui-browser^="ie"] {
 	}
 
 	&.sapFDynamicPage-Std-Tablet {
+
 		.sapFDynamicPageContent,
 		.sapFDynamicPageContentFitContainer {
 			padding: 1rem;
+			padding-bottom: 0;
 		}
 	}
 
 	&.sapFDynamicPage-Std-Desktop {
+
 		.sapFDynamicPageContent,
 		.sapFDynamicPageContentFitContainer {
-			padding: 1rem 2rem;
+			padding: 1rem 2rem 0 2rem;
 		}
 	}
 }
 
 .sapFDynamicPageFooterVisible .sapFDynamicPageContentWrapper,
-.sapFDynamicPageFooterVisible .sapFDynamicPageContentFitContainer *[style*="overflow: hidden auto;"] {
+.sapFDynamicPageFooterVisible .sapFDynamicPageContentFitContainer *[style*='overflow: hidden auto;'] {
 	scroll-padding-bottom: ~"calc(@{_sap_f_DynamicPage_FooterHeight} +  @{_sap_f_DynamicPage_FooterMarginBottom} + 2px)";
 }
 
 .sapUiSizeCompact {
+
 	.sapFDynamicPageFooterVisible .sapFDynamicPageContentWrapper,
-	.sapFDynamicPageFooterVisible .sapFDynamicPageContentFitContainer *[style*="overflow: hidden auto;"] {
+	.sapFDynamicPageFooterVisible .sapFDynamicPageContentFitContainer *[style*='overflow: hidden auto;'] {
 		scroll-padding-bottom: ~"calc(@{_sap_f_DynamicPage_FooterHeight_Compact} +  @{_sap_f_DynamicPage_FooterMarginBottom} + 2px)";
 	}
 }
@@ -1721,24 +1851,19 @@ html[data-sap-ui-browser^="ie"] {
 	height: 100%;
 	position: relative;
 	will-change: scroll-position;
-	-webkit-overflow-scrolling: auto;
-
-	display: -webkit-box;
-	display: -webkit-flex;
 	display: flex;
-
-	-webkit-flex-direction: column;
 	flex-direction: column;
 
-	// Scroll anchoring adjusts the scroll position to prevent visible jumps (or "reflows"),
-	// when content changes above the viewport.
-	// See: https://github.com/WICG/ScrollAnchoring/blob/master/explainer.md
+	/* Scroll anchoring adjusts the scroll position to prevent visible jumps (or "reflows"),
+	when content changes above the viewport.
+	See: https://github.com/WICG/ScrollAnchoring/blob/master/explainer.md */
 	overflow-anchor: none;
 
 	overflow-y: auto;
 }
 
 .sapFDynamicPageSupressScroll {
+
 	.sapFDynamicPageContentWrapper {
 		overflow: hidden;
 	}
@@ -1746,14 +1871,12 @@ html[data-sap-ui-browser^="ie"] {
 
 .sapFDynamicPage .sapFDynamicPageTitleWrapper {
 	display: flex;
-	display: -webkit-flex;
 	flex-direction: column;
-	-webkit-flex-direction: column;
 	flex-shrink: 0;
-	-webkit-flex-shrink: 0;
 }
 
 html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
+
 	.sapFDynamicPageTitleWrapper {
 		right: 12px;
 	}
@@ -1764,21 +1887,18 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 }
 
 .sapFDynamicPageContentWrapper {
-	-webkit-flex-grow: 1;
 	flex-grow: 1;
 }
 
 .sapFDynamicPage,
 .sapFDynamicPage.sapFNavItem {
-	display: -webkit-box;
-	display: -webkit-flex;
 	display: flex;
-	-webkit-flex-direction: column;
 	flex-direction: column;
 }
 
-// DynamicPageTitle hover
+/* DynamicPageTitle hover */
 .sapFDynamicPage.sapFDynamicPageTitleClickEnabled {
+
 	.sapFDynamicPageTitle:hover,
 	&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
 		cursor: pointer;
@@ -1789,8 +1909,9 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 	}
 }
 
-// Overstyle for Comparison Pattern
+/* Overstyle for Comparison Pattern */
 .sapFDynamicPage.sapFDynamicPageTitleClickEnabled.sapUiComparisonContainer {
+
 	.sapFDynamicPageTitleMainInner:hover {
 		cursor: pointer;
 	}
@@ -1801,15 +1922,16 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 	}
 }
 
-// Reflection: Overwritten styles
+/* Reflection: Overwritten styles */
 .sapFDynamicPageTitleMainHeading,
 .sapFDynamicPageTitleMainContent,
 .sapFDynamicPageTitleMainActions {
-	// BCP: 1870261908 - CSS cursor reset is needed here to prevent showing pointer for not clickable control types
+	/* BCP: 1870261908 - CSS cursor reset is needed here to prevent showing pointer for not clickable control types */
 	cursor: default;
 }
 
 .sapFDynamicPage {
+
 	.sapFDynamicPageFooter {
 		position: relative;
 
@@ -1832,16 +1954,17 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 	height: @_sap_f_DynamicPage_FooterHeight_Compact;
 }
 
-/* ============================== */
-/* Toggle Header Visual Indicator */
-/* ============================== */
+/* =============================== */
+/* Toggle Header Visual Indicator  */
+/* =============================== */
+
 .sapFDynamicPageToggleHeaderIndicator.sapMBtn,
 .sapFDynamicPageHeaderPinButton.sapMBtn {
 	position: absolute;
 	left: 50%;
 	padding: 0;
 
-	// Reflection: Overwritten styles
+	/* Reflection: Overwritten styles */
 	.sapMBtnInner {
 		position: absolute !important;
 		border-radius: 0.1875rem;
@@ -1869,11 +1992,12 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 
 /* Compact */
 .sapUiSizeCompact {
+
 	.sapFDynamicPageToggleHeaderIndicator,
 	.sapFDynamicPageHeaderPinButton {
 		bottom: -0.875rem;
 
-		// Reflection: Overwritten styles
+		/* Reflection: Overwritten styles */
 		.sapMBtnInner.sapMBtnIconFirst:not(.sapMBtnBack) {
 			padding-left: 0;
 			padding-right: 0;
@@ -1881,30 +2005,20 @@ html.sap-desktop .sapFDynamicPage.sapFDynamicPageWithScroll {
 	}
 }
 
-/* ============= */
-/* Animations    */
-/* ============= */
+/* =========== */
+/* Animations  */
+/* =========== */
 
 html[data-sap-ui-animation='on'] .sapFDynamicPage {
+
 	.sapFDynamicPageActualFooterControlShow {
-		-webkit-animation: bounceShow 0.35s forwards ease-in-out;
 		animation: bounceShow 0.35s forwards ease-in-out;
 	}
+
 	.sapFDynamicPageActualFooterControlHide {
-		-webkit-animation: bounceHide 0.35s forwards ease-in-out;
 		animation: bounceHide 0.35s forwards ease-in-out;
 	}
 
-	@-webkit-keyframes bounceShow {
-		0% {
-			-webkit-transform: translateY(100%);
-			transform: translateY(100%);
-			opacity: 0;
-		}
-		100% {
-			opacity: 1;
-		}
-	}
 	@keyframes bounceShow {
 		0% {
 			transform: translateY(100%);
@@ -1914,18 +2028,7 @@ html[data-sap-ui-animation='on'] .sapFDynamicPage {
 			opacity: 1;
 		}
 	}
-	@-webkit-keyframes bounceHide {
-		0% {
-			-webkit-transform: translateY(-5%);
-			transform: translateY(-5%);
-			opacity: 1;
-		}
-		100% {
-			-webkit-transform: translateY(100%);
-			transform: translateY(100%);
-			opacity: 0;
-		}
-	}
+
 	@keyframes bounceHide {
 		0% {
 			transform: translateY(-5%);
@@ -1937,7 +2040,6 @@ html[data-sap-ui-animation='on'] .sapFDynamicPage {
 		}
 	}
 }
-
 
 /* Vertically align items in the table-like view with the items in the sap.m.Carousel control,
 part of DynamicPageTitle snapped content and DynamicPageHeader content.
@@ -1955,11 +2057,10 @@ To be used in Comparison pattern scenario. */
 	margin-right: -1rem;
 }
 
-// Avoid visible gap between content and header when title is snapped
+/* Avoid visible gap between content and header when title is snapped */
 .sapFDynamicPageTitleWrapper.sapFDynamicPageTitleSnapped + .sapFDynamicPageContentWrapper > .sapFDynamicPageHeaderWrapper {
-	background: @sapUiObjectHeaderBackground;
+	background: var(--sapObjectHeader_Background);
 }
-
 /* END "DynamicPage.less" */
 
 /* START "DynamicPageTitle.less" */
@@ -2301,10 +2402,10 @@ html[data-sap-ui-browser^='ff'].sap-desktop {
 /* Base theme                               */
 /* ======================================== */
 
-// Synced with ObjectPageLayout.HEADER_CONTENT_PADDING_BOTTOM and DynamicPage.HEADER_CONTENT_PADDING_BOTTOM
+/* Synced with ObjectPageLayout.HEADER_CONTENT_PADDING_BOTTOM and DynamicPage.HEADER_CONTENT_PADDING_BOTTOM */
 @_sap_f_DynamicPageHeader_PaddingBottom: 1rem;
 
-// Default base icon for the pin button
+/* Default base icon for the pin button */
 @_sap_f_DynamicPageHeader_PinButton_Icon: pushpin-off;
 
 .sapFDynamicPageHeader {
@@ -2314,12 +2415,12 @@ html[data-sap-ui-browser^='ff'].sap-desktop {
 	-webkit-flex-shrink: 0;
 	flex-shrink: 0;
 	box-sizing: border-box;
-	background: @sapUiObjectHeaderBackground;
+	background: var(--sapObjectHeader_Background);
 }
 
 .sapFDynamicPageHeader.sapFDynamicPageHeaderWithContent {
 	padding: 1rem 3rem @_sap_f_DynamicPageHeader_PaddingBottom 3rem;
-	box-shadow: @sapUiContentHeaderShadow;
+	box-shadow: var(--sapContent_HeaderShadow);
 }
 
 .sapFDynamicPageHeader.sapFDynamicPageHeaderPinnable {
@@ -2335,6 +2436,7 @@ html[data-sap-ui-browser^='ff'].sap-desktop {
 }
 
 .sapFDynamicPage-Std-Tablet {
+
 	.sapFDynamicPageHeaderWithContent {
 		padding: 1rem 2rem @_sap_f_DynamicPageHeader_PaddingBottom 2rem;
 	}
@@ -2345,12 +2447,14 @@ html[data-sap-ui-browser^='ff'].sap-desktop {
 }
 
 .sapFDynamicPage-Std-Phone {
+
 	.sapFDynamicPageHeaderWithContent {
 		padding: 0.5rem 1rem @_sap_f_DynamicPageHeader_PaddingBottom 1rem;
 	}
 }
 
 .sapFDynamicPageHeader.sapFDynamicPageHeaderWithContent {
+
 	.sapMObjectAttributeDiv .sapMText,
 	.sapMObjectAttributeDiv .sapMObjectAttributeTitle,
 	.sapMObjectAttributeDiv .sapMObjectAttributeColon,
@@ -2848,6 +2952,7 @@ html[data-sap-ui-animation='on'] {
 	overflow: hidden;
 
 	.sapFDynamicPageContent {
+
 		.sapFSemanticPageAlignContent {
 			margin-left: -@sapUiMarginSmall;
 			margin-right: -@sapUiMarginSmall;
@@ -2857,13 +2962,16 @@ html[data-sap-ui-animation='on'] {
 	.sapFDynamicPage.sapUiContentPadding,
 	.sapFDynamicPage.sapUiNoContentPadding,
 	.sapFDynamicPage.sapUiResponsiveContentPadding {
+
 		.sapFSemanticPageAlignContent {
 			margin: 0;
 		}
 	}
 
 	.sapFDynamicPage.sapUiContentPadding {
+
 		.sapFDynamicPage-Std-Phone {
+
 			.sapFSemanticPageAlignContent {
 				margin: 0 -@sapUiMarginSmall;
 			}
@@ -2982,7 +3090,7 @@ html[data-sap-ui-animation='on'] {
 
 /* START "ListPlaceholder.less" */
 /* ==================================================== */
-/* CSS for control sap.f.cards.loading/ListPlaceholder  */
+/* CSS for control sap.f/cards/loading/ListPlaceholder  */
 /* Base theme                                           */
 /* ==================================================== */
 
@@ -3038,7 +3146,7 @@ html[data-sap-ui-animation='on'] {
 
 /* START "ObjectPlaceholder.less" */
 /* ====================================================== */
-/* CSS for control sap.f.cards.loading/ObjectPlaceholder  */
+/* CSS for control sap.f/cards/loading/ObjectPlaceholder  */
 /* Base theme                                             */
 /* ====================================================== */
 
@@ -3052,6 +3160,7 @@ html[data-sap-ui-animation='on'] {
 	bottom: 0;
 	right: 0;
 	z-index: 1;
+	box-sizing: border-box;
 
 	.sapFCardObjectPlaceholderColumn {
 		flex: 1;
@@ -3072,6 +3181,7 @@ html[data-sap-ui-animation='on'] {
 }
 
 .sapFCardObjectContent.sapFCardContentLoading {
+
 	> div:not(.sapFCardContentObjectPlaceholder) {
 		visibility: hidden;
 	}
@@ -3080,26 +3190,35 @@ html[data-sap-ui-animation='on'] {
 .sapUiIntCardWithFooter .sapFCardContentObjectPlaceholder {
 	padding-bottom: 0;
 }
-
 /* END "ObjectPlaceholder.less" */
 
 /* START "ProductSwitch.less" */
+/* ==================================== */
+/* CSS for control sap.f/ProductSwitch  */
+/* Base theme                           */
+/* ==================================== */
+
 .sapMPopoverCont .sapFProductSwitch-Popover-CTX {
 	padding: 1.5rem 1rem;
 }
 /* END "ProductSwitch.less" */
 
 /* START "ProductSwitchItem.less" */
+/* ======================================== */
+/* CSS for control sap.f/ProductSwitchItem  */
+/* Base theme                               */
+/* ======================================== */
+
 .sapFPSItemContainer {
-	border-radius: @sapUiElementBorderCornerRadius;
-	background: @sapUiListBackground;
+	border-radius: var(--sapElement_BorderCornerRadius);
+	background: var(--sapList_Background);
 	padding: 0.5rem;
 	width: 11.25rem;
 	height: 7rem;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	color: @sapUiContentIconColor;
+	color: var(--sapContent_IconColor);
 	box-sizing: border-box;
 	text-decoration: none;
 	cursor: pointer;
@@ -3112,8 +3231,8 @@ html[data-sap-ui-animation='on'] {
 	}
 
 	.sapFPSItemMainTitle {
-		font-size: @sapMFontHeader6Size;
-		color: @sapUiGroupTitleTextColor;
+		font-size: var(--sapFontHeader6Size);
+		color: var(--sapGroup_TitleTextColor);
 	}
 
 	.sapFPSItemIconPlaceholder {
@@ -3134,15 +3253,15 @@ html[data-sap-ui-animation='on'] {
 	}
 
 	.sapFPSItemSubTitle {
-		font-size: @sapMFontSmallSize;
+		font-size: var(--sapFontSmallSize);
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		overflow: hidden;
-		color: @sapUiContentLabelColor;
+		color: var(--sapContent_LabelColor);
 	}
 
 	&:hover {
-		background: @sapUiListHoverBackground;
+		background: var(--sapList_Hover_Background);
 	}
 
 	&.sapFPSItemActive,
@@ -3150,19 +3269,19 @@ html[data-sap-ui-animation='on'] {
 	&:active,
 	&.sapFPSItemSelected:active,
 	&.sapFPSItemSelected:hover:active {
-		background: @sapUiListActiveBackground;
-		color: @sapUiListActiveTextColor;
+		background: var(--sapList_Active_Background);
+		color: var(--sapList_Active_TextColor);
 		border: none;
 
 		.sapFPSItemMainTitle,
 		.sapFPSItemSubTitle {
-			color: @sapUiListActiveTextColor;
+			color: var(--sapList_Active_TextColor);
 		}
 	}
 
 	&.sapFPSItemSelected:not(:active) {
-		background: @sapUiListSelectionBackgroundColor;
-		border: 0.125rem solid @sapUiListSelectionBorderColor;
+		background: var(--sapList_SelectionBackgroundColor);
+		border: 0.125rem solid var(--sapList_SelectionBorderColor);
 		padding: 0.375rem;;
 	}
 }
@@ -3194,13 +3313,14 @@ html[data-sap-ui-animation='on'] {
 		cursor: pointer;
 		font-size: 1.25rem;
 		width: 3rem;
-		color: @sapUiContentNonInteractiveIconColor;
+		color: var(--sapContent_NonInteractiveIconColor);
 	}
 
 	&.sapFPSItemActive,
 	&:active {
+
 		.sapUiIcon {
-			color: @sapUiListActiveTextColor;
+			color: var(--sapList_Active_TextColor);
 		}
 	}
 
@@ -3217,15 +3337,13 @@ html[data-sap-ui-animation='on'] {
 
 	&.sapFPSItemSelected {
 		border: none;
-		border-bottom: 0.0625rem solid @sapUiListSelectionBorderColor;
+		border-bottom: 0.0625rem solid var(--sapList_SelectionBorderColor);
 	}
 }
 
 .sapFPSItemContainer:focus {
-	outline-width: @sapUiContentFocusWidth;
-	outline-color: @sapUiContentFocusColor;
+	outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 	outline-offset: -2px;
-	outline-style: @sapUiContentFocusStyle;
 }
 
 .sapFPSItemContainer.sapFPSItemSelected:focus {
@@ -3235,16 +3353,12 @@ html[data-sap-ui-animation='on'] {
 .sapFPSItemSelected.sapFPSItemActive:focus,
 .sapFPSItemActive:focus,
 .sapFPSItemContainer:active:focus {
-	outline-color: @sapUiContentContrastFocusColor;
+	outline-color: var(--sapContent_ContrastFocusColor);
 	outline-offset: -2px;
 }
 
 .sapUiMedia-Std-Phone .sapFPSItemContainer.sapFPSItemSelected:focus {
 	outline-offset: -2px;
-}
-
-html[data-sap-ui-browser^="ed"].sap-desktop .sapFPSItemContainer:focus {
-	outline-style: dashed;
 }
 
 html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
@@ -3253,6 +3367,11 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 /* END "ProductSwitchItem.less" */
 
 /* START "ShellBar.less" */
+/* =============================== */
+/* CSS for control sap.f/ShellBar  */
+/* Base theme                      */
+/* =============================== */
+
 @_sap_f_ShellBar_PaddingDesktop: 3rem;
 @_sap_f_ShellBar_PaddingTablet: 2rem;
 @_sap_f_ShellBar_PaddingPhone: 1rem;
@@ -3261,7 +3380,7 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 @_sap_f_ShellBar_SearchHalfMaxWidth: 17.5rem;
 
 @_sap_f_ShellBar_PrimaryTitle_FontSize: @sapMFontMediumSize;
-@_sap_f_ShellBar_SecondTitle_FontSize: @sapMFontSmallSize;
+@_sap_f_ShellBar_SecondTitle_FontSize: var(--sapFontSmallSize);
 
 .sapFShellBar {
 	height: 3rem;
@@ -3328,32 +3447,36 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		margin: 0 0 0 0.5rem;
 	}
 
-	.sapFShellBarOLHB>.sapFShellBarItem:first-child,
-	.sapFShellBarOLHB>.sapFShellBarOAHB:first-child > .sapFShellBarItem:first-child {
+	.sapFShellBarOLHB > .sapFShellBarItem:first-child,
+	.sapFShellBarOLHB > .sapFShellBarOAHB:first-child > .sapFShellBarItem:first-child {
 		margin-left: 0;
 	}
+
 	.sapMIBar.sapMTB .sapMTBSpacer + .sapFShellBarItem.sapMBarChild,
 	.sapFShellBarCopilot + .sapFShellBarItem {
 		margin-left: 0;
 	}
 
-	// Assistant
+	/* Assistant */
 	.sapMTB-Transparent-CTX .sapFShellBarAssistantBtn.sapFShellBarItemActive.sapFShellBarItem,
 	.sapFShellBarAssistantBtn.sapFShellBarItemActive.sapFShellBarItem {
 		color: @sapShell_Assistant_ForegroundColor;
+
 		.sapMBtnIcon,
 		&.sapFShellBarItem.sapMBtn:hover:not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnHoverable:not(.sapMToggleBtnPressed) > .sapMBtnIcon {
 			color: @sapShell_Assistant_ForegroundColor;
 		}
 	}
 
-	// Reflection: styles overwritten
+	/* Reflection: styles overwritten */
 	.sapMBtn .sapMBtnInner {
+
 		.sapFAvatar {
 			vertical-align: middle;
 		}
-		&:after {
-			content: "";
+
+		&::after {
+			content: '';
 			display: inline-block;
 			vertical-align: middle;
 			height: 100%;
@@ -3367,7 +3490,8 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		flex-grow: 1;
 		overflow: visible;
 		min-width: 0;
-		>:first-child {
+
+		> :first-child {
 			margin-left: 0;
 		}
 
@@ -3387,12 +3511,13 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		font-weight: bold;
 		overflow: hidden;
 
-		// Reflection: styles overwritten
+		/* Reflection: styles overwritten */
 		.sapMBtnInner > img {
 			width: auto !important;
 			max-width: none !important;
 			height: 2rem;
 		}
+
 		.sapMBtnInner::after {
 			content: '\E287';
 			font-size: 1rem;
@@ -3404,13 +3529,14 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	.sapFShellBarHomeIcon {
 		height: 2rem;
 		vertical-align: middle;
+
 		&.sapMNoImg {
 			width: 0;
 		}
 	}
 
 	.sapFShellBarSearch {
-		max-width: 28rem; // max width of searchField + button width
+		max-width: 28rem; /* max width of searchField + button width */
 		width: 100%;
 		flex-grow: 1;
 		flex-shrink: 1;
@@ -3426,6 +3552,7 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 			margin-left: 0.5rem;
 			display: none;
 		}
+
 		.sapFShellBarSearchWrap {
 			display: flex;
 			width: 100%;
@@ -3447,6 +3574,7 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		top: 50%;
 		transform: translate(-50%, -50%);
 		margin: 0;
+
 		html[data-sap-ui-animation='on'] & {
 			&:hover svg {
 				transition: transform 0.30s;
@@ -3457,6 +3585,7 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 				transform: scale(1.2);
 			}
 		}
+
 		html[data-sap-ui-animation='off'] & {
 			&:hover svg {
 				transform: scale(1.1);
@@ -3465,41 +3594,30 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 				transform: scale(1.2);
 			}
 		}
+
 		.color1 {
 			stop-color: #00B8F3;
 		}
+
 		.color2 {
 			stop-color: #1C61BA;
 		}
+
 		.opacity7 {
 			stop-opacity:0.7;
 		}
+
 		.opacity36 {
 			stop-opacity: 0.36;
 		}
+
 		.opacity2 {
 			stop-opacity: 0.2;
 		}
+
 		&:focus {
 			outline: 1px dotted @sapUiContentFocusColor;
 			outline-offset: -0.3125rem;
-		}
-		html[data-sap-ui-browser^="ed"] &:focus {
-			outline-style: dashed;
-		}
-		html[data-sap-ui-browser^="ie"] &:focus {
-			outline: none;
-		}
-		html[data-sap-ui-browser^="ie"] &:focus:before {
-			content: " ";
-			box-sizing: border-box;
-			width: 88%;
-			height: 88%;
-			position: absolute;
-			left: 3px;
-			top: 3px;
-			border: 1px dashed @sapUiContentFocusColor;
-			pointer-events: none;
 		}
 	}
 
@@ -3514,9 +3632,11 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 
 	&.sapFShellBarSizePhone {
 		padding: 0 @_sap_f_ShellBar_PaddingPhone;
+
 		.sapFShellBarProfile {
 			margin-right: 0;
 		}
+
 		.sapFShellBarORHB {
 			padding-left: ~"@{_sap_f_ShellBar_CoPilotHalfWidth}";
 		}
@@ -3528,22 +3648,22 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		margin-left: 0.5rem;
 
 		&::before {
-			content: "";
+			content: '';
 			position: absolute;
 			top: -0.125rem;
 			left: -0.125rem;
 			bottom: -0.125rem;
 			right: -0.125rem;
 			z-index: -1;
-			border-radius: @sapUiButtonBorderCornerRadius;
+			border-radius: var(--sapButton_BorderCornerRadius);
 		}
 
 		&:hover::before {
-			background-color: @sapUiShellHoverBackground;
+			background-color: var(--sapShell_Hover_Background);
 		}
 
 		&:active::before {
-			background-color: @sapUiShellActiveBackground;
+			background-color: var(--sapShell_Active_Background);
 		}
 	}
 
@@ -3556,7 +3676,7 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		overflow: hidden;
 		text-overflow: ellipsis;
 		background: transparent;
-		color: @sapUiShellTextColor;
+		color: var(--sapShell_TextColor);
 		font-size: @_sap_f_ShellBar_PrimaryTitle_FontSize;
 		line-height: 2.75rem;
 		vertical-align: middle;
@@ -3564,9 +3684,9 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	}
 
 	.sapFShellBarSecondTitle {
-		font-family: @sapUiFontFamily;
+		font-family: var(--sapFontFamily);
 		font-size: @_sap_f_ShellBar_SecondTitle_FontSize;
-		color: @sapUiShellTextColor;
+		color: var(--sapShell_TextColor);
 		line-height: 2rem;
 		vertical-align: middle;
 	}
@@ -3578,15 +3698,17 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	}
 
 	.sapUiSizeCompact & {
+
 		&.sapMPageHeader .sapMIBar {
 			height: 3rem;
 		}
+
 		.sapFShellBarProfile {
 			height: 2rem;
 		}
 
 		.sapFShellBarSearch {
-			max-width: 27.5rem; // max width of searchField + button width
+			max-width: 27.5rem; /* max width of searchField + button width */
 
 			.sapMSF {
 				max-width: 25rem;
@@ -3596,24 +3718,29 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 
 			&.sapFShellBarSearchFullWidth {
 				max-width: 100%;
+
 				.sapMSF {
 					max-width: 100%;
 				}
 			}
 		}
+
 		&.sapFShellBarFullSearch {
+
 			.sapFShellBarSearch,
 			.sapMSF {
 				max-width: 100%;
 			}
 		}
 
-		// Reflection: styles overwritten
+		/* Reflection: styles overwritten */
 		.sapMBtnInner {
+
 			&.sapMBtnIconFirst:not(.sapMBtnText),
-			&.sapMBadgeTopRight.sapMBadge.sapMBtnIconFirst:not(.sapMBtnText){
+			&.sapMBadgeTopRight.sapMBadge.sapMBtnIconFirst:not(.sapMBtnText) {
 				padding: 0;
 			}
+
 			&.sapMBadgeTopRight.sapMBadge .sapMBadgeIndicator {
 				top: -0.3125rem;
 				right: -0.4375rem;
@@ -3624,19 +3751,24 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 			}
 		}
 	}
-	&.sapFShellBarFullSearch  {
+
+	&.sapFShellBarFullSearch {
+
 		.sapFShellBarOLHB,
 		.sapFShellBarORHB,
 		.sapFShellBarOTB {
 			position: static;
 		}
+
 		& * {
 			visibility: hidden;
 		}
+
 		.sapFShellBarSearch,
 		.sapFShellBarSearch * {
 			visibility: visible;
 		}
+
 		.sapFShellBarSearchWrap {
 			 box-sizing: border-box;
 			 padding: 0 1.25rem;
@@ -3647,14 +3779,17 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 			 top: 0;
 			 bottom: 0;
 		 }
+
 		.sapMSF,
 		.sapFShellBarSearch {
 			max-width: 100%;
 		}
+
 		.sapFShellBarSearchFullWidth {
 			height: 100%;
 			min-width: 1px;
 		}
+
 		.sapFShellBarSearchCancelButton {
 			display: block;
 		}
@@ -3662,8 +3797,9 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 }
 
 .sapFShellBar.sapFShellBarSizeExtraLargeDesktop {
+
 	.sapFShellBarSearch {
-		max-width: 35rem; // max width of searchField + button width
+		max-width: 35rem; /* max width of searchField + button width */
 		width: 100%;
 		flex-grow: 1;
 		flex-shrink: 1;
@@ -3678,10 +3814,12 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	}
 
 	&.sapFShellBarWithSearch {
+
 		.sapFShellBarORHB {
 			width: 50%;
 			padding-left: ~"calc(@{_sap_f_ShellBar_SearchHalfMaxWidth} + 0.5rem)";
 		}
+
 		.sapFShellBarOLHB {
 			width: 50%;
 			padding-right: ~"calc(@{_sap_f_ShellBar_SearchHalfMaxWidth} + 0.5rem)";
@@ -3689,11 +3827,12 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 		}
 	}
 }
+
 .sapFButtonNotifications[data-notifications],
 .sapFShellBarOverflowButton[data-notifications] {
 	overflow: visible;
-	&:after
-	{
+
+	&::after {
 		content: attr(data-notifications);
 		position: absolute;
 		top: 0.125rem;
@@ -3729,33 +3868,35 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 }
 
 .sapFButtonNotifications ~ .sapFShellBarOverflowButton,
-.sapFButtonNotifications[data-notifications=""],
-.sapFShellBarOverflowButton[data-notifications=""] {
-	&:after {
+.sapFButtonNotifications[data-notifications=''],
+.sapFShellBarOverflowButton[data-notifications=''] {
+
+	&::after {
 		display: none;
 	}
 }
 
 .sapFShellBar:not(.sapFShellBarNotifications) {
-	.sapFShellBarOverflowButton[data-notifications]:after {
+
+	.sapFShellBarOverflowButton[data-notifications]::after {
 		display: none;
 	}
 }
 
 .sapFShellBarTitleCollapsed {
-	&>span {
+
+	& > span {
 		display: none;
 	}
 
 }
-
 /* END "ShellBar.less" */
 
 /* START "TablePlaceholder.less" */
-/* ==================================================== */
+/* ===================================================== */
 /* CSS for control sap.f.cards.loading/TablePlaceholder  */
-/* Base theme                                           */
-/* ==================================================== */
+/* Base theme                                            */
+/* ===================================================== */
 
 .sapFCardTablePlaceholderItem {
 	height: 2.75rem;
@@ -3789,11 +3930,10 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 /* END "TablePlaceholder.less" */
 
 /* START "TimelinePlaceholder.less" */
-/* ==================================================== */
+/* ======================================================== */
 /* CSS for control sap.f.cards.loading/TimelinePlaceholder  */
-/* Base theme                                           */
-/* ==================================================== */
-
+/* Base theme                                               */
+/* ======================================================== */
 
 .sapFCardContentTimelinePlaceholder {
 	padding-block-start: 0.5rem;
@@ -3899,7 +4039,8 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	/* Main content */
 	.sapFSPMain {
 		flex: 1 1;
-		padding: 0.5rem;
+		padding: 0 0.5rem;
+		margin:  0.5rem 0;
 		overflow: hidden auto;
 	}
 
@@ -4297,29 +4438,22 @@ html[dir="rtl"].sapUiMedia-Std-Phone .sapFPSItemContainer .sapFPSItemTitle {
 	overflow: hidden;
 }
 
-.sapFSPOverflowMenu .sapUiMnuItm {
-
-	.sapUiMnuItmIco {
+.sapFSPOverflowMenu .sapMMenuItem {
+	.sapMMenuItemIcon {
 		color: var(--sapContent_Selected_ForegroundColor);
 	}
 
-	.sapUiMnuItmTxt {
+	.sapMMenuItemText {
 		font-family: var(--sapFontFamily);
 		font-size: var(--sapFontHeader6Size);
 		font-style: normal;
 		font-weight: 600;
 	}
 
-	&.sapUiMnuItmDsbl {
-
-		.sapUiMnuItmTxt {
+	&.sapMMenuItemDisabled {
+		.sapMMenuItemText {
 			opacity: var(--sapContent_DisabledOpacity);
 		}
-	}
-
-	&:not(.sapUiMnuItmHov:active) .sapUiMnuItmTxt,
-	&.sapUiMnuItmDsbl.sapUiMnuItmHov:active .sapUiMnuItmTxt {
-		color: var(--sapTextColor);
 	}
 }
 

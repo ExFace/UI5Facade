@@ -8,7 +8,7 @@
 		},
 		{
 			"name": "Chart.less",
-			"size": 213,
+			"size": 204,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -32,19 +32,19 @@
 		},
 		{
 			"name": "TokenizerDisplay.less",
-			"size": 306,
+			"size": 523,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "ValueHelpDialog.less",
-			"size": 643,
+			"size": 781,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 17550,
+			"size": 19811,
 			"theme": "sap_horizon"
 		},
 		{
@@ -55,12 +55,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 17545,
+			"size": 19805,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 3819,
+			"size": 4165,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},

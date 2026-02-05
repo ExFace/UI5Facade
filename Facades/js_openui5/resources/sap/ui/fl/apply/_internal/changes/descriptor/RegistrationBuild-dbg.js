@@ -20,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.changes.descriptor.RegistrationBuild
 	 * @since 1.77
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
@@ -39,6 +39,7 @@ sap.ui.define([
 		appdescr_app_changeOutbound: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/ChangeOutbound"),
 		appdescr_app_addNewInbound: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/AddNewInbound"),
 		appdescr_app_addNewOutbound: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/AddNewOutbound"),
+		appdescr_app_setInbounds: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/SetInbounds"),
 		appdescr_app_addNewDataSource: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/AddNewDataSource"),
 		appdescr_app_setAch: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/SetAch"),
 		appdescr_app_addTechnicalAttributes: requireAsync.bind(this, "sap/ui/fl/apply/_internal/changes/descriptor/app/AddTechnicalAttributes"),

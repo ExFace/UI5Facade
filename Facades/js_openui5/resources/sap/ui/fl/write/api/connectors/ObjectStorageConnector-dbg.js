@@ -14,7 +14,8 @@ sap.ui.define([
 	"sap/ui/fl/initial/api/Version",
 	"sap/ui/fl/write/connectors/BaseConnector",
 	"sap/ui/fl/initial/_internal/StorageUtils",
-	"sap/ui/fl/apply/_internal/connectors/ObjectStorageUtils"
+	"sap/ui/fl/apply/_internal/connectors/ObjectStorageUtils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	hash,
 	_uniqBy,
@@ -125,7 +126,7 @@ sap.ui.define([
 				iCounter++;
 				oFlexObject.setCreation(new Date(nCreationTimestamp).toISOString());
 			}
-			aReturn.push({key: sKey, value: oFlexObject});
+			aReturn.push({ key: sKey, value: oFlexObject });
 		});
 
 		return aReturn;
@@ -143,7 +144,7 @@ sap.ui.define([
 					return true;
 				}
 			});
-			aReturn.push({key: sKey, value: oUpdatedFlexObject});
+			aReturn.push({ key: sKey, value: oUpdatedFlexObject });
 		});
 
 		return aReturn;
@@ -174,7 +175,7 @@ sap.ui.define([
 						var oNewDateTime = oCurrentDate.getTime() + 1;
 						oNextFlexObject.setCreation(new Date(oNewDateTime).toISOString());
 						var sKey = ObjectStorageUtils.createFlexKey(oNextFlexObject.getId());
-						aReturn.push({key: sKey, value: oNextFlexObject});
+						aReturn.push({ key: sKey, value: oNextFlexObject });
 					}
 				}
 			});
@@ -183,18 +184,31 @@ sap.ui.define([
 		return aReturn;
 	}
 
-	function handleCondenseDelete(oDeleteInformation) {
-		var aPromises = [];
+	function handleCondenseDelete(oDeleteInformation, aFlexObjects) {
+		const aReturn = [];
 		if (oDeleteInformation) {
 			Object.values(oDeleteInformation).forEach(function(aChangeIds) {
 				aChangeIds.forEach(function(sChangeId) {
-					var sKey = ObjectStorageUtils.createFlexKey(sChangeId);
-					aPromises.push(this.storage.removeItem(sKey));
-				}.bind(this));
-			}.bind(this));
+					const sKey = ObjectStorageUtils.createFlexKey(sChangeId);
+					aFlexObjects.forEach(function(oFlexObject) {
+						if (oFlexObject.fileType !== "version" && oFlexObject.fileName === sChangeId) {
+							const oChangeDeleteVersion = aFlexObjects.find(
+								(oFlexObjectVersion) => oFlexObjectVersion.fileType === "version" && oFlexObjectVersion.id === oFlexObject.version);
+							if (oChangeDeleteVersion === undefined || oChangeDeleteVersion.isDraft) {
+								aReturn.push({ key: sKey, value: "delete" });
+							} else {
+								const oFlexObjectNew = { ...oFlexObject };
+								oFlexObjectNew.fileName += "_hide";
+								delete (oFlexObjectNew.content);
+								aReturn.push({ key: `${sKey}_hide`, value: oFlexObjectNew });
+							}
+						}
+					});
+				});
+			});
 		}
 
-		return aPromises;
+		return aReturn;
 	}
 
 	/**
@@ -236,9 +250,24 @@ sap.ui.define([
 			});
 
 			const aVersionChain = await this.versions.getVersionChain.call(this, mPropertyBag, mPropertyBag.version);
-			const aFilteredFlexObjects = aFlexObjects.filter((oFlexObject) =>
-				oFlexObject.version === undefined || aVersionChain.includes(oFlexObject.version)
-			);
+			var aHiddenChanges = [];
+			let aFilteredFlexObjects = aFlexObjects.filter(function(oFlexObject) {
+				if (oFlexObject.version === undefined || aVersionChain.includes(oFlexObject.version)) {
+					if (oFlexObject.fileName !== undefined && oFlexObject.fileName.endsWith("_hide")) {
+						aHiddenChanges.push(oFlexObject.fileName.replace("_hide", ""));
+						return false;
+					}
+					return true;
+				}
+				return false;
+			});
+
+			if (aHiddenChanges.length) {
+				aFilteredFlexObjects = aFilteredFlexObjects.filter((oFlexObject) =>
+					oFlexObject.fileName === undefined || !aHiddenChanges.includes(oFlexObject.fileName)
+				);
+			}
+
 			const aSortedFilteredFlexObjects = StorageUtils.sortFlexObjects(aFilteredFlexObjects);
 			const mGroupedFlexObjects = StorageUtils.getGroupedFlexObjects(aSortedFilteredFlexObjects);
 			const aResponses = StorageUtils.filterAndSortResponses(mGroupedFlexObjects);
@@ -373,33 +402,40 @@ sap.ui.define([
 			aObjectsToSet = aObjectsToSet.concat(handleCondenseCreate(oCondenseInformation.create, mPropertyBag));
 			aObjectsToSet = aObjectsToSet.concat(handleCondenseUpdate(oCondenseInformation.update, mPropertyBag.condensedChanges));
 			aObjectsToSet = aObjectsToSet.concat(handleCondenseReorder(oCondenseInformation.reorder, mPropertyBag.condensedChanges));
+			if (oCondenseInformation.delete) {
+				const aFlexObjects = await loadDataFromStorage({
+					storage: this.storage,
+					reference: mPropertyBag.reference
+				});
+				aObjectsToSet = aObjectsToSet.concat(handleCondenseDelete(oCondenseInformation.delete, aFlexObjects));
+			}
+
 			aObjectsToSet = _uniqBy(aObjectsToSet, "key");
 
 			var aPromises = [];
 			var aResponse = [];
-			aPromises = aPromises.concat(handleCondenseDelete.call(this, oCondenseInformation.delete));
 
 			const mFeatures = await this.loadFeatures();
 			let sDraftVersionId;
-			if (
-				mFeatures.isVersioningEnabled
-				&& mPropertyBag.layer === Layer.CUSTOMER
-				&& ((oCondenseInformation.create && Object.keys(oCondenseInformation.create).length !== 0)
-				|| (oCondenseInformation.update && Object.keys(oCondenseInformation.update).length !== 0)
-				|| (oCondenseInformation.reorder && Object.keys(oCondenseInformation.reorder).length !== 0))
-			) {
+			if (mFeatures.isVersioningEnabled && mPropertyBag.layer === Layer.CUSTOMER) {
 				// the reference for the versions have to be determined by a flex object
-				sDraftVersionId = await this.versions.getDraftId.call(this, mPropertyBag);
+				sDraftVersionId = await this.versions.getDraftId.call(this, mPropertyBag, aObjectsToSet);
 			}
 
 			aObjectsToSet.forEach(function(oItemToSet) {
-				var oFileContent = oItemToSet.value.convertToFileContent();
-				if (sDraftVersionId) {
-					oFileContent.version = sDraftVersionId;
+				if (oItemToSet.value === "delete") {
+					aPromises.push(this.storage.removeItem(oItemToSet.key));
+				} else {
+					const oFileContent = oItemToSet.key.endsWith("_hide") ? oItemToSet.value : oItemToSet.value.convertToFileContent();
+					if (sDraftVersionId) {
+						oFileContent.version = sDraftVersionId;
+					}
+					if (!oItemToSet.key.endsWith("_hide")) {
+						aResponse.push(oFileContent);
+					}
+					var vFlexObject = this.storage._itemsStoredAsObjects ? oFileContent : JSON.stringify(oFileContent);
+					aPromises.push(this.storage.setItem(oItemToSet.key, vFlexObject));
 				}
-				aResponse.push(oFileContent);
-				var vFlexObject = this.storage._itemsStoredAsObjects ? oFileContent : JSON.stringify(oFileContent);
-				aPromises.push(this.storage.setItem(oItemToSet.key, vFlexObject));
 			}.bind(this));
 			// discard draft when last draft change is delete
 			if (mFeatures.isVersioningEnabled && mPropertyBag.layer === Layer.CUSTOMER
@@ -418,7 +454,7 @@ sap.ui.define([
 				}
 			}
 			return Promise.all(aPromises).then(function() {
-				return Promise.resolve({response: aResponse});
+				return Promise.resolve({ response: aResponse });
 			});
 		},
 
@@ -426,12 +462,19 @@ sap.ui.define([
 		 * @inheritDoc
 		 */
 		versions: {
-			async getDraftId(mPropertyBag) {
+			async getDraftId(mPropertyBag, aObjectsToSet) {
 				let aDraftFilenames = [];
 				if (mPropertyBag.condensedChanges) {
 					aDraftFilenames = mPropertyBag.condensedChanges.map((change) => {return change.sId;});
 				} else {
 					aDraftFilenames = mPropertyBag.flexObjects.map((flexObject) => {return flexObject.fileName;});
+				}
+				if (aObjectsToSet) {
+					aObjectsToSet.forEach(function(oObjectChange) {
+						if (oObjectChange.key.endsWith("_hide")) {
+							aDraftFilenames.push(oObjectChange.value.fileName);
+						}
+					});
 				}
 
 				const aVersions = await this.versions.load.call(this, mPropertyBag);

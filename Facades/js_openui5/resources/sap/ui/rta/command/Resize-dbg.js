@@ -16,13 +16,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.101
 	 * @alias sap.ui.rta.command.Resize
 	 */
-	var Resize = FlexCommand.extend("sap.ui.rta.command.Resize", {
+	const Resize = FlexCommand.extend("sap.ui.rta.command.Resize", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {

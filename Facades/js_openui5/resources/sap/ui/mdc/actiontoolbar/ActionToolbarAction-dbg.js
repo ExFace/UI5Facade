@@ -27,7 +27,7 @@ sap.ui.define([
 	 * The action for an {@link sap.ui.mdc.ActionToolbar ActionToolbar} control with given layout information that determines where the wrapped control is displayed on the <code>ActionToolbar</code>.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.58
 	 * @public
@@ -38,7 +38,8 @@ sap.ui.define([
 			library: "sap.ui.mdc",
 			designtime: "sap/ui/mdc/designtime/actiontoolbar/ActionToolbarAction.designtime",
 			interfaces: [
-				"sap.m.IOverflowToolbarContent"
+				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl"
 			],
 			properties: {
 				/**
@@ -154,6 +155,10 @@ sap.ui.define([
 		};
 	};
 
+	ActionToolbarAction.prototype._getToolbarInteractive = function() {
+		return this.getAction()?._getToolbarInteractive?.() ?? false;
+	};
+
 	ActionToolbarAction.prototype.getLabel = function() {
 		const sLabel = this.getProperty("label");
 		if (sLabel) {
@@ -162,6 +167,12 @@ sap.ui.define([
 
 		const oAction = this.getAction();
 		return oAction && oAction.getText ? oAction.getText() : this.getId();
+	};
+
+	// Provide focus fail handling to set focus back on Additional Options button of ActionToolbar
+	// SNOW: DINC0541991
+	ActionToolbarAction.prototype.onfocusfail = function (oEvent) {
+		this.getParent()?.onfocusfail(oEvent);
 	};
 
 	function _updateSeparators(oActionToolbar) {

@@ -28,7 +28,8 @@ sap.ui.define([
 		"sap/m/Button",
 		"./FilterBarBaseRenderer",
 		"sap/ui/mdc/FilterField",
-		"sap/ui/mdc/filterbar/PropertyInfoValidator"
+		"sap/ui/mdc/filterbar/PropertyInfoValidator",
+		"sap/ui/core/InvisibleText"
 	],
 	(
 		Element,
@@ -55,7 +56,8 @@ sap.ui.define([
 		Button,
 		FilterBarBaseRenderer,
 		FilterField,
-		PropertyInfoValidator
+		PropertyInfoValidator,
+		InvisibleText
 	) => {
 		"use strict";
 
@@ -72,7 +74,7 @@ sap.ui.define([
 		 * @class The <code>FilterBarBase</code> control is the base for filter displaying controls in MDC.
 		 * @extends sap.ui.mdc.Control
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @constructor
 		 * @public
 		 * @since 1.80.0
@@ -224,6 +226,17 @@ sap.ui.define([
 					layout: {
 						type: "sap.ui.mdc.filterbar.IFilterContainer",
 						multiple: false,
+						visibility: "hidden"
+					},
+
+					/**
+					 * Internal aggregation that stores invisible texts for accessibility.
+					 *
+					 * @since 1.142
+					 */
+					invisibleTexts: {
+						type: "sap.ui.core.InvisibleText",
+						multiple: true,
 						visibility: "hidden"
 					}
 				},
@@ -389,6 +402,13 @@ sap.ui.define([
 					// vh/FilterBar is not in the root folder, so use the message property instead
 					message: this._oRb.getText("filterbar.GoBtnShortCutHint")
 				}, this);
+
+				const oInvisibleText = new InvisibleText({
+					id: this.getId() + "-btnSearch-description",
+					text: this._oRb.getText("filterbar.GO_DESCRIPTION")
+				});
+				this.addInvisibleText(oInvisibleText);
+				this._btnSearch.addAriaDescribedBy(oInvisibleText);
 			}
 
 			return this._btnSearch;
@@ -861,7 +881,10 @@ sap.ui.define([
 			if (!bFiltersAggregationChanged) {
 				if (this._btnAdapt) {
 					const aFilterNames = this.getAssignedFilterNames();
-					this.setProperty("_filterCount", this._oRb.getText(aFilterNames.length ? "filterbar.ADAPT_NONZERO" : "filterbar.ADAPT", [aFilterNames.length]), false);
+
+					const sText = this.getAdaptFiltersButtonText(aFilterNames.length);
+
+					this.setProperty("_filterCount", sText, false);
 				}
 			}
 
@@ -875,6 +898,16 @@ sap.ui.define([
 			this._bDoNotTriggerFiltersChangeEventBasedOnVariantSwitch = false;
 			this.fireFiltersChanged(oObj);
 
+		};
+
+		/**
+		 * Updates the Adapt Filters button text based on the number of assigned filters.
+		 * @param {int} iFilterCount number of assigned filters
+		 * @returns {string} text for the Adapt Filters button
+		 * @protected
+		 */
+		FilterBarBase.prototype.getAdaptFiltersButtonText = function(iFilterCount) {
+			return this._oRb.getText(iFilterCount ? "filterbar.ADAPT_NONZERO" : "filterbar.ADAPT", [iFilterCount]);
 		};
 
 		FilterBarBase.prototype.onSearch = function(oEvent) {
@@ -2029,6 +2062,29 @@ sap.ui.define([
 		FilterBarBase.prototype.getSearch = function() {
 			const aSearchConditions = this._getConditionModel() ? this._getConditionModel().getConditions(SEARCH_CONDITION) : [];
 			return aSearchConditions[0] ? aSearchConditions[0].values[0] : "";
+		};
+
+		/**
+		 * Adds an <code>InvisibleText</code> to the <code>FilterBar</code> that can be used for accessibility purposes.
+		 *
+		 * @param {sap.ui.core.InvisibleText} oInvisibleText The invisible text to be added
+		 * @protected
+		 * @since 1.142
+		 */
+		FilterBarBase.prototype.addInvisibleText = function(oInvisibleText) {
+			this.addAggregation("invisibleTexts", oInvisibleText);
+		};
+
+		/**
+		 * Retrieves an <code>InvisibleText</code> by ID.
+		 *
+		 * @param {string} sId ID of the invisible text to be retrieved
+		 * @returns {sap.ui.core.InvisibleText} The invisible text with the given ID
+		 * @protected
+		 * @since 1.142
+		 */
+		FilterBarBase.prototype.getInvisibleText = function(sId) {
+			return this.getAggregation("invisibleTexts")?.find((oInvisibleText) => oInvisibleText.getId() === sId);
 		};
 
 		FilterBarBase.prototype.exit = function() {

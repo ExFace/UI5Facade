@@ -3,16 +3,16 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 3236
+			"size": 3235
 		},
 		{
 			"name": ".theming",
-			"size": 79
+			"size": 78
 		},
 		{
 			"name": "Accordion-dbg.js",
 			"module": "sap/ui/commons/Accordion.js",
-			"size": 26174,
+			"size": 26173,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/AccordionRenderer.js",
@@ -74,7 +74,7 @@
 		{
 			"name": "AccordionSection-dbg.js",
 			"module": "sap/ui/commons/AccordionSection.js",
-			"size": 9246,
+			"size": 9245,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -100,7 +100,7 @@
 		{
 			"name": "ApplicationHeader-dbg.js",
 			"module": "sap/ui/commons/ApplicationHeader.js",
-			"size": 5269,
+			"size": 5268,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/ApplicationHeaderRenderer.js",
@@ -158,7 +158,7 @@
 		{
 			"name": "Area-dbg.js",
 			"module": "sap/ui/commons/Area.js",
-			"size": 2198,
+			"size": 2197,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -186,7 +186,7 @@
 		{
 			"name": "AutoComplete-dbg.js",
 			"module": "sap/ui/commons/AutoComplete.js",
-			"size": 11622,
+			"size": 11621,
 			"isDebug": true,
 			"required": [
 				"jquery.sap.strings.js",
@@ -246,7 +246,7 @@
 		{
 			"name": "Button-dbg.js",
 			"module": "sap/ui/commons/Button.js",
-			"size": 9993,
+			"size": 9992,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -278,7 +278,7 @@
 		{
 			"name": "ButtonRenderer-dbg.js",
 			"module": "sap/ui/commons/ButtonRenderer.js",
-			"size": 10047,
+			"size": 10046,
 			"isDebug": true,
 			"required": [
 				"sap/base/security/encodeXML.js",
@@ -304,7 +304,7 @@
 		{
 			"name": "Callout-dbg.js",
 			"module": "sap/ui/commons/Callout.js",
-			"size": 1365,
+			"size": 1364,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/CalloutBase.js",
@@ -330,7 +330,7 @@
 		{
 			"name": "CalloutBase-dbg.js",
 			"module": "sap/ui/commons/CalloutBase.js",
-			"size": 20042,
+			"size": 20041,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/CalloutBaseRenderer.js",
@@ -416,7 +416,7 @@
 		{
 			"name": "Carousel-dbg.js",
 			"module": "sap/ui/commons/Carousel.js",
-			"size": 26716,
+			"size": 26715,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -486,7 +486,7 @@
 		{
 			"name": "CheckBox-dbg.js",
 			"module": "sap/ui/commons/CheckBox.js",
-			"size": 7385,
+			"size": 7384,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -540,7 +540,7 @@
 		{
 			"name": "ColorPicker-dbg.js",
 			"module": "sap/ui/commons/ColorPicker.js",
-			"size": 1405,
+			"size": 1404,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -566,7 +566,7 @@
 		{
 			"name": "ComboBox-dbg.js",
 			"module": "sap/ui/commons/ComboBox.js",
-			"size": 57463,
+			"size": 57462,
 			"isDebug": true,
 			"required": [
 				"jquery.sap.strings.js",
@@ -644,7 +644,7 @@
 		{
 			"name": "DatePicker-dbg.js",
 			"module": "sap/ui/commons/DatePicker.js",
-			"size": 23733,
+			"size": 23732,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -724,7 +724,7 @@
 		{
 			"name": "Dialog-dbg.js",
 			"module": "sap/ui/commons/Dialog.js",
-			"size": 33194,
+			"size": 33193,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -788,7 +788,7 @@
 		{
 			"name": "DropdownBox-dbg.js",
 			"module": "sap/ui/commons/DropdownBox.js",
-			"size": 55059,
+			"size": 55058,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -866,87 +866,157 @@
 		{
 			"name": "FileUploader-dbg.js",
 			"module": "sap/ui/commons/FileUploader.js",
-			"size": 1708,
+			"size": 68266,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
+				"sap/base/security/encodeXML.js",
+				"sap/ui/Device.js",
+				"sap/ui/commons/Button.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/TextField.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/core/Core.js",
-				"sap/ui/unified/FileUploader.js"
+				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/InvisibleText.js",
+				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
+				"sap/ui/core/StaticArea.js",
+				"sap/ui/core/library.js",
+				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
+				"sap/ui/events/KeyCodes.js",
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploader.js",
 			"module": "sap/ui/commons/FileUploader.js",
-			"size": 601,
+			"size": 27202,
 			"required": [
 				"sap/base/Log.js",
+				"sap/base/security/encodeXML.js",
+				"sap/ui/Device.js",
+				"sap/ui/commons/Button.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/TextField.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/core/Core.js",
-				"sap/ui/unified/FileUploader.js"
+				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/InvisibleText.js",
+				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
+				"sap/ui/core/StaticArea.js",
+				"sap/ui/core/library.js",
+				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
+				"sap/ui/events/KeyCodes.js",
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploader.js.map",
-			"size": 555,
+			"size": 33866,
+			"isDebug": true
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod-dbg.js",
+			"module": "sap/ui/commons/FileUploaderHttpRequestMethod.js",
+			"size": 930,
+			"isDebug": true,
+			"required": [
+				"sap/ui/base/DataType.js"
+			]
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod.js",
+			"module": "sap/ui/commons/FileUploaderHttpRequestMethod.js",
+			"size": 374,
+			"required": [
+				"sap/ui/base/DataType.js"
+			]
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod.js.map",
+			"size": 370,
 			"isDebug": true
 		},
 		{
 			"name": "FileUploaderParameter-dbg.js",
 			"module": "sap/ui/commons/FileUploaderParameter.js",
-			"size": 1471,
+			"size": 1475,
 			"isDebug": true,
 			"required": [
-				"sap/base/Log.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/unified/FileUploaderParameter.js"
+				"sap/ui/core/Element.js"
 			]
 		},
 		{
 			"name": "FileUploaderParameter.js",
 			"module": "sap/ui/commons/FileUploaderParameter.js",
-			"size": 589,
+			"size": 495,
 			"required": [
-				"sap/base/Log.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/unified/FileUploaderParameter.js"
+				"sap/ui/core/Element.js"
 			]
 		},
 		{
 			"name": "FileUploaderParameter.js.map",
-			"size": 538,
+			"size": 513,
 			"isDebug": true
 		},
 		{
 			"name": "FileUploaderRenderer-dbg.js",
 			"module": "sap/ui/commons/FileUploaderRenderer.js",
-			"size": 494,
+			"size": 3520,
 			"isDebug": true,
 			"required": [
-				"sap/ui/core/Renderer.js",
-				"sap/ui/unified/FileUploaderRenderer.js"
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploaderRenderer.js",
 			"module": "sap/ui/commons/FileUploaderRenderer.js",
-			"size": 333,
+			"size": 2062,
 			"required": [
-				"sap/ui/core/Renderer.js",
-				"sap/ui/unified/FileUploaderRenderer.js"
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploaderRenderer.js.map",
-			"size": 338,
+			"size": 2414,
+			"isDebug": true
+		},
+		{
+			"name": "FileUploaderXHRSettings-dbg.js",
+			"module": "sap/ui/commons/FileUploaderXHRSettings.js",
+			"size": 1447,
+			"isDebug": true,
+			"required": [
+				"sap/ui/commons/library.js",
+				"sap/ui/core/Element.js"
+			]
+		},
+		{
+			"name": "FileUploaderXHRSettings.js",
+			"module": "sap/ui/commons/FileUploaderXHRSettings.js",
+			"size": 457,
+			"required": [
+				"sap/ui/commons/library.js",
+				"sap/ui/core/Element.js"
+			]
+		},
+		{
+			"name": "FileUploaderXHRSettings.js.map",
+			"size": 472,
 			"isDebug": true
 		},
 		{
 			"name": "FormattedTextView-dbg.js",
 			"module": "sap/ui/commons/FormattedTextView.js",
-			"size": 7119,
+			"size": 7118,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1000,7 +1070,7 @@
 		{
 			"name": "HorizontalDivider-dbg.js",
 			"module": "sap/ui/commons/HorizontalDivider.js",
-			"size": 1947,
+			"size": 1946,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/HorizontalDividerRenderer.js",
@@ -1042,7 +1112,7 @@
 		{
 			"name": "Image-dbg.js",
 			"module": "sap/ui/commons/Image.js",
-			"size": 3654,
+			"size": 3653,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/ImageRenderer.js",
@@ -1068,7 +1138,7 @@
 		{
 			"name": "ImageMap-dbg.js",
 			"module": "sap/ui/commons/ImageMap.js",
-			"size": 3678,
+			"size": 3677,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Area.js",
@@ -1138,7 +1208,7 @@
 		{
 			"name": "InPlaceEdit-dbg.js",
 			"module": "sap/ui/commons/InPlaceEdit.js",
-			"size": 31183,
+			"size": 31182,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -1208,7 +1278,7 @@
 		{
 			"name": "Label-dbg.js",
 			"module": "sap/ui/commons/Label.js",
-			"size": 6461,
+			"size": 6460,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/LabelRenderer.js",
@@ -1266,7 +1336,7 @@
 		{
 			"name": "Link-dbg.js",
 			"module": "sap/ui/commons/Link.js",
-			"size": 5342,
+			"size": 5341,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/LinkRenderer.js",
@@ -1312,7 +1382,7 @@
 		{
 			"name": "ListBox-dbg.js",
 			"module": "sap/ui/commons/ListBox.js",
-			"size": 46070,
+			"size": 46069,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -1346,7 +1416,7 @@
 		{
 			"name": "ListBoxRenderer-dbg.js",
 			"module": "sap/ui/commons/ListBoxRenderer.js",
-			"size": 10366,
+			"size": 10365,
 			"isDebug": true,
 			"required": [
 				"sap/base/security/encodeXML.js",
@@ -1374,7 +1444,7 @@
 		{
 			"name": "Menu-dbg.js",
 			"module": "sap/ui/commons/Menu.js",
-			"size": 1445,
+			"size": 1444,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/MenuItemBase.js",
@@ -1402,7 +1472,7 @@
 		{
 			"name": "MenuBar-dbg.js",
 			"module": "sap/ui/commons/MenuBar.js",
-			"size": 16392,
+			"size": 16391,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Menu.js",
@@ -1470,7 +1540,7 @@
 		{
 			"name": "MenuButton-dbg.js",
 			"module": "sap/ui/commons/MenuButton.js",
-			"size": 9321,
+			"size": 9320,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Button.js",
@@ -1530,7 +1600,7 @@
 		{
 			"name": "MenuItem-dbg.js",
 			"module": "sap/ui/commons/MenuItem.js",
-			"size": 1294,
+			"size": 1293,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/MenuItemBase.js",
@@ -1556,7 +1626,7 @@
 		{
 			"name": "MenuItemBase-dbg.js",
 			"module": "sap/ui/commons/MenuItemBase.js",
-			"size": 1370,
+			"size": 1369,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1606,7 +1676,7 @@
 		{
 			"name": "MenuTextFieldItem-dbg.js",
 			"module": "sap/ui/commons/MenuTextFieldItem.js",
-			"size": 1501,
+			"size": 1500,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/MenuItemBase.js",
@@ -1632,7 +1702,7 @@
 		{
 			"name": "Message-dbg.js",
 			"module": "sap/ui/commons/Message.js",
-			"size": 10173,
+			"size": 10172,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Button.js",
@@ -1668,7 +1738,7 @@
 		{
 			"name": "MessageBar-dbg.js",
 			"module": "sap/ui/commons/MessageBar.js",
-			"size": 25831,
+			"size": 25830,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1730,7 +1800,7 @@
 		{
 			"name": "MessageBox-dbg.js",
 			"module": "sap/ui/commons/MessageBox.js",
-			"size": 11622,
+			"size": 11621,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Button.js",
@@ -1772,7 +1842,7 @@
 		{
 			"name": "MessageList-dbg.js",
 			"module": "sap/ui/commons/MessageList.js",
-			"size": 6245,
+			"size": 6244,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/MessageListRenderer.js",
@@ -1842,7 +1912,7 @@
 		{
 			"name": "MessageToast-dbg.js",
 			"module": "sap/ui/commons/MessageToast.js",
-			"size": 8500,
+			"size": 8499,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/MessageToastRenderer.js",
@@ -1894,7 +1964,7 @@
 		{
 			"name": "Paginator-dbg.js",
 			"module": "sap/ui/commons/Paginator.js",
-			"size": 14038,
+			"size": 14037,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/PaginatorRenderer.js",
@@ -1948,7 +2018,7 @@
 		{
 			"name": "Panel-dbg.js",
 			"module": "sap/ui/commons/Panel.js",
-			"size": 23442,
+			"size": 23441,
 			"isDebug": true,
 			"required": [
 				"sap/base/assert.js",
@@ -2012,7 +2082,7 @@
 		{
 			"name": "PasswordField-dbg.js",
 			"module": "sap/ui/commons/PasswordField.js",
-			"size": 1968,
+			"size": 1967,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -2068,7 +2138,7 @@
 		{
 			"name": "ProgressIndicator-dbg.js",
 			"module": "sap/ui/commons/ProgressIndicator.js",
-			"size": 9332,
+			"size": 9331,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/ProgressIndicatorRenderer.js",
@@ -2120,7 +2190,7 @@
 		{
 			"name": "RadioButton-dbg.js",
 			"module": "sap/ui/commons/RadioButton.js",
-			"size": 8192,
+			"size": 8191,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/RadioButtonRenderer.js",
@@ -2150,7 +2220,7 @@
 		{
 			"name": "RadioButtonGroup-dbg.js",
 			"module": "sap/ui/commons/RadioButtonGroup.js",
-			"size": 19015,
+			"size": 19014,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -2230,7 +2300,7 @@
 		{
 			"name": "RangeSlider-dbg.js",
 			"module": "sap/ui/commons/RangeSlider.js",
-			"size": 16790,
+			"size": 16789,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/RangeSliderRenderer.js",
@@ -2280,7 +2350,7 @@
 		{
 			"name": "RatingIndicator-dbg.js",
 			"module": "sap/ui/commons/RatingIndicator.js",
-			"size": 13794,
+			"size": 13793,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/RatingIndicatorRenderer.js",
@@ -2332,7 +2402,7 @@
 		{
 			"name": "ResponsiveContainer-dbg.js",
 			"module": "sap/ui/commons/ResponsiveContainer.js",
-			"size": 5723,
+			"size": 5722,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/ResponsiveContainerRenderer.js",
@@ -2360,7 +2430,7 @@
 		{
 			"name": "ResponsiveContainerRange-dbg.js",
 			"module": "sap/ui/commons/ResponsiveContainerRange.js",
-			"size": 1805,
+			"size": 1804,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -2400,7 +2470,7 @@
 		{
 			"name": "RichTooltip-dbg.js",
 			"module": "sap/ui/commons/RichTooltip.js",
-			"size": 6451,
+			"size": 6450,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/FormattedTextView.js",
@@ -2458,7 +2528,7 @@
 		{
 			"name": "RoadMap-dbg.js",
 			"module": "sap/ui/commons/RoadMap.js",
-			"size": 15113,
+			"size": 15112,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -2520,7 +2590,7 @@
 		{
 			"name": "RoadMapStep-dbg.js",
 			"module": "sap/ui/commons/RoadMapStep.js",
-			"size": 7753,
+			"size": 7752,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/RoadMapRenderer.js",
@@ -2548,7 +2618,7 @@
 		{
 			"name": "RowRepeater-dbg.js",
 			"module": "sap/ui/commons/RowRepeater.js",
-			"size": 42584,
+			"size": 42583,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Button.js",
@@ -2586,7 +2656,7 @@
 		{
 			"name": "RowRepeaterFilter-dbg.js",
 			"module": "sap/ui/commons/RowRepeaterFilter.js",
-			"size": 1572,
+			"size": 1571,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -2638,7 +2708,7 @@
 		{
 			"name": "RowRepeaterSorter-dbg.js",
 			"module": "sap/ui/commons/RowRepeaterSorter.js",
-			"size": 1563,
+			"size": 1562,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -2662,7 +2732,7 @@
 		{
 			"name": "SearchField-dbg.js",
 			"module": "sap/ui/commons/SearchField.js",
-			"size": 30108,
+			"size": 30107,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -2740,7 +2810,7 @@
 		{
 			"name": "SearchProvider-dbg.js",
 			"module": "sap/ui/commons/SearchProvider.js",
-			"size": 1441,
+			"size": 1440,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -2764,7 +2834,7 @@
 		{
 			"name": "SegmentedButton-dbg.js",
 			"module": "sap/ui/commons/SegmentedButton.js",
-			"size": 8224,
+			"size": 8223,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/SegmentedButtonRenderer.js",
@@ -2808,7 +2878,7 @@
 		{
 			"name": "Slider-dbg.js",
 			"module": "sap/ui/commons/Slider.js",
-			"size": 46591,
+			"size": 46590,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -2864,7 +2934,7 @@
 		{
 			"name": "Splitter-dbg.js",
 			"module": "sap/ui/commons/Splitter.js",
-			"size": 23006,
+			"size": 23005,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/SplitterRenderer.js",
@@ -2924,7 +2994,7 @@
 		{
 			"name": "Tab-dbg.js",
 			"module": "sap/ui/commons/Tab.js",
-			"size": 7201,
+			"size": 7200,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Panel.js",
@@ -2950,7 +3020,7 @@
 		{
 			"name": "TabStrip-dbg.js",
 			"module": "sap/ui/commons/TabStrip.js",
-			"size": 33803,
+			"size": 33802,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -3026,7 +3096,7 @@
 		{
 			"name": "TextArea-dbg.js",
 			"module": "sap/ui/commons/TextArea.js",
-			"size": 10862,
+			"size": 10861,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -3090,7 +3160,7 @@
 		{
 			"name": "TextField-dbg.js",
 			"module": "sap/ui/commons/TextField.js",
-			"size": 25817,
+			"size": 25816,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -3132,7 +3202,7 @@
 		{
 			"name": "TextFieldRenderer-dbg.js",
 			"module": "sap/ui/commons/TextFieldRenderer.js",
-			"size": 11950,
+			"size": 11949,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -3160,7 +3230,7 @@
 		{
 			"name": "TextView-dbg.js",
 			"module": "sap/ui/commons/TextView.js",
-			"size": 4623,
+			"size": 4622,
 			"isDebug": true,
 			"required": [
 				"sap/base/security/encodeXML.js",
@@ -3214,7 +3284,7 @@
 		{
 			"name": "Title-dbg.js",
 			"module": "sap/ui/commons/Title.js",
-			"size": 1846,
+			"size": 1845,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3238,7 +3308,7 @@
 		{
 			"name": "ToggleButton-dbg.js",
 			"module": "sap/ui/commons/ToggleButton.js",
-			"size": 2816,
+			"size": 2815,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Button.js",
@@ -3286,7 +3356,7 @@
 		{
 			"name": "Toolbar-dbg.js",
 			"module": "sap/ui/commons/Toolbar.js",
-			"size": 33940,
+			"size": 33939,
 			"isDebug": true,
 			"required": [
 				"sap/base/assert.js",
@@ -3360,7 +3430,7 @@
 		{
 			"name": "ToolbarSeparator-dbg.js",
 			"module": "sap/ui/commons/ToolbarSeparator.js",
-			"size": 1683,
+			"size": 1682,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3384,7 +3454,7 @@
 		{
 			"name": "Tree-dbg.js",
 			"module": "sap/ui/commons/Tree.js",
-			"size": 32200,
+			"size": 32199,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -3420,7 +3490,7 @@
 		{
 			"name": "TreeNode-dbg.js",
 			"module": "sap/ui/commons/TreeNode.js",
-			"size": 17607,
+			"size": 17606,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/Tree.js",
@@ -3468,7 +3538,7 @@
 		{
 			"name": "TriStateCheckBox-dbg.js",
 			"module": "sap/ui/commons/TriStateCheckBox.js",
-			"size": 5854,
+			"size": 5853,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -3522,7 +3592,7 @@
 		{
 			"name": "ValueHelpField-dbg.js",
 			"module": "sap/ui/commons/ValueHelpField.js",
-			"size": 5732,
+			"size": 5731,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/TextField.js",
@@ -3572,7 +3642,7 @@
 		{
 			"name": "form/Form-dbg.js",
 			"module": "sap/ui/commons/form/Form.js",
-			"size": 1875,
+			"size": 1874,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/form/FormRenderer.js",
@@ -3598,7 +3668,7 @@
 		{
 			"name": "form/FormContainer-dbg.js",
 			"module": "sap/ui/commons/form/FormContainer.js",
-			"size": 1815,
+			"size": 1814,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3622,7 +3692,7 @@
 		{
 			"name": "form/FormElement-dbg.js",
 			"module": "sap/ui/commons/form/FormElement.js",
-			"size": 1850,
+			"size": 1849,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3646,7 +3716,7 @@
 		{
 			"name": "form/FormLayout-dbg.js",
 			"module": "sap/ui/commons/form/FormLayout.js",
-			"size": 1191,
+			"size": 1190,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/form/FormLayoutRenderer.js",
@@ -3720,7 +3790,7 @@
 		{
 			"name": "form/GridContainerData-dbg.js",
 			"module": "sap/ui/commons/form/GridContainerData.js",
-			"size": 1325,
+			"size": 1324,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3744,7 +3814,7 @@
 		{
 			"name": "form/GridElementData-dbg.js",
 			"module": "sap/ui/commons/form/GridElementData.js",
-			"size": 1274,
+			"size": 1273,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -3768,7 +3838,7 @@
 		{
 			"name": "form/GridLayout-dbg.js",
 			"module": "sap/ui/commons/form/GridLayout.js",
-			"size": 1321,
+			"size": 1320,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/form/GridLayoutRenderer.js",
@@ -3818,7 +3888,7 @@
 		{
 			"name": "form/ResponsiveLayout-dbg.js",
 			"module": "sap/ui/commons/form/ResponsiveLayout.js",
-			"size": 1284,
+			"size": 1283,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/form/ResponsiveLayoutRenderer.js",
@@ -3868,7 +3938,7 @@
 		{
 			"name": "form/SimpleForm-dbg.js",
 			"module": "sap/ui/commons/form/SimpleForm.js",
-			"size": 2285,
+			"size": 2284,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/form/SimpleFormRenderer.js",
@@ -3928,7 +3998,7 @@
 		{
 			"name": "layout/AbsoluteLayout-dbg.js",
 			"module": "sap/ui/commons/layout/AbsoluteLayout.js",
-			"size": 17254,
+			"size": 17253,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/layout/AbsoluteLayoutRenderer.js",
@@ -3982,7 +4052,7 @@
 		{
 			"name": "layout/BorderLayout-dbg.js",
 			"module": "sap/ui/commons/layout/BorderLayout.js",
-			"size": 11679,
+			"size": 11678,
 			"isDebug": true,
 			"required": [
 				"sap/base/assert.js",
@@ -4012,7 +4082,7 @@
 		{
 			"name": "layout/BorderLayoutArea-dbg.js",
 			"module": "sap/ui/commons/layout/BorderLayoutArea.js",
-			"size": 3402,
+			"size": 3401,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -4066,7 +4136,7 @@
 		{
 			"name": "layout/HorizontalLayout-dbg.js",
 			"module": "sap/ui/commons/layout/HorizontalLayout.js",
-			"size": 1262,
+			"size": 1261,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/layout/HorizontalLayoutRenderer.js",
@@ -4116,7 +4186,7 @@
 		{
 			"name": "layout/MatrixLayout-dbg.js",
 			"module": "sap/ui/commons/layout/MatrixLayout.js",
-			"size": 5845,
+			"size": 5844,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/TextView.js",
@@ -4152,7 +4222,7 @@
 		{
 			"name": "layout/MatrixLayoutCell-dbg.js",
 			"module": "sap/ui/commons/layout/MatrixLayoutCell.js",
-			"size": 5546,
+			"size": 5545,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -4204,7 +4274,7 @@
 		{
 			"name": "layout/MatrixLayoutRow-dbg.js",
 			"module": "sap/ui/commons/layout/MatrixLayoutRow.js",
-			"size": 3841,
+			"size": 3840,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -4230,7 +4300,7 @@
 		{
 			"name": "layout/PositionContainer-dbg.js",
 			"module": "sap/ui/commons/layout/PositionContainer.js",
-			"size": 12344,
+			"size": 12343,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -4258,7 +4328,7 @@
 		{
 			"name": "layout/ResponsiveFlowLayout-dbg.js",
 			"module": "sap/ui/commons/layout/ResponsiveFlowLayout.js",
-			"size": 1438,
+			"size": 1437,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/layout/ResponsiveFlowLayoutRenderer.js",
@@ -4284,7 +4354,7 @@
 		{
 			"name": "layout/ResponsiveFlowLayoutData-dbg.js",
 			"module": "sap/ui/commons/layout/ResponsiveFlowLayoutData.js",
-			"size": 2062,
+			"size": 2061,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/library.js",
@@ -4332,7 +4402,7 @@
 		{
 			"name": "layout/VerticalLayout-dbg.js",
 			"module": "sap/ui/commons/layout/VerticalLayout.js",
-			"size": 1218,
+			"size": 1217,
 			"isDebug": true,
 			"required": [
 				"sap/ui/commons/layout/VerticalLayoutRenderer.js",
@@ -4382,11 +4452,12 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/commons/library.js",
-			"size": 24960,
+			"size": 26608,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/ObjectPath.js",
 				"sap/ui/base/DataType.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/manifest.json",
 				"sap/ui/core/library.js",
 				"sap/ui/layout/library.js",
@@ -4396,7 +4467,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/commons/library-preload.js",
-			"size": 553440,
+			"size": 582806,
 			"merged": true,
 			"required": [
 				"jquery.sap.strings.js",
@@ -4412,6 +4483,7 @@
 				"sap/ui/base/Event.js",
 				"sap/ui/core/Configuration.js",
 				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
 				"sap/ui/core/Core.js",
 				"sap/ui/core/CustomStyleClassSupport.js",
 				"sap/ui/core/Element.js",
@@ -4420,7 +4492,9 @@
 				"sap/ui/core/History.js",
 				"sap/ui/core/Icon.js",
 				"sap/ui/core/IconPool.js",
+				"sap/ui/core/InvisibleText.js",
 				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/core/ListItem.js",
 				"sap/ui/core/Locale.js",
 				"sap/ui/core/LocaleData.js",
@@ -4429,6 +4503,7 @@
 				"sap/ui/core/Renderer.js",
 				"sap/ui/core/ResizeHandler.js",
 				"sap/ui/core/SeparatorItem.js",
+				"sap/ui/core/StaticArea.js",
 				"sap/ui/core/Title.js",
 				"sap/ui/core/TooltipBase.js",
 				"sap/ui/core/ValueStateSupport.js",
@@ -4440,6 +4515,7 @@
 				"sap/ui/core/search/OpenSearchProvider.js",
 				"sap/ui/core/theming/Parameters.js",
 				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
 				"sap/ui/dom/jquery/Focusable.js",
 				"sap/ui/dom/jquery/Selectors.js",
 				"sap/ui/dom/jquery/control.js",
@@ -4485,9 +4561,6 @@
 				"sap/ui/thirdparty/jqueryui/jquery-ui-sortable.js",
 				"sap/ui/thirdparty/jqueryui/jquery-ui-widget.js",
 				"sap/ui/unified/ColorPicker.js",
-				"sap/ui/unified/FileUploader.js",
-				"sap/ui/unified/FileUploaderParameter.js",
-				"sap/ui/unified/FileUploaderRenderer.js",
 				"sap/ui/unified/Menu.js",
 				"sap/ui/unified/MenuItem.js",
 				"sap/ui/unified/MenuItemBase.js",
@@ -4524,8 +4597,10 @@
 				"sap/ui/commons/DropdownBox.js",
 				"sap/ui/commons/DropdownBoxRenderer.js",
 				"sap/ui/commons/FileUploader.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/FileUploaderParameter.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/FileUploaderXHRSettings.js",
 				"sap/ui/commons/FormattedTextView.js",
 				"sap/ui/commons/FormattedTextViewRenderer.js",
 				"sap/ui/commons/HorizontalDivider.js",
@@ -4656,16 +4731,17 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 686589,
+			"size": 722925,
 			"isDebug": true
 		},
 		{
 			"name": "library.js",
 			"module": "sap/ui/commons/library.js",
-			"size": 7669,
+			"size": 7861,
 			"required": [
 				"sap/base/util/ObjectPath.js",
 				"sap/ui/base/DataType.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/manifest.json",
 				"sap/ui/core/library.js",
 				"sap/ui/layout/library.js",
@@ -4674,18 +4750,18 @@
 		},
 		{
 			"name": "library.js.map",
-			"size": 5455,
+			"size": 5539,
 			"isDebug": true
 		},
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/commons/manifest.json",
-			"size": 7416
+			"size": 7568
 		},
 		{
 			"name": "messagebundle.properties",
 			"module": "sap/ui/commons/messagebundle.properties",
-			"size": 7855,
+			"size": 8156,
 			"locale": "",
 			"raw": "messagebundle.properties"
 		},
@@ -4699,7 +4775,7 @@
 		{
 			"name": "messagebundle_bg.properties",
 			"module": "sap/ui/commons/messagebundle_bg.properties",
-			"size": 9829,
+			"size": 9816,
 			"locale": "bg",
 			"raw": "messagebundle.properties"
 		},
@@ -4963,7 +5039,7 @@
 		{
 			"name": "messagebundle_ru.properties",
 			"module": "sap/ui/commons/messagebundle_ru.properties",
-			"size": 9415,
+			"size": 9454,
 			"locale": "ru",
 			"raw": "messagebundle.properties"
 		},
@@ -5046,7 +5122,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 163952
+			"size": 165999
 		},
 		{
 			"name": "themes/base/.theming",
@@ -5055,19 +5131,19 @@
 		},
 		{
 			"name": "themes/base/AbsoluteLayout.less",
-			"size": 785,
+			"size": 846,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/Accordion.less",
-			"size": 426,
+			"size": 468,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/AccordionSection.less",
-			"size": 2990,
+			"size": 3206,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5109,7 +5185,7 @@
 		},
 		{
 			"name": "themes/base/Carousel.less",
-			"size": 1384,
+			"size": 1427,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5127,7 +5203,7 @@
 		},
 		{
 			"name": "themes/base/ControlsInUITable.less",
-			"size": 2726,
+			"size": 2371,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5145,7 +5221,7 @@
 		},
 		{
 			"name": "themes/base/FileUploader.less",
-			"size": 173,
+			"size": 2274,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5163,7 +5239,7 @@
 		},
 		{
 			"name": "themes/base/FormattedTextView.less",
-			"size": 1103,
+			"size": 1200,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5813,7 +5889,7 @@
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 76981,
+			"size": 78142,
 			"theme": "base"
 		},
 		{
@@ -5824,12 +5900,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 76936,
+			"size": 78096,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 120264,
+			"size": 122469,
 			"designtime": true,
 			"theme": "base"
 		},

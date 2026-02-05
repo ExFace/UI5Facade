@@ -92,7 +92,7 @@
 				</ul>
 			</description>
 		</interaction>
-		<interaction> <kbd>ESC</kbd> <description>
+		<interaction> <kbd>Escape</kbd> <description>
 				<p><span class="emphasis">Se a seleção de células estiver ativada:</span></p>
 				<p>Se o foco estiver dentro da tabela e as células estiverem selecionadas, a seleção das células é removida.</p>
 			</description>
@@ -174,9 +174,9 @@
 				<p>Se o foco estiver no cabeçalho da coluna, o menu do cabeçalho da coluna é aberto.</p>
 			</description>
 		</interaction>
-		<interaction> <kbd>Shift + mouse click</kbd> <description>
+		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Se a seleção de células estiver ativada:</span></p>
-				<p>Se forem selecionadas células, <kbd>Shift + click</kbd> numa célula diferente amplia a seleção até à célula clicada.</p>
+				<p>Se forem selecionadas células, <kbd>Shift + MouseClick</kbd> numa célula diferente amplia a seleção até à célula clicada.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>

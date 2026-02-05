@@ -142,7 +142,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -174,9 +174,6 @@ sap.ui.define([
 				 * UI5 currently does not provide a recommended implementation of <code>TooltipBase</code>
 				 * as the use of content-rich tooltips is discouraged by the Fiori Design Guidelines.
 				 * Existing subclasses of <code>TooltipBase</code> therefore have been deprecated.
-				 * However, apps can still subclass from <code>TooltipBase</code> and create their own
-				 * implementation when needed (potentially taking the deprecated implementations as a
-				 * starting point).
 				 *
 				 * See the section {@link https://experience.sap.com/fiori-design-web/using-tooltips/ Using Tooltips}
 				 * in the Fiori Design Guideline.
@@ -475,7 +472,7 @@ sap.ui.define([
 	 * state (e.g. an initial, not yet rendered control).
 	 *
 	 * If an ID suffix is given, the ID of this Element is concatenated with the suffix
-	 * (separated by a single dash) and the DOM node with that compound ID will be returned.
+	 * (separated by a single hyphen) and the DOM node with that compound ID will be returned.
 	 * This matches the UI5 naming convention for named inner DOM nodes of a control.
 	 *
 	 * @param {string} [sSuffix] ID suffix to get the DOMRef for
@@ -491,7 +488,7 @@ sap.ui.define([
 	 * I.e. the element returned by {@link sap.ui.core.Element#getDomRef} is wrapped and returned.
 	 *
 	 * If an ID suffix is given, the ID of this Element is concatenated with the suffix
-	 * (separated by a single dash) and the DOM node with that compound ID will be wrapped by jQuery.
+	 * (separated by a single hyphen) and the DOM node with that compound ID will be wrapped by jQuery.
 	 * This matches the UI5 naming convention for named inner DOM nodes of a control.
 	 *
 	 * @param {string} [sSuffix] ID suffix to get a jQuery object for
@@ -702,7 +699,7 @@ sap.ui.define([
 	 * the entire aggregation area needs to be skipped sinceh its DOM element will be removed
 	 * leaving no focusable element within the aggregation.
 	 *
-	 * @param {sap.ui.core.ManagedObject[]} aChildren The children that belong to the aggregation
+	 * @param {sap.ui.base.ManagedObject[]} aChildren The children that belong to the aggregation
 	 * @returns {HTMLElement|null} Returns the DOM which needs to be skipped, or 'null' if no relevant area is found.
 	 */
 	function searchAggregationAreaToSkip(aChildren) {
@@ -1482,8 +1479,6 @@ sap.ui.define([
 	Element.prototype.getTooltip = function() {
 		return this.getAggregation("tooltip");
 	};
-
-	Element.runWithPreprocessors = ManagedObject.runWithPreprocessors;
 
 	/**
 	 * Returns the tooltip for this element but only if it is a simple string.
@@ -2321,7 +2316,8 @@ sap.ui.define([
 	Element.getActiveElement = () => {
 		try {
 			var $Act = jQuery(document.activeElement);
-			if ($Act.is(":focus")) {
+			// do not check ":focus" when the browser window is not focused
+			if (!document.hasFocus() || $Act.is(":focus")) {
 				return Element.closestTo($Act[0]);
 			}
 		} catch (err) {

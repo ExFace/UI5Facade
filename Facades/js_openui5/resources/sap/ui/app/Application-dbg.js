@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @alias sap.ui.app.Application
 	 * @experimental Since 1.11.1. The Application class is still under construction, so some implementation details can be changed in future.
 	 * @deprecated Since 1.15.1. The Component class is enhanced to take care about the Application code.

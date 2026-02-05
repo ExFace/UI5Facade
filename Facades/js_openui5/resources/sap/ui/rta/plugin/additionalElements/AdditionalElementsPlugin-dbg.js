@@ -119,14 +119,13 @@ sap.ui.define([
 	 * @class The plugin allows to add additional elements that exist either hidden in the UI or in the OData service
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.44
 	 * @alias sap.ui.rta.plugin.additionalElements.AdditionalElementsPlugin
 	 */
 	const AdditionalElementsPlugin = Plugin.extend("sap.ui.rta.plugin.additionalElements.AdditionalElementsPlugin", {
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			this._getMenuItemsPromise = Promise.resolve();
 			const [oPropertyBag] = aArgs;
@@ -244,7 +243,7 @@ sap.ui.define([
 				const oMetaModel = oModel.getMetaModel();
 				if (oMetaModel && oMetaModel.loaded) {
 					await oMetaModel.loaded();
-					this.evaluateEditable([oOverlay], {onRegistration: true});
+					this.evaluateEditable([oOverlay], { onRegistration: true });
 				}
 			}
 			Plugin.prototype.registerElementOverlay.apply(this, aArgs);

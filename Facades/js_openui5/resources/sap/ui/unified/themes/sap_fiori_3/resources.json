@@ -8,19 +8,19 @@
 		},
 		{
 			"name": "Calendar.less",
-			"size": 17795,
+			"size": 16514,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 3912,
+			"size": 3314,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "ColorPicker.less",
-			"size": 3329,
+			"size": 3354,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -36,53 +36,53 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 1851,
+			"size": 2476,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "Menu.less",
-			"size": 1487,
+			"size": 1504,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 750,
+			"size": 850,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 1338,
+			"size": 1308,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 663,
+			"size": 790,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 163364,
+			"size": 176984,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/unified/themes/sap_fiori_3/library-parameters.json",
-			"size": 8056,
+			"size": 8825,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.css",
-			"size": 163262,
+			"size": 176897,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 32114,
+			"size": 31099,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},

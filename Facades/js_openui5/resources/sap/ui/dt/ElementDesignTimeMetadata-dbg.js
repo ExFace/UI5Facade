@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.dt.DesignTimeMetadata
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -130,7 +130,7 @@ sap.ui.define([
 	/**
 	 * Returns all available aggregation names containing the given action.
 	 * @param {string} sAction - action to search for the aggregations
-	 * @return {array.<string>} Returns the names of aggregations which contains the given action.
+	 * @return {Array<string>} Returns the names of aggregations which contains the given action.
 	 * @public
 	 */
 	ElementDesignTimeMetadata.prototype.getAggregationNamesWithAction = function(sAction) {

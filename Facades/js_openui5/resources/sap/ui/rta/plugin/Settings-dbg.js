@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @class The Settings allows trigger change of settings operations on the overlay
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.44
@@ -232,7 +232,7 @@ sap.ui.define([
 	Settings.prototype.handler = function(aElementOverlays, mPropertyBag, oSettingsAction) {
 		mPropertyBag ||= {};
 		const oElement = aElementOverlays[0].getElement();
-		let {fnHandler} = mPropertyBag;
+		let { fnHandler } = mPropertyBag;
 
 		fnHandler ||= aElementOverlays[0].getDesignTimeMetadata().getAction("settings").handler;
 		if (!fnHandler) {

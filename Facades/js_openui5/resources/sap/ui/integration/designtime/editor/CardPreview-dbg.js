@@ -15,7 +15,8 @@ sap.ui.define([
 	"sap/m/ToggleButton",
 	"./Card",
 	"sap/ui/core/Core",
-	"sap/ui/dom/includeStylesheet"
+	"sap/ui/dom/includeStylesheet",
+	"sap/base/util/deepClone"
 ], function(
 	Localization,
 	Element,
@@ -27,7 +28,8 @@ sap.ui.define([
 	ToggleButton,
 	Card,
 	Core,
-	includeStylesheet
+	includeStylesheet,
+	deepClone
 ) {
 	"use strict";
 
@@ -42,7 +44,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.editor.CardPreview
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted
@@ -175,7 +177,7 @@ sap.ui.define([
 	/**
 	 * destroy the preview
 	 */
-	CardPreview.prototype.destroy = function () {
+	CardPreview.prototype.destroy = function (bRemoveProperties) {
 		if (this._oModeToggleButton) {
 			this._oModeToggleButton.destroy();
 		}
@@ -189,9 +191,11 @@ sap.ui.define([
 			this._oCardPlaceholder.destroy();
 		}
 		Control.prototype.destroy.apply(this, arguments);
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
-		document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+		if (bRemoveProperties !== false) {
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewWidth");
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewHeight");
+			document.body.style.removeProperty("--sapUiIntegrationEditorPreviewCardHeight");
+		}
 	};
 
 	CardPreview.prototype.onAfterRendering = function () {
@@ -290,8 +294,11 @@ sap.ui.define([
 		} else if (this._currentMode === "Live") {
 			this._oCardPreview.setPreviewMode(CardPreviewMode.Off);
 		}
-		this._initalChanges = this._initalChanges || [this.getEditor()._beforeLayerManifestChanges];
-		var aChanges = this._initalChanges.concat([this.getEditor().getCurrentSettings()]);
+		if (!this._aInitalChanges) {
+			var oBeforeLayerChange = deepClone(this.getEditor()._oBeforeLayerChange || {}, 500);
+			this._aInitalChanges = [oBeforeLayerChange];
+		}
+		var aChanges = this._aInitalChanges.concat([this.getEditor().getCurrentSettings(this.getEditor().isChild)]);
 		this._oCardPreview.setManifestChanges(aChanges);
 		this._oCardPreview.setManifest(this.getCard()._oCardManifest._oManifest.getRawJson());
 		this._oCardPreview.setHost(this.getCard().getHost());
@@ -361,7 +368,7 @@ sap.ui.define([
 					baseUrl = this.getCard().getManifest();
 					baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
 				}
-				var src = baseUrl + "/" + mSettings.preview.src;
+				var src = baseUrl + mSettings.preview.src;
 				var oImg = new Image({ src: src });
 				oImg.addStyleClass("sapUiIntegrationDTPreviewImg");
 				oHBox.addItem(oImg);

@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides default renderer for control sap.f.cards.NumericSideIndicatorRenderer
+// Provides default renderer for control sap.f.cards.NumericSideIndicator
 sap.ui.define([], function () {
 	"use strict";
 

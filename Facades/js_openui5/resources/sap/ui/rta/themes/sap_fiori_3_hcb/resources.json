@@ -8,65 +8,65 @@
 		},
 		{
 			"name": "ChangeVisualization.less",
-			"size": 566,
+			"size": 684,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 505,
+			"size": 421,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 332,
+			"size": 327,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "FieldRepository.less",
-			"size": 359,
+			"size": 349,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 843,
+			"size": 859,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 1956,
+			"size": 1903,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 384,
+			"size": 273,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 26746,
+			"size": 24694,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/rta/themes/sap_fiori_3_hcb/library-parameters.json",
-			"size": 3598,
+			"size": 2899,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 26721,
+			"size": 24688,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 5924,
+			"size": 5795,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},

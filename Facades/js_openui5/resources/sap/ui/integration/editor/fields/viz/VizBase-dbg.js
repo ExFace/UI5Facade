@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.viz.VizBase
 	 * @author SAP SE
 	 * @since 1.105.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.105.0
 	 * @ui5-restricted

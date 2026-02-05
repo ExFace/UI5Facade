@@ -15,7 +15,8 @@ sap.ui.define([
 	flUtils
 ) {
 	"use strict";
-	var fnSetControlAttributes = function(oVariantManagement, bDesignTimeMode) {
+
+	async function fnSetControlAttributes(oVariantManagement, bDesignTimeMode) {
 		var oAppComponent = flUtils.getAppComponentForControl(oVariantManagement);
 		var sControlId = oVariantManagement.getId();
 		var oModel = oAppComponent.getModel(ControlVariantApplyAPI.getVariantModelName());
@@ -26,15 +27,12 @@ sap.ui.define([
 		}
 
 		if (bDesignTimeMode) {
-			oModel.waitForVMControlInit(sVariantManagementReference).then(function() {
-			    oModel.setModelPropertiesForControl(sVariantManagementReference, bDesignTimeMode, oVariantManagement);
-			    oModel.checkUpdate(true);
-		    });
-		} else {
-			oModel.setModelPropertiesForControl(sVariantManagementReference, bDesignTimeMode, oVariantManagement);
-			oModel.checkUpdate(true);
+			await oVariantManagement.waitForInit();
 		}
-	};
+		oModel.setModelPropertiesForControl(sVariantManagementReference, bDesignTimeMode, oVariantManagement);
+		oModel.checkUpdate(true);
+	}
+
 	return {
 		annotations: {},
 		properties: {
@@ -85,17 +83,18 @@ sap.ui.define([
 		},
 		actions: {
 			controlVariant(oVariantManagement) {
-				var oAppComponent = flUtils.getAppComponentForControl(oVariantManagement);
-				var sControlId = oVariantManagement.getId();
-				var oModel = oAppComponent.getModel(ControlVariantApplyAPI.getVariantModelName());
-				var sVariantManagementReference = oAppComponent.getLocalId(sControlId) || sControlId;
 				return {
 					validators: [
 						"noEmptyText",
 						{
 							validatorFunction(sNewText) {
-								var iDuplicateCount = oModel._getVariantTitleCount(sNewText, sVariantManagementReference) || 0;
-								return iDuplicateCount === 0;
+								// Avoid duplicate titles
+								return !oVariantManagement.getVariants().some(function(oVariant) {
+									if (oVariant.getKey() === oVariantManagement.getCurrentVariantReference()) {
+										return false;
+									}
+									return sNewText.toLowerCase() === oVariant.getTitle().toLowerCase() && oVariant.getVisible();
+								});
 							},
 							errorMessage: Lib.getResourceBundleFor("sap.m").getText("VARIANT_MANAGEMENT_ERROR_DUPLICATE")
 						}

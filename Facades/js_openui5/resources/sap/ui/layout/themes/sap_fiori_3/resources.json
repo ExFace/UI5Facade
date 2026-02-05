@@ -20,13 +20,13 @@
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 2016,
+			"size": 1908,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 1376,
+			"size": 1474,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 1208,
+			"size": 1310,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 243098,
+			"size": 242627,
 			"theme": "sap_fiori_3"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 242631,
+			"size": 242160,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 21396,
+			"size": 21488,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},

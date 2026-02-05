@@ -40,7 +40,7 @@ sap.ui.define([
 	AppVariantUtils._newAppVariantId = null;
 
 	AppVariantUtils.getManifirstSupport = function(sRunningAppId) {
-		return LrepConnector.appVariant.getManifirstSupport({appId: sRunningAppId});
+		return LrepConnector.appVariant.getManifirstSupport({ appId: sRunningAppId });
 	};
 
 	AppVariantUtils.getNewAppVariantId = function() {
@@ -148,52 +148,17 @@ sap.ui.define([
 		};
 	};
 
-	AppVariantUtils.getInboundInfo = function(oInbounds) {
-		var oInboundInfo = {};
-		if (!oInbounds) {
-			oInboundInfo.currentRunningInbound = "customer.savedAsAppVariant";
-			oInboundInfo.addNewInboundRequired = true;
-			return Promise.resolve(oInboundInfo);
-		}
-
+	AppVariantUtils.getParsedHash = function() {
 		return FlexUtils.getUShellService("URLParsing")
 		.then(function(oURLParsingService) {
 			return FlexUtils.getParsedURLHash(oURLParsingService);
 		})
 		.then(function(oParsedHash) {
-			var aInbounds = Object.keys(oInbounds);
-			var aInboundsFound = [];
-
-			// This will only happen if app variants are created on top of app variants
-			if (aInbounds.length === 1 && aInbounds[0] === "customer.savedAsAppVariant") {
-				return {
-					currentRunningInbound: "customer.savedAsAppVariant",
-					addNewInboundRequired: false
-				};
-			}
-
-			aInbounds.forEach(function(sInboundId) {
-				if ((oInbounds[sInboundId].action === oParsedHash.action) && (oInbounds[sInboundId].semanticObject === oParsedHash.semanticObject)) {
-					aInboundsFound.push(sInboundId);
-				}
-			});
-
-			switch (aInboundsFound.length) {
-				case 0:
-					oInboundInfo.currentRunningInbound = "customer.savedAsAppVariant";
-					oInboundInfo.addNewInboundRequired = true;
-					break;
-				case 1:
-					[oInboundInfo.currentRunningInbound] = aInboundsFound;
-					oInboundInfo.addNewInboundRequired = false;
-					break;
-				default:
-					oInboundInfo.currentRunningInbound = "customer.savedAsAppVariant";
-					oInboundInfo.addNewInboundRequired = true;
-					break;
-			}
-
-			return oInboundInfo;
+			return {
+				action: oParsedHash.action,
+				semanticObject: oParsedHash.semanticObject,
+				params: oParsedHash.params
+			};
 		});
 	};
 
@@ -334,7 +299,7 @@ sap.ui.define([
 			oChangeSpecificData.texts = oPropertyChange.texts;
 		}
 
-		return ChangesWriteAPI.create({changeSpecificData: oChangeSpecificData, selector: vSelector});
+		return ChangesWriteAPI.create({ changeSpecificData: oChangeSpecificData, selector: vSelector });
 	};
 
 	AppVariantUtils.addChangesToPersistence = function(aAllInlineChanges, vSelector) {
@@ -580,7 +545,7 @@ sap.ui.define([
 			})
 			.then(function(oCrossAppNav) {
 				if (oCrossAppNav && oCrossAppNav.navigate) {
-					oCrossAppNav.navigate({target: {shellHash: "#"}}, oComponentInstance);
+					oCrossAppNav.navigate({ target: { shellHash: "#" } }, oComponentInstance);
 				}
 			})
 			.catch(function(vError) {
@@ -604,7 +569,7 @@ sap.ui.define([
 
 	AppVariantUtils.showMessage = function(sMessageKey) {
 		var sMessage = AppVariantUtils.getText(sMessageKey);
-		var oInfo = { text: sMessage, copyId: false};
+		var oInfo = { text: sMessage, copyId: false };
 		return AppVariantUtils.showRelevantDialog(oInfo, true);
 	};
 

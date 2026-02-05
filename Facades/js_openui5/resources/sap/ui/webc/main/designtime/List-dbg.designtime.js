@@ -29,6 +29,9 @@ sap.ui.define([],
 				singular: "LIST_NAME",
 				plural: "LIST_NAME_PLURAL"
 			},
+			getLabel: function(oControl) {
+				return oControl.getHeaderText();
+			},
 			aggregations: {
 				items: {
 					propagateMetadata: function(oElement) {
@@ -59,16 +62,6 @@ sap.ui.define([],
 						changeType: "rename",
 						domRef: function (oControl) {
 							return oControl.getDomRef().getDomRef().querySelector(".ui5-list-header");
-						},
-						getTextMutators: function (oControl) {
-							return {
-								getText: function () {
-									return oControl.getHeaderText();
-								},
-								setText: function (sNewText) {
-									oControl.setHeaderText(sNewText);
-								}
-							};
 						},
 						isEnabled: function (oControl) {
 							return oControl.getHeaderText().length > 0;

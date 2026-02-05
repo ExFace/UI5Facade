@@ -19,7 +19,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.DateField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.83.0
 	 * @ui5-restricted

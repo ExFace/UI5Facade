@@ -16,14 +16,14 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
 	 * @since 1.34
 	 * @alias sap.ui.rta.command.BaseCommand
 	 */
-	var BaseCommand = ManagedObject.extend("sap.ui.rta.command.BaseCommand", {
+	const BaseCommand = ManagedObject.extend("sap.ui.rta.command.BaseCommand", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -56,8 +56,7 @@ sap.ui.define([
 	 * @override
 	 */
 	BaseCommand.prototype.getElement = function() {
-		var sId = this.getAssociation("element");
-		return Element.getElementById(sId);
+		return Element.getElementById(this.getAssociation("element"));
 	};
 
 	/**

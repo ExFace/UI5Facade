@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @alias sap.ui.mdc.filterbar.vh.CollectiveSearchSelect
 	 * @deprecated since 1.124.0 - Please use the <code>sap.ui.mdc.valuehelp.CollectiveSearchSelect</code> control instead.
 	 */
-	const CollectiveSearchSelect = ValueHelpCollectiveSearchSelect.extend("sap.ui.mdc.filterbar.vh.CollectiveSearchSelect", /** @lends sap.ui.mdc.valuehelp.CollectiveSearchSelect.prototype */ {
+	const CollectiveSearchSelect = ValueHelpCollectiveSearchSelect.extend("sap.ui.mdc.filterbar.vh.CollectiveSearchSelect", /** @lends sap.ui.mdc.filterbar.vh.CollectiveSearchSelect.prototype */ {
 		metadata: {
 			library: "sap.ui.mdc"
 		},

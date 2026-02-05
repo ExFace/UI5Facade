@@ -79,7 +79,7 @@ sap.ui.define([
 		 * @extends sap.ui.mdc.Control
 		 * @borrows sap.ui.mdc.mixin.FilterIntegrationMixin.rebind as #rebind
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @constructor
 		 *
 		 * @public
@@ -219,9 +219,10 @@ sap.ui.define([
 					},
 
 					/**
-					 * Defines the sort conditions.<br>
-					 * <b>Note:</b> This property must not be bound.<br>
-					 * <b>Note:</b> This property is exclusively used for handling SAPUI5 flexibility changes. Do not use it for anything else.
+					 * Defines the XML baseline for sort conditions in SAPUI5 flexibility.
+					 *
+					 * <b>Note:</b> This property must not be bound.
+					 * <b>Note:</b> This property must not be changed during runtime.
 					 *
 					 * @since 1.88
 					 */
@@ -230,9 +231,10 @@ sap.ui.define([
 					},
 
 					/**
-					 * Defines the filter conditions.<br>
-					 * <b>Note:</b> This property must not be bound.<br>
-					 * <b>Note:</b> This property is exclusively used for handling SAPUI5 flexibility changes. Do not use it for anything else.
+					 * Defines the XML baseline for filter conditions in SAPUI5 flexibility.
+					 *
+					 * <b>Note:</b> This property must not be bound.
+					 * <b>Note:</b> This property must not be changed during runtime.
 					 *
 					 * @since 1.99
 					 */
@@ -1366,7 +1368,7 @@ sap.ui.define([
 
 		/**
 		 * Returns the instance of the inner chart from the delegate
-		 * @returns {sap.core.Control} the instance of the inner chart
+		 * @returns {sap.ui.core.Control} the instance of the inner chart
 		 *
 		 * @private
 		 */

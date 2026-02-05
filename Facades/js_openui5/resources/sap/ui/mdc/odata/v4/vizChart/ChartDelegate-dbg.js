@@ -21,7 +21,11 @@ sap.ui.define([
 	"sap/ui/mdc/chart/PropertyHelper",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/mdc/enums/ChartItemRoleType",
-	"sap/base/util/merge"
+	"sap/base/util/merge",
+	"sap/m/IllustratedMessage",
+	"sap/m/library",
+	"sap/m/Button",
+	"sap/ui/mdc/chart/Util"
 ], (
 	Element,
 	Library,
@@ -39,9 +43,15 @@ sap.ui.define([
 	PropertyHelper,
 	jQuery,
 	ChartItemRoleType,
-	merge
+	merge,
+	IllustratedMessage,
+	MLibrary,
+	Button,
+	ChartUtil
 ) => {
 	"use strict";
+	// shortcut for sap.m.IllustratedMessageType
+	const {IllustratedMessageType} = MLibrary;
 
 	/**
 	 * Module for vizChart delegate
@@ -52,7 +62,7 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Example Delegate for {@link sap.ui.mdc.Chart Chart}. This class extends the {@link sap.ui.mdc.ChartDelegate ChartDelegate} object und make use of the {@link sap.ui.chart.Chart Chart}.<br>
+	 * Example Delegate for {@link sap.ui.mdc.Chart Chart}. This class extends the {@link sap.ui.mdc.odata.v4.ChartDelegate ChartDelegate} object und make use of the {@link sap.chart.Chart Chart}.<br>
 	 *
 	 * @namespace
 	 * @author SAP SE
@@ -64,6 +74,8 @@ sap.ui.define([
 	 *
 	 */
 	const ChartDelegate = Object.assign({}, V4ChartDelegate);
+
+	ChartDelegate._oMDCRb = Library.getResourceBundleFor("sap.ui.mdc");
 
 	const mStateMap = new window.WeakMap();
 	let Chart;
@@ -211,6 +223,13 @@ sap.ui.define([
 			this._getInnerStructure(oChart).destroy();
 		}
 
+		if (this._oNoDataContent) {
+			this._oNoDataContent = null;
+		}
+
+		if (this._oIllustratedMessage) {
+			this._oIllustratedMessage = null;
+		}
 		this._deleteState(oChart);
 	};
 
@@ -324,6 +343,11 @@ sap.ui.define([
 
 	ChartDelegate._setupAdaptionUI = function(oChart) {
 		let oLayoutConfig = this.getChartTypeLayoutConfig().find((it) => { return it.key === oChart.getChartType(); });
+		const oErrorConfig = {
+			chartType: oChart.getChartType(),
+			invalidChartType: this._bInvalidChartType,
+			errorMessage: this._sErrorMsg
+		};
 
 		//Default case -> everything allowed
 		if (!oLayoutConfig) {
@@ -343,15 +367,16 @@ sap.ui.define([
 
 		oLayoutConfig.templateConfig = aStandardSetup;
 
-
 		//var aRolesAvailable = [ChartItemRoleType.axis1, ChartItemRoleType.axis2, ChartItemRoleType.axis3, ChartItemRoleType.category, ChartItemRoleType.category2, ChartItemRoleType.series];
-		const oArguments = { panelConfig: oLayoutConfig };
+		const oArguments = {
+			panelConfig: oLayoutConfig,
+			errorConfig: oErrorConfig
+		};
 
 		const oPanel = new ChartItemPanel(oArguments);
 
 		if (oChart.getChartType() === "heatmap") {
-			const MDCRb = Library.getResourceBundleFor("sap.ui.mdc");
-			oPanel.setMessageStrip(new MessageStrip({ text: MDCRb.getText("chart.PERSONALIZATION_DIALOG_MEASURE_WARNING"), type: "Warning" }));
+			oPanel.setMessageStrip(new MessageStrip({ text: this._oMDCRb.getText("chart.PERSONALIZATION_DIALOG_MEASURE_WARNING"), type: "Warning" }));
 		}
 
 		return oPanel;
@@ -566,7 +591,6 @@ sap.ui.define([
                         this._getInnerStructure(oChart).addStyleClass("sapUiMDCChartTempText");
                         this._getInnerStructure(oChart).setNoDataContent(oNoDataCont);
                     }
-
                     this._setUpChartObserver(oChart);
 
                     resolve(this._getInnerStructure(oChart)); //Not applicable in this case
@@ -1067,6 +1091,8 @@ sap.ui.define([
 
 	ChartDelegate.setChartType = function(oChart, sChartType) {
 		this._getChart(oChart).setChartType(sChartType);
+		this._getInnerStructure(oChart)?.setShowNoDataStruct?.(false);
+
 	};
 
 	ChartDelegate.createInnerChartContent = function(oChart, fnCallbackDataLoaded) {
@@ -1081,11 +1107,21 @@ sap.ui.define([
 				vizProperties: {
 					plotArea: {
 						scrollbar: { forceToShowInMobile: true }
+					},
+					tooltip: {
+						formatString: null
+					},
+					valueAxis: {
+						label: {
+							formatString: null
+						}
 					}
 				}
 			}));
+			const oInnerChart = this._getChart(oChart);
+			oInnerChart.addDelegate({onAfterRendering: this._toggleIllustratedMessage.bind(this, oChart)});
 
-			this._getChart(oChart).setCustomMessages({
+			oInnerChart.setCustomMessages({
 				'NO_DATA': oChart.getNoDataText()
 			});
 
@@ -1105,7 +1141,7 @@ sap.ui.define([
 			this._createContentFromItems(oChart).then(() => {
 				//Since zoom information is not yet available for sap.chart.Chart after data load is complete, do it on renderComplete instead
 				//This is a workaround which is hopefully not needed in other chart libraries
-				this._getChart(oChart).attachRenderComplete(() => {
+				oInnerChart.attachRenderComplete(() => {
 					if (this._getState(oChart).toolbarUpdateRequested) {
 						oChart._updateToolbar();
 						this._getState(oChart).toolbarUpdateRequested = false;
@@ -1115,7 +1151,7 @@ sap.ui.define([
 				//this._getInnerStructure(oChart).removeAllContent();
 				//this._getInnerStructure(oChart).setJustifyContent(FlexJustifyContent.Start);
 				//this._getInnerStructure(oChart).setAlignItems(FlexAlignItems.Stretch);
-				this._getInnerStructure(oChart).setContent(this._getChart(oChart));
+				this._getInnerStructure(oChart).setContent(oInnerChart);
 				this._getInnerStructure(oChart).setShowNoDataStruct(false);
 
 				oState.dataLoadedCallback = fnCallbackDataLoaded;
@@ -1137,6 +1173,49 @@ sap.ui.define([
 
 		});
 
+	};
+
+	ChartDelegate._toggleIllustratedMessage = function(oChart) {
+		const oInnerChart = this._getChart(oChart);
+		this._bInvalidChartType = false;
+		if (oInnerChart && !oInnerChart.getBlocked()) {
+			const sChartType = oInnerChart.getChartType?.();
+			const oChartImplementationContainer = this._getInnerStructure(oChart);
+			const aUnAvailableCharts = oInnerChart.getAvailableChartTypes().unavailable;
+			const iUnavailableIndex = aUnAvailableCharts.findIndex((item) => item.chart === sChartType);
+
+			if (!oChartImplementationContainer) {
+				return;
+			}
+
+			if (iUnavailableIndex !== -1) {
+				// we save reference to the chartNoDataContent so we can restore it afterwards
+				this._oNoDataContent = oChartImplementationContainer.getNoDataContent();
+				const oIllustratedMessage = this._getIllustratedMessage(oChart);
+				oChartImplementationContainer.setShowNoDataStruct(true);
+
+				const oError = aUnAvailableCharts[iUnavailableIndex].error;
+				const oTypeButton = oIllustratedMessage?.getAdditionalContent()[1];
+				const bIsTypeButton = oTypeButton?.isA("sap.m.Button") && oTypeButton?.getText() === this._oMDCRb.getText("chart.SELECT_ANOTHER_CHART_TYPE");
+				if (bIsTypeButton && oInnerChart._getVisibleMeasures()?.length === 0) {
+					oError["Measure"] = 0;
+					oTypeButton.setVisible(false);
+				} else {
+					oTypeButton.setVisible(true);
+				}
+				this._sErrorMsg = ChartUtil.getErrorMessageForMissingMeasuresAndDimensions(sChartType, oError);
+				oIllustratedMessage.setDescription(this._sErrorMsg);
+				this._bInvalidChartType = true;
+
+				oChartImplementationContainer.setNoDataContent(oIllustratedMessage);
+
+			} else {
+				if (this._oNoDataContent && this._oNoDataContent !== oChartImplementationContainer.getNoDataContent()) {
+					oChartImplementationContainer.setNoDataContent(this._oNoDataContent);
+				}
+				oChartImplementationContainer.setShowNoDataStruct(false);
+			}
+		}
 	};
 
 	/**
@@ -1597,6 +1676,37 @@ sap.ui.define([
 				fHandler.apply(this, arguments);
 				fOriginalHandler.apply(this, arguments);
 			};
+		}
+	};
+
+	ChartDelegate._getIllustratedMessage = function(oChart) {
+		if (this._oIllustratedMessage) {
+			return this._oIllustratedMessage;
+		} else {
+			const sTitle = this._oMDCRb.getText("chart.INVALID_CHART_TYPE_ERROR_MESSAGE_TITLE");
+			const sDescription = this._oMDCRb.getText("chart.INVALID_CHART_TYPE_DEFAULT_ERROR_MESSAGE_DESCRIPTION");
+			this._oIllustratedMessage = new IllustratedMessage({
+				enableVerticalResponsiveness: true,
+				illustrationType: IllustratedMessageType.NoChartData,
+				title: sTitle,
+				description: sDescription,
+				additionalContent: [
+					new Button({
+						text: this._oMDCRb.getText("chart.CHANGE_SETTINGS"),
+						press: function (oEvent) {
+							oChart._oSettingsBtn?.firePress?.();
+						}
+					}),
+					new Button({
+						text: this._oMDCRb.getText("chart.SELECT_ANOTHER_CHART_TYPE"),
+						press: function (oEvent) {
+							oChart._oChartTypeBtn?.firePress?.();
+						}
+					}).addStyleClass("sapUiTinyMarginBegin")
+				]
+			});
+
+			return this._oIllustratedMessage;
 		}
 	};
 

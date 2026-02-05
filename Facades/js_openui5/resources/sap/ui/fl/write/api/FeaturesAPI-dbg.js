@@ -5,14 +5,15 @@
  */
 
 sap.ui.define([
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/initial/api/InitialFlexAPI",
-	"sap/ui/fl/registry/Settings",
 	"sap/ui/fl/write/_internal/Storage",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
-	InitialFlexAPI,
 	Settings,
+	InitialFlexAPI,
 	Storage,
 	Layer,
 	Utils
@@ -41,8 +42,14 @@ sap.ui.define([
 		isPublishAvailable() {
 			return Settings.getInstance().then(function(oSettings) {
 				return (
-					oSettings.isPublishAvailable() ||
-					(!oSettings.isProductiveSystem() && oSettings.isSystemWithTransports())
+					oSettings.getIsPublishAvailable() ||
+					// if the flag is not given, publish should be available on ABAP systems (?) which are not productive systems
+					!!(
+						!oSettings.getIsProductiveSystem()
+						// TODO this is pretty arbitrary, not sure what the intention here is
+						&& oSettings.getSystem()
+						&& oSettings.getClient()
+					)
 				);
 			});
 		},
@@ -70,7 +77,8 @@ sap.ui.define([
 				var oSettings = aPromises[0];
 				var oCrossAppNav = aPromises[1];
 				return (
-					oSettings.isAppVariantSaveAsEnabled()
+					!oSettings.getIsContextBasedAdaptationEnabled()
+					&& oSettings.getIsAppVariantSaveAsEnabled()
 					&& sLayer === Layer.CUSTOMER
 					&& oCrossAppNav !== undefined // Not a standalone app
 				);
@@ -92,7 +100,7 @@ sap.ui.define([
 		 */
 		isContextBasedAdaptationAvailable(sLayer) {
 			return Settings.getInstance().then(function(oSettings) {
-				if (oSettings.isContextBasedAdaptationEnabled() && sLayer === Layer.CUSTOMER) {
+				if (oSettings.getIsContextBasedAdaptationEnabled() && sLayer === Layer.CUSTOMER) {
 					return true;
 				}
 				return false;
@@ -120,11 +128,10 @@ sap.ui.define([
 		 * @private
 		 * @ui5-restricted sap.ui.rta
 		 */
-		isVersioningEnabled(sLayer) {
-			return Settings.getInstance()
-			.then(function(oSettings) {
-				return oSettings.isVersioningEnabled(sLayer);
-			});
+		async isVersioningEnabled(sLayer) {
+			const oSettings = await Settings.getInstance();
+			const oVersionInfo = oSettings.getVersioning();
+			return !!(oVersionInfo[sLayer] || oVersionInfo.ALL);
 		},
 
 		/**
@@ -139,7 +146,7 @@ sap.ui.define([
 			if (sLayer === Layer.CUSTOMER) {
 				return Settings.getInstance()
 				.then(function(oSettings) {
-					return oSettings.isKeyUserTranslationEnabled();
+					return oSettings.getIsKeyUserTranslationEnabled();
 				});
 			}
 			return Promise.resolve(false);
@@ -160,7 +167,7 @@ sap.ui.define([
 			}
 			return Settings.getInstance()
 			.then(function(oSettings) {
-				return oSettings.isContextSharingEnabled({layer: sLayer});
+				return oSettings.getIsContextSharingEnabled({ layer: sLayer });
 			});
 		},
 
@@ -172,7 +179,7 @@ sap.ui.define([
 		 */
 		async isSeenFeaturesAvailable() {
 			const oSettings = await Settings.getInstance();
-			return oSettings.isSeenFeaturesAvailable();
+			return oSettings.getIsSeenFeaturesAvailable();
 		},
 
 		/**
@@ -216,7 +223,7 @@ sap.ui.define([
 		 */
 		isVariantAdaptationEnabled() {
 			const oSettings = Settings.getInstanceOrUndef();
-			return oSettings?.isVariantAdaptationEnabled();
+			return oSettings?.getIsVariantAdaptationEnabled();
 		},
 
 		/**
@@ -227,7 +234,7 @@ sap.ui.define([
 		 */
 		isLocalResetEnabled() {
 			const oSettings = Settings.getInstanceOrUndef();
-			return oSettings?.isLocalResetEnabled();
+			return oSettings?.getIsLocalResetEnabled();
 		},
 
 		/**
@@ -238,7 +245,7 @@ sap.ui.define([
 		 */
 		areAnnotationChangesEnabled() {
 			const oSettings = Settings.getInstanceOrUndef();
-			return oSettings?.isAnnotationChangeEnabled();
+			return oSettings?.getIsAnnotationChangeEnabled();
 		}
 	};
 

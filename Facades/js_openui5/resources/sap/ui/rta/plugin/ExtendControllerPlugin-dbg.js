@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.134
@@ -60,13 +60,19 @@ sap.ui.define([
 	}
 
 	/**
-	 * Check if the given overlay should be editable.
+	 * Check if the given overlay should be editable. This action is available by default,
+	 * disabling it requires explicitly setting it to null in the designtime metadata.
 	 *
 	 * @param {sap.ui.dt.ElementOverlay} oOverlay - Overlay to be checked for editable
 	 * @returns {Promise<boolean>} <code>true</code> when editable wrapped in a promise
 	 * @private
 	 */
-	ExtendControllerPlugin.prototype._isEditable = function() {
+	ExtendControllerPlugin.prototype._isEditable = function(oOverlay) {
+		// Action should be available by default
+		const oAction = this.getAction(oOverlay);
+		if (oAction === null) {
+			return Promise.resolve(false);
+		}
 		return Promise.resolve(true);
 	};
 
@@ -130,6 +136,8 @@ sap.ui.define([
 
 			const oElementOverlay = aElementOverlays[0];
 
+			// If the data returned from the handler has the property instanceSpecific = true,
+			// it refers to an instance-specific controller extension. In this case, the view ID will be added to the change content.
 			const mExtendControllerData = await fnControllerHandler(oElementOverlay);
 
 			const oExtendControllerCommand = await this.getCommandFactory().getCommandFor(
@@ -159,7 +167,8 @@ sap.ui.define([
 	ExtendControllerPlugin.prototype.getMenuItems = function(aElementOverlays) {
 		return this._getMenuItems(aElementOverlays, {
 			pluginId: "CTX_EXTEND_CONTROLLER",
-			icon: "sap-icon://create-form"
+			icon: "sap-icon://create-form",
+			additionalInfoKey: "EXTEND_CONTROLLER_RTA_CONTEXT_MENU_INFO"
 		});
 	};
 
@@ -178,6 +187,9 @@ sap.ui.define([
 	 */
 	ExtendControllerPlugin.prototype.getAction = function(oOverlay) {
 		const oAction = Plugin.prototype.getAction.apply(this, [oOverlay]);
+		if (oAction === null) {
+			return null;
+		}
 		return oAction || { changeType: FLEX_CHANGE_TYPE };
 	};
 

@@ -530,209 +530,70 @@ sap.ui.define([
 	 */
 	Popup.prototype.preventBrowserFocus = Device.support.touch && !Device.system.combi;
 
-	//****************************************************
-	// Layer et al.
-	//****************************************************
+	var iLastZIndex = 0;
+	// TODO: Implement Number.SAFE_MAX_INTEGER (Math.pow(2, 53) -1) when ECMAScript 6 is mostly supported
+	var iMaxInteger = Math.pow(2, 32) - 1;
 
 	/**
-	 * This constructor of the Popup.Layer  class
+	 * Set an initial z-index that should be used by all Popup so all Popups start at least
+	 * with the set z-index.
+	 * If the given z-index is lower than any current available z-index the highest z-index will be used.
 	 *
-	 * @class
-	 * @private
-	 * @alias sap.ui.core.Popup.Layer
-	*/
-	var Layer = BaseObject.extend("sap.ui.core.Popup.Layer", {
-		constructor: function() {
-			BaseObject.call(this);
-			var sDomString = this.getDomString();
-			this._$Ref = jQuery(sDomString).appendTo(StaticArea.getDomRef());
-		}
-	});
-
-	/**
-	 * Initializes the popup layer by adding z-index and visibility to the popup layer
-	 * and insert the popup directly after the given <code>oRef</code> element
-	 *
-	 * @param {jQuery} oRef The element as a jQuery object
-	 * @param {int} iZIndex The z-index value
-	 * @private
+	 * @param {number} iInitialZIndex is the initial z-index
+	 * @public
+	 * @since 1.30.0
 	 */
-	Layer.prototype.init = function(oRef, iZIndex) {
-		this._$Ref.css({
-			"visibility" : "visible",
-			"z-index" : iZIndex
-		});
-		this.update(oRef, iZIndex);
-		this._$Ref.insertAfter(oRef).show();
-	};
-
-	/**
-	 * Update the popup layer with the given <code>iZIndex</code> on the given <code>oRef</code> element
-	 *
-	 * @param {jQuery} oRef The element as a jQuery object
-	 * @param {int} iZIndex The z-index value
-	 * @protected
-	 */
-	Layer.prototype.update = function(/** jQuery */oRef, iZIndex){
-		if (oRef.length) {
-			var oRect = oRef.rect();
-			this._$Ref.css({
-				"left" : oRect.left,
-				"top" : oRect.top
-			});
-
-			if (oRef.css("right") != "auto" && oRef.css("right") != "inherit") {
-				this._$Ref.css({
-					"right" : oRef.css("right"),
-					"width" : "auto"
-				});
-			} else {
-				this._$Ref.css({
-					"width" : oRect.width,
-					"right" : "auto"
-				});
-			}
-			if (oRef.css("bottom") != "auto" && oRef.css("bottom") != "inherit") {
-				this._$Ref.css({
-					"bottom" : oRef.css("bottom"),
-					"height" : "auto"
-				});
-			} else {
-				this._$Ref.css({
-					"height" : oRect.height,
-					"bottom" : "auto"
-				});
-			}
-
-			if (typeof (iZIndex) === "number") {
-				this._$Ref.css("z-index", iZIndex);
-			}
+	Popup.setInitialZIndex = function(iInitialZIndex){
+		if (iInitialZIndex >= iMaxInteger) {
+			throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
 		}
+
+		iLastZIndex = Math.max(iInitialZIndex, this.getLastZIndex());
 	};
 
 	/**
-	 * Resets the popup layer by hidding and assigning to the static area
+	 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
 	 *
-	 * @private
+	 * @returns {number} The z-index value
+	 * @public
 	 */
-	Layer.prototype.reset = function(){
-		if (this._$Ref.length) {
-			this._$Ref[0].style.display = "none";
-			this._$Ref[0].style.visibility = "hidden";
-
-			this._$Ref.appendTo(StaticArea.getDomRef());
-		}
+	Popup.getLastZIndex = function(){
+		return iLastZIndex;
 	};
 
 	/**
-	 * Must be overwritten by sub class.
+	 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
 	 *
-	 * @abstract
-	 * @returns {string} The DOM string
+	 * @returns {number} Th z-index value
+	 * @public
 	 */
-	Layer.prototype.getDomString = function(){
-		Log.error("sap.ui.core.Popup.Layer: getDomString function must be overwritten!");
-
-		return "";
+	Popup.prototype.getLastZIndex = function(){
+		return Popup.getLastZIndex();
 	};
 
-	// End of Layer
-
-	//****************************************************
-	// ShieldLayer et al.
-	//****************************************************
-
 	/**
-	* @class
-	* @private
-	* @alias sap.ui.core.Popup.ShieldLayer
-	*/
-	var ShieldLayer = Layer.extend("sap.ui.core.Popup.ShieldLayer", {
-		constructor: function() {
-			Layer.apply(this);
+	 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
+	 *
+	 * @returns {number} the next z-index on top of the Popup stack
+	 * @public
+	 */
+	Popup.getNextZIndex = function(){
+		iLastZIndex += 10;
+		if (iLastZIndex >= iMaxInteger) {
+			throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
 		}
-	});
-
-	ShieldLayer.prototype.getDomString = function(){
-		return "<div class=\"sapUiPopupShield\" id=\"sap-ui-shieldlayer-" + uid() + "\"></div>";
+		return iLastZIndex;
 	};
 
 	/**
-	* Facility for reuse of created shield layers.
-	* @type sap.ui.base.ObjectPool
-	* @private
-	*/
-	Popup.prototype.oShieldLayerPool = new ObjectPool(ShieldLayer);
-	//End of ShieldLayer
-
-	// Begin of Popup-Stacking facilities
-	(function() {
-		var iLastZIndex = 0;
-		// TODO: Implement Number.SAFE_MAX_INTEGER (Math.pow(2, 53) -1) when ECMAScript 6 is mostly supported
-		var iMaxInteger = Math.pow(2, 32) - 1;
-
-		/**
-		 * Set an initial z-index that should be used by all Popup so all Popups start at least
-		 * with the set z-index.
-		 * If the given z-index is lower than any current available z-index the highest z-index will be used.
-		 *
-		 * @param {number} iInitialZIndex is the initial z-index
-		 * @public
-		 * @since 1.30.0
-		 */
-		Popup.setInitialZIndex = function(iInitialZIndex){
-			if (iInitialZIndex >= iMaxInteger) {
-				throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
-			}
-
-			iLastZIndex = Math.max(iInitialZIndex, this.getLastZIndex());
-		};
-
-		/**
-		 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
-		 *
-		 * @returns {number} The z-index value
-		 * @public
-		 */
-		Popup.getLastZIndex = function(){
-			return iLastZIndex;
-		};
-
-		/**
-		 * Returns the last z-index that has been handed out. does not increase the internal z-index counter.
-		 *
-		 * @returns {number} Th z-index value
-		 * @public
-		 */
-		Popup.prototype.getLastZIndex = function(){
-			return Popup.getLastZIndex();
-		};
-
-		/**
-		 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
-		 *
-		 * @returns {number} the next z-index on top of the Popup stack
-		 * @public
-		 */
-		Popup.getNextZIndex = function(){
-			iLastZIndex += 10;
-			if (iLastZIndex >= iMaxInteger) {
-				throw new Error("Z-index can't be higher than Number.MAX_SAFE_INTEGER");
-			}
-			return iLastZIndex;
-		};
-
-		/**
-		 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
-		 *
-		 * @returns {number} the next z-index on top of the Popup stack
-		 * @public
-		 */
-		Popup.prototype.getNextZIndex = function(){
-			return Popup.getNextZIndex();
-		};
-	}());
-	// End of Popup-Stacking facilities
+	 * Returns the next available z-index on top of the existing/previous popups. Each call increases the internal z-index counter and the returned z-index.
+	 *
+	 * @returns {number} the next z-index on top of the Popup stack
+	 * @public
+	 */
+	Popup.prototype.getNextZIndex = function(){
+		return Popup.getNextZIndex();
+	};
 
 	/**
 	 * This function compares two different objects (created via jQuery(DOM-ref).rect()).
@@ -774,7 +635,7 @@ sap.ui.define([
 	 *
 	 * If the Popup's OpenState is different from "CLOSED" (i.e. if the Popup is already open, opening or closing), the call is ignored.
 	 *
-	 * @param {int} [iDuration=jQuery.fx.speed.fast] animation duration in milliseconds. For <code>iDuration</code> == 0 the opening happens synchronously without animation.
+	 * @param {int} [iDuration=200] animation duration in milliseconds. For <code>iDuration</code> == 0 the opening happens synchronously without animation.
 	 * @param {sap.ui.core.Popup.Dock} [my=sap.ui.core.Popup.Dock.CenterCenter] the popup content's reference position for docking
 	 * @param {sap.ui.core.Popup.Dock} [at=sap.ui.core.Popup.Dock.CenterCenter] the "of" element's reference point for docking to
 	 * @param {string | sap.ui.core.Element | Element | jQuery | jQuery.Event} [of=document] specifies the reference element to which the given content should dock to
@@ -1257,7 +1118,7 @@ sap.ui.define([
 	 * If the Popup is in the process of being opened and closed with an animation duration, the animation will be chained, but this functionality is dangerous,
 	 * may lead to inconsistent behavior and is thus not recommended and may even be removed.
 	 *
-	 * @param {int} [iDuration=jQuery.fx.speed.fast] Animation duration in milliseconds. For <code>iDuration</code> == 0 the closing happens synchronously without animation.
+	 * @param {int} [iDuration=200] Animation duration in milliseconds. For <code>iDuration</code> == 0 the closing happens synchronously without animation.
 	 * @public
 	 */
 	Popup.prototype.close = function(iDuration) {
@@ -2167,8 +2028,8 @@ sap.ui.define([
 	 * Null values and values < 0 are ignored.
 	 * A duration of 0 means no animation.
 	 *
-	 * @param {int} [iOpenDuration=jQuery.fx.speed.fast] in milliseconds
-	 * @param {int} [iCloseDuration=jQuery.fx.speed.fast] in milliseconds
+	 * @param {int} [iOpenDuration=200] in milliseconds
+	 * @param {int} [iCloseDuration=200] in milliseconds
 	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
@@ -2919,7 +2780,7 @@ sap.ui.define([
 	//****************************************************
 
 	/**
-	 * Delegate function for handling of touchstart event on sap.ui.core.Elements as content
+	 * Delegate function for handling of touchstart event on sap.ui.core.Element as content
 	 *
 	 * This is a fix for preventing the Popup A from getting higher z-index than popup B when popup B is opened within popup A.
 	 *
@@ -2937,7 +2798,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Delegate function for handling of mousedown event on sap.ui.core.Elements as content
+	 * Delegate function for handling of mousedown event on sap.ui.core.Element as content
 	 *
 	 * @param {jQuery.Event} oEvent The event
 	 * @param {boolean} bSupressChecking Determines if the retrieved event was fired by another event with that no further checking is needed

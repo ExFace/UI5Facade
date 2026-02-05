@@ -24,17 +24,30 @@ sap.ui.define([
 	/**
 	 * Table-like controls, mainly for desktop scenarios.
 	 *
+	 * Basic support for OData V4 is provided, especially by the following plugins:
+	 * <ul>
+	 *   <li>{@link sap.ui.table.plugins.ODataV4MultiSelection ODataV4MultiSelection}</li>
+	 *   <li>{@link sap.ui.table.plugins.ODataV4SingleSelection ODataV4SingleSelection}</li>
+	 *   <li>{@link sap.ui.table.plugins.ODataV4Aggregation ODataV4Aggregation}</li>
+	 *   <li>{@link sap.ui.table.plugins.ODataV4Hierarchy ODataV4Hierarchy}</li>
+	 * </ul>
+	 * With OData V4, use one of the OData V4 selection plugins instead of the table's built-in selection or a different selection plugin.
+	 *
+	 * For more extensive functionality, the SAP Fiori Elements framework for OData V4 provides the
+	 * {@link topic:549749bd901440d4bb242282a16b0ec2 Flexible Programming Model}. It offers building blocks that can be used without additional
+	 * integration effort. For more table-related information, see the {@link topic:3801656db27b4b7a9099b6ed5fa1d769 Table Building Block}.
+	 *
 	 * @namespace
 	 * @alias sap.ui.table
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 0.8
 	 * @public
 	 */
 	const thisLib = Library.init({
 		name: "sap.ui.table",
 		apiVersion: 2,
-		version: "1.136.12",
+		version: "1.144.0",
 		dependencies: ["sap.ui.core", "sap.ui.unified"],
 		...{
 			interactionDocumentation: true
@@ -75,7 +88,10 @@ sap.ui.define([
 			"sap.ui.table.rowmodes.Auto",
 			"sap.ui.table.plugins.SelectionPlugin",
 			"sap.ui.table.plugins.MultiSelectionPlugin",
-			"sap.ui.table.plugins.ODataV4Selection"
+			"sap.ui.table.plugins.ODataV4MultiSelection",
+			"sap.ui.table.plugins.ODataV4SingleSelection",
+			"sap.ui.table.plugins.ODataV4Aggregation",
+			"sap.ui.table.plugins.ODataV4Hierarchy"
 		],
 		extensions: {
 			flChangeHandlers: {
@@ -98,7 +114,7 @@ sap.ui.define([
 	/**
 	 * Navigation mode of the table
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @deprecated As of version 1.38, the concept has been discarded.
 	 * @public
@@ -129,7 +145,7 @@ sap.ui.define([
 	/**
 	 * Row Action types.
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @public
 	 */
@@ -160,7 +176,7 @@ sap.ui.define([
 	/**
 	 * Selection behavior of the table
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @public
 	 */
@@ -191,7 +207,7 @@ sap.ui.define([
 	/**
 	 * Selection mode of the table
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @public
 	 */
@@ -229,7 +245,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @public
 	 * @deprecated As of version 1.120, replaced with <code>sap.ui.core.SortOrder</code>
@@ -256,7 +272,7 @@ sap.ui.define([
 	/**
 	 * VisibleRowCountMode of the table
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @deprecated As of version 1.119, see the <code>rowMode</code> aggregation of <code>sap.ui.table.Table</code> for more details.
 	 * @public
@@ -301,7 +317,7 @@ sap.ui.define([
 	 *
 	 * Contains IDs of shared DOM references, which should be accessible to inheriting controls via getDomRef() function.
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @enum {string}
 	 * @public
 	 */
@@ -402,7 +418,7 @@ sap.ui.define([
 	 *
 	 * This is an alias for {@link sap.ui.model.TreeAutoExpandMode} and kept for compatibility reasons.
 	 *
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @typedef {sap.ui.model.TreeAutoExpandMode}
 	 * @public
 	 * @deprecated As of version 1.120, replaced by <code>sap.ui.model.TreeAutoExpandMode</code>

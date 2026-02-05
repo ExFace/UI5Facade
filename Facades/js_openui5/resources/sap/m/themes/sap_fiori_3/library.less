@@ -31,6 +31,10 @@ html.sap-desktop .sapMList .sapMLIB.sapMALI:not(.sapMLIBActive) {
 /* END "ActionListItem.less" */
 
 /* START "ActionSelect.less" */
+/**
+ * @file
+ * @deprecated As of version 1.111, together with sap.m.ActionSelect
+ */
 /* =================================== */
 /* CSS for control sap.m/ActionSelect  */
 /* Fiori 3 theme                       */
@@ -360,7 +364,7 @@ span.sapMBtnInner.sapMBtnEmphasized {
 /* ------------------- */
 /* Button Icon         */
 /* ------------------- */
-.sapMBtnIcon {
+.sapMBtnIcon.sapUiIcon {
 	width: 2.125rem;
 	font-size: 1rem;
 	line-height: 2.125rem;
@@ -503,6 +507,24 @@ html.sap-desktop .sapMBtn:focus > .sapMBtnEmphasized.sapMFocusable :not(.sapMBad
 /* Buttons in a Bar                                 */
 /* (add separators, remove top/bottom border)       */
 /* ------------------------------------------------ */
+
+.sapMIBar.sapMTB-Info-CTX {
+	.sapMBtn .sapMBtnInner.sapMBtnTransparent {
+		& > .sapMBtnContent,
+		& > .sapMBtnIcon {
+			color: var(--sapButton_Active_TextColor);
+		}
+	}
+}
+
+.sapMIBar.sapMTB-Info-CTX.sapMTBInactive {
+	.sapMBtn .sapMBtnInner.sapMBtnTransparent {
+		& > .sapMBtnContent,
+		& > .sapMBtnIcon {
+			color: var(--sapButton_Lite_Hover_TextColor);
+		}
+	}
+}
 
 .sapMIBar-CTX .sapMBtnInner,
 .sapMBar .sapMBtnInner,
@@ -965,6 +987,13 @@ html.sap-desktop {
 			line-height: 0.875rem;
 		}
 	}
+
+	.sapUiSizeCondensed.sapUiTable,
+	.sapUiSizeCondensed .sapUiTable {
+		.sapMCb:not(.sapMCbErr):not(.sapMCbInfo):not(.sapMCbWarn) > .sapMCbBg {
+			line-height: 0.625rem;
+		}
+	}
 }
 
 /* END "CheckBox.less" */
@@ -1020,6 +1049,10 @@ html:not(.sap-phone) .sapMColorPalette .sapMColorPaletteSquare div,
 /* END "ColorPalette.less" */
 
 /* START "CustomTile.less" */
+/**
+ * @file
+ * @deprecated As of version 1.50, together with sap.m.CustomTile
+ */
 /* ========================= */
 /* CSS for sap.m/CustomTile  */
 /* Fiori 3 theme             */
@@ -1150,6 +1183,10 @@ html.sap-phone .sapMDialog {
 /* END "DraftIndicator.less" */
 
 /* START "MessagePage.less" */
+/**
+ * @file
+ * @deprecated as of version 1.112, together with sap.m.MessagePage
+ */
 /* ================================== */
 /* CSS for control sap.m/MessagePage  */
 /* Fiori 3 theme                      */
@@ -2473,6 +2510,48 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 }
 /* END "ListItemBase.less" */
 
+/* START "Menu.less" */
+/* =========================== */
+/* CSS for control sap.m/Menu  */
+/* Quartz theme                */
+/* =========================== */
+
+.sapMMenu {
+
+	.sapMMenuItem {
+		padding: 0 0.75rem;
+	}
+
+	.sapMMenuItem.sapMMenuItemDisabled .sapMMenuItemIcon {
+		opacity: @sapUiContentDisabledOpacity;
+	}
+
+	.sapMMenuItem.sapMMenuItemSubMenuOpen,
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:hover,
+	.sapMMenuItem.sapMMenuItemSubMenuOpen:focus {
+		background-color: @sapUiListSelectionHoverBackground;
+	}
+
+	.sapMMenuItemIcon {
+		min-width: 1rem;
+		max-width: 1rem;
+		padding-inline-end: 0.5rem;
+
+		&:empty {
+			min-width: 0;
+			max-width: 0;
+			padding-inline-end: 0;
+		}
+	}
+
+	.sapMMenuItemSubMenu > div:after {
+		font-size: 0.75rem;
+	}
+
+}
+
+/* END "Menu.less" */
+
 /* START "MenuButton.less" */
 /* ================================= */
 /* CSS for control sap.m/MenuButton  */
@@ -2634,7 +2713,7 @@ html[data-sap-ui-browser^="sf"] .sapMTableTBody.sapMListTblHasPopin > .sapMLIBSe
 
 .sapMMsgView .sapMIBar.sapMHeader-CTX {
 	background-color: var(--sapGroup_ContentBackground);
-	padding-left: 1rem;
+	padding: 0 1rem;
 }
 
 .sapMMsgViewDescIcon {
@@ -3194,12 +3273,13 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 }
 
 .sapMPageWithHeader {
-
-	&.sapFShellBar-CTX > section {
+	.sapMPageHeader:has(.sapFShellBar) + section,
+	.sapMPageHeader:has([ui5-shellbar]) + section {
 		top: 2.75rem;
 	}
 
-	&.sapMPageWithSubHeader.sapFShellBar-CTX > section {
+	&.sapMPageWithSubHeader .sapMPageSubHeader:has(.sapFShellBar) + section,
+	&.sapMPageWithSubHeader .sapMPageSubHeader:has([ui5-shellbar]) + section {
 		top: 5.5rem;
 	}
 }
@@ -3255,16 +3335,18 @@ html[data-sap-ui-animation='on'] .sapMPageWithFloatingFooter {
 	}
 
 	.sapMPageWithHeader {
-
-		&.sapFShellBar-CTX > section {
+		.sapMPageHeader:has(.sapFShellBar) + section,
+		.sapMPageHeader:has([ui5-shellbar]) + section {
 			top: 2.75rem;
 		}
 
-		&.sapMPageWithSubHeader.sapFShellBar-CTX > section {
+		&.sapMPageWithSubHeader .sapMPageSubHeader:has(.sapFShellBar) + section,
+		&.sapMPageWithSubHeader .sapMPageSubHeader:has([ui5-shellbar]) + section {
 			top: 5.25rem;
 		}
 	}
 }
+
 /* END "Page.less" */
 
 /* START "Panel.less" */
@@ -4038,9 +4120,9 @@ html.sap-desktop {
 .sapMSegBBtn.sapMSegBBtnFocusable:active:hover {
 
 	.sapMSegBBtnInner {
-		background: var(--sapButton_Selected_Background);
-		color: var(--sapButton_Selected_TextColor);
-		border-color: var(--sapButton_Selected_BorderColor);
+		background: var(--sapButton_Active_Background);
+		color: var(--sapButton_Active_TextColor);
+		border-color: var(--sapButton_Active_BorderColor);
 	}
 
 	.sapUiIcon {
@@ -4760,11 +4842,10 @@ html.sap-desktop {
 /* Slider Tooltip styles          */
 
 .sapMSliderTooltip {
-	background: var(--sapField_Background);
-	border-radius: var(--sapElement_BorderCornerRadius);
-	border: 1px solid var(--sapField_BorderColor);
-	box-shadow: none;
-	height: 1.375rem;
+	background: var(--sapGroup_ContentBackground);
+	border-radius: 0.0625rem;
+	border: none;
+	box-shadow: var(--sapContent_Shadow1);
 	min-width: 2rem;
 	padding: 0.25rem;
 	font-size: var(--sapFontSmallSize);
@@ -4786,8 +4867,8 @@ html.sap-desktop {
 }
 
 .sapMSliderTooltip.sapMSliderTooltipNonEditableWrapper {
-	border-radius: 0.25rem;
-	height: 0.875rem;
+	border-radius: 0.0625rem;
+	height: 1rem;
 	padding: 0.25rem;
 	font-size: var(--sapFontSmallSize);
 	color: var(--sapContent_LabelColor);
@@ -4936,6 +5017,10 @@ html.sap-desktop {
 /* END "StandardListItem.less" */
 
 /* START "StandardTile.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.StandardTile
+ */
 /* =================================== */
 /* CSS for control sap.m/StandardTile  */
 /* Fiori 3 theme                       */
@@ -5598,6 +5683,10 @@ html.sap-desktop:not(.sapUiNativeScrollbars) .sapMTextArea {
 /* END "TileContent.less" */
 
 /* START "TileContainer.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.TileContainer
+ */
 /* ==================================== */
 /* CSS for control sap.m/TileContainer  */
 /* Fiori 3 theme                        */
@@ -6065,6 +6154,10 @@ html.sap-desktop .sapMTB-Info-CTX.sapMTBActive.sapMTBFocused {
 /* END "Toolbar.less" */
 
 /* START "UploadCollection.less" */
+/**
+ * @file
+ * @deprecated as of version 1.88, together with sap.m.UploadCollection
+ */
 /* ======================================= */
 /* CSS for control sap.m/UploadCollection  */
 /* Fiori 3 theme                           */

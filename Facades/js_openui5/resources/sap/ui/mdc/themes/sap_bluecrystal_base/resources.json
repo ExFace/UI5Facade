@@ -92,7 +92,7 @@
 		},
 		{
 			"name": "ValueHelpDialog.less",
-			"size": 4818,
+			"size": 5336,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -104,7 +104,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 16307,
+			"size": 16639,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
@@ -115,12 +115,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 16304,
+			"size": 16636,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 26164,
+			"size": 26682,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

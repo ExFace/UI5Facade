@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element showing a condition panel.
 	 * @extends sap.ui.mdc.valuehelp.base.Content
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @since 1.95.0
@@ -192,6 +192,10 @@ sap.ui.define([
 
 	Conditions.prototype.getInitialFocusedControl = function() {
 		return this._oDefineConditionPanel.getInitialFocusedControl();
+	};
+
+	Conditions.prototype.getFocusControlAfterTokenRemoval = function() {
+		return this._oDefineConditionPanel.getFocusControlAfterTokenRemoval();
 	};
 
 	Conditions.prototype.getRequiresTokenizer = function() {

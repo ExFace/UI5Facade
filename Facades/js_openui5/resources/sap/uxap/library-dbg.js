@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.uxap
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @since 1.36
 	 * @public
 	 */
@@ -74,7 +74,7 @@ sap.ui.define([
 			"sap.uxap.ObjectPageHeaderLayoutData",
 			"sap.uxap.ObjectPageLazyLoader"
 		],
-		version: "1.136.12",
+		version: "1.144.0",
 		...{
 			interactionDocumentation: true
 		},

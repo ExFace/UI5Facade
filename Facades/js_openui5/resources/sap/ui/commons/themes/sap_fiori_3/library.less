@@ -14,11 +14,11 @@
 /* START "AbsoluteLayout.less" */
 /* ============================================== */
 /* CSS for control sap.ui.commons/AbsoluteLayout  */
-/* Fiori 3 theme                                  */
+/* Quartz Light theme                             */
 /* ============================================== */
 
-.sapUiLayoutAbs{
-	font-family: @sapUiDesktopFontFamily;
+.sapUiLayoutAbs {
+	font-family: var(--sapFontFamily);
 	font-size: @sapUiDesktopFontSize;
 }
 /* END "AbsoluteLayout.less" */
@@ -26,97 +26,97 @@
 /* START "Accordion.less" */
 /* ========================================  */
 /* CSS for control sap.ui.commons/Accordion  */
-/* Fiori 3 theme                             */
+/* Quartz Light theme                        */
 /* ========================================= */
 
-.sapUiAcd{
-  	font-family: @sapUiDesktopFontFamily;
-  	font-size: @sapUiDesktopFontSize;
-  	border: 1px solid lighten(@sapUiContentForegroundBorderColor, 25); // @sapUiLightestBorder = #ffffff
+.sapUiAcd {
+	font-family: var(--sapFontFamily);
+	font-size: @sapUiDesktopFontSize;
+	border: 1px solid lighten(@sapUiContentForegroundBorderColor, 25);
 	padding: 2px;
-	background-color: darken(@sapUiContentForegroundColor, 15); // @sapUiDarkBorder = #bfbfbf
+	background-color: darken(@sapUiContentForegroundColor, 15);
 }
 /* END "Accordion.less" */
 
 /* START "AccordionSection.less" */
 /* ================================================ */
 /* CSS for control sap.ui.commons/AccordionSection  */
-/* Fiori 3 theme                                    */
+/* Quartz Light theme                               */
 /* ================================================ */
 
 .sapUiAcdSection {
-  font-family: @sapUiDesktopFontFamily;
-  font-size: @sapUiDesktopFontSize;
+	font-family: var(--sapFontFamily);
+	font-size: @sapUiDesktopFontSize;
 }
 
 .sapUiAcdSectionHdr {
-  color: darken(@sapUiTextTitle, 6.5); // @sapUiExtraDarkText = #222222
-  background-color: @sapUiListSelectionBackgroundColor;
-  min-height: 27px;
-  font-size: @sapUiDesktopFontSize;
-  border-bottom: 2px solid @sapUiContentForegroundBorderColor; // @sapUiDarkBorder = #bfbfbf
+	color: darken(@sapUiTextTitle, 6.5);
+	background-color: var(--sapList_SelectionBackgroundColor);
+	min-height: 27px;
+	font-size: @sapUiDesktopFontSize;
+	border-bottom: 2px solid var(--sapContent_ForegroundBorderColor);
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionHdr {
-  background-color: lighten(@sapUiContentForegroundColor, 10); // @sapUiLightestBG = #ffffff
+	background-color: lighten(@sapUiContentForegroundColor, 10);
 }
 
 .sapUiAcdSectionHdr:hover {
-  color: @sapUiContentContrastTextColor;
-  background-color: @sapUiHighlight;
+	color: var(--sapContent_ContrastTextColor);
+	background-color: var(--sapHighlightColor);
 }
 
 .sapUiAcdSectionDis .sapUiAcdSectionHdr {
-  background-color: lighten(@sapUiContentForegroundColor, 10); // @sapUiLightestBG = #ffffff
-  color: darken(@sapUiTextTitle, 6.5); // @sapUiExtraDarkText = #222222
+	background-color: lighten(@sapUiContentForegroundColor, 10);
+	color: darken(@sapUiTextTitle, 6.5);
 }
 
 .sapUiAcdSectionCont {
-  border-top-width: 0;
-  padding: 6px;
-  border-bottom: 2px solid @sapUiContentForegroundBorderColor; // @sapUiDarkBorder = #bfbfbf
+	border-top-width: 0;
+	padding: 6px;
+	border-bottom: 2px solid var(--sapContent_ForegroundBorderColor);
 }
 
 .sapUiAcdSectionHdr > div > span {
-  margin-top: 5px;
+	margin-top: 5px;
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionHdr > div > span {
-  margin-top: 6px;
+	margin-top: 6px;
 }
 
 .sapUiAcdSectionDis .sapUiAcdSectionHdr > div > span {
-  opacity: 0.3;
+	opacity: 0.3;
 }
 
 .sapUiAcdSectionMinArrow {
-  /* the 'collapse' icon on the left-hand side of the panel header */
-  background-image: url(img/arrow_down.png);
-  width: 16px;
-  height: 16px;
-  margin-top: -1px;
+	/* the 'collapse' icon on the left-hand side of the panel header */
+	background-image: url('img/arrow_down.png');
+	width: 16px;
+	height: 16px;
+	margin-top: -1px;
 }
 
 .sapUiAcdSectionHdr:hover .sapUiAcdSectionMinArrow,
 .sapUiAcdSectionMinArrow:hover {
-  /* the 'collapse' icon on the left-hand side of the panel header */
-  background-image: url(img/arrow_down_hover.png);
+	/* the 'collapse' icon on the left-hand side of the panel header */
+	background-image: url('img/arrow_down_hover.png');
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionMinArrow {
-  background-image: url(img/arrow_right.png);
-  width: 16px;
-  height: 16px;
+	background-image: url('img/arrow_right.png');
+	width: 16px;
+	height: 16px;
 }
 
 .sapUiAcdSectionColl .sapUiAcdSectionHdr:hover .sapUiAcdSectionMinArrow,
 .sapUiAcdSectionColl .sapUiAcdSectionMinArrow:hover {
-  background-image: url(img/arrow_right_hover.png);
+	background-image: url('img/arrow_right_hover.png');
 }
 
 .sapUiAcdSectionDis.sapUiAcdSectionColl .sapUiAcdSectionHdr:hover .sapUiAcdSectionMinArrow,
 .sapUiAcdSectionDis.sapUiAcdSectionColl .sapUiAcdSectionMinArrow:hover {
-  background-image: url(img/arrow_right.png);
+	background-image: url('img/arrow_right.png');
 }
 /* END "AccordionSection.less" */
 
@@ -761,66 +761,68 @@ html[data-sap-ui-browser^="cr"] .sapUiBtnS.sapUiBtnIconOnly > span.sapUiBtnIco {
 /* START "Carousel.less" */
 /* ======================================== */
 /* CSS for control sap.ui.commons/Carousel  */
-/* Fiori 3 theme                            */
+/* Quartz Light theme                       */
 /* ======================================== */
 
 .sapUiCrslCnt {
-	font-family: @sapUiDesktopFontFamily;
+	font-family: var(--sapFontFamily);
 	font-size: @sapUiDesktopFontSize;
-	border-color: darken(@sapUiContentForegroundBorderColor, 24.6); // @sapUiBaseBorder = #808080
+	border-color: darken(@sapUiContentForegroundBorderColor, 24.6);
 }
 
 .sapUiCrslHorizontal .sapUiCrslCnt {
-	border-width: 1px 0px;
+	border-width: 1px 0;
 }
 
 .sapUiCrslVertical .sapUiCrslCnt {
-	border-width: 0px 1px;
+	border-width: 0 1px;
 }
 
-.sapUiCrslNextBtn, .sapUiCrslPrevBtn {
+.sapUiCrslNextBtn,
+.sapUiCrslPrevBtn {
 	background-repeat: no-repeat;
 	background-position: center;
 }
 
-.sapUiCrslNextBtn:hover, .sapUiCrslPrevBtn:hover {
-	background-color: @sapUiHighlight;
+.sapUiCrslNextBtn:hover,
+.sapUiCrslPrevBtn:hover {
+	background-color: var(--sapHighlightColor);
 }
 
 .sapUiCrslHorizontal .sapUiCrslNextBtn {
-	background-image: url(img/arrow_right.png);
+	background-image: url('img/arrow_right.png');
 	font-size: 0;
 }
 
 .sapUiCrslHorizontal .sapUiCrslPrevBtn {
-	background-image: url(img/arrow_left.png);
+	background-image: url('img/arrow_left.png');
 	font-size: 0;
 }
 
 .sapUiCrslVertical .sapUiCrslNextBtn {
-	background-image: url(img/arrow_down.png);
+	background-image: url('img/arrow_down.png');
 	font-size: 0;
 }
 
 .sapUiCrslVertical .sapUiCrslPrevBtn {
-	background-image: url(img/arrow_up.png);
+	background-image: url('img/arrow_up.png');
 	font-size: 0;
 }
 
 .sapUiCrslHorizontal .sapUiCrslNextBtn:hover {
-	background-image: url(img/arrow_right_hover.png);
+	background-image: url('img/arrow_right_hover.png');
 }
 
 .sapUiCrslHorizontal .sapUiCrslPrevBtn:hover {
-	background-image: url(img/arrow_left_hover.png);
+	background-image: url('img/arrow_left_hover.png');
 }
 
 .sapUiCrslVertical .sapUiCrslNextBtn:hover {
-	background-image: url(img/arrow_down_hover.png);
+	background-image: url('img/arrow_down_hover.png');
 }
 
 .sapUiCrslVertical .sapUiCrslPrevBtn:hover {
-	background-image: url(img/arrow_up_hover.png);
+	background-image: url('img/arrow_up_hover.png');
 }
 /* END "Carousel.less" */
 
@@ -1186,11 +1188,11 @@ html[data-sap-ui-os^="iOS6"] .sapUiTfDsbl > .sapUiTfInner.sapUiTf[type="date"]{
 /* START "FormattedTextView.less" */
 /* ================================================= */
 /* CSS for control sap.ui.commons/FormattedTextView  */
-/* Fiori 3 theme                                     */
+/* Quartz Light theme                                */
 /* ================================================= */
 
 .sapUiFTV {
-	font-family: @sapUiDesktopFontFamily;
+	font-family: var(--sapFontFamily);
 	font-size: @sapUiDesktopFontSize;
 }
 /* END "FormattedTextView.less" */

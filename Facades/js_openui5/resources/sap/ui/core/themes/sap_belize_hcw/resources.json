@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 656,
+			"size": 655,
 			"theme": "sap_belize_hcw"
 		},
 		{
@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "LocalBusyIndicator.less",
-			"size": 567,
+			"size": 671,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -37,7 +37,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 237297,
+			"size": 237951,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -99,23 +99,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 231501,
+			"size": 231675,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_belize_hcw/library-parameters.json",
-			"size": 150912,
+			"size": 151030,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 231488,
+			"size": 231662,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 7554,
+			"size": 7658,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},

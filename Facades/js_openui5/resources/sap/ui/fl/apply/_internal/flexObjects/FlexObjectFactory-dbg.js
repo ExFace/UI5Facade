@@ -7,19 +7,19 @@ sap.ui.define([
 	"sap/base/util/restricted/_pick",
 	"sap/base/util/isPlainObject",
 	"sap/base/util/ObjectPath",
+	"sap/ui/fl/apply/_internal/controlVariants/Utils",
 	"sap/ui/fl/apply/_internal/flexObjects/AnnotationChange",
 	"sap/ui/fl/apply/_internal/flexObjects/AppDescriptorChange",
 	"sap/ui/fl/apply/_internal/flexObjects/CompVariant",
 	"sap/ui/fl/apply/_internal/flexObjects/ControllerExtensionChange",
 	"sap/ui/fl/apply/_internal/flexObjects/FlexObject",
 	"sap/ui/fl/apply/_internal/flexObjects/FlVariant",
-	"sap/ui/fl/apply/_internal/flexObjects/getVariantAuthor",
 	"sap/ui/fl/apply/_internal/flexObjects/States",
 	"sap/ui/fl/apply/_internal/flexObjects/UIChange",
 	"sap/ui/fl/apply/_internal/flexObjects/UpdatableChange",
 	"sap/ui/fl/apply/_internal/flexObjects/VariantChange",
 	"sap/ui/fl/apply/_internal/flexObjects/VariantManagementChange",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/LayerUtils",
 	"sap/ui/fl/Utils"
@@ -27,13 +27,13 @@ sap.ui.define([
 	_pick,
 	isPlainObject,
 	ObjectPath,
+	ControlVariantsUtils,
 	AnnotationChange,
 	AppDescriptorChange,
 	CompVariant,
 	ControllerExtensionChange,
 	FlexObject,
 	FlVariant,
-	getVariantAuthor,
 	States,
 	UIChange,
 	UpdatableChange,
@@ -102,7 +102,7 @@ sap.ui.define([
 		}
 		const sUser = mProperties.user ||
 			(!LayerUtils.isDeveloperLayer(mProperties.layer)
-				? Settings.getInstanceOrUndef() && Settings.getInstanceOrUndef().getUserId()
+				? Settings.getInstanceOrUndef()?.getUserId()
 				: undefined);
 
 		return {
@@ -137,7 +137,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexObjects.FlexObjectFactory
 	 * @since 1.100
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -175,7 +175,7 @@ sap.ui.define([
 	};
 
 	FlexObjectFactory.createFlexObject = function(mPropertyBag) {
-		const mProperties = createBasePropertyBag({...mPropertyBag, ...{packageName: mPropertyBag.packageName || "$TMP"}});
+		const mProperties = createBasePropertyBag({ ...mPropertyBag, ...{ packageName: mPropertyBag.packageName || "$TMP" } });
 		return new FlexObject(mProperties);
 	};
 
@@ -234,6 +234,7 @@ sap.ui.define([
 	 * @param {string} mPropertyBag.reference - See {@link sap.ui.fl.apply._internal.flexObjects.FlexObject.FlexObjectMetadata}
 	 * @param {string} mPropertyBag.moduleName - Location of the extension file
 	 * @param {string} mPropertyBag.generator - See {@link sap.ui.fl.apply._internal.flexObjects.FlexObject.SupportInformation}
+	 * @param {string} [mPropertyBag.viewId] - ID of the view which is used to distinguish instance-specific controller extensions
 	 * @returns {sap.ui.fl.apply._internal.flexObjects.ControllerExtensionChange} Created ControllerExtensionChange instance
 	 */
 	FlexObjectFactory.createControllerExtensionChange = function(mPropertyBag) {
@@ -242,6 +243,10 @@ sap.ui.define([
 		mPropertyBag.content = {
 			codeRef: mPropertyBag.codeRef
 		};
+
+		if (mPropertyBag.viewId) {
+			mPropertyBag.content.viewId = mPropertyBag.viewId;
+		}
 
 		const mProperties = createBasePropertyBag(mPropertyBag);
 		mProperties.flexObjectMetadata.moduleName = mPropertyBag.moduleName;
@@ -262,13 +267,15 @@ sap.ui.define([
 	 * @param {object} [mPropertyBag.layer] - See {@link sap.ui.fl.apply._internal.flexObjects.FlexObject}
 	 * @param {string} [mPropertyBag.reference] - See {@link sap.ui.fl.apply._internal.flexObjects.FlexObject.FlexObjectMetadata}
 	 * @param {string} [mPropertyBag.generator] - See {@link sap.ui.fl.apply._internal.flexObjects.FlexObject.SupportInformation}
-	 * @param {object} [mPropertyBag.authors] - Map of user IDs to full names
 	 * @param {boolean} [mPropertyBag.executeOnSelection] - Apply automatically the content of the variant
 	 * @returns {sap.ui.fl.apply._internal.flexObjects.FlVariant} Variant instance
 	 */
 	FlexObjectFactory.createFlVariant = function(mPropertyBag) {
 		const mPropertyBagClone = cloneIfObject(mPropertyBag);
 		mPropertyBagClone.generator ||= "FlexObjectFactory.createFlVariant";
+		if (mPropertyBagClone.layer === Layer.VENDOR) {
+			mPropertyBagClone.user = ControlVariantsUtils.DEFAULT_AUTHOR;
+		}
 		const mProperties = createBasePropertyBag(mPropertyBagClone);
 		mProperties.variantManagementReference = mPropertyBagClone.variantManagementReference;
 		mProperties.variantReference = mPropertyBagClone.variantReference;
@@ -280,7 +287,6 @@ sap.ui.define([
 				type: "XFLD"
 			}
 		};
-		mProperties.author = getVariantAuthor(mProperties.supportInformation.user, mProperties.layer, mPropertyBagClone.authors);
 		return new FlVariant(mProperties);
 	};
 
@@ -312,10 +318,9 @@ sap.ui.define([
 	 * @param {object} [oFileContent.executeOnSelection] - see above
 	 *
 	 * @param {string} [oFileContent.persistencyKey] - see <code>sap.ui.fl.apply._internal.flexObjects.CompVariant</code>
-	 * @param {object} [mAuthors] - Map of user IDs and users' names which is used to determine author of the variant
 	 * @returns {sap.ui.fl.apply._internal.flexObjects.CompVariant} Created comp variant object
 	 */
-	FlexObjectFactory.createCompVariant = function(oFileContent, mAuthors) {
+	FlexObjectFactory.createCompVariant = function(oFileContent) {
 		const oFileContentClone = cloneIfObject(oFileContent);
 		oFileContentClone.generator ||= "FlexObjectFactory.createCompVariant";
 		oFileContentClone.user = ObjectPath.get("support.user", oFileContentClone);
@@ -325,8 +330,12 @@ sap.ui.define([
 		mCompVariantContent.contexts = oFileContentClone.contexts;
 		mCompVariantContent.favorite = oFileContentClone.favorite;
 		mCompVariantContent.persisted = oFileContentClone.persisted;
-		mCompVariantContent.persistencyKey = oFileContentClone.persistencyKey ||
-			ObjectPath.get("selector.persistencyKey", oFileContentClone);
+		// Persistency key can be an empty string, so we need to check for undefined
+		if (oFileContentClone.persistencyKey !== undefined) {
+			mCompVariantContent.persistencyKey = oFileContentClone.persistencyKey;
+		} else {
+			mCompVariantContent.persistencyKey = ObjectPath.get("selector.persistencyKey", oFileContentClone);
+		}
 
 		if (oFileContentClone.layer === Layer.VENDOR || oFileContentClone.layer === Layer.CUSTOMER_BASE) {
 			mCompVariantContent.favorite = true;
@@ -340,7 +349,6 @@ sap.ui.define([
 				mCompVariantContent.content.executeOnSelection
 			);
 		}
-		mCompVariantContent.author = getVariantAuthor(mCompVariantContent.supportInformation.user, mCompVariantContent.layer, mAuthors);
 		return new CompVariant(mCompVariantContent);
 	};
 

@@ -30,11 +30,10 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @public
-		 * @experimental since 1.75
 		 * @since 1.75
 		 * @alias sap.ui.integration.Host
 		 */
@@ -351,13 +350,11 @@ sap.ui.define([
 		 * @param {string} sPath The path to a context
 		 * @returns {Promise<null>} A promise which resolves with the value of this context.
 		 * @since 1.83
-		 *
+		 * @experimental since 1.143
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.getContextValue = function (sPath) {
-			if (!sPath) {
-				return Promise.resolve(null);
-			}
 			return Promise.resolve(null);
 		};
 
@@ -400,6 +397,8 @@ sap.ui.define([
 		 *
 		 * @returns {Promise<object>} A promise which contains the context structure.
 		 * @since 1.83
+		 * @experimental since 1.143
+		 * @abstract
 		 * @public
 		 */
 		Host.prototype.getContexts = function () {

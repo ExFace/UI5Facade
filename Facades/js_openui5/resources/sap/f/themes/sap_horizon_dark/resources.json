@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "Card.less",
-			"size": 820,
+			"size": 659,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -26,13 +26,13 @@
 		},
 		{
 			"name": "DynamicPage.less",
-			"size": 5442,
+			"size": 5432,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "DynamicPageHeader.less",
-			"size": 878,
+			"size": 887,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -61,14 +61,8 @@
 			"theme": "sap_horizon_dark"
 		},
 		{
-			"name": "ProductSwitchItem.less",
-			"size": 187,
-			"designtime": true,
-			"theme": "sap_horizon_dark"
-		},
-		{
 			"name": "ShellBar.less",
-			"size": 15611,
+			"size": 15956,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -80,23 +74,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 152566,
+			"size": 156229,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/f/themes/sap_horizon_dark/library-parameters.json",
-			"size": 3079,
+			"size": 3125,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 152582,
+			"size": 156248,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 33685,
+			"size": 33868,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -108,7 +102,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2073
+			"size": 1957
 		}
 	]
 }

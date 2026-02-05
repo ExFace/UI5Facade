@@ -25,7 +25,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @extends sap.f.delegate.GridItemNavigation
 	 *
@@ -68,7 +68,7 @@ sap.ui.define([
 
 		// leave only real tabbable elements in the tab chain, GridContainer and List types have dummy areas
 		$AllTabbables.map(function(index, element) {
-			if (element.className.indexOf("DummyArea") === -1) {
+			if (!element.classList.contains("DummyArea")) {
 				aTabbables.push(element);
 			}
 		});

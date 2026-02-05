@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2000
+			"size": 1999
 		},
 		{
 			"name": ".supportrc",
@@ -11,12 +11,12 @@
 		},
 		{
 			"name": ".theming",
-			"size": 82
+			"size": 81
 		},
 		{
 			"name": "CodeEditor-dbg.js",
 			"module": "sap/ui/codeeditor/CodeEditor.js",
-			"size": 17124,
+			"size": 17123,
 			"isDebug": true,
 			"required": [
 				"sap/base/strings/capitalize.js",
@@ -9312,7 +9312,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/codeeditor/library.js",
-			"size": 822,
+			"size": 820,
 			"isDebug": true,
 			"required": [
 				"sap/ui/codeeditor/manifest.json",
@@ -9323,7 +9323,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/codeeditor/library-preload.js",
-			"size": 9556,
+			"size": 9553,
 			"merged": true,
 			"required": [
 				"sap/base/strings/capitalize.js",
@@ -9355,7 +9355,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/codeeditor/library.js",
-			"size": 472,
+			"size": 471,
 			"required": [
 				"sap/ui/codeeditor/manifest.json",
 				"sap/ui/core/Lib.js",
@@ -9370,7 +9370,7 @@
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/codeeditor/manifest.json",
-			"size": 1968
+			"size": 1966
 		},
 		{
 			"name": "messagebundle.properties",
@@ -9745,13 +9745,13 @@
 		},
 		{
 			"name": "themes/base/CodeEditor.less",
-			"size": 2482,
+			"size": 2697,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 3486,
+			"size": 3978,
 			"theme": "base"
 		},
 		{
@@ -9762,12 +9762,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 3486,
+			"size": 3978,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 3364,
+			"size": 3579,
 			"designtime": true,
 			"theme": "base"
 		},

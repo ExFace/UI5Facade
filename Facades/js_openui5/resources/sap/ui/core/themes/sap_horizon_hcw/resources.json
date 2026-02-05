@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".theme",
-			"size": 659,
+			"size": 658,
 			"theme": "sap_horizon_hcw"
 		},
 		{
@@ -12,32 +12,20 @@
 			"theme": "sap_horizon_hcw"
 		},
 		{
-			"name": "BrowserScrollbar.less",
-			"size": 427,
+			"name": "BusyIndicator.less",
+			"size": 972,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Icon.less",
-			"size": 280,
-			"designtime": true,
-			"theme": "sap_horizon_hcw"
-		},
-		{
-			"name": "LocalBusyIndicator.less",
-			"size": 910,
-			"designtime": true,
-			"theme": "sap_horizon_hcw"
-		},
-		{
-			"name": "Shadow.less",
-			"size": 201,
+			"size": 293,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "base.less",
-			"size": 238031,
+			"size": 238468,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
@@ -113,55 +101,55 @@
 		},
 		{
 			"name": "fonts/SAP-icons.ttf",
-			"size": 336296,
+			"size": 287444,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "fonts/SAP-icons.woff2",
-			"size": 95640,
+			"size": 77964,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "global.less",
-			"size": 118381,
+			"size": 118738,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 312187,
+			"size": 311401,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_horizon_hcw/library-parameters.json",
-			"size": 158440,
+			"size": 158783,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 312174,
+			"size": 311389,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 8588,
+			"size": 7934,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 365,
+			"size": 303,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "resources.json",
-			"size": 3110
+			"size": 2887
 		},
 		{
 			"name": "shared.less",
-			"size": 6049,
+			"size": 6083,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		}

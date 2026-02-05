@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/mvc/ControllerExtensionProvider","sap/ui/core/mvc/XMLView","sap/ui/core/ComponentHooks","sap/ui/core/ExtensionPoint","sap/ui/fl/initial/_internal/preprocessors/ComponentLifecycleHooks","sap/ui/fl/initial/_internal/ManifestUtils","sap/ui/base/DesignTime","sap/ui/fl/initial/_internal/preprocessors/ControllerExtension","sap/ui/fl/initial/_internal/preprocessors/XmlPreprocessor"],function(e,n,i,r,o,s,t){"use strict";var a={};function l(){i.onInstanceCreated.register(o.instanceCreatedHook)}function p(){i.onModelCreated.register(o.modelCreatedHook)}function c(){i.onComponentLoaded.register(o.componentLoadedHook)}function u(){e.registerExtensionProvider("sap/ui/fl/initial/_internal/preprocessors/ControllerExtension")}function f(){if(n.registerPreprocessor){n.registerPreprocessor("viewxml","sap.ui.fl.initial._internal.preprocessors.XmlPreprocessor")}}function d(){i.onPreprocessManifest.register(o.preprocessManifest)}function P(e){if(s.isFlexExtensionPointHandlingEnabled(e)){return"sap/ui/fl/apply/_internal/extensionPoint/Processor"}if(t.isDesignModeEnabled()){return"sap/ui/fl/write/_internal/extensionPoint/Processor"}return undefined}function g(){r.registerExtensionProvider(P)}a.registerAll=function(){c();u();l();f();d();g();p()};return a});
+//# sourceMappingURL=RegistrationDelegator.js.map

@@ -9,7 +9,6 @@ sap.ui.define([
 	"./_GroupingUtils",
 	"./_ColumnUtils",
 	"./_MenuUtils",
-	"./_BindingUtils",
 	"./_HookUtils",
 	"../library",
 	"sap/ui/base/Object",
@@ -29,7 +28,6 @@ sap.ui.define([
 	GroupingUtils,
 	ColumnUtils,
 	MenuUtils,
-	BindingUtils,
 	HookUtils,
 	library,
 	BaseObject,
@@ -210,7 +208,7 @@ sap.ui.define([
 	 * Static collection of utility functions related to the sap.ui.table.Table, ...
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @namespace
 	 * @alias sap.ui.table.utils.TableUtils
 	 * @private
@@ -220,7 +218,6 @@ sap.ui.define([
 		Grouping: GroupingUtils,
 		Column: ColumnUtils,
 		Menu: MenuUtils,
-		Binding: BindingUtils,
 		Hook: HookUtils,
 
 		CELLTYPE: CELLTYPE,
@@ -355,22 +352,6 @@ sap.ui.define([
 		 */
 		hasData: function(oTable) {
 			return oTable._getTotalRowCount() > 0;
-		},
-
-		/**
-		 * Returns whether the busy indicator is visible. It is considered as visible when the busy indicator element exists in the DOM as
-		 * a child of the table element. It is not checked whether the indicator is actually visible on the screen.
-		 *
-		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @returns {boolean} Whether the busy indicator is visible.
-		 */
-		isBusyIndicatorVisible: function(oTable) {
-			if (!oTable || !oTable.getDomRef()) {
-				return false;
-			}
-
-			const sSelector = oTable.getCreationRow() ? "-sapUiTableGridCnt" : "-sapUiTableCnt";
-			return oTable.getDomRef().querySelector('[id="' + oTable.getId() + sSelector + '"] > .sapUiLocalBusyIndicator') != null;
 		},
 
 		/**
@@ -572,20 +553,6 @@ sap.ui.define([
 		},
 
 		/**
-		 * Focus the item with the given index in the item navigation.
-		 *
-		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @param {int} iIndex Index of item in ItemNavigation which shall get the focus.
-		 * @param {Object} oEvent The event object.
-		 */
-		focusItem: function(oTable, iIndex, oEvent) {
-			const oIN = oTable._getItemNavigation();
-			if (oIN) {
-				oIN.focusItem(iIndex, oEvent);
-			}
-		},
-
-		/**
 		 * Scrolls the table to the <code>iIndex</code>.
 		 * If <code>bReverse</code> is true the <code>firstVisibleRow</code> property of the Table is set to <code>iIndex</code> - 1,
 		 * otherwise to <code>iIndex</code> - row count + 2.
@@ -671,8 +638,8 @@ sap.ui.define([
 						oPopover.getContent()[0].setText(sMessage);
 					}
 
-					oTable.detachFirstVisibleRowChanged(this.onFirstVisibleRowChange, this);
-					oTable.attachFirstVisibleRowChanged(this.onFirstVisibleRowChange, this);
+					oTable.detachFirstVisibleRowChanged(this._onFirstVisibleRowChange, this);
+					oTable.attachFirstVisibleRowChanged(this._onFirstVisibleRowChange, this);
 
 					const oRowSelector = oRow.getDomRefs().rowSelector;
 
@@ -689,15 +656,14 @@ sap.ui.define([
 			}.bind(this));
 		},
 
-		onFirstVisibleRowChange: function(oEvent) {
+		_onFirstVisibleRowChange: function(oEvent) {
 			const oTable = oEvent.getSource();
+
 			if (!oTable._oNotificationPopover) {
 				return;
 			}
 
-			if (oTable) {
-				oTable.detachFirstVisibleRowChanged(this.onFirstVisibleRowChange, this);
-			}
+			oTable.detachFirstVisibleRowChanged(this._onFirstVisibleRowChange, this);
 			oTable._oNotificationPopover.close();
 		},
 
@@ -1017,37 +983,6 @@ sap.ui.define([
 					oTable._mResizeHandlerIds[sHandlerId] = undefined;
 				}
 			}
-		},
-
-		/**
-		 * Checks whether the cell of the given DOM reference is in the first row (from DOM point of view) of the scrollable area.
-		 *
-		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @param {jQuery | HTMLElement | int} row Cell DOM reference or row index.
-		 * @returns {boolean} Whether the row is the first scrollable row of the table based on the data.
-		 */
-		isFirstScrollableRow: function(oTable, row) {
-			if (isNaN(row)) {
-				const $Ref = jQuery(row);
-				row = parseInt($Ref.add($Ref.parent()).filter("[data-sap-ui-rowindex]").attr("data-sap-ui-rowindex"));
-			}
-			return row === oTable._getRowCounts().fixedTop;
-		},
-
-		/**
-		 * Checks whether the cell of the given DOM reference is in the last row (from DOM point of view) of the scrollable area.
-		 *
-		 * @param {sap.ui.table.Table} oTable Instance of the table.
-		 * @param {jQuery | HTMLElement | int} row The row element or row index.
-		 * @returns {boolean} Whether the row is the last scrollable row of the table based on the data.
-		 */
-		isLastScrollableRow: function(oTable, row) {
-			if (isNaN(row)) {
-				const $Ref = jQuery(row);
-				row = parseInt($Ref.add($Ref.parent()).filter("[data-sap-ui-rowindex]").attr("data-sap-ui-rowindex"));
-			}
-			const mRowCounts = oTable._getRowCounts();
-			return row === mRowCounts.count - mRowCounts.fixedBottom - 1;
 		},
 
 		/**
@@ -1405,7 +1340,7 @@ sap.ui.define([
 			if (sCSSSize.endsWith("px")) {
 				fPixelValue = parseFloat(sCSSSize);
 			} else if (sCSSSize.endsWith("em") || sCSSSize.endsWith("rem")) {
-				fPixelValue = parseFloat(sCSSSize) * TableUtils.getBaseFontSize();
+				fPixelValue = parseFloat(sCSSSize) * TableUtils._getBaseFontSize();
 			} else {
 				return null;
 			}
@@ -1423,7 +1358,7 @@ sap.ui.define([
 		 *
 		 * @returns {int} The base font size in pixels.
 		 */
-		getBaseFontSize: function() {
+		_getBaseFontSize: function() {
 			if (iBaseFontSize == null) {
 				const oDocumentRootElement = document.documentElement;
 				if (oDocumentRootElement) {
@@ -1499,28 +1434,15 @@ sap.ui.define([
 		},
 
 		/**
-		 * Adds a delegate that listens to the events of an element.
+		 * Wrapper for <code>sap.ui.core.Element#addDelegate</code>. Adds an event delegate that is not cloned.
 		 *
 		 * @param {sap.ui.core.Element} oElement The element to add the delegate to.
 		 * @param {object} oDelegate The delegate object.
 		 * @param {sap.ui.core.Element} [oThis] The context in the delegate's event listeners. The default is the delegate object itself.
+		 * @see sap.ui.core.Element#addDelegate
 		 */
 		addDelegate: function(oElement, oDelegate, oThis) {
-			if (oElement && oDelegate) {
-				oElement.addDelegate(oDelegate, false, oThis ? oThis : oDelegate, false);
-			}
-		},
-
-		/**
-		 * Removes a delegate from an element.
-		 *
-		 * @param {sap.ui.core.Element} oElement The element to add the delegate to.
-		 * @param {object} oDelegate The delegate object.
-		 */
-		removeDelegate: function(oElement, oDelegate) {
-			if (oElement && oDelegate) {
-				oElement.removeDelegate(oDelegate);
-			}
+			oElement?.addDelegate(oDelegate, false, oThis ? oThis : oDelegate, false);
 		},
 
 		/**
@@ -1614,6 +1536,16 @@ sap.ui.define([
 			}
 
 			return {x: oPosition.pageX, y: oPosition.pageY};
+		},
+
+		/**
+		 * Returns the binding context of the given row for the table's "rows" binding.
+		 *
+		 * @param {sap.ui.table.Row} oRow The row instance.
+		 * @returns {sap.ui.model.Context | null} The binding context of the row.
+		 */
+		getBindingContextOfRow: function(oRow) {
+			return oRow.getBindingContext(oRow.getTable()?.getBindingInfo("rows")?.model);
 		}
 	};
 
@@ -1621,7 +1553,6 @@ sap.ui.define([
 	GroupingUtils.TableUtils = TableUtils;
 	ColumnUtils.TableUtils = TableUtils;
 	MenuUtils.TableUtils = TableUtils;
-	BindingUtils.TableUtils = TableUtils;
 	HookUtils.TableUtils = TableUtils;
 
 	return TableUtils;

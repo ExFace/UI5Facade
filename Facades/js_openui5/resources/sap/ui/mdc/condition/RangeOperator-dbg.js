@@ -39,7 +39,7 @@ sap.ui.define([
 		 * @param {int[]|function} [oConfiguration.defaultValues] Array of values for the defaults of <code>RangeOperators</code> parameter. This can be a function, which returns the array of values. If not used the default for the values is 1.
 		 * @constructor
 		 * @author SAP SE
-		 * @version 1.136.12
+		 * @version 1.144.0
 		 * @public
 		 * @alias sap.ui.mdc.condition.RangeOperator
 		 * @since 1.74.0
@@ -147,9 +147,9 @@ sap.ui.define([
 			return this.formatRange(aRange, oType);
 		};
 
-		RangeOperator.prototype.format = function(oCondition, oType, sDisplay, bHideOperator, aCompositeTypes, oAdditionalType, aAdditionalCompositeTypes, sCustomFormat) { // sDisplay, oAdditionalType and aAdditionalCompositeTypes needed in EQ formatter
+		RangeOperator.prototype.format = function(oCondition, oType, sDisplay, bHideOperator, aCompositeTypes, oAdditionalType, aAdditionalCompositeTypes, sCustomFormat, sBaseType) { // sDisplay, oAdditionalType and aAdditionalCompositeTypes needed in EQ formatter
 
-			const sTokenText = sCustomFormat || this.tokenFormat;
+			const sTokenText = sCustomFormat || this.getTokenFormat(sBaseType);
 
 			if (this.valueTypes.length === 1 && this.valueTypes[0] === OperatorValueType.Static && sTokenText.indexOf("{0}") >= 0) {
 				// for static Operators what should display a real value use static text

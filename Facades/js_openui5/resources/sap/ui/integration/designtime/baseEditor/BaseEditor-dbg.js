@@ -136,7 +136,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.designtime.baseEditor.BaseEditor
 	 * @author SAP SE
 	 * @since 1.70.0
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 * @private
 	 * @experimental since 1.70.0
 	 * @ui5-restricted
@@ -762,7 +762,7 @@ sap.ui.define([
 	 * i18n bundles in the merged configuration. To separate properties from different bundles,
 	 * namespacing should be used, e.g. <code>i18n>BASE_EDITOR.PROPERTY</code>
 	 *
-	 * @param {sap.base.i18n.ResourceBundle[]} aBundles - List of i18n resource bundles
+	 * @param {module:sap/base/i18n/ResourceBundle[]} aBundles - List of i18n resource bundles
 	 * @returns {sap.ui.model.resource.ResourceModel} I18n model of composed bundles
 	 * @private
 	 */

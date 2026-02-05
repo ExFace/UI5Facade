@@ -27,7 +27,7 @@ sap.ui.define([
 	 * <h3>Overview</h3> The <code>sap.ui.webc.main.ToolbarSpacer</code> is an element, used for taking needed space for toolbar items to take 100% width. It takes no space in calculating toolbar items width.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
