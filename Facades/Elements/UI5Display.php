@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
 use exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\CommonLogic\Constants\Colors;
@@ -22,10 +23,12 @@ class UI5Display extends UI5Value
 {
     use JsValueScaleTrait;
     
-    const ICON_YES_TABLE = "'sap-icon://accept'";
+    const ICON_YES_TABLE = "sap-icon://accept";
     const ICON_NO_TABLE = "null";
-    const ICON_YES_FORM = "'sap-icon://message-success'";
-    const ICON_NO_FORM = "'sap-icon://border'";
+    const ICON_YES_FORM = "sap-icon://message-success";
+    const ICON_NO_FORM = "sap-icon://border";
+
+    private $UI5BindingFormatter = null;
     
     private $alignmentProperty = null;
     
@@ -69,27 +72,34 @@ class UI5Display extends UI5Value
         $visible = '';
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
-                $icon_no = self::ICON_NO_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
+                $iconNo = self::ICON_NO_TABLE;
                 $icon_width = '"100%"';
             } else {
-                $icon_yes = self::ICON_YES_FORM;
-                $icon_no = self::ICON_NO_FORM;
+                $iconYes = self::ICON_YES_FORM;
+                $iconNo = self::ICON_NO_FORM;
                 $icon_width = "'16px'";
                 if ($widget->isHidden() === true) {
                     $visible = 'visible: false,';
                 }
             }
+            
+            // Apply icon changes to formatter.
+            $formatter = $this->getValueBindingFormatter()->getJsFormatter();
+            if($formatter instanceof JsBooleanFormatter) {
+                // the trim here is ugly but we need it, as the value is wrapped in
+                // quotation marks again in the JsBooleanFormatter
+                $formatter->setHtmlChecked($iconYes);
+                $formatter->setHtmlUnchecked($iconNo);
+            }
+            
             $js = <<<JS
 
         new sap.ui.core.Icon("{$this->getId()}", {
             width: {$icon_width},
             {$this->buildJsPropertyTooltip()}
             {$visible}
-            src: {$this->buildJsValueBinding("formatter: function(value) {
-                    if (value === '1' || value === 'true' || value === 1 || value === true) return $icon_yes;
-                    else return $icon_no;
-                }")}
+            src: {$this->buildJsValueBinding()}
         })
         .addStyleClass('sapMText')
         {$this->buildJsPseudoEventHandlers()}
@@ -127,6 +137,13 @@ JS;
      */
     public function buildJsValueBindingOptions()
     {
+        $widget = $this->getWidget();
+        // Do not use data type formatting on hidden displays (e.g. in hidden data columns). Hidden displays are often
+        // used for all sorts of ids and if they are numeric, formatting might break them if digit groups is used.
+        // if the Display is an Icon, we still have to use the formatter though
+        if ($widget->isHidden() === true && $widget->getHiddenIf() === null && $this->isIcon() === false) {
+            return '';
+        }
         return $this->getValueBindingFormatter()->buildJsBindingProperties();
     }
     
@@ -136,7 +153,12 @@ JS;
      */
     protected function getValueBindingFormatter()
     {
-        return $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
+        // we have to actually cache the formatter, otherwise changes to the JsFormatter inside it won't be kept
+        // because getDataTypeFormatterForUI5Bindings always creates a new instance of the JsFormatter
+        if ($this->UI5BindingFormatter === null || $this->UI5BindingFormatter->getDataType() !== $this->getWidget()->getValueDataType()) {
+            $this->UI5BindingFormatter = $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
+        }
+        return $this->UI5BindingFormatter;
     }
     
     /**
@@ -239,6 +261,7 @@ JS;
      */
     protected function buildJsPropertyTooltip()
     {
+        $widget = $this->getWidget();
         if ($this->getWidget()->isInTable() === true) {
             if ($this->isValueBoundToModel()) {
                 $value = $this->buildJsValueBinding('formatter: function(value){return (value === null || value === undefined) ? value : value.toString();},');
@@ -248,8 +271,24 @@ JS;
             
             return 'tooltip: ' . $value .',';
         }
-        
-        return parent::buildJsPropertyTooltip();
+
+        if ($this->isValueBoundToModel() && $this->getShowValueInTooltip() === true) {
+            // If showing values from model, show the full value + description. This makes sure, the value is visible
+            // entirely even if the control truncates it because it is too long
+            return "tooltip: {$this->buildJsValueBinding("
+                formatter: function(value){
+                    var sInfo = {$this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption()))};
+                    var sVal = (value === null || value === undefined) ? '' : value.toString();
+                    return sVal + (sInfo  !== '' && sVal !== '' ? ' - ' : '') + sInfo;
+                },")},";
+        } else {
+            return parent::buildJsPropertyTooltip();
+        }
+    }
+    
+    protected function getShowValueInTooltip() : bool
+    {
+        return true;
     }
     
     /**
@@ -261,15 +300,15 @@ JS;
     {
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
-                $icon_no = self::ICON_NO_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
+                $iconNo = self::ICON_NO_TABLE;
             } else {
-                $icon_yes = self::ICON_YES_FORM;
-                $icon_no = self::ICON_NO_FORM;
+                $iconYes = self::ICON_YES_FORM;
+                $iconNo = self::ICON_NO_FORM;
             }
             return "setSrc((function(value) {
-                    if (value === '1' || value === 'true' || value === 1 || value === true) return $icon_yes;
-                    else return $icon_no;
+                    if (value === '1' || value === 'true' || value === 1 || value === true) return {$this->escapeString($iconYes)};
+                    else return {$this->escapeString($iconNo)};
                 })($value))";
         }
         return "setText({$value})";
@@ -313,13 +352,13 @@ JS;
     {
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
-                $icon_yes = self::ICON_YES_TABLE;
+                $iconYes = self::ICON_YES_TABLE;
             } else {
-                $icon_yes = self::ICON_YES_FORM;
+                $iconYes = self::ICON_YES_FORM;
             }
             return <<<JS
                 (function(oIcon){
-                    return (oIcon.getSrc() === $icon_yes);
+                    return (oIcon.getSrc() === {$this->escapeString($iconYes)});
                 })(sap.ui.getCore().byId('{$this->getId()}'))
 JS;
         }

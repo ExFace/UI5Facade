@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @class Constructor for a new sap.ui.rta.plugin.rename.RenameDialog.
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.136
 	 * @private
@@ -58,18 +58,37 @@ sap.ui.define([
 		});
 	};
 
-	RenameDialog.prototype.openDialogAndHandleRename = async function(mPropertyBag) {
-		this._oDialog = await this._createPopup();
+	function getCurrentText(mPropertyBag) {
+		if (mPropertyBag.currentText) {
+			return mPropertyBag.currentText;
+		}
 		const oOverlay = mPropertyBag.overlay;
 		const oElement = oOverlay.getElement();
-		const oDesignTimeMetadata = oOverlay.getDesignTimeMetadata();
-		const oEditableControlDomRef = oDesignTimeMetadata.getAssociatedDomRef(oElement, mPropertyBag.domRef);
-		const sCurrentText = typeof mPropertyBag.action.getTextMutators === "function"
-			? mPropertyBag.action.getTextMutators(oElement).getText()
-			: oEditableControlDomRef.textContent;
+		return oOverlay.getDesignTimeMetadata().getLabel(oElement);
+	}
+
+	/**
+	 * Opens the rename dialog and handles the rename.
+	 * @param {object} mPropertyBag - Properties for the rename dialog
+	 * @param {object} mPropertyBag.action - Action definition used to retrieve validators
+	 * @param {sap.ui.dt.ElementOverlay} mPropertyBag.overlay - Overlay of the element to be renamed
+	 * @param {string} [mPropertyBag.currentText] - Current text of the element, if not provided it will be fetched via the designtime metadata
+	 * @param {boolean} [mPropertyBag.acceptSameText] - If true, the save button is still enabled and will return the same text if no changes are made
+	 * @param {object} [mPropertyBag.dialogSettings] - Additional settings to customize the dialog
+	 * @param {string} [mPropertyBag.dialogSettings.title] - Title of the dialog
+	 * @returns {Promise<string>} Promise that resolves with the new text after renaming or undefined if cancelled
+	 * @private
+	 * @ui5-restricted sap.ui.rta
+	 */
+	RenameDialog.prototype.openDialogAndHandleRename = async function(mPropertyBag) {
+		this._oDialog = await this._createPopup();
+		const sCurrentText = getCurrentText(mPropertyBag);
+		this.bAcceptSameText = mPropertyBag.acceptSameText || false;
 		this.oDialogModel.setData({
 			oldText: sCurrentText,
-			newText: sCurrentText
+			newText: sCurrentText,
+			dialogSettings: mPropertyBag.dialogSettings || {},
+			isSaveEnabled: this.bAcceptSameText
 		});
 		this.oDialogModel.refresh(true);
 		this.oAction = mPropertyBag.action;
@@ -85,43 +104,37 @@ sap.ui.define([
 		return sNewText;
 	};
 
-	const VALIDATION_STATES = {
-		VALID: "VALID",
-		INVALID: "INVALID",
-		SAME_TEXT: "SAME_TEXT"
-	};
-
-	RenameDialog.prototype.checkValidRename = function() {
+	function checkValidRename() {
 		const oModelData = this.oDialogModel.getData();
 		const sNewText = oModelData.newText || "";
 		const sOldText = oModelData.oldText || "";
 		try {
 			validateText(sNewText, sOldText, this.oAction);
 			this.oDialogModel.setProperty("/validationError", undefined);
-			return VALIDATION_STATES.VALID;
+			this.oDialogModel.setProperty("/isSaveEnabled", true);
+			return true;
 		} catch (oError) {
 			if (oError.message === "sameTextError") {
 				// Do not show error message in case of same text
 				this.oDialogModel.setProperty("/validationError", undefined);
-				return VALIDATION_STATES.SAME_TEXT;
+				this.oDialogModel.setProperty("/isSaveEnabled", this.bAcceptSameText);
+				return true;
 			}
 			this.oDialogModel.setProperty("/validationError", oError.message);
-			this.oDialogModel.setProperty("/isValidRename", false);
-			return VALIDATION_STATES.INVALID;
+			this.oDialogModel.setProperty("/isSaveEnabled", false);
+			return false;
 		}
-	};
+	}
 
 	RenameDialog.prototype.onTextChange = function(oEvent) {
 		const sNewText = oEvent.getParameter("value").trim("");
 		this.oDialogModel.setProperty("/newText", sNewText.length ? sNewText : "\xa0");
-		this.checkValidRename();
+		checkValidRename.call(this);
 	};
 
 	RenameDialog.prototype.onSave = function() {
-		if (this.checkValidRename() === VALIDATION_STATES.VALID) {
+		if (checkValidRename.call(this)) {
 			this._fnResolveAfterClose(this.oDialogModel.getData().newText);
-		} else if (this.checkValidRename() === VALIDATION_STATES.SAME_TEXT) {
-			this._fnResolveAfterClose();
 		}
 	};
 

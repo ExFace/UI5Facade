@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.write._internal.appVariant.AppVariantInlineChange
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -36,7 +36,6 @@ sap.ui.define([
 		metadata: {
 			library: "sap.ui.fl"
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(mPropertyBag) {
 			ManagedObject.apply(this);
 			if (!isPlainObject(mPropertyBag)) {

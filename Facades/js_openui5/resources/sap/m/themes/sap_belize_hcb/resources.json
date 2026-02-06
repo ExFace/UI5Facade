@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 1235,
+			"size": 1321,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -86,7 +86,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 232,
+			"size": 315,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -458,13 +458,13 @@
 		},
 		{
 			"name": "Tile.less",
-			"size": 1568,
+			"size": 1645,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 524,
+			"size": 610,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -524,7 +524,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 1005,
+			"size": 1094,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},
@@ -560,23 +560,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 776304,
+			"size": 776178,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/m/themes/sap_belize_hcb/library-parameters.json",
-			"size": 21547,
+			"size": 21546,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 776287,
+			"size": 776160,
 			"theme": "sap_belize_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 109466,
+			"size": 109887,
 			"designtime": true,
 			"theme": "sap_belize_hcb"
 		},

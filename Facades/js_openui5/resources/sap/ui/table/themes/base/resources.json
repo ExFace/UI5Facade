@@ -14,7 +14,13 @@
 		},
 		{
 			"name": "Cell.less",
-			"size": 10953,
+			"size": 11649,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "CheckBox.less",
+			"size": 1511,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -26,7 +32,7 @@
 		},
 		{
 			"name": "DragDrop.less",
-			"size": 7430,
+			"size": 7583,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -37,8 +43,14 @@
 			"theme": "base"
 		},
 		{
+			"name": "HeaderSelector.less",
+			"size": 1658,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
 			"name": "Row.less",
-			"size": 2335,
+			"size": 1684,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -56,59 +68,59 @@
 		},
 		{
 			"name": "RowSelection.less",
-			"size": 4511,
+			"size": 853,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Scrolling.less",
-			"size": 9614,
+			"size": 10506,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ScrollingIOS.less",
-			"size": 448,
+			"size": 460,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Table.less",
-			"size": 12352,
+			"size": 12353,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 68877,
+			"size": 76916,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/base/library-parameters.json",
-			"size": 6075,
+			"size": 5762,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 68894,
+			"size": 76952,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 66336,
+			"size": 67611,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 3486,
+			"size": 4079,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "resources.json",
-			"size": 1823
+			"size": 2021
 		}
 	]
 }

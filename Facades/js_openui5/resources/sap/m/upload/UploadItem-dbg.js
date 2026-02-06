@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.124
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @alias sap.m.upload.UploadItem
 	 */
     var UploadItem = Element.extend("sap.m.upload.UploadItem", {
@@ -67,7 +67,13 @@ sap.ui.define([
 					 * This property must be set to true if the file is from a trusted source.
 					 * @since 1.125
 					 */
-					isTrustedSource: {type: "boolean", defaultValue: false}
+					isTrustedSource: {type: "boolean", defaultValue: false},
+					/**
+					 * Specifies whether the item is a file or a directory.
+					 * Used mainly for plugin with the tree table structure.
+					 * @since 1.139
+					 */
+					isDirectory: {type: "boolean", defaultValue: false}
 				},
 				aggregations: {
 					/**

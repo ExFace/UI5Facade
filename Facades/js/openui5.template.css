@@ -104,13 +104,13 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .sapMGT.OneByOne .sapMText .sapMTextMaxLine.sapMTextLineClamp {-webkit-line-clamp: 3 !important}
 .exf-icon-tile .sapMGTContent {margin-top: -40px}
 .exf-tiles > .sapMPanelContent {border-bottom: none;}
+.exf-tile {hyphens: auto;}
 .exf-tiles > h2, .exf-panel > h2 {margin-top: 1rem;}
 .exf-tile > .sapMGTHdrContent.OneByOne > .sapMGTSubHdrTxt > .sapMText {white-space: normal;max-height: 3rem;  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;text-overflow: -o-ellipsis-lastline;}
 /* Fix remove grayish background on busy-indicator in tile content */
 .sapMTileCntContent > .sapMNC  > .sapUiLocalBusyIndicator {background-color: transparent;}
 /* Fix to force 2-column tile menus even on phones with long narrow screens (centering on wider phones) */
-html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%}
-
+html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%} 
 /* Panels */
 .exf-panel > .sapMPanelContent {border-bottom: none;}
 
@@ -164,7 +164,7 @@ table.jexcel > tbody > tr > td:last-child:not(.readonly):not(.highlight-selected
 table.jexcel > tbody > tr:last-child > td:not(:first-child):not(.readonly):not(.highlight-selected) {border-bottom-color: #89919a;}
 table.jexcel > thead > tr > td {border-top-color: rgb(229, 229, 229); border-left-color: rgb(229, 229, 229); background-color: #f2f2f2;}
 table.jexcel > tbody > tr > td.jexcel_row {background-color: #f2f2f2; border-top-color: rgb(229, 229, 229) !important;}
-table.jexcel > tbody > tr > td.readonly {color:inherit;}
+/*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
 table.jexcel > tbody > tr > td.readonly > input[type=checkbox], 
@@ -235,6 +235,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .exf-map-popup h3 {padding-left: 0}
 .exf-map-popup-table > tbody > tr > td:nth-of-type(2) {font-weight: bold}
 .exf-map .extra-marker > i.fa-map-marker {margin-top: 8px !important;}
+.exf-map .extra-marker > .exf-svg-icon > svg {height: 20px; margin-top: 8px; fill: white;}
 .exf-map .leaflet-marker-icon.selected:not(.exf-map-point)::before {content: ''; display: block; width: 40px; height: 27px; -moz-border-radius: 7.5px; -webkit-border-radius: 7.5px; border-radius: 50%; border: 5px solid gray; position: absolute; top: 23px; left: -7px; z-index: -1;}
 .exf-map .leaflet-marker-icon.selected.exf-map-point > div:first-of-type {border: 5px solid gray; margin-top: -5px; margin-left: -5px}
 .exf-map-point-value {position: absolute; transform: translate(-50%, -50%);}
@@ -274,7 +275,19 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .imagecarousel-file {background-color: white; border: 1px solid rgb(217, 217, 217);}
 .imagecarousel-nodata > .sapUiIcon::before {font-family: SAP-icons; content: "\e172";}
 
-/* DocScanner */
+/* DataCarousel */
+.exf-datacarousel-details {position: relative}
+/* DataCarousel with tabs */
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB {margin-top: 30px;}
+.exf-datacarousel-details > .sapMPanelContent > .sapMITB > .sapMITH {background-color: transparent;}
+
+.exf-datacarousel-details > .sapUiBlockLayer,
+.exf-datacarousel-details > .sapUiLocalBusyIndicator {
+    background-color: rgb(247, 247, 247);
+    z-index: 10;
+}
+
+    /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
 .docScannerDialog .sapMDialogSection {background-color: lightgrey;}
@@ -282,8 +295,16 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* Pad */
 .exf-pad > .sapMPanelContent {border-bottom: 0 !important}
 
-/* ColorIndicator */
-.sapMObjStatus {white-space: nowrap;}
+/* Display widgets in DialogHeader + ColorIndicator anywhere */
+.sapMObjStatus {
+    white-space: nowrap; 
+    /* Truncate long text */
+    width: 100%; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    vertical-align: top;   /* prevents alignment expansion (height would increase otherwise) */
+    max-width: 100%;       /* limit overflow inside layout */
+}
 
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */
@@ -332,6 +353,16 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .sapMTileCntContent > .sapMImageContent > img {filter: invert(47%) sepia(36%) saturate(427%) hue-rotate(169deg) brightness(92%) contrast(94%);}
 .sapUiIcon.exf-svg-icon::before {padding-top: 1px; width: 16px; display: block; margin-left: auto; margin-right: auto;}
 .sapUiTableCellInner > .sapUiIcon::before {padding-top: 2px}
+/* SVG icon for sap.ui.table.Table columns */ 
+.sapUiLbl.exf-svg-icon .sapUiLblIco {height: 18px; margin-top: auto; margin-bottom: auto;}
+.sapUiLbl.exf-svg-icon:not(.exf-svg-colored) .sapUiLblIco {filter: brightness(0) saturate(100%) invert(19%) sepia(1%) saturate(3230%) hue-rotate(174deg) brightness(105%) contrast(97%);}
+.sapUiLbl.exf-icon-only > img {margin-right: 0; height: 22px !important}
+
+/* set placeholder icon invisible, if icon is css injected */
+.exf-svg-icon[class^="exf-injected-icon"],
+.exf-svg-icon[class*=" exf-injected-icon"] {
+    color: transparent;
+}
 
 /* NavTiles IconTabBar */
 .tileHeaderMarginTop {margin-top: 50px;}
@@ -342,6 +373,18 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     .customSearchField {padding-left: 16px;padding-right: 16px;}
 }
 
+/* ColorPalette */
+.exf-colorPalette {
+    display: flex;
+    margin: 0.5rem 0;
+}
+
+.exf-colorPalette.exf-colorPalette-Error {
+    border: 0.125rem solid #b00;
+    margin: 0.3rem 0;
+    justify-content: center;
+    width: 20px !important;
+}
 /* ui-5 upgrade fixes */
 
 /* table width and table headings */

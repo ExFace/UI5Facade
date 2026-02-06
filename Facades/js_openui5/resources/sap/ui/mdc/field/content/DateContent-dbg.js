@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -58,11 +58,17 @@ sap.ui.define([
 		getEditForHelp: function() {
 			return DefaultContent.getEdit.apply(this, arguments);
 		},
+		getEditSelect: function() {
+			return [null];
+		},
 		getUseDefaultValueHelp: function() {
 			return { name: "defineConditions", oneOperatorSingle: false, oneOperatorMulti: true, single: false, multi: true };
 		},
 		createEditMultiLine: function() {
 			throw new Error("sap.ui.mdc.field.content.DateContent - createEditMultiLine not defined!");
+		},
+		createEditSelect: function() {
+			throw new Error("sap.ui.mdc.field.content.DateContent - createEditSelect not defined!");
 		},
 		_createDatePickerControl: function(oContentFactory, aControlClasses, sId) {
 			const DatePicker = aControlClasses[0];

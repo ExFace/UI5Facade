@@ -81,7 +81,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/support/library.js",
-			"size": 6350,
+			"size": 6478,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/DataType.js",
@@ -93,7 +93,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/support/library-preload.js",
-			"size": 193350,
+			"size": 193465,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -155,6 +155,7 @@
 				"sap/ui/base/EventProvider.js",
 				"sap/ui/base/ManagedObject.js",
 				"sap/ui/base/Object.js",
+				"sap/ui/base/OwnStatics.js",
 				"sap/ui/codeeditor/CodeEditor.js",
 				"sap/ui/core/ComponentContainer.js",
 				"sap/ui/core/ComponentRegistry.js",
@@ -176,7 +177,6 @@
 				"sap/ui/core/mvc/Controller.js",
 				"sap/ui/core/mvc/XMLView.js",
 				"sap/ui/core/support/ToolsAPI.js",
-				"sap/ui/core/theming/ThemeManager.js",
 				"sap/ui/core/util/File.js",
 				"sap/ui/layout/FixFlex.js",
 				"sap/ui/layout/HorizontalLayout.js",
@@ -259,7 +259,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 190774,
+			"size": 190867,
 			"isDebug": true
 		},
 		{
@@ -285,7 +285,7 @@
 		{
 			"name": "library.js",
 			"module": "sap/ui/support/library.js",
-			"size": 2755,
+			"size": 2863,
 			"required": [
 				"sap/ui/base/DataType.js",
 				"sap/ui/core/Lib.js",
@@ -295,7 +295,7 @@
 		},
 		{
 			"name": "library.js.map",
-			"size": 2280,
+			"size": 2339,
 			"isDebug": true
 		},
 		{
@@ -305,7 +305,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 53264
+			"size": 53234
 		},
 		{
 			"name": "supportRules/Analyzer-dbg.js",
@@ -794,39 +794,39 @@
 		{
 			"name": "supportRules/report/DataCollector-dbg.js",
 			"module": "sap/ui/support/supportRules/report/DataCollector.js",
-			"size": 4964,
+			"size": 4990,
 			"isDebug": true,
 			"required": [
 				"sap/base/security/encodeXML.js",
 				"sap/base/util/LoaderExtensions.js",
 				"sap/ui/VersionInfo.js",
+				"sap/ui/base/OwnStatics.js",
 				"sap/ui/core/ComponentRegistry.js",
 				"sap/ui/core/Lib.js",
 				"sap/ui/core/Theming.js",
 				"sap/ui/core/support/ToolsAPI.js",
-				"sap/ui/core/theming/ThemeManager.js",
 				"sap/ui/thirdparty/URI.js"
 			]
 		},
 		{
 			"name": "supportRules/report/DataCollector.js",
 			"module": "sap/ui/support/supportRules/report/DataCollector.js",
-			"size": 2799,
+			"size": 2806,
 			"required": [
 				"sap/base/security/encodeXML.js",
 				"sap/base/util/LoaderExtensions.js",
 				"sap/ui/VersionInfo.js",
+				"sap/ui/base/OwnStatics.js",
 				"sap/ui/core/ComponentRegistry.js",
 				"sap/ui/core/Lib.js",
 				"sap/ui/core/Theming.js",
 				"sap/ui/core/support/ToolsAPI.js",
-				"sap/ui/core/theming/ThemeManager.js",
 				"sap/ui/thirdparty/URI.js"
 			]
 		},
 		{
 			"name": "supportRules/report/DataCollector.js.map",
-			"size": 3610,
+			"size": 3644,
 			"isDebug": true
 		},
 		{

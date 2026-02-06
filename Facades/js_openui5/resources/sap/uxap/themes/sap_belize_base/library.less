@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 @import "../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/base/base.less" */
@@ -1874,10 +1874,6 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 	height: auto;
 	padding-bottom: 0;
 }
-
-.sapUxAPObjectPageSection.sapUxAPObjectPageSectionWrapTitle .sapUxAPObjectPageSubSectionHeaderToolbar {
-	height: auto;
-}
 /* END "ObjectPageSection.less" */
 
 /* START "ObjectPageSubSection.less" */
@@ -1935,16 +1931,6 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeader {
 	padding: 0 1rem;
 }
 
-.sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSectionHeaderTitle,
-html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeaderTitle {
-	height: auto;
-	overflow: auto;
-	float: none;
-	white-space: normal;
-	word-wrap: break-word;
-	word-break: break-all;
-}
-
 /* tablet display */
 
 .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSubSectionHeader,
@@ -1976,13 +1962,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 		box-sizing: border-box;
 		display: inline-block;
 		margin-left: 0;
-	}
-
-	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderTitle {
-		height: auto;
-		white-space: normal;
-		word-wrap: break-word;
-		line-height: normal;
 	}
 
 	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderActions {
@@ -2076,10 +2055,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 
 /* compact size */
 .sapUiSizeCompact {
-	.sapUxAPObjectPageSubSectionHeaderTitle {
-		height: 2rem;
-		line-height: 2rem;
-	}
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormResGrid > div,
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormCLContainer {
 		padding: 1rem 0;
@@ -2110,6 +2085,12 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 		border: 0.0625rem dashed @sapUiContentFocusColor;
 		pointer-events: none;
 	}
+}
+
+// Styles needed for wrapping title
+.sapUxAPObjectPageSubSection .sapUxAPObjectPageSubSectionHeader .sapUxAPObjectPageSubSectionTitle  {
+	height: auto;
+	line-height: normal;
 }
 
 

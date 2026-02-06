@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -29,18 +29,18 @@ sap.ui.define([
 	 * @class
 	 * The <code>FilterField</code> control is used to filter data based on the conditions. The conditions are managed
 	 * in the corresponding {@link sap.ui.mdc.FilterBar FilterBar}.
-	 * That is why the <code>conditions</code> property must be bound to the related conditions in the {@link sap.ui.mdc.FilterBar FilterBar}.
-	 * The type of this data must be defined in the <code>dataType</code> property.
+	 * That is why the {@link sap.ui.mdc.field.FieldBase#bindConditions conditions} property must be bound to the related conditions in the {@link sap.ui.mdc.FilterBar FilterBar}.
+	 * The type of this data must be defined in the {@link sap.ui.mdc.field.FieldBase#setDataType dataType} property.
 	 *
 	 * Based on the data type settings, a default control is rendered by the <code>FilterField</code> as follows:
 	 *
 	 * <ul>
 	 * <li>In display mode, usually a {@link sap.m.Text Text} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, an {@link sap.m.ExpandableText ExpandableText} control is rendered.</li>
 	 * <li>If multiple values are allowed, a {@link sap.m.Tokenizer Tokenizer} control is rendered.</li>
 	 * <li>In edit mode, usually an {@link sap.m.Input Input} control is rendered.</li>
 	 * <li>If multiple values are allowed, a {@link sap.m.MultiInput MultiInput} control is rendered.</li>
-	 * <li>If <code>multipleLines</code> is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
+	 * <li>If {@link sap.ui.mdc.field.FieldBase#getMultipleLines multipleLines} is set, a {@link sap.m.TextArea TextArea} control is rendered.</li>
 	 * <li>If a date type or a date/time type is used and only one condition is supported, a {@link sap.m.DynamicDateRange DynamicDateRange} control is rendered.</li>
 	 * <li>If a date type is used and only single values are allowed, a {@link sap.m.DatePicker DatePicker} control is rendered.</li>
 	 * <li>If a date type is used and only single ranges are allowed, a {@link sap.m.DateRangeSelection DateRangeSelection} control is rendered.</li>
@@ -53,13 +53,13 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent, sap.m.IOverflowToolbarContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @alias sap.ui.mdc.FilterField
 	 * @see {@link topic:1dd2aa91115d43409452a271d11be95b sap.ui.mdc}
 	 * @see {@link topic:2df783760a8e4540ad19ce5ec3ed91c8 FilterField Building Block (OData V4)}
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.48.0
 	 * @public
 	 */
@@ -88,7 +88,7 @@ sap.ui.define([
 				 * Default operator name for conditions.
 				 * If empty, the relevant default operator depending on the data type used is taken.
 				 *
-				 * <b>Note</b>: <code>defaultOperator</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator} or the instance itself.
+				 * <b>Note:</b> <code>defaultOperator</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator} or the instance itself.
 				 *
 				 * @since 1.88.0
 				 */
@@ -123,7 +123,7 @@ sap.ui.define([
 			},
 			events: {
 				/**
-				 * This event is fired when the <code>conditions</code> property of the <code>FilterField</code> is changed by a user interaction.
+				 * This event is fired when the {@link sap.ui.mdc.field.FieldBase#getConditions conditions} property of the <code>FilterField</code> is changed by a user interaction.
 				 *
 				 * <b>Note</b> This event is only triggered if the used content control has a change event.
 				 */
@@ -296,7 +296,7 @@ sap.ui.define([
 	/**
 	 * Adds an operator to the list of known operators.
 	 *
-	 * <b>Note</b>: If no operator is set, the used <code>datatType</code> of the <code>FilterField</code> defines the set of default operators.
+	 * <b>Note:</b> If no operator is set, the used {@link sap.ui.mdc.field.FieldBase#getDataType dataType} of the <code>FilterField</code> defines the set of default operators.
 	 * The standard operators are mentioned in {@link sap.ui.mdc.enums.OperatorName OperatorName}.
 	 *
 	 * @param {sap.ui.mdc.condition.Operator|string} vOperator The operator instance or operator name
@@ -323,7 +323,7 @@ sap.ui.define([
 	/**
 	 * Adds an array of operators to the list of known operators.
 	 *
-	 * <b>Note</b>: <code>aOperators</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator}, the instance itself, or multiple operators inside an array.
+	 * <b>Note:</b> <code>aOperators</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator}, the instance itself, or multiple operators inside an array.
 	 * The standard operators are mentioned in {@link sap.ui.mdc.enums.OperatorName OperatorName}.
 	 *
 	 * @param {sap.ui.mdc.condition.Operator[]} aOperators Array of operators
@@ -369,7 +369,7 @@ sap.ui.define([
 	/**
 	 * Removes all given operators from the list of known operators.
 	 *
-	 * <b>Note</b>: <code>aOperators</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator}, the instance itself, or multiple operators inside an array.
+	 * <b>Note:</b> <code>aOperators</code> can be the name of an {@link sap.ui.mdc.condition.Operator Operator}, the instance itself, or multiple operators inside an array.
 	 * The standard operators are mentioned in {@link sap.ui.mdc.enums.OperatorName OperatorName}.
 	 *
 	 * @param {sap.ui.mdc.condition.Operator[]} aOperators Array of operators
@@ -523,6 +523,26 @@ sap.ui.define([
 				return oFormatConditionPromise;
 			}
 		};
+	};
+
+	// fire on "conditions" property as here is the value-binding
+	FilterField.prototype.getBindingEventParameter = function (oEvent) {
+
+		const oBinding = this.getBinding("conditions");
+
+		if (!oBinding) {
+			return null; // only fire event if there is a Binding
+		}
+
+		const oParameter = FieldBase.prototype.getBindingEventParameter.apply(this, arguments);
+
+		if (oParameter) {
+			oParameter.property = "conditions";
+			// oParameter.type = oBinding.getType();
+		}
+
+		return oParameter;
+
 	};
 
 	return FilterField;

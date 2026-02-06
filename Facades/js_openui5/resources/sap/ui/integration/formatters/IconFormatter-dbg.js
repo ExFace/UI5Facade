@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -56,11 +56,8 @@ sap.ui.define([
 			return sUrl;
 		}
 
-		return this._format(sUrl);
-	};
-
-	IconFormatter.prototype._format = function (sUrl) {
-		return this._getCardInstance().getRuntimeUrl(sUrl);
+		const oCard = this._getCardInstance();
+		return oCard.getRuntimeUrl(sUrl);
 	};
 
 	IconFormatter.prototype._getCardInstance = function () {

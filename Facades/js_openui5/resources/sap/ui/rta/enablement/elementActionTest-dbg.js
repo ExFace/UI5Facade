@@ -1,48 +1,52 @@
 /* global QUnit */
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/mvc/XMLView",
+	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/core/ComponentContainer",
 	"sap/ui/core/UIComponent",
-	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/dt/DesignTime",
 	"sap/ui/dt/DesignTimeStatus",
 	"sap/ui/dt/OverlayRegistry",
 	"sap/ui/fl/apply/_internal/changes/Utils",
+	"sap/ui/fl/apply/_internal/flexState/FlexState",
 	"sap/ui/fl/changeHandler/condenser/Classification",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/write/api/PersistenceWriteAPI",
 	"sap/ui/fl/Layer",
 	"sap/ui/model/Model",
+	"sap/ui/qunit/utils/nextUIUpdate",
 	"sap/ui/rta/command/CommandFactory",
 	"sap/ui/rta/util/changeVisualization/ChangeCategories",
 	"sap/ui/rta/util/changeVisualization/ChangeVisualization",
-	"sap/ui/qunit/utils/nextUIUpdate",
 	"sap/ui/thirdparty/sinon-4",
 	"test-resources/sap/ui/fl/api/FlexTestAPI",
 	"test-resources/sap/ui/fl/qunit/FlQUnitUtils",
 	"sap/ui/fl/library" // we have to ensure to load fl, so that change handler gets registered
 ], function(
 	XMLView,
+	JsControlTreeModifier,
 	ComponentContainer,
 	UIComponent,
-	JsControlTreeModifier,
 	DesignTime,
 	DesignTimeStatus,
 	OverlayRegistry,
 	ChangesUtils,
+	FlexState,
 	CondenserClassification,
+	ManifestUtils,
 	PersistenceWriteAPI,
 	Layer,
 	Model,
+	nextUIUpdate,
 	CommandFactory,
 	ChangeCategories,
 	ChangeVisualization,
-	nextUIUpdate,
 	sinon,
 	FlexTestAPI,
 	FlQUnitUtils
@@ -61,7 +65,7 @@ sap.ui.define([
 	 * E.g. <code>elementActionTest.only("Remove");</code>
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @static
 	 * @since 1.42
@@ -70,7 +74,7 @@ sap.ui.define([
 	 * @param {string} sMsg - Name of QUnit test - e.g. Checking the move action for a VerticalLayout control
 	 * @param {object} mOptions - Configuration for this elementActionTest
 	 * @param {string} [mOptions.layer] - Flex layer used during testing, use it in case actions are enabled for other layers then CUSTOMER
-	 * @param {string|object} mOptions.xmlView - XML view content or all settings available to sap.ui.xmlView, to have a view to apply the action
+	 * @param {string|object} mOptions.xmlView - XML view content or all settings available to sap.ui.xmlview, to have a view to apply the action
 	 * @param {sap.ui.model.Model} [mOptions.model] - Any model to be assigned on the view
 	 * @param {string} [mOptions.placeAt="qunit-fixture"] - Id of tag to place view at runtime
 	 * @param {boolean} [mOptions.jsOnly] - Set to true, if change handler cannot work on xml view
@@ -546,7 +550,7 @@ sap.ui.define([
 			aCommands.forEach(function(oCommand) {
 				const oChange = oCommand.getPreparedChange();
 				if (oCommand.getAppComponent) {
-					aPromises.push(PersistenceWriteAPI.remove({change: oChange, selector: oCommand.getAppComponent()}));
+					aPromises.push(PersistenceWriteAPI.remove({ change: oChange, selector: oCommand.getAppComponent() }));
 				}
 			});
 			return Promise.all(aPromises);
@@ -613,16 +617,24 @@ sap.ui.define([
 				// Wait for each change to be applied individually to allow dependencies
 				// between changes of different actions
 				this.oUiComponentContainer.destroy();
-				PersistenceWriteAPI.add({
+				const aFlexObjects = [PersistenceWriteAPI.add({
 					change: oCommand.getPreparedChange(),
 					selector: oAppComponent
-				});
+				})];
 				if (oSecondCommand) {
-					PersistenceWriteAPI.add({
+					aFlexObjects.push(PersistenceWriteAPI.add({
 						change: oSecondCommand.getPreparedChange(),
 						selector: oAppComponent
-					});
+					}));
 				}
+				const sReference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
+				FlexState.update(sReference, aFlexObjects.map((oFlexObject) => {
+					return {
+						type: "add",
+						flexObject: oFlexObject.convertToFileContent()
+					};
+				}));
+
 				return await createViewInComponent.call(this, ASYNC);
 			}
 
@@ -632,7 +644,7 @@ sap.ui.define([
 			.then(function() {
 				this.aCommands = aCommands;
 				const aChanges = aCommands.map((oCommand) => oCommand.getPreparedChange());
-				return PersistenceWriteAPI.remove({flexObjects: aChanges, selector: oAppComponent});
+				return PersistenceWriteAPI.remove({ flexObjects: aChanges, selector: oAppComponent });
 			}.bind(this));
 		}
 
@@ -647,7 +659,7 @@ sap.ui.define([
 					return mOptions.after.call(this.hookContext, assert);
 				},
 				async beforeEach() {
-					await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, {changes: []});
+					await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, { changes: [] });
 				},
 				afterEach() {
 					this.oUiComponentContainer.destroy();
@@ -715,7 +727,7 @@ sap.ui.define([
 				return mOptions.after.call(this.hookContext, assert);
 			},
 			async beforeEach(assert) {
-				await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, {changes: []});
+				await FlQUnitUtils.initializeFlexStateWithData(sandbox, UI_COMPONENT_NAME, { changes: [] });
 
 				return createViewInComponent.call(this, SYNC)
 				.then(buildAndExecuteCommands.bind(this, assert))

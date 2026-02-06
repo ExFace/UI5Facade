@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -97,7 +97,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 * @mixes sap.ui.core.ContextMenuSupport
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 *
 		 * @public
 		 * @alias sap.m.Page
@@ -299,8 +299,6 @@ function(
 
 		Page.FOOTER_ANIMATION_DURATION = 350;
 
-		Page.SHELLBAR_IN_HEADER_CLASS = "sapFShellBar-CTX";
-
 		Page.prototype.init = function () {
 			this._initTitlePropagationSupport();
 			this._initResponsivePaddingsEnablement();
@@ -340,6 +338,10 @@ function(
 			if (oHeader && oHeader.setTitleAlignment) {
 				oHeader.setTitleAlignment(this.getTitleAlignment());
 			}
+
+			[oHeader, this.getSubHeader(), oFooter].forEach(function (oControl) {
+				oControl?.addStyleClass("sapMIBar-CTX");
+			});
 		};
 
 		Page.prototype.onAfterRendering = function () {
@@ -711,8 +713,6 @@ function(
 
 			this.setAggregation("customHeader", oHeader);
 
-			this.toggleStyleClass(Page.SHELLBAR_IN_HEADER_CLASS, oHeader?.isA("sap.f.ShellBar"));
-
 			/*
 			 * Runs Fiori 2.0 adaptation for the header
 			 */
@@ -722,33 +722,6 @@ function(
 					"adaptableContent": oHeader
 				});
 			}
-
-			return this;
-		};
-
-		Page.prototype.setSubHeader = function(oHeader) {
-
-			this.setAggregation("subHeader", oHeader);
-
-			this.toggleStyleClass(Page.SHELLBAR_IN_HEADER_CLASS, oHeader?.isA("sap.f.ShellBar"));
-
-			return this;
-		};
-
-		Page.prototype.destroyCustomHeader = function() {
-
-			this.destroyAggregation("customHeader");
-
-			this.removeStyleClass(Page.SHELLBAR_IN_HEADER_CLASS);
-
-			return this;
-		};
-
-		Page.prototype.destroySubHeader = function() {
-
-			this.destroyAggregation("subHeader");
-
-			this.removeStyleClass(Page.SHELLBAR_IN_HEADER_CLASS);
 
 			return this;
 		};

@@ -1,25 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/rta/plugin/Plugin",
-	"sap/ui/dt/Util",
-	"sap/ui/fl/Utils",
-	"sap/ui/fl/apply/api/ExtensionPointRegistryAPI",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/base/util/values",
-	"sap/ui/base/DesignTime"
+	"sap/ui/base/DesignTime",
+	"sap/ui/dt/Util",
+	"sap/ui/fl/apply/api/ExtensionPointRegistryAPI",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/Utils",
+	"sap/ui/rta/plugin/Plugin"
 ], function(
-	Plugin,
+	values,
+	DesignTime,
 	DtUtil,
-	FlUtils,
 	ExtensionPointRegistryAPI,
 	ManifestUtils,
-	values,
-	DesignTime
+	FlUtils,
+	Plugin
 ) {
 	"use strict";
 
@@ -49,7 +49,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.78
@@ -76,10 +76,10 @@ sap.ui.define([
 		const oElementId = oElement.getId();
 		// determine a list of extension points for the given element. In case the element is a view
 		// all extension points available for the view are returned
-		const aExtensionPointInfo = ExtensionPointRegistryAPI.getExtensionPointInfoByParentId({parentId: oElementId});
+		const aExtensionPointInfo = ExtensionPointRegistryAPI.getExtensionPointInfoByParentId({ parentId: oElementId });
 		return aExtensionPointInfo.length
 			? aExtensionPointInfo
-			: values(ExtensionPointRegistryAPI.getExtensionPointInfoByViewId({viewId: oElementId}));
+			: values(ExtensionPointRegistryAPI.getExtensionPointInfoByViewId({ viewId: oElementId }));
 	}
 
 	function hasExtensionPoints(oElement) {

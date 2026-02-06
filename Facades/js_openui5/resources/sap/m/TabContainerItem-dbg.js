@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @public
@@ -149,7 +149,6 @@ sap.ui.define(['sap/ui/core/Element',
 			return Element.prototype.setProperty.call(this, sName, vValue, bSuppressInvalidation);
 		};
 
-
 		/**
 		 * Property setter for the icon
 		 *
@@ -185,6 +184,24 @@ sap.ui.define(['sap/ui/core/Element',
 				oImage = ImageHelper.getImageControl(sImgId, oImage, undefined, mProperties, aCssClasses);
 				this.setAggregation("_image", oImage, bSuppressRendering);
 			}
+			return this;
+		};
+
+		/**
+		 * Property setter for the icon
+		 *
+		 * @param {string|sap.ui.core.TooltipBase} sTooltip new value of the tooltip aggregation
+		 * @return {this} <code>this</code> to allow method chaining
+		 * @public
+		 */
+		TabContainerItem.prototype.setTooltip = function(sTooltip) {
+			Element.prototype.setTooltip.apply(this, arguments);
+
+			const oTabStripItem = this._getTabStripItem();
+			if (oTabStripItem) {
+				oTabStripItem.setTooltip(sTooltip);
+			}
+
 			return this;
 		};
 

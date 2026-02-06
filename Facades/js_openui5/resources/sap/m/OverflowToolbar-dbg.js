@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -107,6 +107,7 @@ sap.ui.define([
 	 * <li>{@link sap.m.SegmentedButton}</li>
 	 * <li>{@link sap.m.Select}</li>
 	 * <li>{@link sap.m.TimePicker}</li>
+	 * <li>{@link sap.m.OverflowToolbarTokenizer}</li>
 	 * <li>{@link sap.m.ToggleButton}</li>
 	 * <li>{@link sap.m.ToolbarSeparator}</li>
 	 * <li>{@link sap.ui.comp.smartfield.SmartField}</li>
@@ -132,7 +133,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -261,7 +262,6 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
 	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
-	 * @protected
 	 */
 	OverflowToolbar.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
 		Toolbar.prototype.enhanceAccessibilityState.apply(this, arguments);
@@ -697,10 +697,11 @@ sap.ui.define([
 	 * Aggregate the controls from this array of elements [el1, el2, el3] to an array of arrays and elements [el1, [el2, el3]].
 	 * This is needed because groups of elements and single elements share same overflow logic.
 	 * In order to sort elements and group arrays there are _index and _priority property to group array.
+	 * @param fnFilter only elements that pass this filter will be included
 	 * @returns {*|Array.<T>}
 	 * @private
 	 */
-	OverflowToolbar.prototype._aggregateMovableControls = function () {
+	OverflowToolbar.prototype._aggregateMovableControls = function (fnFilter) {
 		var oGroups = {},
 			aAggregatedControls = [],
 			iControlGroup,
@@ -710,8 +711,11 @@ sap.ui.define([
 			aGroup;
 
 		this._aMovableControls.forEach(function (oControl) {
-				iControlGroup = OverflowToolbar._getControlGroup(oControl);
-				oPriorityOrder = OverflowToolbar._oPriorityOrder;
+			if (fnFilter && !fnFilter(oControl)) {
+				return;
+			}
+			iControlGroup = OverflowToolbar._getControlGroup(oControl);
+			oPriorityOrder = OverflowToolbar._oPriorityOrder;
 
 			if (iControlGroup) {
 				sControlPriority = this._getControlPriority(oControl);
@@ -894,11 +898,15 @@ sap.ui.define([
 	 * @private
 	 */
 	OverflowToolbar.prototype._moveControlsToPopover = function(iToolbarSize) {
-		var aAggregatedMovableControls = [];
+		var aAggregatedMovableControls = [],
+			fnControlOccupiesSpace = function(oControl) {
+				var iCachedWidth = this._aControlSizes[oControl.getId()];
+				return iCachedWidth > 0 && iCachedWidth > OverflowToolbar._getControlMargins(oControl);
+			}.bind(this);
 
 		if (this._aMovableControls.length) {
 
-			aAggregatedMovableControls = this._aggregateMovableControls();
+			aAggregatedMovableControls = this._aggregateMovableControls(fnControlOccupiesSpace);
 
 			// Define the overflow order, depending on items` priority and index.
 			aAggregatedMovableControls.sort(this._sortByPriorityAndIndex.bind(this));
@@ -1219,7 +1227,7 @@ sap.ui.define([
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
 		}, this);
-		aInteractiveControls.push(this._getOverflowButton());
+		this._getOverflowButtonNeeded() && aInteractiveControls.push(this._getOverflowButton());
 
 		return aInteractiveControls;
 	};
@@ -1696,7 +1704,11 @@ sap.ui.define([
 	 * @private
 	 */
 	OverflowToolbar._getControlMargins = function (oControl) {
-		return oControl.$().outerWidth(true) - oControl.$().outerWidth();
+		if (oControl.$().length) {
+			return oControl.$().outerWidth(true) - oControl.$().outerWidth();
+		}
+
+		return 0;
 	};
 
 	/**

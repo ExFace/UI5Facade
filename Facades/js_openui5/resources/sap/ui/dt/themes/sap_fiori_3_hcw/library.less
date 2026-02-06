@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,24 +12,29 @@
 @import "../../../../../sap/ui/core/themes/sap_fiori_3_hcw/global.less";
 
 /* START "ContextMenu.less" */
-/******************************************************************
-	Style of the DT Contextmenu - sap_fiori_3_hcw Theme
-*******************************************************************/
-@_sap_ui_dt_ContextMenu_BorderRadius: @sapUiButtonBorderCornerRadius; // 0.375rem
-@_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor: @sapUiButtonSelectedBackground; //#8fb5ff
+/* ====================================== */
+/* CSS for control sap.ui.dt/ContextMenu  */
+/* Quartz High Contrast White theme       */
+/* ====================================== */
 
-.sapUiDtContextMenu {
-	.sapUiMnuLst {
-		.sapUiMnuItm {
+@_sap_ui_dt_ContextMenu_BorderRadius: var(--sapButton_BorderCornerRadius); /* 0.375rem */
+@_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor: var(--sapButton_Selected_Background); /* #8fb5ff */
+
+.sapUiDtContextMenu.sapMMenu {
+
+	.sapMMenuList {
+
+		.sapMMenuItem {
 
 			&:focus {
 				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
 			}
 
-			&.sapUiMnuItmSubMnuOpen {
-				border-bottom: 0.0625rem solid transparent !important; //1px
+			&.sapMMenuItemSubMenuOpen {
+				border-bottom: 0.0625rem solid transparent !important; /* 1px */
 				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
-				&:not(.sapUiMnuItmHov) {
+
+				&:not(:hover) {
 					background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor;
 				}
 			}
@@ -39,43 +44,50 @@
 /* END "ContextMenu.less" */
 
 /* START "Overlay.less" */
-/******************************************************************
-	Style of the DT Overlays - sap_fiori_3_hcw Theme
-*******************************************************************/
-@_sap_ui_dt_Overlay_CuttedBackgroundColor: @sapUiFieldPlaceholderTextColor; //#585858
-@_sap_ui_dt_Overlay_HighlightOutlineColor: @sapUiWarningBorder; // #5c5c00
-@_sap_ui_dt_Overlay_SelectionOutlineColor: darken(@sapUiSelected, 40%); //#0042c2
+/* ================================== */
+/* CSS for control sap.ui.dt/Overlay  */
+/* Quartz High Contrast White theme   */
+/* ================================== */
 
-.sapUiDtOverlayHighlighted:not(.sapUiDtOverlaySelected):after {
+@_sap_ui_dt_Overlay_CuttedBackgroundColor: var(--sapField_PlaceholderTextColor); /* #585858 */
+@_sap_ui_dt_Overlay_HighlightOutlineColor: var(--sapWarningBorderColor); /* #5c5c00 */
+@_sap_ui_dt_Overlay_SelectionOutlineColor: darken(@sapUiSelected, 40%); /* #0042c2 */
+
+.sapUiDtOverlayHighlighted:not(.sapUiDtOverlaySelected)::after {
     box-shadow: none;
 }
 
 .sapUiDtOverlayHover {
-    &:after {
-        box-shadow: none;
-        outline: 0.125rem dotted @_sap_ui_dt_Overlay_SelectionOutlineColor; //2px
-        outline-offset: -0.125rem; //2px
-    }
+
+	&::after {
+		box-shadow: none;
+		outline: 0.125rem dotted @_sap_ui_dt_Overlay_SelectionOutlineColor; /* 2px */
+		outline-offset: -0.125rem; /* 2px */
+	}
 }
 
 .sapUiDtOverlaySelected {
-    box-shadow: none!important;
-    &.sapUiDtOverlayHover {
-        &:after {
-            border: 0.125rem solid @_sap_ui_dt_Overlay_SelectionOutlineColor; //2px
-            outline-offset: -0.25rem; //4px
-            transition: none;
-        }
-    }
+	box-shadow: none !important;
+
+	&.sapUiDtOverlayHover {
+
+		&::after {
+			border: 0.125rem solid @_sap_ui_dt_Overlay_SelectionOutlineColor; /* 2px */
+			outline-offset: -0.25rem; /* 4px */
+			transition: none;
+		}
+	}
 }
 
 .sapUiDtOverlay {
-    &:focus {
-        &:before {
-            border: none;
-            outline: 0.125rem dotted @_sap_ui_dt_Overlay_FocusBorderColor; //2px
-            outline-offset: -0.25rem; //4px
-        }
-    }
+
+	&:focus {
+
+		&::before {
+			border: none;
+			outline: 0.125rem dotted @_sap_ui_dt_Overlay_FocusBorderColor; /* 2px */
+			outline-offset: -0.25rem; /* 4px */
+		}
+	}
 }
 /* END "Overlay.less" */

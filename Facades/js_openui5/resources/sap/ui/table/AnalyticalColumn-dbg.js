@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.table.Column
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -165,7 +165,7 @@ sap.ui.define([
 						if (oBinding) {
 							this._oBindingLabel = TableUtils._getTableTemplateHelper().createLabel();
 							this.addDependent(this._oBindingLabel);
-							TableUtils.Binding.metadataLoaded(oParent).then(function() {
+							oParent._metadataLoaded().then(function() {
 								this._oBindingLabel.setText(oBinding.getPropertyLabel(this.getLeadingProperty()));
 							}.bind(this));
 						}

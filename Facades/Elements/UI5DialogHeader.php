@@ -93,10 +93,11 @@ JS;
         foreach ($widget->getWidgets() as $w) {
             $content .= $this->buildJsConstructorForChild($w, $oControllerJs) . ",\n";
         }
-
+        
         return <<<JS
         
-            new sap.ui.layout.VerticalLayout('{$this->getFacade()->getElement($widget)->getId()}',{
+            new sap.ui.layout.VerticalLayout('{$this->getFacade()->getElement($widget)->getId()}', {
+                {$this->buildJsPropertyWidthForVerticalLayout($widget)}
                 content: [
                     {$title}
                     {$content}
@@ -104,6 +105,26 @@ JS;
             })
             
 JS;
+    }
+
+    /**
+     * @param iContainOtherWidgets $widget
+     * @return string
+     */
+    protected function buildJsPropertyWidthForVerticalLayout(iContainOtherWidgets $widget) : string
+    {
+        $width = $widget->getWidth();
+        $widthVal = null;
+        switch (true) {
+            case $width->isPercentual():
+            case $width->isFacadeSpecific():
+                $widthVal = $width->getValue();
+                break;
+            case $width->isRelative():
+                $widthVal = ($width->getValue() * $this->getWidthRelativeUnit()) . 'px';
+                break;
+        }
+        return $widthVal === null ? '' : 'width: ' . $this->escapeString($widthVal) . ',';
     }
 }
 ?>

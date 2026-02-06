@@ -12,8 +12,8 @@
 			"theme": "sap_horizon_dark"
 		},
 		{
-			"name": "BrowserScrollbar.less",
-			"size": 427,
+			"name": "BusyIndicator.less",
+			"size": 916,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -24,14 +24,8 @@
 			"theme": "sap_horizon_dark"
 		},
 		{
-			"name": "LocalBusyIndicator.less",
-			"size": 828,
-			"designtime": true,
-			"theme": "sap_horizon_dark"
-		},
-		{
 			"name": "base.less",
-			"size": 176658,
+			"size": 177387,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -107,51 +101,51 @@
 		},
 		{
 			"name": "fonts/SAP-icons.ttf",
-			"size": 336296,
+			"size": 287444,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "fonts/SAP-icons.woff2",
-			"size": 95640,
+			"size": 77964,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "global.less",
-			"size": 118384,
+			"size": 118741,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 306750,
+			"size": 306157,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_horizon_dark/library-parameters.json",
-			"size": 156682,
+			"size": 157157,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 306737,
+			"size": 306145,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 11975,
+			"size": 11553,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 348,
+			"size": 309,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "resources.json",
-			"size": 3043
+			"size": 2923
 		},
 		{
 			"name": "shared.less",

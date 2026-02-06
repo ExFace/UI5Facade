@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log", "sap/base/util/extend"], function(Log, extend) {
@@ -11,7 +11,7 @@ sap.ui.define(["sap/base/Log", "sap/base/util/extend"], function(Log, extend) {
 	 * @private
 	 * @experimental
 	 * @since 1.33
-	 * @deprecated Since 1.90. Use a {@link sap.ui.core.routing.async.Route async.Route} instead
+	 * @deprecated Since 1.90
 	 */
 	return {
 

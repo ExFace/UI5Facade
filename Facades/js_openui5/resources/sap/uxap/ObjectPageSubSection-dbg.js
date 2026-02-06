@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,6 +11,7 @@ sap.ui.define([
 	"sap/ui/core/library",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/ResizeHandler",
+	"sap/ui/core/IntervalTrigger",
 	"./ObjectPageSectionBase",
 	"./ObjectPageLazyLoader",
 	"./BlockBase",
@@ -35,6 +36,7 @@ sap.ui.define([
 	coreLibrary,
 	jQuery,
 	ResizeHandler,
+	IntervalTrigger,
 	ObjectPageSectionBase,
 	ObjectPageLazyLoader,
 	BlockBase,
@@ -272,8 +274,8 @@ sap.ui.define([
 		this._getTitleControl().addStyleClass("sapUxAPObjectPageSubSectionTitle");
 
 		var oActionsToolbar = this._getHeaderToolbar();
-		oActionsToolbar.insertContent(this._getTitleControl(), 0);
-		oActionsToolbar.insertContent(new ToolbarSpacer(), 1);
+		oActionsToolbar?.insertContent(this._getTitleControl(), 0);
+		oActionsToolbar?.insertContent(new ToolbarSpacer(), 1);
 	};
 
 	/**
@@ -337,7 +339,7 @@ sap.ui.define([
 	/* ========== ObjectPageSubSection actions aggregation methods ========== */
 
 	ObjectPageSubSection.prototype.addAction = function (oAction) {
-		this._getHeaderToolbar().insertContent(oAction, ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS + this.getActions().length);
+		this._getHeaderToolbar()?.insertContent(oAction, ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS + this.getActions().length);
 		this._preProcessAction(oAction, "actions");
 
 		return this;
@@ -345,14 +347,14 @@ sap.ui.define([
 
 	ObjectPageSubSection.prototype.insertAction = function (oAction, iIndex) {
 		var iIndexToInsertAt = iIndex + ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS;
-		this._getHeaderToolbar().insertContent(oAction, iIndexToInsertAt);
+		this._getHeaderToolbar()?.insertContent(oAction, iIndexToInsertAt);
 		this._preProcessAction(oAction, "actions");
 
 		return this;
 	};
 
 	ObjectPageSubSection.prototype.removeAction = function (oAction) {
-		this._getHeaderToolbar().removeContent(oAction);
+		this._getHeaderToolbar()?.removeContent(oAction);
 		this._postProcessAction(oAction);
 
 		return this.removeAggregation("actions", oAction);
@@ -363,7 +365,7 @@ sap.ui.define([
 			oActionsToRemove = this.getActions();
 
 		oActionsToRemove.forEach(function (oAction) {
-			oActionsToolbar.removeContent(oAction);
+			oActionsToolbar?.removeContent(oAction);
 			this._postProcessAction(oAction);
 		}, this);
 
@@ -371,7 +373,7 @@ sap.ui.define([
 	};
 
 	ObjectPageSubSection.prototype.destroyActions = function () {
-		this._getHeaderToolbar().destroyContent();
+		this._getHeaderToolbar()?.destroyContent();
 		this.getActions().forEach(function (oAction) {
 			this._postProcessAction(oAction);
 		}, this);
@@ -380,7 +382,7 @@ sap.ui.define([
 	};
 
 	ObjectPageSubSection.prototype.getActions = function () {
-		return this._getHeaderToolbar().getContent().slice(ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS);
+		return this._getHeaderToolbar()?.getContent().slice(ObjectPageSubSection.NUMBER_OF_ADDITIONAL_ACTIONS) || [];
 	};
 
 	ObjectPageSubSection.prototype.indexOfAction = function (oAction) {
@@ -410,7 +412,7 @@ sap.ui.define([
 	ObjectPageSubSection.prototype._getHeaderToolbar = function () {
 		var sId = this.getId() + "-_headerToolbar";
 
-		if (!this.getAggregation("_headerToolbar")) {
+		if (!this.getAggregation("_headerToolbar") && !this.isDestroyed()) {
 			this.setAggregation("_headerToolbar", new OverflowToolbar({
 				id: sId,
 				style: ToolbarStyle.Clear,
@@ -477,7 +479,7 @@ sap.ui.define([
 	 * @returns {boolean}
 	 */
 	ObjectPageSubSection.prototype._isTitleVisible = function () {
-		return this.getShowTitle() && this.getTitle().trim() !== "";
+		return this._getInternalTitleVisible() && this.getShowTitle() && this.getTitle().trim() !== "";
 	};
 
 	ObjectPageSubSection.prototype._getImportance = function () {
@@ -582,8 +584,18 @@ sap.ui.define([
 		oDom = this.getDomRef();
 		if (oDom) {
 			oDom.style.height = this._height;
-			this._adaptDomHeight();
+			this._executeAfterNextResizeHandlerChecks(this._adaptDomHeight.bind(this));
 		}
+	};
+
+	ObjectPageSubSection.prototype._executeAfterNextResizeHandlerChecks = function(fnFunction) {
+		function execute() {
+			window.requestAnimationFrame(fnFunction); // requestAnimationFrame required for performance, but mainly to be in sync with the table, because the table also calls requestAnimationFrame before resizing itself in its listener to the ResizeHandler
+			IntervalTrigger.removeListener(execute);
+		}
+		// listen for the same interval that triggers the ResizeHandler
+		// (ResizeHandler will be first, our callback will be second)
+		IntervalTrigger.addListener(execute);
 	};
 
 	ObjectPageSubSection.prototype._toggleContentResizeListener = function(bEnable) {
@@ -613,7 +625,10 @@ sap.ui.define([
 			return false;
 		}
 
-		return this.getId() + "-headerTitle";
+		if (this._getInternalTitleVisible()) {
+			return this.getId() + "-headerTitle";
+		}
+		return false;
 	};
 
 	/**
@@ -650,6 +665,10 @@ sap.ui.define([
 		}).length > 0;
 	};
 
+	ObjectPageSubSection.prototype._shouldHaveVisibleTitleLine = function () {
+		return this.getTitleVisible() || this._hasVisibleActions();
+	};
+
 	/**
 	 * Called whenever the actions aggregation is mutated.
 	 * @param oChanges
@@ -660,7 +679,7 @@ sap.ui.define([
 			bHasTitle;
 
 		if (sChangeName === "visible") { // change of the actions elements` visibility
-			bHasTitle = this.getTitle().trim() !== "";
+			bHasTitle = this._isTitleVisible();
 			if (!bHasTitle) {
 				this.$("header").toggleClass("sapUiHidden", !this._hasVisibleActions());
 			}
@@ -675,6 +694,7 @@ sap.ui.define([
 		}
 
 		this._applyLayout(oObjectPageLayout);
+		this.refreshSeeMoreVisibility();
 	};
 
 	/**
@@ -724,10 +744,13 @@ sap.ui.define([
 
 		if (!this._bUnstashed) {
 			this._aStashedControls.forEach(function (oControlHandle) {
-				this._aUnStashedControls.push(oControlHandle.control.unstash(true).then(function() {
-					oUnstashedControl = Element.getElementById(oControlHandle.control.getId());
-					this.addAggregation(oControlHandle.aggregationName, oUnstashedControl, true);
-				}.bind(this)));
+				var oUnstashResult = Promise.resolve(oControlHandle.control.unstash(true));
+				this._aUnStashedControls.push(
+					oUnstashResult.then(function () {
+						oUnstashedControl = Element.getElementById(oControlHandle.control.getId());
+						this.addAggregation(oControlHandle.aggregationName, oUnstashedControl, true);
+					}.bind(this))
+				);
 			}.bind(this));
 
 			this._bUnstashed = true;
@@ -814,7 +837,14 @@ sap.ui.define([
 		});
 	};
 
-	ObjectPageSubSection.prototype.clone = function () {
+	ObjectPageSubSection.prototype.clone = function (sIdSuffix, aLocalIds, oOptions) {
+		var oClone,
+			bCloneChildren = true;
+
+		if (oOptions) {
+			bCloneChildren = !!oOptions.cloneChildren;
+		}
+
 		Object.keys(this._aAggregationProxy).forEach(function (sAggregationName){
 			var oAggregation = this.mAggregations[sAggregationName];
 
@@ -823,7 +853,17 @@ sap.ui.define([
 			}
 
 		}, this);
-		return ObjectPageSectionBase.prototype.clone.apply(this, arguments);
+
+		oClone = ObjectPageSectionBase.prototype.clone.apply(this, arguments);
+		if (!this.isBound("actions") && bCloneChildren) {
+			var oAggregation = this.getMetadata().getAggregation("actions");
+
+			oAggregation.get(this).forEach(function(oChild) {
+				oAggregation.add(oClone, oChild.clone());
+			}, this);
+		}
+
+		return oClone;
 	};
 
 	ObjectPageSubSection.prototype._cleanProxiedAggregations = function () {
@@ -1007,7 +1047,7 @@ sap.ui.define([
 		var oSeeMoreControl = this._getSeeMoreButton(),
 			oSeeLessControl = this._getSeeLessButton();
 
-		this._bBlockHasMore = !!this.getMoreBlocks().length;
+		this._bBlockHasMore = this._hasVisibleMoreBlocks();
 		if (!this._bBlockHasMore) {
 			this._bBlockHasMore = this.getBlocks().some(function (oBlock) {
 				//check if the block ask for the global see more the rule is
@@ -1025,6 +1065,14 @@ sap.ui.define([
 		oSeeLessControl.toggleStyleClass("sapUxAPSubSectionSeeMoreButtonVisible", this._bBlockHasMore);
 
 		return this._bBlockHasMore;
+	};
+
+	ObjectPageSubSection.prototype._hasVisibleMoreBlocks = function () {
+		var aMoreBlocks = this.getMoreBlocks();
+
+		return aMoreBlocks.some(function (oBlock) {
+			return oBlock.getVisible();
+		});
 	};
 
 	ObjectPageSubSection.prototype.setMode = function (sMode) {

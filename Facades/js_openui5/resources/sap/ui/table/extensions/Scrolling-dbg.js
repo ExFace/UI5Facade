@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -725,12 +725,14 @@ sap.ui.define([
 				};
 
 				oTable._getKeyboardExtension().setActionMode(false);
+				const oScrollExtension = oTable._getScrollExtension();
 
-				if (oTable._bLargeDataScrolling) {
+				// No large data scrolling on touch move
+				if (oTable._bLargeDataScrolling && !oScrollExtension._bTouchScroll) {
 					_private(oTable).mTimeouts.largeDataScrolling = setTimeout(function() {
 						delete _private(oTable).mTimeouts.largeDataScrolling;
 
-						if (oTable._getScrollExtension().getVerticalScrollbar() != null) {
+						if (oScrollExtension.getVerticalScrollbar() != null) {
 							log("VerticalScrollingHelper.performUpdateFromScrollbar (async: large data scrolling)", oTable);
 							VerticalScrollingHelper._performUpdateFromScrollbar(oTable, oProcessInterface).then(resolve);
 						} else {
@@ -746,6 +748,7 @@ sap.ui.define([
 						}
 					});
 				} else {
+					delete oScrollExtension._bTouchScroll;
 					VerticalScrollingHelper._performUpdateFromScrollbar(oTable, oProcessInterface).then(resolve);
 				}
 			});
@@ -1754,17 +1757,7 @@ sap.ui.define([
 				return;
 			}
 
-			const oHSb = oScrollExtension.getHorizontalScrollbar();
-			const mRowCounts = oTable._getRowCounts();
-
-			let iOffsetBottom = 0;
-			if (oHSb && _private(oTable).bHorizontalScrollbarRequired && oScrollExtension.isHorizontalScrollbarVisible()) {
-				iOffsetBottom = oHSb.offsetHeight;
-			}
-			if (mRowCounts.fixedBottom > 0) {
-				iOffsetBottom += mRowCounts.fixedBottom * oTable._getBaseRowHeight();
-			}
-			oVSb.style.bottom = iOffsetBottom + "px";
+			oVSb.style.bottom = oScrollExtension.getVerticalScrollbarBottomOffset(oTable) + "px";
 		},
 
 		/**
@@ -2031,6 +2024,7 @@ sap.ui.define([
 						if (!mTouchSessionData.initialScrolledToEnd) {
 							oVSb.scrollTop = mTouchSessionData.initialScrollTop - iTouchDistanceY;
 							bScrollingPerformed = true;
+							oScrollExtension._bTouchScroll = true;
 						}
 					}
 					break;
@@ -2170,14 +2164,6 @@ sap.ui.define([
 		},
 
 		onAfterRendering: function(oEvent) {
-			const oScrollExtension = this._getScrollExtension();
-			const bRenderedRows = oEvent != null && oEvent.isMarked("renderRows");
-
-			if (bRenderedRows) {
-				oScrollExtension.updateVerticalScrollbarHeight();
-				oScrollExtension.updateVerticalScrollHeight();
-			}
-
 			VerticalScrollingHelper.restoreScrollPosition(this, this.getBinding() != null);
 			HorizontalScrollingHelper.restoreScrollPosition(this);
 		},
@@ -2320,7 +2306,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table which handles scrolling.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.Scrolling
@@ -2331,7 +2317,7 @@ sap.ui.define([
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
-		_init: function(oTable, sTableType, mSettings) {
+		_init: function(oTable, mSettings) {
 			const _ = _private(oTable);
 
 			// Horizontal scrolling
@@ -2396,7 +2382,7 @@ sap.ui.define([
 			this._clearCache();
 
 			if (oTable) {
-				TableUtils.removeDelegate(oTable, ExtensionDelegate);
+				oTable.removeEventDelegate(ExtensionDelegate);
 
 				if (_private(oTable).pVerticalScrollUpdateProcess) {
 					_private(oTable).pVerticalScrollUpdateProcess.cancel();
@@ -2632,6 +2618,28 @@ sap.ui.define([
 
 		oVSbContent.style.height = this.getVerticalScrollHeight() + "px";
 		oVSb._scrollTop = oVSb.scrollTop;
+	};
+
+	ScrollExtension.prototype.getVerticalScrollbarBottomOffset = function(oTable) {
+		const oScrollExtension = oTable._getScrollExtension();
+		const oHSb = oScrollExtension.getHorizontalScrollbar();
+		const mRowCounts = oTable._getRowCounts();
+
+		let iOffsetBottom = 0;
+		if (oHSb && _private(oTable).bHorizontalScrollbarRequired && oScrollExtension.isHorizontalScrollbarVisible()) {
+			iOffsetBottom = oHSb.offsetHeight;
+		}
+		if (mRowCounts.fixedBottom > 0) {
+			iOffsetBottom += mRowCounts.fixedBottom * oTable._getBaseRowHeight();
+		}
+		const oCreationRow = oTable.getCreationRow();
+		if (oCreationRow) {
+			const oCreationRowDomRef = oCreationRow.getDomRef();
+			if (oCreationRowDomRef && oCreationRow.getVisible()) {
+				iOffsetBottom += oCreationRowDomRef.offsetHeight;
+			}
+		}
+		return iOffsetBottom;
 	};
 
 	/**

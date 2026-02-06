@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,9 +62,11 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 					oControl.addEventDelegate(oDelegate);
 				} else {
 					const oControlForLabel = Element.closestTo(oDomForLabel);
-					const sInnerControlId = oControlForLabel.getId();
-					if (sInnerControlId !== sId) {
-						oRes.innerControlId = sInnerControlId;
+					if (oControlForLabel) {
+						const sInnerControlId = oControlForLabel.getId();
+						if (sInnerControlId !== sId) {
+							oRes.innerControlId = sInnerControlId;
+						}
 					}
 				}
 			}
@@ -192,7 +194,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * @see sap.ui.core.LabelEnablement#enrich
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @protected
 	 * @alias sap.ui.core.LabelEnablement
 	 * @namespace

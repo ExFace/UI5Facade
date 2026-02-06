@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,36 +8,35 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/core/Element",
+	"sap/ui/fl/apply/_internal/changeHandlers/ChangeHandlerStorage",
 	"sap/ui/fl/apply/_internal/changes/Reverter",
 	"sap/ui/fl/apply/_internal/controlVariants/Utils",
 	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
 	"sap/ui/fl/apply/_internal/flexState/FlexState",
 	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
 	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
-	"sap/ui/fl/initial/_internal/changeHandlers/ChangeHandlerStorage",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/_internal/flexState/changes/UIChangeManager",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
 	"sap/ui/fl/write/api/ChangesWriteAPI",
-	"sap/ui/fl/FlexControllerFactory",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/Utils",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	Log,
 	JsControlTreeModifier,
 	Element,
+	ChangeHandlerStorage,
 	Reverter,
 	VariantUtils,
 	FlexObjectState,
 	FlexState,
 	ControlVariantApplyAPI,
 	FlexRuntimeInfoAPI,
-	ChangeHandlerStorage,
 	Settings,
 	UIChangeManager,
 	FlexObjectManager,
 	ChangesWriteAPI,
-	FlexControllerFactory,
 	Layer,
 	Utils
 ) {
@@ -121,7 +120,7 @@ sap.ui.define([
 				|| mPropertyBag.changes[0].selectorControl
 			);
 			const oAppComponent = Utils.getAppComponentForControl(oReferenceControl);
-			const sFlexReference = FlexRuntimeInfoAPI.getFlexReference({element: oReferenceControl});
+			const sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: oReferenceControl });
 			const oVariantModel = oAppComponent.getModel(ControlVariantApplyAPI.getVariantModelName());
 			const sLayer = Layer.USER;
 			const aSuccessfulChanges = [];
@@ -300,8 +299,8 @@ sap.ui.define([
 				return Promise.reject("App Component could not be determined");
 			}
 
-			const sReference = FlexRuntimeInfoAPI.getFlexReference({element: mPropertyBag.selector});
-			if (FlexState.isInitialized({control: oAppComponent})) {
+			const sReference = FlexRuntimeInfoAPI.getFlexReference({ element: mPropertyBag.selector });
+			if (FlexState.isInitialized({ control: oAppComponent })) {
 				// limit the deletion to the passed selector control only
 				const aRemovedChanges = FlexObjectManager.removeDirtyFlexObjects({
 					reference: sReference,
@@ -345,7 +344,7 @@ sap.ui.define([
 				throw Error("App Component could not be determined");
 			}
 
-			const sReference = FlexRuntimeInfoAPI.getFlexReference({element: mPropertyBag.selector});
+			const sReference = FlexRuntimeInfoAPI.getFlexReference({ element: mPropertyBag.selector });
 			var aDirtyFlexObjects = FlexObjectState.getDirtyFlexObjects(sReference);
 
 			return aDirtyFlexObjects.some(function(oFlexObject) {
@@ -383,10 +382,9 @@ sap.ui.define([
 			if (!oAppComponent) {
 				return logAndReject("App Component could not be determined");
 			}
-			var oFlexController = FlexControllerFactory.createForControl(oAppComponent);
 
-			if (FlexState.isInitialized({control: oAppComponent})) {
-				return oFlexController.saveSequenceOfDirtyChanges(mPropertyBag.changes, oAppComponent);
+			if (FlexState.isInitialized({ control: oAppComponent })) {
+				return FlexObjectManager.saveFlexObjects({ flexObjects: mPropertyBag.changes, selector: oAppComponent });
 			}
 			return Promise.resolve();
 		},
@@ -422,13 +420,11 @@ sap.ui.define([
 		 *
 		 * @returns {Promise<boolean>} Resolves to a boolean indicating if condensing is enabled
 		 * @private
-		 * @sapui5-restricted sap.ovp
+		 * @ui5-restricted sap.ovp
 		 */
-		isCondensingEnabled() {
-			return Settings.getInstance()
-			.then(function(oSettings) {
-				return oSettings.isCondensingEnabled(Layer.USER);
-			});
+		async isCondensingEnabled() {
+			const oSettings = await Settings.getInstance();
+			return oSettings.getIsCondensingEnabled();
 		},
 
 		/**
@@ -441,7 +437,7 @@ sap.ui.define([
 		 * @sapui5-restricted sap.ui.rta
 		 */
 		attachChangeCreation(oControl, fnCallback) {
-			var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({element: oControl});
+			var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: oControl });
 			mChangeCreationListeners[sFlexReference] = (mChangeCreationListeners[sFlexReference] || []).concat(fnCallback);
 		},
 
@@ -454,7 +450,7 @@ sap.ui.define([
 		 * @sapui5-restricted sap.ui.rta
 		 */
 		detachChangeCreation(oControl, fnCallback) {
-			var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({element: oControl});
+			var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: oControl });
 			if (Array.isArray(mChangeCreationListeners[sFlexReference])) {
 				mChangeCreationListeners[sFlexReference] = mChangeCreationListeners[sFlexReference].filter(function(fnRegisteredCallback) {
 					return fnRegisteredCallback !== fnCallback;
@@ -471,7 +467,7 @@ sap.ui.define([
 		 */
 		detachAllChangeCreationListeners(oControl) {
 			if (oControl) {
-				var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({element: oControl});
+				var sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: oControl });
 				delete mChangeCreationListeners[sFlexReference];
 			} else {
 				mChangeCreationListeners = {};

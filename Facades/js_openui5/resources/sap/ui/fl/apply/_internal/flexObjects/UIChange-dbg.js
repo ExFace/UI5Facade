@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.UIChange
 	 * @since 1.109
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -100,7 +100,6 @@ sap.ui.define([
 			associations: {},
 			events: {}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			FlexObject.apply(this, aArgs);
 
@@ -325,7 +324,9 @@ sap.ui.define([
 	 * @param {sap.ui.core.Component} [mPropertyBag.appComponent] - Application component; only needed if <code>vControl</code> is a string or an XML node
 	 * @param {object} [mAdditionalSelectorInformation] - Additional mapped data which is added to the selector
 	 *
-	 * @throws {Exception} oException If <code>sAlias</code> already exists
+	 * @throws {Error} If <code>sAlias</code> already exists
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	UIChange.prototype.addDependentControl = function(vControl, sAlias, mPropertyBag, mAdditionalSelectorInformation) {
 		if (!vControl) {
@@ -372,6 +373,8 @@ sap.ui.define([
 	 * @param {Node} mPropertyBag.view - For XML processing: XML node of the view
 	 *
 	 * @returns {array|object} Dependent selector list in <code>selectorPropertyName:selectorPropertyValue</code> format, or the selector saved under the alias
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	UIChange.prototype.getDependentControl = function(sAlias, mPropertyBag) {
 		var aDependentControls = [];

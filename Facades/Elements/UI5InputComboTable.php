@@ -270,25 +270,35 @@ JS;
                 break;
 
             // If value and text are the same attribut, there are still issues to fix:
-            // - When prefilling a dialog, the selectedKey is set, but the tokens are not updated, so the input
-            // remains empty. We need to manually generate the tokens here.
+            // - When the inner value (selectedKey) changes programmatically (e.g. with a prefill), the tokes are
+            // not updated for some reason - need to do it manually. Previously we updated them manually
+            // onPrefillDataChange, but this was not enough - the values still disappeared if the InputComboTable
+            // was in a big dialog and that dialog had other buttons, that would cause a refresh on-change.
             // - TODO sometimes the input remains empty even in single-select widgets. For example, if an object
             // has no LABEL and the UID should be used as value and text at the same time. Still need investigation
             // here!
             case $widget->getValueAttribute() === $widget->getTextAttribute() && $widget->getMultiSelect() === true:
-                $this->getController()->addOnPrefillDataChangedScript(<<<JS
+                $delim = $widget->getValueAttribute()->getValueListDelimiter();
+                if ($delim === '') {
+                    $delim = EXF_LIST_SEPARATOR;
+                }
+                $this->getController()->addOnInitScript(<<<JS
 
-                    setTimeout(function(){
-                        var oInput = sap.ui.getCore().byId('{$this->getId()}');
-                        var sKeys = oInput.getSelectedKey();
-                        var sTexts = oInput.getValue();
-                        if (sKeys !== undefined && sKeys !== null && sKeys !== '' && ! sTexts) {
-                            oInput.destroyTokens();
-                            sKeys.split(',').forEach(function(sVal){
-                                oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
-                            })
+                    (function(oInput){
+                        var oKeyBinding = oInput?.getBinding('selectedKey');
+                        if (! oKeyBinding) {
+                            return;
                         }
-                    }, 0);
+                        oKeyBinding.attachChange(function(oEvent){
+                            var sKeys = oEvent.getSource().getValue();
+                            oInput.destroyTokens();
+                            if (sKeys !== undefined && sKeys !== null && sKeys !== '') {
+                                sKeys.toString().split({$this->escapeString($delim)}).forEach(function(sVal){
+                                    oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
+                                })
+                            }
+                        });
+                    })(sap.ui.getCore().byId('{$this->getId()}'));
 JS);
         }
         
@@ -394,7 +404,7 @@ JS;
                 oBinding.attachChange(function(oEvent){
                     var sVal = oBinding.getValue();
                     if (sVal === undefined || sVal === null || sVal === '') {
-                        {$this->buildJsEmpty()};
+                        {$this->buildJsEmpty(false)};
                     }
                 });
             }, 0);
@@ -475,12 +485,16 @@ JS;
         // suggestion is selected automatically (see buildJsDataLoader()), aCells is not set yet, so
         // we need to fetch the first row of the suggestion table - in this case we know, that there
         // is only a single row!
+        $valueDataType = $this->getWidget()->getValueColumn()->getDataType();
         return <<<JS
             function(oEvent){
                 var oItem = oEvent.getParameter("selectedRow");
                 if (! oItem) return;
 				var aCells = oEvent.getParameter("selectedRow").getCells();
                 var oInput = oEvent.getSource();
+                var fnValueParser = function(mVal) {
+                    return {$this->getFacade()->getDataTypeFormatter($valueDataType)->buildJsFormatParser('mVal')};
+                }
                 if (oInput.getTokens !== undefined) {
                     if (oInput.getTokens().filter(function(oToken){
                             return oToken.getKey() === aCells[ {$valueColIdx} ].getText();
@@ -492,7 +506,7 @@ JS;
                     var oSuggestTable = sap.ui.getCore().byId('{$this->getId()}-popup-table');
                     aCells = oSuggestTable.getItems()[0].getCells();
                 }
-                oInput.{$this->buildJsSetSelectedKeyMethod("aCells[ {$valueColIdx} ].getText()", "aCells[ {$textColIdx} ].getText()")};
+                oInput.{$this->buildJsSetSelectedKeyMethod("fnValueParser(aCells[ {$valueColIdx} ].getText())", "aCells[ {$textColIdx} ].getText()")};
                 oInput.setValueState(sap.ui.core.ValueState.None);
                 oInput._invalidKey = false;
                 oInput.fireChange({value: aCells[ {$valueColIdx} ].getText()});
@@ -572,7 +586,22 @@ JS;
                 var aNewKeys = [];
                 var sMultiValDelim = {$this->escapeString($widget->getMultipleValuesDelimiter())};
 
+                // deduplicate the data array and update the row count if changed
+                // this is needed, if a query returns multiple entries with the same content
+                // in that case, it doesnt matter which one we take to match the key 
+                var aSeen = new Set();
+                data = data.filter(item => {
+                    const str = JSON.stringify(item);
+                    if (aSeen.has(str)) return false;
+                    aSeen.add(str);
+                    return true;
+                });
+                if (iRowsCnt !== data.length){
+                    iRowsCnt = data.length;
+                }
+
                 if (bSilent) {
+                    // Just loading the suggest data - the key does not change
                     if (iRowsCnt === 1 && (curKey === '' || data[0]['{$widget->getValueColumn()->getDataColumnName()}'] == curKey)) {
                         if (oInput.destroyTokens !== undefined) {
                             oInput.destroyTokens();
@@ -581,7 +610,10 @@ JS;
                         oInput.closeSuggestions();
                         oInput.setValueState(sap.ui.core.ValueState.None);
                         oInput._invalidKey = false;
-                    } else if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
+                        oInput.fireChange({value: curKey});
+                    } else 
+                    // Just loading the suggest data for multi-select: loaded as many rows as we have keys
+                    if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
                         oInput.destroyTokens();
                         curKeys.forEach(function(sKey) {
                             sKey = sKey.trim();
@@ -621,14 +653,14 @@ JS;
                                 break;
                             case curKey === '' && (! curText || curText.trim() === ''):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
                             // If it is not a MultiInput, but the value is a delimited list, do not use it!
                             case oInput.getTokens === undefined && curKey != null && (curKey + '').includes(sMultiValDelim):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
@@ -900,7 +932,7 @@ JS;
                 return;
             }
             if (val === undefined || val === null || val === '') {
-                oInput.{$this->buildJsEmptyMethod('val', '""')};
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oInput.fireChange({value: val});
             } else {
                 if (oInput.destroyTokens !== undefined) {
@@ -954,13 +986,17 @@ JS;
      * 
      * @return string
      */
-    protected function buildJsEmptyMethod() : string
+    protected function buildJsEmptyMethod(bool $fireChange = true) : string
     {
         if ($this->getWidget()->getMultiSelect() === false) {
-            return "setValue('').setSelectedKey('')";
+            $js = "setValue('').setSelectedKey('')";
         } else {
-            return "setValue('').setSelectedKey('').destroyTokens()";
+            $js = "setValue('').setSelectedKey('').destroyTokens()";
         }
+        if ($fireChange === true) {
+            $js .= ".fireChange({mValue: ''})";
+        }
+        return $js;
     }
     
     /**
@@ -1092,8 +1128,8 @@ JS;
             {$this->buildJsValueSetter("''")};
         } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
-            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
-                oInput.{$this->buildJsEmptyMethod()};
+            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] !== undefined){
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oData.rows.forEach(function(oRow){
                     oInput.{$this->buildJsSetSelectedKeyMethod("oRow['{$colName}']", "oRow['{$widget->getTextColumn()->getDataColumnName()}']")};
                     aVals.push(oRow['{$colName}']);

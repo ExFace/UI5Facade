@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -217,8 +217,10 @@ sap.ui.define([
 
 		this.setPopoverMinWidth = function() {
 			var oPopoverDomRef = self._oPopover.getDomRef();
+			var iShadow = self._oPopover._fThickShadowSize;
+
 			if (oPopoverDomRef) {
-				var w = (oInput.$().outerWidth() / parseFloat(library.BaseFontSize)) + "rem";
+				var w = ((oInput.$().outerWidth() - (iShadow * 2)) / parseFloat(library.BaseFontSize)) + "rem";
 				oPopoverDomRef.style.minWidth = w;
 			}
 		};

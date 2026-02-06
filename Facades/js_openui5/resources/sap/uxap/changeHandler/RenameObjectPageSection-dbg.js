@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,8 +21,8 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.uxap.changeHandler.RenameObjectPageSection
 	 * @author SAP SE
-	 * @version 1.136.0
-	 * @experimental Since 1.50
+	 * @version 1.144.0
+	 * @since 1.50
 	 */
 
 	var mRenameSettings = {

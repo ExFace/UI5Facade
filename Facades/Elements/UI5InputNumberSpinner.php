@@ -47,7 +47,7 @@ JS;
      */
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        $controller->addExternalModule('libs.exface.ui5Custom.StepInputCustom', 'vendor/exface/UI5Facade/Facades/js/ui5Custom/StepInputCustom');
+        $controller->addExternalModule('libs.exface.ui5Custom.StepInputCustom', 'vendor/exface/ui5facade/Facades/js/ui5Custom/StepInputCustom');
         return $this;
     }
     

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
-	var {ValueState} = coreLibrary;
+	var { ValueState } = coreLibrary;
 
 	/**
 	 * Controller for the <code>sap.ui.rta.toolbar.contextBased.SaveAsAdaptation</code> controls.
@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @class
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -60,7 +60,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			ManagedObject.prototype.constructor.apply(this, aArgs);
 			this.oTextResources = this.getToolbar().getTextResources();
@@ -125,7 +124,7 @@ sap.ui.define([
 			roles: oDisplayedAdaptation.contexts.role
 		};
 		this.getToolbar().getControl("addAdaptationDialog--saveAdaptation-title-input").setValue(this._mEditProperties.title);
-		this._oContextComponentInstance.setSelectedContexts({role: this._mEditProperties.roles});
+		this._oContextComponentInstance.setSelectedContexts({ role: this._mEditProperties.roles });
 	}
 
 	// ------ formatting ------
@@ -201,7 +200,7 @@ sap.ui.define([
 				contextBasedAdaptation: oContextBasedAdaptation
 			}).then(function() {
 				BusyIndicator.hide();
-				this.getToolbar().fireEvent("switchAdaptation", {adaptationId: oContextBasedAdaptation.id, trigger: "SaveAs"});
+				this.getToolbar().fireEvent("switchAdaptation", { adaptationId: oContextBasedAdaptation.id, trigger: "SaveAs" });
 				Measurement.end("onCBASaveAsAdaptation");
 				Measurement.getActive() && Log.info(`onCBASaveAsAdaptation: ${Measurement.getMeasurement("onCBASaveAsAdaptation").time} ms`);
 			}.bind(this)).catch(function(oError) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var mCommands = {
+	const mCommands = {
 		rename: RenameVisualization,
 		move: MoveVisualization,
 		combine: CombineVisualization,
@@ -28,7 +28,7 @@ sap.ui.define([
 	};
 
 	return function(mIndicatorInformation) {
-		var sCommandName = mIndicatorInformation.commandName;
+		let sCommandName = mIndicatorInformation.commandName;
 
 		// Settings commands can be assigned to existing categories
 		// (e.g. "move" to display the "Show Source" button)

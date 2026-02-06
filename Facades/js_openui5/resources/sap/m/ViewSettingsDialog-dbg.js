@@ -1,6 +1,6 @@
 	/*!
 * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -38,7 +38,8 @@ sap.ui.define([
 	"sap/ui/core/library",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "firstFocusableDomRef"
-	"sap/ui/dom/jquery/Focusable"
+	"sap/ui/dom/jquery/Focusable",
+	"sap/ui/core/InvisibleMessage"
 ],
 function(
 	library,
@@ -71,7 +72,9 @@ function(
 	StaticArea,
 	Log,
 	coreLibrary,
-	jQuery
+	jQuery,
+	jQueryFocusable,
+	InvisibleMessage
 ) {
 	"use strict";
 
@@ -94,6 +97,8 @@ function(
 	var TitleLevel = coreLibrary.TitleLevel;
 
 	var LIST_ITEM_SUFFIX = "-list-item";
+
+	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
 	/**
 	 * Constructor for a new <code>ViewSettingsDialog</code>.
@@ -155,7 +160,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -380,6 +385,7 @@ function(
 		this._sFilterDetailTitleLabelId     = sId + "-detailtitle";
 		this._oFiltersSelectedOnly			= {};
 		this._oKeylessFilters				= {};
+		this._oInvisibleMessage				= null;
 
 		/* setup a name map between the sortItems
 		 aggregation and an sap.m.List with items
@@ -395,7 +401,7 @@ function(
 		}, {
 			tooltip: {}
 		},{
-			type : ListType.Active
+			type : ListType.Inactive
 		}, {
 			mode : ListMode.SingleSelectLeft,
 			includeItemInSelection : true,
@@ -437,6 +443,7 @@ function(
 		this._sCustomTabsButtonsIdPrefix    = null;
 		this._fnFilterSearchCallback        = null;
 		this._oKeylessFilters               = null;
+		this._oInvisibleMessage				= null;
 
 		// sap.ui.core.Popup removes its content on close()/destroy() automatically from the static UIArea,
 		// but only if it added it there itself. As we did that, we have to remove it also on our own
@@ -956,7 +963,7 @@ function(
 	/**
 	 * Observes the items aggregation of the passed filterItem
 	 *
-	 * @param {sap.m.ViewSettingsDialogFilterItem} oFilterItem the filterItem, which aggregation will be observed
+	 * @param {sap.m.ViewSettingsFilterItem} oFilterItem the filterItem, which aggregation will be observed
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._observeItem = function (oFilterItem) {
@@ -968,7 +975,7 @@ function(
 	/**
 	 * Unobserves the items aggregation of the passed filterItem
 	 *
-	 * @param {sap.m.ViewSettingsDialogFilterItem} oFilterItem the filterItem, which aggregation will be unobserved
+	 * @param {sap.m.ViewSettingsFilterItem} oFilterItem the filterItem, which aggregation will be unobserved
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._unobserveItem = function (oFilterItem) {
@@ -1389,6 +1396,10 @@ function(
 
 		// open dialog
 		this._getDialog().open();
+
+		if (!this._oInvisibleMessage) {
+			this._oInvisibleMessage = InvisibleMessage.getInstance();
+		}
 
 		return this;
 	};
@@ -1851,6 +1862,9 @@ function(
 
 		// fire the reset event. It can be used to set the state of custom tabs.
 		this.fireReset();
+
+		//Announce to the screen reader that filters are reset
+		this._oInvisibleMessage.announce(this._rb.getText("VIEWSETTINGS_RESET_BUTTON_ACTION"), InvisibleMessageMode.Assertive);
 	};
 
 	/**
@@ -2241,7 +2255,6 @@ function(
 			// use name if there is no key defined
 			oListItem = new StandardListItem({
 				title : ManagedObject.escapeSettingsValue(aSubFilters[i].getText()),
-				type : ListType.Active,
 				selected : aSubFilters[i].getSelected(),
 				tooltip : aSubFilters[i].getTooltip(),
 				wrapping: aSubFilters[i].getWrapping()
@@ -2326,7 +2339,6 @@ function(
 				oListItem = new StandardListItem({
 					id: oItem.getId() + LIST_ITEM_SUFFIX,
 					title: ManagedObject.escapeSettingsValue(oItem.getText()),
-					type: ListType.Active,
 					selected: oItem.getSelected(),
 					tooltip : oItem.getTooltip(),
 					wrapping: oItem.getWrapping()
@@ -2356,7 +2368,6 @@ function(
 			oListItem = new StandardListItem({
 				id: this._oGroupingNoneItem.getId() + LIST_ITEM_SUFFIX,
 				title: this._oGroupingNoneItem.getText(),
-				type: ListType.Active,
 				selected: this._oGroupingNoneItem.getSelected(),
 				wrapping: this._oGroupingNoneItem.getWrapping()
 			}).data("item", this._oGroupingNoneItem);

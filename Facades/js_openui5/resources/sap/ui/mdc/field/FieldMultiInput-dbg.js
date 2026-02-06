@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,17 +10,20 @@ sap.ui.define([
 	'sap/m/Tokenizer',
 	'sap/ui/mdc/field/FieldMultiInputRenderer',
 	'sap/ui/Device',
-	'sap/ui/base/ManagedObjectObserver'
+	'sap/ui/base/ManagedObjectObserver',
+	'sap/ui/core/Lib'
 ], (
 	Element,
 	MultiInput,
 	Tokenizer,
 	FieldMultiInputRenderer,
 	Device,
-	ManagedObjectObserver
-
+	ManagedObjectObserver,
+	Library
 ) => {
 	"use strict";
+
+	const oRbM = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Constructor for a new <code>FieldMultiInput</code>.
@@ -31,7 +34,7 @@ sap.ui.define([
 	 * The <code>FieldMultiInput</code> control is used to render a multi-input field inside a control based on {@link sap.ui.mdc.field.FieldBase FieldBase}.
 	 * It enhances the {@link sap.m.MultiInput MultiInput} control to add ARIA attributes and other {@link sap.ui.mdc.field.FieldBase FieldBase}-specific logic.
 	 * @extends sap.m.MultiInput
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @abstract
 	 * @private
@@ -246,12 +249,14 @@ sap.ui.define([
 		if (!this._oUpdateBindingTimer && (oBindingInfo.length || oBindingInfo.startIndex)) {
 			const fnUpdate = () => {
 				let oToken = oBindingInfo.template;
-				if (oBindingInfo.hasOwnProperty("templateShareable") && !oBindingInfo.templateShareable) {
+				let bTemplateShareable = true;
+				if (oBindingInfo.templateShareable !== true) {
 					oToken = oToken.clone();
+					bTemplateShareable = false;
 				}
 
 				this._bUpdateBinding = true;
-				this.bindAggregation("tokens", { path: oBindingInfo.path, model: oBindingInfo.model, template: oToken });
+				this.bindAggregation("tokens", { path: oBindingInfo.path, model: oBindingInfo.model, template: oToken, templateShareable: bTemplateShareable });
 			};
 
 			if (bAsync) {
@@ -287,6 +292,23 @@ sap.ui.define([
 		}
 
 	}
+
+	FieldMultiInput.prototype._onValueHelpRequested = function () {
+		this._bValueHelpOpen = false; // otherwise in non-modal Valuehelp focusout will not show the more-indicator. In Field case, onSapFocusLeave is prevented on opening ValueHelp-Dialog, so the original use-case will not occur
+	};
+
+	FieldMultiInput.prototype.getAccessibilityInfo = function() {
+
+		const oInfo = MultiInput.prototype.getAccessibilityInfo.apply(this, arguments);
+
+		if (oInfo.role === "combobox") { // use text like in ComboBox
+			oInfo.type = oRbM.getText("ACC_CTR_TYPE_MULTICOMBO");
+		}
+
+		return oInfo;
+
+	};
+
 
 	return FieldMultiInput;
 

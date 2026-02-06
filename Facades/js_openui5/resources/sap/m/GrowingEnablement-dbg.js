@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -139,7 +139,7 @@ sap.ui.define([
 		onsapdown: function(oEvent) {
 			// Navigate from last item to growing trigger and vice versa via arrow keys
 			var oControl = this._oControl;
-			if (oControl._oItemNavigation && !oEvent.isMarked()) {
+			if (oControl._oItemNavigation && !oEvent.isMarked() && oControl.$("triggerList").css("display") !== "none") {
 				var oItemNavigation = oControl._oItemNavigation;
 				var aItemDomRefs = oItemNavigation.getItemDomRefs();
 				var oFirstItemDomRef = aItemDomRefs[0];

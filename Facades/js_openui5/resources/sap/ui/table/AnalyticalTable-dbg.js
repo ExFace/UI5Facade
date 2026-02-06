@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,12 +45,14 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 *
 	 * @class
-	 * Table that handles analytical OData back-end scenarios. The <code>AnalyticalTable</code> only works with {@link sap.ui.model.analytics.AnalyticalBinding AnalyticalBinding} and
+	 * Table that handles analytical OData V2 back-end scenarios. The <code>AnalyticalTable</code> only works with {@link sap.ui.model.analytics.AnalyticalBinding AnalyticalBinding} and
 	 * correctly annotated OData services. Please check out the functionality of analytical binding and the SAP Annotations for OData Version 2.0 documentation for further details.
+	 * For an analytical-table-like behavior with OData V4 services, use the {@link sap.ui.table.Table Table} control with the {@link sap.ui.table.plugins.ODataV4Aggregation ODataV4Aggregation} plugin.
 	 * @see https://github.com/SAP/odata-vocabularies/blob/main/docs/v2-annotations.md
+	 * @see {@link topic:148892ff9aea4a18b912829791e38f3e Tables: Which One Should I Choose?}
 	 *
 	 * @extends sap.ui.table.Table
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -193,17 +195,13 @@ sap.ui.define([
 	};
 
 	AnalyticalTable.prototype._getContexts = function(iStartIndex, iLength, iThreshold) {
-		if (!this.getVisible()) {
+		const oBinding = this.getBinding();
+
+		if (!oBinding || !this.getVisible() && oBinding.isSuspended()) {
 			return [];
 		}
 
-		const oBinding = this.getBinding();
-		if (oBinding) {
-			// first call getContexts to trigger data load but return nodes instead of contexts
-			return oBinding.getNodes(iStartIndex, iLength, iThreshold);
-		} else {
-			return [];
-		}
+		return oBinding.getNodes(iStartIndex, iLength, iThreshold);
 	};
 
 	AnalyticalTable.prototype._getRowContexts = TreeTable.prototype._getRowContexts;
@@ -231,7 +229,7 @@ sap.ui.define([
 		this._aGroupedColumns = [];
 		this._bSuspendUpdateAnalyticalInfo = false;
 
-		TableUtils.Grouping.setToDefaultGroupMode(this);
+		TableUtils.Grouping.setHierarchyMode(this, TableUtils.Grouping.HierarchyMode.Group);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.UpdateState, updateRowState, this);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.Expand, expandRow, this);
 		TableUtils.Hook.register(this, TableUtils.Hook.Keys.Row.Collapse, collapseRow, this);
@@ -355,10 +353,29 @@ sap.ui.define([
 
 		if (sName === "rows") {
 			this._updateTotalRow(true);
-			TableUtils.Binding.metadataLoaded(this).then(function() {
+			this._metadataLoaded().then(function() {
 				this._updateColumns(true);
 			}.bind(this));
 		}
+	};
+
+	AnalyticalTable.prototype._metadataLoaded = function() {
+		const oModel = this.getBinding()?.getModel() ?? null;
+		const oMetadataLoaded = Promise.withResolvers();
+
+		if (!oModel) {
+			oMetadataLoaded.reject();
+		} else if (oModel.metadataLoaded) { // v2
+			oModel.metadataLoaded().then(() => oMetadataLoaded.resolve());
+		} else if (oModel.attachMetadataLoaded) { // v1
+			if (oModel.oMetadata?.isLoaded()) {
+				oMetadataLoaded.resolve();
+			} else {
+				oModel.attachMetadataLoaded(() => oMetadataLoaded.resolve());
+			}
+		}
+
+		return oMetadataLoaded.promise;
 	};
 
 	AnalyticalTable.prototype._applyAnalyticalBindingInfo = function(oBindingInfo) {
@@ -506,13 +523,6 @@ sap.ui.define([
 				$td.toggleClass("sapUiTableCellHidden", bHideCellContent);
 			}
 		}
-	};
-
-	/**
-	 * @inheritDoc
-	 */
-	AnalyticalTable.prototype.getContextByIndex = function(iIndex) {
-		return this._oProxy.getContextByIndex(iIndex);
 	};
 
 	/**
@@ -1035,7 +1045,7 @@ sap.ui.define([
 	 */
 	AnalyticalTable.prototype.getAnalyticalInfoOfRow = function(oRow) {
 		const oBinding = this.getBinding();
-		const oContext = oRow ? oRow.getRowBindingContext() : null;
+		const oContext = oRow ? TableUtils.getBindingContextOfRow(oRow) : null;
 
 		if (!TableUtils.isA(oRow, "sap.ui.table.Row") || oRow.getParent() !== this || !oBinding || !oContext) {
 			return null;

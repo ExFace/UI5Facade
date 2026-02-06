@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define(["sap/ui/core/Lib", "sap/ui/base/DataType", "sap/ui/core/library"]
 	 * @namespace
 	 * @alias sap.ui.support
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.50
 	 * @public
 	 */
@@ -38,7 +38,7 @@ sap.ui.define(["sap/ui/core/Lib", "sap/ui/base/DataType", "sap/ui/core/library"]
 		controls: [],
 		elements: [],
 		noLibraryCSS: true,
-		version: "1.136.0",
+		version: "1.144.0",
 		extensions: {
 			//Configuration used for rule loading of Support Assistant
 			"sap.ui.support": {
@@ -250,7 +250,9 @@ sap.ui.define(["sap/ui/core/Lib", "sap/ui/base/DataType", "sap/ui/core/library"]
 				{ ruleId: "jQueryThreeDeprecation", libName: "sap.ui.core" },
 				{ ruleId: "deprecatedJSViewUsage", libName: "sap.ui.core" },
 
-				{ ruleId: "smartTableDeprecatedModel", libName: "sap.ui.comp" }
+				{ ruleId: "smartTableDeprecatedModel", libName: "sap.ui.comp" },
+				{ ruleId: "deprecatedIllustrationSize", libName: "sap.m" },
+				{ ruleId: "deprecatedIllustrationType", libName: "sap.m" }
 			]
 		}
 	};

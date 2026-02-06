@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,13 +16,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.46
 	 * @alias sap.ui.rta.command.Combine
 	 */
-	var Combine = FlexCommand.extend("sap.ui.rta.command.Combine", {
+	const Combine = FlexCommand.extend("sap.ui.rta.command.Combine", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -48,11 +48,11 @@ sap.ui.define([
 	 * @override
 	 */
 	Combine.prototype._getChangeSpecificData = function() {
-		var aFieldIds = [];
+		const aFieldIds = [];
 		this.getCombineElements().forEach(function(oField) {
 			aFieldIds.push(oField.getId());
 		});
-		var mSpecificInfo = {
+		const mSpecificInfo = {
 			changeType: this.getChangeType(),
 			content: {
 				newElementId: this.getNewElementId(),

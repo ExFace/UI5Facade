@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -97,6 +97,17 @@ sap.ui.define([
 				this.getDataState().setValue(this.oValue);
 				this.checkDataState();
 				this._fireChange({ reason: ChangeReason.Change });
+			}
+		};
+
+		ConditionModelPropertyBinding.prototype.hasValidation = function() {
+			// to fire ValidationSuccess if conditions are updated.
+			// Normally no Type is used in this binding as parsing and validation is made on binding for inner Control in FilterField
+			// If Condition added via ValueHelp no parsing and validation is needed, but in this case ValidationSuccess need to be fired too
+			if (this.getResolvedPath().startsWith("/conditions")) {
+				return true;
+			} else { // other bindings -> use default logic
+				return JSONPropertyBinding.prototype.hasValidation.apply(this, arguments);
 			}
 		};
 

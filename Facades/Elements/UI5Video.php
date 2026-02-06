@@ -84,7 +84,7 @@ JS;
      */
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        $controller->addExternalModule('libs.exface.ui5Custom.VideoPlayer', 'vendor/exface/UI5Facade/Facades/js/ui5Custom/VideoPlayer');
+        $controller->addExternalModule('libs.exface.ui5Custom.VideoPlayer', 'vendor/exface/ui5facade/Facades/js/ui5Custom/VideoPlayer');
         return $this;
     }
     

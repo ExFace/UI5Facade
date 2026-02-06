@@ -1,12 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\DataTypes\BooleanDataType;
+use exface\Core\DataTypes\StringDataType;
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
 use exface\Core\Interfaces\Widgets\iHaveHintScale;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\Widgets\ColorIndicator;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
+use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5FAcade\Facades\UI5PropertyBinding;
 
 /**
@@ -27,6 +30,10 @@ class UI5ObjectStatus extends UI5Display
 {    
     use UI5ColorClassesTrait;
     
+    protected const CSS_COLOR_CLASS = '.exf-custom-color.exf-color-[#color#]';
+    protected const CSS_OBJECT_STATUS_TEXT = ' .sapMObjStatusText';
+    protected const CFG_TEXT_COLOR_PREFERENCE = 'WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE';
+    
     private $title = null;
     
     private $inverted = false;
@@ -45,7 +52,12 @@ class UI5ObjectStatus extends UI5Display
             } else {
                 $colorCss = 'color: [#color#]';
             }
-            $this->registerColorClasses($this->getWidget()->getColorScale(), '.exf-custom-color.exf-color-[#color#] .sapMObjStatusText', $colorCss);
+            
+            $this->registerColorClasses(
+                $this->getWidget()->getColorScale(),
+                self::CSS_COLOR_CLASS . self::CSS_OBJECT_STATUS_TEXT,
+                $colorCss
+            );
         }
         return <<<JS
         
@@ -60,7 +72,22 @@ class UI5ObjectStatus extends UI5Display
         
 JS;
     }
-    
+
+    /**
+     * @inheritDoc
+     */
+    public function registerExternalModules(UI5ControllerInterface $controller): UI5AbstractElement
+    {
+        $controller->addExternalModule(
+            'libs.exface.exfColorTools',
+            $this->getFacade()->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"),
+            null,
+            'exfColorTools'
+        );
+        
+        return parent::registerExternalModules($controller);
+    }
+
     /**
      * 
      * {@inheritDoc}
@@ -200,6 +227,7 @@ JS;
         }
 
         $widget = $this->getWidget();
+        $jsEmpty = $this->getValueBindingFormatter()->getJsFormatter()->getJsEmptyText('mVal');
         switch (true) {
             case ($widget instanceof iHaveHintScale) && ! $widget->getHintScale()->isEmpty():
                 $scale = $widget->getHintScale();
@@ -208,14 +236,14 @@ JS;
                     formatter: function(mVal){
                         var sHint = {$this->buildJsScaleResolver('mVal', $scale->getScaleValues(), $scale->isRangeBased())};
                         if (sHint === null || sHint === undefined) {
-                            sHint = (mVal || '').toString();
+                            sHint = (mVal || {$jsEmpty}).toString();
                         }
                         return sHint;
                     },
 JS);
                 return 'tooltip: ' . $value .',';
             case $widget->isInTable() === true && $this->isValueBoundToModel():
-                $value = $this->buildJsValueBinding('formatter: function(value){return (value === null || value === undefined) ? value : value.toString();},');
+                $value = $this->buildJsValueBinding("formatter: function(mVal){return (mVal === null || mVal === undefined) ? {$jsEmpty} : mVal.toString();},");
                 return 'tooltip: ' . $value .',';
         }
         
@@ -274,14 +302,15 @@ JS;
                     var sColor = {$colorResolverJs};
                     var sValueColor;
                     var oCtrl = this;
+                    
                     if (sColor.startsWith('~')) {
                         var oColorScale = {$semColsJs};
                         {$this->buildJsColorCssSetter('oCtrl', 'null')}
                         return oColorScale[sColor];
-                    } else if (sColor) {
+                    } else {
                         {$this->buildJsColorCssSetter('oCtrl', 'sColor')}
+                        return {$this->buildJsColorValueNoColor()};
                     }
-                    return {$this->buildJsColorValueNoColor()};
                 }
                 
 JS;
@@ -327,5 +356,68 @@ JS;
         // Make sure the value binding ist always `text` and not `src` for booleans because
         // the ObjectStatus does not show booleans as icons
         return 'text';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function colorToCss(string $color, string $value, string $selector, string $properties): string
+    { 
+        $text = Colors::isDark($color, 1 - $this->getTextColorPreference()) ? '#ffffff' : '#000000';
+        
+        return $this->buildCssClasses(
+            ['color' => $color, 'value' => $value, 'text' => $text],
+            [
+                $selector => $properties,
+                self::CSS_COLOR_CLASS . ' > span' => 'color: [#text#] !important'
+            ]
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function buildJsColorClassInjector(string $colorJs = 'sColor', string $colorSuffixJs = 'sColorClassSuffix'): string
+    {
+        $class = StringDataType::replacePlaceholders(self::CSS_COLOR_CLASS, ['color' => '%COLOR%']);
+
+        $color = $this->isInverted() ? 'background-color: [#color#]' : 'color: [#color#]';
+        $cssTemplate = $this->buildCssClasses(
+            ['color' => '#%COLOR%', 'text' => '%TEXT%'], 
+            [ 
+                $class . self::CSS_OBJECT_STATUS_TEXT => $color,
+                $class . ' > span' => 'color: [#text#] !important'
+            ]
+        );
+
+        return <<<JS
+
+        (function (sColor, sSuffix) {
+            var classId = 'free_color_' + sSuffix;
+            var jqTag = $('#' + classId);
+            if (jqTag.length === 0) {
+                var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, {$this->getTextColorPreference()});
+                var text = ('{$cssTemplate}')
+                    .replace(/#%COLOR%/g, sColor)
+                    .replace(/%COLOR%/g, sSuffix)
+                    .replace(/%TEXT%/g, sTextColor);
+                
+                $('head').append($('<style type="text/css" id="' + classId + '"></style>').text(text));
+            }
+        })({$colorJs}, $colorSuffixJs)
+JS;
+    }
+
+    /**
+     * @return float
+     */
+    protected function getTextColorPreference() : float
+    {
+        $cfg = $this->getWorkbench()->getApp('exface.UI5Facade')->getConfig();
+        if($cfg->hasOption(self::CFG_TEXT_COLOR_PREFERENCE)) {
+            return $cfg->getOption(self::CFG_TEXT_COLOR_PREFERENCE);
+        }
+        
+        return 0.5;
     }
 }

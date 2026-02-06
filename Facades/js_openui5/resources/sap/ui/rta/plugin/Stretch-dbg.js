@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.rta.plugin.Plugin
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -64,7 +64,7 @@ sap.ui.define([
 	}
 
 	function toggleStyleClass(oOverlay, bAddClass) {
-		var oElement = oOverlay.getElement();
+		const oElement = oOverlay.getElement();
 		if (oElement.addStyleClass && oElement.removeStyleClass) {
 			if (bAddClass) {
 				oElement.addStyleClass(Stretch.STRETCHSTYLECLASS);
@@ -72,12 +72,13 @@ sap.ui.define([
 				oElement.removeStyleClass(Stretch.STRETCHSTYLECLASS);
 			}
 		} else {
-			var oElementDomRef = oOverlay.getAssociatedDomRef();
-			if (oElementDomRef) {
+			const vElementDomRef = oOverlay.getAssociatedDomRef();
+			if (vElementDomRef) {
+				const aElementDomRef = Array.isArray(vElementDomRef) ? vElementDomRef : [vElementDomRef];
 				if (bAddClass) {
-					oElementDomRef.classList.add(Stretch.STRETCHSTYLECLASS);
+					aElementDomRef.forEach((oElementDomRef) => oElementDomRef.classList.add(Stretch.STRETCHSTYLECLASS));
 				} else {
-					oElementDomRef.classList.remove(Stretch.STRETCHSTYLECLASS);
+					aElementDomRef.forEach((oElementDomRef) => oElementDomRef.classList.remove(Stretch.STRETCHSTYLECLASS));
 				}
 			}
 		}

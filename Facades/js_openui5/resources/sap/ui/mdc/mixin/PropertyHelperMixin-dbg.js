@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,7 +39,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @alias sap.ui.mdc.mixin.PropertyHelperMixin
 	 * @namespace
 	 * @since 1.100.0
@@ -298,9 +298,8 @@ sap.ui.define([
 				return [aProperties, PropertyHelper];
 			});
 		}).then((aResult) => {
-			return PropertyHelperUtil.checkValidationExceptions().then((bValidationDisabled) => {
-				return aResult.concat(bValidationDisabled);
-			});
+			const bValidationDisabled = PropertyHelperUtil.checkValidationExceptions();
+			return Promise.resolve(aResult.concat(bValidationDisabled));
 		}).then((aResult) => {
 			if (this.isDestroyed()) {
 				return undefined;
@@ -311,8 +310,8 @@ sap.ui.define([
 			const [aProperties, PropertyHelper, bValidationDisabled] = aResult;
 
 			if (bValidationDisabled) {
-				future.errorThrows(`PropertyInfo validation is disabled for control ${this.getId()}.`, {
-					suffix: `Migrate this control's propertyInfo to avoid breaking changes in the future.`
+				future.warningThrows(`PropertyInfo validation is disabled for control ${this.getId()}.`, {
+					suffix: "This exemption will be removed in UI5 2.0."
 				});
 			}
 

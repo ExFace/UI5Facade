@@ -1,7 +1,7 @@
 //@ui5-bundle sap/ui/fl/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -23,7 +23,7 @@ sap.ui.predefine("sap/ui/fl/library.support", [
 ) {
 	"use strict";
 
-	const {Categories, Audiences, Severity} = SupportLib;
+	const { Categories, Audiences, Severity } = SupportLib;
 
 	function findAppComponent(aElements) {
 		var oAppComponent;

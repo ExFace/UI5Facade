@@ -26,13 +26,13 @@
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 1724,
+			"size": 1623,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 976,
+			"size": 1074,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -44,7 +44,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 941,
+			"size": 1043,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 196060,
+			"size": 195667,
 			"theme": "sap_horizon_hcb"
 		},
 		{
@@ -73,12 +73,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 195593,
+			"size": 195200,
 			"theme": "sap_horizon_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 19306,
+			"size": 19405,
 			"designtime": true,
 			"theme": "sap_horizon_hcb"
 		},
@@ -90,7 +90,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 1742
+			"size": 1744
 		}
 	]
 }

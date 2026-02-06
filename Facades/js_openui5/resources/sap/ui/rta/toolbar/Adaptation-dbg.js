@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.rta.toolbar.Base
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -127,8 +127,8 @@ sap.ui.define([
 
 	Adaptation.prototype.exit = function(...aArgs) {
 		window.removeEventListener("resize", this._onResize);
-		this._aIntersectionObservers.forEach(function(oInstersectionObserver) {
-			oInstersectionObserver.disconnect();
+		(this._aIntersectionObservers || []).forEach(function(oIntersectionObserver) {
+			oIntersectionObserver.disconnect();
 		});
 		Base.prototype.exit.apply(this, aArgs);
 	};
@@ -284,6 +284,8 @@ sap.ui.define([
 					overviewForDeveloper: onOverviewForDeveloperPressed.bind(this),
 					restore: this.eventHandler.bind(this, "Restore"),
 					formatSaveAsEnabled,
+					formatManageAppVariants: formatAppVariantsEnabled.bind(this),
+					formatSaveAsAppVariants: formatSaveAsAppVariantsEnabled.bind(this),
 					saveAs: onSaveAsPressed.bind(this),
 					openWhatsNewOverviewDialog,
 					openGuidedTour
@@ -378,6 +380,15 @@ sap.ui.define([
 		return bGeneralSaveAsEnabled && sDisplayedVersion !== Version.Number.Draft;
 	}
 
+	function formatAppVariantsEnabled(bAppVariantsMenuEnabled) {
+		return bAppVariantsMenuEnabled ? null : this.getTextResources().getText("TOOLTIP_MANAGE_APPS_TXT_DISABLED");
+	}
+
+	function formatSaveAsAppVariantsEnabled(bAppVariantSaveAsEnabled, sDisplayedVersion) {
+		return (bAppVariantSaveAsEnabled && sDisplayedVersion !== Version.Number.Draft)
+			? null : this.getTextResources().getText("TOOLTIP_SAVE_AS_APP_VARIANT_DISABLED");
+	}
+
 	function onSaveAsPressed() {
 		AppVariantFeature.onSaveAs(true, true, this.getRtaInformation().flexSettings.layer, null);
 	}
@@ -394,7 +405,7 @@ sap.ui.define([
 			if (sAction !== MessageBox.Action.CANCEL) {
 				if (bDirty) {
 					return new Promise(function(resolve) {
-						this.fireEvent("save", {callback: resolve});
+						this.fireEvent("save", { callback: resolve });
 					}.bind(this))
 					.then(function() {
 						return performMigration.call(this, oRtaInformation);
@@ -422,7 +433,7 @@ sap.ui.define([
 		}))
 		.then(function() {
 			return new Promise(function(resolve) {
-				this.fireEvent("switchAdaptation", {adaptationId: "DEFAULT", callback: resolve});
+				this.fireEvent("switchAdaptation", { adaptationId: "DEFAULT", callback: resolve });
 			}.bind(this));
 		}.bind(this))
 		.catch(function(oError) {
@@ -463,7 +474,7 @@ sap.ui.define([
 
 	function handleError(oError) {
 		if (oError !== "cancel") {
-			Utils.showMessageBox("error", "MSG_LREP_TRANSFER_ERROR", {error: oError});
+			Utils.showMessageBox("error", "MSG_LREP_TRANSFER_ERROR", { error: oError });
 			Log.error(`sap.ui.rta: ${oError.stack || oError.message || oError}`);
 		}
 	}
@@ -481,12 +492,12 @@ sap.ui.define([
 	}
 
 	function onSwitchAdaptations(sAdaptationId) {
-		this.fireEvent("switchAdaptation", {adaptationId: sAdaptationId});
+		this.fireEvent("switchAdaptation", { adaptationId: sAdaptationId });
 	}
 
 	function formatAdaptationsMenuText(iCount, sTitle) {
 		if (iCount > 0) {
-			if (sTitle === "") {
+			if (!sTitle) {
 				return this.getTextResources().getText("TXT_DEFAULT_APP");
 			}
 			return this.getTextResources().getText("BTN_ADAPTING_FOR", [sTitle]);
@@ -547,6 +558,8 @@ sap.ui.define([
 		oUrlParams.set("feature", (oFeedbackUrlParams.connector === "KeyUserConnector" ? "BTP" : "ABAP"));
 		oUrlParams.set("appId", oFeedbackUrlParams.appId);
 		oUrlParams.set("appVersion", oFeedbackUrlParams.appVersion);
+		// Add product filter for qualtrics colleagues
+		oUrlParams.set("product_filter", "Key%20User%20Adaptation");
 
 		var oFeedbackDialogModel = new JSONModel({
 			url: `${sURL}?${oUrlParams.toString()}`

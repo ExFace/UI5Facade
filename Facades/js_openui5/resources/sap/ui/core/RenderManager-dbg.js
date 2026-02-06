@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,6 +45,8 @@ sap.ui.define([
 
 	"use strict";
 	/*global SVGElement*/
+
+	const mOwnerInfo = new Map();
 
 	var Element;
 
@@ -96,7 +98,9 @@ sap.ui.define([
 	 *
 	 * @class A class that handles the rendering of controls.
 	 *
-	 * For the default rendering task of UI5, a shared RenderManager is created and owned by <code>sap.ui.core.Core</code>.
+	 * For the default rendering task of UI5, a shared RenderManager is created and owned by
+	 * the framework.
+	 *
 	 * Controls or other code that want to render controls outside the default rendering task
 	 * can create a private instance of RenderManager by calling the
 	 * {@link sap.ui.core.Core#createRenderManager sap.ui.getCore().createRenderManager()} method.
@@ -237,11 +241,10 @@ sap.ui.define([
 	 * setting the <code>canSkipRendering</code> property to <code>true</code> lets the <code>RenderManager</code> know that the parent control's accessibility enhancement is static and does not interfere with the child control's rendering optimization.
 	 *
 	 * @see sap.ui.core.Core
-	 * @see sap.ui.getCore
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @alias sap.ui.core.RenderManager
 	 * @hideconstructor
 	 * @public
@@ -1139,6 +1142,13 @@ sap.ui.define([
 				return this;
 			}
 
+			if (oControl._sOwnerId && !mOwnerInfo.get(oControl._sOwnerId)) {
+				mOwnerInfo.set(oControl._sOwnerId, Interaction.createOwnerComponentInfo(oControl)?.id);
+			}
+			const sAppComponentId = mOwnerInfo.get(oControl._sOwnerId);
+
+			const fnDone = Interaction.notifyControlRendering?.(sAppComponentId);
+
 			var oDomRef, oRenderer;
 			var bTriggerBeforeRendering = true;
 
@@ -1229,6 +1239,8 @@ sap.ui.define([
 					aBuffer = [];
 				}
 			}
+
+			fnDone?.();
 
 			return this;
 		};
@@ -1568,7 +1580,7 @@ sap.ui.define([
 					}
 
 				}
-			}, fnDone, oTargetDomNode);
+			}, () => {fnDone(); mOwnerInfo.clear();}, oTargetDomNode);
 		};
 
 		/**

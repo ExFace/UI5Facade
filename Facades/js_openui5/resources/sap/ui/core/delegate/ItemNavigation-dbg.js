@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,7 +82,7 @@ sap.ui.define([
 	 * @param {Element[]} aItemDomRefs Array of DOM references representing the items for the navigation
 	 * @param {boolean} [bNotInTabChain=false] Whether the selected element should be in the tab chain or not
 	 *
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @alias sap.ui.core.delegate.ItemNavigation
 	 * @public
 	 */
@@ -568,7 +568,7 @@ sap.ui.define([
 					}
 				}
 				if (iIndex != iOldIndex) {
-					this.focusItem(iIndex, oEvent);
+					this.focusItem(iIndex, oEvent, bPreventScroll);
 				}
 			}
 			return;

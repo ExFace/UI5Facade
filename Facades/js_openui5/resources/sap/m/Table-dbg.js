@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 	// shortcut for sap.m.PopinLayout
 	var PopinLayout = library.PopinLayout;
 
-	// shortcut for sap.m.Screensize
+	// shortcut for sap.m.ScreenSizes
 	var ScreenSizes = library.ScreenSizes;
 
 	/**
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -670,7 +670,7 @@ sap.ui.define([
 	Table.prototype.onmousedown = function(oEvent) {
 		this._bMouseDown = true;
 		var sOldTabIndex;
-		var oFocusableCell = oEvent.target.closest(".sapMTblCellFocusable:not([aria-haspopup])");
+		var oFocusableCell = oEvent.target.closest(".sapMTblCellFocusable:not([aria-haspopup],.sapMListTblSubCnt)");
 		if (oFocusableCell && !document.activeElement.classList.contains("sapMTblCellFocusable")) {
 			sOldTabIndex = oFocusableCell.getAttribute("tabindex");
 			oFocusableCell.removeAttribute("tabindex");
@@ -908,16 +908,20 @@ sap.ui.define([
 		Util.hideSelectionLimitPopover();
 
 		if (this._selectAllCheckBox && this.getMultiSelectMode() != "ClearAll") {
-			var aItems = this.getItems(),
+			const aItems = this.getItems(),
 				iSelectedItemCount = this.getSelectedItems().length,
 				iSelectableItemCount = aItems.filter(function(oItem) {
 					return oItem.isSelectable();
 				}).length;
 
 			// set state of the checkbox by comparing item length and selected item length
-			var bSelected = aItems.length > 0 && iSelectedItemCount == iSelectableItemCount;
+			const bSelected = aItems.length > 0 && iSelectedItemCount == iSelectableItemCount;
 			this.$("tblHeader").find(".sapMTblCellFocusable").addBack().attr("aria-selected", bSelected);
 			this._selectAllCheckBox.setSelected(bSelected);
+
+			const oBundle = Library.getResourceBundleFor("sap.m");
+			const sCheckedState = bSelected ? oBundle.getText("ACC_CTR_STATE_CHECKED") : oBundle.getText("ACC_CTR_STATE_NOT_CHECKED");
+			this.$("tblHeadModeCol").attr("aria-description", oBundle.getText("TABLE_SELECTION_COLUMNHEADER_DESCRIPTION") + " " + sCheckedState);
 		} else if (this._clearAllIcon) {
 			this._clearAllIcon.toggleStyleClass("sapMTableDisableClearAll", !this.getSelectedItems().length);
 		}
@@ -1151,8 +1155,6 @@ sap.ui.define([
 		} else if (oTarget.id == this.getId("tblFooter")) {
 			this._setFooterAnnouncement();
 			this._setFirstLastVisibleCells(oTarget);
-		} else if (oTarget.id == this.getId("nodata")) {
-			this._setFirstLastVisibleCells(oTarget);
 		} else if (!this._bIgnoreFocusIn && this.getShowOverlay()) {
 			this._bIgnoreFocusIn = true;
 			this.$("overlay").trigger("focus");
@@ -1188,7 +1190,7 @@ sap.ui.define([
 			return; // no pasted data
 		}
 
-		//var oRow = sap.ui.getCore().byId(jQuery(oEvent.target).closest(".sapMLIB").attr("id"));
+		// var oRow = Element.getElementById(jQuery(oEvent.target).closest(".sapMLIB").attr("id"));
 		this.firePaste({data: aData});
 	};
 
@@ -1247,41 +1249,35 @@ sap.ui.define([
 	 * Returns the sum of internal columns that are created by the table like "Mode" & "Type" as a float value.
 	 * This is required for accurately calculating the <code>minScreenWidth</code> property of the columns when the <code>autoPopinMode=true</code>.
 	 *
-	 * @param {sap.m.ColumnListItem[]} aItems - table items
 	 * @returns {float} initial accumulated width
 	 * @private
 	 */
-	Table.prototype._getInitialAccumulatedWidth = function(aItems) {
+	Table.prototype._getInitialAccumulatedWidth = function() {
+		// check if compact mode is enabled
+		const bCompact = this.$().closest(".sapUiSizeCompact").length > 0;
+		const iThemeDensityWidth = bCompact ? 2 : 3;
+
 		// check if table has inset
-		var iInset = this.getInset() ? 4 : 0;
+		const iInset = this.getInset() ? 4 : 0;
 
-		var $this = this.$(),
-			iThemeDensityWidth = 3;
-
-		if ($this.closest(".sapUiSizeCompact").length || jQuery(document.body).hasClass("sapUiSizeCompact")) {
-			iThemeDensityWidth = 2;
-		} else {
-			var bThemeDensityWidthFound = false;
-			$this.find(".sapMTableTH[aria-hidden=true]:not(.sapMListTblHighlightCol):not(.sapMListTblDummyCell):not(.sapMListTblNavigatedCol)").get().forEach(function(oTH) {
-				var iWidth = jQuery(oTH).width();
-				if (!bThemeDensityWidthFound && iWidth > 0) {
-					iThemeDensityWidth = iWidth / parseFloat(library.BaseFontSize);
-					bThemeDensityWidthFound = true;
-				}
-			});
-		}
+		// check if item types are rendered
+		const iTypeWidth = this.doItemsNeedTypeColumn() ? iThemeDensityWidth : 0;
 
 		// check if selection control is available
-		var iSelectionWidth = ListBaseRenderer.ModeOrder[this.getMode()] ? iThemeDensityWidth : 0;
+		let iModeWidth = ListBaseRenderer.ModeOrder[this.getMode()] ? iThemeDensityWidth : 0;
 
-		// check if actions are available on the item
-		var iActionWidth = aItems.some(function(oItem) {
-			var sType = oItem.getType();
-			return sType === "Detail" || sType === "DetailAndActive" || sType === "Navigation";
-		}) ? iThemeDensityWidth : 0;
+		// check item actions
+		let iItemActionWidth = 0;
+		const iItemActionCount = this._getItemActionCount();
+		if (iItemActionCount > -1) {
+			iItemActionWidth = iItemActionCount * (bCompact ? 2.5 : 2.75);
+			if (this.getMode() === "Delete") {
+				iModeWidth = 0;
+			}
+		}
 
 		// borders = ~0.25rem
-		return iInset + iSelectionWidth + iActionWidth + 0.25;
+		return iInset + iTypeWidth + iModeWidth + iItemActionWidth + 0.25;
 	};
 
 	/**

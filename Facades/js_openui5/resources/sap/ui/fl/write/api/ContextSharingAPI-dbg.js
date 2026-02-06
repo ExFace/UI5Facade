@@ -1,23 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Component",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/ui/fl/write/api/ContextBasedAdaptationsAPI",
 	"sap/ui/core/ComponentContainer",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
+	"sap/ui/fl/write/api/ContextBasedAdaptationsAPI",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/registry/Settings"
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	Component,
-	ManifestUtils,
-	ContextBasedAdaptationsAPI,
 	ComponentContainer,
-	Layer,
-	Settings
+	ManifestUtils,
+	Settings,
+	ContextBasedAdaptationsAPI,
+	Layer
 ) {
 	"use strict";
 
@@ -46,8 +47,8 @@ sap.ui.define([
 			}
 			const sReference = ManifestUtils.getFlexReferenceForControl(mPropertyBag.variantManagementControl);
 			const oSettings = await Settings.getInstance();
-			const bIsEnabled = oSettings.isContextSharingEnabled()
-				&& !ContextBasedAdaptationsAPI.adaptationExists({reference: sReference, layer: Layer.CUSTOMER});
+			const bIsEnabled = oSettings.getIsContextSharingEnabled()
+				&& !ContextBasedAdaptationsAPI.adaptationExists({ reference: sReference, layer: Layer.CUSTOMER });
 			return bIsEnabled;
 		},
 
@@ -73,9 +74,9 @@ sap.ui.define([
 						name: "sap.ui.fl.variants.context", id: "contextSharing"
 					});
 					oComponent.showMessageStrip(true);
-					oComponent.setSelectedContexts({role: []});
+					oComponent.setSelectedContexts({ role: [] });
 					// Ensure view is fully loaded
-					oComponentContainer = new ComponentContainer("contextSharingContainer", {component: oComponent});
+					oComponentContainer = new ComponentContainer("contextSharingContainer", { component: oComponent });
 					await oComponent.getRootControl().oAsyncState.promise;
 					return oComponentContainer;
 				});

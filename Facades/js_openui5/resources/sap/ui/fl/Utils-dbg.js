@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	"sap/base/util/uid",
 	"sap/base/util/restricted/_isEqual",
 	"sap/base/Log",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/core/util/reflection/BaseTreeModifier",
@@ -25,6 +26,7 @@ sap.ui.define([
 	uid,
 	isEqual,
 	Log,
+	BindingInfo,
 	SyncPromise,
 	ManagedObject,
 	BaseTreeModifier,
@@ -65,7 +67,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.Utils
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.fl, sap.ui.rta
@@ -110,7 +112,7 @@ sap.ui.define([
 		isBinding(vPropertyValue, oContext) {
 			let sBinding;
 			try {
-				sBinding = ManagedObject.bindingParser(vPropertyValue, oContext);
+				sBinding = BindingInfo.parse(vPropertyValue, oContext);
 			} catch (e) {
 				return false;
 			}
@@ -325,7 +327,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * See {@link sap.ui.core.BaseTreeModifier#hasLocalIdSuffix} method
+		 * See {@link sap.ui.core.util.reflection.BaseTreeModifier#hasLocalIdSuffix} method
 		 */
 		hasLocalIdSuffix: BaseTreeModifier.hasLocalIdSuffix,
 
@@ -469,7 +471,7 @@ sap.ui.define([
 		 * By default errors do not break the sequential execution of the queue, but this can be changed with the parameter bThrowError.
 		 * Error message will be written in any case.
 		 *
-		 * @param {array.<function>} aPromiseQueue - List of asynchronous functions that returns promises
+		 * @param {Array<function>} aPromiseQueue - List of asynchronous functions that returns promises
 		 * @param {boolean} bThrowError - true: errors will be re-thrown and therefore break the execution
 		 * @param {boolean} bAsync - true: asynchronous processing with Promise, false: synchronous processing with FakePromise
 		 * @param {boolean} bSuppressAdditionalErrorMessage - true: additional error message will be suppressed
@@ -533,7 +535,6 @@ sap.ui.define([
 		 * @private
 		 * @ui5-restricted
 		 */
-		// eslint-disable-next-line object-shorthand
 		FakePromise: function(vInitialValue, vError, sInitialPromiseIdentifier) {
 			Utils.FakePromise.fakePromiseIdentifier = "sap.ui.fl.Utils.FakePromise";
 			this.vValue = vInitialValue;
@@ -560,6 +561,8 @@ sap.ui.define([
 			 * @returns {sap.ui.fl.Utils.FakePromise|Promise} <code>FakePromise</code> if no promise is returned by the resolve handler
 			 * @private
 			 * @ui5-restricted sap.ui.fl, sap.ui.rta, ui5 internal tests
+			 * @name sap.ui.fl.Utils.FakePromise#then
+			 * @function
 			 */
 			Utils.FakePromise.prototype.then = function(fnSuccess, fnError) {
 				if (!this.bContinueWithFakePromise) {
@@ -581,6 +584,8 @@ sap.ui.define([
 			 *
 			 * @private
 			 * @ui5-restricted sap.ui.fl, sap.ui.rta
+			 * @name sap.ui.fl.Utils.FakePromise#catch
+			 * @function
 			 */
 			Utils.FakePromise.prototype.catch = function(fn) {
 				if (!this.bContinueWithFakePromise) {

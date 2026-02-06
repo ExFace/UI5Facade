@@ -8,77 +8,71 @@
 		},
 		{
 			"name": "ChangeVisualization.less",
-			"size": 830,
+			"size": 967,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 971,
+			"size": 819,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 1155,
-			"designtime": true,
-			"theme": "sap_horizon_hcw"
-		},
-		{
-			"name": "FieldRepository.less",
-			"size": 444,
+			"size": 1257,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 858,
+			"size": 853,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 2444,
+			"size": 2294,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 662,
+			"size": 444,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 28098,
+			"size": 26453,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/rta/themes/sap_horizon_hcw/library-parameters.json",
-			"size": 3738,
+			"size": 3242,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 28073,
+			"size": 26447,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 8342,
+			"size": 7542,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 537,
+			"size": 505,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "resources.json",
-			"size": 1507
+			"size": 1394
 		}
 	]
 }

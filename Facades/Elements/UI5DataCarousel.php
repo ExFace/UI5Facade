@@ -1,7 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\ExpressionFactory;
 use exface\Core\Interfaces\Widgets\iShowSingleAttribute;
+use exface\Core\CommonLogic\DataSheets\DataColumn;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataCarouselTrait;
 use exface\Core\Factories\ActionFactory;
@@ -33,6 +35,8 @@ use exface\Core\Widgets\WidgetGrid;
 class UI5DataCarousel extends UI5Split
 {
     use JqueryDataCarouselTrait;
+
+    private $sizesInitial = [];
     
     /**
      * 
@@ -51,10 +55,17 @@ class UI5DataCarousel extends UI5Split
             // position when the view/dialog is reopened
             ->addOnHideViewScript($initSplitter, true);
         
+        $heightDim = $this->getWidget()->getHeight();
+        if ($heightDim->isUndefined()) {
+            $heightCss = '100%';
+        } else {
+            $heightCss = $this->buildCssHeight();
+        }
+        
         $splitter = <<<JS
         
     new sap.ui.layout.Splitter("{$this->getId()}", {
-        height: "100%",
+        height: "{$heightCss}",
         width: "100%",
         orientation: "{$this->getOrientation()}",
         contentAreas: [
@@ -93,7 +104,37 @@ JS;
         }
         
         if (method_exists($dataElem, 'buildJsSelectRowByIndex')) {
+            $hasLabelAlias = $this->getWidget()->getDetailTitleColumn() !== null;
+            $hasLabelAliasJs = $this->escapeBool($hasLabelAlias);
+
+            $labelAlias = 'none'; 
+            if ($hasLabelAlias === true){
+                // for formulas, the sanitized name is needed, otherwise special chars throw js errors
+                $labelExpression = ExpressionFactory::createFromString($this->getWorkbench(), $this->getWidget()->getDetailTitleColumn());
+                $labelAlias = DataColumn::sanitizeColumnName($labelExpression->__toString());
+            }
+
             $prevNextButtonsJs = <<<JS
+                            new sap.m.Label({
+                                design: "Bold",
+                                text: {
+                                    path: "_innerState>/currentRowIdx",
+                                    formatter: function(currentRowIdx) {
+                                        if (currentRowIdx >= 0 && {$hasLabelAliasJs} === true) {
+                                            // get model of left element for current index
+                                            var oTable = sap.ui.getCore().byId('{$dataElem->getId()}');
+                                            var oModel = oTable.getModel(); 
+                                            var oData = oModel.getProperty("/rows/" + currentRowIdx); 
+
+                                            // set as text if exists, otherwise empty string
+                                            return oData && oData.{$labelAlias} ? oData.{$labelAlias} : "";
+                                        }
+                                        return ""; // set empty if no row is selected
+                                    }
+                                }
+                            }),
+
+                            new sap.m.ToolbarSpacer(),
 
                             new sap.m.Button('{$this->getId()}-details-btn-prev', {
                                 icon: "sap-icon://navigation-left-arrow",
@@ -120,18 +161,30 @@ JS;
 JS;
         }
         
+        if ($detailElem->getWidget() instanceof iFillEntireContainer) {
+            $contentJs = $detailElem->buildJsConstructor();
+            $contentJs .= ".addStyleClass('exf-datacarousel-details-filler')";
+        }
+        
+        $detailsHeight = $this->getWidget()->getDetailsWidget()->getHeight();
+        if ($detailsHeight->isUndefined()) {
+            $detailsHeightCss = '100%';
+        } else {
+            $detailsHeightCss = $detailElem->buildCssHeight();
+        }
+        
         return <<<JS
 
             {$dataElem->buildJsConstructor()},
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
+                height: "{$detailsHeightCss}",
                 headerToolbar: [
                     new sap.m.OverflowToolbar({
                         content: [
-                            new sap.m.ToolbarSpacer(),
                             {$prevNextButtonsJs}
                             new sap.m.Button({
-                                icon: "{= \${_innerState>/detailsExpanded} === true ? 'sap-icon://exit-full-screen' : 'sap-icon://full-screen'}",
+                                icon: "{= \${_innerState>/detailsExpanded} === true ? 'sap-icon://resize-horizontal' : 'sap-icon://resize-horizontal'}",
                                 press: function(oEvent) {
                                     var oButton = oEvent.getSource();
                                     var oSplitter = sap.ui.getCore().byId('{$this->getId()}');
@@ -154,10 +207,10 @@ JS;
                     })
                 ],
                 content: [
-                    {$detailElem->buildJsConstructor()}
+                    {$contentJs}
                 ]
             })
-            .addStyleClass("{$this->buildCssElementClass()} {$detailClasses} exf-panel-no-border")
+            .addStyleClass("{$this->buildCssElementClass()} {$detailClasses} exf-panel-no-border exf-datacarousel-details")
 
 JS;
     }
@@ -212,7 +265,7 @@ JS;
             var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
             var oRowSelected = {$this->getDataElement()->buildJsDataGetter($action)}.rows[0];
             var oModel = oTable.getModel();
-            var iRowIdx = oModel.getData().rows.indexOf(oRowSelected);
+            var iRowIdx = exfTools.data.indexOfRow(oModel.getData().rows, oRowSelected);
             var sPath = '/rows/' + iRowIdx;
             var oControl, oBindingInfo;
             var oBtnPrev = sap.ui.getCore().byId('{$this->getId()}-details-btn-prev');

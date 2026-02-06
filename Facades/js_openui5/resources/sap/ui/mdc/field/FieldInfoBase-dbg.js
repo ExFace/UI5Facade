@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * A <code>FieldInfoBase</code> element is a base class that shows any kind of information related to the <code>Field</code> control, for example, navigation targets or contact details.
 	 * This is the basis for link-features. If the link is pressed a popover might be opened.
 	 * @extends sap.ui.mdc.Element
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.54.0
 	 * @public
@@ -121,7 +121,7 @@ sap.ui.define([
 	/**
 	 * Returns the content of the popover.
 	 * @param {Function} [fnGetAutoClosedControl] Function returning the <code>Popover</code> control that is created in <code>createPopover</code>
-	 * @returns {Promise<sap.ui.core.Control>} <code>Promise</code> with a popover content of type sap.ui.Control as result
+	 * @returns {Promise<sap.ui.core.Control>} <code>Promise</code> with a popover content of type sap.ui.core.Control as result
 	 * @public
 	 */
 	FieldInfoBase.prototype.getContent = function(fnGetAutoClosedControl) {

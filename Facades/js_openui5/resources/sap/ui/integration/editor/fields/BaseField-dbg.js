@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -22,7 +22,8 @@ sap.ui.define([
 	"sap/m/CustomListItem",
 	"sap/m/VBox",
 	"sap/ui/core/CustomData",
-	"sap/ui/model/Sorter"
+	"sap/ui/model/Sorter",
+	"sap/ui/integration/editor/Constants"
 ], function (
 	Control,
 	Text,
@@ -42,7 +43,8 @@ sap.ui.define([
 	CustomListItem,
 	VBox,
 	CustomData,
-	Sorter
+	Sorter,
+	Constants
 ) {
 	"use strict";
 
@@ -54,7 +56,7 @@ sap.ui.define([
 	 * @alias sap.ui.integration.editor.fields.BaseField
 	 * @author SAP SE
 	 * @since 1.83.0
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 * @experimental since 1.83.0
@@ -182,7 +184,7 @@ sap.ui.define([
 
 	BaseField.prototype.init = function () {
 		this._readyPromise = new Promise(function (resolve) {
-			this._fieldResolver = resolve;
+			this._fnFieldResolver = resolve;
 		}.bind(this));
 	};
 
@@ -250,7 +252,7 @@ sap.ui.define([
 		var that = this;
 		var oConfig = that.getConfiguration();
 		var sTranslationPath = "/texts";
-		var oData = this._settingsModel.getData();
+		var oData = this._oSettingsModel.getData();
 		if (!oData || !oData.texts) {
 			return;
 		}
@@ -263,9 +265,9 @@ sap.ui.define([
 				}
 				if (deepEqual(oTexts, {})) {
 					delete oData.texts;
-					this._settingsModel.setData(oData);
+					this._oSettingsModel.setData(oData);
 				} else {
-					this._settingsModel.setProperty(sTranslationPath, oTexts);
+					this._oSettingsModel.setProperty(sTranslationPath, oTexts);
 				}
 			}
 		} else {
@@ -565,7 +567,7 @@ sap.ui.define([
 
 	BaseField.prototype.initEditor = function (oConfig) {
 		var oControl;
-		this._settingsModel = this.getModel("currentSettings");
+		this._oSettingsModel = this.getModel("currentSettings");
 		this.initVisualization && this.initVisualization(oConfig);
 		if (this._visualization.editor) {
 			oControl = this._visualization.editor;
@@ -652,7 +654,7 @@ sap.ui.define([
 					this._triggerValidation(value);
 				}.bind(this));
 			}*/
-			var oBinding = this._settingsModel.bindProperty("value", this.getBindingContext("currentSettings"));
+			var oBinding = this._oSettingsModel.bindProperty("value", this.getBindingContext("currentSettings"));
 			oBinding.attachChange(function () {
 				this._triggerValidation(oConfig.value);
 			}.bind(this));
@@ -660,9 +662,9 @@ sap.ui.define([
 		}
 		//default is true, Card editor needs set to false for translation and page admin mode if needed
 		var sMode = this.getMode();
-		oConfig.allowSettings = oConfig.allowSettings || oConfig.allowSettings !== false && sMode === "admin";
+		oConfig.allowSettings = oConfig.allowSettings || oConfig.allowSettings !== false && sMode === Constants.EDITOR_MODE.ADMIN;
 		oConfig.allowDynamicValues = oConfig.allowDynamicValues || oConfig.allowDynamicValues !== false;
-		oConfig._changeDynamicValues = oConfig.visible && oConfig.editable && (oConfig.allowDynamicValues || oConfig.allowSettings) && sMode !== "translation";
+		oConfig._changeDynamicValues = oConfig.visible && oConfig.editable && (oConfig.allowDynamicValues || oConfig.allowSettings) && sMode !== Constants.EDITOR_MODE.TRANSLATION;
 		if (oConfig._changeDynamicValues) {
 			this._getDynamicField();
 		}
@@ -759,12 +761,12 @@ sap.ui.define([
 	BaseField.prototype._setCurrentProperty = function (sProperty, vValue) {
 		//avoid fire binding changes in the model
 		if (this._getCurrentProperty(sProperty) !== vValue) {
-			this._settingsModel.setProperty(sProperty, vValue, this.getBindingContext("currentSettings"));
+			this._oSettingsModel.setProperty(sProperty, vValue, this.getBindingContext("currentSettings"));
 		}
 	};
 
 	BaseField.prototype._getCurrentProperty = function (sProperty) {
-		return this._settingsModel.getProperty(sProperty, this.getBindingContext("currentSettings"));
+		return this._oSettingsModel.getProperty(sProperty, this.getBindingContext("currentSettings"));
 	};
 
 	BaseField.prototype._applySettings = function (oData) {
@@ -817,8 +819,8 @@ sap.ui.define([
 		} else {
 			this._showDynamicField();
 		}
-		this._fieldResolver && this._fieldResolver();
-		this._fieldResolver = null;
+		this._fnFieldResolver && this._fnFieldResolver();
+		this._fnFieldResolver = null;
 	};
 
 	BaseField.prototype._cancelSettings = function () {

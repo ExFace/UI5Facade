@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,13 +22,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.mdc
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.80
 	 * @public
 	 */
 	const thisLib = Library.init({
 		apiVersion: 2,
-		version: "1.136.0",
+		version: "1.144.0",
 		name: "sap.ui.mdc",
 		dependencies: ["sap.ui.core", "sap.m"],
 		...{
@@ -46,6 +46,7 @@ sap.ui.define([
 			"sap.ui.mdc.MultiSelectMode"
 		],
 		interfaces: [
+			"sap.ui.mdc.IActionLayoutData",
 			"sap.ui.mdc.IFilterSource",
 			"sap.ui.mdc.IFilter",
 			"sap.ui.mdc.IxState",
@@ -61,13 +62,15 @@ sap.ui.define([
 			"sap.ui.mdc.field.FieldBase",
 			"sap.ui.mdc.field.FieldInput",
 			"sap.ui.mdc.field.FieldMultiInput",
+			"sap.ui.mdc.field.FieldSelect",
 			"sap.ui.mdc.valuehelp.base.DefineConditionPanel",
 			"sap.ui.mdc.Field",
 			"sap.ui.mdc.FilterField",
 			"sap.ui.mdc.MultiValueField",
 			"sap.ui.mdc.link.Panel",
 			"sap.ui.mdc.Chart",
-			"sap.ui.mdc.p13n.PersistenceProvider"
+			"sap.ui.mdc.p13n.PersistenceProvider",
+			"sap.ui.mdc.Geomap"
 		],
 		elements: [
 			"sap.ui.mdc.table.Column",
@@ -77,6 +80,7 @@ sap.ui.define([
 			"sap.ui.mdc.table.GridTableType",
 			"sap.ui.mdc.table.ResponsiveTableType",
 			"sap.ui.mdc.table.RowSettings",
+			"sap.ui.mdc.table.ActionLayoutData",
 			"sap.ui.mdc.chart.Item",
 			"sap.ui.mdc.chart.ChartSelectionDetails",
 			"sap.ui.mdc.chart.SelectionButton",
@@ -105,7 +109,8 @@ sap.ui.define([
 			"sap.ui.mdc.valuehelp.content.FixedList",
 			"sap.ui.mdc.valuehelp.content.FixedListItem",
 			"sap.ui.mdc.valuehelp.content.MDCTable",
-			"sap.ui.mdc.valuehelp.content.MTable"
+			"sap.ui.mdc.valuehelp.content.MTable",
+            "sap.ui.mdc.geomap.Item"
 		],
 		extensions: {
 			flChangeHandlers: {
@@ -298,19 +303,21 @@ sap.ui.define([
 	/**
 	 * Defines if the typeahead containers values can be navigated without visibly opening the help
 	 *
-	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContent.shouldOpenOnNavigate
+	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContent.shouldOpenOnNavigate?
 	 * @function
 	 * @returns {boolean} If <code>true</code>, the value help should open when user used the arrow keys in the connected field control
 	 * @public
+	 * @deprecated As of version 1.137 with no replacement.
 	 */
 
 	/**
 	 * Defines if the typeahead content desires opening the typeahead whenever a user clicks on a connected control
 	 *
-	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContent.shouldOpenOnClick
+	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContent.shouldOpenOnClick?
 	 * @function
 	 * @returns {boolean} If <code>true</code>, the value help should open when user clicks into the connected field control
 	 * @public
+	 * @deprecated As of version 1.137 with no replacement.
 	 */
 
 	/**
@@ -532,28 +539,31 @@ sap.ui.define([
 	/**
 	 * Defines if the typeahead containers values can be navigated without visibly opening the help
 	 *
-	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnNavigate
+	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnNavigate?
 	 * @function
 	 * @returns {boolean} If <code>true</code>, the value help should open when user used the arrow keys in the connected field control
 	 * @public
+	 * @deprecated As of version 1.137 with no replacement.
 	 */
 
 	/**
 	 * Defines if the typeahead container desires to be opened whenever a user focuses a connected control
 	 *
-	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnFocus
+	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnFocus?
 	 * @function
 	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user focuses the connected field control
 	 * @public
+	 * @deprecated As of version 1.137 with no replacement.
 	 */
 
 	/**
 	 * Defines if the typeahead container desires to be opened whenever a user clicks on a connected control
 	 *
-	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnClick
+	 * @name sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnClick?
 	 * @function
 	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user clicks into the connected field control
 	 * @public
+	 * @deprecated As of version 1.137 with no replacement.
 	 */
 
 	/**
@@ -713,6 +723,17 @@ sap.ui.define([
 	 * @public
 	 */
 
+	/**
+	 * Interface for subclasses of {@link sap.m.OverflowToolbarLayoutData} that position actions within the toolbar and configure the overflow menu.
+	 * Classes implementing this interface must provide a <code>position</code> property, which uses an enumeration to define the relative order of the actions.
+	 * The sequence of the enumeration values determines the placement of the actions.
+	 * Enumeration values can be organized into groups by using the same prefix ending with the <code>Actions</code> keyword, such as <code>ClipboardActionsCopy</code> and <code>ClipboardActionsPaste</code>.
+	 *
+	 * @since 1.143
+	 * @name sap.ui.mdc.IActionLayoutData
+	 * @interface
+	 * @public
+	 */
 
 	/**
 	 *
@@ -1403,7 +1424,7 @@ sap.ui.define([
 	 */
 	/**
 	 * The <code>State</code> object describes the interface to apply and retrieve the current adaptation state from mdc controls.
-	 * The {@link sap.mdc.p13n.StateUtil StateUtil} class can be used to programatically apply changes considered for
+	 * The {@link sap.ui.mdc.p13n.StateUtil StateUtil} class can be used to programatically apply changes considered for
 	 * the controls personalization to be part of its persistence.
 	 *
 	 * @typedef {object} sap.ui.mdc.State
@@ -1451,6 +1472,26 @@ sap.ui.define([
 	 * @type {Object.<string, sap.ui.mdc.util.FilterTypeConfigEntry>}
 	 * @public
 	 * @since 1.121.0
+	 */
+
+	/**
+	 * Acts a subset of the <code>FilterBarDelegate</code> that can be used in {@link module:sap/ui/mdc/TableDelegate.getFilterDelegate TableDelegate.getFilterDelegate} or {@link module:sap/ui/mdc/ChartDelegate.getFilterDelegate Chart.getFilterDelegate} to enable inbuilt filtering.
+	 *
+	 * It provides basic filter functionality, including
+	 * <ul>
+	 *   <li>Adding filter fields</li>
+	 *   <li>Adding conditions</li>
+	 *   <li>Removing conditions</li>
+	 *   <li>Determining the validation state of filters</li>
+	 * </ul>
+	 *
+	 * @typedef {object} sap.ui.mdc.FilterDelegateObject
+	 *
+	 * @property {function(sap.ui.mdc.Control, string): Promise<sap.ui.mdc.FilterField>} [addItem]
+	 * @property {function(sap.ui.mdc.Control, string): Promise} [addCondition]
+	 * @property {function(sap.ui.mdc.Control, string): Promise} [removeCondition]
+	 * @property {function(sap.ui.mdc.Control, string): Promise<sap.ui.mdc.enums.FilterBarValidationStatus>} [determineValidationState]
+	 * @public
 	 */
 
 

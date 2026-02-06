@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,10 +38,7 @@ sap.ui.define([
 		},
 		isLanguageInfoRequired: true,
 		loadFeatures(mPropertyBag) {
-			return BackendConnector.loadFeatures.call(this, mPropertyBag).then(function(oFeatures) {
-				oFeatures.isContextSharingEnabled = true;
-				return oFeatures;
-			});
+			return BackendConnector.loadFeatures.call(this, mPropertyBag);
 		},
 		loadFlexData(mPropertyBag) {
 			mPropertyBag.cacheable = true;

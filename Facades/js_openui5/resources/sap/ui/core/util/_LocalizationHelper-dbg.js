@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -121,7 +121,7 @@ sap.ui.define([
 			document.documentElement.setAttribute("dir", sDir); // webkit does not allow setting document.dir before the body exists
 			Log.info("Content direction set to '" + sDir + "'", null, "sap/ui/core/util/_LocalizationHelper");
 			// Set the document's lang property
-			document.documentElement.setAttribute("lang", Localization.getLanguageTag().toString()); // webkit does not allow setting document.dir before the body exists
+			document.documentElement.setAttribute("lang", Localization.getLanguageTag().toString());
 		},
 		registerForUpdate(sType, fnGetObjects) {
 			mRegistry[sType] = fnGetObjects;

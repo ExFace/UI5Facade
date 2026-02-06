@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,8 +10,7 @@ sap.ui.define([
 	"sap/base/util/isPlainObject",
 	"sap/base/util/restricted/_uniqWith",
 	"sap/base/util/deepEqual"
-],
-function(
+], function(
 	ElementUtil,
 	OverlayRegistry,
 	isPlainObject,
@@ -20,7 +19,7 @@ function(
 ) {
 	"use strict";
 
-	var BindingsExtractor = {};
+	const BindingsExtractor = {};
 
 	/**
 	 * Get all relevant binding paths and binding context paths for the element (from all properties)
@@ -34,13 +33,13 @@ function(
 	 * @private
 	 */
 	BindingsExtractor.collectBindingPaths = function(oElement, oModel, oRelevantContainerElement, iDepth) {
-		var mBindingsCollection = {
+		const mBindingsCollection = {
 			bindingPaths: [],
 			bindingContextPaths: []
 		};
-		var sAggregationName = oElement.sParentAggregationName;
-		var oParent = oElement.getParent();
-		var aBindings = BindingsExtractor.getBindings({
+		const sAggregationName = oElement.sParentAggregationName;
+		const oParent = oElement.getParent();
+		let aBindings = BindingsExtractor.getBindings({
 			element: oElement,
 			model: oModel,
 			relevantContainerElement: oRelevantContainerElement,
@@ -49,20 +48,20 @@ function(
 		});
 
 		if (oParent) {
-			var oDefaultAggregation = oParent.getMetadata().getAggregation();
+			const oDefaultAggregation = oParent.getMetadata().getAggregation();
 
 			if (oDefaultAggregation) {
-				var iPositionOfInvisibleElement = ElementUtil.getAggregation(oParent, sAggregationName).indexOf(oElement);
-				var sParentDefaultAggregationName = oDefaultAggregation.name;
-				var oBinding = oParent.getBindingInfo(sParentDefaultAggregationName);
-				var oTemplate = oBinding && oBinding.template;
+				const iPositionOfInvisibleElement = ElementUtil.getAggregation(oParent, sAggregationName).indexOf(oElement);
+				const sParentDefaultAggregationName = oDefaultAggregation.name;
+				const oBinding = oParent.getBindingInfo(sParentDefaultAggregationName);
+				const oTemplate = oBinding && oBinding.template;
 
 				if (oTemplate) {
-					var oTemplateDefaultAggregation = oTemplate.getMetadata().getAggregation();
+					const oTemplateDefaultAggregation = oTemplate.getMetadata().getAggregation();
 
 					if (oTemplateDefaultAggregation) {
-						var sTemplateDefaultAggregationName = oTemplateDefaultAggregation.name;
-						var oTemplateElement = ElementUtil.getAggregation(
+						const sTemplateDefaultAggregationName = oTemplateDefaultAggregation.name;
+						const oTemplateElement = ElementUtil.getAggregation(
 							oTemplate, sTemplateDefaultAggregationName
 						)[iPositionOfInvisibleElement];
 						aBindings = aBindings.concat(BindingsExtractor.getBindings({
@@ -78,21 +77,21 @@ function(
 			}
 		}
 
-		for (var i = 0, l = aBindings.length; i < l; i++) {
+		for (let i = 0, l = aBindings.length; i < l; i++) {
 			if (aBindings[i].getPath) {
-				var sBindingPath = aBindings[i].getPath();
+				const sBindingPath = aBindings[i].getPath();
 				if (sBindingPath &&	mBindingsCollection.bindingPaths.indexOf(sBindingPath) === -1) {
 					mBindingsCollection.bindingPaths.push(sBindingPath);
 				}
 			}
 			if (aBindings[i].getContext && aBindings[i].getContext() && aBindings[i].getContext().getPath) {
-				var sBindingContextPath = aBindings[i].getContext().getPath();
+				const sBindingContextPath = aBindings[i].getContext().getPath();
 				if (sBindingContextPath && mBindingsCollection.bindingContextPaths.indexOf(sBindingContextPath) === -1) {
 					mBindingsCollection.bindingContextPaths.push(sBindingContextPath);
 				}
 			}
 			if (isPlainObject(aBindings[i])) {
-				var sCurrentPath = aBindings[i].parts[0] && aBindings[i].parts[0].path;
+				const sCurrentPath = aBindings[i].parts[0] && aBindings[i].parts[0].path;
 				// Sometimes the binding does not contain a path
 				if (sCurrentPath && mBindingsCollection.bindingPaths.indexOf(sCurrentPath) === -1) {
 					mBindingsCollection.bindingPaths.push(sCurrentPath);
@@ -104,8 +103,8 @@ function(
 
 	function isElementRelatedToRelevantContainer(oElement, oRelevantContainerElement) {
 		if (oRelevantContainerElement && oElement !== oRelevantContainerElement) {
-			var oOverlay = OverlayRegistry.getOverlay(oElement);
-			var oRelevantContainer = oOverlay && (oOverlay.getRelevantContainer() || oOverlay.getElement());
+			const oOverlay = OverlayRegistry.getOverlay(oElement);
+			const oRelevantContainer = oOverlay && (oOverlay.getRelevantContainer() || oOverlay.getElement());
 			return oRelevantContainer ? oRelevantContainer.getId() === oRelevantContainerElement.getId() : true;
 		}
 		return true;
@@ -127,12 +126,12 @@ function(
 	 * @private
 	 */
 	BindingsExtractor.getBindings = function(mPropertyBag) {
-		var oElement = mPropertyBag.element;
-		var oModel = mPropertyBag.model;
-		var oParent = mPropertyBag.parent;
-		var sAggregationName = mPropertyBag.aggregationName;
-		var oRelevantContainerElement = mPropertyBag.relevantContainerElement;
-		var aBindings = [];
+		const oElement = mPropertyBag.element;
+		const oModel = mPropertyBag.model;
+		const oParent = mPropertyBag.parent;
+		const sAggregationName = mPropertyBag.aggregationName;
+		const oRelevantContainerElement = mPropertyBag.relevantContainerElement;
+		let aBindings = [];
 		if (isElementRelatedToRelevantContainer(oElement, oRelevantContainerElement)) {
 			aBindings = (
 				mPropertyBag.template
@@ -140,7 +139,7 @@ function(
 					: BindingsExtractor.getBindingsFromProperties(oElement, oModel)
 			);
 		}
-		var aAggregationNames = sAggregationName ? [sAggregationName] : Object.keys(oElement.getMetadata().getAllAggregations());
+		const aAggregationNames = sAggregationName ? [sAggregationName] : Object.keys(oElement.getMetadata().getAllAggregations());
 
 		if (!Number.isInteger(mPropertyBag.depth) || mPropertyBag.depth > 0) {
 			aAggregationNames.forEach(function(sAggregationNameInLoop) {
@@ -160,14 +159,10 @@ function(
 	};
 
 	function getBindingsForAggregation(oElement, oModel, bTemplate, sAggregationName, oRelevantContainerElement, iDepth) {
-		var aBindings = [];
-		var aElements = [];
-		var oTemplate;
-		var bIsInTemplate = bTemplate;
-		var oElementModel = oElement.getModel();
+		const oElementModel = oElement.getModel();
 
-		var oBinding = oElement.getBindingInfo(sAggregationName);
-		oTemplate = oBinding && oBinding.template;
+		const oBinding = oElement.getBindingInfo(sAggregationName);
+		const oTemplate = oBinding && oBinding.template;
 
 		// If a template is found for a different model, we don't look inside the template
 		// e.g. a Select control whose entries are defined in an own JSON model
@@ -177,13 +172,10 @@ function(
 
 		// If a template is bound to the current element on the given model,
 		// we continue the evaluation on the template (as it has no direct parent)
-		if (oTemplate) {
-			bIsInTemplate = true;
-			aElements = [oTemplate];
-		} else {
-			aElements = ElementUtil.getAggregation(oElement, sAggregationName);
-		}
+		const bIsInTemplate = oTemplate ? true : bTemplate;
+		const aElements = oTemplate ? [oTemplate] : ElementUtil.getAggregation(oElement, sAggregationName);
 
+		let aBindings = [];
 		// Getting children of the current aggregation and iterating through all of them
 		aElements.forEach(function(oChildElement) {
 			if (oChildElement.getMetadata) {
@@ -220,8 +212,8 @@ function(
 	 * @private
 	 */
 	BindingsExtractor.filterAndFlattenBindings = function(oBinding, oParentDefaultModel) {
-		var aBindings = [];
-		var sModelName = oBinding.getMetadata().getName();
+		let aBindings = [];
+		const sModelName = oBinding.getMetadata().getName();
 
 		if (sModelName === "sap.ui.model.CompositeBinding") {
 			oBinding.getBindings().forEach(function(oBinding) {
@@ -255,8 +247,8 @@ function(
 	 * @private
 	 */
 	function flattenBindingsFromTemplate(mBinding) {
-		var aBindings = [];
-		var aParts = mBinding.parts;
+		const aBindings = [];
+		const aParts = mBinding.parts;
 
 		// TODO: check if we need to filter bindings by modelName, relative indicator ("/")
 		aParts.forEach(function(mPart) {
@@ -279,7 +271,7 @@ function(
 	 * @private
 	 */
 	BindingsExtractor.getBindingsFromProperties = function(oElement, oModel) {
-		var aPropertiesKeys = Object.keys(oElement.getMetadata().getAllProperties());
+		const aPropertiesKeys = Object.keys(oElement.getMetadata().getAllProperties());
 
 		return aPropertiesKeys
 		// filter properties which are not bound
@@ -305,17 +297,16 @@ function(
 	 * @private
 	 */
 	function getBindingsFromTemplateProperties(oTemplate, oTemplateParent, oModel) {
-		var aPropertiesKeys = Object.keys(oTemplate.getMetadata().getAllProperties());
-		var bIsSameModel;
+		const aPropertiesKeys = Object.keys(oTemplate.getMetadata().getAllProperties());
 
 		return aPropertiesKeys
 		.filter(function(sPropertyName) {
-			var mBindingInfo = oTemplate.mBindingInfos[sPropertyName];
-			var sModelName = mBindingInfo && mBindingInfo.parts[0] && mBindingInfo.parts[0].model;
-			bIsSameModel = oModel === oTemplateParent.getModel(sModelName);
+			const mBindingInfo = oTemplate.mBindingInfos[sPropertyName];
+			const sModelName = mBindingInfo && mBindingInfo.parts[0] && mBindingInfo.parts[0].model;
+			let bIsSameModel = oModel === oTemplateParent.getModel(sModelName);
 			if (!sModelName) {
-				var oParentDefaultModel = oTemplateParent.getDefaultModel ? oTemplateParent.getDefaultModel() : null;
-				var oTemplateDefaultModel = oTemplate.getDefaultModel ? oTemplate.getDefaultModel() : null;
+				const oParentDefaultModel = oTemplateParent.getDefaultModel ? oTemplateParent.getDefaultModel() : null;
+				const oTemplateDefaultModel = oTemplate.getDefaultModel ? oTemplate.getDefaultModel() : null;
 				bIsSameModel = oParentDefaultModel === oTemplateDefaultModel;
 			} else {
 				bIsSameModel = oModel === oTemplateParent.getModel(sModelName);

@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the base class for all objects with managed properties and aggregations.
 sap.ui.define([
+	"./BindingInfo",
 	"./DataType",
 	"./EventProvider",
 	"./ManagedObjectMetadata",
 	"./Object",
-	"./BindingInfo",
+	"./OwnStatics",
 	"sap/ui/util/ActivityDetection",
 	"sap/ui/util/_enforceNoReturnValue",
 	"sap/base/future",
@@ -23,11 +24,12 @@ sap.ui.define([
 	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject"
 ], function(
+	BindingInfo,
 	DataType,
 	EventProvider,
 	ManagedObjectMetadata,
 	BaseObject,
-	BindingInfo,
+	OwnStatics,
 	ActivityDetection,
 	_enforceNoReturnValue,
 	future,
@@ -264,7 +266,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -506,7 +508,7 @@ sap.ui.define([
 			this._oContextualSettings = defaultContextualSettings;
 
 			// apply the owner id if defined
-			this._sOwnerId = ManagedObject._sOwnerId;
+			this._sOwnerId = sOwnerId;
 
 			// make sure that the object is registered before initializing
 			// and to deregister the object in case of errors
@@ -552,18 +554,6 @@ sap.ui.define([
 		}
 
 	}, /* Metadata constructor */ ManagedObjectMetadata);
-
-	// The current BindingParser implementation is exposed via "ManagedObject.bindingParser".
-	// This is used in tests for switching the BindingParser implementation on the fly.
-	// We delegate any changes to this property back to the BindingInfo.
-	Object.defineProperty(ManagedObject, "bindingParser", {
-		set: function(v) {
-			BindingInfo.parse = v;
-		},
-		get: function() {
-			return BindingInfo.parse;
-		}
-	});
 
 	function assertModelName(sModelName) {
 		assert(sModelName === undefined || (typeof sModelName === "string" && !/^(undefined|null)?$/.test(sModelName)), "sModelName must be a string or omitted");
@@ -1173,7 +1163,7 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.base,sap.ui.core
 	 */
-	ManagedObject.runWithPreprocessors = function(fn, oPreprocessors, oThisArg) {
+	 function runWithPreprocessors(fn, oPreprocessors, oThisArg) {
 		assert(typeof fn === "function", "fn must be a function");
 		assert(!oPreprocessors || typeof oPreprocessors === "object", "oPreprocessors must be an object");
 
@@ -1189,7 +1179,9 @@ sap.ui.define([
 			[fnCurrentIdPreprocessor, fnCurrentSettingsPreprocessor] = aOldPreprocessors;
 		}
 
-	};
+	}
+
+	let sOwnerId;
 
 	/**
 	 * Calls the function <code>fn</code> once and marks all ManagedObjects
@@ -1202,19 +1194,19 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.core
 	 */
-	 ManagedObject.runWithOwner = function(fn, sOwnerId, oThisArg) {
+	function runWithOwner(fn, sNewOwnerId, oThisArg) {
 
 		assert(typeof fn === "function", "fn must be a function");
 
-		var oldOwnerId = ManagedObject._sOwnerId;
+		var oldOwnerId = sOwnerId;
 		try {
-			ManagedObject._sOwnerId = sOwnerId;
+			sOwnerId = sNewOwnerId;
 			return fn.call(oThisArg);
 		} finally {
-			ManagedObject._sOwnerId = oldOwnerId;
+			sOwnerId = oldOwnerId;
 		}
 
-	};
+	}
 
 	/**
 	 * Sets all the properties, aggregations, associations and event handlers as given in
@@ -1552,7 +1544,7 @@ sap.ui.define([
 			throw new Error("Property \"" + sPropertyName + "\" does not exist in " + this);
 		}
 
-		oType = DataType.getType(oProperty.type);
+		oType = DataType.getType(oProperty.type, oProperty);
 
 		// If property has an array type, clone the array to avoid modification of original data
 		if (oType instanceof DataType && oType.isArrayType() && Array.isArray(oValue)) {
@@ -1601,7 +1593,7 @@ sap.ui.define([
 			throw new Error("Property \"" + sPropertyName + "\" does not exist in " + this);
 		}
 
-		oType = DataType.getType(oProperty.type);
+		oType = DataType.getType(oProperty.type, oProperty);
 
 		// If property has an array type, clone the array to avoid modification of original data
 		if (oType instanceof DataType && oType.isArrayType() && Array.isArray(oValue)) {
@@ -2408,7 +2400,7 @@ sap.ui.define([
 		}
 
 		if (typeof (vObject) == "string") { // ID of the object is given
-			// Note: old lookup via sap.ui.getCore().byId(vObject) only worked for Elements, not for managed objects in general!
+			// Note: lookup via ElementRegistry only works for Elements, not for managed objects in general!
 			for (i = 0; i < aChildren.length; i++) {
 				if (aChildren[i] && aChildren[i].getId() === vObject) {
 					vObject = i;
@@ -3543,11 +3535,18 @@ sap.ui.define([
 		//   - no handling of parse/validate exceptions
 		//   - observers won't be called
 		if (bIsStaticOnly) {
-			var aValues = [];
+			const aValues = [];
+			let vValue;
 			oBindingInfo.parts.forEach(function(oPart) {
 				aValues.push(oPart.formatter ? oPart.formatter(oPart.value) : oPart.value);
 			});
-			var vValue = oBindingInfo.formatter ? oBindingInfo.formatter(aValues) : aValues.join(" ");
+			if (oBindingInfo.formatter) {
+				vValue = oBindingInfo.formatter(aValues);
+			} else if (aValues.length > 1) {
+				vValue = aValues.join(" ");
+			} else {
+				vValue = aValues[0];
+			}
 			var oPropertyInfo = this.getMetadata().getPropertyLikeSetting(sName);
 			this[oPropertyInfo._sMutator](vValue);
 		} else {
@@ -3816,7 +3815,7 @@ sap.ui.define([
 			var sOwnerId = this._sOwnerId;
 			vBindingInfo.factory = function(sId, oContext) {
 				// bind original factory with the two arguments: id and bindingContext
-				return ManagedObject.runWithOwner(fnOriginalFactory.bind(null, sId, oContext), sOwnerId);
+				return runWithOwner(fnOriginalFactory.bind(null, sId, oContext), sOwnerId);
 			};
 			vBindingInfo.factory[BINDING_INFO_FACTORY_SYMBOL] = fnOriginalFactory;
 		}
@@ -4362,7 +4361,9 @@ sap.ui.define([
 			if (bUpdateListener || bUpdateAll) {
 				oObject._callPropagationListener();
 			}
-			oObject.fireModelContextChange();
+			if (bUpdateListener !== true) {
+				oObject.fireModelContextChange();
+			}
 		}
 	};
 
@@ -4687,6 +4688,7 @@ sap.ui.define([
 			}
 		}
 
+		/** @deprecated since 1.120.0 */
 		// Clone the support info
 		if (ManagedObject._supportInfo) {
 			ManagedObject._supportInfo.addSupportInfo(oClone.getId(), ManagedObject._supportInfo.byId(this.getId()));
@@ -4855,6 +4857,14 @@ sap.ui.define([
 	ManagedObject.prototype.updateFieldHelp = undefined;
 
 	const defaultContextualSettings = {};
+
+	OwnStatics.set(ManagedObject, {
+		runWithOwner,
+		runWithPreprocessors,
+		getCurrentOwnerId() {
+			return sOwnerId;
+		}
+	});
 
 	return ManagedObject;
 

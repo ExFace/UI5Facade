@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "ObjectPageHeaderContent.less",
-			"size": 9174,
+			"size": 8688,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "ObjectPageSection.less",
-			"size": 4092,
+			"size": 4002,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 7480,
+			"size": 6761,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 54907,
+			"size": 53782,
 			"theme": "base"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 54901,
+			"size": 53776,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 55869,
+			"size": 54574,
 			"designtime": true,
 			"theme": "base"
 		},

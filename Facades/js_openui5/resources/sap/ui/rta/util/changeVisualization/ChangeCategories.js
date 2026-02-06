@@ -1,7 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/fl/changeHandler/common/ChangeCategories"],function(e){"use strict";var a={};a.ALL="all";var n={};n[e.ADD]=["createContainer","addDelegateProperty","reveal","addIFrame"];n[e.MOVE]=["move"];n[e.RENAME]=["rename"];n[e.COMBINESPLIT]=["combine","split"];n[e.REMOVE]=["remove"];n[e.OTHER]=[];var o={};o[a.ALL]="sap-icon://show";o[e.ADD]="sap-icon://add";o[e.MOVE]="sap-icon://move";o[e.RENAME]="sap-icon://edit";o[e.COMBINESPLIT]="sap-icon://combine";o[e.REMOVE]="sap-icon://less";o[e.OTHER]="sap-icon://key-user-settings";a.getCategories=function(){return n};a.getIconForCategory=function(e){return o[e]};return a});
+sap.ui.define(["sap/ui/fl/changeHandler/common/ChangeCategories"],function(e){"use strict";const n={};n.ALL="all";const o={};o[e.ADD]=["createContainer","addDelegateProperty","reveal","addIFrame"];o[e.MOVE]=["move"];o[e.RENAME]=["rename"];o[e.COMBINESPLIT]=["combine","split"];o[e.REMOVE]=["remove"];o[e.OTHER]=[];const a={};a[n.ALL]="sap-icon://show";a[e.ADD]="sap-icon://add";a[e.MOVE]="sap-icon://move";a[e.RENAME]="sap-icon://edit";a[e.COMBINESPLIT]="sap-icon://combine";a[e.REMOVE]="sap-icon://less";a[e.OTHER]="sap-icon://key-user-settings";n.getCategories=function(){return o};n.getIconForCategory=function(e){return a[e]};return n});
 //# sourceMappingURL=ChangeCategories.js.map

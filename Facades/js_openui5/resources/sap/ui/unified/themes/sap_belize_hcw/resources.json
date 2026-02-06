@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 4418,
+			"size": 4513,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 369,
+			"size": 464,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 1370,
+			"size": 1470,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},
@@ -67,7 +67,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 145591,
+			"size": 145655,
 			"theme": "sap_belize_hcw"
 		},
 		{
@@ -78,12 +78,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 145477,
+			"size": 145541,
 			"theme": "sap_belize_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 31155,
+			"size": 31445,
 			"designtime": true,
 			"theme": "sap_belize_hcw"
 		},

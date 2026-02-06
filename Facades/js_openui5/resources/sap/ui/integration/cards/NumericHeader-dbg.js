@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/base/util/extend",
+	"sap/base/util/merge",
 	"sap/f/cards/NumericHeader",
 	"sap/f/cards/NumericHeaderRenderer",
 	"sap/f/cards/NumericSideIndicator",
@@ -15,9 +16,11 @@ sap.ui.define([
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/LoadingProvider",
+	"sap/ui/integration/util/subtitleToSubTitle",
 	"sap/ui/integration/controls/Microchart"
 ], function (
 	extend,
+	merge,
 	FNumericHeader,
 	FNumericHeaderRenderer,
 	NumericSideIndicator,
@@ -28,6 +31,7 @@ sap.ui.define([
 	JSONModel,
 	BindingResolver,
 	LoadingProvider,
+	subtitleToSubTitle,
 	Microchart
 ) {
 	"use strict";
@@ -46,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.NumericHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -81,8 +85,8 @@ sap.ui.define([
 		var mSettings = {
 			title: mConfiguration.title,
 			titleMaxLines: mConfiguration.titleMaxLines,
-			subtitle: mConfiguration.subTitle,
-			subtitleMaxLines: mConfiguration.subTitleMaxLines,
+			subtitle: mConfiguration.subtitle || mConfiguration.subTitle,
+			subtitleMaxLines: mConfiguration.subtitleMaxLines || mConfiguration.subTitleMaxLines,
 			dataTimestamp: mConfiguration.dataTimestamp,
 			visible: mConfiguration.visible,
 			wrappingType: mConfiguration.wrappingType
@@ -168,6 +172,8 @@ sap.ui.define([
 				oHeader.addStyleClass("sapFCardNumericHeaderMC");
 			}
 		}
+
+		oHeader._oConfiguration = mConfiguration;
 
 		return oHeader;
 	};
@@ -255,7 +261,6 @@ sap.ui.define([
 		}.bind(this)));
 	};
 
-
 	NumericHeader.prototype.setServiceManager = function (oServiceManager) {
 		this._oServiceManager = oServiceManager;
 		return this;
@@ -264,6 +269,17 @@ sap.ui.define([
 	NumericHeader.prototype.setDataProviderFactory = function (oDataProviderFactory) {
 		this._oDataProviderFactory = oDataProviderFactory;
 		return this;
+	};
+
+	/**
+	 * @returns {object} Header configuration with static values.
+	 */
+	NumericHeader.prototype.getStaticConfiguration = function () {
+		const oConfiguration = merge({}, this._oConfiguration);
+
+		subtitleToSubTitle(oConfiguration);
+
+		return oConfiguration;
 	};
 
 	/**
@@ -276,6 +292,11 @@ sap.ui.define([
 		var oCard = this.getCardInstance(),
 			sPath = "/",
 			oModel;
+
+		if (!oDataSettings) {
+			this.fireEvent("_dataReady");
+			return;
+		}
 
 		if (oDataSettings && oDataSettings.path) {
 			sPath = BindingResolver.resolveValue(oDataSettings.path, this.getCardInstance());

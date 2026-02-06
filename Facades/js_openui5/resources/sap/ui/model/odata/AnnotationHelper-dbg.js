@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -150,7 +150,7 @@ sap.ui.define([
 								}
 								aParts[i] = vPart = vPropertySetting;
 							}
-							// falls through
+							// fall through
 						case "object":
 							// merge is needed if some parts are constants or again have parts
 							// Note: a binding info object has either "path" or "parts"

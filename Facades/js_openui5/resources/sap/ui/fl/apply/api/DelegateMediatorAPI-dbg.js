@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/DelegateMediator"
+	"sap/ui/fl/apply/_internal/DelegateMediator",
+	"sap/ui/fl/apply/_internal/init"
 ], function(
 	DelegateMediator
 ) {
@@ -89,6 +90,21 @@ sap.ui.define([
 				mPropertyBag.control,
 				mPropertyBag.modifier
 			);
+		},
+
+		/**
+		 * Registers a handler for adjusting XML fragments. The handler will be stored without reference to the app,
+		 * and will therefore be available for all apps.
+		 *
+		 * @param {object} mPropertyBag - Property bag
+		 * @param {string} mPropertyBag.key - Key for the handler
+		 * @param {function} mPropertyBag.handler - Handler function returning the adjusted fragment or a Promise resolving with the adjusted fragment
+		 *
+		 * @private
+		 * @ui5-restricted sap.fe
+		 */
+		registerAddXMLAdjustFragmentHandler(mPropertyBag) {
+			DelegateMediator.registerAddXMLAdjustFragmentHandler(mPropertyBag);
 		}
 	};
 

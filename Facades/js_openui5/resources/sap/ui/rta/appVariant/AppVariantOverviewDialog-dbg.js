@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,6 @@ sap.ui.define([
 				cancel: {}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			Dialog.prototype.constructor.apply(this, aArgs);
 			this._oTextResources = Lib.getResourceBundleFor("sap.ui.rta");

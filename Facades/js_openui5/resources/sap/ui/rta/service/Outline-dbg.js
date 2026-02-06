@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @name sap.ui.rta.service.Outline
 	 * @author SAP SE
 	 * @since 1.56
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -83,7 +83,7 @@ sap.ui.define([
 	 */
 
 	function getExtensionPointsForView(sViewId, aConsideredExtensionPointNames) {
-		var mExtensionPoints = ExtensionPointRegistryAPI.getExtensionPointInfoByViewId({viewId: sViewId});
+		var mExtensionPoints = ExtensionPointRegistryAPI.getExtensionPointInfoByViewId({ viewId: sViewId });
 		return _omit(mExtensionPoints, aConsideredExtensionPointNames);
 	}
 
@@ -162,7 +162,7 @@ sap.ui.define([
 		oOutline._getExtensionPoints = function(oData) {
 			var sParentId = oData.id;
 			var sAggregationName = oData.technicalName;
-			return ExtensionPointRegistryAPI.getExtensionPointInfoByParentId({parentId: sParentId})
+			return ExtensionPointRegistryAPI.getExtensionPointInfoByParentId({ parentId: sParentId })
 			.filter(function(mExtensionPoint) {
 				return mExtensionPoint.aggregationName === sAggregationName;
 			});

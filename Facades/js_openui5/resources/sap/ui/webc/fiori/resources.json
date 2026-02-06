@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2662
+			"size": 2649
 		},
 		{
 			"name": ".theming",
@@ -813,38 +813,38 @@
 		{
 			"name": "designtime/SideNavigationItem-dbg.designtime.js",
 			"module": "sap/ui/webc/fiori/designtime/SideNavigationItem.designtime.js",
-			"size": 2133,
+			"size": 1899,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/SideNavigationItem.designtime.js",
 			"module": "sap/ui/webc/fiori/designtime/SideNavigationItem.designtime.js",
-			"size": 1491,
+			"size": 1381,
 			"designtime": true
 		},
 		{
 			"name": "designtime/SideNavigationItem.designtime.js.map",
-			"size": 1507,
+			"size": 1341,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/SideNavigationSubItem-dbg.designtime.js",
 			"module": "sap/ui/webc/fiori/designtime/SideNavigationSubItem.designtime.js",
-			"size": 1650,
+			"size": 1416,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/SideNavigationSubItem.designtime.js",
 			"module": "sap/ui/webc/fiori/designtime/SideNavigationSubItem.designtime.js",
-			"size": 1168,
+			"size": 1058,
 			"designtime": true
 		},
 		{
 			"name": "designtime/SideNavigationSubItem.designtime.js.map",
-			"size": 1221,
+			"size": 1055,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -896,7 +896,7 @@
 		{
 			"name": "designtime/library-preload.designtime.js",
 			"module": "sap/ui/webc/fiori/designtime/library-preload.designtime.js",
-			"size": 5589,
+			"size": 5369,
 			"merged": true,
 			"designtime": true,
 			"included": [
@@ -912,7 +912,7 @@
 		},
 		{
 			"name": "designtime/library-preload.designtime.js.map",
-			"size": 5574,
+			"size": 5242,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -3513,7 +3513,7 @@
 		},
 		{
 			"name": "lib/zxing.js.map",
-			"size": 468664,
+			"size": 468638,
 			"isDebug": true
 		},
 		{
@@ -4309,7 +4309,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 1057482,
+			"size": 1057174,
 			"isDebug": true
 		},
 		{
@@ -4422,7 +4422,7 @@
 		},
 		{
 			"name": "thirdparty/Bar.js.map",
-			"size": 3045,
+			"size": 3033,
 			"isDebug": true
 		},
 		{
@@ -4468,7 +4468,7 @@
 		},
 		{
 			"name": "thirdparty/BarcodeScannerDialog.js.map",
-			"size": 5757,
+			"size": 5752,
 			"isDebug": true
 		},
 		{
@@ -4630,7 +4630,7 @@
 		},
 		{
 			"name": "thirdparty/FlexibleColumnLayout.js.map",
-			"size": 12395,
+			"size": 12389,
 			"isDebug": true
 		},
 		{
@@ -4758,7 +4758,7 @@
 		},
 		{
 			"name": "thirdparty/MediaGallery.js.map",
-			"size": 10141,
+			"size": 10136,
 			"isDebug": true
 		},
 		{
@@ -4886,7 +4886,7 @@
 		},
 		{
 			"name": "thirdparty/NotificationListGroupItem.js.map",
-			"size": 4881,
+			"size": 4876,
 			"isDebug": true
 		},
 		{
@@ -5088,7 +5088,7 @@
 		},
 		{
 			"name": "thirdparty/ProductSwitch.js.map",
-			"size": 4211,
+			"size": 4206,
 			"isDebug": true
 		},
 		{
@@ -5200,7 +5200,7 @@
 		},
 		{
 			"name": "thirdparty/ShellBar.js.map",
-			"size": 19795,
+			"size": 19735,
 			"isDebug": true
 		},
 		{
@@ -5286,7 +5286,7 @@
 		},
 		{
 			"name": "thirdparty/SideNavigation.js.map",
-			"size": 6718,
+			"size": 6691,
 			"isDebug": true
 		},
 		{
@@ -5662,7 +5662,7 @@
 		},
 		{
 			"name": "thirdparty/ViewSettingsDialog.js.map",
-			"size": 13075,
+			"size": 13044,
 			"isDebug": true
 		},
 		{
@@ -5734,7 +5734,7 @@
 		},
 		{
 			"name": "thirdparty/Wizard.js.map",
-			"size": 17597,
+			"size": 17563,
 			"isDebug": true
 		},
 		{
@@ -7054,7 +7054,7 @@
 		},
 		{
 			"name": "thirdparty/generated/js-imports/Illustrations.js.map",
-			"size": 4579,
+			"size": 4569,
 			"isDebug": true
 		},
 		{
@@ -7076,7 +7076,7 @@
 		},
 		{
 			"name": "thirdparty/generated/js-imports/IllustrationsTNT.js.map",
-			"size": 3076,
+			"size": 3066,
 			"isDebug": true
 		},
 		{
@@ -7098,7 +7098,7 @@
 		},
 		{
 			"name": "thirdparty/generated/js-imports/IllustrationsV5TNT.js.map",
-			"size": 3019,
+			"size": 3009,
 			"isDebug": true
 		},
 		{
@@ -7120,7 +7120,7 @@
 		},
 		{
 			"name": "thirdparty/generated/js-imports/IllustrationsV5TNTHC.js.map",
-			"size": 3023,
+			"size": 3013,
 			"isDebug": true
 		},
 		{
@@ -7142,7 +7142,7 @@
 		},
 		{
 			"name": "thirdparty/generated/json-imports/Themes.js.map",
-			"size": 1998,
+			"size": 1988,
 			"isDebug": true
 		},
 		{
@@ -7164,7 +7164,7 @@
 		},
 		{
 			"name": "thirdparty/generated/json-imports/i18n.js.map",
-			"size": 4990,
+			"size": 4975,
 			"isDebug": true
 		},
 		{
@@ -22446,7 +22446,7 @@
 		},
 		{
 			"name": "thirdparty/upload-utils/UploadCollectionBodyDnD.js.map",
-			"size": 2090,
+			"size": 2063,
 			"isDebug": true
 		}
 	]

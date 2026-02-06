@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 1988,
+			"size": 2074,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -80,7 +80,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 200,
+			"size": 283,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -164,7 +164,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 302,
+			"size": 387,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -386,7 +386,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 605,
+			"size": 690,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -422,7 +422,7 @@
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 375,
+			"size": 461,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -470,7 +470,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 347,
+			"size": 436,
 			"designtime": true,
 			"theme": "sap_belize"
 		},
@@ -506,7 +506,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 1247659,
+			"size": 1247146,
 			"theme": "sap_belize"
 		},
 		{
@@ -517,12 +517,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 1247639,
+			"size": 1247125,
 			"theme": "sap_belize"
 		},
 		{
 			"name": "library.less",
-			"size": 97711,
+			"size": 98225,
 			"designtime": true,
 			"theme": "sap_belize"
 		},

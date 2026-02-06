@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.fl.changeHandler.AddXML
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.54
 	 * @private
 	 */
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.view Root view
 	 * @returns {boolean} <true> if the change got applied successfully
 	 * @private
-	 * @ui5-restricted sap.ui.fl.apply.changes.Applyer
+	 * @ui5-restricted sap.ui.fl.apply.changes.Applier
 	 * @name sap.ui.fl.changeHandler.AddXML#applyChange
 	 */
 	AddXML.applyChange = function(oChange, oControl, mPropertyBag) {

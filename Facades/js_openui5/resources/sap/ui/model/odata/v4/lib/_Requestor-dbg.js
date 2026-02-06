@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -68,14 +68,16 @@ sap.ui.define([
 	 * @param {string} sServiceUrl
 	 *   URL of the service document to request the CSRF token from; also used to resolve
 	 *   relative resource paths (see {@link #request})
-	 * @param {object} [mHeaders={}]
+	 * @param {object} mHeaders
 	 *   Map of default headers; may be overridden with request-specific headers; certain
 	 *   predefined OData V4 headers are added by default, but may be overridden
-	 * @param {object} [mQueryParams={}]
+	 * @param {object} mQueryParams
 	 *   A map of query parameters as described in
 	 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}; used only to request the CSRF token
 	 * @param {object} oModelInterface
 	 *   An interface allowing to call back to the owning model (see {@link .create})
+	 * @param {string} sODataVersion
+	 *   The version of the OData service. Supported values are "2.0", "4.0", and "4.01".
 	 * @param {boolean} [bWithCredentials]
 	 *   Whether the XHR should be called with <code>withCredentials</code>
 	 *
@@ -83,51 +85,69 @@ sap.ui.define([
 	 * @constructor
 	 * @private
 	 */
-	function _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface, bWithCredentials) {
+	function _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface, sODataVersion,
+			bWithCredentials) {
 		this.mBatchQueue = {};
 		this.bBatchSent = false;
-		this.mHeaders = mHeaders || {};
+		this.mHeaders = mHeaders;
 		this.aLockedGroupLocks = [];
 		this.oModelInterface = oModelInterface;
+		this.sODataVersion = sODataVersion;
 		this.oOptimisticBatch = null; // optimistic batch processing off
 		this.sQueryParams = _Helper.buildQuery(mQueryParams); // Used for $batch and CSRF token only
 		this.mRunningChangeRequests = {}; // map from group ID to a SyncPromise[]
 		this.iSessionTimer = 0;
 		this.iSerialNumber = 0;
 		this.sServiceUrl = sServiceUrl;
-		this.vStatistics = mQueryParams && mQueryParams["sap-statistics"];
+		this.vStatistics = mQueryParams["sap-statistics"];
 		this.bWithCredentials = bWithCredentials;
 		this.processSecurityTokenHandlers(); // sets this.oSecurityTokenPromise
+
+		if (sODataVersion === "4.01") {
+			this.mPredefinedRequestHeaders = Object.freeze({
+				...this.mPredefinedRequestHeaders,
+				"OData-MaxVersion" : "4.01",
+				"OData-Version" : "4.01"
+			});
+		}
 	}
 
 	/**
 	 * Final (cannot be overridden) request headers for OData V4.
+	 *
+	 * @private
 	 */
-	_Requestor.prototype.mFinalHeaders = {
+	_Requestor.prototype.mFinalHeaders = Object.freeze({
 		"Content-Type" : "application/json;charset=UTF-8;IEEE754Compatible=true"
-	};
+	});
 
 	/**
 	 * Predefined request headers in $batch parts for OData V4.
+	 *
+	 * @private
 	 */
-	_Requestor.prototype.mPredefinedPartHeaders = {
+	_Requestor.prototype.mPredefinedPartHeaders = Object.freeze({
 		Accept : "application/json;odata.metadata=minimal;IEEE754Compatible=true"
-	};
+	});
 
 	/**
 	 * Predefined request headers for all requests for OData V4.
+	 *
+	 * @private
 	 */
-	_Requestor.prototype.mPredefinedRequestHeaders = {
+	_Requestor.prototype.mPredefinedRequestHeaders = Object.freeze({
 		Accept : "application/json;odata.metadata=minimal;IEEE754Compatible=true",
-		"OData-MaxVersion" : "4.0",
-		"OData-Version" : "4.0",
+		"OData-MaxVersion" : "4.0", // Note: may be "overridden" in c'tor
+		"OData-Version" : "4.0", // dito
 		"X-CSRF-Token" : "Fetch"
-	};
+	});
 
 	/**
 	 * OData V4 request headers reserved for internal use.
+	 *
+	 * @private
 	 */
-	_Requestor.prototype.mReservedHeaders = {
+	_Requestor.prototype.mReservedHeaders = Object.freeze({
 		accept : true,
 		"accept-charset" : true,
 		"content-encoding" : true,
@@ -144,7 +164,7 @@ sap.ui.define([
 		"odata-version" : true,
 		prefer : true,
 		"sap-contextid" : true
-	};
+	});
 
 	/**
 	 * Adds a change set to the batch queue for the given group. All modifying requests created
@@ -192,11 +212,14 @@ sap.ui.define([
 	 * @param {string} sResourcePath The resource path with possible query options and placeholders
 	 * @param {string} sMetaPath The absolute meta path matching the resource path
 	 * @param {object} mQueryOptions Query options to add to the resource path
+	 * @param {boolean} [bSortSystemQueryOptions]
+	 *   Whether system query options are sorted alphabetically and moved to the query string's end
 	 * @returns {string} The resource path with the query options
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.addQueryString = function (sResourcePath, sMetaPath, mQueryOptions) {
+	_Requestor.prototype.addQueryString = function (sResourcePath, sMetaPath, mQueryOptions,
+			bSortSystemQueryOptions) {
 		var sQueryString;
 
 		mQueryOptions = this.convertQueryOptions(sMetaPath, mQueryOptions, false, true);
@@ -209,7 +232,7 @@ sap.ui.define([
 				return _Helper.encodePair(sOption, sValue);
 			});
 
-		sQueryString = _Helper.buildQuery(mQueryOptions);
+		sQueryString = _Helper.buildQuery(mQueryOptions, bSortSystemQueryOptions);
 		if (!sQueryString) {
 			return sResourcePath;
 		}
@@ -297,7 +320,7 @@ sap.ui.define([
 	 * @param {string} sMetaPath
 	 *   The meta path corresponding to the resource path
 	 * @param {object} [mQueryOptions]
-	 *   A map of key-value pairs representing the query string
+	 *   A read-only map of key-value pairs representing the query string
 	 * @param {boolean} [bDropSystemQueryOptions]
 	 *   Whether all system query options are dropped (useful for non-GET requests)
 	 * @param {boolean} [bSortExpandSelect]
@@ -450,34 +473,53 @@ sap.ui.define([
 
 	/**
 	 * Throws an error if the new request uses strict handling and there is a change set containing
-	 * a strict handling request except the one at index <code>iChangeSetNo</code>.
+	 * a strict handling request except the one at index <code>iChangeSetNo</code>. On the other
+	 * hand, in case of the "odata.continue-on-error" preference, every request using strict
+	 * handling must belong to its own change set.
 	 *
 	 * @param {object} oRequest
-	 *   The new request
+	 *   The new request or <code>null</code> to re-check all change sets as a preparation for the
+	 *   "odata.continue-on-error" preference
 	 * @param {object[]} aRequests
 	 *   The batch queue
-	 * @param {number} iChangeSetNo
-	 *   The index of the irrelevant change set
+	 * @param {number} [iChangeSetNo]
+	 *   The index of the irrelevant change set; ignored for a <code>null</code> request
 	 * @throws {Error}
 	 *   If there is a conflicting change set
 	 *
 	 * @private
 	 */
 	_Requestor.prototype.checkConflictingStrictRequest = function (oRequest, aRequests,
-		iChangeSetNo) {
+			iChangeSetNo) {
+		function hasManyWithStrictHandling(aChangeSet) {
+			return aChangeSet.filter(isUsingStrictHandling).length > 1;
+		}
+
 		function isOtherChangeSetWithStrictHandling(aChangeSet, i) {
 			return iChangeSetNo !== i && aChangeSet.some(isUsingStrictHandling);
 		}
 
 		function isUsingStrictHandling(oRequest0) {
-			return oRequest0.headers.Prefer === "handling=strict";
+			return oRequest0.headers.Prefer?.includes("handling=strict");
 		}
 
-		// do not look past aRequests.iChangeSet because these cannot be change sets
-		if (isUsingStrictHandling(oRequest)
-				&& aRequests.slice(0, aRequests.iChangeSet + 1)
-					.some(isOtherChangeSetWithStrictHandling)) {
-			throw new Error("All requests with strict handling must belong to the same change set");
+		const sMessage = "Each request with strict handling must belong to its own change set due"
+			+ ' to the "odata.continue-on-error" preference';
+		const aChangeSets = aRequests.slice(0, aRequests.iChangeSet + 1);
+		if (oRequest === null) {
+			if (aChangeSets.some(hasManyWithStrictHandling)) {
+				throw new Error(sMessage);
+			}
+		} else if (aRequests.bContinueOnError) {
+			if (aChangeSets[iChangeSetNo].length
+					&& (isUsingStrictHandling(oRequest)
+						|| isUsingStrictHandling(aChangeSets[iChangeSetNo][0]))) {
+				throw new Error(sMessage);
+			}
+		} else if (isUsingStrictHandling(oRequest)
+				&& aChangeSets.some(isOtherChangeSetWithStrictHandling)) {
+			throw new Error(
+				"All requests with strict handling must belong to the same change set");
 		}
 	};
 
@@ -618,6 +660,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * Copies the <code>oSecurityTokenPromise</code> from the given other requestor, if available,
+	 * and uses it to copy its "X-CSRF-Token" once the promise resolves.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._Requestor} oOtherRequestor - Some other requestor instance
+	 *
+	 * @public
+	 */
+	_Requestor.prototype.copySecurityTokenPromise = function (oOtherRequestor) {
+		this.oSecurityTokenPromise = oOtherRequestor.oSecurityTokenPromise?.then(() => {
+			const sCsrfToken = oOtherRequestor.mHeaders["X-CSRF-Token"];
+			if (sCsrfToken) {
+				this.mHeaders["X-CSRF-Token"] = sCsrfToken;
+			}
+		}).finally(() => {
+			this.oSecurityTokenPromise = null;
+		});
+	};
+
+	/**
 	 * Converts the value for a "$expand" in mQueryParams.
 	 *
 	 * @param {object} mExpandItems The expand items, a map from path to options
@@ -689,7 +750,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sMetaPath
 	 *   The meta path corresponding to the resource path
-	 * @param {object} [mQueryOptions] The query options
+	 * @param {object} [mQueryOptions] The read-only query options
 	 * @param {boolean} [bDropSystemQueryOptions]
 	 *   Whether all system query options are dropped (useful for non-GET requests)
 	 * @param {boolean} [bSortExpandSelect]
@@ -735,7 +796,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Checks whether the "OData-Version" header is set to "4.0" otherwise an error is thrown.
+	 * Checks whether the "OData-Version" header is as expected, otherwise an error is thrown.
 	 *
 	 * @param {function} fnGetHeader
 	 *   A callback function to get a header attribute for a given header name with case-insensitive
@@ -745,7 +806,8 @@ sap.ui.define([
 	 * @param {boolean} [bVersionOptional]
 	 *   Indicates whether the OData service version is optional, which is the case for responses
 	 *   contained in a response for a $batch request
-	 * @throws {Error} If the "OData-Version" header is not "4.0"
+	 * @returns {string} The response's "OData-Version" header value
+	 * @throws {Error} If the "OData-Version" header is not as expected
 	 *
 	 * @private
 	 */
@@ -759,8 +821,9 @@ sap.ui.define([
 				+ " 'DataServiceVersion' header with value '" + vDataServiceVersion
 				+ "' in response for " + this.sServiceUrl + sResourcePath);
 		}
-		if (sODataVersion === "4.0" || !sODataVersion && bVersionOptional) {
-			return;
+		if (!sODataVersion && bVersionOptional || sODataVersion === this.sODataVersion
+				|| sODataVersion === "4.0") {
+			return sODataVersion;
 		}
 		throw new Error("Expected 'OData-Version' header with value '4.0' but received value '"
 			+ sODataVersion + "' in response for " + this.sServiceUrl + sResourcePath);
@@ -793,7 +856,7 @@ sap.ui.define([
 	 *
 	 * @param {string} _sMetaPath
 	 *   The meta path corresponding to the resource path
-	 * @param {object} mQueryOptions The query options
+	 * @param {object} mQueryOptions The read-only query options
 	 * @param {function (string,any)} fnResultHandler
 	 *   The function to process the converted options getting the name and the value
 	 * @param {boolean} [bDropSystemQueryOptions]
@@ -897,7 +960,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sMetaPath
 	 *   The meta path, e.g. "/SalesOrderList/SO_2_BP"
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise that is resolved with the type at the given path.
 	 *
 	 * @private
@@ -910,12 +973,12 @@ sap.ui.define([
 	 * Formats a given internal value into a literal suitable for usage in URLs.
 	 *
 	 * @param {any} vValue
-	 *   The value according to "OData JSON Format Version 4.0" section "7.1 Primitive Value"
+	 *   The value according to "OData JSON Format Version 4.01" section "7.1 Primitive Value"
 	 * @param {object} oProperty
 	 *   The OData property
 	 * @returns {string}
-	 *   The literal according to "OData Version 4.0 Part 2: URL Conventions" section
-	 *   "5.1.1.6.1 Primitive Literals"
+	 *   The literal according to "OData Version 4.01 Part 2: URL Conventions" section
+	 *   "5.1.1.14.1 Primitive Literals"
 	 * @throws {Error}
 	 *   If the value is undefined or the type is not supported
 	 *
@@ -1266,6 +1329,9 @@ sap.ui.define([
 					if (oCandidate.$mergeRequests && oRequest.$mergeRequests) {
 						oCandidate.$mergeRequests(oRequest.$mergeRequests());
 					}
+					oCandidate.$sortSystemQueryOptions
+						||= oCandidate.$queryOptions.$$sortIfMerged
+							|| oRequest.$queryOptions.$$sortIfMerged;
 
 					return true;
 				}
@@ -1283,10 +1349,12 @@ sap.ui.define([
 			var mQueryOptions = oRequest.$queryOptions;
 
 			if (mQueryOptions) {
-				if (mQueryOptions.$expand && !mQueryOptions.$select.length) {
+				// if there was no $select, don't introduce one
+				if (mQueryOptions.$expand && mQueryOptions.$select?.length === 0) {
 					mQueryOptions.$select = Object.keys(mQueryOptions.$expand).sort().slice(0, 1);
 				}
-				oRequest.url = that.addQueryString(oRequest.url, oRequest.$metaPath, mQueryOptions);
+				oRequest.url = that.addQueryString(oRequest.url, oRequest.$metaPath, mQueryOptions,
+					oRequest.$sortSystemQueryOptions);
 			}
 		});
 		aResultingRequests.iChangeSet = aRequests.iChangeSet;
@@ -1386,9 +1454,13 @@ sap.ui.define([
 					that.oModelInterface.onHttpResponse(vResponse.headers);
 					if (vResponse.responseText) {
 						try {
-							that.doCheckVersionHeader(getResponseHeader.bind(vResponse),
-								vRequest.url, true);
-							oResponse = that.doConvertResponse(JSON.parse(vResponse.responseText),
+							const sODataVersion = that.doCheckVersionHeader(
+								getResponseHeader.bind(vResponse), vRequest.url, true);
+							const fnReviver = sODataVersion === "4.01"
+								? _Requestor.reviver
+								: undefined;
+							oResponse = that.doConvertResponse(
+								JSON.parse(vResponse.responseText, fnReviver),
 								vRequest.$metaPath);
 						} catch (oErr) {
 							vRequest.$reject(oErr);
@@ -1400,7 +1472,7 @@ sap.ui.define([
 						oResponse = vRequest.method === "GET" ? null : {};
 					}
 					that.reportHeaderMessages(vRequest.$resourcePath,
-						getResponseHeader.call(vResponse, "sap-messages"), oResponse);
+						getResponseHeader.call(vResponse, "sap-messages"), oResponse, vRequest.url);
 					sETag = getResponseHeader.call(vResponse, "ETag");
 					if (sETag) {
 						oResponse["@odata.etag"] = sETag;
@@ -1563,7 +1635,8 @@ sap.ui.define([
 	 * Returns a sync promise that is resolved when the requestor is ready to be used. The V4
 	 * requestor is ready immediately. Subclasses may behave differently.
 	 *
-	 * @returns {sap.ui.base.SyncPromise} A sync promise that is resolved immediately with no result
+	 * @returns {sap.ui.base.SyncPromise<void>}
+	 *   A sync promise that is resolved immediately with no result
 	 *
 	 * @public
 	 */
@@ -1573,10 +1646,11 @@ sap.ui.define([
 
 	/**
 	 * Returns a promise that will be resolved once the CSRF token has been refreshed, or rejected
-	 * if that fails. Makes sure that only one HEAD request is underway at any given time and
-	 * shares the promise accordingly. If the HEAD request fails with a 503 HTTP status code and
-	 * a "Retry-After" response header, the promise is also resolved because the next request (in
-	 * {@link #sendRequest}) will also fail with 503 and is handled there.
+	 * (unless for an initial call without <code>sOldSecurityToken</code>) if that fails. Makes sure
+	 * that only one HEAD request is underway at any given time and shares the promise accordingly.
+	 * If the HEAD request fails with a 503 HTTP status code and a "Retry-After" response header,
+	 * the promise is also resolved because the next request (in {@link #sendRequest}) will also
+	 * fail with 503 and is handled there.
 	 *
 	 * @param {string} [sOldSecurityToken]
 	 *   Security token that caused a 403. A new token is only fetched if the old one is still
@@ -1619,7 +1693,8 @@ sap.ui.define([
 						fnResolve();
 					}, function (jqXHR) {
 						that.oSecurityTokenPromise = null;
-						if (jqXHR.status === 503 && jqXHR.getResponseHeader("Retry-After")) {
+						if (!sOldSecurityToken
+								|| jqXHR.status === 503 && jqXHR.getResponseHeader("Retry-After")) {
 							fnResolve();
 						} else {
 							fnReject(
@@ -1751,7 +1826,8 @@ sap.ui.define([
 
 	/**
 	 * Reports OData messages from the "sap-messages" response header (or forwards them via the
-	 * response object).
+	 * response object). When reporting, the longtext URL is already resolved w.r.t. the request URL
+	 * and the original message is preserved early on.
 	 *
 	 * @param {string} sResourcePath
 	 *   The resource path of the request whose response contained the messages, see also
@@ -1761,15 +1837,24 @@ sap.ui.define([
 	 * @param {object} oResponse
 	 *   The response object, needed in case <code>sResourcePath === "R#V#C"</code> as described
 	 *   at {@link #request}
+	 * @param {string} [sRequestUrl]
+	 *   A resource path relative to the service URL for which this requestor has been created
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.reportHeaderMessages = function (sResourcePath, sMessages, oResponse) {
+	_Requestor.prototype.reportHeaderMessages = function (sResourcePath, sMessages, oResponse,
+			sRequestUrl) {
 		if (sMessages) {
 			const aMessages = JSON.parse(sMessages);
 			if (sResourcePath === "R#V#C") {
 				_Helper.setPrivateAnnotation(oResponse, "headerMessages", aMessages);
 			} else {
+				const sAbsoluteRequestUrl = this.sServiceUrl + sRequestUrl;
+				aMessages.forEach((oMessage) => {
+					oMessage["@$ui5.originalMessage"] = _Helper.clone(oMessage);
+					oMessage.longtextUrl
+						&&= _Helper.makeAbsolute(oMessage.longtextUrl, sAbsoluteRequestUrl);
+				});
 				this.oModelInterface.reportTransitionMessages(aMessages, sResourcePath);
 			}
 		}
@@ -1793,7 +1878,8 @@ sap.ui.define([
 	 *   other group ID values, the request is added to the given group and you can use
 	 *   {@link #submitBatch} to send all requests in that group. This group lock will be unlocked
 	 *   immediately, even if the request itself is queued. The request is rejected if the lock is
-	 *   already canceled.
+	 *   already canceled. For a group lock with a negative serial number, a non-GET is put into a
+	 *   change set of its own (unless <code>bAtFront</code> is used).
 	 * @param {object} [mHeaders]
 	 *   Map of request-specific headers, overriding both the mandatory OData V4 headers and the
 	 *   default headers given to the factory. This map of headers must not contain
@@ -1833,19 +1919,24 @@ sap.ui.define([
 	 *   contain $expand
 	 * @param {any} [vOwner]
 	 *   An additional precondition for the merging of GET requests: the owner must be identical.
+	 *   This is probably relevant when using parameter <code>fnMergeRequests</code> to ensure both
+	 *   functions work well together.
 	 * @param {function(string[]):string[]} [fnMergeRequests]
 	 *   Function which is called during merging of GET or PATCH requests. If a merged request has a
-	 *   function given, this function will be called and its return value is
-	 *   given to the one remaining request's function as a parameter.
+	 *   function given, this function will be called and its return value is given to the one
+	 *   remaining request's function as a parameter. See also <code>vOwner</code>.
 	 * @returns {Promise}
 	 *   A promise on the outcome of the HTTP request; it will be rejected with an error having the
 	 *   property <code>canceled = true</code> instead of sending a request if
 	 *   <code>oGroupLock</code> is already canceled.
 	 * @throws {Error} If
 	 *   <ul>
-	 *     <li>group ID is '$cached'. The error has a property <code>$cached = true</code>
-	 *     <li>group ID is '$single' and there is already an existing batch queue for this group
+	 *     <li>group ID is '$cached'; the error has a property <code>$cached = true</code>,
+	 *     <li>group ID is '$single' and there is already an existing batch queue for this group,
+	 *     <li>the {@link #checkConflictingStrictRequest rules for strict handling} w.r.t. change
+	 *       sets are violated
 	 *   </ul>
+	 *
 	 * @public
 	 */
 	_Requestor.prototype.request = function (sMethod, sResourcePath, oGroupLock, mHeaders, oPayload,
@@ -1912,11 +2003,17 @@ sap.ui.define([
 					aRequests[0].unshift(oRequest);
 				} else { // push into change set which was current when the request was initiated
 					iChangeSetNo = aRequests.iChangeSet;
-					while (aRequests[iChangeSetNo].iSerialNumber > iRequestSerialNumber) {
+					while (aRequests[iChangeSetNo].iSerialNumber > Math.abs(iRequestSerialNumber)) {
 						iChangeSetNo -= 1;
 					}
+					if (iRequestSerialNumber < 0) {
+						iChangeSetNo += 1; // insert own change set *afterwards*
+						const aChangeSet = [];
+						aChangeSet.iSerialNumber = -iRequestSerialNumber;
+						aRequests.iChangeSet += 1;
+						aRequests.splice(iChangeSetNo, 0, aChangeSet);
+					}
 					that.checkConflictingStrictRequest(oRequest, aRequests, iChangeSetNo);
-
 					aRequests[iChangeSetNo].push(oRequest);
 				}
 				if (sGroupId === "$single") {
@@ -1949,7 +2046,8 @@ sap.ui.define([
 				// Note: "text/plain" used for $count
 				typeof oResponse.body === "string" ? JSON.parse(oResponse.body) : oResponse.body,
 				sMetaPath);
-			that.reportHeaderMessages(sOriginalResourcePath, oResponse.messages, oResult);
+			that.reportHeaderMessages(sOriginalResourcePath, oResponse.messages, oResult,
+				sResourcePath);
 			return oResult;
 		});
 	};
@@ -1972,7 +2070,7 @@ sap.ui.define([
 				this.oModelInterface.isIgnoreETag()
 			);
 
-		return this.processOptimisticBatch(aRequests, sGroupId)
+		return !bHasChanges && this.processOptimisticBatch(aRequests, sGroupId)
 			|| this.sendRequest("POST", "$batch" + this.sQueryParams,
 				Object.assign(oBatchRequest.headers, mBatchHeaders,
 					bHasChanges ? undefined : {"sap-cancel-on-close" : "true"},
@@ -2061,15 +2159,16 @@ sap.ui.define([
 				}
 				jQuery.ajax(sRequestUrl, oAjaxSettings)
 				.then(function (/*{object|string}*/vResponse, _sTextStatus, jqXHR) {
-					var sETag = jqXHR.getResponseHeader("ETag"),
-						sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token");
+					var sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token"),
+						sETag = jqXHR.getResponseHeader("ETag"),
+						sODataVersion;
 
 					that.oModelInterface.onHttpResponse(
 						_Helper.parseRawHeaders(jqXHR.getAllResponseHeaders()));
 
 					try {
-						that.doCheckVersionHeader(jqXHR.getResponseHeader, sResourcePath,
-							!vResponse);
+						sODataVersion = that.doCheckVersionHeader(jqXHR.getResponseHeader,
+							sResourcePath, !vResponse);
 					} catch (oError) {
 						fnReject(oError);
 						return;
@@ -2085,8 +2184,13 @@ sap.ui.define([
 					// With GET it must be visible that there is no content, with the other
 					// methods it must be possible to insert the ETag from the header
 					vResponse ||= sMethod === "GET" ? null : {};
-					if (sETag && typeof vResponse === "object") {
-						vResponse["@odata.etag"] = sETag;
+					if (typeof vResponse === "object") {
+						if (sODataVersion === "4.01") {
+							vResponse = JSON.parse(JSON.stringify(vResponse), _Requestor.reviver);
+						}
+						if (sETag) {
+							vResponse["@odata.etag"] = sETag;
+						}
 					}
 
 					fnResolve({
@@ -2146,11 +2250,15 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
+	 * @throws {Error} If the {@link #checkConflictingStrictRequest rules for strict handling}
+	 *   w.r.t. change sets are violated
 	 *
 	 * @public
 	 */
 	_Requestor.prototype.setContinueOnError = function (sGroupId) {
-		this.getOrCreateBatchQueue(sGroupId).bContinueOnError = true;
+		const aRequests = this.getOrCreateBatchQueue(sGroupId);
+		this.checkConflictingStrictRequest(null, aRequests);
+		aRequests.bContinueOnError = true;
 	};
 
 	/**
@@ -2217,7 +2325,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise on the outcome of the HTTP request resolving with <code>undefined</code>; it is
 	 *   rejected with an error if the batch request itself fails.
 	 *
@@ -2265,7 +2373,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise that resolves without a defined result when a batch response has been received
 	 *   for the given group ID, no matter if the batch succeeded or failed
 	 *
@@ -2282,7 +2390,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise that resolves without a defined result when all currently running change requests
 	 *   for the given group ID have been processed completely, no matter if they succeed or fail
 	 *
@@ -2310,6 +2418,8 @@ sap.ui.define([
 	 * @param {string} sOptimisticGroupId The group ID of the optimistic batch
 	 * @returns {boolean}
 	 *   Whether the actual batch requests and group ID matches the optimistic one
+	 *
+	 * @private
 	 */
 	_Requestor.matchesOptimisticBatch = function (aActualRequests, sActualGroupId,
 		aOptimisticRequests, sOptimisticGroupId) {
@@ -2380,7 +2490,7 @@ sap.ui.define([
 	 *   A function to report messages to {@link module:sap/ui/core/Messaging}, expecting two arrays
 	 *   of {@link sap.ui.core.message.Message} as parameters. The first array should be the old
 	 *   messages and the second array the new messages.
-	 * @param {object} [mHeaders={}]
+	 * @param {object} mHeaders
 	 *   Map of default headers; may be overridden with request-specific headers; certain
 	 *   OData V4 headers are predefined, but may be overridden by the default or
 	 *   request-specific headers:
@@ -2393,27 +2503,53 @@ sap.ui.define([
 	 *   <code>_Requestor</code> always sets the "Content-Type" header value to
 	 *   "application/json;charset=UTF-8;IEEE754Compatible=true" for OData V4 or
 	 *   "application/json;charset=UTF-8" for OData V2.
-	 * @param {object} [mQueryParams={}]
+	 * @param {object} mQueryParams
 	 *   A map of query parameters as described in
 	 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}; used only to request the CSRF
 	 *   token
-	 * @param {string} [sODataVersion="4.0"]
-	 *   The version of the OData service. Supported values are "2.0" and "4.0".
+	 * @param {string} sODataVersion
+	 *   The version of the OData service. Supported values are "2.0", "4.0", and "4.01".
 	 * @param {boolean} [bWithCredentials]
 	 *   Whether the XHR should be called with <code>withCredentials</code>
 	 * @returns {object}
 	 *   A new <code>_Requestor</code> instance
+	 *
+	 * @public
 	 */
 	_Requestor.create = function (sServiceUrl, oModelInterface, mHeaders, mQueryParams,
 			sODataVersion, bWithCredentials) {
 		var oRequestor = new _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface,
-			bWithCredentials);
+			sODataVersion, bWithCredentials);
 
 		if (sODataVersion === "2.0") {
 			asV2Requestor(oRequestor);
 		}
 
 		return oRequestor;
+	};
+
+	/**
+	 * A "reviver" function to be used by JSON.parse in order to transform 4.01 control information
+	 * back to 4.0 format by adding missing "odata." infixes and missing hashes for "@odata.type".
+	 *
+	 * @param {string} sProperty - The current property's name
+	 * @param {any} vPropertyValue - The current property's value
+	 * @returns {any|undefined}
+	 *   The current property's value or <code>undefined</code> in order to ignore delete it
+	 *
+	 * @private
+	 */
+	_Requestor.reviver = function (sProperty, vPropertyValue) {
+		if (sProperty.includes("@") && !sProperty.includes(".")) {
+			// control information w/o "odata."
+			if (sProperty.endsWith("@type") && !vPropertyValue.includes("#")) {
+				// "built-in primitive type value"
+				vPropertyValue = "#" + vPropertyValue;
+			}
+			this[sProperty.replace("@", "@odata.")] = vPropertyValue;
+			return undefined; // "delete this[sProperty]"
+		}
+		return vPropertyValue;
 	};
 
 	return _Requestor;

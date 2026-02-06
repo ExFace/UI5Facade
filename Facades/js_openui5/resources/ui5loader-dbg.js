@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1461,13 +1461,7 @@
 	function loadScript(oModule, sAlternativeURL) {
 
 		const oScript = document.createElement('SCRIPT');
-		// Accessing the 'src' property of the script in this strange way prevents Safari 12 (or WebKit) from
-		// wrongly optimizing access. SF12 seems to check at optimization time whether there's a setter for the
-		// property and optimize accordingly. When a setter is defined or changed at a later point in time (e.g.
-		// by the AppCacheBuster), then the optimization seems not to be updated and the new setter is ignored
-		// BCP 1970035485
-		oScript["s" + "rc"] = oModule.url;
-		//oScript.src = oModule.url;
+		oScript.src = oModule.url;
 		oScript.setAttribute("data-sap-ui-module", oModule.name);
 
 		function onload(e) {
@@ -2419,12 +2413,13 @@
 	}
 
 	/**
-	 * Returns an info about all known resources keyed by their URN.
+	 * Returns a map of info objects for all known resources keyed by their URN.
 	 *
-	 * If the URN can be converted to a UI5 module name, then the value in the map
-	 * will be that name. Otherwise it will be null or undefined.
+	 * If the URN can be converted to a UI5 module name, then the `ui5` property in the
+	 * returned info will be that name. Otherwise it will be null or undefined.
 	 *
-	 * @return {Object.<string,string>} Map of all module names keyed by their resource name
+	 * @returns {Object.<string,{state: number, ui5: string, deprecated: boolean}>}
+	 *     Map of information objects for all modules, keyed by their resource name
 	 * @see isDeclared
 	 * @private
 	 */
@@ -2433,7 +2428,8 @@
 		forEach(mModules, function(sURN, oModule) {
 			mSnapshot[sURN] = {
 				state: oModule.state,
-				ui5: urnToUI5(sURN)
+				ui5: urnToUI5(sURN),
+				deprecated: oModule.deprecation != null
 			};
 		});
 		return mSnapshot;
@@ -2696,7 +2692,7 @@
 	/**
 	 * Root namespace for JavaScript functionality provided by SAP SE.
 	 *
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -3252,7 +3248,7 @@
 
 	/**
 	 * @private
-	 * @ui5-restricted bundles created with UI5 tooling
+	 * @ui5-restricted bundles created with UI5 CLI
 	 * @function
 	 * @ui5-global-only
 	 * @name sap.ui.predefine

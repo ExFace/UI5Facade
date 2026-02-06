@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ function(
 	 * @extends sap.ui.dt.Overlay
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -145,8 +145,6 @@ function(
 
 				if (!bChildRendered) {
 					var oRenderResult = oChild.render(true);
-					// TODO: change when renderer does not return jquery object any more!
-					oRenderResult = oRenderResult.jquery ? oRenderResult.get(0) : oRenderResult;
 				}
 
 				var oChildDOM = bChildRendered ? oChild.getDomRef() : oRenderResult;
@@ -251,7 +249,7 @@ function(
 			this.setProperty("targetZone", bTargetZone);
 			this.toggleStyleClass("sapUiDtOverlayTargetZone", bTargetZone);
 
-			this.fireTargetZoneChange({targetZone: bTargetZone});
+			this.fireTargetZoneChange({ targetZone: bTargetZone });
 		}
 
 		return this;

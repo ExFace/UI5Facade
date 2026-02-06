@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,6 +43,9 @@ sap.ui.define([
 	var IconColor = coreLibrary.IconColor;
 
 	var TitleLevel = coreLibrary.TitleLevel;
+
+	// // shortcut for sap.uxap.ObjectPageSubSectionLayout
+	// var ObjectPageSubSectionLayout = library.ObjectPageSubSectionLayout;
 
 	/**
 	 * Constructor for a new <code>ObjectPageSection</code>.
@@ -162,7 +165,6 @@ sap.ui.define([
 
 	ObjectPageSection.prototype.init = function () {
 		ObjectPageSectionBase.prototype.init.call(this);
-		this._bInternalTitleVisible = true;
 		this._sContainerSelector = ".sapUxAPObjectPageSectionContainer";
 		this._oGridContentObserver = new ManagedObjectObserver(this._onGridContentChange.bind(this));
 		this._sTitleStyle = TitleLevel.H4;
@@ -244,6 +246,18 @@ sap.ui.define([
 
 	ObjectPageSection.prototype._getTitle = function () {
 		return this._hasPromotedSubSection() ? this._getFirstVisibleSubSection().getTitle() : this.getTitle();
+	};
+
+	ObjectPageSection.prototype._hasMoreThanOneVisibleSubSection = function () {
+		return this._getVisibleSubSections().length > 1;
+	};
+
+	ObjectPageSection.prototype._shouldHaveStickyHeader = function () {
+		var bHasMoreThanOneVisibleSubSection = this._hasMoreThanOneVisibleSubSection(),
+			bTitleAriaVisible = this._isTitleAriaVisible();
+
+		// Title aria is visible, has one visible subsection and the subsection's header is not visible
+		return bTitleAriaVisible && !bHasMoreThanOneVisibleSubSection && !this._getFirstVisibleSubSection()?._shouldHaveVisibleTitleLine();
 	};
 
 	/**@deprecated */
@@ -347,26 +361,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * set the internal visibility of the Section title. This is set by the ux rules (for example don't display a Section title in IconTabBar mode)
-	 * @param {boolean} bValue
-	 * @param {boolean} bInvalidate if set to true, the Section should be rerendered in order to be added or removed to the dom (similar to what a "real" internalVisibility property would trigger)
-	 * @private
-	 */
-	ObjectPageSection.prototype._setInternalTitleVisible = function (bValue, bInvalidate) {
-		if (bValue != this._bInternalTitleVisible) {
-			this._bInternalTitleVisible = bValue;
-			this.setTitleVisible();
-			if (bInvalidate) {
-				this.invalidate();
-			}
-		}
-	};
-
-	ObjectPageSection.prototype._getInternalTitleVisible = function () {
-		return this._bInternalTitleVisible;
-	};
-
-	/**
 	 * Determines if the <code>ObjectPageSection</code> title is visible.
 	 * @private
 	 * @returns {boolean}
@@ -396,6 +390,10 @@ sap.ui.define([
 		return (this.getShowTitle() && this._getInternalTitleVisible()) || this._shouldDisplayButtonsInHeader();
 	};
 
+	ObjectPageSection.prototype._getWrapTitle = function () {
+		return this.getWrapTitle();
+	};
+
 	/**
 	 * Determines if the <code>ObjectPageSection</code> title is forced to be visible.
 	 * This is the case when the <code>ObjectPageSection</code> displays the expand/collapse button or the show/hide all button.
@@ -407,18 +405,46 @@ sap.ui.define([
 	};
 
 	/**
+	 * Set the _sAriaLabelledByAnchorButton - the id of the AnchorBar button that corresponds to this section.
+	 * @param {object} oAnchorButton The AnchorBar button that corresponds to this section
+	 * @param {boolean} bInvalidate Whether to invalidate the control or not
+	 * @private
+	 */
+	ObjectPageSection.prototype._setAriaLabelledByAnchorButton = function (oAnchorButton) {
+		if (this._sAriaLabelledByAnchorButton && this._sAriaLabelledByAnchorButton !== oAnchorButton?.getId()) {
+			this.invalidate();
+		}
+
+		this._sAriaLabelledByAnchorButton = oAnchorButton?.getId();
+	};
+
+	/**
+	 * Returns the id of the AnchorBar button that corresponds to this section.
+	 * @private
+	 * @returns {string} The id of the AnchorBar button that corresponds to this section
+	 */
+	ObjectPageSection.prototype._getAriaLabelledByAnchorButton = function () {
+		return this._sAriaLabelledByAnchorButton;
+	};
+
+	/**
 	 * Returns the label id for the section.
 	 * @private
 	 * @returns {string} aria-labeled by id
 	 */
 	ObjectPageSection.prototype._getAriaLabelledById = function () {
+		var oFirstVisibleSubSection = this._getFirstVisibleSubSection();
 		// Each section should be labelled as:
 		// 'titleID' - either its own or the promoted subsection's title
-		if (this._hasPromotedSubSection()) {
-			return this._getFirstVisibleSubSection()?._getTitleControl().getId();
-		} else {
+		if (this._hasPromotedSubSection() && oFirstVisibleSubSection?.getTitleVisible()) {
+			return oFirstVisibleSubSection._getTitleControl().getId();
+		}
+
+		if (!this._hasPromotedSubSection() && this.getTitleVisible()) {
 			return this._getTitleControl().getId();
 		}
+
+		return this._getAriaLabelledByAnchorButton();
 	};
 
 	/**

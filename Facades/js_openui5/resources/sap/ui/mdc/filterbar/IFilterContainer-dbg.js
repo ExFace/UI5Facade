@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,6 +28,16 @@ sap.ui.define([
 	IFilterContainer.prototype.init = function() {
 		Element.prototype.init.apply(this, arguments);
 		this.oLayout = null;
+	};
+
+	/**
+	 * Adds a button control to the inner layout of the <code>IFilterContainer</code>.
+	 * @public
+	 * @param {sap.ui.core.Control} oControl Control that is added
+	 * @since 1.144
+	 */
+	IFilterContainer.prototype.addButton = function(oControl) {
+		//add the button to the inner layout this.oLayout
 	};
 
 	/**

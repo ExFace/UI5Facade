@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,9 +59,9 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.ui.layout.form.SimpleFormLayout
-	var {SimpleFormLayout} = layoutLibrary.form;
+	var { SimpleFormLayout } = layoutLibrary.form;
 
-	var {ValueState} = coreLibrary;
+	var { ValueState } = coreLibrary;
 
 	var oResources = Lib.getResourceBundleFor("sap.ui.rta");
 	var oDataSet;
@@ -97,7 +97,7 @@ sap.ui.define([
 
 	function _handleSearch(oEvent) {
 		var sValue = oEvent.getParameter("value");
-		var oFilter = new Filter("name", FilterOperator.Contains, sValue);
+		var oFilter = new Filter("text", FilterOperator.Contains, sValue);
 		var oBinding = oEvent.getSource().getBinding("items");
 		oBinding.filter([oFilter]);
 	}
@@ -136,7 +136,7 @@ sap.ui.define([
 		oSelectDialog.bindAggregation("items", {
 			path: "/icons",
 			template: new StandardListItem({
-				title: "{name}",
+				title: "{text}",
 				description: "",
 				icon: "{icon}",
 				iconDensityAware: false,
@@ -149,10 +149,11 @@ sap.ui.define([
 		var aIcons = [];
 
 		aUI5Icons.forEach(function(sName) {
-			var iconInfo = IconPool.getIconInfo(sName);
+			const iconInfo = IconPool.getIconInfo(sName);
 			aIcons.push({
 				icon: iconInfo.uri,
-				name: (iconInfo.text === "") ? sName.toLowerCase() : iconInfo.text
+				name: iconInfo.name,
+				text: iconInfo.text || sName.toLowerCase()
 			});
 		});
 

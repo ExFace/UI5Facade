@@ -58,7 +58,7 @@
 		{
 			"name": "controller/ContentDetails-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetails.controller.js",
-			"size": 10058,
+			"size": 10065,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -102,7 +102,7 @@
 		{
 			"name": "controller/ContentDetailsEdit-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/ContentDetailsEdit.controller.js",
-			"size": 8583,
+			"size": 8589,
 			"isDebug": true,
 			"required": [
 				"sap/m/Button.js",
@@ -144,7 +144,7 @@
 		{
 			"name": "controller/LayerContentMaster-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/LayerContentMaster.controller.js",
-			"size": 6493,
+			"size": 6497,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js",
@@ -182,7 +182,7 @@
 		{
 			"name": "controller/Layers-dbg.controller.js",
 			"module": "sap/ui/fl/support/apps/contentbrowser/controller/Layers.controller.js",
-			"size": 1427,
+			"size": 1429,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js",

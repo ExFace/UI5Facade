@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -132,7 +132,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -413,7 +413,7 @@ sap.ui.define([
 	};
 
 	Carousel.prototype._resize = function() {
-		var $inner = this.$().find('> .sapMCrslInner');
+		var $inner = this.$().find('> .sapMCrslList > .sapMCrslInner');
 
 		if (this._iResizeTimeoutId) {
 			clearTimeout(this._iResizeTimeoutId);
@@ -561,7 +561,7 @@ sap.ui.define([
 	Carousel.prototype._calculatePagesWidth = function (iNumberOfItemsToShow) {
 		var iWidth = this.$().width(),
 			oSlide = this.getDomRef().querySelector(".sapMCrslFluid .sapMCrslItem"),
-			iMargin = parseFloat(window.getComputedStyle(oSlide).marginRight),
+			iMargin = parseFloat(window.getComputedStyle(oSlide).marginInlineEnd),
 			iItemWidth = (iWidth - (iMargin * (iNumberOfItemsToShow - 1))) / iNumberOfItemsToShow,
 			iItemWidthPercent = (iItemWidth / iWidth) * 100;
 
@@ -581,7 +581,7 @@ sap.ui.define([
 		}
 
 		var $element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			iIndex = this._iCurrSlideIndex,
 			iLength = $items.length,
@@ -698,7 +698,6 @@ sap.ui.define([
 		this.$().find(Carousel._ITEM_SELECTOR).each(function (iIndex, oPage) {
 			var bSelected = iIndex === iSelectedPageIndex;
 
-			oPage.setAttribute("aria-selected", bSelected);
 			oPage.setAttribute("aria-hidden", !this._isPageDisplayed(iIndex));
 			oPage.setAttribute("tabindex", bSelected ? 0 : -1);
 		}.bind(this));
@@ -1213,7 +1212,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype.onsapup = function(oEvent) {
-		this._fnSkipToIndex(oEvent, 1, false);
+		this._fnSkipToIndex(oEvent, -1, false);
 	};
 
 	/**
@@ -1234,7 +1233,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype.onsapdown = function(oEvent) {
-		this._fnSkipToIndex(oEvent, -1, false);
+		this._fnSkipToIndex(oEvent, 1, false);
 	};
 
 	/**
@@ -1556,7 +1555,7 @@ sap.ui.define([
 	};
 
 	Carousel.prototype._initialize  = function () {
-		var $inner = this.$().find('> .sapMCrslInner'),
+		var $inner = this.$().find('> .sapMCrslList > .sapMCrslInner'),
 			iNumberOfItemsToShow = this._getNumberOfItemsToShow();
 
 		this._bIsInitialized = false;
@@ -1595,7 +1594,7 @@ sap.ui.define([
 		}
 
 		var $element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			$start = $items.eq(0),
 			$current = $items.eq(this._iCurrSlideIndex),
@@ -1620,7 +1619,7 @@ sap.ui.define([
 	Carousel.prototype._initActivePages = function () {
 		var sActiveClass = "sapMCrslActive",
 			$element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			sId = this.getDomRef().id,
 			sPageIndicatorId = sId.replace(/(:|\.)/g,'\\$1') + '-pageIndicator',

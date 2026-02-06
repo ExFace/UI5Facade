@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,13 +49,19 @@ sap.ui.define([
 
 		// ARIA
 		const sRole = !bExpanded && !oControl.hasStyleClass("sapTntNLPopup") ? "menubar" : "tree";
+		const oParent = oControl.getParent();
+		const bIsFixed = oParent.getAggregation("fixedItem") && oParent.getAggregation("fixedItem") === oControl;
 		oRM.accessibilityState(oControl, {
 			role: sRole,
 			orientation: sRole === "menubar" ? "vertical" : undefined,
 			roledescription: Lib.getResourceBundleFor("sap.tnt").getText(
 				sRole === "menubar" ?
 					"NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_MENUBAR" :
-					"NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_TREE")
+					"NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_TREE"),
+			label: Lib.getResourceBundleFor("sap.tnt").getText(
+				bIsFixed ?
+					"SIDE_NAVIGATION_FIXED_LIST_LABEL" :
+					"SIDE_NAVIGATION_FLEXIBLE_LIST_LABEL")
 		});
 
 		oRM.openEnd();

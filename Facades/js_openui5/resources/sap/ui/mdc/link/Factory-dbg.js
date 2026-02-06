@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define(["sap/base/Log"], (Log) => {
 	 * @namespace Factory to access services outside of sap.ui.mdc library like for example <code>ushell</code> services.
 	 * @name sap.ui.mdc.link.Factory
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @since 1.54.0
 	 */

@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2682
+			"size": 2669
 		},
 		{
 			"name": ".theming",
@@ -135,7 +135,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/webc/common/library-preload.js",
-			"size": 1585933,
+			"size": 1585911,
 			"merged": true,
 			"required": [
 				"exports.js",
@@ -364,7 +364,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 392349,
+			"size": 390729,
 			"isDebug": true
 		},
 		{
@@ -462,7 +462,7 @@
 		},
 		{
 			"name": "thirdparty/base/Boot.js.map",
-			"size": 1985,
+			"size": 1969,
 			"isDebug": true
 		},
 		{
@@ -478,13 +478,13 @@
 		},
 		{
 			"name": "thirdparty/base/CSP.js.map",
-			"size": 1073,
+			"size": 1052,
 			"isDebug": true
 		},
 		{
 			"name": "thirdparty/base/CustomElementsRegistry-dbg.js",
 			"module": "sap/ui/webc/common/thirdparty/base/CustomElementsRegistry.js",
-			"size": 4008,
+			"size": 3986,
 			"isDebug": true,
 			"required": [
 				"sap/ui/webc/common/thirdparty/base/Runtimes.js",
@@ -494,7 +494,7 @@
 		{
 			"name": "thirdparty/base/CustomElementsRegistry.js",
 			"module": "sap/ui/webc/common/thirdparty/base/CustomElementsRegistry.js",
-			"size": 1965,
+			"size": 1943,
 			"required": [
 				"sap/ui/webc/common/thirdparty/base/Runtimes.js",
 				"sap/ui/webc/common/thirdparty/base/getSharedResource.js"
@@ -502,7 +502,7 @@
 		},
 		{
 			"name": "thirdparty/base/CustomElementsRegistry.js.map",
-			"size": 2532,
+			"size": 2516,
 			"isDebug": true
 		},
 		{
@@ -550,7 +550,7 @@
 		},
 		{
 			"name": "thirdparty/base/CustomElementsScopeUtils.js.map",
-			"size": 2117,
+			"size": 2096,
 			"isDebug": true
 		},
 		{
@@ -566,7 +566,7 @@
 		},
 		{
 			"name": "thirdparty/base/DOMObserver.js.map",
-			"size": 745,
+			"size": 740,
 			"isDebug": true
 		},
 		{
@@ -582,7 +582,7 @@
 		},
 		{
 			"name": "thirdparty/base/Device.js.map",
-			"size": 3873,
+			"size": 3842,
 			"isDebug": true
 		},
 		{
@@ -614,7 +614,7 @@
 		},
 		{
 			"name": "thirdparty/base/FeaturesRegistry.js.map",
-			"size": 544,
+			"size": 539,
 			"isDebug": true
 		},
 		{
@@ -642,7 +642,7 @@
 		},
 		{
 			"name": "thirdparty/base/FontFace.js.map",
-			"size": 1057,
+			"size": 1050,
 			"isDebug": true
 		},
 		{
@@ -658,7 +658,7 @@
 		},
 		{
 			"name": "thirdparty/base/IgnoreCustomElements.js.map",
-			"size": 671,
+			"size": 666,
 			"isDebug": true
 		},
 		{
@@ -688,7 +688,7 @@
 		},
 		{
 			"name": "thirdparty/base/InitialConfiguration.js.map",
-			"size": 4198,
+			"size": 4107,
 			"isDebug": true
 		},
 		{
@@ -704,7 +704,7 @@
 		},
 		{
 			"name": "thirdparty/base/Keys.js.map",
-			"size": 13317,
+			"size": 13312,
 			"isDebug": true
 		},
 		{
@@ -732,7 +732,7 @@
 		},
 		{
 			"name": "thirdparty/base/ManagedStyles.js.map",
-			"size": 2894,
+			"size": 2889,
 			"isDebug": true
 		},
 		{
@@ -748,7 +748,7 @@
 		},
 		{
 			"name": "thirdparty/base/MarkedEvents.js.map",
-			"size": 526,
+			"size": 521,
 			"isDebug": true
 		},
 		{
@@ -764,7 +764,7 @@
 		},
 		{
 			"name": "thirdparty/base/MediaRange.js.map",
-			"size": 1312,
+			"size": 1302,
 			"isDebug": true
 		},
 		{
@@ -780,7 +780,7 @@
 		},
 		{
 			"name": "thirdparty/base/PropertiesFileFormat.js.map",
-			"size": 2134,
+			"size": 2123,
 			"isDebug": true
 		},
 		{
@@ -808,7 +808,7 @@
 		},
 		{
 			"name": "thirdparty/base/Render.js.map",
-			"size": 3126,
+			"size": 3055,
 			"isDebug": true
 		},
 		{
@@ -848,7 +848,7 @@
 		},
 		{
 			"name": "thirdparty/base/Runtimes.js.map",
-			"size": 2175,
+			"size": 2165,
 			"isDebug": true
 		},
 		{
@@ -1004,7 +1004,7 @@
 		},
 		{
 			"name": "thirdparty/base/UI5Element.js.map",
-			"size": 18119,
+			"size": 18109,
 			"isDebug": true
 		},
 		{
@@ -1030,7 +1030,7 @@
 		},
 		{
 			"name": "thirdparty/base/UI5ElementMetadata.js.map",
-			"size": 5212,
+			"size": 5202,
 			"isDebug": true
 		},
 		{
@@ -1046,7 +1046,7 @@
 		},
 		{
 			"name": "thirdparty/base/animations/AnimationQueue.js.map",
-			"size": 1041,
+			"size": 1036,
 			"isDebug": true
 		},
 		{
@@ -1068,7 +1068,7 @@
 		},
 		{
 			"name": "thirdparty/base/animations/animate.js.map",
-			"size": 1535,
+			"size": 1510,
 			"isDebug": true
 		},
 		{
@@ -1090,7 +1090,7 @@
 		},
 		{
 			"name": "thirdparty/base/animations/scroll.js.map",
-			"size": 1783,
+			"size": 1768,
 			"isDebug": true
 		},
 		{
@@ -1112,7 +1112,7 @@
 		},
 		{
 			"name": "thirdparty/base/animations/slideDown.js.map",
-			"size": 2892,
+			"size": 2871,
 			"isDebug": true
 		},
 		{
@@ -1134,7 +1134,7 @@
 		},
 		{
 			"name": "thirdparty/base/animations/slideUp.js.map",
-			"size": 2845,
+			"size": 2829,
 			"isDebug": true
 		},
 		{
@@ -1164,7 +1164,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/Icons.js.map",
-			"size": 3770,
+			"size": 3716,
 			"isDebug": true
 		},
 		{
@@ -1188,7 +1188,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/Illustrations.js.map",
-			"size": 2674,
+			"size": 2638,
 			"isDebug": true
 		},
 		{
@@ -1216,7 +1216,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/LocaleData.js.map",
-			"size": 3174,
+			"size": 3134,
 			"isDebug": true
 		},
 		{
@@ -1240,7 +1240,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/Themes.js.map",
-			"size": 1829,
+			"size": 1813,
 			"isDebug": true
 		},
 		{
@@ -1272,7 +1272,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/i18n.js.map",
-			"size": 2815,
+			"size": 2789,
 			"isDebug": true
 		},
 		{
@@ -1288,7 +1288,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/util/IconCollectionsAlias.js.map",
-			"size": 678,
+			"size": 672,
 			"isDebug": true
 		},
 		{
@@ -1310,7 +1310,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/util/IconCollectionsByTheme.js.map",
-			"size": 1429,
+			"size": 1418,
 			"isDebug": true
 		},
 		{
@@ -1338,7 +1338,7 @@
 		},
 		{
 			"name": "thirdparty/base/asset-registries/util/getIconCollectionByTheme.js.map",
-			"size": 870,
+			"size": 865,
 			"isDebug": true
 		},
 		{
@@ -1362,7 +1362,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/AnimationMode.js.map",
-			"size": 813,
+			"size": 806,
 			"isDebug": true
 		},
 		{
@@ -1386,7 +1386,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/CalendarType.js.map",
-			"size": 984,
+			"size": 972,
 			"isDebug": true
 		},
 		{
@@ -1412,7 +1412,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/FormatSettings.js.map",
-			"size": 949,
+			"size": 945,
 			"isDebug": true
 		},
 		{
@@ -1428,7 +1428,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/Icons.js.map",
-			"size": 580,
+			"size": 575,
 			"isDebug": true
 		},
 		{
@@ -1456,7 +1456,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/Language.js.map",
-			"size": 1235,
+			"size": 1212,
 			"isDebug": true
 		},
 		{
@@ -1478,7 +1478,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/NoConflict.js.map",
-			"size": 1060,
+			"size": 1038,
 			"isDebug": true
 		},
 		{
@@ -1506,7 +1506,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/RTL.js.map",
-			"size": 1126,
+			"size": 1116,
 			"isDebug": true
 		},
 		{
@@ -1536,7 +1536,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/Theme.js.map",
-			"size": 1568,
+			"size": 1548,
 			"isDebug": true
 		},
 		{
@@ -1564,7 +1564,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/ThemeRoot.js.map",
-			"size": 1373,
+			"size": 1357,
 			"isDebug": true
 		},
 		{
@@ -1586,7 +1586,7 @@
 		},
 		{
 			"name": "thirdparty/base/config/Timezone.js.map",
-			"size": 601,
+			"size": 590,
 			"isDebug": true
 		},
 		{
@@ -1608,7 +1608,7 @@
 		},
 		{
 			"name": "thirdparty/base/connectToComponent.js.map",
-			"size": 1768,
+			"size": 1763,
 			"isDebug": true
 		},
 		{
@@ -1640,7 +1640,7 @@
 		},
 		{
 			"name": "thirdparty/base/decorators/customElement.js.map",
-			"size": 1156,
+			"size": 1147,
 			"isDebug": true
 		},
 		{
@@ -1688,7 +1688,7 @@
 		},
 		{
 			"name": "thirdparty/base/decorators/slot.js.map",
-			"size": 1086,
+			"size": 1081,
 			"isDebug": true
 		},
 		{
@@ -1718,7 +1718,7 @@
 		},
 		{
 			"name": "thirdparty/base/delegate/ItemNavigation.js.map",
-			"size": 6712,
+			"size": 6697,
 			"isDebug": true
 		},
 		{
@@ -1740,7 +1740,7 @@
 		},
 		{
 			"name": "thirdparty/base/delegate/ResizeHandler.js.map",
-			"size": 1879,
+			"size": 1853,
 			"isDebug": true
 		},
 		{
@@ -1766,7 +1766,7 @@
 		},
 		{
 			"name": "thirdparty/base/delegate/ScrollEnablement.js.map",
-			"size": 4896,
+			"size": 4885,
 			"isDebug": true
 		},
 		{
@@ -1898,7 +1898,7 @@
 		},
 		{
 			"name": "thirdparty/base/features/OpenUI5Support.js.map",
-			"size": 4342,
+			"size": 4317,
 			"isDebug": true
 		},
 		{
@@ -2038,7 +2038,7 @@
 		},
 		{
 			"name": "thirdparty/base/getSharedResource.js.map",
-			"size": 1336,
+			"size": 1320,
 			"isDebug": true
 		},
 		{
@@ -2062,7 +2062,7 @@
 		},
 		{
 			"name": "thirdparty/base/i18nBundle.js.map",
-			"size": 1818,
+			"size": 1802,
 			"isDebug": true
 		},
 		{
@@ -2100,7 +2100,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/RTLAwareRegistry.js.map",
-			"size": 518,
+			"size": 513,
 			"isDebug": true
 		},
 		{
@@ -2124,7 +2124,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/applyDirection.js.map",
-			"size": 626,
+			"size": 621,
 			"isDebug": true
 		},
 		{
@@ -2146,7 +2146,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/directionChange.js.map",
-			"size": 910,
+			"size": 900,
 			"isDebug": true
 		},
 		{
@@ -2168,7 +2168,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/getEffectiveDir.js.map",
-			"size": 994,
+			"size": 989,
 			"isDebug": true
 		},
 		{
@@ -2196,7 +2196,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/getLocale.js.map",
-			"size": 1215,
+			"size": 1201,
 			"isDebug": true
 		},
 		{
@@ -2218,7 +2218,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/languageChange.js.map",
-			"size": 907,
+			"size": 897,
 			"isDebug": true
 		},
 		{
@@ -2240,7 +2240,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/nextFallbackLocale.js.map",
-			"size": 688,
+			"size": 683,
 			"isDebug": true
 		},
 		{
@@ -2262,7 +2262,7 @@
 		},
 		{
 			"name": "thirdparty/base/locale/normalizeLocale.js.map",
-			"size": 1400,
+			"size": 1396,
 			"isDebug": true
 		},
 		{
@@ -2296,7 +2296,7 @@
 		},
 		{
 			"name": "thirdparty/base/renderer/LitRenderer.js.map",
-			"size": 2254,
+			"size": 2239,
 			"isDebug": true
 		},
 		{
@@ -2342,7 +2342,7 @@
 		},
 		{
 			"name": "thirdparty/base/renderer/executeTemplate.js.map",
-			"size": 1016,
+			"size": 1005,
 			"isDebug": true
 		},
 		{
@@ -2368,7 +2368,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/CustomStyle.js.map",
-			"size": 1615,
+			"size": 1595,
 			"isDebug": true
 		},
 		{
@@ -2390,7 +2390,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/ThemeLoaded.js.map",
-			"size": 887,
+			"size": 877,
 			"isDebug": true
 		},
 		{
@@ -2412,7 +2412,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/ThemeRegistered.js.map",
-			"size": 793,
+			"size": 788,
 			"isDebug": true
 		},
 		{
@@ -2448,7 +2448,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/applyTheme.js.map",
-			"size": 2578,
+			"size": 2555,
 			"isDebug": true
 		},
 		{
@@ -2472,7 +2472,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/getConstructableStyle.js.map",
-			"size": 1152,
+			"size": 1142,
 			"isDebug": true
 		},
 		{
@@ -2496,7 +2496,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/getEffectiveLinksHrefs.js.map",
-			"size": 1034,
+			"size": 1029,
 			"isDebug": true
 		},
 		{
@@ -2522,7 +2522,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/getEffectiveStyle.js.map",
-			"size": 1539,
+			"size": 1529,
 			"isDebug": true
 		},
 		{
@@ -2538,7 +2538,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/getStylesString.js.map",
-			"size": 676,
+			"size": 671,
 			"isDebug": true
 		},
 		{
@@ -2554,7 +2554,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/getThemeDesignerTheme.js.map",
-			"size": 2068,
+			"size": 2057,
 			"isDebug": true
 		},
 		{
@@ -2580,7 +2580,7 @@
 		},
 		{
 			"name": "thirdparty/base/theming/preloadLinks.js.map",
-			"size": 1089,
+			"size": 1084,
 			"isDebug": true
 		},
 		{
@@ -2770,7 +2770,7 @@
 		},
 		{
 			"name": "thirdparty/base/types/DataType.js.map",
-			"size": 905,
+			"size": 900,
 			"isDebug": true
 		},
 		{
@@ -2908,7 +2908,7 @@
 		},
 		{
 			"name": "thirdparty/base/updateShadowRoot.js.map",
-			"size": 1548,
+			"size": 1543,
 			"isDebug": true
 		},
 		{
@@ -2924,7 +2924,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/AriaLabelHelper.js.map",
-			"size": 4739,
+			"size": 4660,
 			"isDebug": true
 		},
 		{
@@ -2940,7 +2940,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/Caret.js.map",
-			"size": 738,
+			"size": 732,
 			"isDebug": true
 		},
 		{
@@ -2956,7 +2956,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/ColorConversion.js.map",
-			"size": 6648,
+			"size": 6617,
 			"isDebug": true
 		},
 		{
@@ -2972,7 +2972,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/FetchHelper.js.map",
-			"size": 980,
+			"size": 970,
 			"isDebug": true
 		},
 		{
@@ -2998,7 +2998,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/FocusableElements.js.map",
-			"size": 2349,
+			"size": 2332,
 			"isDebug": true
 		},
 		{
@@ -3024,7 +3024,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/InvisibleMessage.js.map",
-			"size": 1762,
+			"size": 1747,
 			"isDebug": true
 		},
 		{
@@ -3050,7 +3050,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/PopupUtils.js.map",
-			"size": 2729,
+			"size": 2699,
 			"isDebug": true
 		},
 		{
@@ -3066,7 +3066,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/SlotsHelper.js.map",
-			"size": 973,
+			"size": 962,
 			"isDebug": true
 		},
 		{
@@ -3082,7 +3082,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/StringHelper.js.map",
-			"size": 1039,
+			"size": 1029,
 			"isDebug": true
 		},
 		{
@@ -3104,7 +3104,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/TabbableElements.js.map",
-			"size": 1534,
+			"size": 1522,
 			"isDebug": true
 		},
 		{
@@ -3120,7 +3120,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/arraysAreEqual.js.map",
-			"size": 590,
+			"size": 585,
 			"isDebug": true
 		},
 		{
@@ -3152,7 +3152,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/createLinkInHead.js.map",
-			"size": 832,
+			"size": 822,
 			"isDebug": true
 		},
 		{
@@ -3168,7 +3168,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/createStyleInHead.js.map",
-			"size": 721,
+			"size": 716,
 			"isDebug": true
 		},
 		{
@@ -3184,7 +3184,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/debounce.js.map",
-			"size": 525,
+			"size": 515,
 			"isDebug": true
 		},
 		{
@@ -3206,7 +3206,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/detectNavigatorLanguage.js.map",
-			"size": 624,
+			"size": 618,
 			"isDebug": true
 		},
 		{
@@ -3238,7 +3238,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/formatMessage.js.map",
-			"size": 802,
+			"size": 792,
 			"isDebug": true
 		},
 		{
@@ -3262,7 +3262,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/generateHighlightedMarkup.js.map",
-			"size": 1379,
+			"size": 1369,
 			"isDebug": true
 		},
 		{
@@ -3278,7 +3278,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getActiveElement.js.map",
-			"size": 554,
+			"size": 548,
 			"isDebug": true
 		},
 		{
@@ -3310,7 +3310,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getDesigntimePropertyAsArray.js.map",
-			"size": 478,
+			"size": 473,
 			"isDebug": true
 		},
 		{
@@ -3358,7 +3358,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getFastNavigationGroups.js.map",
-			"size": 1576,
+			"size": 1566,
 			"isDebug": true
 		},
 		{
@@ -3374,7 +3374,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getFileExtension.js.map",
-			"size": 523,
+			"size": 518,
 			"isDebug": true
 		},
 		{
@@ -3390,7 +3390,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getNormalizedTarget.js.map",
-			"size": 549,
+			"size": 543,
 			"isDebug": true
 		},
 		{
@@ -3406,7 +3406,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/getSingletonElementInstance.js.map",
-			"size": 706,
+			"size": 701,
 			"isDebug": true
 		},
 		{
@@ -3422,7 +3422,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/isElementClickable.js.map",
-			"size": 744,
+			"size": 739,
 			"isDebug": true
 		},
 		{
@@ -3438,7 +3438,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/isElementHidden.js.map",
-			"size": 574,
+			"size": 569,
 			"isDebug": true
 		},
 		{
@@ -3454,7 +3454,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/isElementInView.js.map",
-			"size": 704,
+			"size": 699,
 			"isDebug": true
 		},
 		{
@@ -3476,7 +3476,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/isElementTabbable.js.map",
-			"size": 994,
+			"size": 989,
 			"isDebug": true
 		},
 		{
@@ -3492,7 +3492,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/isValidPropertyName.js.map",
-			"size": 715,
+			"size": 710,
 			"isDebug": true
 		},
 		{
@@ -3508,7 +3508,7 @@
 		},
 		{
 			"name": "thirdparty/base/util/whenDOMReady.js.map",
-			"size": 529,
+			"size": 524,
 			"isDebug": true
 		},
 		{
@@ -3540,7 +3540,7 @@
 		},
 		{
 			"name": "thirdparty/base/validateThemeRoot.js.map",
-			"size": 1458,
+			"size": 1442,
 			"isDebug": true
 		},
 		{
@@ -7974,7 +7974,7 @@
 		},
 		{
 			"name": "thirdparty/icons-business-suite/json-imports/Icons.js.map",
-			"size": 749,
+			"size": 737,
 			"isDebug": true
 		},
 		{
@@ -31146,7 +31146,7 @@
 		},
 		{
 			"name": "thirdparty/icons-tnt/json-imports/Icons.js.map",
-			"size": 743,
+			"size": 731,
 			"isDebug": true
 		},
 		{
@@ -48872,7 +48872,7 @@
 		},
 		{
 			"name": "thirdparty/icons/generated/json-imports/i18n.js.map",
-			"size": 4990,
+			"size": 4975,
 			"isDebug": true
 		},
 		{
@@ -50506,7 +50506,7 @@
 		},
 		{
 			"name": "thirdparty/icons/json-imports/Icons.js.map",
-			"size": 746,
+			"size": 734,
 			"isDebug": true
 		},
 		{
@@ -90650,7 +90650,7 @@
 		},
 		{
 			"name": "thirdparty/lit-html/directive-helpers.js.map",
-			"size": 2848,
+			"size": 2823,
 			"isDebug": true
 		},
 		{
@@ -90684,7 +90684,7 @@
 		},
 		{
 			"name": "thirdparty/lit-html/directives/class-map.js.map",
-			"size": 1686,
+			"size": 1681,
 			"isDebug": true
 		},
 		{
@@ -90732,7 +90732,7 @@
 		},
 		{
 			"name": "thirdparty/lit-html/directives/repeat.js.map",
-			"size": 3235,
+			"size": 3230,
 			"isDebug": true
 		},
 		{
@@ -90772,7 +90772,7 @@
 		},
 		{
 			"name": "thirdparty/lit-html/lit-html.js.map",
-			"size": 13316,
+			"size": 13301,
 			"isDebug": true
 		},
 		{
@@ -90794,7 +90794,7 @@
 		},
 		{
 			"name": "thirdparty/lit-html/static.js.map",
-			"size": 1658,
+			"size": 1648,
 			"isDebug": true
 		},
 		{
@@ -90906,7 +90906,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/ExtremeDates.js.map",
-			"size": 1295,
+			"size": 1285,
 			"isDebug": true
 		},
 		{
@@ -90972,7 +90972,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/calculateWeekNumber.js.map",
-			"size": 1758,
+			"size": 1752,
 			"isDebug": true
 		},
 		{
@@ -90996,7 +90996,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/convertMonthNumbersToMonthNames.js.map",
-			"size": 1272,
+			"size": 1267,
 			"isDebug": true
 		},
 		{
@@ -91018,7 +91018,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/getDaysInMonth.js.map",
-			"size": 743,
+			"size": 738,
 			"isDebug": true
 		},
 		{
@@ -91034,7 +91034,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/getRoundedTimestamp.js.map",
-			"size": 557,
+			"size": 552,
 			"isDebug": true
 		},
 		{
@@ -91080,7 +91080,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/modifyDateBy.js.map",
-			"size": 1456,
+			"size": 1450,
 			"isDebug": true
 		},
 		{
@@ -91106,7 +91106,7 @@
 		},
 		{
 			"name": "thirdparty/localization/dates/transformDateToSecondaryType.js.map",
-			"size": 1206,
+			"size": 1201,
 			"isDebug": true
 		},
 		{
@@ -91254,7 +91254,7 @@
 		},
 		{
 			"name": "thirdparty/localization/getCachedLocaleDataInstance.js.map",
-			"size": 750,
+			"size": 745,
 			"isDebug": true
 		},
 		{
@@ -91280,7 +91280,7 @@
 		},
 		{
 			"name": "thirdparty/localization/locale/getLocaleData.js.map",
-			"size": 980,
+			"size": 975,
 			"isDebug": true
 		},
 		{
@@ -91624,7 +91624,7 @@
 		},
 		{
 			"name": "thirdparty/theming/generated/json-imports/Themes.js.map",
-			"size": 1998,
+			"size": 1988,
 			"isDebug": true
 		},
 		{

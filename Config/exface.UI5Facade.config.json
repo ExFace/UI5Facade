@@ -1,5 +1,8 @@
 {
 	"FACADE.AJAX.BASE_URL": "/api/ui5",
+    "FACADE.AJAX.DEFAULT.METHOD": "POST",
+    "FACADE.AJAX.PREFILL.METHOD": "POST",
+    "FACADE.AJAX.READ.METHOD": "GET",
 	
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.DEFAULT_SRC": "'self' 'unsafe-eval' 'unsafe-inline'",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.CONNECT_SRC": "'self'",
@@ -126,18 +129,21 @@
     },
     "INSTALLER.SERVICEWORKER.IMPORTS": [
     	"npm-asset/dexie/dist/dexie.min.js",
-    	"exface/Core/Facades/AbstractPWAFacade/sw_tools.js",
-    	"exface/Core/Facades/AbstractPWAFacade/exfPWA.js"
+    	"exface/core/Facades/AbstractPWAFacade/sw_tools.js",
+    	"exface/core/Facades/AbstractPWAFacade/exfPWA.js"
     ],
 
-	"LIBS.HTMLDIFF.JS": "exface/UI5Facade/Facades/js/htmldiff/js/htmldiff.js",
+	"LIBS.HTMLDIFF.JS": "exface/ui5facade/Facades/js/htmldiff/js/htmldiff.js",
 
-	"LIBS.FACADE.CSS": "exface/UI5Facade/Facades/js/openui5.template.css",
-	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/UI5Facade/Facades/js/openui5.controls.js",
+	"LIBS.FACADE.CSS": "exface/ui5facade/Facades/js/openui5.template.css",
+	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/ui5facade/Facades/js/openui5.controls.js",
 	
-	"LIBS.EXFTOOLS.JS": "exface/Core/Facades/AbstractAjaxFacade/js/exfTools.js",
-	"LIBS.UI5CUSTOM.DATETYPE.JS": "exface/UI5Facade/Facades/js/ui5Custom/dataTypes/MomentDateType.js",
-    "LIBS.UI5CUSTOM.TIMETYPE.JS": "exface/UI5Facade/Facades/js/ui5Custom/dataTypes/MomentTimeType.js",
+	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",
+	"LIBS.EXFDEBUGGER.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfDebugger.js",
+  	"LIBS.EXFCOLORTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js",
+  
+	"LIBS.UI5CUSTOM.DATETYPE.JS": "exface/ui5facade/Facades/js/ui5Custom/dataTypes/MomentDateType.js",
+    "LIBS.UI5CUSTOM.TIMETYPE.JS": "exface/ui5facade/Facades/js/ui5Custom/dataTypes/MomentTimeType.js",
     
     "LIBS.JEXCEL.JS": "npm-asset/jspreadsheet-ce/dist/index.js",
    	"LIBS.JEXCEL.JS_JSUITES": "npm-asset/jsuites/dist/jsuites.js",
@@ -162,23 +168,25 @@
 	"LIBS.LEAFLET.GEOMAN.JS": "npm-asset/geoman-io--leaflet-geoman-free/dist/leaflet-geoman.min.js",
 	"LIBS.LEAFLET.GEOMAN.CSS": "npm-asset/geoman-io--leaflet-geoman-free/dist/leaflet-geoman.css",
 	"LIBS.LEAFLET.PROJ4.PROJ4LEAFLETJS": "npm-asset/proj4leaflet/src/proj4leaflet.js",
-	"LIBS.LEAFLET.TRUF.JS": "exface/Core/Facades/AbstractAjaxFacade/js/leaflet/turf.min.js",
+	"LIBS.LEAFLET.TURF.JS": "exface/core/Facades/AbstractAjaxFacade/js/leaflet/turf.min.js",
 	
 	"LIBS.FONT_AWESOME.CSS": "bower-asset/font-awesome/css/font-awesome.min.css",
     "LIBS.FONT_AWESOME.PLUGIN": "bower-asset/font-awesome-openui5/dist/font-awesome-openui5.min",
     
     "LIBS.QRCODE.JS": "bower-asset/ui5-qrcode/control/",
     
-    "LIBS.PDFVIEWER.DIST": "exface/UI5Facade/Facades/js/ui5LabPdf/dist/resources/ui5lab/wl/pdf/",
+    "LIBS.PDFVIEWER.DIST": "exface/ui5facade/Facades/js/ui5LabPdf/dist/resources/ui5lab/wl/pdf/",
+
+	"LIBS.SETUPMANAGER.JS": "exface/ui5facade/Facades/js/exfSetupManager.js",
     
-    "LIBS.ECHARTS.ECHARTS_JS": "exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min.js",
-	"LIBS.ECHARTS.ECHARTSHEATMAP_JS": "exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts46Heatmap.custom.min.js",    
-    "LIBS.ECHARTS.THEME_JS": "exface/UI5Facade/Facades/js/echarts/ui5theme.js",
+    "LIBS.ECHARTS.ECHARTS_JS": "exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min.js",
+	"LIBS.ECHARTS.ECHARTSHEATMAP_JS": "exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts46Heatmap.custom.min.js",    
+    "LIBS.ECHARTS.THEME_JS": "exface/ui5facade/Facades/js/echarts/ui5theme.js",
     "LIBS.ECHARTS.THEME_NAME": "ui5theme",
 	"LIBS.TINYCOLOR.JS": "npm-asset/tinycolor2/dist/tinycolor-min.js",
 	"LIBS.TINYGRADIENT.JS": "npm-asset/tinygradient/browser.js",
 	
-	"LIBS.TOASTUI.EDITOR.JS": "exface/UI5Facade/Facades/js/toastui-editor-all.min.js",
+	"LIBS.TOASTUI.EDITOR.JS": "exface/ui5facade/Facades/js/toastui-editor-all.min.js",
     "LIBS.TOASTUI.EDITOR.CSS": "npm-asset/toast-ui--editor/dist/toastui-editor.css",
     
     "LIBS.MOMENT.JS": "npm-asset/moment/min/moment.min.js",
@@ -196,19 +204,19 @@
    	"LIBS.PIVOTTABLE.SUBTOTAL.JS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.CHARTS": "npm-asset/pivottable/dist/plotly_renderers.min.js",
    	"LIBS.PIVOTTABLE.RENDERERS.EXPORT": "npm-asset/pivottable/dist/export_renderers.min.js",
-   	"LIBS.PIVOTTABLE.LIBS.PLOTLY": "exface/JEasyUIFacade/Facades/js/plotly-basic-latest.min.js",
+   	"LIBS.PIVOTTABLE.LIBS.PLOTLY": "exface/ui5facade/Facades/js/plotly-basic-latest.min.js",
    	"LIBS.PIVOTTABLE.SUBTOTAL.CSS": "exface/core/Facades/AbstractAjaxFacade/js/subtotal/dist/subtotal.min.css",
    	"LIBS.PIVOTTABLE.UI.JS": "npm-asset/jquery-ui/dist/jquery-ui.min.js",
    	"LIBS.PIVOTTABLE.UI.CSS": "npm-asset/jquery-ui/dist/themes/base/jquery-ui.min.css",
    	"LIBS.PIVOTTABLE.UI.THEME": "npm-asset/jquery-ui/dist/themes/base/theme.css",
-   	"LIBS.PIVOTTABLE.UI5.TEMPLATE.CSS": "exface/UI5Facade/Facades/js/pivottable/openui5-pivottable.css",
+   	"LIBS.PIVOTTABLE.UI5.TEMPLATE.CSS": "exface/ui5facade/Facades/js/pivottable/openui5-pivottable.css",
 	
 	"LIBS.SURVEY.KNOCKOUT_JS": "npm-asset/knockout/build/output/knockout-latest.js",
 	"LIBS.SURVEY.SURVEY_JS": "npm-asset/survey-knockout/survey.ko.min.js",
 	"LIBS.SURVEY.SURVEY_JS_I18N": "npm-asset/survey-core/survey.i18n.min.js",
 	"LIBS.SURVEY.SURVEY_CSS": "npm-asset/survey-knockout/survey.min.css",
-	"LIBS.SURVEY.THEME_CSS": "exface/UI5Facade/Facades/js/survey-js/openui5-survey.css",
-	"LIBS.SURVEY.THEME_SCRIPT": "exface/UI5Facade/Facades/js/survey-js/openui5-survey.js",
+	"LIBS.SURVEY.THEME_CSS": "exface/ui5facade/Facades/js/survey-js/openui5-survey.css",
+	"LIBS.SURVEY.THEME_SCRIPT": "exface/ui5facade/Facades/js/survey-js/openui5-survey.js",
 	"LIBS.SURVEY.CREATOR_JS": "npm-asset/survey-creator/survey-creator.min.js",
 	"LIBS.SURVEY.CREATOR_CSS": "npm-asset/survey-creator/survey-creator.min.css",
 	"LIBS.SURVEY.CREATOR_ACE_JS": [
@@ -245,6 +253,8 @@
     "WIDGET.CHART.COLORS": ["#5899da","#e8743b","#19a979","#ed4a7b","#945ecf","#13a4b4","#525df4","#bf399e","#6c8893","#ee6868","#2f6497"],
     
 	"WIDGET.DATA.PAGE_BUTTON_PRIORITY": "Low",
+    "WIDGET.DATA.SETUPS.QUICK_SELECT_ENABLED": true,
+	"WIDGET.DATACOLUMN.WIDTH_RELATIVE_UNIT": 200,
 	"WIDGET.DATATABLE.PAGE_SIZE": 30,
 	"WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT": 5,
 	"WIDGET.DATATABLE.MAX_TEXT_LINES_PER_CELL": 4,
@@ -257,5 +267,7 @@
 	
 	"WIDGET.PANEL.COLUMNS_BY_DEFAULT": 2,
 	
-	"WIDGET.USE_SHORT_ID": false
+	"WIDGET.USE_SHORT_ID": false,
+	
+	"WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE": 0.35
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -162,7 +162,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -2014,7 +2014,7 @@ function(
 
 			// update Accessibility text for suggestion
 			this._oInvisibleMessage?.announce(sAriaText, CoreLibrary.InvisibleMessageMode.Polite);
-		}.bind(this), 0);
+		}.bind(this), 100);
 	};
 
 	/**

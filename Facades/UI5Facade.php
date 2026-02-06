@@ -2,8 +2,10 @@
 namespace exface\UI5Facade\Facades;
 
 use exface\Core\CommonLogic\Debugger;
+use exface\Core\Contexts\DebugContext;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
@@ -17,6 +19,7 @@ use exface\UI5Facade\Facades\Formatters\UI5BooleanFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsNumberFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5ListFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5NumberFormatter;
+use exface\UI5Facade\Facades\Formatters\UI5StringFormatter;
 use exface\UI5Facade\Facades\Middleware\UI5TableUrlParamsReader;
 use exface\UI5Facade\Facades\Middleware\UI5WebappRouter;
 use exface\UI5Facade\Webapp;
@@ -110,7 +113,7 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
     public function __construct(FacadeSelectorInterface $selector)
     {
         parent::__construct($selector);
-        $this->setClassPrefix('ui5');
+        $this->setClassPrefix('UI5');
         $this->setClassNamespace(__NAMESPACE__);
     }
     
@@ -235,11 +238,6 @@ JS;
         return false;
     }
     
-    public function getDataTypeFormatter(DataTypeInterface $dataType)
-    {
-        return parent::getDataTypeFormatter($dataType);
-    }
-    
     /**
      * 
      * {@inheritDoc}
@@ -262,6 +260,8 @@ JS;
                 return new UI5DateFormatter($formatter);
             case $formatter instanceof JsEnumFormatter:
                 return new UI5EnumFormatter($formatter);
+            case $formatter instanceof JsStringFormatter:
+                return new UI5StringFormatter($formatter);
         }
         
         return new UI5DefaultFormatter($formatter);
@@ -375,6 +375,10 @@ JS;
         
         UI5DateFormatter::registerMoment($this, $controller);
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
+
+        if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
+            $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');
+        }
         
         return $controller;
     }
@@ -428,7 +432,7 @@ JS;
     {
         $tags = $this->buildHtmlHeadIcons();
         $webapp = $this->getWebapp();
-        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';
+        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';        
         return $tags;
     }
     
@@ -440,6 +444,7 @@ JS;
     public function buildResponseData(DataSheetInterface $data_sheet, WidgetInterface $widget = null)
     {
         $data = [];
+        $data['oId'] = $data_sheet->getMetaObject()->getId();
         $data['rows'] = array_merge($this->buildResponseDataRowsSanitized($data_sheet, true, false), $data_sheet->getTotalsRows());
         $data['recordsFiltered'] = $data_sheet->countRowsInDataSource();
         $data['recordsTotal'] = $data_sheet->countRowsInDataSource();
@@ -480,7 +485,7 @@ JS;
             return '';
         }
         if ($request !== null && $this->isRequestFrontend($request)) {
-            return Debugger::printException($exception);
+            return Debugger::printExceptionAsHtml($exception);
         } else {
             return htmlspecialchars($exception->getMessage());
         }
@@ -742,5 +747,27 @@ JS;
     public function buildUrlToVendorFile(string $configOption, bool $addVersionHash = false) : string
     {
         return parent::buildUrlToVendorFile($configOption, $addVersionHash);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see HtmlPageFacadeInterface::buildUrlToWidget()
+     */
+    public function buildUrlToWidget(WidgetInterface $widget, DataSheetInterface $prefillData = null) : string
+    {
+        $page = $widget->getPage();
+        $pageUrl = $this->buildUrlToPage($page);
+        
+        $webappId = $page->getAliasWithNamespace();
+        $webappConfig = $this->getWebappDefaultConfig($webappId);
+        $webapp = new Webapp($this, $webappId, $this->getWebappFacadeFolder(), $webappConfig);
+        $pageUrl .= '#/' . $webapp->getViewNameWithoutNamespace($widget);
+
+        if ($prefillData !== null) {
+            $prefillUrl = urlencode('{"data":' . $prefillData->exportUxonObject()->toJson() . '}');
+            $pageUrl .= '/' . $prefillUrl;
+        }
+        
+        return $pageUrl;
     }
 }

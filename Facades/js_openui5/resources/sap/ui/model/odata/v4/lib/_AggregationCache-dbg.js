@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 	 *   for Data Aggregation Version 4.0"; must already be normalized by
 	 *   {@link _AggregationHelper.buildApply}
 	 * @param {object} mQueryOptions
-	 *   A map of key-value pairs representing the query string
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 	 * @param {boolean} bHasGrandTotal
 	 *   Whether a grand total is needed
 	 *
@@ -52,79 +52,24 @@ sap.ui.define([
 	 */
 	function _AggregationCache(oRequestor, sResourcePath, oAggregation, mQueryOptions,
 			bHasGrandTotal) {
-		var fnCount = function () {}, // no specific handling needed for "UI5__count" here
-			fnLeaves = null,
-			fnResolve,
-			that = this;
-
 		_Cache.call(this, oRequestor, sResourcePath, mQueryOptions, true);
 
-		this.oAggregation = oAggregation;
-		// #getDownloadUrl must be called early (for recursive hierarchy to determine
-		// $DistanceFromRoot and for data aggregation before adding $$leaves)
-		this.sToString = this.getDownloadUrl("");
 		this.aElements = [];
 		this.aElements.$byPredicate = {};
 		this.aElements.$count = undefined;
 		this.aElements.$created = 0; // required for _Cache#drillDown (see _Cache.from$skip)
-		this.oCountPromise = undefined;
-		if (mQueryOptions.$count) {
-			if (oAggregation.hierarchyQualifier) {
-				this.oCountPromise = new SyncPromise(function (resolve) {
-					fnResolve = resolve;
-				});
-				this.oCountPromise.$resolve = fnResolve;
-			} else if (oAggregation.groupLevels.length) {
-				mQueryOptions.$$leaves = true; // do this after #getDownloadUrl
-				this.oCountPromise = new SyncPromise(function (resolve) {
-					fnLeaves = function (oLeaves) {
-						// Note: count has type Edm.Int64, represented as string in OData responses;
-						// $count should be a number and the loss of precision is acceptable
-						resolve(parseInt(oLeaves.UI5__leaves));
-					};
-				});
-			}
-		}
-		this.oFirstLevel = this.createGroupLevelCache(null, bHasGrandTotal || !!fnLeaves);
+		this.iResetCount = 0;
+		// Whether this cache is a unified cache, using oFirstLevel with ExpandLevels instead of
+		// separate group level caches
+		this.bUnifiedCache = oAggregation.expandTo >= Number.MAX_SAFE_INTEGER
+			|| !!oAggregation.createInPlace;
+
+		this.doReset(oAggregation, bHasGrandTotal);
 		this.addKeptElement = this.oFirstLevel.addKeptElement; // @borrows ...
 		this.removeKeptElement = this.oFirstLevel.removeKeptElement; // @borrows ...
 		this.requestSideEffects = this.oFirstLevel.requestSideEffects; // @borrows ...
-		this.oGrandTotalPromise = undefined;
-		if (bHasGrandTotal) {
-			this.oGrandTotalPromise = new SyncPromise(function (resolve) {
-				_ConcatHelper.enhanceCache(that.oFirstLevel, oAggregation, [fnLeaves,
-					function (oGrandTotal) {
-						var oGrandTotalCopy;
-
-						if (oAggregation["grandTotal like 1.84"]) { // rename measures
-							_AggregationHelper.removeUI5grand__(oGrandTotal);
-						}
-						_AggregationHelper.setAnnotations(oGrandTotal, true, true, 0,
-							_AggregationHelper.getAllProperties(oAggregation));
-
-						if (oAggregation.grandTotalAtBottomOnly === false) {
-							// Note: make shallow copy *before* there are private annotations!
-							oGrandTotalCopy = Object.assign({}, oGrandTotal, {
-									"@$ui5.node.isExpanded" : undefined // treat copy as a leaf
-								});
-							_Helper.setPrivateAnnotation(oGrandTotal, "copy", oGrandTotalCopy);
-							_Helper.setPrivateAnnotation(oGrandTotalCopy, "predicate",
-								"($isTotal=true)");
-						}
-						_Helper.setPrivateAnnotation(oGrandTotal, "predicate", "()");
-
-						resolve(oGrandTotal);
-					}, fnCount]);
-			});
-		} else if (fnLeaves) {
-			_ConcatHelper.enhanceCache(that.oFirstLevel, oAggregation, [fnLeaves, fnCount]);
-		}
 		this.oTreeState = new _TreeState(oAggregation.$NodeProperty,
 			(oNode) => _Helper.getKeyFilter(oNode, this.sMetaPath, this.getTypes()));
-		// Whether this cache is a unified cache, using oFirstLevel with ExpandLevels instead of
-		// separate group level caches
-		this.bUnifiedCache = this.oAggregation.expandTo >= Number.MAX_SAFE_INTEGER
-			|| !!this.oAggregation.createInPlace;
 	}
 
 	// make _AggregationCache a _Cache, but actively disinherit some critical methods
@@ -176,10 +121,19 @@ sap.ui.define([
 				_Helper.getPrivateAnnotation(oElement, "transientPredicate"));
 		}
 
-		return SyncPromise.resolve(
-			this.oRequestor.request("DELETE", sEditUrl, oGroupLock, {"If-Match" : oElement})
-		).then(() => {
+		if (this.oCountPromise) {
+			this.createCountPromise();
+		}
+
+		return SyncPromise.all([
+			this.oRequestor.request("DELETE", sEditUrl, oGroupLock, {"If-Match" : oElement}),
+			this.readCount(oGroupLock)
+		]).then(() => {
 			this.oTreeState.delete(oElement);
+			if (this.aElements.$count === undefined) {
+				return; // concurrent side-effects refresh takes care of cleanup
+			}
+
 			// the element might have moved due to parallel insert/delete
 			iIndex = _Cache.getElementIndex(this.aElements, sPredicate, iIndex);
 			// remove in parent cache
@@ -228,7 +182,6 @@ sap.ui.define([
 	 */
 	_AggregationCache.prototype.addElements = function (vReadElements, iOffset, oCache, iStart) {
 		var aElements = this.aElements,
-			sHierarchyQualifier = this.oAggregation.hierarchyQualifier,
 			sNodeProperty = this.oAggregation.$NodeProperty,
 			that = this;
 
@@ -250,7 +203,7 @@ sap.ui.define([
 			oKeptElement = aElements.$byPredicate[sPredicate];
 			if (oKeptElement && oKeptElement !== oElement
 					&& !(oKeptElement instanceof SyncPromise)) {
-				if (!sHierarchyQualifier || aElements.includes(oKeptElement)) {
+				if (aElements.includes(oKeptElement)) {
 					const sNewPredicate = oCache.fixDuplicatePredicate(oElement, sPredicate);
 					if (sNewPredicate) {
 						sPredicate = sNewPredicate;
@@ -304,7 +257,8 @@ sap.ui.define([
 	/**
 	 * Adjusts the (limited) descendant count at all ancestors of the given element which must be
 	 * part of <code>this.oFirstLevel</code>, handles placeholders. Makes the parent a leaf if its
-	 * descendant count becomes 0.
+	 * descendant count becomes 0 and reverts that if its descendant count was 0 before (the latter
+	 * can only happen when a parent's single child is moved to the same parent).
 	 *
 	 * @param {object} oElement - The element
 	 * @param {number} iIndex - Its index
@@ -330,6 +284,10 @@ sap.ui.define([
 					_Helper.setPrivateAnnotation(oCandidate, "descendants", iCount);
 					if (iCount === 0) {
 						this.makeLeaf(oCandidate);
+					} else if (iCount === iOffset) { // not a leaf anymore
+						_Helper.updateAll(this.mChangeListeners,
+							_Helper.getPrivateAnnotation(oCandidate, "predicate"), oCandidate,
+							{"@$ui5.node.isExpanded" : true});
 					}
 					// the next candidate must be an ancestor of this node
 					iIndex = iCandidateIndex;
@@ -351,6 +309,7 @@ sap.ui.define([
 	 * @throws {Error}
 	 *   If no recursive hierarchy is used
 	 *
+	 * @protected
 	 * @see sap.ui.model.odata.v4.lib._CollectionCache#requestSideEffects
 	 */
 	_AggregationCache.prototype.beforeRequestSideEffects = function (mQueryOptions) {
@@ -372,6 +331,7 @@ sap.ui.define([
 	 * @param {object} oNewValue - The new value, which usually just contains parts of the old
 	 * @throws {Error} In case of a structural change
 	 *
+	 * @protected
 	 * @see sap.ui.model.odata.v4.lib._CollectionCache#requestSideEffects
 	 */
 	_AggregationCache.prototype.beforeUpdateSelected = function (sPredicate, oNewValue) {
@@ -391,13 +351,16 @@ sap.ui.define([
 	 *   Whether no ("change") events should be fired
 	 * @param {boolean} [bNested]
 	 *   Whether the "collapse all" was performed at an ancestor
+	 * @param {string[]} [aKeptElementPredicates]
+	 *   The key predicates for all (effectively) kept-alive elements incl. exceptions of selection
 	 * @returns {number}
 	 *   The number of descendant nodes that were affected
 	 *
 	 * @public
 	 * @see #expand
 	 */
-	_AggregationCache.prototype.collapse = function (sGroupNodePath, oGroupLock, bSilent, bNested) {
+	_AggregationCache.prototype.collapse = function (sGroupNodePath, oGroupLock, bSilent, bNested,
+			aKeptElementPredicates) {
 		const oGroupNode = this.getValue(sGroupNodePath);
 		const oCollapsed = _AggregationHelper.getCollapsedObject(oGroupNode);
 		_Helper.updateAll(bSilent ? {} : this.mChangeListeners, sGroupNodePath, oGroupNode,
@@ -422,13 +385,15 @@ sap.ui.define([
 			if (_Helper.hasPrivateAnnotation(oElement, "placeholder")) {
 				continue;
 			}
+			const sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
 			if (bAll && oElement["@$ui5.node.isExpanded"]) {
-				iRemaining -= this.collapse(
-					_Helper.getPrivateAnnotation(oElement, "predicate"), oGroupLock, bSilent, true);
+				iRemaining
+					-= this.collapse(sPredicate, oGroupLock, bSilent, true, aKeptElementPredicates);
 			}
-			// exceptions of selection are effectively kept alive (with recursive hierarchy)
-			if (!this.isSelectionDifferent(oElement)) {
-				delete aElements.$byPredicate[_Helper.getPrivateAnnotation(oElement, "predicate")];
+			// exceptions of selection are effectively kept alive
+			if (!this.isSelectionDifferent(oElement)
+					&& !aKeptElementPredicates?.includes(sPredicate)) {
+				delete aElements.$byPredicate[sPredicate];
 				delete aElements.$byPredicate[
 					_Helper.getPrivateAnnotation(oElement, "transientPredicate")];
 			}
@@ -504,7 +469,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group ID
-	 * @param {sap.ui.base.SyncPromise} oPostPathPromise
+	 * @param {sap.ui.base.SyncPromise<string>} oPostPathPromise
 	 *   A SyncPromise resolving with the resource path for the POST request
 	 * @param {string} sPath
 	 *   The collection's path within the cache (as used by change listeners)
@@ -522,7 +487,7 @@ sap.ui.define([
 	 *   fails
 	 * @param {function} fnSubmitCallback
 	 *   A function which is called just before a POST request for the create is sent
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise which is resolved with the created entity when the POST request has been
 	 *   successfully sent and the entity has been marked as non-transient
 	 * @throws {Error}
@@ -560,9 +525,22 @@ sap.ui.define([
 
 		_Helper.addByPath(this.mPostRequests, sTransientPredicate, oEntityData);
 		const iIndex = aElements.indexOf(oParentNode) + 1; // 0 w/o oParentNode :-)
+		if (this.oCountPromise) {
+			const fnOldSubmitCallback = fnSubmitCallback;
+			// create a new count promise early, that a synchronous call to
+			// oHeaderContext.requestProperty("$count") waits until the creation was successful or
+			// has been cancelled; cancellation of the creation will restore the old count promise
+			this.createCountPromise(true);
+			fnSubmitCallback = () => {
+				this.readCount(oGroupLock)?.catch(
+					this.oRequestor.getModelInterface().getReporter());
+				fnOldSubmitCallback();
+			};
+		}
 		const oPromise = oCache.create(oGroupLock, oPostPathPromise, sPath, sTransientPredicate,
 			oEntityData, bAtEndOfCreated, fnErrorCallback, fnSubmitCallback, /*onCancel*/() => {
 				_Helper.removeByPath(this.mPostRequests, sTransientPredicate, oEntityData);
+				this.oCountPromise?.$restore();
 				if (this.oAggregation.createInPlace) {
 					return;
 				}
@@ -574,7 +552,7 @@ sap.ui.define([
 		if (sParentPath) { // add @odata.bind to POST body only
 			_Helper.getPrivateAnnotation(oEntityData, "postBody")
 				[this.oAggregation.$ParentNavigationProperty + "@odata.bind"]
-					= _Helper.makeRelativeUrl("/" + sParentPath, "/" + this.sResourcePath);
+					= _Helper.makeRelativePath("/" + sParentPath, "/" + this.sResourcePath);
 		}
 
 		const bParentIsLeaf = oParentNode && oParentNode["@$ui5.node.isExpanded"] === undefined;
@@ -657,6 +635,37 @@ sap.ui.define([
 	};
 
 	/**
+	 * Creates a new <code>this.oCountPromise</code> (suitable for a recursive hierarchy), which has
+	 * to be resolved by a following {@link #readCount} call. If the old count promise is still
+	 * pending, no new promise is created in order to avoid duplicate $count requests.
+	 *
+	 * @param {boolean} [bRetryIfFailed]
+	 *   Whether a count request which fails due to a previous request will be retried
+	 *
+	 * @private
+	 */
+	_AggregationCache.prototype.createCountPromise = function (bRetryIfFailed) {
+		const oOldCountPromise = this.oCountPromise;
+		if (oOldCountPromise?.isPending()) {
+			return;
+		}
+
+		let fnResolve;
+		this.oCountPromise = new SyncPromise((resolve) => {
+			fnResolve = (iCount) => {
+				delete this.oCountPromise?.$old; // count promise might already be deleted
+				resolve(iCount);
+			};
+		});
+		this.oCountPromise.$resolve = fnResolve;
+		this.oCountPromise.$restore = () => {
+			fnResolve(oOldCountPromise);
+		};
+		this.oCountPromise.$old = oOldCountPromise;
+		this.oCountPromise.$retryIfFailed = bRetryIfFailed;
+	};
+
+	/**
 	 * Creates a cache for the children (next group level or leaves) of the given group node.
 	 * Creates the first level cache if there is no group node.
 	 *
@@ -717,6 +726,64 @@ sap.ui.define([
 		}
 
 		return oCache;
+	};
+
+	/**
+	 * Hook method for both {@link #constructor} and {@link #reset}. Creates the promises needed
+	 * for the leaf count and grand total, if applicable. Creates a first level cache and
+	 * calculates the result of {@link #toString}. Remembers <code>oAggregation</code>, enhancing
+	 * it with "$NodeProperty" etc. in case of a recursive hierarchy (see
+	 * {@link sap.ui.model.odata.v4.lib._AggregationHelper.buildApply4Hierarchy} for details).
+	 *
+	 * @param {object} oAggregation
+	 *   An object holding the information needed for data aggregation; see also "OData Extension
+	 *   for Data Aggregation Version 4.0"; must already be normalized by
+	 *   {@link _AggregationHelper.buildApply} - it's MODIFIED here!
+	 * @param {boolean} bHasGrandTotal
+	 *   Whether a grand total is needed
+	 *
+	 * @private
+	 */
+	_AggregationCache.prototype.doReset = function (oAggregation, bHasGrandTotal) {
+		this.oAggregation = oAggregation;
+		// early call of _AggregationHelper.buildApply to determine $NodeProperty etc.
+		this.sToString = this.getDownloadUrl("");
+
+		const aAdditionalRowHandlers = [];
+		if (this.mQueryOptions.$count) {
+			if (oAggregation.hierarchyQualifier) {
+				this.createCountPromise();
+			} else if (oAggregation.groupLevels.length) {
+				this.setQueryOptions({...this.mQueryOptions, $$leaves : true});
+				this.oCountPromise = new SyncPromise(function (resolve) {
+					aAdditionalRowHandlers.push((oLeaves) => {
+						// Note: count has type Edm.Int64, represented as string in OData responses;
+						// $count should be a number and the loss of precision is acceptable
+						resolve(parseInt(oLeaves.UI5__leaves));
+					});
+				});
+			} else {
+				this.oCountPromise = undefined;
+			}
+		} else {
+			this.oCountPromise = undefined;
+		}
+		this.oGrandTotalPromise = bHasGrandTotal
+			? new SyncPromise((resolve) => {
+				aAdditionalRowHandlers.push((oGrandTotal) => {
+					_AggregationHelper.handleGrandTotal(oAggregation, oGrandTotal);
+					resolve(oGrandTotal);
+				});
+			})
+			: undefined;
+
+		const bHasConcatHelper = aAdditionalRowHandlers.length > 0;
+		this.oFirstLevel = this.createGroupLevelCache(null, bHasConcatHelper);
+		if (bHasConcatHelper) {
+			// no specific handling needed for "UI5__count" here
+			aAdditionalRowHandlers.push(function () {});
+			_ConcatHelper.enhanceCache(this.oFirstLevel, oAggregation, aAdditionalRowHandlers);
+		}
 	};
 
 	/**
@@ -900,7 +967,7 @@ sap.ui.define([
 	 *   The index of the child node
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   An unlocked lock for the group to associate the requests with
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<number>}
 	 *   A promise to be resolved with the requested index of the parent.
 	 *
 	 * @public
@@ -989,7 +1056,7 @@ sap.ui.define([
 	 *   An optional change listener that is added for the given path. Its method
 	 *   <code>onChange</code> is called with the new value if the property at that path is modified
 	 *   via {@link #update} later.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise to be resolved with the requested data. The promise is rejected if the cache is
 	 *   inactive (see {@link #setActive}) when the response arrives. Fails to drill-down into
 	 *   "$count" in cases where it does not reflect the leaf count.
@@ -1003,6 +1070,19 @@ sap.ui.define([
 
 		if (sPath === "$count") {
 			if (this.oCountPromise) {
+				if (this.oAggregation.hierarchyQualifier) {
+					// "$count" cannot be used as change listener path because e.g. #_delete calls
+					// indirectly _Helper.addCount with this.mChangeListeners to update the count of
+					// the root nodes. This count must not be propagated to the listeners. So use a
+					// name similar to "$count" which never conflicts with any other valid path.
+					this.registerChangeListener("./$count", oListener);
+				}
+				if (oGroupLock === _GroupLock.$cached && this.oCountPromise.$old) {
+					// return the old count promise if the $count is now being requested
+					// synchronously and a new count has already been requested (e.g. when creating
+					// a new entity) but is not yet available
+					return this.oCountPromise.$old;
+				}
 				return this.oCountPromise;
 			}
 			if (this.oAggregation.hierarchyQualifier || this.oAggregation.groupLevels.length) {
@@ -1263,6 +1343,24 @@ sap.ui.define([
 
 	/**
 	 * @override
+	 * @see sap.ui.model.odata.v4.lib._Cache#getQueryOptions4Single
+	 */
+	_AggregationCache.prototype.getQueryOptions4Single = function (sPath) {
+		if (sPath !== "") {
+			throw new Error("Unsupported path: " + sPath);
+		}
+
+		const mQueryOptions = _Helper.clone({...this.mQueryOptions, ...this.mLateExpandSelect});
+		const iIndex = mQueryOptions.$select.indexOf(this.oAggregation.$NodeProperty);
+		if (iIndex >= 0) {
+			mQueryOptions.$select.splice(iIndex, 1);
+		}
+
+		return mQueryOptions;
+	};
+
+	/**
+	 * @override
 	 * @see sap.ui.model.odata.v4.lib._Cache#getValue
 	 */
 	_AggregationCache.prototype.getValue = function (sPath) {
@@ -1361,6 +1459,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether the given entity represents aggregated data.
+	 *
+	 * @param {object} oEntity - An entity
+	 * @returns {boolean} Whether the given entity is aggregated
+	 *
+	 * @protected
+	 * @see sap.ui.model.odata.v4.lib._Cache#drillDown
+	 * @see sap.ui.model.odata.v4.Context#isAggregated
+	 */
+	_AggregationCache.prototype.isAggregated = function (oEntity) {
+		const bAggregated = this.oAggregation.$leafLevelAggregated;
+		if (bAggregated === undefined) {
+			return false;
+		}
+		return bAggregated || oEntity["@$ui5.node.isExpanded"] !== undefined;
+	};
+
+	/**
 	 * Tells whether the first given node is an ancestor of (or the same as) the second given node
 	 * (in case of a recursive hierarchy).
 	 *
@@ -1411,18 +1527,15 @@ sap.ui.define([
 
 	/**
 	 * Determines if the "@$ui5.context.isSelected" annotation of the given element differs from the
-	 * annotation at the collection. Only relevant in case of a recursive hierarchy. Note: A missing
-	 * annotation is treated as <code>false</code>.
+	 * annotation at the collection. Note: A missing annotation is treated as <code>false</code>.
 	 *
 	 * @param {object} oElement - The element
-	 * @returns {boolean} Whether recursive hierarchy is used and the selection state of the element
-	 *   differs from the collection
+	 * @returns {boolean} Whether the selection state of the element differs from the collection
 	 *
 	 * @private
 	 */
 	_AggregationCache.prototype.isSelectionDifferent = function (oElement) {
-		return this.oAggregation.hierarchyQualifier
-			&& (oElement["@$ui5.context.isSelected"] ?? false)
+		return (oElement["@$ui5.context.isSelected"] ?? false)
 				!== (this.aElements["@$ui5.context.isSelected"] ?? false);
 	};
 
@@ -1494,14 +1607,13 @@ sap.ui.define([
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group to associate the requests with
 	 * @param {string} sChildPath
-	 *   The (child) node's path relative to the cache
+	 *   The (child) node's canonical resource path (relative to the service)
+	 * @param {string} sNonCanonicalChildPath
+	 *   The (child) node's non-canonical resource path (relative to the service)
 	 * @param {string|null} sParentPath
-	 *   The parent node's path relative to the cache
+	 *   The parent node's canonical resource path (relative to the service)
 	 * @param {string|null} [sSiblingPath]
-	 *   The next sibling's path relative to the cache
-	 * @param {string} [sNonCanonicalChildPath]
-	 *   The (child) node's non-canonical path (relative to the service); only used when
-	 *   <code>sSiblingPath</code> is given
+	 *   The next sibling's canonical resource path (relative to the service)
 	 * @param {boolean} [bRequestSiblingRank]
 	 *   Whether to request the next sibling's rank and return its new index
 	 * @param {boolean} [bCopy]
@@ -1524,8 +1636,8 @@ sap.ui.define([
 	 *
 	 * @public
 	 */
-	_AggregationCache.prototype.move = function (oGroupLock, sChildPath, sParentPath, sSiblingPath,
-			sNonCanonicalChildPath, bRequestSiblingRank, bCopy) {
+	_AggregationCache.prototype.move = function (oGroupLock, sChildPath, sNonCanonicalChildPath,
+			sParentPath, sSiblingPath, bRequestSiblingRank, bCopy) {
 		let bRefreshNeeded = !this.bUnifiedCache;
 
 		const sChildPredicate = sChildPath.slice(sChildPath.indexOf("("));
@@ -1560,8 +1672,6 @@ sap.ui.define([
 		const invokeNextSibling = () => {
 			if (sSiblingPath !== undefined) {
 				bRefreshNeeded = true;
-				const sActionPath = sNonCanonicalChildPath + "/"
-					+ this.oAggregation.$Actions.ChangeNextSiblingAction;
 				const sSiblingPredicate = sSiblingPath?.slice(sSiblingPath.indexOf("("));
 				oSiblingNode = this.aElements.$byPredicate[sSiblingPredicate];
 				let oNextSibling = null;
@@ -1569,7 +1679,8 @@ sap.ui.define([
 					// remove OOP for all descendants (incl. itself) of a next sibling
 					this.oTreeState.deleteOutOfPlace(sSiblingPredicate);
 					const oNextSiblingType = this.oAggregation.$fetchMetadata(
-						_Helper.getMetaPath("/" + sActionPath + "/NextSibling/")
+						_Helper.getMetaPath("/" + sNonCanonicalChildPath + "/"
+						+ this.oAggregation.$Actions.ChangeNextSiblingAction + "/NextSibling/")
 					).getResult();
 					const aKeys = Object.keys(oNextSiblingType).filter((sKey) => sKey[0] !== "$");
 					oNextSibling = aKeys.reduce((oKeys, sKey) => {
@@ -1577,6 +1688,8 @@ sap.ui.define([
 						return oKeys;
 					}, {});
 				}
+				const sActionPath = (bCopy ? "$-2" : sNonCanonicalChildPath) + "/"
+					+ this.oAggregation.$Actions.ChangeNextSiblingAction;
 
 				return this.oRequestor.request("POST", sActionPath, oGroupLock.getUnlockedCopy(), {
 						"If-Match" : oChildNode,
@@ -1590,7 +1703,8 @@ sap.ui.define([
 			bRefreshNeeded = true;
 			const mQueryOptions = {$select : []};
 			_Helper.selectKeyProperties(mQueryOptions, this.getTypes()[this.sMetaPath]);
-			const sResourcePath = sChildPath + "/" + this.oAggregation.$Actions.CopyAction
+			const sResourcePath = sNonCanonicalChildPath
+				+ "/" + this.oAggregation.$Actions.CopyAction
 				+ this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions, false, true);
 			oCopyActionPromise = this.oRequestor.request("POST", sResourcePath,
 				oGroupLock.getUnlockedCopy(), {
@@ -1618,8 +1732,15 @@ sap.ui.define([
 				return () => { // Note: caller MUST wait for side-effects refresh first
 					let oCopyIndexPromise;
 					if (bCopy) {
-						oCopyIndexPromise = this.requestRank(oCopy, oGroupLock, true)
-							.then((iCopyIndex) => this.findIndex(iCopyIndex));
+						const oCandidate = this.aElements.$byPredicate[
+							_Helper.getKeyPredicate(oCopy, this.sMetaPath, this.getTypes())];
+						if (oCandidate) { // copy already inside collection
+							oCopyIndexPromise = SyncPromise.resolve(
+								this.aElements.indexOf(oCandidate));
+						} else {
+							oCopyIndexPromise = this.requestRank(oCopy, oGroupLock, true)
+								.then((iCopyRank) => this.findIndex(iCopyRank));
+						}
 					}
 					return [
 						iRank === undefined ? undefined : this.findIndex(iRank),
@@ -1722,9 +1843,9 @@ sap.ui.define([
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before a back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise to be resolved with the requested range given as an OData response object (with
-	 *   "@odata.context" and the rows as an array in the property <code>value</code>, enhanced
+	 *   "@$ui5.resetCount" and the rows as an array in the property <code>value</code>, enhanced
 	 *   with a number property <code>$count</code> representing the element count on server-side;
 	 *   <code>$count</code> may be <code>undefined</code>, but not <code>Infinity</code>). If an
 	 *   HTTP request fails, the error from the _Requestor is returned.
@@ -1843,7 +1964,10 @@ sap.ui.define([
 
 			aElements.$count = that.aElements.$count;
 
-			return {value : aElements};
+			return {
+				"@$ui5.resetCount" : that.iResetCount,
+				value : aElements
+			};
 		});
 	};
 
@@ -1887,7 +2011,18 @@ sap.ui.define([
 				+ this.oRequestor.buildQueryString(/*sMetaPath*/null, mQueryOptions);
 
 			return this.oRequestor.request("GET", sResourcePath, oGroupLock.getUnlockedCopy())
-				.then(fnResolve); // Note: $count is already of type number here
+				.then((iCount) => { // Note: iCount is already of type number here
+					fnResolve(iCount);
+					_Helper.fireChange(this.mChangeListeners, "./$count", iCount);
+				})
+				.catch((oError) => {
+					if (oError.cause && this.oCountPromise.$retryIfFailed) {
+						this.oCountPromise.$resolve = fnResolve; // allow another readCount call
+					} else {
+						this.oCountPromise.$restore();
+					}
+					throw oError;
+				});
 		}
 	};
 
@@ -1906,7 +2041,7 @@ sap.ui.define([
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before a back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result when the read is finished, or
 	 *   rejected in case of an error
 	 * @throws {Error} If given index or length is less than 0
@@ -1932,6 +2067,7 @@ sap.ui.define([
 			iStart = 0;
 		}
 
+		const iResetCount = this.iResetCount;
 		// Note: this.oFirstLevel.read changes this value
 		const bSentRequest = this.oFirstLevel.bSentRequest;
 		if (bSentRequest && iOutOfPlaceCount) { // cannot handle result below, avoid new request
@@ -1943,6 +2079,9 @@ sap.ui.define([
 				// request out-of-place nodes only once
 				...(bSentRequest ? [] : this.requestOutOfPlaceNodes(oGroupLock))
 			]).then(function ([oResult, ...aOutOfPlaceResults]) {
+				if (iResetCount !== that.iResetCount) {
+					return; // ignore result, a refresh happened in the meantime
+				}
 				if (bSentRequest && iOutOfPlaceCount) {
 					return; // not idempotent due to previous #handleOutOfPlaceNodes
 				}
@@ -1955,7 +2094,7 @@ sap.ui.define([
 
 				that.aElements.length = that.aElements.$count = oResult.value.$count;
 
-				if (that.oGrandTotalPromise) {
+				if (that.aElements.length && that.oGrandTotalPromise) {
 					that.aElements.$count += 1;
 					that.aElements.length += 1;
 					oGrandTotal = that.oGrandTotalPromise.getResult();
@@ -2009,7 +2148,7 @@ sap.ui.define([
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before a back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result when the read is finished, or
 	 *   rejected in case of an error
 	 * @throws {Error} If index of placeholder at start of gap is less than 0, if end of gap is
@@ -2037,8 +2176,9 @@ sap.ui.define([
 			return oPromise;
 		}
 
-		const mQueryOptions = oCache.getQueryOptions();
+		let mQueryOptions = oCache.getQueryOptions();
 		if (mQueryOptions.$count) { // $count not needed anymore, 1st read was done by #expand
+			mQueryOptions = {...mQueryOptions};
 			delete mQueryOptions.$count;
 			oCache.setQueryOptions(mQueryOptions, true);
 		}
@@ -2096,6 +2236,20 @@ sap.ui.define([
 		const fnSuper = this.oFirstLevel.refreshKeptElements;
 		return fnSuper.call(this, oGroupLock, fnOnRemove, bIgnorePendingChanges,
 			/*bDropApply*/true);
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.lib._Cache#replaceElement
+	 */
+	_AggregationCache.prototype.replaceElement = function (aElements, _iIndex, sPredicate,
+			oElement, mTypeForMetaPath, sPath, bKeepReportedMessagesPath) {
+		// Note: iStart is not needed here because we know we have a key predicate
+		this.visitResponse(oElement, mTypeForMetaPath,
+			_Helper.getMetaPath(_Helper.buildPath(this.sMetaPath, sPath)), sPath + sPredicate,
+			undefined, bKeepReportedMessagesPath);
+
+		_Helper.updateAll({/*mChangeListeners*/}, "", aElements.$byPredicate[sPredicate], oElement);
 	};
 
 	/**
@@ -2363,15 +2517,12 @@ sap.ui.define([
 	 */
 	_AggregationCache.prototype.reset = function (aKeptElementPredicates, sGroupId, mQueryOptions,
 			oAggregation, bIsGrouped) {
-		var fnResolve,
-			that = this;
-
 		if (bIsGrouped) {
 			throw new Error("Unsupported grouping via sorter");
 		}
 
-		aKeptElementPredicates.forEach(function (sPredicate) {
-			var oKeptElement = that.aElements.$byPredicate[sPredicate];
+		aKeptElementPredicates.forEach((sPredicate) => {
+			var oKeptElement = this.aElements.$byPredicate[sPredicate];
 
 			if (_Helper.hasPrivateAnnotation(oKeptElement, "placeholder")) {
 				throw new Error("Unexpected placeholder");
@@ -2382,29 +2533,22 @@ sap.ui.define([
 			_Helper.setPrivateAnnotation(oKeptElement, "predicate", sPredicate);
 		});
 
-		this.oAggregation = oAggregation;
 		// "super" call (like @borrows ...)
 		const fnSuper = this.oFirstLevel.reset;
 		fnSuper.call(this, aKeptElementPredicates, sGroupId, mQueryOptions);
-		// reset modifies the cache's query options => recalculate result of #toString
-		this.sToString = this.getDownloadUrl("");
 		if (sGroupId) { // sGroupId means we are in a side-effects refresh
 			this.oBackup.oCountPromise = this.oCountPromise;
 			this.oBackup.oFirstLevel = this.oFirstLevel;
+			this.oBackup.oGrandTotalPromise = this.oGrandTotalPromise;
 			this.oBackup.bUnifiedCache = this.bUnifiedCache;
-			this.bUnifiedCache = true;
+			this.bUnifiedCache = !!oAggregation.hierarchyQualifier;
 		} else {
 			this.oTreeState.reset();
 		}
-		this.oAggregation.$ExpandLevels = this.oTreeState.getExpandLevels();
-		this.oCountPromise = undefined;
-		if (mQueryOptions.$count) {
-			this.oCountPromise = new SyncPromise(function (resolve) {
-				fnResolve = resolve;
-			});
-			this.oCountPromise.$resolve = fnResolve;
-		}
-		this.oFirstLevel = this.createGroupLevelCache();
+		oAggregation = Object.assign({}, oAggregation);
+		oAggregation.$ExpandLevels = this.oTreeState.getExpandLevels();
+
+		this.doReset(oAggregation, _AggregationHelper.hasGrandTotal(oAggregation.aggregate));
 	};
 
 	/**
@@ -2424,6 +2568,7 @@ sap.ui.define([
 		if (bReally) {
 			this.oCountPromise = this.oBackup.oCountPromise;
 			this.oFirstLevel = this.oBackup.oFirstLevel;
+			this.oGrandTotalPromise = this.oBackup.oGrandTotalPromise;
 			this.bUnifiedCache = this.oBackup.bUnifiedCache;
 		}
 		// "super" call (like @borrows ...)
@@ -2750,9 +2895,9 @@ sap.ui.define([
 	 * @param {string} sDeepResourcePath
 	 *   The deep resource path to be used to build the target path for bound messages
 	 * @param {object} mQueryOptions
-	 *   A map of key-value pairs representing the query string, the value in this pair has to
-	 *   be a string or an array of strings; if it is an array, the resulting query string
-	 *   repeats the key for each array value.
+	 *   A map of key-value pairs representing the query string (requires "copy on write"!), the
+	 *   value in this pair has to be a string or an array of strings; if it is an array, the
+	 *   resulting query string repeats the key for each array value.
 	 *   <br>
 	 *   Examples:
 	 *   {foo : "bar", "bar" : "baz"} results in the query string "foo=bar&bar=baz"
@@ -2848,8 +2993,11 @@ sap.ui.define([
 			throw new Error("Unsupported $$filterOnAggregate");
 		}
 		if (mQueryOptions.$$filterBeforeAggregate) {
-			mQueryOptions.$apply = "filter(" + mQueryOptions.$$filterBeforeAggregate + ")/"
-				+ mQueryOptions.$apply;
+			mQueryOptions = {
+				...mQueryOptions,
+				$apply : "filter(" + mQueryOptions.$$filterBeforeAggregate + ")/"
+					+ mQueryOptions.$apply
+			};
 			delete mQueryOptions.$$filterBeforeAggregate;
 		}
 
@@ -2857,7 +3005,7 @@ sap.ui.define([
 			sDeepResourcePath, bSharedRequest);
 	};
 
-	// @override sap.ui.model.odata.v4.lib._Cache#fixDuplicatePredicate
+	// @override sap.ui.model.odata.v4.lib._CollectionCache#fixDuplicatePredicate
 	_AggregationCache.fixDuplicatePredicate = function (oElement, sPredicate) {
 		if (sPredicate === "('')" || sPredicate.includes("=''")) {
 			Log.warning("Duplicate key predicate: " + sPredicate, this.toString(),

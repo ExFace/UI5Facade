@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,10 +47,14 @@ sap.ui.define([
 		 */
 		loadFeatures(mPropertyBag) {
 			return KeyUserConnector.loadFeatures.call(this, mPropertyBag).then(function(oFeatures) {
-				// the backend supports also older versions where condensing was not enabled
+				// the backend supports also older versions where condensing and local reset was not enabled
 				// that is why the flag can't be taken as is. Older versions just ignore the flag
 				oFeatures.isCondensingEnabled = oFeatures.isCondensingEnabledOnBtp;
 				delete oFeatures.isCondensingEnabledOnBtp;
+				oFeatures.isLocalResetEnabled = oFeatures.isLocalResetEnabledOnBtp;
+				delete oFeatures.isLocalResetEnabledOnBtp;
+				// oFeatures.isContextBasedAdaptationEnabled = oFeatures.isContextBasedAdaptationEnabledOnBtp;
+				// delete oFeatures.isContextBasedAdaptationEnabledOnBtp;
 				return oFeatures;
 			});
 		},
@@ -74,7 +78,7 @@ sap.ui.define([
 				InitialUtils.addLanguageInfo(mParameters);
 			}
 			const sVariantDataUrl = InitialUtils.getUrl(this.ROUTES.VARIANTDATA, mPropertyBag, mParameters);
-			return InitialUtils.sendRequest(sVariantDataUrl, "GET", {initialConnector: this}).then(function(oResult) {
+			return InitialUtils.sendRequest(sVariantDataUrl, "GET", { initialConnector: this }).then(function(oResult) {
 				return oResult.response;
 			});
 		}

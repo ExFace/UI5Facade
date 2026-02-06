@@ -1,18 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/write/_internal/appVariant/AppVariantFactory",
 	"sap/ui/fl/write/_internal/connectors/LrepConnector",
 	"sap/ui/fl/write/_internal/SaveAs",
 	"sap/ui/fl/write/api/ChangesWriteAPI",
 	"sap/ui/fl/write/api/PersistenceWriteAPI",
-	"sap/base/util/restricted/_pick"
+	"sap/base/util/restricted/_pick",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	ManifestUtils,
 	Settings,
@@ -27,7 +28,7 @@ sap.ui.define([
 
 	function _checkSettingsAndExecuteActionByName(sActionName, mPropertyBag) {
 		return Settings.getInstance().then(function(oSettings) {
-			if (oSettings.isAtoEnabled()) {
+			if (oSettings.getIsAtoEnabled()) {
 				// For smart business, we already set the transport and skipIam flag,
 				// so that there should be no transport handling done on connector level.
 				mPropertyBag.skipIam = true;

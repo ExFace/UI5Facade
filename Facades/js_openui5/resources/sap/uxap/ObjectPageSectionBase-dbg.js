@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -139,6 +139,7 @@ sap.ui.define([
 
 		//handled for ux rules management
 		this._bInternalVisible = true;
+		this._bInternalTitleVisible = true;
 		this._sInternalTitleLevel = TitleLevel.Auto;
 		//hidden status
 		this._isHidden = false;
@@ -458,6 +459,26 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * set the internal visibility of the Section title. This is set by the ux rules (for example don't display a Section/SubSection title in IconTabBar mode)
+	 * @param {boolean} bValue
+	 * @param {boolean} bInvalidate if set to true, the Section should be rerendered in order to be added or removed to the dom (similar to what a "real" internalVisibility property would trigger)
+	 * @private
+	 */
+	ObjectPageSectionBase.prototype._setInternalTitleVisible = function (bValue, bInvalidate) {
+		if (bValue != this._bInternalTitleVisible) {
+			this._bInternalTitleVisible = bValue;
+			this.setTitleVisible();
+			if (bInvalidate) {
+				this.invalidate();
+			}
+		}
+	};
+
+	ObjectPageSectionBase.prototype._getInternalTitleVisible = function () {
+		return this._bInternalTitleVisible;
+	};
+
 	ObjectPageSectionBase.prototype._getInternalVisible = function () {
 		return this._bInternalVisible;
 	};
@@ -526,30 +547,6 @@ sap.ui.define([
 		}
 	};
 
-	/**
-	 * Returns the <code>aria-level</code>, matching to the <code>ObjectPageSectionBase</code> <code>titleLevel</code> or internal <code>titleLevel</code>.
-	 * If the <code>titleLevel</code> is <code>TitleLevel.H1</code>, the result would be "1".
-	 * If the <code>titleLevel</code> is <code>TitleLevel.Auto</code>,
-	 * the result would be "3" for <code>ObjectPageSection</code> and "4" for <code>ObjectPageSubSection</code>.
-	 * The method is used by <code>ObjectPageSectionRenderer</code>.
-	 *
-	 * If there is a case where a TitleLevel.Auto is returned from _getTitleLevel in order to prevent a wrong
-	 * value to be se to the aria-level attribute title level fallbacks to TitleLevel.H2 as this is the default
-	 * aria-level according to aria specification
-	 *
-	 * @returns {string} the <code>aria-level</code>
-	 * @private
-	 */
-	ObjectPageSectionBase.prototype._getARIALevel = function () {
-		var sTitleLevel = this._getTitleLevel();
-
-		if (sTitleLevel === TitleLevel.Auto) {
-			sTitleLevel = TitleLevel.H2;
-		}
-
-		return sTitleLevel.slice(-1);
-	};
-
 	// Generate proxies for aggregation mutators
 	["addAggregation", "insertAggregation", "removeAllAggregation", "removeAggregation", "destroyAggregation"].forEach(function (sMethod) {
 		ObjectPageSectionBase.prototype[sMethod] = function (sAggregationName, oObject, iIndex, bSuppressInvalidate) {
@@ -587,6 +584,9 @@ sap.ui.define([
 	};
 
 	ObjectPageSectionBase.prototype.setTitle = function (sValue, bSuppressInvalidate) {
+		if (this.getTitle() === sValue) {
+			return this;
+		}
 
 		this.setProperty("title", sValue, bSuppressInvalidate);
 		this._notifyObjectPageLayout();

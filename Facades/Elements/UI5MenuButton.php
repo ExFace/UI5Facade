@@ -70,7 +70,8 @@ JS;
     protected function getCaption() : string
     {
         $caption = parent::getCaption();
-        if ($caption == '') {
+        $widget = $this->getWidget();
+        if ($caption == '' && !$widget->getIcon()) {
             $caption = '...';
         }
         return $caption;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(
@@ -12,7 +12,8 @@ sap.ui.define(
 		"sap/ui/mdc/valuehelp/FilterContainer",
 		"sap/m/Button",
 		"sap/m/p13n/enums/PersistenceMode",
-		"sap/m/OverflowToolbarLayoutData"
+		"sap/m/OverflowToolbarLayoutData",
+		"sap/ui/core/InvisibleText"
 	],
 	(
 		mLibrary,
@@ -22,7 +23,8 @@ sap.ui.define(
 		FilterContainer,
 		Button,
 		PersistenceMode,
-		OverflowToolbarLayoutData
+		OverflowToolbarLayoutData,
+		InvisibleText
 	) => {
 		"use strict";
 		const {OverflowToolbarPriority} = mLibrary;
@@ -39,7 +41,7 @@ sap.ui.define(
 		 * <b>Note:</b> The <code>FilterBar</code> can only be used for a {@link sap.ui.mdc.valuehelp.Dialog Dialog} and not on its own.
 		 * @extends sap.ui.mdc.filterbar.FilterBarBase
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 * @constructor
 		 * @public
 		 * @since 1.124.0
@@ -88,6 +90,16 @@ sap.ui.define(
 						filterFieldThreshold: {
 							type: "int",
 							defaultValue: 8
+						},
+
+						/**
+						 * Internal property to bind the <code>visible</code> property of the ShowAllFilters button.<br>
+						 */
+						_showAllFiltersEnabled: {
+							type: "boolean",
+							group: "Appearance",
+							defaultValue: false,
+							visibility: "hidden"
 						}
 					},
 					aggregations: {}
@@ -146,10 +158,18 @@ sap.ui.define(
 				type: ButtonType.Transparent,
 				press: this._onShowAllFilters.bind(this),
 				text: this._oRb.getText("valuehelp.SHOWALLFILTERS"),
-				visible: false
+				visible: {
+					parts: [
+						{ path: "/_showAllFiltersEnabled", model: FilterBarBase.INNER_MODEL_NAME },
+						{ path: "/expandFilterFields", model: FilterBarBase.INNER_MODEL_NAME }
+					],
+					formatter: function(bShowAllFiltersEnabled, bExpandFilterFields) {
+						return bShowAllFiltersEnabled && bExpandFilterFields;
+					}
+				}
 			});
 
-			this._oFilterBarLayout.addEndContent(this._oShowAllFiltersBtn);
+			this._oFilterBarLayout.addControl(this._oShowAllFiltersBtn);
 		};
 
 
@@ -251,6 +271,8 @@ sap.ui.define(
 		};
 
 		FilterBar.prototype.setBasicSearchField = function(oBasicSearchField) {
+			const fnGetAriaLabelId = (sSearchFieldId) => this.getId() + "__" + sSearchFieldId + "-labelledBy";
+
 			if (this._oBasicSearchField) {
 				const oLD = this._oBasicSearchField.getLayoutData();
 				if (oLD && oLD._bSetByFilterBar) {
@@ -261,13 +283,18 @@ sap.ui.define(
 					this._oFilterBarLayout.removeControl(this._oBasicSearchField);
 				}
 				this._oBasicSearchField.detachSubmit(this._handleFilterItemSubmit, this);
+
+				const sAriaLabelId = fnGetAriaLabelId(this._oBasicSearchField.getId());
+				this._oBasicSearchField.removeAriaLabelledBy(sAriaLabelId);
+				this.getInvisibleText(sAriaLabelId)?.destroy();
 			}
 			this._oBasicSearchField = oBasicSearchField;
 
+
 			if (oBasicSearchField) {
 				if (!this._oBasicSearchField.getLayoutData()) {
-					// set LayouData to have better overflow behaviour in toolbar
-					const oLD = new OverflowToolbarLayoutData(this._oBasicSearchField.getId() + "--LD", {shrinkable: true, minWidth: "6rem", maxWidth: this._oBasicSearchField.getWidth()});
+					// set LayouData to have better overflow behaviour in toolbar; TODO: If collectiveSearch is active min-with of 8rem would be better, but this might not known here
+					const oLD = new OverflowToolbarLayoutData(this._oBasicSearchField.getId() + "--LD", {shrinkable: true, minWidth: "10rem", maxWidth: this._oBasicSearchField.getWidth()});
 					oLD._bSetByFilterBar = true;
 					this._oBasicSearchField.setLayoutData(oLD);
 				}
@@ -276,10 +303,20 @@ sap.ui.define(
 					this.setExpandFilterFields(false);
 				}
 
+				const sAriaLabelId = fnGetAriaLabelId(oBasicSearchField.getId());
+				let oBasicSearchFieldAriaLabel = this.getInvisibleText(sAriaLabelId);
+				if (!oBasicSearchFieldAriaLabel) {
+					oBasicSearchFieldAriaLabel = new InvisibleText(sAriaLabelId, { text: {
+						path: "$help>/title",
+						formatter: (sTitle) => this._oRb.getText("valuehelp.SEARCHFIELD_ARIA_LABEL", [sTitle])
+					}});
+					this.addInvisibleText(oBasicSearchFieldAriaLabel);
+				}
+				oBasicSearchField.addAriaLabelledBy(oBasicSearchFieldAriaLabel);
+
 				if (this._oFilterBarLayout) {
 					this._oFilterBarLayout.insertControl(oBasicSearchField, this._oCollectiveSearch ? 1 : 0);
 				}
-
 				oBasicSearchField.attachSubmit(this._handleFilterItemSubmit, this);
 				this._enhanceBasicSearchField(oBasicSearchField);
 				if (!this._oObserver.isObserved(oBasicSearchField, { properties: ["visible"] })) {

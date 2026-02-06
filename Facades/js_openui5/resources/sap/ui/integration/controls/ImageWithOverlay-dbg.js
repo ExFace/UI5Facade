@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -41,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -62,7 +62,7 @@ sap.ui.define([
 				/**
 				 * Defines the text that will be displayed after the title.
 				 */
-				subTitle: {type: "string", group: "Misc", defaultValue: "" },
+				subtitle: {type: "string", group: "Misc", defaultValue: "" },
 				/**
 				 * Defines vertical position of the texts.
 				 */
@@ -117,7 +117,7 @@ sap.ui.define([
 
 		this._getSupertitleText().setText(this.getSupertitle());
 		this._getTitleText().setText(this.getTitle());
-		this._getSubTitleText().setText(this.getSubTitle());
+		this._getSubtitleText().setText(this.getSubtitle());
 
 		this._getTextsLayout().setJustifyContent(this.getVerticalPosition())
 			.setAlignItems(this.getHorizontalPosition());
@@ -182,14 +182,14 @@ sap.ui.define([
 		return this._oTitleText;
 	};
 
-	ImageWithOverlay.prototype._getSubTitleText = function () {
-		if (!this._oSubTitleText) {
-			this._oSubTitleText = new Text({
-				text: this.getSubTitle()
+	ImageWithOverlay.prototype._getSubtitleText = function () {
+		if (!this._oSubtitleText) {
+			this._oSubtitleText = new Text({
+				text: this.getSubtitle()
 			});
 		}
 
-		return this._oSubTitleText;
+		return this._oSubtitleText;
 	};
 
 	ImageWithOverlay.prototype._getTextsLayout = function () {
@@ -203,7 +203,7 @@ sap.ui.define([
 				items: [
 					this._getSupertitleText(),
 					this._getTitleText(),
-					this._getSubTitleText()
+					this._getSubtitleText()
 				]
 			}).addStyleClass("sapUiIntImgWithOverlayLayout");
 

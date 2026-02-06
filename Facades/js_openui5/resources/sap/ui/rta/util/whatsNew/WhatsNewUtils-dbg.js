@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,18 +46,10 @@ sap.ui.define([
 		 * @returns {string} URL for the feature documentation
 		 */
 		getLearnMoreURL(sPath, aFeatureCollection) {
-			const sFeaturePageIndex = sPath.slice(-1);
-			const bIsS4Hana = !!FlexRuntimeInfoAPI.getSystem();
+			const iFeaturePageIndex = sPath.slice(-1);
+			const oDocumentationUrls = aFeatureCollection[iFeaturePageIndex].documentationUrls;
 
-			if (bIsS4Hana) {
-				if (RtaUtils.isS4HanaCloud()) {
-					return aFeatureCollection[sFeaturePageIndex].documentationUrls.s4HanaCloudUrl;
-				}
-
-				return aFeatureCollection[sFeaturePageIndex].documentationUrls.s4HanaOnPremUrl;
-			}
-
-			return aFeatureCollection[sFeaturePageIndex].documentationUrls.btpUrl;
+			return RtaUtils.getSystemSpecificDocumentationUrl(oDocumentationUrls);
 		},
 
 		/**

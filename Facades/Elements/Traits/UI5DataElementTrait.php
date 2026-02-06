@@ -1,15 +1,20 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
-use exface\Core\DataTypes\BooleanDataType;
-use exface\Core\DataTypes\DateDataType;
+use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
+use exface\Core\Interfaces\WidgetInterface;
+use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
+use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
+use exface\Core\Widgets\DataTableConfigurator;
+use exface\Core\Widgets\Tab;
+use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -32,6 +37,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface
 use exface\Core\Widgets\DataButton;
 use exface\Core\Interfaces\Widgets\iHaveQuickSearch;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\DataLookupDialog;
 
 /**
  * This trait helps wrap thrid-party data widgets (like charts, image galleries, etc.) in 
@@ -122,9 +128,17 @@ trait UI5DataElementTrait {
      */
     protected function init()
     {
+        $dataWidget = $this->getDataWidget();
         $configuratorElement = $this->getConfiguratorElement();
+        $configuratorLinked = $dataWidget->isConfiguratorLinked();
         
-        if ($this->isWrappedInDynamicPage()) {
+        // Tweak this widget a little if it uses a shared configurator
+        if ($configuratorLinked) {
+            $this->getWidget()->setHideHeader(true);
+            $dataWidget->setConfiguratorSetupsEnabled(false);
+        }
+        
+        if ($this->isWrappedInDynamicPage() && ! $configuratorLinked) {
             $configuratorElement->setIncludeFilterTab(false);
         }
         
@@ -146,6 +160,12 @@ trait UI5DataElementTrait {
                 $this->quickSearchElement = $this->getFacade()->getElement($this->getWidget()->getQuickSearchWidget());
             }
         }
+        
+        // Handle `refresh_with_widget`: add an on-refresh listener to the target widget
+        if (null !== $refreshLink = $dataWidget->getRefreshWithWidget()) {
+            $refreshEl = $this->getFacade()->getElement($refreshLink->getTargetWidget());
+            $refreshEl->addOnRefreshScript("setTimeout(function(){ {$this->buildJsRefresh()} }, 0);");
+        }
     }
     
     /**
@@ -155,9 +175,11 @@ trait UI5DataElementTrait {
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        $dataWidget = $this->getDataWidget();
         $widget = $this->getWidget();
         $controller = $this->getController();
+        
+        $autoloadDataStrategy = $this->getDataWidget()->getAutoloadDataStrategy();
+        $autoloadJs = '';
         
         $this->registerExternalModules($this->getController());
         
@@ -165,51 +187,63 @@ trait UI5DataElementTrait {
         // added too late and won't be there in the generated controller.
         $this->getController()->addOnEventScript($this, 'select', '');
         $this->getController()->addOnEventScript($this, UI5AbstractElement::EVENT_NAME_REFRESH, '');
+
+        // if the widget has the setups quickselect enabled, we attach an listener to the 'appliedWidgetSetup' event
+        // this gets fired whenever a setup is applied (see @exfSetupManager.js for event), 
+        // we can use this to update the quickselect button caption and the change indicator (*)
+        if ($this->hasSetupsQuickSelector()){
+            $updateQuickselectUIJs = <<<JS
+                (function (){ 
+
+                    // attach listener only once per widget
+                    let oWidget = sap.ui.getCore().byId('{$this->getId()}');
+                    if (oWidget && oWidget.data('_exfWidgetSetupChangeListenerAttached') !== true){ 
+                        
+                        // Update UI Elements onchange of widget setup 
+                        oWidget.attachEvent('appliedWidgetSetup', function (oEvent) {
+                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', true);
+                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', '{$this->getId()}');
+                            oWidget.data('_exfWidgetSetupChangeListenerAttached', true);
+                        });
+                    }
+                })();
+JS;
+
+            $this->getController()->addOnInitScript($updateQuickselectUIJs);
+        }
         
         $controller->addMethod('onUpdateFilterSummary', $this, '', $this->buildJsFilterSummaryUpdater());
         $controller->addMethod('onLoadData', $this, 'oControlEvent, bKeepPagingPos', $this->buildJsDataLoader());
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         
         if ($this->hasPaginator()) {
             $this->getPaginatorElement()->registerControllerMethods();
         }
-        
-        // Reload the data every time the view is shown. This is important, because otherwise 
-        // old rows may still be visible if a dialog is open, closed and then reopened for another 
-        // instance.
-        // The data resetter will empty the table as soon as the view is opened, then the refresher
-        // is run after all the view loading logic finished - that's what the setTimeout() is for -
-        // otherwise the refresh would run before the view finished initializing, before the prefill
-        // is started and will probably be empty.
-        // Finally, all selections are removed to ensure child elements of one instance are not
-        // automatically selected when opening another one.
-        if ($dataWidget->hasAutoloadData()) {
-            $autoloadJs = <<<JS
 
-                (function() {
-                    var bIsBack = false;
-                    if (oEvent && (oEvent.isBack || oEvent.isBackToPage || oEvent.isBackToTop)) {
-                        bIsBack = true;
-                    }
-                    if (bIsBack === false) {
-                        try { 
-                            {$this->buildJsDataResetter()} 
-                            {$this->buildJsSelectionModelReset()}
-                        } catch (e) {} 
-                        setTimeout(function(){ 
-                            {$this->buildJsRefresh()} 
-                        }, 0);
-                    }
-                })();
-JS;
-            $controller->addOnShowViewScript($autoloadJs);
-        } else {
-            $autoloadJs = <<<JS
+        // Data reload logic.
+        // Look inside the buildAutoloadJsForAutoloadStrategy() function for more documentation.
+        $strategy = AutoloadStrategyDataType::NEVER;
 
-                {$this->buildJsSelectionModelReset()}
-                {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
-JS;
+        if ($autoloadDataStrategy === AutoloadStrategyDataType::ALWAYS) {
+            $strategy = AutoloadStrategyDataType::ALWAYS;
+        } else if ($autoloadDataStrategy === AutoloadStrategyDataType::IF_VISIBLE) {
+            // NOTE: The Data that is marked as "IF_VISIBLE" should be loaded
+            // at special events like onSelect in corresponding widget facades.
+            // You can implement it inside the "buildJsDataLoader()" function in this trait.
+
+            // special logic for tabs treatment.
+            if (null !== $tab = $this->findParentTab()) {
+
+                /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
+                $tabEl = $this->getFacade()->getElement($tab);
+                
+                // If the tab is active or is an ObjectPageSection then we load data always
+                $strategy = $tab->isActive() || $tabEl->isObjectPageSection()
+                    ? AutoloadStrategyDataType::ALWAYS
+                    : AutoloadStrategyDataType::IF_VISIBLE;
+            }
         }
+        $autoloadJs .= $this->buildAutoloadJsForAutoloadStrategy($strategy);
         $controller->addOnShowViewScript($autoloadJs);
         
         // add trigger to refresh data automatically when widget has autorefresh_intervall set.
@@ -281,6 +315,76 @@ JS;
             return $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
     }
+
+    /**
+     * Returns autoloadJs for given AutoloadStrategy that is used in buildJsConstructor
+     * 
+     * @param $strategy
+     * @return string
+     */
+    protected function buildAutoloadJsForAutoloadStrategy($strategy) : string {
+        $js = '';
+        
+        switch ($strategy) {
+            case AutoloadStrategyDataType::ALWAYS:
+                // Reload the data every time the view is shown. This is important, because otherwise 
+                // old rows may still be visible if a dialog is open, closed and then reopened for another 
+                // instance.
+                // The data resetter will empty the table as soon as the view is opened, then the refresher
+                // is run after all the view loading logic finished - that's what the setTimeout() is for -
+                // otherwise the refresh would run before the view finished initializing, before the prefill
+                // is started and will probably be empty.
+                // Finally, all selections are removed to ensure child elements of one instance are not
+                // automatically selected when opening another one.
+                $js .= <<<JS
+
+                    (function() {
+                      // 'isBack' is triggered when the user navigates back to the page. 
+                      //  in this case, we do not refresh the data.
+                      var bIsBack = !!(oEvent?.isBack || oEvent?.isBackToPage || oEvent?.isBackToTop);
+                      if (!bIsBack) {
+                            try { 
+                                {$this->buildJsDataResetter()} 
+                                {$this->buildJsSelectionModelReset()}
+                            } catch (e) {} 
+                            setTimeout(function(){ 
+                                {$this->buildJsRefresh()} 
+                            }, 0);
+                        }
+                    })();
+JS;
+                break;
+            case AutoloadStrategyDataType::IF_VISIBLE:
+                // No data refresh.
+                // The AutoloadStrategy "NEVER" logic is used if the page is not displayed due to back navigation.
+                // Data that has already been loaded is not flushed away in the event of back navigation here.
+                
+                // NOTE: The Data that is marked as "IF_VISIBLE" can be loaded
+                // inside the "buildJsDataLoader()" function in this trait.
+                $dataWidget = $this->getDataWidget();
+                $js .= <<<JS
+                
+                    (function() {
+                        var bIsBack = !!(oEvent?.isBack || oEvent?.isBackToPage || oEvent?.isBackToTop);
+                        if (!bIsBack) {
+                            {$this->buildJsSelectionModelReset()}
+                            {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+                        }
+                    })();
+JS;
+                break;
+            case AutoloadStrategyDataType::NEVER:
+                // No data refresh. Shows the hint that autoload is disabled.
+                $dataWidget = $this->getDataWidget();
+                $js .= <<<JS
+
+                    {$this->buildJsSelectionModelReset()}
+                    {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+JS;
+                break;
+        }
+        return $js;
+    }
     
     /**
      * Returns the constructor for the inner data control (e.g. table, chart, etc.)
@@ -320,7 +424,7 @@ JS;
         new sap.m.Panel("{$this->getId()}_panel", {
             height: "$height",
             headerToolbar: [
-                {$toolbar}.addStyleClass("sapMTBHeader-CTX")
+                {$toolbar}
             ],
             content: [
                 {$contentConstructorsJs}
@@ -386,7 +490,7 @@ JS;
 				content: [
 					{$this->buildJsToolbarContent($oControllerJsVar, $leftExtras, $rightExtras)}
 				]
-			})
+			}).addStyleClass('exf-datatoolbar')
 
 JS;
     }
@@ -399,6 +503,243 @@ JS;
     {
         return ! ($this->getWidget()->getHideHeader() === true && $this->getWidget()->getHideCaption());
     }
+
+    /**
+     * @return bool
+     */
+    protected function hasSetupsQuickSelector() : bool
+    {
+        if ($this->getDataWidget()->getConfiguratorSetupsEnabled() === false) {
+            return false;
+        }
+        $configWidget = $this->getWidget()->getConfiguratorWidget();
+        return ($configWidget instanceof DataTableConfigurator) 
+            && $configWidget->hasSetups() 
+            && ($this instanceof UI5DataTable) // FIXME Remove this restriction once the setups have been completely moved to this trait
+            && $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SETUPS.QUICK_SELECT_ENABLED');
+    }
+
+    /**
+      * Builds a UI5 quick select menu with widget setups for the datatable.
+      * Menu uses the same model as (so is dependant on) the table containing the setups in the p13n dialogue for consistency
+      * if the quickselect is opened before the setup configurator, it will load the data of the configurator table
+      *
+      * @param string $buttonCaption optional button caption for the quickselect menu (if no caption is passed, the button will be an arrow icon)
+      * @return string
+      */
+    protected function buildJsSetupQuickSelectMenu(string $buttonCaption = null) : string
+    {
+        // this menu depends on the configurator and the setups tab
+        // TODO setups currently only work for facade elements based on UI5DataTable because lots of their
+        // code is in there. We should probably extract that code to a separate JS lib and move some of it
+        // to the UI5DataElementTrait
+        if (! $this->hasSetupsQuickSelector()){
+            return '';
+        }
+        
+        $setupsTable = $this->getP13nElement()->getWidget()->getSetupsTab()->getWidgetFirst();
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+
+        // default captions
+        $tableCaption = $this->escapeString('');
+        $popoverTitle = $this->escapeString($translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
+        
+        // if a caption was passed, use it as the caption of the quickselect button
+        if ($buttonCaption !== null){
+            $tableCaption = $this->escapeString($buttonCaption);
+            $popoverTitle = $this->escapeString($buttonCaption . ' ' . $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_CAPTION'));
+        }
+        
+        // button to apply selected setup
+        $applySetupButtonJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY')}",
+                tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_APPLY')}",
+                type: sap.m.ButtonType.Emphasized,
+                press: () => {
+                    // return if nothing selected
+                    if (this._oTable.getSelectedItem() == null){
+                        return;
+                    }
+
+                    // apply selected setup
+                    let oQuickSelectData = {
+                        rows: [ this._oTable.getSelectedItem().getBindingContext().getObject() ]
+                    };
+                    {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#SETUP_UXON#]' ], 'oQuickSelectData')}
+                }
+            })
+                    
+JS;
+
+        // button to open the configrator
+        $openConfiguratorBtnJs = <<<JS
+                    new sap.m.Button({
+                        tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ALL')}",
+                        icon: "sap-icon://action-settings",
+                        press: function() {
+                			{$this->getController()->buildJsDependentControlSelector('oConfigurator', $this, 'oController')}.open();
+                		}
+                    })
+JS;
+
+        // button to save a new setup
+        $saveSetupBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
+                tooltip: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    // TODO: fixme - add a getter for the save button in configurator widget to avoid id issues here
+                    // issue in some nested dialogues:
+                    // generated: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator_saveSetupBtn
+                    // expected: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator"+'_saveSetupBtn'
+
+                    let oSaveSetupBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'_saveSetupBtn');
+                    if (oSaveSetupBtn){
+                        oSaveSetupBtn.firePress();
+                    }
+                }
+            })
+JS;
+
+        // button to reset configuration
+        // TODO sah: in the future, this would probably be nicer with a default entry in table
+        $resetBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                tooltip: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    let oResetConfigBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                    if (oResetConfigBtn){
+                        oResetConfigBtn.firePress();
+                    }
+                }
+            })
+JS;
+
+        return <<<JS
+                    new sap.m.Button({
+                        id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
+                        text: {
+                            parts: [
+                                { path: "/buttonCaption" },
+                                { path: "/configChanged" }
+                            ],
+                            formatter: function (sButtonCaption, bConfigChanged) {
+                                // Use $tableCaption if buttonCaption is null
+                                let sCaption = sButtonCaption === null ? {$tableCaption} : sButtonCaption;
+                                // append * if configChanged 
+                                return bConfigChanged ? sCaption + " *" : sCaption;
+                            }
+                        },
+                        icon: "sap-icon://slim-arrow-down",
+                        press: function (oEvent) {
+
+                            let oButton = oEvent.getSource();
+                            let oOriginalTable = sap.ui.getCore().byId("{$this->getP13nElement()->getSetupsTableId()}");
+                            let oModel = oOriginalTable.getModel();
+                            let sPath = oOriginalTable.getBinding("items").getPath();
+                            let oBinding = oOriginalTable.getBinding("items");
+
+                            if (oBinding && oBinding.getLength() === 0) {
+                                // Load data if the table is empty (on first open for example)
+                                // this calls the onload method of the table
+                                {$this->getFacade()->getElement($setupsTable)->buildJsRefresh()}
+                            }
+
+                            // only create popover once per table
+                            if (!this._oPopover) {
+                                if (!this._oTable) {
+
+                                    // create new table
+                                    this._oTable = new sap.m.Table({
+                                        columns: [
+                                            new sap.m.Column({ header: new sap.m.Text({ text: '{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_ACTIVE')}'}), width: "10%", hAlign: "Center"}),
+                                            new sap.m.Column({ header: new sap.m.Text({ text: "Name" })}),
+                                            new sap.m.Column({ header: new sap.m.Text({ text: "Favorit" }), width: "30%", hAlign: "Center"})
+                                        ],
+                                        mode: sap.m.ListMode.SingleSelectMaster
+                                    });
+
+                                    // use same model as in setups tab so data is consisnent
+                                    this._oTable.setModel(oModel);
+
+                                    // table template
+                                    const oTemplate = new sap.m.ColumnListItem({
+                                        cells: [
+                                            new sap.ui.core.Icon({
+                                                visible: {
+                                                    path: "SETUP_APPLIED",
+                                                    formatter: function (v) {
+                                                        return !!v; // hide icon if empty, otherwise UI5 gives warnings
+                                                    }
+                                                },
+                                                src: {
+                                                    path: "SETUP_APPLIED",
+                                                    formatter: function (v) {
+                                                        return v || "sap-icon://less";
+                                                    }
+                                                }
+                                            }),
+                                            new sap.m.Text({ text: "{NAME}" }),
+                                            new sap.ui.core.Icon({
+                                                src: {
+                                                    path: "WIDGET_SETUP_USER__FAVORITE_FLAG",
+                                                    formatter: function (v) {
+                                                        return v == 1 ? "sap-icon://favorite" : "sap-icon://unfavorite";
+                                                    }
+                                                }
+                                            })
+                                        ]
+                                    });
+
+                                    // bind items to the table 
+                                    // sort by favourite desc; and limit to 10 elements
+                                    // (we need to do that here in the binding, in order to not change the original table in the configurator)
+                                    this._oTable.bindItems({
+                                        path: sPath,
+                                        template: oTemplate,
+                                        sorter: new sap.ui.model.Sorter("WIDGET_SETUP_USER__FAVORITE_FLAG", true),
+                                        length: 10
+                                    });
+                                }
+
+                                // create popover and add table and buttons as content
+                                this._oPopover = new sap.m.Popover({
+                                    title: {$popoverTitle},
+                                    contentWidth: "500px",
+                                    contentHeight: "200px",
+                                    placement: sap.m.PlacementType.VerticalPreferredBottom,
+                                    resizable: true,
+                                    showArrow: true,
+                                    content: [
+                                        this._oTable 
+                                    ],
+                                    footer: new sap.m.OverflowToolbar({
+                                        content: [
+                                            new sap.m.ToolbarSpacer(), 
+                                            {$applySetupButtonJs},
+                                            {$saveSetupBtnJs},
+                                            {$resetBtnJs},
+                                            {$openConfiguratorBtnJs}
+                                        ]
+                                    })
+                                });
+
+                                this.addDependent(this._oPopover);
+                            }
+
+                            // open popover relative to the button
+                            this._oPopover.openBy(oButton);
+                        }
+                    }),
+                    
+                    
+JS;
+    }
+
     
     /**
      * 
@@ -411,6 +752,30 @@ JS;
     {   
         $widget = $this->getWidget();
         $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+
+        // if we have a datatable with widget_setups, we need to set the heading empty
+        // and show a quickselect menu instead of the normal heading
+        if ($this->hasSetupsQuickSelector()) {
+            // Don't show plain text caption if there is the setups dropdown
+            $heading = '';
+
+            // Caption of Popover Button
+            // default: just show the dropdown arrow, no caption 
+            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            //    -> if the table has a visible caption, set that as the caption of the button
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
+            $popoverBtnCaption = null;
+            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
+                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            }
+            else if ($widget->getHideCaption() !== true){
+                $popoverBtnCaption = $this->getCaption();
+            }
+            
+            // add quickselect menu to the left extras 
+            $leftExtras = $this->buildJsSetupQuickSelectMenu($popoverBtnCaption) . $leftExtras;
+        }
         
         $leftExtras = $leftExtras === null ? '' : rtrim($leftExtras, ", ") . ',';
         $rightExtras = $rightExtras === null ? '' : rtrim($rightExtras, ", ") . ',';
@@ -628,6 +993,14 @@ JS;
      */
     protected function buildJsConfiguratorButtonConstructor(string $oControllerJs = 'oController', string $buttonType = 'Default') : string
     {
+        // No button if configurator disabled explicitly
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
+        // No button if configurator is shared
+        if ($this->getWidget()->isConfiguratorLinked()) {
+            return '';
+        }
         $btnPriorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
         return <<<JS
         
@@ -657,6 +1030,12 @@ JS;
      */
     protected function buildJsFullscreenContainerGetter() : string
     {
+        // if we're in a data lookup dialog, maximize entire dialog
+        // (otherwise the toolbar is missing, and you cannot minimize anymore)
+        if ($this->getWidget()->getParentByClass(DataLookupDialog::class) !== null){
+            return "$('#{$this->getId()}').parents('.sapMDialog').first()";
+        }
+        // otherwise return normal parent elements
         return $this->isWrappedInDynamicPage() ? "$('#{$this->getId()}').parent()" : "$('#{$this->getId()}').parent().parent()";
     }
     
@@ -679,6 +1058,12 @@ JS;
 var jqFullscreenContainer = {$this->buildJsFullscreenContainerGetter()};
 var oButton = sap.ui.getCore().getElementById('{$id}');
 var jqButton = $('#{$this->getId()}')[0];
+
+if (jqFullscreenContainer.length == 0){
+    console.warn('Could not find fullsize container.');
+    return;
+}
+
 
 //set the z-index of the fullscreen dynamically so it works with popovers
 var iZIndex = 0;
@@ -754,9 +1139,18 @@ JS;
      * 
      * @return UI5AbstractElement
      */
-    protected function initConfiguratorControl(UI5ControllerInterface $controller) : UI5AbstractElement
+    protected function initConfiguratorControl(UI5ControllerInterface $controller, string $oControllerJs) : UI5AbstractElement
     {
-        $controller->addDependentControl('oConfigurator', $this, $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget()));
+        // If the table does not have a configurator, there will not be a control for it. Instead, the
+        // configurator will work in unrendered mode
+        if (! $this->hasConfigurator()) {
+            // Make sure the table is refreshed when needed even if there is no configurator button!
+            $this->getConfiguratorElement()->registerRefreshListeners($oControllerJs);
+            return $this;
+        }
+        if (! $this->getWidget()->isConfiguratorLinked()) {
+            $controller->addDependentControl('oConfigurator', $this, $this->getConfiguratorElement());
+        }
         return $this;
     }
     
@@ -776,12 +1170,11 @@ JS;
      */
     protected function buildJsCheckRequiredFilters() : string
     {
-        $configurator_element = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
         return <<<JS
 
 (function (){
     try {
-        if ({$configurator_element->buildJsValidator()}) {
+        if ({$this->getConfiguratorElement()->buildJsValidator()}) {
             return true;
         } else {
             return false;
@@ -881,6 +1274,11 @@ JS;
             }
         }
         
+        // Adds data load logic to specific widgets in case of `autoload_data: if_visible`.
+        if ($this->getDataWidget()->getAutoloadDataStrategy() === AutoloadStrategyDataType::IF_VISIBLE) {
+            $this->registerDataLoaderVisibilityCheck();
+        }
+        
         // Before we load anything, we need to make sure, the view data is loaded.
         // The view model has a special property to indicate if view (prefill) data
         // is being loaded. So we check that property and, if it shows a prefill
@@ -922,6 +1320,82 @@ JS;
                 }
                 
                 return $js;
+    }
+
+    /**
+     * Makes sure loading data is triggered every time this control becomes visible
+     * @return void
+     */
+    protected function registerDataLoaderVisibilityCheck() : void
+    {
+        // That adds a TabsSelectionScript to UI5Tabs
+        // that causes the tab data to be loaded if the tab is selected.
+        if (null !== $tab = $this->findParentTab()) {
+
+            /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
+            $tabEl = $this->getFacade()->getElement($tab);
+
+            // Currently the ObjectPageSection Tabs are loaded always if AutoloadStrategy != "NEVER"
+            if (!$tab->isActive() && !$tabEl->isObjectPageSection()) {
+
+                $onChangeJs = <<<JS
+
+                        (function() {
+                            const oModelData = sap.ui.getCore().byId('{$this->getId()}').getModel().getData();
+                            const tabIsNotLoaded = Object.keys(oModelData).length === 0;
+                                
+                            if (tabIsNotLoaded) {
+                              setTimeout(function(){ 
+                                {$this->buildJsRefresh()}
+                              }, 0);
+                            }
+                        })();
+JS;
+
+                /* @var $tabsEl \exface\UI5Facade\Facades\Elements\UI5Tabs */
+                $tabsEl = $this->getFacade()->getElement($tab->getTabs());
+                $tabsEl->addOnTabSelectScript($onChangeJs, $tab);
+            }
+        }
+    }
+    
+    /**
+     * Returns the first parent Tab, if present.
+     * 
+     * @return WidgetInterface|null
+     */
+    protected function findParentTab() : ? WidgetInterface {
+        if ((null !== $tab = $this->findParentsByClass(Tab::class, 1)[0])
+        && $tab->getIdSpace() === $this->getWidget()->getIdSpace()
+        ) {
+            return $tab;
+        }
+        return null;
+    }
+
+
+    /**
+     * Returns an array of parent widgets with the given class or interface
+     * 
+     * @param string $classOrInterface
+     * @param int|null $maxResults
+     * @return array
+     */
+    public function findParentsByClass(string $classOrInterface, ?int $maxResults = null) : array
+    {
+        $result  = [];
+        $widget = $this->getWidget();
+        while ($widget->getParent()) {
+            $widget = $widget->getParent();
+            if ($widget instanceof $classOrInterface) {
+                $result[] = $widget;
+                if (count($result) >= $maxResults) {
+                    break;
+                }
+            }
+        }
+
+        return $result;
     }
     
     /**
@@ -996,12 +1470,9 @@ JS;
             if (oModel.getProperty('/rows')?.length > 100) {
                 oModel.setSizeLimit(oModel.getProperty('/rows').length);
             }
-            if (oTable._exfPendingData !== undefined && oTable._exfPendingData !== sCurrentRequestData) {
-                delete oTable._exfPendingData;
+            if (typeof fnCheckPendingData === 'function' && fnCheckPendingData() === true) {
                 {$this->buildJsRefresh()}
                 return Promise.resolve(oModel);
-            } else {
-                delete oTable._exfPendingData;
             }
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
@@ -1028,7 +1499,7 @@ JS;
                 var oData = oModel.getData();
                 var oController = this;
                 var aSortItems = [];
-                var sCurrentRequestData = '';
+                var fnCheckPendingData;
 
                 if(!{$this->buildJsCheckRequiredFilters()}) {
                     {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
@@ -1046,21 +1517,10 @@ JS;
 
                 // Add custom params for  
                 {$this->buildJsDataLoaderParams($oControlEventJsVar, 'params', $keepPagePosJsVar)}
-
-                sCurrentRequestData = JSON.stringify(params.data);
-
-                if (oTable._exfPendingData !== undefined) {
-                    // Skip server request if still waiting for a response
-                    if (oTable._exfPendingData !== sCurrentRequestData) {
-                        // Update pending data if current request has other data to make sure
-                        // an auto-refresh is done afterwards to show latest information
-                        oTable._exfPendingData = sCurrentRequestData;
-                    }
+                
+                fnCheckPendingData = {$this->buildJsDataLoaderCheckPendingData('oTable', 'params')};
+                if (fnCheckPendingData === true) {
                     return Promise.resolve(oModel);
-                } else {
-                    // Remember current data to make it possible to skip concurrent requests
-                    // via the above if()
-                    oTable._exfPendingData = sCurrentRequestData;
                 }
                 
                 {$this->getServerAdapter()->buildJsServerRequest(
@@ -1075,6 +1535,68 @@ JS;
 JS;
     }
 
+    /**
+     * Returns a JS code, that yields TRUE if the same read is pending or a JS callback, that should be executed after
+     * the request returns from the table.
+     * 
+     * That callback will check for pending data again, resetting it if it was loaded successfully or returning
+     * TRUE once again to trigger an immediate reload if there was a request for other data in the meantime.
+     * 
+     * This logic prevents concurrent or recursive server request. 
+     * 
+     * - When a read is requested, we check, if another read is already on its way
+     *      - If not, we remember the data requested from the server and continue
+     *      - If a request is pending
+     *          - If it is the same request - we just ignore the new one (return TRUE)
+     *          - If we have a different request now (e.g. other filters), we enqueue it and return a callback to
+     *          be executed after the pending request
+     * - When the pending request arrives from the server, the callback returned in the previous step is called
+     *      - If the currently pending data of the control is the same as that of the request, we are done and
+     *      simply continue loading the data
+     *      - If the pending data of the control changed (because a different request was made and was stopped
+     *      by another instance of this check), we do not continue loading, but make a new server request immediately
+     * 
+     * This ensures, that we have at most one server request at a time. If any read requests happen in the meantime
+     * they are either ignored or enqueued. Of the enqueued requests only the very last one will be executed. That
+     * will be done immediately after the pending request. Thus, the user will not see any flickering, but rather just
+     * a longer load time. 
+     * 
+     * @param string $oCtrlJs
+     * @param string $oRequestParamsJs
+     * @return string
+     */
+    public function buildJsDataLoaderCheckPendingData(string $oCtrlJs, string $oRequestParamsJs) : string
+    {
+        return <<<JS
+
+                (function(oTable, oParams){
+                    // Current hash - it exists here and in the returned callback
+                    var sCurrentRequestData = JSON.stringify(oParams.data);
+    
+                    if (oTable._exfPendingData !== undefined) {
+                        // Skip server request if still waiting for a response
+                        if (oTable._exfPendingData !== sCurrentRequestData) {
+                            // Update pending data if current request has other data to make sure
+                            // an auto-refresh is done afterwards to show latest information
+                            oTable._exfPendingData = sCurrentRequestData;
+                        }
+                        return true;
+                    } else {
+                        // Remember current data to make it possible to skip concurrent requests
+                        // via the above if()
+                        oTable._exfPendingData = sCurrentRequestData;
+                    }
+                    return function() {
+                        if (oTable._exfPendingData !== undefined && oTable._exfPendingData !== sCurrentRequestData) {
+                            delete oTable._exfPendingData;
+                            return true;
+                        } else {
+                            delete oTable._exfPendingData;
+                        }
+                    };
+                })($oCtrlJs, $oRequestParamsJs)
+JS;
+    }
 
     /**
      * Implement this method to restore the selection when switching pages if neccessary
@@ -1273,7 +1795,7 @@ JS;
      */
     protected function getP13nElement()
     {
-        return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget());
+        return $this->getConfiguratorElement();
     }
     
     protected function getIdOfDynamicPage() : string
@@ -1430,8 +1952,8 @@ JS;
 
         (function(){
             var oPage = sap.ui.getCore().byId("{$this->getIdOfDynamicPage()}");
-            var oP13nDialog = sap.ui.getCore().byId("{$this->getConfiguratorElement()->getid()}");
-            oPage.getHeader().setModel(oP13nDialog.getModel());
+            var oDataCtrl = sap.ui.getCore().byId("{$this->getId()}");
+            oPage.getHeader().setModel(oDataCtrl.getModel('{$this->getModelNameForConfigurator()}'));
         })();
 JS;
         $this->getController()->addOnInitScript($useConfiguratorModelForHeaderFiltersJs);
@@ -1562,11 +2084,17 @@ JS;
     }
     
     /**
+     * Returns the JS code to update the filter summary of the data widget
+     *
+     * Only really does something if there is a configurator with interactive filters!
      *
      * @return string
      */
     protected function buildJsFilterSummaryUpdater()
     {
+        if (! $this->hasConfigurator()) {
+            return '';
+        }
         $filter_checks = '';
         foreach ($this->getDataWidget()->getFilters() as $fltr) {
             $elem = $this->getFacade()->getElement($fltr);
@@ -1798,7 +2326,7 @@ JS;
             var oChanges = oChangesModel.getProperty('/changes');
             var aEditableColNames = {$this->getEditableColumnNamesJson()};        
 
-            if (oDataChanged.rows === undefined || oDataChanged.rows.lenght === 0) return;
+            if (oDataChanged.rows === undefined || oDataChanged.rows.length === 0) return;
 
             oDataChanged.rows.forEach(function(oRowChanged) {
                 var oRowLast;
@@ -2051,14 +2579,33 @@ JS;
      * @return string
      */
     protected function buildJsClickHandlerDoubleClick($oControllerJsVar = 'oController') : string
-    {        
-        // Double click. Currently only supports one double click action - the first one in the list of buttons
-        if ($dblclick_button = $this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK)[0]) {
-            return <<<JS
+    {
+        $dblclick_buttons = $this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK);
+        if (empty($dblclick_buttons)) {
+            return '';
+        }
+
+        $js = '';
+        // If there are multiple buttons bound to double-click, "click" the first and see if
+        // the function returns `false`. If so, the action was not performed and, thus, we
+        // can continue with the next action - and so on.
+        foreach ($dblclick_buttons as $i => $btn) {
+            $btnEl = $this->getFacade()->getElement($btn);
+            $js .= <<<JS
+
+                        bResult = {$btnEl->buildJsClickEventHandlerCall($oControllerJsVar)};
+                        if (bResult !== false) {
+                            return;
+                        }
+JS;
+        }
+
+        return <<<JS
             
             .attachBrowserEvent("dblclick", function(oEvent) {
                 var oTargetDom = oEvent.target;
                 var iRowIdx = -1;
+                var bResult = false;
                 if(! ({$this->buildJsClickIsTargetRowCheck('oTargetDom')})) return;
                 
         		iRowIdx = {$this->buildJsClickGetRowIndex('oTargetDom')};
@@ -2066,11 +2613,9 @@ JS;
                     {$this->buildJsSelectRowByIndex("sap.ui.getCore().byId('{$this->getId()}')", 'iRowIdx', false, 'false')}
                 }
                 
-                {$this->getFacade()->getElement($dblclick_button)->buildJsClickEventHandlerCall($oControllerJsVar)};
+                {$js};
             })
 JS;
-        }
-        return '';
     }
     
     /**
@@ -2420,6 +2965,10 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
+
+        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
+        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+
         return $this;
     }
     
@@ -2589,7 +3138,7 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsDataGetter($action);
+                return $this->getConfiguratorElement()->buildJsDataGetter($action);
             
             default:
                 $getRows = "var rows = {$this->buildJsGetRowsSelected('oControl', false)};";
@@ -2669,7 +3218,7 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        $resetConfiguratorJs = $this->getFacade()->getElement($this->getWidget()->getConfiguratorWidget())->buildJsResetter();
+        $resetConfiguratorJs = $this->hasConfigurator() ? $this->getConfiguratorElement()->buildJsResetter() : '';
         $resetEditableCellsJs = $this->isEditable() ? $this->buildJsEditableChangesWatcherReset() : '';
         $resetQuickSearch = $this->hasQuickSearch() ? $this->getQuickSearchElement()->buildJsResetter() : '';
         return $this->buildJsSelectionModelReset() . $resetQuickSearch . ';' . $this->buildJsDataResetter() . ';' . $resetEditableCellsJs . ';' . $resetConfiguratorJs;
@@ -2785,7 +3334,7 @@ JS;
      * 
      * @see \exface\UI5FAcade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === Data::FUNCTION_SELECT:
@@ -2796,6 +3345,45 @@ JS;
                 }
                 return $this->buildJsSelectRowByValue($vals, $colName, $functionName === Data::FUNCTION_UNSELECT);
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+
+    /**
+     * Returns TRUE if this data widget needs a configurator (cog icon)
+     * @return bool
+     */
+    protected function hasConfigurator() : bool
+    {
+        return ! $this->getWidget()->getConfiguratorWidget()->isDisabled();
+    }
+
+    /**
+     * Returns inline JS code resolving to TRUE if the given cell or column widget is editable and required and FALSE otherwise
+     * 
+     * This is basically the same as UI5Input::buildJsRequiredGetter(), but works for table columns. The regular
+     * JS required checker needs a real instantiated JS facade element, which does not work in tables - here the
+     * input element is just a template for the column and neither has an id nor a real instance. It gets even more
+     * complicated with required_if linking other columns of the same table - in this case, we even need the specific
+     * row number to determine if the cell is required or not.
+     * 
+     * Thus, UI5Input::buildJsRequiredGetter() and derivatives will not use their regular logic for in-table widgets,
+     * but forward to this method here. 
+     * 
+     * This method should be overridden by specific implementations of data widgets like UI5DataSpreadSheet and
+     * similar.
+     * 
+     * @param WidgetInterface $cell
+     * @return string
+     */
+    public function buildJsIsCellRequired(WidgetInterface $cell) : string
+    {
+        if ($cell instanceof DataColumn) {
+            $cell = $cell->getCellWidget();
+        }
+        if ($cell instanceof iCanBeRequired) {
+            return $cell->isRequired() ? 'true' : 'false';
+        }
+        // TODO how to determine, if a column is required?
+        return 'false';
     }
 }

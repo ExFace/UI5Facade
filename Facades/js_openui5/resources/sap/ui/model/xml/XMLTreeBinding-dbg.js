@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,6 +32,16 @@ sap.ui.define(['sap/ui/model/ClientTreeBinding', "sap/base/util/each"],
 	 * @extends sap.ui.model.ClientTreeBinding
 	 */
 	var XMLTreeBinding = ClientTreeBinding.extend("sap.ui.model.xml.XMLTreeBinding");
+
+	/**
+	 * Returns sap.ui.model.ClientTreeBinding.CannotCloneData.
+	 *
+	 * @returns {sap.ui.model.ClientTreeBinding.CannotCloneData} a symbol indicating that the tree data cannot be cloned
+	 * @override
+	 */
+	XMLTreeBinding.prototype.cloneData = function() {
+		return ClientTreeBinding.CannotCloneData;
+	};
 
 	/**
 	 * Return node contexts for the tree

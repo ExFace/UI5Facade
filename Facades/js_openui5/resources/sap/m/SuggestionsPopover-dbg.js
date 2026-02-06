@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @alias sap.m.SuggestionsPopover
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 */
 	var SuggestionsPopover = EventProvider.extend("sap.m.SuggestionsPopover", /** @lends sap.m.SuggestionsPopover.prototype */ {
 
@@ -175,7 +175,6 @@ sap.ui.define([
 
 		if (!oList) {
 			oList = new List(sParentId + "-popup-list", {
-				showNoData : false,
 				mode : ListMode.SingleSelectMaster,
 				rememberSelections : false,
 				width: "100%",
@@ -500,7 +499,13 @@ sap.ui.define([
 		}
 
 		if (oItem) {
-			oInputDomRef.setAttribute("aria-activedescendant", oItem.getId());
+			// First remove aria-activedescendant to interrupt JAWS reading previous item
+			oInputDomRef.removeAttribute("aria-activedescendant");
+
+			// Use setTimeout to force JAWS to stop reading and then announce the new item
+			setTimeout(function() {
+				oInputDomRef.setAttribute("aria-activedescendant", oItem.getId());
+			}, 0);
 			return;
 		}
 	};

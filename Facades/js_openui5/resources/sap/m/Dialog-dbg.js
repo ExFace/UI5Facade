@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,6 +17,7 @@ sap.ui.define([
 	"./Title",
 	"./library",
 	"sap/m/Image",
+	"sap/m/dialogUtils/PreventKeyboardEvents",
 	"sap/ui/core/Control",
 	"sap/ui/core/Element",
 	"sap/ui/core/IconPool",
@@ -50,6 +51,7 @@ function(
 	Title,
 	library,
 	Image,
+	PreventKeyboardEvents,
 	Control,
 	Element,
 	IconPool,
@@ -171,7 +173,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.136.0
+		* @version 1.144.0
 		*
 		* @constructor
 		* @public
@@ -397,7 +399,10 @@ function(
 					rightButton: {type: "sap.m.Button", multiple: false, deprecated: true},
 
 					/**
-					 * In the Dialog focus is set first on the <code>beginButton</code> and then on <code>endButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser restriction, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
+					 * In the Dialog, focus is initially set on the first focusable element, or on the dialog itself if no such element is available.
+					 * If another control needs to receive focus, set the <code>initialFocus</code> to the control that should be focused.
+					 * Setting <code>initialFocus</code> on input controls does not open the on-screen keyboard on mobile devices.
+					 * Due to browser restrictions, the on-screen keyboard can't be opened with JavaScript code; it must be triggered explicitly by the user.
 					 * @since 1.15.0
 					 */
 					initialFocus: {type: "sap.ui.core.Control", multiple: false},
@@ -647,6 +652,10 @@ function(
 				oHeader._setRootAriaLevel("2");
 			}
 
+			[this._getAnyHeader(), this.getSubHeader(), this._getAnyFooter()].forEach(function (oControl) {
+				oControl?.addStyleClass("sapMIBar-CTX");
+			});
+
 			this._oAriaDescribedbyText.setText(this._getAriaDescribedByText());
 		};
 
@@ -656,8 +665,11 @@ function(
 			this._$content = this.$("cont");
 			this._$dialog = this.$();
 
+			if (!this.isOpen() && !this._bDuringOpenCalled) {
+				this._duringOpen();
+			}
+
 			if (this.isOpen()) {
-				//restore the focus after rendering when dialog is already open
 				this._setInitialFocus();
 			}
 		};
@@ -702,6 +714,10 @@ function(
 				this._oAriaDescribedbyText.destroy();
 				this._oAriaDescribedbyText = null;
 			}
+
+			PreventKeyboardEvents.restore(this.getDomRef());
+
+			this._bDuringOpenCalled = false;
 		};
 		/* =========================================================== */
 		/*                   end: Lifecycle functions                  */
@@ -717,13 +733,9 @@ function(
 		 * @public
 		 */
 		Dialog.prototype.open = function () {
+			this._bDuringOpenCalled = false;
 
 			var oPopup = this.oPopup;
-			// Set the initial focus to the dialog itself.
-			// The initial focus should be set because otherwise the first focusable element will be focused.
-			// This first element can be input or textarea which will trigger the keyboard to open (mobile device).
-			// The focus will be change after the dialog is opened;
-			oPopup.setInitialFocusId(this.getId());
 
 			var oPopupOpenState = oPopup.getOpenState();
 
@@ -857,6 +869,8 @@ function(
 			this.oPopup.detachOpened(this._handleOpened, this);
 			this._setInitialFocus();
 			this.fireAfterOpen();
+
+			PreventKeyboardEvents.restore(this.getDomRef());
 		};
 
 		/**
@@ -864,6 +878,8 @@ function(
 		 * @private
 		 */
 		Dialog.prototype._handleClosed = function () {
+			PreventKeyboardEvents.restore(this.getDomRef());
+
 			// TODO: remove the following three lines after the popup open state problem is fixed
 			if (!this.oPopup) {
 				return;
@@ -885,10 +901,32 @@ function(
 			InstanceManager.removeDialogInstance(this);
 			this.fireAfterClose({origin: this._oCloseTrigger});
 
+			this._bDuringOpenCalled = false;
+
 			if (this._bOpenAfterClose) {
 				this._bOpenAfterClose = false;
 				this.open();
 			}
+		};
+
+		/**
+		 * Executed once during the opening of the dialog, after it is rendered.
+		 * @private
+		 */
+		Dialog.prototype._duringOpen = function () {
+			PreventKeyboardEvents.preventOnce(this.getDomRef());
+
+			if (Device.system.desktop) {
+				this.oPopup.setInitialFocusId(this._determineInitialFocusId());
+			} else {
+				// Set the initial focus to the dialog itself.
+				// The initial focus should be set because otherwise the first focusable element will be focused.
+				// This first element can be input or textarea which will trigger the keyboard to open (mobile device).
+				// The focus will be change after the dialog is opened;
+				this.oPopup.setInitialFocusId(this.getId());
+			}
+
+			this._bDuringOpenCalled = true;
 		};
 
 		/**
@@ -903,14 +941,30 @@ function(
 			//Check if the invisible FIRST focusable element (suffix '-firstfe') has gained focus
 			if (oSourceDomRef.id === this.getId() + "-firstfe") {
 				//Check if buttons are available
-				var oLastFocusableDomRef = this._getAnyFooter()?.$().lastFocusableDomRef() || this.$("cont").lastFocusableDomRef() || (this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) || (this._getAnyHeader() && this._getAnyHeader().$().lastFocusableDomRef());
+				var oLastFocusableDomRef =
+					this._getAnyFooter()?.$().lastFocusableDomRef() ||
+					this.$("cont").lastFocusableDomRef({
+						includeSelf: true,
+						includeScroller: true
+					}) ||
+					(this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) ||
+					(this._getAnyHeader() && this._getAnyHeader().$().lastFocusableDomRef());
+
 				if (oLastFocusableDomRef) {
 					oLastFocusableDomRef.focus();
 				}
 			} else if (oSourceDomRef.id === this.getId() + "-lastfe") {
 				//Check if the invisible LAST focusable element (suffix '-lastfe') has gained focus
 				//First check if header content is available
-				var oFirstFocusableDomRef = this._getFocusableHeader() || (this._getAnyHeader() && this._getAnyHeader().$().firstFocusableDomRef()) || (this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) || this.$("cont").firstFocusableDomRef() || this.$("footer").firstFocusableDomRef();
+				var oFirstFocusableDomRef =
+					this._getFocusableHeader() ||
+					(this._getAnyHeader() && this._getAnyHeader().$().firstFocusableDomRef()) ||
+					(this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) ||
+					this.$("cont").firstFocusableDomRef({
+						includeSelf: true,
+						includeScroller: true
+					}) ||
+					this.$("footer").firstFocusableDomRef();
 				if (oFirstFocusableDomRef) {
 					oFirstFocusableDomRef.focus();
 				}
@@ -948,7 +1002,7 @@ function(
 				oPromiseArgument = {},
 				that = this;
 
-			if (this._isSpaceOrEnterPressed) {
+			if (this._isSpacePressed) {
 				return;
 			}
 
@@ -986,27 +1040,27 @@ function(
 
 		/**
 		 * Event handler for the onkeyup event.
-		 * Register if SPACE or ENTER is released.
+		 * Register if SPACE is released.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
 		 */
 		Dialog.prototype.onkeyup = function (oEvent) {
-			if (this._isSpaceOrEnter(oEvent)) {
-				this._isSpaceOrEnterPressed = false;
+			if (this._isSpace(oEvent)) {
+				this._isSpacePressed = false;
 			}
 		};
 
 		/**
 		 * Event handler for the onkeydown event.
-		 * Register if SPACE or ENTER is pressed.
+		 * Register if SPACE is pressed.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
 		 */
 		Dialog.prototype.onkeydown = function (oEvent) {
-			if (this._isSpaceOrEnter(oEvent)) {
-				this._isSpaceOrEnterPressed = true;
+			if (this._isSpace(oEvent)) {
+				this._isSpacePressed = true;
 			}
 
 			var iKeyCode = oEvent.which || oEvent.keyCode;
@@ -1148,16 +1202,16 @@ function(
 		};
 
 		/**
-		 * Determines if the key from oEvent is SPACE or ENTER.
+		 * Determines if the key from oEvent is SPACE.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
-		 * @return {boolean} True if the key from the event is space or enter
+		 * @return {boolean} True if the key from the event is space
 		 */
-		Dialog.prototype._isSpaceOrEnter = function (oEvent) {
-			var iKeyCode = oEvent.which || oEvent.keyCode;
+		Dialog.prototype._isSpace = function (oEvent) {
+			var iKeyCode = oEvent.which || oEvent.key;
 
-			return iKeyCode == KeyCodes.SPACE || iKeyCode == KeyCodes.ENTER;
+			return iKeyCode == KeyCodes.SPACE;
 		};
 
 		/* =========================================================== */
@@ -1484,7 +1538,7 @@ function(
 		};
 
 		/**
-		 * If a scrollable control (<code>sap.m.NavContainer</code>, <code>sap.m.ScrollContainer</code>, <code>sap.m.Page</code>, <code>sap.m.SplitContainer</code>) is added to the Dialog content aggregation as a single child or through one or more <code>sap.ui.mvc.View</code> instances,
+		 * If a scrollable control (<code>sap.m.NavContainer</code>, <code>sap.m.ScrollContainer</code>, <code>sap.m.Page</code>, <code>sap.m.SplitContainer</code>) is added to the Dialog content aggregation as a single child or through one or more <code>sap.ui.core.mvc.View</code> instances,
 		 * the scrolling inside the Dialog will be disabled in order to avoid wrapped scrolling areas.
 		 *
 		 * If more than one scrollable control is added to the Dialog, the scrolling needs to be disabled manually.
@@ -1504,16 +1558,35 @@ function(
 			return false;
 		};
 
+		Dialog.prototype.getFocusInfo = function () {
+			return {
+				id: this.getId(),
+				dialogActiveElement: this.getDomRef()?.contains(document.activeElement) ? document.activeElement : null
+			};
+		};
+
+		Dialog.prototype.applyFocusInfo = function (oFocusInfo) {
+			const oDialogActiveElement = oFocusInfo?.dialogActiveElement;
+
+			if (oDialogActiveElement && this.getDomRef()?.contains(oDialogActiveElement)) {
+				oDialogActiveElement.focus();
+
+				return this;
+			}
+
+			return Control.prototype.applyFocusInfo.apply(this, arguments);
+		};
+
 		/**
 		 *
 		 * @private
 		 */
-		Dialog.prototype._getFocusDomRef = function () {
-			// Left or Right button can be visible false and therefore not rendered.
-			// In such a case, focus should be set somewhere else.
+		Dialog.prototype._getFocusDomRef = function (bIgnoreInitialFocus) {
+			// Either the left or right button might not be visible and hence not rendered.
+			// In such cases, the focus should be set elsewhere.
 			var sInitialFocusId = this.getInitialFocus();
 
-			if (sInitialFocusId) {
+			if (sInitialFocusId && !bIgnoreInitialFocus) {
 				return document.getElementById(sInitialFocusId);
 			}
 
@@ -1584,58 +1657,96 @@ function(
 		Dialog.prototype._getFirstFocusableContentElement = function () {
 			var $dialogContent = this.$("cont");
 
-			return $dialogContent.firstFocusableDomRef();
+			return $dialogContent.firstFocusableDomRef({
+				includeSelf: true,
+				includeScroller: true
+			});
 		};
 
-		// The control that needs to be focused after the Dialog is open is calculated in the following sequence:
-		// initialFocus, first focusable element in content area, beginButton, endButton
-		// the Dialog is always modal so the focus doesn't need to be on the Dialog when there's
-		// no initialFocus, beginButton and endButton available, but to keep the consistency,
-		// the focus will in the end fall back on the Dialog itself.
 		/**
-		 *
+		 * Applies focus and sets initial focus association
 		 * @private
 		 */
 		Dialog.prototype._setInitialFocus = function () {
-			var oFocusDomRef = this._getFocusDomRef(),
-				oControl;
+			const oFocusData = this._determineInitialFocus();
+
+			if (oFocusData.initialFocusProperty !== this.getInitialFocus()) {
+				this.setAssociation("initialFocus", oFocusData.initialFocusProperty, true);
+			}
+
+			if (oFocusData.realTarget) {
+				oFocusData.realTarget.focus();
+			}
+		};
+
+		/**
+		 * Determines the correct initial focus ID and the correct focus target.
+		 * @private
+		 * @returns {array} The focus target and the value for the initial focus ID.
+		 */
+		Dialog.prototype._determineInitialFocus = function () {
+			let oFocusDomRef = this._getFocusDomRef();
+			let oControl;
+
+			let oFocusRealTarget;
+			let sInitialFocusProperty = this.getInitialFocus();
 
 			if (oFocusDomRef && oFocusDomRef.id) {
 				oControl = Element.getElementById(oFocusDomRef.id);
 			}
 
 			if (oControl) {
-				//if someone tries to focus on an existing but not visible control, focus the Dialog itself.
+				// If attempting to focus on an existing but invisible control, focus the dialog itself.
 				if (oControl.getVisible && !oControl.getVisible()) {
-					this.focus();
-					return;
+					return {
+						realTarget: this,
+						initialFocusProperty: sInitialFocusProperty
+					};
 				}
 
 				oFocusDomRef = oControl.getFocusDomRef();
 			}
 
-			// if focus dom ref is not found
 			if (!oFocusDomRef) {
-				this.setInitialFocus(""); // clear the saved initial focus
-				oFocusDomRef = this._getFocusDomRef(); // recalculate the element on focus
+				sInitialFocusProperty = ""; // clear the saved initial focus
+				oFocusDomRef = this._getFocusDomRef(true); // Recalculate the element to focus on.
 			}
 
 			//if there is no set initial focus, set the default one to the initialFocus association
-			if (!this.getInitialFocus()) {
-				this.setAssociation('initialFocus', oFocusDomRef ? oFocusDomRef.id : this.getId(), true);
+			if (!sInitialFocusProperty) {
+				sInitialFocusProperty = oFocusDomRef ? oFocusDomRef.id : this.getId();
 			}
 
 			// Setting focus to DOM Element which can open the On-screen keyboard on mobile device doesn't work
 			// consistently across devices. Therefore setting focus on these elements is disabled on mobile devices
 			// and the keyboard should be opened by the user explicitly
 			if (Device.system.desktop || (oFocusDomRef && !/input|textarea|select/i.test(oFocusDomRef.tagName))) {
-				if (oFocusDomRef){
-					oFocusDomRef.focus();
-				}
+				oFocusRealTarget = oFocusDomRef;
 			} else {
-				// Set the focus on the popup itself in order to keep the tab chain
-				this.focus();
+				// Set the focus on the dialog itself in order to keep the tab chain intact.
+				oFocusRealTarget = this;
 			}
+
+			return {
+				realTarget: oFocusRealTarget,
+				initialFocusProperty: sInitialFocusProperty
+			};
+		};
+
+		/**
+		 * Uses the same logic as _setInitialFocus to determine the initial focus ID for the popup.
+		 * @private
+		 * @returns {string} The ID of the control or DOM element to focus.
+		 */
+		Dialog.prototype._determineInitialFocusId = function () {
+			const oFocusData = this._determineInitialFocus();
+			const oFocusRealTarget = oFocusData.realTarget;
+
+			if (oFocusRealTarget instanceof Control) {
+				return oFocusRealTarget.getId();
+			}
+
+			return oFocusRealTarget?.id;
 		};
 
 		/**

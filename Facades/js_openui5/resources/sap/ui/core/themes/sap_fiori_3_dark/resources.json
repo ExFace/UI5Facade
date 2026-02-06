@@ -12,12 +12,6 @@
 			"theme": "sap_fiori_3_dark"
 		},
 		{
-			"name": "BrowserScrollbar.less",
-			"size": 376,
-			"designtime": true,
-			"theme": "sap_fiori_3_dark"
-		},
-		{
 			"name": "DatePicker.less",
 			"size": 252,
 			"designtime": true,
@@ -25,7 +19,7 @@
 		},
 		{
 			"name": "base.less",
-			"size": 177856,
+			"size": 178592,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
@@ -81,41 +75,41 @@
 		},
 		{
 			"name": "global.less",
-			"size": 118139,
+			"size": 118496,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 299921,
+			"size": 299362,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/core/themes/sap_fiori_3_dark/library-parameters.json",
-			"size": 153720,
+			"size": 154193,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 299908,
+			"size": 299350,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 10111,
+			"size": 9661,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.source.less",
-			"size": 314,
+			"size": 279,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "resources.json",
-			"size": 2339
+			"size": 2223
 		},
 		{
 			"name": "shared.less",

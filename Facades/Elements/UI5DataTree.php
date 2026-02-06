@@ -23,6 +23,18 @@ class UI5DataTree extends UI5DataTable
     {
         return $this->buildJsPanelWrapper($this->buildJsConstructorForTreeTable($oControllerJs), $oControllerJs, null, false);
     }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::buildJsToolbarContent())
+     */
+    protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
+    {
+        if ($leftExtras === null && $this->hasPaginator()) {
+            $leftExtras = $this->getPaginatorElement()->buildJsConstructor($oControllerJsVar);
+        }
+        return parent::buildJsToolbarContent($oControllerJsVar, $leftExtras, $rightExtras);
+    }
     
     /**
      * 
@@ -32,7 +44,7 @@ class UI5DataTree extends UI5DataTable
     public function buildJsConstructorForTreeTable($oControllerJs = 'oController') : string
     {
         $controller = $this->getController();
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
         $widget = $this->getWidget();
         
         $this->getController()->addOnEventScript($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, $this->buildJsOnCloseScript('oEvent'));
@@ -53,6 +65,8 @@ class UI5DataTree extends UI5DataTable
             {$this->buildJsPropertyColumnHeaderHeight()}
             {$this->buildJsPropertyMinAutoRowCount()}
             selectionMode: {$selection_mode},
+            fixedColumnCount: {$this->registerUiTableFixedColumns()},
+            enableColumnFreeze: true,
 	        selectionBehavior: {$selection_behavior},
     		rowSelectionChange: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
             firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
@@ -77,7 +91,7 @@ class UI5DataTree extends UI5DataTable
                     justifyContent: "Center",
                     alignItems: "Center",
                     items: [
-                        new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: "{$this->getWidget()->getEmptyText()}"})
+                        new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($this->getWidget()->getEmptyText())} })
                     ]
                 })
             ],
@@ -134,7 +148,7 @@ JS;
         return parent::buildJsDataLoaderOnLoaded($oModelJs) . <<<JS
 
                 var oDataTree = {$this->buildJsTransformToTree($oModelJs . '.getData()')};
-                {$oModelJs}.setData(oDataTree); console.log('loaded');
+                {$oModelJs}.setData(oDataTree);
                 {$treeModeJs}
 
 JS;

@@ -8,47 +8,47 @@
 		},
 		{
 			"name": "InfoLabel.less",
-			"size": 1486,
+			"size": 1562,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 606,
+			"size": 621,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "SideNavigation.less",
-			"size": 358,
+			"size": 372,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "ToolHeader.less",
-			"size": 19019,
+			"size": 20205,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 54598,
+			"size": 60474,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_fiori_3_dark/library-parameters.json",
-			"size": 7044,
+			"size": 7786,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 54583,
+			"size": 60459,
 			"theme": "sap_fiori_3_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 22343,
+			"size": 23634,
 			"designtime": true,
 			"theme": "sap_fiori_3_dark"
 		},

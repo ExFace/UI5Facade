@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.table.plugins.SelectionPlugin
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 
 	 * @private
 	 * @alias sap.ui.table.plugins.BindingSelection
@@ -62,6 +62,7 @@ sap.ui.define([
 	BindingSelection.prototype.onActivate = function(oTable) {
 		SelectionPlugin.prototype.onActivate.apply(this, arguments);
 		attachToBinding(this, oTable.getBinding());
+		updateHeaderSelector(this);
 		TableUtils.Hook.register(oTable, TableUtils.Hook.Keys.Table.RowsBound, onTableRowsBound, this);
 	};
 
@@ -101,17 +102,25 @@ sap.ui.define([
 	};
 
 	/**
-	 * @inheritDoc
+	 * Updates the header selector based on the current selection state.
+	 *
+	 * @param {sap.ui.table.plugins.BindingSelection} oPlugin The plugin instance
+	 * @private
 	 */
-	BindingSelection.prototype.getRenderConfig = function() {
-		return {
-			headerSelector: {
-				type: "toggle",
-				visible: TableUtils.hasSelectAll(this.getControl()),
-				selected: this.getSelectableCount() > 0 && this.getSelectableCount() === this.getSelectedCount()
-			}
-		};
-	};
+	function updateHeaderSelector(oPlugin) {
+		const oHeaderSelector = oPlugin._getHeaderSelector();
+
+		if (!oPlugin.isActive() || !oHeaderSelector) {
+			return;
+		}
+
+		const iSelectableCount = oPlugin.getSelectableCount();
+
+		oHeaderSelector.setVisible(TableUtils.hasSelectAll(oPlugin.getControl()));
+		oHeaderSelector.setEnabled(true);
+		oHeaderSelector.setType("CheckBox");
+		oHeaderSelector.setCheckBoxSelected(iSelectableCount > 0 && iSelectableCount === oPlugin.getSelectedCount());
+	}
 
 	function toggleSelectAll(oPlugin) {
 		const oTable = oPlugin.getControl();
@@ -143,7 +152,7 @@ sap.ui.define([
 	 * @private
 	 */
 	BindingSelection.prototype.onHeaderSelectorPress = function() {
-		if (this.getRenderConfig().headerSelector.visible) {
+		if (this._getHeaderSelector().getVisible()) {
 			toggleSelectAll(this);
 		}
 	};
@@ -387,6 +396,8 @@ sap.ui.define([
 			this.clearSelection();
 		}
 
+		updateHeaderSelector(this);
+
 		return this;
 	};
 
@@ -411,6 +422,7 @@ sap.ui.define([
 
 	function onTableRowsBound(oBinding) {
 		attachToBinding(this, oBinding);
+		updateHeaderSelector(this);
 	}
 
 	function attachToBinding(oPlugin, oBinding) {
@@ -434,6 +446,8 @@ sap.ui.define([
 	function onBindingSelectionChange(oEvent) {
 		const aRowIndices = oEvent.getParameter("rowIndices");
 		const bSelectAll = oEvent.getParameter("selectAll");
+
+		updateHeaderSelector(this);
 
 		this.fireSelectionChange({
 			rowIndices: aRowIndices,

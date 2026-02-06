@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "NavigationList.less",
-			"size": 17820,
+			"size": 17396,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -38,23 +38,23 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 27631,
+			"size": 27315,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/tnt/themes/sap_belize_base/library-parameters.json",
-			"size": 5966,
+			"size": 6196,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.css",
-			"size": 27626,
+			"size": 27312,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.less",
-			"size": 35507,
+			"size": 35083,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},

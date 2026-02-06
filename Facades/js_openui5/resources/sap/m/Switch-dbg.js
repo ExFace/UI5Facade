@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -52,7 +52,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @public
@@ -429,7 +429,29 @@ function(
 		*/
 		Switch.prototype.onkeyup = function (oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
+				if (this._bShouldCancelAction) {
+					this._bShouldCancelAction = false;
+					this._bSpacePressed = false;
+					return;
+				}
+
+				this._bSpacePressed = false;
 				this._handleSpaceOrEnter(oEvent);
+			} else if ((oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) && !this._bSpacePressed) {
+				this._bShouldCancelAction = false;
+			}
+		};
+
+		/**
+		 * Handles space key on key down
+		 *
+		 * @private
+		*/
+		Switch.prototype.onkeydown = function (oEvent) {
+			if (oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) {
+				this._bShouldCancelAction = true;
+			} else if (oEvent.which === KeyCodes.SPACE) {
+				this._bSpacePressed = true;
 			}
 		};
 
@@ -463,8 +485,7 @@ function(
 
 		Switch.prototype.getAccessibilityInfo = function() {
 			var oBundle = Library.getResourceBundleFor("sap.m"),
-				bState = this.getState(),
-				sDesc = this.getInvisibleElementText(bState);
+				sDesc = this._getAccDescription();
 
 			return {
 				role: "switch",
@@ -481,7 +502,7 @@ function(
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	Switch.prototype.getOverflowToolbarConfig = function() {
 		return {
@@ -496,10 +517,27 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Switch.prototype._getToolbarInteractive = function () {
 		return true;
+	};
+
+	/**
+	 * Returns accessibility description of the control
+	 *
+	 * @returns {string} description text
+	 *
+	 * @private
+	 *
+	 */
+	 Switch.prototype._getAccDescription = function () {
+		var bState = this.getState(),
+			oBundle = Library.getResourceBundleFor("sap.m"),
+			sStateDescr = bState ? oBundle.getText("SWITCH_ON") : oBundle.getText("SWITCH_OFF"),
+			sInvisibleText = this.getInvisibleElementText(bState);
+
+		return sStateDescr + (sInvisibleText ? ", " + sInvisibleText : "");
 	};
 
 	return Switch;

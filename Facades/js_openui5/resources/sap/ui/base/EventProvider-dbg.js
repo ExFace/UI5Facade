@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(['./Event', './Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @public
 	 * @alias sap.ui.base.EventProvider
 	 */
@@ -38,13 +38,6 @@ sap.ui.define(['./Event', './Object', "sap/base/assert", "sap/base/Log"],
 	});
 
 	var EVENT__LISTENERS_CHANGED = "EventHandlerChange";
-
-	/**
-	 * Map of event names and ids, that are provided by this class
-	 * @private
-	 * @static
-	 */
-	EventProvider.M_EVENTS = {EventHandlerChange:EVENT__LISTENERS_CHANGED};
 
 	/**
 	 * Attaches an event handler to the event with the given identifier.

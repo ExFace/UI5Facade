@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -281,7 +281,8 @@ sap.ui.define([
 			"sap/ui/thirdparty/jquery",
 			"sap/ui/thirdparty/hasher",
 			"sap/ui/core/routing/History",
-			"sap/ui/core/routing/HashChanger"
+			"sap/ui/core/routing/HashChanger",
+			"sap/ui/events/FocusEventFix"
 		], function (
 			Log,
 			OpaPlugin,
@@ -292,6 +293,7 @@ sap.ui.define([
 			hasher,
 			History,
 			HashChanger
+			/* FocusEventFix */
 		) {
 			_OpaLogger.setLevel(sOpaLogLevel);
 			oFramePlugin = new OpaPlugin();

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.135
@@ -41,6 +41,9 @@ sap.ui.define([
 				},
 				viewId: {
 					type: "string"
+				},
+				instanceSpecific: {
+					type: "boolean"
 				}
 			},
 			associations: {},
@@ -55,10 +58,8 @@ sap.ui.define([
 		const oAppComponent = this.getAppComponent();
 		const sControllerName = oView.getControllerModuleName() ? `module:${oView.getControllerModuleName()}` : oView.getController()?.getMetadata().getName();
 		// Calculate moduleName for code extension
-		const sReference = FlexRuntimeInfoAPI.getFlexReference({element: oAppComponent});
-		let sModuleName = sReference.replace(/\.Component/g, "").replace(/\./g, "/");
-		sModuleName += "/changes/";
-		sModuleName += sCodeRef.replace(/\.js/g, "");
+		const sReference = FlexRuntimeInfoAPI.getFlexReference({ element: oAppComponent });
+		const sModuleName = `${sReference.replace(/\.Component/g, "").replace(/\./g, "/")}/changes/${sCodeRef.replace(/\.js/g, "")}`;
 
 		const oChangeSpecificData = {
 			changeType: this.getChangeType(),
@@ -69,6 +70,10 @@ sap.ui.define([
 			moduleName: sModuleName,
 			generator: "sap.ui.rta.command.ExtendControllerCommand"
 		};
+
+		if (this.getInstanceSpecific()) {
+			oChangeSpecificData.viewId = sViewId;
+		}
 
 		return ChangesWriteAPI.create({
 			changeSpecificData: oChangeSpecificData,

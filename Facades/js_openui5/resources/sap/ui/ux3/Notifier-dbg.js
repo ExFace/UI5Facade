@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,10 +13,9 @@ sap.ui.define([
     'sap/ui/core/library',
     'sap/ui/Device',
     'sap/base/Log',
-    "sap/ui/base/EventProvider",
     "sap/ui/core/Configuration"
 ],
-	function(jQuery, Callout, Element, library, coreLibrary, Device, Log, EventProvider, Configuration) {
+	function(jQuery, Callout, Element, library, coreLibrary, Device, Log, Configuration) {
 	"use strict";
 
 
@@ -37,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -202,7 +201,7 @@ sap.ui.define([
 			};
 
 			this._proxyEnableMessageSelect = jQuery.proxy(fnEnableMessageSelect, this);
-			this.attachEvent(EventProvider.M_EVENTS.EventHandlerChange, this._proxyEnableMessageSelect);
+			this.attachEvent("EventHandlerChange", this._proxyEnableMessageSelect);
 		};
 
 		/**
@@ -239,7 +238,7 @@ sap.ui.define([
 				delete this._oMessageView;
 			}
 
-			this.detachEvent(EventProvider.M_EVENTS.EventHandlerChange, this._proxyEnableMessageSelect);
+			this.detachEvent("EventHandlerChange", this._proxyEnableMessageSelect);
 			delete this._proxyEnableMessageSelect;
 		};
 

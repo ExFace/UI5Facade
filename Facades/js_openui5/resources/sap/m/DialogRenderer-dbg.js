@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -112,7 +112,7 @@ sap.ui.define([
 		}
 
 		oRM.accessibilityState(oDialog, {
-			role: sRole,
+			role: sRole.toLowerCase(),
 			modal: true
 		});
 
@@ -168,6 +168,7 @@ sap.ui.define([
 			// In that case, the controller will focus the last focusable element.
 			oRM.openStart("span", sId + "-firstfe")
 				.class("sapMDialogFirstFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
@@ -178,8 +179,10 @@ sap.ui.define([
 			oRM.openStart("header")
 				.openEnd();
 			if (oHeader) {
-				oHeader._applyContextClassFor("header");
-				oRM.openStart("div")
+				if (oHeader._applyContextClassFor) {
+					oHeader._applyContextClassFor("header");
+				}
+				oRM.openStart("div", sId + "-titleGroup")
 					.class("sapMDialogTitleGroup");
 
 				if (oDialog._isDraggableOrResizable()) {
@@ -198,7 +201,9 @@ sap.ui.define([
 			}
 
 			if (oSubHeader && oSubHeader.getVisible()) {
-				oSubHeader._applyContextClassFor("subheader");
+				if (oSubHeader._applyContextClassFor) {
+					oSubHeader._applyContextClassFor("subheader");
+				}
 				oRM.openStart("div")
 					.class("sapMDialogSubHeader")
 					.openEnd()
@@ -241,10 +246,14 @@ sap.ui.define([
 				.class("sapMDialogFooter")
 				.openEnd();
 			if (oFooter) {
-				oFooter._applyContextClassFor("footer");
+				if (oFooter._applyContextClassFor) {
+					oFooter._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oFooter);
 			} else {
-				oDialog._oToolbar._applyContextClassFor("footer");
+				if (oDialog._oToolbar._applyContextClassFor) {
+					oDialog._oToolbar._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oDialog._oToolbar);
 			}
 			oRM.close("footer");
@@ -256,6 +265,7 @@ sap.ui.define([
 			// In that case, the controller will focus the first focusable element.
 			oRM.openStart("span", sId + "-lastfe")
 				.class("sapMDialogLastFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()

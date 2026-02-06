@@ -18,7 +18,7 @@
 	        "ISC"
 	    ],
         "license_file": [
-        	"exface/UI5Facade/Facades/js/HtmlDiff/LICENSE"
+        	"exface/ui5facade/Facades/js/HtmlDiff/LICENSE"
         ],
         "description": "JavaScript port of htmldiff.net",
         "homepage": "https://github.com/dfoverdx/htmldiff-js"

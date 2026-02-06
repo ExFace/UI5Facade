@@ -1,28 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/base/util/merge",
 	"sap/ui/fl/apply/_internal/flexObjects/FlexObjectFactory",
 	"sap/ui/fl/write/_internal/flexState/changes/UIChangeManager",
-	"sap/ui/fl/ChangePersistenceFactory",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/write/_internal/flexState/FlexObjectManager"
 ], function(
 	fnBaseMerge,
 	FlexObjectFactory,
 	UIChangeManager,
-	ChangePersistenceFactory,
-	Utils
+	FlexObjectManager
 ) {
 	"use strict";
+
 	/**
 	 * Descriptor Related
 	 * @namespace
 	 * @name sap.ui.fl.descriptorRelated
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -32,7 +31,7 @@ sap.ui.define([
 	 * @namespace
 	 * @name sap.ui.fl.descriptorRelated.api
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
@@ -42,55 +41,55 @@ sap.ui.define([
 	 *
 	 * @param {object} mChangeFile change file
 	 * @param {sap.ui.fl.descriptorRelated.api.DescriptorInlineChange} oInlineChange inline change object
+	 * @param {object} oAppComponent Application component
 	 *
 	 * @constructor
 	 * @alias sap.ui.fl.descriptorRelated.api.DescriptorChange
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
-	const DescriptorChange = function(mChangeFile, oInlineChange) { // so far, parameter correspond to inline change format
+	const DescriptorChange = function(mChangeFile, oInlineChange, oAppComponent) { // so far, parameter correspond to inline change format
 		this._mChangeFile = mChangeFile;
 		this._mChangeFile.packageName = "";
 		this._oInlineChange = oInlineChange;
+		this._oAppComponent = oAppComponent;
 	};
 
 	/**
 	 * Submits the descriptor change to the backend
 	 *
+	 * @param {object} [oAppComponent] - Application component
 	 * @return {Promise} resolving after all changes have been saved
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
-	DescriptorChange.prototype.submit = function() {
-		this.store();
+	DescriptorChange.prototype.submit = function(oAppComponent) {
+		this.store(oAppComponent);
 
-		// submit
-		const oChangePersistence = this._getChangePersistence(this._mChangeFile.reference);
-		return oChangePersistence.saveDirtyChanges();
+		return FlexObjectManager.saveFlexObjects({
+			reference: this._mChangeFile.reference,
+			selector: this._mChangeFile.selector
+		});
 	};
 
 	/**
 	 * Stores the descriptor change in change persistence
 	 *
+	 * @param {object} [oAppComponent] - Application component
 	 * @return {object} change object
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.rta, smart business
 	 */
-	DescriptorChange.prototype.store = function() {
+	DescriptorChange.prototype.store = function(oAppComponent) {
 		const sReference = this._mChangeFile.reference;
-		const oComponent = Utils.getComponentForControl(this._mChangeFile.selector);
 		const oChange = this._getChangeToSubmit();
-		UIChangeManager.addDirtyChanges(sReference, [oChange], oComponent);
+		UIChangeManager.addDirtyChanges(sReference, [oChange], oAppComponent || this._oAppComponent);
 
 		return oChange;
-	};
-
-	DescriptorChange.prototype._getChangePersistence = function(sComponentName) {
-		return ChangePersistenceFactory.getChangePersistenceForComponent(sComponentName);
 	};
 
 	DescriptorChange.prototype._getChangeToSubmit = function() {

@@ -8,107 +8,107 @@
 		},
 		{
 			"name": "AddIFrame.less",
-			"size": 3377,
+			"size": 2686,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ChangeVisualization.less",
-			"size": 2612,
+			"size": 2419,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 1306,
+			"size": 786,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Dialogs.less",
-			"size": 3148,
+			"size": 2237,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FieldRepository.less",
-			"size": 1105,
+			"size": 948,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FlexSupportExtension.less",
-			"size": 971,
+			"size": 905,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "MessageBox.less",
-			"size": 254,
+			"size": 255,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 2474,
+			"size": 2659,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "OverlayWithScrollbar.less",
-			"size": 1524,
+			"size": 1576,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.adaptation.less",
-			"size": 6862,
+			"size": 6550,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.base.less",
-			"size": 1767,
+			"size": 1365,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.fiori.less",
-			"size": 341,
+			"size": 537,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Toolbar.standalone.less",
-			"size": 346,
+			"size": 379,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "WhatsNew.less",
-			"size": 354,
+			"size": 361,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 24562,
+			"size": 22545,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/rta/themes/base/library-parameters.json",
-			"size": 3469,
+			"size": 2872,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 24537,
+			"size": 22539,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 27835,
+			"size": 25057,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -120,7 +120,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2069
+			"size": 2067
 		}
 	]
 }

@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 @import "../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/base/base.less" */
@@ -1171,7 +1171,6 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 		line-height: 1.5rem;
 	}
 
-
 	.sapUxAPObjectPageHeaderContentItem.sapFAvatar .sapFAvatarMagnifyingGlass,
 	.sapUxAPObjectPageHeaderContentItem .sapFAvatar .sapFAvatarMagnifyingGlass {
 		line-height: 0.8125rem;
@@ -1189,9 +1188,10 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 	.sapUxAPObjectPageHeaderSeparatorContainer {
 		position: relative;
 		margin-right: 4rem;
+
 		.sapUxAPObjectPageHeaderSeparatorBefore {
 			width: 1px;
-			background-color: @sapUiToolbarSeparatorColor;
+			background-color: var(--sapToolbar_SeparatorColor);
 			display: inline-block;
 			position: absolute;
 			top: 0;
@@ -1199,9 +1199,10 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 			margin-right: 1rem;
 			left: -2rem;
 		}
+
 		.sapUxAPObjectPageHeaderSeparatorAfter {
 			width: 1px;
-			background-color: @sapUiToolbarSeparatorColor;
+			background-color: var(--sapToolbar_SeparatorColor);
 			display: inline-block;
 			position: absolute;
 			top: 0;
@@ -1211,20 +1212,26 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 		}
 	}
 
-	&, > .sapUxAPObjectPageHeaderSeparatorContainer, > .sapUxAPObjectPageHeaderWidthContainer {
+	&,
+	> .sapUxAPObjectPageHeaderSeparatorContainer,
+	> .sapUxAPObjectPageHeaderWidthContainer {
+
 		.sapUiVlt .sapUiVltCell {
 			> * {
 				line-height: normal;
 			}
 		}
+
 		.sapUiHLayoutChildWrapper {
 			min-height: 2rem;
 			min-width: 2rem;
+
 			& > .sapMImg {
 				vertical-align: middle;
 
 			}
 		}
+
 		> .sapUiSimpleForm {
 
 			.sapUiFormResLayout > div {
@@ -1237,16 +1244,18 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 			}
 
 			.sapMText, .sapMLabel, .sapMLnk {
-				font-family: @sapUiFontFamily;
+				font-family: var(--sapFontFamily);
 				font-weight: normal;
 				height: 1.5rem;
 				line-height: 1.5rem;
 			}
 		}
+
 		.sapMOH {
 			margin: 0;
 			padding: 0;
 			line-height: inherit;
+
 			.sapMOHTitleArrow {
 				right: 0.5rem;
 				margin-left: 0;
@@ -1268,13 +1277,11 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 		}
 
 		/* ProgressIndicator has display flex, but OPHeaderContent override it by setting display inline-block
-		* for each content entry to order the entries horizontally.
-		* In order to keep the display flex behaviour of the PI and the inline-block behaviour inside OPHeaderContent,
-		* we use inline-flex.
-		* NOTE: It`s needed in case PI is direct child of OPHeaderContent only.
-		*/
+		for each content entry to order the entries horizontally.
+		In order to keep the display flex behaviour of the PI and the inline-block behaviour inside OPHeaderContent,
+		we use inline-flex.
+		NOTE: It`s needed in case PI is direct child of OPHeaderContent only. */
 		> .sapMPI {
-			display: -webkit-inline-flex;
 			display: inline-flex;
 			margin-top: 0.25rem;
 		}
@@ -1284,6 +1291,7 @@ html[dir=rtl] .sapUxAPObjectPageHeaderMarks .sapMObjStatusMarker .sapUiIcon:firs
 			height: 1rem;
 			position: relative;
 			margin-bottom: 1rem;
+
 			.sap-phone & {
 				width: 100% !important;
 			}
@@ -1329,6 +1337,7 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderContent {
 
 /* content separators */
 .sapUxAPObjectPageHeaderDetailsDesign-Dark .sapUxAPObjectPageHeaderSeparatorContainer {
+
 	.sapUxAPObjectPageHeaderSeparatorBefore,
 	.sapUxAPObjectPageHeaderSeparatorAfter {
 		background-color: transparent;
@@ -1358,14 +1367,6 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderContentImageContainer .sapMI
 .sapUxAPObjectPageHeaderContentImageContainer > .sapMImg.sapUxAPObjectPageHeaderObjectImage.sapMNoImg {
 	display: none;
 	margin: 0;
-}
-
-/* In this particular case disply none doesn't work corectly in the current version of chrome (43.0.2357.132) */
-html[data-sap-ui-browser^="cr4"] .sapUxAPObjectPageHeaderContentImageContainer > .sapMImg.sapUxAPObjectPageHeaderObjectImage.sapMNoImg {
-	width: 0;
-	height: 0;
-	border: none;
-	display: inline-block;
 }
 
 .sapUxAPObjectPageHeaderLayoutTitleContainer {
@@ -1428,20 +1429,15 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHe
 }
 
 .sapUxAPObjectPageHeaderContentFlexBox {
-	display: -webkit-box; /* OLD - iOS 6-, Safari 3.1-6 */
 	display: flex;
 }
 
 .sapUxAPObjectPageHeaderContentCellLeft {
-	-webkit-flex-grow: 1;
 	flex-grow: 1;
 	min-width: 25%;
 }
 
 .sapUxAPObjectPageHeaderContentCellRight {
-	-webkit-flex-grow: 0;
-	-webkit-flex-shrink: 0;
-	-webkit-align-self: flex-end;
 	flex-grow: 0;
 	flex-shrink: 0;
 	padding-right: 1rem;
@@ -1458,7 +1454,7 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHe
 
 .sapUxAPObjectPageHeaderContentDesign-Light,
 .sapUxAPObjectPageHeaderContentDesign-Dark {
-	background-color: @sapUiObjectHeaderBackground;
+	background-color: var(--sapObjectHeader_Background);
 }
 /* END "ObjectPageHeaderContent.less" */
 
@@ -1774,11 +1770,6 @@ html[data-sap-ui-browser^="ie"] .sapMShell {
 	margin-left: 0.5rem;
 }
 
-.sapUxAPObjectPageSectionHeader .sapMTB {
-	padding-left: 0;
-	padding-right: 0;
-}
-
 .sapUxAPObjectPageSectionHeader .sapMIBar :not(.sapMBtnDisabled)>.sapMBtnInner.sapMBtnActive {
 	border-color: @sapUiButtonActiveBorderColor;
 }
@@ -1806,7 +1797,7 @@ html .sapUiContainer-Medium .sapUxAPObjectPageSectionHeader {
 }
 
 .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSectionHeading {
-	padding: 0.5rem 0 0.5rem 2rem;
+	padding: 0.5rem 2rem;
 }
 
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSectionHeader,
@@ -1815,7 +1806,7 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader {
 }
 
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSectionHeading {
-	padding: 0.5rem 0 0.5rem 1rem;
+	padding: 0.5rem 1rem;
 }
 
 .sapUxAPObjectPageSectionTitle {
@@ -1856,6 +1847,13 @@ html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader {
 .sapUiSizeCompact .sapUxAPObjectPageSectionHeader.sapUxAPObjectPageSectionHeaderCompact {
 	height: 2rem;
 	line-height: 1.5rem;
+}
+
+.sapUxAPObjectPageSectionHeaderSticky {
+	background-color: @sapUiGlobalBackgroundColor;
+	position: sticky;
+	top: 0;
+	z-index: 5;
 }
 
 html[data-sap-ui-browser^="ed"].sap-desktop .sapUxAPObjectPageSection:focus {
@@ -1901,10 +1899,6 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 	height: auto;
 	padding-bottom: 0;
 }
-
-.sapUxAPObjectPageSection.sapUxAPObjectPageSectionWrapTitle .sapUxAPObjectPageSubSectionHeaderToolbar {
-	height: auto;
-}
 /* END "ObjectPageSection.less" */
 
 /* START "ObjectPageSubSection.less" */
@@ -1912,6 +1906,10 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 /* CSS for control sap.uxap/ObjectPageSubSection  */
 /* Base theme                                     */
 /* ============================================== */
+
+.sapUxAPObjectPageSubSection {
+	position: relative;
+}
 
 .sapUxAPObjectPageSubSection:not(.sapUxAPObjectPageSubSectionPromoted) {
 	padding-top: 1rem;
@@ -1928,13 +1926,25 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 	width: 100%;
 }
 
+.sapUxAPObjectPageSubSection .sapUxAPObjectPageSubSectionHeader {
+	.sapMTB.sapUxAPObjectPageSubSectionHeaderToolbar {
+		background-color: @sapUiGlobalBackgroundColor;
+		height: auto;
+		min-height: 2.75rem;
+	}
+
+	position: sticky;
+	top: 0;
+	z-index: 5;
+}
+
 .sapUxAPObjectPageSubSectionHeader > .sapMBtn {
 	margin-left: 0.5rem;
 }
 
 .sapUxAPObjectPageSubSectionHeader .sapMTB {
-	padding-left: 0;
-	padding-right: 0;
+	padding-left: 1rem;
+	padding-right: 0.75rem;
 }
 
 .sapUxAPObjectPageSubSectionHeader .sapMIBar :not(.sapMBtnDisabled)>.sapMBtnInner.sapMBtnActive {
@@ -1948,7 +1958,7 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 .sapUxAPObjectPageSubSectionHeader {
 	height: auto;
 	word-wrap: break-word;
-	padding: 0 3rem 0 3rem;
+	padding: 0 2rem 0 2rem;
 	display: flex;
 	width: 100%;
 	box-sizing: border-box;
@@ -1986,24 +1996,14 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 /* phone display */
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSectionHeader,
 html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeader {
-	padding: 0 1rem;
-}
-
-.sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSectionHeaderTitle,
-html .sapUiContainer-Narrow .sapUxAPObjectPageSubSectionHeaderTitle {
-	height: auto;
-	overflow: auto;
-	float: none;
-	white-space: normal;
-	word-wrap: break-word;
-	word-break: break-all;
+	padding: 0 0.25rem 0 0;
 }
 
 /* tablet display */
 
 .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageSubSectionHeader,
 html .sapUiContainer-Medium .sapUxAPObjectPageSubSectionHeader {
-	padding: 0 2rem 0 2rem;
+	padding: 0 1.25rem 0 1rem;
 }
 
 /* Those styles apply Desktop and Desktop-XL.
@@ -2030,13 +2030,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 		box-sizing: border-box;
 		display: inline-block;
 		margin-left: 0;
-	}
-
-	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderTitle {
-		height: auto;
-		white-space: normal;
-		word-wrap: break-word;
-		line-height: normal;
 	}
 
 	.sapUxAPObjectPageSubSectionHeader.titleOnLeftLayout .sapUxAPObjectPageSubSectionHeaderActions {
@@ -2091,14 +2084,10 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 
 
 .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageSubSection {
-	.sapUiRespGrid.sapUiRespGridHSpace1 {
-		.sapUiRespGridSpanS12 {
-			width: 100%;
-		}
-
+	.sapUiRespGrid.sapUiRespGridMedia-Std-Phone.sapUiRespGridHSpace1 {
 		padding: 0;
 	}
-	.sapUiRespGrid.sapUiRespGridHSpace1 > div {
+	.sapUiRespGrid.sapUiRespGridMedia-Std-Phone.sapUiRespGridHSpace1 > .sapUiRespGridSpanS12 {
 		margin: 0;
 		width: 100%;
 	}
@@ -2110,10 +2099,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 .sapUxAPObjectPageSubSectionFitContainer {
 	display: flex;
 	flex-direction: column;
-}
-
-.sapUxAPObjectPageSubSectionFitContainer .sapUxAPBlockContainer .sapUxAPBlockBase {
-	overflow-y: hidden;
 }
 
 .sapUxAPObjectPageSubSectionFitContainer {
@@ -2130,10 +2115,6 @@ Doing so will result in less generated CSS, as well as less future maintanance i
 
 /* compact size */
 .sapUiSizeCompact {
-	.sapUxAPObjectPageSubSectionHeaderTitle {
-		height: 2rem;
-		line-height: 2rem;
-	}
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormResGrid > div,
 	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer .sapUiFormCLContainer {
 		padding: 1rem 0;
@@ -2167,28 +2148,9 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 }
 
 // Styles needed for wrapTitle property
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle
-.sapUxAPObjectPageSubSectionHeader
-.sapUxAPObjectPageSubSectionTitle  {
+.sapUxAPObjectPageSubSection .sapUxAPObjectPageSubSectionHeader .sapUxAPObjectPageSubSectionTitle  {
 	height: auto;
-	word-break: break-word;
-	white-space: break-spaces;
-	overflow: auto;
-	line-height: inherit;
-	border-bottom: none;
-	position: relative;
-	top: 0rem;
+	line-height: normal;
 }
-
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle
-.sapUxAPObjectPageSubSectionHeader {
-	height: auto;
-	padding-bottom: 0;
-}
-
-.sapUxAPObjectPageSubSection.sapUxAPObjectPageSubSectionWrapTitle .sapUxAPObjectPageSubSectionHeaderToolbar {
-	height: auto;
-}
-
 /* END "ObjectPageSubSection.less" */
 

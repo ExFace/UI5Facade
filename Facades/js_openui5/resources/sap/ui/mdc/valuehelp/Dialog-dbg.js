@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 	});
 
 	let MDialog, MLibrary, Button, ManagedObjectModel, IconTabBar, IconTabFilter;
-	let Panel, HBox, MultiInput, Token, Filter;
+	let Panel, HBox, Tokenizer, Token, Filter;
 	const { InvisibleMessageMode } = coreLibrary;
 
 	/**
@@ -68,7 +68,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 * @class Container for the {@link sap.ui.mdc.ValueHelp ValueHelp} element showing a dialog.
 	 * @extends sap.ui.mdc.valuehelp.base.Container
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @since 1.95.0
@@ -254,8 +254,8 @@ sap.ui.define([
 						press: this.handleConfirmed.bind(this),
 						visible: {
 							parts: ['$valueHelp>/_config/maxConditions', '$help>/_quickSelectEnabled'],
-							formatter: function(iMaxConditions, bQuickSelectEnabled) {
-								return iMaxConditions !== 1 || !bQuickSelectEnabled;
+							formatter: (iMaxConditions, bQuickSelectEnabled) => {
+								return !this.isQuickSelectActive();
 							}
 						}
 					});
@@ -297,7 +297,7 @@ sap.ui.define([
 
 					DensityHelper.syncDensity(oDialog);
 
-					oDialog.setModel(this._oManagedObjectModel, "$help");
+					this.setModel(this._oManagedObjectModel, "$help");
 					this.setAggregation("_container", oDialog, true);
 
 					oDialog.isPopupAdaptationAllowed = function() {
@@ -363,13 +363,8 @@ sap.ui.define([
 	Dialog.prototype.handleSelect = function(oEvent) {
 		Container.prototype.handleSelect.apply(this, arguments);
 
-		if (this.getProperty("_quickSelectEnabled") && this.isSingleSelect()) {
-			const aEventConditions = oEvent.getParameter("conditions");
-			const bPositiveType = [ValueHelpSelectionType.Set, ValueHelpSelectionType.Add].indexOf(oEvent.getParameter("type")) !== -1;
-			const iLength = aEventConditions && aEventConditions.length;
-			if (bPositiveType && iLength) {
-				this.fireConfirm({ close: true });
-			}
+		if (this.isQuickSelectActive()) {
+			this.fireConfirm({ close: true });
 		}
 	};
 
@@ -402,6 +397,16 @@ sap.ui.define([
 		}
 
 		Container.prototype.observeChanges.apply(this, arguments);
+	};
+
+	/**
+	 * Gets whether quickselect (confirms values on selection) is active on the dialog.
+	 * @returns {boolean} true if quickselect is active
+	 * @protected
+	 * @since 1.140
+	 */
+	Dialog.prototype.isQuickSelectActive = function () {
+		return this.getProperty("_quickSelectEnabled") && this.isSingleSelect();
 	};
 
 	Dialog.prototype._updateInitialContentKey = function() {
@@ -584,21 +589,15 @@ sap.ui.define([
 					'sap/m/Panel',
 					'sap/m/HBox',
 					'sap/m/VBox',
-					'sap/ui/mdc/field/FieldMultiInput',
+					'sap/m/Tokenizer',
 					'sap/m/Token',
 					'sap/ui/model/Filter',
 					'sap/ui/mdc/field/ConditionType'
 				]).then((aModules) => {
 
-					Panel = aModules[0];
-					HBox = aModules[1];
-					VBox = aModules[2];
-					MultiInput = aModules[3];
-					Token = aModules[4];
-					Filter = aModules[5];
-					const ConditionType = aModules[6];
-					const { BackgroundDesign } = MLibrary;
-					const { ButtonType } = MLibrary;
+					let ConditionType;
+					[Panel, HBox, VBox, Tokenizer, Token, Filter, ConditionType] = aModules;
+					const { BackgroundDesign, ButtonType } = MLibrary;
 
 					if (this.isDestroyStarted()) {
 						return null;
@@ -642,16 +641,22 @@ sap.ui.define([
 					const oFormatOptions = _getConditionFormatOptions.call(this);
 					this._oConditionType = new ConditionType(oFormatOptions);
 					this._oConditionType._bVHTokenizer = true; // just help for debugging
-					this.oTokenMultiInput = new MultiInput(this.getId() + "-Tokenizer", {
+					const fnSetFocusForNoToken = () => {
+						// if all tokens are removed focus must move to OK-Button or to a content specific control. (For DefineConditionPanel on first value field.)
+						const oCurrentContent = this.getContent().find((oContent) => {
+							return oContent.getId() === this.getProperty("_selectedContentKey");
+						});
+
+						const oFocusedControl = oCurrentContent.getFocusControlAfterTokenRemoval() || this.oButtonOK;
+						oFocusedControl.focus();
+					};
+					this.oTokenizer = new Tokenizer(this.getId() + "-Tokenizer", {
 						width: "100%",
-						showValueHelp: false,
 						editable: true,
-						showSuggestion: false,
-						ariaAttributes: { role: "listbox", aria: { readonly: true, roledescription: this._oResourceBundle.getText("valuehelp.TOKENIZER_ARIA_ROLE_DESCRIPTION") } },
-						// ariaLabelledBy: this.oTokenizerPanel,
-						tokenUpdate: function(oEvent) {
-							if (oEvent.getParameter("removedTokens")) {
-								const aRemovedTokens = oEvent.getParameter("removedTokens");
+						tokenDelete: function(oEvent) {
+							if (oEvent.getParameter("tokens")) {
+								const aRemovedTokens = oEvent.getParameter("tokens");
+								const oTokenizer = oEvent.getSource();
 								const aConditions = this.getModel("$valueHelp").getObject("/conditions");
 								const aRemovedConditions = [];
 
@@ -661,6 +666,11 @@ sap.ui.define([
 									aRemovedConditions.push(aConditions[iIndex]);
 								});
 
+								if (aRemovedTokens.length === oTokenizer.getTokens().length) {
+									// all Token removed -> Tokenizer loses focus
+									fnSetFocusForNoToken();
+								}
+
 								this.fireSelect({ type: ValueHelpSelectionType.Remove, conditions: aRemovedConditions });
 							}
 
@@ -668,23 +678,12 @@ sap.ui.define([
 						layoutData: new FlexItemData({ growFactor: 1, maxWidth: "calc(100% - 2rem)" })
 					});
 
-					// Overwrite the setValueVisible to make the input part not visible (transparent).
-					// Problem: you can still enter a value into the $input dom ref and this will be shown when you remove all tokens. this can be solved inside the afterRender handler.
-					// ACC issue: the screenreader is still reading this control as input field and that the user can enter a value - which is not correct.
-					this.oTokenMultiInput._setValueVisible = function(bVisible) {
-						this.$("inner").css("opacity", "0");
-					};
-
-					const org = this.oTokenMultiInput.onAfterRendering;
-					this.oTokenMultiInput.onAfterRendering = function() {
-						org.apply(this.oTokenMultiInput, arguments);
-
-						this.oTokenMultiInput._setValueVisible(); // make the input always invisible
-						this.oTokenMultiInput.setValue(""); // set the value to empty string
+					this.oTokenizer.onAfterRendering = function() {
+						Tokenizer.prototype.onAfterRendering.apply(this.oTokenizer, arguments);
 
 						if (!this.bAddAriaLabelledOnlyOnce) {
 							this.bAddAriaLabelledOnlyOnce = true;
-							this.oTokenMultiInput.addAriaLabelledBy(this.oTokenizerPanel._getLabellingElementId());
+							this.oTokenizer.addAriaLabelledBy(this.oTokenizerPanel._getLabellingElementId());
 						}
 					}.bind(this);
 
@@ -696,8 +695,8 @@ sap.ui.define([
 
 							this.oInvisibleMessage.announce(oMessageBundle.getText("valuehelp.REMOVEALLTOKEN_ANNOUNCE"), InvisibleMessageMode.Assertive);
 
-							//sets the focus to the Tokenizer field, because the RemoveAllBtn will be disabled
-							this.oTokenMultiInput.focus();
+							//sets the focus to the content specific control or the OK-Button, because the RemoveAllBtn will be disabled
+							fnSetFocusForNoToken();
 						}.bind(this),
 						type: ButtonType.Transparent,
 						icon: "sap-icon://decline",
@@ -720,7 +719,7 @@ sap.ui.define([
 					});
 					this.oRemoveAllBtn.addStyleClass("sapUiTinyMarginBegin");
 
-					oHBox.addItem(this.oTokenMultiInput);
+					oHBox.addItem(this.oTokenizer);
 					oHBox.addItem(this.oRemoveAllBtn);
 					this.oTokenizerPanel.addContent(oHBox);
 
@@ -771,17 +770,17 @@ sap.ui.define([
 
 	function _bindTokenizer(bBind) {
 
-		if (this.oTokenMultiInput) {
-			const oBindingInfo = this.oTokenMultiInput.getBindingInfo("tokens");
+		if (this.oTokenizer) {
+			const oBindingInfo = this.oTokenizer.getBindingInfo("tokens");
 			if (bBind) {
 				if (!oBindingInfo) { // not bound -> create binding
 					const oFilter = new Filter({ path: 'isEmpty', operator: 'NE', value1: true });
 					this._oConditionType.setFormatOptions(_getConditionFormatOptions.call(this)); // as config might be changed
 					const oTokenTemplate = new Token(this.getId() + "-Token", { text: { path: '$valueHelp>', type: this._oConditionType } });
-					this.oTokenMultiInput.bindAggregation("tokens", { path: '/conditions', model: "$valueHelp", templateShareable: false, template: oTokenTemplate, filters: oFilter, length: 50, startIndex: -50 });
+					this.oTokenizer.bindAggregation("tokens", { path: '/conditions', model: "$valueHelp", templateShareable: false, template: oTokenTemplate, filters: oFilter, length: 50, startIndex: -50 });
 				}
 			} else if (oBindingInfo) { // remove binding if dialog is closed to prevent updated on tokens if conditions are updated. (Suspend would not be enough, as every single binding on token would need to be suspended too.)
-				this.oTokenMultiInput.unbindAggregation("tokens");
+				this.oTokenizer.unbindAggregation("tokens");
 			}
 		}
 
@@ -822,7 +821,7 @@ sap.ui.define([
 					fnRenderContent();
 				});
 			} else {
-				if (this.oTokenMultiInput) { // restore tokenizer binding to enable updates if open
+				if (this.oTokenizer) { // restore tokenizer binding to enable updates if open
 					_bindTokenizer.call(this, true);
 				}
 				fnRenderContent();
@@ -900,7 +899,7 @@ sap.ui.define([
 			}
 			oContainer.close();
 
-			if (this.oTokenMultiInput) { // remove tokenizer binding to prevent updates if closed
+			if (this.oTokenizer) { // remove tokenizer binding to prevent updates if closed
 				_bindTokenizer.call(this, false);
 			}
 		}
@@ -944,7 +943,7 @@ sap.ui.define([
 			"oButtonOK",
 			"oButtonCancel",
 			"oTokenizerPanel",
-			"oTokenMultiInput",
+			"_oTokenizer",
 			"_oIconTabBar",
 			"_oGroupSelect",
 			"_oGroupSelectModel",

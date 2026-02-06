@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -56,7 +56,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -773,15 +773,15 @@ sap.ui.define([
 		if (this.getEnabled()) {
 			var fValue = this._calculateSelectedValue(oEvent);
 
-			// When the value is 1 and the first star is pressed we should toggle to 0
-			if (this.getValue() === 1 && fValue === 1) {
+			// When same rating is chosen, set the rating to 0
+			if (this.getValue() === fValue) {
 				fValue = 0;
 			}
 
-			this.setProperty("value", fValue, true);
 			this._updateUI(fValue, false);
 
-			if (this._fStartValue !== fValue) {	// if the value if not the same
+			 if (this.getValue() !== fValue) {	// if the value if not the same
+				this.setProperty("value", fValue, true);
 				this.fireLiveChange({value: fValue});
 				this.fireChange({value: fValue});
 			}

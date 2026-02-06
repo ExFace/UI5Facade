@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -271,8 +271,7 @@ sap.ui.define([
 
 		const oPopover = new ResponsivePopover({
 			id: this.getId() + "-btnSelectionButtonPopover",
-			placement: PlacementType.VerticalPreferredBottom,
-			contentWidth: "25rem"
+			placement: PlacementType.VerticalPreferredBottom
 		});
 
 		oPopover.addStyleClass("sapUiMDCSelectionButton");

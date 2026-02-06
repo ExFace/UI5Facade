@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -8,18 +8,21 @@ sap.ui.define([
 	"./WebPageContentRenderer",
 	"sap/ui/util/isCrossOriginURL",
 	"sap/m/IllustratedMessageType",
-	"sap/ui/integration/util/BindingHelper"
+	"sap/ui/integration/util/BindingHelper",
+	"sap/ui/core/Lib"
 ], function (
 	BaseContent,
 	WebPageContentRenderer,
 	isCrossOriginURL,
 	IllustratedMessageType,
-	BindingHelper
+	BindingHelper,
+	Library
 ) {
 	"use strict";
 
 	var FRAME_LOADED = "_frameLoaded";
 	var LOAD_TIMEOUT = 15 * 1000; // wait maximum 15s for the frame to load
+	const oResourceBundle = Library.getResourceBundleFor("sap.ui.integration");
 
 	/**
 	 * Constructor for a new <code>WebPageContent</code>.
@@ -33,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @experimental
@@ -200,18 +203,18 @@ sap.ui.define([
 
 		if (!sCurrSrc) {
 			this.handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_EMPTY_URL_ERROR"),
-				description: oCard.getTranslatedText("CARD_ERROR_CONFIGURATION_DESCRIPTION")
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_EMPTY_URL_ERROR"),
+				description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION")
 			});
 			return false;
 		}
 
 		if (isCrossOriginURL(sCurrSrc) && !sCurrSrc.startsWith("https")) {
 			this.handleError({
-				illustrationType: IllustratedMessageType.ErrorScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_HTTPS_URL_ERROR"),
-				description: oCard.getTranslatedText("CARD_ERROR_REQUEST_ACCESS_DENIED_DESCRIPTION")
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_HTTPS_URL_ERROR"),
+				description: oResourceBundle.getText("CARD_ERROR_REQUEST_ACCESS_DENIED_DESCRIPTION")
 			});
 			return false;
 		}
@@ -232,12 +235,11 @@ sap.ui.define([
 		this._iLoadTimeout = setTimeout(function () {
 			this.fireEvent(FRAME_LOADED);
 
-			var iSeconds = LOAD_TIMEOUT / 1000,
-				oCard = this.getCardInstance();
+			var iSeconds = LOAD_TIMEOUT / 1000;
 
 			this.handleError({
-				illustrationType: IllustratedMessageType.ReloadScreen,
-				title: oCard.getTranslatedText("CARD_WEB_PAGE_TIMEOUT_ERROR", [iSeconds]),
+				illustrationType: IllustratedMessageType.UnableToLoad,
+				title: oResourceBundle.getText("CARD_WEB_PAGE_TIMEOUT_ERROR", [iSeconds]),
 				details: "Failed to load '" + this.getSrc() + "' after " + iSeconds + " seconds."
 			});
 		}.bind(this), LOAD_TIMEOUT);

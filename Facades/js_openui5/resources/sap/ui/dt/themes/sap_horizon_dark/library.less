@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,25 +12,24 @@
 @import "../../../../../sap/ui/core/themes/sap_horizon_dark/global.less";
 
 /* START "ContextMenu.less" */
-/******************************************************************
-	Style of the DT Contextmenu - Horizon Dark Theme
-*******************************************************************/
-@_sap_ui_dt_ContextMenu_BorderRadius: @sapUiFieldBorderCornerRadius; // 0.25rem
+/* ====================================== */
+/* CSS for control sap.ui.dt/ContextMenu  */
+/* Evening Horizon theme                  */
+/* ====================================== */
 
-.sapUiDtContextMenu {
-	.sapUiMnuLst {
-		.sapUiMnuItm {
-			margin: 0.0625rem;
+@_sap_ui_dt_ContextMenu_BorderRadius: var(--sapField_BorderCornerRadius); /* 0.25rem */
+
+.sapUiDtContextMenu.sapMMenu {
+
+	.sapMMenuList {
+
+		.sapMMenuItem {
 			border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
 
 			&:focus {
-				outline-offset: -0.125rem;
-				&.sapUiMnuItmDsbl{
+				&.sapMMenuItemDisabled {
 					outline: none;
 				}
-			}
-			&.sapUiMnuItmSubMnuOpen {
-				border-bottom: none !important; //1px
 			}
 		}
 	}
@@ -38,18 +37,22 @@
 /* END "ContextMenu.less" */
 
 /* START "Overlay.less" */
-/******************************************************************
-	Style of the DT Overlays - Horizon Dark Theme
-*******************************************************************/
-@_sap_ui_dt_Overlay_BorderRadius: @sapUiButtonBorderCornerRadius; // 0.5rem
-@_sap_ui_dt_Overlay_BoxShadow: @sapUiUx3ToolPopupShadow; // 0 6px 12px 0 rgba(0,0,0,0.3)
-@_sap_ui_dt_Overlay_DropZoneBackgroundColor: fade(@sapUiContentImagePlaceholderForegroundColor, 10%); //rgba(213, 218, 221, 0.1)
-@_sap_ui_dt_Overlay_HoverBackgroundColor: fade(@sapUiSelected, 20%); //rgba(77, 177, 255, 0.2)
-@_sap_ui_dt_Overlay_CuttedBackgroundColor: darken(@sapUiContentImagePlaceholderBackground, 10%); //#33475b
+/* ================================== */
+/* CSS for control sap.ui.dt/Overlay  */
+/* Evening Horizon theme              */
+/* ================================== */
+
+@_sap_ui_dt_Overlay_BorderRadius: var(--sapButton_BorderCornerRadius); /* 0.5rem */
+@_sap_ui_dt_Overlay_BoxShadow: var(--sapContent_Shadow2);
+@_sap_ui_dt_Overlay_DropZoneBackgroundColor: fade(@sapUiContentImagePlaceholderForegroundColor, 10%); /* rgba(213, 218, 221, 0.1) */
+@_sap_ui_dt_Overlay_HoverBackgroundColor: fade(@sapUiSelected, 20%); /* rgba(77, 177, 255, 0.2) */
+@_sap_ui_dt_Overlay_CuttedBackgroundColor: darken(@sapUiContentImagePlaceholderBackground, 10%); /* #33475b */
 
 .sapUiDtOverlayFocusable {
+
 	&:focus {
-		&:before {
+
+		&::before {
 			border-radius: @_sap_ui_dt_Overlay_BorderRadius;
 			outline: 0.0625rem dotted @_sap_ui_dt_Overlay_FocusBorderColor;
 			border: none;
@@ -61,7 +64,7 @@
 .sapUiDtOverlaySelected {
 	box-shadow: none !important;
 
-	&:after {
+	&::after {
 		border-radius: @_sap_ui_dt_Overlay_BorderRadius;
 		transition: box-shadow 0.25s;
 		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
@@ -69,7 +72,8 @@
 }
 
 .sapUiDtOverlayTargetZone {
-	&:after {
+
+	&::after {
 		border-radius: @_sap_ui_dt_Overlay_BorderRadius;
 		transition: box-shadow .25s;
 		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
@@ -77,13 +81,15 @@
 }
 
 .sapUiDtOverlayCutted {
-	&:after {
+
+	&::after {
 		border-radius: @_sap_ui_dt_Overlay_BorderRadius;
 	}
 }
 
 .sapUiDtOverlayHover {
-	&:after {
+
+	&::after {
 		border-radius: @_sap_ui_dt_Overlay_BorderRadius;
 		border: none;
 	}

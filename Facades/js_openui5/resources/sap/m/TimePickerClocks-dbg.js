@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,10 +49,11 @@ sap.ui.define([
 		 *
 		 * @class
 		 * A picker clocks container control used inside the {@link sap.m.TimePicker}.
+		 * If you use the control standalone, please call the {@link #prepareForOpen} method before opening or displaying it.
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @public
@@ -115,9 +116,7 @@ sap.ui.define([
 				sTooltip = oButton._getTooltip(),
 				sText = oButton._getText(),
 				sTextDir = oButton.getTextDirection(),
-				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge,
-				// render bdi tag only if the browser is different from IE and Edge since it is not supported there
-				bRenderBDI = (sTextDir === TextDirection.Inherit) && !bIE_Edge;
+				bRenderBDI = (sTextDir === TextDirection.Inherit);
 
 			// start button tag
 			oRm.openStart("div", oButton);
@@ -173,10 +172,6 @@ sap.ui.define([
 			// check if button is focusable (not disabled)
 			if (bEnabled) {
 				oRm.class("sapMFocusable");
-				// special focus handling for IE
-				if (bIE_Edge) {
-					oRm.class("sapMIE");
-				}
 			}
 
 			if (sText) {
@@ -217,14 +212,6 @@ sap.ui.define([
 				oRm.close("span");
 			}
 
-			// special handling for IE focus outline
-			if (bIE_Edge && bEnabled) {
-				oRm.openStart("span");
-				oRm.class("sapMBtnFocusDiv");
-				oRm.openEnd();
-				oRm.close("span");
-			}
-
 			// end inner button tag
 			oRm.close("span");
 
@@ -261,8 +248,9 @@ sap.ui.define([
 		 *
 		 * @public
 		 */
-		 TimePickerClocks.prototype.init = function() {
+		TimePickerClocks.prototype.init = function() {
 			TimePickerInternals.prototype.init.apply(this, arguments);
+			this._performInitialFocus = false;
 		};
 
 		/**
@@ -270,11 +258,14 @@ sap.ui.define([
 		 *
 		 * @private
 		 */
-		 TimePickerClocks.prototype.onAfterRendering = function() {
+		TimePickerClocks.prototype.onAfterRendering = function() {
 			if (!this._clickAttached) {
 				this._attachClickEvent();
 			}
 			this._clockConstraints = this._getClocksConstraints();
+			if (this._performInitialFocus) {
+				this._focusActiveButton();
+			}
 		};
 
 		/**
@@ -544,6 +535,7 @@ sap.ui.define([
 					aButtons[iIndex].setPressed(iIndex === 0);
 				});
 			}
+			this._performInitialFocus = true;
 
 			return this;
 		};
@@ -574,6 +566,7 @@ sap.ui.define([
 				iActiveClock = this._getActiveClockIndex();
 
 			aButtons && aButtons[iActiveClock] && aButtons[iActiveClock].focus();
+			this._performInitialFocus = false;
 		};
 
 		/**

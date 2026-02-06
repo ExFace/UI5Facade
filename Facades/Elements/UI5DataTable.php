@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\MetaObjectFactory;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -20,6 +21,10 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\DataTypes\OfflineStrategyDataType;
+use exface\Core\CommonLogic\Model\UiPage;
+use exface\Core\Factories\WidgetFactory;
 
 /**
  *
@@ -62,29 +67,32 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     {
         $widget = $this->getWidget();
         $controller = $this->getController();
-        
+
         // Initialize optional column from the configurator when the
         // JS controller is initialized.
         // IDEA maybe just initialize the controller var here and run the
         // constructors of the columns only on-demand in buildJsRefreshPersonalization()?
-        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
-        $colsOptionalInitJs = '';
-        if (! empty($colsOptional)) {
-            foreach ($colsOptional as $col) {
-            $colsOptionalInitJs .= <<<JS
-            
-                    oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+        if ($widget->getConfiguratorWidget()->hasOptionalColumns()) {
+            $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+            $colsOptionalInitJs = '';
+            if (! empty($colsOptional)) {
+                foreach ($colsOptional as $col) {
+                    $colsOptionalInitJs .= <<<JS
+                
+                        oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
 JS;
+                }
             }
+            $controller->addOnInitScript(<<<JS
+            
+                (function(){
+                    var oColsOptional = {};
+                    {$colsOptionalInitJs}
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                })();
+JS
+            );
         }
-        $controller->addOnInitScript(<<<JS
-        
-            (function(){
-                var oColsOptional = {};
-                {$colsOptionalInitJs}
-                {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
-            })();
-JS);
 
         if ($this->isMTable()) {
             $js = $this->buildJsConstructorForMTable($oControllerJs);
@@ -115,6 +123,42 @@ JS);
         
         return $js;
     }
+    
+    protected function registerUiTableFixedColumns() : int
+    {
+        // re-calculate frozen columns for sap.ui.table (might change due to optional columns/setups/mutations)
+        $this->getController()->addOnShowViewScript(<<<JS
+            
+                setTimeout(() => {
+                    let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                    let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                    // attach listener for changes 
+                    if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                        exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
+                    }
+                }, 0);
+
+                
+                    
+JS, false);
+
+        $widget = $this->getWidget();
+        $freezeColumnsCount = $widget->getFreezeColumns();
+        if ($freezeColumnsCount > 0) {
+            $columns = $widget->getColumns();
+            for ($i = 0; $i < $freezeColumnsCount; $i++) {
+                if ($columns[$i]->isHidden()) {
+                    $freezeColumnsCount++;
+                }
+            }
+            // increase the count if the DirtyFlag column is added as the first column in the table
+            if ($this->hasDirtyColumn()) {
+                $freezeColumnsCount++;
+            }
+        }
+        return $freezeColumnsCount;
+    }
 
     public function isMList() : bool
     {
@@ -131,6 +175,238 @@ JS);
         return ! ($this->getWidget() instanceof DataTableResponsive);
     }
     
+     /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+        // passed parameters
+        $passedParameters = json_encode($parameters ?? null);
+        if ($jsRequestData === null){
+            $jsRequestData = 'null';
+        }
+
+        // setups table id is needed to dynamically mark applied setup
+        $jsSetupsTableId = $this->escapeString('null');
+        if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
+            if ($this->getP13nElement()->getSetupsTableId() !== null){
+                $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
+            }
+        }
+  
+        switch (true) {
+            case $functionName === DataTable::FUNCTION_CLEAR_APPLIED_SETUP:
+                return <<<JS
+                /*
+                    check if the deleted setup is the one currently applied. If so, clear it from the dexie db and reset the table
+
+                    Parameters: None
+                */
+
+                (function () {
+                    if ({$jsRequestData} !== null && {$jsRequestData}.rows[0] === undefined){
+                        return;
+                    }
+
+                    // if the deleted setup is the one currently saved in dexie for this page and widget,
+                    // delete it and reset the table to original state
+                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}')
+                    .then(entry => {
+                        if (entry && entry.setup_uid === {$jsRequestData}.rows[0]['UID']) {
+                            // delete from dexie db
+                            exfSetupManager.dexie.deleteCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}');
+
+                            // reset table
+                            let oP13nDialogResetBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                            if (oP13nDialogResetBtn){
+                                oP13nDialogResetBtn.firePress();
+                            }
+                        }
+                    });
+                })();
+                
+JS;
+            case $functionName === DataTable::FUNCTION_RESET_CHANGE_TRACKING:
+                return <<<JS
+                /*
+                    Function to reset tracking of changes in the column configuration (sorting/filtering/columns) 
+                        - resets the custom data property of the ui5 table .data('_exfConfigChanged')
+                        - resets the change indicator of the quick select menu (if button exists)
+
+                    Parameters: None
+                */
+
+                (function () {
+                    exfSetupManager.resetChangeTracking('{$this->getId()}');
+                })();
+                
+JS;
+            case $functionName === DataTable::FUNCTION_TRACK_CHANGES:
+                return <<<JS
+                /*
+                    Function to track changes in the column configuration (sorting/filtering/columns) and
+                        - mark them in a custom data property of the ui5 table .data('_exfConfigChanged')
+                        - indicate the changes visually with an asterisk (*) in the quick select menu (if button exists)
+
+                    Parameters: None
+                */
+
+                (function () {
+
+                    exfSetupManager.datatable.trackConfigChanges(
+                        '{$this->getId()}',
+                        '{$this->getP13nElement()->getId()}',
+                        '{$this->getConfiguratorElement()->getModelNameForConfig()}',
+                        '{$this->getP13nElement()->getIdOfSearchPanel()}'
+                    );
+                })();
+                
+JS;
+            case $functionName === DataTable::FUNCTION_DUMP_SETUP:
+                
+                /*
+                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER, true/false)
+
+                    - SETUP_UXON:
+                        The name of the column where the setup UXON will be stored
+                    - PAGE:
+                        the name of the column for the current page UID
+                    - WIDGET_ID:
+                        the name of the column for the current widget ID
+                    - PROTOTYPE_FILE:
+                        the name of the column for the prototype file to use
+                        e.g. 'exface/core/Mutations/Prototypes/DataTableSetup.php'
+                    - OBJECT:
+                        the name of the column for the object of the datatable
+                    - PRIVATE_FOR_USER:
+                        the name of the column for the current user UID
+                    - true/false: (optional)
+                        auto apply after dumping the data (only works for updating an existing setup, otherwise the setup UID is missing)
+                */
+
+                return <<<JS
+
+                // Dump current table setup into inputData of the action
+
+                // get column name parameters, remove leading/trailing spaces; return if not all params provided
+                let aParams = {$passedParameters};
+                if (!Array.isArray(aParams) || aParams.length < 6) {
+                    console.warn('dump_setup() called with invalid parameters:', aParams);
+                    return;
+                }
+                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
+                let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
+
+                // get the current setup as json in widget_setup format
+                let oSetupJson = exfSetupManager.datatable.getConfiguration(
+                    '{$this->getId()}',
+                    '{$this->getP13nElement()->getId()}',
+                    '{$this->getConfiguratorElement()->getModelNameForConfig()}',
+                    '{$this->getP13nElement()->getIdOfSearchPanel()}'
+                );
+
+                // if input data is empty, initialize it
+                if ({$jsRequestData}.rows[0] === undefined){
+                    {$jsRequestData}.rows[0] = {};
+                }
+
+                // write the current setup and info into to the input data
+                {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
+                {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
+                {$jsRequestData}.rows[0][sWidgetIdCol] = '{$this->getDataWidget()->getId()}';
+                {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
+                {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
+                {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+
+                if (bAutoApply === true){
+                    {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#' . $parameters[0] . '#]' ], $jsRequestData)}
+                }
+                
+JS;
+
+            case $functionName === DataTable::FUNCTION_APPLY_SETUP:
+                // parameter: apply_setup([#SETUP_UXON#]) -> column in which the setup is stored
+                // alternatively, apply_setup(['localStorage']) -> to retrieve saved setup from indexedDb
+                
+                return <<<JS
+
+                // get currently selected data from request
+                let oResultData = {$jsRequestData};
+                let oSetupUxon = null;
+                let sPageId = '{$this->getWidget()->getPage()->getUid()}';
+                let sWidgetId = '{$this->getDataWidget()->getId()}';
+
+                // if the function is not called with 'localStorage' parameter,
+                // and there is data in the request, get the setup Uxon from the request data
+                // (this is the case, when the user selects a setup from the setups tab and applies it)
+                if ( oResultData !== null && {$passedParameters}[0] !== 'localStorage'){
+                    if (oResultData.rows.length === 0) {
+                        return;
+                    }
+
+                    // get setup UXON from request data and parse it
+                    let sUxonCol = {$passedParameters}[0];
+                    sUxonCol = sUxonCol.match(/\[#(.*?)#\]/)[1]; // strip the placeholder syntax
+                    oSetupUxon = JSON.parse(oResultData.rows[0][sUxonCol]);
+                }
+
+                // either use the passed oSetupUxon, or try and load the data from IndexedDB (onLoad)
+                // then apply the setup and update the related ui elements (quick select caption, active column in setups table, reset the change tracking)
+                exfSetupManager.getSetupProperty(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
+                .then(oSetupUxon => {
+                    if (oSetupUxon) {
+
+                        // apply setup configuration
+                        exfSetupManager.datatable.applyConfiguration(
+                            '{$this->getId()}',
+                            '{$this->getConfiguratorElement()->getModelNameForConfig()}',
+                            '{$this->getP13nElement()->getIdOfColumnsPanel()}',
+                            '{$this->getP13nElement()->getIdOfSortPanel()}',
+                            '{$this->getP13nElement()->getIdOfSearchPanel()}',
+                            oSetupUxon
+                        );
+
+                        // store the last applied setup in session storage 
+                        // do this only if it was actively applied (not when loading from indexedDb)
+                        if ({$passedParameters}[0] !== 'localStorage'){
+                            exfSetupManager.dexie.saveLastAppliedSetup(
+                                oResultData.rows[0]['PAGE'],
+                                oResultData.rows[0]['WIDGET_ID'],
+                                oResultData.rows[0]['UID'],
+                                oResultData.rows[0]['SETUP_UXON'],
+                                oResultData.rows[0]['NAME']
+                            );
+                        }
+                       
+                        // apply the changes immediately 
+                        // otherwise the p13n dialog does not apply the filters until OK is pressed
+                        let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oP13nDialog) {
+                            oP13nDialog.fireOk();
+                        }
+
+                        // reset change tracking (since a new setup is now applied)
+                        exfSetupManager.resetChangeTracking('{$this->getId()}');
+                    } 
+                    else {
+                        // return if no setup was passed or found
+                        return;
+                    }
+                })
+                .then(() => {
+                    // fire event to let other elements know that a new setup was applied
+                    // (currently used to update the quick select button indicator/caption in UI5DataElementTrait)
+                    exfSetupManager.fireWidgetSetupChangedEvent('{$this->getId()}');
+                });
+JS;
+        }
+
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+    
+
     /**
      * Returns the javascript constructor for a sap.m.Table
      *
@@ -158,7 +434,7 @@ JS);
                     contextualWidth: "Auto",
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
-                    noDataText: "{$this->getWidget()->getEmptyText()}",
+                    noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
                     selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
@@ -193,6 +469,7 @@ JS);
         
 JS;
     }
+
     
     /**
      * 
@@ -242,9 +519,30 @@ JS;
             
         }
         
+        if($this->isMList()) {
+            $deselectJs = <<<JS
+            
+            oTable.setSelectedItem(oDeselect, false);
+JS;
+
+        } else {
+            $deselectJs = <<<JS
+
+            oTable.__modifyingSelection = true;
+            oTable.removeSelectionInterval(iDeselect, iDeselect);
+            oTable.__modifyingSelection = false;
+JS;
+
+        }
+        
         return <<<JS
         
             const oTable = $oEventJs.getSource();
+            
+            if (oTable.__modifyingSelection) {
+                return;
+            }
+            
             const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
             const bMultiSelect = oTable.getMode !== undefined ? oTable.getMode() === sap.m.ListMode.MultiSelect : {$this->escapeBool($widget->getMultiSelect())};
             const bMultiSelectSave = {$this->escapeBool(($widget instanceof DataTable) && $widget->isMultiSelectSavedOnNavigation())}
@@ -252,6 +550,40 @@ JS;
             var aRowsVisible = [];
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aSelected = null;
+            
+            // Exclude footers from selections.
+            if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
+                var aSelectedIndices = oTable.getSelectedIndices();
+                aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
+                bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
+                
+                if (bAllRowsSelected && oTable._allRowsSelected) {
+                    // Our little hack to exclude footers breaks the "Deselect all" function,
+                    // so we need to emulate it.
+                    oTable.__modifyingSelection = true;
+                    oTable.clearSelection();
+                    oTable.__modifyingSelection = false;
+                    
+                    oTable._allRowsSelected = false;
+                    aRowsSelectedVisible = [];
+                } else {
+                    for(var i = 1; i <= oTable.getFixedBottomRowCount(); i++) {
+                        var iDeselect = aRowsVisible.length - i;
+                        // To exclude footers, we assume they are always the last indices in our model
+                        // and simply deselect those indices, whenever they are in a selection.
+                        if (!aSelectedIndices.includes(iDeselect)) {
+                            continue;
+                        }
+                        
+                        // This line excludes footers from the selectionModel.
+                        var oDeselect = aRowsSelectedVisible.pop();
+                        {$deselectJs}
+                    }
+                    
+                    oTable._allRowsSelected = bAllRowsSelected;
+                }
+            }
 
             if (bMultiSelect === true && bMultiSelectSave === true) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
@@ -264,11 +596,12 @@ JS;
                 });
                 // Add all currently visible selected rows
                 aRowsMerged.push(...aRowsSelectedVisible);
-
-                oModelSelected.setProperty('/rows', aRowsMerged);
+                aSelected = aRowsMerged;
             } else {
-                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
+                aSelected = aRowsSelectedVisible;
             }
+            
+            oModelSelected.setProperty('/rows', aSelected);
             
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
@@ -370,19 +703,6 @@ JS;
         } else {
             $toolbar = '';
         }
-        $freezeColumnsCount = $widget->getFreezeColumns();
-        if ($freezeColumnsCount > 0) {
-            $columns = $widget->getColumns();
-            for ($i = 0; $i < $freezeColumnsCount; $i++) {
-                if ($columns[$i]->isHidden() == true) {
-                    $freezeColumnsCount++;
-                }
-            }
-            // increase the count if the DirtyFlag column is added as the first column in the table
-            if ($this->hasDirtyColumn()) {
-                $freezeColumnsCount++;
-            }
-        }
         $enableGrouping = $widget->hasRowGroups() ? 'enableGrouping: true,' : '';
         
         if ($widget->getDragToOtherWidgets() === true) {
@@ -415,15 +735,26 @@ JS;
                 {$this->buildJsPropertyMinAutoRowCount()}
                 selectionMode: {$selection_mode},
         		selectionBehavior: {$selection_behavior},
-                enableColumnReordering:true,
-                fixedColumnCount: {$freezeColumnsCount},
+                enableColumnReordering: true,
+                fixedColumnCount: {$this->registerUiTableFixedColumns()},
                 enableColumnFreeze: true,
                 {$enableGrouping}
         		filter: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
         		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
                 rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
-        		{$this->buildJsPropertyVisibile()}
+        		columnResize: function (oEvent) {
+                    // skip if the table is currently auto-resizing
+                    if (this.data("_exfIsAutoResizing")) {
+                        return;
+                    }
+
+                    // otherwise assume its a manual resize, and save in custom width property
+                    var sNewWidth = oEvent.getParameter("width");
+                    var oColumn = oEvent.getParameter("column");
+                    oColumn.data("_exfCustomColWidth", sNewWidth);
+                },
+                {$this->buildJsPropertyVisibile()}
                 {$initDnDJs}
                 toolbar: [
         			{$toolbar}
@@ -438,7 +769,7 @@ JS;
                         justifyContent: "Center",
                         alignItems: "Center",
                         items: [
-                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: "{$widget->getEmptyText()}"})
+                            new sap.m.Text("{$this->getIdOfNoDataOverlay()}", {text: {$this->escapeString($widget->getEmptyText())}, textAlign: 'Center'}).addStyleClass('sapUiResponsiveMargin'),
                         ]
                     })
                 ],
@@ -712,79 +1043,111 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-
-            {$oParamsJs}.data.columns = [];
+            
             // Process currently visible columns:
             // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required
+            // - Add column name to ensure even optional data is read if required 
+            // columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
+            
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
-                var oColParam;
-                if (oColumn.data('_exfDataColumnName')) {
-                    if (oColumn.data('_exfAttributeAlias')) {
-                        oColParam = {
-                            attribute_alias: oColumn.data('_exfAttributeAlias')
-                        };
-                        if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                            oColParam.name = oColumn.data('_exfDataColumnName');
-                        }
-                    } else if (oColumn.data('_exfCalculation')) {
-                        oColParam = {
-                            name: oColumn.data('_exfDataColumnName'),
-                            expression: oColumn.data('_exfCalculation')
-                        };
-                    }
-                    if (oColParam !== undefined) {
-                        {$oParamsJs}.data.columns.push(oColParam);
-                    }
-                }
     			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
                     mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
     				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
     			}
     		});
-            
+          
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
+    		// NOTE: adding filters to the P13nDialog works strage: the value of the filter does not change
+    		// immediately. So while the first-time filter on a column always works, changing the value via
+    		// header menu will not change the value in the configurator, so the table will read with the old
+    		// value once, then it will read with the new filter value immediately - ultimately sending two
+    		// requests instead of one. As a workaround, we stop the current request (via `if(false==`) and
+    		// press "OK" on the configurator instead.
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'filter'){
-                (function(oEvent) {
-                    var oColumn = oEvent.getParameters().column;
-                    var sFltrProp = oColumn.getFilterProperty();
-                    var sFltrVal = oEvent.getParameters().value;
-                    var fnParser = oColumn.data('_exfFilterParser'); 
-                    var mFltrParsed = fnParser !== undefined ? fnParser(sFltrVal) : sFltrVal;
-
-                    {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
-                    
-                    if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
-                        oColumn.setFiltered(true).setFilterValue(sFltrVal);
-                    } else {
-                        oColumn.setFiltered(false).setFilterValue('');
-                    }         
+                if(
+                    false === (function(oEvent) {
+                        var oColumn = oEvent.getParameters().column;
+                        var sFltrProp = oColumn.getFilterProperty();
+                        var sFltrVal = oEvent.getParameters().value;
+                        var fnParser = oColumn.data('_exfFilterParser'); 
+                        var mFltrParsed = fnParser !== undefined ? fnParser(sFltrVal) : sFltrVal;
     
-                    // Also make sure the built-in UI5-filtering is not applied.
-                    oEvent.cancelBubble();
-                    oEvent.preventDefault();
-                })($oControlEventJsVar);
+                        {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
+                        
+                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
+                            oColumn.setFiltered(true).setFilterValue(sFltrVal);
+                        } else {
+                            oColumn.setFiltered(false).setFilterValue('');
+                        }  
+    
+                        // also set the filter as an advanced search item in the p13n panel
+                        let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
+    
+                        // Check if a filter for the property already exists
+                        let aFilterItems = oFilterPanel.getFilterItems();
+                        let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
+    
+                        if (oExistingFilter) {
+                            // delete exiting property (if any)
+                            oFilterPanel.removeFilterItem(oExistingFilter);
+                        } 
+                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
+                            // create new filter item if value is valid/not empty
+                            var oFilterItem = new sap.m.P13nFilterItem({
+                                "columnKey": sFltrProp,
+                                "exclude": false,
+                                "operation": "Contains",
+                                "value1": mFltrParsed
+                            });
+    
+                            oFilterPanel.addFilterItem(oFilterItem);
+                        }
+    
+                        // Also make sure the built-in UI5-filtering is not applied.
+                        oEvent.cancelBubble();
+                        oEvent.preventDefault();
+    
+                        // apply the changes from the p13n dialogue 
+                        let oP13nDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'); 
+                        if (oP13nDialog) {
+                            // Cancel the current read request and press "OK" on the configurator instead
+                            // See more comments above in PHP
+                            oP13nDialog.fireOk();
+                            return false;
+                        }
+                        return true;
+                    })($oControlEventJsVar)
+                ) {
+                    return Promise.resolve(oTable.getModel());
+                }
             }
     		
     		// If sorting just now, overwrite the sort string and make sure the sorter in the configurator is set too
     		if ({$oControlEventJsVar} && {$oControlEventJsVar}.getId() == 'sort'){
-                {$oParamsJs}.sort = {$oControlEventJsVar}.getParameters().column.getSortProperty();
-                {$oParamsJs}.order = {$oControlEventJsVar}.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
-                
-                sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}')
-                .destroySortItems()
-                .addSortItem(
-                    new sap.m.P13nSortItem({
-                        columnKey: {$oControlEventJsVar}.getParameters().column.getSortProperty(),
-                        operation: {$oControlEventJsVar}.getParameters().sortOrder
-                    })
-                );
-
-                // Also make sure, the built-in UI5-sorting is not applied.
-                $oControlEventJsVar.cancelBubble();
-                $oControlEventJsVar.preventDefault();
+                (function(oEvent) {
+                    {$oParamsJs}.sort = oEvent.getParameters().column.getSortProperty();
+                    {$oParamsJs}.order = oEvent.getParameters().sortOrder === 'Descending' ? 'desc' : 'asc';
+                    
+                    // get p13n model 
+                    let oSortPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSortPanel()}');
+                    let oConfModel = oSortPanel.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+    
+                    // new sorter object
+                    let oNewSorter = {
+                        attribute_alias: oEvent.getParameters().column.getSortProperty(),
+                        direction: oEvent.getParameters().sortOrder
+                    };
+                    
+                    // update the model/refresh
+                    oConfModel.setProperty('/sorters', [oNewSorter]);
+                    oConfModel.refresh(true);
+    
+                    // Also make sure, the built-in UI5-sorting is not applied.
+                    oEvent.cancelBubble();
+                    oEvent.preventDefault();
+                })($oControlEventJsVar)
     		}
 
             // Set sorting indicators for columns
@@ -824,6 +1187,7 @@ JS;
 JS;
         } elseif ($this->isMTable()) {
             $tableParams = <<<JS
+            // visible columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
 
             // Set sorting indicators for columns
             var aSortProperties = ({$oParamsJs}.sort ? {$oParamsJs}.sort.split(',') : []);
@@ -840,9 +1204,10 @@ JS;
 
 JS;
         }
-			
+		
         return $commonParams . $tableParams;
     }
+
     
     /**
      * Returns inline JS code to refresh the table.
@@ -903,7 +1268,8 @@ JS;
             // If we are reading, than we need the special data from the configurator
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
-                return $this->getConfiguratorElement()->buildJsDataGetter($action);
+                $oDataJs = $this->getConfiguratorElement()->buildJsDataGetter($action);
+                return $oDataJs;
                 
             // Editable tables with modifying actions return all rows either directly or as subsheet
             case $customMode === DataButton::INPUT_ROWS_ALL_AS_SUBSHEET:
@@ -1471,17 +1837,25 @@ JS;
      */
     protected function buildJsUiTableColumnResize(string $oTableJs, string $oModelJs) : string
     {
+        if (($this->getWidget() instanceof DataTable) && $this->getWidget()->getAutoColumnWidth() === false) {
+            return '';
+        }
         return <<<JS
+
+                $oTableJs.data("_exfIsAutoResizing", true);  // set auto resize flag
 
                 var bResized = false;
                 var oInitWidths = {};
+                
                 if (! $oModelJs.getData().rows || $oModelJs.getData().rows.length === 0) {
                     return;
                 }
                 
                 $oTableJs.getColumns().reverse().forEach(function(oCol, i) {
                     var oWidth = oCol.data('_exfWidth');
-                    if (! oWidth || $('#'+oCol.getId()).length === 0) return;
+                    if (! oWidth || $('#'+oCol.getId()).length === 0) {
+                        return;
+                    }
                     oInitWidths[$oTableJs.indexOfColumn(oCol)] = $('#'+oCol.getId()).width();
                     if (oCol.getVisible() === true && oWidth.auto === true) {
                         bResized = true;
@@ -1493,36 +1867,71 @@ JS;
                 });
 
                 if (bResized) {
+                    var fResize = function(oCol){
+                        var oWidth = oCol.data('_exfWidth');
+                        var jqCol = $('#'+oCol.getId());
+                        var jqLabel = jqCol.find('label');
+                        var iWidth = null;
+                        var iColIdx = $oTableJs.indexOfColumn(oCol);
+                        if (! oWidth) {
+                            return;
+                        }
+                        if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
+                            oCol.setWidth(oInitWidths[iColIdx] + 'px');
+                        }
+                        if (oCol.getVisible() === true && oWidth.auto === true) {
+                            if (! jqLabel[0]) {
+                                return;
+                            }
+                            var sAbbrev = oCol.data('_exfAbbreviation');
+                            // We compare with 95% width to avoid browser truncation.
+                            var fLabelWidth = jqLabel.width()  * 0.95; 
+                            // If the caption overflows and isn't abbreviated, use the abbreviation instead.
+                            if (jqLabel[0].scrollWidth > fLabelWidth && oCol.getLabel().getText() !== sAbbrev) {
+                                oCol.getLabel()?.setText(sAbbrev);
+                                // Reiterate the resize function for this column, but with a delay to account for async results. 
+                                setTimeout(function () { fResize(oCol); }, 0);
+                                return;
+                            }
+                            if (jqLabel[0].scrollWidth > fLabelWidth) {
+                                oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
+                            }
+                            if (oWidth.min) {
+                                iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
+                                if (jqCol.outerWidth() < iWidth) {
+                                    oCol.setWidth(oWidth.min);
+                                }
+                            }
+                            if (oWidth.max) {
+                                iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
+                                if (jqCol.outerWidth() > iWidth) {
+                                    oCol.setWidth(oWidth.max);
+                                }
+                            }
+                        }
+                    };
+                    
                     setTimeout(function(){
-                        $oTableJs.getColumns().forEach(function(oCol){
-                            var oWidth = oCol.data('_exfWidth');
-                            var jqCol = $('#'+oCol.getId());
-                            var jqLabel = jqCol.find('label');
-                            var iWidth = null;
-                            var iColIdx = $oTableJs.indexOfColumn(oCol);
-
-                            if (! oWidth) return;
-                            if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
-                                oCol.setWidth(oInitWidths[iColIdx] + 'px');
-                            }
-                            if (oCol.getVisible() === true && oWidth.auto === true) {
-                                if (! jqLabel[0]) return;
-                                if (jqLabel[0].scrollWidth > jqLabel.width()) {
-                                    oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
-                                }
-                                if (oWidth.max) {
-                                    iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
-                                    if (jqCol.outerWidth() > iWidth) {
-                                        oCol.setWidth(oWidth.max);
-                                    }
-                                }
-                            }
+                        $oTableJs.getColumns().forEach(function (oCol){
+                            fResize(oCol);
                         });
                     }, 0);
                 }
+                
+                // manually resized columns should always keep their width
+                // (only skipping them didnt work, so we set the saved value then return)
+                setTimeout(function(){
+                    $oTableJs.getColumns().forEach(function(oCol){
+                        if (oCol.data('_exfCustomColWidth')){
+                            oCol.setWidth(oCol.data('_exfCustomColWidth'));
+                            return;
+                        } 
+                    });
+                }, 0);
 
                 setTimeout(function(){
                     {$this->buildJsFixRowHeight($oTableJs)}
+                    $oTableJs.data("_exfIsAutoResizing", false);  // done auto resizing
                 }, 0);
 JS;
     }
@@ -1620,6 +2029,7 @@ JS;
                     oTable.clearSelection();
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
+                        oTable.addSelectionInterval(iRowIdx, iRowIdx);
                     }
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
@@ -1643,9 +2053,9 @@ JS;
     {
         $hint = $this->escapeJsTextValue($message);
         if ($this->isMList() || $this->isMTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getId()}').setNoDataText({$this->escapeString($hint)})";
         } elseif ($this->isUiTable()) {
-            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText('{$hint}')";
+            $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText({$this->escapeString($hint)})";
         }
         return $this->buildJsDataResetter() . ';' . $setNoData;
     }
@@ -1654,6 +2064,11 @@ JS;
     {
         $widget = $this->getWidget();
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
+        $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
+        $colsOptionalJs = "var oColsOptional = {};";
+        if (! empty($colsOptional)) {
+            $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+        }
         if ($this->isUiTable() === true) {
             return <<<JS
 
@@ -1661,13 +2076,13 @@ JS;
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
-                        var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};
+                        {$colsOptionalJs}
                         var aColumnsNew = [];
                         var bOrderChanged = false;
                         var iConfOffset = 0;
                         var oDirtyColumn = aColumns.filter(oColumn => oColumn.getId() === "{$this->getDirtyFlagAlias()}")[0];
                         var oUidCol = aColumns.filter(oColumn => oColumn.data('data_column_name') === {$this->escapeString($uidColName)})[0];
-                        
+
                         if (oDirtyColumn !== undefined) {
                             iConfOffset += 1;
                             aColumnsNew.push(oDirtyColumn);  
@@ -1676,7 +2091,7 @@ JS;
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
                             var oColumn;
-                            // See if the column is part of the table right nw
+                            // See if the column is part of the table right now
                             for (var iColIdx = 0; iColIdx < aColumns.length; iColIdx++) {
                                 oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
@@ -1697,9 +2112,11 @@ JS;
                                 }   
                             }  
                         });
+
                         // TODO what if the column was part of the table, but is not in the config?
                         // e.g. the UID column, that is always added automatically. It seems to be
                         // added at the end, so we handle it here. But that does not feel good!
+                        // UPDATE: Doesnt seem to work??
                         if (oUidCol !== undefined) {
                             aColumnsNew.push(oUidCol); 
                         }
@@ -1714,73 +2131,94 @@ JS;
 JS;
         } else {
             return <<<JS
-
+                        // Responsive table
                         var aColsConfig = {$this->getConfiguratorElement()->buildJsP13nColumnConfig()};
                         var oTable = sap.ui.getCore().byId('{$this->getId()}');
                         var aColumns = oTable.getColumns();
                         var aColumnsNew = [];
-                       
+                        var oController = {$this->getController()->buildJsControllerGetter($this)};
+                        {$colsOptionalJs}
+
                         var bOrderChanged = false;
-                        var aOrderChanges = new Array;
+
+                        // add dirty column first
+                        var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
+                        if (oDirtyColumn) {
+                            aColumnsNew.push(oDirtyColumn);
+                        }
+
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
-                            var iConfOffset = 0;
+                            // table columns
                             aColumns.forEach(function(oColumn, iColIdx) {
-                                if (oColumn.getId() === "{$this->getDirtyFlagAlias()}") {
-                                    iConfOffset += 1;
-                                    aColumnsNew.push(oColumn);  
-                                    return;
-                                }
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    iConfIdx += iConfOffset;
                                     if (oColumn.getVisible() !== oColConfig.visible) {
                                         oColumn.setVisible(oColConfig.visible);
                                     }
-                                    if (iColIdx !== iConfIdx) {
-                                        bOrderChanged = true;
-                                        aOrderChanges.push({idxFrom: iColIdx, idxTo: iConfIdx}); 
-                                    }
                                     aColumnsNew.push(oColumn);                                    
                                     return;
-                                }
+                                }  
                             });
+                            // optional columns
+                            if (oColConfig.visible === true && oColsOptional !== null) {
+                                var oColumn = oColsOptional[oColConfig.column_name];
+                                if (oColumn !== undefined) {
+                                    oColumn.setVisible(true);
+                                    aColumnsNew.push(oColumn); 
+                                    return;
+                                }   
+                            }
                         });
 
-                        if (bOrderChanged === true) {
+                        // compare cols if re-order is needed
+                        var aOldOrderIds = aColumns.filter(col => col.getVisible()).map(col => col.getId());
+                        var aNewOrderIds = aColumnsNew.map(col => col.getId());
 
-                            var aCellBuffer = new Array;
-                            var aRemovableCells = new Array;
-                            var aCells = oTable.getBindingInfo("items").template.getCells();
+                        if (JSON.stringify(aOldOrderIds) !== JSON.stringify(aNewOrderIds)) {
+                            bOrderChanged = true;
+                        }
 
-                            oTable.removeAllColumns();
-                            aColumnsNew.forEach(oColumn => {
-                                oTable.addColumn(oColumn);
+                        //if order/content changed, apply new columns and rebuild template
+                        if (bOrderChanged) {
+                            var oTemplate = oTable.getBindingInfo("items").template;
+                            var aOldCells = oTemplate.getCells();
+                            var aNewCells = [];
+
+                            // map data by column id for re-ordering
+                            var mColumnIdToCell = {};
+                            aColumns.forEach((col, idx) => {
+                                var colId = col.getId();
+                                if (aOldCells[idx]) {
+                                    mColumnIdToCell[colId] = aOldCells[idx];
+                                }
                             });
 
-                            aOrderChanges.forEach(function(oOrderChange, oOrderChangeIdx){
+                            // remove all columns
+                            oTable.removeAllColumns();
 
-                                var oCellFromBuffer = null;
-                                aCellBuffer.forEach(function(oCellBuffer, oCellBufferIdx){
-                                    if (oCellBuffer.previousIdx == oOrderChange.idxFrom){
-                                        oCellFromBuffer = oCellBuffer.cell;
-                                        return;
-                                    }
-                                });
-                                
-                                if (aRemovableCells.includes(oOrderChange.idxTo) == false){
-                                    aCellBuffer.push({previousIdx: oOrderChange.idxTo, cell: aCells[oOrderChange.idxTo]});
+                            // re-add columns in new order and update their cells
+                            aColumnsNew.forEach((col, idx) => {
+                                oTable.addColumn(col);
+
+                                var colId = col.getId();
+                                if (mColumnIdToCell[colId]) {
+                                    // if is existing column, reuse cell from old template
+                                    aNewCells.push(mColumnIdToCell[colId]);
+                                } 
+                                else {
+                                    // if is new/optional column, bind data to col name from config
+                                    var oColConfig = aColsConfig.find(c => c.column_id === colId);
+                                    var sProperty = oColConfig.column_name;
+                                    
+                                    aNewCells.push(new sap.m.Text({
+                                        text: '{' + sProperty + '}'
+                                    }));
                                 }
-                                
-                                if (oCellFromBuffer != null){
-                                    aCells[oOrderChange.idxTo] = oCellFromBuffer;
-                                } else {
-                                    aCells[oOrderChange.idxTo] = aCells[oOrderChange.idxFrom];
-                                    aRemovableCells.push(oOrderChange.idxFrom);
-                                }
-                            }); 
+                            });
 
-                            oTable.getBindingInfo("items").template.mAggregations.cells = aCells;
-
-                        } 
+                            //update template
+                            oTemplate.removeAllAggregation("cells");
+                            aNewCells.forEach(cell => oTemplate.addCell(cell));
+                        }
 
 JS;
         }

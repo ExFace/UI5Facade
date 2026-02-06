@@ -8,19 +8,19 @@
 		},
 		{
 			"name": "AbsoluteLayout.less",
-			"size": 785,
+			"size": 846,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Accordion.less",
-			"size": 426,
+			"size": 468,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "AccordionSection.less",
-			"size": 2990,
+			"size": 3206,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "Carousel.less",
-			"size": 1384,
+			"size": 1427,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -80,7 +80,7 @@
 		},
 		{
 			"name": "ControlsInUITable.less",
-			"size": 2726,
+			"size": 2371,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -98,7 +98,7 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 173,
+			"size": 2274,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -116,7 +116,7 @@
 		},
 		{
 			"name": "FormattedTextView.less",
-			"size": 1103,
+			"size": 1200,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -766,7 +766,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 76917,
+			"size": 78142,
 			"theme": "base"
 		},
 		{
@@ -777,12 +777,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 76872,
+			"size": 78096,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 120264,
+			"size": 122469,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -794,7 +794,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 13776
+			"size": 13777
 		}
 	]
 }

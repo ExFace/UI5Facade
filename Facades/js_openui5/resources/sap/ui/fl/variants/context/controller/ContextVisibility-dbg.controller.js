@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -24,7 +24,7 @@ sap.ui.define([
 	}
 
 	function assignDescriptionsToSelectedRoles(oSelectedRoles) {
-		var mPropertyBag = {layer: Layer.CUSTOMER, flexObjects: oSelectedRoles};
+		var mPropertyBag = { layer: Layer.CUSTOMER, flexObjects: oSelectedRoles };
 		return WriteStorage.loadContextDescriptions(mPropertyBag).then(function(oResponse) {
 			if (oResponse.role && oResponse.role.length === oSelectedRoles.role.length) {
 				this.oSelectedContextsModel.setProperty("/selected", oResponse.role);
@@ -56,7 +56,7 @@ sap.ui.define([
 	}
 
 	function itemToJson(oItem) {
-		return {id: oItem.getTitle(), description: oItem.getDescription()};
+		return { id: oItem.getTitle(), description: oItem.getDescription() };
 	}
 
 	return Controller.extend("sap.ui.fl.variants.context.controller.ContextVisibility", {
@@ -100,7 +100,7 @@ sap.ui.define([
 
 		formatTooltip(sDescription) {
 			this.oI18n ||= this.getView().getModel("i18n").getResourceBundle();
-			return sDescription.length === 0 ? this.oI18n.getText("NO_DESCRIPTION") : sDescription;
+			return sDescription?.trim() ? sDescription : this.oI18n.getText("NO_DESCRIPTION");
 		},
 
 		/**
@@ -111,7 +111,7 @@ sap.ui.define([
 		_appendDataFromBackend() {
 			var oRoles = this.oContextsModel.getProperty("/values");
 			if (this.oContextsModel.getProperty("/lastHitReached") === false) {
-				var mConfig = {$skip: oRoles.length};
+				var mConfig = { $skip: oRoles.length };
 				return getData.call(this, mConfig, oRoles);
 			}
 			return Promise.resolve(oRoles);
@@ -163,7 +163,7 @@ sap.ui.define([
 		 */
 		onSearch(oEvent) {
 			oEvent.getSource().clearSelection();
-			var mConfig = {$filter: oEvent.getParameter("value")};
+			var mConfig = { $filter: oEvent.getParameter("value") };
 			return getData.call(this, mConfig);
 		},
 

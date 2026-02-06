@@ -3,8 +3,10 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\Interfaces\Exceptions\ExceptionInterface;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\StringDataType;
+use exface\UI5Facade\Exceptions\UI5ControllerNotInitializedException;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Exceptions\LogicException;
 use exface\UI5Facade\Facades\Interfaces\UI5ServerAdapterInterface;
@@ -42,6 +44,8 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     private $controller = null;
     
     private $layoutData = null;
+    
+    private array $listenersForControllerSet = [];
     
     /**
      * 
@@ -165,11 +169,17 @@ JS;
     {
         return <<<JS
 
-        sap.m.MessageToast.show(function(){
-            var tmp = document.createElement("DIV");
-            tmp.innerHTML = {$message_body_js};
-            return tmp.textContent || tmp.innerText || "";
-        }());
+        (function(sBody, sTitle){
+            if (sBody.length > 200) {
+               {$this->getController()->buildJsComponentGetter()}.showHtmlInDialog(sTitle, '<pre style="margin: 1rem; white-space: break-spaces">' + sBody + '</pre>', sap.ui.core.ValueState.Success);
+            } else {
+                sap.m.MessageToast.show(function(){
+                    var tmp = document.createElement("DIV");
+                    tmp.innerHTML = sBody;
+                    return tmp.textContent || tmp.innerText || "";
+                }());
+            }
+        })({$message_body_js}, {$this->escapeString($title)});
 JS;
     }
     
@@ -188,7 +198,7 @@ JS;
         
         switch (true) {
             // Icon properties of some controls like sap.m.Button accept data-URLs for SVG
-            case $iconSet === iHaveIcon::ICON_SET_SVG:
+            case Icons::isIconSetSVG($iconSet) === true:
                 $path = 'data:image/svg+xml;utf8,';
                 try {
                     $xml = SvgDataType::cast($icon_name);
@@ -295,12 +305,12 @@ JS;
         }
         
         // json_encode() escapes " and ' really well
-        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text));
+        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         // however, the result is enclosed in double quotes if it's a string. If so, we
         // need to remove the first an last character (the quotes). Note: trim() won't
         // work here because if the $text was already beginning or ending with " it will
         // get trimmed off too!
-        if (substr($escaped, 0, 1) === '"') {
+        if (mb_substr($escaped, 0, 1) === '"') {
             $escaped = substr($escaped, 1, -1);   
         }
         
@@ -477,10 +487,10 @@ JS;
     /**
      * Executes given PHP code once the element has a controller.
      * 
-     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise it is
+     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise, it is
      * postponed till a controller is assigned to this element or one of its parents.
      * 
-     * This method is mainly usefull for `Element::init()` logic, that requires a UI5 controller.
+     * This method is mainly useful for `Element::init()` logic, that requires a UI5 controller.
      * The `init()` method is often called before a controller was initialized, so it may not yet
      * be accessible. 
      * 
@@ -492,7 +502,14 @@ JS;
         try {
             $controller = $this->getController();
             $function($controller);
-        } catch (FacadeRuntimeError $e) {
+        } catch (ExceptionInterface $e) {
+            if (! ($e instanceof UI5ControllerNotInitializedException || null !== $e->findPrevious(UI5ControllerNotInitializedException::class))) {
+                throw $e;
+            }
+            if (in_array($function, $this->listenersForControllerSet, true) === true) {
+                return $this;
+            }
+            $this->listenersForControllerSet[] = $function;
             $this->getWorkbench()->eventManager()->addListener(OnControllerSetEvent::getEventName(), function(OnControllerSetEvent $event) use ($function) {
                 $thisWidget = $this->getWidget();
                 $eventWidget = $event->getWidget();
@@ -518,10 +535,11 @@ JS;
     public function getController() : UI5ControllerInterface
     {
         if ($this->controller === null) {
-            if ($this->getWidget()->hasParent()) {
-                return $this->getFacade()->getElement($this->getWidget()->getParent())->getController();
+            if (null !== $parent = $this->getWidget()->getParent()) {
+                $parentEl = $this->getFacade()->getElement($parent);
+                $this->controller = $parentEl->getController();
             } else {
-                throw new FacadeRuntimeError('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
+                throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
             }
         }
         return $this->controller;

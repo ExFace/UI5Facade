@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -11,6 +11,7 @@ sap.ui.define([
 	"sap/ui/core/Lib",
 	"sap/ui/integration/library",
 	"sap/ui/integration/util/BindingResolver",
+	"sap/ui/model/json/JSONModel",
 	"sap/base/Log",
 	"sap/base/util/merge"
 ], function (
@@ -21,6 +22,7 @@ sap.ui.define([
 	Library,
 	library,
 	BindingResolver,
+	JSONModel,
 	Log,
 	merge
 ) {
@@ -29,7 +31,7 @@ sap.ui.define([
 	var ActionArea = library.CardActionArea;
 
 	// lazy dependencies, loaded on the first attempt to create AnalyticalContent
-	var VizFrame, FeedItem, FlattenedDataset, Popover, MeasureDefinition, DimensionDefinition;
+	var VizFrame, FeedItem, FlattenedDataset, Popover, MeasureDefinition, DimensionDefinition, VizTooltip;
 
 	/**
 	 * Enumeration with supported legend positions.
@@ -92,7 +94,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -147,14 +149,16 @@ sap.ui.define([
 						"sap/viz/ui5/controls/Popover",
 						"sap/viz/ui5/data/FlattenedDataset",
 						"sap/viz/ui5/data/MeasureDefinition",
-						"sap/viz/ui5/data/DimensionDefinition"
-					], function (_VizFrame, _FeedItem, _Popover, _FlattenedDataset, _MeasureDefinition, _DimensionDefinition) {
+						"sap/viz/ui5/data/DimensionDefinition",
+						"sap/viz/ui5/controls/VizTooltip"
+					], function (_VizFrame, _FeedItem, _Popover, _FlattenedDataset, _MeasureDefinition, _DimensionDefinition, _VizTooltip) {
 						VizFrame = _VizFrame;
 						FeedItem = _FeedItem;
 						Popover = _Popover;
 						FlattenedDataset = _FlattenedDataset;
 						MeasureDefinition = _MeasureDefinition;
 						DimensionDefinition = _DimensionDefinition;
+						VizTooltip = _VizTooltip;
 						resolve();
 					}, function (sErr) {
 						reject(sErr);
@@ -187,8 +191,8 @@ sap.ui.define([
 				this.hideNoDataMessage();
 			} else {
 				this.showNoDataMessage({
-					illustrationType: IllustratedMessageType.NoEntries,
-					title: this.getCardInstance().getTranslatedText("CARD_NO_ITEMS_ERROR_LISTS")
+					illustrationType: IllustratedMessageType.NoData,
+					title: Library.getResourceBundleFor("sap.ui.integration").getText("CARD_NO_ITEMS_ERROR_LISTS")
 				});
 			}
 		}
@@ -216,6 +220,10 @@ sap.ui.define([
 			width: "100%",
 			vizType: ChartTypes[oResolvedConfiguration.chartType] || oResolvedConfiguration.chartType
 		});
+
+		if (oResolvedConfiguration.tooltips) {
+			new VizTooltip().connect(oChart.getVizUid());
+		}
 
 		this.setAggregation("_content", oChart);
 		this._attachActions(oConfiguration);
@@ -249,6 +257,60 @@ sap.ui.define([
 			feeds: this._getFeeds(oResolvedConfiguration),
 			vizType: ChartTypes[oResolvedConfiguration.chartType] || oResolvedConfiguration.chartType
 		});
+
+		this._onChartFullyLoaded(oChart);
+	};
+
+	/**
+	 * Called when the analytical chart is fully loaded and ready.
+	 *
+	 * @private
+	 * @param {sap.viz.ui5.controls.VizFrame} oChart The VizFrame chart instance
+	 */
+	AnalyticalContent.prototype._onChartFullyLoaded = function (oChart) {
+
+		if (!this._bChartHandlersAttached) {
+			const oCard = this.getCardInstance();
+
+			oChart.attachRenderComplete(function() {
+				const oDomRef = oChart.getDomRef();
+				if (!oDomRef) {
+					return;
+				}
+
+				const oSvgElement = oDomRef.querySelector("svg");
+				if (!oSvgElement) {
+					return;
+				}
+
+				// The chart shouldn't be focused when it has no action or popover.
+				// In all other cases (actionableArea is "Full" or "Content") the chart should be focusable
+				if (!this._bActions && !this._bPopover  && this.getCardInstance().isRoleListItem()) {
+					const sCardDescriptionId = oCard.getDomRef().getAttribute("aria-describedby");
+					const sChartLabelId = oSvgElement.getAttribute("aria-labelledby");
+
+					// Make SVG non-focusable
+					oSvgElement.setAttribute("tabindex", "");
+					// Also remove focus capability from the SVG
+					oSvgElement.setAttribute("focusable", "false");
+
+					// Add the aria-describedby from the chart to the card if it is not added already
+					if (sCardDescriptionId && !sCardDescriptionId.endsWith(sChartLabelId)) {
+						oCard.getDomRef().setAttribute("aria-describedby", sCardDescriptionId + " " + sChartLabelId);
+					} else if (!sCardDescriptionId) {
+						oCard.getDomRef().setAttribute("aria-describedby", sChartLabelId);
+					}
+
+					if (oCard.isInteractive()) {
+						oSvgElement.classList.add("sapUiIntegrationAnalyticalForcePointer");
+					}
+				} else if (this._bActions && !this._bChartsInteractive) {
+					oSvgElement.classList.add("sapUiIntegrationAnalyticalForcePointer");
+				}
+			}.bind(this));
+
+			this._bChartHandlersAttached = true;
+		}
 	};
 
 	AnalyticalContent.prototype._attachActions = function (oConfiguration) {
@@ -265,6 +327,28 @@ sap.ui.define([
 			this._oActions.setBindingPathResolver((oEvent) => {
 				const sResolvedPath = this._getContextPath(oEvent);
 				return sResolvedPath;
+			});
+
+			this._oActions.setParametersResolver((oAction, oSource, sPath, oEvent) => {
+				if (oSource.getModel("chartEventData")) {
+					Log.error("Model 'chartEventData' is already in use. Chart event data binding will not work correctly.");
+
+					return BindingResolver.resolveValue(oAction.parameters, oSource, sPath);
+				}
+
+				const aChartEventData = this._prepareChartEventData(oEvent);
+
+				if (!aChartEventData) {
+					return BindingResolver.resolveValue(oAction.parameters, oSource, sPath);
+				}
+
+				const oChartEventModel = new JSONModel(aChartEventData);
+				oSource.setModel(oChartEventModel, "chartEventData");
+
+				const oResolved = BindingResolver.resolveValue(oAction.parameters, oSource, sPath);
+				oSource.setModel(null, "chartEventData");
+
+				return oResolved;
 			});
 
 		} else {
@@ -349,10 +433,19 @@ sap.ui.define([
 			}
 		};
 
-		if (oResolvedConfiguration.actions || oResolvedConfiguration.popover) {
-			var bChartsInteractive = oResolvedConfiguration.actionableArea === ActionableArea.Chart
-									|| oResolvedConfiguration.popover && oResolvedConfiguration.popover.active;
-			oVizProperties.interaction.noninteractiveMode = !bChartsInteractive;
+		if (oResolvedConfiguration.actions || oResolvedConfiguration.popover || oResolvedConfiguration.tooltips) {
+			this._bChartsInteractive = oResolvedConfiguration.actionableArea === ActionableArea.Chart
+				|| oResolvedConfiguration.popover?.active
+				|| oResolvedConfiguration.tooltips;
+			this._bActions = oResolvedConfiguration.actions;
+			this._bPopover = oResolvedConfiguration.popover && oResolvedConfiguration.popover.active;
+
+			oVizProperties.interaction.noninteractiveMode = !this._bChartsInteractive;
+		}
+
+
+		if (oResolvedConfiguration.popover && oResolvedConfiguration.tooltips) {
+			Log.error("\"sap.card\".content.popover property and \"sap.card\".content.tooltips property shouldn't be set at the same time. Only the popover will work.", null, "sap.ui.integration.widgets.Card");
 		}
 
 		if (oTitle) {
@@ -461,18 +554,53 @@ sap.ui.define([
 	/**
 	 * Get the resolved chart item path.
 	 * @private
-	 * @param {jQuery.Event} oEvent
+	 * @param {jQuery.Event} oEvent The chart selection event
+	 * @returns {string} The resolved context path for the selected chart item
 	 */
-
 	AnalyticalContent.prototype._getContextPath = function (oEvent) {
-		const iIndex = oEvent.getParameter("data")[0].data._context_row_number;
+		const oEventData = oEvent.getParameter("data")[0].data;
+		const iIndex = oEventData._context_row_number;
 		const sPath = this.getBindingContext().getPath();
-		return sPath !== "/" ? sPath + "/" + iIndex : sPath + iIndex;
+		const sContextPath = sPath !== "/" ? sPath + "/" + iIndex : sPath + iIndex;
+
+		return sContextPath;
+	};
+
+	/**
+	 * Prepares chart event data by extracting relevant properties from the event.
+	 * Filters out internal properties that start with underscore.
+	 * Returns an array of all selected data points.
+	 * @private
+	 * @param {jQuery.Event} oEvent The chart selection event
+	 * @returns {Array<object>} Array containing chart event data properties for all selected data points
+	 */
+	AnalyticalContent.prototype._prepareChartEventData = function (oEvent) {
+		if (!oEvent) {
+			return null;
+		}
+
+		const aEventData = oEvent.getParameter("data");
+		const aChartEventData = [];
+
+		aEventData.forEach(function(oDataPoint) {
+			const oEventData = oDataPoint.data;
+			const oFilteredData = {};
+
+			for (const sKey in oEventData) {
+				if (oEventData.hasOwnProperty(sKey) && !sKey.startsWith("_")) {
+					oFilteredData[sKey] = oEventData[sKey];
+				}
+			}
+
+			aChartEventData.push(oFilteredData);
+		});
+
+		return aChartEventData;
 	};
 
 	AnalyticalContent.prototype.getFocusDomRef = function () {
-		return this.getAggregation("_content").getDomRef().querySelector(".v-info") || this.getDomRef();
-	};
+        return this.getAggregation("_content").getDomRef().querySelector(".v-m-root") || this.getDomRef();
+    };
 
 	return AnalyticalContent;
 });

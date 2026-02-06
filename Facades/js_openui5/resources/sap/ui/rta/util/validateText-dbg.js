@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -12,8 +12,8 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var sEmptyTextKey = "\xa0";
-	var oValidators = {
+	const sEmptyTextKey = "\xa0";
+	const oValidators = {
 		noEmptyText: {
 			validatorFunction(sNewText) {
 				return sNewText !== sEmptyTextKey;
@@ -26,8 +26,8 @@ sap.ui.define([
 		if (sOldText === sNewText) {
 			throw Error("sameTextError");
 		}
-		var oBindingParserResult;
-		var bError;
+		let oBindingParserResult;
+		let bError;
 
 		try {
 			oBindingParserResult = BindingParser.complexParser(sNewText, undefined, true);
@@ -42,11 +42,11 @@ sap.ui.define([
 
 	return function(sNewText, sOldText, oAction) {
 		checkPreconditionsAndThrowError(sNewText, sOldText);
-		var sErrorText;
-		var aValidators = oAction && oAction.validators || [];
+		let sErrorText;
+		const aValidators = oAction && oAction.validators || [];
 
 		aValidators.some(function(vValidator) {
-			var oValidator;
+			let oValidator;
 
 			if (
 				typeof vValidator === "string" && oValidators[vValidator]

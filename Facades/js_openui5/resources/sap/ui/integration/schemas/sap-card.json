@@ -62,7 +62,14 @@
         "1.49.0",
         "1.50.0",
         "1.51.0",
-        "1.52.0"
+        "1.52.0",
+        "1.53.0",
+        "1.54.0",
+        "1.55.0",
+        "1.56.0",
+        "1.57.0",
+        "1.58.0",
+        "1.59.0"
       ]
     },
     "designtime": {
@@ -126,11 +133,16 @@
           }
         },
         "destinations": {
-          "description": "Describes what destinations are used by the card",
+          "description": "Specifies the destinations configured for use by the card",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/Configuration.Destinations"
           }
+        },
+        "useMainDestinations": {
+          "description": "Indicates if child cards should reference the main card's destinations. Must be set to true in child cards to use the main card's destinations",
+          "type": "boolean",
+          "default": false
         },
         "csrfTokens": {
           "description": "Describes the CSRF tokens used by the card",
@@ -140,7 +152,7 @@
           }
         },
         "actionHandlers": {
-          "description": "Holds configuration for the default action handlers",
+          "description": "Contains configuration settings for the default action handlers",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -162,13 +174,20 @@
           "type": "object"
         },
         "loadingPlaceholders": {
-          "description": "[Experimental] Object which will represent the loading placeholder of the card",
+          "description": "[Experimental] Object that will represent the loading placeholder of the card",
           "type": "object",
           "properties": {
             "delay": {
               "description": "The delay of the loading placeholder",
               "type": "number"
             }
+          }
+        },
+        "childCards": {
+          "description": "[Experimental] Map of child cards",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Configuration.ChildCard"
           }
         }
       }
@@ -492,6 +511,15 @@
           "default": 3
         },
         "subTitle": {
+          "description": "[Deprecated] Represents a subtitle to the title; to make this property language dependent (recommended), use a key in double curly brackets '{{key}}'",
+          "$ref": "#/$defs/i18n_key_string",
+          "deprecated": true,
+          "i18n": {
+            "type": "XTIT",
+            "comment": "Header subtitle"
+          }
+        },
+        "subtitle": {
           "description": "Represents a subtitle to the title; to make this property language dependent (recommended), use a key in double curly brackets '{{key}}'",
           "$ref": "#/$defs/i18n_key_string",
           "i18n": {
@@ -500,6 +528,19 @@
           }
         },
         "subTitleMaxLines": {
+          "description": "[Deprecated] Limit the number of lines for the sub title",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/simpleBinding"
+            }
+          ],
+          "deprecated": true,
+          "default": 2
+        },
+        "subtitleMaxLines": {
           "description": "[Experimental] Limit the number of lines for the sub title",
           "oneOf": [
             {
@@ -583,7 +624,7 @@
           ],
           "default": 3
         },
-        "subTitle": {
+        "subtitle": {
           "description": "Represents a subtitle to the title; to make this property language dependent (recommended), use a key in double curly brackets '{{key}}'",
           "$ref": "#/$defs/i18n_key_string",
           "i18n": {
@@ -591,7 +632,16 @@
             "comment": "Header subtitle"
           }
         },
-        "subTitleMaxLines": {
+        "subTitle": {
+          "description": "[Deprecated] Represents a subtitle to the title; to make this property language dependent (recommended), use a key in double curly brackets '{{key}}'",
+          "$ref": "#/$defs/i18n_key_string",
+          "i18n": {
+            "type": "XTIT",
+            "comment": "Header subtitle"
+          },
+          "deprecated": true
+        },
+        "subtitleMaxLines": {
           "description": "[Experimental] Limit the number of lines for the sub title",
           "oneOf": [
             {
@@ -601,6 +651,19 @@
               "$ref": "#/$defs/simpleBinding"
             }
           ],
+          "default": 2
+        },
+        "subTitleMaxLines": {
+          "description": "[Deprecated] Limit the number of lines for the sub title",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/simpleBinding"
+            }
+          ],
+          "deprecated": true,
           "default": 2
         },
         "actions": {
@@ -1160,6 +1223,18 @@
               }
             }
           }
+        },
+        "tooltips": {
+          "description": "Visualize the tooltips that are generated by Viz charts.",
+          "oneOf": [
+            {
+              "type": "boolean",
+              "default": false
+            },
+            {
+              "$ref": "#/$defs/simpleBinding"
+            }
+          ]
         }
       }
     },
@@ -1426,8 +1501,9 @@
           }
         },
         "actions": {
-          "description": "Defines actions that can be applied on the content",
+          "description": "[Deprecated] Defines actions that can be applied on the content",
           "type": "array",
+          "deprecated": true,
           "items": {
             "$ref": "#/$defs/action"
           }
@@ -1840,9 +1916,14 @@
               "description": "The title",
               "type": "string"
             },
-            "subTitle": {
-              "description": "The subTitle",
+            "subtitle": {
+              "description": "The subtitle",
               "type": "string"
+            },
+            "subTitle": {
+              "description": "The subtitle",
+              "type": "string",
+              "deprecated": true
             },
             "verticalPosition": {
               "description": "The vertical alignment of the texts",
@@ -2708,11 +2789,39 @@
             }
           ]
         },
+        "state": {
+          "description": "Defines the state of the icon",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/state"
+            },
+            {
+              "$ref": "#/$defs/simpleBinding"
+            }
+          ]
+        },
         "visible": {
           "description": "Visibility of the icon",
           "$ref": "#/$defs/visibility"
         }
-      }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["src"] },
+            { "required": ["initials"] },
+            { "required": ["state"] }
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["src", "state"] },
+              { "required": ["initials", "state"] }
+            ]
+          }
+        }
+      ]
     },
     "minHeight": {
       "description": "Defines the min-height of the Content as a CSS value",
@@ -3353,12 +3462,14 @@
       "description": "Parameters for ShowCard action",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "manifest"
-      ],
       "properties": {
+        "childCardKey": {
+          "description": "The key of the card to be shown",
+          "type": "string"
+        },
         "manifest": {
-          "description": "An application identifier consisting of semanticObject and action",
+          "deprecated": true,
+          "description": "[Deprecated] Child card manifest",
           "oneOf": [
             {
               "type": "string"
@@ -3878,6 +3989,20 @@
         },
         "type": {
           "description": "Defines the image predefined from sap.m.IllustratedMessage",
+          "type": "string"
+        }
+      }
+    },
+    "Configuration.ChildCard": {
+      "description": "Represents a configuration for a child card",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest"
+      ],
+      "properties": {
+        "manifest": {
+          "description": "The manifest of the child card",
           "type": "string"
         }
       }
@@ -4428,6 +4553,13 @@
               "$ref": "#/$defs/simpleBinding"
             }
           ]
+        },
+        "actions": {
+          "description": "Actions that can be applied on the status",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
         }
       }
     }

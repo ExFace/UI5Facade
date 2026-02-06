@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/write/_internal/flexState/UI2Personalization/UI2PersonalizationState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/base/util/restricted/_omit"
+	"sap/base/util/restricted/_omit",
+	"sap/ui/fl/write/_internal/init"
 ], function(
-	UI2PersonalizationState,
 	ManifestUtils,
+	UI2PersonalizationState,
 	_omit
 ) {
 	"use strict";

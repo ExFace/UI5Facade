@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -61,12 +61,12 @@ sap.ui.define([
 		scrollVertically: TableUtils.throttle(function(oTable, bDown, iBase, iPercentage) {
 			const oVerticalScrollbar = oTable._getScrollExtension().getVerticalScrollbar();
 			oVerticalScrollbar.scrollTop += this.calculateScrollDistance(iBase, iPercentage) * (bDown ? 1 : -1);
-		}, 50),
+		}, 50, {leading: false}),
 
 		scrollHorizontally: TableUtils.throttle(function(oTable, bRight, iBase, iPercentage) {
 			const oHorizontalScrollbar = oTable._getScrollExtension().getHorizontalScrollbar();
 			oHorizontalScrollbar.scrollLeft += this.calculateScrollDistance(iBase, iPercentage) * (bRight ? 1 : -1);
-		}, 50),
+		}, 50, {leading: false}),
 
 		calculateScrollDistance: function(iBase, iPercentage) {
 			const iMinDistance = 2;
@@ -95,7 +95,7 @@ sap.ui.define([
 				} else {
 					// To be able to identify whether a row is dropped on itself we need to compare the contexts. The row index is not reliable. The
 					// indexing of the table can change, for example by expanding a node.
-					oSessionData.draggedRowContext = oDraggedControl.getRowBindingContext();
+					oSessionData.draggedRowContext = TableUtils.getBindingContextOfRow(oDraggedControl);
 				}
 			}
 
@@ -126,7 +126,7 @@ sap.ui.define([
 				 * - Sum rows
 				 */
 				const oDraggedRowContext = oSessionData.draggedRowContext;
-				const oDropRowContext = oDropControl.getRowBindingContext();
+				const oDropRowContext = TableUtils.getBindingContextOfRow(oDropControl);
 				const sDropPosition = oDragSession.getDropInfo().getDropPosition();
 
 				if ((oDropControl.isEmpty() && sDropPosition === DropPosition.On && TableUtils.hasData(this)) // On empty row, table has data
@@ -274,7 +274,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.DragAndDrop
@@ -286,7 +286,7 @@ sap.ui.define([
 		 * @inheritDoc
 		 * @returns {string} The name of this extension.
 		 */
-		_init: function(oTable, sTableType, mSettings) {
+		_init: function(oTable, mSettings) {
 			this._oDelegate = ExtensionDelegate;
 
 			TableUtils.addDelegate(oTable, this._oDelegate, oTable);

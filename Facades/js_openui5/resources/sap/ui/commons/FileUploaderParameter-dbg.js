@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.commons.FileUploaderParameter.
-sap.ui.define(['sap/base/Log', './library', 'sap/ui/unified/FileUploaderParameter'],
-	function(Log, library, UnifiedFileUploaderParameter) {
+sap.ui.define(['sap/ui/core/Element', './library'],
+	function(Element, library) {
 	"use strict";
+
+
 
 	/**
 	 * Constructor for a new FileUploaderParameter.
@@ -17,29 +19,37 @@ sap.ui.define(['sap/base/Log', './library', 'sap/ui/unified/FileUploaderParamete
 	 *
 	 * @class
 	 * Represents a parameter for the FileUploader which is rendered as a hidden inputfield.
-	 * @extends sap.ui.unified.FileUploaderParameter
+	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @deprecated Since version 1.21.0.
-	 * Please use the element sap.ui.unified.FileUploaderParameter of the library sap.ui.unified instead.
+	 * Please use the control sap.ui.unified.FileUploaderParameter of the library sap.ui.unified instead.
 	 * @alias sap.ui.commons.FileUploaderParameter
 	 */
-	var FileUploaderParameter = UnifiedFileUploaderParameter.extend("sap.ui.commons.FileUploaderParameter", /** @lends sap.ui.commons.FileUploaderParameter.prototype */ { metadata : {
+	var FileUploaderParameter = Element.extend("sap.ui.commons.FileUploaderParameter", /** @lends sap.ui.commons.FileUploaderParameter.prototype */ { metadata : {
 
-		deprecated : true,
-		library : "sap.ui.commons"
+		library : "sap.ui.commons",
+		properties : {
+
+			/**
+			 * The name of the hidden inputfield.
+			 * @since 1.12.2
+			 */
+			name : {type : "string", group : "Data", defaultValue : null},
+
+			/**
+			 * The value of the hidden inputfield.
+			 * @since 1.12.2
+			 */
+			value : {type : "string", group : "Data", defaultValue : null}
+		}
 	}});
 
-	try {
-		sap.ui.getCore().loadLibrary("sap.ui.unified");
-	} catch (e) {
-		Log.error("The element 'sap.ui.commons.FileUploaderParameter' needs library 'sap.ui.unified'.");
-		throw (e);
-	}
+
 
 	return FileUploaderParameter;
 

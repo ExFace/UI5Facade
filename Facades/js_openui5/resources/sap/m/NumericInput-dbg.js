@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ function(
 	 * @extends sap.m.Input
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -106,10 +106,10 @@ function(
 
 			return;
 		}
-
+		var oIsMinusSignAtZeroPosition =  iCursorPos === 0 && (oEvent.which === KeyCodes.SLASH || oEvent.which === KeyCodes.NUMPAD_MINUS);
 		sTypedValue = this.getValue().substring(0, iCursorPos) + oEvent.originalEvent.key + this.getValue().substring(iCursorPos);
 		fParsedValue = this._getNumberFormat().parse(sTypedValue);
-		if (!isKeyAllowed(oEvent.which) || (!fParsedValue && fParsedValue !== 0)) {
+		if (!isKeyAllowed(oEvent.which) || (!fParsedValue && fParsedValue !== 0 && !oIsMinusSignAtZeroPosition)) {
 			oEvent.preventDefault();
 		}
 	};

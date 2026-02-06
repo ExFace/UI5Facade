@@ -342,6 +342,7 @@ JS;
             }
         }
         $cssIncludes = implode("\n", $this->buildJsImportCSS());
+        $viewTitleJs = json_encode($this->getView()->getCaption());
         return <<<JS
 
 {$cssIncludes}
@@ -433,6 +434,7 @@ sap.ui.define([
 			var oParams = (oArgs.params === undefined ? {} : this._decodeRouteParams(oArgs.params));
             var oViewModel = oView.getModel('view');
 			oViewModel.setProperty("/_route", {params: oParams});
+            exfLauncher.getHistory().setTitleOfHash(this.getRouter().getHashChanger().getHash(), $viewTitleJs);
             
             {$this->buildJsOnRouteMatched()}
 		},

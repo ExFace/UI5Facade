@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var CreateContainerVisualization = {};
+	const CreateContainerVisualization = {};
 
 	/**
 	 * Creates a localized description for create container, based on the provided
@@ -25,10 +25,10 @@ sap.ui.define([
 	 * @returns {object} Map containing localized description text and tooltip
 	 */
 	CreateContainerVisualization.getDescription = function(mPayload, sLabel) {
-		var oRtaResourceBundle = Lib.getResourceBundleFor("sap.ui.rta");
-		var sElementLabel = mPayload.originalLabel || sLabel;
-		var sShortenedElementLabel = ChangeVisualizationUtils.shortenString(sElementLabel);
-		var sTextKey = "TXT_CHANGEVISUALIZATION_CHANGE_CREATECONTAINER";
+		const oRtaResourceBundle = Lib.getResourceBundleFor("sap.ui.rta");
+		const sElementLabel = mPayload.originalLabel || sLabel;
+		const sShortenedElementLabel = ChangeVisualizationUtils.shortenString(sElementLabel);
+		const sTextKey = "TXT_CHANGEVISUALIZATION_CHANGE_CREATECONTAINER";
 		return {
 			descriptionText: oRtaResourceBundle.getText(sTextKey, [sShortenedElementLabel]),
 			descriptionTooltip: oRtaResourceBundle.getText(sTextKey, [sElementLabel])

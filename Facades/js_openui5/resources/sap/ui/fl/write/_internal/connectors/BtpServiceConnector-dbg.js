@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * Connector for saving and deleting data from SAPUI5 Flexibility KeyUser service - including personalization.
 	 *
 	 * @namespace sap.ui.fl.write._internal.connectors.BtpServiceConnector
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.write._internal.Storage
 	 */
@@ -52,12 +52,14 @@ sap.ui.define([
 				GET_SOURCELANGUAGE: `${InitialConnector.ROOT}/translation/sourcelanguages`
 			},
 			CONTEXTS: `${InitialConnector.ROOT}/contexts`,
-			SEEN_FEATURES: `${InitialConnector.ROOT}/seenFeatures`
+			SEEN_FEATURES: `${InitialConnector.ROOT}/seenFeatures`,
+			DELETE_USER_VARIANTS: `${InitialConnector.ROOT}/variantdata/delete`,
+			CONTEXT_BASED_ADAPTATION: (appId) => `${InitialConnector.ROOT}/apps/${appId}/adaptations/`
 		},
 
 		async getSeenFeatureIds(mPropertyBag) {
 			const sUrl = InitialUtils.getUrl(this.ROUTES.SEEN_FEATURES, mPropertyBag);
-			const oResult = await InitialUtils.sendRequest(sUrl, "GET", {initialConnector: InitialConnector});
+			const oResult = await InitialUtils.sendRequest(sUrl, "GET", { initialConnector: InitialConnector });
 			return oResult.response?.seenFeatureIds;
 		},
 
@@ -66,13 +68,7 @@ sap.ui.define([
 				seenFeatureIds: mPropertyBag.seenFeatureIds
 			};
 			const sUrl = InitialUtils.getUrl(this.ROUTES.SEEN_FEATURES, mPropertyBag);
-			const oResult = await WriteUtils.sendRequest(sUrl, "PUT", {
-				tokenUrl: this.ROUTES.TOKEN,
-				initialConnector: InitialConnector,
-				payload: JSON.stringify(mParameters),
-				dataType: "json",
-				contentType: "application/json; charset=utf-8"
-			});
+			const oResult = await WriteUtils.sendRequest(sUrl, "PUT", _getRequestOptions.call(this, mPropertyBag.url, mParameters));
 			return oResult.response?.seenFeatureIds;
 		},
 
@@ -94,17 +90,118 @@ sap.ui.define([
 				InitialUtils.addLanguageInfo(mParameters);
 			}
 			const sUrl = InitialUtils.getUrl(this.ROUTES.CONDENSE, mPropertyBag, mParameters);
-			const oRequestOption = WriteUtils.getRequestOptions(
-				InitialConnector,
-				this.ROUTES.TOKEN,
-				mPropertyBag.flexObjects,
-				"application/json; charset=utf-8",
-				"json"
-			);
 
-			return WriteUtils.sendRequest(sUrl, "POST", oRequestOption);
+			return WriteUtils.sendRequest(sUrl, "POST", _getRequestOptions.call(this, mPropertyBag.url, mPropertyBag.flexObjects));
+		},
+
+		/**
+		 * Deletes all user variants for the given variant management references.
+		 *
+		 * @param {object} mPropertyBag - Property bag
+		 * @param {string} mPropertyBag.flexReference - Flex reference of the app the variant management controls belong to
+		 * @param {string[]} mPropertyBag.variantManagementReferences - Array of variant management references
+		 * @param {string} mPropertyBag.url - Configured url for the connector
+		 * @returns {Promise<undefined>} Promise that resolves as soon as the deletion was completed
+		 */
+		deleteUserVariantsForVM(mPropertyBag) {
+			const mPayload = {
+				flexReference: mPropertyBag.flexReference,
+				variantManagementReferences: mPropertyBag.variantManagementReferences
+			};
+			const sUrl = InitialUtils.getUrl(this.ROUTES.DELETE_USER_VARIANTS, mPropertyBag);
+			return WriteUtils.sendRequest(sUrl, "POST", _getRequestOptions.call(this, mPropertyBag.url, mPayload));
+		},
+
+		/**
+		 * Routes for the context based adaptation.
+		 *
+		 * @param {object} mPropertyBag - Property bag
+		 * @param {string} mPropertyBag.appId - Id of the underlying app
+		 * @param {string} mPropertyBag.adaptationId - Id of the adaptation to be updated or removed
+		 * @param {object} mPropertyBag.flexObject - Payload object for the body of the create or updated request
+		 * @param {object} mPropertyBag.flexObjects - Payload object for the body of the reorder request
+		 * @param {string} mPropertyBag.version - Version number to be used for loading the information about adaptations
+		 * @param {string} [mPropertyBag.parentVersion] - Indicates if changes should be based on a version
+		 */
+		contextBasedAdaptation: {
+			create(mPropertyBag) {
+				const mParameters = {};
+				if (mPropertyBag.parentVersion !== undefined) {
+					mParameters.parentVersion = mPropertyBag.parentVersion;
+				}
+				const sUrl = InitialUtils.getUrl(BtpServiceConnector.ROUTES.CONTEXT_BASED_ADAPTATION(mPropertyBag.appId), mPropertyBag, mParameters);
+				return WriteUtils.sendRequest(sUrl, "POST", {
+					tokenUrl: BtpServiceConnector.ROUTES.TOKEN,
+					initialConnector: InitialConnector,
+					payload: JSON.stringify(mPropertyBag.flexObject),
+					dataType: "json",
+					contentType: "application/json; charset=utf-8"
+				});
+			},
+			reorder(mPropertyBag) {
+				const mParameters = {};
+				if (mPropertyBag.parentVersion !== undefined) {
+					mParameters.parentVersion = mPropertyBag.parentVersion;
+				}
+				const sUrl = InitialUtils.getUrl(BtpServiceConnector.ROUTES.CONTEXT_BASED_ADAPTATION(mPropertyBag.appId), mPropertyBag, mParameters);
+				return WriteUtils.sendRequest(sUrl, "PUT", {
+					tokenUrl: BtpServiceConnector.ROUTES.TOKEN,
+					initialConnector: InitialConnector,
+					payload: JSON.stringify(mPropertyBag.flexObjects),
+					dataType: "json",
+					contentType: "application/json; charset=utf-8"
+				});
+			},
+			update(mPropertyBag) {
+				const mParameters = {};
+				if (mPropertyBag.parentVersion !== undefined) {
+					mParameters.parentVersion = mPropertyBag.parentVersion;
+				}
+				mPropertyBag.reference = mPropertyBag.adaptationId;
+				const sUrl = InitialUtils.getUrl(BtpServiceConnector.ROUTES.CONTEXT_BASED_ADAPTATION(mPropertyBag.appId), mPropertyBag, mParameters);
+				return WriteUtils.sendRequest(sUrl, "PUT", {
+					tokenUrl: BtpServiceConnector.ROUTES.TOKEN,
+					initialConnector: InitialConnector,
+					payload: JSON.stringify(mPropertyBag.flexObject),
+					dataType: "json",
+					contentType: "application/json; charset=utf-8"
+				});
+			},
+			load(mPropertyBag) {
+				const mParameters = {};
+				mParameters.version = mPropertyBag.version;
+				var sDataUrl = InitialUtils.getUrl(BtpServiceConnector.ROUTES.CONTEXT_BASED_ADAPTATION(mPropertyBag.appId), mPropertyBag, mParameters);
+				return InitialUtils.sendRequest(sDataUrl, "GET", {
+					initialConnector: InitialConnector,
+					tokenUrl: BtpServiceConnector.ROUTES.TOKEN
+				}).then(function(oResult) {
+					return oResult.response;
+				});
+			},
+			remove(mPropertyBag) {
+				const mParameters = {};
+				if (mPropertyBag.parentVersion !== undefined) {
+					mParameters.parentVersion = mPropertyBag.parentVersion;
+				}
+				mPropertyBag.reference = mPropertyBag.adaptationId;
+				const sUrl = InitialUtils.getUrl(BtpServiceConnector.ROUTES.CONTEXT_BASED_ADAPTATION(mPropertyBag.appId), mPropertyBag, mParameters);
+				return WriteUtils.sendRequest(sUrl, "DELETE", {
+					tokenUrl: BtpServiceConnector.ROUTES.TOKEN,
+					initialConnector: InitialConnector
+				});
+			}
 		}
 	});
+
+	function _getRequestOptions(sUrl, vPayload) {
+		return WriteUtils.getRequestOptions(
+			InitialConnector,
+			InitialUtils.getUrl(this.ROUTES.TOKEN, { url: sUrl }),
+			vPayload,
+			"application/json; charset=utf-8",
+			"json"
+		);
+	}
 
 	BtpServiceConnector.initialConnector = InitialConnector;
 	return BtpServiceConnector;

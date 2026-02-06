@@ -1,26 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'./SortFlex',
-	'./ColumnFlex',
-	'./ConditionFlex',
-	'./GroupFlex',
-	'./AggregateFlex',
-	'./xConfigFlex',
-	'sap/ui/fl/changeHandler/condenser/Classification'
-], (SortFlex, ColumnFlex, ConditionFlex, GroupFlex, AggregateFlex, xConfigFlex, CondenserClassification) => {
+	"./SortFlex",
+	"./ColumnFlex",
+	"./ConditionFlex",
+	"./GroupFlex",
+	"./AggregateFlex",
+	"./xConfigFlex"
+], (
+	SortFlex,
+	ColumnFlex,
+	ConditionFlex,
+	GroupFlex,
+	AggregateFlex,
+	xConfigFlex
+) => {
 	"use strict";
 
 	return {
 		"hideControl": "default",
 		"unhideControl": "default",
-		addColumn: ColumnFlex.createAddChangeHandler(),
-		removeColumn: ColumnFlex.createRemoveChangeHandler(),
-		moveColumn: ColumnFlex.createMoveChangeHandler(),
+		addColumn: ColumnFlex.addColumn,
+		removeColumn: ColumnFlex.removeColumn,
+		moveColumn: ColumnFlex.moveColumn,
 		removeSort: SortFlex.removeSort,
 		addSort: SortFlex.addSort,
 		moveSort: SortFlex.moveSort,

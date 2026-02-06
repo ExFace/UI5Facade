@@ -26,13 +26,13 @@
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 1585,
+			"size": 1588,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 976,
+			"size": 1074,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -44,7 +44,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 941,
+			"size": 1043,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 161212,
+			"size": 160907,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
@@ -73,12 +73,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 160745,
+			"size": 160440,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 8565,
+			"size": 8768,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
@@ -90,7 +90,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 1739
+			"size": 1741
 		}
 	]
 }

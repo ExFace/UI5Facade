@@ -50,13 +50,13 @@
 		},
 		{
 			"name": "ObjectPageSubSection.less",
-			"size": 6409,
+			"size": 5875,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 52622,
+			"size": 52092,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
@@ -67,12 +67,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 52618,
+			"size": 52088,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 53321,
+			"size": 52787,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @class
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -53,7 +53,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			ManagedObject.prototype.constructor.apply(this, aArgs);
 			this.oTextResources = this.getToolbar().getTextResources();
@@ -69,7 +68,7 @@ sap.ui.define([
 			sVersion = oVersionsBindingContext.getProperty("version");
 		}
 
-		this.getToolbar().fireEvent("switchVersion", {version: sVersion});
+		this.getToolbar().fireEvent("switchVersion", { version: sVersion });
 	}
 
 	function doesActiveVersionExists(aVersions) {
@@ -247,7 +246,7 @@ sap.ui.define([
 					onConfirmVersioningDialog: function() {
 						var sVersionTitle = this.getToolbar().getControl("activateVersionDialog--versionTitleInput").getValue();
 						if (sVersionTitle.length > 0) {
-							this.getToolbar().fireEvent("activate", {versionTitle: sVersionTitle});
+							this.getToolbar().fireEvent("activate", { versionTitle: sVersionTitle });
 							this._oActivateVersionDialog.close();
 						}
 					}.bind(this),

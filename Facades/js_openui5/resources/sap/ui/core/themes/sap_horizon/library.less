@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -365,21 +365,6 @@ html.sap-tablet:not(.sap-desktop) input, html.sap-tablet:not(.sap-desktop) texta
 }
 /* END "shared.less" */
 
-
-/* START "BrowserScrollbar.less" */
-/* ============================================= */
-/* CSS for control sap.ui.core/BrowserScrollbar  */
-/* Horizon theme                                 */
-/* ============================================= */
-
-/****** Safari + Chrome on Desktop ******/
-
-html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb {
-	border-radius: @sapUiElementBorderCornerRadius;
-	border: 0.125rem solid @sapUiScrollBarTrackColor;
-}
-/* END "BrowserScrollbar.less" */
-
 /* START "DatePicker.less" */
 /* ======================================= */
 /* CSS for control sap.ui.core/DatePicker  */
@@ -395,28 +380,28 @@ html.sap-desktop:not(.sapUiNativeScrollbars) ::-webkit-scrollbar-thumb {
 }
 /* END "DatePicker.less" */
 
-/* START "LocalBusyIndicator.less" */
-/* =============================================== */
-/* CSS for control sap.ui.core/LocalBusyIndicator  */
-/* Horizon theme                                   */
-/* =============================================== */
+/* START "BusyIndicator.less" */
+/* ======================================================================== */
+/* CSS for control BusyIndicator implementation of the sap.ui.core.Control  */
+/* Morning Horizon theme                                                    */
+/* ======================================================================== */
 
 @_sap_ui_core_LocalBusyIndicator_Color: @sapContent_BusyColor;
 
 .sapUiLocalBusyIndicatorSizeSection,
 .sapUiLocalBusyIndicatorSizeBig {
-    font-size: @_sap_ui_core_LocalBusyIndicator_SizeMedium;
+	font-size: @_sap_ui_core_LocalBusyIndicator_SizeMedium;
 }
 
 .sapUiLocalBusyIndicatorShowContainer > div.sapUiLocalBusyIndicatorAnimation {
-    background-color: @sapList_Background;
-    box-shadow: @sapContent_Shadow2;
-    border-radius: @sapElement_BorderCornerRadius;
-    padding: 1rem 2rem;
-    max-width: 15rem;
-    /* Centers the busy indicator markers considering the size of the white container */
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+	background-color: var(--sapList_Background);
+	box-shadow: var(--sapContent_Shadow2);
+	border-radius: var(--sapElement_BorderCornerRadius);
+	padding: 1rem 2rem;
+	max-width: 15rem;
+	/* Centers the busy indicator markers considering the size of the white container */
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
-/* END "LocalBusyIndicator.less" */
+/* END "BusyIndicator.less" */

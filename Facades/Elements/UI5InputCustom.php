@@ -39,12 +39,16 @@ class UI5InputCustom extends UI5Input
         if (! $this->isValueBoundToModel() && ($value = $widget->getValueWithDefaults()) !== null) {
             $initPropsJs = ($widget->getScriptToSetValue(json_encode($value)) ?? '');
         } else {
-            $setterJs = $widget->getScriptToSetValue("sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}')");
             $initPropsJs = <<<JS
 
             var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
             oValueBinding.attachChange(function(oEvent){
-                {$setterJs}
+                var mVal = sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}');
+                // Do not update if the model does not have this property
+                if (mVal === undefined) {
+                    return;
+                }
+                {$widget->getScriptToSetValue("mVal")}
             });
 
 JS;
@@ -64,6 +68,7 @@ JS;
         new sap.ui.core.HTML("{$this->getId()}", {
             content: "{$this->escapeJsTextValue($widget->getHtml())}",
             afterRendering: function() {
+                
                 {$initJs}
                 {$initPropsJs}
                 if ($('#{$this->getId()}_css').length === 0) {
@@ -90,6 +95,16 @@ JS;
         }
         foreach ($this->getWidget()->getIncludeCss() as $url) {
             $controller->addExternalCss($url);
+        }
+        foreach ($this->getWidget()->getIncludeJsModules() as $i => $url) {
+            $id = md5($url) . '_' . ($i + 1);
+            $html = '<script id="' . $id . '" type="module" src="' . $url . '"></script>';
+            $controller->addOnInitScript(<<<JS
+
+        if ($('#{$id}').length === 0) {
+            $('head').append('{$html}');
+        }
+JS);
         }
         return $this;
     }

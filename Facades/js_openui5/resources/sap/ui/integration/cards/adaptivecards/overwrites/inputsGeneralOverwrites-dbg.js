@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -60,7 +60,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oLabel = document.createElement("ui5-label");
+		var oLabel = document.createElement("ui5-label-ac");
 
 		oLabel.id = oAdaptiveCardElement._renderedLabelElement.id;
 		oLabel.innerText = oAdaptiveCardElement.label;

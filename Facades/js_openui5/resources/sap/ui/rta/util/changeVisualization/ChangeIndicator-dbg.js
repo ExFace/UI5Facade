@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,14 +11,14 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/core/Lib",
 	"sap/ui/core/StaticArea",
+	"sap/ui/dt/OverlayRegistry",
 	"sap/ui/events/KeyCodes",
-	"sap/ui/fl/util/resolveBinding",
 	"sap/ui/fl/Utils",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/rta/util/changeVisualization/commands/getCommandVisualization",
 	"sap/ui/rta/util/changeVisualization/ChangeCategories",
 	"sap/ui/rta/util/changeVisualization/ChangeVisualizationUtils",
-	"sap/ui/dt/OverlayRegistry"
+	"sap/ui/rta/util/changeVisualization/resolveBinding"
 ], function(
 	DateFormat,
 	Control,
@@ -26,14 +26,14 @@ sap.ui.define([
 	Fragment,
 	Lib,
 	StaticArea,
+	OverlayRegistry,
 	KeyCodes,
-	resolveBinding,
 	FlUtils,
 	JSONModel,
 	getCommandVisualization,
 	ChangeCategories,
 	ChangeVisualizationUtils,
-	OverlayRegistry
+	resolveBinding
 ) {
 	"use strict";
 
@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @alias sap.ui.rta.util.changeVisualization.ChangeIndicator
 	 * @author SAP SE
 	 * @since 1.84.0
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 */
 	const ChangeIndicator = Control.extend("sap.ui.rta.util.changeVisualization.ChangeIndicator", {
@@ -144,7 +144,6 @@ sap.ui.define([
 				oRm.close("div");
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			this._oDetailModel = new JSONModel();
 			this._oDetailModel.setDefaultBindingMode("OneWay");
@@ -401,7 +400,7 @@ sap.ui.define([
 	};
 
 	ChangeIndicator.prototype._onKeyDown = function(oEvent) {
-		if (oEvent.keyCode === KeyCodes.ENTER) {
+		if (oEvent.keyCode === KeyCodes.ENTER || oEvent.keyCode === KeyCodes.SPACE) {
 			this._onSelect(oEvent);
 		}
 

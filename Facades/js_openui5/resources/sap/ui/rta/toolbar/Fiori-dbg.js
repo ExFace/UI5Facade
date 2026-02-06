@@ -1,22 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/m/Image",
-	"./Adaptation",
-	"../Utils",
 	"sap/base/Log",
-	"sap/ui/rta/toolbar/AdaptationRenderer"
+	"sap/m/Image",
+	"sap/ui/rta/toolbar/Adaptation",
+	"sap/ui/rta/toolbar/AdaptationRenderer",
+	"sap/ui/rta/Utils"
 ],
 function(
+	Log,
 	Image,
 	Adaptation,
-	Utils,
-	Log,
-	AdaptationRenderer
+	AdaptationRenderer,
+	Utils
 ) {
 	"use strict";
 
@@ -34,7 +34,7 @@ function(
 	 * @extends sap.ui.rta.toolbar.Adaptation
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -71,11 +71,9 @@ function(
 			const sLogoPath = this.getUshellApi().getLogo();
 
 			if (sLogoPath) {
-				// Unstable: if FLP changes ID of <img> element, logo could be not found
-				const oLogo = this._oFioriHeader.getDomRef().querySelector("#shell-header-icon");
+				const oLogo = this.getUshellApi().getLogoDomRef();
 				let iWidth;
 				let iHeight;
-
 				if (oLogo) {
 					iWidth = oLogo.getBoundingClientRect().width;
 					iHeight = oLogo.getBoundingClientRect().height;
@@ -85,7 +83,6 @@ function(
 				this.getControl("iconSpacer").setWidth("8px");
 				this._iLogoWidth = iWidth + 8;
 
-				// first control is the left HBox
 				this.getControl("iconBox").addItem(
 					new Image(`${this.getId()}_fragment--sapUiRta_icon`, {
 						src: sLogoPath,

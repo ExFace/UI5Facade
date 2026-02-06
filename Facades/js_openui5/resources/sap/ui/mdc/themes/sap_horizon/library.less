@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,6 +50,14 @@
 .sapMdcValueHelpPanel .sapMITBContent {
 	background-color: transparent;
 }
+
+.sapMdcTokenizerPanel .sapMTokenizer {
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: @sapUiFieldShadow;
+}
+
 /* END "ValueHelpDialog.less" */
 
 /* START "TokenDisplay.less" */
@@ -100,6 +108,14 @@ html.sap-desktop .sapUiMdcTokenizerDisplay.sapMTokenizer:focus {
 	outline: none;
 	box-shadow: none;
 }
+
+.sapUiMdcTokenizerDisplay .sapMTokenizerIndicator:focus {
+	border-radius: 0.125rem;
+	background-color: var(--sapContent_FocusColor);
+	color: var(--sapContent_ContrastTextColor);
+	text-shadow: none;
+	outline: none;
+}
 /* END "TokenizerDisplay.less" */
 
 /* START "FieldBase.less" */
@@ -114,11 +130,10 @@ html.sap-desktop .sapUiMdcTokenizerDisplay.sapMTokenizer:focus {
 /* END "FieldBase.less" */
 
 /* START "Chart.less" */
-/* =================================== */
-/* CSS for control sap.ui.mdc/Chart    */
-/* Horizon theme                       */
-/* =================================== */
+/* ================================= */
+/* CSS for control sap.ui.mdc/Chart  */
+/* Morning Horizon theme             */
+/* ================================= */
 
 @_sap_ui_mdc_Chart_ToolbarDesign: ~"Solid";
-
 /* END "Chart.less" */

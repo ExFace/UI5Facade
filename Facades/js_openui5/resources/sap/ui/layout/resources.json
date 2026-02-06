@@ -16,7 +16,7 @@
 		{
 			"name": "AlignedFlowLayout-dbg.js",
 			"module": "sap/ui/layout/AlignedFlowLayout.js",
-			"size": 19391,
+			"size": 19411,
 			"isDebug": true,
 			"required": [
 				"sap/base/i18n/Localization.js",
@@ -30,7 +30,7 @@
 		{
 			"name": "AlignedFlowLayout.js",
 			"module": "sap/ui/layout/AlignedFlowLayout.js",
-			"size": 6769,
+			"size": 6789,
 			"required": [
 				"sap/base/i18n/Localization.js",
 				"sap/ui/core/Control.js",
@@ -42,7 +42,7 @@
 		},
 		{
 			"name": "AlignedFlowLayout.js.map",
-			"size": 9568,
+			"size": 9591,
 			"isDebug": true
 		},
 		{
@@ -720,7 +720,7 @@
 		{
 			"name": "ResponsiveSplitterUtilities-dbg.js",
 			"module": "sap/ui/layout/ResponsiveSplitterUtilities.js",
-			"size": 1658,
+			"size": 1659,
 			"isDebug": true
 		},
 		{
@@ -922,7 +922,7 @@
 		},
 		{
 			"name": "_SplitterRegistry.js.map",
-			"size": 1029,
+			"size": 1023,
 			"isDebug": true
 		},
 		{
@@ -998,7 +998,7 @@
 		{
 			"name": "changeHandler/AddSimpleFormGroup-dbg.js",
 			"module": "sap/ui/layout/changeHandler/AddSimpleFormGroup.js",
-			"size": 8571,
+			"size": 8581,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/util/reflection/JsControlTreeModifier.js",
@@ -1656,7 +1656,7 @@
 		{
 			"name": "designtime/form/FormContainer-dbg.designtime.js",
 			"module": "sap/ui/layout/designtime/form/FormContainer.designtime.js",
-			"size": 3505,
+			"size": 3557,
 			"isDebug": true,
 			"designtime": true,
 			"required": [
@@ -2365,7 +2365,7 @@
 		{
 			"name": "form/ColumnContainerData-dbg.js",
 			"module": "sap/ui/layout/form/ColumnContainerData.js",
-			"size": 2295,
+			"size": 2565,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/LayoutData.js",
@@ -2389,7 +2389,7 @@
 		{
 			"name": "form/ColumnElementData-dbg.js",
 			"module": "sap/ui/layout/form/ColumnElementData.js",
-			"size": 2048,
+			"size": 2217,
 			"isDebug": true,
 			"required": [
 				"sap/ui/core/LayoutData.js",
@@ -2413,7 +2413,7 @@
 		{
 			"name": "form/ColumnLayout-dbg.js",
 			"module": "sap/ui/layout/form/ColumnLayout.js",
-			"size": 25446,
+			"size": 25533,
 			"isDebug": true,
 			"required": [
 				"sap/ui/Device.js",
@@ -2477,7 +2477,7 @@
 		{
 			"name": "form/Form-dbg.js",
 			"module": "sap/ui/layout/form/Form.js",
-			"size": 12944,
+			"size": 14664,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -2505,7 +2505,7 @@
 		{
 			"name": "form/FormContainer-dbg.js",
 			"module": "sap/ui/layout/form/FormContainer.js",
-			"size": 13214,
+			"size": 13353,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -2537,7 +2537,7 @@
 		{
 			"name": "form/FormElement-dbg.js",
 			"module": "sap/ui/layout/form/FormElement.js",
-			"size": 15312,
+			"size": 15335,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -2929,7 +2929,7 @@
 		{
 			"name": "form/SemanticFormElement-dbg.js",
 			"module": "sap/ui/layout/form/SemanticFormElement.js",
-			"size": 21339,
+			"size": 21370,
 			"isDebug": true,
 			"required": [
 				"sap/ui/layout/form/FormElement.js",
@@ -2939,7 +2939,7 @@
 		{
 			"name": "form/SemanticFormElement.js",
 			"module": "sap/ui/layout/form/SemanticFormElement.js",
-			"size": 8573,
+			"size": 8580,
 			"required": [
 				"sap/ui/layout/form/FormElement.js",
 				"sap/ui/layout/form/FormHelper.js"
@@ -2947,13 +2947,13 @@
 		},
 		{
 			"name": "form/SemanticFormElement.js.map",
-			"size": 12179,
+			"size": 12202,
 			"isDebug": true
 		},
 		{
 			"name": "form/SimpleForm-dbg.js",
 			"module": "sap/ui/layout/form/SimpleForm.js",
-			"size": 72410,
+			"size": 75352,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
@@ -2982,7 +2982,7 @@
 		{
 			"name": "form/SimpleForm.js",
 			"module": "sap/ui/layout/form/SimpleForm.js",
-			"size": 25840,
+			"size": 25875,
 			"required": [
 				"sap/base/Log.js",
 				"sap/ui/base/ManagedObjectObserver.js",
@@ -3009,7 +3009,7 @@
 		},
 		{
 			"name": "form/SimpleForm.js.map",
-			"size": 34685,
+			"size": 34726,
 			"isDebug": true
 		},
 		{
@@ -3031,7 +3031,7 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/layout/library.js",
-			"size": 25585,
+			"size": 26025,
 			"isDebug": true,
 			"required": [
 				"sap/ui/base/DataType.js",
@@ -3054,7 +3054,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/layout/library-preload.js",
-			"size": 302686,
+			"size": 302748,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -3190,13 +3190,13 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 393486,
+			"size": 393567,
 			"isDebug": true
 		},
 		{
 			"name": "library-preload.support.js",
 			"module": "sap/ui/layout/library-preload.support.js",
-			"size": 31696,
+			"size": 31699,
 			"merged": true,
 			"support": true,
 			"required": [
@@ -3233,7 +3233,7 @@
 		{
 			"name": "library.support.js",
 			"module": "sap/ui/layout/library.support.js",
-			"size": 429,
+			"size": 432,
 			"support": true,
 			"required": [
 				"sap/ui/layout/rules/Form.support.js"
@@ -3406,7 +3406,7 @@
 		{
 			"name": "messagebundle_hu.properties",
 			"module": "sap/ui/layout/messagebundle_hu.properties",
-			"size": 552,
+			"size": 554,
 			"locale": "hu",
 			"raw": "messagebundle.properties"
 		},
@@ -3628,7 +3628,7 @@
 		},
 		{
 			"name": "themes/base/AlignedFlowLayout.less",
-			"size": 1151,
+			"size": 1371,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3652,25 +3652,25 @@
 		},
 		{
 			"name": "themes/base/CSSGrid.less",
-			"size": 2081,
+			"size": 2082,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/ColumnLayout.less",
-			"size": 10886,
+			"size": 10893,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/DynamicSideContent.less",
-			"size": 1633,
+			"size": 1635,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/FixFlex.less",
-			"size": 2367,
+			"size": 2024,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3682,7 +3682,7 @@
 		},
 		{
 			"name": "themes/base/FormLayout.less",
-			"size": 2891,
+			"size": 2870,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3694,7 +3694,7 @@
 		},
 		{
 			"name": "themes/base/GridLayout.less",
-			"size": 5933,
+			"size": 6031,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3718,7 +3718,7 @@
 		},
 		{
 			"name": "themes/base/ResponsiveLayout.less",
-			"size": 8499,
+			"size": 8601,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3742,7 +3742,7 @@
 		},
 		{
 			"name": "themes/base/VerticalLayout.less",
-			"size": 1677,
+			"size": 1679,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3753,7 +3753,7 @@
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 157399,
+			"size": 157149,
 			"theme": "base"
 		},
 		{
@@ -3764,12 +3764,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 156930,
+			"size": 156680,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 88400,
+			"size": 88468,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -3798,7 +3798,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/GridLayout.less",
-			"size": 263,
+			"size": 361,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -3810,7 +3810,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/ResponsiveLayout.less",
-			"size": 300,
+			"size": 402,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -3894,7 +3894,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/base_GridLayout.less",
-			"size": 5926,
+			"size": 6024,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -3918,7 +3918,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/base_ResponsiveLayout.less",
-			"size": 8457,
+			"size": 8559,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -3948,7 +3948,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library-RTL.css",
-			"size": 157066,
+			"size": 157130,
 			"theme": "sap_hcb"
 		},
 		{
@@ -3959,12 +3959,12 @@
 		},
 		{
 			"name": "themes/sap_hcb/library.css",
-			"size": 156597,
+			"size": 156661,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "themes/sap_hcb/library.less",
-			"size": 92658,
+			"size": 93058,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

@@ -1,19 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/m/p13n/Engine"
-], (Engine) => {
+	"sap/m/p13n/Engine",
+	"sap/ui/core/Lib"
+], ( Engine, Library) => {
 	"use strict";
 
 	return {
 		actions: {
 			settings: {
 				"sap.ui.mdc": function(oControl) {
-					return Engine.getInstance()._runWithPersistence(oControl, (bIsGlobal) => ({
-						name: "filterbar.ADAPT_TITLE",
+					const bIsGlobal = Engine.getInstance()._getKeyUserPersistence(oControl);
+					return {
+						name: function() {
+							return Library.getResourceBundleFor("sap.ui.mdc").getText("filterbar.ADAPT_TITLE");
+						},
 						handler: function (oControl, mPropertyBag) {
 							//CHECK: move metadata finalizing to Engine?
 							return oControl.initializedWithMetadata().then(() => {
@@ -21,7 +25,7 @@ sap.ui.define([
 							});
 						},
 						CAUTION_variantIndependent: bIsGlobal
-					}));
+					};
 				}
 			}
 		},
@@ -45,6 +49,15 @@ sap.ui.define([
 			},
 			p13nMode: {
 				ignore: false
+			},
+			enableLegacyUI: {
+				ignore: true
+			},
+			adaptFiltersText: {
+				ignore: true
+			},
+			adaptFiltersTextNonZero: {
+				ignore: true
 			}
 		}
 	};

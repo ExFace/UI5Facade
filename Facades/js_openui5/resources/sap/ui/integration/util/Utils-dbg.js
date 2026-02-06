@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,8 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/date/UI5Date",
 	"sap/base/i18n/Localization",
-	"sap/base/util/deepClone"
+	"sap/base/util/deepClone",
+	"sap/base/i18n/date/TimezoneUtils"
 ], function (
 	getCompatibilityVersion,
 	Locale,
@@ -21,7 +22,8 @@ sap.ui.define([
 	Log,
 	UI5Date,
 	Localization,
-	deepClone
+	deepClone,
+	TimezoneUtils
 ) {
 	"use strict";
 
@@ -29,7 +31,7 @@ sap.ui.define([
 	 * Utility class helping with JSON strings and formatters.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @alias sap.ui.integration.util.Utils
@@ -68,7 +70,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Replace underline to dash of language codes in translation texts of changes
+	 * Replace underscore with hyphen of language codes in translation texts of changes
 	 * @returns {object} translation texts
 	 */
 	Utils.formatLanguageCodesInTranslationTexts = function(oTexts) {
@@ -337,6 +339,10 @@ sap.ui.define([
 					mFormat.parts[1].toString()
 				],
 				formatter: function (sText, vParam1, vParam2) {
+					if (!sText) {
+						return "";
+					}
+
 					var sParam1 = vParam1 || mFormat.parts[0];
 					var sParam2 = vParam2 || mFormat.parts[1];
 
@@ -393,6 +399,85 @@ sap.ui.define([
 				clearTimeout(iTimeoutHandle);
 				bStopped = true;
 			}
+		};
+	};
+
+	/**
+	 * Recursively searches for a value in an object using a callback function.
+	 *
+	 * @param {object} oData The object in which to perform the search.
+	 * @param {function} fnPredicate The function applied to each value. It is provided with the argument (value) and returns true to stop the search.
+	 * @returns {object|false} The value that satisfies the function, or false if none is found.
+	 */
+	Utils.find = function(oData, fnPredicate) {
+		if (!isPlainObject(oData)) {
+			throw new Error("Parameter 'data' must be an object.");
+		}
+
+		function process(vValue) {
+			if (fnPredicate(vValue)) {
+				return vValue;
+			}
+
+			if (Array.isArray(vValue)) {
+				for (const item of vValue) {
+					const result = process(item);
+					if (result) {
+						return result;
+					}
+				}
+
+				return false;
+			}
+
+			if (isPlainObject(vValue)) {
+				for (const key of Object.keys(vValue)) {
+					const result = process(vValue[key]);
+
+					if (result) {
+						return result;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		return process(oData);
+	};
+
+	/**
+	 * Shifts formatter options, timezone and locale.
+	 * @param {object} oFormatOptions The format options.
+	 * @param {string} sTimezone The timezone
+	 * @param {string} sLocale Custom locale
+	 * @returns {object} arguments
+	 */
+	Utils.processDateTimeWithTimezoneFormatArguments = function (oFormatOptions, sTimezone, sLocale) {
+		// If oFormatOptions is a string and is a valid timezone, use it as sTimezone
+		if (typeof oFormatOptions === "string" && !sTimezone && !sLocale) {
+			sTimezone = oFormatOptions;
+			oFormatOptions = {};
+		} else if (!isPlainObject(oFormatOptions)) {
+			oFormatOptions = {};
+		}
+		sLocale = sLocale && new Locale(sLocale);
+
+		// If sTimezone looks like a locale, swap
+		if (sTimezone && typeof sTimezone === "string" && !TimezoneUtils.isValidTimezone(sTimezone)) {
+			try {
+				sLocale = new Locale(sTimezone);
+				sTimezone = null;
+				Log.warning("No timezone provided or the provided timezone is not valid and will be ignored.");
+			} catch (error) {
+				sLocale = sLocale && new Locale(sLocale);
+			}
+		}
+
+		return {
+			formatOptions: oFormatOptions,
+			timezone: sTimezone,
+			locale: sLocale
 		};
 	};
 

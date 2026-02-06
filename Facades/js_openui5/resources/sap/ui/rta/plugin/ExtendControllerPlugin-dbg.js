@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Lib",
 	"sap/ui/dt/Util",
+	"sap/ui/fl/Utils",
 	"sap/ui/rta/plugin/Plugin"
 ], function(
 	Lib,
 	DtUtil,
+	Utils,
 	Plugin
 ) {
 	"use strict";
@@ -30,7 +32,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.134
@@ -52,14 +54,25 @@ sap.ui.define([
 
 	const FLEX_CHANGE_TYPE = "codeExt";
 
+	function isControlInAsyncView(oOverlay) {
+		// Currently there is no better way to get this information. When this changes, this code must be adapted.
+		return !!Utils.getViewForControl(oOverlay.getElement())?.oAsyncState;
+	}
+
 	/**
-	 * Check if the given overlay should be editable.
+	 * Check if the given overlay should be editable. This action is available by default,
+	 * disabling it requires explicitly setting it to null in the designtime metadata.
 	 *
 	 * @param {sap.ui.dt.ElementOverlay} oOverlay - Overlay to be checked for editable
 	 * @returns {Promise<boolean>} <code>true</code> when editable wrapped in a promise
 	 * @private
 	 */
-	ExtendControllerPlugin.prototype._isEditable = function() {
+	ExtendControllerPlugin.prototype._isEditable = function(oOverlay) {
+		// Action should be available by default
+		const oAction = this.getAction(oOverlay);
+		if (oAction === null) {
+			return Promise.resolve(false);
+		}
 		return Promise.resolve(true);
 	};
 
@@ -70,8 +83,9 @@ sap.ui.define([
 	 * @public
 	 */
 	ExtendControllerPlugin.prototype.isEnabled = function(aElementOverlays) {
-		const bEnabled = aElementOverlays.length === 1 && !this.isInReuseComponentOnS4HanaCloud(aElementOverlays[0]);
-		return bEnabled;
+		return aElementOverlays.length === 1
+			&& !this.isInReuseComponentOnS4HanaCloud(aElementOverlays[0])
+			&& isControlInAsyncView(aElementOverlays[0]);
 	};
 
 	/**
@@ -98,6 +112,11 @@ sap.ui.define([
 		if (this.isInReuseComponentOnS4HanaCloud(oOverlay)) {
 			sText += ` (${Lib.getResourceBundleFor("sap.ui.rta").getText("CTX_DISABLED_REUSE")})`;
 		}
+		// The case where the control is not in an async view
+		// is not enabled and has a special text in parenthesis on the context menu
+		if (!isControlInAsyncView(oOverlay)) {
+			sText += ` (${Lib.getResourceBundleFor("sap.ui.rta").getText("CTX_DISABLED_NOT_ASYNC")})`;
+		}
 		return sText;
 	};
 
@@ -117,6 +136,8 @@ sap.ui.define([
 
 			const oElementOverlay = aElementOverlays[0];
 
+			// If the data returned from the handler has the property instanceSpecific = true,
+			// it refers to an instance-specific controller extension. In this case, the view ID will be added to the change content.
 			const mExtendControllerData = await fnControllerHandler(oElementOverlay);
 
 			const oExtendControllerCommand = await this.getCommandFactory().getCommandFor(
@@ -146,7 +167,8 @@ sap.ui.define([
 	ExtendControllerPlugin.prototype.getMenuItems = function(aElementOverlays) {
 		return this._getMenuItems(aElementOverlays, {
 			pluginId: "CTX_EXTEND_CONTROLLER",
-			icon: "sap-icon://create-form"
+			icon: "sap-icon://create-form",
+			additionalInfoKey: "EXTEND_CONTROLLER_RTA_CONTEXT_MENU_INFO"
 		});
 	};
 
@@ -165,6 +187,9 @@ sap.ui.define([
 	 */
 	ExtendControllerPlugin.prototype.getAction = function(oOverlay) {
 		const oAction = Plugin.prototype.getAction.apply(this, [oOverlay]);
+		if (oAction === null) {
+			return null;
+		}
 		return oAction || { changeType: FLEX_CHANGE_TYPE };
 	};
 

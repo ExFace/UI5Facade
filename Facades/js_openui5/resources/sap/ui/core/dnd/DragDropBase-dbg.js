@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @public
 	 * @since 1.52
@@ -81,13 +81,23 @@ sap.ui.define([
 	DragDropBase.prototype.bIgnoreMetadataCheck = false;
 
 	/**
+	 * Determines whether the specified control or its aggregation support dragging.
+	 *
+	 * @param {sap.ui.core.Element} oControl The control instance
+	 * @param {string} [sAggregationName] The draggable aggregation name
+	 * @returns {boolean} Whether the control or its aggregation is draggable
 	 * @abstract
 	 */
-	DragDropBase.prototype.isDraggable = function(oControl) {
+	DragDropBase.prototype.isDraggable = function(oControl, sAggregationName) {
 		return false;
 	};
 
 	/**
+	 * Determines whether the specified control is a valid drop target based on the given drag event.
+	 *
+	 * @param {sap.ui.core.Element} oControl The control instance
+	 * @param {DragEvent} oEvent The drag event
+	 * @returns {boolean} Whether the control can accept the drop
 	 * @abstract
 	 */
 	DragDropBase.prototype.isDroppable = function(oControl, oEvent) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,9 @@ sap.ui.define([],
 		name: {
 			singular: "PANEL_NAME",
 			plural: "PANEL_NAME_PLURAL"
+		},
+		getLabel: function(oControl) {
+			return oControl.getDomRef().shadowRoot.querySelector(".ui5-panel-header-title").textContent;
 		},
 		actions: {
 			remove: {
@@ -28,21 +31,6 @@ sap.ui.define([],
 				changeType: "rename",
 				domRef: function (oControl) {
 					return oControl.getDomRef().shadowRoot.querySelector(".ui5-panel-header-title");
-				},
-				getTextMutators: function (oControl) {
-					return {
-						getText: function () {
-							return oControl.getDomRef().shadowRoot.querySelector(".ui5-panel-header-title").textContent;
-						},
-						setText: function (sNewText) {
-							var oTitleElement = oControl.getDomRef().shadowRoot.querySelector(".ui5-panel-header-title");
-							var oTextNode = [].find.call(oTitleElement.childNodes, function (el) {
-								return el.nodeType === 3;
-							});
-
-							oTextNode.nodeValue = sNewText;
-						}
-					};
 				}
 			}
 		},

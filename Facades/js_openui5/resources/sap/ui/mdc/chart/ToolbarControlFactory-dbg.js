@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,7 +49,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.mdc.chart.ToolbarControlFactory
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.123
 	 * @experimental
 	 * @private
@@ -170,7 +170,10 @@ sap.ui.define([
 		mSettings = merge({
 			icon: "sap-icon://zoom-in",
 			tooltip: MDCRb.getText("chart.TOOLBAR_ZOOM_IN"),
-			text: MDCRb.getText("chart.TOOLBAR_ZOOM_IN")
+			text: MDCRb.getText("chart.TOOLBAR_ZOOM_IN"),
+			layoutData: new OverflowToolbarLayoutData({
+				closeOverflowOnInteraction: false
+			})
 		}, mSettings);
 
 		const oZoomInButton = new OverflowButton(sId + "btnZoomIn", mSettings);
@@ -181,7 +184,10 @@ sap.ui.define([
 		mSettings = merge({
 			icon: "sap-icon://zoom-out",
 			tooltip: MDCRb.getText("chart.TOOLBAR_ZOOM_OUT"),
-			text: MDCRb.getText("chart.TOOLBAR_ZOOM_OUT")
+			text: MDCRb.getText("chart.TOOLBAR_ZOOM_OUT"),
+			layoutData: new OverflowToolbarLayoutData({
+				closeOverflowOnInteraction: false
+			})
 		}, mSettings);
 
 		const oZoomOutButton = new OverflowButton(sId + "btnZoomOut", mSettings);

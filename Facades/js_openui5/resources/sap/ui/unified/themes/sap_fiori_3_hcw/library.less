@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,59 +17,41 @@
 /* Quartz High Contrast White theme         */
 /* ======================================== */
 
-@_sap_ui_unified_Calendar_ItemColor: @sapUiLegendWorkingBackground;
-@_sap_ui_unified_Calendar_ItemHoverColor: @sapUiListHoverBackground;
-@_sap_ui_unified_Calendar_ItemBorderColor: @sapUiListBackground;
-@_sap_ui_unified_Calendar_ItemWeekEndColor: @sapUiLegendNonWorkingBackground;
-@_sap_ui_unified_Calendar_ItemWeekEndHoverColor: @sapUiListHoverBackground;
-@_sap_ui_unified_Calendar_ItemOtherMonthColor: @sapUiContentLabelColor;
+@_sap_ui_unified_Calendar_ItemColor: var(--sapLegend_WorkingBackground);
+@_sap_ui_unified_Calendar_ItemHoverColor: var(--sapList_Hover_Background);
+@_sap_ui_unified_Calendar_ItemBorderColor: var(--sapList_Background);
+@_sap_ui_unified_Calendar_ItemWeekEndColor: var(--sapLegend_NonWorkingBackground);
+@_sap_ui_unified_Calendar_ItemWeekEndHoverColor: var(--sapList_Hover_Background);
+@_sap_ui_unified_Calendar_ItemOtherMonthColor: var(--sapContent_LabelColor);
 
 .sapUiCalItem,
 .sapUiCalWeekNum {
 	height: 2.875rem;
 }
 
-html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus {
-	outline: 0.125rem dotted @sapUiContentFocusColor;
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus,
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadNext:focus,
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadPrev:focus {
+	outline: 0.125rem dotted var(--sapContent_FocusColor);
 	outline-offset: -0.1875rem;
 }
 
 /* calendar should have only a border if on popup */
 .sapUiCal[data-sap-ui-popup] {
-	border-color: @sapUiContentForegroundBorderColor;
+	border-color: var(--sapContent_ForegroundBorderColor);
 }
 
 html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus:active {
-	outline-color: @sapUiContentContrastFocusColor;
+	outline-color: var(--sapContent_ContrastFocusColor);
 }
 
-html[data-sap-ui-browser^="ff"].sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus {
+html[data-sap-ui-browser^='ff'].sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus {
 	outline-offset: 0; /* to hide firefox bug with native outline always displayed */
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapUiCalHead > .sapUiCalHeadB{
-		position: relative;
-		outline: none;
-	}
-
-	.sapUiCalHead > .sapUiCalHeadB:focus:after {
-		position: absolute;
-		top: 0.125rem;
-		left: 0.125rem;
-		right: 0.125rem;
-		bottom: 0.125rem;
-		border: 0.0625rem dashed @sapUiContentFocusColor;
-		content: "";
-	}
-
-	.sapUiCalHead > .sapUiCalHeadB:focus:active:after {
-		border-color: @sapUiContentContrastFocusColor;
-	}
-}
-
-html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus:not(:hover):not(:active) {
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus:not(:hover):not(:active),
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadNext:focus:not(:hover):not(:active),
+html.sap-desktop .sapUiCalHead > .sapUiCalHeadPrev:focus:not(:hover):not(:active) {
 	background-color: transparent;
 }
 
@@ -77,11 +59,11 @@ html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus:not(:hover):not(:active) {
 .sapUiCalCancel,
 html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:hover,
 html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:focus {
-	color: @sapUiButtonLiteTextColor;
+	color: var(--sapButton_Lite_TextColor);
 }
 
 html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:active {
-	color: @sapUiContentContrastTextColor;
+	color: var(--sapContent_ContrastTextColor);
 }
 
 /*** days, months, years ***/
@@ -96,13 +78,13 @@ html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:active {
 }
 
 .sapUiCalRowWeekNumber {
-	color: @sapUiBaseText;
-	background-color: @sapUiListBackground;
-	border-color: @sapUiListBorderColor;
+	color: var(--sapTextColor);
+	background-color: var(--sapList_Background);
+	border-color: var(--sapList_BorderColor);
 }
 
 .sapUiCalItemNow {
-	color: @sapUiBaseText;
+	color: var(--sapTextColor);
 }
 
 /* make outline for days on number to prevent it around week number */
@@ -113,7 +95,7 @@ html.sap-desktop .sapUiCalHead > .sapUiCalHeadB:active {
 }
 
 html.sap-desktop .sapUiCalItem:not(.sapUiCalItemSel):not(.sapUiCalItemWeekEnd):focus {
-	background-color: @sapUiLegendWorkingBackground;
+	background-color: var(--sapLegend_WorkingBackground);
 }
 
 /* hover and focus makes only sense on desktops. On mobile devices it's not needed */
@@ -126,65 +108,22 @@ html.sap-desktop .sapUiCal:not(.sapUiCalDateInt) .sapUiCalItem:not(.sapUiCalItem
 
 html.sap-desktop .sapUiCalMonthPicker .sapUiCalItem:focus,
 html.sap-desktop .sapUiCalYearPicker .sapUiCalItem:focus {
-	outline: 0.0625rem dotted @sapUiContentFocusColor;
+	outline: 0.0625rem dotted var(--sapContent_FocusColor);
 	outline-offset: -0.25rem;
 }
 
 html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetween):focus > .sapUiCalItemText {
-	color: @sapUiContentSelectedTextColor;
+	color: var(--sapContent_Selected_TextColor);
 }
 
 html.sap-desktop .sapUiCalMonthPicker .sapUiCalItemSel:focus,
 html.sap-desktop .sapUiCalYearPicker .sapUiCalItemSel:focus {
-	outline-color: @sapUiContentContrastFocusColor;
-	background-color: @sapUiContentSelectedBackground;
+	outline-color: var(--sapContent_ContrastFocusColor);
+	background-color: var(--sapContent_Selected_Background);
 }
 
 html.sap-desktop .sapUiSizeCompact .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetween):focus > .sapUiCalDayName {
-	outline-color: @sapUiContentContrastFocusColor;
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	// do this only for the Planing Calendar
-	.sapMPlanCal :not(.sapUiCalFirstWDay).sapUiCalItem:focus {
-		overflow: hidden;
-	}
-
-	.sapUiCalItem:focus > .sapUiCalItemText,
-	.sapUiCalMonthPicker .sapUiCalItem:focus,
-	.sapUiCalYearPicker .sapUiCalItem:focus {
-		position: relative;
-		outline: none;
-	}
-
-	.sapUiCalItem:focus > .sapUiCalItemText:after,
-	.sapUiCalMonthPicker .sapUiCalItem:focus:after,
-	.sapUiCalYearPicker .sapUiCalItem:focus:after {
-		position: absolute;
-		top: 0.125rem;
-		left: 0.125rem;
-		right: 0.125rem;
-		bottom: 0.125rem;
-		border: 0.0625rem dashed @sapUiContentFocusColor;
-		content: "";
-	}
-
-	.sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetween):focus > .sapUiCalItemText:after,
-	.sapUiCalMonthPicker .sapUiCalItemSel:focus:after,
-	.sapUiCalYearPicker .sapUiCalItemSel:focus:after {
-		border-color: @sapUiContentContrastFocusColor;
-	}
-	.sapUiCalItemSel.sapUiCalItem:focus > .sapUiCalItemText {
-		position: static;
-	}
-
-	.sapUiCalItem.sapUiCalItemNow:focus > .sapUiCalItemText:after {
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-	}
+	outline-color: var(--sapContent_ContrastFocusColor);
 }
 
 .sapUiCalItemWeekEnd,
@@ -205,11 +144,14 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 }
 
 .sapUiSizeCompact .sapUiCalItem {
+
 	&.sapUiCalItemSelBetween .sapUiCalItemText {
 		position: relative;
 	}
 }
+
 .sapUiSizeCompact .sapUiCalMonthSecType .sapUiCalItem {
+
 	&.sapUiCalItemSelBetween .sapUiCalItemText {
 		position: relative;
 		line-height: 0.875rem;
@@ -218,50 +160,62 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 
 .sapUiCalItem {
 	position: relative;
+
 	&:focus > .sapUiCalItemText {
 		position: static;
-		&:after {
+
+		&::after {
 			position: absolute;
 			top: 0.125rem;
 			left: 0.125rem;
 			right: 0.125rem;
 			bottom: 0.125rem;
-			border: 0.125rem dotted @sapUiContentFocusColor;
-			content: "";
+			border: 0.125rem dotted var(--sapContent_FocusColor);
+			content: '';
 		}
 	}
+
 	&.sapUiCalItemSelBetween .sapUiCalItemText {
 		position: relative;
 	}
+
 	&.sapUiCalItemNow {
-		border: 0.125rem solid @sapUiLegendCurrentDateTime;
-		border-radius: @sapUiElementBorderCornerRadius;
+		border: 0.125rem solid var(--sapLegend_CurrentDateTime);
+		border-radius: var(--sapElement_BorderCornerRadius);
+
 		&.sapUiCalItemSelBetween {
 			line-height: normal;
 		}
+
 		.sapUiCalItemText {
 			border: none;
 		}
+
 		&.sapUiCalItemSelBetween > .sapUiCalItemText {
-			border: 0.0625rem solid @sapUiListSelectionBorderColor;
+			border: 0.0625rem solid var(--sapList_SelectionBorderColor);
 			border-radius: 0.125rem;
 		}
 	}
+
 	&.sapUiCalItemSel {
+
 		&.sapUiCalItemSelBetween:not(.sapUiCalItemNow) > .sapUiCalItemText {
-			border: 0.0625rem solid @sapUiListSelectionBorderColor;
+			border: 0.0625rem solid var(--sapList_SelectionBorderColor);
 			border-radius: 0.25rem;
 			line-height: 2.875rem;
 		}
-		&:not(.sapUiCalItemSelBetween):focus > .sapUiCalItemText:after {
-			border-color: @sapUiContentContrastFocusColor;
+
+		&:not(.sapUiCalItemSelBetween):focus > .sapUiCalItemText::after {
+			border-color: var(--sapContent_ContrastFocusColor);
 		}
-		.sapUiCalSpecialDate{
+
+		.sapUiCalSpecialDate {
 			box-sizing: border-box;
-			border: 0.0625rem solid @sapUiListSelectionBorderColor;
+			border: 0.0625rem solid var(--sapList_SelectionBorderColor);
 			height: 0.3125rem;
 		}
 	}
+
 	.sapUiCalSpecialDate {
 		position: absolute;
 		width: 100%;
@@ -271,6 +225,7 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 		border-bottom-right-radius: 0.25rem;
 		pointer-events: none;
 	}
+
 	.sapUiCalItemText {
 		border: 0.0625rem solid transparent;
 		border-radius: 0.25rem;
@@ -278,8 +233,10 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 }
 
 .sapUiSizeCompact .sapUiCalItem {
+
 	&.sapUiCalItemSel {
-		.sapUiCalSpecialDate{
+
+		.sapUiCalSpecialDate {
 			box-sizing: border-box;
 			border-width: 0;
 			border-top-width: 0.0625rem;
@@ -288,62 +245,65 @@ html.sap-desktop .sapUiCalItemSel:not(.sapUiCalItemNow):not(.sapUiCalItemSelBetw
 }
 
 .sapUiCalItemOtherMonth {
-	background-color: @sapUiListBackground;
+	background-color: var(--sapList_Background);
 	color: @_sap_ui_unified_Calendar_ItemOtherMonthColor;
-	&.sapUiCalItemDsbl{
-		opacity: @sapUiContentDisabledOpacity;
+
+	&.sapUiCalItemDsbl {
+		opacity: var(--sapContent_DisabledOpacity);
 	}
 }
 
 .sapUiCalMonthPicker,
 .sapUiCalYearPicker {
+
 	.sapUiCalItem.sapUiCalItemDsbl {
-		opacity: @sapUiContentDisabledOpacity;
+		opacity: var(--sapContent_DisabledOpacity);
 	}
 }
 
 .sapUiCalItemSel {
-	color: @sapUiContentContrastTextColor;
+	color: var(--sapContent_ContrastTextColor);
 }
 
 html.sap-desktop .sapUiCalItemOtherMonth:not(.sapUiCalItemSel) :not(.sapUiCalWeekNum):hover {
-	background-color: @sapUiListHoverBackground;
+	background-color: var(--sapList_Hover_Background);
 }
 
-.sapUiCalItem.sapUiCalItemSel:not(.sapUiCalItemSelBetween){
-	background-color: @sapUiContentSelectedBackground;
+.sapUiCalItem.sapUiCalItemSel:not(.sapUiCalItemSelBetween) {
+	background-color: var(--sapContent_Selected_Background);
 }
 
 .sapUiCalItemSel:not(.sapUiCalItemSelBetween) > .sapUiCalItemText {
-	color: @sapUiContentSelectedTextColor;
-	border: 0.0625rem solid @sapUiListSelectionBorderColor;
+	color: var(--sapContent_Selected_TextColor);
+	border: 0.0625rem solid var(--sapList_SelectionBorderColor);
 	border-radius: 0.25rem;
 }
 
-.sapUiCalItem.sapUiCalItemSel:not(.sapUiCalItemSelBetween):hover{
-	background-color: @sapUiContentSelectedHoverBackground;
+.sapUiCalItem.sapUiCalItemSel:not(.sapUiCalItemSelBetween):hover {
+	background-color: var(--sapContent_Selected_Hover_Background);
 }
 
 .sapUiCalItemSel:not(.sapUiCalItemSelBetween):hover > .sapUiCalItemText {
-	color: @sapUiContentSelectedTextColor;
+	color: var(--sapContent_Selected_TextColor);
 	border-radius: 0.25rem;
 }
 
 .sapUiCalItemNow.sapUiCalItemSel:not(.sapUiCalItemSelBetween):hover > .sapUiCalItemText {
 	border-radius: 0.125rem;
 }
+
 .sapUiCalItemSel.sapUiCalItemOtherMonth {
-	background-color: @sapUiSelected;
+	background-color: var(--sapSelectedColor);
 }
 
 .sapUiCalItemSelBetween,
 .sapUiCalItemSelBetween.sapUiCalItemOtherMonth {
-	background-color: @sapUiListSelectionBackgroundColor;
-	color: @sapUiBaseText;
+	background-color: var(--sapList_SelectionBackgroundColor);
+	color: var(--sapTextColor);
 
 	.sapUiCalItemText {
 		line-height: 2.75rem;
-		border: 0.0625rem solid @sapUiListSelectionBorderColor;
+		border: 0.0625rem solid var(--sapList_SelectionBorderColor);
 	}
 }
 
@@ -353,52 +313,46 @@ html.sap-desktop .sapUiCalItemSel:focus {
 	border-radius: 0.25rem;
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop .sapUiCalMonthPicker .sapUiCalItemSel:focus,
-html[data-sap-ui-browser^="ie"].sap-desktop .sapUiCalYearPicker .sapUiCalItemSel:focus {
-	/* as IE don't support outline-offset */
-	border-color: @sapUiContentContrastFocusColor;
-}
-
 html.sap-desktop .sapUiCalItemSelBetween:hover {
 	background-color: @sapUiListSelectionHoverBackground;
 }
 
-html.sap-desktop .sapUiCalItemSelBetween:focus:not(:hover){
-	background-color: @sapUiListSelectionBackgroundColor;
+html.sap-desktop .sapUiCalItemSelBetween:focus:not(:hover) {
+	background-color: var(--sapList_SelectionBackgroundColor);
 }
 
 .sapUiCalItemNow:not(.sapUiCalItemSelBetween) > .sapUiCalItemText {
-	border: 0.0625rem solid @sapUiListBackground;
-	border-radius: (@sapUiElementBorderCornerRadius / 2);
+	border: 0.0625rem solid var(--sapList_Background);
+	border-radius: ~"calc(var(--sapElement_BorderCornerRadius) / 2)";
 }
 
 .sapUiCalItemSel.sapUiCalItemNow:not(.sapUiCalItemSelBetween) > .sapUiCalItemText {
-	border-color: @sapUiListSelectionBorderColor;
+	border-color: var(--sapList_SelectionBorderColor);
 }
 
-.sapUiCalItemNow.sapUiCalItemSelBetween{
-	color: @sapUiBaseText;
+.sapUiCalItemNow.sapUiCalItemSelBetween {
+	color: var(--sapTextColor);
 }
 
-.sapUiCalContentOver{
+.sapUiCalContentOver {
 	bottom: 0.5rem;
 }
 
 /* Day names inside day */
-.sapUiCalItemNow > .sapUiCalItemText > .sapUiCalItemTextAmPm{
+.sapUiCalItemNow > .sapUiCalItemText > .sapUiCalItemTextAmPm {
 	line-height: 2.5rem;
 }
 
 /* 2 calendar types */
-.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemSelBetween > .sapUiCalItemText{
+.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemSelBetween > .sapUiCalItemText {
 	line-height: 2.125rem;
 }
 
-.sapUiCalItem.sapUiCalItemSel.sapUiCalItemSelBetween:not(.sapUiCalItemNow) > .sapUiCalItemText{
+.sapUiCalItem.sapUiCalItemSel.sapUiCalItemSelBetween:not(.sapUiCalItemNow) > .sapUiCalItemText {
 	line-height: 2.125rem;
 }
 
-.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemNow  > .sapUiCalItemText{
+.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemNow > .sapUiCalItemText {
 	line-height: 1.875rem;
 }
 
@@ -408,40 +362,46 @@ html.sap-desktop .sapUiCalItemSelBetween:focus:not(:hover){
 
 /*** compact mode (desktop size) ***/
 
-.sapUiSizeCompact .sapUiCalItemNow:not(.sapUiCalItemSelBetween) > .sapUiCalItemText{
+.sapUiSizeCompact .sapUiCalItemNow:not(.sapUiCalItemSelBetween) > .sapUiCalItemText {
 	line-height: 1.75rem;
 }
 
 .sapUiSizeCompact {
+
 	.sapUiCalContentOver{
 		bottom: 0.25rem;
 	}
+
 	/* Day names inside day */
 	.sapUiCalItemNow > .sapUiCalItemText > .sapUiCalItemTextAmPm {
 		line-height: 1.5rem;
 	}
-	.sapUiCalMonthSecType .sapUiCalItem  > .sapUiCalItemText {
+
+	.sapUiCalMonthSecType .sapUiCalItem > .sapUiCalItemText {
 		line-height: 0.875rem;
 	}
+
 	.sapUiCalItemSelBetween .sapUiCalItemText,
 	.sapUiCalItemSel.sapUiCalItemSelBetween:not(.sapUiCalItemNow) > .sapUiCalItemText {
 		line-height: 1.75rem;
 	}
+
 	.sapUiCalMonthSecType .sapUiCalItemSel.sapUiCalItemSelBetween .sapUiCalItemText,
 	.sapUiCalMonthSecType .sapUiCalItemSel.sapUiCalItemSelBetween:not(.sapUiCalItemNow) > .sapUiCalItemText {
 		line-height: 0.875rem;
 	}
+
 	.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemNow.sapUiCalItemSel > .sapUiCalItemText {
 		line-height: 0.875rem;
 	}
-	.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemNow  > .sapUiCalItemText{
+
+	.sapUiCalMonthSecType .sapUiCalItem.sapUiCalItemNow > .sapUiCalItemText {
 		line-height: 0.875rem;
 	}
 }
 
-@media only screen
-and (orientation: portrait)
-and (min-height: 380px) {
+@media only screen and (orientation: portrait) and (min-height: 380px) {
+
 	.sap-phone .sapUiCal[data-sap-ui-popup] > .sapUiCalCancel {
 		bottom: 1rem;
 		left: 25%;
@@ -452,7 +412,8 @@ and (min-height: 380px) {
 }
 
 .sapUiCalendarLandscape() {
-	.sap-phone .sapUiCal[data-sap-ui-popup]{
+
+	.sap-phone .sapUiCal[data-sap-ui-popup] {
 		overflow: auto;
 	}
 
@@ -498,6 +459,7 @@ and (min-height: 380px) {
 	}
 
 	.sap-phone .sapUiCal[data-sap-ui-popup] .sapUiCalContent {
+
 		.sapUiCalMonthView,
 		.sapUiCalDateInt {
 			position: absolute;
@@ -550,57 +512,60 @@ and (min-height: 380px) {
 		box-sizing: border-box;
 	}
 
-	.sap-phone .sapUiCal[data-sap-ui-popup].sapUiCalSecType  > .sapUiCalCancel {
+	.sap-phone .sapUiCal[data-sap-ui-popup].sapUiCalSecType > .sapUiCalCancel {
 		top: 1.5rem;
 		padding-top: 0.5rem;
 	}
 }
 
-@media only screen
-and (min-width : 320px)
-and (max-height: 379px) {
+@media only screen and (min-width : 320px) and (max-height: 379px) {
+
 	.sapUiCalendarLandscape();
 }
 
-@media only screen
-and (min-width : 320px)
-and (min-height: 380px)
-and (orientation: landscape) {
+@media only screen and (min-width : 320px) and (min-height: 380px) and (orientation: landscape) {
+
 	.sapUiCalendarLandscape();
 }
 
 /* colors for special days */
-.dayColorMixIn(@class, @color){
+.dayColorMixIn(@class, @color) {
+
 	.@{class} > .sapUiCalSpecialDate {
 		background-color: @color;
-		border-top: 0.0625rem solid @sapUiListBackground;
-		border-bottom-left-radius: @sapUiElementBorderCornerRadius;
-		border-bottom-right-radius: @sapUiElementBorderCornerRadius;
+		border-top: 0.0625rem solid var(--sapList_Background);
+		border-bottom-left-radius: var(--sapElement_BorderCornerRadius);
+		border-bottom-right-radius: var(--sapElement_BorderCornerRadius);
 	}
+
 	.@{class}.sapUiCalItemNow > .sapUiCalSpecialDate {
 		box-sizing: border-box;
 		height: 0.3125rem;
-		border-bottom-left-radius: (@sapUiElementBorderCornerRadius / 2);
-		border-bottom-right-radius: (@sapUiElementBorderCornerRadius / 2);
-		border: 0.0625rem solid @sapUiListBackground;
+		border-bottom-left-radius: ~"calc(var(--sapElement_BorderCornerRadius) / 2)";
+		border-bottom-right-radius: ~"calc(var(--sapElement_BorderCornerRadius) / 2)";
+		border: 0.0625rem solid var(--sapList_Background);
 	}
-	.@{class}.sapUiCalItemSel.sapUiCalItemNow .sapUiCalSpecialDate{
-		border-color: @sapUiListSelectionBorderColor;
+
+	.@{class}.sapUiCalItemSel.sapUiCalItemNow .sapUiCalSpecialDate {
+		border-color: var(--sapList_SelectionBorderColor);
 	}
 
 	.@{class}.sapUiCalItemSel.sapUiCalItemNow .sapUiCalItemText {
-		border-top-left-radius: (@sapUiElementBorderCornerRadius / 2);
-		border-top-right-radius: (@sapUiElementBorderCornerRadius / 2);
+		border-top-left-radius: ~"calc(var(--sapElement_BorderCornerRadius) / 2)";
+		border-top-right-radius: ~"calc(var(--sapElement_BorderCornerRadius) / 2)";
 	}
+
 	html.sap-desktop .sapUiCal:not(.sapUiCalDateInt) .sapUiCalItem:not(.sapUiCalItemSel) {
+
 		&.@{class} > .sapUiCalSpecialDate:hover {
 			background-color: @color;
-			border-top: 0.0625rem solid @sapUiListBackground;
+			border-top: 0.0625rem solid var(--sapList_Background);
 			border-bottom-right-radius: 0.25rem;
 			border-bottom-left-radius: 0.25rem;
 			border-top-left-radius: 0;
 			border-top-right-radius: 0;
 		}
+
 		&.@{class}.sapUiCalItemNow > .sapUiCalSpecialDate:hover {
 			border-bottom-right-radius: 0.125rem;
 			border-bottom-left-radius: 0.125rem;
@@ -641,15 +606,16 @@ and (orientation: landscape) {
 
 	&:focus {
 		outline: none;
+
 		&::after {
-			content: "";
+			content: '';
 			position: absolute;
 			box-sizing: border-box;
 			left: 0.0625rem;
 			top: 0.0625rem;
 			right: 0.0625rem;
 			bottom: 0.0625rem;
-			border: @sapContent_FocusWidth @sapContent_FocusStyle @sapUiContentFocusColor;
+			border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 			pointer-events: none;
 		}
 	}
@@ -660,8 +626,11 @@ and (orientation: landscape) {
 }
 
 .sapUiSizeCompact {
+
 	.sapUiUnifiedLegendItem {
+
 		&:focus {
+
 			&::after {
 				left: 0;
 				top: 0;
@@ -671,7 +640,6 @@ and (orientation: landscape) {
 		}
 	}
 }
-
 /* END "CalendarLegend.less" */
 
 /* START "CalendarRow.less" */
@@ -682,105 +650,74 @@ and (orientation: landscape) {
 
 /* intervals */
 .sapUiCalendarRowAppsInt,
-.sapUiCalendarRowAppsSubInt{
+.sapUiCalendarRowAppsSubInt {
 	border-color: @sapUiListVerticalBorderColor;
 }
 
-.sapUiCalendarRowAppsIntHead{
-	font-size: @sapMFontSmallSize;
-	color: @sapUiBaseText;
+.sapUiCalendarRowAppsIntHead {
+	font-size: var(--sapFontSmallSize);
+	color: var(--sapTextColor);
 }
 
 .sapMListTblRow:not(.sapMLIBSelected) .sapUiCalendarRowAppsNoWork,
 .sapMListTblSubRow:not(.sapMLIBSelected) .sapUiCalendarRowAppsNoWork {
-	background-color: @sapUiLegendNonWorkingBackground;
+	background-color: var(--sapLegend_NonWorkingBackground);
 }
 
 /* Appointments */
 /* as outlines can't have different offsets on one side (no left border) and don't work in IE just use a inner border */
-html.sap-desktop .sapUiCalendarApp:focus > .sapUiCalendarAppCont:after{
+html.sap-desktop .sapUiCalendarApp:focus > .sapUiCalendarAppCont::after {
 	position: absolute;
 	top: 1px;
 	left: 1px;
 	right: 1px;
 	bottom: 1px;
-	content: "";
-	border: 0.125rem dotted @sapUiContentFocusColor;
+	content: '';
+	border: 0.125rem dotted var(--sapContent_FocusColor);
 	pointer-events: none;
 }
 
-.sapMListTblRow.sapMLIBFocusable:focus {
-	.sapUiCalendarRowAppsInt.sapUiCalendarRowAppsNoWork:before {
-		position: absolute;
-		top: 0px;
-		left: -1px;
-		right: 1px;
-		bottom: 0px;
-		content: "";
-		border: 0.0625rem dotted @sapUiContentFocusColor;
-		pointer-events: none;
-	}
-
-	.sapUiCalendarRowAppsIntNoHead.sapUiCalendarRowAppsInt.sapUiCalendarRowAppsNoWork:before {
-		position: absolute;
-		top: 0px;
-		left: -1px;
-		right: 1px;
-		bottom: 1px;
-		content: "";
-		border: 0.0625rem dotted @sapUiContentFocusColor;
-		pointer-events: none;
-	}
-}
-
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapUiCalendarApp:focus > .sapUiCalendarAppCont:after{
-		border-style: dashed;
-	}
-}
-
-html.sap-desktop .sapUiCalendarAppSel:focus > .sapUiCalendarAppCont:after{
-	border-color: @sapUiContentContrastFocusColor;
+html.sap-desktop .sapUiCalendarAppSel:focus > .sapUiCalendarAppCont::after {
+	border-color: var(--sapContent_ContrastFocusColor);
 	left: 2px;
 }
 
-html.sap-desktop .sapUiCalendarApp:hover:not(:active) > .sapUiCalendarAppCont{
-	border-color: @sapUiListSelectionBorderColor;
+html.sap-desktop .sapUiCalendarApp:hover:not(:active) > .sapUiCalendarAppCont {
+	border-color: var(--sapList_SelectionBorderColor);
 }
 
-.sapUiCalendarAppCont{
-	border-color: @sapUiContentForegroundBorderColor;
+.sapUiCalendarAppCont {
+	border-color: var(--sapContent_ForegroundBorderColor);
 }
 
 .sapUiCalendarApp.sapUiCalendarAppSel,
 .sapUiCalendarApp:active,
-.sapUiCalendarApp.sapUiCalendarAppSel:active{
-	color: @sapUiContentSelectedTextColor;
-	background-color:@sapUiContentSelectedBackground
+.sapUiCalendarApp.sapUiCalendarAppSel:active {
+	color: var(--sapContent_Selected_TextColor);
+	background-color: var(--sapContent_Selected_Background)
 }
 
 html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active),
-html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active){
-	background-color: @sapUiContentSelectedHoverBackground;
-	color: @sapUiContentSelectedTextColor;
+html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active) {
+	background-color: var(--sapContent_Selected_Hover_Background);
+	color: var(--sapContent_Selected_TextColor);
 }
 
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont,
 .sapUiCalendarApp:active > .sapUiCalendarAppCont,
-.sapUiCalendarApp.sapUiCalendarAppSel:active > .sapUiCalendarAppCont{
-	border-color: @sapUiListSelectionBorderColor;
-	border-left: 0.0625rem solid @sapUiListBackground;
+.sapUiCalendarApp.sapUiCalendarAppSel:active > .sapUiCalendarAppCont {
+	border-color: var(--sapList_SelectionBorderColor);
+	border-left: 0.0625rem solid var(--sapList_Background);
 }
 
-
-html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active)  > .sapUiCalendarAppCont,
-html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sapUiCalendarAppCont {
-	border-color: @sapUiListSelectionBorderColor;
-	border-left-color: @sapUiListBackground;
+html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active) > .sapUiCalendarAppCont,
+html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active) > .sapUiCalendarAppCont {
+	border-color: var(--sapList_SelectionBorderColor);
+	border-left-color: var(--sapList_Background);
 }
 
-.sapUiCalendarApp.sapUiCalendarAppTent > .sapUiCalendarAppCont{
-	border-color: @sapUiContentForegroundBorderColor;
+.sapUiCalendarApp.sapUiCalendarAppTent > .sapUiCalendarAppCont {
+	border-color: var(--sapContent_ForegroundBorderColor);
 }
 
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont > .sapUiCalendarAppIcon,
@@ -789,37 +726,38 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont .sapUiCalendarAppTitle,
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont .sapUiCalendarAppText,
 .sapUiCalendarApp.sapUiCalendarAppSel > .sapUiCalendarAppCont .sapUiCalendarAppDescription {
-	color: @sapUiListActiveTextColor;
+	color: var(--sapList_Active_TextColor);
 }
 
-.sapUiCalendarAppTitle{
+.sapUiCalendarAppTitle {
 	font-size: @sapMFontMediumSize;
 }
 
-.sapUiCalendarAppText{
-	font-size: @sapMFontSmallSize;
+.sapUiCalendarAppText {
+	font-size: var(--sapFontSmallSize);
 }
 
-.sapUiCalendarRowNow{
-	border-color: @sapLegend_CurrentDateTime;
+.sapUiCalendarRowNow {
+	border-color: var(--sapLegend_CurrentDateTime);
 }
 
 /* colors for types */
-.calendarRowTypeColorMixIn(@class, @iclass, @color, @bcolor){
+.calendarRowTypeColorMixIn(@class, @iclass, @color, @bcolor) {
+
 	.@{class}.sapUiCalendarApp,
-	.@{class}.sapUiCalendarApp:active{
+	.@{class}.sapUiCalendarApp:active {
 		border-left-color: @color;
 	}
 
-	.sapUiCalendarRowVisFilled > .sapUiCalendarRowApps > .@{class}.sapUiCalendarApp:not(.sapUiCalendarAppSel) > .sapUiCalendarAppCont{
+	.sapUiCalendarRowVisFilled > .sapUiCalendarRowApps > .@{class}.sapUiCalendarApp:not(.sapUiCalendarAppSel) > .sapUiCalendarAppCont {
 		background-color: @bcolor;
 	}
 
-	.@{iclass}.sapUiCalendarRowAppsIntHead{
+	.@{iclass}.sapUiCalendarRowAppsIntHead {
 		background-color: @bcolor;
 	}
 
-	.@{iclass}.sapUiCalendarRowAppsIntHeadFirst{
+	.@{iclass}.sapUiCalendarRowAppsIntHeadFirst {
 		border-left-color: @color;
 	}
 }
@@ -829,7 +767,7 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 	border-right-color: darken(@sapUiListBorderColor, 15);
 	border-bottom-color: darken(@sapUiListBorderColor, 15);
 	background-color: lighten(@sapUiAccent1, 50);
-	color: @sapUiListTextColor;
+	color: var(--sapList_TextColor);
 }
 /* END "CalendarRow.less" */
 
@@ -852,42 +790,50 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 }
 
 .sapUiColorPicker-ColorPickerMatrix.sapUnifiedColorPicker {
+
 	.sapMSliderInner:not(.sapMSliderInnerDisabled) .sapMSliderHandle:focus {
 		top: -0.375rem;
 	}
+
 	.sapUiColorPicker-ColorPickerAlphaSlider,
 	.sapUiColorPicker-ColorPickerSlider {
+
 		.sapMSliderHandle {
-			top: -0.375rem;;
-			border: 0.125rem solid @sapUiContentContrastShadowColor;
+			top: -0.375rem;
+			border: 0.125rem solid var(--sapContent_ContrastShadowColor);
 			background-color: transparent;
 			height: 1.625rem;
-			box-shadow: inset 0 0 0 0.125rem @sapUiContentForegroundColor;
+			box-shadow: inset 0 0 0 0.125rem var(--sapContent_ForegroundColor);
 		}
+
 		.sapMSliderProgress {
 				border: none;
 		}
+
 		.sapMSliderInner{
-			border: 0.125rem solid @sapUiContentContrastShadowColor;
+			border: 0.125rem solid var(--sapContent_ContrastShadowColor);
 			/* pressed */
+
 			&.sapMSliderPressed:not(.sapMSliderInnerDisabled ) > .sapMSliderHandle {
-				//override the blue border color when the handle is pressed
-				border-color: @sapUiContentContrastShadowColor;
+				/* override the blue border color when the handle is pressed */
+				border-color: var(--sapContent_ContrastShadowColor);
 			}
 		}
 	}
 }
 
 .sapUiColorPicker-ColorPickerMatrix.sapUnifiedColorPicker {
+
 	.sapUiColorPicker-ColorPickerHexField,
 	.sapUiCPHexWrapper,
 	.sapUiCPComparisonWrapper {
+		margin-top: 0.5rem;
+		vertical-align: top;
+
 		.sapUiColorPicker-ColorPickerOldColor,
 		.sapUiColorPicker-ColorPickerNewColor {
 			height: 2.25rem;
 		}
-		margin-top: 0.5rem;
-		vertical-align: top;
 	}
 }
 
@@ -898,6 +844,7 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 }
 
 .sapUiColorPicker-Large {
+
 	.sapUiCPHSLVText {
 		padding-left: 2.125rem;
 	}
@@ -914,6 +861,7 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 }
 
 .sapUiSizeCompact {
+
 	.sapUnifiedColorPicker:not(.sapUiCPPhone) .sapUiCPComparisonWrapper {
 		height: 1.5rem;
 		vertical-align: top;
@@ -927,25 +875,32 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 	.sapUiColorPicker-Simplified.sapUnifiedColorPicker.sapUiCPPhone .sapUiColorPicker-ColorPickerOldColor {
 		height: 2.065rem;
 	}
+
 	.sapUiColorPicker-Default.sapUnifiedColorPicker.sapUiCPPhone {
+
 		.sapUiColorPicker-ColorPickerNewColor,
 		.sapUiColorPicker-ColorPickerOldColor {
 			width: 2.5rem;
 			height: 1.5rem;
 		}
+
 		.sapMBtn {
 			width: 2.5rem;
 			margin-left: 1.1rem;
 		}
+
 		.sapUiColorPicker-ColorPickerSlider {
 			margin-bottom: 0.0625rem;
 		}
 	}
+
 	.sapUnifiedColorPicker {
+
 		.sapUiColorPicker-ColorPickerAlphaSlider,
 		.sapUiColorPicker-ColorPickerSlider {
+
 			.sapMSliderHandle {
-			  height: 1.25rem;
+				height: 1.25rem;
 			}
 		}
 	}
@@ -960,11 +915,14 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 }
 
 .sapUiColorPicker-ColorPickerMatrix {
+
 	&.sapUnifiedColorPicker{
+
 		.sapUiColorPicker-ColorPickerCircle {
-			border: 0.125rem solid @sapUiFieldBorderColor;
+			border: 0.125rem solid var(--sapField_BorderColor);
 			border-radius: 6px;
-			&:after {
+
+			&::after {
 				width: 5px;
 				height: 5px;
 			}
@@ -973,13 +931,13 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 }
 
 .sapUnifiedColorPicker .sapMSliderProgress {
-	background: @sapUiSliderSelectedBackground;
-	&:before {
+	background: var(--sapSlider_Selected_Background);
+
+	&::before {
 		content: none;
 		transform: none;
 	}
 }
-
 /* END "ColorPicker.less" */
 
 /* START "FileUploader.less" */
@@ -993,10 +951,68 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 	height: 2.75rem;
 }
 
+.sapUiFup {
+	&.sapUiFupButtonOnly.sapMInputBase:not(.sapMFocus) .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {
+		&:not(.sapMInputBaseDisabledWrapper):hover {
+			border-color: initial;
+		}
+
+		&.sapMInputBaseDisabledWrapper {
+			opacity: var(--sapContent_DisabledOpacity);
+		}
+	}
+
+	.sapMInputBaseContentWrapper {
+		.sapUiFupBrowseIcon,
+		.sapUiFupClearIcon {
+			line-height: 1.25rem;
+			width: 2rem;
+		}
+
+		.sapMBtnInner {
+			border-radius: 0;
+			border: 0;
+		}
+
+		.sapUiFupVisual .sapUiFupPlaceholder > div {
+			font-style: normal;
+		}
+	}
+
+	&.sapMFocus.sapMInputBase.sapUiFupButtonOnly .sapMInputBaseContentWrapper:not(.sapMInputBaseDisabledWrapper)::before {
+		top: 1px;
+		left: 1px;
+		right: 1px;
+		bottom: 1px;
+	}
+}
+
 .sapUiSizeCompact{
 	.sapUiFup,
 	.sapUiFup.sapMBarChild {
 		height: 2rem;
+	}
+
+	.sapUiFup {
+		.sapMInputBaseContentWrapper {
+			height: var(--sapElement_Compact_Height);
+
+			.sapUiFupBrowseIcon,
+			.sapUiFupClearIcon {
+				height: 1.375rem;
+				line-height: 1.25rem;
+				width: 2rem;
+			}
+
+			.sapMBtn {
+				height: var(--sapElement_Compact_Height);
+				margin: 0;
+
+				.sapMBtnContent {
+					line-height: 1.375rem;
+				}
+			}
+		}
 	}
 }
 
@@ -1011,7 +1027,7 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:hover:not(:active)  > .sa
 
 html.sap-desktop .sapUiFup .sapMFocusable:focus,
 html.sap-desktop .sapUiFup .sapMFocusable:active {
-	outline: 1px dotted @sapUiContentFocusColor;
+	outline: 1px dotted var(--sapContent_FocusColor);
 	outline-offset: -1px;
 }
 
@@ -1023,38 +1039,12 @@ html.sap-desktop .sapUiFup .sapMBtnInner:active.sapMBtnAccept,
 html.sap-desktop .sapUiFup .sapMBtnInner:active.sapMBtnReject,
 .sapUiFup .sapMBtnInner:active.sapMBtnEmphasized,
 html.sap-desktop .sapUiFup .sapMBtnInner:active.sapMBtnEmphasized {
-	outline-color: @sapUiContentContrastFocusColor;
+	outline-color: var(--sapContent_ContrastFocusColor);
 	outline-offset: -.125rem;
 }
 
 .sapMFooter-CTX .sapUiFup .sapMBtnInner:active.sapMFocusable {
-	background-color: @sapUiButtonActiveBackground;
-}
-
-/* IE ignores outline-offset. Use an overlay: */
-
-html[data-sap-ui-browser^="ie"] {
-
-	.sapUiFup .sapMBtnInner:focus.sapMFocusable {
-		outline: none;
-		position: relative;
-	}
-
-	.sapUiFup .sapMBtnInner:focus.sapMFocusable:before {
-		content: " ";
-		box-sizing: border-box;
-		width: 100%;
-		height: 100%;
-		position: absolute;
-		left: 0;
-		top: 0;
-		border: 1px dotted @sapUiContentFocusColor;
-	}
-
-	.sapMFooter-CTX .sapUiFup .sapMBtnInner:focus.sapMFocusable:before {
-		border-color: @sapUiContentContrastFocusColor;
-	}
-
+	background-color: var(--sapButton_Active_Background);
 }
 /* END "FileUploader.less" */
 
@@ -1065,22 +1055,22 @@ html[data-sap-ui-browser^="ie"] {
 /* ==================================== */
 
 .sapUiMnuItm.sapUiMnuTfItm .sapUiMnuTfItemTf.sapUiMnuTfItemTfDsbl {
-	opacity: @sapUiContentDisabledOpacity;
+	opacity: var(--sapContent_DisabledOpacity);
 }
 
 .sapUiMnuItm:focus {
-	outline: 0.125rem dotted @sapUiContentFocusColor;
+	outline: 0.125rem dotted var(--sapContent_FocusColor);
 }
 
 .sapUiMnuItm.sapUiMnuItmSubMnuOpen.sapUiMnuItmHov:hover {
 	background-color: @sapUiListSelectionHoverBackground;
 }
 
-.sapUiMnu  .sapUiMnuDiv>hr,
-.sapMList .sapMListItems .sapUiMnuDiv>hr{
-	border-top: 0.0625rem solid @sapUiGroupContentBorderColor;
-	left: 0rem;
-	right: 0rem;
+.sapUiMnu .sapUiMnuDiv > hr,
+.sapMList .sapMListItems .sapUiMnuDiv > hr {
+	border-top: 0.0625rem solid var(--sapGroup_ContentBorderColor);
+	left: 0;
+	right: 0;
 }
 
 .sapMMenuLIArrowRightIcon {
@@ -1093,20 +1083,20 @@ html[data-sap-ui-browser^="ie"] {
 
 .sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmSubMnuOpen,
 .sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmSubMnuOpen.sapUiMnuItmHov {
-	border-bottom: 1px solid @sapUiListSelectionBorderColor;
+	border-bottom: 1px solid var(--sapList_SelectionBorderColor);
 }
 
 .sapUiMnu .sapUiMnuLst .sapUiMnuItm {
 	border-bottom: 1px solid transparent;
 }
 
-.sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmHov:active{
+.sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmHov:active {
 	border-bottom: 1px solid transparent;
 }
 
-.sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmSubMnuOpen.sapUiMnuItmHov:active{
+.sapUiMnu .sapUiMnuLst .sapUiMnuItm.sapUiMnuItmSubMnuOpen.sapUiMnuItmHov:active {
 	border-bottom: 1px solid transparent;
-	background-color: @sapUiListActiveBackground;
+	background-color: var(--sapList_Active_Background);
 }
 
 .sapUiMnuItm {
@@ -1125,10 +1115,13 @@ html[data-sap-ui-browser^="ie"] {
 	max-width: 0;
 	padding-inline-end: 0;
 }
-
 /* END "Menu.less" */
 
 /* START "ShellHeader.less" */
+/**
+ * @file
+ * @deprecated As of version 1.44.0, together with sap.ui.unified.ShellHeader
+ */
 /* =========================================== */
 /* CSS for control sap.ui.unified/ShellHeader  */
 /* Quartz High Contrast White theme            */
@@ -1138,20 +1131,20 @@ html[data-sap-ui-browser^="ie"] {
 @_sap_ui_unified_ShellHeader_ButtonHeight: 40px;
 @_sap_ui_unified_ShellHeader_ButtonBorderWidth: 1px;
 
-.sapUiUfdShellHeadBegin .sapUiUfdShellHeadItm.sapUiUfdShellHeadItmSep:after {
-	border-left: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid @sapUiShellBorderColor;
+.sapUiUfdShellHeadBegin .sapUiUfdShellHeadItm.sapUiUfdShellHeadItmSep::after {
+	border-left: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid var(--sapShell_BorderColor);
 	right: -@_sap_ui_unified_ShellHeader_ButtonOuterSpace;
 	top: @_sap_ui_unified_ShellHeader_ButtonOuterSpace/2;
 }
 
-.sapUiUfdShellHeadUsrItm:before,
-.sapUiUfdShellHeadEnd .sapUiUfdShellHeadItm.sapUiUfdShellHeadItmSep:before {
-	border-right: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid @sapUiShellBorderColor;
+.sapUiUfdShellHeadUsrItm::before,
+.sapUiUfdShellHeadEnd .sapUiUfdShellHeadItm.sapUiUfdShellHeadItmSep::before {
+	border-right: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid var(--sapShell_BorderColor);
 	top: @_sap_ui_unified_ShellHeader_ButtonOuterSpace/2;
 }
 
 html.sapUiMedia-Std-Desktop .sapUiUfdShellHeadItm:hover > span {
-	background-color: @sapUiHighlight;
+	background-color: var(--sapHighlightColor);
 }
 
 .sapUiUfdShellHeadItm {
@@ -1159,9 +1152,9 @@ html.sapUiMedia-Std-Desktop .sapUiUfdShellHeadItm:hover > span {
 }
 
 .sapUiUfdShellHeadItm > span {
-	border: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid @sapUiShellBorderColor;
+	border: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid var(--sapShell_BorderColor);
 	border-radius: @_sap_ui_unified_ShellHeader_ButtonBorderRadius;
-	color: @sapUiBaseText;
+	color: var(--sapTextColor);
 	height: @_sap_ui_unified_ShellHeader_ButtonHeight;
 	line-height: @_sap_ui_unified_ShellHeader_ButtonHeight - 2*@_sap_ui_unified_ShellHeader_ButtonOutlineWidth;
 	margin-right: 2*@_sap_ui_unified_ShellHeader_ButtonOuterSpace;
@@ -1174,7 +1167,7 @@ html.sapUiMedia-Std-Desktop .sapUiUfdShellHeadItm:hover > span {
 .sapUiUfdShellHeadUsrItmImg,
 .sapUiUfdShellHeadUsrItmName,
 .sapUiUfdShellHeadUsrItmExp {
-	border: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid @sapUiShellBorderColor;
+	border: @_sap_ui_unified_ShellHeader_ButtonBorderWidth solid var(--sapShell_BorderColor);
 	height: @_sap_ui_unified_ShellHeader_ButtonHeight;
 	line-height: @_sap_ui_unified_ShellHeader_ButtonHeight - 2*@_sap_ui_unified_ShellHeader_ButtonOutlineWidth;;
 	margin-top: 0;
@@ -1237,12 +1230,12 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItmImg {
 }
 
 html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrItmImg {
-	border-right: 2*@_sap_ui_unified_ShellHeader_ButtonBorderWidth dotted @sapUiContentFocusColor;
+	border-right: 2*@_sap_ui_unified_ShellHeader_ButtonBorderWidth dotted var(--sapContent_FocusColor);
 	padding-right: @_sap_ui_unified_ShellHeader_ButtonInnerSpace - @_sap_ui_unified_ShellHeader_ButtonBorderWidth;
 }
 
 .sapUiUfdShellHeadItm:focus > span {
-	border: 2*@_sap_ui_unified_ShellHeader_ButtonBorderWidth dotted @sapUiContentFocusColor;
+	border: 2*@_sap_ui_unified_ShellHeader_ButtonBorderWidth dotted var(--sapContent_FocusColor);
 	border-radius: 0;
 	padding: 0;
 }
@@ -1253,6 +1246,10 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 /* END "ShellHeader.less" */
 
 /* START "ShellLayout.less" */
+/**
+ * @file
+ * @deprecated As of version 1.44.0, together with sap.ui.unified.ShellLayout
+ */
 /* =========================================== */
 /* CSS for control sap.ui.unified/ShellLayout  */
 /* Quartz High Contrast White theme            */
@@ -1260,7 +1257,7 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 
 .sapUiUfdShellCurtain,
 .sapUiUfdShell .sapUiUfdShellHead {
-	background-color: @sapUiShellBackground;
+	background-color: var(--sapShell_Background);
 }
 
 .sapUiUfdShell .sapUiUfdShellBrand {
@@ -1269,6 +1266,10 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 /* END "ShellLayout.less" */
 
 /* START "ShellOverlay.less" */
+/**
+ * @file
+ * @deprecated As of version 1.44.0, together with the sap.ui.unified.ShellOverlay
+ */
 /* ============================================ */
 /* CSS for control sap.ui.unified/ShellOverlay  */
 /* Quartz High Contrast White theme             */
@@ -1276,22 +1277,22 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 
 .sapUiUfdShellOvrlyCntnt,
 .sapUiUfdShellOvrlyHeadCntnt {
-	background-color: @sapUiShellBackground;
+	background-color: var(--sapShell_Background);
 }
 
 .sapUiUfdShellOvrlyHeadClose,
 .sapUiUfdShellOvrlyHeadClose:focus,
 .sapUiUfdShellOvrlyHeadClose:visited {
-	color: @sapUiButtonIconColor;
+	color: var(--sapButton_IconColor);
 }
 
 .sapUiUfdShellOvrlyHeadClose:active,
 .sapUiUfdShellOvrlyHeadClose:hover{
-	background-color: @sapUiButtonActiveBackground;
+	background-color: var(--sapButton_Active_Background);
 }
 
 .sapUiUfdShellOvrlyHeadClose {
-	border: 1px solid @sapUiButtonBorderColor;
+	border: 1px solid var(--sapButton_BorderColor);
 	border-radius: 6px;
 	line-height: 1;
 }
@@ -1301,7 +1302,7 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 }
 
 .sapUiUfdShellOvrlyHeadClose:focus {
-	border: 2px dotted @sapUiContentFocusColor;
+	border: 2px dotted var(--sapContent_FocusColor);
 	border-radius: 0;
 	padding: 9px;
 }
@@ -1311,13 +1312,13 @@ html.sapUiMedia-Std-Phone .sapUiUfdShellHeadUsrItm:focus .sapUiUfdShellHeadUsrIt
 }
 
 .sapUiUfdShellOvrlyAnim.sapUiUfdShellOvrly > div {
-	box-shadow: 0 0 40px 2px @sapUiContentShadowColor;
+	box-shadow: 0 0 40px 2px var(--sapContent_ShadowColor);
 }
 
 .sapUiUfdShellOvrlyHead,
 .sapUiUfdShellOvrlyCntnt > div {
 	border-width: 0 2px 1px 2px;
-	border-color: @sapUiGroupContentBorderColor;
+	border-color: var(--sapGroup_ContentBorderColor);
 	border-style: solid;
 }
 

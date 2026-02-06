@@ -8,13 +8,13 @@
 		},
 		{
 			"name": "CodeEditor.less",
-			"size": 292,
+			"size": 299,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 3669,
+			"size": 4207,
 			"theme": "sap_fiori_3"
 		},
 		{
@@ -25,12 +25,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 3669,
+			"size": 4207,
 			"theme": "sap_fiori_3"
 		},
 		{
 			"name": "library.less",
-			"size": 865,
+			"size": 872,
 			"designtime": true,
 			"theme": "sap_fiori_3"
 		},

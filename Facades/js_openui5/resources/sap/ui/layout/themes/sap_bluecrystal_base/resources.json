@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 5926,
+			"size": 6024,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -98,7 +98,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 8457,
+			"size": 8559,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},
@@ -128,7 +128,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 155588,
+			"size": 155652,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
@@ -139,12 +139,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 155119,
+			"size": 155183,
 			"theme": "sap_bluecrystal_base"
 		},
 		{
 			"name": "library.less",
-			"size": 87865,
+			"size": 88065,
 			"designtime": true,
 			"theme": "sap_bluecrystal_base"
 		},

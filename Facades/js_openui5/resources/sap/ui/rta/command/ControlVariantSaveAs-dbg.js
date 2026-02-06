@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/util/reflection/JsControlTreeModifier",
+	"sap/ui/fl/apply/api/FlexRuntimeInfoAPI",
 	"sap/ui/fl/variants/VariantManager",
 	"sap/ui/fl/write/api/ContextSharingAPI",
 	"sap/ui/fl/write/api/PersistenceWriteAPI",
@@ -13,11 +13,11 @@ sap.ui.define([
 	"sap/ui/rta/library",
 	"sap/ui/rta/Utils"
 ], function(
-	JsControlTreeModifier,
+	FlexRuntimeInfoAPI,
 	VariantManager,
 	ContextSharingAPI,
 	PersistenceWriteAPI,
-	flUtils,
+	FlUtils,
 	BaseCommand,
 	rtaLibrary,
 	rtaUtils
@@ -30,13 +30,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.86
 	 * @alias sap.ui.rta.command.ControlVariantSaveAs
 	 */
-	var ControlVariantSaveAs = BaseCommand.extend("sap.ui.rta.command.ControlVariantSaveAs", {
+	const ControlVariantSaveAs = BaseCommand.extend("sap.ui.rta.command.ControlVariantSaveAs", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -45,9 +45,6 @@ sap.ui.define([
 				},
 				sourceDefaultVariant: {
 					type: "string"
-				},
-				model: {
-					type: "object"
 				},
 				newVariantParameters: {
 					type: "object"
@@ -61,18 +58,17 @@ sap.ui.define([
 	/**
 	 * @override
 	 */
-	ControlVariantSaveAs.prototype.prepare = function(mFlexSettings) {
+	ControlVariantSaveAs.prototype.prepare = async function(mFlexSettings) {
 		this.oVariantManagementControl = this.getElement();
-		this.oAppComponent = flUtils.getAppComponentForControl(this.oVariantManagementControl);
-		this.sVariantManagementReference = JsControlTreeModifier.getSelector(this.oVariantManagementControl, this.oAppComponent).id;
-		this.oModel = this.getModel();
-		this.setSourceDefaultVariant(this.oModel.getData()[this.sVariantManagementReference].defaultVariant);
+		this.oAppComponent = FlUtils.getAppComponentForControl(this.oVariantManagementControl);
+		this.sVariantManagementReference = this.oVariantManagementControl.getVariantManagementReference();
+		this.setSourceDefaultVariant(this.oVariantManagementControl.getDefaultVariantKey());
 		this.sLayer = mFlexSettings.layer;
-		var mComponentPropertyBag = mFlexSettings;
+		const mComponentPropertyBag = mFlexSettings;
 		mComponentPropertyBag.variantManagementControl = this.oVariantManagementControl;
 
 		function storeEventParameters(oEvent, oArgs) {
-			var mParameters = oEvent.getParameters();
+			const mParameters = oEvent.getParameters();
 			this.setNewVariantParameters(mParameters);
 			this.oVariantManagementControl.detachSave(storeEventParameters, this);
 			this.oVariantManagementControl.detachCancel(handleCancel, this);
@@ -84,15 +80,15 @@ sap.ui.define([
 			oArgs.resolve(false);
 		}
 
-		return new Promise(function(resolve) {
-			this.oVariantManagementControl.attachSave({resolve}, storeEventParameters, this);
-			this.oVariantManagementControl.attachCancel({resolve}, handleCancel, this);
-			this.oVariantManagementControl.openSaveAsDialogForKeyUser(rtaUtils.getRtaStyleClassName(),
-				ContextSharingAPI.createComponent(mComponentPropertyBag));
-		}.bind(this))
-		.then(function(bState) {
-			return bState;
+		const bState = await new Promise((resolve) => {
+			this.oVariantManagementControl.attachSave({ resolve }, storeEventParameters, this);
+			this.oVariantManagementControl.attachCancel({ resolve }, handleCancel, this);
+			this.oVariantManagementControl.openSaveAsDialogForKeyUser(
+				rtaUtils.getRtaStyleClassName(),
+				ContextSharingAPI.createComponent(mComponentPropertyBag)
+			);
 		});
+		return bState;
 	};
 
 	ControlVariantSaveAs.prototype.getPreparedChange = function() {
@@ -107,28 +103,27 @@ sap.ui.define([
 	 * @public
 	 * @returns {Promise} Promise that resolves after execution
 	 */
-	ControlVariantSaveAs.prototype.execute = function() {
-		var sSourceVariantReference = this.getSourceVariantReference();
-		// once a change is saved to a variant it will automatically be restored by the VariantModel
-		this._aControlChangesWithoutVariant = this.oModel.getVariant(sSourceVariantReference, this.sVariantManagementReference)
-		.controlChanges
-		.filter((oFlexObject) => !oFlexObject.getSavedToVariant());
-		var mParams = this.getNewVariantParameters();
+	ControlVariantSaveAs.prototype.execute = async function() {
+		const sFlexReference = FlexRuntimeInfoAPI.getFlexReference({ element: this.oVariantManagementControl });
+		this._aControlChangesWithoutVariant = VariantManager.getControlChangesForVariant(
+			sFlexReference,
+			this.sVariantManagementReference,
+			this.getSourceVariantReference()
+		).filter((oFlexObject) => !oFlexObject.getSavedToVariant());
+		const mParams = this.getNewVariantParameters();
 		mParams.layer = this.sLayer;
 		mParams.newVariantReference = this.sNewVariantReference;
 		mParams.generator = rtaLibrary.GENERATOR_NAME;
-		return VariantManager.handleSaveEvent(this.oVariantManagementControl, mParams, this.oModel)
-		.then(function(aDirtyChanges) {
-			this._aPreparedChanges = aDirtyChanges;
-			[this._oVariantChange] = aDirtyChanges;
-			this.sNewVariantReference = this._oVariantChange.getId();
-			this._aPreparedChanges.forEach(function(oChange) {
-				if (oChange.getFileType() === "change") {
-					oChange.setSavedToVariant(true);
-				}
-			});
-			this.getModel().invalidateMap();
-		}.bind(this));
+		const aDirtyChanges = await VariantManager.handleSaveEvent(this.oVariantManagementControl, mParams);
+		this._aPreparedChanges = aDirtyChanges;
+		[this._oVariantChange] = aDirtyChanges;
+		this.sNewVariantReference = this._oVariantChange.getId();
+		this._aPreparedChanges.forEach(function(oChange) {
+			if (oChange.getFileType() === "change") {
+				oChange.setSavedToVariant(true);
+			}
+		});
+		VariantManager.updateVariantManagementMap(sFlexReference);
 	};
 
 	/**
@@ -138,8 +133,8 @@ sap.ui.define([
 	 */
 	ControlVariantSaveAs.prototype.undo = async function() {
 		if (this._oVariantChange) {
-			var aChangesToBeDeleted = [];
-			this._aPreparedChanges.forEach(function(oChange) {
+			const aChangesToBeDeleted = [];
+			this._aPreparedChanges.forEach((oChange) => {
 				if (oChange.getFileType() === "ctrl_variant_management_change") {
 					aChangesToBeDeleted.push(oChange);
 				}
@@ -149,10 +144,11 @@ sap.ui.define([
 				selector: this.oAppComponent
 			});
 
-			var mPropertyBag = {
+			const mPropertyBag = {
 				variant: this._oVariantChange,
 				sourceVariantReference: this.getSourceVariantReference(),
 				variantManagementReference: this.sVariantManagementReference,
+				vmControl: this.getElement(),
 				appComponent: this.oAppComponent
 			};
 

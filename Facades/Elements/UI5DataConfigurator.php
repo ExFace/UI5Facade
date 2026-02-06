@@ -1,10 +1,12 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
 use exface\Core\Interfaces\Widgets\iCanEditData;
@@ -74,12 +76,33 @@ class UI5DataConfigurator extends UI5Tabs
     
     protected function hasTabAdvancedSearch() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
     }
     
     protected function hasTabSorters() : bool
     {
+        if ($this->getWidget()->isDisabled() === true) {
+            return false;
+        }
         return true;
+    }
+
+    /**
+     * Returns the ui5 Id of the setups table (if it exists)
+     * @return bool
+     */
+    public function getSetupsTableId() : ?string
+    {
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            return $this->getFacade()->getElement($setupsTable)->getId();
+        }
+        else {
+            return null;
+        }
     }
     
     /**
@@ -112,20 +135,38 @@ JS;
         $controller->addOnEventScript($this, self::EVENT_BUTTON_CANCEL, 'oEvent.getSource().close();');
         $controller->addOnEventScript($this, self::EVENT_BUTTON_RESET, $this->buildJsResetter() . '; oEvent.getSource().setShowResetEnabled(true).close()');
         
-        $onActionEffectJs = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh(true, $oControllerJs);
-        // If the configured widget is an editable data widget, only react to action effects if
-        // no unsaved changes exist or the widget is explicitly required to refresh (by button config)!
-        $dataWidget = $dataElement->getWidget();
-        if ($dataWidget instanceof iCanEditData && $dataWidget->isEditable() && method_exists($dataElement, 'buildJsEditableChangesChecker')) {
-            $onActionEffectJs = "if (! {$dataElement->buildJsEditableChangesChecker()} || ((oParams || {}).refresh_widgets || []).indexOf('{$dataElement->getWidget()->getId()}') !== -1) { {$onActionEffectJs} }";
+        $this->registerRefreshListeners($oControllerJs);
+        
+        $refreshSetupsJs = '';
+        if ($this->hasTabSetups()) {
+            $setupsTable = $this->getWidget()->getSetupsTab()->getWidgetFirst();
+            $setupsTable->setAutoloadData(false);
+            $refreshSetupsJs = $this->getFacade()->getElement($setupsTable)->buildJsRefresh();
+                
+            // check if the indexedDb contains stored setup for this DataTable
+            // if so, automatically apply it
+            $this->getController()->addOnShowViewScript( <<<JS
+                
+                (function (){ 
+                    // if a setup exists for this table in the indexedDB, apply it 
+                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$dataElement->getWidget()->getId()}')
+                    .then(entry => {
+                        if (entry) {
+                            {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
+                        }
+                    });
+                })();             
+JS
+            ); 
+
+            // track changes made to the config
+            $this->getController()->addOnShowViewScript( <<<JS
+                {$dataElement->buildJsCallFunction('track_setup_changes')}
+JS
+           , false); 
         }
-        // If we are inside a dialog, make sure the dialog is still in the DOM before performing the
-        // action effects!
-        if ($dialog = $this->getWidget()->getParentByClass(Dialog::class)) {
-            $dialogElem = $this->getFacade()->getElement($dialog);
-            $onActionEffectJs = "if ({$dialogElem->getController()->getView()->buildJsViewGetter($dialogElem)} !== undefined && {$dialogElem->buildJsCheckDialogClosed()} !== true) { {$onActionEffectJs} }";
-        }
-        $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
+
+
         
         return <<<JS
 
@@ -135,14 +176,53 @@ JS;
             showReset: true,
             showResetEnabled: true,
             reset: {$controller->buildJsEventHandler($this, self::EVENT_BUTTON_RESET, true)},
+            afterOpen: function(oEvent) {
+                $refreshSetupsJs
+            },
             panels: [
                 {$this->buildJsPanelsConstructors()}
             ]
         })
         .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}")
         .setModel({$this->buildJsCreateModel()}, "{$this->getModelNameForConfig()}_initial")
-
+        
 JS;
+    }
+    
+    public function registerRefreshListeners(string $oControllerJs) : void
+    {
+        $onActionEffectJs = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh(true, $oControllerJs);
+        // If the configured widget is an editable data widget, only react to action effects if
+        // no unsaved changes exist or the widget is explicitly required to refresh (by button config)!
+        $dataElement = $this->getDataElement();
+        $dataWidget = $dataElement->getWidget();
+        if ($dataWidget instanceof iCanEditData && $dataWidget->isEditable() && method_exists($dataElement, 'buildJsEditableChangesChecker')) {
+            $onActionEffectJs = <<<JS
+
+                    if (
+                        ! {$dataElement->buildJsEditableChangesChecker()}
+                        || ((oParams || {}).refresh_widgets || []).indexOf('{$dataWidget->getId()}') !== -1
+                    ) { 
+                        {$onActionEffectJs} 
+                    }
+JS;
+        }
+        // If we are inside a dialog, make sure the dialog is still in the DOM before performing the
+        // action effects!
+        if ($dialog = $this->getWidget()->getParentByClass(Dialog::class)) {
+            $dialogElem = $this->getFacade()->getElement($dialog);
+            $onActionEffectJs = <<<JS
+
+                if (
+                    {$dialogElem->getController()->getView()->buildJsViewGetter($dialogElem)} !== undefined 
+                    && {$dialogElem->buildJsCheckDialogClosed()} !== true
+                ) { 
+                    {$onActionEffectJs} 
+                }
+JS;
+        }
+        
+        $this->getController()->addOnInitScript($this->buildJsRegisterOnActionPerformed($onActionEffectJs, false));
     }
     
     /**
@@ -153,6 +233,7 @@ JS;
     {
         return <<<JS
 
+                {$this->buildJsTabSetups()}
                 {$this->buildJsTabFilters()}
                 {$this->buildJsTabSorters()}
                 {$this->buildJsTabSearch()}
@@ -172,9 +253,11 @@ function(){
             var oModel = new sap.ui.model.json.JSONModel();
             var columns = {$this->buildJsonModelForColumns()};
             var sortables = {$this->buildJsonModelForSortables()};
+            var searchables = {$this->buildJsonModelForSearchables()}
             var data = {
                 "columns": columns,
                 "sortables": sortables,
+                "searchables": searchables,
                 "sorters": [{$this->buildJsonModelForInitialSorters()}]
             }
             oModel.setData(data);
@@ -198,6 +281,34 @@ JS;
 JS;
         }
         return $js;
+    }
+
+    /**
+     *
+     * @return string
+     */
+    protected function buildJsTabSetups() : string
+    {
+        if (! $this->hasTabSetups()) {
+            return '';
+        }
+        $tab = $this->getWidget()->getSetupsTab();
+        // TODO prevent autoloading all setups when the configured table is rendered. Only load the setups
+        // when they are really needed - e.g. when the configurator is opened or the setups selection menu
+        // is opened.
+        // We could use $table->setAutoloadData(false) and add a $table->buildJsRefreshScript() to some callback
+        // for opening the controls above.
+        $tabEl = $this->getFacade()->getElement($tab);
+        return <<<JS
+
+                new exface.openui5.P13nLayoutPanel({
+                    title: {$this->escapeString($tab->getCaption())},
+                    content: [
+                       {$tabEl->buildJsChildrenConstructors()}
+                    ]
+                }),
+JS;
+
     }
     
     /**
@@ -257,6 +368,11 @@ JS;
                             operation: "{{$this->getModelNameForConfig()}>direction}"
                         })
                     },
+                    updateSortItem: function(oEvent) {
+                        // otherwise change listener for property is not fired
+                        var oModel = this.getModel("{$this->getModelNameForConfig()}");
+                        oModel.refresh(true); 
+                    },
                     addSortItem: function(oEvent) {
             			var oParameters = oEvent.getParameters();
                         var oModel = this.getModel("{$this->getModelNameForConfig()}");
@@ -269,6 +385,7 @@ JS;
             				direction: oParameters.sortItemData.getOperation()
             			});
             			oModel.setProperty("/sorters", aSortItems);
+                        oModel.refresh(true); 
             		},
                     removeSortItem: function(oEvent) {
             			var oParameters = oEvent.getParameters();
@@ -277,6 +394,7 @@ JS;
             				var aSortItems = this.getModel("{$this->getModelNameForConfig()}").getProperty("/sorters");
             				aSortItems.splice(oParameters.index, 1);
             				oModel.setProperty("/sorters", aSortItems);
+                            oModel.refresh(true);
             			}
             		}
                 }),
@@ -312,6 +430,7 @@ JS;
                             });
                         });
                         oModel.setProperty('/columns', aNewColModel);
+                        oModel.refresh(true);
                     },
                     type: "columns",
                     items: {
@@ -343,8 +462,12 @@ JS;
             $resetSelection = '';
         }
         return <<<JS
-                        try {
-                            var oPanel = $oPanelJs;
+                var oPanel = $oPanelJs;
+
+                // settimeout needed here bc. otherwise the data is not there yet, 
+                // and changes are then only applied when panel is openend for the second time
+                setTimeout(function(){
+                    try {
                             var oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
                             var oTableModel = oTable.getModel();
                             var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
@@ -375,9 +498,11 @@ JS;
                                 } catch (e) {
                                     console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
                                 }
-                        } catch (e) {
-                            console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
-                        }
+                        } 
+                    catch (e) {
+                        console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
+                    }
+                }, 0); 
                         
 JS;
     }
@@ -408,7 +533,7 @@ JS;
                             oEvent.getSource().removeFilterItem(oParameters.index);
                         },
                         items: {
-                            path: '{$this->getModelNameForConfig()}>/columns',
+                            path: '{$this->getModelNameForConfig()}>/searchables',
                             template: new sap.m.P13nItem({
                                 columnKey: "{{$this->getModelNameForConfig()}>attribute_alias}",
                                 text: "{{$this->getModelNameForConfig()}>caption}"
@@ -437,8 +562,7 @@ JS;
 
         if ($this->hasTabColumns() === true) {
             $cols = $widget->getDataWidget()->getColumns();
-            // Add all optional columns from the configurator here. This will automatically
-            // make them filterable in the search-tab!
+            // Add all optional columns from the configurator here
             if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
                 $cols = array_merge($cols, $widget->getOptionalColumns());
             }
@@ -456,6 +580,32 @@ JS;
         }
         return json_encode($data);
     }
+
+    protected function buildJsonModelForSearchables() : string
+    {
+        $data = [];
+        $widget = $this->getWidget();
+
+        if ($this->hasTabColumns() === true) {
+            $cols = $widget->getDataWidget()->getColumns();
+            // Add all optional columns from the configurator here
+            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
+                $cols = array_merge($cols, $widget->getOptionalColumns());
+            }
+            foreach ($cols as $col) {
+                // columns that aren't filterable or are hidden and not the UID attribute should not appear in the filter tab
+                if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
+                    continue;
+                }
+                $data[] = [
+                    "attribute_alias" => $col->getAttributeAlias(),
+                    "caption" => $col->getCaption()
+                ];
+            }
+        }
+        return json_encode($data);
+    }
+    
     
     /**
      * 
@@ -599,6 +749,16 @@ JS;
     {
         return $this->getId() . '_SortPanel';
     }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getIdOfColumnsPanel() : string
+    {
+        return $this->getId() . '_ColumnsPanel'; 
+
+    }
     
     /**
      * 
@@ -616,10 +776,16 @@ JS;
      */
     public function buildJsDataGetter(ActionInterface $action = null, bool $unrendered = false)
     {
+        // If the configurator is disabled completely, it should always work in unrendered mode
+        if ($this->getWidget()->isDisabled()) {
+            return $this->buildJsDataGetterViaTrait($action, true);
+        }
+
         if ($unrendered === true || $this->hasTabAdvancedSearch() === false) {
             return $this->buildJsDataGetterViaTrait($action, $unrendered);
         }
-        
+
+        // Add filters from the advanced search tab
         $notMap = [];
         foreach (ComparatorDataType::getValuesStatic() as $comp) {
             if (ComparatorDataType::isInvertable($comp)) {
@@ -637,6 +803,9 @@ JS;
             $parsers[] = "'{$col->getAttributeAlias()}': function(mVal){ return {$formatter->buildJsFormatParser('mVal')} }";
         }
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
+
+        // if we are exporting, send only visible columns; otherwise send all columns
+        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));        
         
         return <<<JS
 
@@ -674,9 +843,75 @@ function(){
         }
         oData.filters.nested_groups.push(includeGroup);
     }
+
+    // for datatables, add columns array to parameters (previosuly in UI5DataTable) 
+    {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getDataElement()->getId()}').getColumns()", 'oData', $isExportAction)}
+    
     return oData;
 }()
+JS;
+    }
 
+    
+    /**
+     * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
+     * 
+     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * they are - each must only have:
+     * - .data('_exfDataColumnName')
+     * - .data('_exfAttributeAlias')
+     * - .data('_exfCalculation')
+     * 
+     * @param string $aCurrentColumnsJs
+     * @param string $oDataJs
+     * @param string $bIsExportAction (when exporting, we only send visible columns)
+     * @return string
+     */
+    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs, string $bIsExportAction) : string
+    {
+        // only do this for DataTables 
+        // DataCards are instance of UI5DataTable, but do not have the ui5 column controls, so skip them too
+        if ($this->getDataElement() instanceof UI5DataCards || !$this->getDataElement() instanceof UI5DataTable) {
+            return '';
+        }
+    
+        return <<<JS
+
+            (function(aColumns, oData, bIsExportAction){
+                oData.columns = [];
+                // Add currently visible columns to data.columns array
+                aColumns.forEach(oColumn => {
+
+                    // skip invisible columns 
+                    // do this only for export actions: otherwise it throws an error 
+                    // if we are doing a normal read for a datatable that only has optional columns
+                    // TODO/FIXME: if no columns are visible in a table by default, do we need to read at all? 
+                    if (bIsExportAction === true && oColumn.getVisible() === false) {
+                        return;
+                    }
+
+                    var oColParam;
+                    if (oColumn.data('_exfDataColumnName')) {
+                        if (oColumn.data('_exfAttributeAlias')) {
+                            oColParam = {
+                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                            };
+                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
+                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            }
+                        } else if (oColumn.data('_exfCalculation')) {
+                            oColParam = {
+                                name: oColumn.data('_exfDataColumnName'),
+                                expression: oColumn.data('_exfCalculation')
+                            };
+                        }
+                        if (oColParam !== undefined) {
+                            oData.columns.push(oColParam);
+                        }
+                    }
+                });
+                return oData;
+            })($aCurrentColumnsJs, $oDataJs, $bIsExportAction);
 JS;
     }
     
@@ -690,8 +925,7 @@ JS;
                 for (var i in aSortItems) {
                     $oParamsJs.sort = (params.sort ? params.sort+',' : '') + aSortItems[i].getColumnKey();
                     $oParamsJs.order = (params.order ? params.order+',' : '') + (aSortItems[i].getOperation() == 'Ascending' ? 'asc' : 'desc');
-                } 
-
+                }
 JS;
         } else {
             $addSortersJs = '';
@@ -701,7 +935,6 @@ JS;
 
                 $oParamsJs.data = {$this->buildJsDataGetter()};
                 $addSortersJs
-
 JS;
     }
         
@@ -719,6 +952,34 @@ JS;
     protected function hasTabColumns() : bool
     {
         return $this->include_columns_tab;
+    }
+    
+    protected function hasTabSetups() : bool
+    {
+        $confWidget = $this->getWidget();
+        if (! $confWidget instanceof DataTableConfigurator) {
+            return false;
+        }
+        // Setups explicitly disabled
+        if (! $confWidget->hasSetups()) {
+            return false;
+        }
+        // Data widgets without full configurator support (e.g. FileList)
+        if (! $this->hasTabColumns()) {
+            return false;
+        }
+        // Check if the data widget is really a DataTable
+        $dataWidget = $confWidget->getDataWidget();
+        if (! $dataWidget instanceof DataTable) {
+            return false;
+        }
+        // Double-check if apply_setup is implemented
+        try {
+            $this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP);
+        } catch (WidgetFunctionUnknownError $e) {
+            return false;
+        }
+        return true;
     }
     
     /**
@@ -757,12 +1018,22 @@ JS;
             
             $resetColumns = <<<JS
 // reset columns
-                oCurrentModel.setProperty('/columns', oInitModel.getProperty('/columns'));
+                oCurrentModel.setProperty('/columns', JSON.parse(JSON.stringify(oInitModel.getProperty('/columns'))));
                 {$this->buildJsTabColumnsUpdate("sap.ui.getCore().byId('{$this->getId()}_ColumnsPanel')", true)}
                 {$refreshP13n}
 JS;
         } else {
             $resetColumns = '';
+        }
+
+        if ($this->hasTabSetups()){
+            $resetSetupTracking = <<<JS
+                // reset change indicator
+                {$this->getDataElement()->buildJsCallFunction('reset_setup_change_tracking')}
+JS;
+        }
+        else {
+            $resetSetupTracking = '';
         }
         
         return <<<JS
@@ -775,10 +1046,44 @@ JS;
                 // reset advanced search filters
                 sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllFilterItems();
                 
-                // reset sorters
-                oCurrentModel.setProperty('/sorters', oInitModel.getProperty('/sorters'));
-                
+                // reset sorters (use deep copy to allow multiple resets; otherwise the initial model gets modified after resetting)
+                oCurrentModel.setProperty('/sorters', JSON.parse(JSON.stringify(oInitModel.getProperty('/sorters'))));
+                oCurrentModel.refresh(true);
+
+                // reset current custom width properties of the table columns
+                let oDataTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}'); 
+                if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+
+                    // clear custom width data
+                    oDataTable.getColumns().forEach(oCol => {
+                        oCol.data("_exfCustomColWidth", null);
+
+                        // reset column header filter properties
+                        let sFilterProperty = oCol.getFilterProperty();
+                        if (sFilterProperty) {
+                            oCol.setFiltered(false); // indicator
+                            oCol.setFilterValue(''); // clear value
+                        }
+
+                        // reset column header sort properties
+                        let sSortProperty = oCol.getSortProperty();
+                        if (sSortProperty) {
+                            oCol.setSorted(false); // indicator
+                            oCol.setSortOrder(sap.ui.table.SortOrder.None); // sort order
+                        }
+                    });
+                }
+
+                // Reset stored setup in indexedDB:
+                // if a setup exists for this table in the indexedDB, delete it
+                exfSetupManager.dexie.deleteCurrentSetup(
+                    '{$this->getWidget()->getPage()->getUid()}' , 
+                    '{$this->getDataElement()->getWidget()->getId()}'
+                );
+
                 {$resetColumns}
+
+                {$resetSetupTracking}
             }());
 
 JS;

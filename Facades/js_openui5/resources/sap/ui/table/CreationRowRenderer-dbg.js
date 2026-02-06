@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -219,7 +219,7 @@ sap.ui.define([
 					oRm.openStart("div");
 					oRm.class("sapUiTableCellInner");
 					oRm.openEnd();
-					TableRenderer.renderTableCellControl(oRm, oTable, oCell, bIsFirstColumn);
+					TableRenderer.renderDataCellControl(oRm, oTable, oCell, {isFirstColumn: bIsFirstColumn});
 					oRm.close("div");
 				}
 

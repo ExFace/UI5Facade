@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.Storage
 	 * @since 1.67
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -253,8 +253,6 @@ sap.ui.define([
 
 			const oResult = await _executeActionByName("condense", mProperties);
 
-			// the FlexController expects the response to be an array of changes, but having an array as response is bad practice.
-			// so once the coding is migrated away from FlexController and ChangePersistence, the return value should be used as is
 			if (oResult && oResult.status && oResult.status === 205 && aCreatedChanges.length) {
 				const aResponse = aCreatedChanges.map(function(oChange) {
 					return Object.values(oChange).pop();
@@ -343,6 +341,19 @@ sap.ui.define([
 	};
 
 	/**
+	 * Deletes all user variants for the given variant management references.
+	 *
+	 * @param {object} mPropertyBag - Property bag
+	 * @param {string} mPropertyBag.flexReference - Flex reference of the app the VM controls belong to
+	 * @param {string[]} mPropertyBag.variantManagementReferences - Array of variant management references
+	 * @param {sap.ui.fl.Layer} mPropertyBag.layer - Layer
+	 * @returns {Promise<undefined>} Promise that resolves as soon as the deletion was completed
+	 */
+	Storage.deleteUserVariantsForVM = function(mPropertyBag) {
+		return _executeActionByName("deleteUserVariantsForVM", mPropertyBag);
+	};
+
+	/**
 	 * Gets the variant management context information.
 	 * The context information is a JSON object that has boolean property 'lastHitReached'
 	 * indicating that the result is paginated and whether there are more contexts that can be fetched from the backend.
@@ -371,17 +382,6 @@ sap.ui.define([
 	 */
 	Storage.loadContextDescriptions = function(mPropertyBag) {
 		return _executeActionByName("loadContextDescriptions", mPropertyBag);
-	};
-
-	/**
-	 * Checks if variant management context sharing is enabled.
-	 *
-	 * @param {object} mPropertyBag - Property bag
-	 * @param {sap.ui.fl.Layer} mPropertyBag.layer - Layer
-	 * @returns {Promise<boolean>} Promise resolves true if context sharing is enabled
-	 */
-	Storage.isContextSharingEnabled = function(mPropertyBag) {
-		return _executeActionByName("isContextSharingEnabled", mPropertyBag);
 	};
 
 	/**

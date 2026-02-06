@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var RenameVisualization = {};
+	const RenameVisualization = {};
 
 	/**
 	 * Creates a localized description for rename changes based on the provided
@@ -26,18 +26,18 @@ sap.ui.define([
 	 * @returns {object} Localized description
 	 */
 	RenameVisualization.getDescription = function(mPayload, sFallbackLabel) {
-		var oRtaResourceBundle = Lib.getResourceBundleFor("sap.ui.rta");
-		var sKey = mPayload.originalLabel
+		const oRtaResourceBundle = Lib.getResourceBundleFor("sap.ui.rta");
+		const sKey = mPayload.originalLabel
 			? "TXT_CHANGEVISUALIZATION_CHANGE_RENAME_FROM_TO"
 			: "TXT_CHANGEVISUALIZATION_CHANGE_RENAME_TO";
-		var sDescriptionText = oRtaResourceBundle.getText(
+		const sDescriptionText = oRtaResourceBundle.getText(
 			sKey,
 			[
 				ChangeVisualizationUtils.shortenString(mPayload.newLabel) || sFallbackLabel,
 				ChangeVisualizationUtils.shortenString(mPayload.originalLabel)
 			]
 		);
-		var sDescriptionTooltip = oRtaResourceBundle.getText(
+		const sDescriptionTooltip = oRtaResourceBundle.getText(
 			sKey,
 			[
 				mPayload.newLabel || sFallbackLabel,

@@ -1,7 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Widgets\DataTable;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -153,11 +152,11 @@ JS;
      * 
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
-        if (null !== $js = $this->buildJsCallFunctionOfJExcel($functionName, $parameters)) {
+        if (null !== $js = $this->buildJsCallFunctionOfJExcel($functionName, $parameters, $jsRequestData)) {
             return $js;
         }
-        return $this->buildJsCallFunctionViaUI5DataDataElementTrait($functionName, $parameters);
+        return $this->buildJsCallFunctionViaUI5DataDataElementTrait($functionName, $parameters, $jsRequestData);
     }
 }

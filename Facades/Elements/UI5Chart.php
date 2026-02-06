@@ -109,8 +109,11 @@ JS;
      */
     protected function buildJsEChartsVar() : string
     {
-        
-        return "echarts.getInstanceByDom(document.getElementById('{$this->getId()}_echarts'))";
+        return <<<JS
+            (function(domEl){
+                return domEl ? echarts.getInstanceByDom(domEl) : undefined;
+            })(document.getElementById('{$this->getId()}_echarts'))
+JS;
     }
     
     /**

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -71,7 +71,7 @@ sap.ui.define([
 	 * @extends sap.ui.mdc.field.FieldInfoBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @alias sap.ui.mdc.Link
@@ -440,9 +440,9 @@ sap.ui.define([
 	// ----------------------- sap/ui/mdc/flp/FlpLinkDelegate relevant methods -------------------------------------
 
 	/**
-	 * Generates a new <code>sap.bas.log</code> if the payload contains semantic objects (this log is required for <code>sap.ui.mdc.flp.FlpLinkDelegate</code>).
+	 * Generates a new <code>sap/base/Log</code> if the payload contains semantic objects (this log is required for <code>sap.ui.mdc.flp.FlpLinkDelegate</code>).
 	 * @private
-	 * @returns {sap.base.Log | undefined} A generated <code>InfoLog</code> for the control | undefined
+	 * @returns {module:sap/base/Log | undefined} A generated <code>InfoLog</code> for the control | undefined
 	 */
 	Link.prototype._getInfoLog = function() {
 		if (this.getPayload() && this.getPayload().semanticObjects) {

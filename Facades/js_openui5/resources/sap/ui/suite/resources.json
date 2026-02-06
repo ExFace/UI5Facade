@@ -237,19 +237,19 @@
 		},
 		{
 			"name": "themes/base/TaskCircle.less",
-			"size": 355,
+			"size": 395,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/VerticalProgressIndicator.less",
-			"size": 457,
+			"size": 531,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 703,
+			"size": 788,
 			"theme": "base"
 		},
 		{
@@ -260,12 +260,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 703,
+			"size": 788,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 1541,
+			"size": 1655,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -318,7 +318,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library-RTL.css",
-			"size": 876,
+			"size": 940,
 			"theme": "sap_hcb"
 		},
 		{
@@ -329,7 +329,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library.css",
-			"size": 876,
+			"size": 940,
 			"theme": "sap_hcb"
 		},
 		{

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -111,7 +111,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -160,13 +160,6 @@ function(
 				/**
 				 * Determines which part of the control will remain fixed at the top of the page during vertical scrolling
 				 * as long as the control is in the viewport.
-				 *
-				 * <b>Note:</b> Limited browser support. Browsers which do not support this feature:
-				 * <ul>
-				 * 	<li>Microsoft Internet Explorer</li>
-				 * 	<li>Microsoft Edge lower than version 41 (EdgeHTML 16)</li>
-				 * 	<li>Mozilla Firefox lower than version 59</li>
-				 * </ul>
 				 *
 				 * @since 1.62
 				 */
@@ -427,7 +420,11 @@ function(
 						 * All appointments with changed selected state.
 						 * @since 1.67.0
 						 */
-						appointments : {type : "sap.ui.unified.CalendarAppointment[]"}
+						appointments : {type : "sap.ui.unified.CalendarAppointment[]"},
+						/**
+						 * The original browser event.
+						 */
+						originalEvent: {type: "object"}
 
 					}
 				},
@@ -542,7 +539,11 @@ function(
 						/**
 						 * The end date as a UI5Date or JavaScript Date object of the focused grid cell.
 						 */
-						endDate: {type: "object"}
+						endDate: {type: "object"},
+						/**
+						 * The original browser event.
+						 */
+						originalEvent: {type: "object"}
 					}
 				},
 
@@ -652,6 +653,16 @@ function(
 	 */
 	SinglePlanningCalendar.prototype.onAfterRendering = function () {
 		var oHeader = this._getHeader();
+		var oEvent = {
+			size: {
+				height: this.getDomRef().offsetHeight
+			},
+			oldSize: {
+				height: 0
+			}
+		};
+
+		this._onHeaderResize(oEvent);
 
 		// Adjusting is done after rendering, because otherwise we won't have
 		// info about how much offset is actually needed.
@@ -685,6 +696,9 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._onHeaderResize = function (oEvent) {
+		// Update view switch label visibility in case overflow state changed
+		this._getHeader()._updateViewSwitchLabelFor();
+
 		if (oEvent.oldSize.height === oEvent.size.height) {
 			// We need only height changes
 			return this;
@@ -1344,7 +1358,8 @@ function(
 		var fnHandleAppointmentSelect = function(oEvent) {
 			this.fireAppointmentSelect({
 				appointment: oEvent.getParameter("appointment"),
-				appointments: oEvent.getParameter("appointments")
+				appointments: oEvent.getParameter("appointments"),
+				originalEvent: oEvent.getParameter("originalEvent")
 			});
 		};
 		var fnHandleAppointmentDrop = function(oEvent) {
@@ -1371,7 +1386,8 @@ function(
 		var fnHandleCellPress = function(oEvent) {
 			this.fireEvent("cellPress", {
 				startDate: oEvent.getParameter("startDate"),
-				endDate: oEvent.getParameter("endDate")
+				endDate: oEvent.getParameter("endDate"),
+				originalEvent: oEvent.getParameter("originalEvent")
 			});
 		};
 		var fnHandleMoreLinkPress = function(oEvent) {
@@ -1643,10 +1659,21 @@ function(
 	};
 
 	/**
-	 * Finds the start and end dates in the visible range.
+	 * @typedef {object} sap.m.SinglePlanningCalendar.VisibleDates
+	 * @description Object which contains the start and end dates in the currently visible range.
+	 *
+	 * @property {Date|module:sap/ui/core/date/UI5Date} [oStartDate]
+	 *   The start date in the currently visible range.
+	 * @property {Date|module:sap/ui/core/date/UI5Date} [oEndDate]
+	 *   The end date in the currently visible range.
+	 * @public
+	 */
+
+	/**
+	 * Returns an object containing the start and end dates in the currently visible range.
 	 * @public
 	 * @since 1.133
-	 * @returns {Object} returns an object that stores both the start and end date within the currently visible range.
+	 * @returns {sap.m.SinglePlanningCalendar.VisibleDates} An object containing the start and end date in the currently visible range.
 	 */
 	SinglePlanningCalendar.prototype.getFirstAndLastVisibleDates = function () {
 		return this._getCurrentGrid()._getFirstAndLastVisibleDates();

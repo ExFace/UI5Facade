@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -85,7 +85,7 @@ sap.ui.define([
 	 * @extends sap.ui.integration.cards.BaseListContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -142,6 +142,7 @@ sap.ui.define([
 		if (!oTable) {
 			oTable = new ResponsiveTable({
 				id: this.getId() + "-Table",
+				sticky: ["ColumnHeaders", "GroupHeaders"],
 				showSeparators: ListSeparators.None,
 				ariaLabelledBy: this.getHeaderTitleId()
 			});
@@ -189,6 +190,17 @@ sap.ui.define([
 		if (oConfiguration.row && oConfiguration.row.columns) {
 			this._setColumns(oConfiguration.row);
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	TableContent.prototype.onOpenInDialog = function () {
+		BaseListContent.prototype.onOpenInDialog.apply(this, arguments);
+
+		const oTable = this._getTable();
+		oTable.setWidth("auto");
+		oTable.setFixedLayout(false);
 	};
 
 	/**
@@ -415,6 +427,24 @@ sap.ui.define([
 			return oControl;
 		}
 
+		if (oColumn.state) {
+			const oStatus = new ObjectStatus({
+				text: oColumn.value,
+				state: oColumn.state,
+				showStateIcon: oColumn.showStateIcon,
+				customIcon: oColumn.customStateIcon
+			});
+
+			this._oActions.attach({
+				area: ActionArea.ContentItemDetail,
+				actions: oColumn.actions,
+				control: oStatus,
+				enabledPropertyName: "active"
+			});
+
+			return oStatus;
+		}
+
 		if (oColumn.url) {
 			Log.warning("Usage of column property 'url' is deprecated. Use card actions for navigation.", null, "sap.ui.integration.widgets.Card");
 
@@ -441,15 +471,6 @@ sap.ui.define([
 			});
 
 			return oControl;
-		}
-
-		if (oColumn.state) {
-			return new ObjectStatus({
-				text: oColumn.value,
-				state: oColumn.state,
-				showStateIcon: oColumn.showStateIcon,
-				customIcon: oColumn.customStateIcon
-			});
 		}
 
 		if (oColumn.value) {

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/mdc/p13n/subcontroller/FilterController",
 	"sap/ui/mdc/p13n/subcontroller/AdaptFiltersController",
-	"sap/ui/mdc/filterbar/aligned/FilterContainer",
+	"sap/ui/mdc/filterbar/FilterContainer",
 	"sap/ui/mdc/filterbar/aligned/FilterItemLayout",
 	"sap/ui/mdc/filterbar/FilterBarBase",
 	"sap/ui/mdc/filterbar/FilterBarBaseRenderer",
@@ -14,8 +14,9 @@ sap.ui.define([
 	"sap/m/Button",
 	"sap/base/util/merge",
 	"sap/base/Log",
-	"sap/ui/mdc/enums/FilterBarP13nMode"
-], (FilterController, AdaptFiltersController, FilterContainer, FilterItemLayout, FilterBarBase, FilterBarBaseRenderer, mLibrary, Button, merge, Log, FilterBarP13nMode) => {
+	"sap/ui/mdc/enums/FilterBarP13nMode",
+	"sap/base/strings/formatMessage"
+], (FilterController, AdaptFiltersController, FilterContainer, FilterItemLayout, FilterBarBase, FilterBarBaseRenderer, mLibrary, Button, merge, Log, FilterBarP13nMode, formatMessage) => {
 	"use strict";
 
 	/**
@@ -42,7 +43,7 @@ sap.ui.define([
 	 * The metadata information is provided via the {@link module:sap/ui/mdc/FilterBarDelegate FilterBarDelegate} implementation. This implementation has to be provided by the application.
 	 * @extends sap.ui.mdc.filterbar.FilterBarBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @since 1.61.0
@@ -87,6 +88,39 @@ sap.ui.define([
 					type: "boolean",
 					visibility: "hidden",
 					defaultValue: false
+				},
+				/**
+				 * Determines whether the old or the new Adapt Filters UI is enabled.
+				 * Do nothing at the moment, property is reserved for further use.
+				 * @experimental
+				 * @private
+				 * @ui5-restricted sap.fe
+				 */
+				enableLegacyUI: {
+					type: "boolean",
+					defaultValue: false
+				},
+				/**
+				 * Defines a text for the "Adapt Filters" button.
+				 *
+				 * <b>Note:</b> Both <code>adaptFiltersText</code> and <code>adaptFiltersTextNonZero</code> need to be set for them to take effect.
+				 *
+				 * @private
+				 * @ui5-restricted sap.fe
+				 */
+				adaptFiltersText: {
+					type: "string"
+				},
+				/**
+				 * Defines a text for the "Adapt Filters" button in case of multiple filters being applied.
+				 *
+				 * <b>Note:</b> Both <code>adaptFiltersText</code> and <code>adaptFiltersTextNonZero</code> need to be set for them to take effect.
+				 * <b>Note:</b> If the count should be shown use <code>{0}</code> as a placeholder within the string.
+				 * @private
+				 * @ui5-restricted sap.fe
+				 */
+				adaptFiltersTextNonZero: {
+					type: "string"
 				}
 			}
 		},
@@ -99,8 +133,6 @@ sap.ui.define([
 	FilterBar.prototype._createInnerLayout = function() {
 		this._cLayoutItem = FilterItemLayout;
 		this._oFilterBarLayout = new FilterContainer();
-		this._oFilterBarLayout.getInner().setParent(this);
-		this._oFilterBarLayout.getInner().addStyleClass("sapUiMdcFilterBarBaseAFLayout");
 		this.setAggregation("layout", this._oFilterBarLayout, true);
 		this._addButtons();
 	};
@@ -148,8 +180,6 @@ sap.ui.define([
 
 	FilterBar.prototype._addButtons = function() {
 
-		if (this._oFilterBarLayout) {
-
 			this.setProperty("_filterCount", this._oRb.getText("filterbar.ADAPT"), false);
 
 			this._btnAdapt = new Button(this.getId() + "-btnAdapt", {
@@ -157,8 +187,6 @@ sap.ui.define([
 				text: "{" + FilterBarBase.INNER_MODEL_NAME + ">/_filterCount}",
 				press: this.onAdaptFilters.bind(this)
 			});
-			this._btnAdapt.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
-
 			this._btnAdapt.bindProperty("visible", {
 				parts: [{
 					path: "/showAdaptFiltersButton",
@@ -173,7 +201,6 @@ sap.ui.define([
 			});
 
 			this._btnSearch = this._getSearchButton();
-			this._btnSearch.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
 			this._btnSearch.bindProperty("visible", {
 				parts: [{
 					path: "/showGoButton",
@@ -196,13 +223,23 @@ sap.ui.define([
 					this.onClear();
 				}.bind(this)
 			});
-			this._btnClear.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
-			//this._btnClear.addStyleClass("sapUiMdcFilterBarBaseButtonPaddingRight");
+
+			/**
+			 * @deprecated since 1.144
+			 */
+			if (this._oModel) {
+				this._btnSearch.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
+				this._btnClear.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
+				this._btnAdapt.setModel(this._oModel, FilterBarBase.INNER_MODEL_NAME);
+			}
 
 			this._oFilterBarLayout.addButton(this._btnSearch);
 			this._oFilterBarLayout.addButton(this._btnClear);
 			this._oFilterBarLayout.addButton(this._btnAdapt);
-		}
+	};
+
+	FilterBar.prototype._getButtons = function () {
+		return this._oFilterBarLayout.getButtons();
 	};
 
 	FilterBar.prototype.onClear = function() {
@@ -233,14 +270,28 @@ sap.ui.define([
 				reset: function() {
 					this.getEngine().reset(this);
 					this._getConditionModel().checkUpdate(true);
-				}.bind(this)
-			})
-				.then((oPopup) => {
-					this._aAddedFilterFields = [];
-					this._aRemovedFilterFields = [];
-					oPopup.attachEventOnce("close", this._determineFilterFieldOnFocus.bind(this));
-					return oPopup;
+				}.bind(this),
+				open: () => {
+					const oAdaptationFilterBar = this.getInbuiltFilter();
+					if (oAdaptationFilterBar && this._checkIsNewUI()) {
+						oAdaptationFilterBar._validateAdaptationState();
+					}
+				}
+			}).then((oPopup) => {
+				this._aAddedFilterFields = [];
+				this._aRemovedFilterFields = [];
+				oPopup.attachEventOnce("close", this._determineFilterFieldOnFocus.bind(this));
+				return oPopup;
+			}).then((oPopup) => {
+				oPopup.attachEventOnce("close", (oEvent) => {
+					this.cleanUpAllFilterFieldsInErrorState();
+					const sReason = oEvent.getParameter("reason");
+					if (sReason === "Filter") {
+						this.triggerSearch();
+					}
 				});
+				return oPopup;
+			});
 		});
 
 	};
@@ -266,6 +317,18 @@ sap.ui.define([
 
 		this._aAddedFilterFields = undefined;
 		this._aRemovedFilterFields = undefined;
+	};
+
+	FilterBar.prototype.getAdaptFiltersButtonText = function(iFilterCount) {
+		let sText = FilterBarBase.prototype.getAdaptFiltersButtonText.call(this, iFilterCount);
+
+		const sAdaptFiltersText = this.getAdaptFiltersText(),
+			sAdaptFiltersTextNonZero = this.getAdaptFiltersTextNonZero();
+		if (sAdaptFiltersText && sAdaptFiltersTextNonZero) {
+			sText = iFilterCount ? formatMessage(sAdaptFiltersTextNonZero, [iFilterCount]) : sAdaptFiltersText;
+		}
+
+		return sText;
 	};
 
 	FilterBar.prototype._handleAddedFilterField = function(oFilterField) {
@@ -303,6 +366,13 @@ sap.ui.define([
 		}
 
 		return oState;
+	};
+
+	FilterBar.prototype._checkIsNewUI = function() {
+		if (this._bUseNewUI === undefined) {
+			this._bUseNewUI = new URLSearchParams(window.location.search).get("sap-ui-xx-new-adapt-filters") === "true";
+		}
+		return this._bUseNewUI;
 	};
 
 	FilterBar.prototype.exit = function() {

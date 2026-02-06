@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -84,7 +84,7 @@ sap.ui.define([
 			var fnComplete = (bSuccess) ?
 				this._fnResolvePromise :
 				this._fnRejectPromise;
-			fnComplete();
+				fnComplete && fnComplete();
 
 			// remove reference to promise (because once executed, the same promise cannot be reused again)
 			this._oPromise = null;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,7 @@ sap.ui.define(["sap/ui/core/ControlBehavior"],
 	 * Menu renderer.
 	 * @author SAP - TD Core UI&AM UI Infra
 	 *
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @namespace
 	 */
 	var MenuRenderer = {
@@ -96,6 +96,9 @@ sap.ui.define(["sap/ui/core/ControlBehavior"],
 			}
 			if (oSubmenu && oSubmenu._getItems().length) {
 				bHasSubMenus = true;
+				if (typeof aItems[i].getProperty("_expanded") !== "boolean") {
+					aItems[i].setProperty("_expanded", false);
+				}
 			}
 		}
 

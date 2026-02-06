@@ -8,35 +8,35 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 813,
+			"size": 877,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "Overlay.less",
-			"size": 1314,
+			"size": 1380,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 6341,
+			"size": 8444,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/dt/themes/sap_fiori_3_hcb/library-parameters.json",
-			"size": 628,
+			"size": 1145,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 6334,
+			"size": 8439,
 			"theme": "sap_fiori_3_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 2764,
+			"size": 2894,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcb"
 		},
@@ -48,7 +48,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 940
+			"size": 941
 		}
 	]
 }

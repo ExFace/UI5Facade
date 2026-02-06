@@ -1,22 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.fl.util.IFrame
 sap.ui.define([
-	"sap/base/util/uid",
 	"sap/ui/core/Control",
 	"sap/ui/model/json/JSONModel",
-	"./getContainerUserInfo",
+	"sap/ui/fl/util/getContainerUserInfo",
 	"sap/base/security/URLListValidator",
 	"sap/base/Log",
-	"./IFrameRenderer",
-	"../library",
+	"sap/ui/fl/util/IFrameRenderer",
 	"sap/ui/core/library"
+	// The iFrame control does not need to require its library module because no DataTypes are defined in fl library and the control
+	// doesn't require any CSS from the library.css
 ], function(
-	uid,
 	Control,
 	JSONModel,
 	getContainerUserInfo,
@@ -50,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -64,32 +63,32 @@ sap.ui.define([
 				/**
 				 * Determines the URL of the content.
 				 */
-				url: {type: "sap.ui.core.URI", group: "Misc", defaultValue: "" },
+				url: { type: "sap.ui.core.URI", group: "Misc", defaultValue: "about:blank" },
 
 				/**
 				 * Defines the <code>IFrame</code> width.
 				 */
-				width: {type: "sap.ui.core.CSSSize", group: "Misc", defaultValue: "100%"},
+				width: { type: "sap.ui.core.CSSSize", group: "Misc", defaultValue: "100%" },
 
 				/**
 				 * Defines the <code>IFrame</code> height.
 				 */
-				height: {type: "sap.ui.core.CSSSize", group: "Misc", defaultValue: "50vh"},
+				height: { type: "sap.ui.core.CSSSize", group: "Misc", defaultValue: "35vh" },
 
 				/**
 				 * Defines the title of the item.
 				 */
-				title: {type: "string", group: "Misc", defaultValue: undefined},
+				title: { type: "string", group: "Misc", defaultValue: undefined },
 
 				/**
 				 * Defines whether the <code>IFrame</code> was added as a new container.
 				 */
-				asContainer: {type: "boolean", group: "Misc", defaultValue: undefined},
+				asContainer: { type: "boolean", group: "Misc", defaultValue: undefined },
 
 				/**
 				 * Defines the information required for handling rename of <code>IFrame</code> containers.
 				 */
-				renameInfo: {type: "object", group: "Data", defaultValue: null},
+				renameInfo: { type: "object", group: "Data", defaultValue: null },
 
 				/**
 				 * Contains the Iframe sandbox attributes
@@ -140,57 +139,27 @@ sap.ui.define([
 		setUrl(sUrl) {
 			// Could contain special characters from bindings that need to be encoded
 			// Make sure that it was not encoded before
-			var sEncodedUrl = decodeURI(sUrl) === sUrl ? encodeURI(sUrl) : sUrl;
+			let sEncodedUrl = decodeURI(sUrl) === sUrl ? encodeURI(sUrl) : sUrl;
 
-			if (IFrame.isValidUrl(sEncodedUrl).result) {
-				// Set by replacing the last entry
-				const oNewUrl = IFrame._toUrl(sEncodedUrl);
-				const oOldUrl = IFrame._toUrl(this.getUrl() || "about:blank");
-				if (oOldUrl.searchParams.has("sap-ui-xx-fl-forceEmbeddedContentRefresh")) {
-					// Always keep the refresh parameter and update it to avoid false negatives
-					// when the URL doesn't change except for the refresh parameter itself + hash
-					oNewUrl.searchParams.set("sap-ui-xx-fl-forceEmbeddedContentRefresh", uid().substring(3));
-				} else if (
-					oOldUrl.origin === oNewUrl.origin
-					&& oOldUrl.pathname === oNewUrl.pathname
-					&& oOldUrl.search === oNewUrl.search
-					&& oOldUrl.hash !== oNewUrl.hash
-				) {
-					// Only the hash changed, site is not going to reload automatically
-					// Set an artificial search parameter to force a refresh
-					oNewUrl.searchParams.append("sap-ui-xx-fl-forceEmbeddedContentRefresh", uid().substring(3));
-				}
-				this.setProperty("url", oNewUrl.toString());
-			} else {
+			// Falsy values coming from bindings can lead to unexpected relative navigation
+			sEncodedUrl ||= "about:blank";
+
+			if (!IFrame.isValidUrl(sEncodedUrl).result) {
 				Log.error("Provided URL is not valid as an IFrame src");
+				return this;
 			}
+
+			const oNewUrl = IFrame._toUrl(sEncodedUrl);
+			this.setProperty("url", oNewUrl.toString());
 			return this;
 		},
 
-		// Used for testing since retrieving or spying on the Iframe location
-		// is not possible due to cross-origin restrictions
-		_replaceIframeLocation(sNewUrl) {
-			this.getDomRef().contentWindow.location.replace(sNewUrl);
+		getIFrameDomRef() {
+			return this.getDomRef()?.querySelector("iframe");
 		},
 
-		onAfterRendering() {
-			this._replaceIframeLocation(this.getUrl());
-
-			// The contentWindow might change without causing a rerender, e.g.
-			// when the parent element changes due to an appendChild call
-			// This will cause the iframe src to change and we need to replace the
-			// location again to ensure the correct content
-			this._oLastContentWindow = this.getDomRef().contentWindow;
-			this.getDomRef().addEventListener("load", () => {
-				if (!this.getDomRef()) {
-					// The iframe was removed before the load event was triggered
-					return;
-				}
-				if (this._oLastContentWindow !== this.getDomRef().contentWindow) {
-					this._oLastContentWindow = this.getDomRef().contentWindow;
-					this._replaceIframeLocation(this.getUrl());
-				}
-			});
+		getFocusDomRef() {
+			return this.getIFrameDomRef();
 		},
 
 		applySettings(mSettings, ...aOtherArgs) {
@@ -243,6 +212,14 @@ sap.ui.define([
 
 	IFrame.isValidUrl = function(sUrl) {
 		try {
+			// Explicitly allow about:blank as a way to reset the iframe content
+			// e.g. if the control is reused and no valid URL is provided
+			if (sUrl === "about:blank") {
+				return {
+					result: true
+				};
+			}
+
 			const oUrl = IFrame._toUrl(sUrl);
 
 			// Forbid dangerous javascript pseudo protocol

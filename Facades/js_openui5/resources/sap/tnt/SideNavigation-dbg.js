@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -119,11 +119,36 @@ sap.ui.define([
 				 * Fired when an item is pressed.
 				 */
 				itemPress: {
+					allowPreventDefault : true,
 					parameters: {
 						/**
 						 * The pressed item.
 						 */
-						item: { type: "sap.ui.core.Item" }
+						item: { type: "sap.ui.core.Item" },
+						/**
+						 * Indicates whether the CTRL key was pressed when the link was selected.
+						 * @since 1.136
+						 */
+						ctrlKey: { type: "boolean" },
+						/**
+						 * Indicates whether the Shift key was pressed when the link was selected.
+						 * @since 1.136
+						 */
+						shiftKey: { type: "boolean" },
+						/**
+						 * Indicates whether the Alt key was pressed when the link was selected.
+						 * @since 1.136
+						 */
+						altKey: { type: "boolean" },
+						/**
+						 * Indicates whether the "meta" key was pressed when the link was selected.
+						 *
+						 * On Macintosh keyboards, this is the command key (⌘).
+						 * On Windows keyboards, this is the windows key (⊞).
+						 *
+						 * @since 1.136
+						 */
+						metaKey: { type: "boolean" }
 					}
 				}
 			}
@@ -283,11 +308,12 @@ sap.ui.define([
 	};
 
 	SideNavigation.prototype._itemPressHandler = function (oEvent) {
-		const oItem = oEvent.getParameter("item");
+		const oParams = oEvent.getParameters();
 
-		this.fireItemPress({
-			item: oItem
-		});
+		if (!this.fireItemPress(oParams)) {
+			oEvent.preventDefault();
+			return;
+		}
 	};
 
 	return SideNavigation;

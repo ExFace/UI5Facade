@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -35,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.ui.integration.cards.BaseContent
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 *
 		 * @constructor
 		 * @private
@@ -227,7 +227,7 @@ sap.ui.define([
 
 			this._doMSCardsOverwrites();
 			this._adjustHostConfig();
-			this._handleActions();
+			this._handleActions(); // TODO: fix propagation of whole Card-level actions to Adaptive Content
 			this._replaceElements();
 			this._isRtl();
 		};
@@ -461,7 +461,7 @@ sap.ui.define([
 				// Thе timeout is needed to delay the check if UI5 WebComponents gets loaded from elsewhere.
 				// This detection relies on the assumption that there's the full bundle and the ui5-button is present.
 				setTimeout(function(){
-					if (window.customElements.get("ui5-button")) {
+					if (window.customElements.get("ui5-button-ac")) {
 						resolve();
 						return;
 					}

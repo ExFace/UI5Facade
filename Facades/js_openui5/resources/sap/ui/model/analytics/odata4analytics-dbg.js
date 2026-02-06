@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,8 @@ sap.ui.define([
 	 * access object attributes directly.
 	 *
 	 * @author SAP SE
-	 * @experimental This module is only for experimental use!
+	 * @deprecated As of version 1.138.0, will be replaced by OData V4 data aggregation, see
+	 *    {@link topic:7d914317c0b64c23824bf932cc8a4ae1 Extension for Data Aggregation}
 	 * @namespace
 	 * @alias sap.ui.model.analytics.odata4analytics
 	 * @protected

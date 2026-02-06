@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,6 @@ sap.ui.define([
 	"sap/ui/fl/write/api/FeaturesAPI",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/model/resource/ResourceModel",
-	"sap/ui/rta/util/ReloadManager",
 	"sap/ui/rta/util/whatsNew/WhatsNewUtils"
 ], function(
 	mLibrary,
@@ -22,7 +21,6 @@ sap.ui.define([
 	FeaturesAPI,
 	JSONModel,
 	ResourceModel,
-	ReloadManager,
 	WhatsNewUtils
 ) {
 	"use strict";
@@ -33,7 +31,7 @@ sap.ui.define([
 	 * @class Constructor for a new sap.ui.rta.util.whatsNew.WhatsNew
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @since 1.129
 	 * @private
@@ -51,27 +49,56 @@ sap.ui.define([
 		}
 	});
 
+	function updateLearnMoreButton(oCarousel) {
+		const sActivePageId = oCarousel.getActivePage();
+		const aPages = oCarousel.getPages();
+		const oLearnMoreBtn = Element.getElementById("sapUiRtaWhatsNewDialog_LearnMore");
+
+		// During initialization of the carousel the ActivePageId is not set yet, so we default to the index of the first page
+		const iCurrentIndex = sActivePageId
+			? aPages.findIndex(function(oPage) {
+				return oPage.getId() === sActivePageId;
+			})
+			: 0;
+
+		if (this.aUnseenFeatures[iCurrentIndex] && this.aUnseenFeatures[iCurrentIndex].documentationUrls) {
+			oLearnMoreBtn.setEnabled(true);
+		} else {
+			oLearnMoreBtn.setEnabled(false);
+		}
+	}
+
 	WhatsNew.prototype.setDontShowAgainFeatureIds = async function(aDontShowAgainFeatureIds) {
 		this.setProperty("dontShowAgainFeatureIds", aDontShowAgainFeatureIds);
 		this.aUnseenFeatures = await WhatsNewUtils.getFilteredFeatures(aDontShowAgainFeatureIds, this.getLayer());
 	};
 
-	WhatsNew.prototype.initializeWhatsNewDialog = async function(aExcludeFeatureIds = []) {
-		const aDontShowAgainFeatureIds = await FeaturesAPI.getSeenFeatureIds({ layer: this.getLayer() });
+	WhatsNew.prototype.initializeWhatsNewDialog = async function(aDontShowAgainFeatureIds, aExcludeFeatureIds = []) {
 		await this.setDontShowAgainFeatureIds(aDontShowAgainFeatureIds);
 		if (this.aUnseenFeatures.length === 0 || this.getLayer() !== "CUSTOMER") {
 			return;
 		}
 		const oWhatsNewDialogModel = new JSONModel();
-		const aVisibleFeatures = this.aUnseenFeatures.filter((oFeature) => !aExcludeFeatureIds.includes(oFeature.featureId));
-		if (aVisibleFeatures.length === 0) {
+		this.aExcludeFeatureIds = aExcludeFeatureIds;
+
+		const aUnfilteredUnseenFeatureIds = this.aUnseenFeatures.map((oFeature) => oFeature.featureId);
+
+		this.aUnseenFeatures = this.aUnseenFeatures.filter((oFeature) => !aExcludeFeatureIds.includes(oFeature.featureId));
+
+		if (this.aUnseenFeatures.length === 0) {
+			// check if there are excluded features that were not seen before, if yes save them as seen features
+			const aFilteredOutFeatureIds = aUnfilteredUnseenFeatureIds.filter((sId) => aExcludeFeatureIds.includes(sId));
+			if (aFilteredOutFeatureIds.length > 0) {
+				const aNewSeenFeatureIds = [...new Set([...this.getDontShowAgainFeatureIds(), ...aFilteredOutFeatureIds])];
+				FeaturesAPI.setSeenFeatureIds({ layer: this.getLayer(), seenFeatureIds: aNewSeenFeatureIds });
+			}
+
 			return;
 		}
-		oWhatsNewDialogModel.setData({ featureCollection: aVisibleFeatures });
+		oWhatsNewDialogModel.setData({ featureCollection: this.aUnseenFeatures });
 		if (!this.oWhatsNewDialog)	{
 			await this.createWhatsNewDialog(oWhatsNewDialogModel);
 		}
-		ReloadManager.setDontShowWhatsNewAfterReload();
 		this.oWhatsNewDialog.open();
 	};
 
@@ -83,17 +110,40 @@ sap.ui.define([
 		});
 		this.oWhatsNewDialog.setModel(oRTAResourceModel, "i18n");
 		this.oWhatsNewDialog.setModel(oWhatsNewDialogModel, "whatsNewModel");
+
+		// Dynamically enable/disable the Learn More button based on the current carousel page
+		const oCarousel = Element.getElementById("sapWhatsNewDialogCarousel");
+		if (oCarousel) {
+			oCarousel.attachEvent("pageChanged", () => {
+				updateLearnMoreButton.call(this, oCarousel);
+			});
+			// Initial state
+			updateLearnMoreButton.call(this, oCarousel);
+		}
 	};
 
 	WhatsNew.prototype.closeWhatsNewDialog = function() {
 		if (this.oWhatsNewDialog) {
 			const oDontShowAgainCheckbox = Element.getElementById("whatsNewDialog_DontShowAgain");
+
+			const oNewDontShowAgainSet = new Set([
+				...this.getDontShowAgainFeatureIds(),
+				...this.aExcludeFeatureIds
+			]);
+
 			if (oDontShowAgainCheckbox.getSelected()) {
-				const aUnseenFeatureIds = this.aUnseenFeatures.map((oUnseenFeature) => oUnseenFeature.featureId);
-				const aSeenFeatureIds = [...this.getDontShowAgainFeatureIds(), ...aUnseenFeatureIds];
-				const mPropertyBag = { layer: this.getLayer(), seenFeatureIds: aSeenFeatureIds };
-				FeaturesAPI.setSeenFeatureIds(mPropertyBag);
+				this.aUnseenFeatures.forEach((oUnseenFeature) => oNewDontShowAgainSet.add(oUnseenFeature.featureId));
 			}
+
+			const aNewDontShowAgainFeatureIds = [...oNewDontShowAgainSet];
+
+			if (aNewDontShowAgainFeatureIds.length > this.getDontShowAgainFeatureIds().length) {
+				FeaturesAPI.setSeenFeatureIds({
+					layer: this.getLayer(),
+					seenFeatureIds: aNewDontShowAgainFeatureIds
+				});
+			}
+
 			this.oWhatsNewDialog.close();
 		}
 	};

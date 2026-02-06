@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Container for the {@link sap.ui.mdc.ValueHelp ValueHelp} element.
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @abstract
 	 *
@@ -36,9 +36,6 @@ sap.ui.define([
 	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.navigate as #navigate
 	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.getUseAsValueHelp as #getUseAsValueHelp
 	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.isValidationSupported as #isValidationSupported
-	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnNavigate as #shouldOpenOnNavigate
-	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnFocus as #shouldOpenOnFocus
-	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.shouldOpenOnClick as #shouldOpenOnClick
 	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.removeVisualFocus as #removeVisualFocus
 	 * @borrows sap.ui.mdc.valuehelp.base.ITypeaheadContainer.setVisualFocus as #setVisualFocus
 	 *
@@ -699,7 +696,7 @@ sap.ui.define([
 	 * @returns {boolean} True if used as typeahead
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.isTypeahead = function() {
 		const oValueHelp = this.getParent();
@@ -714,7 +711,8 @@ sap.ui.define([
 	 * @returns {boolean} Flag if searching is supported
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.ValueHelp, sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.ValueHelp, sap.ui.mdc.valuehelp.base.Content
+ 	 * @deprecated As of version 1.137 with no replacement.
 	 */
 	Container.prototype.isTypeaheadSupported = function() {
 		return false;
@@ -730,7 +728,7 @@ sap.ui.define([
 	 * @returns {boolean} True if used as dialog
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.isDialog = function() {
 		const oValueHelp = this.getParent();
@@ -745,7 +743,7 @@ sap.ui.define([
 	 * @returns {boolean} True if parent has a dialog
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.hasDialog = function() {
 		const oValueHelp = this.getParent();
@@ -761,7 +759,7 @@ sap.ui.define([
 	 * @returns {boolean} True if scrolling is provided
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.providesScrolling = function() {
 		return false;
@@ -775,7 +773,7 @@ sap.ui.define([
 	 * @returns {sap.ui.mdc.ValueHelp} <code>ValueHelp</code> instance
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.getValueHelp = function() {
 		const oValueHelp = this.getParent();
@@ -791,7 +789,7 @@ sap.ui.define([
 	 * @throws Throws an error if the delegate module is not available
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.getValueHelpDelegate = function() {
 		const oValueHelp = this.getParent();
@@ -806,7 +804,7 @@ sap.ui.define([
 	 * @returns {object} payload
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.getValueHelpDelegatePayload = function() {
 		const oValueHelp = this.getParent();
@@ -822,7 +820,7 @@ sap.ui.define([
 	 * @throws Throws an error if the delegate module is not available
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.awaitValueHelpDelegate = function() {
 		const oValueHelp = this.getParent();
@@ -837,7 +835,7 @@ sap.ui.define([
 	 * @returns {boolean} True if delegate is initialized
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.isValueHelpDelegateInitialized = function() {
 		const oValueHelp = this.getParent();
@@ -895,25 +893,43 @@ sap.ui.define([
 	 * @param {int} iMaxConditions maximal conditions allowed (as <code>ValueHelp</code> might not be connected to a field)
 	 * @returns {sap.ui.core.delegate.ScrollEnablement} The scroll enablement delegate
 	 * @private
-	 * @ui5-restricted sap.ui.mdc.valueHelp.base.Content
+	 * @ui5-restricted sap.ui.mdc.valuehelp.base.Content
 	 */
 	Container.prototype.getScrollDelegate = function(iMaxConditions) {
 		const oContainer = this.getAggregation("_container");
 		return oContainer && oContainer.getScrollDelegate && oContainer.getScrollDelegate();
 	};
 
+	/**
+	 * Determines if the value help should be opened when the user focuses the connected control.
+	 *
+	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user focuses the connected field control
+	 * @deprecated As of version 1.137 with no replacement.
+	 */
 	Container.prototype.shouldOpenOnFocus = function() {
 		const oDelegate = this.getValueHelpDelegate();
 		const oValueHelp = this.getValueHelp();
 		return oDelegate ? oDelegate.shouldOpenOnFocus(oValueHelp, this) : Promise.resolve(false);
 	};
 
+	/**
+	 * Determines if the value help should be opened when the user clicks into the connected control.
+	 *
+	 * @returns {Promise<boolean>} If <code>true</code>, the value help should open when user clicks into the connected field control
+	 * @deprecated As of version 1.137 with no replacement.
+	 */
 	Container.prototype.shouldOpenOnClick = function() {
 		const oDelegate = this.getValueHelpDelegate();
 		const oValueHelp = this.getValueHelp();
 		return oDelegate ? oDelegate.shouldOpenOnClick(oValueHelp, this) : Promise.resolve(false);
 	};
 
+	/**
+	 * Determines if the value help should be opened when the user used the arrow keys.
+	 *
+	 * @returns {boolean} If <code>true</code>, the value help should open when user used the arrow keys in the connected field control
+	 * @deprecated As of version 1.137 with no replacement.
+	 */
 	Container.prototype.shouldOpenOnNavigate = function() {
 		return false;
 	};
@@ -1031,6 +1047,20 @@ sap.ui.define([
 	Container.prototype.setHighlightId = function(sHighlightId) {
 
 	};
+
+	/**
+	 * If set, the connected field must not allow other values than the items of the <code>FixedList</code>. Free text must be prevented.
+	 *
+	 * @returns {boolean} If set, only fixed values are allowed
+	 * @private
+	 * @ui5-restricted sap.ui.mdc.Valuehelp
+	 * @since 1.138
+	 */
+	Container.prototype.isRestrictedToFixedValues = function() {
+		const aContent = this.getContent();
+		return aContent?.[0]?.isRestrictedToFixedValues();
+	};
+
 
 	Container.prototype.clone = function(sIdSuffix, aLocalIds) {
 

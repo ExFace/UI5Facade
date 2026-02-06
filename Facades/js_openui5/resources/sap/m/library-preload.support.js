@@ -1,7 +1,7 @@
 //@ui5-bundle sap/m/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -17,6 +17,7 @@ sap.ui.predefine("sap/m/library.support", [
 	"./rules/Dialog.support",
 	"./rules/FacetFilter.support",
 	"./rules/IconTabBar.support",
+	"./rules/IllustratedMessage.support",
 	"./rules/Image.support",
 	"./rules/Input.support",
 	"./rules/Link.support",
@@ -45,6 +46,7 @@ sap.ui.predefine("sap/m/library.support", [
 		DialogSupport,
 		FacetFilterSupport,
 		IconTabBarSupport,
+		IllustratedMessage,
 		ImageSupport,
 		InputSupport,
 		LinkSupport,
@@ -77,6 +79,7 @@ sap.ui.predefine("sap/m/library.support", [
 			DialogSupport,
 			FacetFilterSupport,
 			IconTabBarSupport,
+			IllustratedMessage,
 			ImageSupport,
 			InputSupport,
 			LinkSupport,
@@ -100,7 +103,7 @@ sap.ui.predefine("sap/m/library.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -160,7 +163,7 @@ sap.ui.predefine("sap/m/rules/Breadcrumbs.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -258,7 +261,7 @@ sap.ui.predefine("sap/m/rules/Button.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -319,7 +322,7 @@ sap.ui.predefine("sap/m/rules/CheckBox.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -501,7 +504,7 @@ sap.ui.predefine("sap/m/rules/DatePicker.support", ["sap/ui/support/library"], f
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -597,7 +600,7 @@ sap.ui.predefine("sap/m/rules/DateRangeSelection.support", ["sap/ui/support/libr
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -653,7 +656,7 @@ sap.ui.predefine("sap/m/rules/Dialog.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -717,7 +720,7 @@ sap.ui.predefine("sap/m/rules/FacetFilter.support", ["sap/ui/support/library", "
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -867,7 +870,133 @@ sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library", "s
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+/**
+ * Defines support rules for the IllustratedMessage control of sap.m library.
+ */
+sap.ui.predefine("sap/m/rules/IllustratedMessage.support", ["sap/ui/support/library"],
+	function(SupportLib) {
+	"use strict";
+
+	// shortcuts
+	var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
+		Severity = SupportLib.Severity, // Hint, Warning, Error
+		Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+	//**********************************************************
+	// Rule Definitions
+	//**********************************************************
+
+	/**
+	 * Checks for deprecated illustration sizes in sap.m.IllustratedMessage
+	 */
+	var oDeprecatedIllustrationSizeRule = {
+		id: "deprecatedIllustrationSize",
+		audiences: [Audiences.Application],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.135",
+		title: "IllustratedMessage is using deprecated illustrationSize",
+		description: "Using deprecated illustration sizes should be avoided, because they are not maintained anymore.",
+		resolution: "Refer to the API of sap.m.IllustratedMessageSize for supported sizes.",
+		resolutionurls: [{
+			text: "API Reference",
+			href: "https://sdk.openui5.org/api/sap.m.IllustratedMessageSize"
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var aDeprecatedSizes = ["Dialog", "Spot", "Dot", "Scene"];
+			oScope.getElementsByClassName("sap.m.IllustratedMessage").forEach(function(oElement) {
+				var sSize = oElement.getIllustrationSize && oElement.getIllustrationSize();
+				if (aDeprecatedSizes.indexOf(sSize) !== -1) {
+					oIssueManager.addIssue({
+						severity: Severity.Medium,
+						details: "Deprecated illustrationSize '" + sSize + "' is used for IllustratedMessage '" + oElement.getId() + "'.",
+						context: { id: oElement.getId() }
+					});
+				}
+			});
+		}
+	};
+
+	/**
+	 * Checks for deprecated illustration types in sap.m.IllustratedMessage
+	 */
+	var oDeprecatedIllustrationTypeRule = {
+		id: "deprecatedIllustrationType",
+		audiences: [Audiences.Application],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.135",
+		title: "IllustratedMessage is using deprecated illustrationType",
+		description: "Using deprecated illustration types should be avoided, because they are not maintained anymore.",
+		resolution: "Refer to the API of sap.m.IllustratedMessageType for supported types.",
+		resolutionurls: [{
+			text: "API Reference",
+			href: "https://sdk.openui5.org/api/sap.m.IllustratedMessageType"
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var aDeprecatedTypes = [
+				"sapIllus-NoMail_v1",
+				"sapIllus-NoSavedItems_v1",
+				"sapIllus-NoTasks_v1",
+				"sapIllus-NoDimensionsSet",
+				"sapIllus-AddColumn",
+				"sapIllus-AddPeople",
+				"sapIllus-BalloonSky",
+				"sapIllus-Connection",
+				"sapIllus-EmptyCalendar",
+				"sapIllus-EmptyList",
+				"sapIllus-ErrorScreen",
+				"sapIllus-FilterTable",
+				"sapIllus-GroupTable",
+				"sapIllus-ReloadScreen",
+				"sapIllus-ResizeColumn",
+				"sapIllus-SearchEarth",
+				"sapIllus-SearchFolder",
+				"sapIllus-SimpleBalloon",
+				"sapIllus-SimpleBell",
+				"sapIllus-SimpleCalendar",
+				"sapIllus-SimpleCheckMark",
+				"sapIllus-SimpleConnection",
+				"sapIllus-SimpleEmptyDoc",
+				"sapIllus-SimpleEmptyList",
+				"sapIllus-SimpleError",
+				"sapIllus-SimpleMagnifier",
+				"sapIllus-SimpleMail",
+				"sapIllus-SimpleNoSavedItems",
+				"sapIllus-SimpleNotFoundMagnifier",
+				"sapIllus-SimpleReload",
+				"sapIllus-SimpleTask",
+				"sapIllus-SleepingBell",
+				"sapIllus-SortColumn",
+				"sapIllus-SuccessBalloon",
+				"sapIllus-SuccessCheckMark",
+				"sapIllus-SuccessHighFive",
+				"sapIllus-SuccessScreen",
+				"sapIllus-Tent",
+				"sapIllus-UploadCollection"
+			];
+			oScope.getElementsByClassName("sap.m.IllustratedMessage").forEach(function(oElement) {
+				var sType = oElement.getIllustrationType && oElement.getIllustrationType();
+				if (aDeprecatedTypes.indexOf(sType) !== -1) {
+					oIssueManager.addIssue({
+						severity: Severity.Medium,
+						details: "Deprecated illustrationType '" + sType + "' is used for IllustratedMessage '" + oElement.getId() + "'.",
+						context: { id: oElement.getId() }
+					});
+				}
+			});
+		}
+	};
+
+	return [oDeprecatedIllustrationSizeRule, oDeprecatedIllustrationTypeRule];
+
+}, true);
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1017,7 +1146,7 @@ sap.ui.predefine("sap/m/rules/Image.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1101,7 +1230,7 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1162,7 +1291,7 @@ sap.ui.predefine("sap/m/rules/Link.support", ["sap/ui/support/library"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1225,7 +1354,7 @@ sap.ui.predefine("sap/m/rules/MaskInput.support", ["sap/ui/support/library"], fu
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1329,7 +1458,7 @@ function(SupportLib) {
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1578,7 +1707,7 @@ sap.ui.predefine("sap/m/rules/ObjectHeader.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1641,7 +1770,7 @@ sap.ui.predefine("sap/m/rules/ObjectListItem.support", ["sap/ui/support/library"
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1703,7 +1832,7 @@ sap.ui.predefine("sap/m/rules/ObjectMarker.support", ["sap/ui/support/library"],
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1766,7 +1895,7 @@ sap.ui.predefine("sap/m/rules/ObjectStatus.support", ["sap/ui/support/library"],
 /* eslint-disable linebreak-style */
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1831,7 +1960,7 @@ sap.ui.predefine("sap/m/rules/Panel.support", [
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1976,7 +2105,7 @@ sap.ui.predefine("sap/m/rules/Select.support", ["sap/ui/support/library", "sap/u
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2049,7 +2178,7 @@ sap.ui.predefine("sap/m/rules/SelectDialog.support", ["sap/ui/support/library", 
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2146,7 +2275,7 @@ sap.ui.predefine("sap/m/rules/StepInput.support", ["sap/ui/support/library"], fu
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2254,7 +2383,7 @@ sap.ui.predefine("sap/m/rules/Table.support", ["sap/ui/support/library", "sap/m/
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2318,7 +2447,7 @@ sap.ui.predefine("sap/m/rules/Title.support", ["sap/ui/support/library", "sap/ui
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -2369,7 +2498,7 @@ function(SupportLib) {
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**

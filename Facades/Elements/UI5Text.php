@@ -162,7 +162,6 @@ JS;
                     if (bMultiline) {
                         sVal.replace(/([^>\\r\\n]?)(\\r\\n|\\n\\r|\\r|\\n)/g, '$1<br>$2');
                     }
-                    console.log(sVal)
                     return {$openTag} sVal {$closeTag};
                 },
                 
@@ -197,5 +196,17 @@ JS;
         }
         
         return "setHtmlText(({$valueJs} || '').replace(/([^>\\r\\n]?)(\\r\\n|\\n\\r|\\r|\\n)/g, '$1<br>$2'))";
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Display::getShowValueInTooltip()
+     */
+    protected function getShowValueInTooltip() : bool
+    {
+        $widget = $this->getWidget();
+        // Show value in tooltip only if the regular control will not show it all. If it is completely visible
+        // regularly, do not put it into the tooltip because that would just be too big!
+        return $widget->isMultiLine() === false || $widget->getMultiLineMaxLines() !== null ? true : false;
     }
 }

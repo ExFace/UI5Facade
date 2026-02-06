@@ -3,7 +3,7 @@
 	"resources": [
 		{
 			"name": ".library",
-			"size": 2038
+			"size": 2025
 		},
 		{
 			"name": ".theming",
@@ -2325,38 +2325,38 @@
 		{
 			"name": "designtime/Badge-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Badge.designtime.js",
-			"size": 853,
+			"size": 619,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Badge.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Badge.designtime.js",
-			"size": 558,
+			"size": 448,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Badge.designtime.js.map",
-			"size": 615,
+			"size": 455,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/BreadcrumbsItem-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/BreadcrumbsItem.designtime.js",
-			"size": 1017,
+			"size": 783,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/BreadcrumbsItem.designtime.js",
 			"module": "sap/ui/webc/main/designtime/BreadcrumbsItem.designtime.js",
-			"size": 655,
+			"size": 545,
 			"designtime": true
 		},
 		{
 			"name": "designtime/BreadcrumbsItem.designtime.js.map",
-			"size": 730,
+			"size": 580,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2382,19 +2382,19 @@
 		{
 			"name": "designtime/Button-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Button.designtime.js",
-			"size": 1029,
+			"size": 754,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Button.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Button.designtime.js",
-			"size": 666,
+			"size": 527,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Button.designtime.js.map",
-			"size": 732,
+			"size": 556,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2439,19 +2439,19 @@
 		{
 			"name": "designtime/CheckBox-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/CheckBox.designtime.js",
-			"size": 1048,
+			"size": 814,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/CheckBox.designtime.js",
 			"module": "sap/ui/webc/main/designtime/CheckBox.designtime.js",
-			"size": 694,
+			"size": 584,
 			"designtime": true
 		},
 		{
 			"name": "designtime/CheckBox.designtime.js.map",
-			"size": 759,
+			"size": 609,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2515,19 +2515,19 @@
 		{
 			"name": "designtime/Dialog-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Dialog.designtime.js",
-			"size": 969,
+			"size": 774,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Dialog.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Dialog.designtime.js",
-			"size": 673,
+			"size": 573,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Dialog.designtime.js.map",
-			"size": 715,
+			"size": 581,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2553,19 +2553,19 @@
 		{
 			"name": "designtime/Label-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Label.designtime.js",
-			"size": 897,
+			"size": 663,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Label.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Label.designtime.js",
-			"size": 602,
+			"size": 492,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Label.designtime.js.map",
-			"size": 661,
+			"size": 501,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2603,19 +2603,19 @@
 		{
 			"name": "designtime/List-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/List.designtime.js",
-			"size": 1860,
+			"size": 1681,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/List.designtime.js",
 			"module": "sap/ui/webc/main/designtime/List.designtime.js",
-			"size": 1005,
+			"size": 930,
 			"designtime": true
 		},
 		{
 			"name": "designtime/List.designtime.js.map",
-			"size": 1283,
+			"size": 1159,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2641,57 +2641,57 @@
 		{
 			"name": "designtime/Panel-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Panel.designtime.js",
-			"size": 1619,
+			"size": 1234,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Panel.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Panel.designtime.js",
-			"size": 1114,
+			"size": 904,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Panel.designtime.js.map",
-			"size": 1215,
+			"size": 886,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Popover-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Popover.designtime.js",
-			"size": 972,
+			"size": 777,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Popover.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Popover.designtime.js",
-			"size": 676,
+			"size": 576,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Popover.designtime.js.map",
-			"size": 718,
+			"size": 584,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/RadioButton-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/RadioButton.designtime.js",
-			"size": 918,
+			"size": 684,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/RadioButton.designtime.js",
 			"module": "sap/ui/webc/main/designtime/RadioButton.designtime.js",
-			"size": 623,
+			"size": 513,
 			"designtime": true
 		},
 		{
 			"name": "designtime/RadioButton.designtime.js.map",
-			"size": 675,
+			"size": 515,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2736,19 +2736,19 @@
 		{
 			"name": "designtime/ResponsivePopover-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/ResponsivePopover.designtime.js",
-			"size": 1004,
+			"size": 809,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/ResponsivePopover.designtime.js",
 			"module": "sap/ui/webc/main/designtime/ResponsivePopover.designtime.js",
-			"size": 708,
+			"size": 608,
 			"designtime": true
 		},
 		{
 			"name": "designtime/ResponsivePopover.designtime.js.map",
-			"size": 739,
+			"size": 605,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2774,38 +2774,38 @@
 		{
 			"name": "designtime/StandardListItem-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/StandardListItem.designtime.js",
-			"size": 831,
+			"size": 597,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/StandardListItem.designtime.js",
 			"module": "sap/ui/webc/main/designtime/StandardListItem.designtime.js",
-			"size": 556,
+			"size": 446,
 			"designtime": true
 		},
 		{
 			"name": "designtime/StandardListItem.designtime.js.map",
-			"size": 610,
+			"size": 450,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Tab-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Tab.designtime.js",
-			"size": 980,
+			"size": 746,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Tab.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Tab.designtime.js",
-			"size": 661,
+			"size": 551,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Tab.designtime.js.map",
-			"size": 756,
+			"size": 596,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2875,19 +2875,19 @@
 		{
 			"name": "designtime/Title-dbg.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Title.designtime.js",
-			"size": 897,
+			"size": 663,
 			"isDebug": true,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Title.designtime.js",
 			"module": "sap/ui/webc/main/designtime/Title.designtime.js",
-			"size": 602,
+			"size": 492,
 			"designtime": true
 		},
 		{
 			"name": "designtime/Title.designtime.js.map",
-			"size": 662,
+			"size": 502,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -2901,7 +2901,7 @@
 		{
 			"name": "designtime/library-preload.designtime.js",
 			"module": "sap/ui/webc/main/designtime/library-preload.designtime.js",
-			"size": 18021,
+			"size": 16417,
 			"merged": true,
 			"designtime": true,
 			"required": [
@@ -2947,7 +2947,7 @@
 		},
 		{
 			"name": "designtime/library-preload.designtime.js.map",
-			"size": 19782,
+			"size": 17491,
 			"isDebug": true,
 			"designtime": true
 		},
@@ -3124,7 +3124,7 @@
 		{
 			"name": "designtime/messagebundle_fr_CA.properties",
 			"module": "sap/ui/webc/main/designtime/messagebundle_fr_CA.properties",
-			"size": 1625,
+			"size": 1619,
 			"designtime": true,
 			"locale": "fr_CA",
 			"raw": "designtime/messagebundle.properties"
@@ -4351,7 +4351,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 1381228,
+			"size": 1380520,
 			"isDebug": true
 		},
 		{
@@ -4401,7 +4401,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 630014
+			"size": 630007
 		},
 		{
 			"name": "thirdparty/Assets-dbg.js",
@@ -4542,7 +4542,7 @@
 		},
 		{
 			"name": "thirdparty/AvatarGroup.js.map",
-			"size": 9478,
+			"size": 9472,
 			"isDebug": true
 		},
 		{
@@ -4658,7 +4658,7 @@
 		},
 		{
 			"name": "thirdparty/Breadcrumbs.js.map",
-			"size": 12787,
+			"size": 12776,
 			"isDebug": true
 		},
 		{
@@ -4730,7 +4730,7 @@
 		},
 		{
 			"name": "thirdparty/BusyIndicator.js.map",
-			"size": 4191,
+			"size": 4185,
 			"isDebug": true
 		},
 		{
@@ -4790,7 +4790,7 @@
 		},
 		{
 			"name": "thirdparty/Button.js.map",
-			"size": 7643,
+			"size": 7638,
 			"isDebug": true
 		},
 		{
@@ -4856,7 +4856,7 @@
 		},
 		{
 			"name": "thirdparty/Calendar.js.map",
-			"size": 10839,
+			"size": 10819,
 			"isDebug": true
 		},
 		{
@@ -5124,7 +5124,7 @@
 		},
 		{
 			"name": "thirdparty/Carousel.js.map",
-			"size": 12563,
+			"size": 12553,
 			"isDebug": true
 		},
 		{
@@ -5182,7 +5182,7 @@
 		},
 		{
 			"name": "thirdparty/CheckBox.js.map",
-			"size": 6577,
+			"size": 6572,
 			"isDebug": true
 		},
 		{
@@ -5242,7 +5242,7 @@
 		},
 		{
 			"name": "thirdparty/ColorPalette.js.map",
-			"size": 10838,
+			"size": 10833,
 			"isDebug": true
 		},
 		{
@@ -5500,7 +5500,7 @@
 		},
 		{
 			"name": "thirdparty/ComboBox.js.map",
-			"size": 23583,
+			"size": 23568,
 			"isDebug": true
 		},
 		{
@@ -5864,7 +5864,7 @@
 		},
 		{
 			"name": "thirdparty/DayPicker.js.map",
-			"size": 16079,
+			"size": 16059,
 			"isDebug": true
 		},
 		{
@@ -5926,7 +5926,7 @@
 		},
 		{
 			"name": "thirdparty/Dialog.js.map",
-			"size": 12710,
+			"size": 12705,
 			"isDebug": true
 		},
 		{
@@ -5986,7 +5986,7 @@
 		},
 		{
 			"name": "thirdparty/FileUploader.js.map",
-			"size": 8441,
+			"size": 8428,
 			"isDebug": true
 		},
 		{
@@ -6002,7 +6002,7 @@
 		},
 		{
 			"name": "thirdparty/Filters.js.map",
-			"size": 1078,
+			"size": 1069,
 			"isDebug": true
 		},
 		{
@@ -6342,7 +6342,7 @@
 		},
 		{
 			"name": "thirdparty/List.js.map",
-			"size": 16858,
+			"size": 16840,
 			"isDebug": true
 		},
 		{
@@ -6402,7 +6402,7 @@
 		},
 		{
 			"name": "thirdparty/ListItem.js.map",
-			"size": 8769,
+			"size": 8764,
 			"isDebug": true
 		},
 		{
@@ -6502,7 +6502,7 @@
 		},
 		{
 			"name": "thirdparty/Menu.js.map",
-			"size": 12537,
+			"size": 12527,
 			"isDebug": true
 		},
 		{
@@ -6638,7 +6638,7 @@
 		},
 		{
 			"name": "thirdparty/MonthPicker.js.map",
-			"size": 7452,
+			"size": 7447,
 			"isDebug": true
 		},
 		{
@@ -6748,7 +6748,7 @@
 		},
 		{
 			"name": "thirdparty/MultiComboBox.js.map",
-			"size": 35645,
+			"size": 35586,
 			"isDebug": true
 		},
 		{
@@ -6850,7 +6850,7 @@
 		},
 		{
 			"name": "thirdparty/MultiInput.js.map",
-			"size": 9466,
+			"size": 9431,
 			"isDebug": true
 		},
 		{
@@ -6938,7 +6938,7 @@
 		},
 		{
 			"name": "thirdparty/Panel.js.map",
-			"size": 7287,
+			"size": 7282,
 			"isDebug": true
 		},
 		{
@@ -7364,7 +7364,7 @@
 		},
 		{
 			"name": "thirdparty/SegmentedButton.js.map",
-			"size": 5546,
+			"size": 5536,
 			"isDebug": true
 		},
 		{
@@ -7498,7 +7498,7 @@
 		},
 		{
 			"name": "thirdparty/Select.js.map",
-			"size": 20014,
+			"size": 19994,
 			"isDebug": true
 		},
 		{
@@ -7550,7 +7550,7 @@
 		},
 		{
 			"name": "thirdparty/SelectMenu.js.map",
-			"size": 6073,
+			"size": 6068,
 			"isDebug": true
 		},
 		{
@@ -7664,7 +7664,7 @@
 		},
 		{
 			"name": "thirdparty/SliderBase.js.map",
-			"size": 11996,
+			"size": 11986,
 			"isDebug": true
 		},
 		{
@@ -7714,7 +7714,7 @@
 		},
 		{
 			"name": "thirdparty/SplitButton.js.map",
-			"size": 6664,
+			"size": 6657,
 			"isDebug": true
 		},
 		{
@@ -7958,7 +7958,7 @@
 		},
 		{
 			"name": "thirdparty/Switch.js.map",
-			"size": 5166,
+			"size": 5161,
 			"isDebug": true
 		},
 		{
@@ -8114,7 +8114,7 @@
 		},
 		{
 			"name": "thirdparty/TabContainer.js.map",
-			"size": 23790,
+			"size": 23749,
 			"isDebug": true
 		},
 		{
@@ -8222,7 +8222,7 @@
 		},
 		{
 			"name": "thirdparty/Table.js.map",
-			"size": 20351,
+			"size": 20331,
 			"isDebug": true
 		},
 		{
@@ -8394,7 +8394,7 @@
 		},
 		{
 			"name": "thirdparty/TableRow.js.map",
-			"size": 9294,
+			"size": 9283,
 			"isDebug": true
 		},
 		{
@@ -8576,7 +8576,7 @@
 		},
 		{
 			"name": "thirdparty/TimePickerBase.js.map",
-			"size": 10773,
+			"size": 10763,
 			"isDebug": true
 		},
 		{
@@ -8612,7 +8612,7 @@
 		},
 		{
 			"name": "thirdparty/TimePickerClock.js.map",
-			"size": 14294,
+			"size": 14280,
 			"isDebug": true
 		},
 		{
@@ -8660,7 +8660,7 @@
 		},
 		{
 			"name": "thirdparty/TimePickerInternals.js.map",
-			"size": 9632,
+			"size": 9627,
 			"isDebug": true
 		},
 		{
@@ -8888,7 +8888,7 @@
 		},
 		{
 			"name": "thirdparty/Toast.js.map",
-			"size": 4575,
+			"size": 4570,
 			"isDebug": true
 		},
 		{
@@ -9080,7 +9080,7 @@
 		},
 		{
 			"name": "thirdparty/Tokenizer.js.map",
-			"size": 17734,
+			"size": 17670,
 			"isDebug": true
 		},
 		{
@@ -9148,7 +9148,7 @@
 		},
 		{
 			"name": "thirdparty/Toolbar.js.map",
-			"size": 12288,
+			"size": 12262,
 			"isDebug": true
 		},
 		{
@@ -9238,7 +9238,7 @@
 		},
 		{
 			"name": "thirdparty/ToolbarRegistry.js.map",
-			"size": 1303,
+			"size": 1293,
 			"isDebug": true
 		},
 		{
@@ -9284,7 +9284,7 @@
 		},
 		{
 			"name": "thirdparty/ToolbarSelect.js.map",
-			"size": 3918,
+			"size": 3908,
 			"isDebug": true
 		},
 		{
@@ -9422,7 +9422,7 @@
 		},
 		{
 			"name": "thirdparty/Tree.js.map",
-			"size": 6461,
+			"size": 6441,
 			"isDebug": true
 		},
 		{
@@ -9564,7 +9564,7 @@
 		},
 		{
 			"name": "thirdparty/TreeList.js.map",
-			"size": 1735,
+			"size": 1730,
 			"isDebug": true
 		},
 		{
@@ -9664,7 +9664,7 @@
 		},
 		{
 			"name": "thirdparty/YearPicker.js.map",
-			"size": 8309,
+			"size": 8304,
 			"isDebug": true
 		},
 		{
@@ -10194,7 +10194,7 @@
 		},
 		{
 			"name": "thirdparty/features/InputElementsFormSupport.js.map",
-			"size": 3051,
+			"size": 3046,
 			"isDebug": true
 		},
 		{
@@ -10242,7 +10242,7 @@
 		},
 		{
 			"name": "thirdparty/features/InputSuggestions.js.map",
-			"size": 12906,
+			"size": 12896,
 			"isDebug": true
 		},
 		{
@@ -11288,7 +11288,7 @@
 		},
 		{
 			"name": "thirdparty/generated/json-imports/Themes.js.map",
-			"size": 1998,
+			"size": 1988,
 			"isDebug": true
 		},
 		{
@@ -11310,7 +11310,7 @@
 		},
 		{
 			"name": "thirdparty/generated/json-imports/i18n.js.map",
-			"size": 4990,
+			"size": 4975,
 			"isDebug": true
 		},
 		{
@@ -16586,7 +16586,7 @@
 		},
 		{
 			"name": "thirdparty/popup-utils/OpenedPopupsRegistry.js.map",
-			"size": 1552,
+			"size": 1540,
 			"isDebug": true
 		},
 		{
@@ -16612,7 +16612,7 @@
 		},
 		{
 			"name": "thirdparty/popup-utils/PopoverRegistry.js.map",
-			"size": 3734,
+			"size": 3670,
 			"isDebug": true
 		},
 		{
@@ -16628,7 +16628,7 @@
 		},
 		{
 			"name": "thirdparty/timepicker-utils/TimeSlider.js.map",
-			"size": 2352,
+			"size": 2330,
 			"isDebug": true
 		},
 		{

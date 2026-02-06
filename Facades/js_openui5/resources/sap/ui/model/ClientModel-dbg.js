@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -42,7 +42,7 @@ sap.ui.define([
 
 			this.bCache = true;
 			this.aPendingRequestHandles = [];
-			this.mUnsupportedFilterOperators = {"Any": true, "All": true};
+			this.mUnsupportedFilterOperators = {All: true, Any: true, NotAll: true, NotAny: true};
 
 			if (typeof oData == "string") {
 				this.loadData(oData);
@@ -171,7 +171,7 @@ sap.ui.define([
 	 * @param {string} sPath
 	 *   The path pointing to the property that should be bound; either an absolute path or a path
 	 *   relative to a given <code>oContext</code>
-	 * @param {object} [oContext]
+	 * @param {sap.ui.model.Context} [oContext]
 	 *   A context object for the new binding
 	 * @param {Object<string,any>} [mParameters]
 	 *   Map of optional parameters for the binding

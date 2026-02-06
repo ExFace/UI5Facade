@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,10 @@ sap.ui.define([
 	CardRenderer.render = function (oRm, oCard) {
 		var oHeader = oCard._getHeaderAggregation(),
 			bHeaderTop = oHeader && oCard.getCardHeaderPosition() === HeaderPosition.Top,
-			bHasCardBadgeCustomData = oCard._getCardBadgeCustomData().length > 0;
+			bHasCardBadgeCustomData = oCard._getCardBadgeCustomData().length > 0,
+			oContent = oCard.getCardContent(),
+			bHasContent = !!oContent,
+			bIsInteractive = oCard.isInteractive();
 
 		oRm.openStart("div", oCard);
 		this.renderContainerAttributes(oRm, oCard);
@@ -60,10 +63,19 @@ sap.ui.define([
 		this.renderFooterSection(oRm, oCard);
 
 		oRm.renderControl(oCard._ariaText);
-		oRm.renderControl(oCard._ariaContentText);
 
-		oRm.renderControl(oCard._describedByCardTypeText);
-		oRm.renderControl(oCard._describedByInteractiveText);
+		if (bHasContent) {
+			oRm.renderControl(oCard._ariaContentText);
+		}
+
+		if (!oCard.isTileDisplayVariant()) {
+			oRm.renderControl(oCard._describedByCardTypeText);
+		}
+
+		if (bIsInteractive) {
+			oRm.renderControl(oCard._describedByInteractiveText);
+		}
+
 		if (oCard._invisibleTitle) {
 			oRm.renderControl(oCard._invisibleTitle);
 		}
@@ -90,7 +102,7 @@ sap.ui.define([
 			bHasContent = !!oContent,
 			bCardHeaderBottom = bHasHeader && oCard.getCardHeaderPosition() === HeaderPosition.Bottom,
 			sTooltip = oCard.getTooltip_AsString(),
-			sAriaRole = oCard.getGridItemRole() || oCard.getSemanticRole().toLowerCase();
+			sAriaRole = oCard.getAriaRole();
 
 		oRm.class("sapFCard")
 			.style("width", oCard.getWidth());

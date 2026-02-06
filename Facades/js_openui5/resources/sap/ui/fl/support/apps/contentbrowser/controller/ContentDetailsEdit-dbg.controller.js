@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,7 +32,7 @@ sap.ui.define([
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
-	var {ButtonType} = mobileLibrary;
+	var { ButtonType } = mobileLibrary;
 
 	/**
 	 * Controller for editing content in Content Browser.
@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.ui.fl.support.apps.contentbrowser.controller.ContentDetailsEdit
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @since 1.45
 	 * @private
 	 */
@@ -180,13 +180,13 @@ sap.ui.define([
 				this._saveFile(sLayer, oContentData.namespace, oContentData.fileName, oContentData.fileType, oContentData.data, sTransportId, sPackageName, bOnActivatedVersion);
 			} else {
 				var isPackageVisible = !!(sLayer === Layer.VENDOR || sLayer === Layer.CUSTOMER_BASE);
-				var oPackageInput = new Input({visible: isPackageVisible, placeholder: "Package name (Only necessary for cross client content)" });
-				var oTransportInput = new Input({placeholder: "Transport ID or ATO_NOTIFICATION" });
+				var oPackageInput = new Input({ visible: isPackageVisible, placeholder: "Package name (Only necessary for cross client content)" });
+				var oTransportInput = new Input({ placeholder: "Transport ID or ATO_NOTIFICATION" });
 				var oDialog = new Dialog({
 					title: "{i18n>transportInput}",
 					type: "Message",
 					content: [
-						new Text({text: "{i18n>transportInputDescription}"}),
+						new Text({ text: "{i18n>transportInputDescription}" }),
 						oPackageInput,
 						oTransportInput],
 					beginButton: new Button({

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @implements sap.m.ITableItem
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -81,16 +81,24 @@ sap.ui.define([
 
 	/**
 	 * TablePopin element that handles own events.
+	 *
+	 * @class
+	 * @alias sap.m.TablePopin
 	 */
 	var TablePopin = Element.extend("sap.m.TablePopin", {
 		ontap: function(oEvent) {
-			// prevent the tap event if selection is done within the popin control and mark the event
+			// prevent the tap event if selection is done within the popin control
 			if (oEvent.isMarked() || ListItemBase.detectTextSelection(this.getDomRef())) {
 				return oEvent.stopImmediatePropagation(true);
 			}
-			if (oEvent.srcControl === this || !jQuery(oEvent.target).is(":sapFocusable")) {
-				this.getParent().focus();
+		},
+		ontouchend: function() {
+			if (document.activeElement === this.getFocusDomRef()) {
+				this.getParent().focus({ preventScroll: true });
 			}
+		},
+		getFocusDomRef: function() {
+			return this.getParent().getDomRef("subcont");
 		}
 	});
 
@@ -114,13 +122,17 @@ sap.ui.define([
 	ColumnListItem.prototype.onAfterRendering = function() {
 		if (this._oPopin) {
 			this.$().attr("aria-owns", this.aAriaOwns.join(" "));
-			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", function(oEvent) {
-				this.previousSibling.classList.toggle("sapMPopinHovered", oEvent.type == "mouseenter");
+			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", (oEvent) => {
+				this.toggleStyleClass("sapMPopinHovered", oEvent.type == "mouseenter");
 			});
 		}
 
 		ListItemBase.prototype.onAfterRendering.call(this);
 		this._checkTypeColumn();
+
+		if (this.bOutput !== false && document.activeElement.id === this.getId()) {
+			this.getTable()?._setFirstLastVisibleCells(document.activeElement);
+		}
 	};
 
 	ColumnListItem.prototype.exit = function() {
@@ -269,6 +281,13 @@ sap.ui.define([
 		return aOutput.filter(Boolean).join(" . ").trim();
 	};
 
+	ColumnListItem.prototype.getContentAnnouncementOfRowAction = function() {
+		// Only if the item is inactive, to announce empty row action cell
+		if (this.getEffectiveType() === ListItemType.Inactive) {
+			return ListItemBase.getAccessibilityText(null, true);
+		}
+	};
+
 	ColumnListItem.prototype.getContentAnnouncement = function() {
 		const oTable = this.getTable();
 		if (!oTable) {
@@ -308,12 +327,21 @@ sap.ui.define([
 
 		const oTable = this.getTable();
 		const oTarget = oEvent.target;
+		let sInvisibleText;
+
 		if (oTarget.classList.contains("sapMListTblCell")) {
 			const oColumn = Element.getElementById(oTarget.getAttribute("data-sap-ui-column"));
-			oTable.updateInvisibleText(this.getContentAnnouncementOfCell(oColumn));
-			oEvent.setMarked("contentAnnouncementGenerated");
+			sInvisibleText = this.getContentAnnouncementOfCell(oColumn);
 		} else if (oTarget.classList.contains("sapMListTblSubCnt")) {
-			oTable.updateInvisibleText(this.getContentAnnouncementOfPopin());
+			sInvisibleText = this.getContentAnnouncementOfPopin();
+		} else if (oTarget.classList.contains("sapMListTblNavCol")) {
+			sInvisibleText = this.getContentAnnouncementOfRowAction();
+		} else if (oTarget.classList.contains("sapMListTblActionsCol")) {
+			sInvisibleText = this._getCustomActionsAnnouncement(true);
+		}
+
+		if (sInvisibleText) {
+			oTable.updateInvisibleText(sInvisibleText);
 			oEvent.setMarked("contentAnnouncementGenerated");
 		}
 
@@ -345,7 +373,7 @@ sap.ui.define([
 			sEventHandler = this.getMode() == "Delete" ? "onsapdelete" : "onsapspace";
 		} else if (sTargetId == this.getId() + "-TypeCell") {
 			oEvent.target = this.getDomRef();
-			if (this.getType() == "Navigation") {
+			if (this.getEffectiveType() == "Navigation") {
 				sEventHandler = "onsapenter";
 			} else {
 				oEvent.code = "KeyE";
@@ -385,13 +413,12 @@ sap.ui.define([
 
 	// determines whether type column for this item is necessary or not
 	ColumnListItem.prototype._needsTypeColumn = function() {
-		var sType = this.getType();
+		if (!this.getVisible()) {
+			return false;
+		}
 
-		return this.getVisible() && (
-			sType == ListItemType.Detail ||
-			sType == ListItemType.Navigation ||
-			sType == ListItemType.DetailAndActive
-		);
+		const sType = this.getEffectiveType();
+		return sType === ListItemType.Navigation ? true : sType.startsWith(ListItemType.Detail) && this._getMaxActionsCount() === -1;
 	};
 
 	// Adds cloned header to the local collection

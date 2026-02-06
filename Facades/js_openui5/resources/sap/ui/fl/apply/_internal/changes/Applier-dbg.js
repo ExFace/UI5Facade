@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,8 +36,8 @@ sap.ui.define([
 	 * Formats the log message by replacing placeholders with values and logging the message.
 	 *
 	 * @param {string} sLogType - Logging type to be used. Possible values: info | warning | debug | error
-	 * @param {array.<string>} aMessageComponents - Individual parts of the message text
-	 * @param {array.<any>} aValuesToInsert - The values to be used instead of the placeholders in the message
+	 * @param {Array<string>} aMessageComponents - Individual parts of the message text
+	 * @param {Array<any>} aValuesToInsert - The values to be used instead of the placeholders in the message
 	 * @param {string} [sCallStack] - Passes the call stack to the logging function
 	 */
 	function formatAndLogMessage(sLogType, aMessageComponents, aValuesToInsert, sCallStack) {
@@ -138,14 +138,14 @@ sap.ui.define([
 		// as it's only relevant for viewCache at the moment
 		await FlexCustomData.addAppliedCustomData(mControl.control, oChange, mPropertyBag, isXmlModifier(mPropertyBag));
 		// if a change was reverted previously remove the flag as it is not reverted anymore
-		const oResult = {success: true};
+		const oResult = { success: true };
 		oChange.markSuccessful(oResult);
 		return oResult;
 	}
 
 	async function handleAfterApplyError(oError, oChange, mControl, mPropertyBag) {
 		const bXmlModifier = isXmlModifier(mPropertyBag);
-		const oResult = {success: false, error: oError};
+		const oResult = { success: false, error: oError };
 
 		const sChangeId = oChange.getId();
 		const sLogMessage = "Change ''{0}'' could not be applied.";
@@ -316,12 +316,18 @@ sap.ui.define([
 	Applier.applyChangeOnControl = async function(oChange, oControl, mPropertyBag) {
 		const mControl = Utils.getControlIfTemplateAffected(oChange, oControl, mPropertyBag);
 		try {
-			const oChangeHandler = mPropertyBag.changeHandler || await Utils.getChangeHandler({
-				flexObject: oChange,
-				control: mControl.control,
-				controlType: mControl.controlType,
-				modifier: mPropertyBag.modifier
-			});
+			let oChangeHandler;
+			try {
+				oChangeHandler = mPropertyBag.changeHandler || await Utils.getChangeHandler({
+					flexObject: oChange,
+					control: mControl.control,
+					controlType: mControl.controlType,
+					modifier: mPropertyBag.modifier
+				});
+			} catch (oError) {
+				// important this resolves 'waitForChanges' in error case
+				return handleAfterApplyError(oError, oChange, mControl, mPropertyBag);
+			}
 			checkPreconditions(oChange, mPropertyBag);
 
 			if (oChange.hasApplyProcessStarted()) {
@@ -341,7 +347,7 @@ sap.ui.define([
 			}
 
 			// make sure that everything that goes with finishing the apply process is done, even though the change was already applied
-			const oResult = {success: true};
+			const oResult = { success: true };
 			oChange.markSuccessful(oResult);
 			return oResult;
 		} catch (oError) {
@@ -359,6 +365,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag - Object with parameters as properties
 	 * @param {object} mPropertyBag.reference - Flex reference
 	 * @param {object} mPropertyBag.appComponent - App Component instance
+	 * @param {boolean} [mPropertyBag.skipSetQueued] - If true, the changes are not set to queued for apply nor added to the dependency map
 	 * @returns {Promise<undefined>} Resolves after all changes were applied
 	 */
 	Applier.applyMultipleChanges = async function(aChanges, mPropertyBag) {
@@ -368,16 +375,16 @@ sap.ui.define([
 			const oLiveDependencyMap = FlexObjectState.getLiveDependencyMap(mPropertyBag.reference);
 			if (oControl) {
 				checkAndAdjustChangeStatus(oControl, oChange, mPropertyBag, true);
-				if (!oChange.isApplyProcessFinished()) {
+				if (!oChange.isApplyProcessFinished() && !mPropertyBag.skipSetQueued) {
 					oChange.setQueuedForApply();
 				}
 				let oResult;
 				try {
 					oResult = await Applier.applyChangeOnControl(oChange, oControl, mPropertyBag);
 				} catch (oError) {
-					oResult = {success: false};
+					oResult = { success: false };
 				}
-				if (oResult.success) {
+				if (oResult.success && !mPropertyBag.skipSetQueued) {
 					DependencyHandler.addRuntimeChangeToMap(oChange, mPropertyBag.appComponent, oLiveDependencyMap);
 				}
 			} else {

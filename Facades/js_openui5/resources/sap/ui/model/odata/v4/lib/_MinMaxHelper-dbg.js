@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 		 *   Extension for Data Aggregation Version 4.0"; must already be normalized by
 		 *   {@link _AggregationHelper.buildApply}
 		 * @param {object} mQueryOptions
-		 *   A map of key-value pairs representing the query string
+		 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 		 * @returns {sap.ui.model.odata.v4.lib._Cache}
 		 *   The cache
 		 */

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -20,6 +20,9 @@ sap.ui.define([
 		},
 		getDisplayMultiLine: function() {
 			return ["sap/m/Link"]; // render Link too, it wraps in Multiline
+		},
+		getEditSelect: function() {
+			return [null];
 		},
 		getUseDefaultValueHelp: function() {
 			return false;
@@ -53,6 +56,9 @@ sap.ui.define([
 		},
 		createDisplayMultiLine: function(oContentFactory, aControlClasses, sId) {
 			return this.createDisplay(oContentFactory, aControlClasses, sId);
+		},
+		createEditSelect: function() {
+			throw new Error("sap.ui.mdc.field.content.LinkContent - createEditSelect not defined!");
 		}
 	};
 

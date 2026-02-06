@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.0"
+      "version": "1.144.0"
     },
     "title": "UI5 Web Components Retrofit Fiori Components",
     "description": "UI5 Web Components Retrofit Fiori Components",
@@ -31,16 +31,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.136",
+      "minUI5Version": "1.144",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.136.0"
+          "minVersion": "1.144.0"
         },
         "sap.ui.webc.common": {
-          "minVersion": "1.136.0"
+          "minVersion": "1.144.0"
         },
         "sap.ui.webc.main": {
-          "minVersion": "1.136.0"
+          "minVersion": "1.144.0"
         }
       }
     },

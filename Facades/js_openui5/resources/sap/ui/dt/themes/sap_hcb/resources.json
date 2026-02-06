@@ -8,7 +8,7 @@
 		},
 		{
 			"name": "ContextMenu.less",
-			"size": 716,
+			"size": 487,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 6262,
+			"size": 6128,
 			"theme": "sap_hcb"
 		},
 		{
@@ -49,12 +49,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 6255,
+			"size": 6121,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 9117,
+			"size": 8888,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

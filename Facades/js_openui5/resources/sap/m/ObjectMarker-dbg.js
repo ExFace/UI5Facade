@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -414,6 +414,7 @@ sap.ui.define([
 			bIsIconVisible = this._isIconVisible(),
 			bIsTextVisible = this._isTextVisible(),
 			bIsIconOnly = bIsIconVisible && !bIsTextVisible,
+			bDecorative = !this.getVisible() || !bIsIconOnly,
 			sType = this.getType(),
 			sText,
 			oIconControl;
@@ -423,13 +424,15 @@ sap.ui.define([
 			return false;
 		}
 
+		// set icon to be decorative if the ObjectMarker is not visible or if we have text
+		oInnerIcon.setDecorative(bDecorative);
+
 		if (oType) {
 			sText = this._getMarkerText(oType, sType, sAdditionalInfo);
 		}
 
 		if (bIsIconVisible) {
 			oInnerControl.setIcon(oType.icon.src, bSuppressInvalidate);
-			oInnerIcon.setDecorative(!bIsIconOnly); // icon should be decorative if we have text
 			oInnerIcon.setUseIconTooltip(bIsIconOnly);
 			this.addStyleClass("sapMObjectMarkerIcon");
 		} else {

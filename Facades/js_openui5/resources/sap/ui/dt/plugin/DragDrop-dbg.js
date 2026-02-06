@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,6 @@ sap.ui.define([
 	"sap/ui/dt/DOMUtil",
 	"sap/ui/dt/OverlayUtil",
 	"sap/ui/dt/OverlayRegistry",
-	"sap/ui/thirdparty/jquery",
 	"sap/ui/Device"
 ], function(
 	BaseObject,
@@ -20,7 +19,6 @@ sap.ui.define([
 	DOMUtil,
 	OverlayUtil,
 	OverlayRegistry,
-	jQuery,
 	Device
 ) {
 	"use strict";
@@ -38,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.dt.Plugin
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -359,8 +357,8 @@ sap.ui.define([
 		// changedTouches will have the information related to the moved finger, because it’s what caused the event "touchmove"
 		var aTouches = oEvent.touches || oEvent.changedTouches;
 
-		var {pageX} = aTouches[0];
-		var {pageY} = aTouches[0];
+		var { pageX } = aTouches[0];
+		var { pageY } = aTouches[0];
 
 		var oTargetOverlay = this._findTargetOverlayFromCoordinates(pageX, pageY);
 
@@ -461,18 +459,18 @@ sap.ui.define([
 
 	/**
 	 * @param {sap.ui.dt.Overlay} oOverlay - Overlay instance
-	 * @returns {object} jQuery ghost object
+	 * @returns {HTMLElement} ghost object
 	 * @protected
 	 */
 	DragDrop.prototype.createGhost = function(oOverlay) {
-		var $GhostDom = oOverlay.getAssociatedDomRef();
+		var oGhostDom = oOverlay.getAssociatedDomRef();
 		var oGhost;
-		if (!$GhostDom) {
-			$GhostDom = this._getAssociatedDomCopy(oOverlay);
-			oGhost = $GhostDom.get(0);
+		if (!oGhostDom) {
+			oGhostDom = this._getAssociatedDomCopy(oOverlay);
+			oGhost = oGhostDom;
 		} else {
 			oGhost = document.createElement("div");
-			[].slice.call($GhostDom).forEach(function(oNode) {
+			[].slice.call(oGhostDom).forEach(function(oNode) {
 				DOMUtil.cloneDOMAndStyles(oNode, oGhost);
 			});
 		}
@@ -496,17 +494,17 @@ sap.ui.define([
 				if (oChildDom) {
 					DOMUtil.cloneDOMAndStyles(oChildDom, oDomCopy);
 				} else {
-					DOMUtil.cloneDOMAndStyles(this._getAssociatedDomCopy(oChildOverlay).get(0), oDomCopy);
+					DOMUtil.cloneDOMAndStyles(this._getAssociatedDomCopy(oChildOverlay), oDomCopy);
 				}
 			}, this);
 		}, this);
 
-		return jQuery(oDomCopy);
+		return oDomCopy;
 	};
 
 	/**
 	 * @protected
-	 * @return {jQuery} jQuery ghost object
+	 * @return {HTMLElement} ghost object
 	 */
 	DragDrop.prototype.getGhost = function() {
 		return this._oGhost;

@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -77,28 +77,6 @@
 	}
 }
 /* END "Cell.less" */
-
-/* START "RowSelection.less" */
-/* ================================== */
-/* CSS for sap.ui.table/RowSelection  */
-/* Evening Horizon theme              */
-/* ================================== */
-
-@_sap_ui_table_RowSelection_CheckBoxBorderWidth: 0.0625rem; /*@sapUiFieldBorderWidth;*/
-@_sap_ui_table_RowSelection_CheckBoxBorderRadius: var(--sapField_BorderCornerRadius);
-@_sap_ui_table_RowSelection_CheckBoxBorderRadiusCozy: var(--sapField_BorderCornerRadius);
-
-.sapUiTableRowSelectionHeaderCell:not(.sapUiTableSelAll) .sapUiTableSelectAllCheckBox::after,
-.sapUiTableSelModeMultiToggle .sapUiTableRowSel .sapUiTableRowSelectionCell::after {
-	border-color: var(--sapContent_FocusColor);
-}
-
-.sapUiTableRowSelectionHeaderCell:hover .sapUiTableSelectAllCheckBox::after,
-.sapUiTableRowHvr .sapUiTableRowSelectionCell::after {
-	background-color: var(--sapField_Hover_Background);
-	box-shadow: var(--sapContent_Interaction_Shadow);
-}
-/* END "RowSelection.less" */
 
 /* START "RowAction.less" */
 /* ======================================= */

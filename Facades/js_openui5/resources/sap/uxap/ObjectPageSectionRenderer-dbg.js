@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 	};
 
 	ObjectPageSectionRenderer.render = function (oRm, oControl) {
-		var bTitleVisible, bTitleAriaHidden, bShouldDisplayButtonsInHeader, bHasMoreThanOneVisibleSubSection,
+		var bTitleVisible, bTitleAriaHidden, bShouldDisplayButtonsInHeader, bHasMoreThanOneVisibleSubSection, bShouldStick,
 			bAccessibilityOn = ControlBehavior.isAccessibilityEnabled(),
 			oLabelledByTitleID = oControl._getAriaLabelledById(),
 			oHeading = oControl.getHeading(),
@@ -29,7 +29,8 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 		bTitleVisible = oControl.getTitleVisible();
 		bTitleAriaHidden = !oControl._isTitleAriaVisible();
 		bShouldDisplayButtonsInHeader = oControl._shouldDisplayButtonsInHeader();
-		bHasMoreThanOneVisibleSubSection = oControl._getVisibleSubSections().length > 1;
+		bHasMoreThanOneVisibleSubSection = oControl._hasMoreThanOneVisibleSubSection();
+		bShouldStick = oControl._shouldHaveStickyHeader();
 
 		oRm.openStart("section", oControl)
 			.class("sapUxAPObjectPageSection");
@@ -41,8 +42,9 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 		if (bWrapTitle) {
 			oRm.class("sapUxAPObjectPageSectionWrapTitle");
 		}
-
-		oRm.attr("role", "region");
+		if (bTitleVisible || oLabelledByTitleID) {
+			oRm.attr("role", "region");
+		}
 
 		if (bAccessibilityOn && oLabelledByTitleID) {
 			oRm.attr("aria-labelledby", oLabelledByTitleID);
@@ -61,11 +63,10 @@ sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 		}
 
 		oRm.openStart("div", oControl.getId() + "-header")
-			.attr("role", "heading")
-			.attr("aria-level", oControl._getARIALevel())
 			.class("sapUxAPObjectPageSectionHeader")
 			.class(bTitleAriaHidden ? "sapUxAPObjectPageSectionHeaderHidden" : "")
-			.class(bHasMoreThanOneVisibleSubSection && !bShouldDisplayButtonsInHeader ? "sapUxAPObjectPageSectionHeaderCompact" : "");
+			.class(bHasMoreThanOneVisibleSubSection && !bShouldDisplayButtonsInHeader ? "sapUxAPObjectPageSectionHeaderCompact" : "")
+			.class(bShouldStick ? "sapUxAPObjectPageSectionHeaderSticky" : "");
 
 		if (bTitleAriaHidden) {
 			oRm.attr("aria-hidden", "true");

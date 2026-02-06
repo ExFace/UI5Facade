@@ -1018,12 +1018,11 @@
 		{
 			"name": "Notifier-dbg.js",
 			"module": "sap/ui/ux3/Notifier.js",
-			"size": 8425,
+			"size": 8335,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
 				"sap/ui/Device.js",
-				"sap/ui/base/EventProvider.js",
 				"sap/ui/commons/Callout.js",
 				"sap/ui/core/Configuration.js",
 				"sap/ui/core/Element.js",
@@ -1035,11 +1034,10 @@
 		{
 			"name": "Notifier.js",
 			"module": "sap/ui/ux3/Notifier.js",
-			"size": 3574,
+			"size": 3526,
 			"required": [
 				"sap/base/Log.js",
 				"sap/ui/Device.js",
-				"sap/ui/base/EventProvider.js",
 				"sap/ui/commons/Callout.js",
 				"sap/ui/core/Configuration.js",
 				"sap/ui/core/Element.js",
@@ -1050,7 +1048,7 @@
 		},
 		{
 			"name": "Notifier.js.map",
-			"size": 4478,
+			"size": 4388,
 			"isDebug": true
 		},
 		{
@@ -1701,7 +1699,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/ux3/library-preload.js",
-			"size": 317644,
+			"size": 317596,
 			"merged": true,
 			"required": [
 				"sap/base/Log.js",
@@ -1828,7 +1826,7 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 379122,
+			"size": 379032,
 			"isDebug": true
 		},
 		{
@@ -2215,7 +2213,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 73077
+			"size": 73005
 		},
 		{
 			"name": "themes/base/.theming",
@@ -2644,7 +2642,7 @@
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 51355,
+			"size": 51419,
 			"theme": "base"
 		},
 		{
@@ -2655,7 +2653,7 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 51288,
+			"size": 51352,
 			"theme": "base"
 		},
 		{
@@ -3143,7 +3141,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library-RTL.css",
-			"size": 65123,
+			"size": 65187,
 			"theme": "sap_hcb"
 		},
 		{
@@ -3154,7 +3152,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library.css",
-			"size": 65009,
+			"size": 65073,
 			"theme": "sap_hcb"
 		},
 		{

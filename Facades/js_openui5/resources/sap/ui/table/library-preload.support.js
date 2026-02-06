@@ -1,7 +1,7 @@
 //@ui5-bundle sap/ui/table/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -31,7 +31,7 @@ sap.ui.predefine("sap/ui/table/library.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/table/rules/Accessibility.support", [
@@ -108,7 +108,7 @@ sap.ui.predefine("sap/ui/table/rules/Accessibility.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/table/rules/Binding.support", [
@@ -168,7 +168,7 @@ sap.ui.predefine("sap/ui/table/rules/Binding.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/table/rules/ColumnTemplate.support", [
@@ -215,9 +215,9 @@ sap.ui.predefine("sap/ui/table/rules/ColumnTemplate.support", [
 		minversion: "1.38",
 		categories: [Categories.Usage],
 		title: "Column template validation - 'sap.m.Text'",
-		description: "The 'wrapping' and/or 'renderWhitespace' property of the control 'sap.m.Text' is set to 'true' "
+		description: "The 'wrapping' property of the control 'sap.m.Text' is set to 'true' "
 					 + "although the control is used as a column template.",
-		resolution: "Set the 'wrapping' and 'renderWhitespace' property of the control 'sap.m.Text' to 'false' if the "
+		resolution: "Set the 'wrapping' property of the control 'sap.m.Text' to 'false' if the "
 					+ "control is used as a column template.",
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			checkColumnTemplate(function(oTable, oColumn, oMTextTemplate) {
@@ -226,11 +226,6 @@ sap.ui.predefine("sap/ui/table/rules/ColumnTemplate.support", [
 				if (oMTextTemplate.isBound("wrapping") || (!oMTextTemplate.isBound("wrapping") && oMTextTemplate.getWrapping())) {
 					SupportHelper.reportIssue(oIssueManager, "Column '" + sColumnId + "' of table '" + oTable.getId() + "' uses an "
 															 + "'sap.m.Text' control with wrapping enabled.", Severity.High, sColumnId);
-				}
-				if (oMTextTemplate.isBound("renderWhitespace") || (!oMTextTemplate.isBound("renderWhitespace")
-																   && oMTextTemplate.getRenderWhitespace())) {
-					SupportHelper.reportIssue(oIssueManager, "Column '" + sColumnId + "' of table '" + oTable.getId() + "' uses an "
-															 + "'sap.m.Text' control with renderWhitespace enabled.", Severity.High, sColumnId);
 				}
 			}, oScope, "sap.m.Text");
 		}
@@ -259,7 +254,7 @@ sap.ui.predefine("sap/ui/table/rules/ColumnTemplate.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/table/rules/Plugins.support", [
@@ -311,7 +306,7 @@ sap.ui.predefine("sap/ui/table/rules/Plugins.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.predefine("sap/ui/table/rules/Rows.support", [
@@ -520,7 +515,7 @@ sap.ui.predefine("sap/ui/table/rules/Rows.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**

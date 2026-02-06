@@ -1,25 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	"sap/ui/core/library",
 	"sap/ui/base/Object",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/ManagedObjectObserver",
 	"sap/m/IconTabFilter",
 	"sap/m/IconTabHeader",
 	"sap/m/library",
+	"./library",
 	"sap/uxap/ObjectPageSection"
-], function(Element, BaseObject, ManagedObject, ManagedObjectObserver, IconTabFilter, IconTabHeader, mobileLibrary, ObjectPageSection) {
+], function(Element, coreLib, coreLibrary, BaseObject, ManagedObject, ManagedObjectObserver, IconTabFilter, IconTabHeader, mobileLibrary, library, ObjectPageSection) {
 	"use strict";
 
 	// shortcut for sap.m.TabsOverflowMode
 	var TabsOverflowMode = mobileLibrary.TabsOverflowMode;
 	// shortcut for sap.m.IconTabHeaderMode
 	var IconTabHeaderMode = mobileLibrary.IconTabHeaderMode;
+
+	// shortcut for sap.uxap.ObjectPageSubSectionLayout
+	var ObjectPageSubSectionLayout = library.ObjectPageSubSectionLayout;
 
 	var ABHelper = BaseObject.extend("sap.uxap._helpers.AB", {
 		/**
@@ -111,6 +117,31 @@ sap.ui.define([
 		}
 	};
 
+	ABHelper.prototype._setLandmarkInfo = function (oLandmarkInfo) {
+		this._oLandmarkInfo = oLandmarkInfo;
+
+		this._applyAriaAttributes();
+	};
+
+	ABHelper.prototype._applyAriaAttributes = function () {
+		var $oAnchorBar = this._getAnchorBar().$(),
+			oObjectPageLayout = this.getObjectPageLayout(),
+			oFormattedLandmarkInfo = oObjectPageLayout._formatLandmarkInfo(this._oLandmarkInfo, "Navigation"),
+			oRb = coreLib.getResourceBundleFor("sap.uxap");
+
+		if (oFormattedLandmarkInfo.role) {
+			$oAnchorBar.attr("role", oFormattedLandmarkInfo.role);
+		} else if (oFormattedLandmarkInfo.role === ""){
+			$oAnchorBar.removeAttr("role");
+		}
+
+		if (oFormattedLandmarkInfo.label) {
+			$oAnchorBar.attr("aria-label", oFormattedLandmarkInfo.label);
+		} else if (this._oLandmarkInfo?.getNavigationRole() !== coreLibrary.AccessibleLandmarkRole.None) {
+			$oAnchorBar.attr("aria-label", oRb.getText("NAVIGATION_ROLE_DESCRIPTION"));
+		}
+	};
+
 	/**
 	 * build the anchorBar and all the anchorBar buttons
 	 * @private
@@ -147,6 +178,10 @@ sap.ui.define([
 						this._setupCustomButtonForwarding(oSubSection, oSubSectionFilter);
 					}, this);
 				} else if (aSubSections.length === 1 && !oSection.getCustomAnchorBarButton() && aSubSections[0].getTitle()?.trim()) { // promoted section
+					// When SubSectionLayout is TitleOnLeft, the SubSection title is shown in the AnchorBar, when there is only one SubSection and it has title
+					oObjectPage.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnLeft
+						&& oSectionFilter.setText(ManagedObject.escapeSettingsValue(aSubSections[0].getTitle()));
+
 					this._setupCustomButtonForwarding(aSubSections[0], oSectionFilter, bUpperCase);
 				}
 			}

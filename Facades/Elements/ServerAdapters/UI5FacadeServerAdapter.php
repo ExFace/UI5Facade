@@ -172,7 +172,8 @@ JS;
     
     protected function buildJsClickCallServerAction(ActionInterface $action, string $oModelJs, string $oParamsJs, string $onModelLoadedJs, string $onErrorJs = '', string $onOfflineJs = '') : string
     {
-        $headers = ! empty($this->getElement()->getAjaxHeaders()) ? 'headers: ' . json_encode($this->getElement()->getAjaxHeaders()) . ',' : '';        
+        $headers = ! empty($this->getElement()->getAjaxHeaders()) ? 'headers: ' . json_encode($this->getElement()->getAjaxHeaders()) . ',' : '';
+        $method = $this->getElement()->getFacade()->getConfig()->getOption('FACADE.AJAX.DEFAULT.METHOD');
         $controller = $this->getElement()->getController();
         
         $actionName = $this->getElement()->getWidget()->getCaption();
@@ -211,7 +212,7 @@ JS;
                                 }
                                 if (exfPWA) {
                                     var actionParams = {
-                                        type: 'POST',
+                                        type: '{$method}',
         								url: '{$this->getElement()->getAjaxUrl()}',
                                         {$headers}
         								data: {$oParamsJs}
@@ -243,7 +244,7 @@ JS;
                                 return $oModelJs;
                             } else {
                                 return $.ajax({
-    								type: 'POST',
+    								type: '{$method}',
     								url: '{$this->getElement()->getAjaxUrl()}',
                                     {$headers}
     								data: $oParamsJs,
@@ -310,13 +311,13 @@ JS;
     protected function buildJsDataLoader(string $oModelJs, string $oParamsJs, string $onModelLoadedJs, string $onErrorJs = '', string $onOfflineJs = '') : string
     {
         $headers = ! empty($this->getElement()->getAjaxHeaders()) ? 'headers: ' . json_encode($this->getElement()->getAjaxHeaders()) . ',' : '';
-        
+        $method = $this->getElement()->getFacade()->getConfig()->getOption('FACADE.AJAX.READ.METHOD');
         return <<<JS
                 
                 $oParamsJs.webapp = '{$this->getElement()->getFacade()->getWebapp()->getRootPage()->getAliasWithNamespace()}';                
 
                 return $.ajax({
-					type: 'GET',
+					type: '{$method}',
 					url: '{$this->getElement()->getAjaxUrl()}',
                     {$headers}
 					data: {$oParamsJs},
@@ -365,17 +366,19 @@ JS;
     
     protected function buildJsPrefillLoader(string $oModelJs, string $oParamsJs, string $onModelLoadedJs, string $onErrorJs = '', string $onOfflineJs = '') : string
     {
+        $headers = $this->getElement()->getAjaxHeaders();
+        $headers['X-Offline-Strategy'] = 'NetworkFirst';
+        $headersJs = 'headers: ' .  json_encode($headers) . ',';
+        $method = $this->getElement()->getFacade()->getConfig()->getOption('FACADE.AJAX.PREFILL.METHOD');
         return <<<JS
         
             $oParamsJs.webapp = '{$this->getElement()->getFacade()->getWebapp()->getRootPage()->getAliasWithNamespace()}';                
             
             return $.ajax({
                 url: "{$this->getElement()->getAjaxUrl()}",
-                type: "POST",
+                type: "{$method}",
 				data: {$oParamsJs},
-                headers: {
-                    'X-Offline-Strategy': 'NetworkFirst'
-                },
+                {$headersJs}
                 success: function(response, textStatus, jqXHR) {
                     var oPrefillRow = {};
                     if (Object.keys({$oModelJs}.getData()).length !== 0) {

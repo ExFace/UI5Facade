@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,8 +10,7 @@ sap.ui.define([
 	'sap/ui/mdc/enums/ProcessingStrategy',
 	'sap/ui/mdc/condition/FilterOperatorUtil',
 	'sap/base/Log',
-	'sap/base/util/merge',
-	'sap/base/util/deepEqual'
+	'sap/base/util/merge'
 ], (BaseFilterController, Library, ProcessingStrategy, FilterOperatorUtil, Log, merge) => {
 	"use strict";
 
@@ -113,6 +112,7 @@ sap.ui.define([
 			oAdaptationFilterBar.setP13nData(oAdaptationData);
 			oAdaptationFilterBar.setLiveMode(false);
 			oAdaptationFilterBar.setProperty("_useFixedWidth", false);
+			oAdaptationFilterBar._determineValidationState();
 			oAdaptationFilterBar.getTitle = function() {
 				return Library.getResourceBundleFor("sap.ui.mdc").getText("filter.PERSONALIZATION_DIALOG_TITLE");
 			};
@@ -124,21 +124,21 @@ sap.ui.define([
 		});
 	};
 
-	FilterController.prototype.update = function(oPropertyHelper) {
+	FilterController.prototype.update = async function(oPropertyHelper) {
 		if (this._oPanel) {
 			const oAdaptationData = this.mixInfoAndState(oPropertyHelper);
 			this._oPanel.setP13nData(oAdaptationData);
 			const oAdaptationControl = this.getAdaptationControl();
 			const oInbuiltFilter = oAdaptationControl && oAdaptationControl.getInbuiltFilter();
 			if (oInbuiltFilter) {
-				oInbuiltFilter.createFilterFields();
+				await oInbuiltFilter.createFilterFields();
 			}
 		}
 	};
 
 	FilterController.prototype.getDelta = function(mPropertyBag) {
 		if (mPropertyBag.applyAbsolute === ProcessingStrategy.FullReplace) {
-			Object.keys(mPropertyBag.existingState).forEach(function(sKey){
+			Object.keys(mPropertyBag.existingState).forEach((sKey) => {
 				if (!mPropertyBag.changedState.hasOwnProperty(sKey)) {
 					mPropertyBag.changedState[sKey] = [];
 				}

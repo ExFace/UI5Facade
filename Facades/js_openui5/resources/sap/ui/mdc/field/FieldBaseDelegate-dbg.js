@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -119,7 +119,7 @@ sap.ui.define([
  	 * @param {sap.ui.mdc.condition.Operator} oSettings.defaultOperator Default operator for the current field
 	 * @param {sap.ui.model.SimpleType} oSettings.valueType Configured type for a value
 	 * @param {sap.ui.model.SimpleType} oSettings.additionalValueType Configured type for an additional value
-	 * @returns {Array<sap.ui.mdc.condition.ConditionObject|string>|Promise<array<sap.ui.mdc.condition.ConditionObject|string>>} Array of <code>ConditionObject</code>/<code>string</code> values. If it is not available right away, a <code>Promise</code> is returned.
+	 * @returns {Array<sap.ui.mdc.condition.ConditionObject|string>|Promise<Array<sap.ui.mdc.condition.ConditionObject|string>>} Array of <code>ConditionObject</code>/<code>string</code> values. If it is not available right away, a <code>Promise</code> is returned.
 	 * @throws {Error} if the pasted data cannot be converted to conditions
 	 * @protected
 	 * @since 1.124
@@ -232,12 +232,13 @@ sap.ui.define([
 	 * @param {object} oConditionPayload Additional context information for this key
 	 * @param {sap.ui.core.Control} oControl Instance of the calling control if it is not the field itself
 	 * @param {sap.ui.model.Type} oType Type of the value
+	 * @param {boolean} bEmptyAllowed If <code>true</code>, the connected control could be left empty (without conditions)
 	 * @returns {string|sap.ui.mdc.valuehelp.base.ValueHelpItem|Promise<string|sap.ui.mdc.valuehelp.base.ValueHelpItem>} Description for key or object containing description, key, and payload. If it is not available right away (must be requested), a <code>Promise</code> is returned.
 	 * @throws {sap.ui.model.FormatException} if the description cannot be determined
 	 * @since: 1.78.0
 	 * @public
 	 */
-	FieldBaseDelegate.getDescription = function(oField, oValueHelp, vKey, oInParameters, oOutParameters, oBindingContext, oDoNotUse, sDoNotUse, oConditionPayload, oControl, oType) {
+	FieldBaseDelegate.getDescription = function(oField, oValueHelp, vKey, oInParameters, oOutParameters, oBindingContext, oDoNotUse, sDoNotUse, oConditionPayload, oControl, oType, bEmptyAllowed) {
 		const oConfig = {
 			value: vKey,
 			parsedValue: vKey,
@@ -250,7 +251,9 @@ sap.ui.define([
 			caseSensitive: true, // case sensitive as used to get description for known key
 			exception: FormatException,
 			exactMatch: true,
-			control: oControl
+			control: oControl,
+			emptyAllowed: bEmptyAllowed
+
 		};
 		return oValueHelp && oValueHelp.getItemForValue(oConfig);
 

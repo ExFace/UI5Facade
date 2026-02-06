@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @name sap.ui.rta.service.ControllerExtension
 	 * @author SAP SE
 	 * @since 1.58
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	*/
@@ -56,10 +56,11 @@ sap.ui.define([
 				 * @param {string} sCodeRef - Name of the file, without path, with the extension <code>.js</code>. Must comply to UI5 module naming convention.
 				 * 							Has to be unique and must not conflict with other already defined modules.
 				 * @param {string} sViewId - ID of the view whose controller should be extended
+				 * @param {boolean} bIncludeViewId - Whether the change should include the view ID in the selector - for instance-specific controller extensions
 				 * @return {object} Definition of the newly created change
 				 * @public
 				 */
-				add(sCodeRef, sViewId) {
+				add(sCodeRef, sViewId, bIncludeViewId) {
 					var oFlexSettings = oRta.getFlexSettings();
 					if (!oFlexSettings.developerMode) {
 						throw DtUtil.createError(
@@ -83,7 +84,7 @@ sap.ui.define([
 					var oAppComponent = FlexUtils.getAppComponentForControl(oView);
 					var sControllerName = oView.getControllerModuleName() ? `module:${oView.getControllerModuleName()}` : oView.getController()?.getMetadata().getName();
 					// Calculate moduleName for code extension
-					var sReference = FlexRuntimeInfoAPI.getFlexReference({element: oAppComponent});
+					var sReference = FlexRuntimeInfoAPI.getFlexReference({ element: oAppComponent });
 					var sModuleName = sReference.replace(/\.Component/g, "").replace(/\./g, "/");
 					sModuleName += "/changes/";
 					sModuleName += sCodeRef.replace(/\.js/g, "");
@@ -98,8 +99,12 @@ sap.ui.define([
 						generator: "rta.service.ControllerExtension"
 					};
 
-					var oPreparedChange = ChangesWriteAPI.create({changeSpecificData: oChangeSpecificData, selector: oAppComponent});
-					PersistenceWriteAPI.add({change: oPreparedChange, selector: oAppComponent});
+					if (bIncludeViewId) {
+						oChangeSpecificData.viewId = sViewId;
+					}
+
+					var oPreparedChange = ChangesWriteAPI.create({ changeSpecificData: oChangeSpecificData, selector: oAppComponent });
+					PersistenceWriteAPI.add({ change: oPreparedChange, selector: oAppComponent });
 					return oPreparedChange.convertToFileContent();
 				},
 

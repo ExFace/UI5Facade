@@ -1,10 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/fl/apply/_internal/changeHandlers/ChangeHandlerRegistration",
+	"sap/ui/fl/apply/_internal/changeHandlers/ChangeHandlerStorage",
 	"sap/ui/fl/apply/_internal/changes/descriptor/ApplyStrategyFactory",
 	"sap/ui/fl/apply/_internal/changes/FlexCustomData",
 	"sap/ui/fl/apply/_internal/flexObjects/AnnotationChange",
@@ -12,10 +14,10 @@ sap.ui.define([
 	"sap/ui/fl/apply/_internal/flexObjects/VariantChange",
 	"sap/ui/fl/apply/_internal/flexObjects/VariantManagementChange",
 	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagementState",
-	"sap/ui/fl/initial/_internal/changeHandlers/ChangeHandlerStorage",
-	"sap/ui/fl/requireAsync",
 	"sap/ui/fl/Utils"
 ], function(
+	ChangeHandlerRegistration,
+	ChangeHandlerStorage,
 	ApplyStrategyFactory,
 	FlexCustomData,
 	AnnotationChange,
@@ -23,8 +25,6 @@ sap.ui.define([
 	VariantChange,
 	VariantManagementChange,
 	VariantManagementState,
-	ChangeHandlerStorage,
-	requireAsync,
 	FlUtils
 ) {
 	"use strict";
@@ -34,7 +34,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.apply._internal.changes.Utils
 	 * @since 1.70
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal, sap.ui.fl.write._internal
 	 */
@@ -118,11 +118,6 @@ sap.ui.define([
 				return VariantManagementState.getChangeInformationProvider(mPropertyBag.flexObject);
 			} else if (mPropertyBag.control) {
 				const sLibraryName = await mPropertyBag.modifier.getLibraryName(mPropertyBag.control);
-				// the ChangeHandlerRegistration includes all the predefined ChangeHandlers.
-				// With this as a standard import the ChangeHandlers would not be able to access API classes due to circular dependencies.
-				// TODO should be removed as soon as the ChangePersistence / FlexController are gone
-				const ChangeHandlerRegistration =
-					await requireAsync("sap/ui/fl/initial/_internal/changeHandlers/ChangeHandlerRegistration");
 				await ChangeHandlerRegistration.waitForChangeHandlerRegistration(sLibraryName);
 				const sLayer = mPropertyBag.layer || mPropertyBag.flexObject?.getLayer();
 				return ChangeHandlerStorage.getChangeHandler(

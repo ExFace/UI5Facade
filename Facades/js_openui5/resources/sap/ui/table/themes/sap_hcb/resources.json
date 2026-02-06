@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "base_Cell.less",
-			"size": 10621,
+			"size": 10996,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -80,7 +80,7 @@
 		},
 		{
 			"name": "base_Row.less",
-			"size": 2304,
+			"size": 1642,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -98,13 +98,13 @@
 		},
 		{
 			"name": "base_RowSelection.less",
-			"size": 4346,
+			"size": 4353,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_Scrolling.less",
-			"size": 9291,
+			"size": 10172,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -116,41 +116,41 @@
 		},
 		{
 			"name": "base_Table.less",
-			"size": 12619,
+			"size": 12620,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 62225,
+			"size": 70289,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_hcb/library-parameters.json",
-			"size": 5312,
+			"size": 5392,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.css",
-			"size": 62244,
+			"size": 70326,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 66235,
+			"size": 67374,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.source.less",
-			"size": 4350,
+			"size": 4887,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "resources.json",
-			"size": 2627
+			"size": 2628
 		}
 	]
 }

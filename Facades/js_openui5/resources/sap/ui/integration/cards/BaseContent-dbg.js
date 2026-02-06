@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -76,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -199,6 +199,7 @@ sap.ui.define([
 		this._oAwaitedEvents = new Set();
 		this._bReady = false;
 		this._mObservers = {};
+		this._bChildCardOpenedInDialog = false;
 
 		this.setAggregation("_loadingProvider", new LoadingProvider());
 		this.awaitEvent("_dataReady");
@@ -278,6 +279,8 @@ sap.ui.define([
 			this._oOverflowHandler.destroy();
 			this._oOverflowHandler = null;
 		}
+
+		this._bChildCardOpenedInDialog = false;
 	};
 
 	/**
@@ -305,6 +308,15 @@ sap.ui.define([
 	 */
 	BaseContent.prototype.applyConfiguration = function () { };
 
+	/**
+	 * Called when card is opened inside a dialog as a result of Pagination or Show More action.
+	 * @protected
+	 */
+	BaseContent.prototype.onOpenInDialog = function () {
+		this._bChildCardOpenedInDialog = true;
+		this.adjustLoadingPlaceholderWidth();
+	};
+
 	BaseContent.prototype.setLoadDependenciesPromise = function (oPromise) {
 		this._pLoadDependencies = oPromise;
 		this.awaitEvent("_loadDependencies");
@@ -312,6 +324,20 @@ sap.ui.define([
 		this._pLoadDependencies.then(function () {
 			this.fireEvent("_loadDependencies");
 		}.bind(this));
+	};
+
+
+	/**
+	 * Adjusts the loading placeholder width to match the content width when the card is opened in a dialog.
+	 * @private
+	 */
+	BaseContent.prototype.adjustLoadingPlaceholderWidth = function () {
+		const oChildCard = this.getCardInstance();
+		const oContentLoadingPlaceHolder = this.getAggregation("_loadingPlaceholder");
+
+		if (oChildCard && this?.getDomRef() && oContentLoadingPlaceHolder) {
+			oContentLoadingPlaceHolder.setWidth(this.getDomRef().getBoundingClientRect().width + "px");
+		}
 	};
 
 	BaseContent.prototype.getLoadDependenciesPromise = function () {
@@ -555,7 +581,9 @@ sap.ui.define([
 	};
 
 	BaseContent.prototype.hideNoDataMessage = function () {
-		this.hideBlockingMessage();
+		if (this.getBlockingMessage()?.type === CardBlockingMessageType.NoData) {
+			this.hideBlockingMessage();
+		}
 	};
 
 	/**
@@ -675,6 +703,9 @@ sap.ui.define([
 			return;
 		}
 
+		if (this._bChildCardOpenedInDialog) {
+			this.adjustLoadingPlaceholderWidth();
+		}
 		var oLoadingProvider = this.getAggregation("_loadingProvider"),
 			oCard = this.getCardInstance();
 
@@ -958,6 +989,18 @@ sap.ui.define([
 	 */
 	BaseContent.prototype.isInteractive = function () {
 		return this.hasListeners("press");
+	};
+
+	BaseContent.prototype.getDataPath = function () {
+		if (this._sContentBindingPath === null) {
+			return "";
+		}
+
+		return this._sContentBindingPath;
+	};
+
+	BaseContent.prototype.getCardDataPath = function () {
+		return this.getCardInstance()?._getDataPath();
 	};
 
 	return BaseContent;

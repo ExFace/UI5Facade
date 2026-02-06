@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/core/Lib",
 	"sap/ui/fl/apply/_internal/flexObjects/FlexObjectFactory",
-	"sap/ui/fl/apply/_internal/flexState/compVariants/CompVariantMerger",
 	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagementState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/initial/_internal/FlexInfoSession",
-	"sap/ui/fl/write/_internal/flexState/compVariants/CompVariantState",
+	"sap/ui/fl/apply/_internal/flexState/compVariants/applyChangesOnVariant",
+	"sap/ui/fl/apply/_internal/flexState/compVariants/CompVariantManagementState",
+	"sap/ui/fl/write/_internal/flexState/compVariants/CompVariantManager",
 	"sap/ui/fl/write/_internal/flexState/FlexObjectManager",
 	"sap/ui/fl/write/_internal/Storage",
 	"sap/ui/fl/write/_internal/Versions",
@@ -21,16 +21,17 @@ sap.ui.define([
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/LayerUtils",
 	"sap/ui/fl/Utils",
-	"sap/ui/model/json/JSONModel"
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	Lib,
 	FlexObjectFactory,
-	CompVariantMerger,
 	VariantManagementState,
 	ManifestUtils,
-	ControlVariantApplyAPI,
 	FlexInfoSession,
-	CompVariantState,
+	applyChangesOnVariant,
+	CompVariantManagementState,
+	CompVariantManager,
 	FlexObjectManager,
 	Storage,
 	Versions,
@@ -122,8 +123,7 @@ sap.ui.define([
 		return FeaturesAPI.isContextBasedAdaptationAvailable(sLayer)
 		.then(function(bContextBasedAdaptationsEnabledResponse) {
 			bContextBasedAdaptationsEnabled = bContextBasedAdaptationsEnabledResponse;
-			var oAdaptationsPromise = bContextBasedAdaptationsEnabled ? ContextBasedAdaptationsAPI.load(mPropertyBag) : Promise.resolve({adaptations: []});
-			return oAdaptationsPromise;
+			return bContextBasedAdaptationsEnabled ? ContextBasedAdaptationsAPI.load(mPropertyBag) : Promise.resolve({ adaptations: [] });
 		})
 		.then(function(oAdaptations) {
 			// Determine displayed adaptation
@@ -323,7 +323,7 @@ sap.ui.define([
 	ContextBasedAdaptationsAPI.adaptationExists = function(mPropertyBag) {
 		var sReference = mPropertyBag.reference;
 		var sLayer = mPropertyBag.layer;
-		return this.hasAdaptationsModel({reference: sReference, layer: sLayer}) && _mInstances[sReference][sLayer].getProperty("/count") > 0;
+		return this.hasAdaptationsModel({ reference: sReference, layer: sLayer }) && _mInstances[sReference][sLayer].getProperty("/count") > 0;
 	};
 
 	ContextBasedAdaptationsAPI.clearInstances = function() {
@@ -411,9 +411,8 @@ sap.ui.define([
 
 			// Clone it, to avoid that we modify the original and that modifying the original affects the state
 			var oClone = oVariant.clone();
-			aVariantChanges.forEach(CompVariantMerger.applyChangeOnVariant.bind(CompVariantMerger, oClone));
+			applyChangesOnVariant(oClone, aVariantChanges);
 			// Avoid garbage
-			oClone.removeAllChanges();
 			oClone.destroy();
 			return oClone.mProperties;
 		}
@@ -459,7 +458,7 @@ sap.ui.define([
 				}
 			}
 		});
-		return {uniqueContexts: mUniqueContexts, unrestrictedViews: aUnrestrictedViews};
+		return { uniqueContexts: mUniqueContexts, unrestrictedViews: aUnrestrictedViews };
 	}
 
 	/**
@@ -476,7 +475,7 @@ sap.ui.define([
 	function createChangeSetVisibleFalseToRestrictedVariant(oVariant, mPropertyBag, contextBasedAdaptationId, VariantManager) {
 		if (oVariant.isA("sap.ui.fl.apply._internal.flexObjects.CompVariant")) {
 			var sPersistencyKey = oVariant.getPersistencyKey();
-			oVariant = CompVariantState.updateVariant({
+			oVariant = CompVariantManager.updateVariant({
 				reference: mPropertyBag.appId,
 				persistencyKey: sPersistencyKey,
 				id: oVariant.getId(),
@@ -485,7 +484,7 @@ sap.ui.define([
 				adaptationId: contextBasedAdaptationId,
 				forceCreate: true
 			});
-			return oVariant.getChanges().reverse()[0].convertToFileContent();
+			return CompVariantManagementState.getVariantChanges(oVariant).reverse()[0].convertToFileContent();
 		}
 		// Fl variant
 		var oAppComponent = FlexUtils.getAppComponentForControl(mPropertyBag.control);
@@ -504,10 +503,10 @@ sap.ui.define([
 	}
 
 	function getObjectsByLayerAndType(aFlexObjects, sChangesLayer, bVariants) {
-		var aVariants = aFlexObjects.filter(function(oFlexObject) {
-			return (bVariants === oFlexObject.isA("sap.ui.fl.apply._internal.flexObjects.Variant")) && oFlexObject.getLayer() === sChangesLayer;
-		});
-		return aVariants;
+		return aFlexObjects.filter((oFlexObject) =>
+			bVariants === oFlexObject.isA("sap.ui.fl.apply._internal.flexObjects.Variant")
+			&& oFlexObject.getLayer() === sChangesLayer
+		);
 	}
 
 	function getVariantReference(oChange) {
@@ -528,18 +527,15 @@ sap.ui.define([
 	}
 
 	function isSetContextChange(oChange) {
-		if (oChange.getFileType() === "ctrl_variant_change" && oChange.getChangeType() === "setContexts") {
-			return true;
-		}
-		return false;
+		return oChange.getFileType() === "ctrl_variant_change" && oChange.getChangeType() === "setContexts";
 	}
 
 	/**
 	 * Filter all changes that are relevant to be copied for an adaptation during migration.
-	 * All non variant changes are taken over. Variant dependent changes are filtered depending on the variant
+	 * All non-variant changes are taken over. Variant dependent changes are filtered depending on the variant
 	 * Changes for variants that will not be taken over into this adaptation will be removed
 	 * Also removes setContext changes for FLVariants
-	 * @param {array<string>} aIgnoredVariantIds - IDs of variants that are out of scope
+	 * @param {Array<string>} aIgnoredVariantIds - IDs of variants that are out of scope
 	 * @param {sap.ui.fl.apply._internal.flexObjects.FlexObject[]} aChanges - Array of flex objects
 	 * @returns {sap.ui.fl.apply._internal.flexObjects.FlexObject[]} A list of changes that are relevant
 	 */
@@ -830,7 +826,7 @@ sap.ui.define([
 			return Promise.resolve();
 		})
 		.then(function() {
-			return this.refreshAdaptationModel({control: mPropertyBag.control, layer: mPropertyBag.layer});
+			return this.refreshAdaptationModel({ control: mPropertyBag.control, layer: mPropertyBag.layer });
 		}.bind(this));
 	};
 
@@ -906,6 +902,8 @@ sap.ui.define([
 		.then(function() {
 			return FlexObjectManager.getFlexObjects({
 				selector: mPropertyBag.control,
+				includeManifestChanges: true,
+				includeAnnotationChanges: true,
 				invalidateCache: false,
 				includeCtrlVariants: true,
 				includeDirtyChanges: true,

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -30,6 +30,9 @@ sap.ui.define([
 		},
 		createEditMultiLine: function() {
 			throw new Error("sap.ui.mdc.field.content.TimeContent - createEditMultiLine not defined!");
+		},
+		createEditSelect: function() {
+			throw new Error("sap.ui.mdc.field.content.TimeContent - createEditSelect not defined!");
 		},
 		createEdit: function(oContentFactory, aControlClasses, sId) {
 			return DefaultContent.createEdit.apply(this, arguments);

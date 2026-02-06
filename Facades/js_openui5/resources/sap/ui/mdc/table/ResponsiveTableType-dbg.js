@@ -1,35 +1,43 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./TableTypeBase",
+	"./ActionLayoutData",
 	"./utils/Personalization",
+	"sap/ui/mdc/enums/TableGrowingMode",
+	"sap/ui/mdc/enums/TableRowActionType",
+	"sap/ui/mdc/enums/TablePopinDisplay",
+	"sap/ui/mdc/enums/TableActionPosition",
 	"sap/m/plugins/ColumnResizer",
 	"sap/m/SegmentedButton",
 	"sap/m/SegmentedButtonItem",
 	"sap/ui/Device",
 	"sap/ui/core/Element",
-	"sap/ui/core/Lib",
-	"sap/ui/mdc/enums/TableGrowingMode",
-	"sap/ui/mdc/enums/TableRowActionType"
+	"sap/ui/core/Lib"
 ], (
 	TableTypeBase,
+	ActionLayoutData,
 	PersonalizationUtils,
+	GrowingMode,
+	RowActionType,
+	PopinDisplay,
+	TableActionPosition,
 	ColumnResizer,
 	SegmentedButton,
 	SegmentedButtonItem,
 	Device,
 	Element,
-	Library,
-	GrowingMode,
-	RowActionType
+	Library
 ) => {
 	"use strict";
 
-	let InnerTable, InnerColumn, InnerRow;
+	let InnerTable;
+	let InnerColumn;
+	let InnerRow;
 
 	/**
 	 * Constructor for a new <code>ResponsiveTableType</code>.
@@ -96,6 +104,16 @@ sap.ui.define([
 					type: "sap.m.PopinLayout",
 					group: "Appearance",
 					defaultValue: "Block"
+				},
+				/**
+				 * Defines how the pop-in content is displayed.
+				 *
+				 * @since 1.143
+				 */
+				popinDisplay: {
+					type: "sap.ui.mdc.enums.TablePopinDisplay",
+					group: "Appearance",
+					defaultValue: PopinDisplay.Inline
 				}
 			}
 		}
@@ -163,20 +181,20 @@ sap.ui.define([
 		}
 	};
 
-	ResponsiveTableType.prototype.createTable = function(sId) {
+	ResponsiveTableType.prototype.createTable = function() {
 		const oTable = this.getTable();
 
 		if (!oTable || !InnerTable) {
 			return null;
 		}
 
-		return new InnerTable(sId, this.getTableSettings());
+		return new InnerTable(this.getTableSettings());
 	};
 
 	ResponsiveTableType.prototype.getTableSettings = function() {
 		const oTable = this.getTable();
-
 		const mSettings = {
+			...TableTypeBase.prototype.getTableSettings.apply(this, arguments),
 			autoPopinMode: true,
 			contextualWidth: "Auto",
 			growing: true,
@@ -197,7 +215,7 @@ sap.ui.define([
 			mSettings.itemPress = [onItemPress, this];
 		}
 
-		return  Object.assign({}, TableTypeBase.prototype.getTableSettings.apply(this, arguments), mSettings);
+		return mSettings;
 	};
 
 	function onItemPress(oEvent) {
@@ -221,8 +239,72 @@ sap.ui.define([
 		});
 	}
 
-	ResponsiveTableType.createColumn = function(sId, mSettings) {
-		return new InnerColumn(sId, mSettings);
+	ResponsiveTableType.prototype.createColumn = function(oColumn) {
+		return new InnerColumn(this.getColumnSettings(oColumn));
+	};
+
+	ResponsiveTableType.prototype.getColumnSettings = function(oColumn) {
+		const mSettings = TableTypeBase.prototype.getColumnSettings.apply(this, arguments);
+
+		mSettings.header = oColumn.getHeaderLabel({
+			tooltip: mSettings.tooltip,
+			wrapping: {
+				parts: [
+					{path: "$sap.ui.mdc.table.Column>/headerVisible"},
+					{path: "$sap.ui.mdc.Table>/enableColumnResize"}
+				],
+				formatter: function(bHeaderVisible, bResizable) {
+					return bHeaderVisible && !bResizable;
+				}
+			},
+			wrappingType: "Hyphenated"
+		});
+		delete mSettings.tooltip;
+
+		return {
+			...mSettings,
+			autoPopinWidth: "{$sap.ui.mdc.table.Column>/minWidth}",
+			importance: {
+				parts: [
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/@className"},
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/importance"},
+					{path: "$sap.ui.mdc.table.Column>/importance"}
+				],
+				formatter: function(sExtendedSettingsType, sImportance, sLegacyImportance) {
+					if (sExtendedSettingsType === "sap.ui.mdc.table.ResponsiveColumnSettings") {
+						return sImportance;
+					}
+					return sLegacyImportance;
+				}
+			},
+			popinDisplay: {
+				parts: [
+					{path: "$sap.ui.mdc.table.Column>/headerVisible"},
+					{path: "$sap.ui.mdc.Table#type>/popinDisplay"}
+				],
+				formatter: function(bHeaderVisible, sPopinDisplay) {
+					return bHeaderVisible ? sPopinDisplay : "WithoutHeader";
+				}
+			},
+			mergeDuplicates: {
+				parts: [
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/@className"},
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/mergeFunction"}
+				],
+				formatter: function(sExtendedSettingsType, sMergeFunction) {
+					return sExtendedSettingsType === "sap.ui.mdc.table.ResponsiveColumnSettings" && !!sMergeFunction;
+				}
+			},
+			mergeFunctionName: {
+				parts: [
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/@className"},
+					{path: "$sap.ui.mdc.table.Column>/extendedSettings/mergeFunction"}
+				],
+				formatter: function(sExtendedSettingsType, sMergeFunction) {
+					return sExtendedSettingsType === "sap.ui.mdc.table.ResponsiveColumnSettings" ? sMergeFunction : null;
+				}
+			}
+		};
 	};
 
 	ResponsiveTableType.prototype.createRowTemplate = function(sId) {
@@ -257,6 +339,8 @@ sap.ui.define([
 		this.updateRowActions();
 	};
 
+	// TODO: Reduce complexity
+	// eslint-disable-next-line complexity
 	ResponsiveTableType.prototype.updateRowActions = function() {
 		const oTable = this.getTable();
 		const oRowActionsInfo = this.getRowActionsConfig();
@@ -274,24 +358,26 @@ sap.ui.define([
 			this._detachItemPress();
 		}
 
-		let vRowType, bVisibleBound, fnVisibleFormatter;
+		let vRowType;
+		let bVisibleBound;
+		let fnVisibleFormatter;
 		// If templateInfo is given, the rowActions are bound
 		if ("templateInfo" in oRowActionsInfo) {
 			const oTemplateInfo = oRowActionsInfo.templateInfo;
 
 			fnVisibleFormatter = oTemplateInfo.visible.formatter;
 			// If visible property is of type object, we know for certain the property is bound (see RowSettings.getAllActions)
-			bVisibleBound = typeof oTemplateInfo.visible == "object";
+			bVisibleBound = typeof oTemplateInfo.visible === "object";
 			vRowType = oTemplateInfo.visible;
 		} else if (oRowActionsInfo && oRowActionsInfo.items) {
-			if (oRowActionsInfo.items.length == 0) {
+			if (oRowActionsInfo.items.length === 0) {
 				oTable._oRowTemplate.setType(sType);
 				return;
 			}
 
 			// Check if rowActions are of type Navigation. ResponsiveTable currently only supports RowActionItem<Navigation>
 			const _oRowActionItem = oRowActionsInfo.items.find((oRowAction) => {
-				return oRowAction.getType() == "Navigation";
+				return oRowAction.getType() === "Navigation";
 			});
 			if (!_oRowActionItem && oRowActionsInfo.items.length > 0) {
 				throw new Error("No row action of type 'Navigation' found. ResponsiveTableType only accepts row actions of type 'Navigation'.");
@@ -310,7 +396,7 @@ sap.ui.define([
 		if (bVisibleBound) {
 			vRowType.formatter = (sValue) => {
 				const vVisible = fnVisibleFormatter ? fnVisibleFormatter(sValue) : sValue;
-				const vRowType =  vVisible === true ? RowActionType.Navigation : sType;
+				const vRowType = vVisible === true ? RowActionType.Navigation : sType;
 				if (vRowType === RowActionType.Navigation) {
 					this._attachItemPress();
 				}
@@ -386,11 +472,17 @@ sap.ui.define([
 			return;
 		}
 
-		if (oColumnMenu.isA("sap.m.table.columnmenu.Menu")) {
-			return oColumnResizer.getColumnResizeQuickAction(oColumn.getInnerColumn(), oColumnMenu);
-		} else {
-			return oColumnResizer.getColumnResizeButton(oColumn.getInnerColumn());
+		return oColumnResizer.getColumnResizeQuickAction(oColumn.getInnerColumn(), oColumnMenu);
+	};
+
+	ResponsiveTableType.prototype.createColumnResizeInputMenuItem = function(oColumn, oColumnMenu) {
+		const oColumnResizer = ColumnResizer.findOn(this.getInnerTable());
+
+		if (!oColumnResizer) {
+			return;
 		}
+
+		return oColumnResizer.getColumnResizeInputQuickAction(oColumn.getInnerColumn(), oColumnMenu);
 	};
 
 	/**
@@ -433,10 +525,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Toggles the visibility of the Show Details button.<br>
-	 * If <code>bValue</code> is set to <code>true</code>, it sets the <code>hiddenInPopin</code> property on the inner <code>ResponsiveTable</code> to
-	 * hide columns based on the <code>Table</code> configuration (<code>showDetailsButton</code> and <code>detailsButtonSetting</code> properties).
-	 * Otherwise an empty array is set to show all columns.
+	 * Toggles the visibility of the Show Details button.
+	 * If <code>bValue</code> is set to <code>true</code>, it sets the <code>hiddenInPopin</code> property on the inner <code>ResponsiveTable</code>
+	 * to hide columns based on the <code>Table</code> configuration (<code>showDetailsButton</code> and <code>detailsButtonSetting</code>
+	 * properties). Otherwise an empty array is set to show all columns.
 	 *
 	 * @param {boolean} bValue - Whether to hide details and display the Show Details button
 	 * @private
@@ -497,7 +589,10 @@ sap.ui.define([
 							}, this
 						]
 					})
-				]
+				],
+				layoutData: new ActionLayoutData({
+					position: TableActionPosition.PersonalizationActionsShowHideDetails
+				})
 			});
 		}
 		return this._oShowDetailsButton;
@@ -666,7 +761,7 @@ sap.ui.define([
 	 * @returns {boolean} whether the xConfig state should be shown
 	 */
 	ResponsiveTableType.prototype.showXConfigState = function() {
-		return this._oShowDetailsButton?.getVisible();
+		return this.getShowDetailsButton();
 	};
 
 	ResponsiveTableType.prototype.exit = function() {

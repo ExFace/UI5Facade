@@ -8,25 +8,25 @@
 		},
 		{
 			"name": "Calendar.less",
-			"size": 32527,
+			"size": 31999,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "CalendarLegend.less",
-			"size": 1772,
+			"size": 1812,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "CalendarRow.less",
-			"size": 5148,
+			"size": 4545,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ColorPicker.less",
-			"size": 4405,
+			"size": 4453,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
@@ -42,53 +42,53 @@
 		},
 		{
 			"name": "FileUploader.less",
-			"size": 1851,
+			"size": 1518,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "Menu.less",
-			"size": 2497,
+			"size": 2535,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 750,
+			"size": 850,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 1338,
+			"size": 1308,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 663,
+			"size": 790,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 185157,
+			"size": 197719,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/unified/themes/sap_horizon_dark/library-parameters.json",
-			"size": 8059,
+			"size": 8825,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.css",
-			"size": 185032,
+			"size": 197610,
 			"theme": "sap_horizon_dark"
 		},
 		{
 			"name": "library.less",
-			"size": 52023,
+			"size": 50882,
 			"designtime": true,
 			"theme": "sap_horizon_dark"
 		},

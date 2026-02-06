@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\Core\Interfaces\Widgets\ConfirmationWidgetInterface;
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\Core\Widgets\ContextBar;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -615,12 +616,9 @@ JS;
     
     /**
      * 
-     * @param ActionInterface $action
-     * @param string $jsRequestData
-     * @param string $jsOnSuccess
-     * @return string
+     * @see JqueryButtonTrait::buildJsClickCallServerAction()
      */
-    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '') : string
+    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '', string $oResultDataJsVar = 'oResultData') : string
     {
         $widget = $this->getWidget();
         $input_element = $this->getInputElement();
@@ -674,6 +672,8 @@ JS;
                                         a.click();
                                         document.body.removeChild(a);
                    					}
+                                    
+                                    var {$oResultDataJsVar} = oResultModel.getData();
                                     {$jsOnSuccess}
 								}
 JS;
@@ -755,7 +755,7 @@ JS;
      * @param string $functionName
      * @return string
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === null:
@@ -764,7 +764,7 @@ JS;
             case $functionName === Button::FUNCTION_FOCUS:
                 return "sap.ui.getCore().byId('{$this->getId()}').focus()";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**
@@ -775,9 +775,14 @@ JS;
     public function buildCssElementClass()
     {
         $cls = parent::buildCssElementClass();
-        if ($this->getWidget()->getIconSet() === 'svg') {
+        
+        $iconSet = $this->getWidget()->getIconSet();
+        if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+            $cls .= ' exf-svg-icon exf-svg-colored';
+        } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
             $cls .= ' exf-svg-icon';
         }
+        
         return $cls;
     }
     

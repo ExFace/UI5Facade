@@ -8,19 +8,19 @@
 		},
 		{
 			"name": "AbsoluteLayout.less",
-			"size": 305,
+			"size": 303,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "Accordion.less",
-			"size": 493,
+			"size": 421,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "AccordionSection.less",
-			"size": 2373,
+			"size": 2193,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "Carousel.less",
-			"size": 1496,
+			"size": 1484,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -104,7 +104,7 @@
 		},
 		{
 			"name": "FormattedTextView.less",
-			"size": 312,
+			"size": 309,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},
@@ -751,7 +751,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 149746,
+			"size": 151001,
 			"theme": "sap_horizon"
 		},
 		{
@@ -762,12 +762,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 149628,
+			"size": 150882,
 			"theme": "sap_horizon"
 		},
 		{
 			"name": "library.less",
-			"size": 119092,
+			"size": 118823,
 			"designtime": true,
 			"theme": "sap_horizon"
 		},

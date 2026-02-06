@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -100,6 +100,7 @@ sap.ui.define([
 				});
 			}
 
+			var iFilterIndex = 0;
 			// Process card sections in order - nested sections with "data" have to be processed first
 			aFilters.concat([
 				["/sap.card/content", oCard.getCardContent()],
@@ -120,6 +121,11 @@ sap.ui.define([
 					};
 				} else if (oContext.getStaticConfiguration) {
 					oSubConfig = oContext.getStaticConfiguration(Utils.getNestedPropertyValue(oManifest, sManifestPath));
+					// add index to each filter so that Mobile SDK can get correct order of the filters
+					if (sManifestPath.startsWith("/sap.card/configuration/filters/")) {
+						oSubConfig.index = iFilterIndex;
+						iFilterIndex++;
+					}
 				} else {
 					oSubConfig = Utils.getNestedPropertyValue(oManifest, sManifestPath);
 				}
@@ -186,8 +192,8 @@ sap.ui.define([
 					title: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_TITLE"),
 					description: oResourceBundle.getText("CARD_ERROR_CONFIGURATION_DESCRIPTION"),
 					details: oError.toString(),
-					illustrationType: IllustratedMessageType.SimpleError,
-					illustrationSize: IllustratedMessageSize.Spot
+					illustrationType: IllustratedMessageType.UnableToLoad,
+					illustrationSize: IllustratedMessageSize.Small
 				}
 			}
 		};

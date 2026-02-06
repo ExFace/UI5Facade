@@ -46,7 +46,25 @@ class UI5InputNumber extends UI5Input
         $val = $this->getWidget()->getValueWithDefaults();
         return (is_null($val) || $val === '') ? '""' : $val;
     }
-    
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter()
+    {
+        $jsFormatter = $this->getValueBindingFormatter()->getJsFormatter();
+        return <<<JS
+(function(oInput){
+    var sVal = oInput.getValue();
+    var nVal = {$jsFormatter->buildJsFormatParser('sVal')};
+    return nVal;
+})(sap.ui.getCore().byId('{$this->getId()}'))
+JS;
+
+    }
+
     /**
      * 
      * {@inheritDoc}
@@ -115,8 +133,32 @@ JS;
             $constraintsJs .= <<<JS
 
                     if($numberValidator !== true) {$onFailJs};
+            JS;
+        }
+        
+        // If the formatted value differs from that show in the control, update the control.
+        // This makes only sense, if the control has an id. If it is an in-table control, we
+        // will not know, which one of them to update.
+        if ($this->getUseWidgetId() === true && $this->isValueBoundToModel() === true) {
+            $constraintsJs .= <<<JS
+
+                    (function(oInput, sValue){
+                        // Don't bother if the control is not there anymore
+                        if (oInput === undefined) {
+                            return;
+                        }
+                        // sValue is already parsed at this point.
+                        // Now get the unformatted value from the control
+                        let inputValue = oInput.getValue();
+                        if (! isNaN(sValue) && sValue !== inputValue) {
+                            oInput.getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                            // refresh(true) forces the widget to refresh its value
+                            oInput.getBinding('value')?.refresh(true);
+                        }
+                    })(sap.ui.getCore().byId('{$this->getId()}'), $valueJs);
 JS;
         }
+
         return $constraintsJs;
     }
 }

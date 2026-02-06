@@ -56,45 +56,10 @@ JS;
 JS;
         }
 
-        // Add a custom formatter if required for
-        // - prefix/suffix
-        // - `+`-sign
-        // TODO handle NumberDataType::getEmptyFormat() here too?
-        if (($type instanceof NumberDataType) 
-            && (
-                $type->getPrefix() !== null
-                || $type->getSuffix() !== null
-                || $type->getShowPlusSign() === true
-            )
-        ) {
-            $prefix = $type->getPrefix();
-            $prefixJs = $prefix === '' || $prefix === null ? '""' : json_encode($prefix . ' ');
-            $suffix = $type->getSuffix();
-            $suffixJs = $suffix === '' || $suffix === null ? '""' : json_encode(' ' . $suffix);
-            $plusSignJs = $type->getShowPlusSign() ? 'true' : 'false';
-            
+        if($type instanceof NumberDataType) {
             $otherProps .= <<<JS
-
-                formatter: function(mVal) {
-                    var sPrefix = $prefixJs;
-                    var sSuffix = $suffixJs;
-                    var bPlusSign = $plusSignJs;
-                    var nVal = {$this->getJsFormatter()->buildJsFormatParser('mVal')};
-
-                    if (mVal === '' || mVal === null || mVal === undefined) return mVal;
-
-                    if (bPlusSign === true && nVal > 0) {
-                        mVal = '+' + mVal;
-                    }
-
-                    if (sPrefix !== '') {
-                        mVal = sPrefix + mVal;
-                    }
-                    if (sSuffix !== '') {
-                        mVal = mVal + sSuffix;
-                    }                    
-
-                    return mVal;
+                formatter: function(mVal){
+                    return ({$this->getJsFormatter()->buildJsFormatter('mVal')});
                 },
 JS;
         }

@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "Cell.less",
-			"size": 10621,
+			"size": 10995,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "Row.less",
-			"size": 2304,
+			"size": 1642,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -56,13 +56,13 @@
 		},
 		{
 			"name": "RowSelection.less",
-			"size": 4346,
+			"size": 4353,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "Scrolling.less",
-			"size": 9291,
+			"size": 10177,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
@@ -74,41 +74,41 @@
 		},
 		{
 			"name": "Table.less",
-			"size": 12619,
+			"size": 12620,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 63414,
+			"size": 71642,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_belize_base/library-parameters.json",
-			"size": 5710,
+			"size": 5802,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.css",
-			"size": 63431,
+			"size": 71677,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.less",
-			"size": 64123,
+			"size": 65266,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 3476,
+			"size": 4013,
 			"designtime": true,
 			"theme": "sap_belize_base"
 		},
 		{
 			"name": "resources.json",
-			"size": 2032
+			"size": 2033
 		}
 	]
 }

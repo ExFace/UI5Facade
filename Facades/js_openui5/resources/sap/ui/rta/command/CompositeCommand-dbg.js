@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.ui.rta.command.BaseCommand
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -47,50 +47,30 @@ sap.ui.define([
 	 *
 	 * @returns {Promise} empty resolved promise or rejected promise
 	 */
-	CompositeCommand.prototype.execute = function() {
-		const aPromises = [];
-		this._forEachCommand(function(oCommand) {
-			aPromises.push(oCommand.execute.bind(oCommand));
-		});
-		return FlUtils.execPromiseQueueSequentially(aPromises, true)
-
-		.catch(function(e) {
+	CompositeCommand.prototype.execute = async function() {
+		try {
+			await FlUtils.execPromiseQueueSequentially(this.getCommands().map((oCommand) => {
+				return oCommand.execute.bind(oCommand);
+			}), true);
+		} catch (oError) {
+			await this.undo();
 			const aCommands = this.getCommands();
-			aCommands.forEach(function(oCommand) {
+			aCommands.forEach((oCommand) => {
 				if (oCommand instanceof FlexCommand) {
 					this.removeCommand(oCommand);
 				}
-			}.bind(this));
-
-			return this.undo()
-
-			.then(function() {
-				return Promise.reject(e);
 			});
-		}.bind(this));
-	};
-
-	CompositeCommand.prototype.undo = function() {
-		const aPromises = [];
-		this._forEachCommandInReverseOrder(function(oCommand) {
-			aPromises.push(oCommand.undo.bind(oCommand));
-		});
-		return FlUtils.execPromiseQueueSequentially(aPromises);
-	};
-
-	CompositeCommand.prototype._forEachCommand = function(fnDo) {
-		const aCommands = this.getCommands();
-		aCommands.forEach(fnDo, this);
-	};
-
-	CompositeCommand.prototype._forEachCommandInReverseOrder = function(fnDo) {
-		const aCommands = this.getCommands();
-		for (let i = aCommands.length - 1; i >= 0; i--) {
-			fnDo.call(this, aCommands[i]);
+			throw oError;
 		}
 	};
 
-	CompositeCommand.prototype._addCompositeIdToChange = function(oCommand) {
+	CompositeCommand.prototype.undo = function() {
+		return FlUtils.execPromiseQueueSequentially(this.getCommands().toReversed().map((oCommand) => {
+			return oCommand.undo.bind(oCommand);
+		}));
+	};
+
+	function addCompositeIdToChange(oCommand) {
 		this._sCompositeId ||= FlUtils.createDefaultFileName("composite");
 		const oPreparedChange = oCommand.getPreparedChange && oCommand.getPreparedChange();
 		if (oPreparedChange) {
@@ -100,10 +80,10 @@ sap.ui.define([
 				oPreparedChange.setSupportInformation(oChangeSupportInformation);
 			}
 		} else if (oCommand.setCompositeId) {
-			// relevant for manifest commands
+			// relevant for manifest commands, as the change is not yet created when this function is called
 			oCommand.setCompositeId(this._sCompositeId);
 		}
-	};
+	}
 
 	/**
 	 * @override
@@ -112,7 +92,7 @@ sap.ui.define([
 	 * @returns {object} the composite command
 	 */
 	CompositeCommand.prototype.addCommand = function(oCommand, bSuppressInvalidate) {
-		this._addCompositeIdToChange(oCommand);
+		addCompositeIdToChange.call(this, oCommand);
 		return this.addAggregation("commands", oCommand, bSuppressInvalidate);
 	};
 
@@ -124,7 +104,7 @@ sap.ui.define([
 	 * @returns {object} the composite command
 	 */
 	CompositeCommand.prototype.insertCommand = function(oCommand, iIndex, bSuppressInvalidate) {
-		this._addCompositeIdToChange(oCommand);
+		addCompositeIdToChange.call(this, oCommand);
 		return this.insertAggregation("commands", oCommand, iIndex, bSuppressInvalidate);
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @class The Remove allows trigger remove operations on the overlay
 	 * @extends sap.ui.rta.plugin.Plugin
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
@@ -309,7 +309,7 @@ sap.ui.define([
 	 * @return {object[]} - array of the items with required data
 	 */
 	Remove.prototype.getMenuItems = function(aElementOverlays) {
-		return this._getMenuItems(aElementOverlays, {pluginId: "CTX_REMOVE", icon: "sap-icon://less"});
+		return this._getMenuItems(aElementOverlays, { pluginId: "CTX_REMOVE", icon: "sap-icon://less" });
 	};
 
 	/**

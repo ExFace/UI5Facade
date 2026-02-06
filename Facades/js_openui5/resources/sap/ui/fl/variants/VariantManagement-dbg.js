@@ -1,39 +1,73 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.fl.variants.VariantManagement.
 sap.ui.define([
-	"sap/ui/model/Context",
-	"sap/ui/model/Filter",
-	"sap/ui/model/FilterOperator",
+	"sap/base/Log",
 	"sap/m/VariantItem",
 	"sap/m/VariantManagement",
-	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
-	"sap/ui/fl/registry/Settings",
 	"sap/ui/core/Control",
 	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-	"sap/base/Log"
+	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagementState",
+	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagerApply",
+	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
+	"sap/ui/fl/requireAsync",
+	"sap/ui/fl/Utils",
+	"sap/ui/model/Context",
+	"sap/ui/model/Filter",
+	"sap/ui/model/FilterOperator"
 ], function(
-	Context,
-	Filter,
-	FilterOperator,
+	Log,
 	VariantItem,
 	MVariantManagement,
-	ControlVariantApplyAPI,
-	flSettings,
 	Control,
 	Lib,
 	coreLibrary,
-	Log
+	VariantManagementState,
+	VariantManagerApply,
+	ControlVariantApplyAPI,
+	ManifestUtils,
+	flSettings,
+	requireAsync,
+	Utils,
+	Context,
+	Filter,
+	FilterOperator
 ) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TitleLevel
 	var { TitleLevel } = coreLibrary;
+
+	async function onSave(oEvent) {
+		if (!this.getDesignMode()) {
+			const mParameters = oEvent.getParameters();
+			await requireAsync("sap/ui/fl/variants/VariantManager").then(async (VariantManager) => {
+				await VariantManager.handleSaveEvent(this, mParameters);
+			});
+		}
+		this._handleAllListeners(oEvent, this._aSaveEventHandlers);
+	}
+
+	async function onManage(oEvent) {
+		if (!this.getDesignMode()) {
+			await requireAsync("sap/ui/fl/variants/VariantManager").then(async (VariantManager) => {
+				await VariantManager.handleManageEvent(oEvent, this);
+			});
+		}
+		this._handleAllListeners(oEvent, this._aManageEventHandlers);
+	}
+
+	async function onSelect(oEvent) {
+		await VariantManagerApply.handleSelectVariant(oEvent, this);
+		this._handleAllListeners(oEvent, this._aSelectEventHandlers);
+	}
 
 	/**
 	 * Constructor for a new <code>VariantManagement</code>.
@@ -139,11 +173,11 @@ sap.ui.define([
 				},
 
 				/**
-								 * Semantic level of the header.
-								 * For more information, see {@link sap.m.Title#setLevel}.
-								 *
-								 * @since 1.104
-								 */
+				 * Semantic level of the header.
+				 * For more information, see {@link sap.m.Title#setLevel}.
+				 *
+				 * @since 1.104
+				 */
 				headerLevel: {
 					type: "sap.ui.core.TitleLevel",
 					group: "Appearance",
@@ -348,6 +382,14 @@ sap.ui.define([
 				oRm.renderControl(oControl._oVM);
 				oRm.close("div");
 			}
+		},
+		constructor: function(...aArgs) {
+			Control.prototype.constructor.apply(this, aArgs); // Call base class constructor
+			this._oInitPromise = new Promise((resolve) => {
+				this.attachEventOnce("initialized", () => {
+					resolve();
+				});
+			});
 		}
 	});
 
@@ -371,13 +413,23 @@ sap.ui.define([
 		this._aSaveEventHandlers = [];
 		this._aManageEventHandlers = [];
 		this._aSelectEventHandlers = [];
+		this._oVariantAppliedListeners = {};
 
-		this._oVM.attachManage(this._fireManage, this);
+		this._oVM.attachManage(onManage, this);
 		this._oVM.attachCancel(this._fireCancel, this);
-		this._oVM.attachSave(this._fireSave, this);
-		this._oVM.attachSelect(this._fireSelect, this);
+		this._oVM.attachSave(onSave, this);
+		this._oVM.attachSelect(onSelect, this);
 
 		this._updateWithSettingsInfo();
+	};
+
+	/**
+	 * Waits for VM control initialization.
+	 *
+	 * @returns {Promise} A promise that resolves when the control is initialized
+	 */
+	VariantManagement.prototype.waitForInit = function() {
+		return this._oInitPromise;
 	};
 
 	/**
@@ -457,10 +509,6 @@ sap.ui.define([
 		return this;
 	};
 
-	VariantManagement.prototype._fireSave = function(oEvent) {
-		this._handleAllListeners(oEvent, this._aSaveEventHandlers);
-	};
-
 	VariantManagement.prototype.hasListeners = function(...aArgs) {
 		const [sEvent] = aArgs;
 		const aInnerEvents = ["save", "select", "cancel", "manage"];
@@ -519,44 +567,48 @@ sap.ui.define([
 		}
 	};
 
-	VariantManagement.prototype.attachEventOnce = function(...aArgs) {
-		const [sEvent, mPros, fnCallback, oObj] = aArgs;
+	VariantManagement.prototype.attachEventOnce = function(sEvent, oData, fnFunction, oListener) {
+		if (typeof oData === "function") {
+			oListener = fnFunction;
+			fnFunction = oData;
+			oData = undefined;
+		}
 		var nIdx;
 		if (sEvent === "manage") {
-			nIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
+			nIdx = this._findCallback(this._aManageEventHandlers, fnFunction, oListener);
 			if ((nIdx > -1) && this._aManageEventHandlers[nIdx].bOnce) {
 				this._aManageEventHandlers.splice(nIdx, 1);
 			}
 
-			this.attachManage(mPros, fnCallback, oObj);
-			nIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
+			this.attachManage(oData, fnFunction, oListener);
+			nIdx = this._findCallback(this._aManageEventHandlers, fnFunction, oListener);
 			if (nIdx > -1) {
 				this._aManageEventHandlers[nIdx].bOnce = true;
 			}
 		} else if (sEvent === "save") {
-			nIdx = this._findCallback(this._aSaveEventHandlers, fnCallback, oObj);
+			nIdx = this._findCallback(this._aSaveEventHandlers, fnFunction, oListener);
 			if ((nIdx > -1) && this._aSaveEventHandlers[nIdx].bOnce) {
 				this._aSaveEventHandlers.splice(nIdx, 1);
 			}
 
-			this.attachSave(mPros, fnCallback, oObj);
-			nIdx = this._findCallback(this._aSaveEventHandlers, fnCallback, oObj);
+			this.attachSave(oData, fnFunction, oListener);
+			nIdx = this._findCallback(this._aSaveEventHandlers, fnFunction, oListener);
 			if (nIdx > -1) {
 				this._aSaveEventHandlers[nIdx].bOnce = true;
 			}
 		} else if (sEvent === "select") {
-			nIdx = this._findCallback(this._aSelectEventHandlers, fnCallback, oObj);
+			nIdx = this._findCallback(this._aSelectEventHandlers, fnFunction, oListener);
 			if ((nIdx > -1) && this._aSelectEventHandlers[nIdx].bOnce) {
 				this._aSelectEventHandlers.splice(nIdx, 1);
 			}
 
-			this.attachSelect(mPros, fnCallback, oObj);
-			nIdx = this._findCallback(this._aSelectEventHandlers, fnCallback, oObj);
+			this.attachSelect(oData, fnFunction, oListener);
+			nIdx = this._findCallback(this._aSelectEventHandlers, fnFunction, oListener);
 			if (nIdx > -1) {
 				this._aSelectEventHandlers[nIdx].bOnce = true;
 			}
 		} else {
-			Control.prototype.attachEventOnce.apply(this, aArgs);
+			Control.prototype.attachEventOnce.apply(this, [sEvent, oData, fnFunction, oListener]);
 		}
 	};
 
@@ -586,10 +638,6 @@ sap.ui.define([
 		}
 	};
 
-	VariantManagement.prototype._fireManage = function(oEvent) {
-		this._handleAllListeners(oEvent, this._aManageEventHandlers);
-	};
-
 	VariantManagement.prototype.detachManage = function(fnCallback, oObj) {
 		var nManageEntryIdx = this._findCallback(this._aManageEventHandlers, fnCallback, oObj);
 
@@ -605,10 +653,6 @@ sap.ui.define([
 	VariantManagement.prototype.attachSelect = function(mProps, fnCallback, oObj) {
 		this.attachEvent("select", mProps, fnCallback, oObj);
 		return this;
-	};
-
-	VariantManagement.prototype._fireSelect = function(oEvent) {
-		this._handleAllListeners(oEvent, this._aSelectEventHandlers);
 	};
 
 	VariantManagement.prototype.detachSelect = function(fnCallback, oObj) {
@@ -716,7 +760,7 @@ sap.ui.define([
 	};
 
 	VariantManagement.prototype.setShowExecuteOnSelection = function(bValue) {
-		// this.setProperty("showExecuteOnSelection", bValue);
+		// This property is not bound since it is not part of the model
 		this._oVM.setSupportApplyAutomatically(bValue);
 		return this;
 	};
@@ -751,11 +795,6 @@ sap.ui.define([
 		this._oVM.openSaveAsDialog(sClass, oRolesComponentContainer);
 	};
 
-	VariantManagement.prototype.setEditable = function(bValue) {
-		this._oVM.setProperty("showFooter", bValue);
-		return this;
-	};
-
 	/**
 	 * Sets the new selected variant.
 	 * @public
@@ -766,12 +805,24 @@ sap.ui.define([
 	};
 
 	/**
-	 * Gets the currently selected variant key.
+	 * Gets the variant key that is currently selected in the VM control.
+	 * Can be different to the actually selected variant in the state during a variant switch.
 	 * @public
 	 * @returns {string|null} Key of the currently selected variant. In case the model is not yet set <code>null</code> will be returned
 	 */
 	VariantManagement.prototype.getCurrentVariantKey = function() {
 		return this._oVM.getSelectedKey();
+	};
+
+	/**
+	 * Gets the reference of the currently selected variant in the state.
+	 * @returns {string} Reference of the currently selected variant
+	 */
+	VariantManagement.prototype.getCurrentVariantReference = function() {
+		return VariantManagementState.getCurrentVariantReference({
+			reference: ManifestUtils.getFlexReferenceForControl(this),
+			vmReference: this.getVariantManagementReference()
+		});
 	};
 
 	VariantManagement.prototype.setDefaultVariantKey = function(sKey) {
@@ -826,8 +877,8 @@ sap.ui.define([
 	VariantManagement.prototype._updateWithSettingsInfo = function() {
 		flSettings.getInstance().then(function(oSettings) {
 			if (this._oVM) {
-				this._oVM.setShowSaveAs(oSettings.isVariantPersonalizationEnabled());
-				this._oVM.setSupportPublic(oSettings.isPublicFlVariantEnabled());
+				this._oVM.setShowSaveAs(oSettings.getIsVariantPersonalizationEnabled());
+				this._oVM.setSupportPublic(oSettings.getIsPublicFlVariantEnabled());
 			}
 		}.bind(this)).catch(function(oEx) {
 			Log.error(oEx);
@@ -864,7 +915,7 @@ sap.ui.define([
 		if (!this.oContext) {
 			oModel = this.getModel(sModelName);
 			if (oModel) {
-				sLocalId = this._getLocalId(oModel);
+				sLocalId = this.getVariantManagementReference();
 
 				if (sLocalId) {
 					this.oContext = new Context(oModel, `/${sLocalId}`);
@@ -877,8 +928,6 @@ sap.ui.define([
 					this.fireInitialized();
 
 					this._oVM.setModel(oModel, sModelName);
-
-					this._oVM.setSupportDefault(true);
 
 					this._createItemsModel(sModelName);
 
@@ -899,11 +948,6 @@ sap.ui.define([
 
 					this._oVM.bindProperty("supportFavorites", {
 						path: `${this.oContext}/showFavorites`,
-						model: sModelName
-					});
-
-					this._oVM.bindProperty("supportApplyAutomatically", {
-						path: `${this.oContext}/showExecuteOnSelection`,
 						model: sModelName
 					});
 
@@ -944,18 +988,6 @@ sap.ui.define([
 				value1: true
 			})
 		});
-	};
-
-	VariantManagement.prototype._getLocalId = function(oModel) {
-		var sModelName = this.getModelName();
-		if (!sModelName) {
-			return null;
-		}
-		if (sModelName !== ControlVariantApplyAPI.getVariantModelName()) {
-			return this.getId();
-		}
-
-		return oModel.getVariantManagementReferenceForControl(this);
 	};
 
 	VariantManagement.prototype._getInnerItems = function() {
@@ -1030,10 +1062,10 @@ sap.ui.define([
 
 	// exit destroy all controls created in init
 	VariantManagement.prototype.exit = function(...aArgs) {
-		this._oVM.detachManage(this._fireManage, this);
+		this._oVM.detachManage(onManage, this);
 		this._oVM.detachCancel(this._fireCancel, this);
-		this._oVM.detachSelect(this._fireSelect, this);
-		this._oVM.detachSave(this._fireSave, this);
+		this._oVM.detachSelect(onSelect, this);
+		this._oVM.detachSave(onSave, this);
 
 		if (this._oVM) {
 			this._oVM.destroy();
@@ -1076,10 +1108,70 @@ sap.ui.define([
 	 * @returns {boolean} Indicates whether the control is interactive
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	VariantManagement.prototype._getToolbarInteractive = function() {
 		return true;
+	};
+
+	/**
+	 * Adds a listener for a control that is called when a variant is applied.
+	 *
+	 * @param {sap.ui.core.Control} oControl The control for which the listener is registered
+	 * @param {function} fnCallBack The callback function that is called when the variant is applied
+	 *
+	 * @ui5-restricted sap.ui.fl
+	 * @private
+	 */
+	VariantManagement.prototype._addVariantAppliedListener = function(oControl, fnCallBack) {
+		this._oVariantAppliedListeners[oControl.getId()] = fnCallBack;
+	};
+
+	/**
+	 * Removes a listener for a control that is called when a variant is applied.
+	 *
+	 * @param {sap.ui.core.Control} oControl The control for which the listener is registered
+	 *
+	 * @ui5-restricted sap.ui.fl
+	 * @private
+	 */
+	VariantManagement.prototype._removeVariantAppliedListener = function(oControl) {
+		delete this._oVariantAppliedListeners[oControl.getId()];
+	};
+
+	/**
+	 * Executes all variant applied listeners (for all controls).
+	 * @param {object} oVariant The variant that was applied
+	 *
+	 * @ui5-restricted sap.ui.fl
+	 * @private
+	 */
+	VariantManagement.prototype._executeAllVariantAppliedListeners = function(oVariant) {
+		Object.values(this._oVariantAppliedListeners).forEach(function(fnCallback) {
+			fnCallback(oVariant);
+		});
+	};
+
+	/**
+	 * Returns the reference of the variant management control.
+	 *
+	 * @returns {string} The reference of the variant management control
+	 */
+	VariantManagement.prototype.getVariantManagementReference = function() {
+		if (!this._sVMReference) {
+			const sControlId = this.getId();
+			const oAppComponent = Utils.getAppComponentForControl(this);
+			this._sVMReference = (oAppComponent && oAppComponent.getLocalId(sControlId)) || sControlId;
+		}
+		return this._sVMReference;
+	};
+
+	/**
+	 * Checks whether the variant management is in design mode (e.g. RTA).
+	 * @returns {boolean} True if in design mode (e.g. RTA)
+	 */
+	VariantManagement.prototype.getDesignMode = function() {
+		return this._oVM.getDesignMode();
 	};
 
 	return VariantManagement;

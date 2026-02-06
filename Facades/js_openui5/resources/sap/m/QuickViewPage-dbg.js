@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,7 +82,7 @@ sap.ui.define([
 	// shortcut for sap.m.AvatarShape
 	var AvatarShape = library.AvatarShape;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	var oRB = Library.getResourceBundleFor('sap.m');
@@ -98,12 +98,12 @@ sap.ui.define([
 	 *
 	 * @class QuickViewPage consists of a page header, an avatar,
 	 * an object name with short description, and an object information divided in groups.
-	 * The control uses the sap.m.SimpleForm control to display information.
+	 * The control uses the sap.ui.layout.form.SimpleForm control to display information.
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -209,16 +209,9 @@ sap.ui.define([
 	 * @name sap.m.QuickViewPage#getCrossAppNavCallback
 	 */
 
-	QuickViewPage.prototype.init =  function() {
-		/**
-	 	 * @deprecated As of version 1.111.
-		 */
-		this._initCrossAppNavigationService();
-	};
-
 	/**
-	* @deprecated As of version 1.111.
-	*/
+	 * @deprecated As of version 1.111.
+	 */
 	QuickViewPage.prototype._initCrossAppNavigationService =  function() {
 		//see API docu for sap.ushell.services.CrossApplicationNavigation
 		var fGetService =  sap.ushell && sap.ushell.Container && sap.ushell.Container.getService;
@@ -605,24 +598,28 @@ sap.ui.define([
 		/**
 		 * @deprecated As of version 1.111.
 		 */
-		if (this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
-			var targetConfigCallback = this.getCrossAppNavCallback();
-			if (typeof targetConfigCallback == "function") {
-				var targetConfig = targetConfigCallback();
-				var href = this.oCrossAppNavigator.hrefForExternal(
-					{
-						target : {
-							semanticObject : targetConfig.target.semanticObject,
-							action : targetConfig.target.action
-						},
-						params : targetConfig.params
-					}
-				);
+		if (this.getCrossAppNavCallback()) {
+			this._initCrossAppNavigationService();
 
-				URLHelper.redirect(href);
+			if (this.oCrossAppNavigator) {
+				var targetConfigCallback = this.getCrossAppNavCallback();
+				if (typeof targetConfigCallback == "function") {
+					var targetConfig = targetConfigCallback();
+					var href = this.oCrossAppNavigator.hrefForExternal(
+						{
+							target : {
+								semanticObject : targetConfig.target.semanticObject,
+								action : targetConfig.target.action
+							},
+							params : targetConfig.params
+						}
+					);
+
+					URLHelper.redirect(href);
+				}
+
+				return;
 			}
-
-			return;
 		}
 
 		if (this.getTitleUrl()) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,6 +17,8 @@ sap.ui.define([
 		}
 	};
 
+	const MIN_THUMB_HEIGHT = 25; // For better usability on touch devices the minimum height of the scroll thumb is 25px.
+
 	/**
 	 * Extension for sap.ui.table.Table which displays vertical scrollbar on iOS and provides event handlers for user interaction.
 	 * <b>This is an internal class that is only intended to be used inside the sap.ui.table library! Any usage outside the sap.ui.table library
@@ -27,7 +29,7 @@ sap.ui.define([
 	 * @class Extension for sap.ui.table.Table which handles the scrollbar on iOS.
 	 * @extends sap.ui.table.extensions.ExtensionBase
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.ScrollingIOS
@@ -51,7 +53,7 @@ sap.ui.define([
 		destroy: function() {
 			const oTable = this.getTable();
 
-			TableUtils.removeDelegate(oTable, ExtensionDelegate);
+			oTable.removeEventDelegate(ExtensionDelegate);
 			clearTimeout(this._iUpdateDefaultScrollbarPositionTimeoutId);
 			ExtensionBase.prototype.destroy.apply(this, arguments);
 		},
@@ -173,10 +175,18 @@ sap.ui.define([
 		const oVSbIOS = this.getVerticalScrollbar();
 
 		oVSbIOS.style.height = oTable._getScrollExtension().getVerticalScrollbarHeight() + "px";
-		oVSbIOS.style.top = Math.max(0, oTable._getRowCounts().fixedTop * oTable._getBaseRowHeight() - 1) + "px";
 
+		this.updateVerticalScrollbarPosition();
 		this.updateVerticalScrollbarThumbPosition();
 		this.updateVerticalScrollbarThumbHeight();
+	};
+
+	ScrollIOSExtension.prototype.updateVerticalScrollbarPosition = function() {
+		const oTable = this.getTable();
+		const oScrollExtension = oTable._getScrollExtension();
+		const oVSbIOS = this.getVerticalScrollbar();
+
+		oVSbIOS.style.bottom = oScrollExtension.getVerticalScrollbarBottomOffset(oTable) + "px";
 	};
 
 	/**
@@ -218,7 +228,7 @@ sap.ui.define([
 		const iVerticalScrollbarHeight = oScrollExtension.getVerticalScrollbarHeight();
 		const iVerticalScrollHeight = oScrollExtension.getVerticalScrollHeight();
 
-		return Math.round(Math.pow(iVerticalScrollbarHeight, 2) / iVerticalScrollHeight);
+		return Math.max(MIN_THUMB_HEIGHT, Math.round(Math.pow(iVerticalScrollbarHeight, 2) / iVerticalScrollHeight));
 	};
 
 	/**
@@ -234,7 +244,8 @@ sap.ui.define([
 		const oVSb = oScrollExtension.getVerticalScrollbar();
 		const iVerticalScrollTop = oVSb ? oScrollExtension.getVerticalScrollbar().scrollTop : 0;
 
-		return Math.round(iVerticalScrollTop * iVerticalScrollbarHeight / iVerticalScrollHeight);
+		const iThumbHeight = this.getCalculateThumbHeight();
+		return Math.round(iVerticalScrollTop * (iVerticalScrollbarHeight - iThumbHeight) / (iVerticalScrollHeight - iThumbHeight));
 	};
 
 	/**

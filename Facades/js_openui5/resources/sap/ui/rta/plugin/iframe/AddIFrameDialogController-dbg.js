@@ -1,37 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/base/Log",
 	"sap/m/Token",
+	"sap/ui/base/BindingParser",
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/core/Element",
 	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-	"sap/ui/rta/util/validateText",
 	"sap/ui/fl/util/IFrame",
 	"sap/ui/model/Filter",
 	"sap/ui/model/FilterOperator",
-	"sap/ui/rta/plugin/iframe/urlCleaner"
+	"sap/ui/rta/plugin/iframe/urlCleaner",
+	"sap/ui/rta/util/validateText"
 ], function(
 	Log,
 	Token,
+	BindingParser,
 	Controller,
 	Element,
 	Lib,
 	coreLibrary,
-	validateText,
 	IFrame,
 	Filter,
 	FilterOperator,
-	urlCleaner
+	urlCleaner,
+	validateText
 ) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ValueState
-	var {ValueState} = coreLibrary;
+	var { ValueState } = coreLibrary;
 
 	const _oTextResources = Lib.getResourceBundleFor("sap.ui.rta");
 
@@ -54,17 +56,32 @@ sap.ui.define([
 
 	function multiInputValidator(oValue) {
 		const sText = oValue.text;
-		return new Token({key: sText, text: sText});
+		return new Token({ key: sText, text: sText });
+	}
+
+	function setNewPreviewSize(sPropertyName) {
+		const sUnit = this._oJSONModel.getProperty(`${sPropertyName}Unit/value`);
+		const sValue = this._oJSONModel.getProperty(`${sPropertyName}/value`);
+		const oIFramePreview = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewFrame");
+		const sIFramePropertyName = sPropertyName === "/frameWidth" ? "width" : "height";
+		oIFramePreview.setProperty(sIFramePropertyName, sValue + sUnit);
 	}
 
 	return Controller.extend("sap.ui.rta.plugin.iframe.AddIFrameDialogController", {
-		// eslint-disable-next-line object-shorthand
 		constructor: function(oJSONModel, mSettings) {
 			this._oJSONModel = oJSONModel;
 			this._importSettings(mSettings);
 		},
 
-		configureMultiInput() {
+		onBeforeOpen() {
+			if (this._buildPreviewURL()) {
+				// If a URL is set initially (updateIframe), validate it
+				this.onValidateUrl();
+			} else {
+				// Disable the save button but don't show an error message
+				this._checkIfAllFieldsValid(false);
+			}
+			// Configure the MultiInput field
 			// This syntax is the suggested way by the UI5 documentation to trigger a submit on the input field on focus loss
 			const oMultiInput = Element.getElementById("sapUiRtaAddIFrameDialog_AddAdditionalParametersInput");
 			oMultiInput.addValidator(multiInputValidator);
@@ -103,8 +120,7 @@ sap.ui.define([
 		 */
 		onValidationSuccess(oEvent) {
 			oEvent.getSource().setValueState(ValueState.None);
-			this._oJSONModel.setProperty("/areAllFieldsValid",
-				this._areAllTextFieldsValid() && this._areAllValueStateNones());
+			this._checkIfAllFieldsValid(true);
 		},
 
 		/**
@@ -113,7 +129,7 @@ sap.ui.define([
 		 */
 		onValidationError(oEvent) {
 			oEvent.getSource().setValueState(ValueState.Error);
-			this._oJSONModel.setProperty("/areAllFieldsValid", false);
+			this._checkIfAllFieldsValid(false);
 			this._setFocusOnInvalidInput();
 		},
 
@@ -131,9 +147,8 @@ sap.ui.define([
 
 		/**
 		 * Event handler for Show Preview button
-		 * @param {sap.ui.base.Event} oEvent - Event
 		 */
-		onShowPreview() {
+		onPreviewPress() {
 			const sReturnedURL = this._buildReturnedURL();
 			const sURL = this._buildPreviewURL();
 
@@ -141,25 +156,28 @@ sap.ui.define([
 				return;
 			}
 			const oIFrame = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewFrame");
-			// enable/disable expanding the Panel
-			const oPanel = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewLinkPanel");
-			const oPanelButton = oPanel.getDependents()[0];
-			if (sURL) {
-				oPanelButton.setEnabled(true);
-			} else {
-				oPanel.setExpanded(false);
-				oPanelButton.setEnabled(false);
-			}
 			try {
 				this._oJSONModel.setProperty("/previousFrameUrl/value", sReturnedURL);
 				this._oJSONModel.setProperty("/settingsUpdate/value", false);
 
-				oIFrame.applySettings({ url: sURL, advancedSettings: {...this._oJSONModel.getProperty("/advancedSettings/value")} });
+				oIFrame.applySettings({ url: sURL, advancedSettings: { ...this._oJSONModel.getProperty("/advancedSettings/value") } });
 				// Use the URL from the IFrame to ensure that the complete path is shown
 				this._oJSONModel.setProperty("/previewUrl/value", oIFrame.getUrl());
+				// Prevent the URL preview link (next element in the DOM) from getting the focus because it looks bad
+				setTimeout(() => {
+					Element.getElementById("sapUiRtaAddIFrameDialog_PreviewLink").getFocusDomRef().blur();
+				}, 0);
 			} catch (oError) {
 				Log.error("Error previewing the URL: ", oError);
 			}
+		},
+
+		/**
+		 * Event handler for handling the visibility of the parameters table
+		 */
+		toggleParameterVisibility() {
+			const bValue = this._oJSONModel.getProperty("/showParameters/value");
+			this._oJSONModel.setProperty("/showParameters/value", !bValue);
 		},
 
 		/**
@@ -183,6 +201,34 @@ sap.ui.define([
 		},
 
 		/**
+		 * Event handler for size value change - can be the width or height
+		 * This is used to update the iFrame size in the preview
+		 * @param {sap.ui.base.Event} oEvent - Event
+		 */
+		onSizeValueChange(oEvent) {
+			// Get changed field and retrieve its unit from this._oJSONModel
+			const oSource = oEvent.getSource();
+			const sPropertyPath = oSource.getBindingInfo("value").parts[0].path;
+			// Extract "/frameWidth" or "/frameHeight" from the binding path (e.g. /frameWidth/value)
+			const sPropertyName = sPropertyPath.replace(/\/value$/, "");
+			setNewPreviewSize.call(this, sPropertyName);
+		},
+
+		/**
+		 * Event handler for size unit change - can be the width or height
+		 * This is used to update the iFrame size in the preview
+		 * @param {sap.ui.base.Event} oEvent - Event
+		 */
+		onSizeUnitChange(oEvent) {
+			// Get changed field and retrieve its unit from this._oJSONModel
+			const oSource = oEvent.getSource();
+			const sPropertyPath = oSource.getBindingInfo("selectedKey").parts[0].path;
+			// Extract "/frameWidth" or "/frameHeight" from the binding path (e.g. /frameWidthUnit/value)
+			const sPropertyName = sPropertyPath.replace(/Unit\/value$/, "");
+			setNewPreviewSize.call(this, sPropertyName);
+		},
+
+		/**
 		 * Build preview URL
 		 * @returns {string} URL with resolved bindings
 		 * @private
@@ -191,6 +237,16 @@ sap.ui.define([
 			const sUrl = this._buildReturnedURL();
 			const oResolver = Element.getElementById("sapUiRtaAddIFrameDialog_PreviewLinkResolver");
 			try {
+				// Whenever a URL contains a binding string, all old bindings are cleaned up
+				// and a new binding is created for the text property
+				// However this doesn't happen if there was a binding previously and the new url
+				// value is a plain string, which can then lead to problems with two-way bindings
+				// where the new plain value would leak back into the model
+				// In this case the old binding has to be cleaned up explicitly
+				if (!BindingParser.complexParser(sUrl)) {
+					oResolver.unbindProperty("text");
+				}
+
 				oResolver.applySettings({
 					text: sUrl
 				});
@@ -237,6 +293,16 @@ sap.ui.define([
 			return urlCleaner(this._oJSONModel.getProperty("/frameUrl/value"));
 		},
 
+		_checkIfAllFieldsValid(bExternalValidationSuccess) {
+			const bAllFieldsValid = (
+				bExternalValidationSuccess
+				&& !this._oJSONModel.getProperty("/frameUrlError/value")
+				&& this._areAllTextFieldsValid()
+				&& this._areAllValueStateNones()
+			);
+			this._oJSONModel.setProperty("/areAllFieldsValid", bAllFieldsValid);
+		},
+
 		onValidateUrl() {
 			const sUrl = this._buildPreviewURL();
 			const { result: bResult, error: sError } = isValidUrl(sUrl);
@@ -252,6 +318,7 @@ sap.ui.define([
 				const sErrorText = _oTextResources.getText(sErrorKey);
 				this._oJSONModel.setProperty("/frameUrlError/value", sErrorText);
 			}
+			this._checkIfAllFieldsValid(bResult);
 		},
 
 		/**
@@ -281,8 +348,7 @@ sap.ui.define([
 				bValidationError = true;
 			}
 
-			const bAllFieldsValid = this._areAllTextFieldsValid() && this._areAllValueStateNones() && !bValidationError;
-			this._oJSONModel.setProperty("/areAllFieldsValid", bAllFieldsValid);
+			this._checkIfAllFieldsValid(!bValidationError);
 			oInput.setValueState(sValueState);
 			return bValidationError;
 		},

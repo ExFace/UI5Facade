@@ -14,7 +14,7 @@
 		},
 		{
 			"name": "ActionSelect.less",
-			"size": 2241,
+			"size": 2327,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "CustomTile.less",
-			"size": 232,
+			"size": 315,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -152,7 +152,7 @@
 		},
 		{
 			"name": "MessagePage.less",
-			"size": 410,
+			"size": 495,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -344,7 +344,7 @@
 		},
 		{
 			"name": "StandardTile.less",
-			"size": 624,
+			"size": 709,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -386,7 +386,7 @@
 		},
 		{
 			"name": "TileContainer.less",
-			"size": 427,
+			"size": 513,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -440,7 +440,7 @@
 		},
 		{
 			"name": "UploadCollection.less",
-			"size": 646,
+			"size": 735,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},
@@ -480,7 +480,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 725974,
+			"size": 725827,
 			"theme": "sap_bluecrystal"
 		},
 		{
@@ -491,12 +491,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 725953,
+			"size": 725805,
 			"theme": "sap_bluecrystal"
 		},
 		{
 			"name": "library.less",
-			"size": 85990,
+			"size": 86504,
 			"designtime": true,
 			"theme": "sap_bluecrystal"
 		},

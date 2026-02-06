@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,9 @@ sap.ui.define([],
 				singular: "DIALOG_NAME",
 				plural: "DIALOG_NAME_PLURAL"
 			},
+			getLabel: function(oControl) {
+				return oControl.getDomRef().getAttribute("header-text");
+			},
 			actions: {
 				remove: {
 					changeType: "hideControl"
@@ -25,16 +28,6 @@ sap.ui.define([],
 					changeType: "rename",
 					domRef: function (oControl) {
 						return oControl.getDomRef().shadowRoot.querySelector(".ui5-popup-header-text");
-					},
-					getTextMutators: function (oControl) {
-						return {
-							getText: function () {
-								return oControl.getDomRef().getAttribute("header-text");
-							},
-							setText: function (sNewText) {
-								oControl.getDomRef().setAttribute("header-text", sNewText);
-							}
-						};
 					}
 				}
 			}

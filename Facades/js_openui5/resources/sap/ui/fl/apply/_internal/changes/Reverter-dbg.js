@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -103,13 +103,16 @@ sap.ui.define([
 	 * @param {sap.ui.core.Component} mPropertyBag.appComponent - Component instance that is currently loading
 	 * @param {string} mPropertyBag.reference - Flex reference
 	 * @param {sap.ui.core.util.reflection.BaseTreeModifier} mPropertyBag.modifier - Polymorph reuse operations handling the changes on the given view type
+	 * @param {boolean} [mPropertyBag.skipSetQueued] - If true, the changes are not set to queued for revert
 	 * @returns {Promise|sap.ui.fl.Utils.FakePromise} Promise/FakePromise that resolves as soon as all changes are reverted
 	 */
 	Reverter.revertMultipleChanges = function(aChanges, mPropertyBag) {
 		const aPromiseStack = [];
 		aChanges.forEach((oChange) => {
 			// Queued 'state' will be removed once the revert process is done
-			oChange.setQueuedForRevert();
+			if (!mPropertyBag.skipSetQueued) {
+				oChange.setQueuedForRevert();
+			}
 			aPromiseStack.push(() => {
 				const oSelector = oChange.getSelector && oChange.getSelector();
 				const oControl = mPropertyBag.modifier.bySelector(oSelector, mPropertyBag.appComponent);

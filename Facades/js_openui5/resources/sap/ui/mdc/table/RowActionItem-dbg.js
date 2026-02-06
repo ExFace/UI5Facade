@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/core/Element',
-	'sap/ui/mdc/enums/TableRowActionType'
-], (Element) => {
+	"sap/ui/core/Element"
+], (
+	Element
+) => {
 	"use strict";
 
 	/**
@@ -20,7 +21,7 @@ sap.ui.define([
 	 * The <code>RowActionItem</code> control represents a action for a row.
 	 * This control can only be used in the context of <code>sap.ui.mdc.Table</code> control to define row actions.
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -37,23 +38,23 @@ sap.ui.define([
 				 * Setting the type ensures default values for the properties <code>icon</code> and <code>text</code>. If an icon or text is set
 				 * explicitly, this setting is used.
 				 */
-				type: { type: "sap.ui.mdc.enums.TableRowActionType" },
+				type: {type: "sap.ui.mdc.enums.TableRowActionType"},
 				/**
 				 * Text for the row action item.
 				 *
 				 * <b>Note:</b> A custom text cannot be set when the table type is {@link sap.ui.mdc.table.ResponsiveTableType ResponsiveTable}.
 				 */
-				text: { type: "string" },
+				text: {type: "string"},
 				/**
 				 * Icon for the row action item.
 				 *
 				 * <b>Note:</b> A custom icon cannot be set when the table type is {@link sap.ui.mdc.table.ResponsiveTableType ResponsiveTable}.
 				 */
-				icon: { type: "sap.ui.core.URI" },
+				icon: {type: "sap.ui.core.URI"},
 				/**
 				 * Whether the item should be visible on the screen.
 				 */
-				visible: { type: "boolean", defaultValue: true }
+				visible: {type: "boolean", defaultValue: true}
 			},
 			events: {
 				/**

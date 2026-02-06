@@ -29,10 +29,19 @@ trait UI5ColorClassesTrait {
     
     /**
      * Makes the controller run a script to add custom CSS styles every time the view is shown.
-     * 
+     *
+     * @param array  $colorScale
+     * @param string $cssSelectorToColor
+     * @param string $cssColorProperties
+     * @param bool   $skipSemanticColors
      * @return void
      */
-    protected function registerColorClasses(array $colorScale, string $cssSelectorToColor = '.exf-custom-color.exf-color-[#color#]', string $cssColorProperties = 'background-color: [#color#]', bool $skipSemanticColors = true)
+    protected function registerColorClasses(
+        array $colorScale, 
+        string $cssSelectorToColor = '.exf-custom-color.exf-color-[#color#]', 
+        string $cssColorProperties = 'background-color: [#color#]', 
+        bool $skipSemanticColors = true
+    ) : void
     {
         $css = '';
         foreach ($colorScale as $value => $color) {
@@ -43,20 +52,79 @@ trait UI5ColorClassesTrait {
                     $color = $this->getFacade()->getSemanticColors()[$color];
                 }
             }
-            $class = StringDataType::replacePlaceholders($cssSelectorToColor, [
-                'color' => str_replace($this->cssClassNameRemoveChars, '', trim($color)), 
-                'value' => str_replace($this->cssClassNameRemoveChars, '', trim($value))
-            ]);
-            $properties = StringDataType::replacePlaceholders($cssColorProperties, [
-                'color' => $color, 
-                'value' => $value
-            ]);
-            $css .= "$class { $properties } ";
+            
+            $css .= $this->colorToCss($color, $value, $cssSelectorToColor, $cssColorProperties);
         }
         
         $this->registerCustomCss($css, '_color_css');
+    }
+
+    /**
+     * Converts a color into a CSS class to display said color.
+     * 
+     * @param string $color
+     * @param string $value
+     * @param string $selector
+     * @param string $properties
+     * @return string
+     */
+    protected function colorToCss(string $color, string $value, string $selector, string $properties) : string
+    {
+        return $this->buildCssClasses(
+            ['color' => $color, 'value' => $value],
+            [ $selector => $properties ]
+        );
+    }
+
+    /**
+     * Builds CSS classes with the data provided.
+     * 
+     * Example:
+     * 
+     * $cssTemplate = $this->buildCssClasses(
+     *       ['content' => '[#content#]', 'id' => '[#id#]'], 
+     *       [ 
+     *           '.exf-icon-' . '[#id#]' . '.exf-svg-icon:before' => 'content: url("data:image/svg+xml, ' . '[#content#]' . '")'
+     *       ],
+     *       true
+     *   );
+     * 
+     * Returns:
+     * '.exf-icon-[#id#].exf-svg-icon:before { content: url("data:image/svg+xml, [#content#]") }'
+     * 
+     * 
+     *
+     * @param array $placeholderValues values to be replaced with actual values at runtime
+     * @param array $cssWithPlaceholders css template with inserted placeholders
+     * @param bool $keepPlaceholders whether placeholders should be replaced or kep as is
+     * @return string
+     */
+    protected function buildCssClasses(
+        array $placeholderValues,
+        array $cssWithPlaceholders = [
+            '.exf-custom-color.exf-color-[#color#]' => 'background-color: [#color#]'
+        ],
+        bool $keepPlaceholders = false
+        ) : string
+    {
+        $phsClassName = array_map(
+            function ($value) {
+                return str_replace($this->cssClassNameRemoveChars, '', trim($value));
+            },
+            $placeholderValues
+        );
         
-        return;
+        $class = '';
+        
+        foreach ($cssWithPlaceholders as $selector => $properties) {
+            if ($keepPlaceholders === false){
+                $selector = StringDataType::replacePlaceholders($selector, $phsClassName);
+                $properties = StringDataType::replacePlaceholders($properties, $placeholderValues);
+            }
+            $class .= "{$selector} { {$properties} }";
+        }
+
+        return $class;
     }
     
     /**
@@ -78,7 +146,8 @@ trait UI5ColorClassesTrait {
     protected function buildJsColorClassSetter(string $oControlJs, string $sColorJs, string $cssCustomCssClass = 'exf-custom-color', $cssColorClassPrefix = 'exf-color-') : string
     {
         $cssReplaceJSON = json_encode($this->cssClassNameRemoveChars);
-        // Note, the 
+        $cssInjector = $this->getWidget()->hasColorScale() ? '' : $this->buildJsColorClassInjector() . ';';
+        
         return <<<JS
         
         (function(oCtrl, sColor){
@@ -92,13 +161,16 @@ trait UI5ColorClassesTrait {
                         oCtrl.removeStyleClass(sClass);
                     }
                 });
-                if (sColor === null) {
+                if (sColor === null || sColor === '') {
                     oCtrl.removeStyleClass(sCustomCssClass);
                 } else {
                     sColorClassSuffix = sColor.toString();
                     aCssSelectorRemoveChars.forEach(function(sChar) {
                         sColorClassSuffix = sColorClassSuffix.replace(sChar, '');
                     });
+                    
+                    {$cssInjector}
+                    
                     oCtrl.addStyleClass(sCustomCssClass + ' ' + sColorClassPrefix + sColorClassSuffix);
                 }
             };
@@ -114,5 +186,20 @@ trait UI5ColorClassesTrait {
             }
         })($oControlJs, $sColorJs);
 JS;
+    }
+
+    /**
+     * Builds an inline JS-Snippet that injects CSS color classes into the document header.
+     * 
+     * For color example, see UI5ObjectStatus::buildJsColorClassInjector()
+     * For Icon Example, see UI5Icon::buildJsColorClassInjector() 
+     * 
+     * @param string $colorJs
+     * @param string $colorSuffixJs
+     * @return string
+     */
+    protected function buildJsColorClassInjector(string $colorJs = 'sColor', string $colorSuffixJs = 'sColorClassSuffix') : string
+    {
+        return '';
     }
 }

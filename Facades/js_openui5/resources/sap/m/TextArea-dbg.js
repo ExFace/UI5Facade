@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -86,7 +86,7 @@ function(
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
@@ -449,7 +449,7 @@ function(
 			bShowExceededText = this.getShowExceededText(),
 			iMaxLength = this.getMaxLength();
 
-		if (!bShowExceededText && iMaxLength && sValue.length > iMaxLength) {
+		if (!bShowExceededText && !this._bIsComposingCharacter && iMaxLength && sValue.length > iMaxLength) {
 			sValue = sValue.substring(0, iMaxLength);
 			oTextAreaRef.value = sValue;
 		}

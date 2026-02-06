@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,8 +18,8 @@ function(Element, Control, hyphenate) {
 	 *
 	 * @namespace
 	 * @alias sap.ui.core.webc.WebComponentRenderer
+	 * @since 1.138.0
 	 * @static
-	 * @experimental Since 1.118.0 The API might change. It is not intended for productive usage yet!
 	 */
 	var WebComponentRenderer = {
 		apiVersion: 2

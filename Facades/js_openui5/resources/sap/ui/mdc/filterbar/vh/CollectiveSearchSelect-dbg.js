@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define([
 	 * @alias sap.ui.mdc.filterbar.vh.CollectiveSearchSelect
 	 * @deprecated since 1.124.0 - Please use the <code>sap.ui.mdc.valuehelp.CollectiveSearchSelect</code> control instead.
 	 */
-	const CollectiveSearchSelect = ValueHelpCollectiveSearchSelect.extend("sap.ui.mdc.filterbar.vh.CollectiveSearchSelect", /** @lends sap.ui.mdc.valuehelp.CollectiveSearchSelect.prototype */ {
+	const CollectiveSearchSelect = ValueHelpCollectiveSearchSelect.extend("sap.ui.mdc.filterbar.vh.CollectiveSearchSelect", /** @lends sap.ui.mdc.filterbar.vh.CollectiveSearchSelect.prototype */ {
 		metadata: {
 			library: "sap.ui.mdc"
 		},

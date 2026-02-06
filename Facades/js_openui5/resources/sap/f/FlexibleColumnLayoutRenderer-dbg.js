@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -99,6 +99,8 @@ sap.ui.define([
 					.attr("title", oResourceBundle.getText("FCL_SEPARATOR_MOVE"))
 					.attr("aria-orientation", "vertical")
 					.attr("tabindex", 0)
+					.attr("aria-valuemin", 0)
+					.attr("aria-valuemax", 100)
 					.class("sapFFCLColumnSeparator")
 					.class("sapContrastPlus")
 					.class(sClass)

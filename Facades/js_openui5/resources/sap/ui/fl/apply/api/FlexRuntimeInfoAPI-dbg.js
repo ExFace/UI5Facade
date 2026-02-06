@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,27 +8,24 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/ui/fl/apply/_internal/controlVariants/Utils",
-	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
 	"sap/ui/fl/apply/_internal/flexState/FlexState",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
 	"sap/ui/fl/initial/_internal/FlexConfiguration",
-	"sap/ui/fl/initial/_internal/FlexInfoSession",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/initial/api/InitialFlexAPI",
-	"sap/ui/fl/registry/Settings",
 	"sap/ui/fl/Layer",
 	"sap/ui/fl/Utils",
-	"sap/ui/VersionInfo"
+	"sap/ui/VersionInfo",
+	"sap/ui/fl/apply/_internal/init"
 ], function(
 	Log,
 	JsControlTreeModifier,
 	VariantUtils,
-	FlexObjectState,
 	FlexState,
-	ManifestUtils,
 	FlexConfiguration,
-	FlexInfoSession,
-	InitialFlexAPI,
+	ManifestUtils,
 	Settings,
+	InitialFlexAPI,
 	Layer,
 	Utils,
 	VersionInfo
@@ -95,7 +92,7 @@ sap.ui.define([
 			}
 
 			const sFlexReference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
-			const aFlexObjects = FlexState.getFlexObjectsDataSelector().get({reference: sFlexReference})
+			const aFlexObjects = FlexState.getFlexObjectsDataSelector().get({ reference: sFlexReference })
 			.filter(filterByValidFileType)
 			.filter(filterByLayer)
 			.filter(filterBySelectors.bind(this, oAppComponent, mPropertyBag.selectors))
@@ -121,21 +118,7 @@ sap.ui.define([
 		 * @ui5-restricted
 		 */
 		waitForChanges(mPropertyBag) {
-			let aComplexSelectors;
-			if (mPropertyBag.element) {
-				aComplexSelectors = [{
-					selector: mPropertyBag.element
-				}];
-			} else if (mPropertyBag.selectors) {
-				aComplexSelectors = mPropertyBag.selectors.map(function(oSelector) {
-					return {
-						selector: oSelector
-					};
-				});
-			} else if (mPropertyBag.complexSelectors) {
-				aComplexSelectors = mPropertyBag.complexSelectors;
-			}
-			return FlexObjectState.waitForFlexObjectsToBeApplied(aComplexSelectors);
+			return InitialFlexAPI.waitForChanges(mPropertyBag);
 		},
 
 		/**
@@ -206,28 +189,6 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the context-based adaptation ID for the given property bag.
-		 *
-		 * @param {object} mPropertyBag - Object with parameters as properties
-		 * @param {string} mPropertyBag.reference - Reference of the application
-		 * @returns {string|undefined} The adaptation ID if found, otherwise undefined.
-		 */
-		getContextBasedAdaptationId(mPropertyBag) {
-			return FlexInfoSession.getByReference(mPropertyBag.reference)?.adaptationId;
-		},
-
-		/**
-		 * Returns the title of the context-based adaptation for a given reference.
-		 *
-		 * @param {object} mPropertyBag - Object with parameters as properties
-		 * @param {string} mPropertyBag.reference - Reference of the application
-		 * @returns {string|undefined} The title of the context-based adaptation, or undefined if not found.
-		 */
-		getContextBasedAdaptationTitle(mPropertyBag) {
-			return FlexInfoSession.getByReference(mPropertyBag.reference)?.adaptationTitle;
-		},
-
-		/**
 		 * Returns the information needed for the rta feedback dialog
 		 *
 		 * @param {object} mPropertyBag - Object with parameters as properties
@@ -251,6 +212,11 @@ sap.ui.define([
 			};
 		},
 
+		// Used for stubbing in tests
+		_getHostname() {
+			return document.location.hostname;
+		},
+
 		/**
 		 * Checks if the Settings are available and if so returns if the system is a customer system
 		 *
@@ -259,7 +225,21 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.rta
 		 */
 		isCustomerSystem() {
-			return Settings.getInstanceOrUndef()?.isCustomerSystem();
+			const oSettings = Settings.getInstanceOrUndef();
+			const sSystemType = oSettings?.getSystemType();
+			const bIsCustomerSystem = {
+				CUSTOMER: true,
+				SAP: false
+			}[sSystemType];
+			const sHostname = this._getHostname();
+
+			return bIsCustomerSystem !== undefined
+				? bIsCustomerSystem
+				// Fallback if back end has no info, guess based on hostname
+				: !(
+					sHostname === "localhost"
+					|| sHostname === "127.0.0.1"
+				);
 		},
 
 		/**
@@ -270,7 +250,7 @@ sap.ui.define([
 		 * @ui5-restricted sap.ui.rta
 		 */
 		isAtoEnabled() {
-			return Settings.getInstanceOrUndef()?.isAtoEnabled();
+			return Settings.getInstanceOrUndef()?.getIsAtoEnabled();
 		},
 
 		/**

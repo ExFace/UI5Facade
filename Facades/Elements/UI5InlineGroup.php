@@ -51,17 +51,20 @@ JS;
     public function buildJsChildrenConstructors() : string
     {
         $js = '';
-        $separatorWidgets = $this->getWidget()->getSeparatorWidgets();
-        $stretch = $this->getWidget()->isStretched();
-        foreach ($this->getWidget()->getWidgets() as $widget) {
-            $element = $this->getFacade()->getElement($widget);
-            if (in_array($widget, $separatorWidgets, true) === true) {
+        $widget = $this->getWidget();
+        $separatorWidgets = $widget->getSeparatorWidgets();
+        $stretch = $widget->isStretched();
+        // DO NOT use foreach() here - see UI5Container::buildJsChildrenConstructors() for details
+        for ($i = 0; $i < $widget->countWidgets(); $i++) {
+            $child = $widget->getWidget($i);
+            $element = $this->getFacade()->getElement($child);
+            if (in_array($child, $separatorWidgets, true) === true) {
                 $element->setAlignment("sap.ui.core.TextAlign.Center");
             }
 
-            $element->setLayoutData($this->buildJsChildLayoutConstructor($widget, $stretch));
+            $element->setLayoutData($this->buildJsChildLayoutConstructor($child, $stretch));
 
-            $widget->setWidth('100%');
+            $child->setWidth('100%');
 
             $js .= ($js ? ",\n" : '') . $element->buildJsConstructor();
         }

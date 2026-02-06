@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,6 +17,7 @@ sap.ui.define([
 				"appdescr_ovp_changeCard",
 				"appdescr_app_addNewInbound",
 				"appdescr_app_changeInbound",
+				"appdescr_app_setInbounds",
 				"appdescr_app_removeInbound",
 				"appdescr_app_removeAllInboundsExceptOne",
 				"appdescr_app_addNewOutbound",

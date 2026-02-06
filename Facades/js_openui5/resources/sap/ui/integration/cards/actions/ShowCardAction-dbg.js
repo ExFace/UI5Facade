@@ -1,17 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./BaseAction",
+	"sap/base/Log",
 	"sap/ui/integration/util/openCardDialog",
-	"sap/ui/core/Element",
-	// jQuery Plugin "firstFocusableDomRef", "lastFocusableDomRef"
-	"sap/ui/dom/jquery/Focusable"
+	"sap/ui/integration/util/CardMerger",
+	"sap/ui/core/Element"
 ], function (
 	BaseAction,
+	Log,
 	openCardDialog,
+	CardMerger,
 	Element
 ) {
 	"use strict";
@@ -27,8 +29,28 @@ sap.ui.define([
 	 */
 	ShowCardAction.prototype.execute = function () {
 		var oParameters = this.getParameters() || {},
+			oModifiedParameters =  { ...oParameters },
 			oParentCard = this.getCardInstance(),
 			oHost = oParentCard.getHostInstance();
+
+		if (oParameters.manifest) {
+			Log.warning(
+				"'ShowCard' action uses deprecated 'manifest' property. Use 'childCardKey' instead. It must refer to a child card registered in sap.card/configuration/childCards.",
+				null,
+				"sap.ui.integration.widgets.Card"
+			);
+		}
+
+		if (oParameters.childCardKey) {
+			const aOwnManifestChanges = oParentCard.getManifestEntry(`/sap.card/configuration/childCards/${oParameters.childCardKey}/_manifestChanges`);
+			const aParentManifestChanges = oParentCard.getManifestChanges();
+
+			if (aOwnManifestChanges) {
+				oModifiedParameters.manifestChanges = aOwnManifestChanges;
+			} else {
+				oModifiedParameters.manifestChanges = CardMerger.extractChildCardChanges(aParentManifestChanges, oParameters.childCardKey);
+			}
+		}
 
 		if (oHost && oHost.onShowCard) {
 			let oChildCard;
@@ -36,14 +58,14 @@ sap.ui.define([
 			if (oParameters._cardId) {
 				oChildCard = Element.getElementById(oParameters._cardId);
 			} else {
-				oChildCard = oParentCard._createChildCard(oParameters);
+				oChildCard = oParentCard._createChildCard(oModifiedParameters);
 			}
 
 			oHost.onShowCard(oChildCard, oParameters);
 			return;
 		}
 
-		openCardDialog(oParentCard, this.getParameters());
+		openCardDialog(oParentCard, oModifiedParameters);
 	};
 
 	return ShowCardAction;

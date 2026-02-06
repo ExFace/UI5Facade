@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -26,13 +26,13 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.38
 	 * @alias sap.ui.rta.command.BindProperty
 	 */
-	var BindProperty = FlexCommand.extend("sap.ui.rta.command.BindProperty", {
+	const BindProperty = FlexCommand.extend("sap.ui.rta.command.BindProperty", {
 		metadata: {
 			library: "sap.ui.rta",
 			properties: {
@@ -65,9 +65,9 @@ sap.ui.define([
 	};
 
 	BindProperty.prototype._getChangeSpecificData = function() {
-		var oElement = this.getElement();
+		const oElement = this.getElement();
 		// general format
-		var mSpecificChangeInfo = {
+		const mSpecificChangeInfo = {
 			changeType: this.getChangeType(),
 			selector: {
 				id: oElement.getId(),

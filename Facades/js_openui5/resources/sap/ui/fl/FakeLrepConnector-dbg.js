@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,9 +47,9 @@ sap.ui.define([
 		var aConnectorConfig = [];
 		if (sInitialComponentJsonPath) {
 			ObjectPathConnector.setJsonPath(sInitialComponentJsonPath);
-			aConnectorConfig.push({connector: "ObjectPathConnector"});
+			aConnectorConfig.push({ connector: "ObjectPathConnector" });
 		}
-		aConnectorConfig.push({connector: sStorageConnectorName});
+		aConnectorConfig.push({ connector: sStorageConnectorName });
 		FlexConfiguration.setFlexibilityServices(aConnectorConfig);
 		FlexState.clearState();
 	};
@@ -70,7 +70,7 @@ sap.ui.define([
 
 	FakeLrepConnector.forTesting = {
 		getNumberOfChanges(oConnector, sReference) {
-			return oConnector.loadFlexData({reference: sReference})
+			return oConnector.loadFlexData({ reference: sReference })
 			.then(function(aResponses) {
 				return aResponses.reduce(function(iNumberOfChanges, oResponse) {
 					return iNumberOfChanges + oResponse.changes.length;

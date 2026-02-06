@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -64,30 +64,12 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.KeyboardDelegate
 	 */
-	const KeyboardDelegate = BaseObject.extend("sap.ui.table.extensions.KeyboardDelegate", /* @lends sap.ui.table.extensions.KeyboardDelegate */ {
-		constructor: function(sType) {
-			BaseObject.call(this);
-		},
-
-		/*
-		 * @see sap.ui.base.Object#destroy
-		 */
-		destroy: function() {
-			BaseObject.prototype.destroy.apply(this, arguments);
-		},
-
-		/*
-		 * @see sap.ui.base.Object#getInterface
-		 */
-		getInterface: function() {
-			return this;
-		}
-	});
+	const KeyboardDelegate = BaseObject.extend("sap.ui.table.extensions.KeyboardDelegate");
 
 	/**
 	 * Moves the focus one row down, but stays in the same column. The focus is set to the cell, or the first interactive element inside that cell.
@@ -124,7 +106,7 @@ sap.ui.define([
 			// For the SelectAll cell, multiple elements are added to the item navigation.
 			preventItemNavigation(oEvent);
 			// Focus the first row header.
-			TableUtils.focusItem(oTable, iHeaderRowCount * (TableUtils.getVisibleColumnCount(oTable) + 1/*Row Headers*/), oEvent);
+			oTable._getKeyboardExtension().focusItem(iHeaderRowCount * (TableUtils.getVisibleColumnCount(oTable) + 1/*Row Headers*/), oEvent);
 		}
 	}
 
@@ -144,7 +126,7 @@ sap.ui.define([
 
 		preventItemNavigation(oEvent);
 
-		if (TableUtils.isLastScrollableRow(oTable, oCellInfo.cell)) {
+		if (isLastScrollableRow(oTable, oCellInfo.cell)) {
 			const bScrolled = scrollDown(oTable, oEvent);
 
 			if (bScrolled) {
@@ -156,7 +138,7 @@ sap.ui.define([
 		if (oCellInfo.rowIndex === oTable.getRows().length - 1
 			|| (TableUtils.isVariableRowHeightEnabled(oTable) // ignore empty buffer row
 				&& oCellInfo.rowIndex === oTable.getRows().length - 2
-				&& oTable.getRows()[oCellInfo.rowIndex + 1].getRowBindingContext() === null)) {
+				&& TableUtils.getBindingContextOfRow(oTable.getRows()[oCellInfo.rowIndex + 1]) === null)) {
 			// Leave the action mode when trying to navigate down on the last row.
 			if (!bActionMode && $ParentCell) {
 				$ParentCell.trigger("focus"); // A non-interactive element inside a cell is focused, focus the cell this element is inside.
@@ -205,7 +187,7 @@ sap.ui.define([
 
 		preventItemNavigation(oEvent);
 
-		if (TableUtils.isFirstScrollableRow(oTable, oCellInfo.cell)) {
+		if (isFirstScrollableRow(oTable, oCellInfo.cell)) {
 			const bScrolled = scrollUp(oTable, oEvent);
 
 			if (bScrolled) {
@@ -309,8 +291,10 @@ sap.ui.define([
 	 */
 	function restoreFocusOnLastFocusedDataCell(oTable, oEvent) {
 		const oCellInfo = TableUtils.getFocusedItemInfo(oTable);
-		const oLastInfo = oTable._getKeyboardExtension().getLastFocusedCellInfo();
-		TableUtils.focusItem(oTable, oCellInfo.cellInRow + (oCellInfo.columnCount * oLastInfo.row), oEvent);
+		const oKeyboardExtension = oTable._getKeyboardExtension();
+		const oLastInfo = oKeyboardExtension.getLastFocusedCellInfo();
+
+		oKeyboardExtension.focusItem(oCellInfo.cellInRow + (oCellInfo.columnCount * oLastInfo.row), oEvent);
 	}
 
 	/**
@@ -321,7 +305,7 @@ sap.ui.define([
 	 */
 	function setFocusOnColumnHeaderOfLastFocusedDataCell(oTable, oEvent) {
 		const oCellInfo = TableUtils.getFocusedItemInfo(oTable);
-		TableUtils.focusItem(oTable, oCellInfo.cellInRow, oEvent);
+		oTable._getKeyboardExtension().focusItem(oCellInfo.cellInRow, oEvent);
 	}
 
 	/**
@@ -403,6 +387,9 @@ sap.ui.define([
 		// Select/Deselect row.
 		} else if (oCellInfo.isOfType(CellType.ROWHEADER)) {
 			selectItems();
+
+		} else if (oCellInfo.isOfType(CellType.COLUMNHEADER)) {
+			TableUtils.Menu.openContextMenu(oTable, oEvent);
 
 		} else if (oCellInfo.isOfType(CellType.DATACELL | CellType.ROWACTION)) {
 			// The action mode should only be entered when cellClick is not handled and no selection is performed.
@@ -721,6 +708,37 @@ sap.ui.define([
 	}
 
 	/**
+	 * Checks whether the cell of the given DOM reference is in the first row (from DOM point of view) of the scrollable area.
+	 *
+	 * @param {sap.ui.table.Table} oTable Instance of the table.
+	 * @param {jQuery | HTMLElement | int} row Cell DOM reference or row index.
+	 * @returns {boolean} Whether the row is the first scrollable row of the table based on the data.
+	 */
+	function isFirstScrollableRow(oTable, row) {
+		if (isNaN(row)) {
+			const $Ref = jQuery(row);
+			row = parseInt($Ref.add($Ref.parent()).filter("[data-sap-ui-rowindex]").attr("data-sap-ui-rowindex"));
+		}
+		return row === oTable._getRowCounts().fixedTop;
+	}
+
+	/**
+	 * Checks whether the cell of the given DOM reference is in the last row (from DOM point of view) of the scrollable area.
+	 *
+	 * @param {sap.ui.table.Table} oTable Instance of the table.
+	 * @param {jQuery | HTMLElement | int} row The row element or row index.
+	 * @returns {boolean} Whether the row is the last scrollable row of the table based on the data.
+	 */
+	function isLastScrollableRow(oTable, row) {
+		if (isNaN(row)) {
+			const $Ref = jQuery(row);
+			row = parseInt($Ref.add($Ref.parent()).filter("[data-sap-ui-rowindex]").attr("data-sap-ui-rowindex"));
+		}
+		const mRowCounts = oTable._getRowCounts();
+		return row === mRowCounts.count - mRowCounts.fixedBottom - 1;
+	}
+
+	/**
 	 * Hook which is called by the keyboard extension when the table should enter the action mode.
 	 *
 	 * @returns {boolean} Returns <code>true</code>, if the {@link sap.ui.table.extensions.Keyboard} should enter the action mode.
@@ -782,19 +800,7 @@ sap.ui.define([
 		}
 	};
 
-	KeyboardDelegate.prototype.onfocusout = function(oEvent) {
-		if (this.getRows().length || this.getColumnHeaderVisible()) {
-			this.$().find(".sapUiTableCtrlBefore").attr("tabindex", "0");
-			this.$().find(".sapUiTableCtrlAfter").attr("tabindex", "0");
-		}
-	};
-
 	KeyboardDelegate.prototype.onfocusin = function(oEvent) {
-		if (this.getDomRef("sapUiTableCnt").contains(oEvent.target)) {
-			this.$().find(".sapUiTableCtrlBefore").attr("tabindex", "-1");
-			this.$().find(".sapUiTableCtrlAfter").attr("tabindex", "-1");
-		}
-
 		if (oEvent.isMarked("sapUiTableIgnoreFocusIn")) {
 			return;
 		}
@@ -811,7 +817,13 @@ sap.ui.define([
 			const oBusyIndicator = this.getDomRef("busyIndicator");
 			if (oBusyIndicator) {
 				oKeyboardExtension.setSilentFocus(oBusyIndicator);
-			} else if (this.getColumnHeaderVisible() && (TableUtils.getVisibleColumnCount(this) || TableUtils.hasRowHeader(this))) {
+			} else if (!this.getColumnHeaderVisible()) {
+				if (this.getRows().length && !TableUtils.isNoDataVisible(this)) {
+					restoreFocusOnLastFocusedDataCell(this, oEvent);
+				} else if (bNoData) {
+					oKeyboardExtension.setSilentFocus(this.$("noDataCnt"));
+				}
+			} else if (TableUtils.getVisibleColumnCount(this) || TableUtils.hasRowHeader(this)) {
 				setFocusOnColumnHeaderOfLastFocusedDataCell(this, oEvent);
 			} else if (bNoData) {
 				oKeyboardExtension.setSilentFocus(this.$("noDataCnt"));
@@ -1003,11 +1015,7 @@ sap.ui.define([
 			delete this._oRangeSelection;
 		}
 
-		if (oCellInfo.isOfType(CellType.COLUMNHEADER)) {
-			if (KeyboardDelegate._isKeyCombination(oEvent, KeyCodes.SPACE) || KeyboardDelegate._isKeyCombination(oEvent, KeyCodes.ENTER)) {
-				TableUtils.Menu.openContextMenu(this, oEvent);
-			}
-		} else if (KeyboardDelegate._isKeyCombination(oEvent, KeyCodes.SPACE)) {
+		if (KeyboardDelegate._isKeyCombination(oEvent, KeyCodes.SPACE)) {
 			handleSpaceAndEnter(this, oEvent);
 		} else if (KeyboardDelegate._isKeyCombination(oEvent, KeyCodes.SPACE, ModKey.SHIFT)) {
 			TableUtils.toggleRowSelection(this, oCellInfo.rowIndex);
@@ -1027,7 +1035,7 @@ sap.ui.define([
 		if (oKeyboardExtension.isInActionMode()) {
 			onTabNextInActionMode.call(this, oEvent);
 		} else if (oCellInfo.isOfType(CellType.ANYCOLUMNHEADER)) {
-			if (this.getCreationRow() && this.getCreationRow().getVisible() && !TableUtils.hasData(this)) {
+			if (this.getRows().length === 0) {
 				forwardFocusToTabDummy(this, "sapUiTableCtrlAfter");
 			} else if (TableUtils.isNoDataVisible(this)) {
 				this.$("noDataCnt").trigger("focus");
@@ -1103,6 +1111,9 @@ sap.ui.define([
 
 		} else if (oEvent.target === this.getDomRef("overlay")) {
 			this._getKeyboardExtension().setSilentFocus(this.$().find(".sapUiTableOuterBefore"));
+
+		} else if (oCellInfo.isOfType(CellType.ANYCOLUMNHEADER)) {
+			forwardFocusToTabDummy(this, "sapUiTableCtrlBefore");
 
 		} else if (!oCellInfo.isOfType(CellType.ANY)) {
 			$Cell = TableUtils.getParentCell(this, oEvent.target);
@@ -1204,7 +1215,7 @@ sap.ui.define([
 					return;
 				}
 
-				if (TableUtils.isLastScrollableRow(this, oEvent.target)) {
+				if (isLastScrollableRow(this, oEvent.target)) {
 					if (this._oRangeSelection.pScroll) { // A previous selection is still ongoing.
 						preventItemNavigation(oEvent);
 						return;
@@ -1294,7 +1305,7 @@ sap.ui.define([
 					return;
 				}
 
-				if (TableUtils.isFirstScrollableRow(this, oEvent.target)) {
+				if (isFirstScrollableRow(this, oEvent.target)) {
 					if (this._oRangeSelection.pScroll) { // A previous selection is still ongoing.
 						preventItemNavigation(oEvent);
 						return;
@@ -1493,9 +1504,11 @@ sap.ui.define([
 	};
 
 	KeyboardDelegate.prototype.onsaphome = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1519,21 +1532,23 @@ sap.ui.define([
 				// If there is a fixed column area and the focus is to the right of the first cell in the non-fixed area,
 				// then set the focus to the first cell in the non-fixed area.
 				preventItemNavigation(oEvent);
-				TableUtils.focusItem(this, iFocusedIndex - iFocusedCellInRow + iFixedColumnCount + iRowHeaderOffset, null);
+				oKeyboardExtension.focusItem(iFocusedIndex - iFocusedCellInRow + iFixedColumnCount + iRowHeaderOffset, null);
 
 			} else if (bHasRowHeader && iFocusedCellInRow > 1) {
 				// If there is a row header column and the focus is after the first content column,
 				// then set the focus to the cell in the first content column.
 				preventItemNavigation(oEvent);
-				TableUtils.focusItem(this, iFocusedIndex - iFocusedCellInRow + iRowHeaderOffset, null);
+				oKeyboardExtension.focusItem(iFocusedIndex - iFocusedCellInRow + iRowHeaderOffset, null);
 			}
 		}
 	};
 
 	KeyboardDelegate.prototype.onsapend = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1569,7 +1584,7 @@ sap.ui.define([
 				// If there is a row header and it has the focus,
 				// then set the focus to the cell in the next column.
 				preventItemNavigation(oEvent);
-				TableUtils.focusItem(this, iFocusedIndex + 1, null);
+				oKeyboardExtension.focusItem(iFocusedIndex + 1, null);
 
 			} else if (TableUtils.hasFixedColumns(this)
 					   && iFocusedCellInRow < iFixedColumnCount - 1 + iRowHeaderOffset
@@ -1577,23 +1592,25 @@ sap.ui.define([
 				// If there is a fixed column area and the focus is not on its last cell or column span,
 				// then set the focus to the last cell of the fixed column area.
 				preventItemNavigation(oEvent);
-				TableUtils.focusItem(this, iFocusedIndex + iFixedColumnCount - iFocusedCellInRow, null);
+				oKeyboardExtension.focusItem(iFocusedIndex + iFixedColumnCount - iFocusedCellInRow, null);
 
 			} else if (TableUtils.hasRowActions(this) && iFocusedCellInRow < iColumnCount - 2) {
 				// If the focus is on a data cell in the scrollable column area (except last cell),
 				// then set the focus to the row actions cell.
 				// Note: The END navigation from the last cell to the row action cell is handled by the item navigation.
 				preventItemNavigation(oEvent);
-				TableUtils.focusItem(this, iFocusedIndex - iFocusedCellInRow + iColumnCount - 2, null);
+				oKeyboardExtension.focusItem(iFocusedIndex - iFocusedCellInRow + iColumnCount - 2, null);
 			}
 
 		}
 	};
 
 	KeyboardDelegate.prototype.onsaphomemodifiers = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1616,7 +1633,7 @@ sap.ui.define([
 					/* Column header area */
 					/* Top fixed area */
 					if (iFocusedRow < iHeaderRowCount + mRowCounts.fixedTop) {
-						TableUtils.focusItem(this, iFocusedIndex - iColumnCount * iFocusedRow, oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * iFocusedRow, oEvent);
 					/* Scrollable area */
 					} else if (iFocusedRow >= iHeaderRowCount + mRowCounts.fixedTop &&
 							   iFocusedRow < iHeaderRowCount + TableUtils.getNonEmptyRowCount(this) - mRowCounts.fixedBottom) {
@@ -1624,16 +1641,16 @@ sap.ui.define([
 						// If a fixed top area exists, then set the focus to the first row (of
 						// the top fixed area), otherwise set the focus to the first row of the column header area.
 						if (mRowCounts.fixedTop > 0) {
-							TableUtils.focusItem(this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
+							oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
 						} else {
-							TableUtils.focusItem(this, iFocusedIndex - iColumnCount * iFocusedRow, oEvent);
+							oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * iFocusedRow, oEvent);
 						}
 
 					/* Bottom fixed area */
 					} else {
 						// Set the focus to the first row of the scrollable area and scroll to top.
 						this._getScrollExtension().scrollVerticallyMax(false);
-						TableUtils.focusItem(this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - mRowCounts.fixedTop), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - mRowCounts.fixedTop), oEvent);
 					}
 				}
 			}
@@ -1641,9 +1658,11 @@ sap.ui.define([
 	};
 
 	KeyboardDelegate.prototype.onsapendmodifiers = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1671,17 +1690,16 @@ sap.ui.define([
 					/* Column header area */
 					if (TableUtils.isNoDataVisible(this)) {
 						// Set the focus to the last row of the column header area.
-						TableUtils.focusItem(this, iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow - 1), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow - 1), oEvent);
 					} else if (iFocusedRow < iHeaderRowCount) {
 						// If a top fixed area exists, then set the focus to the last row of the top fixed area,
 						// otherwise set the focus to the last row of the scrollable area and scroll to bottom.
 						if (mRowCounts.fixedTop > 0) {
-							TableUtils.focusItem(
-								this, iFocusedIndex + iColumnCount * (iHeaderRowCount + mRowCounts.fixedTop - iFocusedRow - 1), oEvent);
+							oKeyboardExtension.focusItem(
+								iFocusedIndex + iColumnCount * (iHeaderRowCount + mRowCounts.fixedTop - iFocusedRow - 1), oEvent);
 						} else {
 							this._getScrollExtension().scrollVerticallyMax(true);
-							TableUtils.focusItem(
-								this,
+							oKeyboardExtension.focusItem(
 								iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - iFocusedRow - 1),
 								oEvent
 							);
@@ -1691,25 +1709,20 @@ sap.ui.define([
 					} else if (iFocusedRow >= iHeaderRowCount && iFocusedRow < iHeaderRowCount + mRowCounts.fixedTop) {
 						// Set the focus to the last row of the scrollable area and scroll to bottom.
 						this._getScrollExtension().scrollVerticallyMax(true);
-						TableUtils.focusItem(
-							this,
-							iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - iFocusedRow - 1),
-							oEvent
-						);
+						oKeyboardExtension.focusItem(
+							iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - iFocusedRow - 1), oEvent);
 
 					/* Scrollable area */
 					} else if (iFocusedRow >= iHeaderRowCount + mRowCounts.fixedTop &&
 							   iFocusedRow < iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom) {
 						// Set the focus to the last row of the scrollable area and scroll to bottom.
 						this._getScrollExtension().scrollVerticallyMax(true);
-						TableUtils.focusItem(
-							this, iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
 
 					/* Bottom fixed area */
 					} else {
 						// Set the focus to the last row of the bottom fixed area.
-						TableUtils.focusItem(
-							this, iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
 					}
 				}
 			}
@@ -1717,9 +1730,11 @@ sap.ui.define([
 	};
 
 	KeyboardDelegate.prototype.onsappageup = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1741,7 +1756,7 @@ sap.ui.define([
 				/* Top fixed area - From second row downwards */
 				if (iFocusedRow < iHeaderRowCount + mRowCounts.fixedTop) {
 					// Set the focus to the first row of the top fixed area.
-					TableUtils.focusItem(this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
+					oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
 
 				/* Scrollable area - First row */
 				} else if (iFocusedRow === iHeaderRowCount + mRowCounts.fixedTop) {
@@ -1755,9 +1770,9 @@ sap.ui.define([
 						// If a fixed top area exists or we are in the row action column (has no header), then set the focus to the first row (of
 						// the top fixed area), otherwise set the focus to the first row of the column header area.
 						if (mRowCounts.fixedTop > 0 || oCellInfo.isOfType(CellType.ROWACTION)) {
-							TableUtils.focusItem(this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
+							oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount), oEvent);
 						} else {
-							TableUtils.focusItem(this, iFocusedIndex - iColumnCount * iHeaderRowCount, oEvent);
+							oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * iHeaderRowCount, oEvent);
 						}
 					}
 
@@ -1766,15 +1781,13 @@ sap.ui.define([
 				} else if (iFocusedRow > iHeaderRowCount + mRowCounts.fixedTop &&
 						   iFocusedRow < iHeaderRowCount + TableUtils.getNonEmptyRowCount(this)) {
 					// Set the focus to the first row of the scrollable area.
-					TableUtils.focusItem(this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - mRowCounts.fixedTop), oEvent);
+					oKeyboardExtension.focusItem(iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - mRowCounts.fixedTop), oEvent);
 
 				/* Empty area */
 				} else {
 					// Set the focus to the last row of the scrollable area.
-					TableUtils.focusItem(
-						this, iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - TableUtils.getNonEmptyRowCount(this) + 1),
-						oEvent
-					);
+					oKeyboardExtension.focusItem(
+						iFocusedIndex - iColumnCount * (iFocusedRow - iHeaderRowCount - TableUtils.getNonEmptyRowCount(this) + 1), oEvent);
 				}
 			}
 
@@ -1786,9 +1799,11 @@ sap.ui.define([
 	};
 
 	KeyboardDelegate.prototype.onsappagedown = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1815,14 +1830,14 @@ sap.ui.define([
 				/* Column header area - From second-last row upwards */
 				if (iFocusedRow < iHeaderRowCount - 1 && !oCellInfo.isOfType(CellType.COLUMNROWHEADER)) {
 					// Set the focus to the last row of the column header area.
-					TableUtils.focusItem(this, iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow - 1), oEvent);
+					oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow - 1), oEvent);
 
 				/* Column header area - Last row */
 				} else if (iFocusedRow < iHeaderRowCount) {
 					// If the NoData area is visible, then do nothing,
 					// otherwise set the focus to the first row of the top fixed (if existing) or scrollable area.
 					if (!TableUtils.isNoDataVisible(this)) {
-						TableUtils.focusItem(this, iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount - iFocusedRow), oEvent);
 					}
 
 				/* Top fixed area */
@@ -1830,10 +1845,8 @@ sap.ui.define([
 				} else if (iFocusedRow >= iHeaderRowCount &&
 						   iFocusedRow < iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - 1) {
 					// Set the focus to the last row of the scrollable area.
-					TableUtils.focusItem(
-						this, iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - iFocusedRow - 1),
-						oEvent
-					);
+					oKeyboardExtension.focusItem(
+						iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - iFocusedRow - 1), oEvent);
 
 				/* Scrollable area - Last row */
 				} else if (iFocusedRow === iHeaderRowCount + iNonEmptyRowCount - mRowCounts.fixedBottom - 1) {
@@ -1845,23 +1858,24 @@ sap.ui.define([
 					// If scrolling was not performed over a full page and there is a bottom fixed area,
 					// then set the focus to the last row of the bottom fixed area.
 					if (iRowsToBeScrolled < iPageSize && mRowCounts.fixedBottom > 0) {
-						TableUtils.focusItem(
-							this, iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
 					}
 
 				/* Bottom fixed area */
 				} else {
 					// Set the focus to the last row of the bottom fixed area.
-					TableUtils.focusItem(this, iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
+					oKeyboardExtension.focusItem(iFocusedIndex + iColumnCount * (iHeaderRowCount + iNonEmptyRowCount - iFocusedRow - 1), oEvent);
 				}
 			}
 		}
 	};
 
 	KeyboardDelegate.prototype.onsappageupmodifiers = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1882,29 +1896,31 @@ sap.ui.define([
 				if (bHasRowHeader && (TableUtils.Grouping.isInGroupHeaderRow(oEvent.target) || iFocusedCellInRow === 1)) {
 					// If a row header exists and the focus is on a group header or the first cell,
 					// then set the focus to the row header cell.
-					TableUtils.focusItem(this, iFocusedIndex - iFocusedCellInRow, null);
+					oKeyboardExtension.focusItem(iFocusedIndex - iFocusedCellInRow, null);
 
 				} else if (iFocusedCellInRow - iRowHeaderOffset < iPageSize) {
 					// If scrolling can not be performed over a full page,
 					// then scroll only the remaining cells (set the focus to the first cell).
-					TableUtils.focusItem(this, iFocusedIndex - iFocusedCellInRow + iRowHeaderOffset, null);
+					oKeyboardExtension.focusItem(iFocusedIndex - iFocusedCellInRow + iRowHeaderOffset, null);
 
 				} else {
 					// Scroll one page.
-					TableUtils.focusItem(this, iFocusedIndex - iPageSize, null);
+					oKeyboardExtension.focusItem(iFocusedIndex - iPageSize, null);
 				}
 
 			} else if (oCellInfo.isOfType(CellType.ROWACTION)) {
 				// If the focus is on a row action cell, then set the focus to the last data cell in the same row.
-				TableUtils.focusItem(this, oFocusedItemInfo.cell - 1, null);
+				oKeyboardExtension.focusItem(oFocusedItemInfo.cell - 1, null);
 			}
 		}
 	};
 
 	KeyboardDelegate.prototype.onsappagedownmodifiers = function(oEvent) {
+		const oKeyboardExtension = this._getKeyboardExtension();
+
 		handleNavigationEvent(oEvent);
 
-		if (this._getKeyboardExtension().isInActionMode()) {
+		if (oKeyboardExtension.isInActionMode()) {
 			return;
 		}
 
@@ -1930,21 +1946,21 @@ sap.ui.define([
 					if (bHasRowHeader && iFocusedCellInRow === 0) {
 						// If there is a row header and it has the focus,
 						// then set the focus to the first cell.
-						TableUtils.focusItem(this, iFocusedIndex + 1, null);
+						oKeyboardExtension.focusItem(iFocusedIndex + 1, null);
 
 					} else if (iColSpan > iPageSize) {
 						// If the focused cell is a column span bigger than a page size,
 						// then set the focus the next column in the row.
-						TableUtils.focusItem(this, iFocusedIndex + iColSpan, null);
+						oKeyboardExtension.focusItem(iFocusedIndex + iColSpan, null);
 
 					} else if (iFocusedCellInRow + iColSpan - iRowHeaderOffset + iPageSize > iVisibleColumnCount) {
 						// If scrolling can not be performed over a full page,
 						// then scroll only the remaining cells (set the focus to the last cell).
-						TableUtils.focusItem(this, iFocusedIndex + iVisibleColumnCount - iFocusedCellInRow - 1 + iRowHeaderOffset, null);
+						oKeyboardExtension.focusItem(iFocusedIndex + iVisibleColumnCount - iFocusedCellInRow - 1 + iRowHeaderOffset, null);
 
 					} else if (!TableUtils.Grouping.isInGroupHeaderRow(oEvent.target)) {
 						// Scroll one page.
-						TableUtils.focusItem(this, iFocusedIndex + iPageSize, null);
+						oKeyboardExtension.focusItem(iFocusedIndex + iPageSize, null);
 
 					}
 
@@ -1952,7 +1968,7 @@ sap.ui.define([
 						   && TableUtils.hasRowActions(this)
 						   && iFocusedCellInRow === oFocusedItemInfo.columnCount - 2) {
 					// If focus is on the last cell, set the focus to the row action cell.
-					TableUtils.focusItem(this, oFocusedItemInfo.cell + 1, null);
+					oKeyboardExtension.focusItem(oFocusedItemInfo.cell + 1, null);
 				}
 			}
 		}

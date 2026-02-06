@@ -23,11 +23,12 @@ use exface\Core\DataTypes\ByteSizeDataType;
 class UI5ImageGallery extends UI5AbstractElement
 {
     use SlickGalleryTrait, UI5DataElementTrait {
+        SlickGalleryTrait::buildJsEditableChangesGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsDataGetter as buildJsSlickDataGetter;
         SlickGalleryTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsUploadStore as buildJsUploadStoreViaTrait;
-        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
+        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaDataElementTrait;
     }
     
     use JsUploaderTrait;
@@ -109,12 +110,11 @@ JS;
      */
     protected function buildJsDataLoaderOnLoaded(string $oModelJs = 'oModel') : string
     {
-        return $this->buildJsDataLoaderOnLoadedViaTrait($oModelJs) . <<<JS
+        return 
+            $this->buildJsDataLoaderOnLoadedViaDataElementTrait($oModelJs) . <<<JS
 
                 var carousel = $('#{$this->getIdOfSlick()}');
-                    
                 {$this->buildJsSlickSlidesFromData('carousel', 'oModel.getData()')}
-
 JS;
     }
     
@@ -234,7 +234,7 @@ JS;
      */
     protected function isEditable()
     {
-        return false;
+        return $this->getWidget()->isEditable();
     }
     
     /**
@@ -358,6 +358,9 @@ JS;
         if ($popoverEl === null) {
             return '';
         }
+        // Trim the validator script because if it start on a new line, the return statement will
+        // return undefined.
+        $validationJs = trim($popoverEl->buildJsValidator());
         $popoverEl->getWidget()->addButton($popoverEl->getWidget()->createButton(new UxonObject([
             'caption' => 'OK',
             'show_icon' => false,
@@ -367,12 +370,22 @@ JS;
                 'alias' => 'exface.Core.CustomFacadeScript',
                 'script' => <<<JS
 
+                    var fnValidator = function(){
+                        return {$validationJs};
+                    };
                     var jqCarousel = $('#{$this->getIdOfSlick()}');
                     var oDataPopover = {$popoverEl->buildJsDataGetter()};
                     var oDataSlick = jqCarousel.data('_exfData');
-                    $.extend(oDataSlick.rows[jqCarousel.data('_exfUploadIdx')], oDataPopover.rows[0]);
-                    jqCarousel.data(oDataSlick);
-                    {$popoverEl->buildJsCloseDialog()}
+                    var oRowSlick = oDataSlick.rows[jqCarousel.data('_exfUploadIdx')];
+                    var oRowPopover = oDataPopover.rows[0];
+                    if (fnValidator() === false) {
+                        {$popoverEl->buildJsValidationError()}
+                        return;
+                    } else {
+                        $.extend(oRowSlick, oRowPopover);
+                        jqCarousel.data(oDataSlick);
+                        {$popoverEl->buildJsCloseDialog()}
+                    }
 JS
             ]
         ])));
@@ -403,5 +416,26 @@ JS
         });
     })($oControllerJs)
 JS;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false): string
+    {
+        return <<<JS
+
+(function (aOld, aChanges){
+    return aChanges.length === 0 ? [] : [
+        {
+            elementId: '{$this->getId()}',
+            caption: {$this->escapeString($this->getCaption())},
+            valueOld: aOld,
+            valueNew: aChanges
+        }
+    ];    
+})(({$this->buildJsLastLoadedGetter()}?.rows || []), {$this->buildJsEditableChangesGetter()})
+JS;
+
     }
 }

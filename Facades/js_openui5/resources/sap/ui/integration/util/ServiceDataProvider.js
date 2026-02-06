@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/integration/util/DataProvider"],function(e){"use strict";var t=e.extend("sap.ui.integration.util.ServiceDataProvider",{metadata:{library:"sap.ui.integration",interfaces:["sap.ui.integration.util.IServiceDataProvider"]}});t.prototype.destroy=function(){this._oDataServicePromise=null;if(this._oServiceManager){this._oServiceManager=null}e.prototype.destroy.apply(this,arguments)};t.prototype.createServiceInstances=function(e){this._oServiceManager=e;const t=this.getResolvedConfiguration();if(!t||!t.service){return}let i=t.service;if(i&&typeof i==="object"){i=i.name}this._createServiceInstance(i)};t.prototype._createServiceInstance=function(e){const t=this.getResolvedConfiguration();this._oDataServicePromise=this._oServiceManager.getService(e).then(function(e){e.attachDataChanged(function(e){this.fireDataChanged({data:e.data})}.bind(this),t.service.parameters);return e}.bind(this))};t.prototype.getData=function(){const e=this.getResolvedConfiguration();const t=e.service;return new Promise(function(e,i){if(t&&this._oDataServicePromise){this._oDataServicePromise.then(function(t){t.getData().then(function(t){e(t)}).catch(function(){i("Card data service failed to get data.")})}).catch(function(){i("Card data service unavailable.")})}else{i("Could not get card data.")}}.bind(this))};return t});

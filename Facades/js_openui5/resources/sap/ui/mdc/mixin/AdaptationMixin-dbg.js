@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,7 +32,7 @@ sap.ui.define(
 		 *
 		 *
 		 * @author SAP SE
-		 * @version 1.136.0
+		 * @version 1.144.0
 		 * @alias sap.ui.mdc.mixin.AdaptationMixin
 		 * @namespace
 		 * @since 1.82.0
@@ -93,7 +93,12 @@ sap.ui.define(
 							//create instance of 'AdaptationFilterBar'
 							this._oP13nFilter = new AdaptationFilterBar(this.getId() + "-p13nFilter", {
 								adaptationControl: this,
-								filterConditions: this.getFilterConditions()
+								filterConditions: this.getFilterConditions(),
+								change: async function (oEvent) {
+									if (!oEvent.getParameter("_skipValidation")) {
+										await this.validate(true);
+									}
+								}
 							});
 
 							if (this._registerInnerFilter) {

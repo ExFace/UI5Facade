@@ -1,7 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./BaseAction","sap/ui/integration/util/openCardDialog","sap/ui/core/Element","sap/ui/dom/jquery/Focusable"],function(e,t,a){"use strict";var r=e.extend("sap.ui.integration.cards.actions.ShowCardAction",{metadata:{library:"sap.ui.integration"}});r.prototype.execute=function(){var e=this.getParameters()||{},r=this.getCardInstance(),i=r.getHostInstance();if(i&&i.onShowCard){let t;if(e._cardId){t=a.getElementById(e._cardId)}else{t=r._createChildCard(e)}i.onShowCard(t,e);return}t(r,this.getParameters())};return r});
+sap.ui.define(["./BaseAction","sap/base/Log","sap/ui/integration/util/openCardDialog","sap/ui/integration/util/CardMerger","sap/ui/core/Element"],function(e,a,t,i,n){"use strict";var r=e.extend("sap.ui.integration.cards.actions.ShowCardAction",{metadata:{library:"sap.ui.integration"}});r.prototype.execute=function(){var e=this.getParameters()||{},r={...e},s=this.getCardInstance(),d=s.getHostInstance();if(e.manifest){a.warning("'ShowCard' action uses deprecated 'manifest' property. Use 'childCardKey' instead. It must refer to a child card registered in sap.card/configuration/childCards.",null,"sap.ui.integration.widgets.Card")}if(e.childCardKey){const a=s.getManifestEntry(`/sap.card/configuration/childCards/${e.childCardKey}/_manifestChanges`);const t=s.getManifestChanges();if(a){r.manifestChanges=a}else{r.manifestChanges=i.extractChildCardChanges(t,e.childCardKey)}}if(d&&d.onShowCard){let a;if(e._cardId){a=n.getElementById(e._cardId)}else{a=s._createChildCard(r)}d.onShowCard(a,e);return}t(s,r)};return r});
 //# sourceMappingURL=ShowCardAction.js.map

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -148,7 +148,7 @@ sap.ui.define([
 	 */
 	Uploader.uploadFile = function (oFile, sUrl, aHeaderFields) {
 		var oXhr = new window.XMLHttpRequest();
-		var sHttpRequestMethod = this.getHttpRequestMethod();
+		var sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase();
 
 		return new Promise(function(resolve, reject) {
 			oXhr.open(sHttpRequestMethod, sUrl, true);
@@ -192,7 +192,7 @@ sap.ui.define([
 				xhr: oXhr,
 				item: oItem
 			},
-			sHttpRequestMethod = this.getHttpRequestMethod(),
+			sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase(),
 			sUploadUrl = oItem.getUploadUrl() || this.getUploadUrl();
 
 		oXhr.open(sHttpRequestMethod, sUploadUrl, true);

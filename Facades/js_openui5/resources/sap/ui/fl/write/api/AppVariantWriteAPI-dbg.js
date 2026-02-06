@@ -1,15 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
 	"sap/ui/fl/write/_internal/SaveAs",
 	"sap/ui/fl/write/_internal/connectors/LrepConnector",
 	"sap/ui/fl/write/api/FeaturesAPI",
-	"sap/ui/fl/write/_internal/Versions"
+	"sap/ui/fl/write/_internal/Versions",
+	"sap/ui/fl/write/_internal/init"
 ], function(
 	ManifestUtils,
 	SaveAs,
@@ -46,6 +47,7 @@ sap.ui.define([
 		 * @param {object} mPropertyBag - Object with parameters as properties
 		 * @param {sap.ui.fl.Selector} mPropertyBag.selector - Selector
 		 * @param {string} mPropertyBag.id - App variant ID
+		 * @param {object} [mPropertyBag.oParsedHash] - Parsed Hash containing semantic object, action and parameters for inbound
 		 * @param {sap.ui.fl.Layer} mPropertyBag.layer - Current working layer
 		 * @returns {Promise} Promise that resolves with the app variant save response
 		 *

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -142,7 +142,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -174,9 +174,6 @@ sap.ui.define([
 				 * UI5 currently does not provide a recommended implementation of <code>TooltipBase</code>
 				 * as the use of content-rich tooltips is discouraged by the Fiori Design Guidelines.
 				 * Existing subclasses of <code>TooltipBase</code> therefore have been deprecated.
-				 * However, apps can still subclass from <code>TooltipBase</code> and create their own
-				 * implementation when needed (potentially taking the deprecated implementations as a
-				 * starting point).
 				 *
 				 * See the section {@link https://experience.sap.com/fiori-design-web/using-tooltips/ Using Tooltips}
 				 * in the Fiori Design Guideline.
@@ -475,7 +472,7 @@ sap.ui.define([
 	 * state (e.g. an initial, not yet rendered control).
 	 *
 	 * If an ID suffix is given, the ID of this Element is concatenated with the suffix
-	 * (separated by a single dash) and the DOM node with that compound ID will be returned.
+	 * (separated by a single hyphen) and the DOM node with that compound ID will be returned.
 	 * This matches the UI5 naming convention for named inner DOM nodes of a control.
 	 *
 	 * @param {string} [sSuffix] ID suffix to get the DOMRef for
@@ -491,7 +488,7 @@ sap.ui.define([
 	 * I.e. the element returned by {@link sap.ui.core.Element#getDomRef} is wrapped and returned.
 	 *
 	 * If an ID suffix is given, the ID of this Element is concatenated with the suffix
-	 * (separated by a single dash) and the DOM node with that compound ID will be wrapped by jQuery.
+	 * (separated by a single hyphen) and the DOM node with that compound ID will be wrapped by jQuery.
 	 * This matches the UI5 naming convention for named inner DOM nodes of a control.
 	 *
 	 * @param {string} [sSuffix] ID suffix to get a jQuery object for
@@ -639,8 +636,13 @@ sap.ui.define([
 				oParent = oParent?.getParent();
 				oParentDomRef = oParent?.getDomRef?.();
 			} else {
-				// If the lost focus element is outside the parent, look for the parent's first focusable element
-				oFocusTarget = oParentDomRef && jQuery(oParentDomRef).firstFocusableDomRef();
+				// If the lost focus element is outside the parent, look for the parent's first focusable element (including the parent itself)
+				if (jQuery(oParentDomRef).is(":sapFocusable")) {
+					// If the parent is focusable, we can focus it
+					oFocusTarget = oParentDomRef;
+				} else {
+					oFocusTarget = oParentDomRef && jQuery(oParentDomRef).firstFocusableDomRef();
+				}
 				break;
 			}
 		} while ((!oRes || oRes.startOver) && oDomRef);
@@ -697,7 +699,7 @@ sap.ui.define([
 	 * the entire aggregation area needs to be skipped sinceh its DOM element will be removed
 	 * leaving no focusable element within the aggregation.
 	 *
-	 * @param {sap.ui.core.ManagedObject[]} aChildren The children that belong to the aggregation
+	 * @param {sap.ui.base.ManagedObject[]} aChildren The children that belong to the aggregation
 	 * @returns {HTMLElement|null} Returns the DOM which needs to be skipped, or 'null' if no relevant area is found.
 	 */
 	function searchAggregationAreaToSkip(aChildren) {
@@ -1383,7 +1385,8 @@ sap.ui.define([
 			// should not fire 'FocusFail' even when the oFocusDomRef isn't
 			// focusable because not all controls defines the 'getFocusDomRef'
 			// method properly
-			if (oDomRef && !oDomRef.contains(document.activeElement) ) {
+			if ((document.activeElement?.closest(".sapUiSkipFocusFail"))
+					|| (oDomRef && !oDomRef.contains(document.activeElement))) {
 				Element.fireFocusFail.call(this, FocusMode.DEFAULT);
 			}
 		}
@@ -1476,8 +1479,6 @@ sap.ui.define([
 	Element.prototype.getTooltip = function() {
 		return this.getAggregation("tooltip");
 	};
-
-	Element.runWithPreprocessors = ManagedObject.runWithPreprocessors;
 
 	/**
 	 * Returns the tooltip for this element but only if it is a simple string.
@@ -2227,6 +2228,8 @@ sap.ui.define([
 		FocusHandler?.updateControlFocusInfo(oElement);
 	}
 
+	const fnGetNodeName = Object.getOwnPropertyDescriptor(Node.prototype, 'nodeName')?.get;
+
 	/**
 	 * Returns the nearest {@link sap.ui.core.Element UI5 Element} that wraps the given DOM element.
 	 *
@@ -2257,7 +2260,7 @@ sap.ui.define([
 			oDomRef = document.querySelector(vParam);
 		} else if (typeof vParam === "object"
 			&& vParam.nodeType === Node.ELEMENT_NODE
-			&& typeof vParam.nodeName === "string") {
+			&& typeof fnGetNodeName?.call(vParam) === "string") {
 			// can't use 'instanceof window.Element' because DOM node may be
 			// created by using the constructor in another frame in Chrome/Edge.
 			oDomRef = vParam;
@@ -2313,7 +2316,8 @@ sap.ui.define([
 	Element.getActiveElement = () => {
 		try {
 			var $Act = jQuery(document.activeElement);
-			if ($Act.is(":focus")) {
+			// do not check ":focus" when the browser window is not focused
+			if (!document.hasFocus() || $Act.is(":focus")) {
 				return Element.closestTo($Act[0]);
 			}
 		} catch (err) {

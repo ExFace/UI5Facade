@@ -8,7 +8,7 @@
 		},
 		{
 			"name": "AlignedFlowLayout.less",
-			"size": 1151,
+			"size": 1371,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -32,25 +32,25 @@
 		},
 		{
 			"name": "CSSGrid.less",
-			"size": 2081,
+			"size": 2082,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ColumnLayout.less",
-			"size": 10886,
+			"size": 10893,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DynamicSideContent.less",
-			"size": 1633,
+			"size": 1635,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "FixFlex.less",
-			"size": 2367,
+			"size": 2024,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -62,7 +62,7 @@
 		},
 		{
 			"name": "FormLayout.less",
-			"size": 2891,
+			"size": 2870,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -74,7 +74,7 @@
 		},
 		{
 			"name": "GridLayout.less",
-			"size": 5933,
+			"size": 6031,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -98,7 +98,7 @@
 		},
 		{
 			"name": "ResponsiveLayout.less",
-			"size": 8499,
+			"size": 8601,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -122,7 +122,7 @@
 		},
 		{
 			"name": "VerticalLayout.less",
-			"size": 1677,
+			"size": 1679,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -133,7 +133,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 157399,
+			"size": 157149,
 			"theme": "base"
 		},
 		{
@@ -144,12 +144,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 156930,
+			"size": 156680,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 88400,
+			"size": 88468,
 			"designtime": true,
 			"theme": "base"
 		},

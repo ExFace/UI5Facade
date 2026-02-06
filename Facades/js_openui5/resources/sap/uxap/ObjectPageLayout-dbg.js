@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1007,7 +1007,7 @@ sap.ui.define([
 			bAppendHeaderToContent;
 
 		if (bExpand) {
-			bIsPageTop = (this._$opWrapper.scrollTop() <= (this._getSnapPosition() + 1));
+			bIsPageTop = (Math.floor(this._$opWrapper.scrollTop()) <= (this._getSnapPosition() + 1));
 			bAppendHeaderToTitle = !this._headerBiggerThanAllowedToBeExpandedInTitleArea() && (this._shouldPreserveHeaderInTitleArea() || !bIsPageTop);
 			this._expandHeader(bAppendHeaderToTitle);
 			if (!bAppendHeaderToTitle) {
@@ -1220,6 +1220,7 @@ sap.ui.define([
 
 		if (this._hasDynamicTitle()) {
 			this.addStyleClass("sapUxAPObjectPageHasDynamicTitle");
+			this._updateMedia(iWidth, ObjectPageLayout.DYNAMIC_HEADERS_MEDIA);
 		}
 
 		if (iWidth > 0) {
@@ -1252,6 +1253,9 @@ sap.ui.define([
 			oHeaderContent._setLandmarkInfo(this.getLandmarkInfo());
 		}
 
+		if (exists(this._oABHelper) && this._oABHelper._setLandmarkInfo) {
+			this._oABHelper._setLandmarkInfo(this.getLandmarkInfo());
+		}
 	};
 
 	ObjectPageLayout.prototype._onAfterRenderingDomReady = function () {
@@ -1720,7 +1724,7 @@ sap.ui.define([
 	 * @param {boolean} bInvalidate request the invalidation of the sectionBase that would turn into visible or hidden. This may not be necessary if you are already within a rendering process.
 	 */
 	ObjectPageLayout.prototype._applyUxRules = function (bInvalidate) {
-		var aSections, aSubSections, iVisibleSubSections, iVisibleSection, iVisibleBlocks,
+		var aSections, aSubSections, iVisibleSubSections, iVisibleSection, iVisibleBlocks, oAnchorBar, aAnchorBarItems,
 			bVisibleAnchorBar, bUseIconTabBar, oFirstVisibleSection, oFirstVisibleSubSection, oTitleVisibilityInfo = {};
 
 		aSections = this.getSections() || [];
@@ -1784,6 +1788,9 @@ sap.ui.define([
 				});
 			}
 
+			var bHasPromotedSubSection = this.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnTop &&
+				iVisibleSubSections === 1 && oFirstVisibleSubSection.getTitle().trim() !== "";
+
 			//rule noVisibleSubSection: If a section has no content (or only empty subsections) the section will be hidden.
 			if (iVisibleSubSections == 0) {
 				oSection._setInternalVisible(false, bInvalidate);
@@ -1795,9 +1802,6 @@ sap.ui.define([
 					oFirstVisibleSection = oSection;
 					oFirstVisibleSection.addStyleClass("sapUxAPObjectPageSectionFirstVisible");
 				}
-
-				var bHasPromotedSubSection = this.getSubSectionLayout() === ObjectPageSubSectionLayout.TitleOnTop &&
-					iVisibleSubSections === 1 && oFirstVisibleSubSection.getTitle().trim() !== "";
 
 				//rule TitleOnTop.sectionGetSingleSubSectionTitle: If a section as only 1 subsection and the subsection title is not empty, the SubSection takes the Section's title level with titleOnTop layout only
 				if (bHasPromotedSubSection) {
@@ -1814,6 +1818,8 @@ sap.ui.define([
 
 			if (bUseIconTabBar) {
 				oTitleVisibilityInfo[oSection.getId()] = false;
+				// hide the title of the promoted subsection in iconTabBar mode only
+				bHasPromotedSubSection && oFirstVisibleSubSection && (oTitleVisibilityInfo[oFirstVisibleSubSection.getId()] = false);
 				oSection.addStyleClass("sapUxAPObjectPageSectionFirstVisible");
 			}
 		}, this);
@@ -1824,7 +1830,12 @@ sap.ui.define([
 			Log.info("ObjectPageLayout :: notEnoughVisibleSection UX rule matched", "anchorBar forced to hidden");
 			//rule firstSectionTitleHidden: the first section title is never visible if there is an anchorBar
 			if (bUseIconTabBar && oFirstVisibleSection) {
-				oTitleVisibilityInfo[oFirstVisibleSection.getId()] = true;
+				if (oFirstVisibleSection._hasPromotedSubSection() && oFirstVisibleSubSection) {
+					oTitleVisibilityInfo[oFirstVisibleSubSection.getId()] = true; // SubSection has title - show SubSection title
+				} else {
+					oTitleVisibilityInfo[oFirstVisibleSection.getId()] = true; // SubSection does not have title - show Section title
+				}
+
 			}
 		}
 
@@ -1838,6 +1849,20 @@ sap.ui.define([
 		if (bVisibleAnchorBar) {
 			this._oABHelper._buildAnchorBar();
 		}
+
+		oAnchorBar = this.getAggregation("_anchorBar");
+		aAnchorBarItems = oAnchorBar?.getItems() || [];
+		for (var i = 0; i < aSections.length; i++) {
+			var oSection = aSections[i];
+			if (oSection._getInternalVisible()) {
+				if (aSections.length === 1) {
+					oSection._setAriaLabelledByAnchorButton(undefined);
+				} else {
+					oSection._setAriaLabelledByAnchorButton(aAnchorBarItems[i]);
+				}
+			}
+		}
+
 
 		this._setInternalAnchorBarVisible(bVisibleAnchorBar, bInvalidate);
 		this._oFirstVisibleSection = oFirstVisibleSection;
@@ -3149,6 +3174,10 @@ sap.ui.define([
 			return;
 		}
 
+		if (ResizeHandler.isSuspended(this._$titleArea.get(0), this._adjustTitlePositioning.bind(this))) {
+			return;
+		}
+
 		var oWrapperElement = this._$opWrapper.get(0),
 			oTitleElement = this._$titleArea.get(0),
 			iTitleHeight = oTitleElement.getBoundingClientRect().height,
@@ -3163,10 +3192,7 @@ sap.ui.define([
 		// (1) add top padding for the area underneath the title element
 		// so that the title does not overlap the content of the scroll container
 		oWrapperElement.style.paddingTop = iTitleHeight + "px";
-		oWrapperElement.style.scrollPaddingTop = iTitleHeight + "px";
-		if (this._oScroller) {
-			this._oScroller.setScrollPaddingTop(iTitleHeight);
-		}
+		this._adjustScrollPaddingTop();
 
 		// (2) also make the area underneath the title invisible (using clip-path)
 		// to allow usage of *transparent background* of the title element
@@ -3183,6 +3209,29 @@ sap.ui.define([
 		oWrapperElement.style.clipPath = sClipPath;
 
 		this.getHeaderTitle() && this._shiftHeaderTitle();
+	};
+
+	ObjectPageLayout.prototype._adjustScrollPaddingTop = function () {
+		if (!this._$opWrapper?.length) {
+			return;
+		}
+
+		var oTitleElement = this._$titleArea?.length && this._$titleArea.get(0),
+			iTitleHeight = (oTitleElement && oTitleElement.getBoundingClientRect().height) || 0,
+			iScrollPosition = this._oScrollContainerLastState.iScrollTop,
+			iOffsetScrollPaddingTop = 0,
+			oSelectedSection = Element.getElementById(this.getSelectedSection());
+
+		// when the selected section is scrolled below the header
+		if (this._oSectionInfo[oSelectedSection?.getId()]?.positionTop < iScrollPosition) {
+			// to avoid focused content being hidden under the sticky Section's header, when browser automatically scrolls it into view
+			iOffsetScrollPaddingTop = oSelectedSection?.$().find(".sapUxAPObjectPageSectionHeader").outerHeight() || 0;
+		}
+
+		this._$opWrapper.get(0).style.scrollPaddingTop = (iTitleHeight + iOffsetScrollPaddingTop) + "px";
+		if (this._oScroller) {
+			this._oScroller.setScrollPaddingTop(iTitleHeight + iOffsetScrollPaddingTop);
+		}
 	};
 
 	/**
@@ -3465,6 +3514,7 @@ sap.ui.define([
 		//don't apply parallax effects if there are not enough space for it
 		if (!bShouldPreserveHeaderInTitleArea && ((oHeader && this.getShowHeaderContent()) || this.getShowAnchorBar())) {
 			this._toggleHeader(bShouldStick, !!(oEvent && oEvent.type === "scroll"));
+			this._scrollTo(iScrollTop); // to avoid snap/unsnap caused by the change in header height when there is a difference between the snapped and expanded title heights
 		}
 
 		if (!bShouldPreserveHeaderInTitleArea) {
@@ -3494,6 +3544,8 @@ sap.ui.define([
 				this.$("scroll").css("z-index", "0");
 			}
 		}
+
+		this._adjustScrollPaddingTop();
 	};
 
 	/**

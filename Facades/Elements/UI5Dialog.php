@@ -54,6 +54,7 @@ class UI5Dialog extends UI5Form
     const CONTROLLER_METHOD_FIX_HEIGHT = 'fixHeight';
     const CONTROLLER_METHOD_CLOSE_DIALOG = 'closeDialog';
     const CONTROLLER_METHOD_PREFILL = 'prefill';
+    const CONTROLLER_METHOD_GET_VISIBLE_CHANGES = 'getVisibleChanges';
     
     /**
      * 
@@ -88,9 +89,12 @@ class UI5Dialog extends UI5Form
         
         // Focus the first editable control when the dialog is opened
         $controller->addOnShowViewScript($this->buildJsFocusFirstInput());
+
+        // Register changes getter as a controller method to avoid printing it to JS every time
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '', 'return ' . parent::buildJsChangesGetter(true));
         
         // Reload the dialog after it is shown if prefill refresh is needed (e.g. because of action effects)
-        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise some required
+        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise, some required
         // filters may not resolve - e.g. in Charts inside the dialog
         $controller->addOnShowViewScript("(function(oCtrl){
             if(oCtrl.getModel('view').getProperty('/_prefill/refresh_needed') === true) {
@@ -105,7 +109,7 @@ class UI5Dialog extends UI5Form
         // Listen to action affecting the data in this dialog
         $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed(<<<JS
 
-            (function(oController){
+            (function(oController, oEventParams){
                 var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                 var jqCtrl;
                 // Avoid errors if the view/dialog is closed
@@ -117,10 +121,9 @@ class UI5Dialog extends UI5Form
                 if (jqCtrl.length === 0 || jqCtrl.is(':visible') === false) {
                     oCtrl.getModel('view').setProperty('/_prefill/refresh_needed', true);
                 } else {
-                    // TODO Do not refresh silently if there are changes as they will be lost
                     {$this->buildJsRefresh(true)};
                 }
-            })($oControllerJs);
+            })($oControllerJs, oEventParams);
 JS, false));
         
         // Add a controller method to close the dialog
@@ -182,9 +185,9 @@ JS
                             {$fixInnerPanelHeightJs}
                         });
                         
-                        sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
+                        /*sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
                             {$fixInnerPanelHeightJs}
-                        });
+                        });*/
 JS
                 );
             }
@@ -283,8 +286,8 @@ JS
         // useIconTabBar: true did not work for some reason as tables were not shown when
         // entering a tab for the first time - just at the second time. There was also no
         // difference between creating tables with new sap.ui.table.table or function(){ ... }()
-        return <<<JS
-
+        $js = <<<JS
+   
         new sap.uxap.ObjectPageLayout('{$this->getIdOfObjectPageLayout()}', {
             useIconTabBar: false,
             upperCaseAnchorBar: false,
@@ -294,13 +297,17 @@ JS
 				{$this->buildJsObjectPageSections($oControllerJs)}
 			]
 		})
-
 JS;
+        if ($this->getWidget()->hasSidebar()) {
+            $js = $this->buildJsSidebarWrapperConstructor($js, $oControllerJs);
+        }
+        return $js;
     }
 				
     protected function buildJsPageHeaderContent(string $oControllerJs = 'oController') : string
     {
-        return $this->buildJsHelpButtonConstructor($oControllerJs);
+        return $this->buildJsHelpButtonConstructor($oControllerJs)
+            . $this->buildJsSidebarToggleButton();
     }
         
     protected function buildJsHeader(string $oControllerJs = 'oController')
@@ -341,7 +348,6 @@ JS;
                     isActionAreaAlwaysVisible: false,
                     {$image}
 					actions: [
-						
 					]
 				}),
 			headerContent:[
@@ -741,8 +747,14 @@ JS;
 JS;
         }
         
-        // FIXME use buildJsPrefillLoaderSuccess here somewere?
+        // FIXME use buildJsPrefillLoaderSuccess here somewhere?
         
+        // TODO #ui5-model-everywhere make sure the data model is always created - even if no prefill request is done
+        
+        // The prefill will fill two UI5 models:
+        // - the data model - `oView.getModel()` - holding the loaded prefill data
+        // - the view model - `oView.getModel('view')` - holding all sorts of metadata about like the prefill url,
+        // pending state, etc.
         return <<<JS
 
             //FIXME for some reason the prefill is called multiple times for a EditDialog with a spreadsheet
@@ -775,7 +787,6 @@ JS;
                 oViewModel.setProperty('/_prefill/pending', false);
                 return;
             } else {
-                {$oViewJs}.getModel().setData({});
                 oViewModel.setProperty('/_prefill/current_data_hash', oCurrentRouteString);    
             }
 
@@ -1151,7 +1162,7 @@ JS;
      * @param string $scriptJs
      * @return string
      */
-    protected function buildJsRegisterOnActionPerformed(string $scriptJs) : string
+    protected function buildJsRegisterOnActionPerformed(string $scriptJs, bool $doNotCallOnUnhandledChanges = true) : string
     {
         if ($this->needsPrefill() === false) {
             return '';
@@ -1177,6 +1188,80 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        return $this->getController()->getView()->buildJsViewGetter($this) . ".getModel().setData({});";
+        return $this->getController()->getView()->buildJsViewGetter($this) 
+            . ".getModel().setData({});";
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Form::buildJsChangesGetter()
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
+    {
+        // Since getting visible changes will be needed on multiple locations in the dialog, put the typically
+        // large logic in a controller method to avoid replication of JS code.
+        // TODO perhaps we should put change getter for all containers into controller methods?
+        if ($onlyVisible === true) {
+            return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
+        }
+        return parent::buildJsChangesGetter($onlyVisible);
+    }
+
+    /**
+     * @return string
+     */
+    protected function buildJsSidebarToggleButton() : string
+    {
+        if ($this->getWidget()->hasSidebar()) {
+            $sidebar = $this->getWidget()->getSidebar();
+            $icon = $sidebar->getIcon();
+            if ($icon !== null) {
+                $icon = $this->buildCssIconClass($icon);
+            } else {
+                $icon = 'sap-icon://screen-split-one';
+            }
+            return <<<JS
+
+                        new sap.m.Button({
+                            icon: '{$icon}',
+                            press: function(){
+                                var oSidebar = sap.ui.getCore().byId('{$this->getId()}_sidebar');
+                                oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
+                            }
+                        }),
+JS;
+
+        }
+        return '';
+    }
+
+    /**
+     * @param string $mainContentJs
+     * @param string $oControllerJs
+     * @return string
+     */
+    protected function buildJsSidebarWrapperConstructor(string $mainContentJs, string $oControllerJs) : string
+    {
+        if (! $this->getWidget()->hasSidebar()) {
+            return '';
+        }
+        $sidebar = $this->getWidget()->getSidebar();
+        $sideEl = $this->getFacade()->getElement($sidebar);
+        $sideEl->registerConditionalProperties();
+        
+        
+        return <<<JS
+
+new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
+    showSideContent: {$this->escapeBool($sidebar->isCollapsed() !== true)},
+    sideContent: [
+        {$sideEl->buildJsConstructor($oControllerJs)}
+    ],      
+    mainContent: [
+        $mainContentJs
+    ]
+})
+JS;
+
     }
 }

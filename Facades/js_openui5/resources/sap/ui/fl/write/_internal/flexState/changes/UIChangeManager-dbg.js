@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.write._internal.flexState.changes.UIChangeManager
 	 * @since 1.129
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -50,11 +50,11 @@ sap.ui.define([
 		// might not yet be attached to the application component and must be added then
 		if (oAppComponent instanceof Component) {
 			const bNoFlPropagationListenerAttached = oAppComponent.getPropagationListeners()
-			.every((fnPropagationListener) => (!fnPropagationListener._bIsSapUiFlFlexControllerApplyChangesOnControl));
+			.every((fnPropagationListener) => (!fnPropagationListener._bIsFlexApplyChangesFunction));
 
 			if (bNoFlPropagationListenerAttached) {
 				const fnPropagationListener = Applier.applyAllChangesForControl.bind(Applier, oAppComponent, sReference);
-				fnPropagationListener._bIsSapUiFlFlexControllerApplyChangesOnControl = true;
+				fnPropagationListener._bIsFlexApplyChangesFunction = true;
 				oAppComponent.addPropagationListener(fnPropagationListener);
 			}
 		}
@@ -79,7 +79,7 @@ sap.ui.define([
 	 * @public
 	 */
 	UIChangeManager.addDirtyChanges = function(sReference, aChanges, oAppComponent) {
-		const aAddedChanges = FlexState.addDirtyFlexObjects(sReference, aChanges.map(getOrCreateFlexObject));
+		const aAddedChanges = FlexState.addDirtyFlexObjects(sReference, aChanges.map(getOrCreateFlexObject), oAppComponent.getId());
 		aAddedChanges.forEach((oChange) => {
 			finalizeChangeCreation(sReference, oChange, oAppComponent);
 		});

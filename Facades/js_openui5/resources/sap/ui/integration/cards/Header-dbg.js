@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -15,6 +15,7 @@ sap.ui.define([
 	"sap/ui/integration/util/BindingResolver",
 	"sap/ui/integration/util/LoadingProvider",
 	"sap/ui/integration/util/Utils",
+	"sap/ui/integration/util/subtitleToSubTitle",
 	"sap/ui/integration/formatters/IconFormatter"
 ], function (
 	Element,
@@ -28,6 +29,7 @@ sap.ui.define([
 	BindingResolver,
 	LoadingProvider,
 	Utils,
+	subtitleToSubTitle,
 	IconFormatter
 ) {
 	"use strict";
@@ -46,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.f.cards.Header
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -81,8 +83,8 @@ sap.ui.define([
 		var mSettings = {
 			title: mConfiguration.title,
 			titleMaxLines: mConfiguration.titleMaxLines,
-			subtitle: mConfiguration.subTitle,
-			subtitleMaxLines: mConfiguration.subTitleMaxLines,
+			subtitle: mConfiguration.subtitle || mConfiguration.subTitle,
+			subtitleMaxLines: mConfiguration.subtitleMaxLines || mConfiguration.subTitleMaxLines,
 			dataTimestamp: mConfiguration.dataTimestamp,
 			visible: mConfiguration.visible,
 			wrappingType: mConfiguration.wrappingType
@@ -104,6 +106,7 @@ sap.ui.define([
 			mSettings.iconBackgroundColor = sBackgroundColor;
 			mSettings.iconVisible = mConfiguration.icon.visible;
 			mSettings.iconFitType = mConfiguration.icon.fitType;
+			mSettings.iconState = mConfiguration.icon.state;
 		}
 
 		if (mSettings.iconSrc) {
@@ -257,6 +260,8 @@ sap.ui.define([
 			oConfiguration.icon.src = this._oIconFormatter.formatSrc(BindingResolver.resolveValue(oConfiguration.icon.src, this));
 		}
 
+		subtitleToSubTitle(oConfiguration);
+
 		return oConfiguration;
 	};
 
@@ -270,6 +275,11 @@ sap.ui.define([
 		var oCard = this.getCardInstance(),
 			sPath = "/",
 			oModel;
+
+		if (!oDataSettings) {
+			this.fireEvent("_dataReady");
+			return;
+		}
 
 		if (oDataSettings && oDataSettings.path) {
 			sPath = BindingResolver.resolveValue(oDataSettings.path, this.getCardInstance());

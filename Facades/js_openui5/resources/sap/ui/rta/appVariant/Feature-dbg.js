@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -78,7 +78,7 @@ sap.ui.define([
 			if (!Array.isArray(oResult.response.CatalogIds) || oResult.response.CatalogIds.length === 0) {
 				const sMessage = AppVariantUtils.getText("MSG_BASE_APP_CATALOGS_NOT_FOUND", sAppVariantId);
 				const sTitle = AppVariantUtils.getText("HEADER_SAVE_APP_VARIANT_FAILED");
-				showMessageBox(sMessage, {title: sTitle}, "error");
+				showMessageBox(sMessage, { title: sTitle }, "error");
 				return Promise.reject();
 			}
 			return oAppVariantManager.notifyKeyUserWhenPublishingIsReady(oResult.response.IAMId, sAppVariantId, true);
@@ -168,9 +168,9 @@ sap.ui.define([
 				return FeaturesAPI.isSaveAsAvailable(sCurrentLayer).then(function(bIsSaveAsAvailable) {
 					if (bIsSaveAsAvailable) {
 						if (oManifest["sap.app"].crossNavigation && oManifest["sap.app"].crossNavigation.inbounds) {
-							return AppVariantUtils.getInboundInfo(oManifest["sap.app"].crossNavigation.inbounds);
+							return AppVariantUtils.getParsedHash(oManifest["sap.app"].crossNavigation.inbounds);
 						}
-						return AppVariantUtils.getInboundInfo();
+						return AppVariantUtils.getParsedHash();
 					}
 					return undefined;
 				}).then(function(oInboundInfo) {
@@ -249,11 +249,12 @@ sap.ui.define([
 					return AppVariantUtils.addChangesToPersistence(aAllInlineChanges, vSelector);
 				};
 
-				const fnCreateAppVariant = function() {
+				const fnCreateAppVariant = async function() {
 					const sAppVariantId = AppVariantUtils.getNewAppVariantId();
+					const oParsedHash = await AppVariantUtils.getParsedHash();
 
 					// Based on the key user provided info, app variant manifest is created
-					return oAppVariantManager.createAppVariant(sAppVariantId, vSelector)
+					return oAppVariantManager.createAppVariant(sAppVariantId, oParsedHash, vSelector)
 					.catch(function(oError) {
 						let sMessageKey = oError.messageKey;
 						sMessageKey ||= "MSG_SAVE_APP_VARIANT_FAILED";

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,14 @@ sap.ui.define([
 	"sap/m/library",
 	"./QuickAction",
 	"./QuickActionItem",
-	"sap/m/Switch"
+	"sap/m/Switch",
+	"sap/ui/performance/trace/FESRHelper"
 ], function (
 	library,
 	QuickAction,
 	QuickActionItem,
-	Switch
+	Switch,
+	FESRHelper
 ) {
 	"use strict";
 
@@ -30,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionItem
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -76,12 +78,16 @@ sap.ui.define([
 	};
 
 	QuickGroupItem.prototype._createContent = function() {
-		return new Switch({
+		const oSwitch = new Switch({
 			state: this.getGrouped(),
 			customTextOn: " ",
 			customTextOff: " ",
 			change: [{item: this}, this._onGroupChange, this]
 		});
+
+		FESRHelper.setSemanticStepname(oSwitch, "change", "tbl:p13n:group");
+
+		return oSwitch;
 	};
 
 	/*

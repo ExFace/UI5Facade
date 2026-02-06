@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element using a {@link sap.ui.mdc.Table}.
 	 * @extends sap.ui.mdc.valuehelp.base.FilterableListContent
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @public
 	 * @since 1.95.0
@@ -184,9 +184,11 @@ sap.ui.define([
 					const bSelectedInTable = aSelectedTableContexts.indexOf(oContext) >= 0;
 					if (!bIsInSelectedConditions && bSelectedInTable) {
 						const oItem = this.getItemFromContext(oContext);
-						const oCondition = oItem && this.createCondition(oItem.key, oItem.description, oItem.payload);
-						aModifiedConditions = this.isSingleSelect() ? [oCondition] : aModifiedConditions.concat(oCondition);
-						bFireSelect = true;
+						if (oItem) { // no key found -> no condition can be created -> ignore
+							const oCondition = this.createCondition(oItem.key, oItem.description, oItem.payload);
+							aModifiedConditions = this.isSingleSelect() ? [oCondition] : aModifiedConditions.concat(oCondition);
+							bFireSelect = true;
+						}
 					} else if (bIsInSelectedConditions && !bSelectedInTable) {
 						aModifiedConditions = aModifiedConditions.filter((oCondition) => {
 							return aConditionsForContext.indexOf(oCondition) === -1;
@@ -364,6 +366,9 @@ sap.ui.define([
 		if (this._oTable) {
 			_detachTableEvents.call(this, this._oTable);
 		}
+
+		delete this._bIgnoreNextConditionChange;
+
 	};
 
 	MDCTable.prototype.getScrollDelegate = function() {

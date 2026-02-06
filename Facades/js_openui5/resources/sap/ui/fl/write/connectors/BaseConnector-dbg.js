@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -157,6 +157,19 @@ sap.ui.define([
 		},
 
 		/**
+		 * Deletes all user variants for the given variant management references.
+		 *
+		 * @param {object} mPropertyBag - Property bag
+		 * @param {string} mPropertyBag.flexReference - Flex reference of the app the variant management controls belong to
+		 * @param {string[]} mPropertyBag.variantManagementReferences - Array of variant management references
+		 * @param {string} mPropertyBag.url - Configured url for the connector
+		 * @returns {Promise<undefined>} Promise that resolves as soon as the deletion was completed
+		 */
+		deleteUserVariantsForVM(/* mPropertyBag */) {
+			return Promise.reject("deleteUserVariantsForVM is not implemented");
+		},
+
+		/**
 		 * Interface to retrieve the variant management context information.
 		 * The context information is a JSON object that has boolean property 'lasthitreached'
 		 * indicating that the result is paginated and whether there are more contexts that can be fetched from the backend.
@@ -184,15 +197,6 @@ sap.ui.define([
 		 */
 		loadContextDescriptions(/* mPropertyBag */) {
 			return Promise.reject("loadContextDescriptions is not implemented");
-		},
-
-		/**
-		 * Interface called to check if variant management context sharing is enabled.
-		 *
-		 * @returns {Promise<object>} Resolves with an object containing the data for the flex features
-		 */
-		isContextSharingEnabled() {
-			return Promise.resolve(false);
 		},
 
 		contextBasedAdaptation: {

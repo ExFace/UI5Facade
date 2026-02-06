@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.initial._internal.Storage
 	 * @since 1.67
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -125,7 +125,7 @@ sap.ui.define([
 					layers: oConnectorConfig.layers
 				}, oConnectorConfig, "loadFeatures"));
 			}
-			return oConnectorConfig.loadConnectorModule.loadFeatures({url: oConnectorConfig.url})
+			return oConnectorConfig.loadConnectorModule.loadFeatures({ url: oConnectorConfig.url })
 			.then(function(oFeatures) {
 				return {
 					features: oFeatures,
@@ -204,6 +204,7 @@ sap.ui.define([
 	 * @param {number} [mPropertyBag.version] - Number of the version for which the data should be loaded
 	 * @param {boolean} [mPropertyBag.allContexts] Includes also restricted context
 	 * @param {string} [mPropertyBag.adaptationId] - Context-based adaptation to be loaded
+	 * @param {string} [mPropertyBag.skipLoadBundle=false] - If true only the partial flex data is loaded, without the bundle
 	 * @returns {Promise<object>} Resolves with the responses from all configured connectors merged into one object
 	 */
 	Storage.loadFlexData = function(mPropertyBag) {
@@ -211,7 +212,7 @@ sap.ui.define([
 			return Promise.reject("No reference was provided");
 		}
 
-		return StorageUtils.getLoadConnectors()
+		return StorageUtils.getLoadConnectors(mPropertyBag.skipLoadBundle)
 		.then(_loadFlexDataFromConnectors.bind(this, mPropertyBag))
 		.then(_flattenAndMergeResultPromise);
 	};

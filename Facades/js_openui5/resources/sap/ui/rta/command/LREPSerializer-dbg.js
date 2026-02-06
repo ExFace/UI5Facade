@@ -1,20 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/ui/rta/command/FlexCommand",
-	"sap/ui/rta/command/ManifestCommand",
 	"sap/ui/fl/Utils",
 	"sap/ui/dt/ElementUtil",
 	"sap/base/Log",
 	"sap/ui/fl/write/api/PersistenceWriteAPI"
 ], function(
 	ManagedObject,
-	FlexCommand,
-	ManifestCommand,
 	FlUtils,
 	ElementUtil,
 	Log,
@@ -27,7 +23,7 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.42
@@ -56,83 +52,12 @@ sap.ui.define([
 	}
 
 	/**
-	 * Promise to ensure that the event triggered methods are executed sequentionally.
+	 * Promise to ensure that the event triggered methods are executed sequentially.
 	 */
 	LREPSerializer.prototype._lastPromise = Promise.resolve();
 
 	LREPSerializer.prototype.setCommandStack = function(oCommandStack) {
-		if (this.getCommandStack()) {
-			this.getCommandStack().removeCommandExecutionHandler(this._fnHandleCommandExecuted);
-		}
 		this.setProperty("commandStack", oCommandStack);
-		oCommandStack.addCommandExecutionHandler(this._fnHandleCommandExecuted);
-	};
-	LREPSerializer.prototype.init = function() {
-		this._fnHandleCommandExecuted = this.handleCommandExecuted.bind(this);
-	};
-	LREPSerializer.prototype.exit = function() {
-		this.getCommandStack().removeCommandExecutionHandler(this._fnHandleCommandExecuted);
-	};
-	LREPSerializer.prototype._isPersistedChange = function(oPreparedChange) {
-		return !!this.getCommandStack()._aPersistedChanges
-			&& this.getCommandStack()._aPersistedChanges.indexOf(oPreparedChange.getId()) !== -1;
-	};
-
-	LREPSerializer.prototype.handleCommandExecuted = function(oEvent) {
-		return (function(oEvent) {
-			const oParams = oEvent;
-			this._lastPromise = this._lastPromise.catch(function() {
-				// _lastPromise chain must not be interrupted
-			}).then(function() {
-				const aCommands = this.getCommandStack().getSubCommands(oParams.command);
-				let oAppComponent;
-				const aFlexObjects = [];
-				if (oParams.undo) {
-					aCommands.forEach(function(oCommand) {
-						// for revertable changes which don't belong to LREP (variantSwitch) or runtime only changes
-						if (!(oCommand instanceof FlexCommand || oCommand instanceof ManifestCommand)
-							|| oCommand.getRuntimeOnly()) {
-							return;
-						}
-						const oChange = oCommand.getPreparedChange();
-						oAppComponent = oCommand.getAppComponent();
-						if (oAppComponent) {
-							aFlexObjects.push(oChange);
-						}
-					});
-					if (oAppComponent) {
-						return PersistenceWriteAPI.remove({
-							flexObjects: aFlexObjects,
-							selector: oAppComponent
-						});
-					}
-					return Promise.resolve();
-				}
-				const aManifestCreateAndAdd = [];
-				aCommands.forEach(function(oCommand) {
-					// Runtime only changes should not be added to the persistence
-					if (oCommand.getRuntimeOnly()) {
-						return;
-					}
-					if (oCommand instanceof FlexCommand) {
-						oAppComponent = oCommand.getAppComponent();
-						if (oAppComponent) {
-							const oPreparedChange = oCommand.getPreparedChange();
-							if (!this._isPersistedChange(oPreparedChange)) {
-								aFlexObjects.push(oCommand.getPreparedChange());
-							}
-						}
-					} else if (oCommand instanceof ManifestCommand) {
-						aManifestCreateAndAdd.push(oCommand.createAndStoreChange());
-					}
-				}.bind(this));
-				if (oAppComponent) {
-					PersistenceWriteAPI.add({flexObjects: aFlexObjects, selector: oAppComponent});
-				}
-				return Promise.all(aManifestCreateAndAdd);
-			}.bind(this));
-			return this._lastPromise;
-		}.bind(this))(oEvent);
 	};
 
 	/**
@@ -142,14 +67,14 @@ sap.ui.define([
 	 * @public
 	 */
 	LREPSerializer.prototype.needsReload = function() {
-		this._lastPromise = this._lastPromise.catch(function() {
+		this._lastPromise = this._lastPromise
+		.catch(() => {
 			// _lastPromise chain must not be interrupted
-		}).then(function() {
+		})
+		.then(() => {
 			const aCommands = this.getCommandStack().getAllExecutedCommands();
-			return aCommands.some(function(oCommand) {
-				return !!oCommand.needsReload;
-			});
-		}.bind(this));
+			return aCommands.some((oCommand) => !!oCommand.needsReload);
+		});
 		return this._lastPromise;
 	};
 	/**
@@ -167,15 +92,17 @@ sap.ui.define([
 	 * @public
 	 */
 	LREPSerializer.prototype.saveCommands = function(mPropertyBag) {
-		this._lastPromise = this._lastPromise.catch(function(oError) {
+		this._lastPromise = this._lastPromise
+		.catch((oError) => {
 			Log.error(oError);
 			// _lastPromise chain must not be interrupted
-		}).then(function() {
+		})
+		.then(async () => {
 			const oRootControl = getRootControlInstance(this.getRootControl());
 			if (!oRootControl) {
 				throw new Error("Can't save commands without root control instance!");
 			}
-			return PersistenceWriteAPI.save({
+			await PersistenceWriteAPI.save({
 				selector: oRootControl,
 				skipUpdateCache: false,
 				draft: !!mPropertyBag.saveAsDraft,
@@ -185,12 +112,10 @@ sap.ui.define([
 				adaptationId: mPropertyBag.adaptationId,
 				condenseAnyLayer: mPropertyBag.condenseAnyLayer
 			});
-		}.bind(this))
-		.then(function() {
 			Log.info("UI adaptation successfully wrote changes to the persistence");
 			this.getCommandStack().setSaved(true);
 			this.getCommandStack().removeAllCommands();
-		}.bind(this));
+		});
 
 		return this._lastPromise;
 	};
@@ -220,29 +145,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * @description
 	 * At this point command stack is not aware if the changes have been already booked for the new app variant.
 	 * Therefore if there shall be some UI changes present in command stack, we undo all the changes till the beginning.
 	 * In the last when user presses 'Save and Exit', there will be no change registered for the current app.
-	 * @param {boolean} bRemoveChanges if LREPSerializer should clear the dirty changes in the persistence
-	 * @returns {Promise} returns a promise with true or false
+	 * @param {boolean} bRemoveChanges - Whether LREPSerializer should clear the dirty changes in the persistence
+	 * @returns {Promise} Resolves with true or false
 	 */
-	LREPSerializer.prototype.clearCommandStack = function(bRemoveChanges) {
+	LREPSerializer.prototype.clearCommandStack = async function(bRemoveChanges) {
 		const oCommandStack = this.getCommandStack();
 
-		// Detach the event 'commandExecuted' here to stop the communication of LREPSerializer with Flex
-		if (!bRemoveChanges) {
-			oCommandStack.detachCommandExecuted(this.handleCommandExecuted.bind(this));
-		}
-		return this._triggerUndoChanges(bRemoveChanges)
-		.then(function() {
-			oCommandStack.removeAllCommands();
-			// Attach the event 'commandExecuted' here to start the communication of LREPSerializer with Flex
-			if (!bRemoveChanges) {
-				oCommandStack.attachCommandExecuted(this.handleCommandExecuted.bind(this));
-			}
-			return true;
-		}.bind(this));
+		await this._triggerUndoChanges(bRemoveChanges);
+		oCommandStack.removeAllCommands();
+		return true;
 	};
 
 	return LREPSerializer;

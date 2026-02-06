@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,6 +46,7 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/base/i18n/Localization", "sap/ui/c
 		if (oControl.getShowIcon()) {
 			this._writeAvatarControl(oRm, oControl, sMyId);
 		}
+
 
 		// text (starting with sender)
 		if (bIsPhone) {
@@ -144,12 +145,13 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/base/i18n/Localization", "sap/ui/c
 			}
 			oRm.close('div');
 		}
+
 		// action button
 		if (oControl.getActions().length > 0) {
-			var isAllActionsNotVisible = oControl.getActions().every(function (oAction) {
+			var bisAllActionsNotVisible = oControl.getActions().every(function (oAction) {
 				return oAction.getVisible() === false ;
 			});
-			if (!isAllActionsNotVisible) {
+			if (!bisAllActionsNotVisible) {
 				oRm.openStart("div", sMyId + "-action-button");
 				oRm.class('sapMFeedListItemActionButton');
 				oRm.openEnd();
@@ -157,8 +159,6 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/base/i18n/Localization", "sap/ui/c
 				oRm.close("div");
 			}
 		}
-
-
 		oRm.close('div');
 	};
 

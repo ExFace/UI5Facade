@@ -193,8 +193,17 @@ JS;
     public function buildJsChildrenConstructors() : string
     {
         $js = '';
-        foreach ($this->getWidget()->getWidgets() as $widget) {
-            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($widget)->buildJsConstructor();
+        $widget = $this->getWidget();
+        // DO NOT use foreach() here because while we generate the code for child widgets, the
+        // container might receive new widgets. Using a for() here ensures, dynamically added
+        // widgets are also iterated over. Dynamically added widgets can happen for example,
+        // when a Button has `hidden_if_input_invalid` or `hidden_if_access_denied` and the
+        // conditions for these require data, that is not yet present in the container. The
+        // Button widgets will add more widgets to make sure, it has all data for its conditional
+        // properties.
+        for ($i = 0; $i < $widget->countWidgets(); $i++) {
+            $child = $widget->getWidget($i);
+            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($child)->buildJsConstructor();
         }
         
         return $js;

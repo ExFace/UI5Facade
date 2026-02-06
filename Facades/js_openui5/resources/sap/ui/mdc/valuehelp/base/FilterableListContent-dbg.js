@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new element
 	 * @class Content for the {@link sap.ui.mdc.valuehelp.base.Container Container} element.
 	 * @extends sap.ui.mdc.valuehelp.base.ListContent
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @abstract
 	 * @public
@@ -227,7 +227,9 @@ sap.ui.define([
 	FilterableListContent.prototype._findConditionsForContext = function(oContext, aConditions) {
 		const oDelegate = this.isValueHelpDelegateInitialized() && this.getValueHelpDelegate();
 		if (oContext && oDelegate) {
-			// <!-- Support for deprecated delegate method isFilterableListItemSelected
+			/**
+			 *  @deprecated since 1.118.0
+			 */
 			if (oDelegate.isFilterableListItemSelected) {
 				Log.warning("MDC.ValueHelp", "Delegate method 'isFilterableListItemSelected' is deprecated, please implement 'findConditionsForContext' instead.");
 
@@ -247,7 +249,6 @@ sap.ui.define([
 				}
 				return [];
 			}
-			// -->
 			return oDelegate.findConditionsForContext(this.getValueHelpInstance(), this, oContext, aConditions);
 		}
 		return [];
@@ -405,7 +406,7 @@ sap.ui.define([
 
 	/**
 	 * Gets the control that holds the initial focus.
-	 * @returns {sap.ui.core.control} control
+	 * @returns {sap.ui.core.Control} control
 	 */
 	FilterableListContent.prototype.getInitialFocusedControl = function() {
 		return this.getActiveFilterBar().getInitialFocusedControl();

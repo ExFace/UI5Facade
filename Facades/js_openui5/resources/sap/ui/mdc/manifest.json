@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.0"
+      "version": "1.144.0"
     },
     "title": "UI5 library: sap.ui.mdc",
     "description": "UI5 library: sap.ui.mdc",
@@ -21,16 +21,16 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.136",
+      "minUI5Version": "1.144",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.136.0"
+          "minVersion": "1.144.0"
         },
         "sap.m": {
-          "minVersion": "1.136.0"
+          "minVersion": "1.144.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.136.0",
+          "minVersion": "1.144.0",
           "lazy": true
         }
       }
@@ -100,13 +100,15 @@
           "sap.ui.mdc.field.FieldBase",
           "sap.ui.mdc.field.FieldInput",
           "sap.ui.mdc.field.FieldMultiInput",
+          "sap.ui.mdc.field.FieldSelect",
           "sap.ui.mdc.valuehelp.base.DefineConditionPanel",
           "sap.ui.mdc.Field",
           "sap.ui.mdc.FilterField",
           "sap.ui.mdc.MultiValueField",
           "sap.ui.mdc.link.Panel",
           "sap.ui.mdc.Chart",
-          "sap.ui.mdc.p13n.PersistenceProvider"
+          "sap.ui.mdc.p13n.PersistenceProvider",
+          "sap.ui.mdc.Geomap"
         ],
         "elements": [
           "sap.ui.mdc.table.Column",
@@ -116,6 +118,7 @@
           "sap.ui.mdc.table.GridTableType",
           "sap.ui.mdc.table.ResponsiveTableType",
           "sap.ui.mdc.table.RowSettings",
+          "sap.ui.mdc.table.ActionLayoutData",
           "sap.ui.mdc.chart.Item",
           "sap.ui.mdc.chart.ChartSelectionDetails",
           "sap.ui.mdc.chart.SelectionButton",
@@ -144,7 +147,8 @@
           "sap.ui.mdc.valuehelp.content.FixedList",
           "sap.ui.mdc.valuehelp.content.FixedListItem",
           "sap.ui.mdc.valuehelp.content.MDCTable",
-          "sap.ui.mdc.valuehelp.content.MTable"
+          "sap.ui.mdc.valuehelp.content.MTable",
+          "sap.ui.mdc.geomap.Item"
         ],
         "types": [
           "sap.ui.mdc.TableType",
@@ -157,6 +161,7 @@
           "sap.ui.mdc.MultiSelectMode"
         ],
         "interfaces": [
+          "sap.ui.mdc.IActionLayoutData",
           "sap.ui.mdc.IFilterSource",
           "sap.ui.mdc.IFilter",
           "sap.ui.mdc.IxState",

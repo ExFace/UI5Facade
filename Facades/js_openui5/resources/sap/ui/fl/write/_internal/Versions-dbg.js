@@ -1,21 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/initial/api/Version",
 	"sap/ui/fl/initial/_internal/FlexInfoSession",
-	"sap/ui/fl/registry/Settings",
+	"sap/ui/fl/initial/api/Version",
 	"sap/ui/fl/write/_internal/Storage",
+	"sap/ui/fl/write/api/FeaturesAPI",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/model/BindingMode"
 ], function(
-	Version,
 	FlexInfoSession,
-	Settings,
+	Version,
 	Storage,
+	FeaturesAPI,
 	JSONModel,
 	BindingMode
 ) {
@@ -52,7 +52,7 @@ sap.ui.define([
 
 			// add draft
 			if (!_doesDraftExistInVersions(aVersions) && bDraftAvailable) {
-				aVersions.splice(0, 0, {version: Version.Number.Draft, type: Version.Type.Draft, filenames: [], isPublished: false});
+				aVersions.splice(0, 0, { version: Version.Number.Draft, type: Version.Type.Draft, filenames: [], isPublished: false });
 			}
 
 			// remove draft
@@ -159,7 +159,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.Versions
 	 * @since 1.74
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl
 	 */
@@ -173,31 +173,28 @@ sap.ui.define([
 	 *  <code>dirtyChanges</code> and <code>backendDraft</code>
 	 * rejects if an error occurs or the layer does not support draft handling
 	 */
-	Versions.initialize = function(mPropertyBag) {
+	Versions.initialize = async function(mPropertyBag) {
 		var sReference = mPropertyBag.reference;
 		var sLayer = mPropertyBag.layer;
 		mPropertyBag.limit = BACKEND_REQUEST_LIMIT;
 
-		return Settings.getInstance()
-		.then(function(oSettings) {
-			var bVersionsEnabled = oSettings.isVersioningEnabled(sLayer);
-			// TODO: similar to ContextBasedAdaptationsAPI this could also be moved outside
-			if (_mInstances && _mInstances[sReference] && _mInstances[sReference][sLayer]) {
-				return _mInstances[sReference][sLayer];
-			}
-			var aVersionsPromise = bVersionsEnabled ? Storage.versions.load(mPropertyBag) : Promise.resolve([]);
-			return aVersionsPromise
-			.then(function(aVersions) {
-				mPropertyBag.versioningEnabled = bVersionsEnabled;
-				mPropertyBag.versions = aVersions;
-				return createModel(mPropertyBag);
-			})
-			.then(function(oModel) {
-				_mInstances[sReference] ||= {};
-				_mInstances[sReference][sLayer] ||= {};
-				_mInstances[sReference][sLayer] = oModel;
-				return _mInstances[sReference][sLayer];
-			});
+		const bVersionsEnabled = await FeaturesAPI.isVersioningEnabled(sLayer);
+		// TODO: similar to ContextBasedAdaptationsAPI this could also be moved outside
+		if (_mInstances && _mInstances[sReference] && _mInstances[sReference][sLayer]) {
+			return _mInstances[sReference][sLayer];
+		}
+		var aVersionsPromise = bVersionsEnabled ? Storage.versions.load(mPropertyBag) : Promise.resolve([]);
+		return aVersionsPromise
+		.then(function(aVersions) {
+			mPropertyBag.versioningEnabled = bVersionsEnabled;
+			mPropertyBag.versions = aVersions;
+			return createModel(mPropertyBag);
+		})
+		.then(function(oModel) {
+			_mInstances[sReference] ||= {};
+			_mInstances[sReference][sLayer] ||= {};
+			_mInstances[sReference][sLayer] = oModel;
+			return _mInstances[sReference][sLayer];
 		});
 	};
 
@@ -229,6 +226,22 @@ sap.ui.define([
 		_mInstances = {};
 	};
 
+	Versions.updateAfterSave = async function(mPropertyBag) {
+		const oVersionsProperties = {
+			reference: mPropertyBag.reference,
+			layer: mPropertyBag.layer
+		};
+		if (mPropertyBag.backendResponse?.response?.length > 0) {
+			const aDraftFilenames = mPropertyBag.backendResponse.response.map((oChange) => oChange.fileName);
+			oVersionsProperties.draftFilenames = aDraftFilenames;
+			Versions.onAllChangesSaved(oVersionsProperties);
+		} else {
+			// need to update version model when condensing send post request with a delete change and
+			// afterwards call flex/data request with right version parameter
+			await Versions.updateModelFromBackend(oVersionsProperties);
+		}
+	};
+
 	/**
 	 * Update version model with backend information.
 	 *
@@ -253,7 +266,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Updates dirty changes and the backendDraft property of the model after a saveAll was called.
+	 * Updates dirty changes and the backendDraft property of the model after a save was performed.
 	 *
 	 * @param {object} mPropertyBag - Property Bag
 	 * @param {string} mPropertyBag.reference - ID of the application for which the versions are requested (this reference must not contain the ".Component" suffix)
@@ -262,10 +275,10 @@ sap.ui.define([
 	 * @param {array} [mPropertyBag.draftFilenames] - Array with filesnames which was saved as draft
 	 */
 	Versions.onAllChangesSaved = function(mPropertyBag) {
-		var oModel = Versions.getVersionsModel(mPropertyBag);
-		var bVersioningEnabled = oModel.getProperty("/versioningEnabled");
-		var bDirtyChanges = oModel.getProperty("/dirtyChanges");
-		var aDraftFilenames = oModel.getProperty("/draftFilenames");
+		const oModel = Versions.getVersionsModel(mPropertyBag);
+		const bVersioningEnabled = oModel.getProperty("/versioningEnabled");
+		const bDirtyChanges = oModel.getProperty("/dirtyChanges");
+		const aDraftFilenames = oModel.getProperty("/draftFilenames");
 		oModel.setProperty("/draftFilenames", aDraftFilenames.concat(mPropertyBag.draftFilenames));
 		oModel.setProperty("/dirtyChanges", true);
 		oModel.setProperty("/backendDraft", bVersioningEnabled && bDirtyChanges || !!mPropertyBag.contextBasedAdaptation);
@@ -273,6 +286,10 @@ sap.ui.define([
 		// Save can happen without a reload and the model must be kept up-to-date
 		oModel.setProperty("/persistedVersion", Version.Number.Draft);
 		oModel.updateBindings(true);
+		// Set the Flex InfoSession version to draft "0"
+		const oFlexInfo = FlexInfoSession.getByReference(mPropertyBag.reference);
+		oFlexInfo.version = Version.Number.Draft;
+		FlexInfoSession.setByReference(oFlexInfo, mPropertyBag.reference);
 	};
 
 	/**

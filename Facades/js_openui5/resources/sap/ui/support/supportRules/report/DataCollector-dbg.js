@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,15 +11,17 @@ sap.ui.define([
 	"sap/ui/VersionInfo",
 	"sap/base/util/LoaderExtensions",
 	"sap/base/security/encodeXML",
+	"sap/ui/base/OwnStatics",
 	"sap/ui/core/ComponentRegistry",
 	"sap/ui/core/Lib",
 	"sap/ui/core/Theming",
-	"sap/ui/core/theming/ThemeManager",
 	"sap/ui/core/support/ToolsAPI",
 	"sap/ui/thirdparty/URI"
 ],
-	function (VersionInfo, LoaderExtensions, encodeXML, ComponentRegistry, Lib, Theming, ThemeManager, ToolsAPI, URI) {
+	function (VersionInfo, LoaderExtensions, encodeXML, OwnStatics, ComponentRegistry, Lib, Theming, ToolsAPI, URI) {
 	"use strict";
+
+	const { getThemePath } = OwnStatics.get(Theming);
 
 	/**
 	 * The DataCollector collects information.
@@ -143,7 +145,7 @@ sap.ui.define([
 				// (e.g. "MyControl" instead of "com.example.MyControl").
 				continue;
 			}
-			var sPath = ThemeManager._getThemePath(n, Theming.getTheme());
+			var sPath = getThemePath(n, Theming.getTheme());
 			aResults.push({
 				theme : Theming.getTheme(),
 				library: n,

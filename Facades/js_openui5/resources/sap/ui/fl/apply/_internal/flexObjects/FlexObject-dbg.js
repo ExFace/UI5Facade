@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -11,8 +11,8 @@ sap.ui.define([
 	"sap/base/util/restricted/_omit",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/fl/apply/_internal/flexObjects/States",
+	"sap/ui/fl/initial/_internal/Settings",
 	"sap/ui/fl/Layer",
-	"sap/ui/fl/registry/Settings",
 	"sap/ui/fl/Utils"
 ], function(
 	deepClone,
@@ -22,31 +22,26 @@ sap.ui.define([
 	_omit,
 	ManagedObject,
 	States,
-	Layer,
 	Settings,
+	Layer,
 	Utils
 ) {
 	"use strict";
 
 	/**
-	 * @type {sap.ui.fl.apply._internal.flexObjects.FlexObject.FlexObjectMetadata}
-	 * @static
-	 * @constant
 	 * @typedef {object} sap.ui.fl.apply._internal.flexObjects.FlexObject.FlexObjectMetadata
 	 * @property {string} changeType - Type of the flexObject
-	 * @property {string} reference - Application component name
+	 * @property {string} reference - Flexibility reference of the app
 	 * @property {string} namespace - Namespace of the flex object file
 	 * @property {string} creation - Timestamp of creation date
 	 * @property {string} projectId - Project ID of the flex object file
 	 * @property {string} packageName - ABAP package name
 	 * @property {string} moduleName - Name of the module which this flex object refers to (XML or JS)
 	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 
 	/**
-	 * @type {sap.ui.fl.apply._internal.flexObjects.FlexObject.SupportInformation}
-	 * @static
-	 * @constant
 	 * @typedef {object} sap.ui.fl.apply._internal.flexObjects.FlexObject.SupportInformation
 	 * @property {string} generator - Tool that is used to generate the flex object file
 	 * @property {string} service - Name of the OData service
@@ -60,6 +55,7 @@ sap.ui.define([
 	 * @property {string} oDataInformation - Object with information about the OData service
 	 * @property {string} originalLanguage - Language in which the flex object was created
 	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 
 	/**
@@ -69,9 +65,9 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 * @alias sap.ui.fl.apply._internal.flexObjects.FlexObject
 	 * @since 1.100
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
-	 * @ui5-restricted sap.ui.fl
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	var FlexObject = ManagedObject.extend("sap.ui.fl.apply._internal.flexObjects.FlexObject", /* @lends sap.ui.fl.apply._internal.flexObjects.FlexObject.prototype */ {
 		metadata: {
@@ -138,7 +134,6 @@ sap.ui.define([
 				}
 			}
 		},
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			ManagedObject.apply(this, aArgs);
 			var oFlexObjectMetadata = this.getFlexObjectMetadata();
@@ -313,6 +308,8 @@ sap.ui.define([
 	/**
 	 * Getter for the namespace from the FlexObjectMetadata.
 	 * @returns {string} Namespace
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	FlexObject.prototype.getNamespace = function() {
 		return this.getFlexObjectMetadata().namespace;
@@ -321,6 +318,8 @@ sap.ui.define([
 	/**
 	 * Getter for the change type from the FlexObjectMetadata.
 	 * @returns {string} Change type
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	FlexObject.prototype.getChangeType = function() {
 		return this.getFlexObjectMetadata().changeType;
@@ -329,6 +328,8 @@ sap.ui.define([
 	/**
 	 * Returns <code>true</code> if the flex object is user dependent.
 	 * @returns {boolean} <code>true</code> if the flex object is only relevant for the current user
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	FlexObject.prototype.isUserDependent = function() {
 		return this.getLayer() === Layer.USER;
@@ -338,6 +339,8 @@ sap.ui.define([
 	 * Returns the text in the current language for a given ID.
 	 * @param {string} sTextId - Text ID which was used as part of the <code>texts</code> property
 	 * @returns {string} The text for the given text ID
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	FlexObject.prototype.getText = function(sTextId) {
 		var oText = this.getTexts()[sTextId] || {};
@@ -397,7 +400,9 @@ sap.ui.define([
 	 * calling this function with e.g. Variants
 	 * Should be removed after all consumers are adjusted.
 	 * @returns {object} file content as JSON object
-	 * @deprecated As of version 1.100
+	 * @deprecated As of version 1.100. Please use the dedicated properties to get information about the flex object.
+	 * @private
+	 * @ui5-restricted sap.ui.fl, Change handlers
 	 */
 	FlexObject.prototype.getDefinition = function() {
 		return this.convertToFileContent();

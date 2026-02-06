@@ -1,18 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/ManagedObject",
-	"sap/ui/dt/DOMUtil",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/dt/DOMUtil"
 ],
 function(
 	ManagedObject,
-	DOMUtil,
-	jQuery
+	DOMUtil
 ) {
 	"use strict";
 
@@ -24,7 +22,7 @@ function(
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @private
@@ -52,7 +50,6 @@ function(
 			}
 		},
 		_bSyncing: false,
-		// eslint-disable-next-line object-shorthand
 		constructor: function(...aArgs) {
 			this._scrollEventHandler = this._scrollEventHandler.bind(this);
 			ManagedObject.apply(this, aArgs);
@@ -131,11 +128,11 @@ function(
 	};
 
 	ScrollbarSynchronizer.prototype._attachScrollEvent = function(oDomNode) {
-		jQuery(oDomNode).on("scroll", this._scrollEventHandler);
+		oDomNode.addEventListener("scroll", this._scrollEventHandler);
 	};
 
 	ScrollbarSynchronizer.prototype._detachScrollEvent = function(oDomNode) {
-		jQuery(oDomNode).off("scroll", this._scrollEventHandler);
+		oDomNode.removeEventListener("scroll", this._scrollEventHandler);
 	};
 
 	ScrollbarSynchronizer.prototype._scrollEventHandler = function(oEvent) {
@@ -151,11 +148,10 @@ function(
 		if (
 			bForce
 			|| this.getScrollTop() !== oSourceDomNode.scrollTop
-			|| this.getScrollLeft() !== jQuery(oSourceDomNode).scrollLeft()
+			|| this.getScrollLeft() !== oSourceDomNode.scrollLeft
 		) {
 			this.setScrollTop(oSourceDomNode.scrollTop);
-			this.setScrollLeft(jQuery(oSourceDomNode).scrollLeft());
-
+			this.setScrollLeft(oSourceDomNode.scrollLeft);
 			if (this._bSyncing) {
 				this._abortSync();
 			}

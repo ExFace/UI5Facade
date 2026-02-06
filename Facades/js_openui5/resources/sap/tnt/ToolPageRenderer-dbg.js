@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,8 +25,17 @@ sap.ui.define([
 	 */
 	ToolPageRenderer.render = function (oRM, oControl) {
 		oRM.openStart("div", oControl)
-			.class("sapTntToolPage")
-			.openEnd();
+			.class("sapTntToolPage");
+
+		if (oControl.getSideContent()) {
+			oRM.class("sapTntToolPageWithSideContent");
+		}
+
+		if (window.innerWidth < 600) {
+			oRM.class("sapTntToolPage-LayoutS");
+		}
+
+		oRM.openEnd();
 
 		this.renderHeader(oRM, oControl);
 
@@ -81,7 +90,7 @@ sap.ui.define([
 	ToolPageRenderer.renderContent = function (oRM, oControl) {
 		oRM.openStart("div").class("sapTntToolPageContentWrapper");
 
-		if (!Device.system.desktop || !oControl.getSideExpanded()) {
+		if (window.innerWidth < 600 || !oControl.getSideExpanded()) {
 			oRM.class("sapTntToolPageAsideCollapsed");
 		}
 
@@ -106,10 +115,6 @@ sap.ui.define([
 			var bSideExpanded = oControl.getSideExpanded();
 			if (oSideContent && oSideContent.getExpanded() !== bSideExpanded) {
 				oSideContent.setExpanded(bSideExpanded);
-			}
-
-			if (!Device.system.desktop) {
-				oControl.setSideExpanded(false);
 			}
 
 			// The render of the aggregation should be after the above statement,

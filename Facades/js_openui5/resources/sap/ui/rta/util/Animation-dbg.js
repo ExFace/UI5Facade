@@ -1,15 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([
-],
-function() {
+sap.ui.define([], function() {
 	"use strict";
 
-	var module = {};
+	const module = {};
 
 	/**
 	 * CSS Transition helper
@@ -23,11 +21,11 @@ function() {
 		}
 
 		return new Promise(function(fnResolve) {
-			oElement.addEventListener("transitionend", fnResolve, {once: true});
+			oElement.addEventListener("transitionend", fnResolve, { once: true });
 
 			// perform animation in the next animation frame, normally 16-17ms later.
-			var iTimestampInitial;
-			var fnAnimCallback = function(iTimestamp) {
+			let iTimestampInitial;
+			const fnAnimCallback = function(iTimestamp) {
 				iTimestampInitial ||= iTimestamp;
 				if (iTimestamp !== iTimestampInitial) {
 					fnCallback();

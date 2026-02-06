@@ -44,19 +44,19 @@
 		},
 		{
 			"name": "ShellHeader.less",
-			"size": 4418,
+			"size": 4513,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "ShellLayout.less",
-			"size": 369,
+			"size": 464,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "ShellOverlay.less",
-			"size": 1370,
+			"size": 1470,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -92,7 +92,7 @@
 		},
 		{
 			"name": "base_ContentSwitcher.less",
-			"size": 4682,
+			"size": 4781,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -122,25 +122,25 @@
 		},
 		{
 			"name": "base_ShellHeader.less",
-			"size": 14079,
+			"size": 14174,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_ShellLayout.less",
-			"size": 3979,
+			"size": 4074,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_ShellOverlay.less",
-			"size": 9257,
+			"size": 9357,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "base_SplitContainer.less",
-			"size": 1945,
+			"size": 2047,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},
@@ -156,7 +156,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 156713,
+			"size": 156777,
 			"theme": "sap_hcb"
 		},
 		{
@@ -167,12 +167,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 156580,
+			"size": 156644,
 			"theme": "sap_hcb"
 		},
 		{
 			"name": "library.less",
-			"size": 158761,
+			"size": 159542,
 			"designtime": true,
 			"theme": "sap_hcb"
 		},

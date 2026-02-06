@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,6 +28,9 @@ sap.ui.define([],
 			name: {
 				singular: "LIST_NAME",
 				plural: "LIST_NAME_PLURAL"
+			},
+			getLabel: function(oControl) {
+				return oControl.getHeaderText();
 			},
 			aggregations: {
 				items: {
@@ -59,16 +62,6 @@ sap.ui.define([],
 						changeType: "rename",
 						domRef: function (oControl) {
 							return oControl.getDomRef().getDomRef().querySelector(".ui5-list-header");
-						},
-						getTextMutators: function (oControl) {
-							return {
-								getText: function () {
-									return oControl.getHeaderText();
-								},
-								setText: function (sNewText) {
-									oControl.setHeaderText(sNewText);
-								}
-							};
 						},
 						isEnabled: function (oControl) {
 							return oControl.getHeaderText().length > 0;

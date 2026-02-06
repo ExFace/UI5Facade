@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.fl.write._internal.condenser.UIReconstruction
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 */
 	const UIReconstruction = {};
 
@@ -120,7 +120,9 @@ sap.ui.define([
 	 * @returns {int} Target index of the index-related change
 	 */
 	function getTargetIndex(oCondenserInfo) {
-		return oCondenserInfo.getTargetIndex(oCondenserInfo.change);
+		// Destroy does not have a target index. But it can be sorted to the front of the array to first
+		// reduce the number of changes in the container to the same as the target UI
+		return oCondenserInfo.classification === "destroy" ? -1 : oCondenserInfo.getTargetIndex(oCondenserInfo.change);
 	}
 
 	/**

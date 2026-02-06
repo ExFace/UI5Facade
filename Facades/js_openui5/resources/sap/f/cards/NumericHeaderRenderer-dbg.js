@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,6 +35,38 @@ sap.ui.define([
 		const bHasDataTimestamp = oHeader.getDataTimestamp() || oBindingInfos.dataTimestamp;
 
 		return bHasMainIndicator || bHasSideIndicators || bHasDetails || bHasDataTimestamp;
+	};
+
+	/**
+	 * @override
+	 */
+	NumericHeaderRenderer.renderMainWrapperContent = function (oRm, oHeader) {
+		const oError = oHeader.getAggregation("_error");
+		const oToolbar = oHeader.getToolbar();
+		const bHasToolbar = oToolbar && oToolbar.getVisible();
+		const oBindingInfos = oHeader.mBindingInfos;
+		const bHasStatus = oHeader.getStatusVisible() && oHeader.getStatusText();
+		const bHasDataTimestamp = oHeader.getDataTimestamp() || oBindingInfos.dataTimestamp;
+		const bHasNumericPart = this.hasNumericPart(oHeader);
+
+		oRm.openStart("div").class("sapFCardHeaderTopRow").openEnd();
+		this.renderMainPart(oRm, oHeader);
+
+		if (!oError && (bHasToolbar || bHasStatus || bHasDataTimestamp)) {
+			this._renderToolbar(oRm, oToolbar, oHeader);
+		}
+
+		oRm.close("div"); // .sapFCardHeaderTopRow
+
+		// Info sections (if any)
+		if (!oError) {
+			this._renderInfoSections(oRm, oHeader);
+		}
+
+		// Numeric part below
+		if (bHasNumericPart && !oError) {
+			this.renderNumericPart(oRm, oHeader);
+		}
 	};
 
 	/**
@@ -124,7 +156,7 @@ sap.ui.define([
 				oRm.renderControl(oSubtitle);
 			}
 
-			if (oUnitOfMeasurement) {
+			if (bHasUnitOfMeasurement) {
 				oRm.renderControl(oUnitOfMeasurement);
 			}
 
@@ -186,20 +218,14 @@ sap.ui.define([
 	NumericHeaderRenderer._renderDetails = function(oRm, oNumericHeader) {
 		var oBindingInfos = oNumericHeader.mBindingInfos,
 			oDetails = oNumericHeader.getAggregation("_details"),
-			bHasDetails = oNumericHeader.getDetails() || oBindingInfos.details,
-			oDataTimestamp = oNumericHeader.getAggregation("_dataTimestamp"),
-			bHasDataTimestamp = oNumericHeader.getDataTimestamp() || oBindingInfos.dataTimestamp;
+			bHasDetails = oNumericHeader.getDetails() || oBindingInfos.details;
 
-		if (!bHasDetails && !bHasDataTimestamp) {
+		if (!bHasDetails) {
 			return;
 		}
 
 		oRm.openStart("div")
 			.class("sapFCardHeaderDetailsWrapper");
-
-		if (bHasDataTimestamp) {
-			oRm.class("sapFCardHeaderLineIncludesDataTimestamp");
-		}
 
 		oRm.openEnd();
 
@@ -210,10 +236,6 @@ sap.ui.define([
 			}
 
 			oRm.renderControl(oDetails);
-		}
-
-		if (bHasDataTimestamp) {
-			oRm.renderControl(oDataTimestamp);
 		}
 
 		oRm.close("div");

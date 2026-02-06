@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @namespace sap.ui.fl.write._internal.flexState.UI2Personalization.UI2PersonalizationState
 	 * @since 1.120
-	 * @version 1.136.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -53,7 +53,7 @@ sap.ui.define([
 		const oPersonalizationSubsection = FlexState.getUI2Personalization(oPersonalizationResult.response.reference);
 		oPersonalizationSubsection[oPersonalizationResult.response.containerKey] ||= [];
 		oPersonalizationSubsection[oPersonalizationResult.response.containerKey].push(oPersonalizationResult.response);
-		FlexState.updateStorageResponse(oPersonalizationResult.response.reference, [{
+		FlexState.update(oPersonalizationResult.response.reference, [{
 			type: "ui2",
 			newData: oPersonalizationSubsection
 		}]);
@@ -86,7 +86,7 @@ sap.ui.define([
 		const oToBeDeletedItem = UI2PersonalizationStateApply.getPersonalization(sReference, sContainerKey, sItemName);
 		const nIndexOfItem = aItems.indexOf(oToBeDeletedItem);
 		aItems.splice(nIndexOfItem, 1);
-		FlexState.updateStorageResponse(sReference, [{
+		FlexState.update(sReference, [{
 			type: "ui2",
 			newData: oUI2Personalization
 		}]);

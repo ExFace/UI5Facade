@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -428,6 +428,10 @@ html.sap-desktop .sapMList .sapMLIB.sapMALI:hover:not(.sapMLIBActive) > .sapMLIB
 /* END "ActionListItem.less" */
 
 /* START "ActionSelect.less" */
+/**
+ * @file
+ * @deprecated As of version 1.111, together with sap.m.ActionSelect
+ */
 /* =================================== */
 /* CSS for control sap.m/ActionSelect  */
 /* Base theme                          */
@@ -1885,7 +1889,7 @@ html[data-sap-ui-animation-mode="minimal"] {
 	background-clip: padding-box;
 	box-sizing: border-box;
 
-	font-family: @sapUiFontFamily;
+	font-family: var(--sapButton_FontFamily);
 	font-size: 0.875rem;
 
 	height: @sapUiElementHeight;
@@ -3135,7 +3139,7 @@ html[data-sap-ui-animation='off'] .sapMCrsl .sapMCrslInner {
 
 /* Default Themes/Sytles for Slider */
 .sapMCrslFluid .sapMCrslItem {
-	margin-right: 1.25rem;
+	margin-inline-end: 1.25rem;
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
@@ -4039,6 +4043,10 @@ html.sap-desktop .sapMDialog.CPDialog{
 /* END "ColorPalette.less" */
 
 /* START "CustomTile.less" */
+/**
+ * @file
+ * @deprecated As of version 1.50, together with sap.m.CustomTile
+ */
 /* ================================= */
 /* CSS for control sap.m/CustomTile  */
 /* Base theme                        */
@@ -5181,6 +5189,10 @@ html[data-sap-ui-browser^="cr"] .sapUiSizeCompact .sapUiFormEdit .sapMExText {
 /* END "AdditionalTextButton.less" */
 
 /* START "MessagePage.less" */
+/**
+ * @file
+ * @deprecated as of version 1.112, together with sap.m.MessagePage
+ */
 /* ================================== */
 /* CSS for control sap.m/MessagePage  */
 /* Base theme                         */
@@ -26946,6 +26958,10 @@ html[dir=rtl] .sapMSLIInfo {
 /* END "StandardTreeItem.less" */
 
 /* START "StandardTile.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.StandardTile
+ */
 /* =================================== */
 /* CSS for control sap.m/StandardTile  */
 /* Base theme                          */
@@ -29109,6 +29125,10 @@ html.sap-tablet, html.sap-phone {
 /* END "TextArea.less" */
 
 /* START "Tile.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.Tile
+ */
 /* =========================== */
 /* CSS for control sap.m/Tile  */
 /* Base theme                  */
@@ -29439,6 +29459,10 @@ html[dir=rtl] .sapMTileCntFtrTxt {
 /* END "TileContent.less" */
 
 /* START "TileContainer.less" */
+/**
+ * @file
+ * @deprecated as of version 1.50, together with sap.m.TileContainer
+ */
 /* ==================================== */
 /* CSS for control sap.m/TileContainer  */
 /* Base theme                           */
@@ -29727,23 +29751,11 @@ html.sap-phone .sapMTC .sapMTCEdgeRight {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	user-select: none;
-	box-shadow: @sapUiShadowLevel1 !important; //Need to override this with important because of popover stronger selectors
 }
 
 /* ======================================== */
 /* COMPACT MODE STYLES                      */
 /* ======================================== */
-
-.sapUiSizeCompact {
-
-	/* ======================================== */
-	/* TimePicker Dropdown                      */
-	/* ======================================== */
-
-	.sapMTimePickerDropDown {
-		box-shadow: @sapUiShadowLevel1 !important; //Need to override this with important because of popover stronger selectors
-	}
-}
 
 /* PHONE STYLES */
 html.sap-phone {
@@ -31295,6 +31307,10 @@ html.sap-desktop .sapMTokenizer:focus {
 /* END "TreeItemBase.less" */
 
 /* START "UploadCollection.less" */
+/**
+ * @file
+ * @deprecated as of version 1.88, together with sap.m.UploadCollection
+ */
 /* ======================================= */
 /* CSS for control sap.m/UploadCollection  */
 /* Base theme                              */
@@ -31626,7 +31642,7 @@ html.sap-desktop .sapMTokenizer:focus {
 }
 
 @media(min-width: 30rem) {
-	/* !important is necessary here for overriding inline style of sap.m.input */
+	/* !important is necessary here for overriding inline style of sap.m.Input */
 	.sapMUCEditBox >.sapMInputBaseInner {
 		width: 60% !important;
 	}
@@ -31793,6 +31809,10 @@ html.sap-desktop .sapMTokenizer:focus {
 /* END "UploadCollection.less" */
 
 /* START "UploadSet.less" */
+/**
+ * @file
+ * @deprecated As of version 1.129, together with sap.m.upload.UploadSet
+ */
 .sapMUSFileName {
 	flex-shrink: 0;
 }

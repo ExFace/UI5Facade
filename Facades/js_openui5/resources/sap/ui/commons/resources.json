@@ -866,81 +866,151 @@
 		{
 			"name": "FileUploader-dbg.js",
 			"module": "sap/ui/commons/FileUploader.js",
-			"size": 1707,
+			"size": 68266,
 			"isDebug": true,
 			"required": [
 				"sap/base/Log.js",
+				"sap/base/security/encodeXML.js",
+				"sap/ui/Device.js",
+				"sap/ui/commons/Button.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/TextField.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/core/Core.js",
-				"sap/ui/unified/FileUploader.js"
+				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/InvisibleText.js",
+				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
+				"sap/ui/core/StaticArea.js",
+				"sap/ui/core/library.js",
+				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
+				"sap/ui/events/KeyCodes.js",
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploader.js",
 			"module": "sap/ui/commons/FileUploader.js",
-			"size": 601,
+			"size": 27202,
 			"required": [
 				"sap/base/Log.js",
+				"sap/base/security/encodeXML.js",
+				"sap/ui/Device.js",
+				"sap/ui/commons/Button.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/TextField.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/core/Core.js",
-				"sap/ui/unified/FileUploader.js"
+				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
+				"sap/ui/core/Element.js",
+				"sap/ui/core/InvisibleText.js",
+				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
+				"sap/ui/core/StaticArea.js",
+				"sap/ui/core/library.js",
+				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
+				"sap/ui/events/KeyCodes.js",
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploader.js.map",
-			"size": 555,
+			"size": 33866,
+			"isDebug": true
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod-dbg.js",
+			"module": "sap/ui/commons/FileUploaderHttpRequestMethod.js",
+			"size": 930,
+			"isDebug": true,
+			"required": [
+				"sap/ui/base/DataType.js"
+			]
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod.js",
+			"module": "sap/ui/commons/FileUploaderHttpRequestMethod.js",
+			"size": 374,
+			"required": [
+				"sap/ui/base/DataType.js"
+			]
+		},
+		{
+			"name": "FileUploaderHttpRequestMethod.js.map",
+			"size": 370,
 			"isDebug": true
 		},
 		{
 			"name": "FileUploaderParameter-dbg.js",
 			"module": "sap/ui/commons/FileUploaderParameter.js",
-			"size": 1470,
+			"size": 1475,
 			"isDebug": true,
 			"required": [
-				"sap/base/Log.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/unified/FileUploaderParameter.js"
+				"sap/ui/core/Element.js"
 			]
 		},
 		{
 			"name": "FileUploaderParameter.js",
 			"module": "sap/ui/commons/FileUploaderParameter.js",
-			"size": 589,
+			"size": 495,
 			"required": [
-				"sap/base/Log.js",
 				"sap/ui/commons/library.js",
-				"sap/ui/unified/FileUploaderParameter.js"
+				"sap/ui/core/Element.js"
 			]
 		},
 		{
 			"name": "FileUploaderParameter.js.map",
-			"size": 538,
+			"size": 513,
 			"isDebug": true
 		},
 		{
 			"name": "FileUploaderRenderer-dbg.js",
 			"module": "sap/ui/commons/FileUploaderRenderer.js",
-			"size": 494,
+			"size": 3520,
 			"isDebug": true,
 			"required": [
-				"sap/ui/core/Renderer.js",
-				"sap/ui/unified/FileUploaderRenderer.js"
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploaderRenderer.js",
 			"module": "sap/ui/commons/FileUploaderRenderer.js",
-			"size": 333,
+			"size": 2062,
 			"required": [
-				"sap/ui/core/Renderer.js",
-				"sap/ui/unified/FileUploaderRenderer.js"
+				"sap/ui/thirdparty/jquery.js"
 			]
 		},
 		{
 			"name": "FileUploaderRenderer.js.map",
-			"size": 338,
+			"size": 2414,
+			"isDebug": true
+		},
+		{
+			"name": "FileUploaderXHRSettings-dbg.js",
+			"module": "sap/ui/commons/FileUploaderXHRSettings.js",
+			"size": 1447,
+			"isDebug": true,
+			"required": [
+				"sap/ui/commons/library.js",
+				"sap/ui/core/Element.js"
+			]
+		},
+		{
+			"name": "FileUploaderXHRSettings.js",
+			"module": "sap/ui/commons/FileUploaderXHRSettings.js",
+			"size": 457,
+			"required": [
+				"sap/ui/commons/library.js",
+				"sap/ui/core/Element.js"
+			]
+		},
+		{
+			"name": "FileUploaderXHRSettings.js.map",
+			"size": 472,
 			"isDebug": true
 		},
 		{
@@ -4382,11 +4452,12 @@
 		{
 			"name": "library-dbg.js",
 			"module": "sap/ui/commons/library.js",
-			"size": 24958,
+			"size": 26608,
 			"isDebug": true,
 			"required": [
 				"sap/base/util/ObjectPath.js",
 				"sap/ui/base/DataType.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/manifest.json",
 				"sap/ui/core/library.js",
 				"sap/ui/layout/library.js",
@@ -4396,7 +4467,7 @@
 		{
 			"name": "library-preload.js",
 			"module": "sap/ui/commons/library-preload.js",
-			"size": 553435,
+			"size": 582806,
 			"merged": true,
 			"required": [
 				"jquery.sap.strings.js",
@@ -4412,6 +4483,7 @@
 				"sap/ui/base/Event.js",
 				"sap/ui/core/Configuration.js",
 				"sap/ui/core/Control.js",
+				"sap/ui/core/ControlBehavior.js",
 				"sap/ui/core/Core.js",
 				"sap/ui/core/CustomStyleClassSupport.js",
 				"sap/ui/core/Element.js",
@@ -4420,7 +4492,9 @@
 				"sap/ui/core/History.js",
 				"sap/ui/core/Icon.js",
 				"sap/ui/core/IconPool.js",
+				"sap/ui/core/InvisibleText.js",
 				"sap/ui/core/LabelEnablement.js",
+				"sap/ui/core/Lib.js",
 				"sap/ui/core/ListItem.js",
 				"sap/ui/core/Locale.js",
 				"sap/ui/core/LocaleData.js",
@@ -4429,6 +4503,7 @@
 				"sap/ui/core/Renderer.js",
 				"sap/ui/core/ResizeHandler.js",
 				"sap/ui/core/SeparatorItem.js",
+				"sap/ui/core/StaticArea.js",
 				"sap/ui/core/Title.js",
 				"sap/ui/core/TooltipBase.js",
 				"sap/ui/core/ValueStateSupport.js",
@@ -4440,6 +4515,7 @@
 				"sap/ui/core/search/OpenSearchProvider.js",
 				"sap/ui/core/theming/Parameters.js",
 				"sap/ui/dom/containsOrEquals.js",
+				"sap/ui/dom/jquery/Aria.js",
 				"sap/ui/dom/jquery/Focusable.js",
 				"sap/ui/dom/jquery/Selectors.js",
 				"sap/ui/dom/jquery/control.js",
@@ -4485,9 +4561,6 @@
 				"sap/ui/thirdparty/jqueryui/jquery-ui-sortable.js",
 				"sap/ui/thirdparty/jqueryui/jquery-ui-widget.js",
 				"sap/ui/unified/ColorPicker.js",
-				"sap/ui/unified/FileUploader.js",
-				"sap/ui/unified/FileUploaderParameter.js",
-				"sap/ui/unified/FileUploaderRenderer.js",
 				"sap/ui/unified/Menu.js",
 				"sap/ui/unified/MenuItem.js",
 				"sap/ui/unified/MenuItemBase.js",
@@ -4524,8 +4597,10 @@
 				"sap/ui/commons/DropdownBox.js",
 				"sap/ui/commons/DropdownBoxRenderer.js",
 				"sap/ui/commons/FileUploader.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/FileUploaderParameter.js",
 				"sap/ui/commons/FileUploaderRenderer.js",
+				"sap/ui/commons/FileUploaderXHRSettings.js",
 				"sap/ui/commons/FormattedTextView.js",
 				"sap/ui/commons/FormattedTextViewRenderer.js",
 				"sap/ui/commons/HorizontalDivider.js",
@@ -4656,16 +4731,17 @@
 		},
 		{
 			"name": "library-preload.js.map",
-			"size": 686589,
+			"size": 722925,
 			"isDebug": true
 		},
 		{
 			"name": "library.js",
 			"module": "sap/ui/commons/library.js",
-			"size": 7668,
+			"size": 7861,
 			"required": [
 				"sap/base/util/ObjectPath.js",
 				"sap/ui/base/DataType.js",
+				"sap/ui/commons/FileUploaderHttpRequestMethod.js",
 				"sap/ui/commons/manifest.json",
 				"sap/ui/core/library.js",
 				"sap/ui/layout/library.js",
@@ -4674,18 +4750,18 @@
 		},
 		{
 			"name": "library.js.map",
-			"size": 5455,
+			"size": 5539,
 			"isDebug": true
 		},
 		{
 			"name": "manifest.json",
 			"module": "sap/ui/commons/manifest.json",
-			"size": 7412
+			"size": 7568
 		},
 		{
 			"name": "messagebundle.properties",
 			"module": "sap/ui/commons/messagebundle.properties",
-			"size": 7855,
+			"size": 8156,
 			"locale": "",
 			"raw": "messagebundle.properties"
 		},
@@ -4739,7 +4815,7 @@
 		{
 			"name": "messagebundle_de.properties",
 			"module": "sap/ui/commons/messagebundle_de.properties",
-			"size": 3259,
+			"size": 3257,
 			"locale": "de",
 			"raw": "messagebundle.properties"
 		},
@@ -4935,7 +5011,7 @@
 		{
 			"name": "messagebundle_pl.properties",
 			"module": "sap/ui/commons/messagebundle_pl.properties",
-			"size": 3719,
+			"size": 3733,
 			"locale": "pl",
 			"raw": "messagebundle.properties"
 		},
@@ -4998,7 +5074,7 @@
 		{
 			"name": "messagebundle_sv.properties",
 			"module": "sap/ui/commons/messagebundle_sv.properties",
-			"size": 3248,
+			"size": 3243,
 			"locale": "sv",
 			"raw": "messagebundle.properties"
 		},
@@ -5046,7 +5122,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 163952
+			"size": 165999
 		},
 		{
 			"name": "themes/base/.theming",
@@ -5055,19 +5131,19 @@
 		},
 		{
 			"name": "themes/base/AbsoluteLayout.less",
-			"size": 785,
+			"size": 846,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/Accordion.less",
-			"size": 426,
+			"size": 468,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/AccordionSection.less",
-			"size": 2990,
+			"size": 3206,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5109,7 +5185,7 @@
 		},
 		{
 			"name": "themes/base/Carousel.less",
-			"size": 1384,
+			"size": 1427,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5127,7 +5203,7 @@
 		},
 		{
 			"name": "themes/base/ControlsInUITable.less",
-			"size": 2726,
+			"size": 2371,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5145,7 +5221,7 @@
 		},
 		{
 			"name": "themes/base/FileUploader.less",
-			"size": 173,
+			"size": 2274,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5163,7 +5239,7 @@
 		},
 		{
 			"name": "themes/base/FormattedTextView.less",
-			"size": 1103,
+			"size": 1200,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -5813,7 +5889,7 @@
 		},
 		{
 			"name": "themes/base/library-RTL.css",
-			"size": 76917,
+			"size": 78142,
 			"theme": "base"
 		},
 		{
@@ -5824,12 +5900,12 @@
 		},
 		{
 			"name": "themes/base/library.css",
-			"size": 76872,
+			"size": 78096,
 			"theme": "base"
 		},
 		{
 			"name": "themes/base/library.less",
-			"size": 120264,
+			"size": 122469,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -7001,7 +7077,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library-RTL.css",
-			"size": 114434,
+			"size": 114498,
 			"theme": "sap_hcb"
 		},
 		{
@@ -7012,7 +7088,7 @@
 		},
 		{
 			"name": "themes/sap_hcb/library.css",
-			"size": 114349,
+			"size": 114413,
 			"theme": "sap_hcb"
 		},
 		{

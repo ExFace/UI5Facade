@@ -13,6 +13,12 @@
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
+			"name": "CheckBox.less",
+			"size": 304,
+			"designtime": true,
+			"theme": "sap_fiori_3_hcw"
+		},
+		{
 			"name": "DragDrop.less",
 			"size": 251,
 			"designtime": true,
@@ -37,12 +43,6 @@
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
-			"name": "RowSelection.less",
-			"size": 494,
-			"designtime": true,
-			"theme": "sap_fiori_3_hcw"
-		},
-		{
 			"name": "Scrolling.less",
 			"size": 361,
 			"designtime": true,
@@ -56,35 +56,35 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 69885,
+			"size": 77798,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library-parameters.json",
 			"module": "sap/ui/table/themes/sap_fiori_3_hcw/library-parameters.json",
-			"size": 6215,
+			"size": 5807,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.css",
-			"size": 69902,
+			"size": 77834,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 3702,
+			"size": 3504,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "library.source.less",
-			"size": 527,
+			"size": 523,
 			"designtime": true,
 			"theme": "sap_fiori_3_hcw"
 		},
 		{
 			"name": "resources.json",
-			"size": 1577
+			"size": 1573
 		}
 	]
 }

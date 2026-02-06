@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,7 +49,9 @@ sap.ui.define([
 			}
 		}
 
-		return utils.whenDOMReady().then(function() {
+		return utils.whenDOMReady()
+			.then(() => requireP("sap/ui/events/FocusEventFix"))
+			.then(function() {
 			/* Prepare body: Add QUnit DOM if missing, add CSS, ... */
 			insertDIV("qunit");
 			insertDIV("qunit-fixture");

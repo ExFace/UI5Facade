@@ -8,19 +8,19 @@
 		},
 		{
 			"name": "AbsoluteLayout.less",
-			"size": 266,
+			"size": 267,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "Accordion.less",
-			"size": 297,
+			"size": 301,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "AccordionSection.less",
-			"size": 1578,
+			"size": 1601,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
@@ -98,7 +98,7 @@
 		},
 		{
 			"name": "FormattedTextView.less",
-			"size": 331,
+			"size": 336,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
@@ -800,7 +800,7 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 115227,
+			"size": 116603,
 			"theme": "sap_horizon_hcw"
 		},
 		{
@@ -811,12 +811,12 @@
 		},
 		{
 			"name": "library.css",
-			"size": 115108,
+			"size": 116483,
 			"theme": "sap_horizon_hcw"
 		},
 		{
 			"name": "library.less",
-			"size": 63498,
+			"size": 63531,
 			"designtime": true,
 			"theme": "sap_horizon_hcw"
 		},
