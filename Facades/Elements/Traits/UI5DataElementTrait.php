@@ -603,6 +603,22 @@ JS;
             })
 JS;
 
+        // button to reset configuration
+        // TODO sah: in the future, this would probably be nicer with a default entry in table
+        $resetBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                tooltip: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    let oResetConfigBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                    if (oResetConfigBtn){
+                        oResetConfigBtn.firePress();
+                    }
+                }
+            })
+JS;
+
         return <<<JS
                     new sap.m.Button({
                         id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
@@ -706,6 +722,7 @@ JS;
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
                                             {$saveSetupBtnJs},
+                                            {$resetBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })
@@ -734,7 +751,7 @@ JS;
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
     {   
         $widget = $this->getWidget();
-        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . $this->escapeString($this->getCaption()) . '}),';
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // if we have a datatable with widget_setups, we need to set the heading empty
