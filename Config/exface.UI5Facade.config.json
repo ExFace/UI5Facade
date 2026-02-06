@@ -43,7 +43,9 @@
 	
 	
 	"DEFAULT_SERVER_ADAPTER_CLASS": "\\exface\\UI5Facade\\Facades\\Elements\\ServerAdapters\\UI5FacadeServerAdapter",
-	
+
+  "ICON_ALIGNMENT.DATA_COLUMN": "Left",
+  
 	"ICON_CLASSES.DEFAULT_CLASS_PREFIX": "",
 	"ICON_CLASSES.EDIT": "fa fa-pencil-square-o",
 	"ICON_CLASSES.REMOVE": "fa fa-times",
