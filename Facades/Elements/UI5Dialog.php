@@ -303,11 +303,27 @@ JS;
         }
         return $js;
     }
-				
+
+    /**
+     * @param string $oControllerJs
+     * @return string
+     */
     protected function buildJsPageHeaderContent(string $oControllerJs = 'oController') : string
     {
-        return $this->buildJsHelpButtonConstructor($oControllerJs)
-            . $this->buildJsSidebarToggleButton();
+        $widget = $this->getWidget();
+        if ($widget->hasHeader()) {
+            $header = $widget->getHeader();
+            $headerButtonsJs = '';
+            foreach ($header->getButtons() as $button) {
+                $headerButtonsJs .= $this->getFacade()->getElement($button)->buildJsConstructor($oControllerJs) . ',';
+            }
+        }
+        return <<<JS
+                
+                {$headerButtonsJs}
+                {$this->buildJsHelpButtonConstructor($oControllerJs)}
+                {$this->buildJsSidebarToggleButton()}
+JS;
     }
         
     protected function buildJsHeader(string $oControllerJs = 'oController')
@@ -348,6 +364,10 @@ JS;
                     isActionAreaAlwaysVisible: false,
                     {$image}
 					actions: [
+                        
+                new sap.m.Button({
+                    text: 'test'
+                }),
 					]
 				}),
 			headerContent:[
