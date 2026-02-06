@@ -376,6 +376,9 @@ JS;
         UI5DateFormatter::registerMoment($this, $controller);
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
 
+        $controller->addExternalModule('libs.exface.Driver', $this->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+        $controller->addExternalCss($this->buildUrlToSource("LIBS.DRIVER.CSS"));
+
         if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
             $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');
         }

@@ -140,7 +140,10 @@
 	
 	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",
 	"LIBS.EXFDEBUGGER.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfDebugger.js",
-  	"LIBS.EXFCOLORTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js",
+  "LIBS.EXFCOLORTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js",
+
+  "LIBS.DRIVER.JS": "exface/ui5facade/Facades/js/driver/driver.iife.js",
+  "LIBS.DRIVER.CSS": "exface/ui5facade/Facades/js/driver/driver.css",
   
 	"LIBS.UI5CUSTOM.DATETYPE.JS": "exface/ui5facade/Facades/js/ui5Custom/dataTypes/MomentDateType.js",
     "LIBS.UI5CUSTOM.TIMETYPE.JS": "exface/ui5facade/Facades/js/ui5Custom/dataTypes/MomentTimeType.js",
