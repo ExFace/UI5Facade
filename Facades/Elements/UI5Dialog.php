@@ -364,10 +364,6 @@ JS;
                     isActionAreaAlwaysVisible: false,
                     {$image}
 					actions: [
-                        
-                new sap.m.Button({
-                    text: 'test'
-                }),
 					]
 				}),
 			headerContent:[
