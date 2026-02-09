@@ -139,6 +139,14 @@ JS);
      * the default request parameters with those passed to the onLoadData...() method
      * by the respective layer and widgets possibly linked there. This is done here.
      * 
+     * The request data gets constructed from the 3 possible sources: map, leaflet layer (with its built-in 
+     * invisible data widget) and the possible linked data widget from data_widget_link or configurator_widget_link
+     * 
+     * 1. We take the leaflet layer parameters as base
+     * 2. If there is a linked data widget, we take filters from that as-is and merge columns
+     * 3. If there is no linked widget, we take the filters from the map, but only if they are based on the same
+     * object as the layer being loaded
+     * 
      * @see UI5DataElementTrait::buildJsDataLoaderParams()
      */
     protected function buildJsDataLoaderParams(string $oControlEventJsVar = 'oControlEvent', string $oParamsJs = 'params', $keepPagePosJsVar = 'bKeepPagingPos') : string
@@ -149,9 +157,16 @@ JS);
                 var oMergedParams = $.extend({}, oLeafletParams);
                 if (oLinkParams.data && oLinkParams.data.filters) {
                     oMergedParams.data.filters = oLinkParams.data.filters;
+                    if (oLinkParams.data.columns) {
+                        oMergedParams.data.columns = (oMergedParams.data.columns || []).concat(oLinkParams.data.columns);
+                    }
+                } else if (oMapParams.data) {
+                    if (oMapParams.data.oId === oMergedParams.data.oId) {
+                        oMergedParams.data.filters = oMapParams.data.filters;
+                    }
                 }
                 return oMergedParams;
-            })($oParamsJs, oLeafletParams, oLinkParams);
+            })($oParamsJs, oLeafletParams, oLinkParams);    
 JS;
     }
 
