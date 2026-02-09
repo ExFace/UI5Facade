@@ -603,6 +603,22 @@ JS;
             })
 JS;
 
+        // button to reset configuration
+        // TODO sah: in the future, this would probably be nicer with a default entry in table
+        $resetBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                tooltip: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    let oResetConfigBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                    if (oResetConfigBtn){
+                        oResetConfigBtn.firePress();
+                    }
+                }
+            })
+JS;
+
         return <<<JS
                     new sap.m.Button({
                         id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
@@ -706,6 +722,7 @@ JS;
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
                                             {$saveSetupBtnJs},
+                                            {$resetBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })
@@ -734,7 +751,7 @@ JS;
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
     {   
         $widget = $this->getWidget();
-        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . $this->escapeString($this->getCaption()) . '}),';
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // if we have a datatable with widget_setups, we need to set the heading empty
@@ -1185,7 +1202,7 @@ JS;
         ;(function(oTable){
             oTable.getModel().setData({});
             {$resetEditableTable}
-            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+                {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
         })(sap.ui.getCore().byId('{$this->getId()}'));  
 JS;
     }
@@ -1257,38 +1274,9 @@ JS;
             }
         }
         
-        // Adds data load logic to specific widgets in case of AutoloadStrategy == "IF_VISIBLE".
+        // Adds data load logic to specific widgets in case of `autoload_data: if_visible`.
         if ($this->getDataWidget()->getAutoloadDataStrategy() === AutoloadStrategyDataType::IF_VISIBLE) {
-            
-            // That adds a TabsSelectionScript to UI5Tabs
-            // that causes the tab data to be loaded if the tab is selected.
-            if (null !== $tab = $this->findParentTab()) {
-
-                /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
-                $tabEl = $this->getFacade()->getElement($tab);
-                
-                // Currently the ObjectPageSection Tabs are loaded always if AutoloadStrategy != "NEVER"
-                if (!$tab->isActive() && !$tabEl->isObjectPageSection()) {
-                    
-                    $onChangeJs = <<<JS
-
-                        (function() {
-                            const oModelData = sap.ui.getCore().byId('{$this->getId()}').getModel().getData();
-                            const tabIsNotLoaded = Object.keys(oModelData).length === 0;
-                                
-                            if (tabIsNotLoaded) {
-                              setTimeout(function(){ 
-                                {$this->buildJsRefresh()}
-                              }, 0);
-                            }
-                        })();
-JS;
-
-                        /* @var $tabsEl \exface\UI5Facade\Facades\Elements\UI5Tabs */
-                        $tabsEl = $this->getFacade()->getElement($tab->getTabs());
-                        $tabsEl->addOnTabSelectScript($onChangeJs, $tab);         
-                    }
-            }
+            $this->registerDataLoaderVisibilityCheck();
         }
         
         // Before we load anything, we need to make sure, the view data is loaded.
@@ -1332,6 +1320,43 @@ JS;
                 }
                 
                 return $js;
+    }
+
+    /**
+     * Makes sure loading data is triggered every time this control becomes visible
+     * @return void
+     */
+    protected function registerDataLoaderVisibilityCheck() : void
+    {
+        // That adds a TabsSelectionScript to UI5Tabs
+        // that causes the tab data to be loaded if the tab is selected.
+        if (null !== $tab = $this->findParentTab()) {
+
+            /* @var $tabEl \exface\UI5Facade\Facades\Elements\UI5Tab */
+            $tabEl = $this->getFacade()->getElement($tab);
+
+            // Currently the ObjectPageSection Tabs are loaded always if AutoloadStrategy != "NEVER"
+            if (!$tab->isActive() && !$tabEl->isObjectPageSection()) {
+
+                $onChangeJs = <<<JS
+
+                        (function() {
+                            const oModelData = sap.ui.getCore().byId('{$this->getId()}').getModel().getData();
+                            const tabIsNotLoaded = Object.keys(oModelData).length === 0;
+                                
+                            if (tabIsNotLoaded) {
+                              setTimeout(function(){ 
+                                {$this->buildJsRefresh()}
+                              }, 0);
+                            }
+                        })();
+JS;
+
+                /* @var $tabsEl \exface\UI5Facade\Facades\Elements\UI5Tabs */
+                $tabsEl = $this->getFacade()->getElement($tab->getTabs());
+                $tabsEl->addOnTabSelectScript($onChangeJs, $tab);
+            }
+        }
     }
     
     /**
@@ -1445,12 +1470,9 @@ JS;
             if (oModel.getProperty('/rows')?.length > 100) {
                 oModel.setSizeLimit(oModel.getProperty('/rows').length);
             }
-            if (oTable._exfPendingData !== undefined && oTable._exfPendingData !== sCurrentRequestData) {
-                delete oTable._exfPendingData;
+            if (typeof fnCheckPendingData === 'function' && fnCheckPendingData() === true) {
                 {$this->buildJsRefresh()}
                 return Promise.resolve(oModel);
-            } else {
-                delete oTable._exfPendingData;
             }
             {$this->buildJsBusyIconHide()};
             {$this->buildJsDataLoaderOnLoaded('oModel')}
@@ -1477,7 +1499,7 @@ JS;
                 var oData = oModel.getData();
                 var oController = this;
                 var aSortItems = [];
-                var sCurrentRequestData = '';
+                var fnCheckPendingData;
 
                 if(!{$this->buildJsCheckRequiredFilters()}) {
                     {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
@@ -1495,21 +1517,10 @@ JS;
 
                 // Add custom params for  
                 {$this->buildJsDataLoaderParams($oControlEventJsVar, 'params', $keepPagePosJsVar)}
-
-                sCurrentRequestData = JSON.stringify(params.data);
-
-                if (oTable._exfPendingData !== undefined) {
-                    // Skip server request if still waiting for a response
-                    if (oTable._exfPendingData !== sCurrentRequestData) {
-                        // Update pending data if current request has other data to make sure
-                        // an auto-refresh is done afterwards to show latest information
-                        oTable._exfPendingData = sCurrentRequestData;
-                    }
+                
+                fnCheckPendingData = {$this->buildJsDataLoaderCheckPendingData('oTable', 'params')};
+                if (fnCheckPendingData === true) {
                     return Promise.resolve(oModel);
-                } else {
-                    // Remember current data to make it possible to skip concurrent requests
-                    // via the above if()
-                    oTable._exfPendingData = sCurrentRequestData;
                 }
                 
                 {$this->getServerAdapter()->buildJsServerRequest(
@@ -1524,6 +1535,68 @@ JS;
 JS;
     }
 
+    /**
+     * Returns a JS code, that yields TRUE if the same read is pending or a JS callback, that should be executed after
+     * the request returns from the table.
+     * 
+     * That callback will check for pending data again, resetting it if it was loaded successfully or returning
+     * TRUE once again to trigger an immediate reload if there was a request for other data in the meantime.
+     * 
+     * This logic prevents concurrent or recursive server request. 
+     * 
+     * - When a read is requested, we check, if another read is already on its way
+     *      - If not, we remember the data requested from the server and continue
+     *      - If a request is pending
+     *          - If it is the same request - we just ignore the new one (return TRUE)
+     *          - If we have a different request now (e.g. other filters), we enqueue it and return a callback to
+     *          be executed after the pending request
+     * - When the pending request arrives from the server, the callback returned in the previous step is called
+     *      - If the currently pending data of the control is the same as that of the request, we are done and
+     *      simply continue loading the data
+     *      - If the pending data of the control changed (because a different request was made and was stopped
+     *      by another instance of this check), we do not continue loading, but make a new server request immediately
+     * 
+     * This ensures, that we have at most one server request at a time. If any read requests happen in the meantime
+     * they are either ignored or enqueued. Of the enqueued requests only the very last one will be executed. That
+     * will be done immediately after the pending request. Thus, the user will not see any flickering, but rather just
+     * a longer load time. 
+     * 
+     * @param string $oCtrlJs
+     * @param string $oRequestParamsJs
+     * @return string
+     */
+    public function buildJsDataLoaderCheckPendingData(string $oCtrlJs, string $oRequestParamsJs) : string
+    {
+        return <<<JS
+
+                (function(oTable, oParams){
+                    // Current hash - it exists here and in the returned callback
+                    var sCurrentRequestData = JSON.stringify(oParams.data);
+    
+                    if (oTable._exfPendingData !== undefined) {
+                        // Skip server request if still waiting for a response
+                        if (oTable._exfPendingData !== sCurrentRequestData) {
+                            // Update pending data if current request has other data to make sure
+                            // an auto-refresh is done afterwards to show latest information
+                            oTable._exfPendingData = sCurrentRequestData;
+                        }
+                        return true;
+                    } else {
+                        // Remember current data to make it possible to skip concurrent requests
+                        // via the above if()
+                        oTable._exfPendingData = sCurrentRequestData;
+                    }
+                    return function() {
+                        if (oTable._exfPendingData !== undefined && oTable._exfPendingData !== sCurrentRequestData) {
+                            delete oTable._exfPendingData;
+                            return true;
+                        } else {
+                            delete oTable._exfPendingData;
+                        }
+                    };
+                })($oCtrlJs, $oRequestParamsJs)
+JS;
+    }
 
     /**
      * Implement this method to restore the selection when switching pages if neccessary
@@ -2892,9 +2965,6 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
-
-        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
-        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
 
         return $this;
     }

@@ -123,6 +123,42 @@ JS
         
         return $js;
     }
+    
+    protected function registerUiTableFixedColumns() : int
+    {
+        // re-calculate frozen columns for sap.ui.table (might change due to optional columns/setups/mutations)
+        $this->getController()->addOnShowViewScript(<<<JS
+            
+                setTimeout(() => {
+                    let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                    let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                    // attach listener for changes 
+                    if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                        exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
+                    }
+                }, 0);
+
+                
+                    
+JS, false);
+
+        $widget = $this->getWidget();
+        $freezeColumnsCount = $widget->getFreezeColumns();
+        if ($freezeColumnsCount > 0) {
+            $columns = $widget->getColumns();
+            for ($i = 0; $i < $freezeColumnsCount; $i++) {
+                if ($columns[$i]->isHidden()) {
+                    $freezeColumnsCount++;
+                }
+            }
+            // increase the count if the DirtyFlag column is added as the first column in the table
+            if ($this->hasDirtyColumn()) {
+                $freezeColumnsCount++;
+            }
+        }
+        return $freezeColumnsCount;
+    }
 
     public function isMList() : bool
     {
@@ -161,6 +197,37 @@ JS
         }
   
         switch (true) {
+            case $functionName === DataTable::FUNCTION_CLEAR_APPLIED_SETUP:
+                return <<<JS
+                /*
+                    check if the deleted setup is the one currently applied. If so, clear it from the dexie db and reset the table
+
+                    Parameters: None
+                */
+
+                (function () {
+                    if ({$jsRequestData} !== null && {$jsRequestData}.rows[0] === undefined){
+                        return;
+                    }
+
+                    // if the deleted setup is the one currently saved in dexie for this page and widget,
+                    // delete it and reset the table to original state
+                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}')
+                    .then(entry => {
+                        if (entry && entry.setup_uid === {$jsRequestData}.rows[0]['UID']) {
+                            // delete from dexie db
+                            exfSetupManager.dexie.deleteCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}');
+
+                            // reset table
+                            let oP13nDialogResetBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                            if (oP13nDialogResetBtn){
+                                oP13nDialogResetBtn.firePress();
+                            }
+                        }
+                    });
+                })();
+                
+JS;
             case $functionName === DataTable::FUNCTION_RESET_CHANGE_TRACKING:
                 return <<<JS
                 /*
@@ -634,19 +701,6 @@ JS;
         } else {
             $toolbar = '';
         }
-        $freezeColumnsCount = $widget->getFreezeColumns();
-        if ($freezeColumnsCount > 0) {
-            $columns = $widget->getColumns();
-            for ($i = 0; $i < $freezeColumnsCount; $i++) {
-                if ($columns[$i]->isHidden() == true) {
-                    $freezeColumnsCount++;
-                }
-            }
-            // increase the count if the DirtyFlag column is added as the first column in the table
-            if ($this->hasDirtyColumn()) {
-                $freezeColumnsCount++;
-            }
-        }
         $enableGrouping = $widget->hasRowGroups() ? 'enableGrouping: true,' : '';
         
         if ($widget->getDragToOtherWidgets() === true) {
@@ -679,8 +733,8 @@ JS;
                 {$this->buildJsPropertyMinAutoRowCount()}
                 selectionMode: {$selection_mode},
         		selectionBehavior: {$selection_behavior},
-                enableColumnReordering:true,
-                fixedColumnCount: {$freezeColumnsCount},
+                enableColumnReordering: true,
+                fixedColumnCount: {$this->registerUiTableFixedColumns()},
                 enableColumnFreeze: true,
                 {$enableGrouping}
         		filter: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
@@ -990,7 +1044,8 @@ JS;
             // Process currently visible columns:
             // - Add filters and sorters from column menus
             // - Add column name to ensure even optional data is read if required 
-            {$oParamsJs}.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
+            // columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
+            
             oTable.getColumns().forEach(oColumn => {
                 var mVal = oColumn.getFilterValue();
                 var fnParser = oColumn.data('_exfFilterParser');
@@ -1129,10 +1184,8 @@ JS;
 JS;
         } elseif ($this->isMTable()) {
             $tableParams = <<<JS
+            // visible columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
 
-            // Add visible columns to params.data
-            $oParamsJs.data = {$this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oParamsJs . '.data')};
-            
             // Set sorting indicators for columns
             var aSortProperties = ({$oParamsJs}.sort ? {$oParamsJs}.sort.split(',') : []);
             var aSortOrders = ({$oParamsJs}.sort ? {$oParamsJs}.order.split(',') : []);
@@ -1152,51 +1205,6 @@ JS;
         return $commonParams . $tableParams;
     }
 
-    /**
-     * Returns JS code, that will add a columns array to AJAX request data sent to the server
-     * 
-     * This method needs an array of column definitions. It is actually not important what type/class of columns
-     * they are - each must only have:
-     * - .data('_exfDataColumnName')
-     * - .data('_exfAttributeAlias')
-     * - .data('_exfCalculation')
-     * 
-     * @param string $aCurrentColumnsJs
-     * @param string $oDataJs
-     * @return string
-     */
-    protected function buildJsDataLoaderParamsColumns(string $aCurrentColumnsJs, string $oDataJs) : string
-    {
-        return <<<JS
-
-            (function(aColumns, oData){
-                oData.columns = [];
-                // Add currently visible columns to data.columns array
-                aColumns.forEach(oColumn => {
-                    var oColParam;
-                    if (oColumn.data('_exfDataColumnName')) {
-                        if (oColumn.data('_exfAttributeAlias')) {
-                            oColParam = {
-                                attribute_alias: oColumn.data('_exfAttributeAlias')
-                            };
-                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                                oColParam.name = oColumn.data('_exfDataColumnName');
-                            }
-                        } else if (oColumn.data('_exfCalculation')) {
-                            oColParam = {
-                                name: oColumn.data('_exfDataColumnName'),
-                                expression: oColumn.data('_exfCalculation')
-                            };
-                        }
-                        if (oColParam !== undefined) {
-                            oData.columns.push(oColParam);
-                        }
-                    }
-                });
-                return oData;
-            })($aCurrentColumnsJs, $oDataJs);
-JS;
-    }
     
     /**
      * Returns inline JS code to refresh the table.
@@ -1258,9 +1266,6 @@ JS;
             // widget: filters, sorters, etc.
             case $action instanceof iReadData:
                 $oDataJs = $this->getConfiguratorElement()->buildJsDataGetter($action);
-                if ($this->isMTable() || $this->isUiTable()) {
-                    $oDataJs = $this->buildJsDataLoaderParamsColumns("sap.ui.getCore().byId('{$this->getId()}').getColumns()", $oDataJs);
-                }
                 return $oDataJs;
                 
             // Editable tables with modifying actions return all rows either directly or as subsheet
@@ -1838,13 +1843,16 @@ JS;
 
                 var bResized = false;
                 var oInitWidths = {};
+                
                 if (! $oModelJs.getData().rows || $oModelJs.getData().rows.length === 0) {
                     return;
                 }
                 
                 $oTableJs.getColumns().reverse().forEach(function(oCol, i) {
                     var oWidth = oCol.data('_exfWidth');
-                    if (! oWidth || $('#'+oCol.getId()).length === 0) return;
+                    if (! oWidth || $('#'+oCol.getId()).length === 0) {
+                        return;
+                    }
                     oInitWidths[$oTableJs.indexOfColumn(oCol)] = $('#'+oCol.getId()).width();
                     if (oCol.getVisible() === true && oWidth.auto === true) {
                         bResized = true;
@@ -1856,37 +1864,53 @@ JS;
                 });
 
                 if (bResized) {
+                    var fResize = function(oCol){
+                        var oWidth = oCol.data('_exfWidth');
+                        var jqCol = $('#'+oCol.getId());
+                        var jqLabel = jqCol.find('label');
+                        var iWidth = null;
+                        var iColIdx = $oTableJs.indexOfColumn(oCol);
+                        if (! oWidth) {
+                            return;
+                        }
+                        if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
+                            oCol.setWidth(oInitWidths[iColIdx] + 'px');
+                        }
+                        if (oCol.getVisible() === true && oWidth.auto === true) {
+                            if (! jqLabel[0]) {
+                                return;
+                            }
+                            var sAbbrev = oCol.data('_exfAbbreviation');
+                            // We compare with 95% width to avoid browser truncation.
+                            var fLabelWidth = jqLabel.width()  * 0.95; 
+                            // If the caption overflows and isn't abbreviated, use the abbreviation instead.
+                            if (jqLabel[0].scrollWidth > fLabelWidth && oCol.getLabel().getText() !== sAbbrev) {
+                                oCol.getLabel()?.setText(sAbbrev);
+                                // Reiterate the resize function for this column, but with a delay to account for async results. 
+                                setTimeout(function () { fResize(oCol); }, 0);
+                                return;
+                            }
+                            if (jqLabel[0].scrollWidth > fLabelWidth) {
+                                oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
+                            }
+                            if (oWidth.min) {
+                                iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
+                                if (jqCol.outerWidth() < iWidth) {
+                                    oCol.setWidth(oWidth.min);
+                                }
+                            }
+                            if (oWidth.max) {
+                                iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
+                                if (jqCol.outerWidth() > iWidth) {
+                                    oCol.setWidth(oWidth.max);
+                                }
+                            }
+                        }
+                    };
+                    
                     setTimeout(function(){
-                        $oTableJs.getColumns().forEach(function(oCol){
-
-                            var oWidth = oCol.data('_exfWidth');
-                            var jqCol = $('#'+oCol.getId());
-                            var jqLabel = jqCol.find('label');
-                            var iWidth = null;
-                            var iColIdx = $oTableJs.indexOfColumn(oCol);
-
-                            if (! oWidth) return;
-                            if (! oCol.getWidth() && oWidth.auto === true && oInitWidths[iColIdx] !== undefined) {
-                                oCol.setWidth(oInitWidths[iColIdx] + 'px');
-                            }
-                            if (oCol.getVisible() === true && oWidth.auto === true) {
-                                if (! jqLabel[0]) return;
-                                if (jqLabel[0].scrollWidth > jqLabel.width()) {
-                                    oCol.setWidth((jqLabel[0].scrollWidth + (jqCol.outerWidth()-jqLabel.width()) + 1).toString() + 'px');
-                                }
-                                if (oWidth.min) {
-                                    iWidth = $('<div style="width: ' + oWidth.min + '"></div>').width();
-                                    if (jqCol.outerWidth() < iWidth) {
-                                        oCol.setWidth(oWidth.min);
-                                    }
-                                }
-                                if (oWidth.max) {
-                                    iWidth = $('<div style="width: ' + oWidth.max + '"></div>').width();
-                                    if (jqCol.outerWidth() > iWidth) {
-                                        oCol.setWidth(oWidth.max);
-                                    }
-                                }
-                            }
+                        $oTableJs.getColumns().forEach(function (oCol){
+                            fResize(oCol);
                         });
                     }, 0);
                 }
