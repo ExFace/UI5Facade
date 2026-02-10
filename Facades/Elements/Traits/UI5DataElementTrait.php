@@ -1202,7 +1202,9 @@ JS;
         ;(function(oTable){
             oTable.getModel().setData({});
             {$resetEditableTable}
+            if (oTable.data('_exfBusy') !== true) {
                 {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+            }
         })(sap.ui.getCore().byId('{$this->getId()}'));  
 JS;
     }
@@ -1309,6 +1311,9 @@ JS;
                 }
                 
                 {$disableEditableChangesWatcher}
+                
+                sap.ui.getCore().byId('{$this->getId()}').data('_exfBusy', true);
+                
                 {$this->buildJsDataLoaderPrepare()}
 
 JS;
@@ -1716,6 +1721,9 @@ JS;
             {$this->buildJsDataLoaderOnLoadedHandleWidgetLinks($oModelJs)}
             {$editableTableWatchChanges}          
             {$this->buildJsMarkRowsAsDirty($oModelJs)}
+            
+            oTable.data('_exfBusy', false);
+                
             setTimeout(function(){
                 {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
             }, 0);
