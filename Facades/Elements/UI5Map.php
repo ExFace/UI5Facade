@@ -151,7 +151,7 @@ JS);
      */
     protected function buildJsDataLoaderParams(string $oControlEventJsVar = 'oControlEvent', string $oParamsJs = 'params', $keepPagePosJsVar = 'bKeepPagingPos') : string
     {
-        $js = <<<JS
+        $mergeLinkedParamsJs = <<<JS
             // TODO check for the same object before extending anything here
             {$oParamsJs} = (function(oMapParams, oLeafletParams, oLinkParams){
                 var oMergedParams = $.extend({}, oLeafletParams);
@@ -170,7 +170,7 @@ JS);
                 return oMergedParams;
             })({$oParamsJs}, oLeafletParams, oLinkParams);    
 JS;
-        return $this->buildJsDataLoaderParamsViaTrait($oControlEventJsVar, $oParamsJs, $keepPagePosJsVar) . $js;
+        return $this->buildJsDataLoaderParamsViaTrait($oControlEventJsVar, $oParamsJs, $keepPagePosJsVar) . $mergeLinkedParamsJs;
     }
 
     /**
