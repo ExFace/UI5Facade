@@ -157,6 +157,8 @@ JS);
                 var oMergedParams = $.extend({}, oLeafletParams);
                 if (oLinkParams.data && oLinkParams.data.filters) {
                     oMergedParams.data.filters = oLinkParams.data.filters;
+                    // We check if the map object and the linked object match. If they do, we can append all columns
+                    // from the linked object.
                     if (oLinkParams.data.columns && oMapParams.data && oMapParams.data.oId === oLinkParams.data.oId) {
                         oMergedParams.data.columns = (oMergedParams.data.columns || []).concat(oLinkParams.data.columns);
                     }
