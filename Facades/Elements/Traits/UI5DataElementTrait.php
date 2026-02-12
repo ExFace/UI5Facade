@@ -9,6 +9,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
@@ -604,6 +605,22 @@ JS;
             })
 JS;
 
+        // button to reset configuration
+        // TODO sah: in the future, this would probably be nicer with a default entry in table
+        $resetBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                tooltip: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    let oResetConfigBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                    if (oResetConfigBtn){
+                        oResetConfigBtn.firePress();
+                    }
+                }
+            })
+JS;
+
         return <<<JS
                     new sap.m.Button({
                         id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
@@ -707,6 +724,7 @@ JS;
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
                                             {$saveSetupBtnJs},
+                                            {$resetBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })
@@ -735,7 +753,7 @@ JS;
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
     {   
         $widget = $this->getWidget();
-        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . $this->escapeString($this->getCaption()) . '}),';
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // if we have a datatable with widget_setups, we need to set the heading empty
@@ -745,15 +763,11 @@ JS;
             $heading = '';
 
             // Caption of Popover Button
-            // default: just show the dropdown arrow, no caption 
-            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            // default: show a fallback text as button caption (e.g. 'default-view')
             //    -> if the table has a visible caption, set that as the caption of the button
-            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
-            $popoverBtnCaption = null;
-            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
-                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
-            }
-            else if ($widget->getHideCaption() !== true){
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup() 
+            $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            if ($this->isWrappedInDynamicPage() === false && $widget->getHideCaption() !== true){
                 $popoverBtnCaption = $this->getCaption();
             }
             
@@ -1186,7 +1200,7 @@ JS;
         ;(function(oTable){
             oTable.getModel().setData({});
             {$resetEditableTable}
-            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+                {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
         })(sap.ui.getCore().byId('{$this->getId()}'));  
 JS;
     }
@@ -1844,6 +1858,7 @@ JS;
      */
     protected function buildJsPage(string $content, string $oControllerJs) : string
     {
+        $widget = $this->getWidget();
         // If the data widget is the root of the page, prefill data from the URL can be used
         // to prefill filters. The default prefill-logic of the view will not work, however,
         // because it will load data into the view's default model and this will not have any
@@ -1851,7 +1866,7 @@ JS;
         // to do the prefill manually at this point. 
         // If the widget is not the root, the URL prefill will be applied to the view normally
         // and it will work fine. 
-        if ($this->getWidget()->hasParent() === false) {
+        if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
@@ -1860,7 +1875,7 @@ JS;
         $this->addTourDropdownToToolbar(); //TODO SR: For Demo purposes. find a better place for it.
         
         // Add the search-button
-        $searchButtons = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
+        $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
         $searchButtons = array_reverse($searchButtons);
         foreach ($searchButtons as $btn) {
             if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')){
@@ -1878,6 +1893,8 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
+        
+        $top_buttons .= $this->buildJsToolbarTourButton();
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -3165,9 +3182,6 @@ JS;
             $f->getElement($col)->registerExternalModules($controller);
         }
 
-        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
-        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
-
         return $this;
     }
     
@@ -3584,5 +3598,29 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
+    }
+
+    /**
+     * @return string
+     */
+    protected function buildJsToolbarTourButton() : string
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return '';
+        }
+        // TODO add support for multiple tools
+        $tour = $widget->getTourGuide()->getTours()[0];
+        $driver = $this->getFacade()->getTourDriver($widget);
+        return <<<JS
+
+            new sap.m.Button({
+                text: {$this->escapeString('Take a tour')},
+                // type: 'Transparent',
+                press: function(oEvent) {
+                    {$driver->buildJsStartTour($tour)}
+                }
+            }),
+JS;
     }
 }

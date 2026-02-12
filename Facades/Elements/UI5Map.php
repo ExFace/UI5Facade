@@ -5,11 +5,11 @@ use exface\Core\Actions\ReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\LeafletTrait;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Parts\Maps\Interfaces\DataMapLayerInterface;
+use exface\Core\Widgets\Parts\Maps\Interfaces\DataSelectionMapLayerInterface;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\StringDataType;
-use exface\Core\Widgets\Parts\Maps\DataSelectionMarkerLayer;
 use exface\Core\Interfaces\Widgets\iUseData;
 use exface\Core\CommonLogic\DataSheets\DataColumn;
 use exface\Core\Factories\WidgetFactory;
@@ -139,20 +139,38 @@ JS);
      * the default request parameters with those passed to the onLoadData...() method
      * by the respective layer and widgets possibly linked there. This is done here.
      * 
+     * The request data gets constructed from the 3 possible sources: map, leaflet layer (with its built-in 
+     * invisible data widget) and the possible linked data widget from data_widget_link or configurator_widget_link
+     * 
+     * 1. We take the leaflet layer parameters as base
+     * 2. If there is a linked data widget, we take filters from that as-is and merge columns
+     * 3. If there is no linked widget, we take the filters from the map, but only if they are based on the same
+     * object as the layer being loaded
+     * 
      * @see UI5DataElementTrait::buildJsDataLoaderParams()
      */
     protected function buildJsDataLoaderParams(string $oControlEventJsVar = 'oControlEvent', string $oParamsJs = 'params', $keepPagePosJsVar = 'bKeepPagingPos') : string
     {
-        return $this->buildJsDataLoaderParamsViaTrait($oControlEventJsVar, $oParamsJs, $keepPagePosJsVar) . <<<JS
+        $mergeLinkedParamsJs = <<<JS
             // TODO check for the same object before extending anything here
-            $oParamsJs = (function(oMapParams, oLeafletParams, oLinkParams){
+            {$oParamsJs} = (function(oMapParams, oLeafletParams, oLinkParams){
                 var oMergedParams = $.extend({}, oLeafletParams);
                 if (oLinkParams.data && oLinkParams.data.filters) {
                     oMergedParams.data.filters = oLinkParams.data.filters;
+                    // We check if the map object and the linked object match. If they do, we can append all columns
+                    // from the linked object.
+                    if (oLinkParams.data.columns && oMapParams.data && oMapParams.data.oId === oLinkParams.data.oId) {
+                        oMergedParams.data.columns = (oMergedParams.data.columns || []).concat(oLinkParams.data.columns);
+                    }
+                } else if (oMapParams.data) {
+                    if (oMapParams.data.oId === oMergedParams.data.oId) {
+                        oMergedParams.data.filters = oMapParams.data.filters;
+                    }
                 }
                 return oMergedParams;
-            })($oParamsJs, oLeafletParams, oLinkParams);
+            })({$oParamsJs}, oLeafletParams, oLinkParams);    
 JS;
+        return $this->buildJsDataLoaderParamsViaTrait($oControlEventJsVar, $oParamsJs, $keepPagePosJsVar) . $mergeLinkedParamsJs;
     }
 
     /**
@@ -432,7 +450,7 @@ JS;
                 if ($link) {
                     $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
                     if ($linked_element) {
-                        if ($layer instanceof DataSelectionMarkerLayer) {
+                        if ($layer instanceof DataSelectionMapLayerInterface) {
                             $linked_element->addOnSelectScript($this->buildJsLeafletRefresh($layer, 'linked_selection_changed'));
                         } else {
                             $linked_element->addOnRefreshScript("setTimeout(function(){ {$this->buildJsLeafletRefresh($layer, 'linked_data_changed')} }, 100);");
