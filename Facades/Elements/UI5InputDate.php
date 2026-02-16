@@ -86,6 +86,8 @@ JS;
      */
     public function buildJsProperties()
     {
+        // UI5-Upgrade - using custom data types with string declarations is no longer supported/throws warnings
+        // so here we need to use the proper constructor now
         $options = parent::buildJsProperties() . <<<JS
 
             valueFormat: '{$this->buildJsValueFormat()}',
@@ -104,8 +106,9 @@ JS;
     {
         return <<<JS
 
-                type: 'exface.ui5Custom.dataTypes.MomentDateType',
-                {$this->buildJsValueBindingFormatOptions()}
+                type: new exface.ui5Custom.dataTypes.MomentDateType(
+                    {$this->buildJsValueBindingFormatOptions()}
+                ),
 JS;
     }
     
@@ -126,7 +129,7 @@ JS;
     {
         return <<<JS
         
-                    formatOptions: {
+                    {
                         dateFormat: '{$this->getDisplayFormat()}',
                         valueFormat: '{$this->buildJsValueFormat()}'
                     },
