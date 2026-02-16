@@ -700,7 +700,15 @@
 
                 // toggle checkboxes in columns tab according to setup
                 // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-                let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                let oTable = null;
+                if (oDialog.getAggregation('content')[1] !== undefined){
+                    oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                }
+                else{
+                    // UI5-Upgrade - structure changed, need to get table content differently
+                    oTable = oDialog.getAggregation('content')[0];
+                }
+
                 let oTableModel = oTable.getModel();
                 let aColsConfig = oModel.getProperty('/columns');
                 let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
@@ -715,7 +723,6 @@
                         }
                     })
                 }); 
-
             }
             if (oSetupUxon.sorters !== undefined) {
                 // SORTER SETUP
