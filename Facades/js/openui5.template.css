@@ -462,6 +462,22 @@ html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.
     color: var(--sapTextColor);
 }
 
+/* CHANGES AFTER UI5 UPGRADE */
+
+/* fix custom colors background */
+.exf-custom-color .sapMObjStatusWrapper .sapMObjStatusText{
+    border-radius: var(--sapElement_BorderCornerRadius);
+    color: inherit;
+    text-shadow: none;
+}
+
+ .exf-custom-color .sapMObjStatusWrapper {
+    background-color: transparent !important;
+}
+
+.sapMPIBarNeutral .sapMPIText.sapMPITextLeft {
+    color: #fff !important;
+}
 
 /* HORIZON THEME CHANGES */
 
@@ -499,7 +515,7 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     background: #ffffff00;
     min-height: 1rem;
     padding: 0;
-    border: none;
+    border: 1px solid var(--sapNeutralBorderColor); 
     border-radius: 0.5rem;
     overflow: hidden;
 }
@@ -522,8 +538,8 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIText {
     position: static;
     top: 0.125rem;
     left: 0;
-    margin-bottom: 0;
-    font-size: 0.685rem;
+    margin-bottom: 2px;
+    font-size: var(--sapFontSmallSize);
     color: var(--sapProgress_TextColor);
     white-space: nowrap;
     overflow: hidden;
@@ -547,15 +563,14 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIBarRemaining::after {
 
 html.sapUiTheme-sap_horizon .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining, 
 html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining {
-    background-color: #fff;
+    background-color: var(--sapBackgroundColor);
 }
 
 html.sapUiTheme-sap_horizon .sapMPIBarPositive+.sapMPIBarRemaining, 
 html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining, 
 html.sapUiTheme-sap_horizon .sapMPIBarNegative+.sapMPIBarRemaining, 
 html.sapUiTheme-sap_horizon .sapMPIBarCritical+.sapMPIBarRemaining {
-    background-color: #fff;
-    border-color: #89919a;;
+    background-color: var(--sapBackgroundColor);
 }
 
 /* progress bar backgrounds */
@@ -589,36 +604,34 @@ html[class*="sapUiTheme-sap_horizon"]  .sapMPITextRight {
     margin-right: 0.375rem;
 }
 
+html[class*="sapUiTheme-sap_horizon"]  .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining::after, .sapMPIBarNeutral+.sapMPIBarRemaining::after, .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining::before, .sapMPIBarNeutral+.sapMPIBarRemaining::before {
+    background: none;
+}
+
 /* progress bar end */
+
+/* color/status items */
+
+html[class*="sapUiTheme-sap_horizon"] .sapMObjStatusWrapper .sapMObjStatusText {
+    border-radius: var(--sapField_BorderCornerRadius);
+}
+
+html[class*="sapUiTheme-sap_horizon"]  .sapMObjStatusInverted.sapMObjStatusNone .sapMObjStatusWrapper {
+    border-color: transparent;
+    background-color: var(--sapActiveColor);
+}
+
+html[class*="sapUiTheme-sap_horizon"]  .sapMObjStatusInverted.sapMObjStatusNone .sapMObjStatusText, .sapMObjStatusInverted.sapMObjStatusNone .sapMObjStatusIcon {
+    text-shadow: none;
+    color: inherit;
+}
+
+/* color/status items end*/
 
 /* tile menu drop shadow on hover */
 html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
     box-shadow: var(--sapContent_Shadow0) !important;
     background-color: var(--sapTile_Hover_Background);
-}
-
-/* header filter inputs */
-html[class*="sapUiTheme-sap_horizon"] .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState) {background-color: var(--sapContent_Illustrative_Color7);}
-html[class*="sapUiTheme-sap_horizon"] .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseInner {
-    background-color: var(--sapContent_Illustrative_Color7); 
-}
-
-html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseInner {
-    background: var(--sapField_BackgroundStyle);
-    background-color: var(--sapContent_Illustrative_Color7);
-    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
-    box-shadow: var(--sapField_Shadow);
-}
-
-/* filters on hover */
-html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Filter .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState):hover {
-    background-color: var(--sapContent_Illustrative_Color18);
-}
-
-html[class*="sapUiTheme-sap_horizon"]  .sapFDynamicPageHeaderContent .exfw-Input .sapMInputBaseContentWrapper:hover .sapMInputBaseInner {
-    background-color: var(--sapContent_Illustrative_Color18);
-    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
-    box-shadow: var(--sapField_Shadow);
 }
 
 /* Tab "bubbles" in ObjectPageLayout */
@@ -734,6 +747,9 @@ html[class*="sapUiTheme-sap_horizon"] .sapMLabel.exf-paginator-position {font-we
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelContent {border: none;}
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMITBContent {background-color: var(--sapObjectHeader_Background); border-bottom: none;}
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMPanelHdr {height: 3rem !important; line-height: 3rem !important; text-align: center;}
+html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel {
+    box-shadow: var(--sapContent_Shadow0);
+}
 
 /* account popup */
 html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBaseInner{
