@@ -238,7 +238,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 .exf-map .extra-marker > .exf-svg-icon > svg {height: 20px; margin-top: 8px; fill: white;}
 .exf-map .leaflet-marker-icon.selected:not(.exf-map-point)::before {content: ''; display: block; width: 40px; height: 27px; -moz-border-radius: 7.5px; -webkit-border-radius: 7.5px; border-radius: 50%; border: 5px solid gray; position: absolute; top: 23px; left: -7px; z-index: -1;}
 .exf-map .leaflet-marker-icon.selected.exf-map-point > div:first-of-type {border: 5px solid gray; margin-top: -5px; margin-left: -5px}
-.exf-map-point-value {position: absolute; transform: translate(-50%, -50%);}
+.exf-map-point-value {position: absolute; transform: translate(-50%, -50%); white-space: nowrap;}
 .exf-map-point-center {top: 50%; left: 50%;}
 .exf-map-point-right {top: 50%; left: calc(100% + 10px);}
 .exf-map-point-left {top: 50%; left: -0.75rem}
