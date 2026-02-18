@@ -1872,7 +1872,7 @@ JS;
         
         $top_buttons = '';
         
-        $this->addTourDropdownToToolbar(); //TODO SR: For Demo purposes. find a better place for it.
+        $this->addTourDropdownToToolbar();
         
         // Add the search-button
         $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
@@ -1893,8 +1893,6 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
-        
-        $top_buttons .= $this->buildJsToolbarTourButton();
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -2002,220 +2000,7 @@ JS;
         }).addStyleClass('{$this->buildCssDynamicPageClasses()}')
 JS;
     }
-
-    //TODO SR: For Demo purposes. Use it as an inspiration for the driver tour implementation.
-    // All IDs are hard coded. Better selection query is needed.
-    protected function addTourDropdownToToolbar() : void
-    {
-        
-        $tourFilter = <<<JS
-
-                            const driverObj = driver.js.driver({
-                            showProgress: true,
-                            disableActiveInteraction: true,
-                            steps: [
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DynamicPageWrapper-stickyPlaceholder', 
-                                  popover: {
-                                    title: 'Filterbereich',
-                                    description: 'Hier können Sie Filter setzen, um die angezeigten Maßnahmen einzugrenzen.', side: 'bottom', align: 'center' 
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataTableConfigurator_Tab_Filter04_InputComboTable-vhi', 
-                                  popover: {
-                                    title: 'Filter anpassen',
-                                    description: 'Durch Betätigen der Schaltfläche können alle verfügbaren Werte angezeigt werden.', 
-                                    side: 'right', 
-                                    align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      
-                                      setTimeout(function(){ 
-                                        driver.moveNext();
-                                      }, 3000);
-                                      
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataTableConfigurator_Tab_Filter04_InputComboTable_Button_DataLookupDialog_DataTableResponsive_DynamicPageWrapper-contentWrapper', 
-                                  popover: {
-                                    title: 'Filter Suche',
-                                    description: 'Dadurch öffnet sich ein Dialogfenster mit den entsprechenden Werten.', side: 'top', align: 'start' 
-                                  }
-                                },
-                                {
-                                  element: '#__item318-x11ef9d7a355bec329d7a005056bef75d__DataTable_DataTableConfigurator_Tab_Filter04_InputComboTable_Button_DataLookupDialog_DataTableResponsive-17-selectMulti-CbBg', 
-                                  popover: {
-                                    title: 'Filter auswählen',
-                                    description: 'Durch Anklicken der Checkboxen können Sie einen oder mehrere Werte auswählen.', 
-                                    side: 'top', 
-                                    align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      driver.moveNext();
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataTableConfigurator_Tab_Filter04_InputComboTable_Button_DataLookupDialog_DialogToolbar_ButtonGroup_DialogButton02', 
-                                  popover: {
-                                    title: 'Filter übernehmen',
-                                    description: 'Nachdem die Auswahl getroffen wurde, kann der Filter übernommen werden.', 
-                                    side: 'top', 
-                                    align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      
-                                      setTimeout(function(){ 
-                                              driver.moveNext();
-                                      }, 1500);
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataToolbar_ButtonGroup03_DataButton', 
-                                  popover: {
-                                    title: 'Gefilterte Werte suchen',
-                                    description: 'Um die Filter anzuwenden, ist entweder das Drücken der Enter-Taste oder das Anklicken der Such-Schaltfläche erforderlich.',
-                                    side: 'bottom', 
-                                    align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      driver.moveNext();
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DynamicPageWrapper-contentFitContainer', 
-                                  popover: {
-                                    title: 'Tabellenbereich',
-                                    description: 'Die gefilterten Maßnahmen sind hier tabellarisch aufgelistet.', side: 'top', align: 'start' 
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable-selall',
-                                  popover: {
-                                    title: 'Maßnahmen auswählen',
-                                    description: 'Um eine Maßnahme anzupassen, muss zunächst die entsprechende Checkbox links daneben ausgewählt werden. Wenn Sie die Checkbox im Kopf der Tabelle auswählen, werden alle gefilterten Maßnahmen ausgewählt.', side: 'right', align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      
-                                      driver.moveNext();
-                                      //driver.destroy();
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataToolbar_ButtonGroup_MenuButton-internalBtn',
-                                  popover: {
-                                    title: 'Aktionen',
-                                    description: 'Nach der Auswahl einer oder mehrerer Maßnahmen stehen verschiedene Aktionen dafür zur Verfügung.', side: 'bottom', align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      
-                                      driver.moveNext();
-                                      //driver.destroy();
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataToolbar_ButtonGroup_MenuButton_Menu_ButtonGroup_DataButton06-unifiedmenu-txt',
-                                  popover: {
-                                    title: 'Maßnahmen bearbeiten',
-                                    description: 'Wir können auf "Maßnahmen bearbeiten" klicken, um die ausgewählten Maßnahmen zu bearbeiten.', side: 'right', align: 'start',
-                                    onNextClick: (element, step, { driver }) => {
-                                      if (element) {
-                                      
-                                       element.focus();
-                                       element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-                                       element.click();
-                                      }
-                                      
-                                      setTimeout(function(){ 
-                                              driver.moveNext();
-                                      }, 3000);
-                                      
-                                      
-                                      //driver.destroy();
-                                    }
-                                  }
-                                },
-                                {
-                                  element: '#x11ef9d7a355bec329d7a005056bef75d__DataTable_DataToolbar_ButtonGroup_MenuButton_Menu_ButtonGroup_DataButton06_MehrfachbearbeitungMassnahme',
-                                  popover: {
-                                    title: 'Maßnahmen bearbeiten',
-                                    description: 'In der geöffneten Tabelle können nun alle ausgewählten Maßnahmen bearbeitet werden.', side: 'bottom', align: 'center',
-                                  }
-                                },
-                            ]
-                            });
-                            
-                            driverObj.drive();
-JS;
-        
-        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
-        $buttons = [
-            [
-                'caption' => 'News',
-                'action'  => [
-                    'alias'  => 'exface.Core.CustomFacadeScript',
-                    'icon' => 'star',
-                    'script' => <<<JS
-                        //TODO: New tour can be added here
-JS
-                ],
-            ],
-            [
-                'caption' => 'Filter setzten',
-                'action'  => [
-                    'alias'  => 'exface.Core.CustomFacadeScript',
-                    'icon' => 'filter',
-                    'script' => $tourFilter
-                ],
-            ],
-        ];
-
-        $toolbar->addButton($toolbar->createButton(new UxonObject([
-            'widget_type' => 'MenuButton',
-            'icon' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11,12H3.5L6,9.5L3.5,7H11V3L12,2L13,3V7H18L20.5,9.5L18,12H13V20A2,2 0 0,1 15,22H9A2,2 0 0,1 11,20V12Z" /></svg>',
-            'hide_caption' => true,
-            'buttons' => $buttons
-        ])), 0);
-        
-    }
-
+    
     protected function buildCssDynamicPageClasses() : string
     {
         return '';
@@ -3601,26 +3386,38 @@ JS;
     }
 
     /**
-     * @return string
+     * It places a dropdown menu in the toolbar with all available tours for a widget.
      */
-    protected function buildJsToolbarTourButton() : string
+    protected function addTourDropdownToToolbar() : void
     {
         $widget = $this->getWidget();
         if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return '';
+            return;
         }
-        // TODO add support for multiple tools
-        $tour = $widget->getTourGuide()->getTours()[0];
-        $driver = $this->getFacade()->getTourDriver($widget);
-        return <<<JS
 
-            new sap.m.Button({
-                text: {$this->escapeString('Take a tour')},
-                // type: 'Transparent',
-                press: function(oEvent) {
-                    {$driver->buildJsStartTour($tour)}
-                }
-            }),
-JS;
-    }
+        $tours = $widget->getTourGuide()->getTours();
+        $driver = $this->getFacade()->getTourDriver($widget);
+        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
+
+        $buttons = [];
+        foreach ($tours as $tour) {
+            $buttons[] = [
+                    'caption' => $tour->getTitle(),
+                    'action'  => [
+                        'alias'  => 'exface.Core.CustomFacadeScript',
+                        'icon' => $tour->getIcon() ?? '',
+                        'script' => $driver->buildJsStartTour($tour)
+                    ],
+                ];
+        }
+        
+        $toolbar->addButton($toolbar->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            //'icon' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11,12H3.5L6,9.5L3.5,7H11V3L12,2L13,3V7H18L20.5,9.5L18,12H13V20A2,2 0 0,1 15,22H9A2,2 0 0,1 11,20V12Z" /></svg>',
+            'icon' => 'road', //TODO: find a better icon.
+            'caption' => 'Tour guide',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), 0);
+    } 
 }
