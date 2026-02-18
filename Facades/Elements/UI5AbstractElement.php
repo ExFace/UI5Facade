@@ -56,6 +56,11 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     {
         parent::init();
         $this->addOnControllerSet([$this, 'registerConditionalProperties']);
+        
+        // Register tour steps if there are any
+        foreach ($this->getWidget()->getTourSteps() as $tourStep) {
+            $this->getFacade()->getTourDriver($this->getWidget())->registerStep($tourStep);
+        }
     }
     
     /**

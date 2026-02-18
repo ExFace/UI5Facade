@@ -6,12 +6,15 @@ use exface\Core\Contexts\DebugContext;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Tours\DriverJsTourDriver;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsDateFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsTimeFormatter;
+use exface\Core\Interfaces\Facades\TourableFacadeInterface;
+use exface\Core\Interfaces\Tours\TourDriverInterface;
 use exface\UI5Facade\Facades\Formatters\UI5DateFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5DefaultFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
@@ -92,7 +95,7 @@ use exface\Core\Interfaces\Facades\PWAFacadeInterface;
  * @author Andrej Kabachnik
  *
  */
-class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
+class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface, TourableFacadeInterface
 {
     private $webapp = null;
     
@@ -103,6 +106,8 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
     private $themeHeaderColor = null;
     
     private $themeHeaderTextColor = null;
+    
+    private TourDriverInterface $tourDriver;
     
     /**
      * Cache for config key WIDGET.DIALOG.MAXIMIZE_BY_DEFAULT_IN_ACTIONS:
@@ -115,6 +120,7 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
         parent::__construct($selector);
         $this->setClassPrefix('UI5');
         $this->setClassNamespace(__NAMESPACE__);
+        $this->tourDriver = new DriverJsTourDriver($this);
     }
     
     /**
@@ -772,5 +778,15 @@ JS;
         }
         
         return $pageUrl;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see TourableFacadeInterface::getTourDriver()
+     */
+    public function getTourDriver(WidgetInterface $widget): TourDriverInterface
+    {
+        // TODO create a separate tour driver for very view/controller?
+        return $this->tourDriver;
     }
 }

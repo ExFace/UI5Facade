@@ -8,6 +8,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
@@ -761,15 +762,11 @@ JS;
             $heading = '';
 
             // Caption of Popover Button
-            // default: just show the dropdown arrow, no caption 
-            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            // default: show a fallback text as button caption (e.g. 'default-view')
             //    -> if the table has a visible caption, set that as the caption of the button
-            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
-            $popoverBtnCaption = null;
-            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
-                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
-            }
-            else if ($widget->getHideCaption() !== true){
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup() 
+            $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            if ($this->isWrappedInDynamicPage() === false && $widget->getHideCaption() !== true){
                 $popoverBtnCaption = $this->getCaption();
             }
             
@@ -1860,6 +1857,7 @@ JS;
      */
     protected function buildJsPage(string $content, string $oControllerJs) : string
     {
+        $widget = $this->getWidget();
         // If the data widget is the root of the page, prefill data from the URL can be used
         // to prefill filters. The default prefill-logic of the view will not work, however,
         // because it will load data into the view's default model and this will not have any
@@ -1867,14 +1865,14 @@ JS;
         // to do the prefill manually at this point. 
         // If the widget is not the root, the URL prefill will be applied to the view normally
         // and it will work fine. 
-        if ($this->getWidget()->hasParent() === false) {
+        if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
         $top_buttons = '';
         
         // Add the search-button
-        $searchButtons = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
+        $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
         $searchButtons = array_reverse($searchButtons);
         foreach ($searchButtons as $btn) {
             if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')){
@@ -1892,6 +1890,8 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
+        
+        $top_buttons .= $this->buildJsToolbarTourButton();
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -3382,5 +3382,29 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
+    }
+
+    /**
+     * @return string
+     */
+    protected function buildJsToolbarTourButton() : string
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return '';
+        }
+        // TODO add support for multiple tools
+        $tour = $widget->getTourGuide()->getTours()[0];
+        $driver = $this->getFacade()->getTourDriver($widget);
+        return <<<JS
+
+            new sap.m.Button({
+                text: {$this->escapeString('Take a tour')},
+                // type: 'Transparent',
+                press: function(oEvent) {
+                    {$driver->buildJsStartTour($tour)}
+                }
+            }),
+JS;
     }
 }
