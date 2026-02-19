@@ -1,11 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\DataSheets\DataAggregation;
+use exface\Core\CommonLogic\Model\RelationPath;
+use exface\Core\DataTypes\StringDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
@@ -617,14 +621,30 @@ JS;
         $data = [];
         $sorters = [];
         $table = $widget->getDataWidget();
+        $cols = $table->getColumns();
         foreach ($table->getSorters() as $sorter) {
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
                 "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName()
+                "caption" => (function($sorter, $cols) {
+                    $alias = $sorter->getProperty('attribute_alias');
+                    $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
+                    
+                    $column = current(array_filter($cols, fn($c) => $c->getAttributeAlias() === $alias));
+                    $caption = $column ? $column->getCaption() : null;
+                    
+                    if ($caption) {
+                        return $caption;
+                    }
+                    
+                    if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
+                        return $attribute->getRelationPath()->getRelationLast()->getName();
+                    }
+                    
+                    return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
+                })($sorter,$cols)
             ];
         }
-        $cols = $table->getColumns();
         // Also add all optional columns from the configurator - if they are sortable, of course.
         if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
             $cols = array_merge($cols, $widget->getOptionalColumns());
@@ -642,6 +662,38 @@ JS;
             ];
         }
         return json_encode($data);
+    }
+
+    /**
+     * Returns true if the attribute alias ends with __LABEL or the LABEL part of an aggregator alias and false otherwise.
+     * This is needed to determine whether the caption of a column should be generated using the name of the last relation instead of the attribute name.
+     * 
+     * This function was inspired by the similar function in AttributeCaptionTrait.
+     * 
+     * @param $alias
+     * @return bool
+     */
+    protected function isBoundToLabelAttribute($alias) : bool
+    {
+        if ($alias === null || $alias === '') {
+            return false;
+        }
+        
+        $attribute = $this->getMetaObject()->getAttribute($alias);
+    
+        if ($attribute) {
+            $labelRelPathEnding = RelationPath::RELATION_SEPARATOR . MetaAttributeInterface::OBJECT_LABEL_ALIAS;
+            if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
+                return true;
+            } else {
+                $alias = DataAggregation::stripAggregator($alias);
+                if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
+                    return true;
+                }
+            }
+        }
+    
+        return false;
     }
     
     /**
