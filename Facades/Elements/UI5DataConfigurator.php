@@ -630,17 +630,19 @@ JS;
                     $alias = $sorter->getProperty('attribute_alias');
                     $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
                     
+                    // Take the caption from the column if it exists
                     $column = current(array_filter($cols, fn($c) => $c->getAttributeAlias() === $alias));
                     $caption = $column ? $column->getCaption() : null;
-                    
                     if ($caption) {
                         return $caption;
                     }
                     
+                    // else generate the caption in the same way as in AttributeCaptionTrait::getCaption()
                     if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
                         return $attribute->getRelationPath()->getRelationLast()->getName();
                     }
                     
+                    // fallback: get the attribute name from the meta model
                     return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
                 })($sorter,$cols)
             ];
