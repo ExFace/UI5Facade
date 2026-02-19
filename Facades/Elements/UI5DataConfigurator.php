@@ -626,25 +626,7 @@ JS;
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
                 "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => (function($sorter, $cols) {
-                    $alias = $sorter->getProperty('attribute_alias');
-                    $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
-                    
-                    // Take the caption from the column if it exists
-                    $column = current(array_filter($cols, fn($c) => $c->getAttributeAlias() === $alias));
-                    $caption = $column ? $column->getCaption() : null;
-                    if ($caption) {
-                        return $caption;
-                    }
-                    
-                    // else generate the caption in the same way as in AttributeCaptionTrait::getCaption()
-                    if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
-                        return $attribute->getRelationPath()->getRelationLast()->getName();
-                    }
-                    
-                    // fallback: get the attribute name from the meta model
-                    return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
-                })($sorter,$cols)
+                "caption" => $this->getSorterCaption($sorter, $cols)
             ];
         }
         // Also add all optional columns from the configurator - if they are sortable, of course.
@@ -667,6 +649,39 @@ JS;
     }
 
     /**
+     * Gets the caption for a sorter.
+     * 
+     * The caption is determined in the following way:
+     * 1. If a column of given columns has the same attribute alias as the sorter, take the caption from that column
+     * 2. If the sorter is bound to a label attribute, take the name of the last relation in the relation path as caption
+     * 3. Else take the attribute name from the meta model.
+     * 
+     * @param $sorter
+     * @param $columns
+     * @return string
+     */
+    protected function getSorterCaption($sorter, $columns) : string {
+        
+        $alias = $sorter->getProperty('attribute_alias');
+        $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
+
+        // Take the caption from the column if it exists
+        $column = current(array_filter($columns, fn($c) => $c->getAttributeAlias() === $alias));
+        $caption = $column ? $column->getCaption() : null;
+        if ($caption) {
+            return $caption;
+        }
+
+        // else generate the caption in the same way as in AttributeCaptionTrait::getCaption()
+        if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
+            return $attribute->getRelationPath()->getRelationLast()->getName();
+        }
+
+        // fallback: get the attribute name from the meta model
+        return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
+    }
+
+    /**
      * Returns true if the attribute alias ends with __LABEL or the LABEL part of an aggregator alias and false otherwise.
      * This is needed to determine whether the caption of a column should be generated using the name of the last relation instead of the attribute name.
      * 
@@ -681,9 +696,7 @@ JS;
             return false;
         }
         
-        $attribute = $this->getMetaObject()->getAttribute($alias);
-    
-        if ($attribute) {
+        if ($this->getMetaObject()->hasAttribute($alias)) {
             $labelRelPathEnding = RelationPath::RELATION_SEPARATOR . MetaAttributeInterface::OBJECT_LABEL_ALIAS;
             if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
                 return true;
