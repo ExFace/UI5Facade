@@ -1,11 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\DataSheets\DataAggregation;
+use exface\Core\CommonLogic\Model\RelationPath;
+use exface\Core\DataTypes\StringDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
@@ -617,14 +621,14 @@ JS;
         $data = [];
         $sorters = [];
         $table = $widget->getDataWidget();
+        $cols = $table->getColumns();
         foreach ($table->getSorters() as $sorter) {
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
                 "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName()
+                "caption" => $this->getSorterCaption($sorter, $cols)
             ];
         }
-        $cols = $table->getColumns();
         // Also add all optional columns from the configurator - if they are sortable, of course.
         if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
             $cols = array_merge($cols, $widget->getOptionalColumns());
@@ -642,6 +646,69 @@ JS;
             ];
         }
         return json_encode($data);
+    }
+
+    /**
+     * Gets the caption for a sorter.
+     * 
+     * The caption is determined in the following way:
+     * 1. If a column of given columns has the same attribute alias as the sorter, take the caption from that column
+     * 2. If the sorter is bound to a label attribute, take the name of the last relation in the relation path as caption
+     * 3. Else take the attribute name from the meta model.
+     * 
+     * @param $sorter
+     * @param $columns
+     * @return string
+     */
+    protected function getSorterCaption($sorter, $columns) : string 
+    {
+        $alias = $sorter->getProperty('attribute_alias');
+        $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
+
+        // Take the caption from the column if it exists
+        $column = current(array_filter($columns, fn($c) => $c->getAttributeAlias() === $alias));
+        $caption = $column ? $column->getCaption() : null;
+        if ($caption) {
+            return $caption;
+        }
+
+        // else generate the caption in the same way as in AttributeCaptionTrait::getCaption()
+        if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
+            return $attribute->getRelationPath()->getRelationLast()->getName();
+        }
+
+        // fallback: get the attribute name from the meta model
+        return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
+    }
+
+    /**
+     * Returns true if the attribute alias ends with __LABEL or the LABEL part of an aggregator alias and false otherwise.
+     * This is needed to determine whether the caption of a column should be generated using the name of the last relation instead of the attribute name.
+     * 
+     * @see AttributeCaptionTrait::isBoundToLabelAttribute
+     * 
+     * @param $alias
+     * @return bool
+     */
+    protected function isBoundToLabelAttribute($alias) : bool
+    {
+        if ($alias === null || $alias === '') {
+            return false;
+        }
+        
+        if ($this->getMetaObject()->hasAttribute($alias)) {
+            $labelRelPathEnding = RelationPath::RELATION_SEPARATOR . MetaAttributeInterface::OBJECT_LABEL_ALIAS;
+            if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
+                return true;
+            } else {
+                $alias = DataAggregation::stripAggregator($alias);
+                if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
+                    return true;
+                }
+            }
+        }
+    
+        return false;
     }
     
     /**
