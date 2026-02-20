@@ -382,8 +382,12 @@ JS;
         UI5DateFormatter::registerMoment($this, $controller);
         // Include our main toolbax exfTools
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
+        
         // Include the setup manager library, in order to use exfSetupManager in CallWidgetFunction actions
         $controller->addExternalModule('exface.openui5.exfSetupManager', $this->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+
+        $controller->addExternalModule('libs.exface.Driver', $this->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+        $controller->addExternalCss($this->buildUrlToSource("LIBS.DRIVER.CSS"));
         
         if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
             $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');
