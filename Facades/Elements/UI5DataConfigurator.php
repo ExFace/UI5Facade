@@ -660,8 +660,8 @@ JS;
      * @param $columns
      * @return string
      */
-    protected function getSorterCaption($sorter, $columns) : string {
-        
+    protected function getSorterCaption($sorter, $columns) : string 
+    {
         $alias = $sorter->getProperty('attribute_alias');
         $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
 
@@ -685,7 +685,7 @@ JS;
      * Returns true if the attribute alias ends with __LABEL or the LABEL part of an aggregator alias and false otherwise.
      * This is needed to determine whether the caption of a column should be generated using the name of the last relation instead of the attribute name.
      * 
-     * This function was inspired by the similar function in AttributeCaptionTrait.
+     * @see AttributeCaptionTrait::isBoundToLabelAttribute
      * 
      * @param $alias
      * @return bool
