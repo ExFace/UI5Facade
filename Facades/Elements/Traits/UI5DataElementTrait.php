@@ -3386,7 +3386,7 @@ JS;
     }
 
     /**
-     * It places a dropdown menu in the toolbar with all available tours for a widget.
+     * Places a dropdown menu in the toolbar with all available tours for a widget.
      */
     protected function addTourDropdownToToolbar() : void
     {
