@@ -653,7 +653,7 @@ JS;
      * 
      * The caption is determined in the following way:
      * 1. If a column of given columns has the same attribute alias as the sorter, take the caption from that column
-     * 2. If the sorter is bound to a label attribute, take the name of the last relation in the relation path as caption
+     * 2. If it is a related attribute, the attribute name and the related object name is taken: "Name (ObjectName)"
      * 3. Else take the attribute name from the meta model.
      * 
      * @param $sorter
@@ -671,44 +671,27 @@ JS;
         if ($caption) {
             return $caption;
         }
-
-        // else generate the caption in the same way as in AttributeCaptionTrait::getCaption()
-        if ($attribute->getRelationPath()->isEmpty() === false && $this->isBoundToLabelAttribute($alias) === true) {
-            return $attribute->getRelationPath()->getRelationLast()->getName();
+        
+        // If it is a related attribute: e.g.
+        // - TYPE__NAME, tell the user, which object it belongs to - `Name (Type)`
+        // - PRODUCT__PRODUCT_GROUP__NAME - `Name (Product group)`
+        // - PRODUCT__PRODUCT_GROUP__LABEL - here the LABEL is already "Product group", so we skip the parentheses and
+        // just yield `Product group`
+        if ($attribute->isRelated()) {
+            $objName = $attribute->getRelationPath()->getRelationLast()->getName();
+            $attrName = $attribute->getName();
+            
+            if ($objName !== $attrName) {
+                $caption = $attribute->getName() . ' (' . $attribute->getObject()->getName() . ')';
+            } else {
+                $caption = $attrName;
+            }
+            
+            return $caption;
         }
 
         // fallback: get the attribute name from the meta model
         return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
-    }
-
-    /**
-     * Returns true if the attribute alias ends with __LABEL or the LABEL part of an aggregator alias and false otherwise.
-     * This is needed to determine whether the caption of a column should be generated using the name of the last relation instead of the attribute name.
-     * 
-     * @see AttributeCaptionTrait::isBoundToLabelAttribute
-     * 
-     * @param $alias
-     * @return bool
-     */
-    protected function isBoundToLabelAttribute($alias) : bool
-    {
-        if ($alias === null || $alias === '') {
-            return false;
-        }
-        
-        if ($this->getMetaObject()->hasAttribute($alias)) {
-            $labelRelPathEnding = RelationPath::RELATION_SEPARATOR . MetaAttributeInterface::OBJECT_LABEL_ALIAS;
-            if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
-                return true;
-            } else {
-                $alias = DataAggregation::stripAggregator($alias);
-                if (StringDataType::endsWith($alias, $labelRelPathEnding, false) === true) {
-                    return true;
-                }
-            }
-        }
-    
-        return false;
     }
     
     /**
