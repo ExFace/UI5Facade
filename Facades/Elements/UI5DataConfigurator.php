@@ -653,8 +653,8 @@ JS;
      * 
      * The caption is determined in the following way:
      * 1. If a column of given columns has the same attribute alias as the sorter, take the caption from that column
-     * 2. If it is a related attribute, the attribute name and the related object name is taken: "Name (ObjectName)"
-     * 3. Else take the attribute name from the meta model.
+     * 2. If it is a related attribute, the attribute name and the related object name (if not the same) is taken: "Name (ObjectName)"
+     * 3. Else take the attribute name.
      * 
      * @param $sorter
      * @param $columns
@@ -677,21 +677,17 @@ JS;
         // - PRODUCT__PRODUCT_GROUP__NAME - `Name (Product group)`
         // - PRODUCT__PRODUCT_GROUP__LABEL - here the LABEL is already "Product group", so we skip the parentheses and
         // just yield `Product group`
+        $attrName = $attribute->getName();
+        
         if ($attribute->isRelated()) {
             $objName = $attribute->getRelationPath()->getRelationLast()->getName();
-            $attrName = $attribute->getName();
-            
-            if ($objName !== $attrName) {
-                $caption = $attribute->getName() . ' (' . $attribute->getObject()->getName() . ')';
-            } else {
-                $caption = $attrName;
-            }
-            
-            return $caption;
+
+            return ($objName !== $attrName)
+                ? $attrName . ' (' . $attribute->getObject()->getName() . ')'
+                : $attrName;
         }
 
-        // fallback: get the attribute name from the meta model
-        return $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName();
+        return $attrName;
     }
     
     /**
