@@ -2966,6 +2966,12 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
+        
+        // Add Driver.js if there are tours for this widget
+        if (($this->getWidget() instanceof IHaveTourGuideInterface) && $this->getWidget()->hasTourGuide()) {
+            $controller->addExternalModule('libs.exface.Driver', $f->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+            $controller->addExternalCss($f->buildUrlToSource("LIBS.DRIVER.CSS"));
+        }
 
         return $this;
     }
