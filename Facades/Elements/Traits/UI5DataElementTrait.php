@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
@@ -762,15 +763,11 @@ JS;
             $heading = '';
 
             // Caption of Popover Button
-            // default: just show the dropdown arrow, no caption 
-            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            // default: show a fallback text as button caption (e.g. 'default-view')
             //    -> if the table has a visible caption, set that as the caption of the button
-            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
-            $popoverBtnCaption = null;
-            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
-                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
-            }
-            else if ($widget->getHideCaption() !== true){
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup() 
+            $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            if ($this->isWrappedInDynamicPage() === false && $widget->getHideCaption() !== true){
                 $popoverBtnCaption = $this->getCaption();
             }
             
@@ -1875,6 +1872,8 @@ JS;
         
         $top_buttons = '';
         
+        $this->addTourDropdownToToolbar();
+        
         // Add the search-button
         $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
         $searchButtons = array_reverse($searchButtons);
@@ -1894,8 +1893,6 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
-        
-        $top_buttons .= $this->buildJsToolbarTourButton();
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -2003,7 +2000,7 @@ JS;
         }).addStyleClass('{$this->buildCssDynamicPageClasses()}')
 JS;
     }
-
+    
     protected function buildCssDynamicPageClasses() : string
     {
         return '';
@@ -3389,26 +3386,38 @@ JS;
     }
 
     /**
-     * @return string
+     * Places a dropdown menu in the toolbar with all available tours for a widget.
      */
-    protected function buildJsToolbarTourButton() : string
+    protected function addTourDropdownToToolbar() : void
     {
         $widget = $this->getWidget();
         if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return '';
+            return;
         }
-        // TODO add support for multiple tools
-        $tour = $widget->getTourGuide()->getTours()[0];
-        $driver = $this->getFacade()->getTourDriver($widget);
-        return <<<JS
 
-            new sap.m.Button({
-                text: {$this->escapeString('Take a tour')},
-                // type: 'Transparent',
-                press: function(oEvent) {
-                    {$driver->buildJsStartTour($tour)}
-                }
-            }),
-JS;
-    }
+        $tours = $widget->getTourGuide()->getTours();
+        $driver = $this->getFacade()->getTourDriver($widget);
+        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
+
+        $buttons = [];
+        foreach ($tours as $tour) {
+            $buttons[] = [
+                    'caption' => $tour->getTitle(),
+                    'action'  => [
+                        'alias'  => 'exface.Core.CustomFacadeScript',
+                        'icon' => $tour->getIcon() ?? '',
+                        'script' => $driver->buildJsStartTour($tour)
+                    ],
+                ];
+        }
+        
+        $toolbar->addButton($toolbar->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            //'icon' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11,12H3.5L6,9.5L3.5,7H11V3L12,2L13,3V7H18L20.5,9.5L18,12H13V20A2,2 0 0,1 15,22H9A2,2 0 0,1 11,20V12Z" /></svg>',
+            'icon' => 'road', //TODO: find a better icon.
+            'caption' => 'Tour guide',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), 0);
+    } 
 }
