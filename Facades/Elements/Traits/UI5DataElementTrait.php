@@ -3415,7 +3415,7 @@ JS;
         
         $toolbar->addButton($toolbar->createButton(new UxonObject([
             'widget_type' => 'MenuButton',
-            'icon' => 'road',
+            'icon' => 'sap-icon://travel-request',
             'caption' => 'Tour guide',
             'hide_caption' => true,
             'buttons' => $buttons
