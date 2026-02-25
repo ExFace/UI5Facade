@@ -345,20 +345,19 @@
 
         /**
          * Re-calculate the fixedColumnCount property for a sap.ui.table. This might differ from the inital count due to 
-         * setups, mutations, and optional columns
+         * setups, mutations, and optional columns, as well as changes made to the configuration;
          * 
          * 
-         * @param {string} sDataTableId 
-         * @param {integer} iFreezeColumnCount 
+         * @param {array} aColumns columns property of widget
+         * @param {integer} iFreezeColumnCount how many columns shoudl be frozen
          * @param {boolean} bHasDirtyColumn 
-         * @returns integer fixedColumnCount
+         * @returns {integer} fixedColumnCount
          */
-        getFreezeColumnsCount: function (sDataTableId, iFreezeColumnCount, bHasDirtyColumn) {
+        getFreezeColumnsCount: function (aColumns, iFreezeColumnCount, bHasDirtyColumn) {
             if (iFreezeColumnCount > 0){
-                let oDataTable = sap.ui.getCore().byId(sDataTableId); 
-                if (oDataTable){
+                if (Array.isArray(aColumns)) {
                     for (let i = 0; i < iFreezeColumnCount; i++) {
-                        if (oDataTable.getColumns()[i] && oDataTable.getColumns()[i].getVisible() === false){
+                        if (aColumns[i] && aColumns[i].visible === false) {
                             iFreezeColumnCount++;
                         }
                     }
@@ -370,6 +369,38 @@
             }
 
             return iFreezeColumnCount;
+        },
+
+        /**
+         * Attaches an event listener to the /columns property, to update the number of frozen columns if the configuration changes
+         * @param {string} sP13nId Id of the configurator
+         * @param {string} sP13nModelName name of the p13n model
+         * @param {string} sDataTableId id of the DataTable
+         * @param {integer} iFreezeColumnCount how many columns should be frozen in UI
+         * @param {string} bHasDirtyColumn does the table have a dirty column?
+         * @returns 
+         */
+        attachFrozenColumnChangeListener: function (sP13nId, sP13nModelName, sDataTableId, iFreezeColumnCount, bHasDirtyColumn) {
+            let oDialog = sap.ui.getCore().byId(sP13nId); 
+            if (oDialog == undefined){
+                return;
+            }
+            let oP13nModel = oDialog.getModel(sP13nModelName);
+            let oDataTable = sap.ui.getCore().byId(sDataTableId); 
+
+            // attach event listeners for column changes. 
+            // This should fire for every re-order, config change and setup application;
+            if (oP13nModel && oDataTable && oDataTable.data('_exf_autoUpdateFrozenCols') !== true){
+
+                // initial calculation (on load)
+                oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount(oP13nModel.getProperty("/columns"), iFreezeColumnCount, bHasDirtyColumn));
+                
+                // change listener to update when column properties change
+                oP13nModel.bindProperty("/columns").attachChange(() => {
+                    oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount(oP13nModel.getProperty("/columns"), iFreezeColumnCount, bHasDirtyColumn));
+                });
+                oDataTable.data('_exf_autoUpdateFrozenCols', true);
+            }
         },
 
         /**

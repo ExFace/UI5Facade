@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
@@ -8,6 +9,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
@@ -603,6 +605,22 @@ JS;
             })
 JS;
 
+        // button to reset configuration
+        // TODO sah: in the future, this would probably be nicer with a default entry in table
+        $resetBtnJs = <<<JS
+            new sap.m.Button({
+                text: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                tooltip: "{$translator->translate('ACTION.RESETWIDGET.NAME')}",
+                type: sap.m.ButtonType.Transparent,
+                press: function() {
+                    let oResetConfigBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
+                    if (oResetConfigBtn){
+                        oResetConfigBtn.firePress();
+                    }
+                }
+            })
+JS;
+
         return <<<JS
                     new sap.m.Button({
                         id: '{$this->getId()}' + exfSetupManager.getQuickSelectButtonSuffix(),
@@ -706,6 +724,7 @@ JS;
                                             new sap.m.ToolbarSpacer(), 
                                             {$applySetupButtonJs},
                                             {$saveSetupBtnJs},
+                                            {$resetBtnJs},
                                             {$openConfiguratorBtnJs}
                                         ]
                                     })
@@ -734,7 +753,7 @@ JS;
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
     {   
         $widget = $this->getWidget();
-        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . $this->escapeString($this->getCaption()) . '}),';
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // if we have a datatable with widget_setups, we need to set the heading empty
@@ -744,15 +763,11 @@ JS;
             $heading = '';
 
             // Caption of Popover Button
-            // default: just show the dropdown arrow, no caption 
-            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            // default: show a fallback text as button caption (e.g. 'default-view')
             //    -> if the table has a visible caption, set that as the caption of the button
-            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
-            $popoverBtnCaption = null;
-            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
-                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
-            }
-            else if ($widget->getHideCaption() !== true){
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup() 
+            $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            if ($this->isWrappedInDynamicPage() === false && $widget->getHideCaption() !== true){
                 $popoverBtnCaption = $this->getCaption();
             }
             
@@ -1185,7 +1200,7 @@ JS;
         ;(function(oTable){
             oTable.getModel().setData({});
             {$resetEditableTable}
-            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+                {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
         })(sap.ui.getCore().byId('{$this->getId()}'));  
 JS;
     }
@@ -1843,6 +1858,7 @@ JS;
      */
     protected function buildJsPage(string $content, string $oControllerJs) : string
     {
+        $widget = $this->getWidget();
         // If the data widget is the root of the page, prefill data from the URL can be used
         // to prefill filters. The default prefill-logic of the view will not work, however,
         // because it will load data into the view's default model and this will not have any
@@ -1850,14 +1866,16 @@ JS;
         // to do the prefill manually at this point. 
         // If the widget is not the root, the URL prefill will be applied to the view normally
         // and it will work fine. 
-        if ($this->getWidget()->hasParent() === false) {
+        if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
         $top_buttons = '';
         
+        $this->addTourDropdownToToolbar();
+        
         // Add the search-button
-        $searchButtons = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
+        $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
         $searchButtons = array_reverse($searchButtons);
         foreach ($searchButtons as $btn) {
             if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')){
@@ -1982,7 +2000,7 @@ JS;
         }).addStyleClass('{$this->buildCssDynamicPageClasses()}')
 JS;
     }
-
+    
     protected function buildCssDynamicPageClasses() : string
     {
         return '';
@@ -2948,9 +2966,12 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
-
-        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
-        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+        
+        // Add Driver.js if there are tours for this widget
+        if (($this->getWidget() instanceof IHaveTourGuideInterface) && $this->getWidget()->hasTourGuide()) {
+            $controller->addExternalModule('libs.exface.Driver', $f->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+            $controller->addExternalCss($f->buildUrlToSource("LIBS.DRIVER.CSS"));
+        }
 
         return $this;
     }
@@ -3369,4 +3390,40 @@ JS;
         // TODO how to determine, if a column is required?
         return 'false';
     }
+
+    /**
+     * Places a dropdown menu in the toolbar with all available tours for a widget.
+     */
+    protected function addTourDropdownToToolbar() : void
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return;
+        }
+
+        $tours = $widget->getTourGuide()->getTours();
+        $driver = $this->getFacade()->getTourDriver($widget);
+        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
+
+        $buttons = [];
+        foreach ($tours as $tour) {
+            $buttons[] = [
+                    'caption' => $tour->getTitle(),
+                    'action'  => [
+                        'alias'  => 'exface.Core.CustomFacadeScript',
+                        'icon' => $tour->getIcon() ?? '',
+                        'script' => $driver->buildJsStartTour($tour)
+                    ],
+                ];
+        }
+        
+        $toolbar->addButton($toolbar->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            //'icon' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11,12H3.5L6,9.5L3.5,7H11V3L12,2L13,3V7H18L20.5,9.5L18,12H13V20A2,2 0 0,1 15,22H9A2,2 0 0,1 11,20V12Z" /></svg>',
+            'icon' => 'road', //TODO: find a better icon.
+            'caption' => 'Tour guide',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), 0);
+    } 
 }
