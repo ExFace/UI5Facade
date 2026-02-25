@@ -2967,12 +2967,6 @@ JS;
             $f->getElement($col)->registerExternalModules($controller);
         }
         
-        // Add Driver.js if there are tours for this widget
-        if (($this->getWidget() instanceof IHaveTourGuideInterface) && $this->getWidget()->hasTourGuide()) {
-            $controller->addExternalModule('libs.exface.Driver', $f->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
-            $controller->addExternalCss($f->buildUrlToSource("LIBS.DRIVER.CSS"));
-        }
-
         return $this;
     }
     
@@ -3400,6 +3394,8 @@ JS;
         if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
             return;
         }
+        
+        $this->registerDriverJsAsExternalModule();
 
         $tours = $widget->getTourGuide()->getTours();
         $driver = $this->getFacade()->getTourDriver($widget);
@@ -3419,11 +3415,23 @@ JS;
         
         $toolbar->addButton($toolbar->createButton(new UxonObject([
             'widget_type' => 'MenuButton',
-            //'icon' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11,12H3.5L6,9.5L3.5,7H11V3L12,2L13,3V7H18L20.5,9.5L18,12H13V20A2,2 0 0,1 15,22H9A2,2 0 0,1 11,20V12Z" /></svg>',
-            'icon' => 'road', //TODO: find a better icon.
+            'icon' => 'road',
             'caption' => 'Tour guide',
             'hide_caption' => true,
             'buttons' => $buttons
         ])), 0);
-    } 
+    }
+
+    /**
+     * imports the driver.js library and adds the necessary CSS for the tours to work.
+     * 
+     * @return void
+     */
+    protected function registerDriverJsAsExternalModule() : void
+    {
+        $controller = $this->getController();
+        $facade = $this->getFacade();
+        $controller->addExternalModule('libs.exface.Driver', $facade->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+        $controller->addExternalCss($facade->buildUrlToSource("LIBS.DRIVER.CSS")); 
+    }
 }
