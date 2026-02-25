@@ -205,7 +205,7 @@ JS;
         $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
         $keepScrollPosition = $widget->getKeepScrollPosition();
-        $defaultDurationHours = $calItem->getDefaultDurationHours();
+        $defaultDurationHours = $calItem->getDefaultDurationHours(48);
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         
@@ -269,7 +269,7 @@ JS;
         //date_format: {$this->escapeString($dateFormat)}, //TODO SR: was probably replaced by ‘date_format’ in ‘view_modes’.
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
-        //default_duration: Math.floor('$defaultDurationHours' / 24), //TODO SR: Obsolete weil frappe-gantt jetzt start + end erwartet
+        default_duration: Math.floor('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         //custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {

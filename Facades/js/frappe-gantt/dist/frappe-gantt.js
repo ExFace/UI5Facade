@@ -462,7 +462,7 @@ var Gantt = function() {
       this.invalid = this.task.invalid;
       this.height = this.get_bar_height_for_task(this.task);
       this.image_size = this.height - 5;
-      this.task.orig_end = new Date(this.task.end);
+      this.task.orig_end = this.task.end ? new Date(this.task.end) : null;
       this.compute_x();
       this.compute_y();
       this.compute_duration();
@@ -699,7 +699,6 @@ var Gantt = function() {
       }
     }
     bind() {
-      if (this.invalid) return;
       this.setup_click_event();
     }
     setup_click_event() {
@@ -738,7 +737,9 @@ var Gantt = function() {
               task: this.task,
               target: this.$bar
             });
-          this.gantt.$container.querySelector(`.highlight-${CSS.escape(task_id)}`).classList.remove("hide");
+          if (!this.invalid) {
+            this.gantt.$container.querySelector(`.highlight-${CSS.escape(task_id)}`).classList.remove("hide");
+          }
         }, 200);
       });
       $.on(this.group, "mouseleave", () => {
@@ -746,7 +747,9 @@ var Gantt = function() {
         clearTimeout(timeout);
         if (this.gantt.options.popup_on === "hover")
           (_b = (_a = this.gantt.popup) == null ? void 0 : _a.hide) == null ? void 0 : _b.call(_a);
-        this.gantt.$container.querySelector(`.highlight-${CSS.escape(task_id)}`).classList.add("hide");
+        if (!this.invalid) {
+          this.gantt.$container.querySelector(`.highlight-${CSS.escape(task_id)}`).classList.add("hide");
+        }
       });
       $.on(this.group, "click", () => {
         this.gantt.trigger_event("click", [this.task]);
@@ -780,6 +783,7 @@ var Gantt = function() {
       });
     }
     update_bar_position({ x = null, width = null }) {
+      if (this.invalid) return;
       const bar = this.$bar;
       if (x) {
         const xs = this.task.dependencies.map((dep) => {
@@ -880,6 +884,7 @@ var Gantt = function() {
       return { new_start_date, new_end_date };
     }
     compute_progress() {
+      if (this.invalid) return;
       this.progress_width = this.$bar_progress.getWidth();
       this.x = this.$bar_progress.getBBox().x;
       const progress_area = this.x + this.progress_width;
@@ -918,11 +923,12 @@ var Gantt = function() {
     }
     compute_duration() {
       let actual_duration_in_days = 0, duration_in_days = 0;
+      let endDate = this.task.orig_end ?? this.task._end;
       for (
           let d = new Date(this.task._start);
           // >>> SR: Bar Aggregation -----------------------------------------
-          //d < this.task._end; //TODO SR: Date without hours fix. Test it.
-          d < this.task.orig_end;
+          //d < this.task._end;
+          d < endDate;
           // <<< SR: Bar Aggregation -----------------------------------------
           d.setDate(d.getDate() + 1)
       ) {
@@ -1218,6 +1224,9 @@ var Gantt = function() {
           swatch.style.backgroundColor = String(m.color);
         }
         li.appendChild(swatch);
+        const originalTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+        const hasRealStart = !!(originalTask && originalTask.start);
+        const hasRealEnd = !!(originalTask && originalTask.end);
         let ogTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
         this.compute_duration(ogTask);
         let labelText = m.name;
@@ -1235,8 +1244,14 @@ var Gantt = function() {
             "MMM dd",
             this.gantt.options.language
         );
-        if (m._start && m._end) {
-          rangeText = `${start_date} - ${end_date} (${ogTask.actual_duration} Tage${ogTask.ignored_duration ? " + " + ogTask.ignored_duration + " Ausgeschlossen" : ""})`;
+        if (hasRealStart || hasRealEnd) {
+          if (hasRealStart && hasRealEnd) {
+            rangeText = `${start_date} - ${end_date} (${ogTask.actual_duration} Tage${ogTask.ignored_duration ? " + " + ogTask.ignored_duration + " Ausgeschlossen" : ""})`;
+          } else if (hasRealStart && !hasRealEnd) {
+            rangeText = `${start_date} - ... `;
+          } else if (hasRealEnd && !hasRealStart) {
+            rangeText = `... - ${end_date}`;
+          }
         }
         const textSpan = document.createElement("span");
         textSpan.textContent = labelText + " [ " + rangeText + " ]";
@@ -1407,9 +1422,23 @@ var Gantt = function() {
           "MMM dd",
           ctx.chart.options.language
       );
-      ctx.set_details(
-          `${start_date} - ${end_date} (${ctx.task.actual_duration} days${ctx.task.ignored_duration ? " + " + ctx.task.ignored_duration + " excluded" : ""})<br/>Progress: ${Math.floor(ctx.task.progress * 100) / 100}%`
-      );
+      const hasRealStart = !!ctx.task.start;
+      const hasRealEnd = !!ctx.task.end || ctx.task.duration !== void 0;
+      if (hasRealStart || hasRealEnd) {
+        if (hasRealStart && hasRealEnd) {
+          ctx.set_details(
+              `${start_date} - ${end_date} (${ctx.task.actual_duration} days${ctx.task.ignored_duration ? " + " + ctx.task.ignored_duration + " excluded" : ""})<br/>Progress: ${Math.floor(ctx.task.progress * 100) / 100}%`
+          );
+        } else if (hasRealStart && !hasRealEnd) {
+          ctx.set_details(
+              `${start_date} - ... <br/>Progress: ${Math.floor(ctx.task.progress * 100) / 100}%`
+          );
+        } else if (hasRealEnd && !hasRealStart) {
+          ctx.set_details(
+              `... - ${end_date} <br/>Progress: ${Math.floor(ctx.task.progress * 100) / 100}%`
+          );
+        }
+      }
     },
     popup_on: "click",
     readonly_progress: false,
@@ -1436,8 +1465,8 @@ var Gantt = function() {
     // Total vertical padding within the row for each task
     row_keys: null,
     // For empty lines
-    tick_color_thick: null
-    // Defines the color of the thick tick lines.
+    default_duration: 2
+    // Default duration in days for tasks without start / end date and duration
     // <<< SR: Bar Aggregation -------------------------------------------------
   };
   class Gantt2 {
@@ -1557,26 +1586,39 @@ var Gantt = function() {
     }
     setup_tasks(tasks) {
       this.tasks = tasks.map((task, i) => {
-        if (!task.start) {
-          console.error(
-              `task "${task.id}" doesn't have a start date`
-          );
-          return false;
+        if (task.start !== void 0) {
+          task._start = date_utils.parse(task.start);
+          if (task.end === void 0 && task.duration !== void 0) {
+            task.end = task._start;
+            let durations = task.duration.split(" ");
+            durations.forEach((tmpDuration) => {
+              let { duration, scale } = date_utils.parse_duration(tmpDuration);
+              task.end = date_utils.add(task.end, duration, scale);
+            });
+            if (!task.end) {
+              console.error(`task "${task.id}" doesn't have an end date`);
+              return false;
+            }
+            task._end = date_utils.parse(task.end);
+          }
         }
-        task._start = date_utils.parse(task.start);
-        if (task.end === void 0 && task.duration !== void 0) {
-          task.end = task._start;
-          let durations = task.duration.split(" ");
-          durations.forEach((tmpDuration) => {
-            let { duration, scale } = date_utils.parse_duration(tmpDuration);
-            task.end = date_utils.add(task.end, duration, scale);
-          });
+        if (task.start && task.end) {
+          task._start = date_utils.parse(task.start);
+          task._end = date_utils.parse(task.end);
         }
-        if (!task.end) {
-          console.error(`task "${task.id}" doesn't have an end date`);
-          return false;
+        if (!task.start && !task.end) {
+          const today = date_utils.today();
+          task._start = today;
+          task._end = date_utils.add(today, this.options.default_duration - 1, "day");
         }
-        task._end = date_utils.parse(task.end);
+        if (!task.start && task.end) {
+          task._end = date_utils.parse(task.end);
+          task._start = date_utils.add(task._end, -(this.options.default_duration - 1), "day");
+        }
+        if (task.start && !task.end && task.duration === void 0) {
+          task._start = date_utils.parse(task.start);
+          task._end = date_utils.add(task._start, this.options.default_duration - 1, "day");
+        }
         let diff = date_utils.diff(task._end, task._start, "year");
         if (diff < 0) {
           console.error(
