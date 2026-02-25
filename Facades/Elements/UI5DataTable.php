@@ -234,11 +234,22 @@ JS;
                     Function to reset tracking of changes in the column configuration (sorting/filtering/columns) 
                         - resets the custom data property of the ui5 table .data('_exfConfigChanged')
                         - resets the change indicator of the quick select menu (if button exists)
+                        - also resets the frozen columns count
 
                     Parameters: None
                 */
 
                 (function () {
+                    // reset frozen columns as well
+                    setTimeout(() => {
+                        let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                        let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                        if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                            exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
+                        }
+                    }, 0);
+
                     exfSetupManager.resetChangeTracking('{$this->getId()}');
                 })();
                 
