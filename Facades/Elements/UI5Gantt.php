@@ -269,7 +269,7 @@ JS;
         //date_format: {$this->escapeString($dateFormat)}, //TODO SR: was probably replaced by ‘date_format’ in ‘view_modes’.
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
-        default_duration: Math.floor('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
+        default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         //custom_popup_html: null,
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -340,6 +340,7 @@ JS;
         $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
         $controller = $this->getController();
+        $colorPreference = $this->getFacade()->getConfig()->getOption('WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE');
         
         if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
@@ -375,7 +376,7 @@ JS;
                             color: sColor,
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
-                            textColor: exfColorTools.pickTextColorForBackgroundColor(sColor),
+                            textColor: exfColorTools.pickTextColorForBackgroundColor(sColor, {$colorPreference}),
                         };
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {

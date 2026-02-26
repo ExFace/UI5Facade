@@ -52,3 +52,11 @@
   text-anchor: start !important;
 }
 /* <<< Laber Overflow Handling */
+
+/* >>> bar invalid overlay */
+.exf-gantt .gantt .bar-date-incomplete {
+  stroke: #8D99A6;
+  stroke-width: 1;
+  stroke-dasharray: 5;
+}
+/* <<< bar invalid overlay */
