@@ -8,7 +8,9 @@ use exface\UI5Facade\Facades\Elements\Traits\UI5JExcelTrait;
 
 class UI5DataSpreadSheet extends UI5AbstractElement implements UI5DataElementInterface
 {    
-    use UI5JExcelTrait;
+    use UI5JExcelTrait {
+        UI5JExcelTrait::buildJsIsCellRequired insteadof UI5DataElementTrait;
+    }
     use UI5DataElementTrait {
         UI5DataElementTrait::buildJsDataResetter as buildJsDataResetterViaTrait;
         UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
