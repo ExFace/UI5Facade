@@ -30,7 +30,7 @@ class UI5InputDateTime extends UI5InputDate
             date($format, time())
         );
         
-        $class = $date['hour'] === false || $date['minute'] === false ?
+        $class = $date['hour'] === false && $date['minute'] === false && $date['second'] ?
             'DatePicker' :      // If the format does not include hours or seconds, DatePicker will suffice.
             'DateTimePicker';   // If it DOES include hours or seconds, we need a DateTimePicker.
         
