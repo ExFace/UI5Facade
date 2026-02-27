@@ -1175,8 +1175,8 @@ var Gantt = function() {
         append_to: pattern
       });
       line.setAttribute("stroke", "#8D99A6");
-      line.setAttribute("stroke-width", "4");
-      line.setAttribute("opacity", "0.35");
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("opacity", "0.75");
     }
     /**
      * draws a diagonal hatch overlay on top of the bar to indicate that it is invalid.
@@ -2013,19 +2013,21 @@ var Gantt = function() {
         }
       }
       if (this.options.lines === "horizontal") return;
-      if (this.config.view_mode.thick_line_color) {
-        this.$container.style.setProperty("--g-tick-color-thick", String(this.config.view_mode.thick_line_color));
-      }
       for (let date of this.dates) {
         let tick_class = "tick";
-        if (this.config.view_mode.thick_line && this.config.view_mode.thick_line(date)) {
+        const isThick = this.config.view_mode.thick_line && this.config.view_mode.thick_line(date);
+        if (isThick) {
           tick_class += " thick";
         }
-        createSVG("path", {
+        const attrs = {
           d: `M ${tick_x} ${tick_y} v ${tick_height}`,
           class: tick_class,
           append_to: this.layers.grid
-        });
+        };
+        if (isThick && this.config.view_mode.thick_line_color) {
+          attrs.style = `stroke: ${this.config.view_mode.thick_line_color};`;
+        }
+        createSVG("path", attrs);
         if (this.view_is("month")) {
           tick_x += date_utils.get_days_in_month(date) * this.config.column_width / 30;
         } else if (this.view_is("year")) {
