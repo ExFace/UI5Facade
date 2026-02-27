@@ -237,7 +237,6 @@ JS;
 (function() {
     // Builds frappe-gantt readable view modes from the simplified config
     const buildedViewModes = viewModeBuilder.buildViewModesFromSimpleConfig({$viewModesConfigJson});
-    console.log("buildedViewModes: ", buildedViewModes); //TODO SR: Nimm es wieder raus
   
     return new Gantt("#{$this->getId()}_gantt", [
       {
@@ -250,14 +249,13 @@ JS;
         duration: '3d',
       }
     ], {
-      //TODO SR: Check all commented-out properties individually after the update and integrate them:
         view_mode_select: false, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
         today_button: false,
-        upper_header_height: 40, // 45 // TODO SR: Implement as UXON property
-        lower_header_height: 25, // 30 // TODO SR: Implement as UXON property
-        auto_move_label: true, // TODO SR: Implement as UXON property
+        upper_header_height: 40,
+        lower_header_height: 25,
+        auto_move_label: true,
         view_modes: buildedViewModes,
-        infinite_padding: true, // TODO SR: It fixes the month view bug where the bars have wrong positions. This will be fixed in the future original frappe-gantt version. See: https://github.com/frappe/gantt/issues/498
+        infinite_padding: true,
         readonly: !($editableJs),
         //column_width: 30,
         //step: 24,
@@ -266,7 +264,6 @@ JS;
         //arrow_curve: 5,
         padding: 14,
         //view_mode: 'Tage', //TODO SR: Currently still overwritten by ‘view_modes’ and only works if no custom ‘view_modes’ have been passed.
-        //date_format: {$this->escapeString($dateFormat)}, //TODO SR: was probably replaced by ‘date_format’ in ‘view_modes’.
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
         default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
@@ -322,10 +319,6 @@ JS;
                     processChildrenRecursively(oRow, moveDiffInHours, sColNameStart, sColNameEnd);
                 }
             }
-            //TODO SR: This oGantt.refresh dont work as usual after the update.
-/*            if (oGantt.options.auto_relayout_on_change) {
-                oGantt.refresh(oGantt.tasks); // calls compute_rows_and_lanes() again.
-            }*/
     	}
     });
 })();
@@ -467,17 +460,14 @@ JS;
     {
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
-        $controller->addExternalModule('libs.exface.gantt.Gantt', 'vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.js', null, 'Gantt');
-        $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
         
-        //TODO SR: Improve the inport here:
-        $controller->addExternalModule('libs.exface.viewModeBuilder.viewModeBuilder', 'vendor/exface/UI5Facade/Facades/js/frappe-gantt/tools/view-mode-builder.js', null, 'viewModeBuilder');
-        
-        //TODO SR: Build minified version for production use:
-        //$controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.min.css');
-        $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.css');
+        $controller->addExternalModule('libs.exface.gantt.Gantt', $f->buildUrlToSource("LIBS.FRAPPE_GANTT.JS"), null, 'Gantt');
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.CSS"));
         // task overlapping feature css:
-        $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/frappe-gantt/dist/exf-frappe-gantt.css');
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.EXF.CSS"));
+        // additional tools for color manipulation and view mode generation
+        $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
+        $controller->addExternalModule('libs.exface.viewModeBuilder.viewModeBuilder',  $f->buildUrlToSource("LIBS.FRAPPE_GANTT.VIEW_BUILDER.JS"), null, 'viewModeBuilder');
         
         return $this;
     }
