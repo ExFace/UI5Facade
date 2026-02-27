@@ -68,6 +68,7 @@ class UI5ObjectStatus extends UI5Display
             {$this->buildJsPropertyState()}
             {$this->buildJsPropertyInverted()}
         })
+        .addStyleClass('{$this->buildCssWidgetClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
         
 JS;
