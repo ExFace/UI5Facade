@@ -25,14 +25,11 @@ class UI5InputDateTime extends UI5InputDate
         
         // We need to analyze the formatting choice for this widget, to choose the right widget class.
         $format = $this->getDateFormatter()->getFormat();
-        $date = date_parse_from_format(
-            $format,
-            date($format, time())
-        );
+        $isDateTime = preg_match('/[hHkKmsSA]/', $format) === 1;
         
-        $class = $date['hour'] === false && $date['minute'] === false && $date['second'] ?
-            'DatePicker' :      // If the format does not include hours or seconds, DatePicker will suffice.
-            'DateTimePicker';   // If it DOES include hours or seconds, we need a DateTimePicker.
+        $class = $isDateTime ?
+            'DateTimePicker' :  // If the format does not include hours or seconds, DatePicker will suffice.
+            'DatePicker';       // If it DOES include hours or seconds, we need a DateTimePicker.
         
         return <<<JS
 
