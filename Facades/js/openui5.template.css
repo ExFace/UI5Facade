@@ -469,6 +469,7 @@ html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.
     border-radius: var(--sapElement_BorderCornerRadius);
     color: inherit;
     text-shadow: none;
+    display: inline-block;
 }
 
  .exf-custom-color .sapMObjStatusWrapper {
