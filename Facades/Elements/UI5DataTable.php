@@ -2016,6 +2016,7 @@ JS;
                 
         } else {
             $deSelectJs = $deSelect ? 'true' : 'false';
+            $singleSelectJs = $this->escapeBool($this->getWidget()->getMultiSelect() === false);
             // Cannot use the row index directly here because row group headers
             // are also part of the row numbering. In any case, it is much more
             // reliable to check each binding and compare its path to the row
@@ -2025,6 +2026,7 @@ JS;
                     var aSelections = oTable.getSelectedIndices();
                     var iTableIdx = iRowIdx;
                     var oBinding = oTable.getBinding("rows");
+                    var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
@@ -2038,9 +2040,15 @@ JS;
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
                         oTable.addSelectionInterval(iRowIdx, iRowIdx);
+                        bUpdatedSelection = true;
                     }
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
+                    }
+                    if ($singleSelectJs === true && bUpdatedSelection === true && oTable.getSelectedIndices().length == 1) {
+                        // do not restore the prev. selection if its single select and was already updated
+                        // otherwise the selection isnt properly updated in some cases
+                        return;
                     }
                     aSelections.forEach(function(i){
                         if (i !== iTableIdx) {
