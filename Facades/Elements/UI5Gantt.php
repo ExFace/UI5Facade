@@ -327,6 +327,7 @@ JS;
         $draggableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
         $controller = $this->getController();
+        $colorPreference = $this->getFacade()->getConfig()->getOption('WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE');
         
         if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
@@ -362,7 +363,7 @@ JS;
                             color: sColor,
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
-                            textColor: exfColorTools.pickTextColorForBackgroundColor(sColor),
+                            textColor: exfColorTools.pickTextColorForBackgroundColor(sColor, {$colorPreference}),
                         };
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {

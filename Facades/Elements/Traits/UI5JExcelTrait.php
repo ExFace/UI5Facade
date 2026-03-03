@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JExcelTrait;
+use exface\Core\Interfaces\WidgetInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 
@@ -244,5 +245,34 @@ JS;
         return "(sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows || []).length";
     }
     
-    // TODO override UI5DataElementTrait::buildJsIsCellRequired()
+    /**
+     * Returns inline JS code resolving to TRUE if the given cell or column widget is editable and required and FALSE otherwise
+     * 
+     * This is basically the same as UI5Input::buildJsRequiredGetter(), but works for table columns. The regular
+     * JS required checker needs a real instantiated JS facade element, which does not work in tables - here the
+     * input element is just a template for the column and neither has an id nor a real instance. It gets even more
+     * complicated with required_if linking other columns of the same table - in this case, we even need the specific
+     * row number to determine if the cell is required or not.
+     * 
+     * Thus, UI5Input::buildJsRequiredGetter() and derivatives will not use their regular logic for in-table widgets,
+     * but forward to this method here. 
+     * 
+     * This method should be overridden by specific implementations of data widgets like UI5DataSpreadSheet and
+     * similar.
+     * 
+     * Copied from UI5DataElement::buildJsIsCellRequired() to support required_if in DataImporters
+     * 
+     * @param WidgetInterface $cell
+     * @return string
+     */
+    public function buildJsIsCellRequired(WidgetInterface $cell) : string
+    {
+        if ($cell instanceof DataColumn) {
+            $cell = $cell->getCellWidget();
+        }
+        if ($cell instanceof iCanBeRequired) {
+            return $cell->isRequired() ? 'true' : 'false';
+        }
+        return 'false';
+    }
 }
