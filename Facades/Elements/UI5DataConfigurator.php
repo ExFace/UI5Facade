@@ -875,7 +875,8 @@ function(){
                 expression: oFilter.getColumnKey(), 
                 comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
                 value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
-                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}"
+                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
+                apply_to_aggregates: false
             };
             includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
         });

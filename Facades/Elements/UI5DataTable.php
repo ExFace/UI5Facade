@@ -1051,20 +1051,6 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-            
-            // Process currently visible columns:
-            // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required 
-            // columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
-            
-            oTable.getColumns().forEach(oColumn => {
-                var mVal = oColumn.getFilterValue();
-                var fnParser = oColumn.data('_exfFilterParser');
-    			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
-                    mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
-    				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
-    			}
-    		});
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
     		// NOTE: adding filters to the P13nDialog works strage: the value of the filter does not change
