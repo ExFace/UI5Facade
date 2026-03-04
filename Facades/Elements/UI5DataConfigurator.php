@@ -122,7 +122,9 @@ class UI5DataConfigurator extends UI5Tabs
         if ($dataElement instanceof UI5DataTable) {
             // Need to add a controller variable here because the configurator constructor is
             // rendered BEFORE the constrcutor of the table.
-            $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            } 
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -1060,6 +1062,12 @@ JS;
         if ($this->hasTabColumns() === true) {
             $dataElement = $this->getDataElement();
             if ($dataElement instanceof UI5DataTable) {
+                $controller = $this->getController();
+                // Need to add a controller variable here because the configurator constructor is
+                // rendered BEFORE the constrcutor of the table.
+                if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                    $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+                }                
                 $refreshP13n = $dataElement->buildJsRefreshPersonalization();
             }
             
