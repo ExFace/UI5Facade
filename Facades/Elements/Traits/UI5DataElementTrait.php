@@ -1062,12 +1062,13 @@ if (jqFullscreenContainer.length == 0){
     return;
 }
 
-
-//set the z-index of the fullscreen dynamically so it works with popovers
-var iZIndex = 0;
-var iMaxZIndex = 0;
-var parent = jqFullscreenContainer.parent();
-if (isNaN(jqFullscreenContainer.css('z-index'))) {
+if (jqFullscreenContainer.hasClass('fullscreen') === false) {
+    // Enter full-screen
+    //set the z-index of the fullscreen dynamically so it works with popovers
+    var iZIndex = 0;
+    var iMaxZIndex = 0;
+    var parent = jqFullscreenContainer.parent();
+    jqButton._zIndexDefault = jqFullscreenContainer.css('z-index');
     //get the maximum z-index of parent elements of the data element
     while (parent.length !== 0 && parent[0].tagName !== "BODY") {
         iZIndex = parseInt(parent.css("z-index"));
@@ -1090,15 +1091,15 @@ if (isNaN(jqFullscreenContainer.css('z-index'))) {
     });    
     iMaxZIndex = iMaxZIndex + 1;
     jqFullscreenContainer.css('z-index', iMaxZIndex);
-}
 
-if (jqFullscreenContainer.hasClass('fullscreen') === false) {
     jqButton._originalParent = jqFullscreenContainer.parent();
     jqFullscreenContainer.appendTo($('#sap-ui-static')[0]).addClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setIcon('sap-icon://exit-full-screen');
 } else {
+    // Exit full-screen
+    jqFullscreenContainer.css('z-index', jqButton._zIndexDefault);
     jqFullscreenContainer.appendTo(jqButton._originalParent).removeClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
