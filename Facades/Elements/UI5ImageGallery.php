@@ -406,6 +406,8 @@ JS
                 }
                 return oPopover;
             }();
+            oPopover.setModel(new sap.ui.model.json.JSONModel());
+            
             var jqSlide = $(oEvent.target).closest('.slick-slide');
             var jqSlides = $('#{$this->getId()} .slick-slide');
             var iClickedSlideIdx = jqSlides.index(jqSlide);
