@@ -1,5 +1,7 @@
-// Store the original console.error function
-const originalConsoleError = console.error;
+// store original console 
+if (!window.__originalConsole) {
+	window.__originalConsole = window.console;
+}
 
 // Array to store captured errors
 let capturedErrors = [];
@@ -651,10 +653,12 @@ const exfLauncher = {};
 				if (oCtxtData.indicator !== 'OFF' && oCtxtData.indicator.includes('F')) {
 					if (_oContextBar.traceJs !== true) {
 						_oContextBar.traceJs = true;
+						exfLauncher.enableJsTracing();
 					}
 				} else {
 					if (_oContextBar.traceJs === true) {
 						_oContextBar.traceJs = false;
+						exfLauncher.disableJsTracing();
 					}
 				}
 			},
@@ -1981,6 +1985,10 @@ const exfLauncher = {};
 					width: "200px"
 				}),
 				new sap.m.Column({
+					header: new sap.m.Label({ text: "Level" }),
+					width: "100px"
+				}),
+				new sap.m.Column({
 					header: new sap.m.Label({ text: "Message" })
 				}),
 				new sap.m.Column({
@@ -2003,6 +2011,7 @@ const exfLauncher = {};
 				template: new sap.m.ColumnListItem({
 					cells: [
 						new sap.m.Text({ text: "{timestamp}" }),
+						new sap.m.Text({ text: "{level}" }),
 						new sap.m.VBox({
 							items: [
 								new sap.m.Text({
@@ -2118,6 +2127,7 @@ const exfLauncher = {};
 				.then(function (oStatus) {
 					return {
 						timestamp: error.timestamp,
+						level: error.level,
 						message: error.message,
 						url: error.url,
 						stack: error.stack,
@@ -2522,10 +2532,15 @@ exfLauncher.showErrorPopover = function(errorMessage) {
                 type: "Active",
                 wrapping: true,
                 press: function() {
-                    // Show error details 
-                    sap.m.MessageBox.error(error.stack || error.message, {
-                        title: "Error Details"
-                    });
+                    // Close the popover before showing the log
+					exfLauncher.errorPopover.close();
+					var dummyEvent = {
+						getSource: function() {
+							return sap.ui.getCore().byId("exf-network-indicator");
+						}
+					};
+					// Show the detailed error log
+					exfLauncher.showErrorLog(dummyEvent);
                 }
             });
         })
@@ -2606,40 +2621,125 @@ exfLauncher.showErrorPopover = function(errorMessage) {
 };
 
 /**
- * Overrides the default console.error function to capture and log errors.
- * This function logs the original error, captures error details, and displays them in a popover.
+ * Logs all JS console output to the capturedErrors array with details such as message, stack trace, and timestamp.
+ * Messages also show a popup if the level is 'error' and tracing is enabled in the context bar.
+ * 
+ * @param args error arguments from console
+ * @param level level of logging (e.g. error, warn, log, assert, etc.)
+ * @param message error message to log (optional, if not provided it will be constructed from args)
  */
-console.error = function (...args) {
-    originalConsoleError.apply(console, args);
+exfLauncher.logJsError = function(args, level, message = null){
+	if (!Array.isArray(args) || args.length === 0) return;
 
-    let errorMessage = args.map(arg => {
-        if (arg instanceof Error) {
-            return arg.stack || arg.message;
-        } else if (typeof arg === 'object') {
-            return JSON.stringify(arg);
-        } else {
-            return String(arg);
-        }
-    }).join(' ');
+	let sMessage = args.map(arg => {
+		if (arg instanceof Error) {
+			return arg.stack || arg.message;
+		} else if (typeof arg === 'object') {
+			try {
+				return JSON.stringify(arg);
+			} catch {
+				return '[cant stringify error message]';
+			}
+		} else {
+			return String(arg);
+		}
+	}).join(' ');
 
-    const shouldIgnore = ignoredErrorPatterns.some(pattern => pattern.test(errorMessage));
+	const shouldIgnore = ignoredErrorPatterns?.some(pattern =>
+		pattern.test(sMessage)
+	);
 
-    if (exfLauncher.contextBar.traceJs && ! shouldIgnore && ! exfLauncher.dismissedErrors.has(errorMessage)) {
-        const errorDetails = {
-            message: errorMessage,
-            timestamp: new Date().toISOString(),
-            url: window.location.href,
-            stack: new Error().stack
-        };
+	if (!shouldIgnore && !exfLauncher.dismissedErrors?.has(sMessage)) {
+		const errorArg = args.find(a => a && (a instanceof Error || typeof a.stack === "string"));
+		const logDetails = {
+			level: level, // console method name (error, warn, log, etc.)
+			message: message || sMessage,
+			timestamp: new Date().toISOString(),
+			url: window.location.href,
+			stack: errorArg?.stack || new Error().stack
+		};
 
-        capturedErrors.push(errorDetails);
+		// save to log array
+		capturedErrors.push(logDetails);
 
-        // Show or update the popover
-        if (typeof exfLauncher !== 'undefined' && typeof exfLauncher.showErrorPopover === 'function') {
-            exfLauncher.showErrorPopover(errorMessage);
-        }
-    }
-}; 
+		// only show popover for error levels
+		if (typeof exfLauncher.showErrorPopover === "function" && level === 'error') {
+			exfLauncher.showErrorPopover(sMessage);
+		}
+	}
+}
+
+/**
+ * Function that returns the current error logs
+ * 
+ * @returns array[json objects] 
+ */
+exfLauncher.getJsErrorLogs = function () {
+	return capturedErrors;
+};
+
+/**
+ * Function that resets the current error logs to an empty array
+ * 
+ */
+exfLauncher.resetJsErrorLogs = function () {
+	capturedErrors = [];
+};
+
+/**
+ * This wraps the default console functions in a proxy to capture and log errors.
+ * This logs the original console output, captures details, and displays errors in a popover.
+ * 
+ * NOTE sah: the error level doesn't seem to work for anything other than explicitly thrown errors (e.g. throw new Error(), or console.error()),
+ * so we additionally listen to window.onerror for runtime errors; (see next function)
+ */
+window.__exfProxyInstance = new Proxy(window.__originalConsole, {
+	get(target, prop) {
+		const originalMethod = target[prop];
+
+		// only proxy proper functions, return for other console properties (console.memory etc...)
+		if (typeof originalMethod !== 'function') {
+			return originalMethod;
+		}
+
+		// apply console method and log error
+		return function (...args) {
+			originalMethod.apply(target, args);
+			exfLauncher?.logJsError?.(args, prop);
+		};
+	}
+});
+
+/**
+ * Listen to other errors that are not caught by console.error, such as type/reference errors 
+ * this doesnt need to be proxied because window.onerror can pass the error object through unlike the console functions
+ */
+window.onerror = function (message, source, lineno, colno, error) {
+	// log error if tracing is enabled
+	if (sessionStorage.getItem('exfJsTracingEnabled') === 'true') {
+		exfLauncher.logJsError([error], 'error', message);
+	}
+
+    // returning false lets the browser still log the error normally
+    return false;
+};
+
+/**
+ * routes console output through a proxy function to capture logs
+ */
+exfLauncher.enableJsTracing = function () {
+	window.console = window.__exfProxyInstance;
+	sessionStorage.setItem('exfJsTracingEnabled', 'true');
+};
+
+/**
+ * restores the original console functions and disable error logging
+ */
+exfLauncher.disableJsTracing = function () {
+	window.console = window.__originalConsole;
+	sessionStorage.setItem('exfJsTracingEnabled', 'false');
+};
+
 
 // Define initial state
 exfLauncher._lastNetworkState = null;
@@ -2656,6 +2756,11 @@ window.onload = function () {
 
 	// Clear the error list (Step 5)
 	capturedErrors = [];
+
+	// restart js tracing if needed
+	if (sessionStorage.getItem('exfJsTracingEnabled') === 'true') {
+		exfLauncher.enableJsTracing();
+	}
 
 	// After the page has finished loading, check the error count and show toast message (Step 6)
 	setTimeout(function () {

@@ -234,11 +234,22 @@ JS;
                     Function to reset tracking of changes in the column configuration (sorting/filtering/columns) 
                         - resets the custom data property of the ui5 table .data('_exfConfigChanged')
                         - resets the change indicator of the quick select menu (if button exists)
+                        - also resets the frozen columns count
 
                     Parameters: None
                 */
 
                 (function () {
+                    // reset frozen columns as well
+                    setTimeout(() => {
+                        let oDataTable = sap.ui.getCore().byId("{$this->getId()}"); 
+                        let bHasDirtyColumn = {$this->escapeBool($this->hasDirtyColumn())};
+
+                        if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
+                            exfSetupManager.datatable.attachFrozenColumnChangeListener('{$this->getP13nElement()->getId()}', '{$this->getConfiguratorElement()->getModelNameForConfig()}', '{$this->getId()}', {$this->getWidget()->getFreezeColumns()}, bHasDirtyColumn);
+                        }
+                    }, 0);
+
                     exfSetupManager.resetChangeTracking('{$this->getId()}');
                 })();
                 
@@ -1043,20 +1054,6 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-            
-            // Process currently visible columns:
-            // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required 
-            // columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
-            
-            oTable.getColumns().forEach(oColumn => {
-                var mVal = oColumn.getFilterValue();
-                var fnParser = oColumn.data('_exfFilterParser');
-    			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
-                    mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
-    				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
-    			}
-    		});
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
     		// NOTE: adding filters to the P13nDialog works strage: the value of the filter does not change
@@ -2044,6 +2041,7 @@ JS;
                 
         } else {
             $deSelectJs = $deSelect ? 'true' : 'false';
+            $singleSelectJs = $this->escapeBool($this->getWidget()->getMultiSelect() === false);
             // Cannot use the row index directly here because row group headers
             // are also part of the row numbering. In any case, it is much more
             // reliable to check each binding and compare its path to the row
@@ -2053,6 +2051,7 @@ JS;
                     var aSelections = oTable.getSelectedIndices();
                     var iTableIdx = iRowIdx;
                     var oBinding = oTable.getBinding("rows");
+                    var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
@@ -2066,9 +2065,15 @@ JS;
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
                         oTable.addSelectionInterval(iRowIdx, iRowIdx);
+                        bUpdatedSelection = true;
                     }
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
+                    }
+                    if ($singleSelectJs === true && bUpdatedSelection === true && oTable.getSelectedIndices().length == 1) {
+                        // do not restore the prev. selection if its single select and was already updated
+                        // otherwise the selection isnt properly updated in some cases
+                        return;
                     }
                     aSelections.forEach(function(i){
                         if (i !== iTableIdx) {

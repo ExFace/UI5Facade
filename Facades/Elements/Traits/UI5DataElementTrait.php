@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
@@ -8,6 +9,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
@@ -751,7 +753,7 @@ JS;
     protected function buildJsToolbarContent($oControllerJsVar = 'oController', string $leftExtras = null, string $rightExtras = null) : string
     {   
         $widget = $this->getWidget();
-        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . json_encode($this->getCaption()) . '}),';
+        $heading = $this->isWrappedInDynamicPage() || $widget->getHideCaption() === true ? '' : 'new sap.m.Label({text: ' . $this->escapeString($this->getCaption()) . '}),';
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // if we have a datatable with widget_setups, we need to set the heading empty
@@ -761,15 +763,11 @@ JS;
             $heading = '';
 
             // Caption of Popover Button
-            // default: just show the dropdown arrow, no caption 
-            //    -> if the table is WrappedInDynamicPage and caption is not hidden explicitly, set an additional default caption (e.g. 'default-view')
+            // default: show a fallback text as button caption (e.g. 'default-view')
             //    -> if the table has a visible caption, set that as the caption of the button
-            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup 
-            $popoverBtnCaption = null;
-            if ($this->isWrappedInDynamicPage() && $widget->getHideCaption() !== true){
-                $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
-            }
-            else if ($widget->getHideCaption() !== true){
+            //    -> if a setup is applied, the caption will be the name of the setup (in any case) see UI5DataTable->apply_setup() 
+            $popoverBtnCaption = $translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_DEFAULT_CAPTION');
+            if ($this->isWrappedInDynamicPage() === false && $widget->getHideCaption() !== true){
                 $popoverBtnCaption = $this->getCaption();
             }
             
@@ -1064,12 +1062,13 @@ if (jqFullscreenContainer.length == 0){
     return;
 }
 
-
-//set the z-index of the fullscreen dynamically so it works with popovers
-var iZIndex = 0;
-var iMaxZIndex = 0;
-var parent = jqFullscreenContainer.parent();
-if (isNaN(jqFullscreenContainer.css('z-index'))) {
+if (jqFullscreenContainer.hasClass('fullscreen') === false) {
+    // Enter full-screen
+    //set the z-index of the fullscreen dynamically so it works with popovers
+    var iZIndex = 0;
+    var iMaxZIndex = 0;
+    var parent = jqFullscreenContainer.parent();
+    jqButton._zIndexDefault = jqFullscreenContainer.css('z-index');
     //get the maximum z-index of parent elements of the data element
     while (parent.length !== 0 && parent[0].tagName !== "BODY") {
         iZIndex = parseInt(parent.css("z-index"));
@@ -1092,15 +1091,15 @@ if (isNaN(jqFullscreenContainer.css('z-index'))) {
     });    
     iMaxZIndex = iMaxZIndex + 1;
     jqFullscreenContainer.css('z-index', iMaxZIndex);
-}
 
-if (jqFullscreenContainer.hasClass('fullscreen') === false) {
     jqButton._originalParent = jqFullscreenContainer.parent();
     jqFullscreenContainer.appendTo($('#sap-ui-static')[0]).addClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setIcon('sap-icon://exit-full-screen');
 } else {
+    // Exit full-screen
+    jqFullscreenContainer.css('z-index', jqButton._zIndexDefault);
     jqFullscreenContainer.appendTo(jqButton._originalParent).removeClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
@@ -1202,7 +1201,7 @@ JS;
         ;(function(oTable){
             oTable.getModel().setData({});
             {$resetEditableTable}
-            {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
+                {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}
         })(sap.ui.getCore().byId('{$this->getId()}'));  
 JS;
     }
@@ -1860,6 +1859,7 @@ JS;
      */
     protected function buildJsPage(string $content, string $oControllerJs) : string
     {
+        $widget = $this->getWidget();
         // If the data widget is the root of the page, prefill data from the URL can be used
         // to prefill filters. The default prefill-logic of the view will not work, however,
         // because it will load data into the view's default model and this will not have any
@@ -1867,14 +1867,16 @@ JS;
         // to do the prefill manually at this point. 
         // If the widget is not the root, the URL prefill will be applied to the view normally
         // and it will work fine. 
-        if ($this->getWidget()->hasParent() === false) {
+        if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
         $top_buttons = '';
         
+        $this->addTourDropdownToToolbar();
+        
         // Add the search-button
-        $searchButtons = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
+        $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
         $searchButtons = array_reverse($searchButtons);
         foreach ($searchButtons as $btn) {
             if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')){
@@ -1999,7 +2001,7 @@ JS;
         }).addStyleClass('{$this->buildCssDynamicPageClasses()}')
 JS;
     }
-
+    
     protected function buildCssDynamicPageClasses() : string
     {
         return '';
@@ -2965,10 +2967,7 @@ JS;
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $f->getElement($col)->registerExternalModules($controller);
         }
-
-        // register setup manager library, in order to use exfSetupManager in callwidgetfunctions
-        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->getFacade()->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
-
+        
         return $this;
     }
     
@@ -3385,5 +3384,55 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
+    }
+
+    /**
+     * Places a dropdown menu in the toolbar with all available tours for a widget.
+     */
+    protected function addTourDropdownToToolbar() : void
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return;
+        }
+        
+        $this->registerDriverJsAsExternalModule();
+
+        $tours = $widget->getTourGuide()->getTours();
+        $driver = $this->getFacade()->getTourDriver($widget);
+        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
+
+        $buttons = [];
+        foreach ($tours as $tour) {
+            $buttons[] = [
+                    'caption' => $tour->getTitle(),
+                    'action'  => [
+                        'alias'  => 'exface.Core.CustomFacadeScript',
+                        'icon' => $tour->getIcon() ?? '',
+                        'script' => $driver->buildJsStartTour($tour)
+                    ],
+                ];
+        }
+        
+        $toolbar->addButton($toolbar->createButton(new UxonObject([
+            'widget_type' => 'MenuButton',
+            'icon' => 'sap-icon://travel-request',
+            'caption' => 'Tour guide',
+            'hide_caption' => true,
+            'buttons' => $buttons
+        ])), 0);
+    }
+
+    /**
+     * imports the driver.js library and adds the necessary CSS for the tours to work.
+     * 
+     * @return void
+     */
+    protected function registerDriverJsAsExternalModule() : void
+    {
+        $controller = $this->getController();
+        $facade = $this->getFacade();
+        $controller->addExternalModule('libs.exface.Driver', $facade->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
+        $controller->addExternalCss($facade->buildUrlToSource("LIBS.DRIVER.CSS")); 
     }
 }
