@@ -1773,6 +1773,20 @@ JS;
                 var mExpand = $expandGroupJs;
                 var aCtxts = oBinding.getContexts(0, iRowCnt);
                 var iExpanded = 0;
+                let iFirstGroupLength = 0;
+
+                // In order to use the _experimentalGroupingCollapse, we need to pass the actual row object to the function, not an index.
+                // However, getRows() only returns the currently visible rows, so we need to temporarily set the visible row count to the total count of rows, in order to collapse everything 
+                // even if its not inside the viewport. The original settings are saved and then reset afterwards.
+                var iTotalLength = oBinding.getLength();
+                var iOldVisibleRowCount = oTable.getVisibleRowCount();
+                var sOldMode = oTable.getVisibleRowCountMode();
+                
+                // temporarily set visible rows to total count and set mode to fixed to get all rows on page.
+                oTable.setVisibleRowCountMode("Fixed");
+                oTable.setVisibleRowCount(iTotalLength);
+                sap.ui.getCore().applyChanges();
+
                 for (var i = 0; i < iRowCnt; i++) {
                     if (aCtxts[i].__groupInfo) {
                         aCtxts[i].__groupInfo.name = (function(mVal) {
@@ -1782,31 +1796,53 @@ JS;
                             return '{$groupCaption}' + {$groupFormatterJs}
                         })(aCtxts[i].__groupInfo.name);
                     }
-                    if (oBinding.isGroupHeader(i)) {
+
+                    // collapse headers according to configuration: (first, all, none)
+                    // UI5-Upgrade -> oBinding.isGroupHeader() and oBinding.collapse() dont exist anymore, so we now need to check and expand/collapse this differently
+                    // the workaround we use now is a bit hacky, and might break in future versions, if there are changes to the _experimentalGrouping api
+                    // TODO: In general, the grouping APIs of ui and responsive table have mostly been moved to https://sdk.openui5.org/1.144.0/#/api/sap.ui.table.AnalyticalTable
+                    if (aCtxts[i].__groupInfo && aCtxts[i].__groupInfo.groupHeader === true) {
                         iHeaderIdx++;
-                        if (mExpand === false || (Number.isInteger(mExpand) && iHeaderIdx >= (mExpand - 1))) {
-                            oBinding.collapse(i);
+
+                        // if we want to collapse all groups, or the number of to be collapsed groups in not reached yet, collapse it
+                        if (mExpand === false || (Number.isInteger(mExpand) && iHeaderIdx > (mExpand - 1))) {
+                            
+                            // if we only want to expand the first group, we need to add the length of the group (minus group header) 
+                            // to all indices that come after that group, in order to collapse them.
+                            // So, if we have 5 rows in the first group, we collapse all group headers from index 6 (5 + 1 group header) onwards, and leave the first group as is.
+                            let iRowIdx = iHeaderIdx;
+                            if (mExpand === 1 && iHeaderIdx === 1){
+                                iFirstGroupLength = i-1;
+                            }
+
+                            iRowIdx += iFirstGroupLength;
+
+                            // collapse the group header 
+                            var oRow = oTable.getRows()[iRowIdx];
+                            if (oRow) {
+                                oTable._experimentalGroupingCollapse(oRow);
+                            }
                         }
                     }
                 }
+
+                // reset to original visible row count and mode
+                oTable.setVisibleRowCount(iOldVisibleRowCount);
+                oTable.setVisibleRowCountMode(sOldMode);
+                sap.ui.getCore().applyChanges();
+
                 // Resize columns every time a group gets expanded
                 oBinding.attachChange(function(oEvent) {
-                    var iExpandedBefore = iExpanded;
+                    
                     // Change-events on expand/collapse do not have a reason. Ignore others
                     if (oEvent.getParameters().reason !== undefined) {
                         return;
                     }
-                    iExpanded = 0;
-                    for (var i=0; i<iRowCnt; i++) {
-                        if(oBinding.isExpanded(i)) iExpanded += 1;
-                    }
-                    // If a group just got expanded, there are more expanded nodes now.
-                    // Resize the columns to match the newly visible data
-                    if (iExpanded > iExpandedBefore) {
-                        setTimeout(function(){
-                            {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_RESIZE_COLUMNS, $this, 'oTable, ' . $oModelJs)}
-                        }, 100);
-                    }
+
+                    // resize on collapse/expand
+                    setTimeout(function(){
+                        {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_RESIZE_COLUMNS, $this, 'oTable, ' . $oModelJs)}
+                    }, 100);
                 });
             })($oTableJs, $oModelJs);
 JS;

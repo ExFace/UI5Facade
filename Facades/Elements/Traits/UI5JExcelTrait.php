@@ -139,7 +139,13 @@ trait UI5JExcelTrait {
                         (function() {
                             var jExcel = {$this->buildJsJqueryElement()}[0].exfWidget.getJExcel();
                             var jqExcel = {$this->buildJsJqueryElement()};
-                            var jqScroller = jqExcel.parents('.sapMPanelContent').first();
+                            // UI5-Upgrade: the old scroll element (sapMPanelContent) didnt seem to work anymore in some pages, not sure why.
+                            // so we take the new scroll delegate element instead in those cases
+                            var jqScroller = jqExcel.parents('.sapUiScrollDelegate').first(); 
+                            if (jqScroller.length === 0){
+                                jqScroller = jqExcel.parents('.sapMPanelContent').first();
+                            }
+
                             var fnOnEditStart = jExcel.options.oneditionstart;
                             var fnOnEditEnd = jExcel.options.oneditionend;
                             var bIsDialog = false;
