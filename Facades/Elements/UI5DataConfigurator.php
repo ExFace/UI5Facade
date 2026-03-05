@@ -1,11 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\DataSheets\DataAggregation;
+use exface\Core\CommonLogic\Model\RelationPath;
+use exface\Core\DataTypes\StringDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
+use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
@@ -118,7 +122,9 @@ class UI5DataConfigurator extends UI5Tabs
         if ($dataElement instanceof UI5DataTable) {
             // Need to add a controller variable here because the configurator constructor is
             // rendered BEFORE the constrcutor of the table.
-            $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            } 
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -624,14 +630,14 @@ JS;
         $data = [];
         $sorters = [];
         $table = $widget->getDataWidget();
+        $cols = $table->getColumns();
         foreach ($table->getSorters() as $sorter) {
             $sorters[] = $sorter->getProperty('attribute_alias');
             $data[] = [
                 "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'))->getName()
+                "caption" => $this->getSorterCaption($sorter, $cols)
             ];
         }
-        $cols = $table->getColumns();
         // Also add all optional columns from the configurator - if they are sortable, of course.
         if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
             $cols = array_merge($cols, $widget->getOptionalColumns());
@@ -649,6 +655,48 @@ JS;
             ];
         }
         return json_encode($data);
+    }
+
+    /**
+     * Gets the caption for a sorter.
+     * 
+     * The caption is determined in the following way:
+     * 1. If a column of given columns has the same attribute alias as the sorter, take the caption from that column
+     * 2. If it is a related attribute, the attribute name and the related object name (if not the same) is taken: "Name (ObjectName)"
+     * 3. Else take the attribute name.
+     * 
+     * @param $sorter
+     * @param $columns
+     * @return string
+     */
+    protected function getSorterCaption($sorter, $columns) : string 
+    {
+        $alias = $sorter->getProperty('attribute_alias');
+        $attribute = $this->getMetaObject()->getAttribute($sorter->getProperty('attribute_alias'));
+
+        // Take the caption from the column if it exists
+        $column = current(array_filter($columns, fn($c) => $c->getAttributeAlias() === $alias));
+        $caption = $column ? $column->getCaption() : null;
+        if ($caption) {
+            return $caption;
+        }
+        
+        // If it is a related attribute: e.g.
+        // - TYPE__NAME, tell the user, which object it belongs to - `Name (Type)`
+        // - PRODUCT__PRODUCT_GROUP__NAME - `Name (Product group)`
+        // - PRODUCT__PRODUCT_GROUP__LABEL - here the LABEL is already "Product group", so we skip the parentheses and
+        // just yield `Product group`
+        $attrName = $attribute->getName();
+        
+        if ($attribute->isRelated()) {
+            $objName = $attribute->getRelationPath()->getRelationLast()->getName();
+
+            return ($objName !== $attrName)
+                ? $attrName . ' (' . $attribute->getObject()->getName() . ')'
+                : $attrName;
+        }
+
+        return $attrName;
     }
     
     /**
@@ -836,7 +884,8 @@ function(){
                 expression: oFilter.getColumnKey(), 
                 comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
                 value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
-                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}"
+                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
+                apply_to_aggregates: false
             };
             includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
         });
@@ -1020,6 +1069,12 @@ JS;
         if ($this->hasTabColumns() === true) {
             $dataElement = $this->getDataElement();
             if ($dataElement instanceof UI5DataTable) {
+                $controller = $this->getController();
+                // Need to add a controller variable here because the configurator constructor is
+                // rendered BEFORE the constrcutor of the table.
+                if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                    $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+                }                
                 $refreshP13n = $dataElement->buildJsRefreshPersonalization();
             }
             

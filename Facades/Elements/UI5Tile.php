@@ -168,4 +168,17 @@ JS;
     {
         return 'exf-tile';
     }
+
+    /**
+     * 
+     * @return string
+     */
+    public function buildJsRefresh()
+    {
+        $widget = $this->getWidget();
+        if ($innerWidget = $widget->getDisplayWidget()) {
+            return $this->getFacade()->getElement($innerWidget)->buildJsRefresh();
+        }
+        return parent::buildJsRefresh(); 
+    }
 }
