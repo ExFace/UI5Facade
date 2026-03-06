@@ -702,7 +702,7 @@ html[class*="sapUiTheme-sap_horizon"] h2.sapUxAPObjectPageHeaderIdentifierTitle,
 }
 
 /* header content dividers */
-html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHeaderContentItem:not(:first-of-type) {
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageHeaderContent div.sapUxAPObjectPageHeaderContentItem {
     border-left: 2px solid var(--sapList_BorderColor);
     margin-right: 1rem;
     padding-left: 1rem;
@@ -719,7 +719,8 @@ html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
 }
 
 /* margin tab headings */
-html[class*="sapUiTheme-sap_horizon"] .sapMITH.sapMITBInLine .sapMITBHead {
+html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITBHead,
+html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITHEndOverflow {
     padding-top: 1.5rem;
 }
 
@@ -800,4 +801,3 @@ html.sapUiTheme-sap_horizon_dark .sapMBtn.exf-svg-icon > .sapMBtnInner > .sapMIm
 html.sapUiTheme-sap_horizon_dark .sapMTileCntContent > .sapMImageContent > img {
     filter: invert(50%) sepia(10%) saturate(500%) hue-rotate(165deg) brightness(100%) contrast(100%);
 }
-
