@@ -1,30 +1,36 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"./BaseHeader",
 	"sap/m/library",
 	"sap/f/library",
-	"sap/ui/core/Control",
+	"sap/ui/core/library",
 	"sap/m/Text",
-	"sap/f/Avatar",
-	"sap/ui/Device",
+	"sap/m/Avatar",
 	"sap/f/cards/HeaderRenderer",
-	"sap/ui/core/Core"
+	"sap/ui/core/InvisibleText",
+	"sap/base/Log"
 ], function (
+	BaseHeader,
 	mLibrary,
 	library,
-	Control,
+	coreLibrary,
 	Text,
 	Avatar,
-	Device,
 	HeaderRenderer,
-	Core
+	InvisibleText,
+	Log
 ) {
 	"use strict";
 
-	var AvatarShape = mLibrary.AvatarShape;
+	const AvatarShape = mLibrary.AvatarShape;
+	const AvatarColor = mLibrary.AvatarColor;
+	const AvatarImageFitType = mLibrary.AvatarImageFitType;
+	const AvatarSize = mLibrary.AvatarSize;
+	const ValueState = coreLibrary.ValueState;
 
 	/**
 	 * Constructor for a new <code>Header</code>.
@@ -43,19 +49,18 @@ sap.ui.define([
 	 * <li>To show a KPI or any numeric information, use {@link sap.f.cards.NumericHeader} instead.</li>
 	 * <ul>
 	 *
-	 * @extends sap.ui.core.Control
+	 * @extends sap.f.cards.BaseHeader
 	 * @implements sap.f.cards.IHeader
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.64
 	 * @alias sap.f.cards.Header
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Header = Control.extend("sap.f.cards.Header", {
+	var Header = BaseHeader.extend("sap.f.cards.Header", {
 		metadata: {
 			library: "sap.f",
 			interfaces: ["sap.f.cards.IHeader"],
@@ -67,9 +72,21 @@ sap.ui.define([
 				title: { type: "string", defaultValue: "" },
 
 				/**
+				 * Limits the number of lines for the title.
+				 * @experimental since 1.101
+				 */
+				titleMaxLines: { type: "int", defaultValue: 3 },
+
+				/**
 				 * Defines the subtitle.
 				 */
 				subtitle: { type: "string", defaultValue: "" },
+
+				/**
+				 * Limits the number of lines for the subtitle.
+				 * @experimental since 1.101
+				 */
+				subtitleMaxLines: { type: "int", defaultValue: 2 },
 
 				/**
 				 * Defines the status text.
@@ -94,18 +111,46 @@ sap.ui.define([
 				/**
 				 * Defines an alt text for the avatar or icon.
 				 *
-				 * @experimental Since 1.81 this feature is experimental and the api may change.
+				 * @experimental Since 1.81 this feature is experimental and the API may change.
 				 */
-				iconAlt: { type: "string", defaultValue: "" }
-			},
-			aggregations: {
+				iconAlt: { type: "string", defaultValue: "" },
 
 				/**
-				 * Defines the toolbar.
-				 * @experimental Since 1.75
-				 * @since 1.75
+				 * Defines a background color for the avatar or icon.
+				 *
+				 * @experimental Since 1.83 this feature is experimental and the API may change.
 				 */
-				toolbar: { type: "sap.ui.core.Control", multiple: false },
+				iconBackgroundColor: { type: "sap.m.AvatarColor", defaultValue: AvatarColor.Transparent },
+
+				/**
+				 * Defines whether the card icon is visible.
+				 *
+				 * @experimental Since 1.83 this feature is experimental and the API may change.
+				 */
+				iconVisible: { type: "boolean", defaultValue: true },
+
+				/**
+				 * Defines the size of the icon.
+				 *
+				 * @experimental Since 1.119 this feature is experimental and the API may change.
+				 */
+				iconSize: { type: "sap.m.AvatarSize", defaultValue: AvatarSize.S },
+
+				/**
+				 * Defines how the image fits in the icon area.
+				 *
+				 * @since 1.130
+				 */
+				iconFitType: { type: "sap.m.AvatarImageFitType", defaultValue: AvatarImageFitType.Cover },
+
+				/**
+				 * Defines a status-colored, non-interactive message icon in the icon area.
+				 *
+				 * @since 1.141
+				 */
+				iconState: { type: "sap.ui.core.ValueState", defaultValue: ValueState.None }
+			},
+			aggregations: {
 
 				/**
 				 * Defines the inner title control.
@@ -120,14 +165,7 @@ sap.ui.define([
 				/**
 				 * Defines the inner avatar control.
 				 */
-				_avatar: { type: "sap.f.Avatar", multiple: false, visibility: "hidden" }
-			},
-			events: {
-
-				/**
-				 * Fires when the user presses the control.
-				 */
-				press: {}
+				_avatar: { type: "sap.m.Avatar", multiple: false, visibility: "hidden" }
 			}
 		},
 		renderer: HeaderRenderer
@@ -138,12 +176,13 @@ sap.ui.define([
 	 * @private
 	 */
 	Header.prototype.init = function () {
-		this._oRb = Core.getLibraryResourceBundle("sap.f");
+		BaseHeader.prototype.init.apply(this, arguments);
+
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
 
 	Header.prototype.exit = function () {
-		this._oRb = null;
+		BaseHeader.prototype.exit.apply(this, arguments);
 	};
 
 	/**
@@ -154,9 +193,7 @@ sap.ui.define([
 	Header.prototype._getTitle = function () {
 		var oTitle = this.getAggregation("_title");
 		if (!oTitle) {
-			oTitle = new Text({
-				maxLines: 3
-			}).addStyleClass("sapFCardTitle");
+			oTitle = new Text(this.getId() + "-title").addStyleClass("sapFCardTitle");
 			this.setAggregation("_title", oTitle);
 		}
 		return oTitle;
@@ -170,9 +207,7 @@ sap.ui.define([
 	Header.prototype._getSubtitle = function () {
 		var oSubtitle = this.getAggregation("_subtitle");
 		if (!oSubtitle) {
-			oSubtitle = new Text({
-				maxLines: 2
-			}).addStyleClass("sapFCardSubtitle");
+			oSubtitle = new Text(this.getId() + "-subtitle").addStyleClass("sapFCardSubtitle");
 			this.setAggregation("_subtitle", oSubtitle);
 		}
 		return oSubtitle;
@@ -181,7 +216,7 @@ sap.ui.define([
 	/**
 	 * Lazily creates an avatar control and returns it.
 	 * @private
-	 * @returns {sap.f.Avatar} The inner avatar aggregation
+	 * @returns {sap.m.Avatar} The inner avatar aggregation
 	 */
 	Header.prototype._getAvatar = function () {
 		var oAvatar = this.getAggregation("_avatar");
@@ -197,17 +232,91 @@ sap.ui.define([
 	 * @private
 	 */
 	Header.prototype.onBeforeRendering = function () {
-		var oAvatar = this._getAvatar();
+		BaseHeader.prototype.onBeforeRendering.apply(this, arguments);
 
-		this._getTitle().setText(this.getTitle());
-		this._getSubtitle().setText(this.getSubtitle());
+		this._getTitle()
+			.setText(this.getTitle())
+			.setMaxLines(this.getTitleMaxLines())
+			.setWrappingType(this.getWrappingType());
 
-		oAvatar.setDisplayShape(this.getIconDisplayShape());
-		oAvatar.setSrc(this.getIconSrc());
-		oAvatar.setInitials(this.getIconInitials());
-		oAvatar.setTooltip(this.getIconAlt());
+		this._enhanceText(this._getTitle());
 
-		this._setAccessibilityAttributes();
+		this._getSubtitle()
+			.setText(this.getSubtitle())
+			.setMaxLines(this.getSubtitleMaxLines())
+			.setWrappingType(this.getWrappingType());
+
+		this._enhanceText(this._getSubtitle());
+
+		if (this.getIconState() != ValueState.None) {
+			const icon = this._getIconForState();
+			this._getAvatar()
+				.setSrc(icon)
+				.setTooltip(this.getIconAlt());
+		} else {
+			this._getAvatar()
+				.setDisplayShape(this.getIconDisplayShape())
+				.setSrc(this.getIconSrc())
+				.setInitials(this.getIconInitials())
+				.setTooltip(this.getIconAlt())
+				.setBackgroundColor(this.getIconBackgroundColor())
+				.setDisplaySize(this.getIconSize())
+				.setImageFitType(this.getIconFitType());
+		}
+
+		this._validateIconProperties();
+	};
+
+	/**
+	 * Helper function used to get the appropriate icon for the state.
+	 *
+	 * @private
+	 * @returns {string} The URI of the icon corresponding to the state.
+	 */
+	Header.prototype._getIconForState = function () {
+		switch (this.getIconState()) {
+			case ValueState.Success:
+				return "sap-icon://sys-enter-2";
+			case ValueState.Error:
+				return "sap-icon://error";
+			case ValueState.Warning:
+				return "sap-icon://warning";
+			case ValueState.Information:
+				return "sap-icon://information";
+			default:
+				return "";
+		}
+	};
+
+	Header.prototype._validateIconProperties = function () {
+		if ((this.getIconSrc() || this.getIconInitials()) && this.getIconState() != ValueState.None) {
+			Log.warning("Invalid Icon configuration: You cannot set an icon with both src/initials and a state simultaneously. The Icon supports only one at a time. Remove either the src/initials or the state.");
+		}
+	};
+
+	/**
+	 * @protected
+	 * @returns {boolean} If the icon should be shown.
+	 */
+	Header.prototype.shouldShowIcon = function () {
+		return this.getIconVisible();
+	};
+
+	/**
+	 * This method is a hook for the RenderManager that gets called
+	 * during the rendering of child Controls. It allows to add,
+	 * remove and update existing accessibility attributes (ARIA) of
+	 * those controls.
+	 *
+	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
+	 * @param {{role: string, level: string}} mAriaProps - The mapping of "aria-" prefixed attributes
+	 * @protected
+	 */
+	 Header.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
+		if (oElement === this.getAggregation("_title")) {
+			mAriaProps.role = this.getTitleAriaRole();
+			mAriaProps.level = this.getAriaHeadingLevel();
+		}
 	};
 
 	/**
@@ -216,64 +325,45 @@ sap.ui.define([
 	 * @private
 	 * @returns {string} IDs of controls
 	 */
-	Header.prototype._getHeaderAccessibility = function () {
-		var sTitleId = this._getTitle() ? this._getTitle().getId() : "",
-			sSubtitleId = this._getSubtitle() ? this._getSubtitle().getId() : "",
-			sStatusTextId = this.getStatusText() ? this.getId() + "-status" : "",
-			sAvatarId = this._getAvatar() ? this._getAvatar().getId() : "";
+	Header.prototype._getAriaLabelledBy = function () {
+		const aIds = [];
 
-		return sTitleId + " " + sSubtitleId + " " + sStatusTextId + " " + sAvatarId;
-	};
-
-	/**
-	 * Called after the control is rendered.
-	 */
-	Header.prototype.onAfterRendering = function() {
-		//TODO performance will be affected, but text should clamp on IE also - TBD
-		if (Device.browser.msie) {
-			if (this.getTitle()) {
-				this._getTitle().clampText();
-			}
-			if (this.getSubtitle()) {
-				this._getSubtitle().clampText();
-			}
-		}
-	};
-
-	/**
-	 * Fires the <code>sap.f.cards.Header</code> press event.
-	 */
-	Header.prototype.ontap = function (oEvent) {
-		var srcControl = oEvent.srcControl;
-		if (srcControl && srcControl.getId().indexOf("overflowButton") > -1) { // better way?
-			return;
+		if (this.getParent() && this.getParent()._ariaText) {
+			aIds.push(this.getParent()._ariaText.getId());
 		}
 
-		this.firePress();
-	};
-
-	/**
-	 * Fires the <code>sap.f.cards.Header</code> press event.
-	 */
-	Header.prototype.onsapselect = function () {
-		this.firePress();
-	};
-
-	/**
-	 * Sets accessibility to the header to the header.
-	 *
-	 * @private
-	 */
-	Header.prototype._setAccessibilityAttributes = function () {
-		if (this.hasListeners("press")) {
-			this._sAriaRole = "button";
-			this._sAriaHeadingLevel = undefined;
-			this._sAriaRoleDescritoion = this._oRb.getText("ARIA_ROLEDESCRIPTION_INTERACTIVE_CARD_HEADER");
-		} else {
-			this._sAriaRole = "heading";
-			this._sAriaHeadingLevel = "3";
-			this._sAriaRoleDescritoion = this._oRb.getText("ARIA_ROLEDESCRIPTION_CARD_HEADER");
+		if (this.getTitle()
+			&& this.isParentCard()
+			&& this.getParent().isTileDisplayVariant()) {
+			aIds.push(this._getTitle().getId());
 		}
+
+		if (this.getSubtitle()) {
+			aIds.push(this._getSubtitle().getId());
+		}
+
+		if (this.getStatusText()) {
+			aIds.push(this.getId() + "-status");
+		}
+
+		if (this.getDataTimestamp()) {
+			aIds.push(this.getId() + "-dataTimestamp");
+		}
+
+		if (this.getIconSrc() || this.getIconInitials() || this.getIconState() !== ValueState.None) {
+			aIds.push(this._getAvatar().getId());
+		}
+
+		aIds.push(this._getBannerLinesIds());
+
+		return aIds.filter((sElement) => { return !!sElement; }).join(" ");
+	};
+
+	/**
+	 * @override
+	 */
+	Header.prototype.getTitleId = function () {
+		return this._getTitle().getId();
 	};
 
 	Header.prototype.isLoading = function () {
@@ -284,7 +374,7 @@ sap.ui.define([
 		var aMyArgs = Array.prototype.slice.apply(arguments);
 		aMyArgs.unshift("press");
 
-		Control.prototype.attachEvent.apply(this, aMyArgs);
+		BaseHeader.prototype.attachEvent.apply(this, aMyArgs);
 
 		this.invalidate();
 
@@ -295,7 +385,7 @@ sap.ui.define([
 		var aMyArgs = Array.prototype.slice.apply(arguments);
 		aMyArgs.unshift("press");
 
-		Control.prototype.detachEvent.apply(this, aMyArgs);
+		BaseHeader.prototype.detachEvent.apply(this, aMyArgs);
 
 		this.invalidate();
 

@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,31 +12,51 @@
 @import "../../../../sap/ui/core/themes/sap_fiori_3_hcw/global.less";
 
 /* START "InfoLabel.less" */
-/* ================================= */
-/* CSS for control sap.tnt/InfoLabel */
-/* Quartz High Contrast White theme  */
-/* ================================= */
+/* ================================== */
+/* CSS for control sap.tnt/InfoLabel  */
+/* Quartz High Contrast White theme   */
+/* ================================== */
 
-// ==========================================================================
-// Variables overriding
-// ==========================================================================
+/* ========================================================================== */
+/* Variables overriding                                                       */
+/* ========================================================================== */
 
-@_sap_tnt_InfoLabel_Margin: 0.8125rem;
-@_sap_tnt_InfoLabel_NoTextPadding: 0.5rem;
-@_sap_tnt_InfoLabel_NoTextDisplayOnlyPadding: 0.4375rem;
-@_sap_tnt_InfoLabel_LineHeight: 1rem;
 @_sap_tnt_InfoLabel_LineHeightDisplayOnly: 0.875rem;
 
 .sapTntInfoLabel {
-	background: @sapUiGroupContentBackground;
-	border: solid 1px @sapUiGroupContentBorderColor;
+	background: var(--sapGroup_ContentBackground);
+	border: solid 0.0625rem var(--sapGroup_ContentBorderColor);
 
 	.sapTntInfoLabelInner {
-		color: @sapUiContentForegroundTextColor;
+		color: var(--sapTextColor);
+	}
+
+	&.sapTntInfoLabelDisplayOnly {
+		background: var(--sapGroup_ContentBackground);
+		border: solid 1px var(--sapGroup_ContentBorderColor);
+
+		.sapTntInfoLabelInner {
+			color: var(--sapTextColor);
+			line-height: 0.875rem;
+		}
+
+		&.sapTntInfoLabelWithIcon .sapUiIcon {
+			line-height: 0.875rem;
+		}
 	}
 }
-
 /* END "InfoLabel.less" */
+
+/* START "SideNavigation.less" */
+/* ======================================= */
+/* CSS for control sap.tnt/SideNavigation  */
+/* Quartz High Contrast White theme        */
+/* ======================================= */
+
+@_sap_tnt_SideNavigation_NavigationSeparatorBackgroundColor: var(--sapList_GroupHeaderBorderColor);
+@_sap_tnt_SideNavigation_NavigationSeparatorHeight: ~"calc(2 * @sapUiListBorderWidth)";
+
+/* END "SideNavigation.less" */
 
 /* START "NavigationList.less" */
 /* ======================================= */
@@ -46,39 +66,32 @@
 
 @_sap_tnt_NavigationList_ItemHeight: 2.75rem;
 @_sap_tnt_NavigationList_NoIconsNestedItemPadding: 2rem;
-@_sap_tnt_NavigationList_ItemFocusBorder: 0.125rem dotted @sapUiContentFocusColor;
-@_sap_tnt_NavigationList_ItemFocusBorderIE: 0.125rem dashed @sapUiContentFocusColor;
-@_sap_tnt_NavigationList_GroupBottomBorderColor: transparent;
-@_sap_tnt_NavigationList_Collapsed_GroupBorderColor: transparent;
+@_sap_tnt_NavigationList_GroupExpandedBorderWidth: 0;
+@_sap_tnt_NavigationList_Collapsed_SelectedItemBackground: var(--sapList_SelectionBackgroundColor);
+@_sap_tnt_NavigationList_HoverBorderStyleColor: solid var(--sapList_BorderColor);
+@_sap_tnt_NavigationList_HoverBorderWidth: 0 0 0.0625rem 0;
+@_sap_tnt_NavigationList_PaddingInlineEnd: 0;
 /* END "NavigationList.less" */
-
-/* START "SideNavigation.less" */
-/* ======================================= */
-/* CSS for control sap.tnt/SideNavigation  */
-/* Quartz High Contrast White theme        */
-/* ======================================= */
-
-@_sap_tnt_SideNavigation_NavigationSeparatorBackgroundColor: @sapUiListGroupHeaderBorderColor;
-@_sap_tnt_SideNavigation_NavigationSeparatorHeight: 2 * @sapUiListBorderWidth;
-
-/* END "SideNavigation.less" */
-
+ // keep this order, it reuses variable @_sap_tnt_SideNavigation_BoxShadow defined in SideNavigation.less
 /* START "ToolHeader.less" */
 /* =================================== */
 /* CSS for control sap.tnt/ToolHeader  */
-/* Quartz HCW theme                    */
+/* Quartz High Contrast White theme    */
 /* =================================== */
 
 @_sap_tnt_ToolHeader_Height: 2.75rem;
-@_sap_tnt_ToolHeader_Icon_Height: 0.75rem;
+@_sap_tnt_ToolHeader_IconHeight: 0.75rem;
+
+/* ========================================================================== */
+/* sap.m.Avatar / sap.f.Avatar overriding                                     */
+/* ========================================================================== */
+
+.sapTntToolHeader .sapFAvatar {
+	background-color: @_sap_tnt_ToolHeader_AvatarBackground;
+
+	.sapFAvatarInitialsHolder,
+	.sapUiIcon.sapFAvatarTypeIcon  {
+		color: @_sap_tnt_ToolHeader_AvatarColor;
+	}
+}
 /* END "ToolHeader.less" */
-
-/* START "ToolPage.less" */
-/* =================================== */
-/* CSS for control sap.tnt/ToolPage  */
-/* Quartz HCW theme                   */
-/* =================================== */
-
-@_sap_tnt_ToolPage_HeaderHeight : 2.75rem;
-@_sap_tnt_ToolPage_CompactHeaderHeight : 2.75rem;
-/* END "ToolPage.less" */

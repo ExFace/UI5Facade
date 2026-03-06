@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,21 +9,20 @@
 sap.ui.define([
 	"../_AnnotationHelperBasics",
 	"sap/base/Log",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/BindingParser",
-	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/performance/Measurement"
-], function (Basics, Log, BindingParser, ManagedObject, SyncPromise, Measurement) {
-	'use strict';
+], function (Basics, Log, BindingInfo, BindingParser, SyncPromise, Measurement) {
+	"use strict";
 
-	// see http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/abnf/odata-abnf-construction-rules.txt
+	// see https://docs.oasis-open.org/odata/odata/v4.01/os/abnf/
 	var sAnnotationHelper = "sap.ui.model.odata.v4.AnnotationHelper",
 		aPerformanceCategories = [sAnnotationHelper],
 		sPerformanceGetExpression = sAnnotationHelper + "/getExpression",
-		Expression,
 		// a simple binding (see sap.ui.base.BindingParser.simpleParser) to "@i18n" model
 		// w/o bad chars (see _AnnotationHelperBasics: rBadChars) inside path!
-		rI18n = /^\{@i18n>[^\\\{\}:]+\}$/,
+		rI18n = /^{@i18n>[^\\{}:]+}$/,
 		mOData2JSOperators = { // mapping of OData operator to JavaScript operator
 			And : "&&",
 			Eq : "===",
@@ -58,7 +57,7 @@ sap.ui.define([
 			Bool : "Edm.Boolean",
 			Float : "Edm.Double",
 			Date : "Edm.Date",
-			DateTimeOffset :"Edm.DateTimeOffset",
+			DateTimeOffset : "Edm.DateTimeOffset",
 			Decimal : "Edm.Decimal",
 			Guid : "Edm.Guid",
 			Int : "Edm.Int64",
@@ -67,14 +66,55 @@ sap.ui.define([
 			TimeOfDay : "Edm.TimeOfDay"
 		},
 		mTypeCategoryNeedsCompare = {
-			"boolean" : false,
-			"Date" : false,
-			"DateTimeOffset" : true,
-			"Decimal" : true,
-			"number" : false,
-			"string" : false,
-			"TimeOfDay" : false
-		};
+			boolean : false,
+			Date : false,
+			DateTimeOffset : true,
+			Decimal : true,
+			number : false,
+			string : false,
+			TimeOfDay : false
+		},
+		/**
+		 * This object contains helper functions to process an expression in OData V4 annotations.
+		 *
+		 * The handler functions corresponding to nodes of an annotation expression all use
+		 * a parameter <code>oPathValue</code>. This parameter contains the following properties:
+		 * <ul>
+		 *   <li> <code>asExpression</code>: {boolean} parser state: if this property is
+		 *     <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
+		 *     binding and not a composite binding.
+		 *   <li> <code>complexBinding</code>: {boolean} parser state: if this property is
+		 *     <code>true</code>, bindings shall have type and constraints information
+		 *   <li> <code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
+		 *     expression (for example, binding parameter name)
+		 *   <li> <code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the meta model
+		 *   <li> <code>path</code>: {string} the path in the meta model that leads to the value
+		 *   <li> <code>prefix</code>: {string} used in a path expression as a prefix for the
+		 *     value; is either an empty string or a path ending with a "/"
+		 *   <li> <code>value</code>: {any} the value of the (sub) expression from the meta model
+		 * </ul>
+		 *
+		 * Unless specified otherwise all functions return a result object with the following
+		 * properties:
+		 * <ul>
+		 *   <li> <code>result</code>: "binding", "composite", "constant" or "expression"
+		 *   <li> <code>value</code>: depending on <code>result</code>:
+		 *     <ul>
+		 *       <li> when "binding": {string} the binding path
+		 *       <li> when "composite": {string} the binding string incl. the curly braces
+		 *       <li> when "constant": {any} the constant value (not escaped if string)
+		 *       <li> when "expression": {string} the expression unwrapped (no "{=" and "}")
+		 *     </ul>
+		 *   <li> <code>type</code>: the EDM data type (like "Edm.String") if it could be
+		 *      determined
+		 *   <li> <code>constraints</code>: {object} type constraints if result is "binding"
+		 *   <li> <code>formatOptions</code>: {object} format options if result is "binding"
+		 *   <li> <code>parameters</code>: {object} binding parameters if result is "binding"
+		 * </ul>
+		 *
+		 * @private
+		 */
+		Expression;
 
 	/*
 	 * Logs the given error message for the given path and returns a sync promise that rejects with
@@ -82,7 +122,7 @@ sap.ui.define([
 	 *
 	 * @param {object} oPathValue
 	 * @param {string} sMessage
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 */
 	function asyncError(oPathValue, sMessage) {
 		return SyncPromise.resolve().then(function () {
@@ -101,41 +141,6 @@ sap.ui.define([
 		Basics.error(oPathValue, sMessage, sAnnotationHelper);
 	}
 
-	/**
-	 * This object contains helper functions to process an expression in OData V4 annotations.
-	 *
-	 * The handler functions corresponding to nodes of an annotation expression all use
-	 * a parameter <code>oPathValue</code>. This parameter contains the following properties:
-	 * <ul>
-	 *   <li> <code>asExpression</code>: {boolean} parser state: if this property is
-	 *     <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
-	 *     binding and not a composite binding.
-	 *   <li> <code>complexBinding</code>: {boolean} parser state: if this property is
-	 *     <code>true</code>, bindings shall have type and constraints information
-	 *   <li> <code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
-	 *     expression (for example, binding parameter name)
-	 *   <li> <code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the metamodel
-	 *   <li> <code>path</code>: {string} the path in the metamodel that leads to the value
-	 *   <li> <code>prefix</code>: {string} used in a path expression as a prefix for the
-	 *     value; is either an empty string or a path ending with a "/"
-	 *   <li> <code>value</code>: {any} the value of the (sub) expression from the metamodel
-	 * </ul>
-	 *
-	 * Unless specified otherwise all functions return a result object with the following
-	 * properties:
-	 * <ul>
-	 *   <li> <code>result</code>: "binding", "composite", "constant" or "expression"
-	 *   <li> <code>value</code>: depending on <code>result</code>:
-	 *     <ul>
-	 *       <li> when "binding": {string} the binding path
-	 *       <li> when "composite": {string} the binding string incl. the curly braces
-	 *       <li> when "constant": {any} the constant value (not escaped if string)
-	 *       <li> when "expression": {string} the expression unwrapped (no "{=" and "}")
-	 *     </ul>
-	 *   <li> <code>type</code>:  the EDM data type (like "Edm.String") if it could be determined
-	 *   <li> <code>constraints</code>: {object} type constraints if result is "binding"
-	 * </ul>
-	 */
 	Expression = {
 		/**
 		 * Adjusts the second operand so that both have the same category, if possible.
@@ -160,24 +165,24 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3 Expression edm:Apply".
+		 * Handling of "14.4.4 Expression edm:Apply".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the apply (see Expression object)
 		 * @param {object} oParameters
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		apply : function (oPathValue, oParameters) {
 			var oFunction = Basics.descend(oPathValue, "$Function", "string");
 
 			switch (oFunction.value) {
-				case "odata.concat": // 14.5.3.1.1 Function odata.concat
+				case "odata.concat": // 14.4.4.1 Function odata.concat
 					return Expression.concat(oParameters);
-				case "odata.fillUriTemplate": // 14.5.3.1.2 Function odata.fillUriTemplate
+				case "odata.fillUriTemplate": // 14.4.4.2 Function odata.fillUriTemplate
 					return Expression.fillUriTemplate(oParameters);
-				case "odata.uriEncode": // 14.5.3.1.3 Function odata.uriEncode
+				case "odata.uriEncode": // 14.4.4.4 Function odata.uriEncode
 					return Expression.uriEncode(oParameters);
 				default:
 					return asyncError(oFunction, "unknown function: " + oFunction.value);
@@ -185,19 +190,50 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3.1.1 Function odata.concat".
+		 * Handling of "14.4.6 Expression edm:Collection".
+		 *
+		 * @param {object} oPathValue
+		 *   path and value information pointing to the array (see Expression object)
+		 * @returns {sap.ui.base.SyncPromise<object>}
+		 *   a sync promise which resolves with the result object or is rejected with an error
+		 */
+		collection : function (oPathValue) {
+			var aPromises;
+
+			// needed so that we can safely call Array#map
+			Basics.expectType(oPathValue, "array");
+			aPromises = oPathValue.value.map(function (_oValue, i) {
+				return Expression.expression(
+					Basics.descend(oPathValue, i, true/*"as expression"*/),
+					/*bInCollection*/true);
+			});
+
+			return SyncPromise.all(aPromises).then(function (aElements) {
+				aElements = aElements.map(function (oElement) {
+					return Basics.resultToString(oElement, true, false, true);
+				});
+
+				return {
+					result : "expression",
+					value : "odata.collection([" + aElements.join(",") + "])"
+				};
+			});
+		},
+
+		/**
+		 * Handling of "odata.concat" from "14.4.4.1 Canonical Functions".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		concat : function (oPathValue) {
 			var aPromises;
 
-			// needed so that we can safely call the forEach
+			// needed so that we can safely call Array#map
 			Basics.expectType(oPathValue, "array");
-			aPromises = oPathValue.value.map(function (oUnused, i) {
+			aPromises = oPathValue.value.map(function (_oValue, i) {
 				// an embedded concat must use expression binding
 				return Expression.parameter(oPathValue, i);
 			});
@@ -214,7 +250,7 @@ sap.ui.define([
 				// convert the results to strings after we know whether the result is expression
 				aParts = aParameters.filter(function (oParameter) {
 					// ignore null (otherwise the string 'null' would appear in expressions)
-					return oParameter.type !== 'edm:Null';
+					return oParameter.type !== "edm:Null";
 				}).map(function (oParameter) {
 					if (bExpression) {
 						// the expression might have a lower operator precedence than '+'
@@ -234,17 +270,20 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.6 Expression edm:If".
+		 * Handling of "14.4.7 Expression edm:If".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object).
 		 *   The first parameter element is the conditional expression and must evaluate to an
 		 *   Edm.Boolean. The second and third child elements are the expressions, which are
 		 *   evaluated conditionally.
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @param {boolean} [bInCollection]
+		 *   Whether "14.4.7 Expression edm:If" appears as a direct child of
+		 *   "14.4.6 Expression edm:Collection" and thus needs no third child element ("else")
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
-		conditional : function (oPathValue) {
+		conditional : function (oPathValue, bInCollection) {
 			var bComplexBinding = oPathValue.complexBinding,
 				oPathValueForCondition = bComplexBinding
 					? Object.assign({}, oPathValue, {complexBinding : false})
@@ -254,16 +293,19 @@ sap.ui.define([
 			 * Returns the string representation of the given parameter value.
 			 * @param {object} oParameterValue the parameter value
 			 * @param {boolean} bComplex whether the result is a complex binding or a simple binding
+			 * @param {boolean} [bRaw] whether the result will contain the raw value
 			 */
-			function toString(oParameterValue, bComplex) {
+			function toString(oParameterValue, bComplex, bRaw) {
 				return Basics.resultToString(Expression.wrapExpression(oParameterValue), true,
-					bComplex);
+					bComplex, bRaw);
 			}
 
 			return SyncPromise.all([
 				Expression.parameter(oPathValueForCondition, 0, "Edm.Boolean"),
 				Expression.parameter(oPathValue, 1),
-				Expression.parameter(oPathValue, 2)
+				bInCollection && oPathValue.value.length === 2
+					? {result : "constant", type : "edm:Null", value : undefined}
+					: Expression.parameter(oPathValue, 2)
 			]).then(function (aResults) {
 				var oCondition = aResults[0],
 					oThen = aResults[1],
@@ -280,7 +322,7 @@ sap.ui.define([
 				return {
 					result : "expression",
 					type : sType,
-					value : toString(oCondition, false)
+					value : toString(oCondition, false, true)
 						+ "?" + toString(oThen, bComplexBinding)
 						+ ":" + toString(oElse, bComplexBinding)
 				};
@@ -288,17 +330,17 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.4 Constant Expressions", i.e.
+		 * Handling of "14.3 Constant Expressions", i.e.
 		 * <ul>
-		 *   <li> "14.4.2 Expression edm:Bool",
-		 *   <li> "14.4.3 Expression edm:Date",
-		 *   <li> "14.4.4 Expression edm:DateTimeOffset",
-		 *   <li> "14.4.5 Expression edm:Decimal",
-		 *   <li> "14.4.8 Expression edm:Float",
-		 *   <li> "14.4.9 Expression edm:Guid",
-		 *   <li> "14.4.10 Expression edm:Int",
-		 *   <li> "14.4.11 Expression edm:String",
-		 *   <li> "14.4.12 Expression edm:TimeOfDay".
+		 *   <li> "14.3.2 Expression edm:Bool",
+		 *   <li> "14.3.3 Expression edm:Date",
+		 *   <li> "14.3.4 Expression edm:DateTimeOffset",
+		 *   <li> "14.3.5 Expression edm:Decimal",
+		 *   <li> "14.3.8 Expression edm:Float",
+		 *   <li> "14.3.9 Expression edm:Guid",
+		 *   <li> "14.3.10 Expression edm:Int",
+		 *   <li> "14.3.11 Expression edm:String",
+		 *   <li> "14.3.12 Expression edm:TimeOfDay".
 		 * </ul>
 		 *
 		 * @param {object} oPathValue
@@ -334,10 +376,13 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the expression (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @param {boolean} [bInCollection]
+		 *   Whether the current expression appears as a direct child of
+		 *  "14.4.6 Expression edm:Collection"
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
-		expression : function (oPathValue) {
+		expression : function (oPathValue, bInCollection) {
 			var oRawValue = oPathValue.value,
 				oSubPathValue = oPathValue,
 				sType;
@@ -352,6 +397,8 @@ sap.ui.define([
 					: "Float";
 			} else if (typeof oRawValue === "string") {
 				sType = "String";
+			} else if (Array.isArray(oRawValue)) { // 14.4.6 Expression edm:Collection
+				return Expression.collection(oPathValue);
 			} else {
 				Basics.expectType(oPathValue, "object");
 
@@ -360,11 +407,12 @@ sap.ui.define([
 					return Expression.path(oPathValue);
 				}
 
-				["$And", "$Apply", "$Date", "$DateTimeOffset", "$Decimal", "$Float", "$Eq",
+				[
+					"$And", "$Apply", "$Date", "$DateTimeOffset", "$Decimal", "$Float", "$Eq",
 					"$Ge", "$Gt", "$Guid", "$If", "$Int", "$Le", "$Lt", "$Name", "$Ne", "$Not",
 					"$Null", "$Or", "$Path", "$PropertyPath", "$TimeOfDay", "$LabeledElement"
 				].forEach(function (sProperty) {
-					if (oRawValue.hasOwnProperty(sProperty)) {
+					if (sProperty in oRawValue) {
 						sType = sProperty.slice(1);
 						oSubPathValue = Basics.descend(oPathValue, sProperty);
 					}
@@ -372,29 +420,29 @@ sap.ui.define([
 			}
 
 			switch (sType) {
-				case "Apply": // 14.5.3 Expression edm:Apply
+				case "Apply": // 14.4.4 Expression edm:Apply
 					return Expression.apply(oPathValue, oSubPathValue);
 
-				case "If": // 14.5.6 Expression edm:If
-					return Expression.conditional(oSubPathValue);
+				case "If": // 14.4.7 Expression edm:If
+					return Expression.conditional(oSubPathValue, bInCollection);
 
-				case "Name": // 12.4.1 Attribute Name
-				case "Path": // 14.5.12 Expression edm:Path
-				case "PropertyPath": // 14.5.13 Expression edm:PropertyPath
+				case "Name": // 12.9 Attribute Name
+				case "Path": // 14.4.1.7 Expression edm:Path
+				case "PropertyPath": // 14.4.1.6 Expression edm:PropertyPath
 					return Expression.path(oSubPathValue);
 
-				case "Date": // 14.4.3 Expression edm:Date
-				case "DateTimeOffset": // 14.4.4 Expression edm:DateTimeOffset
-				case "Decimal": // 14.4.5 Expression edm:Decimal
-				case "Guid": // 14.4.9 Expression edm:Guid
-				case "Int": // 14.4.10 Expression edm:Int
-				case "String": // 14.4.11 Expression edm:String
-				case "TimeOfDay": // 14.4.12 Expression edm:TimeOfDay
+				case "Date": // 14.3.3 Expression edm:Date
+				case "DateTimeOffset": // 14.3.4 Expression edm:DateTimeOffset
+				case "Decimal": // 14.3.5 Expression edm:Decimal
+				case "Guid": // 14.3.9 Expression edm:Guid
+				case "Int": // 14.3.10 Expression edm:Int
+				case "String": // 14.3.11 Expression edm:String
+				case "TimeOfDay": // 14.3.12 Expression edm:TimeOfDay
 					Basics.expectType(oSubPathValue, "string");
 					// fall through
-				case "Bool": // 14.4.2 Expression edm:Bool
-				case "Float": // 14.4.8 Expression edm:Float
-				case "Int32": // 14.4.10 Expression edm:Int
+				case "Bool": // 14.3.2 Expression edm:Bool
+				case "Float": // 14.3.8 Expression edm:Float
+				case "Int32": // 14.3.10 Expression edm:Int
 					return SyncPromise.resolve(Expression.constant(oSubPathValue, sType));
 
 				case "And":
@@ -405,20 +453,20 @@ sap.ui.define([
 				case "Lt":
 				case "Ne":
 				case "Or":
-					// 14.5.1 Comparison and Logical Operators
+					// 14.4.2 Comparison and Logical Operators
 					return Expression.operator(oSubPathValue, sType);
 
-				case "Not": // 14.5.1 Comparison and Logical Operators
+				case "Not": // 14.4.2 Comparison and Logical Operators
 					return Expression.not(oSubPathValue);
 
-				case "Null": // 14.5.10 Expression edm:Null
+				case "Null": // 14.4.11 Expression edm:Null
 					return SyncPromise.resolve({
 						result : "constant",
 						type : "edm:Null",
 						value : null
 					});
 
-				// case "LabeledElement": 14.5.8 Expression edm:LabeledElement
+				// case "LabeledElement": 14.4.9 Expression edm:LabeledElement
 				default:
 					return asyncError(oPathValue, "Unsupported OData expression");
 			}
@@ -443,7 +491,7 @@ sap.ui.define([
 		 *   the type of the property referenced by <code>oPathValue.path</code>
 		 * @param {object} mConstraints
 		 *   the type constraints for the property referenced by <code>oPathValue.path</code>
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>|undefined}
 		 *   a sync promise which resolves with a result object for the currency or unit, or is
 		 *   rejected with an error; <code>undefined</code> if there are no unit and currency
 		 *   annotations for the property referenced by <code>oPathValue.path</code>
@@ -456,12 +504,9 @@ sap.ui.define([
 				sTargetPath = oModel.getObject(sPath);
 
 			function getBinding(mConstraints0, sType0, sPath0) {
-				return Basics.resultToString({
-						constraints : mConstraints0,
-						result : "binding",
-						type : sType0,
-						value : oPathValue.prefix + sPath0
-					}, false, true);
+				return Basics.resultToString(
+					Expression.pathResult(oPathValue, sType0, sPath0, mConstraints0),
+					false, true);
 			}
 
 			if (!sTargetPath) {
@@ -474,6 +519,12 @@ sap.ui.define([
 				return undefined;
 			}
 			return oModel.fetchObject(sPath + "/$").then(function (oTarget) {
+				var sCompositeConstraints
+						= oModel.getObject(oPathValue.path
+							+ "@com.sap.vocabularies.UI.v1.DoNotCheckScaleOfMeasuredQuantity")
+						? ",constraints:{'skipDecimalsValidation':true}"
+						: "";
+
 				return {
 					result : "composite",
 					type : sCompositeType,
@@ -486,23 +537,69 @@ sap.ui.define([
 						+ getBinding(oModel.getConstraints(oTarget, sPath), oTarget.$Type,
 							sTargetPath)
 						+ ",{mode:'OneTime',path:'/##" + sComputedAnnotation + "',targetType:'any'}"
-						+ "],type:'" + sCompositeType + "'}"
+						+ "],type:'" + sCompositeType + "'" + sCompositeConstraints + "}"
 				};
 			});
 		},
 
 		/**
-		 * Handling of "14.5.3.1.2 Function odata.fillUriTemplate".
+		 * Fetch the result object for a date/time with timezone.
+		 * If <code>oPathValue.path</code> references a property which has a
+		 * <code>com.sap.vocabularies.Common.v1.Timezone</code> annotation, a composite result
+		 * object for a <code>sap.ui.model.odata.type.DateTimeWithTimezone</code> type with the
+		 * date/time and the timezone as parts is returned.
+		 *
+		 * @param {object} oPathValue
+		 *   model, path (and value) information pointing to the path (see Expression object)
+		 * @param {string} sValue
+		 *   use this value instead of <code>oPathValue.value</code>!
+		 * @param {object} mConstraints
+		 *   the type constraints for the property referenced by <code>oPathValue.path</code>
+		 * @returns {sap.ui.base.SyncPromise<object>|undefined}
+		 *   a sync promise which resolves with a result object for the date/time with timezone, or
+		 *   is rejected with an error; <code>undefined</code> if there is no timezone annotation
+		 *   for the property referenced by <code>oPathValue.path</code>
+		 */
+		fetchDateTimeWithTimezone : function (oPathValue, sValue, mConstraints) {
+			var oModel = oPathValue.model,
+				sPath = oPathValue.path + "@com.sap.vocabularies.Common.v1.Timezone/$Path",
+				sTargetPath = oModel.getObject(sPath);
+
+			function formatPart(mConstraints0, sType, sPath0) {
+				return Basics.resultToString(
+					Expression.pathResult(oPathValue, sType, sPath0, mConstraints0),
+					false, true);
+			}
+
+			if (!sTargetPath) {
+				return undefined;
+			}
+			return oModel.fetchObject(sPath + "/$").then(function (oTarget) {
+				return {
+					result : "composite",
+					type : "sap.ui.model.odata.type.DateTimeWithTimezone",
+					value : "{mode:'TwoWay',parts:["
+						+ formatPart(mConstraints, "Edm.DateTimeOffset", sValue)
+						+ ","
+						+ formatPart(oModel.getConstraints(oTarget, sPath), oTarget.$Type,
+							sTargetPath)
+						+ "],type:'sap.ui.model.odata.type.DateTimeWithTimezone'}"
+				};
+			});
+		},
+
+		/**
+		 * Handling of "14.4.4.2 Function odata.fillUriTemplate".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		fillUriTemplate : function (oPathValue) {
-			var i,
-				aParameters = [],
-				aPromises;
+			var aParameters = [],
+				aPromises,
+				i;
 
 			// Note: it is safe to modify the caller's object here
 			oPathValue.complexBinding = false;
@@ -520,13 +617,13 @@ sap.ui.define([
 					aParts = [],
 					sPrefix = "";
 
-				aParts.push('odata.fillUriTemplate(',
-					Basics.resultToString(aResults[0], true, false),
-					',{');
+				aParts.push("odata.fillUriTemplate(",
+					Basics.resultToString(aResults[0], true, false, true),
+					",{");
 				for (i = 1; i < oPathValue.value.length; i += 1) {
 					sName = Basics.property(aParameters[i], "$Name", "string");
 					aParts.push(sPrefix, Basics.toJSON(sName), ":",
-						Basics.resultToString(aResults[i], true, false));
+						Basics.resultToString(aResults[i], true, false, true));
 					sPrefix = ",";
 				}
 				aParts.push("})");
@@ -561,7 +658,7 @@ sap.ui.define([
 			if (bWrapExpression) {
 				Expression.wrapExpression(oResult);
 			}
-			return Basics.resultToString(oResult, true, false);
+			return Basics.resultToString(oResult, true, false, true);
 		},
 
 		/**
@@ -570,7 +667,7 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the expression (see Expression object)
-		 * @returns {Promise|string}
+		 * @returns {Promise|string|undefined}
 		 *   the expression value or "Unsupported: oRawValue" in case of an error or
 		 *   <code>undefined</code> in case the raw value is undefined; may instead return a
 		 *   <code>Promise</code> resolving with that result.
@@ -583,7 +680,7 @@ sap.ui.define([
 			Measurement.average(sPerformanceGetExpression, "", aPerformanceCategories);
 
 			if (!bSimpleParserWarningLogged
-					&& ManagedObject.bindingParser === BindingParser.simpleParser) {
+					&& BindingInfo.parse === BindingParser.simpleParser) {
 				Log.warning("Complex binding syntax not active", null, sAnnotationHelper);
 				bSimpleParserWarningLogged = true;
 			}
@@ -602,11 +699,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.1 Comparison and Logical Operators": <code>edm:Not</code>.
+		 * Handling of "14.4.2 Comparison and Logical Operators": <code>edm:Not</code>.
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		not : function (oPathValue) {
@@ -618,20 +715,20 @@ sap.ui.define([
 				return {
 					result : "expression",
 					type : "Edm.Boolean",
-					value : "!"
-						+ Basics.resultToString(Expression.wrapExpression(oParameter), true, false)
+					value : "!" + Basics.resultToString(Expression.wrapExpression(oParameter),
+							true, false, true)
 				};
 			});
 		},
 
 		/**
-		 * Handling of "14.5.1 Comparison and Logical Operators" except <code>edm:Not</code>.
+		 * Handling of "14.4.2 Comparison and Logical Operators" except <code>edm:Not</code>.
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
 		 * @param {string} sType
 		 *   the operator as text (like "And" or "Or")
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		operator : function (oPathValue, sType) {
@@ -699,7 +796,7 @@ sap.ui.define([
 		 *   the parameter index
 		 * @param {string} [sEdmType]
 		 *   the expected EDM type or <code>undefined</code> if any type is allowed
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		parameter : function (oPathValue, iIndex, sEdmType) {
@@ -714,7 +811,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.12 Expression edm:Path" and "14.5.13 Expression edm:PropertyPath".
+		 * Handling of "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression edm:PropertyPath".
 		 * If <code>oPathValue.path</code> references a property which has an
 		 * <code>Org.OData.Measures.V1.ISOCurrency</code> annotation, a composite result object for
 		 * a <code>sap.ui.model.odata.type.Currency</code> type with the currency, the currency code
@@ -723,10 +820,15 @@ sap.ui.define([
 		 * <code>Org.OData.Measures.V1.Unit</code> annotation, a composite result object for a
 		 * <code>sap.ui.model.odata.type.Unit</code> type with the measures, the unit and the unit
 		 * customizing as parts is returned.
+		 * If <code>oPathValue.path</code> references a property with type
+		 * <code>Edm.DateTimeOffset</code> and a
+		 * <code>com.sap.vocabularies.Common.v1.Timezone</code> annotation, a composite result
+		 * object for a <code>sap.ui.model.odata.type.DateTimeWithTimezone</code> type with the
+		 * date/time and the timezone as parts is returned.
 		 *
 		 * @param {object} oPathValue
 		 *   model, path and value information pointing to the path (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		path : function (oPathValue) {
@@ -747,36 +849,54 @@ sap.ui.define([
 			}
 
 			return oPromise.then(function (oProperty) {
-				var mConstraints,
-					oCurrencyOrUnitPromise,
+				var oAnnotationBasedPromise,
+					mConstraints,
 					sType = oProperty && oProperty.$Type;
 
 				if (oProperty && oPathValue.complexBinding) {
 					mConstraints = oModel.getConstraints(oProperty, oPathValue.path);
-					oCurrencyOrUnitPromise
-						= Expression.fetchCurrencyOrUnit(oPathValue, sValue, sType, mConstraints);
+					oAnnotationBasedPromise = sType === "Edm.DateTimeOffset"
+						? Expression.fetchDateTimeWithTimezone(oPathValue, sValue, mConstraints)
+						: Expression.fetchCurrencyOrUnit(oPathValue, sValue, sType, mConstraints);
 				}
-				return oCurrencyOrUnitPromise || {
-					constraints : mConstraints,
-					formatOptions : sType === "Edm.String"
-						&& !(oPathValue.formatOptions
-							&& "parseKeepsEmptyString" in oPathValue.formatOptions)
-						? Object.assign({parseKeepsEmptyString : true}, oPathValue.formatOptions)
-						: oPathValue.formatOptions,
-					parameters : oPathValue.parameters,
-					result : "binding",
-					type : sType,
-					value : oPathValue.prefix + sValue
-				};
+				return oAnnotationBasedPromise
+					|| Expression.pathResult(oPathValue, sType, sValue, mConstraints);
 			});
 		},
 
 		/**
-		 * Handling of "14.5.3.1.3 Function odata.uriEncode".
+		 * Returns the result of a path expression. Takes care of parseKeepsEmptyString.
+		 *
+		 * @param {object} oPathValue
+		 *   model, path and value information pointing to the path (see Expression object)
+		 * @param {string} sType
+		 *   the EDM type
+		 * @param {string} sPath
+		 *   the relative binding path
+		 * @param {object} mConstraints
+		 *   the type constraints for the property referenced by <code>sPath</code>
+		 * @returns {object}
+		 *   the result object
+		 */
+		pathResult : function (oPathValue, sType, sPath, mConstraints) {
+			return {
+				constraints : mConstraints,
+				formatOptions : sType === "Edm.String"
+					? Object.assign({parseKeepsEmptyString : true}, oPathValue.formatOptions)
+					: oPathValue.formatOptions,
+				parameters : oPathValue.parameters,
+				result : "binding",
+				type : sType,
+				value : oPathValue.prefix + sPath
+			};
+		},
+
+		/**
+		 * Handling of "14.4.4.4 Function odata.uriEncode".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		uriEncode : function (oPathValue) {
@@ -786,10 +906,10 @@ sap.ui.define([
 					type : "Edm.String",
 					value : oResult.type === "Edm.String"
 						// Note: odata.uriEncode() is V2, but safe for Edm.String!
-						? 'odata.uriEncode(' + Basics.resultToString(oResult, true, false) + ","
-							+ Basics.toJSON(oResult.type) + ")"
+						? "odata.uriEncode(" + Basics.resultToString(oResult, true, false, true)
+							+ "," + Basics.toJSON(oResult.type) + ")"
 						// Note: see _Helper.formatLiteral()
-						: 'String(' + Basics.resultToString(oResult, true, false) + ")"
+						: "String(" + Basics.resultToString(oResult, true, false, true) + ")"
 				};
 			});
 		},
@@ -813,5 +933,4 @@ sap.ui.define([
 	};
 
 	return Expression;
-
 }, /* bExport= */ false);

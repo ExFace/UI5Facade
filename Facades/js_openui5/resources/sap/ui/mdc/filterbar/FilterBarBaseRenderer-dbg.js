@@ -1,43 +1,44 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([],
-	function () {
+	() => {
 		"use strict";
 
 		/**
 		 * FilterBar renderer.
 		 * @namespace
 		 */
-		var FilterBarBaseRenderer = {
+		const FilterBarBaseRenderer = {
 			apiVersion: 2
 		};
 
 		/**
-		 * CSS class to be applied to the HTML root element of the FilterBar control.
+		 * CSS class to be applied to the HTML root element of the {@link sap.ui.mdc.FilterBar FilterBar} control.
 		 *
 		 * @readonly
 		 * @const {string}
 		 */
 		FilterBarBaseRenderer.CSS_CLASS = "sapUiMdcFilterBarBase";
 
-		/**
-		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
-		 */
-		FilterBarBaseRenderer.render = function (oRm, oControl) {
-			oRm.openStart("div", oControl);
+		FilterBarBaseRenderer.render = function(oRm, oFilterBar) {
+			oRm.openStart("div", oFilterBar);
 			oRm.class(FilterBarBaseRenderer.CSS_CLASS);
+			if (oFilterBar.isA("sap.ui.mdc.filterbar.p13n.AdaptationFilterBar") && oFilterBar.getProperty("_useFixedWidth")) {
+				oRm.style("width", oFilterBar.getWidth());
+			}
 			oRm.openEnd();
-			var oInnerLayout = oControl.getAggregation("layout") ? oControl.getAggregation("layout").getInner() : null;
+
+			oFilterBar.getAggregation("invisibleTexts")?.forEach((oInvisibleText) => oRm.renderControl(oInvisibleText));
+
+			const oInnerLayout = oFilterBar.getAggregation("layout") ? oFilterBar.getAggregation("layout").getInner() : null;
 			oRm.renderControl(oInnerLayout);
 			oRm.close("div");
 		};
 
 		return FilterBarBaseRenderer;
-	}, true);
+	},
+	true);

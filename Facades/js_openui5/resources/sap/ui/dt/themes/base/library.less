@@ -2,21 +2,150 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 @import "../../../../../../Base/baseLib/baseTheme/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/base/base.less" */
 
 @import "../../../../../sap/ui/core/themes/base/global.less";
+
+/* START "ContextMenu.less" */
+/* ====================================== */
+/* CSS for control sap.ui.dt/ContextMenu  */
+/* Base theme                             */
+/* ====================================== */
+
+@_sap_ui_dt_ContextMenu_MnuItemTextColor: var(--sapTextColor); /* #000 */
+@_sap_ui_dt_ContextMenu_MnuItemIconColor: var(--sapContent_NonInteractiveIconColor); /* #111 */
+@_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor: var(--sapList_AlternatingBackground); /* darken(#111, 10); */
+@_sap_ui_dt_ContextMenu_PrpgtedTitleBorderColor: var(--sapShell_BorderColor); /* #111 */
+@_sap_ui_dt_ContextMenu_EnabledOpacity: 1;
+
+.sapUiDtContextMenu.sapMMenu {
+
+	.sapMMenuList {
+
+		.sapMMenuItem {
+
+			.sapMMenuEndContent{
+
+				.sapMBtn {
+
+					.sapMBtnInner {
+						background-color: transparent;
+						border-color: transparent;
+					}
+
+					&.sapMBtnDisabled {
+						opacity: @_sap_ui_dt_ContextMenu_EnabledOpacity;
+					}
+
+					&:focus-visible > .sapMFocusable,
+					&:focus > .sapMFocusable {
+
+						&::before {
+							content: none;
+						}
+					}
+
+					.sapUiIcon {
+						color: @_sap_ui_dt_ContextMenu_MnuItemIconColor !important;
+					}
+				}
+			}
+
+			/* style for control names */
+			&.sapUiDtContextMenuControlTitle {
+				opacity: @_sap_ui_dt_ContextMenu_EnabledOpacity;
+				height: 2rem;
+
+				.sapMMenuItemIcon {
+					display: none;
+				}
+
+				.sapMMenuItemText {
+					font-weight: bold;
+					color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+				}
+			}
+
+			/* Style for title "Extended Actions" */
+			&.sapUiDtContextMenuExtendedActionsTitle {
+				opacity: @_sap_ui_dt_ContextMenu_EnabledOpacity;
+				height: 2.5rem;
+				text-align: center;
+				background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor;
+				border-top: 0.0625rem solid @_sap_ui_dt_ContextMenu_PrpgtedTitleBorderColor;
+				border-bottom: 0.0625rem solid @_sap_ui_dt_ContextMenu_PrpgtedTitleBorderColor;
+				border-radius: 0;
+
+				.sapMMenuItemIcon {
+					display: none;
+				}
+
+				.sapMMenuItemText {
+					color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+				}
+			}
+
+			/* style for names of propagated controls */
+			&.sapUiDtContextMenuPropagatedControlTitle {
+				opacity: @_sap_ui_dt_ContextMenu_EnabledOpacity;
+				height: 2rem;
+				background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor;
+
+				.sapMMenuItemIcon {
+					display: none;
+				}
+
+				.sapMMenuItemText {
+					font-weight: bold;
+					color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+				}
+			}
+
+			/* style for propagated menu items */
+			&.sapUiDtContextMenuPropagatedItem {
+
+				&:not(:hover) {
+					background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor;
+				}
+
+				&.sapMMenuItemDisabled {
+
+					.sapMMenuItemIcon,
+					.sapMMenuItemText,
+					.sapMMenuEndContent {
+						color: @_sap_ui_dt_ContextMenu_MnuItemTextColor;
+						opacity: var(--sapContent_DisabledOpacity);
+					}
+
+					&:hover {
+						background-color: @_sap_ui_dt_ContextMenu_PrpgtedMnuItemBGColor;
+					}
+				}
+			}
+		}
+	}
+}
+/* END "ContextMenu.less" */
+
 /* START "Overlay.less" */
-/******************************************************************
-	Style of the DT Overlays - base Theme
-*******************************************************************/
-@_sap_ui_dt_Overlay_FocusColor : @sapUiContentFocusColor; //#000
-@_sap_ui_dt_Overlay_TargetZoneColor : @sapUiSelected; //#2e9cea
-@_sap_ui_dt_Overlay_SelectionColor : lighten(@sapUiBlue,10); //#3333ff
-@_sap_ui_dt_Overlay_CuttedColor : @sapUiWhite; //#fff
+/* ================================== */
+/* CSS for control sap.ui.dt/Overlay  */
+/* Base theme                         */
+/* ================================== */
+
+@_sap_ui_dt_Overlay_FocusBorderColor: var(--sapContent_FocusColor); //#000
+@_sap_ui_dt_Overlay_TargetZoneOutlineColor: var(--sapSelectedColor); //#8fb5ff
+@_sap_ui_dt_Overlay_SelectionOutlineColor: var(--sapSelectedColor); //#8fb5ff
+@_sap_ui_dt_Overlay_CuttedBackgroundColor: var(--sapContent_ImagePlaceholderBackground); // #fff
+@_sap_ui_dt_Overlay_CuttedBorderColor: var(--sapSelectedColor); //#8fb5ff
+@_sap_ui_dt_Overlay_HighlightOutlineColor: var(--sapWarningBorderColor); //ffff00
+@_sap_ui_dt_Overlay_HoverBackgroundColor: fade(@sapUiSelected, 5%); //rgba(143, 181, 255, 0.1);
+@_sap_ui_dt_Overlay_DropZoneBackgroundColor: fade(@sapUiSelected, 10%); //rgba(143, 181, 255, 0.1);
+@_sap_ui_dt_Overlay_BoxShadow: var(--sapContent_Shadow2);
 
 #overlay-container {
 	position: absolute;
@@ -28,13 +157,14 @@
 	position: absolute;
 	outline: none;
 
-	// please, don't use border property, it cause the size change of an overtla and box-sizing: border box doesn't work with position: absolute and absolute sizing
-	// please, don't use outline property, outline can be invisible due to overflow:hidden of parent
-	// instead you should use pseudo elements to special border-like styling:
-	// :before pseudoelement should be used for focus visualisation
-	// :after pseudoelement should be used for other border-like visualisations
+	/* please, don't use border property, it cause the size change of an overtla and box-sizing: border box doesn't work with position: absolute and absolute sizing */
+	/* please, don't use outline property, outline can be invisible due to overflow:hidden of parent */
+	/* instead you should use pseudo elements to special border-like styling: */
+	/* ::before pseudoelement should be used for focus visualisation */
+	/* ::after pseudoelement should be used for other border-like visualisations */
 
-	&:before, &:after {
+	&::before,
+	&::after {
 		position: absolute;
 		pointer-events: none;
 		top: 0;
@@ -48,10 +178,12 @@
 }
 
 .sapUiDtOverlayFocusable {
+
 	&:focus {
-		&:before {
-			content: " ";
-			border: 0.0625rem dotted @_sap_ui_dt_Overlay_FocusColor; //1px
+
+		&::before {
+			content: '';
+			border: 0.0625rem dotted @_sap_ui_dt_Overlay_FocusBorderColor; /* 1px */
 		}
 	}
 }
@@ -65,21 +197,69 @@
 
 .sapUiDtOverlayDropZone {
 	z-index: 9999999 !important;
+
+	> .sapUiDtOverlayChildren {
+
+		> .sapUiDtOverlayMovable {
+			background: @_sap_ui_dt_Overlay_DropZoneBackgroundColor;
+			/* no "border" */
+			&::after {
+				content: none;
+			}
+		}
+	}
 }
 
 .sapUiDtOverlayTargetZone {
-	&:after {
-		content: " ";
-		outline: 0.125rem dashed @_sap_ui_dt_Overlay_TargetZoneColor; //2px
-		outline-offset: -0.125rem; //2px
+
+	&::after {
+		content: '';
+		outline: 0.125rem dashed @_sap_ui_dt_Overlay_TargetZoneOutlineColor; /* 2px */
+		outline-offset: -0.125rem; /* 2px */
 	}
 }
 
 .sapUiDtOverlaySelected {
-	&:after {
-		content: " ";
-		outline: 0.125rem dashed @_sap_ui_dt_Overlay_SelectionColor; //2px
-		outline-offset: -0.125rem; //2px
+
+	&::after {
+		content: '';
+		outline: 0.125rem solid @_sap_ui_dt_Overlay_SelectionOutlineColor; /* 2px */
+		outline-offset: -0.125rem; /* 2px */
+		border: none;
+	}
+
+	&.sapUiDtOverlayWithScrollBar::after {
+		bottom: 0;
+		right: 0;
+		top: 0;
+		left: 0;
+		width: initial;
+		height: initial;
+	}
+
+	&.sapUiDtOverlayFocusable {
+
+		&:focus {
+
+			&::before {
+				top: 0.125rem; /* 2px */
+				left: 0.125rem; /* 2px */
+				bottom: 0.125rem; /* 2px */
+				right: 0.125rem; /* 2px */
+				width: auto;
+				height: auto;
+			}
+		}
+	}
+}
+
+.sapUiDtOverlayHighlighted:not(.sapUiDtOverlaySelected) {
+
+	&::after {
+		content: '';
+		outline: 0.0625rem solid @_sap_ui_dt_Overlay_HighlightOutlineColor; /* 1px */
+		outline-offset: -0.0625rem; /* 1px */
+		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
 	}
 }
 
@@ -87,9 +267,20 @@
 	cursor: move;
 }
 
+/* Used for non-movable children overlays of movable parents */
+.sapUiDtOverlaySelectable:not(.sapUiDtOverlayMovable) {
+	cursor: auto;
+}
+
 .sapUiDtOverlayCutted {
-	background-color: @_sap_ui_dt_Overlay_CuttedColor !important;
+	background-color: @_sap_ui_dt_Overlay_CuttedBackgroundColor !important;
 	opacity: 0.5;
+
+	&::after {
+		content: '';
+		outline: 0.063rem solid @_sap_ui_dt_Overlay_CuttedBorderColor; /* 1px */
+		outline-offset: -0.125rem; /* 2px */
+	}
 }
 
 .sapUiDtDragGhostWrapper {
@@ -98,20 +289,21 @@
 }
 
 /* fix ghost blinking in FireFox */
-.sap-desktop[data-sap-ui-browser^="ff"] .sapUiDtDragGhostWrapper {
+.sap-desktop[data-sap-ui-browser^='ff'] .sapUiDtDragGhostWrapper {
 	top: -9999px;
 	left: -9999px;
 }
 
 /* fix for chrome */
-.sap-desktop[data-sap-ui-browser^="cr"] {
+.sap-desktop[data-sap-ui-browser^='cr'] .sapUiDtDragGhostWrapper {
+	padding-left: -500px;
+	padding-bottom: 500px;
+	bottom: -1000px;
+}
 
-	.sapUiDtDragGhostWrapper {
-		padding-left : -500px;
-		padding-bottom: 500px;
-		bottom: -1000px;
-	}
-
+/* Fix for Safari, ghost must not be completly off screen */
+.sap-desktop[data-sap-ui-browser^='sf'] .sapUiDtDragGhostWrapper {
+	top: 100vh;
 }
 
 .sapUiDtClonedDom {
@@ -128,107 +320,23 @@
 .sapUiDtOverlayScrollContainer {
 	position: absolute;
 }
-/* END "Overlay.less" */
 
-/* START "ContextMenu.less" */
-/******************************************************************
-	Style of the DT Contextmenu - base Theme
-*******************************************************************/
-@_sap_ui_dt_ContextMenu_BoxShadow: @sapUiUx3ToolPopupShadow; //0px 6px 12px 0px fade(black, 30);
-@_sap_ui_dt_ContextMenu_FocusColor: @sapUiContentFocusColor; //#000
+.sapUiDtOverlayHover {
+	-webkit-transition: background 0.1s cubic-bezier(1, .01, 1, 0);
+	-moz-transition: background 0.1s cubic-bezier(1, .01, 1, 0);
+	-o-transition: background 0.1s cubic-bezier(1, .01, 1, 0);
+	transition: background 0.1s cubic-bezier(1, .01, 1, 0);
+	background: @_sap_ui_dt_Overlay_HoverBackgroundColor;
 
-.sapUiDtContextMenu {
-
-	.sapMPopoverScroll {
-		margin-right: 0 !important;
-	}
-
-	.sapMBtnInner {
-		text-align: left;
-		text-shadow: none;
-		display: block;
-	}
-	.sapMBtn {
-		padding-left: 0.0625rem; //1px
-		padding-right: 0.0625rem; //1px
-	}
-
-	.sapMBtn:focus > .sapMFocusable,
-	&.sapMBtn:focus > .sapMFocusable {
-		border: 0.0625rem dotted @_sap_ui_dt_ContextMenu_FocusColor; //1px
-		outline: none;
-	}
-
-	.sapMBtn.sapMBtnDisabled {
-		opacity: 0.5;
-	}
-
-	&.sapMPopover, .sapMPopover {
-		opacity: 0;
-		min-width: 0;
+	&::after {
+		content: '';
 		transition: box-shadow .25s;
-		box-shadow: @_sap_ui_dt_ContextMenu_BoxShadow;
-		padding: 0.1875rem; //3px
-
-		&.sapUiDtContextMenuVisible {
-			opacity: 1;
-		}
-	}
-
-	&.sapMPopoverArr, .sapMPopoverArr {
-		bottom: -0.5rem; //8px
-		left: 0.75rem !important; //12px
-
-		&:after {
-			box-shadow: none;
-			width: 0.75rem; //12px
-			height: 0.75rem; //12px
-		}
-
-		&.sapMPopoverArrUp {
-			top: -0.5rem; //8px
-		}
-	}
-
-	&.sapUiDtContextMenuRightArrow {
-		&.sapMPopoverArr, .sapMPopoverArr {
-			left: unset !important;
-			right: 0.75rem !important; //12px
-		}
+		box-shadow: @_sap_ui_dt_Overlay_BoxShadow;
+		outline: 0.0625rem solid @_sap_ui_dt_Overlay_SelectionOutlineColor; /* 1px */
+		outline-offset: -0.0625rem; /* 1px */
 	}
 }
-
-.sapUiSizeCozy {
-
-	.sapUiDtContextMenu {
-
-		&.sapMPopoverArr, .sapMPopoverArr {
-			left: 1.375rem !important; //16px
-		}
-		.sapMBtn {
-			margin-left: 0.125rem; //2px
-			margin-right: 0.125rem; //2px
-		}
-		&.sapUiDtContextMenuRightArrow {
-			&.sapMPopoverArr, .sapMPopoverArr {
-				left: unset !important;
-				right: 1.375rem !important; //16px
-			}
-		}
-	}
-
-}
-
-// Special handling for IE and EDGE Browsers
-html[data-sap-ui-browser^="ie"] .sapUiDtContextMenu .sapMBtn:focus .sapMBtnFocusDiv,
-html[data-sap-ui-browser^="ed"] .sapUiDtContextMenu .sapMBtn:focus .sapMBtnFocusDiv {
-	border: none;
-}
-// because the Button-Control sets a specific rule for IE, we have to define the display here again
-html[data-sap-ui-browser*='ie'] .sapUiDtContextMenu .sapMBtnInner {
-	display: block;
-}
-/* END "ContextMenu.less" */
+/* END "Overlay.less" */
 
 /* START "shared.less" */
 /* This CSS shares it rules with all other CSS of this library */
