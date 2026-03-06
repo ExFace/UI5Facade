@@ -49,7 +49,7 @@ class UI5Html extends UI5Value
             $styles .= str_replace("\n", "\\n", $style);
             $html = str_replace($tag, '', $html);
         }
-        $styles .= $this->buildCssInlineStyles();
+        $styles .= $this->buildCssInlineStyles() ?? '';
         
         if ($this->isValueBoundToModel()) {
             $content = '{' . $this->getValueBindingPath() . '}';
@@ -117,7 +117,7 @@ JS;
         return array_combine($tags[0], $tags[1]);
     }
     
-    public function buildCssInlineStyles() : string
+    public function buildCssInlineStyles() : ?string
     {
         return $this->getWidget()->getCss();
     }
