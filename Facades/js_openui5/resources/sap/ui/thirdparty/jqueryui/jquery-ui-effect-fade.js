@@ -11,4 +11,5 @@
  * Depends:
  *	jquery.ui.effect.js
  */
-(function($,u){$.effects.effect.fade=function(o,d){var e=$(this),m=$.effects.setMode(e,o.mode||"toggle");e.animate({opacity:m},{queue:false,duration:o.duration,easing:o.easing,complete:d});};})(jQuery);
+(function(e,t){e.effects.effect.fade=function(t,a){var f=e(this),i=e.effects.setMode(f,t.mode||"toggle");f.animate({opacity:i},{queue:false,duration:t.duration,easing:t.easing,complete:a})}})(jQuery);
+//# sourceMappingURL=jquery-ui-effect-fade.js.map

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
@@ -8,14 +8,28 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 		"use strict";
 
 		/**
-		 * Constructor for a new <code>sap.m.routing.Router</code>. See <code>{@link sap.ui.core.routing.Router}</code>
-		 * for the constructor arguments.
+		 * Constructor for a new <code>sap.m.routing.Router</code>.
 		 *
 		 * @class
-		 * SAPUI5 mobile <code>Router</code>.
-		 * The difference to the {@link sap.ui.core.routing.Router} are the <code>viewLevel</code>,
-		 * <code>transition</code>, and <code>transitionParameters</code> properties that you can
-		 * specify in every Route or Target created by this router.
+		 * The <code>sap.m.routing.Router</code> is a specialized extension of <code>{@link
+		 * sap.ui.core.routing.Router}</code>, designed specifically for the following containers in the
+		 * <code>sap.m</code> library: <code>sap.m.App</code>, <code>sap.m.SplitApp</code>, or
+		 * <code>sap.m.NavContainer</code>.
+		 *
+		 * It provides additional target and route configuration options that are optimized for the containers,
+		 * including support for animated transitions and navigation hierarchy levels.
+		 *
+		 * Compared to <code>{@link sap.ui.core.routing.Router}</code>, it adds support for additional Target
+		 * properties:
+		 * <ul>
+		 *  <li><code>level</code>: Defines the hierarchical level of the target view for proper history and back
+		 *  navigation handling</li>
+		 *  <li><code>transition</code>: Specifies the type of transition animation between views (e.g.,
+		 *  <code>slide</code>, <code>fade</code>)</li>
+		 *  <li><code>transitionParameters</code>: Custom parameters for transitions</li>
+		 * </ul>
+		 *
+		 * For constructor parameters, see <code>{@link sap.ui.core.routing.Router#constructor}</code>.
 		 *
 		 * @extends sap.ui.core.routing.Router
 		 * @param {object|object[]} [oRoutes] may contain many Route configurations as {@link sap.ui.core.routing.Route#constructor}.<br/>
@@ -156,7 +170,8 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 		 *     {
 		 *          //same name as in the config.bypassed.target
 		 *          notFound: {
-		 *              viewName: "notFound",
+		 *              type: "View"
+		 *              name: "notFound",
 		 *              ...
 		 *              // more properties to place the view in the correct container
 		 *          }
@@ -187,7 +202,7 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 		 *     ],
 		 *     // Default values shared by routes and Targets
 		 *     {
-		 *         viewNamespace: "my.application.namespace",
+		 *         path: "my.application.namespace",
 		 *         viewType: "XML"
 		 *     },
 		 *     // You should only use this constructor when you are not using a router with a component.
@@ -199,7 +214,8 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 		 *          //same name as in the route called 'startRoute'
 		 *          welcome: {
 		 *              // All properties for creating and placing a view go here or in the config
-		 *              viewName: "Welcome",
+		 *              type: "View",
+		 *              name: "Welcome",
 		 *              controlId: "app",
 		 *              controlAggregation: "pages"
 		 *          }
@@ -259,6 +275,7 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 						transitionParameters: oTargetConfig.transitionParameters,
 						eventData: mArguments.arguments,
 						targetControl: mArguments.targetControl,
+						aggregationName: oTargetConfig.controlAggregation,
 						view: mArguments.view,
 						preservePageInSplitContainer: oTargetConfig.preservePageInSplitContainer
 					});
@@ -270,17 +287,17 @@ sap.ui.define(['sap/ui/core/routing/Router', './TargetHandler', './Targets'],
 			fireRoutePatternMatched : function (mArguments) {
 				var sRouteName = mArguments.name,
 					oRoute = this.getRoute(sRouteName),
-					iViewLevel;
+					iLevel;
 
 				// only if a route has a private target and does not use the targets instance of the router we need to inform the targethandler
 				if (oRoute._oTarget) {
 					if (this._oTargets && this._oTargets._oLastDisplayedTarget) {
-						iViewLevel = this._oTargets._getViewLevel(this._oTargets._oLastDisplayedTarget);
+						iLevel = this._oTargets._getLevel(this._oTargets._oLastDisplayedTarget);
 					}
 
 					this._oTargetHandler.navigate({
 						navigationIdentifier: sRouteName,
-						viewLevel: iViewLevel,
+						level: iLevel,
 						askHistory: true
 					});
 				}

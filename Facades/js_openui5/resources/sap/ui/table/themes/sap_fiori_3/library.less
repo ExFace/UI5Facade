@@ -2,7 +2,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,22 +19,21 @@
 /* Fiori 3 theme             */
 /* ========================= */
 
-@_sap_ui_table_Cell_BorderColorSelected: @sapUiListSelectionBorderColor;
-@_sap_ui_table_Cell_BorderColorFixedSelected: @sapUiListSelectionBorderColor;
+@_sap_ui_table_Cell_BorderColorSelected: var(--sapList_SelectionBorderColor);
+@_sap_ui_table_Cell_BorderColorFixedSelected: var(--sapList_SelectionBorderColor);
 @_sap_ui_table_Cell_ShadowColorFixed: @sapUiListTableFixedBorder;
 @_sap_ui_table_Cell_BorderBottomFocus: transparent;
 /* END "Cell.less" */
 
-/* START "RowSelection.less" */
+/* START "CheckBox.less" */
 /* ================================== */
-/* CSS for sap.ui.table/RowSelection  */
+/* CSS for sap.ui.table/CheckBox      */
 /* Fiori 3 theme                      */
 /* ================================== */
 
-@_sap_ui_table_RowSelection_CheckBoxBorderWidth: 0.0625rem;
-@_sap_ui_table_RowSelection_CheckBoxBorderRadius: 0.125rem;
-@_sap_ui_table_RowSelection_CheckBoxIconColor: @sapUiContentIconColor;
-/* END "RowSelection.less" */
+@_sap_ui_table_CheckBox_CheckMarkColor: var(--sapSelectedColor);
+@_sap_ui_table_CheckBox_BackgroundColorHover: var(--sapField_Hover_Background);
+/* END "CheckBox.less" */
 
 /* START "Table.less" */
 /* =================================== */

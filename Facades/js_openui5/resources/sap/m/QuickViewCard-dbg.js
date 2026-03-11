@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,15 +8,13 @@
 sap.ui.define([
 	"./library",
 	"./QuickViewBase",
-	"./NavContainer",
-	"./Page",
+
 	"./ScrollContainer",
 	"./QuickViewCardRenderer"
 ], function (
 	library,
 	QuickViewBase,
-	NavContainer,
-	Page,
+
 	ScrollContainer,
 	QuickViewCardRenderer
 ) {
@@ -36,13 +34,12 @@ sap.ui.define([
 	 * @extends sap.m.QuickViewBase
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.28.11
 	 * @alias sap.m.QuickViewCard
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var QuickViewCard = QuickViewBase.extend("sap.m.QuickViewCard", /** @lends sap.m.QuickViewCard.prototype */ {
 		metadata: {
@@ -54,7 +51,9 @@ sap.ui.define([
 				showVerticalScrollBar : { type : "boolean", group : "Behavior", defaultValue : true }
 			},
 			designtime: "sap/m/designtime/QuickViewCard.designtime"
-		}
+		},
+
+		renderer: QuickViewCardRenderer
 	});
 
 	/**
@@ -63,16 +62,23 @@ sap.ui.define([
 	 * @private
 	 */
 	QuickViewCard.prototype.init = function() {
-		var oNavConfig = {
-			pages: [new Page()],
-			navigate: this._navigate.bind(this),
-			afterNavigate: this._afterNavigate.bind(this)
-		};
+		QuickViewBase.prototype.init.apply(this);
 
-		this._oNavContainer = new NavContainer(oNavConfig);
+		this._oNavContainerDelegate = {
+			onAfterRendering: function () {
+				if (!this.getShowVerticalScrollBar()) {
+					this.addStyleClass("sapMQuickViewCardNoScroll");
+				} else {
+					this.removeStyleClass("sapMQuickViewCardNoScroll");
+				}
+				this._oNavContainer.removeEventDelegate(this._oNavContainerDelegate);
+			}.bind(this)
+		};
 	};
 
 	QuickViewCard.prototype.onBeforeRendering = function() {
+		this._oNavContainer.addEventDelegate(this._oNavContainerDelegate, this);
+
 		this._initPages();
 	};
 

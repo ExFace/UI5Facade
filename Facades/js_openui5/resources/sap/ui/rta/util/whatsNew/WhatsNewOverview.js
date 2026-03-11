@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/m/library","sap/ui/core/Fragment","sap/ui/model/json/JSONModel","sap/ui/model/resource/ResourceModel","sap/ui/rta/util/whatsNew/WhatsNewUtils"],function(e,t,o,n,i){"use strict";const a={};const s=e.URLHelper;let r;let c;a.openWhatsNewOverviewDialog=async function(){const e=new o;c=await i.getFilteredFeatures([]);e.setData({featureCollection:c});e.setProperty("overviewActive",true);if(!r){await a.createWhatsNewOverviewDialog(e)}r.open();return r};a.createWhatsNewOverviewDialog=async function(e){const o=new n({bundleName:"sap.ui.rta.messagebundle"});r=await t.load({name:"sap.ui.rta.util.whatsNew.WhatsNewOverviewDialog",controller:a});r.setModel(o,"i18n");r.setModel(e,"whatsNewModel")};a.closeWhatsNewOverviewDialog=function(){if(r){const e=r.getBindingContext("whatsNewModel");e?.setProperty("overviewActive",true);r.close()}};a.backToOverview=function(){const e=r.getBindingContext("whatsNewModel");e.setProperty("overviewActive",true)};a.onSelectListItem=function(e){const t=e.getSource();const o=t.getBindingContext("whatsNewModel");const n=o.getPath();o.setProperty("overviewActive",false);r.bindElement({path:n,model:"whatsNewModel"})};a.onLearnMorePress=function(e){const t=e.getSource().getBindingContext("whatsNewModel").getPath();const o=i.getLearnMoreURL(t,c);s.redirect(o,true)};return a});
+//# sourceMappingURL=WhatsNewOverview.js.map

@@ -1,26 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.table.RowAction
 sap.ui.define([
-	"./library",
 	"./utils/TableUtils",
 	"./RowActionRenderer",
 	"sap/ui/core/Control",
 	"sap/ui/core/Icon",
-	"sap/ui/unified/Menu",
-	"sap/ui/core/Popup"
+	"sap/ui/core/IconPool",
+	"sap/ui/core/Popup",
+	"sap/ui/unified/Menu"
 ], function(
-	library,
 	TableUtils,
 	RowActionRenderer,
 	Control,
 	Icon,
-	Menu,
-	Popup
+	IconPool,
+	Popup,
+	Menu
 ) {
 	"use strict";
 
@@ -34,16 +34,19 @@ sap.ui.define([
 	 * The <code>RowAction</code> control allows to display multiple action items which can be selected by the user.
 	 * If more action items are available as the available space allows to display an overflow mechanism is provided.
 	 * This control must only be used in the context of the <code>sap.ui.table.Table</code> control to define row actions.
+	 *
+	 * <b>Note</b>: The <code>RowActionItem</code> of type <code>Navigation</code> has a special role and is shown as the rightmost icon independent
+	 * of the order in the <code>items</code> aggregation.
+	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.45
 	 * @alias sap.ui.table.RowAction
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var RowAction = Control.extend("sap.ui.table.RowAction", /** @lends sap.ui.table.RowAction.prototype */ {
+	const RowAction = Control.extend("sap.ui.table.RowAction", /** @lends sap.ui.table.RowAction.prototype */ {
 		metadata: {
 			library: "sap.ui.table",
 			properties: {
@@ -57,130 +60,27 @@ sap.ui.define([
 				/**
 				 * The action items which should be displayed.
 				 */
-				items: {type: "sap.ui.table.RowActionItem", multiple: true},
-
-				/*
-				 * Hidden aggregation for the internally used icon controls.
-				 */
-				_icons: {type: "sap.ui.core.Icon", multiple: true, visibility: "hidden"},
-
-				/*
-				 * Hidden aggregation for the internally used menu control.
-				 */
-				_menu: {type: "sap.ui.unified.Menu", multiple: false, visibility: "hidden"}
+				items: {type: "sap.ui.table.RowActionItem", multiple: true}
 			},
 			events: {}
-		}
+		},
+		renderer: RowActionRenderer
 	});
 
-	RowAction.prototype.init = function() {
-		/*
-		 * Enables or disables the fixed layout.
-		 * If enabled, the position of the icons is stable.
-		 *
-		 * @type {boolean}
-		 */
-		this._bFixedLayout = true;
-
-		this._aActions = ["", ""];
-		this._iLastCloseTime = 0;
-
-		this.addAggregation("_icons", new Icon(this.getId() + "-icon0", {
-				decorative: false,
-				press: [this._onIconPress, this]
-			})
-			.addStyleClass("sapUiTableActionIcon"))
-			.addDelegate({
-				onAfterRendering: function() {
-					var oIconDomRef = this.getAggregation("_icons")[0].getDomRef();
-
-					if (this._aActions[0] === "menu") {
-						oIconDomRef.setAttribute("aria-haspopup", true);
-					} else {
-						oIconDomRef.removeAttribute("aria-haspopup");
-					}
-				}
-			}, this);
-
-		this.addAggregation("_icons", new Icon(this.getId() + "-icon1", {
-				decorative: false,
-				press: [this._onIconPress, this]
-			})
-			.addStyleClass("sapUiTableActionIcon"))
-			.addDelegate({
-				onAfterRendering: function() {
-					var oIconDomRef = this.getAggregation("_icons")[1].getDomRef();
-
-					if (this._aActions[1] === "menu") {
-						oIconDomRef.setAttribute("aria-haspopup", true);
-					} else {
-						oIconDomRef.removeAttribute("aria-haspopup");
-					}
-				}
-			}, this);
-	};
-
-	RowAction.prototype.onBeforeRendering = function() {
-		var oRow = this.getRow();
-		var oTable = oRow ? oRow.getTable() : null;
-		var aIcons = this.getAggregation("_icons");
-		var aItems = this.getItems();
-		var aVisibleItems = this._getVisibleItems();
-		var iVisibleItems = aVisibleItems.length;
-		var iSize = this._getSize();
-		var sHeaderLabelId = oTable ? oTable.getId() + "-rowacthdr" : "";
-
-		if (this._bFixedLayout && iVisibleItems === 1 && iSize === 2 && aItems.length > 1 && aVisibleItems[0] === aItems[1]) {
-			aVisibleItems[0]._syncIcon(aIcons[1]);
-			this._aActions = ["", "action_fixed"];
-		} else if (iVisibleItems === 0 || iSize === 0) {
-			this._aActions = ["", ""];
-		} else if (iVisibleItems === 1 && iSize > 0) {
-			aVisibleItems[0]._syncIcon(aIcons[0]);
-			this._aActions = ["action", ""];
-		} else if (iVisibleItems === 2 && iSize === 2) {
-			aVisibleItems[0]._syncIcon(aIcons[0]);
-			aVisibleItems[1]._syncIcon(aIcons[1]);
-			this._aActions = ["action", "action"];
-		} else if (iVisibleItems > 2 && iSize === 2) {
-			aVisibleItems[0]._syncIcon(aIcons[0]);
-			aIcons[1].setSrc("sap-icon://overflow");
-			aIcons[1].setTooltip(TableUtils.getResourceText("TBL_ROW_ACTION_MORE"));
-			this._aActions = ["action", "menu"];
-		} else { // iVisibleItems > 2 && iSize === 1
-			aIcons[0].setSrc("sap-icon://overflow");
-			aIcons[0].setTooltip(TableUtils.getResourceText("TBL_ROW_ACTION_MORE"));
-			this._aActions = ["menu", ""];
-		}
-
-		aIcons.forEach(function(oIcon, iIndex) {
-			oIcon.removeAllAriaLabelledBy();
-			oIcon.removeStyleClass("sapUiTableActionHidden");
-
-			if (sHeaderLabelId) {
-				oIcon.addAriaLabelledBy(sHeaderLabelId);
-			}
-
-			if (this._aActions[iIndex] === "") {
-				oIcon.addStyleClass("sapUiTableActionHidden");
-			}
-		}.bind(this));
-	};
-
-	/**
+	/*
 	 * @override
 	 * @inheritDoc
 	 */
 	RowAction.prototype.getAccessibilityInfo = function() {
-		var oRow = this.getRow();
-		var iVisibleItems = this._getVisibleItems().length;
-		var iSize = this._getSize();
-		var bActive = this.getVisible() && iVisibleItems > 0 && iSize > 0
+		const oRow = this.getRow();
+		const iVisibleItems = this._getVisibleItems().length;
+		const iSize = this._getSize();
+		const bActive = this.getVisible() && iVisibleItems > 0 && iSize > 0
 					  && (!oRow || (!oRow.isContentHidden() && !oRow.isGroupHeader() && !oRow.isSummary()));
-		var sText;
+		let sText;
 
 		if (bActive) {
-			sText = TableUtils.getResourceText(iVisibleItems == 1
+			sText = TableUtils.getResourceText(iVisibleItems === 1
 											   ? "TBL_ROW_ACTION_SINGLE_ACTION"
 											   : "TBL_ROW_ACTION_MULTIPLE_ACTION", [iVisibleItems]);
 		} else {
@@ -213,7 +113,7 @@ sap.ui.define([
 	 * @private
 	 */
 	RowAction.prototype.getRow = function() {
-		var oParent = this.getParent();
+		const oParent = this.getParent();
 		return TableUtils.isA(oParent, "sap.ui.table.Row") ? oParent : null;
 	};
 
@@ -224,50 +124,69 @@ sap.ui.define([
 	 * @private
 	 */
 	RowAction.prototype._getSize = function() {
-		var oRow = this.getRow();
-		var oTable = oRow ? oRow.getTable() : null;
-		return oTable ? oTable.getRowActionCount() : 2;
+		const oRow = this.getRow();
+		const oTable = oRow ? oRow.getTable() : null;
+
+		return oTable ? oTable.getRowActionCount() : 3;
 	};
 
 	/**
-	 * Press Event handler for the inner icons.
+	 * Returns an overflow icon which opens a menu containing the overflowing items.
 	 *
-	 * @param {sap.ui.base.Event} oEvent The press event of the icon
+	 * @param {sap.ui.table.RowActionItem[]} aItems The visible action items (excluding navigation items)
+	 * @param {sap.ui.table.RowActionItem[]} aNavigationItems The visible navigation action items
+	 * @param {int} iItemsBeforeOverflow The number of items which are displayed before the overflow
+	 *
+	 * @returns {sap.ui.core.Icon} The overflow icon.
 	 * @private
 	 */
-	RowAction.prototype._onIconPress = function(oEvent) {
-		var oIcon = oEvent.getSource();
-		var iIconIndex = this.indexOfAggregation("_icons", oIcon);
-		var sAction = this._aActions[iIconIndex];
+	RowAction.prototype._getOverflowIcon = function(aItems, aNavigationItems, iItemsBeforeOverflow) {
+		if (!this._oOverflowIcon) {
+			this._oOverflowIcon = new Icon({
+				src: IconPool.getIconURI("overflow"),
+				decorative: false
+			}).addStyleClass("sapUiTableActionIcon");
 
-		if (sAction === "action") {
-			this._getVisibleItems()[iIconIndex]._firePress();
-		} else if (sAction === "action_fixed") {
-			this._getVisibleItems()[0]._firePress();
-		} else if (sAction === "menu") {
-			var oMenu = this.getAggregation("_menu");
-			if (!oMenu) {
-				oMenu = new Menu();
-				this.setAggregation("_menu", oMenu, true);
-				oMenu.getPopup().attachClosed(function() {
-					this._iLastCloseTime = Date.now();
-				}, this);
-			}
-			oMenu.removeAllItems();
-
-			if (Date.now() - this._iLastCloseTime < 500) {
-				//Skip menu opening when the menu was closed directly before
-				return;
-			}
-
-			var aItems = this.getItems();
-			for (var i = iIconIndex; i < aItems.length; i++) {
-				oMenu.addItem(aItems[i]._getMenuItem());
-			}
-
-			oMenu.open(null, oIcon, Popup.Dock.EndTop, Popup.Dock.EndBottom, oIcon);
+			this._oOverflowIcon.addDelegate({
+				onAfterRendering: function() {
+					this._oOverflowIcon.getDomRef().setAttribute("aria-haspopup", "Menu");
+				}
+			}, this);
+			this.addDependent(this._oOverflowIcon);
+		} else {
+			this._oOverflowIcon.detachPress(fnPress, this);
 		}
+
+		this._oOverflowIcon.attachPress({aItems, aNavigationItems, iItemsBeforeOverflow}, fnPress, this);
+
+		return this._oOverflowIcon;
 	};
+
+	function fnPress(oEvent, mParameters) {
+		const aItems = mParameters.aItems;
+		const aNavigationItems = mParameters.aNavigationItems;
+		const iItemsBeforeOverflow = mParameters.iItemsBeforeOverflow;
+		const oTable = this.getRow().getTable();
+
+		if (!oTable._oRowActionOverflowMenu) {
+			oTable._oRowActionOverflowMenu = new Menu();
+			oTable.addAggregation("_hiddenDependents", oTable._oRowActionOverflowMenu);
+		} else {
+			oTable._oRowActionOverflowMenu.removeAllItems();
+		}
+
+		for (let i = iItemsBeforeOverflow; i < aItems.length; i++) {
+			oTable._oRowActionOverflowMenu.addItem(aItems[i]._getOverflowMenuItem());
+		}
+
+		if (aNavigationItems.length >= this._getSize()) {
+			for (let i = 0; i < aNavigationItems.length - this._getSize(); i++) {
+				oTable._oRowActionOverflowMenu.addItem(aNavigationItems[i]._getOverflowMenuItem());
+			}
+		}
+
+		oTable._oRowActionOverflowMenu.open(true, oEvent.getSource(), Popup.Dock.CenterTop, Popup.Dock.CenterBottom, oEvent.getSource().getDomRef());
+	}
 
 	return RowAction;
 });

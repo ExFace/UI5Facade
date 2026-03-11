@@ -1,0 +1,37 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+
+sap.ui.define([
+	"sap/ui/fl/apply/_internal/flexState/changes/UIChangesState",
+	"sap/ui/fl/initial/_internal/ManifestUtils"
+], function(
+	UIChangesState,
+	ManifestUtils
+) {
+	"use strict";
+
+	/**
+	 * Returns an array with all UI Changes for the application.
+	 * WARNING: No deep clone - Returns original object references to ensure that prototype methods
+	 * stay intact. Do not mutate.
+	 *
+	 * @namespace sap.ui.fl.support._internal.getAllUIChanges
+	 * @since 1.121
+	 * @version 1.144.0
+	 * @private
+	 * @ui5-restricted sap.ui.fl.support.api.SupportAPI
+	 */
+
+	function getAllUIChangesFromChangesState(oCurrentAppContainerObject) {
+		const oAppComponent = oCurrentAppContainerObject.oContainer.getComponentInstance();
+		const sReference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
+		return UIChangesState.getAllUIChanges(sReference);
+	}
+
+	return function(oAppComponent) {
+		return Promise.resolve(getAllUIChangesFromChangesState(oAppComponent));
+	};
+});

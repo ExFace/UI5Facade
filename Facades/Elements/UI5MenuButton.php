@@ -36,7 +36,7 @@ class UI5MenuButton extends UI5AbstractElement
             })
 		]
 	})
-    .addStyleClass("{$this->buildCssElementClass()}")
+    .addStyleClass("{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
     {$this->buildJsPseudoEventHandlers()}
 
 JS;

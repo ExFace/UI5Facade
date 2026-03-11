@@ -1,230 +1,401 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/util/restricted/_omit",
+	"sap/base/util/Deferred",
+	"sap/base/util/each",
 	"sap/base/util/merge",
 	"sap/base/util/ObjectPath",
+	"sap/base/Log",
 	"sap/ui/core/Component",
+	"sap/ui/fl/apply/_internal/flexObjects/FlexObjectFactory",
+	"sap/ui/fl/apply/_internal/flexObjects/States",
+	"sap/ui/fl/apply/_internal/flexState/changes/DependencyHandler",
+	"sap/ui/fl/apply/_internal/flexState/DataSelector",
+	"sap/ui/fl/apply/_internal/flexState/InitialPrepareFunctions",
+	"sap/ui/fl/initial/_internal/Loader",
+	"sap/ui/fl/initial/_internal/ManifestUtils",
+	"sap/ui/fl/initial/_internal/FlexInfoSession",
 	"sap/ui/fl/initial/_internal/StorageUtils",
-	"sap/ui/fl/apply/_internal/flexState/Loader",
-	"sap/ui/fl/apply/_internal/flexState/ManifestUtils",
-	"sap/ui/fl/apply/_internal/flexState/prepareAppDescriptorMap",
-	"sap/ui/fl/apply/_internal/flexState/prepareChangesMap",
-	"sap/ui/fl/apply/_internal/flexState/prepareVariantsMap",
 	"sap/ui/fl/LayerUtils",
-	"sap/ui/fl/Utils",
-	"sap/base/Log"
+	"sap/ui/fl/apply/_internal/init"
 ], function(
+	_omit,
+	Deferred,
+	each,
 	merge,
 	ObjectPath,
+	Log,
 	Component,
-	StorageUtils,
+	FlexObjectFactory,
+	States,
+	DependencyHandler,
+	DataSelector,
+	InitialPrepareFunctions,
 	Loader,
 	ManifestUtils,
-	prepareAppDescriptorMap,
-	prepareChangesMap,
-	prepareVariantsMap,
-	LayerUtils,
-	Utils,
-	Log
+	FlexInfoSession,
+	StorageUtils,
+	LayerUtils
 ) {
 	"use strict";
+
+	const sAppDescriptorNamespace = "sap.ui.fl.apply._internal.flexObjects.AppDescriptorChange";
+	const sAnnotationNamespace = "sap.ui.fl.apply._internal.flexObjects.AnnotationChange";
 
 	/**
 	 * Flex state class to persist maps and raw state (cache) for a given component reference.
 	 * The persistence happens inside an object mapped to the component reference, with the following properties:
 	 *
 	 *	{
-	 * 		appDescriptorMap: {},
-	 * 		changesMap: {},
-	 * 		variantsMap: {},
 	 * 		storageResponse: {
-	 * 			changes: {
-	 * 				changes: [...],
-	 * 				variants: [...],
-	 * 				variantChanges: [...],
-	 * 				variantDependentControlChanges: [...],
-	 * 				variantManagementChanges: [...],
-	 * 				ui2personalization: {...},
-	 * 			},
-	 * 			loadModules: <boolean>
+	 * 			changes: {...}, // see Loader.js
 	 * 		},
-	 *		partialFlexState: <boolean>,
-	 *		componentId: "<componentId>"
+	 * 		runtimePersistence: {
+	 * 			flexObjects: [...],
+	 * 			runtimeOnlyData: {
+	 * 				liveDependencyMap: {...}
+	 * 			}
+	 * 		},
+	 * 		maxLayer: <string>,
+	 * 		emptyState: <boolean>,
+	 *		skipLoadBundle: <boolean>,
+	 *		componentId: "<componentId>",
+	 *		componentData: {...}
 	 *	}
 	 *
 	 * @namespace sap.ui.fl.apply._internal.flexState.FlexState
-	 * @experimental
 	 * @since 1.73
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @private
 	 * @ui5-restricted sap.ui.fl.apply._internal
 	 */
-	var FlexState = {};
+	const FlexState = {};
 
-	var _mInstances = {};
-	var _mNavigationHandlers = {};
-	var _mInitPromises = {};
-	var _mPrepareFunctions = {
-		appDescriptorMap: prepareAppDescriptorMap,
-		changesMap: prepareChangesMap,
-		variantsMap: prepareVariantsMap
+	const _mInstances = {};
+	const _mInitPromises = {};
+	const _mFlexObjectInfo = {
+		appDescriptorChanges: {
+			pathInResponse: []
+		},
+		annotationChanges: {
+			pathInResponse: []
+		},
+		changes: {
+			initialPreparationFunctionName: "uiChanges",
+			pathInResponse: ["changes"]
+		},
+		variants: {
+			initialPreparationFunctionName: "variants",
+			pathInResponse: ["variants", "variantChanges", "variantDependentControlChanges", "variantManagementChanges"]
+		},
+		comp: {
+			pathInResponse: ["comp.changes", "comp.defaultVariants", "comp.standardVariants", "comp.variants"]
+		}
 	};
 
-	function _updateComponentData(mPropertyBag) {
-		var oComponent = Component.get(mPropertyBag.componentId);
-		_mInstances[mPropertyBag.reference].componentData = oComponent ? oComponent.getComponentData() : mPropertyBag.componentData;
-	}
+	// some runtime data is only fetched once (e.g. during control init) and has to survive an invalidation of the FlexState
+	// TODO: Move to runtime persistence as soon as flex objects are no longer deleted during cache invalidation
+	// but instead updated with the new data from the flex response
+	const _mExternalData = {
+		flexObjects: {},
+		smartVariantManagementControls: {}
+	};
 
-	function _enhancePropertyBag(mPropertyBag) {
-		var oComponent = Component.get(mPropertyBag.componentId);
-		mPropertyBag.componentData = mPropertyBag.componentData || oComponent.getComponentData() || {};
-		mPropertyBag.manifest = mPropertyBag.manifest || mPropertyBag.rawManifest || oComponent.getManifestObject();
-		mPropertyBag.reference = mPropertyBag.reference || ManifestUtils.getFlexReference(mPropertyBag);
-	}
-
-	function _getInstanceEntryOrThrowError(sReference, sMapName) {
-		if (!_mInstances[sReference]) {
-			throw new Error("State is not yet initialized");
+	function prepareChangeDefinitions(sStorageResponseKey, vStorageResponsePart) {
+		var fnPreparation = {
+			comp() {
+				return Object.values(vStorageResponsePart).reduce(function(aChangeDefinitions, oChangeDefinition) {
+					return aChangeDefinitions.concat(oChangeDefinition);
+				}, []);
+			},
+			variants() {
+				return vStorageResponsePart.map(function(oVariant) {
+					var bParentVariantExists = (
+						oVariant.variantReference === oVariant.variantManagementReference
+						|| vStorageResponsePart.some(function(oOtherVariant) {
+							return (
+								oOtherVariant.variantManagementReference === oVariant.variantManagementReference
+								&& oOtherVariant.fileName === oVariant.variantReference
+							);
+						})
+					);
+					// If the parent variant no longer exists, change the reference to the standard variant
+					if (!bParentVariantExists) {
+						return { ...oVariant, variantReference: oVariant.variantManagementReference };
+					}
+					return oVariant;
+				});
+			}
+		}[sStorageResponseKey];
+		if (fnPreparation) {
+			return fnPreparation();
 		}
-
-		if (!_mInstances[sReference].preparedMaps[sMapName]) {
-			var mPropertyBag = {
-				unfilteredStorageResponse: _mInstances[sReference].unfilteredStorageResponse,
-				storageResponse: _mInstances[sReference].storageResponse,
-				componentId: _mInstances[sReference].componentId,
-				componentData: _mInstances[sReference].componentData
-			};
-			_mInstances[sReference].preparedMaps[sMapName] = FlexState._callPrepareFunction(sMapName, mPropertyBag);
-		}
-
-		return _mInstances[sReference].preparedMaps[sMapName];
+		return Array.isArray(vStorageResponsePart) ? vStorageResponsePart : [];
 	}
 
-	function getAppDescriptorMap(sReference) {
-		return _getInstanceEntryOrThrowError(sReference, "appDescriptorMap");
+	function enhancePropertyBag(mPropertyBag) {
+		var oComponent = Component.getComponentById(mPropertyBag.componentId);
+		mPropertyBag.componentData ||= (oComponent && oComponent.getComponentData()) || {};
+		mPropertyBag.manifest ||= mPropertyBag.rawManifest || (oComponent && oComponent.getManifestObject()) || {};
+		mPropertyBag.reference ||= ManifestUtils.getFlexReference(mPropertyBag);
 	}
 
-	function getChangesMap(sReference) {
-		return _getInstanceEntryOrThrowError(sReference, "changesMap");
-	}
-
-	function getVariantsMap(sReference) {
-		return _getInstanceEntryOrThrowError(sReference, "variantsMap");
-	}
-
-	function createSecondInstanceIfNecessary(mPropertyBag) {
-		if (mPropertyBag.reference.endsWith(".Component")) {
-			var aParts = mPropertyBag.reference.split(".");
-			aParts.pop();
-			var sReferenceWithoutComponent = aParts.join(".");
-			_mInstances[sReferenceWithoutComponent] = merge({}, {
-				storageResponse: {changes: StorageUtils.getEmptyFlexDataResponse()},
-				unfilteredStorageResponse: {changes: StorageUtils.getEmptyFlexDataResponse()},
-				preparedMaps: {},
-				componentId: mPropertyBag.componentId,
-				partialFlexState: mPropertyBag.partialFlexState
+	function createFlexObjects(oStorageResponse) {
+		var aFlexObjects = [];
+		each(oStorageResponse.changes, function(sKey, vValue) {
+			prepareChangeDefinitions(sKey, vValue).forEach(function(oChangeDef) {
+				aFlexObjects.push(FlexObjectFactory.createFromFileContent(oChangeDef, null, true));
 			});
-			_mInitPromises[sReferenceWithoutComponent] = _mInitPromises[mPropertyBag.reference];
+		});
+		return aFlexObjects;
+	}
+
+	function runInitialPreparation(sMapName, mPropertyBag) {
+		var sPreparationFunctionName = _mFlexObjectInfo[sMapName].initialPreparationFunctionName;
+		var fnPreparation = InitialPrepareFunctions[sPreparationFunctionName];
+		if (fnPreparation) {
+			return fnPreparation(mPropertyBag);
+		}
+		return undefined;
+	}
+
+	var oFlexObjectsDataSelector = new DataSelector({
+		id: "flexObjects",
+		parameterKey: "reference",
+		executeFunction(oData, mParameters) {
+			if (!_mInstances[mParameters.reference]) {
+				return [];
+			}
+			var oPersistence = _mInstances[mParameters.reference].runtimePersistence;
+			return oPersistence.flexObjects.concat(
+				oPersistence.runtimeOnlyData.flexObjects || [],
+				_mExternalData.flexObjects[mParameters.reference][_mInstances[mParameters.reference].componentId] || []
+			);
+		}
+	});
+
+	const oAppDescriptorChangesDataSelector = new DataSelector({
+		id: "appDescriptorChanges",
+		parentDataSelector: oFlexObjectsDataSelector,
+		executeFunction(aFlexObjects) {
+			return aFlexObjects.filter((oFlexObject) => {
+				return oFlexObject.isA(sAppDescriptorNamespace);
+			});
+		},
+		checkInvalidation(mParameters, oUpdateInfo) {
+			const bRelevantType = ["addFlexObject", "removeFlexObject"].includes(oUpdateInfo.type);
+			return bRelevantType && oUpdateInfo.updatedObject?.isA(sAppDescriptorNamespace);
+		}
+	});
+
+	const oAnnotationChangesDataSelector = new DataSelector({
+		id: "annotationChanges",
+		parentDataSelector: oFlexObjectsDataSelector,
+		executeFunction(aFlexObjects) {
+			return aFlexObjects.filter((oFlexObject) => {
+				return oFlexObject.isA(sAnnotationNamespace);
+			});
+		},
+		checkInvalidation(mParameters, oUpdateInfo) {
+			const bRelevantType = ["addFlexObject", "removeFlexObject"].includes(oUpdateInfo.type);
+			return bRelevantType && oUpdateInfo.updatedObject?.isA(sAnnotationNamespace);
+		}
+	});
+
+	function buildRuntimePersistence(oFlexStateInstance, aExternalFlexObjects) {
+		const oStorageResponse = oFlexStateInstance.storageResponse;
+		var oRuntimePersistence = {
+			flexObjects: createFlexObjects(oStorageResponse),
+			runtimeOnlyData: {
+				liveDependencyMap: DependencyHandler.createEmptyDependencyMap(),
+				flexObjects: []
+			}
+		};
+		if (!oFlexStateInstance.componentId) {
+			// the initial preparation needs the component Id to work properly
+			// as soon as the FlexState is initialized with the component Id, the state is rebuild and
+			// the initial preparation is executed
+			return oRuntimePersistence;
+		}
+
+		Object.keys(_mFlexObjectInfo).forEach(function(sMapName) {
+			var oUpdate = runInitialPreparation(sMapName, {
+				storageResponse: oStorageResponse,
+				externalData: aExternalFlexObjects,
+				flexObjects: oRuntimePersistence.flexObjects,
+				componentId: oFlexStateInstance.componentId
+			});
+			if (oUpdate) {
+				oRuntimePersistence = merge(oRuntimePersistence, oUpdate);
+			}
+		});
+		return oRuntimePersistence;
+	}
+
+	function updateRuntimePersistence(sReference, oStorageResponse, oRuntimePersistence) {
+		const aFlexObjects = oRuntimePersistence.flexObjects.slice();
+		const iInitialFlexObjectsLength = aFlexObjects.length;
+		const aChangeDefinitions = [];
+		let bUpdate;
+
+		each(oStorageResponse.changes, function(sKey, vValue) {
+			prepareChangeDefinitions(sKey, vValue).forEach(function(oChangeDef) {
+				aChangeDefinitions.push(oChangeDef);
+			});
+		});
+
+		_mInstances[sReference].runtimePersistence = {
+			...oRuntimePersistence,
+			flexObjects: aChangeDefinitions.map(function(oChangeDef) {
+				let iObjectIndex;
+				// Only keep FlexObjects found in the storage change definitions
+				const oExistingFlexObject = aFlexObjects.find(function(oFlexObject, iIndex) {
+					iObjectIndex = iIndex;
+					return oFlexObject.getId() === oChangeDef.fileName;
+				});
+				if (oExistingFlexObject) {
+					aFlexObjects.splice(iObjectIndex, 1);
+					// Only update FlexObjects which were modified (new, updated)
+					if (oExistingFlexObject.getState() !== States.LifecycleState.PERSISTED) {
+						oExistingFlexObject.setResponse(oChangeDef);
+						bUpdate = true;
+					}
+					return oExistingFlexObject;
+				}
+
+				// The backend creates new changes in some scenarios (e.g. context filtering of FlVariants),
+				// which are not known to the runtimePersistence before
+				if (
+					oChangeDef.fileType === "ctrl_variant_change"
+					&& oChangeDef.fileName.endsWith("flVariant_contextFiltering_setVisible")
+				) {
+					return FlexObjectFactory.createFromFileContent(oChangeDef, null, true);
+				}
+
+				// If unknown change definitions are found, throw error (storage does not create flex objects)
+				const sErrorText = "Error updating runtime persistence: storage returned unknown flex objects";
+				Log.error(sErrorText);
+				throw new Error(sErrorText);
+			})
+		};
+
+		// If the final length is different, an object is no longer there (e.g. new version requested)
+		if (iInitialFlexObjectsLength !== _mInstances[sReference].runtimePersistence.flexObjects.length) {
+			bUpdate = true;
+		}
+
+		return bUpdate;
+	}
+
+	function initializeNewInstance(mPropertyBag, oFlexData) {
+		var sReference = mPropertyBag.reference;
+		var bDataUpdated = false;
+		if (!_mInstances[sReference].componentData && mPropertyBag.componentId) {
+			var oComponent = Component.getComponentById(mPropertyBag.componentId);
+			_mInstances[sReference].componentData = oComponent ? oComponent.getComponentData() : mPropertyBag.componentData;
+			bDataUpdated = true;
+		}
+		if (!_mInstances[sReference].storageResponse) {
+			_mInstances[sReference].storageResponse = filterByMaxLayer(sReference, oFlexData);
+			// Flex objects need to be recreated
+			delete _mInstances[sReference].runtimePersistence;
+			bDataUpdated = true;
+		}
+
+		if (!ObjectPath.get(["flexObjects", sReference, mPropertyBag.componentId], _mExternalData)) {
+			ObjectPath.set(["flexObjects", sReference, mPropertyBag.componentId], [], _mExternalData);
+		}
+
+		if (!_mInstances[sReference].runtimePersistence) {
+			_mInstances[sReference].runtimePersistence = buildRuntimePersistence(
+				_mInstances[sReference],
+				_mExternalData.flexObjects[sReference][mPropertyBag.componentId] || []
+			);
+			bDataUpdated = true;
+		}
+
+		if (bDataUpdated) {
+			oFlexObjectsDataSelector.checkUpdate({ reference: sReference });
 		}
 	}
 
-	function filterByMaxLayer(mResponse) {
-		var mFilteredReturn = merge({}, mResponse);
-		var mFlexObjects = mFilteredReturn.changes;
-		// TODO turn into utility or put it somewhere central
-		var aFilterableTypes = ["changes", "variants", "variantChanges", "variantDependentControlChanges", "variantManagementChanges"];
-		if (LayerUtils.isLayerFilteringRequired()) {
-			aFilterableTypes.forEach(function(sType) {
-				mFlexObjects[sType] = LayerUtils.filterChangeDefinitionsByMaxLayer(mFlexObjects[sType]);
+	function filterByMaxLayer(sReference, mResponse) {
+		const mFilteredReturn = merge({}, mResponse);
+		mFilteredReturn.changes = { ...StorageUtils.getEmptyFlexDataResponse(), ...mFilteredReturn.changes };
+		const mFlexObjects = mFilteredReturn.changes;
+		const oFlexInfoSession = FlexInfoSession.getByReference(sReference);
+		if (LayerUtils.isLayerFilteringRequired(sReference)) {
+			each(_mFlexObjectInfo, function(iIndex, mFlexObjectInfo) {
+				mFlexObjectInfo.pathInResponse.forEach(function(sPath) {
+					const aFilterByMaxLayer = ObjectPath.get(sPath, mFlexObjects).filter(function(oChangeDefinition) {
+						return !oChangeDefinition.layer || !LayerUtils.isOverLayer(oChangeDefinition.layer, oFlexInfoSession.maxLayer);
+					});
+					ObjectPath.set(sPath, aFilterByMaxLayer, mFlexObjects);
+				});
 			});
 		}
+		_mInstances[sReference].maxLayer = oFlexInfoSession.maxLayer;
 		return mFilteredReturn;
 	}
 
-	function loadFlexData(mPropertyBag) {
-		_mInitPromises[mPropertyBag.reference] = Loader.loadFlexData(mPropertyBag)
-			.then(function(mResponse) {
-				_mInstances[mPropertyBag.reference] = merge({}, {
-					unfilteredStorageResponse: mResponse,
-					preparedMaps: {},
-					componentId: mPropertyBag.componentId,
-					componentData: mPropertyBag.componentData,
-					partialFlexState: mPropertyBag.partialFlexState
-				});
-
-				// temporarily create an instance without '.Component'
-				// TODO remove as soon as both with and without '.Component' are harmonized
-				createSecondInstanceIfNecessary(mPropertyBag);
-				_registerMaxLayerHandler(mPropertyBag.reference);
-
-				// no further changes to storageResponse properties allowed
-				// TODO enable the Object.freeze as soon as its possible
-				// Object.freeze(_mInstances[mPropertyBag.reference].storageResponse);
-				// Object.freeze(_mInstances[mPropertyBag.reference].unfilteredStorageResponse);
-				return mResponse;
-			});
-
-		return _mInitPromises[mPropertyBag.reference];
+	function prepareNewInstance(mPropertyBag, sLoaderCacheKey) {
+		// The following line is used by the Flex Support Tool to set breakpoints - please adjust the tool if you change it!
+		_mInstances[mPropertyBag.reference] = merge({}, {
+			componentId: mPropertyBag.componentId,
+			componentData: mPropertyBag.componentData,
+			skipLoadBundle: mPropertyBag.skipLoadBundle,
+			loaderCacheKey: sLoaderCacheKey
+		});
 	}
 
-	function _registerMaxLayerHandler(sReference) {
-		Utils.ifUShellContainerThen(function(aServices) {
-			_mNavigationHandlers[sReference] = _handleMaxLayerChange.bind(null, sReference);
-			aServices[0].registerNavigationFilter(_mNavigationHandlers[sReference]);
-		}, ["ShellNavigation"]);
-	}
-
-	function _deRegisterMaxLayerHandler(sReference) {
-		Utils.ifUShellContainerThen(function(aServices) {
-			if (_mNavigationHandlers[sReference]) {
-				aServices[0].unregisterNavigationFilter(_mNavigationHandlers[sReference]);
-				delete _mNavigationHandlers[sReference];
-			}
-		}, ["ShellNavigation"]);
-	}
-
-	function _handleMaxLayerChange(sReference, sNewHash, sOldHash) {
-		return Utils.ifUShellContainerThen(function(aServices) {
-			try {
-				var sCurrentMaxLayer = LayerUtils.getMaxLayerTechnicalParameter(sNewHash);
-				var sPreviousMaxLayer = LayerUtils.getMaxLayerTechnicalParameter(sOldHash);
-				if (sCurrentMaxLayer !== sPreviousMaxLayer) {
-					FlexState.clearFilteredResponse(sReference);
-				}
-			} catch (oError) {
-				// required to hinder any errors - can break FLP navigation
-				Log.error(oError.message);
-			}
-			return aServices[0].NavigationFilterStatus.Continue;
-		}, ["ShellNavigation"]);
-	}
-
-	function _clearPreparedMaps(sReference) {
-		_mInstances[sReference].preparedMaps = {};
-	}
-
-	function checkPartialFlexState(mInitProperties) {
-		var oFlexInstance = _mInstances[mInitProperties.reference];
-		if (oFlexInstance.partialFlexState === true && mInitProperties.partialFlexState !== true) {
-			oFlexInstance.partialFlexState = false;
-			mInitProperties.partialFlexData = merge({}, oFlexInstance.unfilteredStorageResponse.changes);
-			mInitProperties.reInitialize = true;
-		}
-		return mInitProperties;
-	}
-
-	function checkComponentId(mInitProperties) {
+	function checkComponentIdChanged(mInitProperties) {
 		var sFlexInstanceComponentId = _mInstances[mInitProperties.reference].componentId;
 		// if the component with the same reference was rendered with a new ID - clear existing state
-		if (!mInitProperties.reInitialize && sFlexInstanceComponentId !== mInitProperties.componentId) {
-			mInitProperties.reInitialize = true;
-		}
-		return mInitProperties;
+		return sFlexInstanceComponentId !== mInitProperties.componentId;
 	}
+
+	function rebuildResponseIfMaxLayerChanged(sReference, oFlexData) {
+		if (_mInstances[sReference]?.maxLayer !== FlexInfoSession.getByReference(sReference).maxLayer) {
+			FlexState.rebuildFilteredResponse(sReference, oFlexData);
+		}
+	}
+
+	function initializeEmptyStateIfNeeded(sReference, sComponentId) {
+		if (!sComponentId) {
+			throw new Error(`No FlexState instance created for reference ${sReference} - missing component ID`);
+		}
+
+		// State already initialized for the component ID
+		if (_mInstances[sReference]?.componentId === sComponentId) {
+			return;
+		}
+
+		_mInstances[sReference] = {
+			emptyState: true,
+			// this makes sure that a proper initialize will still work as expected
+			reInitialize: true,
+			componentId: sComponentId
+		};
+		const oNewInitPromise = new Deferred();
+		_mInitPromises[sReference] = oNewInitPromise;
+		oNewInitPromise.resolve();
+		const oEmptyResponse = Loader.initializeEmptyCache(sReference);
+		initializeNewInstance({ reference: sReference }, oEmptyResponse);
+	}
+
+	FlexState.getRuntimeOnlyData = function(sReference) {
+		return _mInstances[sReference]?.runtimePersistence?.runtimeOnlyData;
+	};
+
+	FlexState.addFlexObjectsToRuntimeOnlyData = function(sReference, sComponentId, aFlexObjects) {
+		initializeEmptyStateIfNeeded(sReference, sComponentId);
+		_mInstances[sReference].runtimePersistence.runtimeOnlyData.flexObjects.push(...aFlexObjects);
+	};
 
 	/**
 	 * Initializes the FlexState for a given reference. A request for the flex data is sent to the Loader and the response is saved.
@@ -237,125 +408,354 @@ sap.ui.define([
 	 * @param {object} [mPropertyBag.rawManifest] - Raw JSON manifest that belongs to current component
 	 * @param {string} [mPropertyBag.componentData] - Component data of the current component
 	 * @param {object} [mPropertyBag.asyncHints] - Async hints passed from the app index to the component processing
-	 * @param {number} [mPropertyBag.version] - Number of the version in which the state should be initialized
-	 * @param {boolean} [mPropertyBag.partialFlexState=false] - if true state is initialized partially and does not include flex bundles
-	 * @returns {promise<undefined>} Resolves a promise as soon as FlexState is initialized
+	 * @param {boolean} [mPropertyBag.skipLoadBundle=false] - If true state is initialized partially and does not include flex bundles
+	 * @returns {Promise<undefined>} Resolves a promise as soon as FlexState is initialized
 	 */
-	FlexState.initialize = function(mPropertyBag) {
-		return Promise.resolve(mPropertyBag)
-			.then(function(mInitProperties) {
-				_enhancePropertyBag(mInitProperties);
-				var sFlexReference = mInitProperties.reference;
+	FlexState.initialize = async function(mPropertyBag) {
+		const mProperties = merge({}, mPropertyBag);
+		enhancePropertyBag(mProperties);
+		const sFlexReference = mProperties.reference;
 
-				if (_mInitPromises[sFlexReference]) {
-					return _mInitPromises[sFlexReference]
-						.then(checkPartialFlexState.bind(null, mInitProperties))
-						.then(checkComponentId)
-						.then(function(mEvaluatedProperties) {
-							return mEvaluatedProperties.reInitialize
-								? loadFlexData(mEvaluatedProperties)
-								: _mInstances[sFlexReference].unfilteredStorageResponse;
-						});
-				}
+		// TODO: Probably obsolete, as the init call is awaited in the Loader
+		const oOldInitPromise = _mInitPromises[sFlexReference];
+		const oNewInitPromise = new Deferred();
+		_mInitPromises[sFlexReference] = oNewInitPromise;
 
-				return loadFlexData(mInitProperties);
-			})
-			.then(function(mPropertyBag, mResponse) {
-				// filtering should only be done once; can be reset via function
-				if (!_mInstances[mPropertyBag.reference].storageResponse) {
-					_mInstances[mPropertyBag.reference].storageResponse = filterByMaxLayer(mResponse);
-					_updateComponentData(mPropertyBag);
-					// for the time being ensure variants map is prepared until getChangesForComponent() is removed
-					FlexState.getVariantsState(mPropertyBag.reference);
-				}
-			}.bind(null, mPropertyBag));
+		if (oOldInitPromise) {
+			await oOldInitPromise.promise;
+		}
+
+		const oLoaderData = await Loader.getFlexData(mProperties);
+		if (
+			!_mInstances[mProperties.reference]?.storageResponse
+			|| oLoaderData.parameters.loaderCacheKey !== _mInstances[mProperties.reference].loaderCacheKey
+			|| checkComponentIdChanged(mProperties)
+		) {
+			prepareNewInstance(mProperties, oLoaderData.parameters.loaderCacheKey);
+		} else {
+			rebuildResponseIfMaxLayerChanged(mProperties.reference, oLoaderData.data);
+		}
+
+		initializeNewInstance(mProperties, oLoaderData.data);
+		oNewInitPromise.resolve();
 	};
 
 	/**
-	 * Clears the cache and then triggers a call to the backend to fetch new data
+	 * Waits until the FlexState is initialized
+	 * This is only necessary if <code>FlexState.initialize</code> cannot be called directly
+	 * due to missing information for the backend request (e.g. asyncHints)
+	 *
+	 * @param {string} sFlexReference - Flex reference of the app
+	 * @returns {Promise<undefined>} Promise that resolves as soon as FlexState is initialized
+	 */
+	FlexState.waitForInitialization = function(sFlexReference) {
+		const oInitPromise = _mInitPromises[sFlexReference]?.promise;
+		if (!oInitPromise) {
+			Log.error("FlexState.waitForInitialization was called before FlexState.initialize");
+			return Promise.resolve();
+		}
+		return oInitPromise;
+	};
+
+	/**
+	 * Checks whether flex state of an associated reference or a control has been initialized or not
+	 *
+	 * @param {object} mPropertyBag - Contains additional data needed for reading and storing changes
+	 * @param {object} [mPropertyBag.control] - ID of the control
+	 * @param {string} [mPropertyBag.reference] - Flex reference of the app
+	 * @returns {boolean} <code>true</code> in case flex state has been initialized
+	 */
+	FlexState.isInitialized = function(mPropertyBag) {
+		var sReference = mPropertyBag.reference ? mPropertyBag.reference : ManifestUtils.getFlexReferenceForControl(mPropertyBag.control);
+		return !!_mInstances[sReference];
+	};
+
+	/**
+	 * Lazy loads the flex variant for a specific reference and adds it to the runtime persistence
+	 *
+	 * @param {object} mPropertyBag - Contains additional data needed for reading and storing changes
+	 * @param {string} mPropertyBag.reference - Flex reference of the app
+	 * @param {string} mPropertyBag.componentId - ID of the component
+	 * @param {string} mPropertyBag.variantReference - The reference of the variant to load.
+	 */
+	FlexState.lazyLoadFlVariant = async function(mPropertyBag) {
+		initializeEmptyStateIfNeeded(mPropertyBag.reference, mPropertyBag.componentId);
+		const oResult = await Loader.loadFlVariant(mPropertyBag);
+		const oInstance = _mInstances[mPropertyBag.reference];
+		oInstance.loaderCacheKey = oResult.completeLoaderData.parameters.loaderCacheKey;
+		oInstance.storageResponse = filterByMaxLayer(mPropertyBag.reference, oResult.completeLoaderData.data);
+		oInstance.runtimePersistence.flexObjects =
+		[
+			...oInstance.runtimePersistence.flexObjects,
+			...createFlexObjects(filterByMaxLayer(mPropertyBag.reference, { changes: oResult.newData }))
+		];
+		oFlexObjectsDataSelector.checkUpdate({ reference: mPropertyBag.reference });
+	};
+
+	/**
+	 * Triggers a call to the backend to fetch new data and update the runtime persistence
 	 *
 	 * @param {object} mPropertyBag - Contains additional data needed for reading and storing changes
 	 * @param {string} mPropertyBag.componentId - ID of the component
 	 * @param {string} [mPropertyBag.reference] - Flex reference of the app
 	 * @param {object} [mPropertyBag.manifest] - Manifest that belongs to actual component
 	 * @param {string} [mPropertyBag.componentData] - Component data of the current component
-	 * @param {number} [mPropertyBag.version] - Number of the version in which the state should be initialized
-	 * @returns {promise<undefined>} Resolves a promise as soon as FlexState is initialized again
+	 * @returns {Promise<undefined>} Resolves when the data is loaded and the runtime persistence is updated
 	 */
-	FlexState.clearAndInitialize = function(mPropertyBag) {
-		_enhancePropertyBag(mPropertyBag);
-		var bVariantsMapExists = !!ObjectPath.get(["preparedMaps", "variantsMap"], _mInstances[mPropertyBag.reference]);
+	FlexState.reinitialize = async function(mPropertyBag) {
+		enhancePropertyBag(mPropertyBag);
+		const sReference = mPropertyBag.reference;
 
-		FlexState.clearState(mPropertyBag.reference);
-		FlexState.clearState(Utils.normalizeReference(mPropertyBag.reference));
+		const oOldInitPromise = _mInitPromises[sReference];
+		const oNewInitPromise = new Deferred();
+		_mInitPromises[sReference] = oNewInitPromise;
 
-		return FlexState.initialize(mPropertyBag)
-			.then(function(bVariantsMapExists, sReference) {
-				if (bVariantsMapExists) {
-					return FlexState.getVariantsState(sReference);
+		if (oOldInitPromise) {
+			await oOldInitPromise.promise;
+		}
+
+		mPropertyBag.reInitialize = true;
+		const oResponse = await Loader.getFlexData(mPropertyBag);
+
+		if (!_mInstances[sReference]) {
+			prepareNewInstance(mPropertyBag, oResponse.parameters.loaderCacheKey);
+			initializeNewInstance(mPropertyBag, oResponse.data);
+		} else {
+			const oCurrentRuntimePersistence = _mInstances[sReference].runtimePersistence;
+			prepareNewInstance(mPropertyBag, oResponse.parameters.loaderCacheKey);
+			_mInstances[sReference].storageResponse = filterByMaxLayer(sReference, oResponse.data);
+			const bUpdated = updateRuntimePersistence(
+				sReference,
+				_mInstances[sReference].storageResponse,
+				oCurrentRuntimePersistence
+			);
+			if (bUpdated) {
+				oFlexObjectsDataSelector.checkUpdate({ reference: sReference });
+			}
+		}
+		oNewInitPromise.resolve();
+	};
+
+	/**
+	 * Some save operations don't require a complete new data request, so the storage response gets a live update.
+	 * This will also update the runtime persistence.
+	 *
+	 * @param {string} sReference - Flex reference of the app
+	 * @param {object[]} aUpdates - All new FlexObjects in JSON format
+	 */
+	FlexState.update = function(sReference, aUpdates) {
+		const aFlexObjectUpdates = [];
+		StorageUtils.updateStorageResponse(_mInstances[sReference].storageResponse, aUpdates);
+		const sNewLoaderCacheKey = Loader.updateCachedResponse(sReference, aUpdates);
+		_mInstances[sReference].loaderCacheKey = sNewLoaderCacheKey;
+		aUpdates.forEach((oUpdate) => {
+			if (oUpdate.type !== "ui2") {
+				// In some scenarios the runtime persistence is already updated
+				const iExistingFlexObjectIndex = _mInstances[sReference].runtimePersistence.flexObjects.findIndex(
+					(oFlexObject) => oFlexObject.getId() === oUpdate.flexObject.fileName
+				);
+				const oExistingFlexObject = _mInstances[sReference].runtimePersistence.flexObjects[iExistingFlexObjectIndex];
+				switch (oUpdate.type) {
+					case "add":
+						if (iExistingFlexObjectIndex < 0) {
+							throw new Error("Flex response includes unknown flex object");
+						}
+						break;
+					case "delete":
+						if (iExistingFlexObjectIndex >= 0) {
+							_mInstances[sReference].runtimePersistence.flexObjects.splice(iExistingFlexObjectIndex, 1);
+							aFlexObjectUpdates.push({ type: "removeFlexObject", updatedObject: oExistingFlexObject });
+						}
+						break;
+					case "update":
+						if (oExistingFlexObject && oExistingFlexObject.getState() !== States.LifecycleState.PERSISTED) {
+							oExistingFlexObject.setResponse(oUpdate.flexObject);
+							aFlexObjectUpdates.push({ type: "updateFlexObject", updatedObject: oExistingFlexObject });
+						}
+						break;
+					default:
 				}
-			}.bind(null, bVariantsMapExists, mPropertyBag.reference));
+			}
+		});
+		if (aFlexObjectUpdates.length) {
+			oFlexObjectsDataSelector.checkUpdate({ reference: sReference }, aFlexObjectUpdates);
+		}
 	};
 
 	FlexState.clearState = function(sReference) {
+		Loader.clearCache(sReference);
 		if (sReference) {
-			_deRegisterMaxLayerHandler(sReference);
 			delete _mInstances[sReference];
 			delete _mInitPromises[sReference];
+			oFlexObjectsDataSelector.clearCachedResult({ reference: sReference });
 		} else {
-			Object.keys(_mInstances).forEach(function(sReference) {
-				_deRegisterMaxLayerHandler(sReference);
-			});
-			_mInstances = {};
-			_mInitPromises = {};
+			Object.keys(_mInstances).forEach((sReference) => delete _mInstances[sReference]);
+			Object.keys(_mInitPromises).forEach((sReference) => delete _mInitPromises[sReference]);
+			oFlexObjectsDataSelector.clearCachedResult();
 		}
 	};
 
 	/**
-	 * Removes the saved filtered storage response and internal maps for the given reference.
-	 * The next initialize call will add it again.
+	 * Adds a runtime-steady object to the external data map which survives when the FlexState is cleared.
+	 * For example: a fake standard variant.
+	 * Fake standard variant refers to a variant that was not created based on file content returned from the backend.
+	 * If the flex response contains no variants that inherited from the standard variant, it is impossible
+	 * to know its ID without access to the related variant management control. Thus the standard variant cannot
+	 * be created during initialization but has to be added by the VariantManagement control via this method.
+	 * @param {string} sReference - Flex reference of the app
+	 * @param {string} sComponentId - ID of the component
+	 * @param {object} oFlexObject - Flex object to be added as runtime-steady
+	 */
+	FlexState.addRuntimeSteadyObject = function(sReference, sComponentId, oFlexObject) {
+		initializeEmptyStateIfNeeded(sReference, sComponentId);
+		// with setting the state to persisted it is made sure that they not show up as a dirty flex object
+		oFlexObject.setState(States.LifecycleState.PERSISTED);
+		_mExternalData.flexObjects[sReference] ||= {};
+		_mExternalData.flexObjects[sReference][sComponentId] ||= [];
+		_mExternalData.flexObjects[sReference][sComponentId].push(oFlexObject);
+		oFlexObjectsDataSelector.checkUpdate(
+			{ reference: sReference },
+			[{ type: "addFlexObject", updatedObject: oFlexObject }]
+		);
+	};
+
+	/**
+	 * Clears the runtime-steady objects of the given component.
 	 *
 	 * @param {string} sReference - Flex reference of the app
+	 * @param {string} sComponentId - ID of the component
 	 */
-	FlexState.clearFilteredResponse = function(sReference) {
-		if (_mInstances[sReference]) {
-			_clearPreparedMaps(sReference);
-			delete _mInstances[sReference].storageResponse;
+	FlexState.clearRuntimeSteadyObjects = function(sReference, sComponentId) {
+		// External data is currently only used to store the standard variant
+		if (_mExternalData.flexObjects[sReference]) {
+			delete _mExternalData.flexObjects[sReference][sComponentId];
+			// Only called during destruction, no need to recalculate new state immediately
+			oFlexObjectsDataSelector.clearCachedResult({ reference: sReference });
 		}
 	};
 
-	FlexState.getUIChanges = function(sReference) {
-		return getChangesMap(sReference).changes;
+	/**
+	 * Recreates the saved filtered storage response and runtime persistence
+	 * and removes the internal maps for the given reference.
+	 *
+	 * @param {string} sReference - Flex reference of the app
+	 * @param {object} oFlexData - Flex data to be used for rebuilding the response
+	 */
+	FlexState.rebuildFilteredResponse = function(sReference, oFlexData) {
+		if (_mInstances[sReference]) {
+			_mInstances[sReference].storageResponse = filterByMaxLayer(sReference, oFlexData);
+			// Storage response has changed, recreate the flex objects
+			_mInstances[sReference].runtimePersistence = buildRuntimePersistence(
+				_mInstances[sReference],
+				_mExternalData.flexObjects[sReference][_mInstances[sReference].componentId] || []
+			);
+			oFlexObjectsDataSelector.checkUpdate({ reference: sReference });
+		}
+	};
+
+	/**
+	 * Adds a list of dirty flex objects to the flex state.
+	 *
+	 * @param {string} sReference - Flexibility reference of the app
+	 * @param {Array<sap.ui.fl.apply._internal.flexObjects.FlexObject>} aFlexObjects - Flex objects
+	 * @param {string} [sComponentId] - ID of the component, required if an empty state needs to be initialized
+	 * @returns {sap.ui.fl.apply._internal.flexObjects.FlexObject[]} The flex objects that were added
+	 */
+	FlexState.addDirtyFlexObjects = function(sReference, aFlexObjects, sComponentId) {
+		// TODO: Check why sComponentId is optional here todos#13
+		if (sComponentId) {
+			initializeEmptyStateIfNeeded(sReference, sComponentId);
+		}
+		const sAdaptationLayer = FlexInfoSession.getByReference(sReference).adaptationLayer;
+		const aFilteredFlexObjects = aFlexObjects
+		.filter((oFlexObject) => !sAdaptationLayer || !LayerUtils.isOverLayer(oFlexObject.getLayer(), sAdaptationLayer))
+		.filter((oFlexObject) => (
+			!_mInstances[sReference].runtimePersistence.flexObjects
+			.some((oExistingFlexObject) => (oExistingFlexObject.getId() === oFlexObject.getId()))
+		));
+
+		if (aFilteredFlexObjects.length > 0) {
+			_mInstances[sReference].runtimePersistence.flexObjects =
+				_mInstances[sReference].runtimePersistence.flexObjects.concat(aFilteredFlexObjects);
+			oFlexObjectsDataSelector.checkUpdate(
+				{ reference: sReference },
+				aFilteredFlexObjects.map(function(oFlexObject) {
+					return { type: "addFlexObject", updatedObject: oFlexObject };
+				})
+			);
+		}
+
+		return aFilteredFlexObjects;
+	};
+
+	FlexState.removeDirtyFlexObjects = function(sReference, aFlexObjects) {
+		const aRemovedFlexObjects = [];
+		if (aFlexObjects.length > 0) {
+			const aCurrentFlexObjects = _mInstances[sReference].runtimePersistence.flexObjects;
+			aFlexObjects.forEach(function(oFlexObject) {
+				const iIndex = aCurrentFlexObjects.indexOf(oFlexObject);
+				if (iIndex >= 0) {
+					aRemovedFlexObjects.push(oFlexObject);
+					aCurrentFlexObjects.splice(iIndex, 1);
+				}
+			});
+			if (aRemovedFlexObjects.length > 0) {
+				oFlexObjectsDataSelector.checkUpdate(
+					{ reference: sReference },
+					aFlexObjects.map(function(oFlexObject) {
+						return { type: "removeFlexObject", updatedObject: oFlexObject };
+					})
+				);
+			}
+		}
+		return aRemovedFlexObjects;
+	};
+
+	FlexState.getComponentIdForReference = function(sReference) {
+		return _mInstances[sReference]?.componentId;
+	};
+
+	FlexState.getFlexObjectsDataSelector = function() {
+		return oFlexObjectsDataSelector;
 	};
 
 	FlexState.getAppDescriptorChanges = function(sReference) {
-		return getAppDescriptorMap(sReference).appDescriptorChanges;
+		return oAppDescriptorChangesDataSelector.get({ reference: sReference });
 	};
 
-	FlexState.getVariantsState = function(sReference) {
-		return getVariantsMap(sReference);
+	FlexState.getAnnotationChanges = function(sReference) {
+		return oAnnotationChangesDataSelector.get({ reference: sReference });
 	};
 
 	FlexState.getUI2Personalization = function(sReference) {
-		return _mInstances[sReference].unfilteredStorageResponse.changes.ui2personalization;
+		return merge({}, _mInstances[sReference].storageResponse.changes.ui2personalization);
 	};
 
-	FlexState._callPrepareFunction = function(sMapName, mPropertyBag) {
-		return _mPrepareFunctions[sMapName](mPropertyBag);
+	FlexState.callPrepareFunction = function(sMapName, mPropertyBag) {
+		return _mFlexObjectInfo[sMapName].prepareFunction(mPropertyBag);
 	};
 
-	// temporary function until ChangePersistence.getChangesForComponent is gone
-	FlexState.getStorageResponse = function(sReference) {
+	// TODO: used by the CompVariantState to mutate the storage response, this has to be changed
+	FlexState.getStorageResponse = async function(sReference) {
 		if (_mInitPromises[sReference]) {
-			return _mInitPromises[sReference].then(function() {
-				return _mInstances[sReference].unfilteredStorageResponse;
-			});
+			await _mInitPromises[sReference].promise;
+			return Loader.getCachedFlexData(sReference);
 		}
+		return undefined;
 	};
-	// temporary function until the maps are ready
-	FlexState.getFlexObjectsFromStorageResponse = function(sReference) {
-		return _mInstances[sReference] && _mInstances[sReference].unfilteredStorageResponse.changes;
+
+	FlexState.getComponentData = function(sReference) {
+		return _mInstances[sReference] && _mInstances[sReference].componentData;
+	};
+
+	FlexState.addSVMControl = function(sReference, oControl) {
+		_mExternalData.smartVariantManagementControls[sReference] ||= [];
+		_mExternalData.smartVariantManagementControls[sReference].push(oControl);
+	};
+
+	FlexState.getSVMControls = function(sReference) {
+		return _mExternalData.smartVariantManagementControls[sReference] || [];
 	};
 
 	return FlexState;
-}, true);
+});

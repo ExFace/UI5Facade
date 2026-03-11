@@ -1,18 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'sap/ui/base/EventProvider',
-	'./Target',
-	'./async/Targets',
-	'./sync/Targets',
-	"sap/base/util/UriParameters",
 	"sap/base/Log",
-	"sap/base/util/deepExtend"
+	"sap/base/future",
+	"sap/base/util/deepExtend",
+	"sap/ui/base/EventProvider",
+	"sap/ui/core/routing/Target",
+	"sap/ui/core/routing/sync/Targets"
 ],
-	function(EventProvider, Target, asyncTargets, syncTargets, UriParameters, Log, deepExtend) {
+	function(
+		Log,
+		future,
+		deepExtend,
+		EventProvider,
+		Target,
+		SyncTargets
+	) {
 		"use strict";
 
 		/**
@@ -25,7 +31,8 @@ sap.ui.define([
 		 * If you are using the mobile library, please use {@link sap.m.routing.Targets} instead of this class.
 		 * @extends sap.ui.base.EventProvider
 		 * @param {object} oOptions
-		 * @param {sap.ui.core.routing.Views} oOptions.views the views instance will create the views of all the targets defined, so if 2 targets have the same viewName, the same instance of the view will be displayed.
+		 * @param {sap.ui.core.routing.Views} oOptions.views the views instance will create the instances of all the targets defined, so if 2 targets have the same
+		 *  <code>type</code> and <code>name</code> set, the same instance of the target will be displayed.
 		 * @param {object} [oOptions.config] this config allows all the values oOptions.targets.anyName allows, these will be the default values for properties used in the target.<br/>
 		 * For example if you are only using xmlViews in your app you can specify viewType="XML" so you don't have to repeat this in every target.<br/>
 		 * If a target specifies viewType="JS", the JS will be stronger than the XML here is an example.
@@ -72,244 +79,35 @@ sap.ui.define([
 		 * If you are using a component and add the routing.targets <b>do not set this parameter</b>,
 		 * since the component will set the rootView to the view created by the {@link sap.ui.core.UIComponent#createContent} function.
 		 * If you specify the "parent" property of a target, the control will not be searched in the root view but in the view Created by the parent (see parent documentation).
-		 * @param {boolean} [oOptions.config.async=false] @since 1.34 Whether the views which are created through this Targets are loaded asyncly. This option can be set only when the Targets
+		 * @param {boolean} [oOptions.config.async=false] @since 1.34 Whether the views which are created through this Targets are loaded asynchronously. This option can be set only when the Targets
 		 * is used standalone without the involvement of a Router. Otherwise the async option is inherited from the Router.
 
-		 * @param {object} oOptions.targets One or multiple targets in a map.
-		 * @param {object} oOptions.targets.anyName a new target, the key severs as a name. An example:
-		 * <pre>
-		 * <code>
-		 * {
-		 *     targets: {
-		 *         welcome: {
-		 *             type: "View",
-		 *             name: "Welcome",
-		 *             viewType: "XML",
-		 *             ....
-		 *             // Other target parameters
-		 *         },
-		 *         goodbye: {
-		 *             type: "Component",
-		 *             usage: "myreuse",
-		 *             containerSettings: {
-		 *                 // settings for the component container
-		 *             }
-		 *             ....
-		 *             // Other target parameters
-		 *         }
-		 *     }
-		 * }
-		 * </code>
-		 * </pre>
-		 *
-		 * This will create two targets named 'welcome' and 'goodbye' you can display both of them or one of them using the {@link #display} function.
-		 *
-		 * The 'welcome' target creates a View instance when it's displayed. The 'goodbye' target creates a Component instance.<br/>
-		 *
-		 * The settings for the Component are defined in the manifest of the owner component of the router under path '/sap.ui5/componentUsages' and it can be used in the target by setting the 'usage' option with the name in the 'componentUsages'.<br/>
-		 * See the following manifest.json example of the owner component. There's a component settings object defined with name "myreuse" which can be used to set the "usage" option in a target's configuration.
-		 * <pre>
-		 * <code>
-		 * {
-		 *     "sap.ui5": {
-		 *         "componentUsages": {
-		 *             "myreuse": {
-		 *                 "name": "reuse.component",
-		 *                 "settings": {},
-		 *                 "componentData": {},
-		 *                 "lazy": false,
-		 *             }
-		 *         }
-		 *     }
-		 * }
-		 * </code>
-		 * </pre>
-		 *
-		 * @param {string} oOptions.targets.anyName.type Defines whether the target creates an instance of 'View' or 'Component'.
-		 * @param {string} [oOptions.targets.anyName.name] Defines the name of the View or Component that will be created. For type 'Component', use option 'usage' instead if an owner component exists.
-		 * To place the view or component into a Control, use the options 'controlAggregation' and 'controlId'. Instance of View or Component will only be created once per 'name' or 'usage' combined
-		 * with 'id'.
-		 * <pre>
-		 * <code>
-		 * {
-		 *     targets: {
-		 *         // If display("masterWelcome") is called, the master view will be placed in the 'MasterPages' of a control with the id splitContainter
-		 *         masterWelcome: {
-		 *             type: "View",
-		 *             name: "Welcome",
-		 *             controlId: "splitContainer",
-		 *             controlAggregation: "masterPages"
-		 *         },
-		 *         // If display("detailWelcome") is called after the masterWelcome, the view will be removed from the master pages and added to the detail pages, since the same instance is used. Also the controls inside of the view will have the same state.
-		 *         detailWelcome: {
-		 *             // same view here, that's why the same instance is used
-		 *             type: "View",
-		 *             name: "Welcome",
-		 *             controlId: "splitContainer",
-		 *             controlAggregation: "detailPages"
-		 *         }
-		 *     }
-		 * }
-		 * </code>
-		 * </pre>
-		 *
-		 *
-		 * If you want to have a second instance of the 'welcome' view you can set different 'id' to the targets:
-		 *
-		 * <pre>
-		 * <code>
-		 * {
-		 *     targets: {
-		 *         // If display("masterWelcome") is called, the master viewName will be placed in the 'MasterPages' of a control with the id splitContainter
-		 *         masterWelcome: {
-		 *             type: "View",
-		 *             name: "Welcome",
-		 *             controlId: "splitContainer",
-		 *             controlAggregation: "masterPages",
-		 *             id: "masterWelcome",
-		 *         },
-		 *         // If display("detailWelcome") is called after the masterWelcome, a second instance with an own controller instance will be added in the detail pages.
-		 *         detailWelcome: {
-		 *             type: "View",
-		 *             name: "WelcomeWithAlias",
-		 *             controlId: "splitContainer",
-		 *             controlAggregation: "detailPages",
-		 *             id: "detailWelcome"
-		 *         }
-		 *     }
-		 * }
-		 * </code>
-		 * </pre>
-		 *
-		 *
-		 * @param {string} [oOptions.targets.anyName.usage] Defines the 'usage' name for 'Component' target which refers to the '/sap.ui5/componentUsages' entry in the owner component's manifest.
-		 * @param {string} [oOptions.targets.anyName.viewType=oOptions.config.viewType] The type of the view that is going to be created. These are the supported types: {@link sap.ui.core.mvc.ViewType}.
-		 * You always have to provide a viewType except if <code>oOptions.config.viewType</code> is set or when using {@link sap.ui.core.routing.Views#setView}.
-		 * @param {string} [oOptions.targets.anyName.path]
-		 * A prefix that will be prepended in front of the name.<br/>
-		 * <b>Example:</b> name is set to "myView" and path is set to "myApp" - the created view name will be "myApp.myView".
-		 * @param {string} [oOptions.targets.anyName.id] The ID of the created instance.
-		 * This is will be prefixed with the id of the component set to the views instance provided in oOptions.views. For details see {@link sap.ui.core.routing.Views#getView}.
-		 * @param {string} [oOptions.targets.anyName.targetParent]
-		 * The id of the parent of the controlId - This should be the id of the view that contains your controlId,
-		 * since the target control will be retrieved by calling the {@link sap.ui.core.mvc.View#byId} function of the targetParent. By default,
-		 * this will be the view created by a component, so you do not have to provide this parameter.
-		 * If you are using children, the view created by the parent of the child is taken.
-		 * You only need to specify this, if you are not using a Targets instance created by a component
-		 * and you should give the id of root view of your application to this property.
-		 * @param {string} [oOptions.targets.anyName.controlId] The ID of the control where you want to place the instance created by this target. You also need to set "controlAggregation" property to specify to which aggregation of the control should the created instance be added.
-		 * An example for containers are {@link sap.ui.ux3.Shell} with the aggregation 'content' or a {@link sap.m.NavContainer} with the aggregation 'pages'.
-		 *
-		 * @param {string} [oOptions.targets.anyName.controlAggregation] The name of an aggregation of the controlId, where the created instance from the target will be added.
-		 * Eg: a {@link sap.m.NavContainer} has an aggregation 'pages', another Example is the {@link sap.ui.ux3.Shell} it has 'content'.
-		 * @param {boolean} [oOptions.targets.anyName.clearControlAggregation] Defines a boolean that can be passed to specify if the aggregation should be cleared
-		 * - all items will be removed - before adding the View to it.
-		 * When using a {@link sap.ui.ux3.Shell} this should be true. For a {@link sap.m.NavContainer} it should be false. When you use the {@link sap.m.routing.Router} the default will be false.
-		 * @param {string} [oOptions.targets.anyName.parent] A reference to another target, using the name of the target.
-		 * If you display a target that has a parent, the parent will also be displayed.
-		 * Also the control you specify with the controlId parameter, will be searched inside of the created instance of the parent not in the rootView, provided in the config.
-		 * The control will be searched using the byId function of a view. When it is not found, the global id is checked.
-		 * <br/>
-		 * The main usecase for the parent property is placing a view or component inside a smaller container of an instance, which is also created by targets.
-		 * This is useful for lazy loading views or components, only if the user really navigates to this part of your application.
-		 * <br/>
-		 * <b>Example:</b>
-		 * Our aim is to lazy load a tab of an IconTabBar (a control that displays a view initially and when a user clicks on it the view changes).
-		 * It's a perfect candidate to lazy load something inside of it.
-		 * <br/>
-		 * <b>Example app structure:</b><br/>
-		 * We have a rootView that is returned by the createContent function of our UIComponent. This view contains an sap.m.App control with the id 'myApp'
-		 * <pre>
-		 * <code>
-		 * &lt;View xmlns="sap.m"&gt;
-		 *     &lt;App id="myApp"/&gt;
-		 * &lt;/View&gt;
-		 * </code>
-		 * </pre>
-		 * an xml view called 'Detail'
-		 * <pre>
-		 * <code>
-		 * &lt;View xmlns="sap.m"&gt;
-		 *     &lt;IconTabBar&gt;
-		 *         &lt;items&gt;
-		 *             &lt;IconTabFilter&gt;
-		 *                 &lt;!-- content of our first tab --&gt;
-		 *             &lt;IconTabFilter&gt;
-		 *             &lt;IconTabFilter id="mySecondTab"&gt;
-		 *                 &lt;!-- nothing here, since we will lazy load this one with a target --&gt;
-		 *             &lt;IconTabFilter&gt;
-		 *         &lt;/items&gt;
-		 *     &lt;/IconTabBar&gt;
-		 * &lt;/View&gt;
-		 * </code>
-		 * </pre>
-		 * and a view called 'SecondTabContent', this one contains our content we want to have lazy loaded.
-		 * Now we need to create our Targets instance with a config matching our app:
-		 * <pre>
-		 * <code>
-		 *     new Targets({
-		 *         //Creates our views except for root, we created this one before - when using a component you
-		 *         views: new Views(),
-		 *         config: {
-		 *             // all of our views have that type
-		 *             viewType: 'XML',
-		 *             // a reference to the app control in the rootView created by our UIComponent
-		 *             controlId: 'myApp',
-		 *             // An app has a pages aggregation where the views need to be put into
-		 *             controlAggregation: 'pages'
-		 *         },
-		 *         targets: {
-		 *             detail: {
-		 *                 type: "View",
-		 *                 name: 'Detail'
-		 *             },
-		 *             secondTabContent: {
-		 *                 // A reference to the detail target defined above
-		 *                 parent: 'detail',
-		 *                 // A reference to the second Tab container in the Detail view. Here the target does not look in the rootView, it looks in the Parent view (Detail).
-		 *                 controlId: 'mySecondTab',
-		 *                 // An IconTabFilter has an aggregation called content so we need to overwrite the pages set in the config as default.
-		 *                 controlAggregation: 'content',
-		 *                 // A view containing the content
-		 *                 type: "View",
-		 *                 name: 'SecondTabContent'
-		 *             }
-		 *         }
-		 *     });
-		 * </code>
-		 * </pre>
-		 *
-		 * Now if we call <code> oTargets.display("secondTabContent") </code>, 2 views will be created: Detail and SecondTabContent.
-		 * The 'Detail' view will be put into the pages aggregation of the App. And afterwards the 'SecondTabContent' view will be put into the content Aggregation of the second IconTabFilter.
-		 * So a parent will always be created before the target referencing it.
+		 * @param {Object<string,sap.ui.core.routing.$TargetSettings>} oOptions.targets One or multiple targets in a map.
 		 *
 		 * @since 1.28.1
 		 * @public
 		 * @alias sap.ui.core.routing.Targets
+		 * @ui5-transform-hint replace-param oOptions.config._async true
 		 */
 		var Targets = EventProvider.extend("sap.ui.core.routing.Targets", /** @lends sap.ui.core.routing.Targets.prototype */ {
 
 			constructor : function(oOptions) {
-				var sTargetOptions,
-					sTargetName;
-
 				EventProvider.apply(this);
 
 				this._mTargets = {};
 				this._oLastTitleTarget = {};
-				this._oConfig = oOptions.config;
 				this._oCache = oOptions.cache || oOptions.views;
 
-				// If no config is given, set the default value to sync
-				if (!this._oConfig) {
-					this._oConfig = {
-						_async: false
-					};
+				if (!oOptions.config) {
+					oOptions.config = {};
+
+					/** @deprecated */
+					oOptions.config._async = false;
 				}
 
 				// temporarily: for checking the url param
 				function checkUrl() {
-					if (UriParameters.fromQuery(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
+					if (new URLSearchParams(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
 						Log.warning("Activation of async view loading in routing via url parameter is only temporarily supported and may be removed soon", "Targets");
 						return true;
 					}
@@ -318,35 +116,49 @@ sap.ui.define([
 
 				// Config object doesn't have _async set which means the Targets is instantiated standalone by given a non-empty config object
 				// Assign the oConfig.async to oConfig._async and set the default value to sync
-				if (this._oConfig._async === undefined) {
+				if (oOptions.config._async === undefined) {
 					// temporarily: set the default value depending on the url parameter "sap-ui-xx-asyncRouting"
-					this._oConfig._async = (this._oConfig.async === undefined) ? checkUrl() : this._oConfig.async;
+					oOptions.config._async = (oOptions.config.async === undefined) ? checkUrl() : oOptions.config.async;
 				}
 
-				// branch by abstraction
-				var TargetsStub = this._oConfig._async ?  asyncTargets : syncTargets;
-				for (var fn in TargetsStub) {
-					this[fn] = TargetsStub[fn];
-				}
-
-				for (sTargetOptions in oOptions.targets) {
-					if (oOptions.targets.hasOwnProperty(sTargetOptions)) {
-						this._createTarget(sTargetOptions, oOptions.targets[sTargetOptions]);
+				if (!oOptions.config._async) {
+					for (const fn in SyncTargets) {
+						this[fn] = SyncTargets[fn];
 					}
 				}
 
-				for (sTargetName in this._mTargets) {
-					if (this._mTargets.hasOwnProperty(sTargetName)) {
-						this._addParentTo(this._mTargets[sTargetName]);
-					}
-				}
+				this._oConfig = oOptions.config;
 
+				Object.keys(oOptions.targets).forEach(function(sTargetName) {
+					this._createTarget(sTargetName, oOptions.targets[sTargetName]);
+				}.bind(this));
+
+				Object.keys(this._mTargets).forEach(function(sTargetName) {
+					this._addParentTo(this._mTargets[sTargetName]);
+				}.bind(this));
+			},
+
+			/**
+			 * Associate the Targets with a router. Once the Targets is already connected with a router, futher calls of
+			 * this function is ignored
+			 *
+			 * @param {sap.ui.core.routing.Router} oRouter The router instance
+			 * @returns {this} The Targets itself
+			 * @private
+			 */
+			_setRouter: function(oRouter) {
+				if (!this._oRouter) {
+					this._oRouter = oRouter;
+				} else {
+					Log.warning("The Targets is already connected with a router and this call of _setRouter is ignored");
+				}
+				return this;
 			},
 
 			/**
 			 * Destroys the targets instance and all created targets. Does not destroy the views instance passed to the constructor. It has to be destroyed separately.
 			 * @public
-			 * @returns { sap.ui.core.routing.Targets } this for chaining.
+			 * @returns {this} this for method chaining.
 			 */
 			destroy : function () {
 				var sTargetName;
@@ -367,15 +179,19 @@ sap.ui.define([
 			},
 
 			/**
-			 * Creates a view and puts it in an aggregation of the specified control.
-			 *
-			 * @param {string|string[]} vTargets Key of the target as specified in the {@link #constructor}. To display multiple targets you may also pass an array of keys.
-			 * @param {object} [oData] an object that will be passed to the display event in the data property. If the target has parents, the data will also be passed to them.
-			 * @param {string} [sTitleTarget] the name of the target from which the title option is taken for firing the {@link sap.ui.core.routing.Targets#event:titleChanged titleChanged} event
-			 * @public
-			 * @returns {sap.ui.core.routing.Targets|Promise} this pointer for chaining or a Promise
-			 * @name sap.ui.core.routing.Targets#display
-			 * @function
+			 * @typedef {object} sap.ui.core.routing.TargetInfo
+			 * @description Object containing the target info for displaying targets
+			 * @property {string} name Defines the name of the target that is going to be displayed
+			 * @property {string} [prefix] A prefix that is used for reserving a dedicated section in the browser hash
+			 *  for the router of this target. This needs to be set only for target that has type "Component"
+			 * @property {boolean} [propagateTitle=false] Whether the titleChanged event from this target should be propagated to the parent or not
+			 * @property {boolean} [routeRelevant=false] Whether the target is relevant to the current matched route or not. If 'true', then the dynamic target is linked to the route's life cycle.
+			 *     When switching to a different route, then the dynamic target will be suspended.
+			 * @property {boolean} [ignoreInitialHash=false] Since 1.90. Whether the router of the "Component" target ignores the browser hash when it's re-initialized.
+			 *     This parameter only has effect when the target is of type "Component" and its router is currently stopped. It has no effect on the first call of
+			 *     {@link sap.ui.core.routing.Router#initialize}, because this is done by the application and not by the UI5 routing.
+			 * @protected
+			 * @since 1.84.0
 			 */
 
 			/**
@@ -398,8 +214,8 @@ sap.ui.define([
 			 * @param {string|string[]} vName the name of a single target or the name of multiple targets
 			 * @param {boolean} [bSuppressNotFoundError=false] In case no target is found for the given name, the not found
 			 *  error is supressed when this is set with true
-			 * @return {sap.ui.core.routing.Target|undefined|sap.ui.core.routing.Target[]} The target with the
-			 * coresponding name or undefined. If an array way passed as name this will return an array with all found
+			 * @returns {sap.ui.core.routing.Target|undefined|sap.ui.core.routing.Target[]} The target with the
+			 * coresponding name or undefined. If an array was passed as name, this will return an array with all found
 			 * targets. Non existing targets will not be returned and an error is logged when
 			 * <code>bSuppressNotFoundError</code> param isn't set to <code>true</code>.
 			 * @public
@@ -433,8 +249,8 @@ sap.ui.define([
 			 * an error log will be written to the console.
 			 *
 			 * @param {string} sName Name of a target
-			 * @param {object} oTargetOptions Options of a target. The option names are the same as the ones in "oOptions.targets.anyName" of {@link #constructor}.
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @param {sap.ui.core.routing.$TargetSettings} oTargetOptions Options of a target. The option names are the same as the ones in "oOptions.targets.anyName" of {@link #constructor}.
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 *
 			 */
@@ -443,7 +259,7 @@ sap.ui.define([
 					oTarget;
 
 				if (oOldTarget) {
-					Log.error("Target with name " + sName + " already exists", this);
+					future.errorThrows(`${this}: Target with name "${sName}" already exists`);
 				} else {
 					oTarget = this._createTarget(sName, oTargetOptions);
 					this._addParentTo(oTarget);
@@ -467,12 +283,38 @@ sap.ui.define([
 				var aTargetsInfo = this._alignTargetsInfo(vTargets);
 
 				aTargetsInfo.forEach(function(oTargetInfo) {
-					var oTarget = this.getTarget(oTargetInfo.name);
+					var sTargetName = oTargetInfo.name;
+					var oTarget = this.getTarget(sTargetName);
 
 					if (oTarget) {
 						oTarget.suspend();
 					}
+				}.bind(this));
 
+				return this;
+			},
+
+			/**
+			 * Resumes the targets which are specified by the parameter
+			 *
+			 * @param {string|string[]|object|object[]} vTargets The key of the target
+			 *  or an object which has the key of the target under property 'name' as
+			 *  specified in the {@link #constructor}. To suspend multiple targets you
+			 *  may also pass an array of keys or objects which have the key saved
+			 *  under the 'name' property
+			 * @return {sap.ui.core.routing.Targets} The 'this' for call chaining
+			 * @private
+			 */
+			resume : function (vTargets) {
+				var aTargetsInfo = this._alignTargetsInfo(vTargets);
+
+				aTargetsInfo.forEach(function(oTargetInfo) {
+					var sTargetName = oTargetInfo.name;
+					var oTarget = this.getTarget(sTargetName);
+
+					if (oTarget) {
+						oTarget.resume();
+					}
 				}.bind(this));
 
 				return this;
@@ -493,6 +335,7 @@ sap.ui.define([
 			 * @param {object} oEvent.getParameters.config The options object passed to the constructor {@link sap.ui.core.routing.Targets#constructor}
 			 * @param {object} oEvent.getParameters.name The name of the target firing the event
 			 * @param {object} oEvent.getParameters.data The data passed into the {@link sap.ui.core.routing.Targets#display} function
+			 * @param {object} oEvent.getParameters.routeRelevant=false Whether the target is relevant to the matched route or not
 			 * @public
 			 */
 
@@ -512,7 +355,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>sap.ui.core.routing.Targets</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachDisplay : function(oData, fnFunction, oListener) {
@@ -527,7 +370,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachDisplay : function(fnFunction, oListener) {
@@ -538,7 +381,7 @@ sap.ui.define([
 			 * Fires event {@link #event:created created} to attached listeners.
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			fireDisplay : function(oParameters) {
@@ -571,24 +414,24 @@ sap.ui.define([
 			 */
 
 			/**
- 			 * Attaches event handler <code>fnFunction</code> to the {@link #event:titleChanged titleChanged} event of
- 			 * this <code>sap.ui.core.routing.Targets</code>.
- 			 *
- 			 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
- 			 * if specified, otherwise it will be bound to this <code>sap.ui.core.routing.Targets</code> itself.
- 			 *
- 			 * @param {object}
- 			 *            [oData] An application-specific payload object that will be passed to the event handler
- 			 *            along with the event object when firing the event
- 			 * @param {function}
- 			 *            fnFunction The function to be called, when the event occurs
- 			 * @param {object}
- 			 *            [oListener] Context object to call the event handler with. Defaults to this
- 			 *            <code>sap.ui.core.routing.Targets</code> itself
- 			 *
- 			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
- 			 * @public
- 			 */
+			 * Attaches event handler <code>fnFunction</code> to the {@link #event:titleChanged titleChanged} event of
+			 * this <code>sap.ui.core.routing.Targets</code>.
+			 *
+			 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
+			 * if specified, otherwise it will be bound to this <code>sap.ui.core.routing.Targets</code> itself.
+			 *
+			 * @param {object}
+			 *            [oData] An application-specific payload object that will be passed to the event handler
+			 *            along with the event object when firing the event
+			 * @param {function}
+			 *            fnFunction The function to be called, when the event occurs
+			 * @param {object}
+			 *            [oListener] Context object to call the event handler with. Defaults to this
+			 *            <code>sap.ui.core.routing.Targets</code> itself
+			 *
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+			 * @public
+			 */
 			attachTitleChanged : function(oData, fnFunction, oListener) {
 				this.attachEvent(this.M_EVENTS.TITLE_CHANGED, oData, fnFunction, oListener);
 				return this;
@@ -602,7 +445,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachTitleChanged : function(fnFunction, oListener) {
@@ -667,9 +510,19 @@ sap.ui.define([
 			 */
 			_createTarget : function (sName, oTargetOptions) {
 				var oTarget,
-					oOptions;
+					oOptions,
+					oDefaults = {
+						_name: sName
+					};
 
-				oOptions = deepExtend({ _name: sName }, this._oConfig, oTargetOptions);
+				if (this._vRootViewId) {
+					oDefaults.rootView = this._vRootViewId;
+				}
+
+				oOptions = deepExtend(oDefaults, this._oConfig, oTargetOptions);
+
+				this._validateOptions(oOptions);
+
 				oTarget = this._constructTarget(oOptions);
 				oTarget.attachDisplay(function (oEvent) {
 					var oParameters = oEvent.getParameters();
@@ -677,13 +530,38 @@ sap.ui.define([
 					this.fireDisplay({
 						name : sName,
 						view : oParameters.view,
+						object: oParameters.object,
 						control : oParameters.control,
 						config : oParameters.config,
-						data: oParameters.data
+						data: oParameters.data,
+						routeRelevant: oParameters.routeRelevant
 					});
 				}, this);
 				this._mTargets[sName] = oTarget;
+
 				return oTarget;
+			},
+
+			_getDeprecatedOptions : function() {
+				return {
+					viewPath: "path",
+					viewName: "name",
+					viewId: "id"
+				};
+			},
+
+			_validateOptions : function(oOptions) {
+				const oManifest = this._oConfig?.router?._oOwner?.getManifestObject();
+
+				if (oManifest?._getSchemaVersion() === 2) {
+					const mValidateProperties = this._getDeprecatedOptions();
+					const sComponentName = oManifest.getComponentName();
+					Object.keys(mValidateProperties).forEach((sProperty) => {
+						if (Object.hasOwn(oOptions, sProperty)) {
+							throw new Error(`sap.ui5/routing/targets/${sProperty} is deprecated and not supported with manifest version 2. Use the option '${mValidateProperties[sProperty]}' instead (component '${sComponentName}').`);
+						}
+					});
+				}
 			},
 
 			/**
@@ -702,7 +580,7 @@ sap.ui.define([
 				oParentTarget = this._mTargets[sParent];
 
 				if (!oParentTarget) {
-					Log.error("The target '" + oTarget._oOptions._name + " has a parent '" + sParent + "' defined, but it was not found in the other targets", this);
+					future.errorThrows(`${this}: The target "${oTarget._oOptions._name}" has a parent "${sParent}" defined, but it was not found in the other targets`);
 					return;
 				}
 
@@ -715,34 +593,18 @@ sap.ui.define([
 			 * @param {sap.ui.core.routing.Target} oParent The parent of this target
 			 * @returns {sap.ui.core.routing.Target} the new target
 			 * @private
- 			 */
+			 */
 			_constructTarget : function (oOptions, oParent) {
 				return new Target(oOptions, this._oCache, oParent);
 			},
 
 			/**
-			 * Hook to distinguish between the router and an application calling this.
-			 *
-			 * @private
-			 * @param {any} [vData] an object that will be passed to the display event in the data property.
-			 * @name sap.ui.core.routing.Targets#_display
-			 */
-
-			/**
-			 *
-			 * @param {string} sName name of the single target
-			 * @param {any} [vData] an object that will be passed to the display event in the data property.
-			 * @private
-			 * @name sap.ui.core.routing.Targets.#_displaySingleTarget
-			 */
-
-			/**
 			 * Called by the UIComponent since the rootView id is not known in the constructor
 			 *
-			 * @param {string} sId The id of the root view
+			 * @param {string|Promise} vId The id of the root view or a promise which resolves with the id of the root view
 			 * @private
 			 */
-			_setRootViewId: function (sId) {
+			_setRootViewId: function (vId) {
 				var sTargetName,
 					oTargetOptions;
 
@@ -750,10 +612,13 @@ sap.ui.define([
 					if (this._mTargets.hasOwnProperty(sTargetName)) {
 						oTargetOptions = this._mTargets[sTargetName]._oOptions;
 						if (oTargetOptions.rootView === undefined) {
-							oTargetOptions.rootView = sId;
+							oTargetOptions.rootView = vId;
 						}
 					}
 				}
+
+				// save the root view id for later added target
+				this._vRootViewId = vId;
 			},
 
 			/*
@@ -821,12 +686,127 @@ sap.ui.define([
 					oTitleTarget.attachTitleChanged({name:oTitleTarget._oOptions._name}, this._forwardTitleChanged, this);
 					this._oLastDisplayedTitleTarget = oTitleTarget;
 				} else if (sTitleTarget) {
-					Log.error("The target with the name \"" + sTitleTarget + "\" where the titleChanged event should be fired does not exist!", this);
+					future.errorThrows(`${this}: The target with the name "${sTitleTarget}" where the titleChanged event should be fired does not exist!`);
+				}
+			},
+
+
+			/**
+			 * Creates a view and puts it in an aggregation of the specified control.
+			 *
+			 * @param {string|string[]|object|object[]} vTargets the key of the target as specified in the {@link #constructor}. To display multiple targets you may also pass an array of keys. If the target(s) represents a sap.ui.core.UIComponent, a prefix for its Router is needed. You can set this parameter with an object which has the 'name' property set with the key of the target and the 'prefix' property set with the prefix for the UIComponent's router. To display multiple component targets, you man also pass an array of objects.
+			 * @param {object} [vData] an object that will be passed to the display event in the data property. If the target has parents, the data will also be passed to them.
+			 * @param {string} [sTitleTarget] the name of the target from which the title option is taken for firing the {@link sap.ui.core.routing.Targets#event:titleChanged titleChanged} event
+			 * @public
+			 * @returns {Promise} resolving with {{name: *, view: *, control: *}|undefined} for every vTargets, object for single, array for multiple
+			 */
+			display : function (vTargets, vData, sTitleTarget) {
+				var oSequencePromise = Promise.resolve();
+				return this._display(vTargets, vData, sTitleTarget, oSequencePromise);
+			},
+
+			/**
+			 * Hook to distinguish between the router and an application calling this
+			 *
+			 * @param {string|string[]|object|object[]} vTargets targets or single target to be displayed
+			 * @param {object} vData  an object that will be passed to the display event in the data property. If the
+					target has parents, the data will also be passed to them.
+			 * @param {string} sTitleTarget the name of the target from which the title option is taken for firing the {@link sap.ui.core.routing.Targets#event:titleChanged titleChanged} event
+			 * @param {Promise} oSequencePromise the promise for chaining
+			 * @return {Promise} resolving with {{name: *, view: *, control: *}|undefined} for every vTargets, object for single, array for multiple
+			 *
+			 * @private
+			 */
+			_display : function (vTargets, vData, sTitleTarget, oSequencePromise) {
+				var that = this,
+					aViewInfos = [];
+
+				if (!Array.isArray(vTargets)) {
+					vTargets = [vTargets];
+				}
+
+				this._attachTitleChanged(vTargets, sTitleTarget);
+
+				return this._alignTargetsInfo(vTargets).reduce(function(oPromise, oTargetInfo) {
+					var oTargetCreateInfo = {
+						prefix: oTargetInfo.prefix,
+						propagateTitle: oTargetInfo.propagateTitle || false,
+						ignoreInitialHash: oTargetInfo.ignoreInitialHash,
+						placeholder: oTargetInfo.placeholder,
+						repeatedRoute: oTargetInfo.repeatedRoute,
+						routeRelevant: oTargetInfo.routeRelevant || false
+					};
+
+					// gather view infos while processing Promise chain
+					return that._displaySingleTarget(oTargetInfo, vData, oPromise, oTargetCreateInfo).then(function(oViewInfo) {
+						oViewInfo = oViewInfo || {};
+						oViewInfo.targetInfo = oTargetInfo;
+						aViewInfos.push(oViewInfo);
+					});
+				}, oSequencePromise).then(function() {
+					return aViewInfos;
+				});
+			},
+
+			/**
+			 * Adds a target to the route's config
+			 * @param {object} oTargetInfo the object containing information about the single target
+			 * @private
+			 */
+			_addDynamicTargetToRoute : function(oTargetInfo) {
+				if (this._oRouter) {
+					var sRouteToConnect = this._oRouter._getLastMatchedRouteName();
+					var oRoute, bSameTargetFound;
+
+					if (sRouteToConnect) {
+						oRoute = this._oRouter.getRoute(sRouteToConnect);
+
+						if (oRoute && oRoute._oConfig && oRoute._oConfig.target) {
+							bSameTargetFound = this._alignTargetsInfo(oRoute._oConfig.target).some(function(oCompareTargetInfo) {
+								return oCompareTargetInfo.name === oTargetInfo.name;
+							});
+
+							if (!bSameTargetFound) {
+								oRoute._oConfig.dynamicTarget = oRoute._oConfig.dynamicTarget || [];
+								oRoute._oConfig.dynamicTarget.push(oTargetInfo);
+							}
+						}
+					}
+				}
+			},
+
+			/**
+			 * Displays a single target
+			 *
+			 * @param {object} oTargetInfo the object containing information (e.g. name) about the single target
+			 * @param {any} vData an object that will be passed to the display event in the data property.
+			 * @param {Promise} oSequencePromise the promise which for chaining
+			 * @param {object} [oTargetCreateInfo] the object which contains extra information for the creation of the target
+			 * @param {function} [oTargetCreateInfo.afterCreate] the function which is called after a target View/Component is instantiated
+			 * @param {string} [oTargetCreateInfo.prefix] the prefix which will be used by the RouterHashChanger of the target
+			 * @returns {Promise} Resolves with {name: *, view: *, control: *} if the target can be successfully displayed otherwise it rejects with error information
+			 * @private
+			 */
+			_displaySingleTarget : function (oTargetInfo, vData, oSequencePromise, oTargetCreateInfo) {
+				var sName = oTargetInfo.name,
+					oTarget = this.getTarget(sName);
+
+				if (oTarget !== undefined) {
+					if (oTargetInfo.routeRelevant) {
+						this._addDynamicTargetToRoute(oTargetInfo);
+					}
+					return oTarget._display(vData, oSequencePromise, oTargetCreateInfo);
+				} else {
+					var sErrorMessage = `${this}: The target with the name "${sName}" does not exist!`;
+					future.errorThrows(sErrorMessage);
+					return Promise.resolve({
+						name: sName,
+						error: sErrorMessage
+					});
 				}
 			}
 
 		});
 
 		return Targets;
-
 	});

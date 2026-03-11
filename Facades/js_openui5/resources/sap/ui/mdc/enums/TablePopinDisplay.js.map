@@ -1,0 +1,1 @@
+{"version":3,"file":"TablePopinDisplay.js","names":["sap","ui","define","DataType","TablePopinDisplay","Block","Inline","registerEnum"],"sources":["TablePopinDisplay-dbg.js"],"mappings":";;;;;AAMAA,IAAIC,GAAGC,OAAO,CAAC,wBAA0BC,IACxC,aAUA,MAAMC,EAAoB,CAKzBC,MAAO,QAMPC,OAAQ,UAGTH,EAASI,aAAa,qCAAsCH,GAE5D,OAAOA,GAEU","ignoreList":[]}

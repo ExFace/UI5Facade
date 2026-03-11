@@ -49,6 +49,7 @@ class UI5Html extends UI5Value
             $styles .= str_replace("\n", "\\n", $style);
             $html = str_replace($tag, '', $html);
         }
+        $styles .= $this->buildCssInlineStyles() ?? '';
         
         if ($this->isValueBoundToModel()) {
             $content = '{' . $this->getValueBindingPath() . '}';
@@ -76,7 +77,11 @@ JS;
      */
     protected function buildHtmlContent(string $innerHtml = '') : string
     {
-        return '<div class="exf-html">' . $innerHtml . '</div>';
+        $props = '';
+        if (null !== $style = $this->getWidget()->getCssInlineStyle()) {
+            $props .= ' style="' . $style . '"';
+        }
+        return '<div class="exf-html" ' . $props . '>' . $innerHtml . '</div>';
     }
         
     /**
@@ -112,7 +117,7 @@ JS;
         return array_combine($tags[0], $tags[1]);
     }
     
-    public function buildCssInlineStyles() : string
+    public function buildCssInlineStyles() : ?string
     {
         return $this->getWidget()->getCss();
     }
@@ -134,6 +139,9 @@ JS;
      */
     public function buildJsValueSetterMethod($valueJs)
     {
+        if (null !== $tpl = $this->getWidget()->getHtmlTemplate()) {
+            $valueJs = "({$this->escapeString($tpl)}).replace('[#~value#]', {$valueJs})";
+        }
         return "setContent({$valueJs} || '')";
     }
     

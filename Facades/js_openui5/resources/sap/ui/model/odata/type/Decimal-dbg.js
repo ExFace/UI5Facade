@@ -1,50 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/ODataUtils",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/thirdparty/jquery"
-], function (Log, NumberFormat, FormatException, ParseException, ValidateException, BaseODataUtils,
-		ODataType, jQuery) {
+	"sap/ui/model/odata/type/ODataType"
+], function(Log, Library, NumberFormat, FormatException, ParseException, ValidateException, BaseODataUtils, ODataType) {
 	"use strict";
 
 	var rDecimal = /^[-+]?(\d+)(?:\.(\d+))?$/,
 		rTrailingZeroes = /(?:(\.[0-9]*[1-9]+)0+|\.0*)$/;
-
-	/**
-	 * Returns the formatter. Creates it lazily.
-	 * @param {sap.ui.model.odata.type.Decimal} oType
-	 *   the type instance
-	 * @returns {sap.ui.core.format.NumberFormat}
-	 *   the formatter
-	 */
-	function getFormatter(oType) {
-		var oFormatOptions, iScale;
-
-		if (!oType.oFormat) {
-			oFormatOptions = {
-				groupingEnabled : true,
-				maxIntegerDigits : Infinity
-			};
-			iScale = getScale(oType);
-			if (iScale !== Infinity) {
-				oFormatOptions.minFractionDigits = oFormatOptions.maxFractionDigits = iScale;
-			}
-			oFormatOptions = jQuery.extend(oFormatOptions, oType.oFormatOptions);
-			oFormatOptions.parseAsString = true;
-			oType.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
-		}
-		return oType.oFormat;
-	}
+	const rInsignificantZeros = /^0+|0+$/g;
 
 	/**
 	 * Returns the type's scale constraint.
@@ -69,7 +43,7 @@ sap.ui.define([
 	 *   the message
 	 */
 	function getText(sKey, aParams) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParams);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParams);
 	}
 
 	/**
@@ -132,6 +106,8 @@ sap.ui.define([
 				}
 				logWarning(sValue, sName);
 			}
+
+			return undefined;
 		}
 
 		function validateBoolean(vValue, sName) {
@@ -141,6 +117,8 @@ sap.ui.define([
 			if (vValue !== undefined && vValue !== false && vValue !== "false") {
 				logWarning(vValue, sName);
 			}
+
+			return undefined;
 		}
 
 		function setConstraint(sName, vValue, vDefault) {
@@ -156,10 +134,11 @@ sap.ui.define([
 			vPrecision = oConstraints.precision;
 			vScale = oConstraints.scale;
 
-			iScale = vScale === "variable" ? Infinity : validateInt(vScale, 0, 0, "scale");
+			iScale = vScale === "variable" || vScale === "floating" ? Infinity : validateInt(vScale, 0, 0, "scale");
+			oType.bIsFloating = vScale === "floating";
 			iPrecision = validateInt(vPrecision, Infinity, 1, "precision");
-			if (iScale !== Infinity && iPrecision <= iScale) {
-				Log.warning("Illegal scale: must be less than precision (precision="
+			if (iScale !== Infinity && iPrecision < iScale) {
+				Log.warning("Illegal scale: must be less than or equal to precision (precision="
 					+ vPrecision + ", scale=" + vScale + ")", null, oType.getName());
 				iScale = Infinity; // "variable"
 			}
@@ -184,25 +163,35 @@ sap.ui.define([
 	/**
 	 * Constructor for a primitive type <code>Edm.Decimal</code>.
 	 *
-	 * @class This class represents the OData primitive type <a
-	 * href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
-	 * <code>Edm.Decimal</code></a>.
+	 * @class This class represents the OData primitive type <code>Edm.Decimal</code>, see
+	 * <a
+	 * href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338">
+	 * type definition for OData V4.01</a> or
+	 * <a
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * type definition for OData V2</a>.
 	 *
 	 * In both {@link sap.ui.model.odata.v2.ODataModel} and {@link sap.ui.model.odata.v4.ODataModel}
-	 * this type is represented as a <code>string</code>. It never uses exponential format ("1e-5").
+	 * this type is represented as a <code>string</code>.
 	 *
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @alias sap.ui.model.odata.type.Decimal
 	 * @param {object} [oFormatOptions]
-	 *   format options as defined in {@link sap.ui.core.format.NumberFormat}. In contrast to
-	 *   NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
+	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getFloatInstance}.
+	 *   In contrast to NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
 	 *   Note that <code>maxFractionDigits</code> and <code>minFractionDigits</code> are set to
-	 *   the value of the constraint <code>scale</code> unless it is "variable". They can however
-	 *   be overwritten.
+	 *   the value of the constraint <code>scale</code> unless it is "variable" or "floating".
+	 *   They can however be overwritten.
+	 * @param {boolean} [oFormatOptions.parseEmptyValueToZero=false]
+	 *   Whether the empty string and <code>null</code> are parsed to <code>"0"</code> if the <code>nullable</code>
+	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   by default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
@@ -219,15 +208,39 @@ sap.ui.define([
 	 * @param {int|string} [oConstraints.precision=Infinity]
 	 *   the maximum number of digits allowed
 	 * @param {int|string} [oConstraints.scale=0]
-	 *   the maximum number of digits allowed to the right of the decimal point; the number must be
-	 *   less than <code>precision</code> (if given). As a special case, "variable" is supported.
+	 *   The maximum number of digits allowed to the right of the decimal point; the number must be
+	 *   less than or equal to <code>precision</code> (if given). The <code>Decimal</code> is then always displayed
+	 *   with exactly that number of digits to the right of the decimal point.
+	 *   If <code>scale</code> is equal to <code>precision</code>, a single zero has to precede the decimal point.
 	 *
-	 *   The number of digits to the right of the decimal point may vary from zero to
-	 *   <code>scale</code>, and the number of digits to the left of the decimal point may vary
-	 *   from one to <code>precision</code> minus <code>scale</code>.
+	 *   In addition, the <code>scale</code> values "variable" and (as of UI5 version 1.142.0) "floating" are supported.
+	 *   <ul>
+	 *     <li>
+	 *         For <code>scale="variable"</code>, the number of digits to the right of the decimal point
+	 *         can vary from zero to <code>precision</code> minus the number of digits to the left of the decimal point.
 	 *
-	 *   The number is always displayed with exactly <code>scale</code> digits to the right of the
-	 *   decimal point (unless <code>scale</code> is "variable").
+	 *         <b>Examples for <code>Decimal</code>s with precision=3 and scale="variable":</b>
+	 *         <ul>
+	 *           <li>Valid values: 123, 1.23, 12.3, 0.12</li>
+	 *           <li>Invalid values: 1230, 1.234, 12.34, 0.123</li>
+	 *         </ul>
+	 *     </li>
+	 *     <li>
+	 *         For <code>scale="floating"</code>, the number of significant digits, i.e. the number of digits excluding
+	 *         leading or trailing zeros, must be less than or equal to <code>precision</code>.
+	 *         For more information on <code>scale="floating"</code>, see <a
+	 *           href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#sec_Scale">
+	 *           OData Version 4.01 Common Schema Definition Language (CSDL) XML Representation - Scale
+	 *         </a>.
+	 *
+	 *         <b>Examples for <code>Decimal</code>s with precision=3 and scale="floating":</b>
+	 *         <ul>
+	 *           <li>Valid values: 1230, 1.23, 12.3, 0.123</li>
+	 *           <li>Invalid values: 1234, 1.234, 12.34, 0.001234</li>
+	 *         </ul>
+	 *     </li>
+	 *   </ul>
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -236,6 +249,7 @@ sap.ui.define([
 					ODataType.apply(this, arguments);
 					this.oFormatOptions = oFormatOptions;
 					setConstraints(this, oConstraints);
+					this.checkParseEmptyValueToZero();
 				}
 			}
 		);
@@ -262,66 +276,97 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-			return sValue;
-		case "float":
-			return parseFloat(sValue);
-		case "int":
-			return Math.floor(parseFloat(sValue));
-		case "string":
-			return getFormatter(this).format(removeTrailingZeroes(String(sValue)));
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+				return sValue;
+			case "float":
+				return parseFloat(sValue);
+			case "int":
+				return Math.floor(parseFloat(sValue));
+			case "string":
+				return this.getFormat().format(removeTrailingZeroes(String(sValue)));
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	Decimal.prototype.getFormat = function () {
+		if (!this.oFormat) {
+			var oFormatOptions = {
+					groupingEnabled : true,
+					maxIntegerDigits : Infinity
+				},
+				iScale = getScale(this);
+			if (iScale !== Infinity) {
+				oFormatOptions.minFractionDigits = oFormatOptions.maxFractionDigits = iScale;
+			}
+			var oTypeFormatOptions = this.oFormatOptions || {};
+			if (oTypeFormatOptions.style !== "short" && oTypeFormatOptions.style !== "long") {
+				oFormatOptions.preserveDecimals = true;
+			}
+			Object.assign(oFormatOptions, this.oFormatOptions);
+			oFormatOptions.parseAsString = true;
+			delete oFormatOptions.parseEmptyValueToZero;
+			this.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
+		}
+
+		return this.oFormat;
 	};
 
 	/**
 	 * Parses the given value, which is expected to be of the given type, to a decimal in
 	 * <code>string</code> representation.
 	 *
-	 * @param {string|number} vValue
-	 *   the value to be parsed; the empty string and <code>null</code> are parsed to
-	 *   <code>null</code>
+	 * @param {string|number|null} vValue
+	 *   The value to be parsed
 	 * @param {string} sSourceType
-	 *   the source type (the expected type of <code>vValue</code>); may be "float", "int",
+	 *   The source type (the expected type of <code>vValue</code>); may be "float", "int",
 	 *   "string", or a type with one of these types as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {string}
-	 *   the parsed value
+	 * @returns {string|null}
+	 *   The parsed value. The empty string and <code>null</code> are parsed to:
+	 *   <ul>
+	 *     <li><code>"0"</code> if the <code>parseEmptyValueToZero</code> format option
+	 *       is set to <code>true</code> and the <code>nullable</code> constraint is set to <code>false</code>,</li>
+	 *     <li><code>null</code> otherwise.</li>
+	 *   </ul>
 	 * @throws {sap.ui.model.ParseException}
 	 *   if <code>sSourceType</code> is unsupported or if the given string cannot be parsed to a
 	 *   Decimal
 	 * @public
 	 */
 	Decimal.prototype.parseValue = function (vValue, sSourceType) {
-		var sResult;
-
-		if (vValue === null || vValue === "") {
-			return null;
+		var vEmptyValue = this.getEmptyValue(vValue);
+		if (vEmptyValue !== undefined) {
+			return vEmptyValue;
 		}
+
+		var sResult;
 		switch (this.getPrimitiveType(sSourceType)) {
-		case "string":
-			sResult = getFormatter(this).parse(vValue);
-			if (!sResult) {
-				throw new ParseException(sap.ui.getCore().getLibraryResourceBundle()
-					.getText("EnterNumber"));
-			}
-			// NumberFormat.parse does not remove trailing decimal zeroes and separator
-			sResult = removeTrailingZeroes(sResult);
-			break;
-		case "int":
-		case "float":
-			sResult = NumberFormat.getFloatInstance({
-				maxIntegerDigits: Infinity,
-				decimalSeparator: ".",
-				groupingEnabled: false
-			}).format(vValue);
-			break;
-		default:
-			throw new ParseException("Don't know how to parse " + this.getName() + " from "
-				+ sSourceType);
+			case "string":
+				sResult = this.getFormat().parse(vValue);
+				if (!sResult) {
+					throw new ParseException(Library.getResourceBundleFor("sap.ui.core")
+						.getText("EnterNumber"));
+				}
+				// NumberFormat.parse does not remove trailing decimal zeroes and separator
+				sResult = removeTrailingZeroes(sResult);
+				break;
+			case "int":
+			case "float":
+				sResult = NumberFormat.getFloatInstance({
+					maxIntegerDigits: Infinity,
+					decimalSeparator: ".",
+					groupingEnabled: false
+				}).format(vValue);
+				break;
+			default:
+				throw new ParseException("Don't know how to parse " + this.getName() + " from "
+					+ sSourceType);
 		}
 		return sResult;
 	};
@@ -368,20 +413,35 @@ sap.ui.define([
 			if (iScale === 0) {
 				throw new ValidateException(getText("EnterInt"));
 			} else if (iIntegerDigits + iScale > iPrecision) {
-				throw new ValidateException(getText("EnterNumberIntegerFraction",
-					[iPrecision - iScale, iScale]));
+				if (iScale !== iPrecision) {
+					throw new ValidateException(getText("EnterNumberIntegerFraction",
+						[iPrecision - iScale, iScale]));
+				}
+				if (aMatches[1] !== "0") {
+					throw new ValidateException(getText("EnterNumberFractionOnly", [iScale]));
+				}
 			}
 			throw new ValidateException(getText("EnterNumberFraction", [iScale]));
 		}
 		if (iScale === Infinity) {
-			if (iIntegerDigits + iFractionDigits > iPrecision) {
+			if (this.bIsFloating) {
+				const sSignificantDigits = (aMatches[1] + (aMatches[2] ?? "")).replace(rInsignificantZeros, "");
+				if (sSignificantDigits.length > iPrecision) {
+					throw new ValidateException(getText("EnterNumberSignificantDigits", [iPrecision]));
+				}
+			} else if (iIntegerDigits + iFractionDigits > iPrecision) {
 				throw new ValidateException(getText("EnterNumberPrecision", [iPrecision]));
 			}
 		} else if (iIntegerDigits > iPrecision - iScale) {
-			if (iScale) {
-				throw new ValidateException(getText("EnterNumberInteger", [iPrecision - iScale]));
-			} else {
+			if (iScale !== iPrecision) {
+				if (iScale) {
+					throw new ValidateException(getText("EnterNumberInteger",
+						[iPrecision - iScale]));
+				}
 				throw new ValidateException(getText("EnterMaximumOfDigits", [iPrecision]));
+			}
+			if (aMatches[1] !== "0") {
+				throw new ValidateException(getText("EnterNumberFractionOnly", [iScale]));
 			}
 		}
 		if (sMinimum) {
@@ -409,7 +469,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Decimal"}
 	 *   the type's name
 	 * @public
 	 */

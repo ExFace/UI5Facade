@@ -388,18 +388,20 @@
             let oP13nModel = oDialog.getModel(sP13nModelName);
             let oDataTable = sap.ui.getCore().byId(sDataTableId); 
 
-            // attach event listeners for column changes. 
-            // This should fire for every re-order, config change and setup application;
-            if (oP13nModel && oDataTable && oDataTable.data('_exf_autoUpdateFrozenCols') !== true){
-
-                // initial calculation (on load)
+            // updates the frozen columns count according to the configuration and attaches a listener for auto-updating the count when the configuration changes.
+            // resets trigger this re-calculation via UI5DataTable::FUNCTION_RESET_CHANGE_TRACKING
+            if (oP13nModel && oDataTable){
+                // update count according to current state
                 oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount(oP13nModel.getProperty("/columns"), iFreezeColumnCount, bHasDirtyColumn));
                 
-                // change listener to update when column properties change
-                oP13nModel.bindProperty("/columns").attachChange(() => {
-                    oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount(oP13nModel.getProperty("/columns"), iFreezeColumnCount, bHasDirtyColumn));
-                });
-                oDataTable.data('_exf_autoUpdateFrozenCols', true);
+                // attach listener that auto-updates the frozen column count when a new configuration is applied
+                // this fires when the user manually clicks 'ok' in the p13n dialogue, or when a setup is applied
+                if (oDataTable.data('_exf_autoUpdateFrozenCols') !== true){
+                    oDialog.attachOk(() => {
+                        oDataTable.setFixedColumnCount(exfSetupManager.datatable.getFreezeColumnsCount(oP13nModel.getProperty("/columns"), iFreezeColumnCount, bHasDirtyColumn));
+                    });
+                    oDataTable.data('_exf_autoUpdateFrozenCols', true);
+                }
             }
         },
 
@@ -700,7 +702,15 @@
 
                 // toggle checkboxes in columns tab according to setup
                 // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-                let oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                let oTable = null;
+                if (oDialog.getAggregation('content')[1] !== undefined){
+                    oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                }
+                else{
+                    // UI5-Upgrade - structure changed, need to get table content differently
+                    oTable = oDialog.getAggregation('content')[0];
+                }
+                
                 let oTableModel = oTable.getModel();
                 let aColsConfig = oModel.getProperty('/columns');
                 let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);

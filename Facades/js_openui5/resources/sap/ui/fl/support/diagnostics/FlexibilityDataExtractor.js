@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/base/Log","sap/ui/fl/support/api/SupportAPI","sap/ui/VersionInfo"],function(e,t,n){"use strict";function i(e){const t=new Map;if(Array.isArray(e.flexSettings)){e.flexSettings.forEach(e=>{if(e.key==="userId"&&typeof e.value==="string"){if(!t.has(e.value)){const n=`USER_${t.size+1}`;t.set(e.value,n)}e.value=t.get(e.value)}})}function n(e){for(const i in e){if(Object.hasOwn(e,i)){const s=e[i];if(i==="user"&&typeof s==="string"){if(!t.has(s)){const e=`USER_${t.size+1}`;t.set(s,e)}e[i]=t.get(s)}else if(typeof s==="object"&&s!==null){n(s)}}}}n(e)}const s={async extractFlexibilityData(s){const a={};a.extractorVersion="1.0";a.extractionTimeStamp=(new Date).toISOString();const o=await n.load();a.ui5Version=o.version;const r=await t.getApplicationComponent();if(!r){e.error("No application component found");return{}}a.appVersion=r.getManifestObject().getEntry("/sap.app/applicationVersion/version");a.appACH=r.getManifestObject().getEntry("/sap.app/ach");const p=await Promise.all([t.getFlexSettings(),t.getChangeDependencies(),t.getFlexObjectInfos()]);[a.flexSettings,a.changeDependencies,a.flexObjectInfos]=JSON.parse(JSON.stringify(p));if(s){i(a)}return a}};return s});
+//# sourceMappingURL=FlexibilityDataExtractor.js.map

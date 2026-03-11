@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,17 +10,16 @@ sap.ui.define([
 ], function (Expression) {
 	"use strict";
 
-	var rBadChars = /[\\\{\}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
+	var rBadChars = /[\\{}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
 		rCount = /\/\$count$/,
 		rPaths = /\$(?:(?:Annotation)|(?:(?:Navigation)?Property))?Path/,
 		rSplitPathSegment = /^(.+?\/(\$(?:Annotation)?Path))(\/?)(.*)$/,
-		rUnsupportedPathSegments = /\$(?:Navigation)?PropertyPath/,
-
+		rUnsupportedPathSegments = /\$(?:(?:Any|Navigation)?Property|ModelElement)Path/,
 		/**
 		 * @classdesc
-		 * A collection of methods which help to consume
-		 * <a href="http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html">
-		 * OData V4 annotations</a> in XML template views. Every context argument must belong to a
+		 * A collection of methods which help to consume <a href=
+		 * "https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530401"
+		 * >OData V4 annotations</a> in XML template views. Every context argument must belong to an
 		 * {@link sap.ui.model.odata.v4.ODataMetaModel} instance.
 		 *
 		 * @alias sap.ui.model.odata.v4.AnnotationHelper
@@ -44,32 +43,35 @@ sap.ui.define([
 			 *
 			 * <h3>Supported Expressions</h3>
 			 * <ul>
-			 *   <li> "14.4 Constant Expressions" for "edm:Bool", "edm:Date", "edm:DateTimeOffset",
+			 *   <li> "14.3 Constant Expressions" for "edm:Bool", "edm:Date", "edm:DateTimeOffset",
 			 *     "edm:Decimal", "edm:Float", "edm:Guid", "edm:Int", "edm:TimeOfDay".
-			 *   <li> constant "14.4.11 Expression edm:String": This is turned into a fixed text
+			 *   <li> constant "14.3.11 Expression edm:String": This is turned into a fixed text
 			 *     (for example <code>"Width"</code>). String constants that contain a simple
 			 *     binding <code>"{@i18n>...}"</code> to the hard-coded model name "@i18n" with
 			 *     arbitrary path are not turned into a fixed text, but kept as a data binding
 			 *     expression; this allows local annotation files to refer to a resource bundle for
 			 *     internationalization.
-			 *   <li> dynamic "14.5.1 Comparison and Logical Operators": These are turned into
+			 *   <li> dynamic "14.4.2 Comparison and Logical Operators": These are turned into
 			 *     expression bindings to perform the operations at runtime.
-			 *   <li> dynamic "14.5.3 Expression edm:Apply":
+			 *   <li> dynamic "14.4.4 Expression edm:Apply":
 			 *     <ul>
-			 *       <li> "14.5.3.1.1 Function odata.concat": This is turned into a data binding
-			 *         expression relative to an entity.
-			 *       <li> "14.5.3.1.2 Function odata.fillUriTemplate": This is turned into an
+			 *       <li> "odata.concat" from "14.4.4.1 Canonical Functions": This is turned into a
+			 *         data binding expression relative to an entity.
+			 *       <li> "14.4.4.2 Function odata.fillUriTemplate": This is turned into an
 			 *         expression binding to fill the template at runtime.
-			 *       <li> "14.5.3.1.3 Function odata.uriEncode": This is turned into an expression
+			 *       <li> "14.4.4.4 Function odata.uriEncode": This is turned into an expression
 			 *         binding to encode the parameter at runtime.
 			 *       <li> Apply functions may be nested arbitrarily.
 			 *     </ul>
-			 *   <li> dynamic "14.5.6 Expression edm:If": This is turned into an expression
+			 *   <li> dynamic "14.4.6 Expression edm:Collection": This is turned into an expression
+			 *     binding to be evaluated at runtime. Elements can be conditionally added to the
+			 *     collection when using dynamic "14.4.7 Expression edm:If" as a direct child.
+			 *   <li> dynamic "14.4.7 Expression edm:If": This is turned into an expression
 			 *     binding to be evaluated at runtime. The expression is a conditional expression
 			 *     like <code>"{=condition ? expression1 : expression2}"</code>.
-			 *   <li> dynamic "14.5.10 Expression edm:Null": This is turned into a
+			 *   <li> dynamic "14.4.11 Expression edm:Null": This is turned into a
 			 *     <code>null</code> value. It is ignored in <code>odata.concat</code>.
-			 *   <li> dynamic "14.5.12 Expression edm:Path" and "14.5.13 Expression
+			 *   <li> dynamic "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression
 			 *     edm:PropertyPath": These are turned into data bindings relative to an entity,
 			 *     including type information and constraints as available from metadata, for
 			 *     example
@@ -97,12 +99,14 @@ sap.ui.define([
 			 *     Since 1.78.0, both "edm:Path" and "edm:PropertyPath" are also supported if
 			 *     <code>vRawValue</code> is the path itself, and not the object wrapping it.
 			 * </ul>
+			 * <b>Note: Import the <code>sap/ui/model/odata/ODataExpressionAddons</code> module when
+			 * using 14.4.2 or 14.4.4</b>
 			 *
 			 * <h3>$AnnotationPath and $Path</h3>
 			 * If <code>oDetails.context.getPath()</code> contains a single "$AnnotationPath" or
 			 * "$Path" segment, the value corresponding to that segment is considered as a data
-			 * binding path prefix whenever a dynamic "14.5.12 Expression edm:Path" or
-			 * "14.5.13 Expression edm:PropertyPath" is turned into a data binding. Use
+			 * binding path prefix whenever a dynamic "14.4.1.7 Expression edm:Path" or
+			 * "14.4.1.6 Expression edm:PropertyPath" is turned into a data binding. Use
 			 * {@link sap.ui.model.odata.v4.AnnotationHelper.resolve$Path} to avoid these prefixes
 			 * in cases where they are not applicable.
 			 *
@@ -110,16 +114,16 @@ sap.ui.define([
 			 * Example for "$AnnotationPath" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
-			 *				&lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
+			 *         &lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>
@@ -131,16 +135,16 @@ sap.ui.define([
 			 * Example for "$Path" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
-			 *				&lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
+			 *         &lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product/Name">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>
@@ -151,9 +155,9 @@ sap.ui.define([
 			 *
 			 * <h3>Annotations on an Operation or a Parameter</h3>
 			 * Since 1.71.0, for annotations on an operation or a parameter, the binding parameter's
-			 * name is stripped off any dynamic "14.5.12 Expression edm:Path" and
-			 * "14.5.13 Expression edm:PropertyPath" where it might be used as a first segment.
-			 * Since 1.76.0 this does not apply to annotations on a parameter.
+			 * name is stripped off any dynamic "14.4.1.7 Expression edm:Path" and
+			 * "14.4.1.6 Expression edm:PropertyPath" where it might be used as a first segment.
+			 * Since 1.76.0, this does not apply to annotations on a parameter.
 			 * In the former case, we assume that the resulting data binding is
 			 * relative to the parent context of the operation binding, that is, to the context
 			 * representing the binding parameter itself.
@@ -189,7 +193,7 @@ sap.ui.define([
 			 *
 			 * <h3>Operation Parameters</h3>
 			 * Since 1.73.0, this function can be used on action or function parameters and results
-			 * in a relative data binding, just like a "14.5.12 Expression edm:Path".
+			 * in a relative data binding, just like a "14.4.1.7 Expression edm:Path".
 			 *
 			 * Assume we have the following metadata for an unbound action "AcChangeTeamBudgetByID":
 			 * <pre>
@@ -221,7 +225,7 @@ sap.ui.define([
 			 *
 			 * <h3>Structural Properties</h3>
 			 * Since 1.78.0, this function can be used on a structural property and results in a
-			 * relative data binding, just like a "14.5.12 Expression edm:Path". The usage
+			 * relative data binding, just like a "14.4.1.7 Expression edm:Path". The usage
 			 * <pre>
 			 * &lt;Input value="{meta>/Department/Name@@sap.ui.model.odata.v4.AnnotationHelper.format}"/>
 			 * </pre>
@@ -243,17 +247,17 @@ sap.ui.define([
 			 * @param {object} [oDetails.overload]
 			 *   The single operation overload that was targeted by annotations on an operation or
 			 *   a parameter; needed to strip off the binding parameter's name from any dynamic
-			 *   "14.5.12 Expression edm:Path" and "14.5.13 Expression edm:PropertyPath" where it
+			 *   "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression edm:PropertyPath" where it
 			 *   might be used as a first segment (since 1.71.0). This does not apply to annotations
 			 *   on a parameter (since 1.76.0).
-			 * @returns {string|Promise}
+			 * @returns {string|Promise<string>}
 			 *   A data binding, or a fixed text, or a sequence thereof, or a <code>Promise</code>
 			 *   resolving with that string, for example if not all type information is already
 			 *   available
 			 * @throws {Error}
-			 *   If <code>oDetails.context.getPath()</code> contains a "$PropertyPath" or a
-			 *   "$NavigationPropertyPath" segment, or if it contains more than one
-			 *   "$AnnotationPath" or "$Path" segment
+			 *   If <code>oDetails.context.getPath()</code> contains a "$AnyPropertyPath",
+			 *   "$ModelElementPath", "$NavigationPropertyPath", or a "$PropertyPath" segment, or if
+			 *   it contains more than one "$AnnotationPath" or "$Path" segment
 			 *
 			 * @public
 			 * @see sap.ui.model.odata.v4.AnnotationHelper.resolve$Path
@@ -285,7 +289,7 @@ sap.ui.define([
 							value : vRawValue,
 							// ensure that type information is available in sub paths of the
 							// expression even if for that sub path no complex binding is needed,
-							// e.g. see sap.ui.model.odata.v4_AnnotationHelperExpression.operator
+							// e.g. see sap.ui.model.odata.v4._AnnotationHelperExpression.operator
 							$$valueAsPromise : true
 						});
 				}
@@ -293,7 +297,7 @@ sap.ui.define([
 				if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}
@@ -317,14 +321,14 @@ sap.ui.define([
 					}
 
 					return oModel.fetchObject(aMatches[1]).then(function (sPathValue) {
-						var i,
-							bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
+						var bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
 							sPrefix = bIsAnnotationPath
 								? sPathValue.split("@")[0]
-								: sPathValue;
+								: sPathValue,
+							i;
 
 						if (!bIsAnnotationPath && aMatches[3]) {
-							sPrefix = sPrefix + "/";
+							sPrefix += "/";
 						} else if (!sPrefix.endsWith("/")) {
 							i = sPrefix.lastIndexOf("/");
 							sPrefix = i < 0 ? "" : sPrefix.slice(0, i + 1);
@@ -367,10 +371,10 @@ sap.ui.define([
 			 * A function that helps to interpret OData V4 annotations. It knows about the syntax
 			 * of the path value used by the following dynamic expressions:
 			 * <ul>
-			 *   <li> "14.5.2 Expression edm:AnnotationPath"
-			 *   <li> "14.5.11 Expression edm:NavigationPropertyPath"
-			 *   <li> "14.5.12 Expression edm:Path"
-			 *   <li> "14.5.13 Expression edm:PropertyPath"
+			 *   <li> "14.4.1.3 Expression edm:AnnotationPath"
+			 *   <li> "14.4.1.5 Expression edm:NavigationPropertyPath"
+			 *   <li> "14.4.1.7 Expression edm:Path"
+			 *   <li> "14.4.1.6 Expression edm:PropertyPath"
 			 * </ul>
 			 * It returns the path of structural and navigation properties from the given path
 			 * value, but removes "$count", types casts, term casts, and annotations on navigation
@@ -405,10 +409,10 @@ sap.ui.define([
 					sPath = sPath.slice(0, -1);
 				}
 
-				if (sPath.indexOf(".") > -1) {
+				if (sPath.includes(".")) {
 					sPath = sPath.split("/")
 						.filter(function (sSegment) { // remove type casts
-							return sSegment.indexOf(".") < 0;
+							return !sSegment.includes(".");
 						}).join("/");
 				}
 
@@ -432,7 +436,7 @@ sap.ui.define([
 			 * @param {string} oDetails.schemaChildName
 			 *   The qualified name of the schema child where the computed annotation has been
 			 *   found, for example "name.space.EntityType"
-			 * @returns {sap.ui.model.odata.v4.ValueListType|Promise}
+			 * @returns {sap.ui.model.odata.v4.ValueListType|Promise<sap.ui.model.odata.v4.ValueListType>}
 			 *   The type of the value list or a <code>Promise</code> resolving with the type of the
 			 *   value list or rejected, if the property cannot be found in the metadata
 			 * @throws {Error}
@@ -457,10 +461,10 @@ sap.ui.define([
 			 * A function that helps to interpret OData V4 annotations. It knows about the syntax
 			 * of the path value used by the following dynamic expressions:
 			 * <ul>
-			 *   <li> "14.5.2 Expression edm:AnnotationPath"
-			 *   <li> "14.5.11 Expression edm:NavigationPropertyPath"
-			 *   <li> "14.5.12 Expression edm:Path"
-			 *   <li> "14.5.13 Expression edm:PropertyPath"
+			 *   <li> "14.4.1.3 Expression edm:AnnotationPath"
+			 *   <li> "14.4.1.5 Expression edm:NavigationPropertyPath"
+			 *   <li> "14.4.1.7 Expression edm:Path"
+			 *   <li> "14.4.1.6 Expression edm:PropertyPath"
 			 * </ul>
 			 * It returns the information whether the given path ends with "$count" or with a
 			 * multi-valued structural or navigation property. Term casts and annotations on
@@ -486,7 +490,7 @@ sap.ui.define([
 			 * @param {string} oDetails.schemaChildName
 			 *   The qualified name of the schema child where the computed annotation has been
 			 *   found, for example "name.space.EntityType"
-			 * @returns {boolean|Promise}
+			 * @returns {boolean|Promise<boolean>}
 			 *   <code>true</code> if the given path ends with "$count" or with a multi-valued
 			 *   structural or navigation property, <code>false</code> otherwise. If
 			 *   <code>oDetails.$$valueAsPromise</code> is <code>true</code> a <code>Promise</code>
@@ -499,7 +503,7 @@ sap.ui.define([
 				var iIndexOfAt;
 
 				// Whether the given value is exactly <code>true</code>
-				function isTrue (vValue) {
+				function isTrue(vValue) {
 					return vValue === true;
 				}
 
@@ -546,7 +550,7 @@ sap.ui.define([
 			 * @param {sap.ui.model.Context} oDetails.context
 			 *   Points to the given raw value, that is
 			 *   <code>oDetails.context.getProperty("") === vRawValue</code>
-			 * @returns {string|Promise}
+			 * @returns {string|Promise<string|undefined>|undefined}
 			 *   A data binding or a fixed text or a sequence thereof or <code>undefined</code>. If
 			 *   <code>oDetails.$$valueAsPromise</code> is <code>true</code> a <code>Promise</code>
 			 *   may be returned resolving with the value for the label.
@@ -653,32 +657,35 @@ sap.ui.define([
 			 *
 			 * <h3>Supported Expressions</h3>
 			 * <ul>
-			 *   <li> "14.4 Constant Expressions" for "edm:Bool", "edm:Date", "edm:DateTimeOffset",
+			 *   <li> "14.3 Constant Expressions" for "edm:Bool", "edm:Date", "edm:DateTimeOffset",
 			 *     "edm:Decimal", "edm:Float", "edm:Guid", "edm:Int", "edm:TimeOfDay".
-			 *   <li> constant "14.4.11 Expression edm:String": This is turned into a fixed text
+			 *   <li> constant "14.3.11 Expression edm:String": This is turned into a fixed text
 			 *     (for example <code>"Width"</code>). String constants that contain a simple
 			 *     binding <code>"{@i18n>...}"</code> to the hard-coded model name "@i18n" with
 			 *     arbitrary path are not turned into a fixed text, but kept as a data binding
 			 *     expression; this allows local annotation files to refer to a resource bundle for
 			 *     internationalization.
-			 *   <li> dynamic "14.5.1 Comparison and Logical Operators": These are turned into
+			 *   <li> dynamic "14.4.2 Comparison and Logical Operators": These are turned into
 			 *     expression bindings to perform the operations at runtime.
-			 *   <li> dynamic "14.5.3 Expression edm:Apply":
+			 *   <li> dynamic "14.4.4 Expression edm:Apply":
 			 *     <ul>
-			 *       <li> "14.5.3.1.1 Function odata.concat": This is turned into a data binding
-			 *         expression.
-			 *       <li> "14.5.3.1.2 Function odata.fillUriTemplate": This is turned into an
+			 *       <li> "odata.concat" from "14.4.4.1 Canonical Functions": This is turned into a
+			 *         data binding expression.
+			 *       <li> "14.4.4.2 Function odata.fillUriTemplate": This is turned into an
 			 *         expression binding to fill the template at runtime.
-			 *       <li> "14.5.3.1.3 Function odata.uriEncode": This is turned into an expression
+			 *       <li> "14.4.4.4 Function odata.uriEncode": This is turned into an expression
 			 *         binding to encode the parameter at runtime.
 			 *       <li> Apply functions may be nested arbitrarily.
 			 *     </ul>
-			 *   <li> dynamic "14.5.6 Expression edm:If": This is turned into an expression
+			 *   <li> dynamic "14.4.6 Expression edm:Collection": This is turned into an expression
+			 *     binding to be evaluated at runtime. Elements can be conditionally added to the
+			 *     collection when using dynamic "14.4.7 Expression edm:If" as a direct child.
+			 *   <li> dynamic "14.4.7 Expression edm:If": This is turned into an expression
 			 *     binding to be evaluated at runtime. The expression is a conditional expression
 			 *     like <code>"{=condition ? expression1 : expression2}"</code>.
-			 *   <li> dynamic "14.5.10 Expression edm:Null": This is turned into a
+			 *   <li> dynamic "14.4.11 Expression edm:Null": This is turned into a
 			 *     <code>null</code> value. It is ignored in <code>odata.concat</code>.
-			 *   <li> dynamic "14.5.12 Expression edm:Path" and "14.5.13 Expression
+			 *   <li> dynamic "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression
 			 *     edm:PropertyPath": These are turned into simple data bindings, for example
 			 *     <code>"{Name}"</code>. Since 1.78.0, both are also supported if
 			 *     <code>vRawValue</code> is the path itself, and not the object wrapping it.
@@ -686,9 +693,9 @@ sap.ui.define([
 			 *
 			 * <h3>Annotations on an Operation or a Parameter</h3>
 			 * Since 1.71.0, for annotations on an operation or a parameter, the binding parameter's
-			 * name is stripped off any dynamic "14.5.12 Expression edm:Path" and
-			 * "14.5.13 Expression edm:PropertyPath" where it might be used as a first segment.
-			 * Since 1.76.0 this does not apply to annotations on a parameter.
+			 * name is stripped off any dynamic "14.4.1.7 Expression edm:Path" and
+			 * "14.4.1.6 Expression edm:PropertyPath" where it might be used as a first segment.
+			 * Since 1.76.0, this does not apply to annotations on a parameter.
 			 * In the former case, we assume that the resulting data binding is
 			 * relative to the parent context of the operation binding, that is, to the context
 			 * representing the binding parameter itself.
@@ -724,7 +731,7 @@ sap.ui.define([
 			 *
 			 * <h3>Operation Parameters</h3>
 			 * Since 1.73.0, this function can be used on action or function parameters and results
-			 * in a relative data binding, just like a "14.5.12 Expression edm:Path".
+			 * in a relative data binding, just like a "14.4.1.7 Expression edm:Path".
 			 *
 			 * Assume we have the following metadata for an unbound action "AcChangeTeamBudgetByID":
 			 * <pre>
@@ -755,7 +762,7 @@ sap.ui.define([
 			 *
 			 * <h3>Structural Properties</h3>
 			 * Since 1.78.0, this function can be used on a structural property and results in a
-			 * relative data binding, just like a "14.5.12 Expression edm:Path". The usage
+			 * relative data binding, just like a "14.4.1.7 Expression edm:Path". The usage
 			 * <pre>
 			 * &lt;Input value="{meta>/Department/Name@@sap.ui.model.odata.v4.AnnotationHelper.value}"/>
 			 * </pre>
@@ -777,9 +784,13 @@ sap.ui.define([
 			 * @param {object} [oDetails.overload]
 			 *   The single operation overload that was targeted by annotations on an operation or
 			 *   a parameter; needed to strip off the binding parameter's name from any dynamic
-			 *   "14.5.12 Expression edm:Path" and "14.5.13 Expression edm:PropertyPath" where it
+			 *   "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression edm:PropertyPath" where it
 			 *   might be used as a first segment (since 1.72.0). This does not apply to annotations
 			 *   on a parameter (since 1.76.0).
+			 * @param {string} [oDetails.prefix=""]
+			 *   Optional prefix to be added to each dynamic "14.4.1.7 Expression edm:Path" and
+			 *   "14.4.1.6 Expression edm:PropertyPath"; is either an empty string or a path ending
+			 *   with a "/" (since 1.141.0)
 			 * @returns {string}
 			 *   A data binding or a fixed text or a sequence thereof
 			 *
@@ -796,7 +807,7 @@ sap.ui.define([
 				} else if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}
@@ -811,7 +822,7 @@ sap.ui.define([
 						model : oDetails.context.getModel(),
 						parameters : oDetails.arguments && oDetails.arguments[0],
 						path : sPath,
-						prefix : "",
+						prefix : oDetails.prefix ?? "",
 						value : vRawValue,
 						$$valueAsPromise : oDetails.$$valueAsPromise
 					});
