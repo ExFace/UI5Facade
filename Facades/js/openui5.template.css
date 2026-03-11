@@ -758,6 +758,11 @@ html[class*="sapUiTheme-sap_horizon"] .exf-navtiles .sapMPanelContent {
     background-color:  var(--sapBackgroundColor);
 }
 
+/* remove background inside pad */
+html[class*="sapUiTheme-sap_horizon"] .exf-pad  .sapMPanelBGTranslucent {
+    background-color: transparent; 
+}
+
 
 /* Data widgets */
 html[class*="sapUiTheme-sap_horizon"] .sapMLabel.exf-paginator-position {font-weight: normal; font-family: var(--sapFontFamily);}
