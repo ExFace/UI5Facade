@@ -2046,6 +2046,8 @@ JS;
             // are also part of the row numbering. In any case, it is much more
             // reliable to check each binding and compare its path to the row
             // number inside the rows array of the model.
+            // NOTE sah -> group headings are now also in the binding, which broke the selection based on the binding context alone
+            // perhaps the binding based selection can be removed altogether?
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
                     var aSelections = oTable.getSelectedIndices();
@@ -2053,13 +2055,18 @@ JS;
                     var oBinding = oTable.getBinding("rows");
                     var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
+                        let iGroupHeaders = 0;
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
+                            if (context.__groupInfo !== undefined) {
+                                iGroupHeaders++;
+                            }
                             if (context && context.getPath() === `/rows/` + iRowIdx) {
-                                return i; // Match found
+                                return i-iGroupHeaders; // Match found (subtract number of group headers to correct the index)
                             }
                         }
                     };
+
                     iTableIdx = fnFindTableIdx(iRowIdx);
                     oTable.clearSelection();
                     if (bDeselect === false) {
