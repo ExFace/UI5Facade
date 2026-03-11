@@ -139,7 +139,6 @@ JS;
     public function registerConditionalProperties() : UI5AbstractElement
     {
         // Make sure, the MenuButton is hidden if no menu items are visible.
-        // TODO Should probably make it visible again once at least one item is visible?
         if ($this->isVisible()) {
             foreach ($this->getWidget()->getButtons() as $btn) {
                 $btnEl = $this->getFacade()->getElement($btn);
@@ -154,9 +153,7 @@ JS;
                                 bItemsVisible = true;
                             }
                         });
-                        if (bItemsVisible === false) {
-                            oMenuButton.setVisible(bItemsVisible);
-                        }
+                        oMenuButton.setVisible(bItemsVisible);
                     });
                         
 JS);
