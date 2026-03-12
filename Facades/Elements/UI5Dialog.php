@@ -3,6 +3,8 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Interfaces\Widgets\iHaveButtons;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -15,6 +17,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
+use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
@@ -44,6 +47,8 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  */
 class UI5Dialog extends UI5Form
 {
+    use UI5TourGuideTrait;
+    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -648,6 +653,8 @@ JS;
         if ($this->getWidget()->isCacheable() === false) {
             $this->getController()->addOnHideViewScript("sap.ui.getCore().byId('{$this->getId()}').destroy()");
         }
+
+        $this->addTourDropdownToGivenPlace($this->getWidget()->getHeader());
         
         return <<<JS
         
@@ -1042,6 +1049,13 @@ JS;
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
         $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
+        
+        // TODO: Bug:
+        //  - The click on the tour guide button causes the sap.m.Dialog to close before the tour is executed.
+        //      This behavior must be fixed bevor including the tour dropdown in the dialog toolbar.
+        //  - Better place should also be found for this button.
+        //$this->addTourDropdownToGivenPlace($this->getWidget()->getToolbarMain());
+        
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
@@ -1279,5 +1293,26 @@ new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
 })
 JS;
 
+    }
+
+    /**
+     * Places a dropdown menu inside the given place (e.g. toolbar or a header) with all available tours for a widget.
+     *
+     * @param iHaveButtons $placeToAddButton
+     * @return void
+     */
+    protected function addTourDropdownToGivenPlace(iHaveButtons $placeToAddButton) : void
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return;
+        }
+        
+        $this->registerDriverJsAsExternalModule();
+
+        $placeToAddButton->addButton(
+            $placeToAddButton->createButton($this->buildTourGuideDropDownAsUxonObject($widget)), 
+            0
+        );
     }
 }

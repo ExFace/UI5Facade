@@ -116,6 +116,7 @@ use exface\Core\Widgets\DataLookupDialog;
 trait UI5DataElementTrait {
     
     use UI5HelpButtonTrait;
+    use UI5TourGuideTrait;
     
     private $quickSearchElement = null;
     
@@ -3397,42 +3398,10 @@ JS;
         }
         
         $this->registerDriverJsAsExternalModule();
-
-        $tours = $widget->getTourGuide()->getTours();
-        $driver = $this->getFacade()->getTourDriver($widget);
-        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
-
-        $buttons = [];
-        foreach ($tours as $tour) {
-            $buttons[] = [
-                    'caption' => $tour->getTitle(),
-                    'action'  => [
-                        'alias'  => 'exface.Core.CustomFacadeScript',
-                        'icon' => $tour->getIcon() ?? '',
-                        'script' => $driver->buildJsStartTour($tour)
-                    ],
-                ];
-        }
         
-        $toolbar->addButton($toolbar->createButton(new UxonObject([
-            'widget_type' => 'MenuButton',
-            'icon' => 'sap-icon://travel-request',
-            'caption' => 'Tour guide',
-            'hide_caption' => true,
-            'buttons' => $buttons
-        ])), 0);
-    }
-
-    /**
-     * imports the driver.js library and adds the necessary CSS for the tours to work.
-     * 
-     * @return void
-     */
-    protected function registerDriverJsAsExternalModule() : void
-    {
-        $controller = $this->getController();
-        $facade = $this->getFacade();
-        $controller->addExternalModule('libs.exface.Driver', $facade->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
-        $controller->addExternalCss($facade->buildUrlToSource("LIBS.DRIVER.CSS")); 
+        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
+        $toolbar->addButton(
+            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget))
+        );
     }
 }
