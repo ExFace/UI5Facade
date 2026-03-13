@@ -654,7 +654,10 @@ JS;
             $this->getController()->addOnHideViewScript("sap.ui.getCore().byId('{$this->getId()}').destroy()");
         }
 
-        $this->addTourDropdownToGivenPlace($this->getWidget()->getHeader());
+        $header = $this->getWidget()->getHeader();
+        if($header !== null) {
+            $this->addTourDropdownToGivenPlace($header);
+        }
         
         return <<<JS
         
