@@ -540,7 +540,9 @@ JS;
             return '';
         }
         
-        $setupsTable = $this->getP13nElement()->getWidget()->getSetupsTab()->getWidgetFirst();
+        /* @var $configuratorWidget \exface\Core\Widgets\DataTableConfigurator */
+        $configuratorWidget = $this->getP13nElement()->getWidget();
+        $setupsTable = $configuratorWidget->getSetupsTab()->getWidgetFirst();
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // default captions
@@ -587,6 +589,7 @@ JS;
 JS;
 
         // button to save a new setup
+        $saveSetupBtnEl = $this->getFacade()->getElement($configuratorWidget->getButtonToSaveSetup());
         $saveSetupBtnJs = <<<JS
             new sap.m.Button({
                 text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
@@ -598,7 +601,7 @@ JS;
                     // generated: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator_saveSetupBtn
                     // expected: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator"+'_saveSetupBtn'
 
-                    let oSaveSetupBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'_saveSetupBtn');
+                    let oSaveSetupBtn = sap.ui.getCore().byId('{$saveSetupBtnEl->getId()}');
                     if (oSaveSetupBtn){
                         oSaveSetupBtn.firePress();
                     }
