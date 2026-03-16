@@ -2148,24 +2148,40 @@ const exfLauncher = {};
 				contentWidth: "90%",
 				contentHeight: "80%",
 				content: [oTable],
-				endButton: new sap.m.Button({
-					text: "Close",
-					type: "Emphasized",
-					press: function() {
-						dialog.close();
-					}
-				}),
-				beginButton: new sap.m.Button({
-					text: "Dismiss All",
-					press: function() {
-						// Clear Error List
-						capturedErrors = [];
-	
-						// Update Model 
-						oTable.getModel().setProperty("/errors", []); 
-						exfLauncher.showMessageToast("Error log cleared");
-					}
-				})
+				buttons: [
+					new sap.m.Button({
+						text: "Copy Logs",
+						press: function() {
+							const errorLogs = exfLauncher.getJsErrorLogs();
+							const errorLogsString = JSON.stringify(errorLogs, null, 2);
+
+							// Copy to clipboard
+							navigator.clipboard.writeText(errorLogsString).then(() => {
+								exfLauncher.showMessageToast("Error logs copied to clipboard!");
+							}).catch(err => {
+								console.error("Failed to copy error logs:", err);
+							});
+						}
+					}),
+					new sap.m.Button({
+						text: "Dismiss All",
+						press: function() {
+							// Clear Error List
+							capturedErrors = [];
+		
+							// Update Model 
+							oTable.getModel().setProperty("/errors", []); 
+							exfLauncher.showMessageToast("Error log cleared");
+						}
+					}),
+					new sap.m.Button({
+						text: "Close",
+						type: "Emphasized",
+						press: function() {
+							dialog.close();
+						}
+					}),
+				]
 			});
 	
 			dialog.open();
