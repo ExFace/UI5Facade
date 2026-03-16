@@ -2679,11 +2679,49 @@ exfLauncher.logJsError = function(args, level, message = null){
 		capturedErrors.push(logDetails);
 
 		// only show popover for error levels
+		// and send the error to the LogHub Facade
 		if (typeof exfLauncher.showErrorPopover === "function" && level === 'error') {
 			exfLauncher.showErrorPopover(sMessage);
+			exfLauncher.postJsErrorLog(logDetails);
 		}
 	}
 }
+
+exfLauncher.requestCount = 0;
+exfLauncher.MAX_REQUESTS = 60; // max requests allowed
+exfLauncher.TIME_WINDOW = 60000; // per time window in milliseconds
+
+/**
+ * Sends the JS Error to the LogHub Facade for centralized logging.
+ * @param {*} oLogDetails object containing the error log details
+ */
+exfLauncher.postJsErrorLog = function (oLogDetails) {
+
+	// basic rate limiting, to avoid spamming the logs
+	// for now, we can try at most 60 logs/minute?
+	if (exfLauncher.requestCount >= exfLauncher.MAX_REQUESTS) {
+        console.warn("Rate limit exceeded. JS Error Log not sent.");
+        return;
+    }
+
+	exfLauncher.requestCount++;
+
+	// send location/breadcrumb data with request
+	const aCrumbs = this.getShell().getModel().getProperty("/_breadcrumbs/crumbs");
+	const sCurrentTitle = this.getShell().getModel().getProperty("/_breadcrumbs/current_title");
+	let aLocations = [
+		...aCrumbs,
+		{ title: sCurrentTitle, url: oLogDetails.url }
+	];
+	oLogDetails.locations = aLocations;
+	oLogDetails.page = sCurrentTitle;
+
+	$.ajax({
+		type: 'POST',
+		url: 'api/loghub',
+		data: JSON.stringify(oLogDetails)
+	})
+};
 
 /**
  * Function that returns the current error logs
@@ -2746,6 +2784,13 @@ window.onerror = function (message, source, lineno, colno, error) {
 exfLauncher.enableJsTracing = function () {
 	window.console = window.__exfProxyInstance;
 	sessionStorage.setItem('exfJsTracingEnabled', 'true');
+	
+	// rate limiting for sending logs to server
+    if (!exfLauncher._rateLimitInterval) { // Prevent multiple intervals
+        exfLauncher._rateLimitInterval = setInterval(() => {
+            exfLauncher.requestCount = 0; 
+        }, exfLauncher.TIME_WINDOW);
+    }
 };
 
 /**
@@ -2754,6 +2799,12 @@ exfLauncher.enableJsTracing = function () {
 exfLauncher.disableJsTracing = function () {
 	window.console = window.__originalConsole;
 	sessionStorage.setItem('exfJsTracingEnabled', 'false');
+
+	// Clear the rate-limiting interval
+    if (exfLauncher._rateLimitInterval) {
+        clearInterval(exfLauncher._rateLimitInterval);
+        exfLauncher._rateLimitInterval = null; 
+    }
 };
 
 
