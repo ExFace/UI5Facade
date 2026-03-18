@@ -1,18 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.t.ToolPage.
 sap.ui.define([
 	"./library",
+	"sap/m/library",
+	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/core/Control",
 	"sap/ui/Device",
 	"sap/ui/core/ResizeHandler",
 	"./ToolPageRenderer"
-], function (library, Control, Device, ResizeHandler, ToolPageRenderer) {
+], function (library,
+			 mLibrary,
+			 ManagedObjectObserver,
+			 Control,
+			 Device,
+			 ResizeHandler,
+			 ToolPageRenderer) {
 	"use strict";
+
+	var TP_RANGE_SET = "TPRangeSet";
+	Device.media.initRangeSet(TP_RANGE_SET, [600], "px", ["S", "M"], true);
+
+	// shortcut for sap.m.PageBackgroundDesign
+	var PageBackgroundDesign = mLibrary.PageBackgroundDesign;
 
 	/**
 	 * Constructor for a new ToolPage.
@@ -30,28 +44,47 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.34
 	 * @alias sap.tnt.ToolPage
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ToolPage = Control.extend("sap.tnt.ToolPage", /** @lends sap.tnt.ToolPage.prototype */ {
 		metadata: {
 			library: "sap.tnt",
 			properties: {
 				/**
-				 * Indicates if the side area is expanded. Overrides the expanded property of the sideContent aggregation.
+				 * Indicates if the side menu is expanded.
+				 * Overrides the <code>expanded</code> property of the <code>sideContent</code> aggregation.
+				 * **Note:** By default, on small screens, the side content is collapsed to provide more space for the main content.
+				 *  On larger screens, it is expanded. This behavior can be overridden by setting this property.
 				 */
-				sideExpanded: {type: "boolean", group: "Misc", defaultValue: true}
+				sideExpanded: {type: "boolean", group: "Misc", defaultValue: true},
+
+				/**
+				 * Specifies the content background design.
+				 * @public
+				 * @since 1.115
+				 */
+				contentBackgroundDesign: {
+					type: "sap.m.PageBackgroundDesign",
+					group: "Appearance",
+					defaultValue: PageBackgroundDesign.Standard
+				}
 			},
 			aggregations: {
 				/**
 				 * The control to appear in the header area.
 				 */
-				header: {type: "sap.tnt.IToolHeader", multiple: false},
+				header: {type: "sap.ui.core.Control", multiple: false},
+
+				/**
+				 * The control to appear in the subheader area.
+				 * @since 1.93
+				 */
+				subHeader: {type: "sap.ui.core.Control", multiple: false },
 				/**
 				 * The side menu of the layout.
 				 */
@@ -62,11 +95,32 @@ sap.ui.define([
 				mainContents: {type: "sap.ui.core.Control", multiple: true, singularName: "mainContent"}
 			},
 			events: {}
-		}
+		},
+
+		renderer: ToolPageRenderer
 	});
+
+	ToolPage.prototype.init = function () {
+		this._oContentObserver = new ManagedObjectObserver(this._onContentChange.bind(this));
+		this._oContentObserver.observe(this, { aggregations: ["subHeader", "sideContent"] });
+
+		this._oContentVisibilityObserver = new ManagedObjectObserver(this._onContentVisibilityChange.bind(this));
+
+		this._deregisterControl();
+	};
 
 	ToolPage.prototype.exit = function () {
 		this._deregisterControl();
+
+		if (this._oContentObserver) {
+			this._oContentObserver.disconnect();
+			this._oContentObserver = null;
+		}
+
+		if (this._oContentVisibilityObserver) {
+			this._oContentVisibilityObserver.disconnect();
+			this._oContentVisibilityObserver = null;
+		}
 	};
 
 	ToolPage.prototype.onBeforeRendering = function () {
@@ -74,14 +128,14 @@ sap.ui.define([
 	};
 
 	ToolPage.prototype.onAfterRendering = function () {
-		this._ResizeHandler = ResizeHandler.register(this.getDomRef(), this._mediaQueryHandler.bind(this));
+		this._resizeHandler = ResizeHandler.register(this.getDomRef(), this._resize.bind(this));
 
-		this._updateLastMediaQuery();
+		this._updateLayoutSettings();
 	};
 
 	/**
 	 * Toggles the expand/collapse state of the SideContent.
-	 * @returns {sap.tnt.ToolPage} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	ToolPage.prototype.toggleSideContentMode = function () {
@@ -91,19 +145,18 @@ sap.ui.define([
 	/**
 	 * Sets the expand/collapse state of the SideContent.
 	 * @param {boolean} bSideExpanded defines whether the SideNavigation is expanded.
-	 * @returns {sap.tnt.ToolPage} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	ToolPage.prototype.setSideExpanded = function (bSideExpanded) {
 		this.setProperty("sideExpanded", bSideExpanded, true);
 
 		var oSideContent = this.getSideContent();
-		if (oSideContent) {
-			var bNewState = Device.system.phone ? true : bSideExpanded;
-			oSideContent.setExpanded(bNewState);
-		} else {
+		if (!oSideContent) {
 			return this;
 		}
+
+		oSideContent.setExpanded(bSideExpanded);
 
 		var oDomRef = this.getDomRef();
 		if (!oDomRef) {
@@ -123,9 +176,9 @@ sap.ui.define([
 	 * @private
 	 */
 	ToolPage.prototype._deregisterControl = function () {
-		if (this._ResizeHandler) {
-			ResizeHandler.deregister(this._ResizeHandler);
-			this._ResizeHandler = null;
+		if (this._resizeHandler) {
+			ResizeHandler.deregister(this._resizeHandler);
+			this._resizeHandler = null;
 		}
 	};
 
@@ -133,72 +186,52 @@ sap.ui.define([
 	 * Handles the change of the screen size.
 	 * @private
 	 */
-	ToolPage.prototype._mediaQueryHandler = function () {
-		var oSideContent = this.getSideContent();
+	ToolPage.prototype._resize = function () {
+		this._updateLayoutSettings();
+	};
 
-		if (oSideContent === null) {
+	ToolPage.prototype._updateLayoutSettings = function () {
+		const oMediaRange = this._getMediaRange();
+		const sClassName = "sapTntToolPage-Layout" + oMediaRange.name;
+
+		if (this._sCurrentLayoutClassName === sClassName) {
 			return;
 		}
 
-		this._currentMediaQuery = this._getDeviceAsString();
-
-		if (this._getLastMediaQuery() === this._currentMediaQuery) {
-			return;
+		if (this._sCurrentLayoutClassName) {
+			this.removeStyleClass(this._sCurrentLayoutClassName);
 		}
 
-		switch (this._currentMediaQuery) {
-			case "Combi":
-				this.setSideExpanded(true);
-				break;
-			case "Tablet":
-				this.setSideExpanded(false);
-				break;
-			case "Phone":
-				this.setSideExpanded(false);
-				oSideContent.setExpanded(true);
-				break;
-			default:
-				this.setSideExpanded(true);
-		}
+		this.setSideExpanded(this.isPropertyInitial("sideExpanded") ? !this._isLayoutS() : this.getSideExpanded());
 
-		this._updateLastMediaQuery();
+
+		this.addStyleClass(sClassName);
+
+		this._sCurrentLayoutClassName = sClassName;
 	};
 
-	/**
-	 * Returns the last media query.
-	 * @returns {undefined|string}
-	 * @private
-	 */
-	ToolPage.prototype._getLastMediaQuery = function () {
-		return this._lastMediaQuery;
+	ToolPage.prototype._getMediaRange = function () {
+		return Device.media.getCurrentRange(TP_RANGE_SET, window.innerWidth);
 	};
 
-	/**
-	 * Sets the last media query.
-	 * @returns {ToolPage}
-	 * @private
-	 */
-	ToolPage.prototype._updateLastMediaQuery = function () {
-		this._lastMediaQuery = this._getDeviceAsString();
-
-		return this;
+	ToolPage.prototype._isLayoutS = function () {
+		return this._getMediaRange().name === "S";
 	};
 
-	ToolPage.prototype._getDeviceAsString = function () {
-		if (Device.system.combi) {
-			return "Combi";
+	ToolPage.prototype._onContentChange = function(oChanges) {
+		switch (oChanges.mutation) {
+			case "insert":
+				this._oContentVisibilityObserver.observe(oChanges.child, { properties: ["visible"] });
+				break;
+			case "remove":
+				this._oContentVisibilityObserver.unobserve(oChanges.child, { properties: ["visible"] });
+				break;
 		}
+	};
 
-		if (Device.system.phone) {
-			return "Phone";
-		}
-
-		if (Device.system.tablet) {
-			return "Tablet";
-		}
-
-		return "Desktop";
+	ToolPage.prototype._onContentVisibilityChange = function(oChanges) {
+		this.invalidate();
 	};
 
 	return ToolPage;
-}, /* bExport= */ true);
+});

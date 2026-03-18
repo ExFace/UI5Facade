@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,12 +33,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @since 1.38
 	 *
 	 * @public
 	 * @alias sap.m.ImageContent
-	 * @ui5-metamodel This control will also be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ImageContent = Control.extend("sap.m.ImageContent", /** @lends sap.m.ImageContent.prototype */ {
 		metadata: {
@@ -67,7 +66,9 @@ sap.ui.define([
 				 */
 				press: {}
 			}
-		}
+		},
+
+		renderer: ImageContentRenderer
 	});
 
 	/* --- Lifecycle Handling --- */
@@ -158,16 +159,15 @@ sap.ui.define([
 	/**
 	 * Returns the alternative text
 	 *
-	 * @returns {String} The alternative text
+	 * @returns {string} The alternative text
 	 */
 	ImageContent.prototype.getAltText = function () {
-		var oContent = this.getAggregation("_content");
+		const oContent = this.getAggregation("_content");
 		if (oContent && oContent.getAlt() !== "") {
 			return oContent.getAlt();
-		} else if (oContent && oContent.getAccessibilityInfo()) {
-			return oContent.getAccessibilityInfo().description;
 		} else {
-			return "";
+			const sText = oContent?.getAccessibilityInfo()?.description;
+			return sText || "";
 		}
 	};
 

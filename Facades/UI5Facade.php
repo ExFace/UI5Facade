@@ -382,6 +382,7 @@ JS;
         UI5DateFormatter::registerMoment($this, $controller);
         // Include our main toolbax exfTools
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
+        
         // Include the setup manager library, in order to use exfSetupManager in CallWidgetFunction actions
         $controller->addExternalModule('exface.openui5.exfSetupManager', $this->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
         
@@ -551,14 +552,14 @@ JS;
      */
     public function getTheme() : string
     {
-        return $this->theme ?? 'sap_belize';
+        return $this->theme ?? 'sap_fiori_3';
     }
     
     /**
      * 
      * @uxon-property theme
-     * @uxon-type [sap_belize,sap_fiori_3]
-     * @uxon-default sap_belize
+     * @uxon-type [sap_belize,sap_fiori_3,sap_fiori_3_dark,sap_horizon,sap_horizon_dark,sap_horizon_hcw,sap_horizon_hcb]
+     * @uxon-default sap_fiori_3
      * 
      * @param string $value
      * @return UI5Facade

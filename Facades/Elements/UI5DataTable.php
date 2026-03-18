@@ -706,6 +706,8 @@ JS;
         
         $selection_mode = $widget->getMultiSelect() ? 'sap.ui.table.SelectionMode.MultiToggle' : 'sap.ui.table.SelectionMode.Single';
         $selection_behavior = $widget->getMultiSelect() ? 'sap.ui.table.SelectionBehavior.Row' : 'sap.ui.table.SelectionBehavior.RowOnly';
+        $striped = $widget->getStriped() ? 'true' : 'false';
+        
         
         if ($this->getDynamicPageShowToolbar() === false) {
             $toolbar = $this->buildJsToolbar($oControllerJs, $this->getPaginatorElement()->buildJsConstructor($oControllerJs));
@@ -783,9 +785,10 @@ JS;
                     })
                 ],
                 rows: "{/rows}"
-        	})
+        	}).addStyleClass('rowAlternate-'+{$striped})
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
+
 JS;
             
             return $js;
@@ -1051,20 +1054,6 @@ JS;
                   
         if ($this->isUiTable() === true) {            
             $tableParams = <<<JS
-            
-            // Process currently visible columns:
-            // - Add filters and sorters from column menus
-            // - Add column name to ensure even optional data is read if required 
-            // columns are now added to request data in UI5DataConfigurator->buildJsDataGetter  
-            
-            oTable.getColumns().forEach(oColumn => {
-                var mVal = oColumn.getFilterValue();
-                var fnParser = oColumn.data('_exfFilterParser');
-    			if (oColumn.getFiltered() === true && mVal !== undefined && mVal !== null && mVal !== ''){
-                    mVal = fnParser !== undefined ? fnParser(mVal) : mVal;
-    				{$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + oColumn.getFilterProperty()] = mVal;
-    			}
-    		});
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
     		// NOTE: adding filters to the P13nDialog works strage: the value of the filter does not change
@@ -1781,6 +1770,20 @@ JS;
                 var mExpand = $expandGroupJs;
                 var aCtxts = oBinding.getContexts(0, iRowCnt);
                 var iExpanded = 0;
+                let iFirstGroupLength = 0;
+
+                // In order to use the _experimentalGroupingCollapse, we need to pass the actual row object to the function, not an index.
+                // However, getRows() only returns the currently visible rows, so we need to temporarily set the visible row count to the total count of rows, in order to collapse everything 
+                // even if its not inside the viewport. The original settings are saved and then reset afterwards.
+                var iTotalLength = oBinding.getLength();
+                var iOldVisibleRowCount = oTable.getVisibleRowCount();
+                var sOldMode = oTable.getVisibleRowCountMode();
+                
+                // temporarily set visible rows to total count and set mode to fixed to get all rows on page.
+                oTable.setVisibleRowCountMode("Fixed");
+                oTable.setVisibleRowCount(iTotalLength);
+                sap.ui.getCore().applyChanges();
+
                 for (var i = 0; i < iRowCnt; i++) {
                     if (aCtxts[i].__groupInfo) {
                         aCtxts[i].__groupInfo.name = (function(mVal) {
@@ -1790,31 +1793,53 @@ JS;
                             return '{$groupCaption}' + {$groupFormatterJs}
                         })(aCtxts[i].__groupInfo.name);
                     }
-                    if (oBinding.isGroupHeader(i)) {
+
+                    // collapse headers according to configuration: (first, all, none)
+                    // UI5-Upgrade -> oBinding.isGroupHeader() and oBinding.collapse() dont exist anymore, so we now need to check and expand/collapse this differently
+                    // the workaround we use now is a bit hacky, and might break in future versions, if there are changes to the _experimentalGrouping api
+                    // TODO: In general, the grouping APIs of ui and responsive table have mostly been moved to https://sdk.openui5.org/1.144.0/#/api/sap.ui.table.AnalyticalTable
+                    if (aCtxts[i].__groupInfo && aCtxts[i].__groupInfo.groupHeader === true) {
                         iHeaderIdx++;
-                        if (mExpand === false || (Number.isInteger(mExpand) && iHeaderIdx >= (mExpand - 1))) {
-                            oBinding.collapse(i);
+
+                        // if we want to collapse all groups, or the number of to be collapsed groups in not reached yet, collapse it
+                        if (mExpand === false || (Number.isInteger(mExpand) && iHeaderIdx > (mExpand - 1))) {
+                            
+                            // if we only want to expand the first group, we need to add the length of the group (minus group header) 
+                            // to all indices that come after that group, in order to collapse them.
+                            // So, if we have 5 rows in the first group, we collapse all group headers from index 6 (5 + 1 group header) onwards, and leave the first group as is.
+                            let iRowIdx = iHeaderIdx;
+                            if (mExpand === 1 && iHeaderIdx === 1){
+                                iFirstGroupLength = i-1;
+                            }
+
+                            iRowIdx += iFirstGroupLength;
+
+                            // collapse the group header 
+                            var oRow = oTable.getRows()[iRowIdx];
+                            if (oRow) {
+                                oTable._experimentalGroupingCollapse(oRow);
+                            }
                         }
                     }
                 }
+
+                // reset to original visible row count and mode
+                oTable.setVisibleRowCount(iOldVisibleRowCount);
+                oTable.setVisibleRowCountMode(sOldMode);
+                sap.ui.getCore().applyChanges();
+
                 // Resize columns every time a group gets expanded
                 oBinding.attachChange(function(oEvent) {
-                    var iExpandedBefore = iExpanded;
+                    
                     // Change-events on expand/collapse do not have a reason. Ignore others
                     if (oEvent.getParameters().reason !== undefined) {
                         return;
                     }
-                    iExpanded = 0;
-                    for (var i=0; i<iRowCnt; i++) {
-                        if(oBinding.isExpanded(i)) iExpanded += 1;
-                    }
-                    // If a group just got expanded, there are more expanded nodes now.
-                    // Resize the columns to match the newly visible data
-                    if (iExpanded > iExpandedBefore) {
-                        setTimeout(function(){
-                            {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_RESIZE_COLUMNS, $this, 'oTable, ' . $oModelJs)}
-                        }, 100);
-                    }
+
+                    // resize on collapse/expand
+                    setTimeout(function(){
+                        {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_RESIZE_COLUMNS, $this, 'oTable, ' . $oModelJs)}
+                    }, 100);
                 });
             })($oTableJs, $oModelJs);
 JS;
@@ -2021,6 +2046,8 @@ JS;
             // are also part of the row numbering. In any case, it is much more
             // reliable to check each binding and compare its path to the row
             // number inside the rows array of the model.
+            // NOTE sah -> group headings are now also in the binding, which broke the selection based on the binding context alone
+            // perhaps the binding based selection can be removed altogether?
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
                     var aSelections = oTable.getSelectedIndices();
@@ -2028,13 +2055,18 @@ JS;
                     var oBinding = oTable.getBinding("rows");
                     var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
+                        let iGroupHeaders = 0;
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
+                            if (context.__groupInfo !== undefined) {
+                                iGroupHeaders++;
+                            }
                             if (context && context.getPath() === `/rows/` + iRowIdx) {
-                                return i; // Match found
+                                return i-iGroupHeaders; // Match found (subtract number of group headers to correct the index)
                             }
                         }
                     };
+
                     iTableIdx = fnFindTableIdx(iRowIdx);
                     oTable.clearSelection();
                     if (bDeselect === false) {

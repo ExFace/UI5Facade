@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/Renderer", "./ListBaseRenderer"],
-	function(Renderer, ListBaseRenderer) {
+sap.ui.define(["sap/ui/core/Renderer", "./ListBaseRenderer", "sap/ui/core/InvisibleText"],
+	function(Renderer, ListBaseRenderer, InvisibleText) {
 	"use strict";
 
 
@@ -19,8 +19,23 @@ sap.ui.define(["sap/ui/core/Renderer", "./ListBaseRenderer"],
 	var ListRenderer = Renderer.extend(ListBaseRenderer);
 	ListRenderer.apiVersion = 2;
 
-	ListRenderer.getNoDataAriaRole = function() {
-		return "option";
+	ListRenderer.getNoDataAriaRole = function(oControl) {
+		return oControl.getAriaRole() === "listbox" ? "option" : "listitem";
+	};
+
+	ListRenderer.getAriaDescribedBy = function(oControl) {
+		const aDescribedBy = [];
+
+		if (oControl.getAriaRole() === "list" && oControl._sAriaRoleDescriptionKey) {
+			aDescribedBy.push(InvisibleText.getStaticId("sap.m", oControl._sAriaRoleDescriptionKey));
+		}
+
+		const sBaseDescribedBy = ListBaseRenderer.getAriaDescribedBy(oControl);
+		if (sBaseDescribedBy) {
+			aDescribedBy.push(sBaseDescribedBy);
+		}
+
+		return aDescribedBy.length ? aDescribedBy.join(" ") : undefined;
 	};
 
 	return ListRenderer;

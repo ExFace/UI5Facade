@@ -1,0 +1,112 @@
+<core:FragmentDefinition
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.ui.layout.form"
+	xmlns="sap.m"
+>
+	<Dialog
+		id="sapUiRtaChangeAnnotationDialog"
+		verticalScrolling="true"
+		resizable="false"
+		draggable="true"
+		contentWidth="50rem"
+		contentHeight="{= ${/singleRename} === true ? 'auto' : '25rem'}"
+		title="{/title}"
+		class="sapUiContentPadding"
+		escapeHandler=".onCancel"
+	>
+		<content>
+			<VBox>
+				<MessageStrip
+					text="{i18n>ANNOTATION_CHANGE_DIALOG_WARNING}"
+					type="Warning"
+					showIcon="true"
+					class="sapUiSmallMarginBottom">
+					<link>
+						<Link text="{i18n>ANNOTATION_CHANGE_DIALOG_WARNING_MORE_INFO}"
+							target="_blank"
+							href="{path: '/', formatter: '.formatDocumentationUrl'}"/>
+					</link>
+				</MessageStrip>
+				<Label
+					id="sapUiRtaChangeAnnotationDialog_description"
+					visible="{= ${/description}.length > 0}"
+					text="{/description}"/>
+				<HBox
+					id="sapUiRtaChangeAnnotationDialog_filterHBox"
+					fitContainer="true"
+					visible="{= ${/singleRename} === false}"
+				>
+					<SearchField
+						id="sapUiRtaChangeAnnotationDialog_propertiesFilter"
+						placeholder="{i18n>ANNOTATION_CHANGE_DIALOG_PROPERTY_SEARCH}"
+						value="{/filterText}"
+						liveChange="onFilterProperties"
+						enabled="{= ${/properties}.length > 0}">
+						<layoutData>
+							<FlexItemData growFactor="1" styleClass="sapUiSmallMarginEnd"/>
+						</layoutData>
+					</SearchField>
+					<HBox alignItems="Center">
+						<Label
+							text="{i18n>ANNOTATION_CHANGE_DIALOG_BUTTON_CHANGED_PROPERTIES}"/>
+						<Switch
+							id="sapUiRtaChangeAnnotationDialog_toggleShowAllPropertiesSwitch"
+							state="{/showChangedPropertiesOnly}"
+							change="switchDisplayMode"
+							customTextOn=" "
+							customTextOff=" "
+							enabled="{= ${/properties}.length > 0}"/>
+					</HBox>
+				</HBox>
+				<f:Form
+					id="sapUiRtaChangeAnnotationDialog_propertyListForm"
+					editable="true"
+					visible="{= ${/properties}.length > 0}">
+					<f:layout>
+						<f:ResponsiveGridLayout
+							labelSpanXL="4"
+							labelSpanL="4"
+							labelSpanM="4"
+							labelSpanS="12"
+							adjustLabelSpan="false"
+							emptySpanXL="0"
+							emptySpanL="0"
+							emptySpanM="0"
+							emptySpanS="0"
+							columnsXL="1"
+							columnsL="1"
+							columnsM="1"
+							singleContainerFullSize="true"/>
+					</f:layout>
+					<f:FormContainer
+						id="sapUiRtaChangeAnnotationDialog_propertyList"
+						formElements="{path: '/propertiesToDisplay', factory: '.editorFactory'}" />
+				</f:Form>
+				<IllustratedMessage
+					illustrationType="sapIllus-NoData"
+					enableVerticalResponsiveness="true"
+					title="{i18n>ANNOTATION_CHANGE_DIALOG_NO_PROPERTIES_TITLE}"
+					description="{i18n>ANNOTATION_CHANGE_DIALOG_NO_PROPERTIES_DESCRIPTION}"
+					visible="{= ${/properties}.length === 0}">
+				</IllustratedMessage>
+			</VBox>
+		</content>
+		<beginButton>
+			<Button
+				id="sapUiRtaChangeAnnotationDialog_saveButton"
+				type="Emphasized"
+				text="{i18n>ANNOTATION_CHANGE_DIALOG_CONFIRM}"
+				press="onSave"
+				visible="{= ${/properties}.length > 0}"
+			/>
+		</beginButton>
+		<endButton>
+			<Button
+				id="sapUiRtaChangeAnnotationDialog_cancelButton"
+				type="Transparent"
+				text="{i18n>ANNOTATION_CHANGE_DIALOG_CANCEL}"
+				press="onCancel"
+			/>
+		</endButton>
+	</Dialog>
+</core:FragmentDefinition>

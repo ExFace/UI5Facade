@@ -1,35 +1,44 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 
 sap.ui.define([
-	'sap/ui/base/EventProvider',
-	'sap/ui/core/routing/Target',
-	'sap/ui/core/routing/async/Route',
-	'sap/ui/core/routing/sync/Route',
-	'sap/ui/core/Component',
 	"sap/base/Log",
 	"sap/base/assert",
-	"sap/base/util/deepExtend"
+	"sap/base/future",
+	"sap/base/util/deepExtend",
+	"sap/base/util/extend",
+	"sap/ui/base/EventProvider",
+	"sap/ui/core/Component",
+	"sap/ui/core/routing/Target",
+	"sap/ui/core/routing/sync/Route"
 ],
-	function(EventProvider, Target, asyncRoute, syncRoute, Component, Log, assert, deepExtend) {
-	"use strict";
+	function(
+		Log,
+		assert,
+		future,
+		deepExtend,
+		extend,
+		EventProvider,
+		Component,
+		Target,
+		SyncRoute
+	) {
+		"use strict";
 
 		/**
-		 * Instantiates an SAPUI5 Route
+		 * Configuration object for a route
 		 *
-		 * @class
-		 * @param {sap.ui.core.routing.Router} oRouter
-		 *   Router instance to which the route will be added
-		 * @param {object} oConfig
-		 *   Configuration object for the route
-		 * @param {string} oConfig.name
+		 * @typedef {object} sap.ui.core.routing.$RouteSettings
+		 * @public
+		 *
+		 * @property {string} name
 		 *   Name of the route, it will be used to retrieve the route from the router, it needs to be unique
 		 *   per router instance
-		 * @param {string} [oConfig.pattern]
+		 * @property {string} [pattern]
 		 *   URL pattern where it needs to match again. A pattern may consist of the following:
 		 * <ul>
 		 * <li>
@@ -47,47 +56,55 @@ sap.ui.define([
 		 * <li>
 		 * rest as string parameters: "pattern" : ":all*:" - this pattern will define an optional variable that will pass the whole hash as string to the routing events. It may be used to define a catchall route, e. g. the following hashes would match: foo, product/5/3, product/5/detail/3/foo. You can also combine it with the other variables but make sure a variable with a * is the last one.</br>
 		 * </ul>
-		 * @param {boolean} [oConfig.greedy=false]
-		 *   @since 1.27: By default only the first route matching the hash, will fire events. If greedy is turned on
+		 * @property {boolean} [greedy=false] Since 1.27. By default only the first route matching the hash, will fire events. If greedy is turned on
 		 *   for a route, its events will be fired even if another route has already matched.
-		 * @param {string} [oConfig.parent]
-		 *   @since 1.32 This property contains the information about the route which nests this route in the form:
+		 * @property {string} [parent] Since 1.32. This property contains the information about the route which nests this route in the form:
 		 *   "[componentName:]routeName". The nesting routes pattern will be prefixed to this routes pattern and hence
 		 *   the nesting route also matches if this one matches.
-		 * @param {string|string[]} [oConfig.target]
+		 * @property {string|string[]} [target]
 		 *   One or multiple name of targets {@link sap.ui.core.routing.Targets}. As soon as the route matches, the
 		 *   target(s) will be displayed. All the deprecated parameters are ignored, if a target is used.
-		 * @param {string} [oConfig.view]
+		 * @property {string} [view]
 		 *   <b>Deprecated since 1.28, use <code>target.viewName</code> instead.</b></br> The name of a view that will be created, the first time this
 		 *   route will be matched. To place the view into a Control use the targetAggregation and targetControl.
 		 *   Views will only be created once per Router
-		 * @param {string} [oConfig.viewType]
+		 * @property {string} [viewType]
 		 *   <b>Deprecated since 1.28, use <code>target.viewType</code> instead.</b></br> The type of the view that is going to be created. eg: "XML", "JS"
-		 * @param {string} [oConfig.viewPath]
+		 * @property {string} [viewPath]
 		 *   <b>Deprecated since 1.28, use <code>target.viewPath</code> instead.</b></br> A prefix that will be prepended in front of the view eg: view is
 		 *   set to "myView" and viewPath is set to "myApp" - the created view will be "myApp.myView"
-		 * @param {string} [oConfig.targetParent]
-		 *   <b>Deprecated since 1.28, use <code>config.rootView</code> (only available in the router config) instead.</b></br> The id of the parent of the
-		 *   targetControl - This should be the id view your targetControl is located in. By default, this will be
+		 * @property {string} [targetParent]
+		 *   <b>Deprecated since 1.28, use <code>config.rootView</code> (only available in the router config) instead.</b></br> The ID of the parent of the
+		 *   targetControl - This should be the ID of the view where your targetControl is located in. By default, this will be
 		 *   the view created by a component, or if the Route is a subroute the view of the parent route is taken.
 		 *   You only need to specify this, if you are not using a router created by a component on your top level routes
-		 * @param {string} [oConfig.targetControl]
-		 *   <b>Deprecated since 1.28, use <code>target.controlId</code> instead.</b></br> Views will be put into a container Control, this might be a
-		 *   {@link sap.ui.ux3.Shell} control or a {@link sap.m.NavContainer} if working with mobile, or any other container.
-		 *   The id of this control has to be put in here
-		 * @param {string} [oConfig.targetAggregation]
+		 * @property {string} [targetControl]
+		 *   <b>Deprecated since 1.28, use <code>target.controlId</code> instead.</b></br> Views will be put into a container Control, this might be an
+		 *   {@link sap.ui.ux3.Shell} control or an {@link sap.m.NavContainer} if working with mobile, or any other container.
+		 *   The ID of this control has to be put in here
+		 * @property {string} [targetAggregation]
 		 *   <b>Deprecated since 1.28, use <code>target.controlAggregation</code> instead.</b></br> The name of an aggregation of the targetControl,
-		 *   that contains views. Eg: a {@link sap.m.NavContainer} has an aggregation "pages", another Example is the
+		 *   that contains views. Eg: an {@link sap.m.NavContainer} has an aggregation "pages", another Example is the
 		 *   {@link sap.ui.ux3.Shell} it has "content".
-		 * @param {boolean} [oConfig.clearTarget=false]
+		 * @property {boolean} [clearTarget=false]
 		 *   <b>Deprecated since 1.28, use <code>target.clearControlAggregation</code> instead.</b></br> Defines a boolean that
-		 *   can be passed to specify if the aggregation should be cleared before adding the View to it. When using a
-		 *   {@link sap.ui.ux3.Shell} this should be true. For a {@link sap.m.NavContainer} it should be false
-		 * @param {object} [oConfig.subroutes]
+		 *   can be passed to specify if the aggregation should be cleared before adding the View to it. When using an
+		 *   {@link sap.ui.ux3.Shell} this should be true. For an {@link sap.m.NavContainer} it should be false
+		 * @property {object} [subroutes]
 		 *   <b>Deprecated since 1.28, use <code>targets.parent</code> instead.</b> one or multiple route configs taking all of these parameters again.
 		 *   If a subroute is hit, it will fire the routeMatched event for all its parents. The routePatternMatched event
 		 *   will only be fired for the subroute not the parents. The routing will also display all the targets of the
 		 *   subroutes and its parents.
+		 */
+
+		/**
+		 * Instantiates a route
+		 *
+		 * @class
+		 * @param {sap.ui.core.routing.Router} oRouter
+		 *   Router instance to which the route will be added
+		 * @param {sap.ui.core.routing.$RouteSettings} oConfig
+		 *   Configuration object for the route
 		 * @param {sap.ui.core.routing.Route} [oParent]
 		 *   The parent route - if a parent route is given, the routeMatched event of this route will also trigger the
 		 *   route matched of the parent and it will also create the view of the parent(if provided).
@@ -118,12 +135,14 @@ sap.ui.define([
 					aSubRoutes,
 					sRouteName,
 					oSubRouteConfig,
-					RouteStub,
+					/** @ui5-transform-hint replace-local true */
 					async = oRouter._isAsync();
 
-				RouteStub = async ? asyncRoute : syncRoute;
-				for (var fn in RouteStub) {
-					this[fn] = RouteStub[fn];
+
+				if (!async) {
+					for (const fn in SyncRoute) {
+						this[fn] = SyncRoute[fn];
+					}
 				}
 
 				if (!Array.isArray(vRoute)) {
@@ -133,15 +152,15 @@ sap.ui.define([
 				if (oConfig.parent) {
 					var oRoute = this._getParentRoute(oConfig.parent);
 					if (!oRoute) {
-						Log.error("No parent route with '" + oConfig.parent + "' could be found", this);
+						future.errorThrows(`${this}: No parent route with "${oConfig.parent}" could be found`);
 					} else if (oRoute._aPattern.length > 1) {
-						Log.error("Routes with multiple patterns cannot be used as parent for nested routes", this);
+						future.errorThrows(`${this}: Routes with multiple patterns cannot be used as parent for nested routes`);
 						return;
 					} else {
 						this._oNestingParent = oRoute;
 						vRoute.forEach(function(sRoute, i) {
 							var sNestingRoute = oRoute._aPattern[0];
-							sNestingRoute = sNestingRoute.charAt(sNestingRoute.length) === "/" ? sNestingRoute : sNestingRoute + "/";
+							sNestingRoute = sNestingRoute.charAt(sNestingRoute.length - 1) === "/" ? sNestingRoute : sNestingRoute + "/";
 							vRoute[i] = sNestingRoute + sRoute;
 						});
 					}
@@ -232,6 +251,21 @@ sap.ui.define([
 				if (this._oRouter._oTargets) {
 					// suspend the targets which were displayed when the route was matched
 					this._oRouter._oTargets.suspend(this._oConfig.target);
+
+					// suspend the dynamic targets
+					if (this._oConfig.dynamicTarget) {
+						this._oRouter._oTargets.suspend(this._oConfig.dynamicTarget);
+					}
+				}
+			},
+
+			_resume: function() {
+				if (this._oRouter._oTargets) {
+					this._oRouter._oTargets.resume(this._oConfig.target);
+
+					if (this._oConfig.dynamicTarget) {
+						this._oRouter._oTargets.resume(this._oConfig.dynamicTarget);
+					}
 				}
 			},
 
@@ -259,6 +293,8 @@ sap.ui.define([
 			 *
 			 * @param {object} oParameters Parameters for the route
 			 * @return {string} the unencoded pattern with interpolated arguments
+			 * @throws {Error} Error will be thrown when any mandatory parameter in the route's pattern is missing from
+			 *  <code>oParameters</code> or assigned with empty string.
 			 * @public
 			 */
 			getURL : function (oParameters) {
@@ -347,11 +383,12 @@ sap.ui.define([
 										oHashChanger.setHash(oRoute.getURL(oRouteInfo.parameters), bParentRouteSwitched || !bRouteSwitched);
 										return oRoute._changeHashWithComponentTargets(oRouteInfo.componentTargetInfo, bParentRouteSwitched || bRouteSwitched);
 									} else {
-										Log.error("Can not navigate to route with name '" + sRouteName + "' because the route does not exist in component with id '" + oComponent.getId() + "'");
+										future.errorThrows("Can not navigate to route with name '" + sRouteName + "' because the route does not exist in component with id '" + oComponent.getId() + "'");
 									}
 								}
 							});
 					}
+					return;
 				});
 
 				return Promise.all(aLoadedPromises);
@@ -431,7 +468,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>sap.ui.core.routing.Route</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.25.1
 			 */
@@ -447,7 +484,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.25.1
 			 */
@@ -496,7 +533,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>Route</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.46.1
 			 */
@@ -512,7 +549,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.46.1
 			 */
@@ -573,7 +610,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>Route</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.25.1
 			 */
@@ -589,7 +626,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Route} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @since 1.25.1
 			 */
@@ -617,11 +654,11 @@ sap.ui.define([
 
 			_validateConfig: function(oConfig) {
 				if (!oConfig.name) {
-					Log.error("A name has to be specified for every route", this);
+					future.errorThrows(`${this}: A name has to be specified for every route`);
 				}
 
 				if (oConfig.viewName) {
-					Log.error("The 'viewName' option shouldn't be used in Route. please use 'view' instead", this);
+					future.errorThrows(`${this}: The 'viewName' option shouldn't be used in Route. please use 'view' instead`);
 				}
 			},
 
@@ -649,7 +686,7 @@ sap.ui.define([
 					assert(this._oRouter._oOwner, "No owner component for " + this._oRouter._oOwner.getId());
 					var oOwnerComponent = Component.getOwnerComponentFor(this._oRouter._oOwner);
 					while (oOwnerComponent) {
-						if (oOwnerComponent.getMetadata().getName() === aParts[0]) {
+						if (oOwnerComponent.isA(aParts[0])) {
 							var oRouter = oOwnerComponent.getRouter();
 							return oRouter.getRoute(aParts[1]);
 						}
@@ -669,6 +706,177 @@ sap.ui.define([
 			 */
 			getPatternArguments : function(sHash) {
 				return this._aRoutes[0].extrapolate(sHash);
+			},
+
+
+			/**
+			 * Executes the route matched logic
+			 *
+			 * @param {object} oArguments The arguments of the event
+			 * @param {Promise} oSequencePromise Promise chain for resolution in the correct order
+			 * @param {sap.ui.core.routing.Route} oNestingChild The nesting route
+			 * @returns {Promise} resolves with {name: *, view: *, control: *}
+			 * @private
+			 */
+			_routeMatched : function(oArguments, oSequencePromise, oNestingChild) {
+
+				var oRouter = this._oRouter,
+					oTarget,
+					oTargets,
+					oConfig,
+					oEventData,
+					oView = null,
+					oTargetControl = null,
+					bInitial,
+					oTargetData,
+					oCurrentPromise,
+					aAlignedTargets,
+					bRepeated = (oRouter._oMatchedRoute === this);
+
+				oRouter._sRouteInProgress = null;
+				oRouter._stopWaitingTitleChangedFromChild();
+
+				if (oRouter._oMatchedRoute) {
+					// clear the dynamicTarget of the previous matched route
+					delete oRouter._oMatchedRoute._oConfig.dynamicTarget;
+				}
+
+				oRouter._oMatchedRoute = this;
+				oRouter._bMatchingProcessStarted = true;
+
+				oConfig = extend({}, oRouter._oConfig, this._oConfig);
+
+				oTargets = oRouter.getTargets();
+				var sTitleName;
+				if (oTargets) {
+					sTitleName = oTargets._getTitleTargetName(oConfig.target, oConfig.titleTarget);
+					if (sTitleName && oRouter._oPreviousTitleChangedRoute !== this) {
+						oRouter._bFireTitleChanged = true;
+						if ((oRouter._oOwner && oRouter._oOwner._bRoutingPropagateTitle)) {
+							var oParentComponent = Component.getOwnerComponentFor(oRouter._oOwner);
+							var oParentRouter = oParentComponent && oParentComponent.getRouter();
+							if (oParentRouter) {
+								oParentRouter._waitForTitleChangedOn(oRouter);
+							}
+						}
+					} else {
+						oRouter._bFireTitleChanged = false;
+					}
+
+					if (this._oConfig.target) {
+						aAlignedTargets = oTargets._alignTargetsInfo(this._oConfig.target);
+						aAlignedTargets.forEach(function(oTarget){
+							oTarget.propagateTitle = oTarget.hasOwnProperty("propagateTitle") ? oTarget.propagateTitle : oRouter._oConfig.propagateTitle;
+							oTarget.routeRelevant = true;
+							oTarget.repeatedRoute = bRepeated;
+						});
+					}
+				} else {
+					aAlignedTargets = this._oConfig.target;
+				}
+
+				if (!oSequencePromise || oSequencePromise === true) {
+					bInitial = true;
+					oSequencePromise = Promise.resolve();
+				}
+
+				// Recursively fire matched event and display views of this routes parents
+				if (this._oParent) {
+					oSequencePromise = this._oParent._routeMatched(oArguments, oSequencePromise);
+				} else if (this._oNestingParent) {
+					// pass child for setting the flag in event parameter of parent
+					this._oNestingParent._routeMatched(oArguments, oSequencePromise, this);
+				}
+
+
+				// make a copy of arguments and forward route config to target
+				oTargetData = Object.assign({}, oArguments);
+				oTargetData.routeConfig = oConfig;
+
+				oEventData = {
+					name: oConfig.name,
+					arguments: oArguments,
+					config : oConfig
+				};
+
+				if (oNestingChild) {
+					// setting the event parameter of nesting child
+					oEventData.nestedRoute = oNestingChild;
+				}
+
+				// fire the beforeMatched and beforeRouteMathced events
+				this.fireBeforeMatched(oEventData);
+				oRouter.fireBeforeRouteMatched(oEventData);
+
+				// Route is defined without target in the config - use the internally created target to place the view
+				if (this._oTarget) {
+					oTarget = this._oTarget;
+					// update the targets config so defaults are taken into account - since targets cannot be added in runtime they don't merge configs like routes do
+					oTarget._updateOptions(this._convertToTargetOptions(oConfig));
+
+					oSequencePromise = oTarget._place(oSequencePromise, { legacy: true });
+
+					// this is for sap.m.routing.Router to chain the promise to the navigation promise in TargetHandler
+					if (this._oRouter._oTargetHandler && this._oRouter._oTargetHandler._chainNavigation) {
+						oCurrentPromise = oSequencePromise;
+						oSequencePromise = this._oRouter._oTargetHandler._chainNavigation(function() {
+							return oCurrentPromise;
+						});
+					}
+				} else {
+					oSequencePromise = oRouter._oTargets._display(aAlignedTargets, oTargetData, this._oConfig.titleTarget, oSequencePromise);
+				}
+
+				return oSequencePromise.then(function(oResult) {
+					oRouter._bMatchingProcessStarted = false;
+					var aResult, aViews, aControls;
+
+					// The legacy config uses single target to display which makes the promise resolve with an object
+					// However, the new config uses targets to display which makes the promise resolve with an array
+					// Both cases need to be handled here
+					if (Array.isArray(oResult)) {
+						aResult = oResult;
+						oResult = aResult[0];
+					}
+
+					oResult = oResult || {};
+
+					oView = oResult.view;
+					oTargetControl = oResult.control;
+
+					// Extend the event data with view and targetControl
+					oEventData.view = oView;
+					oEventData.targetControl = oTargetControl;
+
+					if (aResult) {
+						aViews = [];
+						aControls = [];
+
+						aResult.forEach(function(oResult) {
+							aViews.push(oResult.view);
+							aControls.push(oResult.control);
+						});
+
+						oEventData.views = aViews;
+						oEventData.targetControls = aControls;
+					}
+
+					if (oConfig.callback) {
+						//Targets don't pass TargetControl and view since there might be multiple
+						oConfig.callback(this, oArguments, oConfig, oTargetControl, oView);
+					}
+
+					this.fireEvent("matched", oEventData);
+					oRouter.fireRouteMatched(oEventData);
+					// skip this event in the recursion
+					if (bInitial) {
+						Log.info("The route named '" + oConfig.name + "' did match with its pattern", this);
+						this.fireEvent("patternMatched", oEventData);
+						oRouter.fireRoutePatternMatched(oEventData);
+					}
+
+					return oResult;
+				}.bind(this));
 			}
 		});
 

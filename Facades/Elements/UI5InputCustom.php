@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Facades\AbstractAjaxFacade\Elements\JsInputCustomTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\DataTypes\StringDataType;
@@ -15,6 +16,7 @@ use exface\Core\DataTypes\StringDataType;
  */
 class UI5InputCustom extends UI5Input
 {
+    use JsInputCustomTrait;
     
     /**
      * 
@@ -108,80 +110,15 @@ JS);
         }
         return $this;
     }
-    
+
     /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueSetter()
+     * {@inheritdoc}
+     * @see UI5Value::registerLiveReferenceAtLinkedElement()
      */
-    public function buildJsValueSetter($value)
+    public function registerLiveReferenceAtLinkedElement()
     {
-        return $this->getWidget()->getScriptToSetValue($value) ?? $this->buildJsFallbackForEmptyScript('script_to_set_value');
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
-     */
-    public function buildJsValueGetter()
-    {
-        return $this->getWidget()->getScriptToGetValue() ?? $this->buildJsFallbackForEmptyScript('script_to_get_value');
-    }
-    
-    /**
-     *
-     * {@inheritDoc}
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait::buildJsValidator()
-     */
-    public function buildJsValidator(?string $valJs = null) : string
-    {
-        return $this->getWidget()->getScriptToValidateInput() ?? parent::buildJsValidator($valJs);
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsSetDisabled()
-     */
-    public function buildJsSetDisabled(bool $trueOrFalse) : string
-    {
-        // TODO call on-true/false widget functions here. But currently they cannot be defined for InputCustom...
-        if ($trueOrFalse === true) {
-            return $this->getWidget()->getScriptToDisable() ?? parent::buildJsSetDisabled($trueOrFalse);
-        } else {
-            return $this->getWidget()->getScriptToEnable() ?? parent::buildJsSetDisabled($trueOrFalse);
-        }
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDataGetter()
-     */
-    public function buildJsDataGetter(ActionInterface $action = null)
-    {
-        return $this->getWidget()->getScriptToGetData($action) ?? parent::buildJsDataGetter($action);
-    }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDataSetter()
-     */
-    public function buildJsDataSetter(string $jsData) : string
-    {
-        return $this->getWidget()->getScriptToSetData($jsData) ?? parent::buildJsDataSetter($jsData);
-    }
-    
-    /**
-     *
-     * @param string $widgetProperty
-     * @param string $returnValueJs
-     * @return string
-     */
-    protected function buildJsFallbackForEmptyScript(string $widgetProperty, string $returnValueJs = "''") : string
-    {
-        return "(function(){console.warn('Property {$widgetProperty} not set for widget InputCustom. Falling back to empty string'); return {$returnValueJs};})()";
+        parent::registerLiveReferenceAtLinkedElement();
+        $this->registerLiveReferencesAtCustomLinks();
+        return $this;
     }
 }

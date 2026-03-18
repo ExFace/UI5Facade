@@ -1,25 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/util/uid"
 ], function(
+	uid
 ) {
 	"use strict";
 
-	function _setDimensionAsStyle (oRm, sDimension, sValue) {
+	function _setDimensionAsStyle(oRm, sDimension, sValue) {
 		if (sValue !== "" || sValue.toLowerCase() === "auto") {
 			oRm.style(sDimension, sValue);
 		}
+	}
+
+	 function createsSandboxAttributesString(oAdvancedSettings) {
+		return Object.keys(oAdvancedSettings)
+		.filter((sKey) => oAdvancedSettings[sKey])
+		.map((sKey) => sKey.replace(/[A-Z]/g, "-$&").toLowerCase())
+		.join(" ");
 	}
 
 	/**
 	 * IFrame renderer.
 	 * @namespace
 	 */
-	var IFrameRenderer = {apiVersion: 2};
+	var IFrameRenderer = { apiVersion: 2 };
 
 	/**
 	 * Renders the HTML for the given control, using the provided
@@ -28,26 +37,38 @@ sap.ui.define([
 	 * @param {sap.ui.core.RenderManager} oRm
 	 *            The RenderManager that can be used for writing to
 	 *            the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oIFrame
+	 * @param {sap.ui.fl.util.IFrame} oIFrame
 	 *            The iframe to be rendered
 	 */
 	IFrameRenderer.render = function(oRm, oIFrame) {
-		oRm.openStart("iframe", oIFrame);
-
+		oRm.openStart("div", oIFrame);
+		// Render dimensions on container to avoid flickering
 		_setDimensionAsStyle(oRm, "width", oIFrame.getWidth());
 		_setDimensionAsStyle(oRm, "height", oIFrame.getHeight());
+		oRm.openEnd();
+
+		// Assign a unique id to render a fresh dom element for the iframe on every rerender
+		// This will avoid that src changes add to the history as the src is always the initial value of the new element
+		oRm.openStart("iframe", `${oIFrame.getId()}-${uid()}`);
+		oRm.style("width", "100%");
+		oRm.style("height", "100%");
 		oRm.style("display", "block");
 		oRm.style("border", "none");
 
+		const sTitle = oIFrame.getTitle();
+		const oAdvancedSettings = oIFrame.getAdvancedSettings();
+		const { additionalSandboxParameters: aAdditionalSandboxParameters, ...oFilteredAdvancedSettings } = oAdvancedSettings;
+		const sAdditionalSandboxParameters = aAdditionalSandboxParameters?.join(" ");
+		const sSandboxAttributes = createsSandboxAttributesString(oFilteredAdvancedSettings);
+		const sCombinedSandboxAttributes = sAdditionalSandboxParameters ? `${sSandboxAttributes} ${sAdditionalSandboxParameters}` : sSandboxAttributes;
 		oRm.attr("src", oIFrame.getUrl());
-		var sTitle = oIFrame.getTitle();
 		if (sTitle) {
 			oRm.attr("title", sTitle);
 		}
-
+		oRm.attr("sandbox", sCombinedSandboxAttributes);
 		oRm.openEnd();
-
 		oRm.close("iframe");
+		oRm.close("div");
 	};
 
 	return IFrameRenderer;

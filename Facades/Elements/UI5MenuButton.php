@@ -36,7 +36,7 @@ class UI5MenuButton extends UI5AbstractElement
             })
 		]
 	})
-    .addStyleClass("{$this->buildCssElementClass()}")
+    .addStyleClass("{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
     {$this->buildJsPseudoEventHandlers()}
 
 JS;
@@ -139,25 +139,38 @@ JS;
     public function registerConditionalProperties() : UI5AbstractElement
     {
         // Make sure, the MenuButton is hidden if no menu items are visible.
-        // TODO Should probably make it visible again once at least one item is visible?
+
+        /*  NOTE sah: onAfterRendering is only called after the first visibleChange has been fired. So if theres
+            no buttons visible initially, the menu button is still visible, even though its empty. So we need
+            to update the intiial visibility here too
+        */
         if ($this->isVisible()) {
             foreach ($this->getWidget()->getButtons() as $btn) {
                 $btnEl = $this->getFacade()->getElement($btn);
                 if ($btnId = $btnEl->getId()) {
                     $this->addPseudoEventHandler('onAfterRendering', <<<JS
-    
-                    sap.ui.getCore().byId('$btnId').$().on('visibleChange', function(oEvent){
-                        var oMenuButton = sap.ui.getCore().byId('{$this->getId()}');
-                        var bItemsVisible = false;
-                        oMenuButton.getMenu().getItems().forEach(function(oItem){
-                            if (oItem.getVisible() === true){
-                                bItemsVisible = true;
-                            }
-                        });
-                        if (bItemsVisible === false) {
+                    (function () {
+                        function updateMenuButtonVisibility() {
+                            var oMenuButton = sap.ui.getCore().byId('{$this->getId()}');
+                            var bItemsVisible = false;
+                            oMenuButton.getMenu().getItems().forEach(function(oItem){
+                                if (oItem.getVisible() === true){
+                                    bItemsVisible = true;
+                                }
+                            });
                             oMenuButton.setVisible(bItemsVisible);
                         }
-                    });
+
+                        // attach event listener 
+                        let oCtrl = sap.ui.getCore().byId('$btnId');
+                        if (oCtrl && !oCtrl._visibleChangeAttached) {
+                            oCtrl._visibleChangeAttached = true;
+                            oCtrl.attachEvent("visibleChange", updateMenuButtonVisibility);
+                        }
+
+                        // update intitial visibility
+                        updateMenuButtonVisibility();
+                    })();
                         
 JS);
                 }

@@ -1,18 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.DeclarativeSupport
 sap.ui.define([
 	'sap/ui/thirdparty/jquery',
+	'sap/ui/base/BindingInfo',
 	'sap/ui/base/DataType',
-	'sap/ui/base/ManagedObject',
 	'./Control',
 	'./CustomData',
 	'./HTML',
 	'./mvc/View',
+	'./mvc/_ViewFactory',
 	'./mvc/EventHandlerResolver',
 	'sap/base/Log',
 	'sap/base/util/ObjectPath',
@@ -21,12 +22,13 @@ sap.ui.define([
 ],
 	function(
 		jQuery,
+		BindingInfo,
 		DataType,
-		ManagedObject,
 		Control,
 		CustomData,
 		HTML,
 		View,
+		_ViewFactory,
 		EventHandlerResolver,
 		Log,
 		ObjectPath,
@@ -40,10 +42,12 @@ sap.ui.define([
 	 * @class Static class for enabling declarative UI support.
 	 *
 	 * @author Peter Muessig, Tino Butz
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @since 1.7.0
 	 * @public
 	 * @alias sap.ui.core.DeclarativeSupport
+	 * @deprecated since 1.120. Please consider using {@link sap.ui.core.mvc.XMLView XMLViews} or {@link topic:e6bb33d076dc4f23be50c082c271b9f0 Typed Views} instead.
+	 * For more information, see the documentation on {@link topic:91f27e3e6f4d1014b6dd926db0e91070 View types}.
 	 */
 	var DeclarativeSupport = {
 	};
@@ -64,7 +68,7 @@ sap.ui.define([
 		"data-sap-ui-aggregation" : true,
 		"data-sap-ui-default-aggregation" : true,
 		"data-sap-ui-binding" : function(sValue, mSettings) {
-			var oBindingInfo = ManagedObject.bindingParser(sValue);
+			var oBindingInfo = BindingInfo.parse(sValue);
 			// TODO reject complex bindings, types, formatters; enable 'parameters'?
 			mSettings.objectBindings = mSettings.objectBindings || {};
 			mSettings.objectBindings[oBindingInfo.model || undefined] = oBindingInfo;
@@ -120,6 +124,7 @@ sap.ui.define([
 		var sType = $element.attr("data-sap-ui-type");
 		var aControls = [];
 		var bIsUIArea = sType === "sap.ui.core.UIArea";
+		var aAttributes = oElement.getAttributeNames();
 
 		if (bIsUIArea) {
 			// use a UIArea / better performance when rendering multiple controls
@@ -145,12 +150,12 @@ sap.ui.define([
 		// for a UIArea we remove only the data HTML attributes and keep the others
 		// also marks the control as parsed (by removing data-sap-ui-type)
 		var aAttr = [];
-		jQuery.each(oElement.attributes, function(iIndex, oAttr) {
-			var sName = oAttr.name;
+		for (var i = 0; i < aAttributes.length; i++) {
+			var sName = aAttributes[i];
 			if (!bIsUIArea || bIsUIArea && /^data-/g.test(sName.toLowerCase())) {
 				aAttr.push(sName);
 			}
-		});
+		}
 		if (aAttr.length > 0) {
 			$element.removeAttr(aAttr.join(" "));
 		}
@@ -187,7 +192,8 @@ sap.ui.define([
 
 		var sType = $element.attr("data-sap-ui-type");
 		if (sType) {
-			var fnClass = sap.ui.requireSync(sType.replace(/\./g, "/")); // make sure fnClass.getMatadata() is available
+			// make sure fnClass.getMatadata() is available
+			var fnClass = sap.ui.requireSync(sType.replace(/\./g, "/")); // legacy-relevant
 			fnClass = fnClass || ObjectPath.get(sType);
 			assert(typeof fnClass !== "undefined", "Class not found: " + sType);
 
@@ -203,7 +209,7 @@ sap.ui.define([
 			var oControl;
 			if (View.prototype.isPrototypeOf(fnClass.prototype) && typeof fnClass._sType === "string") {
 				// for views having a factory function defined we use the factory function!
-				oControl = View._legacyCreate(mSettings, undefined, fnClass._sType);
+				oControl = _ViewFactory.create(mSettings, undefined, fnClass._sType);
 			} else {
 				oControl = new fnClass(mSettings);
 			}
@@ -254,13 +260,14 @@ sap.ui.define([
 	DeclarativeSupport._addSettingsForAttributes = function(mSettings, fnClass, oElement, oView) {
 		var that = this;
 		var oSpecialAttributes = DeclarativeSupport.attributes;
-		var fnBindingParser = ManagedObject.bindingParser;
+		var fnParse = BindingInfo.parse;
 		var aCustomData = [];
 		var reCustomData = /^data-custom-data:(.+)/i;
+		var aAttributes = oElement.getAttributeNames();
 
-		jQuery.each(oElement.attributes, function(iIndex, oAttr) {
-			var sName = oAttr.name;
-			var sValue = oAttr.value;
+		for (var i = 0; i < aAttributes.length; i++) {
+			var sName = aAttributes[i];
+			var sValue = oElement.getAttribute(sName);
 
 			if (!reCustomData.test(sName)) {
 
@@ -270,7 +277,7 @@ sap.ui.define([
 					sName = that.convertAttributeToSettingName(sName, mSettings.id);
 					var oProperty = that._getProperty(fnClass, sName);
 					if (oProperty) {
-						var oBindingInfo = fnBindingParser(sValue, oView && oView.getController(), true );
+						var oBindingInfo = fnParse(sValue, oView && oView.getController(), true );
 						if ( oBindingInfo && typeof oBindingInfo === "object" ) {
 							mSettings[sName] = oBindingInfo;
 						} else {
@@ -291,14 +298,14 @@ sap.ui.define([
 					} else if (that._getAggregation(fnClass, sName)) {
 						var oAggregation = that._getAggregation(fnClass, sName);
 						if (oAggregation.multiple) {
-							var oBindingInfo = fnBindingParser(sValue, oView && oView.getController());
+							var oBindingInfo = fnParse(sValue, oView && oView.getController());
 							if (oBindingInfo) {
 								mSettings[sName] = oBindingInfo;
 							} else {
 								throw new Error("Aggregation " + sName + " with cardinality 0..n only allows binding paths as attribute value");
 							}
 						} else if (oAggregation.altTypes) {
-							var oBindingInfo = fnBindingParser(sValue, oView && oView.getController(), true);
+							var oBindingInfo = fnParse(sValue, oView && oView.getController(), true);
 							if ( oBindingInfo && typeof oBindingInfo === "object" ) {
 								mSettings[sName] = oBindingInfo;
 							} else {
@@ -330,7 +337,7 @@ sap.ui.define([
 				sName = camelize(reCustomData.exec(sName)[1]);
 
 				// create a binding info object if necessary
-				var oBindingInfo = fnBindingParser(sValue, oView && oView.getController());
+				var oBindingInfo = fnParse(sValue, oView && oView.getController());
 
 				// create the custom data object
 				aCustomData.push(new CustomData({
@@ -339,8 +346,7 @@ sap.ui.define([
 				}));
 
 			}
-
-		});
+		}
 
 		if (aCustomData.length > 0) {
 			mSettings.customData = aCustomData;
@@ -478,7 +484,7 @@ sap.ui.define([
 		}
 		// else return original sValue (e.g. for enums)
 		// Note: to avoid double resolution of binding expressions, we have to escape string values once again
-		return typeof sValue === "string" ? ManagedObject.bindingParser.escape(sValue) : sValue;
+		return typeof sValue === "string" ? BindingInfo.parse.escape(sValue) : sValue;
 	};
 
 

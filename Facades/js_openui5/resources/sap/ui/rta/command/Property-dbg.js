@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,50 +16,51 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.34
-	 * @alias sap.ui.rta.command.BaseCommand
-	 * @experimental Since 1.34. This class is experimental and provides only limited functionality. Also the API might be
-	 *               changed in future.
+	 * @alias sap.ui.rta.command.Property
 	 */
-	var Property = FlexCommand.extend("sap.ui.rta.command.Property", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				propertyName : {
-					type : "string"
+	const Property = FlexCommand.extend("sap.ui.rta.command.Property", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				propertyName: {
+					type: "string",
+					group: "content"
 				},
-				newValue : {
-					type : "any"
+				newValue: {
+					type: "any",
+					group: "content"
 				},
-				semanticMeaning : {
-					type : "string"
+				semanticMeaning: {
+					type: "string",
+					group: "content"
 				},
-				changeType : {
-					type : "string",
-					defaultValue : "propertyChange"
+				changeType: {
+					type: "string",
+					defaultValue: "propertyChange"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
 	Property.prototype._getChangeSpecificData = function() {
-		var oElement = this.getElement();
+		const oElement = this.getElement();
 		// general format
 		return {
-			changeType : this.getChangeType(),
-			selector : {
-				id : oElement.getId(),
-				type : oElement.getMetadata().getName()
+			changeType: this.getChangeType(),
+			selector: {
+				id: oElement.getId(),
+				type: oElement.getMetadata().getName()
 			},
-			content : {
-				property : this.getPropertyName(),
-				newValue : this.getNewValue(),
-				semantic : this.getSemanticMeaning()
+			content: {
+				property: this.getPropertyName(),
+				newValue: this.getNewValue(),
+				semantic: this.getSemanticMeaning()
 			}
 		};
 	};

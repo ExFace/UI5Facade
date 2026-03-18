@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,7 +9,7 @@ sap.ui.define([
 	"sap/ui/layout/HorizontalLayout",
 	"sap/m/Link",
 	"sap/m/Text"
-], function (
+], function(
 	MessageBox,
 	HorizontalLayout,
 	Link,
@@ -17,20 +17,20 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var sLinkRegex = "\\[(.*?)\\]\\((.*?)\\)";
+	const sLinkRegex = "\\[(.*?)\\]\\((.*?)\\)";
 
 	function hasLinks(sMessage) {
-		var vResult = getLinks(sMessage);
+		const vResult = getLinks(sMessage);
 		return Array.isArray(vResult) && vResult.length > 0;
 	}
 
 	function isLink(sText) {
-		var oRegex = new RegExp("^" + sLinkRegex + "$");
+		const oRegex = new RegExp(`^${sLinkRegex}$`);
 		return Array.isArray(oRegex.exec(sText));
 	}
 
 	function extractLink(sLink) {
-		var aMatch = new RegExp(sLinkRegex).exec(sLink);
+		const aMatch = new RegExp(sLinkRegex).exec(sLink);
 		return {
 			text: aMatch[1],
 			href: aMatch[2]
@@ -38,16 +38,16 @@ sap.ui.define([
 	}
 
 	function getLinks(sMessage) {
-		var oRegExp = new RegExp(sLinkRegex, "g");
+		const oRegExp = new RegExp(sLinkRegex, "g");
 		return sMessage.match(oRegExp);
 	}
 
 	function convertIntoControls(aSymbols) {
-		var oLayout = new HorizontalLayout({
+		const oLayout = new HorizontalLayout({
 			allowWrapping: true,
-			content: aSymbols.map(function (sSymbol) {
+			content: aSymbols.map(function(sSymbol) {
 				if (isLink(sSymbol)) {
-					var mLink = extractLink(sSymbol);
+					const mLink = extractLink(sSymbol);
 					return new Link({
 						text: mLink.text,
 						href: mLink.href,
@@ -69,27 +69,28 @@ sap.ui.define([
 	}
 
 	function getSymbols(sMessage) {
-		var aSymbols = [sMessage];
-		var aLinks = getLinks(sMessage);
+		const aSymbols = [sMessage];
+		const aLinks = getLinks(sMessage);
 
-		aLinks.forEach(function (sLink) {
-			var i = 0;
+		aLinks.forEach(function(sLink) {
+			let i = 0;
 			while (i < aSymbols.length) {
-				var sSymbol = aSymbols[i];
+				const sSymbol = aSymbols[i];
 
 				if (isLink(sSymbol)) {
 					i++;
 				} else {
-					var aParts = sSymbol.split(sLink);
-					var aInsert = [];
+					const aParts = sSymbol.split(sLink);
+					const aInsert = [];
 
-					aParts.forEach(function (sPart, iIndex, aOriginal) { // eslint-disable-line no-loop-func
+					aParts.forEach(function(sPart, iIndex, aOriginal) { // eslint-disable-line no-loop-func
 						aInsert.push(sPart);
 						if (iIndex !== aOriginal.length - 1) {
 							aInsert.push(sLink);
 						}
 					});
 
+					// eslint-disable-next-line prefer-spread
 					aSymbols.splice.apply(aSymbols, [i, 1].concat(aInsert));
 					i += aInsert.length;
 				}
@@ -99,26 +100,26 @@ sap.ui.define([
 		return aSymbols;
 	}
 
-
 	/**
-	 * Shows sap.m.MessageBox and interprets markdown links in the messages.
+	 * Displays sap.m.MessageBox and interprets markdown links in the messages.
 	 *
 	 * Example:
 	 * "Your app is not enabled for UI adaptation. Check the prerequisites described [here](https://ui5.sap.com/#/topic/f1430c0337534d469da3a56307ff76af)."
 	 *
 	 * @param {string} sMessage - Message text which may contain markdown links
 	 * @param {string} mOptions - See {@link sap.m.MessageBox} for more details
+	 * @param {string} [sMessageType="show"] - Decides the type of the MessageBox that should be shown with (see different types at {@link sap.m.MessageBox})
 	 */
-	return function showMessageBox(sMessage, mOptions) {
-		var vMessage;
+	return function showMessageBox(sMessage, mOptions, sMessageType) {
+		let vMessage;
 
 		if (hasLinks(sMessage)) {
-			var aSymbols = getSymbols(sMessage);
+			const aSymbols = getSymbols(sMessage);
 			vMessage = convertIntoControls(aSymbols);
 		} else {
 			vMessage = sMessage;
 		}
 
-		MessageBox.show(vMessage, mOptions);
+		MessageBox[sMessageType || "show"](vMessage, mOptions);
 	};
 });

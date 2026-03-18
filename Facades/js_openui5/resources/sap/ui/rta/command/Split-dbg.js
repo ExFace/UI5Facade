@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -14,30 +14,31 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.46
 	 * @alias sap.ui.rta.command.Split
-	 * @experimental Since 1.46. This class is experimental and provides only limited functionality. Also the API might be
-	 *							 changed in future.
 	 */
-	var Split = FlexCommand.extend("sap.ui.rta.command.Split", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				newElementIds : {
-					type : "string[]"
+	const Split = FlexCommand.extend("sap.ui.rta.command.Split", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				newElementIds: {
+					type: "string[]",
+					group: "content"
 				},
-				source : {
-					type : "any"
+				source: {
+					type: "any",
+					group: "content"
 				},
-				parentElement : {
-					type : "any"
+				parentElement: {
+					type: "any",
+					group: "content"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
@@ -45,11 +46,13 @@ sap.ui.define([
 	 * @override
 	 */
 	Split.prototype._getChangeSpecificData = function() {
-		var mSpecificInfo = {
-			newElementIds : this.getNewElementIds(),
-			sourceControlId : this.getSource().getId(),
-			changeType : this.getChangeType(),
-			parentId : this.getParentElement().getId()
+		const mSpecificInfo = {
+			changeType: this.getChangeType(),
+			content: {
+				newElementIds: this.getNewElementIds(),
+				sourceControlId: this.getSource().getId(),
+				parentId: this.getParentElement().getId()
+			}
 		};
 		return mSpecificInfo;
 	};

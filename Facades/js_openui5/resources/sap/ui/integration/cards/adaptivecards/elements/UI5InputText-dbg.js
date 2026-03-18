@@ -1,9 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (AdaptiveCards) {
+sap.ui.define([
+	"sap/ui/integration/thirdparty/adaptivecards",
+	"sap/ui/integration/cards/adaptivecards/overwrites/inputsGeneralOverwrites"
+	], function (AdaptiveCards, InputsOverwrites) {
 	"use strict";
 	function UI5InputText() {
 		AdaptiveCards.TextInput.apply(this, arguments);
@@ -16,27 +19,39 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 	 * <code>ui5-input</code> or <code>ui5-textarea<code> UI5 web component.
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @private
 	 * @since 1.74
 	 */
 	UI5InputText.prototype = Object.create(AdaptiveCards.TextInput.prototype);
+
+	UI5InputText.prototype.overrideInternalRender = function () {
+		var oInput = AdaptiveCards.TextInput.prototype.overrideInternalRender.call(this, arguments);
+
+		InputsOverwrites.overwriteLabel(this);
+		InputsOverwrites.overwriteRequired(this);
+
+		return oInput;
+	};
+
 	UI5InputText.prototype.internalRender = function () {
 		//when this.isMultiline is true, we have to render an ui5-textarea instead of ui5-input
 		if (this.isMultiline) {
-			var oTextArea = document.createElement("ui5-textarea");
+			var oTextArea = document.createElement("ui5-textarea-ac");
 			oTextArea.id = this.id;
 			oTextArea.placeholder = this.placeholder || "";
 			oTextArea.value = this.defaultValue || "";
 			oTextArea.maxlength = this.maxLength || null;
 
-			oTextArea.addEventListener("change", function () {
+			InputsOverwrites.createValueStateElement(this, oTextArea);
+
+			oTextArea.addEventListener("input", function () {
 				this.valueChanged();
 			}.bind(this));
 			return oTextArea;
 		}
-		var oInput = document.createElement("ui5-input");
+		var oInput = document.createElement("ui5-input-ac");
 		switch (this.style) {
 			case 1:
 				oInput.type = "Tel";
@@ -54,10 +69,32 @@ sap.ui.define(["sap/ui/integration/thirdparty/adaptivecards"], function (Adaptiv
 		oInput.placeholder = this.placeholder || "";
 		oInput.value = this.defaultValue || "";
 		oInput.maxlength = this.maxLength || null;
-		oInput.addEventListener("change", function () {
+
+		InputsOverwrites.createValueStateElement(this, oInput);
+
+		oInput.addEventListener("input", function () {
 			this.valueChanged();
 		}.bind(this));
 		return oInput;
 	};
+
+	UI5InputText.prototype.updateInputControlAriaLabelledBy = function () {
+		InputsOverwrites.overwriteAriaLabelling(this, "accessible-name-ref");
+	};
+
+	UI5InputText.prototype.showValidationErrorMessage = function () {
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "Negative";
+		}
+	};
+
+	UI5InputText.prototype.resetValidationFailureCue = function () {
+		AdaptiveCards.TextInput.prototype.resetValidationFailureCue.call(this, arguments);
+
+		if (this.renderedInputControlElement) {
+			this.renderedInputControlElement.valueState = "None";
+		}
+	};
+
 	return UI5InputText;
 });

@@ -3,6 +3,10 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Interfaces\Widgets\iHaveButtons;
+use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
+use exface\Core\Widgets\DialogButton;
+use exface\Core\Widgets\MenuButton;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -15,6 +19,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
+use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
@@ -44,6 +49,8 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  */
 class UI5Dialog extends UI5Form
 {
+    use UI5TourGuideTrait;
+    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -648,6 +655,10 @@ JS;
         if ($this->getWidget()->isCacheable() === false) {
             $this->getController()->addOnHideViewScript("sap.ui.getCore().byId('{$this->getId()}').destroy()");
         }
+
+        if (null !== $header = $this->getWidget()->getHeader()) {
+            $this->addTourDropdownTo($this->getWidget()->getHeader());
+        }
         
         return <<<JS
         
@@ -996,6 +1007,7 @@ JS;
             $fillerWidget = $tab->getFillerWidget();
             switch (true) {
                 case $fillerWidget instanceof Split:
+                    $cssClass .= ' exf-tab-split';
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
@@ -1034,13 +1046,18 @@ JS;
     }
     
     /**
-     * Returns the button constructors for the dialog buttons.
+     * Returns the button constructors for the sap.m.Dialog buttons.
      * 
      * @return string
      */
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
         $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
+        
+        // TODO:
+        //  - Better place should also be found for this button. The maximized dialogs 
+        $this->addTourDropdownTo($this->getWidget()->getToolbarMain());
+        
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
@@ -1278,5 +1295,27 @@ new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
 })
 JS;
 
+    }
+
+    /**
+     * Places a dropdown menu inside the given place (e.g. toolbar or a header) with all available tours for a widget.
+     *
+     * @param iHaveButtons $placeToAddButton
+     * @return MenuButton|null
+     */
+    protected function addTourDropdownTo(iHaveButtons $placeToAddButton) : ?MenuButton
+    {
+        $widget = $this->getWidget();
+        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
+            return null;
+        }
+        
+        $this->registerDriverJsAsExternalModule();
+        $tourGuideButton = $placeToAddButton->createButton($this->buildTourGuideDropDownAsUxonObject($widget));
+        if ($tourGuideButton instanceof DialogButton) {
+            $tourGuideButton->setCloseDialog(false);
+        }
+        $placeToAddButton->addButton($tourGuideButton, 0);
+        return $tourGuideButton;
     }
 }
