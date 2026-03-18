@@ -3404,7 +3404,7 @@ JS;
         
         $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
         $toolbar->addButton(
-            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget))
+            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget, $this->getController()))
         );
     }
 }

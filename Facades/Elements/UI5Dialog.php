@@ -1311,7 +1311,10 @@ JS;
         }
         
         $this->registerDriverJsAsExternalModule();
-        $tourGuideButton = $placeToAddButton->createButton($this->buildTourGuideDropDownAsUxonObject($widget));
+        
+        $tourGuideButton = $placeToAddButton->createButton(
+            $this->buildTourGuideDropDownAsUxonObject($widget, $this->getController())
+        );
         if ($tourGuideButton instanceof DialogButton) {
             $tourGuideButton->setCloseDialog(false);
         }
