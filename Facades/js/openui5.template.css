@@ -734,7 +734,7 @@ html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
 /* margin tab headings */
 html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITBHead,
 html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITHEndOverflow {
-    padding-top: 1.5rem;
+    /*padding-top: 1.5rem;*/
 }
 
 /* dont add padding for the login prompt */
