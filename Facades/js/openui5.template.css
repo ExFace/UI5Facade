@@ -731,12 +731,6 @@ html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
     color: var(--sapNeutralTextColor);
 }
 
-/* margin tab headings */
-html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITBHead,
-html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITHEndOverflow {
-    /*padding-top: 1.5rem;*/
-}
-
 /* dont add padding for the login prompt */
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMITBHead,
 html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel .sapMITHEndOverflow {
