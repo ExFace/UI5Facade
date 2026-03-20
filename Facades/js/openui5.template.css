@@ -776,6 +776,11 @@ html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBa
     color: var(--sapTextColor);
 }
 
+/* fix overflow issue in inputcombotable popups */
+html[class*="sapUiTheme-sap_horizon"] [id$="-popup-table"].sapMList.sapMListBGTranslucent.sapMListTblCnt {
+    overflow-x: unset;
+}
+
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */
 html.sapUiTheme-sap_horizon_dark .sapMPI {
