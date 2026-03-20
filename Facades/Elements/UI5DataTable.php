@@ -832,7 +832,10 @@ JS;
                     var iToolbarHeight = jqTest.height();
                     var iTableHeight = {$heightPx};
                     jqTest.remove();
-                    return Math.floor((iTableHeight - iRowHeight - iToolbarHeight) / iRowHeight);
+
+                    // relative values, such as 1,2,3 etc. might lead to negative values here, which isnt allowed. 
+                    // the minimum must be 1, otherwise js errors are thrown
+                    return Math.max(1, Math.floor((iTableHeight - iRowHeight - iToolbarHeight) / iRowHeight));
                 }()
 
 JS;
