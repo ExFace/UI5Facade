@@ -196,7 +196,7 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem}
 /* Dialog header with different controls */
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle}
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.25rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.5rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
 /* Custom margins for Text widgets in dialog header*/
@@ -516,10 +516,10 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     box-sizing: border-box;
     outline: none;
     background: #ffffff00;
-    min-height: 1.1rem;
+    min-height: 1.2rem;
     padding: 0;
     border: 1px solid var(--sapProgress_BorderColor); 
-    border-radius: 0.55rem;
+    border-radius: 0.6rem;
     overflow: hidden;
 }
 
@@ -589,7 +589,7 @@ html.sapUiTheme-sap_horizon .sapMPIBarCritical+.sapMPIBarRemaining {
 
 /* progress bar backgrounds */
 html[class*="sapUiTheme-sap_horizon"] .sapMPI .sapMPIBarRemaining {
-    height: 1.1rem;
+    height: 1.2rem;
 }
 
 html[class*="sapUiTheme-sap_horizon"] .sapMPI  .sapMPIBarRemaining {
@@ -729,6 +729,10 @@ html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus>.sapMObjStatusTitle,
 html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
     font-weight: bold;
     color: var(--sapNeutralTextColor);
+}
+
+html[class*="sapUiTheme-sap_horizon"] header .sapMPIText {
+    font-weight: bold;
 }
 
 /* dont add padding for the login prompt */
