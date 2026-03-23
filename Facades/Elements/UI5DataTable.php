@@ -1894,8 +1894,10 @@ JS;
                     }
                     oInitWidths[$oTableJs.indexOfColumn(oCol)] = $('#'+oCol.getId()).width();
                     if (oCol.getVisible() === true && oWidth.auto === true) {
+                        // UI5-Upgrade: autoResizeColumn() was replaced by column.autoResize()
+                        // https://sdk.openui5.org/1.136.0/#api/sap.ui.table.Column%23methods/autoResize 
                         bResized = true;
-                        $oTableJs.autoResizeColumn($oTableJs.indexOfColumn(oCol));
+                        oCol.autoResize();
                     }
                     if (oWidth.fixed) {
                         oCol.setWidth(oWidth.fixed);
