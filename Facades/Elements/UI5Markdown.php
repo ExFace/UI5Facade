@@ -80,28 +80,7 @@ JS;
 
     protected function buildJsMarkdownInitEditor(bool $isViewer = false) : string
     {
-        $widget = $this->getWidget();
-        $contentJs = $this->escapeString($widget->getValueWithDefaults(), true, false);
-        
-        return <<<JS
-
-            function(){
-                var ed = toastui.Editor.factory({
-                    el: document.querySelector('#{$this->getId()}'),
-                    height: '100%',
-                    initialValue: ($contentJs || ''),
-                    autofocus: false,
-                    viewer: true,
-                    events: {
-                        change: function(){
-                            {$this->getOnChangeScript()} 
-                        }    
-                    }
-                });
-                
-                return ed;
-            }();
-JS;
+        return $this->buildJsMarkdownInitViewer();
     }
 
     /**
