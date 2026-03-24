@@ -832,7 +832,10 @@ JS;
                     var iToolbarHeight = jqTest.height();
                     var iTableHeight = {$heightPx};
                     jqTest.remove();
-                    return Math.floor((iTableHeight - iRowHeight - iToolbarHeight) / iRowHeight);
+
+                    // relative values, such as 1,2,3 etc. might lead to negative values here, which isnt allowed. 
+                    // the minimum must be 1, otherwise js errors are thrown
+                    return Math.max(1, Math.floor((iTableHeight - iRowHeight - iToolbarHeight) / iRowHeight));
                 }()
 
 JS;
@@ -1891,8 +1894,10 @@ JS;
                     }
                     oInitWidths[$oTableJs.indexOfColumn(oCol)] = $('#'+oCol.getId()).width();
                     if (oCol.getVisible() === true && oWidth.auto === true) {
+                        // UI5-Upgrade: autoResizeColumn() was replaced by column.autoResize()
+                        // https://sdk.openui5.org/1.136.0/#api/sap.ui.table.Column%23methods/autoResize 
                         bResized = true;
-                        $oTableJs.autoResizeColumn($oTableJs.indexOfColumn(oCol));
+                        oCol.autoResize();
                     }
                     if (oWidth.fixed) {
                         oCol.setWidth(oWidth.fixed);
