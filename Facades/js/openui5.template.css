@@ -289,6 +289,11 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     z-index: 10;
 }
 
+/* within a datacarousel, mark the selected data row more strongly */
+.exf-datacarousel-data-element .sapUiTableRowSel>.sapUiTableCell {
+    box-shadow: inset 4px 0 0 var(--sapList_SelectionBorderColor);
+}
+
     /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
@@ -669,6 +674,11 @@ html[class*="sapUiTheme-sap_horizon"] .sapMListTblRowAlternate .sapUiTableCtrl t
     background-color: var(--sapList_AlternatingBackground) !important;
 }
 
+/* make the dummy cell border less dark */
+html[class*="sapUiTheme-sap_horizon"] .sapUiTableCellDummy {
+    border-left: .0625rem solid #c2c2c2;
+}
+
 /* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
 html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) {
     background-color: var(--sapList_AlternatingBackground);
@@ -761,6 +771,17 @@ html[class*="sapUiTheme-sap_horizon"] .exf-navtiles .sapMPanelContent {
 /* remove background inside pad */
 html[class*="sapUiTheme-sap_horizon"] .exf-pad  .sapMPanelBGTranslucent {
     background-color: transparent; 
+}
+
+ /* remove the darker tiles background for landing page with other widgets */
+html[class*="sapUiTheme-sap_horizon"] .exfw-Container .exf-tiles .sapMPanelBGTranslucent {
+    background-color:  var(--sapGroup_ContentBackground);
+}
+
+/* make datacarousel empty indicator match normal background */
+html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiBlockLayer, 
+html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiLocalBusyIndicator {
+    background-color: var(--sapTab_Background);
 }
 
 
