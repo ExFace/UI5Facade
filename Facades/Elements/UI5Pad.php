@@ -17,7 +17,7 @@ class UI5Pad extends UI5Container
         $childConstructorsJs = $this->buildJsChildrenConstructors();
         
         if ($this->getWidget()->hasBackgroundImage()) {
-            $this->registerCustomCSS("#{$this->getId()}_outer {background: url('{$this->getWidget()->getBackgroundImageURL()}'); background-position:center;}");
+            $this->registerCustomCSS("#{$this->getId()}_outer {background: url('{$this->getWidget()->getBackgroundImageURL()}'); background-position:center; background-size:cover; }");
         }
         
         $panel = <<<JS
