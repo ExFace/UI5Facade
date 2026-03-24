@@ -175,7 +175,8 @@ JS;
         
         return <<<JS
 
-            {$dataElem->buildJsConstructor()},
+            {$dataElem->buildJsConstructor()}
+            .addStyleClass("exf-datacarousel-data-element"),
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
                 height: "{$detailsHeightCss}",
