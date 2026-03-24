@@ -773,6 +773,11 @@ html[class*="sapUiTheme-sap_horizon"] .exf-pad  .sapMPanelBGTranslucent {
     background-color: transparent; 
 }
 
+ /* remove the darker tiles background for landing page with other widgets */
+html[class*="sapUiTheme-sap_horizon"] .exfw-Container .exf-tiles .sapMPanelBGTranslucent {
+    background-color:  var(--sapGroup_ContentBackground);
+}
+
 /* make datacarousel empty indicator match normal background */
 html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiBlockLayer, 
 html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiLocalBusyIndicator {
