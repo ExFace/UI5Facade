@@ -64,14 +64,9 @@ class UI5Tile extends UI5Button
             // doesn't look good and that's exactly what happens in NavTiles.
             $icon = $widget->getShowIcon(false) ? $widget->getIcon() : null;
             if ($subtitle && ! $icon) {
-                // If we have a subtitle and no icon, use sap.m.FeedContent
-                $tileContentConstructor = <<<JS
-    
-                    new sap.m.FeedContent({
-    					contentText: "{$this->escapeJsTextValue($subtitle)}"
-    				}),
-    
-JS;
+                // If we have a subtitle and no icon, use subtitle and content is empty
+                $subheader = 'subheader: ' . $this->escapeString($subtitle,true) . ',';
+                $tileContentConstructor = '';
             } elseif ($icon) {
                 // Otherwise put the subtitle into the subheader and use the icon as content
                 $subheader = 'subheader: ' . $this->escapeString($subtitle,true) . ',';
