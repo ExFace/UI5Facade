@@ -102,6 +102,10 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .sapMGT.exf-col-6 {width: calc(50% - 0.5rem)}
 .sapMGT.exf-col-12 {width: 100%}
 .sapMGT.OneByOne .sapMText .sapMTextMaxLine.sapMTextLineClamp {-webkit-line-clamp: 3 !important}
+.sapMGT.OneByOne .sapMGTHdrTxt{
+    overflow: inherit;
+    display: inline-block;
+}
 .exf-icon-tile .sapMGTContent {margin-top: -40px}
 .exf-tiles > .sapMPanelContent {border-bottom: none;}
 .exf-tile {hyphens: auto;}
@@ -496,22 +500,6 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIBar::before{
     display: none;
 }
 
-/* set semantic colors darker */
-html.sapUiTheme-sap_horizon .sapMPIBarNeutral {
-    background: #6a6d70
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarPositive {
-    background: #107e3e
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarNegative {
-    background: #b00
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarCritical {
-    background: #e9730c
-}
 
 html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     display: -webkit-box;
@@ -646,6 +634,12 @@ html[class*="sapUiTheme-sap_horizon"]  .sapMObjStatusInverted.sapMObjStatusNone 
 }
 
 /* color/status items end*/
+
+/* icons are now darker, so adapt filter here */
+.sapMTileCntContent > .sapMImageContent > img {
+    filter:  brightness(0) saturate(100%) invert(39%) sepia(16%) saturate(752%) hue-rotate(170deg) brightness(98%) contrast(90%);
+}
+ 
 
 /* tile menu drop shadow on hover */
 html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
