@@ -598,7 +598,9 @@ JS;
     {
         $data = [];
         $widget = $this->getWidget();
+        $filterableAliases = [];
 
+        // Allow filtering over all columns - directly visible or optional column selectable on-demand
         if ($this->hasTabColumns() === true) {
             $cols = $widget->getDataWidget()->getColumns();
             // Add all optional columns from the configurator here
@@ -610,13 +612,58 @@ JS;
                 if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
                     continue;
                 }
-                $data[] = [
+                $filterableAliases[] = $col->getAttributeAlias();
+                // Use captions as keys avoid duplicates
+                $data[$col->getCaption()] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "caption" => $col->getCaption()
                 ];
             }
         }
-        return json_encode($data);
+
+        // Also add all regular filters to the advanced search filters
+        foreach ($widget->getFilters() as $filter) {
+            // Prevent duplicates
+            switch (true) {
+                // If this caption is already in the list (same caption simply is useless even if the aliases are different)
+                case array_key_exists($filter->getCaption(), $data):
+                // If this alias is already in the list
+                case in_array($filter->getAttributeAlias(), $filterableAliases):
+                // Skip hidden filters in general
+                case ! $this->getFacade()->getElement($filter)->isVisible():
+                    continue 2;
+            }
+            $filterAttr = $filter->getAttribute();
+            $filterAttrAlias = $filter->getAttributeAlias();
+            switch (true) {              
+                // Relation filters will produce InputComboTables, so to transform them to a text-filter, we
+                // need to filter over the corresponding LABEL. This will not work on aggregations though.
+                case $filterAttr->isRelation() && ! DataAggregation::hasAggregation($filterAttrAlias):
+                    $filterRightObj = $filterAttr->getRelation()->getRightObject();
+                    if ($filterRightObj->hasLabelAttribute()) {
+                        $data[$filter->getCaption()] = [
+                            "attribute_alias" => RelationPath::join($filterAttr->getAliasWithRelationPath(), $filterRightObj->getLabelAttributeAlias()),
+                            "caption" => $filter->getCaption()
+                        ];
+                    } else {
+                        // If we do not have a LABEL - what should we filter over? The UID?
+                        // Skip this case for now
+                        continue 2;
+                    }
+                    break;
+                // Regular filters can be added as-is
+                default:
+                    $data[$filter->getCaption()] = [
+                        'attribute_alias' => $filter->getAttributeAlias(),
+                        "caption" => $filter->getCaption()
+                    ];
+                    break;
+            }
+        }
+        // Sort sortables by caption
+        ksort($data);
+        
+        return json_encode(array_values($data), JSON_UNESCAPED_UNICODE);
     }
     
     
@@ -710,10 +757,16 @@ JS;
         $filters_hidden = '';
         foreach ($this->getWidget()->getFilters() as $filter) {
             $filter_element = $this->getFacade()->getElement($filter);
-            if (! $filter_element->isVisible()) {
-                $filters_hidden .= $this->buildJsFilter($filter_element);
-            } else {
-                $filters .= $this->buildJsFilter($filter_element);
+            switch(true) { 
+                case ! $filter_element->isVisible(): 
+                    $filters_hidden .= $this->buildJsFilter($filter_element);
+                    break;
+                case $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL:
+                    // Optional filters will be rendered in `buildJsonModelForSearchables()` only
+                    break;
+                default:
+                    $filters .= $this->buildJsFilter($filter_element);
+                    break;
             }
         }
         return $filters . $filters_hidden;
