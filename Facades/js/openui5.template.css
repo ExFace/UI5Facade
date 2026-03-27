@@ -183,7 +183,6 @@ table.jexcel > tbody > tr > td.jexcel_dropdown {
 table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open  {
     position: absolute;
     right: 0px; 
-    cursor: pointer;
     top: 0;
     width: 35px; 
     height: 100%;
@@ -191,7 +190,8 @@ table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open  {
 }
 
 /* mark hitbox on hover */
-table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open:hover  {
+table.jexcel > tbody > tr > td.jexcel_dropdown:not(.readonly) .dropdown-open:hover  {
+    cursor: pointer;
     background-color: rgba(0, 0, 0, 0.05);  
 }
 
