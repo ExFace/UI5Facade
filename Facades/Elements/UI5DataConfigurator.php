@@ -762,6 +762,8 @@ JS;
                     $filters_hidden .= $this->buildJsFilter($filter_element);
                     break;
                 case $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL:
+                    $filter->setHidden(true);
+                    $filters_hidden .= $this->buildJsFilter($filter_element);
                     // Optional filters will be rendered in `buildJsonModelForSearchables()` only
                     break;
                 default:
