@@ -21,6 +21,8 @@ Also commented out the contents of the closure in the preload files
 Commenting out the contents instead of the entire predefine statement is important as otherwise UI5 would attempt to load the file separately resulting in 
 a sync request breaking offline startup of the entire app.
 
+Update to version 1.144: This modification is still needed, and was added back in.
+
 ## sap.ui.table
 
 ### Prevent column focus on auto-column-width in `sap.ui.table.Table`
