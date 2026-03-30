@@ -636,6 +636,9 @@ JS;
             $filterAttr = $filter->getAttribute();
             $filterAttrAlias = $filter->getAttributeAlias();
             switch (true) {              
+                case $filterAttr === null:
+                    // If the filter has no attribute, skip it
+                    continue 2;
                 // Relation filters will produce InputComboTables, so to transform them to a text-filter, we
                 // need to filter over the corresponding LABEL. This will not work on aggregations though.
                 case $filterAttr->isRelation() && ! DataAggregation::hasAggregation($filterAttrAlias):
