@@ -334,13 +334,24 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 
 /* Display widgets in DialogHeader + ColorIndicator anywhere */
 .sapMObjStatus {
-    white-space: nowrap; 
-    /* Truncate long text */
+    display: inline-flex;
     width: 100%; 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
     vertical-align: top;   /* prevents alignment expansion (height would increase otherwise) */
     max-width: 100%;       /* limit overflow inside layout */
+}
+
+.sapMObjStatus .sapMObjStatusWrapper {
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* manage the overflow properties here in the child object, to prevent 
+the entire text from disappearing (...) if the text overflows */ 
+.sapMObjStatus .sapMObjStatusText {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;  
+    max-height: fit-content;
 }
 
 /* Split */
