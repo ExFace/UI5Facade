@@ -2055,7 +2055,6 @@ JS;
             // perhaps the binding based selection can be removed altogether?
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
-                    bDeselect =true;
                     var aSelections = oTable.getSelectedIndices();
                     var iTableIdx = iRowIdx;
                     var oBinding = oTable.getBinding("rows");
