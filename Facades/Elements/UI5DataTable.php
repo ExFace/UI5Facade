@@ -2071,14 +2071,17 @@ JS;
                             }
                         }
                     };
-
+                    
                     iTableIdx = fnFindTableIdx(iRowIdx);
-                    oTable.clearSelection();
+                    // TODO geb 2026-03-31: Clearing the selection seems redundant, as well as the deselect branch.
+                    // TODO Removed the clear for now, because it fired faulty events.
+                    //oTable.clearSelection();
                     if (bDeselect === false) {
                         oTable.setSelectedIndex(iTableIdx);
                         oTable.addSelectionInterval(iRowIdx, iRowIdx);
                         bUpdatedSelection = true;
                     }
+                    
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
                     }
