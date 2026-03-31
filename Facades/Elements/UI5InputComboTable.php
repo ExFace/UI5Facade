@@ -758,6 +758,11 @@ JS;
 				    start: 0,
                     data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
                 };
+                // if the autosuggest is silent, meaning its loading data for already existing values (for example after a prefill) we remove the length parameter
+                // else the autosuggest might not read all data, wenn already existing keys are more than the max suggestion propety
+                if (bSilent === true) {
+                    delete params.length;
+                }
                 $.extend(params, qParams);
 
                 var oModel = oInput.getModel('{$this->getModelNameForAutosuggest()}');
