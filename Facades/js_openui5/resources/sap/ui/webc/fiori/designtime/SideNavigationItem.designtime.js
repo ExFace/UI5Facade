@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define([],function(){"use strict";var e=function(e){return Array.from(e.getParent().getDomRef().shadowRoot.querySelectorAll("ui5-tree-item-ui5")).find(function(r){return r.associatedItem===e.getDomRef()})};return{name:{singular:"SIDE_NAVIGATION_ITEM_NAME",plural:"SIDE_NAVIGATION_ITEM_PLURAL"},domRef:function(r){var t=Array.from(r.getParent().getDomRef().shadowRoot.querySelectorAll("ui5-tree-ui5")[0].shadowRoot.querySelectorAll("ui5-li-tree-ui5"));var o=Array.from(r.getParent().getDomRef().shadowRoot.querySelectorAll("ui5-tree-ui5")[1].shadowRoot.querySelectorAll("ui5-li-tree-ui5"));return t.find(function(t){return t.treeItem===e(r)})||o.find(function(t){return t.treeItem===e(r)})},actions:{rename:{changeType:"rename",domRef:function(r){var t=Array.from(r.getParent().getDomRef().shadowRoot.querySelectorAll("ui5-tree-ui5")[0].shadowRoot.querySelectorAll("ui5-li-tree-ui5"));var o=Array.from(r.getParent().getDomRef().shadowRoot.querySelectorAll("ui5-tree-ui5")[1].shadowRoot.querySelectorAll("ui5-li-tree-ui5"));return t.find(function(t){return t.treeItem===e(r)})||o.find(function(t){return t.treeItem===e(r)}).shadowRoot.querySelector(".ui5-li-title")}}}}});
+//# sourceMappingURL=SideNavigationItem.designtime.js.map

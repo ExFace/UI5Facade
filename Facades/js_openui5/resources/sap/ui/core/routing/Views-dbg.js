@@ -1,14 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"./TargetCache",
-	"sap/base/util/UriParameters",
 	"sap/base/Log"
 ],
-	function(TargetCache, UriParameters, Log) {
+	function(TargetCache, Log) {
 		"use strict";
 
 		/**
@@ -26,6 +25,7 @@ sap.ui.define([
 		 * @param {boolean} [oOptions.async=false] @since 1.34 Whether the views which are created through this Views are loaded asyncly. This option can be set only when the Views
 		 * is used standalone without the involvement of a Router. Otherwise the async option is inherited from the Router.
 		 * @alias sap.ui.core.routing.Views
+		 * @ui5-transform-hint replace-param oOptions.async true
 		 */
 		var Views = TargetCache.extend("sap.ui.core.routing.Views", /** @lends sap.ui.core.routing.Views.prototype */ {
 			metadata: {
@@ -39,7 +39,7 @@ sap.ui.define([
 
 				// temporarily: for checking the url param
 				function checkUrl() {
-					if (UriParameters.fromQuery(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
+					if (new URLSearchParams(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
 						Log.warning("Activation of async view loading in routing via url parameter is only temporarily supported and may be removed soon", "TargetCache");
 						return true;
 					}
@@ -64,7 +64,7 @@ sap.ui.define([
 			 * So you can retrieve the view later by calling the {@link sap.ui.core.UIComponent#byId} function of the UIComponent.
 			 *
 			 * @param {string} oOptions.viewName If you do not use setView please see {@link sap.ui.view} for the documentation. This is used as a key in the cache of the Views instance. If you want to retrieve a view that has been given an alternative name in {@link #setView} you need to provide the same name here and you can skip all the other viewOptions.
-			 * @return {Promise} A promise that is resolved when the view is loaded {@link sap.ui.core.mvc.View#loaded}. The view instance will be passed to the promise.
+			 * @return {Promise<sap.ui.core.mvc.View>} A promise that is resolved when the view is loaded {@link sap.ui.core.mvc.View#loaded}. The view instance will be passed to the promise.
 			 * @public
 			 */
 			getView: function(oOptions) {
@@ -80,7 +80,7 @@ sap.ui.define([
 			 *
 			 * @param {string} sViewName Name of the view, may differ from the actual viewName of the oView parameter provided, since you can retrieve this view per {@link #.getView}.
 			 * @param {sap.ui.core.mvc.View|null|undefined} oView the view instance
-			 * @return {sap.ui.core.routing.Views} this for chaining.
+			 * @return {this} this for chaining.
 			 * @public
 			 */
 			setView: function (sViewName, oView) {
@@ -117,7 +117,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>sap.ui.core.routing.Views</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 
@@ -129,7 +129,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 
@@ -137,7 +137,7 @@ sap.ui.define([
 			 * Fires event {@link #event:created created} to attached listeners.
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireCreated: function (oParameters) {

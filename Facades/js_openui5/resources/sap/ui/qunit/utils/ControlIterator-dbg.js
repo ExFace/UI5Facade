@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "sap/ui/VersionInfo"],
-		function(oCore, ObjectPath, Log, VersionInfo) {
+sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
+		function(oCore, VersionInfo, Lib) {
 	"use strict";
 
 	/**
@@ -15,7 +15,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * (and provide control name and class and more information about the control as arguments), so a test could be executed for this control.
 	 *
 	 * The second parameter of the <code>run</code> function can be used to configure several options, e.g. to define a hard-coded list of control libraries
-	 * to test (otherwise all available libraries are discovered), to exclude certain controls or libraries, to state whether sap.ui.core.Elements should
+	 * to test (otherwise all available libraries are discovered), to exclude certain controls or libraries, to state whether subclasses of sap.ui.core.Element should
 	 * also be tested, etc.
 	 * Check the documentation of the <code>run</code> function parameters to understand which Controls/Elements are used by default and which ones are excluded.
 	 *
@@ -53,7 +53,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @public
 	 * @since 1.48.0
@@ -63,7 +63,6 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 
 	var aControlsThatCannotBeRenderedGenerically = [
 		"sap.chart.Chart",
-		"sap.m.ColumnHeaderPopover",
 		"sap.m.FacetFilterItem",
 		"sap.m.internal.NumericInput",
 		"sap.m.IconTabBarSelectList",
@@ -87,20 +86,39 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 		"sap.ui.comp.smartform.Group",
 		"sap.ui.comp.smartform.GroupElement",
 		"sap.ui.comp.valuehelpdialog.ValueHelpDialog",
+		/**
+		 * @deprecated since 1.108
+		 */
 		"sap.ui.core.mvc.HTMLView",
+		/**
+		 * @deprecated since 1.120
+		 */
 		"sap.ui.core.mvc.JSONView",
+		/**
+		 * @deprecated since 1.90
+		 */
 		"sap.ui.core.mvc.JSView",
+		/**
+		 * @deprecated since 1.56
+		 */
 		"sap.ui.core.mvc.TemplateView",
 		"sap.ui.core.mvc.View",
 		"sap.ui.core.mvc.XMLView",
+		/**
+		 * @deprecated since 1.56
+		 */
 		"sap.ui.core.tmpl.Template",
 		"sap.ui.core.UIComponent",
 		"sap.ui.core.util.Export",
 		"sap.ui.documentation.BorrowedList",
 		"sap.ui.documentation.LightTable",
+		"sap.ui.integration.cards.AnalyticalContent", // requires an associated card instance in onAfterRendering
+		"sap.ui.integration.cards.AnalyticsCloudContent", // requires an associated card instance in onAfterRendering
+		"sap.ui.integration.cards.CalendarContent", // requires a model in onBeforeRendering
 		"sap.ui.layout.BlockLayoutRow",
 		"sap.ui.layout.form.ResponsiveGridLayoutPanel", // control not for stand alone usage. Only inside ResponsiveGridLayout
 		"sap.ui.layout.form.ResponsiveLayoutPanel", // control not for stand alone usage. Only inside ResponsiveLayout
+		"sap.ui.mdc.chart.ChartTypeButton", // requires a chart
 		"sap.ui.richtexteditor.RichTextEditor",
 		"sap.ui.richtexteditor.ToolbarWrapper",
 		"sap.ui.rta.AddElementsDialog",
@@ -148,12 +166,27 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 		"sap.ui.commons.Tab",
 		"sap.ui.comp.transport.TransportDialog",
 		"sap.ui.core.ComponentContainer",
+		/**
+		 * @deprecated since 1.108
+		 */
 		"sap.ui.core.mvc.HTMLView",
+		/**
+		 * @deprecated since 1.120
+		 */
 		"sap.ui.core.mvc.JSONView",
+		/**
+		 * @deprecated since 1.90
+		 */
 		"sap.ui.core.mvc.JSView",
+		/**
+		 * @deprecated since 1.56
+		 */
 		"sap.ui.core.mvc.TemplateView",
 		"sap.ui.core.mvc.View",
 		"sap.ui.core.mvc.XMLView",
+		/**
+		 * @deprecated since 1.56
+		 */
 		"sap.ui.core.XMLComposite",
 		"sap.ui.mdc.BaseControl", // should be abstract?
 		"sap.ui.mdc.odata.v4.microchart.MicroChart", //The control only runs in views with XML pre-processor. The test can't provide this environment
@@ -232,7 +265,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 			})
 			.then(function() {
 				// get a shallow copy the loaded library metadata
-				var mLibraries = oCore.getLoadedLibraries();
+				var mLibraries = Lib.all();
 				// filter libraries out that have not been requested
 				for (var sLibName in mLibraries) {
 					if (!fnFilter(sLibName)) {
@@ -262,10 +295,10 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * Creates a filter function for libraries, taking the given parameters into account.
 	 *
 	 * When a list of libraries is given (<code>aLibrariesToTest</code>), the returned filter
-	 * function will match exactly the given libraries (whitelist).
+	 * function will match exactly the given libraries (allowlist).
 	 * Alternatively, a list of libraries to exclude can be given (<code>aExcludedLibraries</code>,
-	 * blacklist) which will then not be matched by the returned filter function. In the case of
-	 * the blacklist, the filter is additionally restricted to openui5 and sapui5.runtime libraries
+	 * blocklist) which will then not be matched by the returned filter function. In the case of
+	 * the blocklist, the filter is additionally restricted to openui5 and sapui5.runtime libraries
 	 * unless <code>bIncludeDistLayer</code> is set to true.
 	 *
 	 * @param {string[]} [aLibrariesToTest] List of libraries to load
@@ -342,8 +375,8 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * should be included in the iterator or with a falsy value otherwise.
 	 *
 	 * @param {string} sControlName Qualified name (dot notation) of the control to test
-	 * @param {string[]} aControlsToTest List of controls to include in the tests (whitelist)
-	 * @param {string[]} aExcludedControls List of controls to exclude from the tests (blacklist)
+	 * @param {string[]} aControlsToTest List of controls to include in the tests (allowlist)
+	 * @param {string[]} aExcludedControls List of controls to exclude from the tests (blocklist)
 	 * @param {boolean} bIncludeNonRenderable Whether the iterator should include controls that can't be rendered
 	 * @param {boolean} bIncludeNonInstantiable Whether the iterator should include controls that can't be instantiated
 	 * @returns Promise<({name:string,class:function,canBeInstantiated:boolean,canBeRendered:boolean}|false)>
@@ -435,7 +468,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * @param {object.string[]} [mOptions.controlsToTest=undefined] which controls to test, e.g. <code>["sap.m.Button"]</code>. When set, exactly these controls will be tested (IF they are found in the available/tested libraries) and the option excludedControls will be ignored. Otherwise, the module will try to discover all available controls.
 	 * @param {object.string[]} [mOptions.excludedControls=undefined] which controls to exclude from testing, e.g. <code>["sap.m.Button"]</code>.
 	 * @param {object.boolean} [mOptions.includeDistLayer=false] whether to include dist-layer libraries in the test. Only used when librariesToTest is not set.
-	 * @param {object.boolean} [mOptions.includeElements=false] whether to include all entities inheriting from sap.ui.core.Element in the test. Otherwise only those inheriting from sap.ui.core.Controls are tested.
+	 * @param {object.boolean} [mOptions.includeElements=false] whether to include all entities inheriting from sap.ui.core.Element in the test. Otherwise only those inheriting from sap.ui.core.Control are tested.
 	 * @param {object.boolean} [mOptions.includeNonRenderable=true] whether to include entities that cannot be generically rendered (some controls fail when they are not configured in a specific way).
 	 * @param {object.boolean} [mOptions.includeNonInstantiable=false] whether to include entities that cannot be generically instantiated.
 	 * @param {object.object} [mOptions.qunit=undefined] optionally, the QUnit object can be given here, so this module can do some internal sanity checks.

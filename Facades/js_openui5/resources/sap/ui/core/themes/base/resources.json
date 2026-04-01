@@ -3,71 +3,59 @@
 	"resources": [
 		{
 			"name": ".theming",
-			"size": 64,
+			"size": 116,
 			"theme": "base"
 		},
 		{
 			"name": "BlindLayer.less",
-			"size": 1139,
+			"size": 706,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BrowserScrollbar.less",
-			"size": 1077,
+			"size": 337,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "BusyIndicator.less",
-			"size": 381,
+			"size": 6828,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "CommandShortcutHints.less",
-			"size": 448,
+			"size": 486,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "DragAndDrop.less",
-			"size": 1320,
+			"size": 1243,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "Icon.less",
-			"size": 2619,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "LocalBusyIndicator.less",
-			"size": 6790,
+			"size": 3471,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "SAP-icons.css",
-			"size": 723,
+			"size": 453,
+			"theme": "base"
+		},
+		{
+			"name": "SAP-icons.less",
+			"size": 342,
+			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "ScrollBar.less",
-			"size": 499,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "Shadow.less",
-			"size": 40,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "TechnicalInfo.less",
-			"size": 2623,
+			"size": 599,
 			"designtime": true,
 			"theme": "base"
 		},
@@ -79,96 +67,34 @@
 		},
 		{
 			"name": "base.less",
-			"size": 28474,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.css",
-			"size": 142595,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.less",
-			"size": 240,
-			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "css_variables.source.less",
-			"size": 162962,
+			"size": 749094,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "fonts/SAP-icons.ttf",
-			"size": 307116,
-			"theme": "base"
-		},
-		{
-			"name": "fonts/SAP-icons.woff",
-			"size": 148124,
+			"size": 333764,
 			"theme": "base"
 		},
 		{
 			"name": "fonts/SAP-icons.woff2",
-			"size": 98268,
+			"size": 107696,
 			"theme": "base"
 		},
 		{
 			"name": "global.less",
-			"size": 63371,
+			"size": 132516,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
-			"name": "img-RTL/1x1.gif",
-			"size": 807,
+			"name": "icons/favicon.ico",
+			"size": 15086,
 			"theme": "base"
 		},
 		{
 			"name": "img-RTL/Busy.gif",
 			"size": 17403,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Error.png",
-			"size": 94,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Information.png",
-			"size": 120,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Success.png",
-			"size": 409,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/16x16/Message_Icon_Warning.png",
-			"size": 167,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Error.png",
-			"size": 271,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Information.png",
-			"size": 224,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Success.png",
-			"size": 832,
-			"theme": "base"
-		},
-		{
-			"name": "img-RTL/message/32x32/Message_Icon_Warning.png",
-			"size": 443,
 			"theme": "base"
 		},
 		{
@@ -223,39 +149,30 @@
 		},
 		{
 			"name": "library-RTL.css",
-			"size": 91096,
+			"size": 305146,
 			"theme": "base"
 		},
 		{
 			"name": "library-parameters.json",
-			"size": 53230,
+			"module": "sap/ui/core/themes/base/library-parameters.json",
+			"size": 158315,
 			"theme": "base"
 		},
 		{
 			"name": "library.css",
-			"size": 91082,
+			"size": 305134,
 			"theme": "base"
 		},
 		{
 			"name": "library.less",
-			"size": 31703,
+			"size": 134360,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
 			"name": "library.source.less",
-			"size": 686,
+			"size": 547,
 			"designtime": true,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton-RTL.css",
-			"size": 20986,
-			"theme": "base"
-		},
-		{
-			"name": "library_skeleton.css",
-			"size": 20973,
 			"theme": "base"
 		},
 		{
@@ -266,13 +183,23 @@
 		},
 		{
 			"name": "parameterClasses.less",
-			"size": 1588,
+			"size": 2009,
 			"designtime": true,
 			"theme": "base"
 		},
 		{
+			"name": "resources.json",
+			"size": 3469
+		},
+		{
 			"name": "shared.less",
-			"size": 9181,
+			"size": 9456,
+			"designtime": true,
+			"theme": "base"
+		},
+		{
+			"name": "skeleton.less",
+			"size": 105814,
 			"designtime": true,
 			"theme": "base"
 		}

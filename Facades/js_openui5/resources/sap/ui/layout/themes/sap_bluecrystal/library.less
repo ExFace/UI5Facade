@@ -2,11 +2,20 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-@import "../base/library.less";
+/* ============================================================================== */
+/* Due to deprecation of sap_bluecrystal with SAPUI5 version 1.44 the             */
+/* inheritance of the base theme is now updated to an inheritance of a static     */
+/* copy of the base theme named sap_bluecrystal_base. The respective              */
+/* control css files of base are copied to the sap_bluecrystal_base theme folder. */
+/* This decoupling of the base theme is introduced with SAPUI5 version 1.124.     */
+/* ============================================================================== */
+
+
+@import "../sap_bluecrystal_base/library.less";
 @import "../../../../../../Base/baseLib/sap_bluecrystal/base.less"; /* ORIGINAL IMPORT PATH: "../../../../../sap/ui/core/themes/sap_bluecrystal/base.less" */
 
 @import "../../../../../sap/ui/core/themes/sap_bluecrystal/global.less";
@@ -41,6 +50,10 @@
 /* END "FormLayout.less" */
 
 /* START "GridLayout.less" */
+/**
+ * @file
+ * @deprecated Since version 1.67.0, together with sap.ui.layout.form.GridLayout
+ */
 /* ========================================= */
 /* CSS for control sap.ui.layout/GridLayout  */
 /* BlueCrystal theme                         */
@@ -99,6 +112,10 @@
 /* END "ResponsiveGridLayout.less" */
 
 /* START "ResponsiveLayout.less" */
+/**
+ * @file
+ * @deprecated As of version 1.93, together with sap.ui.layout.form.ResponsiveLayout
+ */
 /* =============================================== */
 /* CSS for control sap.ui.layout/ResponsiveLayout  */
 /* BlueCrystal theme                               */
@@ -126,21 +143,6 @@
 	background-color: transparent;
 }
 /* END "ResponsiveLayout.less" */
-
-/* START "SimpleForm.less" */
-/* ========================================= */
-/* CSS for control sap.ui.layout/SimpleForm  */
-/* BlueCrystal theme                         */
-/* ========================================= */
-
-.sapUiFormEdit-CTX .sapMRb {
-	z-index: 0;
-}
-
-.sapUiFormEdit-CTX .sapMRbHasLabel.sapMRb:focus:before {
-	right: -0.0312rem;
-}
-/* END "SimpleForm.less" */
 
 /* START "Splitter.less" */
 /* ======================================= */

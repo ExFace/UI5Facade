@@ -474,7 +474,14 @@ JS;
                 // and changes are then only applied when panel is openend for the second time
                 setTimeout(function(){
                     try {
-                            var oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
+                            let oTable = null;
+                            if (oPanel.getAggregation('content')[1] !== undefined){
+                                oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
+                            }
+                            else{
+                                // UI5-Upgrade - structure changed, need to get table content differently
+                                oTable = oPanel.getAggregation('content')[0];
+                            }
                             var oTableModel = oTable.getModel();
                             var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
                             if (oTableModel === undefined || oConfigModel === undefined) return;
@@ -877,7 +884,8 @@ function(){
                 expression: oFilter.getColumnKey(), 
                 comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
                 value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
-                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}"
+                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
+                apply_to_aggregates: false
             };
             includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
         });

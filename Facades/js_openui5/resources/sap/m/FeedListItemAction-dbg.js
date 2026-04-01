@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/Element"],
-	function(Element) {
+sap.ui.define(["./ListItemActionBase"],
+	function(ListItemActionBase) {
 	"use strict";
 
 	/**
@@ -16,35 +16,29 @@ sap.ui.define(["sap/ui/core/Element"],
 	 *
 	 * @class An action item of FeedListItem
 	 *
-	 * @extends sap.ui.core.Element
+	 * @extends sap.m.ListItemActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.FeedListItemAction
 	 * @since 1.52.0
-	 * @ui5-metamodel This element will be described in the UI5 (legacy) designtime metamodel as well
 	 */
-	var FeedListItemAction = Element.extend("sap.m.FeedListItemAction", /** @lends sap.m.FeedListItemAction.prototype */ {
+	var FeedListItemAction = ListItemActionBase.extend("sap.m.FeedListItemAction", /** @lends sap.m.FeedListItemAction.prototype */ {
 		metadata: {
 			library: "sap.m",
 			properties: {
 				/**
-				 * The icon of the action.
-				 */
-				icon: { type: "sap.ui.core.URI", group: "Appearance", defaultValue: null },
-
-				/**
-				 * The text of the item. It is used as a tooltip and for accessibility reasons.
-				 */
-				text: { type: "string", group: "Misc", defaultValue: "" },
-
-				/**
 				 * The key of the item.
 				 */
-				key: { type: "string", group: "Misc", defaultValue: "" }
+				key: { type: "string", group: "Misc", defaultValue: "" },
+				/**
+				 * Enables or disables a button on the UI. All buttons are enabled by default.
+				 * Disabled buttons are colored differently as per the theme of the UI.
+				 */
+				enabled: { type: "boolean", group: "Appearance", defaultValue: true }
 			},
 			events: {
 				/**

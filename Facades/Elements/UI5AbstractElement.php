@@ -352,6 +352,9 @@ JS;
      * Additionally the DOM element MUST fire the custom `visibleChange` event, so other controls
      * can react to visibility changes. UI5 itself does not seem to provide a hide/show event.
      * 
+     * NOTE sah: we now fire this custom event from the ui5 control instead of the DOM element, 
+     * to avoid issues with destroying/reinstating the jquery dom element (see UI5MenuButton)
+     * 
      * @param bool $hidden
      * @param string $elementId
      * @return string
@@ -363,7 +366,8 @@ JS;
         return <<<JS
 (function(bVisible, oCtrl){
     if (! oCtrl || bVisible === oCtrl.getVisible()) return;
-    oCtrl.setVisible(bVisible).$()?.trigger('visibleChange', [{visible: bVisible}]);
+    oCtrl.setVisible(bVisible);
+    oCtrl.fireEvent("visibleChange", { visible: bVisible });
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
 JS;
     }

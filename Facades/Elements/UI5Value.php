@@ -643,9 +643,12 @@ JS;
     protected function buildJsSetHidden(bool $hidden, string $elementId = null) : string
     {
         $showHideLabelJs = '';
-        if ($this->isLabelRendered() === true || $this->getRenderCaptionAsLabel()) {
-            if (! ($this->getWidget()->getHideCaption() === true || $this->getWidget()->isHidden())) {
-                $showHideLabelJs = "sap.ui.getCore().byId('{$this->getIdOfLabel()}').setVisible(bVisible);";
+        if (! ($this->getWidget()->getHideCaption() === true || $this->getWidget()->isHidden())) {
+            if ($this->isLabelRendered() === true || $this->getRenderCaptionAsLabel()) {
+                $showHideLabelJs .= "sap.ui.getCore().byId('{$this->getIdOfLabel()}').setVisible(bVisible);";
+            }
+            if ($this->getRenderCaptionAsLayout() === true) {
+                $showHideLabelJs .= "\n     oCtrl.getParent().setVisible(bVisible);";
             }
         }
         
@@ -658,12 +661,16 @@ JS;
     if (oCtrl === undefined) {
         return;
     }
-    if (oCtrl.getParent().getMetadata().getName() == 'sap.ui.layout.form.FormElement') {
-        if (bVisible === oCtrl.getParent().getVisible()) {
+    const oParent = oCtrl.getParent();
+    if (oParent && ([
+        'sap.ui.layout.form.FormElement', 
+        'sap.ui.layout.HorizontalLayout', 
+        'sap.ui.layout.VerticalLayout'
+        ]).includes(oParent.getMetadata().getName())) {
+        if (bVisible === oParent.getVisible()) {
             return;
         }
-        
-        oCtrl.getParent().setVisible(bVisible);
+        oParent.setVisible(bVisible);
     } else {
         {$disableContainerJs}
         {$showHideLabelJs}
