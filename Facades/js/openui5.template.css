@@ -364,6 +364,12 @@ the entire text from disappearing (...) if the text overflows */
     max-height: fit-content;
 }
 
+/* remove Progress Bar in FileList  */
+.exfw-FileList .sapMUSProgressBox {
+    display: none;
+}
+
+
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */
 .sapUiLoSplitterContent > .sapUiNoContentPadding > .sapMPanelContent  > .sapFDynamicPage > .sapFDynamicPageContentWrapper > .sapFDynamicPageContent > .sapFDynamicPageContentFitContainer {padding: 0}
