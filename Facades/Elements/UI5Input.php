@@ -421,7 +421,10 @@ JS;
         */
         $widget = $this->getWidget();
         $facade = $this->getFacade();
-        foreach (array_filter([$widget->getInvalidIf(), $widget->getRequiredIf()]) as $conditionalProp) {
+
+        // get required and invalid-ifs (if any exist), otherwise skip (empty array)
+        $conditionalProperties = array_filter([$widget->getInvalidIf(), $widget->getRequiredIf()], null);
+        foreach ($conditionalProperties as $conditionalProp) {
             foreach ($conditionalProp->getConditionGroup()->getConditionsRecursive() as $cond) {
                 /* @var $cond ConditionalPropertyCondition */
                 $expr = $cond->getValueLeftExpression();
