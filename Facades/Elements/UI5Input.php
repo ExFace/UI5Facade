@@ -386,7 +386,7 @@ JS;
     protected function registerOnChangeValidation()
     {
         $validator = $this->buildJsValidator();
-        if ($validator !== 'true') {#
+        if ($validator !== 'true') {
             $invalidText = json_encode($this->getValidationErrorText());
             $revalidateJs = <<<JS
     
@@ -407,12 +407,25 @@ JS;
             
         }
         
-        // If we have an invalid_if, make sure to revalidate this element every time any widgets
-        // used in the conditions change
+        // If we have an invalid_if, make sure to revalidate this element every time any widgets used in the conditions change
+        // and do the same for required_ifs
+        /* example required_ifs : 
+
+            InputA is required if InputB has a value and vice versa.
+
+            - Both inputs have a value at the beginning, so no validation error.
+            - If we empty inputA, the validation happens, and because it is empty and required, its marked invalid.
+            - Then we empty inputB, so none of the two are required (this is handeled correctly in buildJsSetRequired), 
+            - InputA is then not required, but still marked as invalid (errorstate), because the validation is only triggered for the changed element (InputB).
+
+        */
         $widget = $this->getWidget();
-        if (null !== $invalidIf = $widget->getInvalidIf()) {
-            $facade = $this->getFacade();
-            foreach ($invalidIf->getConditionGroup()->getConditionsRecursive() as $cond) {
+        $facade = $this->getFacade();
+
+        // get required and invalid-ifs (if any exist), otherwise skip (empty array)
+        $conditionalProperties = array_filter([$widget->getInvalidIf(), $widget->getRequiredIf()], null);
+        foreach ($conditionalProperties as $conditionalProp) {
+            foreach ($conditionalProp->getConditionGroup()->getConditionsRecursive() as $cond) {
                 /* @var $cond ConditionalPropertyCondition */
                 $expr = $cond->getValueLeftExpression();
                 if ($expr->isReference() && $expr->getWidgetLink($widget)->getTargetWidget() !== $widget) {
