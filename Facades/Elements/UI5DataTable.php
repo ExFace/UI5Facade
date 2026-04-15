@@ -2051,8 +2051,6 @@ JS;
             // are also part of the row numbering. In any case, it is much more
             // reliable to check each binding and compare its path to the row
             // number inside the rows array of the model.
-            // NOTE sah -> group headings are now also in the binding, which broke the selection based on the binding context alone
-            // perhaps the binding based selection can be removed altogether?
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
                     var aSelections = oTable.getSelectedIndices();
@@ -2060,14 +2058,10 @@ JS;
                     var oBinding = oTable.getBinding("rows");
                     var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
-                        let iGroupHeaders = 0;
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
-                            if (context.__groupInfo !== undefined) {
-                                iGroupHeaders++;
-                            }
                             if (context && context.getPath() === `/rows/` + iRowIdx) {
-                                return i-iGroupHeaders; // Match found (subtract number of group headers to correct the index)
+                                return i;
                             }
                         }
                     };
@@ -2075,9 +2069,15 @@ JS;
                     iTableIdx = fnFindTableIdx(iRowIdx);
                     // TODO geb 2026-03-31: Clearing the selection seems redundant, as well as the deselect branch.
                     // TODO Removed the clear for now, because it fired faulty events.
-                    //oTable.clearSelection();
-                    if (bDeselect === false) {
-                        oTable.setSelectedIndex(iTableIdx);
+                    // oTable.clearSelection();
+                    // UPDATE sah 2026-04-14: deselect branch is needed, for example in the small menu that pops up in multi-selects (where you can unselect items)
+                    // so we try and remove the selection using removeSelectionInterval, to avoid the events of clearSelection()
+                    if (bDeselect === true) {
+                        oTable.removeSelectionInterval(iTableIdx, iTableIdx);
+                    }
+                    else {
+                        // removed for now, to avoid a faulty double selection when right-clicking in grouped tables
+                        //oTable.setSelectedIndex(iTableIdx);
                         oTable.addSelectionInterval(iRowIdx, iRowIdx);
                         bUpdatedSelection = true;
                     }
