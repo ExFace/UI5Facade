@@ -25,7 +25,10 @@ class UI5Tabs extends UI5Container
     {
         $iconTabBar = $this->buildJsIconTabBar();
         
-        if ($this->hasPageWrapper() === true) {
+        if ($this->hasPageWrapper() === true
+            || ($this->widgetHasTourGuide($this->getWidget()) 
+                && $this->getWidget()->hasParent() === false)
+        ) {
             return $this->buildJsPageWrapper($iconTabBar);
         }
         
