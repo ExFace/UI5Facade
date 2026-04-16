@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryContainerTrait;
 use exface\Core\Widgets\Input;
+use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 
 /**
  * Renders a sap.m.Panel with no margins or paddings for a simple Container widget.
@@ -17,6 +18,7 @@ class UI5Container extends UI5AbstractElement
     const CONTROLLER_METHOD_GET_DATA = 'getData';
     
     use JqueryContainerTrait;
+    use UI5TourGuideTrait;
     
     /**
      * 
@@ -162,9 +164,15 @@ JS;
         
         $showNavButton = $this->getView()->isWebAppRoot() ? 'false' : 'true';
         
+        $widget = $this->getWidget();
         $caption = $this->getCaption();
-        if ($caption === '' && $this->getWidget()->hasParent() === false) {
-            $caption = $this->getWidget()->getPage()->getName();
+        if ($caption === '' && $widget->hasParent() === false) {
+            $caption = $widget->getPage()->getName();
+        }
+        
+        // Adds tour guide dropdown to the header content:
+        if ($widget->hasParent() === false) {
+            $headerContentJs = $this->buildJsTourGuideDropdown($widget, $this->getController()) . $headerContentJs;
         }
         
         return <<<JS

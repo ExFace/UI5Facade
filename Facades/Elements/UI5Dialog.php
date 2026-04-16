@@ -327,6 +327,7 @@ JS;
         }
         return <<<JS
                 
+                {$this->buildJsTourGuideDropdown($widget, $this->getController())}
                 {$headerButtonsJs}
                 {$this->buildJsHelpButtonConstructor($oControllerJs)}
                 {$this->buildJsSidebarToggleButton()}
@@ -654,10 +655,6 @@ JS;
         $this->getController()->addOnRouteMatchedScript($this->buildJsRefresh(false), 'loadPrefill');
         if ($this->getWidget()->isCacheable() === false) {
             $this->getController()->addOnHideViewScript("sap.ui.getCore().byId('{$this->getId()}').destroy()");
-        }
-
-        if (null !== $header = $this->getWidget()->getHeader()) {
-            $this->addTourDropdownTo($this->getWidget()->getHeader());
         }
         
         return <<<JS
@@ -1052,13 +1049,11 @@ JS;
      */
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
-        $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
-        
-        // TODO:
-        //  - Better place should also be found for this button. The maximized dialogs 
-        $this->addTourDropdownTo($this->getWidget()->getToolbarMain());
+        $widget = $this->getWidget();
+        $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
         
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
+        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }
@@ -1295,30 +1290,5 @@ new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
 })
 JS;
 
-    }
-
-    /**
-     * Places a dropdown menu inside the given place (e.g. toolbar or a header) with all available tours for a widget.
-     *
-     * @param iHaveButtons $placeToAddButton
-     * @return MenuButton|null
-     */
-    protected function addTourDropdownTo(iHaveButtons $placeToAddButton) : ?MenuButton
-    {
-        $widget = $this->getWidget();
-        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return null;
-        }
-        
-        $this->registerDriverJsAsExternalModule();
-        
-        $tourGuideButton = $placeToAddButton->createButton(
-            $this->buildTourGuideDropDownAsUxonObject($widget, $this->getController())
-        );
-        if ($tourGuideButton instanceof DialogButton) {
-            $tourGuideButton->setCloseDialog(false);
-        }
-        $placeToAddButton->addButton($tourGuideButton, 0);
-        return $tourGuideButton;
     }
 }
