@@ -58,6 +58,7 @@ class UI5Container extends UI5AbstractElement
             {$heading}
             {$this->buildJsPropertyHeight()}
             {$this->buildJsPropertyWidth()}
+            {$this->buildJsPropertyVisibile()}
             content: [
                 {$contentJs}
             ]

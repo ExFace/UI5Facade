@@ -196,6 +196,9 @@
     
     "LIBS.MOMENT.JS": "npm-asset/moment/min/moment.min.js",
     "LIBS.MOMENT.LOCALES": "npm-asset/moment/locale",
+
+	"LIBS.MERMAID.JS": "exface/ui5facade/Facades/js/mermaid.iife.min.js",
+	"LIBS.PANZOOM.JS": "exface/core/Facades/AbstractAjaxFacade/js/svg-pan-zoom.min.js",
 	
 	"LIBS.SLICK.SLICK_JS": "npm-asset/slick-carousel/slick/slick.min.js",
 	"LIBS.SLICK.SLICK_CSS": "npm-asset/slick-carousel/slick/slick.css",

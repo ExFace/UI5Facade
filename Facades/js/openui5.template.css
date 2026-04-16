@@ -102,6 +102,10 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .sapMGT.exf-col-6 {width: calc(50% - 0.5rem)}
 .sapMGT.exf-col-12 {width: 100%}
 .sapMGT.OneByOne .sapMText .sapMTextMaxLine.sapMTextLineClamp {-webkit-line-clamp: 3 !important}
+.sapMGT.OneByOne .sapMGTHdrTxt{
+    overflow: inherit;
+    display: inline-block;
+}
 .exf-icon-tile .sapMGTContent {margin-top: -40px}
 .exf-tiles > .sapMPanelContent {border-bottom: none;}
 .exf-tile {hyphens: auto;}
@@ -170,6 +174,42 @@ table.jexcel td > textarea {font-family: inherit;}
 table.jexcel > tbody > tr > td.readonly > input[type=checkbox], 
 table.jexcel > tbody > tr > td.readonly > input[type=radio] {opacity: 1;}
 html.sapUiTheme-sap_fiori_3 table.jexcel td > textarea {padding-top: 10px !important; padding: 2px 4px; margin-bottom: -1px; margin-top: -1px;}
+
+/* adjustments to allow opening dropdowns with single click */
+table.jexcel > tbody > tr > td.jexcel_dropdown {
+    position: relative; 
+}
+
+table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open  {
+    position: absolute;
+    right: 0px; 
+    top: 0;
+    width: 35px; 
+    height: 100%;
+    aria-hidden: true; 
+}
+
+/* mark hitbox on hover */
+table.jexcel > tbody > tr > td.jexcel_dropdown:not(.readonly) .dropdown-open:hover  {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.05);  
+}
+
+/* flip arrow when dropdown is open */
+table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
+    background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray' transform='rotate(180 12 12)'/%3E%3C/svg%3E");
+}
+
+/* if wrapping is enabled for captions, hypenate and break lines */
+.exf-wrap-captions table.jexcel > thead > tr > td {
+    overflow: visible;
+    overflow-wrap: normal;
+    white-space: normal;
+    vertical-align: text-top;
+    hyphens: auto;
+    padding-top: 4px !important;
+}
+
 table.jexcel > tbody > tr > td.jexcel_dropdown { background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E");}
 table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none;}
 .exf-spreadsheet-change {position: relative}
@@ -196,7 +236,7 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem}
 /* Dialog header with different controls */
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle}
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.25rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.5rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
 /* Custom margins for Text widgets in dialog header*/
@@ -289,6 +329,11 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     z-index: 10;
 }
 
+/* within a datacarousel, mark the selected data row more strongly */
+.exf-datacarousel-data-element .sapUiTableRowSel>.sapUiTableCell {
+    box-shadow: inset 4px 0 0 var(--sapList_SelectionBorderColor);
+}
+
     /* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
@@ -299,14 +344,31 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 
 /* Display widgets in DialogHeader + ColorIndicator anywhere */
 .sapMObjStatus {
-    white-space: nowrap; 
-    /* Truncate long text */
+    display: inline-flex;
     width: 100%; 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
     vertical-align: top;   /* prevents alignment expansion (height would increase otherwise) */
     max-width: 100%;       /* limit overflow inside layout */
 }
+
+.sapMObjStatus .sapMObjStatusWrapper {
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* manage the overflow properties here in the child object, to prevent 
+the entire text from disappearing (...) if the text overflows */ 
+.sapMObjStatus .sapMObjStatusText {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;  
+    max-height: fit-content;
+}
+
+/* remove Progress Bar in FileList  */
+.exfw-FileList .sapMUSProgressBox {
+    display: none;
+}
+
 
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */
@@ -491,22 +553,6 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIBar::before{
     display: none;
 }
 
-/* set semantic colors darker */
-html.sapUiTheme-sap_horizon .sapMPIBarNeutral {
-    background: #6a6d70
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarPositive {
-    background: #107e3e
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarNegative {
-    background: #b00
-}
-
-html.sapUiTheme-sap_horizon .sapMPIBarCritical {
-    background: #e9730c
-}
 
 html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     display: -webkit-box;
@@ -516,10 +562,10 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     box-sizing: border-box;
     outline: none;
     background: #ffffff00;
-    min-height: 1.1rem;
+    min-height: 1.2rem;
     padding: 0;
     border: 1px solid var(--sapProgress_BorderColor); 
-    border-radius: 0.55rem;
+    border-radius: 0.6rem;
     overflow: hidden;
 }
 
@@ -589,7 +635,7 @@ html.sapUiTheme-sap_horizon .sapMPIBarCritical+.sapMPIBarRemaining {
 
 /* progress bar backgrounds */
 html[class*="sapUiTheme-sap_horizon"] .sapMPI .sapMPIBarRemaining {
-    height: 1.1rem;
+    height: 1.2rem;
 }
 
 html[class*="sapUiTheme-sap_horizon"] .sapMPI  .sapMPIBarRemaining {
@@ -642,6 +688,12 @@ html[class*="sapUiTheme-sap_horizon"]  .sapMObjStatusInverted.sapMObjStatusNone 
 
 /* color/status items end*/
 
+/* icons are now darker, so adapt filter here */
+.sapMTileCntContent > .sapMImageContent > img {
+    filter:  brightness(0) saturate(100%) invert(39%) sepia(16%) saturate(752%) hue-rotate(170deg) brightness(98%) contrast(90%);
+}
+ 
+
 /* tile menu drop shadow on hover */
 html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
     box-shadow: var(--sapContent_Shadow0) !important;
@@ -667,6 +719,11 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPopover .sapMBtnInner {
 html[class*="sapUiTheme-sap_horizon"] .rowAlternate-true .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy,
 html[class*="sapUiTheme-sap_horizon"] .sapMListTblRowAlternate .sapUiTableCtrl tr:nth-child(even) .sapUiTableCellDummy {
     background-color: var(--sapList_AlternatingBackground) !important;
+}
+
+/* make the dummy cell border less dark */
+html[class*="sapUiTheme-sap_horizon"] .sapUiTableCellDummy {
+    border-left: .0625rem solid #c2c2c2;
 }
 
 /* Add alternate row coloring for sap.ui.table.Table (config in UI5DataTable.php)*/
@@ -731,10 +788,8 @@ html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus {
     color: var(--sapNeutralTextColor);
 }
 
-/* margin tab headings */
-html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITBHead,
-html[class*="sapUiTheme-sap_horizon"] *:not(.sapUxAPObjectPageStickyAnchorBar) > .sapMITH.sapMITBInLine .sapMITHEndOverflow {
-    padding-top: 1.5rem;
+html[class*="sapUiTheme-sap_horizon"] header .sapMPIText {
+    font-weight: bold;
 }
 
 /* dont add padding for the login prompt */
@@ -765,6 +820,17 @@ html[class*="sapUiTheme-sap_horizon"] .exf-pad  .sapMPanelBGTranslucent {
     background-color: transparent; 
 }
 
+ /* remove the darker tiles background for landing page with other widgets */
+html[class*="sapUiTheme-sap_horizon"] .exfw-Container .exf-tiles .sapMPanelBGTranslucent {
+    background-color:  var(--sapGroup_ContentBackground);
+}
+
+/* make datacarousel empty indicator match normal background */
+html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiBlockLayer, 
+html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiLocalBusyIndicator {
+    background-color: var(--sapTab_Background);
+}
+
 
 /* Data widgets */
 html[class*="sapUiTheme-sap_horizon"] .sapMLabel.exf-paginator-position {font-weight: normal; font-family: var(--sapFontFamily);}
@@ -780,6 +846,11 @@ html[class*="sapUiTheme-sap_horizon"] .exf-loginprompt-panel {
 /* account popup */
 html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBaseInner{
     color: var(--sapTextColor);
+}
+
+/* fix overflow issue in inputcombotable popups */
+html[class*="sapUiTheme-sap_horizon"] [id$="-popup-table"].sapMList.sapMListBGTranslucent.sapMListTblCnt {
+    overflow-x: unset;
 }
 
 /* DARK MODE SPECIFIC CHANGES */

@@ -24,10 +24,13 @@ trait UI5TourGuideTrait {
      * Each tour will be represented as a button in the dropdown, 
      * which when clicked will trigger the corresponding tour using the tour driver.
      * 
+     * If a controller is provided and the tour property "autorun" is set to true,
+     * the tour will be automatically started when the view is loaded.
+     *
      * @param WidgetInterface $widget
      * @return UxonObject|null
      */
-    public function buildTourGuideDropDownAsUxonObject(WidgetInterface $widget): ?UxonObject
+    public function buildTourGuideDropDownAsUxonObject(WidgetInterface $widget, UI5ControllerInterface $controller = null): ?UxonObject
     {
         if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
             return null;
@@ -39,14 +42,20 @@ trait UI5TourGuideTrait {
         $buttons = [];
 
         foreach ($tours as $tour) {
+            $startTourJs = $driver->buildJsStartTour($tour);
+
             $buttons[] = [
                 'caption' => $tour->getTitle(),
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'icon' => $tour->getIcon() ?? '',
-                    'script' => $driver->buildJsStartTour($tour)
+                    'script' => $startTourJs
                 ],
             ];
+
+            if ($controller !== null && $tour->getAutorun()) {
+                $this->addTourOnShowView($controller, $startTourJs);
+            }
         }
 
         return new UxonObject([
@@ -57,7 +66,6 @@ trait UI5TourGuideTrait {
             'buttons' => $buttons
         ]);
     }
-
 
     /**
      * imports the driver.js library and adds the necessary CSS for the tours to work.
@@ -71,5 +79,22 @@ trait UI5TourGuideTrait {
         $facade = $this->getFacade();
         $controller->addExternalModule('libs.exface.Driver', $facade->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
         $controller->addExternalCss($facade->buildUrlToSource("LIBS.DRIVER.CSS"));
+    }
+
+    /**
+     * adds the given startTourJs to the controller that will automatically start the tour when the view is shown.
+     * 
+     * @param UI5ControllerInterface $controller
+     * @param string $startTourJs
+     * @return void
+     */
+    private function addTourOnShowView(UI5ControllerInterface $controller, string $startTourJs): void
+    {
+        $autorunJs = <<<JS
+            setTimeout(function(){                       
+                    {$startTourJs}
+            },500);
+JS;
+        $controller->addOnShowViewScript($autorunJs);
     }
 }

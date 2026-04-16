@@ -867,7 +867,7 @@ JS;
                             var oPopover = sap.ui.getCore().byId(sPopoverId);
                             if (oPopover === undefined) {
                                 oPopover = new sap.m.Popover(sPopoverId, {
-                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}}',
+                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
                                     content: [
                                         new sap.m.List({
                                             mode: "Delete",
@@ -3404,7 +3404,7 @@ JS;
         
         $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
         $toolbar->addButton(
-            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget))
+            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget, $this->getController()))
         );
     }
 }

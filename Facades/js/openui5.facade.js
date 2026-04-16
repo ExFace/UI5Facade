@@ -439,7 +439,9 @@ const exfLauncher = {};
 	 * @returns {boolean}
 	 */
 	this.isBusy = function() {
-		return _bBusy && $('#exf-loader').is(':visible') === false;
+		return _bBusy === true
+			|| $('#exf-loader').is(':visible') !== false
+			|| (sap.ui.core.BusyIndicator.oDomRef !== null && sap.ui.core.BusyIndicator.oDomRef.classList.length > 0);
 	};
 
 	this.setAppMenu = function (oControl) {
