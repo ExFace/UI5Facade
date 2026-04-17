@@ -435,6 +435,7 @@ JS);
 			textFormatMode: "ValueKey",
 			showSuggestion: true,
             maxSuggestionWidth: "{$this->buildCssDropdownWidth()}",
+            valueHelpIconSrc: "sap-icon://sys-find",
             startSuggestion: function(){
                 return sap.ui.Device.system.phone ? 0 : 1;
             }(),
