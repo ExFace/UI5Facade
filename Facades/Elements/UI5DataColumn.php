@@ -91,7 +91,6 @@ class UI5DataColumn extends UI5AbstractElement
             }
         }
         $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
-        $expression = $this->buildJsAddDataExpression($col);
         
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
@@ -115,8 +114,7 @@ class UI5DataColumn extends UI5AbstractElement
         {$this->buildJsAddFilterResetBtn()}
         {$grouped}
 	})
-	{$expression}
-	.data('_exfDataColumnName', '{$col->getDataColumnName()}')
+	{$this->buildJsSetDataProperties($col)}
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })
 JS;
@@ -324,16 +322,25 @@ JS;
                         {$alignment}
                         {$this->buildJsPropertyVisibile()}
 					})
-					.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
-					.data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					{$this->buildJsAddDataExpression($col)}
+					{$this->buildJsSetDataProperties($col)}
 JS;
     }
-    
-    protected function buildJsAddDataExpression(DataColumn $col) : string
+
+    /**
+     * Generates a JS snippet with a series of `.data()` calls for important additional column properties
+     * 
+     * @param DataColumn $col
+     * @return string
+     */
+    protected function buildJsSetDataProperties(DataColumn $col) : string
     {
-        $caption = $this->escapeString($this->getCaption());
-        $result = ".data('_exfCaption', {$caption})";
+        $captionJs = $this->escapeString($this->getCaption());
+        $result = <<<JS
+
+                    .data('_exfDataColumnName', '{$col->getDataColumnName()}')
+					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
+					.data('_exfCaption', {$captionJs})
+JS;
         
         if ($col->getAttributeAlias() !== null) {
             $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
@@ -341,14 +348,14 @@ JS;
             
             return $result . <<<JS
 
-.data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
-.data('_exfAbbreviation', {$abbreviation})
+                    .data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
+                    .data('_exfAbbreviation', {$abbreviation})
 JS;
         } elseif ($col->getCalculationExpression() !== null) {
             return $result . <<<JS
 
-.data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
-.data('_exfAbbreviation', {$caption})
+                    .data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
+                    .data('_exfAbbreviation', {$captionJs})
 JS;
         }
         

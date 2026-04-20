@@ -463,7 +463,7 @@ JS;
          * and allows table designers to position optional columns meaningfully.
          */
         if ($resetSelection === true) {
-            $resetSelection = "oItem.persistentSelected = oColConfig._initialVisibility; oColConfig.visible = oColConfig._initialVisibility; oItem.persistentIndex = iItemIdx";
+            $resetSelection = "oItem.persistentSelected = oColConfig.visibleInitially; oColConfig.visible = oColConfig.visibleInitially; oItem.persistentIndex = iItemIdx";
         } else {
             $resetSelection = '';
         }
@@ -586,7 +586,7 @@ JS;
                     "column_name" => $col->getDataColumnName(),
                     "caption" => $col->getCaption(),
                     "visible" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
-                    "_initialVisibility" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
+                    "visibleInitially" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "toggleable" => $col->isHidden() ? false : true
                 ];
             }
@@ -970,11 +970,19 @@ JS;
     /**
      * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
      * 
-     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * The AJAX request will include all visible columns (including optional columns, that were made visible by the user)
+     * and globally hidden columns (e.g. those added by buttons or conditions). Each AJAX column will have the following
+     * data:
+     * - name
+     * - attribute_alias (if bound to attribute and the alias differs from the column name)
+     * - expression (if not bound to an attribute, but using a calculation instead)
+     * 
+     * This method needs an array of column definitions. It is actually not important what JS type/class of columns
      * they are - each must only have:
      * - .data('_exfDataColumnName')
      * - .data('_exfAttributeAlias')
      * - .data('_exfCalculation')
+     * - .data('_exfHiddenColumn')
      * 
      * @param string $aCurrentColumnsJs
      * @param string $oDataJs
@@ -996,26 +1004,26 @@ JS;
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns 
-                    // do this only for export actions: otherwise it throws an error 
-                    // if we are doing a normal read for a datatable that only has optional columns
-                    // TODO/FIXME: if no columns are visible in a table by default, do we need to read at all? 
-                    if (bIsExportAction === true && oColumn.getVisible() === false) {
+                    // skip invisible columns unless they are explicitly hidden columns, which we still need to read
+                    // beacause they are always hidden
+                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn')) {
                         return;
                     }
-
+console.log('col', oColumn.data('_exfAttributeAlias'));
                     var oColParam;
-                    if (oColumn.data('_exfDataColumnName')) {
-                        if (oColumn.data('_exfAttributeAlias')) {
+                    var sColName = oColumn.data('_exfDataColumnName');
+                    var sAttrAlias = oColumn.data('_exfAttributeAlias');
+                    if (sColName) {
+                        if (sAttrAlias) {
                             oColParam = {
-                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                                attribute_alias: sAttrAlias
                             };
-                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            if (sColName !== oColParam.attribute_alias) {
+                                oColParam.name = sColName;
                             }
                         } else if (oColumn.data('_exfCalculation')) {
                             oColParam = {
-                                name: oColumn.data('_exfDataColumnName'),
+                                name: sColName,
                                 expression: oColumn.data('_exfCalculation')
                             };
                         }
