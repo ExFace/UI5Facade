@@ -63,6 +63,7 @@ class UI5Wizard extends UI5Container
             content: [
                 new sap.m.Wizard("{$this->getId()}", {
                     showNextButton: false,
+                    renderMode: "Page",
                     steps: [
                         {$this->buildJsChildrenConstructors()}
                     ]
@@ -137,7 +138,7 @@ JS;
             setTimeout(function(){
                 var jqWizardNav = $('#{$this->getId()}-progressNavigator');
                 var jqFirstStep = $('#{$this->getFacade()->getElement($this->getWidget()->getStep(0))->getId()}');
-                $('#{$this->getId()}-page').css('height', 'calc(' + jqWizardNav.outerHeight() + 'px + ' + jqFirstStep.outerHeight() + 'px + 32px)');
+                $('#{$this->getId()}-page').css('min-height', 'calc(' + jqWizardNav.outerHeight() + 'px + ' + jqFirstStep.outerHeight() + 'px + 32px)');
             }, 0);
             
 JS;
