@@ -166,8 +166,8 @@ table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) {border-t
 table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) + td.readonly {border-left-color: #89919a;}
 table.jexcel > tbody > tr > td:last-child:not(.readonly):not(.highlight-selected) {border-right-color: #89919a}
 table.jexcel > tbody > tr:last-child > td:not(:first-child):not(.readonly):not(.highlight-selected) {border-bottom-color: #89919a;}
-table.jexcel > thead > tr > td {border-top-color: rgb(229, 229, 229); border-left-color: rgb(229, 229, 229); background-color: #f2f2f2;}
-table.jexcel > tbody > tr > td.jexcel_row {background-color: #f2f2f2; border-top-color: rgb(229, 229, 229) !important;}
+table.jexcel > thead > tr > td {border-top-color: rgb(140, 140, 140); border-left-color: rgb(140, 140, 140); background-color: #dcdcdc;}
+table.jexcel > tbody > tr > td.jexcel_row {background-color: #dcdcdc; border-top-color: rgb(229, 229, 229) !important;}
 /*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
@@ -209,6 +209,15 @@ table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
     hyphens: auto;
     padding-top: 4px !important;
 }
+
+/* stripe dataspreadsheets */ 
+.exf-stripe-table table.jexcel > tbody > tr:nth-child(odd):not(.selected) {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Border under header */
+table.jexcel > thead > tr:last-child > td {border-bottom-color: rgb(140, 140, 140);}
+
 
 table.jexcel > tbody > tr > td.jexcel_dropdown { background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E");}
 table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none;}
