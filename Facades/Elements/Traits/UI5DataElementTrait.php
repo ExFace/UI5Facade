@@ -1875,9 +1875,7 @@ JS;
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
-        $top_buttons = '';
-        
-        $this->addTourDropdownToToolbar();
+        $top_buttons = $this->buildJsTourGuideDropdown($widget, $this->getController());
         
         // Add the search-button
         $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
@@ -3388,23 +3386,5 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
-    }
-
-    /**
-     * Places a dropdown menu in the toolbar with all available tours for a widget.
-     */
-    protected function addTourDropdownToToolbar() : void
-    {
-        $widget = $this->getWidget();
-        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return;
-        }
-        
-        $this->registerDriverJsAsExternalModule();
-        
-        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
-        $toolbar->addButton(
-            $toolbar->createButton($this->buildTourGuideDropDownAsUxonObject($widget, $this->getController()))
-        );
     }
 }
