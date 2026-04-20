@@ -180,17 +180,17 @@ table.jexcel > tbody > tr > td.jexcel_dropdown {
     position: relative; 
 }
 
-table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open  {
+table.jexcel > tbody > tr > td.jexcel_dropdown::after  {
+    content: '';
     position: absolute;
     right: 0px; 
     top: 0;
     width: 35px; 
     height: 100%;
-    aria-hidden: true; 
 }
 
-/* mark hitbox on hover */
-table.jexcel > tbody > tr > td.jexcel_dropdown:not(.readonly) .dropdown-open:hover  {
+/* mark hitbox on hover, class is set dynamically in JexcelTrait */
+table.jexcel > tbody > tr > td.jexcel_dropdown.exf-dropdown-hitbox-hover:not(.readonly)::after  {
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.05);  
 }
