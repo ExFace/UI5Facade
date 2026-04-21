@@ -139,6 +139,11 @@
 
 	"LIBS.FACADE.CSS": "exface/ui5facade/Facades/js/openui5.template.css",
 	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/ui5facade/Facades/js/openui5.controls.js",
+  
+  "LIBS.FRAPPE_GANTT.JS": "exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.js",
+  "LIBS.FRAPPE_GANTT.CSS": "exface/ui5facade/Facades/js/frappe-gantt/dist/frappe-gantt.css",
+  "LIBS.FRAPPE_GANTT.EXF.CSS": "exface/ui5facade/Facades/js/frappe-gantt/dist/exf-frappe-gantt.css",
+  "LIBS.FRAPPE_GANTT.VIEW_BUILDER.JS" : "exface/UI5Facade/Facades/js/frappe-gantt/tools/view-mode-builder.js",
 	
 	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",
 	"LIBS.EXFDEBUGGER.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfDebugger.js",
