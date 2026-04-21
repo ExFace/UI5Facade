@@ -159,15 +159,18 @@ table.jexcel.jexcel_overflow {border-top: none; border-left: none;}
 .jdropdown-container.slide-bottom-in {bottom: initial !important;}
 .jexcel .editor > input {font-family: inherit; font-size: inherit; text-align: inherit !important; padding: 6px;}
 /* jExcel style as UI5 tables */
-table.jexcel > thead > tr > td {padding-left: 8px; padding-right: 8px; text-align: left !important;}
+table.jexcel > thead > tr > td {padding-left: 8px; padding-right: 8px; text-align: left !important; font-family: var(--sapFontFamily);}
 table.jexcel > tbody > tr, table.jexcel > thead > tr {height: 33px;}
 table.jexcel > tbody > tr.selected {background-color: #e5f0fa}
-table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) {border-top-color: #89919a; border-left-color: #89919a;}
+/* input cells: differentiate through darker borders */
+table.jexcel > tbody > tr > td:not(:first-child):not(.readonly):not(.highlight-selected) {
+    border-left-color: #666;
+    border-bottom: 1.5px solid #666;
+}
 table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) + td.readonly {border-left-color: #89919a;}
 table.jexcel > tbody > tr > td:last-child:not(.readonly):not(.highlight-selected) {border-right-color: #89919a}
-table.jexcel > tbody > tr:last-child > td:not(:first-child):not(.readonly):not(.highlight-selected) {border-bottom-color: #89919a;}
 table.jexcel > thead > tr > td {border-top-color: rgb(140, 140, 140); border-left-color: rgb(140, 140, 140); background-color: #dcdcdc;}
-table.jexcel > tbody > tr > td.jexcel_row {background-color: #dcdcdc; border-top-color: rgb(229, 229, 229) !important;}
+table.jexcel > tbody > tr > td.jexcel_row {background-color: #dcdcdc; border-top-color: rgb(140, 140, 140); border-left-color: rgb(140, 140, 140);}
 /*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
@@ -197,7 +200,13 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.exf-dropdown-hitbox-hover:not(.re
 
 /* flip arrow when dropdown is open */
 table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
+    background-color: transparent;
     background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray' transform='rotate(180 12 12)'/%3E%3C/svg%3E");
+}
+
+/* dropdown in header should not have white background */
+table.jexcel > thead .jdropdown{
+    background-color: #dcdcdc;
 }
 
 /* if wrapping is enabled for captions, hypenate and break lines */
@@ -211,13 +220,25 @@ table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
 }
 
 /* stripe dataspreadsheets */ 
-.exf-stripe-table table.jexcel > tbody > tr:nth-child(odd):not(.selected) {
+.exf-stripe-table table.jexcel > tbody > tr:nth-child(even):not(.selected) {
     background-color: rgba(0, 0, 0, 0.04);
 }
 
 /* Border under header */
-table.jexcel > thead > tr:last-child > td {border-bottom-color: rgb(140, 140, 140);}
+table.jexcel > thead > tr:last-child > td {border-bottom: 1px solid rgb(140, 140, 140);}
 
+/* readonly: striped background and dotted/light borders */
+table.jexcel > tbody > tr:not(.selected) > td.readonly:not(.highlight-selected) {
+    background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.02) 4px, rgba(0, 0, 0, 0.02) 8px);
+    border-top: 0px dashed #a7a7a74d;
+    border-left: 1px solid #a7a7a74d; 
+}
+
+/* use disallowed cursor to differentiate readonly cells, but make text dark enough to read */
+table.jexcel > tbody > tr > td.readonly {
+    color: rgb(73, 73, 73);
+    cursor: not-allowed;
+}
 
 table.jexcel > tbody > tr > td.jexcel_dropdown { background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E");}
 table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none;}
