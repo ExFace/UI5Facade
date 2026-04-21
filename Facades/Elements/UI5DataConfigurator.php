@@ -1009,7 +1009,6 @@ JS;
                     if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn')) {
                         return;
                     }
-console.log('col', oColumn.data('_exfAttributeAlias'));
                     var oColParam;
                     var sColName = oColumn.data('_exfDataColumnName');
                     var sAttrAlias = oColumn.data('_exfAttributeAlias');

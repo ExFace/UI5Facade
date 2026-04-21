@@ -3,10 +3,6 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
-use exface\Core\Interfaces\Widgets\iHaveButtons;
-use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
-use exface\Core\Widgets\DialogButton;
-use exface\Core\Widgets\MenuButton;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -19,6 +15,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
+use exface\UI5Facade\Facades\Elements\Traits\UI5SidebarTrait;
 use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
@@ -49,6 +46,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  */
 class UI5Dialog extends UI5Form
 {
+    use UI5SidebarTrait;
     use UI5TourGuideTrait;
     
     const PREFILL_WITH_INPUT = 'input';
@@ -304,9 +302,13 @@ JS
 				{$this->buildJsObjectPageSections($oControllerJs)}
 			]
 		})
+
 JS;
         if ($this->getWidget()->hasSidebar()) {
-            $js = $this->buildJsSidebarWrapperConstructor($js, $oControllerJs);
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
         }
         return $js;
     }
@@ -1240,55 +1242,11 @@ JS;
     protected function buildJsSidebarToggleButton() : string
     {
         if ($this->getWidget()->hasSidebar()) {
-            $sidebar = $this->getWidget()->getSidebar();
-            $icon = $sidebar->getIcon();
-            if ($icon !== null) {
-                $icon = $this->buildCssIconClass($icon);
-            } else {
-                $icon = 'sap-icon://screen-split-one';
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                return $sidebarEl->buildJsSidebarToggleButton();
             }
-            return <<<JS
-
-                        new sap.m.Button({
-                            icon: '{$icon}',
-                            press: function(){
-                                var oSidebar = sap.ui.getCore().byId('{$this->getId()}_sidebar');
-                                oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
-                            }
-                        }),
-JS;
-
         }
         return '';
-    }
-
-    /**
-     * @param string $mainContentJs
-     * @param string $oControllerJs
-     * @return string
-     */
-    protected function buildJsSidebarWrapperConstructor(string $mainContentJs, string $oControllerJs) : string
-    {
-        if (! $this->getWidget()->hasSidebar()) {
-            return '';
-        }
-        $sidebar = $this->getWidget()->getSidebar();
-        $sideEl = $this->getFacade()->getElement($sidebar);
-        $sideEl->registerConditionalProperties();
-        
-        
-        return <<<JS
-
-new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
-    showSideContent: {$this->escapeBool($sidebar->isCollapsed() !== true)},
-    sideContent: [
-        {$sideEl->buildJsConstructor($oControllerJs)}
-    ],      
-    mainContent: [
-        $mainContentJs
-    ]
-})
-JS;
-
     }
 }
