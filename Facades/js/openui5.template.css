@@ -360,7 +360,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 }
 
 /* within a datacarousel, mark the selected data row more strongly */
-.exf-datacarousel-data-element .sapUiTableRowSel>.sapUiTableCell {
+.exf-datacarousel-data-element .sapUiTableRowSel>.sapUiTableCell:first-child {
     box-shadow: inset 4px 0 0 var(--sapList_SelectionBorderColor);
 }
 
