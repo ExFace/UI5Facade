@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryContainerTrait;
 use exface\Core\Widgets\Input;
+use exface\UI5Facade\Facades\Elements\Traits\UI5SidebarTrait;
 use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 
 /**
@@ -19,6 +20,7 @@ class UI5Container extends UI5AbstractElement
     
     use JqueryContainerTrait;
     use UI5TourGuideTrait;
+    use UI5SidebarTrait;
     
     /**
      * 
@@ -174,6 +176,8 @@ JS;
         if ($widget->hasParent() === false) {
             $headerContentJs = $this->buildJsTourGuideDropdown($widget, $this->getController()) . $headerContentJs;
         }
+        
+        $headerContentJs = rtrim(rtrim($headerContentJs), ',') . $this->buildJsSidebarToggleButton();
         
         return <<<JS
         

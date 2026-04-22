@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Interfaces\Widgets\iContainOtherWidgets;
+
 /**
  * Generates sap.ui.layout.DynamicSideContent for a Sidebar widget
  * 
@@ -14,7 +16,7 @@ class UI5Sidebar extends UI5Panel
     /**
      * @return string
      */
-    public function buildJsSidebarToggleButton() : string
+    public function buildJsConstructorForSidebarToggleButton() : string
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon();
@@ -23,6 +25,12 @@ class UI5Sidebar extends UI5Panel
         } else {
             $icon = 'sap-icon://screen-split-one';
         }
+        
+        $resizeJs = '';
+        foreach ($widget->getWidgets() as $child) {
+            $childEl = $this->getFacade()->getElement($child);
+            $resizeJs .= $childEl->getOnResizeScript();
+        }
         return <<<JS
 
                         new sap.m.Button({
@@ -30,8 +38,9 @@ class UI5Sidebar extends UI5Panel
                             press: function(){
                                 var oSidebar = sap.ui.getCore().byId('{$this->getIdOfDynamicSideContent()}');
                                 oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
+                                $resizeJs
                             }
-                        }),
+                        })
 JS;
     }
     
@@ -64,5 +73,24 @@ new sap.ui.layout.DynamicSideContent('{$this->getIdOfDynamicSideContent()}', {
 })
 JS;
 
+    }
+
+    public function buildcssElementClass()
+    {
+        return 'exf-sidebar';
+    }
+
+    protected function buildJsPropertyHeight() : string
+    {
+        $widget = $this->getWidget();
+        if ($widget->getHeight()->isUndefined()) {
+            return "height: '100%',";
+        }
+        return parent::buildJsPropertyHeight();
+    }
+
+    protected function buildCssHeightDefaultValue()
+    {
+        return '100%';
     }
 }

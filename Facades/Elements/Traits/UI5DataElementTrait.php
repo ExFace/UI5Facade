@@ -17,6 +17,7 @@ use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
+use exface\UI5Facade\Facades\Elements\UI5Sidebar;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -117,6 +118,7 @@ trait UI5DataElementTrait {
     
     use UI5HelpButtonTrait;
     use UI5TourGuideTrait;
+    use UI5SidebarTrait;
     
     private $quickSearchElement = null;
     
@@ -313,10 +315,18 @@ JS;
         }
         
         if ($this->isWrappedInDynamicPage()){
-            return $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
+            $js = $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
         } else {
-            return $js . $initModels . $this->buildJsAddCssWidgetClasses();
+            $js = $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
+        
+        if ($this->getWidget()->hasSidebar()) {
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
+        }
+        return $js;
     }
 
     /**
@@ -1896,6 +1906,7 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
+        $top_buttons .= $this->buildJsSidebarToggleButton(true);
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -1916,7 +1927,7 @@ JS;
                                         icon: "sap-icon://nav-back",
                                         press: [oController.navBack, oController],
                                         type: sap.m.ButtonType.Transparent
-                                    }).addStyleClass('exf-page-heading-btn'),
+                                    }).addStyleClass('exf-page-heading-btn')
 JS;
         if ($this->getWidget()->getHideCaption() === true) {
             $title = '';

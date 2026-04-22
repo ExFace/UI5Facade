@@ -15,8 +15,6 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
-use exface\UI5Facade\Facades\Elements\Traits\UI5SidebarTrait;
-use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
@@ -45,10 +43,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  *        
  */
 class UI5Dialog extends UI5Form
-{
-    use UI5SidebarTrait;
-    use UI5TourGuideTrait;
-    
+{    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -1234,19 +1229,5 @@ JS;
             return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
         }
         return parent::buildJsChangesGetter($onlyVisible);
-    }
-
-    /**
-     * @return string
-     */
-    protected function buildJsSidebarToggleButton() : string
-    {
-        if ($this->getWidget()->hasSidebar()) {
-            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
-            if ($sidebarEl instanceof UI5Sidebar) {
-                return $sidebarEl->buildJsSidebarToggleButton();
-            }
-        }
-        return '';
     }
 }

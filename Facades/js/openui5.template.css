@@ -926,3 +926,5 @@ html.sapUiTheme-sap_horizon_dark .sapMBtn.exf-svg-icon > .sapMBtnInner > .sapMIm
 html.sapUiTheme-sap_horizon_dark .sapMTileCntContent > .sapMImageContent > img {
     filter: invert(50%) sepia(10%) saturate(500%) hue-rotate(165deg) brightness(100%) contrast(100%);
 }
+
+.exf-sidebar {border-left: 1px solid var(--sapGroup_TitleBorderColor)}
