@@ -853,6 +853,12 @@ html[class*="sapUiTheme-sap_horizon"] [id$="-popup-table"].sapMList.sapMListBGTr
     overflow-x: unset;
 }
 
+/* make focus around sections less intense */ 
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection:focus::before {
+    border: .125rem dotted #00000050;
+}
+
+
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */
 html.sapUiTheme-sap_horizon_dark .sapMPI {
