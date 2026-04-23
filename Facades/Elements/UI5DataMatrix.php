@@ -142,6 +142,8 @@ JS;
                     oColNew.getLabel()
                         .setText(oColModelNew.sCaption)
                         .setTooltip(oColModelNew.sHint);
+                    oColNew.data('_exfCaption', oColModelNew.sCaption);
+                    oColNew.data('_exfAbbreviation', oColModelNew.sCaption);
                     oColNew.setSorted(false);
                     oColNew.setShowSortMenuEntry(false);
                     oColNew.setShowFilterMenuEntry(false);
