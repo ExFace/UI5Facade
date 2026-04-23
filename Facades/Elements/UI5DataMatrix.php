@@ -125,17 +125,18 @@ JS;
                 });
                 oColModel.aReplacedWithColumnKeys.forEach(function(sColKey){
                     var oColModelNew = oTransposed.oColModelsTransposed[sColKey];
-                    var oColNew = oCol.clone();
+                    var oColModelToCopy = oTable._exfColModels[oColModelNew.aTransposedDataKeys[0]];
+                    var oColToCopy = oTable._exfColControls.find(function(oCol){
+                        return oCol.data('_exfDataColumnName') === oColModelToCopy.sDataColumnName;
+                    });
+                    var oColNew = oColToCopy.clone();
+                    
+                    // Modify all bindings replacing the original column name with the transposed one
                     var oTplNew = oColNew.getTemplate();
-                    var sBindings = JSON.stringify(oTplNew.mBindingInfos);
-                    var sBindingsNew = sBindings.replaceAll(oColModel.sDataColumnName, oColModelNew.sDataColumnName);
-                    var oBindingsNew = JSON.parse(sBindingsNew);
-                    var sBindingSetter;
-
-                    for (var sProp in oBindingsNew) {
-                        sBindingSetter = 'bind'+ sProp.charAt(0).toUpperCase() + sProp.slice(1);
-                        if (oTplNew.getMetadata()._mAllProperties[sProp] !== undefined) {
-                            oTplNew[sBindingSetter](oBindingsNew[sProp]);
+                    var oBindingInfos = oTplNew.mBindingInfos;
+                    for (var sProp in oBindingInfos) {
+                        for (var i = 0; i < oBindingInfos[sProp].parts.length; i++) {
+                            oBindingInfos[sProp].parts[i].path = oBindingInfos[sProp].parts[i].path.replaceAll(oColModelToCopy.sDataColumnName, oColModelNew.sDataColumnName);
                         }
                     }
 
@@ -148,7 +149,6 @@ JS;
                     oColNew.setShowSortMenuEntry(false);
                     oColNew.setShowFilterMenuEntry(false);
                     oColNew.setVisible(! oColModelNew.bHidden);
-                    // TODO align?
                     
                     oTable.addColumn(oColNew);
                 });
@@ -166,5 +166,10 @@ JS;
 })($oModelJs);
 
 JS;
+    }
+
+    protected function willFormatValuesOnTranspose() : bool
+    {
+        return false;
     }
 }
