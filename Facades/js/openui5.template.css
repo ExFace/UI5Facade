@@ -209,14 +209,24 @@ table.jexcel > thead .jdropdown{
     background-color: #dcdcdc;
 }
 
+/* replace filter icon */
+table.jexcel .jexcel_column_filter {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='darkgray'%3E%3Cg transform='translate(4.8 4.8) scale(0.6)'%3E%3Cpath d='M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
 /* if wrapping is enabled for captions, hypenate and break lines */
-.exf-wrap-captions table.jexcel > thead > tr > td {
+.exf-wrap-captions table.jexcel > thead > tr > td:not(.jexcel_column_filter) {
     overflow: visible;
     overflow-wrap: normal;
     white-space: normal;
     vertical-align: text-top;
     hyphens: auto;
     padding-top: 4px !important;
+}
+
+/* stop next cell from overlapping filter dropdown */
+table.jexcel > thead > tr:last-child > td.jexcel_column_filter {
+    position: inherit;
 }
 
 /* stripe dataspreadsheets */ 
@@ -882,6 +892,12 @@ html[class*="sapUiTheme-sap_horizon"] .sapMInputBaseDisabledWrapper>.sapMInputBa
 html[class*="sapUiTheme-sap_horizon"] [id$="-popup-table"].sapMList.sapMListBGTranslucent.sapMListTblCnt {
     overflow-x: unset;
 }
+
+/* make focus around sections less intense */ 
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection:focus::before {
+    border: .125rem dotted #00000050;
+}
+
 
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */

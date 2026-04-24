@@ -1928,7 +1928,7 @@ JS;
                                         icon: "sap-icon://nav-back",
                                         press: [oController.navBack, oController],
                                         type: sap.m.ButtonType.Transparent
-                                    }).addStyleClass('exf-page-heading-btn')
+                                    }).addStyleClass('exf-page-heading-btn'),
 JS;
         if ($this->getWidget()->getHideCaption() === true) {
             $title = '';
