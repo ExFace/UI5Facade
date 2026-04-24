@@ -9,6 +9,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\iHaveSidebar;
 use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
@@ -320,7 +321,7 @@ JS;
             $js = $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
         
-        if ($this->getWidget()->hasSidebar()) {
+        if ($this->getWidget() instanceof iHaveSidebar && $this->getWidget()->hasSidebar()) {
             $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
             if ($sidebarEl instanceof UI5Sidebar) {
                 $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
