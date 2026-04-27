@@ -227,10 +227,9 @@ table.jexcel .jexcel_column_filter {
 /* contetx menu indicator above first cell in top left corner */
 table.jexcel > thead > tr > td.jexcel_selectall:hover {
     background-color: #9c9c9c;
-    position: relative;
 }
 
-table.jexcel > thead > tr > td.jexcel_selectall:hover::after {
+table.jexcel > thead > tr > td.jexcel_selectall::after {
     content: "...";
     position: absolute;
     right: 36%;
