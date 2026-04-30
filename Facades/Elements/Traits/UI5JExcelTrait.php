@@ -140,60 +140,61 @@ trait UI5JExcelTrait {
                         (function() {
                             var jExcel = {$this->buildJsJqueryElement()}[0].exfWidget.getJExcel();
                             var jqExcel = {$this->buildJsJqueryElement()};
-                            // UI5-Upgrade: the old scroll element (sapMPanelContent) didnt seem to work anymore in some pages, not sure why.
-                            // so we take the new scroll delegate element instead in those cases
-                            var jqScroller = jqExcel.parents('.sapUiScrollDelegate').first(); 
-                            if (jqScroller.length === 0){
-                                jqScroller = jqExcel.parents('.sapMPanelContent').first();
-                            }
-
                             var fnOnEditStart = jExcel.options.oneditionstart;
                             var fnOnEditEnd = jExcel.options.oneditionend;
-                            var bIsDialog = false;
+                            var jqScroller = null; // we need to keep track of the scroll element
                             
                             jExcel.options.oneditionstart = function(el, domCell, x, y){
                                 var jqCell = $(domCell);
+
+                                // UI5-Upgrade: the old scroll element (sapMPanelContent) didnt seem to work anymore in some pages, not sure why.
+                                // so we take the new scroll delegate element instead in those cases
+                                if (jqScroller === null) {
+                                    jqScroller = jqExcel.parents('.sapUiScrollDelegate').first(); 
+                                    if (jqScroller.length === 0){
+                                        jqScroller = jqExcel.parents('.sapMPanelContent').first();
+                                    }
+                                }
+
                                 // The dropdown is not instantiated yet! There is just the cell
                                 if (jqCell.hasClass('jexcel_dropdown')) {
                                     setTimeout(function(){
-                                        // Now the dropdown is here
+                                        // Now the dropdown is here (if not, return)
                                         var jqDC = jqCell.find('.jdropdown-container');
-                                        var oPosCellInit = jqCell.offset();
-                                        var oPosDCInit = jqDC.offset();
-                                        if (oPosCellInit === undefined || oPosDCInit === undefined) {
-                                            return;
-                                        }
+                                        if (jqDC.length === 0) return;
+                                        var domDC = jqDC[0];
 
-                                        // If the height of the scroll element is larger than viewport, try and find a DialogSection instead
-                                        // it seems that somethimes, the sapMPanelContent we usually use as a scroll element isnt the correct element,
-                                        // so we look for a parent element (dialogue section) instead.
-                                        if (jqScroller.innerHeight() > window.innerHeight){
-                                            var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
-                                            if (jqScrollerDlg.length !== 0){
-                                                jqScroller = jqScrollerDlg;
-                                                bIsDialog = true;
+                                        // If inside a dialog, update jqScroller and find the actual CSS-transformed ancestor.
+                                        // CSS transforms break position:fixed (making it relative to the transformed element
+                                        // instead of the viewport), so we must use that to position the dropdown
+                                        var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
+                                        var domFixedContainer = null;
+                                        if (jqScrollerDlg.length !== 0) {
+                                            jqScroller = jqScrollerDlg;
+                                            var parentEl = domDC.parentElement;
+                                            while (parentEl && parentEl !== document.documentElement) {
+                                                var cs = window.getComputedStyle(parentEl);
+                                                if (cs.transform !== 'none' || cs.perspective !== 'none' || (cs.filter && cs.filter !== 'none' && cs.filter !== 'blur(0px)')) {
+                                                    domFixedContainer = parentEl;
+                                                    break;
+                                                }
+                                                parentEl = parentEl.parentElement;
                                             }
                                         }
 
-                                        let bInScrollElement = jqExcel.parents('.sapMDialogScroll').first().length > 0;
+                                        // capture initial document-relative positions of cell and dropdown container (before position:fixed)
+                                        var oPosCellInit = jqCell.offset();
+                                        var oPosDCInit = jqDC.offset();
 
+                                        // Determine if the dropdown needs to flip upwards
                                         // Class .sapMDialog also has overflow: hidden, which cuts off the dropdown when it exceeds the dialogue
                                         // Similarly, if the spreadsheet is in a dialogue and wrapped in a scroll element, we also need to flip the 
                                         // dropdown upwards if it exceeds the scroll container of the dialogue
-                                        // 
                                         // so we check if the spreadsheet is inside a scrollable dialogue, or if it exceeds the viewport: 
-                                        //          whether the bottom of the dialogue/bounding box (absolute top pos of scroll element + height of scroll element)
-                                        //          is smaller than the bottom of the currently opened dropdown (top of current cell + height of cell + height of dropdown container)
-                                        // -> if so, we move the dropdown upwards (set the top of the dropdown to the top of the current cell - height of dropdown container)
-                                        if ((bInScrollElement || bIsDialog === true) && (jqScroller.offset().top + jqScroller.height() <  (oPosCellInit.top-jqCell.height()) + jqDC.innerHeight())) {
-                                            jqDC.offset({
-                                                top: oPosCellInit.top - jqDC.innerHeight(),
-                                                left: oPosCellInit.left
-                                            });
-
-                                            // update init pos for scrolling update
-                                            oPosDCInit = jqDC.offset();
-                                        }
+                                        var iBottomBoundary = domFixedContainer
+                                            ? domFixedContainer.getBoundingClientRect().bottom
+                                            : window.innerHeight;
+                                        var bFlippedUp = iBottomBoundary < jqCell[0].getBoundingClientRect().bottom + jqDC.outerHeight();
 
                                         var fnFixPosition = function() {
                                             var oPosCellCur = jqCell.offset();
@@ -206,13 +207,22 @@ trait UI5JExcelTrait {
                                             // only show dropdown if in viewport, otherwise close it
                                             if (bVisible) {
                                                 jqDC.show();
-                                                jqDC.offset({
-                                                    top: oPosDCInit.top + iScrollTop,
-                                                    left: oPosDCInit.left + iScrollLeft
-                                                });
-
-                                                // fixes layout issue with upward dropdown
-                                                jqDC.css('bottom', 'unset'); 
+                                                if (bFlippedUp) {
+                                                    // if its flipped up, we cannot use the jQuery offset function because we need to set the bottom property (which offset() doesnt have)
+                                                    // so, if the flip the dropdown up, the bottom must be anchored to the top of the cell
+                                                    // otherwise (if we use the top property like previously), if we type in the field, the dropdown opeions get shorter and the dropdown seems disconnected
+                                                    var rect = jqCell[0].getBoundingClientRect();
+                                                    var fcRect = domFixedContainer ? domFixedContainer.getBoundingClientRect() : {bottom: window.innerHeight, left: 0};
+                                                    domDC.style.top = '';
+                                                    domDC.style.bottom = (fcRect.bottom - rect.top) + 1 + 'px';
+                                                    domDC.style.left = (rect.left - fcRect.left) + 'px';
+                                                } else {
+                                                    domDC.style.bottom = '';
+                                                    jqDC.offset({
+                                                        top: oPosDCInit.top + iScrollTop,
+                                                        left: oPosDCInit.left + iScrollLeft
+                                                    });
+                                                }
                                             } else {
                                                 jqDC.hide();
                                             }

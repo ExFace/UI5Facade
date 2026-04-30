@@ -303,6 +303,9 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .sapUxAPObjectPageHeaderContent .sapUiVltCell > .sapMFT {margin-top: 0.25rem}
 /* TextHeading widgets in dialog headers*/
 .sapUxAPObjectPageHeaderContent .sapMLabel.exf-textheading {vertical-align: middle}
+/* Dialog with Split */
+html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterV > .sapUiLoSplitterBar {border-top-color:transparent; border-bottom-color: transparent;}
+html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterH > .sapUiLoSplitterBar {border-left-color: transparent; border-right-color: transparent;}
 /* Dialog (non-max) */
 html.sap-phone .sapMDialog {min-width: 20rem !important}
 html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !important}
