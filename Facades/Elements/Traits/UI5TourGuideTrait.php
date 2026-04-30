@@ -62,9 +62,25 @@ trait UI5TourGuideTrait {
                     }
                 })
 JS;
+            
+            if ($controller !== null) {
+                if ($tour->getId() !== null)
+                {
+                    $tourId = $this->escapeString($tour->getId());
 
-            if ($controller !== null && $tour->getAutorun()) {
-                $this->addTourOnShowView($controller, $startTourJs);
+                    $js = <<<JS
+                
+                        const tourIntent = window.exfTourContext.consumePendingTour({$tourId});
+                        if (tourIntent) {
+                            {$startTourJs}
+                        } 
+JS;
+                    $this->addTourOnShowView($controller, $js);
+                }
+
+                if ($tour->getAutorun()) {
+                    $this->addTourOnShowView($controller, $startTourJs);
+                }
             }
         }
 
@@ -82,6 +98,54 @@ JS;
                     ]
                 })
             }),
+JS;
+    }
+
+    /**
+     * Builds JS to manage pending tour intents in the global window context. 
+     * This allows tours to be triggered from other views and then automatically started when the user navigates to the relevant view or a dialog.
+     * 
+     * @return string
+     */
+    public function buildJsWindowTourContent(): string
+    {
+        return <<<JS
+        
+            window.exfTourContext = window.exfTourContext || (function () {
+                let pendingTour = null;
+            
+                return {
+                    setPendingTour(payload) {
+                        pendingTour = {
+                            ...payload,
+                            createdAt: Date.now()
+                        };
+                    },
+            
+                    consumePendingTour(targetTourId) {
+                        if (!pendingTour) {
+                            return null;
+                        }
+                        
+                        const tooOld = (Date.now() - pendingTour.createdAt) > 60000;
+                        const matchesTour = pendingTour.targetTourId === targetTourId;
+                        
+                        if (tooOld || !matchesTour) {
+                            pendingTour = null;
+                            return null;
+                        }
+                    
+                        const result = pendingTour;
+                        pendingTour = null;
+                        return result;
+                    },
+                
+                    clear() {
+                        pendingTour = null;
+                    }
+              };
+            })();
+
 JS;
     }
 

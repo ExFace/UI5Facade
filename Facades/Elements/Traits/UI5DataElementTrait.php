@@ -327,6 +327,9 @@ JS;
                 $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
             }
         }
+        
+        $controller->addOnInitScript($this->buildJsWindowTourContent());
+        
         return $js;
     }
 
