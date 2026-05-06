@@ -69,9 +69,9 @@ JS;
                     $tourId = $this->escapeString($tour->getId());
 
                     $js = <<<JS
-                
-                        const tourIntent = window.exfTourContext.consumePendingTour({$tourId});
-                        if (tourIntent) {
+                        const tourIdInURL = new URLSearchParams(window.location.search).get('tour') === {$tourId}
+                        const tourIntent = window.exfTourContext.consumePendingTour({$tourId})
+                        if (tourIntent || tourIdInURL) {
                             {$startTourJs}
                         } 
 JS;
@@ -130,8 +130,12 @@ JS;
                         const tooOld = (Date.now() - pendingTour.createdAt) > 60000;
                         const matchesTour = pendingTour.targetTourId === targetTourId;
                         
-                        if (tooOld || !matchesTour) {
+                        if (tooOld) {
                             pendingTour = null;
+                            return null;
+                        }
+
+                        if (!matchesTour) {
                             return null;
                         }
                     
