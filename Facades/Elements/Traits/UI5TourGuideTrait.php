@@ -67,7 +67,10 @@ JS;
                 if ($tour->getId() !== null)
                 {
                     $tourId = $this->escapeString($tour->getId());
-
+                    
+                    // IF the tour is pending (e.g. triggered from another view)
+                    // or the URL contains a query parameter to trigger the tour,
+                    // starts it automatically when the view is shown
                     $js = <<<JS
                         const tourIdInURL = new URLSearchParams(window.location.search).get('tour') === {$tourId}
                         const tourIntent = window.exfTourContext.consumePendingTour({$tourId})
