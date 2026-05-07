@@ -511,7 +511,8 @@
             let oSetupJson = {
                 columns: [],
                 advanced_search: [],
-                sorters: []
+                sorters: [],
+                header_filters: []
             };
 
             // get the current states
@@ -521,6 +522,7 @@
             let oP13nModel = oDialog.getModel(sP13nModelName); 
             let aColumns = oP13nModel.getProperty('/columns');
             let aSorters = oP13nModel.getProperty('/sorters');
+            let aHeaderFilters = oP13nModel.getProperty('/header_filters');
             let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getFilterItems();
 
             // save current column config
@@ -579,6 +581,45 @@
                         exclude: oFilter.mProperties.exclude
                     });
                 });
+            }
+
+            // save header filters (these are saved in the model by the UI5DataConfigurator in the DataGetter)
+            if (aHeaderFilters !== undefined && Object.keys(aHeaderFilters).length > 0) {
+                let aConditions = [];
+
+                // collect top-level conditions
+                if (aHeaderFilters.conditions) {
+                    aHeaderFilters.conditions.forEach(function(oCondition) {
+                        if (oCondition.hidden === false){
+                            // skip hidden filters
+                            aConditions.push({
+                                expression: oCondition.expression,
+                                comparator: oCondition.comparator,
+                                value: oCondition.value
+                            });
+                        }
+                        
+                    });
+                }
+
+                // collect conditions from nested groups (just put the entire group)
+                if (aHeaderFilters.nested_groups) {
+                    aHeaderFilters.nested_groups.forEach(function(oGroup) {
+                        let mVal = null;
+                        if (oGroup.conditions) {
+                            mVal = oGroup.conditions[0].value; // just take the value of the first condition
+                        }
+                        aConditions.push({
+                            nested: true,
+                            group: oGroup,
+                            value: mVal
+                        });
+                    });
+                }
+
+                if (aConditions.length > 0) {
+                    oSetupJson.header_filters = aConditions;
+                }
             }
 
             return oSetupJson;
@@ -760,6 +801,36 @@
                     });
                     oDialog.addFilterItem(oFilterItem);
                 });
+            }
+
+            // reset header filters when switching setups
+            let fnResetHeaderFilters = sap.ui.getCore().byId(sDataTableId).data('fnResetVisibleHeaderFilters');
+            if (fnResetHeaderFilters) {
+                fnResetHeaderFilters();
+            }
+            
+            if (oSetupUxon.header_filters !== undefined) {
+                // HEADER FILTER SETUP (see Ui5DataConfigurator->buildJsFilterValueSetter)
+
+                // setter function is stored in DataTable 
+                // (otherwise it leads to namespace issues when tyring to pass it via the CallWidgetFunction, because we save the setup calling from a showDialogue action)
+                let fnSetHeaderFilters = sap.ui.getCore().byId(sDataTableId).data('fnSetVisibleHeaderFilters');
+                if (fnSetHeaderFilters) {
+                    // values to be set
+                    let aValuesJs = oSetupUxon.header_filters;
+                    if (Array.isArray(aValuesJs)) {
+                        aValuesJs = aValuesJs.filter(function(oCondition) {
+                            // Skip conditions with empty or null values
+                            return oCondition && oCondition.value !== '' && oCondition.value !== null && oCondition.value !== undefined;
+                        });
+                    }
+
+                    try {
+                        fnSetHeaderFilters(aValuesJs);
+                    } catch (e) {
+                        console.error("An error occurred while setting header filters:", e);
+                    }
+                }
             }
         }
     }

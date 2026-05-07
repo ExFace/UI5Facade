@@ -264,13 +264,167 @@ function(){
                 "columns": columns,
                 "sortables": sortables,
                 "searchables": searchables,
-                "sorters": [{$this->buildJsonModelForInitialSorters()}]
+                "sorters": [{$this->buildJsonModelForInitialSorters()}],
+                "header_filters": []
             }
             oModel.setData(data);
             return oModel;        
         }()
 JS;
     }
+    
+    /**
+     * Returns JavaScript code to reset all visible, non-optional filters to empty values.
+     * This is used before applying a new set of filter values, ensuring all filters are cleared first.
+     *
+     * @return string JavaScript function to clear visible, non-optional filters
+     */
+    public function buildJsResetVisibleFilters() : string
+    {
+        $resetJs = '';
+        foreach ($this->getWidget()->getFilters() as $filter) {
+            $filterElement = $this->getFacade()->getElement($filter);
+            
+            // only reset visible, non-optional filters
+            if (! $filterElement->isVisible() || $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL) {
+                continue;
+            }
+
+            // Range filters expand into two inner from/to filter elements; regular filters produce one
+            $elementsToProcess = $filterElement instanceof UI5RangeFilter
+                ? $filterElement->getInnerFilterElements()
+                : [$filterElement];
+
+            foreach ($elementsToProcess as $el) {
+                $resetter = $el->buildJsResetter();
+                $resetJs .= <<<JS
+try {
+    $resetter;
+} catch (error) {
+    console.warn("Could not reset filter value: ", error);
+}
+JS;
+            }
+        }
+
+        return <<<JS
+function() {
+    // reset all visible filters 
+    {$resetJs}
+}
+JS;
+    }
+
+    /**
+     * Returns a JS function expression that, when called with an array of condition objects and values, sets the provided filter values.
+     *
+     * Each item in the array must be a condition object. Two formats are supported: Regular conditions (filters with a simple attribute alias)
+     * and nested condition groups (filters with a `condition_group` UXON). For normal filters, the `expression` and `comparator` properties 
+     * are compared to determine which filter to set. For nested groups, the whole group is compared.
+     *
+     * Only visible, non-optional filters are considered. After applying all values, the configured widget
+     * is refreshed to load data with the new filter state.
+     * 
+     * Example usage:
+     * 
+     * var aVals = [
+     *   {expression: "STATUS", comparator: "=", value: "1"},
+     *   {group: {nested: true, group: [{expression: "A"}, {expression: "B"}]}, value: "foo"}
+     * ];
+     * var fnSet = {$this->buildJsVisibleFilterValueSetter()};
+     * fnSet(aVals);
+     *
+     * @return string JS function expression
+     */
+    public function buildJsVisibleFilterValueSetter() : string
+    {
+        $conditions = '';
+        $busyControlIds = [];
+        $refreshWidget = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh();
+        
+        foreach ($this->getWidget()->getFilters() as $filter) {
+            
+            /** @var \exface\Core\Widgets\Filter $filter */
+            $filterElement = $this->getFacade()->getElement($filter);
+            $alias = $filter->getAttributeAlias();
+                
+            // only consider visible filters
+            if (! $filterElement->isVisible() || $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL) {
+                continue;
+            }
+
+            // Range filters expand into two inner from/to filter elements; regular filters produce one
+            $elementsToProcess = $filterElement instanceof UI5RangeFilter
+                ? $filterElement->getInnerFilterElements()
+                : [$filterElement];
+
+            // build JS if/else conditions to set the data of each visible filter element using its ValueSetter
+            foreach ($elementsToProcess as $el) {
+                // get the inner input element ID for the busy check (those are the ones that actaully are set busy)
+                $inputEl = $el instanceof UI5Filter ? $this->getFacade()->getElement($el->getWidget()->getInputWidget()) : $el;
+                $busyControlIds[] = $inputEl->getId();
+                $setter = $el->buildJsValueSetter('mVal');
+                $comparatorGetter = $el->buildJsComparatorGetter();
+                $prefix = $conditions === '' ? 'if' : ' else if';
+                
+                if ($filter->hasCustomConditionGroup()) {
+                    // For filters with custom (nested) condition groups, compare by group structure instead of alias
+                    $expectedGroupUxon = $filter->getCustomConditionGroup()->exportUxonObject()->toJson();
+                    $matchCondition = "oCondition.nested && exfTools.data.compareJSONObjects(oCondition.group, {$expectedGroupUxon}, ['value'])";
+                    $errorMessage = 'Error setting filter value for nested condition group from widget setup: ';
+                } else {
+                    // otherwise chekc for alias and comparator
+                    $matchCondition = "oCondition.expression === {$this->escapeString($alias)} && oCondition.comparator === {$comparatorGetter}";
+                    $errorMessage = "Error setting filter value for filter with alias {$alias} from widget setup: ";
+                }
+
+                $conditions .= <<<JS
+{$prefix} ({$matchCondition}) {
+    try {
+        {$setter};
+    } catch (error) {
+        console.error("{$errorMessage}", error);
+    }
+}
+JS;
+            }
+        }
+        $busyControlIdsJs = json_encode(array_values(array_unique($busyControlIds)));
+
+        return <<<JS
+function(aValues) {
+
+    // set new values
+    aValues.forEach(function(oCondition) {
+        var mVal = oCondition.value;
+        {$conditions}
+    });
+
+    // wait until all updated filter controls are not busy anymore
+    var aWaitControlIds = {$busyControlIdsJs} || [];
+    var iWaitStepMs = 50;
+
+    var fnHasBusyControls = function() {
+        return aWaitControlIds.some(function(sId) {
+            var oControl = sap.ui.getCore().byId(sId);
+            return oControl && typeof oControl.getBusy === 'function' && oControl.getBusy() === true;
+        });
+    };
+
+    var fnRefreshWhenReady = function() {
+        if (!fnHasBusyControls()) {
+            // refresh the widget after values have been set to request data with new filters
+            {$refreshWidget}
+            return;
+        }
+        setTimeout(fnRefreshWhenReady, iWaitStepMs);
+    };
+
+    setTimeout(fnRefreshWhenReady, 0);
+}
+JS;
+    }
+
                
     /**
      * 
@@ -924,6 +1078,26 @@ JS;
 
 function(){
     var oData = {$this->buildJsDataGetterViaTrait($action)};
+
+    if (oData.filters) {
+        // save current state of filters in model (to be used in widget setups)
+        try {
+            var oDialog = sap.ui.getCore().byId('{$this->getId()}');
+            var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
+            oCurrentModel.setProperty('/header_filters', oData.filters);
+
+            // Remove hidden property from each condition in the filter before sending to server
+            // (this is just needed for the widget setups)
+            if (oData.filters.conditions) {
+                oData.filters.conditions.forEach(function(oCondition) {
+                    delete oCondition.hidden;
+                });
+            }
+        } catch (error) {
+            console.error("Error saving filters to model: ", error);
+        }
+    }
+
     var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getFilterItems();
     var i = 0;
     var fnNot = function(oCondition) {
