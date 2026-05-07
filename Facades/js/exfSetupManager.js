@@ -598,22 +598,25 @@
                                 value: oCondition.value
                             });
                         }
-                        
                     });
                 }
 
                 // collect conditions from nested groups (just put the entire group)
                 if (aHeaderFilters.nested_groups) {
                     aHeaderFilters.nested_groups.forEach(function(oGroup) {
-                        let mVal = null;
-                        if (oGroup.conditions) {
-                            mVal = oGroup.conditions[0].value; // just take the value of the first condition
+                        // skip hidden filters
+                        if (oGroup.hidden === false){
+                            let mVal = null;
+                            if (oGroup.conditions) {
+                                mVal = oGroup.conditions[0].value; // just take the value of the first condition
+                            }
+                            delete oGroup.hidden; // otherwise comparing the uxon to apply the filters doesnt work
+                            aConditions.push({
+                                nested: true,
+                                group: oGroup,
+                                value: mVal
+                            });
                         }
-                        aConditions.push({
-                            nested: true,
-                            group: oGroup,
-                            value: mVal
-                        });
                     });
                 }
 
