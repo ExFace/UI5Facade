@@ -70,11 +70,23 @@ JS;
                     
                     // IF the tour is pending (e.g. triggered from another view)
                     // or the URL contains a query parameter to trigger the tour,
-                    // starts it automatically when the view is shown
+                    // starts it automatically when the view is shown.
+                    //
+                    // tour query parameter is removed after consumption to prevent
+                    // unwanted retriggering on back/forward navigation.
                     $js = <<<JS
-                        const tourIdInURL = new URLSearchParams(window.location.search).get('tour') === {$tourId}
+                        const tourUrl = new URL(window.location.href);
+                        const tourIdInURL = tourUrl.searchParams.get('tour') === {$tourId}
                         const tourIntent = window.exfTourContext.consumePendingTour({$tourId})
                         if (tourIntent || tourIdInURL) {
+                            if (tourIdInURL) {
+                                tourUrl.searchParams.delete('tour')
+                                window.history.replaceState(
+                                    window.history.state, document.title, 
+                                    tourUrl.pathname + tourUrl.search + tourUrl.hash
+                                );
+                            }
+
                             {$startTourJs}
                         } 
 JS;
