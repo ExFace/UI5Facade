@@ -471,6 +471,8 @@ JS;
                         new sap.ui.unified.Menu()
                     ]
                 })
+                .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
+                .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
                 {$this->buildJsClickHandlers('oController')}
                 {$this->buildJsPseudoEventHandlers()}
                 ,
@@ -786,6 +788,8 @@ JS;
                 ],
                 rows: "{/rows}"
         	}).addStyleClass('rowAlternate-'+{$striped})
+            .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
+            .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
 
