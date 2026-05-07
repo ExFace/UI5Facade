@@ -28,6 +28,7 @@ class UI5DataConfigurator extends UI5Tabs
     use JqueryDataConfiguratorTrait {
         buildJsDataGetter as buildJsDataGetterViaTrait;
         buildJsResetter as buildJsResetterViaTrait;
+        buildJsFilterGetter as buildJsFilterGetterViaTrait;
     }
     
     const EVENT_BUTTON_OK = 'ok';
@@ -1082,17 +1083,10 @@ function(){
     if (oData.filters) {
         // save current state of filters in model (to be used in widget setups)
         try {
+            let oFilters = {$this->buildJsFilterGetterViaTrait()};
             var oDialog = sap.ui.getCore().byId('{$this->getId()}');
             var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
-            oCurrentModel.setProperty('/header_filters', oData.filters);
-
-            // Remove hidden property from each condition in the filter before sending to server
-            // (this is just needed for the widget setups)
-            if (oData.filters.conditions) {
-                oData.filters.conditions.forEach(function(oCondition) {
-                    delete oCondition.hidden;
-                });
-            }
+            oCurrentModel.setProperty('/header_filters', oFilters);
         } catch (error) {
             console.error("Error saving filters to model: ", error);
         }
