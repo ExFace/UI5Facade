@@ -763,6 +763,9 @@ html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
 /* Tab "bubbles" in ObjectPageLayout */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUiTableCCnt {border-bottom: none;}
 
+/* Dashboard inside a tab in ObjectPageLayout*/
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection.exf-tab-dashboard .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {background: transparent; box-shadow: none}
+
 /* Split inside a tab in ObjectPageLayout */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection.exf-tab-split .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {padding-bottom: 0; padding-top: 0}
 /* Splits inside ObjectPageLayout as sections/tabs */

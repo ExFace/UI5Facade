@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\Dashboard;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -1005,6 +1006,10 @@ JS;
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
+                    break;
+                case $fillerWidget instanceof Dashboard:
+                    $cssClass .= ' exf-tab-dashboard';
+                    break;
             }
         } else {
             $cssClass = null;

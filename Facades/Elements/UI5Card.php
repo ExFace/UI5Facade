@@ -29,9 +29,10 @@ class UI5Card extends UI5Panel
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
         return <<<JS
-                    new sap.f.Card({
+                    new sap.f.Card('{$this->getId()}', {
                         {$this->buildJsPropertyHeight()}
                         {$this->buildJsPropertyWidth()}
+                        {$this->buildJsPropertyVisibile()}
                         {$this->buildJsPropertyLayoutData()}
                         content: [
                             {$this->buildJsChildrenConstructors()}
