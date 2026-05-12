@@ -1073,8 +1073,12 @@ JS;
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
 
         // if we are exporting, send only visible columns; otherwise send all columns
-        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));        
+        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));
         
+        $configuratorFiltersJs = $this->buildJsFilterGetterViaTrait();
+        if ($configuratorFiltersJs === '') {
+            $configuratorFiltersJs = '{}';
+        }
         return <<<JS
 
 function(){
@@ -1083,7 +1087,7 @@ function(){
     if (oData.filters) {
         // save current state of filters in model (to be used in widget setups)
         try {
-            let oFilters = {$this->buildJsFilterGetterViaTrait()};
+            let oFilters = {$configuratorFiltersJs};
             var oDialog = sap.ui.getCore().byId('{$this->getId()}');
             var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
             oCurrentModel.setProperty('/header_filters', oFilters);
