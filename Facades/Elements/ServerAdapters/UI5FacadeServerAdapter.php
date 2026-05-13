@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\ServerAdapters;
 
+use exface\Core\Interfaces\Widgets\iUseInputWidget;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Interfaces\UI5ServerAdapterInterface;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -95,7 +96,7 @@ class UI5FacadeServerAdapter implements UI5ServerAdapterInterface
              ];
              }*/
             
-            if ($inputWidget = $button->getInputWidget()) {
+            if (($button instanceof iUseInputWidget) && $inputWidget = $button->getInputWidget()) {
                 if ($inputWidget->getMetaObject() !== $button->getMetaObject() && $inputWidget->getMetaObject() !== $prevLevelObject && $relationFromPrev = $prevLevelObject->findRelation($inputWidget->getMetaObject(), true)) {
                     $effects[] = [
                         'name' => $name,
