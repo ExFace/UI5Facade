@@ -35,8 +35,15 @@
 			}
 			
 			header.sapUiUfdShellHead > div, 
-			hr.sapUiUfdShellBrand {background-color: [#~facade:theme_header_color#] !important}
-			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner, 
+			hr.sapUiUfdShellBrand {background-color: [#~facade:theme_header_color#] !important;}
+
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink, 
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink > .sapMSltIcon::before,
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink > .sapMSltIcon::after,
+			header.sapUiUfdShellHead .sapMBreadcrumbsSeparator {color: [#~facade:theme_header_text_color#] !important;}
+
+			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner,
+			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner > .sapMBtnContent,
 			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner > .sapMBtnIcon {color: [#~facade:theme_header_text_color#];}
 		</style>
 		
