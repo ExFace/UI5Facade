@@ -140,6 +140,14 @@ class UI5Dashboard extends UI5Container
     {
         $resetJs = "";
         $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
+
+        // if we have tables in the dashboard, reset them too, otherwise column filters etc. would remain
+        foreach ($this->getDataElements() as $el) {
+            if ($el instanceof UI5DataTable) {
+                $resetJs .= PHP_EOL . $el->buildJsResetter();
+            }
+        }
+
         $resetJs .= <<<JS
         
 setTimeout(function() {
