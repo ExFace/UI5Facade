@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\Model\UiPageTreeNode;
+use exface\Core\CommonLogic\Constants\Icons;
 use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
 
 /**
@@ -22,18 +23,14 @@ class UI5NavMenu extends UI5AbstractElement
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        $menu = $this->getWidget()->getMenu();
+        $menu = $this->getWidget()->setExpandAll(true)->getMenu();
         $output = <<<JS
 
-new sap.m.ScrollContainer("{$this->getId()}_scrollContainer", {
-    horizontal: false,
-    vertical: true,
-    height: '100%',
-    content: [
-        new sap.tnt.NavigationList("{$this->getId()}", {
-            items: [{$this->buildNavigationListItems($menu)}]
-        })
-    ]
+new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
+    expanded: false,
+    item: new sap.tnt.NavigationList("{$this->getId()}",{
+        items: [{$this->buildNavigationListItems($menu)}]
+    })
 });
 
 JS;
@@ -52,14 +49,12 @@ JS;
         foreach ($menu as $node) {
             $url = $this->getFacade()->buildUrlToPage($node->getPageAlias());
             if ($level === 1) {
-                // TODO why do font-awesome icons like `sap-icon://font-awesome/bug` not work here???
-                // $icon = $node->getIcon() ? $this->getIconSrc($node->getIcon()) : "folder-blank";
-                $icon = "folder-blank";
+                $icon = ($node->getIcon() && ! Icons::isIconSetSVG($node->getIconSet())) ? $this->getIconSrc($node->getIcon()) : "folder-blank";
             } else {
                 $icon = '';
             }
             if ($node->hasChildNodes() === true) {
-                $icon = $icon === "folder-blank" ? "open-folder" : '';
+                $icon = $icon === "folder-blank" ? "open-folder" : $icon ;
                 $output .= <<<JS
             
         new sap.tnt.NavigationListItem({
