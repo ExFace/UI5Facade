@@ -107,13 +107,15 @@
 				// Register and load the font-awesome UI5 plugin before the shell renders,
 				// so that sap-icon://font-awesome/ icons work in the NavMenu.
 				jQuery.sap.registerModulePath('libs.font_awesome.plugin', 'vendor/bower-asset/font-awesome-openui5/dist/font-awesome-openui5.min');
+				jQuery.sap.registerModulePath('libs.exface.ui5Custom', 'vendor/exface/ui5facade/Facades/js/ui5Custom');
 				sap.ui.require(['libs/font_awesome/plugin'], function () {
 					sap.ui.require([
 						"sap/ui/unified/Shell",
 						"sap/ui/core/ComponentContainer",
 						"sap/tnt/NavigationList",
-						"sap/m/HBox"
-					], function (Shell, ComponentContainer, NavigationList, HBox) {
+						"sap/m/HBox",
+						"libs/exface/ui5Custom/MultiLevelNavItem"
+					], function (Shell, ComponentContainer, NavigationList, HBox, MultiLevelNavItem) {
 						var oShell = exfLauncher.initShell();
 
 						var oNavMenu = [#~widget:NavMenu#]

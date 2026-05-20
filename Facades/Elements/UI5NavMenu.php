@@ -15,6 +15,8 @@ use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
  */
 class UI5NavMenu extends UI5AbstractElement
 {
+    // max depth of the menu that is being rendered
+    private int $maxDepth = 3;
 
     /**
      *
@@ -53,13 +55,14 @@ JS;
             } else {
                 $icon = '';
             }
-            if ($node->hasChildNodes() === true) {
+            if ($node->hasChildNodes() === true && $level < $this->maxDepth) {
                 $icon = $icon === "folder-blank" ? "open-folder" : $icon ;
                 $output .= <<<JS
             
-        new sap.tnt.NavigationListItem({
+        new exface.ui5Custom.MultiLevelNavItem({
             icon: "{$icon}",
             text: "{$node->getName()}",
+            expanded: false,
             items: [
                 // BOF {$node->getName()} SubMenu
                 
@@ -74,7 +77,7 @@ JS;
             } else {
                 $output .= <<<JS
 
-        new sap.tnt.NavigationListItem({
+        new exface.ui5Custom.MultiLevelNavItem({
             icon: "{$icon}", 
             text: "{$node->getName()}", 
             select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
