@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\Model\UiPageTreeNode;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\Interfaces\Model\UiPageInterface;
 use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
 
 /**
@@ -18,6 +19,8 @@ class UI5NavMenu extends UI5AbstractElement
     // max depth of the menu that is being rendered
     private int $maxDepth = 3;
 
+    private ?UiPageInterface $currentPage = null;
+
     /**
      *
      * {@inheritDoc}
@@ -26,11 +29,14 @@ class UI5NavMenu extends UI5AbstractElement
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
         $menu = $this->getWidget()->setExpandAll(true)->getMenu();
+        $this->currentPage = $this->getWidget()->getPage();
+        $selectedKey = $this->currentPage->getAliasWithNamespace();
         $output = <<<JS
 
 new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
     expanded: false,
     item: new sap.tnt.NavigationList("{$this->getId()}",{
+        selectedKey: "{$selectedKey}",
         items: [{$this->buildNavigationListItems($menu)}]
     })
 });
@@ -50,6 +56,8 @@ JS;
         $output = '';
         foreach ($menu as $node) {
             $url = $this->getFacade()->buildUrlToPage($node->getPageAlias());
+            $isCurrentPage = $this->currentPage !== null && $node->isPage($this->currentPage);
+            $isInCurrentPath = $this->currentPage !== null && ($isCurrentPage || $node->isAncestorOf($this->currentPage));
             if ($level === 1) {
                 $icon = ($node->getIcon() && ! Icons::isIconSetSVG($node->getIconSet())) ? $this->getIconSrc($node->getIcon()) : "folder-blank";
             } else {
@@ -57,12 +65,14 @@ JS;
             }
             if ($node->hasChildNodes() === true && $level < $this->maxDepth) {
                 $icon = $icon === "folder-blank" ? "open-folder" : $icon ;
+                $expanded = $isInCurrentPath ? 'true' : 'false';
                 $output .= <<<JS
             
         new exface.ui5Custom.MultiLevelNavItem({
+            key: "{$node->getPageAlias()}",
             icon: "{$icon}",
             text: "{$node->getName()}",
-            expanded: false,
+            expanded: {$expanded},
             items: [
                 // BOF {$node->getName()} SubMenu
                 
@@ -78,6 +88,7 @@ JS;
                 $output .= <<<JS
 
         new exface.ui5Custom.MultiLevelNavItem({
+            key: "{$node->getPageAlias()}",
             icon: "{$icon}", 
             text: "{$node->getName()}", 
             select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
