@@ -39,6 +39,58 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
     item: new sap.tnt.NavigationList("{$this->getId()}",{
         selectedKey: "{$selectedKey}",
         items: [{$this->buildNavigationListItems($menu)}]
+    }),
+    fixedItem: new sap.tnt.NavigationList({
+        items: [
+            new sap.tnt.NavigationListItem({
+                icon: "sap-icon://search",
+                text: "{$this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME')}",
+                design: "Action",
+                select: function(oEvent) {
+                    var oSideNav = sap.ui.getCore().byId("{$this->getId()}_scrollContainer");
+                    var oItem = oEvent.getSource();
+                    if (!oSideNav._searchPopover) {
+                        oSideNav._searchField = new sap.m.SearchField({
+                            liveChange: function(oEvent) {
+                                var sQuery = oEvent.getParameter("newValue").toLowerCase();
+                                var oNavList = sap.ui.getCore().byId("{$this->getId()}");
+                                if (!oNavList) return;
+                                // set items invisible if they dont match query
+                                // keep parent items visible, if they have visible children or match query 
+                                function filterItems(aItems) {
+                                    var bAnyVisible = false;
+                                    aItems.forEach(function(oItem) {
+                                        var sText = oItem.getText().toLowerCase();
+                                        var aSubItems = oItem.getItems ? oItem.getItems() : [];
+                                        if (sQuery === "") {
+                                            oItem.setVisible(true);
+                                            oItem.setExpanded(false);
+                                            if (aSubItems.length) filterItems(aSubItems);
+                                            bAnyVisible = true;
+                                        } else {
+                                            var bChildVisible = aSubItems.length > 0 ? filterItems(aSubItems) : false;
+                                            var bMatch = sText.includes(sQuery) || bChildVisible;
+                                            oItem.setVisible(bMatch);
+                                            // expand items in path (parents)
+                                            if (bMatch && aSubItems.length > 0) oItem.setExpanded(true);
+                                            if (bMatch) bAnyVisible = true;
+                                        }
+                                    });
+                                    return bAnyVisible;
+                                }
+                                filterItems(oNavList.getItems());
+                            }
+                        });
+                        oSideNav._searchPopover = new sap.m.Popover({
+                            showHeader: false,
+                            placement: sap.m.PlacementType.Auto,
+                            content: [oSideNav._searchField]
+                        });
+                    }
+                    oSideNav._searchPopover.openBy(oItem.getDomRef() || oItem);
+                }
+            })
+        ]
     })
 });
 
