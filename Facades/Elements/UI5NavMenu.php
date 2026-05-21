@@ -16,8 +16,9 @@ use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
  */
 class UI5NavMenu extends UI5AbstractElement
 {
-    // max depth of the menu that is being rendered
-    private int $maxDepth = 3;
+    // max depth of the menu that is being rendered 
+    // (optional, null = unlimited)
+    private ?int $maxDepth = null;
 
     private ?UiPageInterface $currentPage = null;
 
@@ -63,7 +64,7 @@ JS;
             } else {
                 $icon = '';
             }
-            if ($node->hasChildNodes() === true && $level < $this->maxDepth) {
+            if ($node->hasChildNodes() === true && ($this->maxDepth === null || $level < $this->maxDepth)) {
                 $icon = $icon === "folder-blank" ? "open-folder" : $icon ;
                 $expanded = $isInCurrentPath ? 'true' : 'false';
                 $output .= <<<JS
