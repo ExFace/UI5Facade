@@ -133,6 +133,17 @@
 							componentCreated: function(oEvent) {
 								var oComponent = oEvent.getParameters().component;
 								exfLauncher.contextBar.init(oComponent);
+								
+								// update nav position when using the ui5 router -- for example when navigating through tiles
+								var oRouter = oComponent.getRouter ? oComponent.getRouter() : null;
+								if (oRouter) {
+									oRouter.attachRouteMatched(function(oRouteEvent) {
+										var sPageAlias = oRouteEvent.getParameter('name');
+										if (sPageAlias && oNavMenu && oNavMenu.getItem) {
+											oNavMenu.getItem().setSelectedKey(sPageAlias);
+										}
+									});
+								}							
 							},
 							width: "100%",
 							height: "100%",
