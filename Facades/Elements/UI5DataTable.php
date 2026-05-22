@@ -323,13 +323,18 @@ JS;
                     {$jsRequestData}.rows[0] = {};
                 }
 
+                // only add current user to input data if we are creating a new setup
+                // otherwise we would set public setups (no private_for_user entry) to private when updating them
+                if ({$jsRequestData}.rows[0][sColNameCol] === undefined){
+                    {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
+                }
+
                 // write the current setup and info into to the input data
                 {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
                 {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
                 {$jsRequestData}.rows[0][sWidgetIdCol] = '{$this->getDataWidget()->getId()}';
                 {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
                 {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
-                {$jsRequestData}.rows[0][sUserIdCol] = '{$this->getWorkbench()->getSecurity()->getAuthenticatedUser()->getUid()}';
 
                 if (bAutoApply === true){
                     {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#' . $parameters[0] . '#]' ], $jsRequestData)}
