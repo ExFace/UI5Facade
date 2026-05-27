@@ -3348,7 +3348,7 @@ JS;
 
     /**
      * 
-     * @see \exface\UI5FAcade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
      */
     public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {

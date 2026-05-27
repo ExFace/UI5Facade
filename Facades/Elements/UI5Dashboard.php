@@ -1,5 +1,5 @@
 <?php
-namespace exface\UI5FAcade\Facades\Elements;
+namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\WidgetVisibilityDataType;

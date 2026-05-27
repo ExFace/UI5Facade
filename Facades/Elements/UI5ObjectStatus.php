@@ -10,7 +10,7 @@ use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\Widgets\ColorIndicator;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
-use exface\UI5FAcade\Facades\UI5PropertyBinding;
+use exface\UI5Facade\Facades\UI5PropertyBinding;
 
 /**
  * Generates sap.m.ObjectStatus for any value widget.

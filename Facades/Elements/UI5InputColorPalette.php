@@ -5,7 +5,7 @@ use exface\Core\Widgets\ColorIndicator;
 use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\Widgets\ColorPalette;
 use exface\Core\Widgets\InputColorPalette;
-use exface\UI5FAcade\Facades\UI5PropertyBinding;
+use exface\UI5Facade\Facades\UI5PropertyBinding;
 
 /**
  * Renders a InputColorPalette widget as sap.ui.core.Button with a color select pop-up.
