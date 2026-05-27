@@ -1882,6 +1882,15 @@ JS;
         }
         return <<<JS
 
+                // do not optimize collapsed tables (width 0), as they would lead to very squished columns
+                // this might happen if we are in a (full-size) detail dialogue of a table, 
+                // and perform an action that causes the table to re-load while its not shown
+                let jqTable = oTable ? oTable.$() : null;
+                let bVisible = jqTable && jqTable.length > 0 && jqTable.innerWidth() > 0;
+                if (bVisible === false) {
+                    return;
+                }
+
                 $oTableJs.data("_exfIsAutoResizing", true);  // set auto resize flag
 
                 var bResized = false;
