@@ -517,6 +517,15 @@ JS;
                 $fields = $element->buildJsConstructor();
                 $element->setRenderCaptionAsLabel(true);
             } else {
+                if ($element instanceof UI5Button){
+                    // for Buttons, add a hidden/empty label, to make them align with the rest of the layout
+                    // and not strech tthe entire width of the form element.
+                    $label = "label: new sap.m.Label({
+                        text: '',
+                        visible: false
+                    }),";
+                }
+                
                 $fields= $element->buildJsConstructor();
             }
             $js .= $js !== '' ? ",\n" : '';
