@@ -94,6 +94,7 @@ const exfLauncher = {};
 
 	var _oShell = {};
 	var _oLauncher = this;
+	var _sCurrentPageAlias = null;
 	var _bBusy = false;
 	var _oNetworkSpeedPoller;
 	var _oSpeedStatusDialogInterval
@@ -799,6 +800,30 @@ const exfLauncher = {};
 
 	this.getPageId = function () {
 		return $("meta[name='page_id']").attr("content");
+	};
+
+	this.normalizePageAlias = function (routeName) {
+		if (typeof routeName !== 'string' || routeName === '') {
+			return routeName;
+		}
+
+		// if page alias contains more than 2 dots, it should be split to remove the widget id
+		var aliasParts = routeName.split('.');
+		if (aliasParts.length > 3) {
+			return aliasParts.slice(0, 3).join('.');
+		}
+
+		return routeName;
+	};
+
+	this.setPageAlias = function (routeName) {
+		_sCurrentPageAlias = this.normalizePageAlias(routeName);
+		return _sCurrentPageAlias;
+	};
+
+	// currently set in the routers onRouteMatched event handler, in OpenUI5AppTemplate.html
+	this.getPageAlias = function () {
+		return _sCurrentPageAlias;
 	};
 
 	this.registerNetworkSpeed = function (speedMbps) {

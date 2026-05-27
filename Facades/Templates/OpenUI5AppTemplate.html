@@ -134,11 +134,13 @@
 								var oComponent = oEvent.getParameters().component;
 								exfLauncher.contextBar.init(oComponent);
 								
-								// update nav position when using the ui5 router -- for example when navigating through tiles
+								// update nav menu position when using the ui5 router -- for example when navigating through tiles
+								// current page alias can be retrieved using exfLauncher.getPageAlias() 
 								var oRouter = oComponent.getRouter ? oComponent.getRouter() : null;
 								if (oRouter) {
 									oRouter.attachRouteMatched(function(oRouteEvent) {
-										var sPageAlias = oRouteEvent.getParameter('name');
+										exfLauncher.setPageAlias(oRouteEvent.getParameter('name'));
+										var sPageAlias = exfLauncher.getPageAlias();
 										if (sPageAlias && oNavMenu && oNavMenu.getItem) {
 											oNavMenu.getItem().setSelectedKey(sPageAlias);
 										}
