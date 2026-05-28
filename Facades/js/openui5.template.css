@@ -490,23 +490,69 @@ the entire text from disappearing (...) if the text overflows */
 }
 
 /* NavTiles IconTabBar & SearchFilter */
-[id*="-content"] {scroll-padding-top: 50px;}
-.customHeader {box-shadow: none;}
-.responsiveFlexbox {position: fixed; z-index: 1; width: 100%; justify-content: space-between; padding-right:1rem; box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.2); margin: auto;}
-@media (max-width: 1024px) {
-    .responsiveFlexbox {flex-direction: column;padding-bottom: 12px;}
-    [id*="-content"] {scroll-padding-top: 90px;}
-    #__field0 {padding-left: 1rem;}
+.customHeader {
+    box-shadow: none;
+} 
+
+/* set the toolbar sticky/to the top of the control */
+.navTilesToolbar {
+    z-index: 10;
+    background: var(--sapBackgroundColor);
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: auto;
+    min-height: 2.75rem;
+    overflow: visible;
 }
-/* NavTiles SearchFilter */
-[class*="sapMSF"] {height: 2rem !important;margin-top: 2px;}
-.sapMSFB {padding-top: 3px !important;}
-/* TODO remove this? What is better: fixed or sticky?
-.responsiveFlexbox {position: sticky; z-index: 1000; width: auto;}
-@media (max-width: 966px) {
-    .responsiveFlexbox {flex-direction: column;}
-    .customSearchField {padding-left: 16px;padding-right: 16px;}
-}*/
+
+.navTilesToolbar .sapMBarChild,
+.navTilesToolbar .sapMBarChildWrapper,
+.navTilesToolbar .sapMITH,
+.navTilesToolbar .sapMITHWrapper {
+    /* otherwise parts of the tabBar (the selected inicators) are clipped */
+    height: 100%;
+    overflow: visible;
+    border-bottom: solid .0625rem var(--sapGroup_TitleBorderColor);
+}
+
+.navTilesToolbar .exf-navtiles-tab-header {
+    min-width: 14rem;
+    max-width: none;
+    flex: 1 1 14rem;
+}
+
+.navTilesToolbar .exf-navtiles-search {
+    width: 18rem;
+    min-width: 18rem;
+    flex: 0 0 18rem;
+    border-bottom: none;
+    padding-top: 0.5rem;
+}
+
+/* todo: fix mobile */
+@media (max-width: 1024px) {
+    .navTilesToolbar {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .navTilesToolbar .sapMTBSpacer {
+        display: block;
+    }
+
+    .navTilesToolbar .exf-navtiles-tab-header {
+        min-width: 14rem;
+        max-width: none;
+        flex: 1 1 14rem;
+    }
+
+    .navTilesToolbar .exf-navtiles-search {
+        width: 14rem;
+        min-width: 14rem;
+        flex: 0 0 14rem;
+    }
+}
 
 /* ColorPalette */
 .exf-colorPalette {

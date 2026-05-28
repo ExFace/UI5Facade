@@ -71,89 +71,44 @@ JS;
      */
     protected function buildJsIconTabBar() : string
     {
-        $this->getController()->addOnEventScript($this, 'TabSelect', <<<JS
-
-            // Get the selected key
-            var sKey = oEvent.getParameter("key");
-
-             // Find the corresponding panel that matches the key dynamically
-            var oView = this.getView();
-            var oPanel = sap.ui.getCore().byId(sKey);
-            if (oPanel && oPanel.getDomRef()) {
-                oPanel.getDomRef().scrollIntoView({ behavior: "smooth" });
-            }
-JS);
-
-        $this->getController()->addOnEventScript($this, 'FilterTiles', <<<JS
-            
-            // Get search query
-            const sQuery = oEvent.getParameter("newValue");
-        
-            // Retrieve all panel IDs and slice to remove the first two IDs
-            var aPanelIds = this.getView().findAggregatedObjects(true, function(oControl) {
-            return oControl.isA("sap.m.Panel");
-            }).map(function(oPanel) {
-            return oPanel.getId();
-            }).slice(2);
-        
-            // Looping through each panel and filter based on tiles header names and content text
-            aPanelIds.forEach(function(sPanelId) {
-                // Retrieving the panel control based on the ID
-                var oPanel = sap.ui.getCore().byId(sPanelId)
-                var aTiles = oPanel.getContent();
-                var bAnyTileVisible = false;
-        
-                aTiles.forEach(function(oTile) {
-                    var sTileHeader = oTile.getHeader();
-                    var aTileContent = oTile.getTileContent();
-                    var sContentText = "";
-
-                    // Loop through the TileContent array to retrieve text
-                    aTileContent.forEach(function(oTileContent) {
-                           var oContent = oTileContent.getContent();
-                           if (oContent && oContent.isA("sap.m.FeedContent")) {
-                               sContentText = oContent._oContentText.mProperties.text;
-                           }
-                       });
-                    
-                       // If the header text or content text contains the search query, set the tile to visible
-                       var bVisible = !!(sTileHeader.toLowerCase().indexOf(sQuery.toLowerCase()) !== -1 || (sContentText && sContentText.toLowerCase().indexOf(sQuery.toLowerCase()) !== -1));
-                       
-                       // If at least one tile is visible, set the panel to visible
-                       if (bVisible) {
-                           bAnyTileVisible = true;
-                       }
-                       // Set visibility of the tile
-                       oTile.setVisible(bVisible);
-                });
-                oPanel.setVisible(bAnyTileVisible);
-            }.bind(this));
-            
-    JS);
-
         return <<<JS
 
-        new sap.m.FlexBox("{$this->getId()}_navbox", {
-            backgroundDesign: "Solid",
-            items: [
+        new sap.m.OverflowToolbar("{$this->getId()}_navbox", {
+            design: "Solid",
+            content: [
                 new sap.m.IconTabHeader("{$this->getId()}_iconTabHeader", {
                     mode: "Inline",
-                    select: {$this->getController()->buildJsEventHandler($this, 'TabSelect', true)},
+                    select: function(oEvent) {
+                        // Get the selected key
+                        var sKey = oEvent.getParameter("key");
+
+                        // Find the corresponding panel that matches the key and scroll it into view
+                        var oPanel = sap.ui.getCore().byId(sKey);
+                        if (oPanel && oPanel.getDomRef()) {
+                            oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
+                        }
+                    },
                     items: [
                         {$this->buildJsIconTabBarItems()}
                     ]
-                }).addStyleClass('customHeader').setLayoutData(new sap.m.FlexItemData({
-            growFactor: 1,
-            shrinkFactor: 1
-        })),
+                })
+                .addStyleClass('customHeader exf-navtiles-tab-header').setLayoutData(new sap.m.OverflowToolbarLayoutData({
+                    priority: sap.m.OverflowToolbarPriority.NeverOverflow,
+                    shrinkable: true,
+                    minWidth: "14rem"
+                })),
+                new sap.m.ToolbarSpacer(),
                 new sap.m.SearchField({
-                    placeholder: "Search...",
-                    liveChange: {$this->getController()->buildJsEventHandler($this, 'FilterTiles', true)},
-                }).setLayoutData(new sap.m.FlexItemData({
-            growFactor: 0
-        }))
+                    placeholder: "{$this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME')}", 
+                    liveChange: {$this->buildJsSearchTilesFunction()}
+                })
+                .addStyleClass('exf-navtiles-search')
+                .setLayoutData(new sap.m.OverflowToolbarLayoutData({
+                    priority: sap.m.OverflowToolbarPriority.NeverOverflow,
+                    shrinkable: false
+                }))
             ]
-        }).addStyleClass('responsiveFlexbox'),
+        }).addStyleClass('navTilesToolbar'),
 
 JS;
     }
@@ -202,5 +157,104 @@ JS;
     public function buildCssElementClass()
     {
         return 'exf-navtiles' . ($this->isFillingContainer() ? ' exf-panel-no-border' : '');
+    }
+
+    /**
+     * JS function to filter tiles at runtime, by toggling them in-/visible
+     * @return string
+     */
+    protected function buildJsSearchTilesFunction(){
+        return <<<JS
+        function(oEvent) {
+            // normalize search query
+            var sQuery = (oEvent.getParameter("newValue") || "").trim().toLowerCase();
+
+            // get root control
+            var oRootControl = sap.ui.getCore().byId("{$this->getId()}") || oEvent.getSource();
+            if (!oRootControl) {
+                return;
+            }
+
+            // get all panels that contain tiles 
+            var aPanels = oRootControl.findAggregatedObjects(true, function(oControl) {
+                return oControl.isA("sap.m.Panel");
+            }).filter(function(oPanel) {
+                // Exclude panels that were hidden from the beginning. 
+                // for example when hiding the first panel (overview), we do not want to search it and suddenly set it visible here
+                var bInitiallyVisible;
+                if (oPanel.data) {
+                    bInitiallyVisible = oPanel.data("_exfInitialVisible");
+                    if (typeof bInitiallyVisible !== "boolean") {
+                        bInitiallyVisible = oPanel.getVisible() !== false;
+                        oPanel.data("_exfInitialVisible", bInitiallyVisible);
+                    }
+                } else {
+                    bInitiallyVisible = oPanel.getVisible() !== false;
+                }
+
+                if (bInitiallyVisible === false) {
+                    return false;
+                }
+
+                // Keep only tile group panels (contain at least one GenericTile).
+                var aTiles = oPanel.getContent();
+                return Array.isArray(aTiles) && aTiles.some(function(oTile) {
+                    return oTile && oTile.isA && oTile.isA("sap.m.GenericTile");
+                });
+            });
+
+            aPanels.forEach(function(oPanel) {
+
+                var aTiles = oPanel.getContent() || [];
+                var bAnyTileVisible = false;
+
+                aTiles.forEach(function(oTile) {
+                    if (!oTile || !oTile.isA || !oTile.isA("sap.m.GenericTile")) {
+                        return;
+                    }
+
+                    // keep searchable text in data attribute to avoid rebuilding on every key stroke.
+                    var sSearchText = oTile.data("_exfSearchText");
+                    if (!sSearchText) {
+                        var aParts = [];
+                        if (oTile.getHeader) {
+                            aParts.push(oTile.getHeader() || "");
+                        }
+                        if (oTile.getSubheader) {
+                            aParts.push(oTile.getSubheader() || "");
+                        }
+
+                        (oTile.getTileContent() || []).forEach(function(oTileContent) {
+                            var oContent = oTileContent && oTileContent.getContent ? oTileContent.getContent() : null;
+                            if (!oContent) {
+                                return;
+                            }
+                            if (oContent.getText) {
+                                aParts.push(oContent.getText() || "");
+                            }
+                            if (oContent.getValue) {
+                                aParts.push(oContent.getValue() || "");
+                            }
+                        });
+
+                        sSearchText = aParts.join(" ").toLowerCase();
+                        if (oTile.data) {
+                            oTile.data("_exfSearchText", sSearchText);
+                        }
+                    }
+
+                    var bVisible = (sQuery === "") || (sSearchText.indexOf(sQuery) !== -1);
+                    if (bVisible) {
+                        bAnyTileVisible = true;
+                    }
+                    // Set visibility of the tile
+                    oTile.setVisible(bVisible);
+                });
+
+                // hide entire panel if no tile visible
+                oPanel.setVisible(bAnyTileVisible);
+            });
+    }
+JS;
     }
 }
