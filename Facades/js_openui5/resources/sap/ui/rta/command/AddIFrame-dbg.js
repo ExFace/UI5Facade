@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,18 +16,16 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.FlexCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.75
 	 * @alias sap.ui.rta.command.AddIFrame
-	 * @experimental Since 1.75. This class is experimental and provides only limited functionality. Also the API might be
-	 *			   changed in future.
 	 */
-	var AddIFrame = FlexCommand.extend("sap.ui.rta.command.AddIFrame", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
+	const AddIFrame = FlexCommand.extend("sap.ui.rta.command.AddIFrame", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
 				baseId: {
 					type: "string",
 					group: "content"
@@ -49,7 +47,16 @@ sap.ui.define([
 					group: "content"
 				},
 				height: {
-					type : "string",
+					type: "string",
+					group: "content"
+				},
+				title: {
+					type: "string",
+					group: "content"
+				},
+				advancedSettings: {
+					type: "object",
+					defaultValue: {},
 					group: "content"
 				},
 				changeType: {
@@ -57,34 +64,39 @@ sap.ui.define([
 					defaultValue: "addIFrame"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
 		}
 	});
 
 	// Override to avoid url to be 'bound'
-	AddIFrame.prototype.applySettings = function(mSettings) {
-		var mSettingsWithoutUrl = {};
+	AddIFrame.prototype.applySettings = function(...aArgs) {
+		const mSettings = aArgs[0];
+		const mSettingsWithoutUrl = {};
 		Object.keys(mSettings)
-			.filter(function (sSettingName) {
-				return sSettingName !== "url";
-			})
-			.forEach(function (sSettingName) {
-				mSettingsWithoutUrl[sSettingName] = mSettings[sSettingName];
-			});
-		var aArguments = [].slice.call(arguments);
-		aArguments[0] = mSettingsWithoutUrl;
-		FlexCommand.prototype.applySettings.apply(this, aArguments);
+		.filter((sSettingName) => sSettingName !== "url")
+		.forEach((sSettingName) => {
+			mSettingsWithoutUrl[sSettingName] = mSettings[sSettingName];
+		});
+		aArgs[0] = mSettingsWithoutUrl;
+		FlexCommand.prototype.applySettings.apply(this, aArgs);
 		this.setUrl(mSettings.url);
 	};
 
 	AddIFrame.prototype._getChangeSpecificData = function() {
-		var mChangeSpecificData = FlexCommand.prototype._getChangeSpecificData.call(this);
-		var sChangeType = mChangeSpecificData.changeType;
-		delete mChangeSpecificData.changeType;
+		const mChangeSpecificData = FlexCommand.prototype._getChangeSpecificData.call(this);
+		const { title: sTitle, ...oContent } = mChangeSpecificData.content;
 		return {
-			changeType: sChangeType,
-			content: mChangeSpecificData
+			changeType: mChangeSpecificData.changeType,
+			content: oContent,
+			texts: sTitle
+				? {
+					title: {
+						value: sTitle,
+						type: "XTIT"
+					}
+				}
+				: {}
 		};
 	};
 

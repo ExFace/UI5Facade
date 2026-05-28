@@ -1,1 +1,2 @@
-ace.define("ace/snippets/turtle",["require","exports","module"],function(r,e,m){"use strict";e.snippetText=undefined;e.scope="";});(function(){ace.require(["ace/snippets/turtle"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/turtle"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=turtle.js.map

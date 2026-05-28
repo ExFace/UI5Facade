@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,16 +15,20 @@ sap.ui.define([
 	 * unlocked. If locked, its {@link #waitFor} returns a promise that is resolved when the lock is
 	 * unlocked.
 	 *
+	 * Do not use this constructor directly. Use
+	 * {@link sap.ui.model.odata.v4.lib._Requestor#lockGroup} instead, so that the
+	 * <code>bLocked</code> flag is handled.
+	 *
 	 * @param {string} sGroupId
 	 *   The group ID
 	 * @param {object} oOwner
 	 *   The lock's owner for debugging
-	 * @param {boolean} [bLocked=false]
+	 * @param {boolean} [bLocked]
 	 *   Whether the lock is locked
 	 * @param {boolean} [bModifying]
 	 *   Whether the reason for the group lock is a modifying request
 	 * @param {number} [iSerialNumber=Infinity]
-	 *   A serial number which may be used on unlock
+	 *   A {@link #getSerialNumber serial number} which may be used on unlock
 	 * @param {function} [fnCancel]
 	 *   Function that is called when the group lock is canceled
 	 * @throws {Error}
@@ -80,12 +84,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the owner.
+	 *
+	 * @returns {object}
+	 *   The lock's owner for debugging
+	 *
+	 * @public
+	 */
+	_GroupLock.prototype.getOwner = function () {
+		return this.oOwner;
+	};
+
+	/**
 	 * Returns the serial number.
 	 *
 	 * @returns {number}
-	 *   The serial number
+	 *   The serial number, which may be negative
 	 *
 	 * @public
+	 * @see #getUnlockedCopy
 	 */
 	_GroupLock.prototype.getSerialNumber = function () {
 		return this.iSerialNumber;
@@ -96,13 +113,17 @@ sap.ui.define([
 	 * lock on which {@link #unlock} has already been called (e.g. when one group is used to create
 	 * multiple requests).
 	 *
+	 * @param {boolean} [bNegativeSerialNumber]
+	 *   Whether to remember the old serial number with a negative sign
 	 * @returns {sap.ui.model.odata.v4.lib._GroupLock}
 	 *   The group lock
 	 *
 	 * @public
+	 * @see #getSerialNumber
 	 */
-	_GroupLock.prototype.getUnlockedCopy = function () {
-		return new _GroupLock(this.sGroupId, this.oOwner, false, false, this.iSerialNumber);
+	_GroupLock.prototype.getUnlockedCopy = function (bNegativeSerialNumber) {
+		return new _GroupLock(this.sGroupId, this.oOwner, false, false,
+			bNegativeSerialNumber ? -this.iSerialNumber : this.iSerialNumber);
 	};
 
 	/**
@@ -158,7 +179,7 @@ sap.ui.define([
 	/**
 	 * Unlocks the lock. Resolves all promises returned by {@link #waitFor}.
 	 *
-	 * @param {boolean} [bForce=false]
+	 * @param {boolean} [bForce]
 	 *   Whether unlock may be called multiple times.
 	 * @throws {Error}
 	 *   If unlock is called a second time without <code>bForce</code>
@@ -180,7 +201,7 @@ sap.ui.define([
 	 * Returns a promise that is resolved when this lock does no longer block the given group ID.
 	 *
 	 * @param {string} sGroupId The group ID
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>|undefined}
 	 *   A promise or <code>undefined</code> if the lock does not block this group
 	 *
 	 * @public

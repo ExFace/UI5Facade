@@ -1,163 +1,165 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/theming/Parameters"], function (Parameters) {
+sap.ui.define([], function () {
 	"use strict";
 
-	return {
-		"spacing": {
-			"small": 8, // .sapUiTinyMarginTop
-			"default": 16, // .sapUiSmallMarginTop
-			"medium": 32, // .sapUiMediumMarginTop
-			"large": 48, // .sapUiLargeMarginTop
-			"extraLarge": 48, // .sapUiLargeMarginTop
-			"padding": 16 // cozy and compact padding for card content
-		},
-		"separator": {
-			"lineThickness": 1,
-			"lineColor": Parameters.get("sapUiToolbarSeparatorColor") // @sapUiToolbarSeparatorColor
-		},
-		"supportsInteractivity": true,
-		"fontTypes": {
-			"default": {
-				"fontFamily": Parameters.get("sapUiFontFamily"), // @sapUiFontFamily
-				"fontSizes": {
-					"small": 12, //@sapMFontSmallSize
-					"default": 14, // @sapMFontMediumSize
-					"medium": 14, // @sapMFontMediumSize
-					"large": 16, // @sapMFontLargeSize
-					"extraLarge": 20
-				}
+	return function () {
+		return {
+			"spacing": {
+				"small": 8, // .sapUiTinyMarginTop
+				"default": 16, // .sapUiSmallMarginTop
+				"medium": 32, // .sapUiMediumMarginTop
+				"large": 48, // .sapUiLargeMarginTop
+				"extraLarge": 48, // .sapUiLargeMarginTop
+				"padding": 16 // cozy and compact padding for card content
 			},
-			// default for monoscape
-			"monospace": {}
-		},
-		"containerStyles": {
-			"default": {
-				// in order to get out of the box the card content background or use
-				// @sapUiTileBackground
-				"backgroundColor": "transparent",
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText"),
-						"subtle": Parameters.get("sapUiContentLabelColor")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+			"separator": {
+				"lineThickness": 1,
+				"lineColor": "var(--sapToolbar_SeparatorColor)"
+			},
+			"supportsInteractivity": true,
+			"fontTypes": {
+				"default": {
+					"fontFamily": "var(--sapFontFamily)",
+					"fontSizes": {
+						"small": 12, //@sapMFontSmallSize
+						"default": 14, // @sapMFontMediumSize
+						"medium": 14, // @sapMFontMediumSize
+						"large": 16, // @sapMFontLargeSize
+						"extraLarge": 20
 					}
-				}
+				},
+				// default for monoscape
+				"monospace": {}
 			},
-			"emphasis": {
-				"backgroundColor": Parameters.get("sapUiNeutralBG"),
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+			"containerStyles": {
+				"default": {
+					// in order to get out of the box the card content background or use
+					// CSS variable for tile background
+					"backgroundColor": "transparent",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)",
+							"subtle": "var(--sapContent_LabelColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
 					}
-				}
-			},
-			"accent": {
-				"backgroundColor": Parameters.get("sapUiInformationBG"),
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+				},
+				"emphasis": {
+					"backgroundColor": "var(--sapTile_Background)",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
 					}
-				}
-			},
-			"good": {
-				"backgroundColor": Parameters.get("sapUiSuccessBG"),
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+				},
+				"accent": {
+					"backgroundColor": "var(--sapInformationBackground)",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
 					}
-				}
-			},
-			"attention": {
-				"backgroundColor": Parameters.get("sapUiErrorBG"),
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+				},
+				"good": {
+					"backgroundColor": "var(--sapSuccessBackground)",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
 					}
-				}
-			},
-			"warning": {
-				"backgroundColor": Parameters.get("sapUiWarningBG"),
-				"foregroundColors": {
-					"default": {
-						"default": Parameters.get("sapUiBaseText")
-					},
-					"accent": {
-						"default": Parameters.get("sapUiInformativeText")
-					},
-					"attention": {
-						"default": Parameters.get("sapUiNegativeText")
-					},
-					"good": {
-						"default": Parameters.get("sapUiPositiveText")
-					},
-					"warning": {
-						"default": Parameters.get("sapUiCriticalText")
+				},
+				"attention": {
+					"backgroundColor": "var(--sapErrorBackground)",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
+					}
+				},
+				"warning": {
+					"backgroundColor": "var(--sapWarningBackground)",
+					"foregroundColors": {
+						"default": {
+							"default": "var(--sapTextColor)"
+						},
+						"accent": {
+							"default": "var(--sapInformativeTextColor)"
+						},
+						"attention": {
+							"default": "var(--sapNegativeTextColor)"
+						},
+						"good": {
+							"default": "var(--sapPositiveTextColor)"
+						},
+						"warning": {
+							"default": "var(--sapCriticalTextColor)"
+						}
 					}
 				}
 			}
-		}
+		};
 	};
 });

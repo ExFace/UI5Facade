@@ -18,6 +18,7 @@ class UI5Browser extends UI5AbstractElement
                 {$this->buildJsIFrameInit()}
             }
         })
+        {$this->buildJsPseudoEventHandlers()}
         
 JS;
         if ($this->getWidget()->hasParent() === false) {

@@ -19,8 +19,6 @@ class UI5View implements UI5ViewInterface
     
     private $rootElement = null;
     
-    private $facade = null;
-    
     private $controller = null;
     
     private $model = null;
@@ -172,5 +170,19 @@ JS;
     {
         $rootWidget = $this->getRootElement()->getWidget();
         return $rootWidget->hasParent() === false && $rootWidget->getPage()->is($this->webapp->getRootPage());
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5ViewInterface::getCaption()
+     */
+    public function getCaption() : string
+    {
+        $widget = $this->getRootElement()->getWidget();
+        $widgetCaption = $widget->getCaption();
+        if ($widgetCaption) {
+            return $widgetCaption;
+        }
+        return $widget->getPage()->getName() ?? '';
     }
 }

@@ -57,12 +57,36 @@ JS);
         new sap.ui.core.HTML("{$this->getId()}", {
             content: "<div id=\"{$this->getIdOfSurveyDiv()}\"></div>",
             afterRendering: function() {
+                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+                // Re-render the form
+                var fnRefresh = function(){
+                    {$this->buildJsValueSetter("oHtml.getModel().getProperty('{$this->getValueBindingPath()}')")};
+                };
+                // Some changes in the UI5 constrols make the form get heigth=0 for some reason. This method here
+                // will check, if it disappeared and refresh the form if so. This will re-render it and it will
+                // become visible again
+                var fnMakeVisible = function() {
+                	var jqSurvey = $('#{$this->getIdOfSurveyDiv()}');
+                    if (jqSurvey.length === 0 || jqSurvey.height() === 0) {
+                        fnRefresh();
+                    }
+                };
+                var oValueBinding = new sap.ui.model.Binding(oHtml.getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
+                
+                // Init Survey.js
                 {$this->buildJsSurveySetup()}
 
-                var oValueBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '{$this->getValueBindingPath()}', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('{$this->getValueBindingPath()}'));
+				// Make sure, the form is refreshed with every model change
                 oValueBinding.attachChange(function(oEvent){
-                    {$this->buildJsValueSetter("sap.ui.getCore().byId('{$this->getId()}').getModel().getProperty('{$this->getValueBindingPath()}')")};
+                    fnRefresh();
                 });
+                
+                // Re-render survey when something happens to the parent - e.g. if the tab is hidden/shown.
+                // Survey actually disappeared even if another tab was added before the survey tab!
+                sap.ui.core.ResizeHandler.register(oHtml.getParent(), fnMakeVisible);
+                
+                // Finally ensure the form is visible by default
+                fnMakeVisible();
             }
         })
 

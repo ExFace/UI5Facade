@@ -11,7 +11,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface
  * 
  * @author Andrej Kabachnik
  *
- * @method \exface\UI5FAcade\Facades\UI5Facade getFacade()
+ * @method \exface\UI5Facade\Facades\UI5Facade getFacade()
  */
 class UI5DynamicPage extends UI5AbstractElement 
 {    
@@ -48,6 +48,17 @@ class UI5DynamicPage extends UI5AbstractElement
         if ($widget->hasParent() === false) {
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
+
+        // Call resize scripts as soon as the header is collapsed or expanded
+        $this->getController()->addOnInitScript(<<<JS
+                        
+            sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getHeader(), function(){
+                setTimeout(function(){
+                    {$this->getOnResizeScript()}
+                }, 0);
+            });
+JS
+        );
         
         $toolbar = $this->buildJsHeaderToolbarButtons() ?? '';
         
@@ -102,9 +113,10 @@ JS;
 				]
             }),
             
-			header: new sap.f.DynamicPageHeader({
+			header: new sap.f.DynamicPageHeader({                
                 pinnable: true,
 				content: [
+                    {$this->getConfiguratorElement()->buildJsMessages($oControllerJs)}
                     new sap.ui.layout.Grid({
                         defaultSpan: "XL2 L3 M4 S12",
                         containerQuery: true,

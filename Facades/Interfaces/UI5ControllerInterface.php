@@ -243,12 +243,12 @@ interface UI5ControllerInterface {
      * 
      * ```
      * jQuery.sap.registerModulePath('libs.font_awesome.plugin', 'exface/vendor/bower-asset/font-awesome-openui5/dist/font-awesome-openui5.min');
-     * jQuery.sap.registerModulePath('exface/vendor/exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min', 'exface/vendor/exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min');
+     * jQuery.sap.registerModulePath('exface/vendor/exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min', 'exface/vendor/exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min');
      * /* global echarts /  
      * sap.ui.define([
      *	 "powerui/demomes/fertigung/controller/BaseController",
      *	 "libs/font_awesome/plugin",
-     *   "exface/Core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min"
+     *   "exface/core/Facades/AbstractAjaxFacade/js/echarts/echarts.custom.min"
      * ], function (BaseController, fontAwesomePlugin, echartsCustomMin) {
      * }
      * 

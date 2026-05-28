@@ -85,10 +85,13 @@ JS;
      */
     public function buildJsValueBindingOptions()
     {
+        // UI5-Upgrade - using custom data types with string declarations is no longer supported/throws warnings
+        // so here we need to use the proper constructor now
         return <<<JS
         
-                type: 'exface.ui5Custom.dataTypes.MomentTimeType',
-                {$this->buildJsValueBindingFormatOptions()}
+                type: new exface.ui5Custom.dataTypes.MomentTimeType(
+                    {$this->buildJsValueBindingFormatOptions()}
+                ),
 JS;
     }    
 }

@@ -22,14 +22,16 @@ class UI5DateFormatter extends AbstractUI5BindingFormatter
     public function buildJsBindingProperties()
     {
         $dateFormatEscaped = json_encode($this->getJsFormatter()->getFormat());
-        return <<<JS
-
-                type: '{$this->getSapDataType()}',
-                formatOptions: {
-                    dateFormat: {$dateFormatEscaped}
-                },
+        // UI5-Upgrade - using custom data types with string declarations is no longer supported/throws warnings
+        // so here we need to use the proper constructor now
+        $props = <<<JS
+                type: new {$this->getSapDataType()}({
+                    dateFormat: {$dateFormatEscaped},
+                    emptyText: {$this->getJsFormatter()->getJsEmptyText('""')}
+                }),
 
 JS;
+        return $props;
     }
     
     protected function getSapDataType()

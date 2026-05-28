@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,12 +19,12 @@ sap.ui.define([
 	 * @abstract
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @alias sap.ui.table.extensions.ExtensionBase
 	 */
-	var ExtensionBase = BaseObject.extend("sap.ui.table.extensions.ExtensionBase", /** @lends sap.ui.table.extensions.ExtensionBase.prototype */ {
+	const ExtensionBase = BaseObject.extend("sap.ui.table.extensions.ExtensionBase", /** @lends sap.ui.table.extensions.ExtensionBase.prototype */ {
 		/**
 		 * Instance of the table this extension is applied to.
 		 *
@@ -32,14 +32,6 @@ sap.ui.define([
 		 * @protected
 		 */
 		_table: null,
-
-		/**
-		 * The type of the table this extension is applied to.
-		 *
-		 * @type {sap.ui.table.extensions.ExtensionBase.TABLETYPES}
-		 * @protected
-		 */
-		_type: null,
 
 		/**
 		 * The settings this extension instance has been initialized with.
@@ -55,18 +47,11 @@ sap.ui.define([
 			this._table = oTable;
 			this._settings = mSettings || {};
 
-			this._type = ExtensionBase.TABLETYPES.STANDARD;
-			if (oTable.isA("sap.ui.table.TreeTable")) {
-				this._type = ExtensionBase.TABLETYPES.TREE;
-			} else if (oTable.isA("sap.ui.table.AnalyticalTable")) {
-				this._type = ExtensionBase.TABLETYPES.ANALYTICAL;
-			}
-
-			var sExtensionName = this._init(this._table, this._type, this._settings);
+			const sExtensionName = this._init(this._table, this._settings);
 
 			// Attach a getter to the table to get the instance of this extension.
 			if (sExtensionName) {
-				var that = this;
+				const that = this;
 				oTable["_get" + sExtensionName] = function() { return that; };
 			}
 		},
@@ -77,7 +62,6 @@ sap.ui.define([
 		 */
 		destroy: function() {
 			this._table = null;
-			this._type = null;
 			this.bIsDestroyed = true;
 			BaseObject.prototype.destroy.apply(this, arguments);
 		},
@@ -88,19 +72,6 @@ sap.ui.define([
 		 */
 		getInterface: function() { return this; }
 	});
-
-	/**
-	 * Type of the table.
-	 *
-	 * @type {{TREE: string, ANALYTICAL: string, STANDARD: string}}
-	 * @public
-	 * @static
-	 */
-	ExtensionBase.TABLETYPES = {
-		TREE: "TREE",
-		ANALYTICAL: "ANALYTICAL",
-		STANDARD: "STANDARD"
-	};
 
 	/**
 	 * Returns the related table control.
@@ -117,13 +88,12 @@ sap.ui.define([
 	 * Initialize the extension.
 	 *
 	 * @param {sap.ui.table.Table} oTable Instance of the table.
-	 * @param {sap.ui.table.extensions.ExtensionBase.TABLETYPES} sTableType The type of the table.
 	 * @param {Object} [mSettings] Additional settings.
 	 * @returns {string|null} Derived classes should return the name of the extension.
 	 * @abstract
 	 * @protected
 	 */
-	ExtensionBase.prototype._init = function(oTable, sTableType, mSettings) { return null; };
+	ExtensionBase.prototype._init = function(oTable, mSettings) { return null; };
 
 	/**
 	 * Hook which allows the extension to attach for additional native event listeners after the rendering of the table control.
@@ -156,7 +126,7 @@ sap.ui.define([
 			return;
 		}
 
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i]._attachEvents();
 		}
 	};
@@ -173,7 +143,7 @@ sap.ui.define([
 		if (!oTable._aExtensions) {
 			return;
 		}
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i]._detachEvents();
 		}
 	};
@@ -193,7 +163,7 @@ sap.ui.define([
 			return null;
 		}
 
-		var oExtension = new ExtensionClass(oTable, mSettings);
+		const oExtension = new ExtensionClass(oTable, mSettings);
 		if (!oTable._aExtensions) {
 			oTable._aExtensions = [];
 		}
@@ -212,7 +182,7 @@ sap.ui.define([
 		if (!oTable._bExtensionsInitialized || !oTable._aExtensions) {
 			return;
 		}
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			oTable._aExtensions[i].destroy();
 		}
 		delete oTable._aExtensions;
@@ -232,7 +202,7 @@ sap.ui.define([
 			return false;
 		}
 
-		for (var i = 0; i < oTable._aExtensions.length; i++) {
+		for (let i = 0; i < oTable._aExtensions.length; i++) {
 			if (oTable._aExtensions[i].getMetadata().getName() === sExtensionFullName) {
 				return true;
 			}

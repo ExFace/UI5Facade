@@ -4,11 +4,11 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\BooleanDataType;
+use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\Filter;
 use exface\Core\Widgets\Input;
 use exface\Core\Widgets\InputComboTable;
 use exface\Core\Widgets\DataLookupDialog;
-use exface\Core\Widgets\Parts\ConditionalPropertyCondition;
 use exface\Core\Widgets\KPI;
 
 /**
@@ -48,8 +48,54 @@ class UI5Input extends UI5Value
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
+        $widget = $this->getWidget();
         $this->registerOnChangeValidation();
-        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs));
+        // If the value is not bound to a UI5 model, it still must be emptied when the UI5 view is being emptied -
+        // otherwise non-prefill widgets will keep their values after a dialog is closed and reopened again, which
+        // may result in values being "smuggled" invisibly into subsequent data items created after a create-dialog
+        // was closed the first time. Users cannot see the difference between such an orphaned non-prefill value and
+        // a regular default value - thus, they do not remove the values when opening the dialog a second time assuming,
+        // that they have been set correctly automatically. For example, this was the case im manual stock booking
+        // dialogs calling a web service, where additional inputs needed to be filled depending on the booking type.
+        // If those widgets had a custom `data_column_name` and no attribute binding, they actually kept their values
+        // when the dialog was re-opened.
+        // TODO #ui5-model-everywhere the workaround below is pretty dangerous because it counts on an existing
+        // data model even for non-prefill widgets (which would probably not work if the entire dialog has no prefill).
+        // Instead we should probably always use UI5 models instead of optional value bindings.
+        if (
+            // Empty on dialog reset if the value is not bound to model OR prefill is generally disabled
+            (! $this->isValueBoundToModel() || $widget->getDoNotPrefill() === true) 
+            // But NOT if the widget has a static value - otherwise that static value would get removed
+            && (! $widget->hasValue() || $widget->getValueExpression()->isReference())
+        ) {
+            // The data-model of the current widget is mostly populated in UI5Dialog. It is set to `{}` whenever
+            // the dependent widgets are to be emptied - see `UI5Dialog::buildJsPrefillLoader()`,
+            // `UI5Dialog::buildJsResetter()` and possibly other places.
+            $this->getController()->addOnInitScript(<<<JS
+
+            (function(){
+                var oSelf = sap.ui.getCore().byId('{$this->getId()}');
+                if (oSelf === undefined) return;
+                var oModel = oSelf.getModel();
+                if (oModel === undefined) return;
+                var oBinding = new sap.ui.model.Binding(oModel, '/');
+                oBinding.attachChange(function(){
+                    var mCurVal;
+                    if ($.isEmptyObject(oModel.getData())) {
+                        mCurVal = {$this->buildJsValueGetter()};
+                        if (mCurVal !== undefined && mCurVal !== null && mCurVal !== '') {
+                            {$this->buildJsEmpty()};
+                        }
+                    }
+                });
+            })()
+JS
+            );
+        }
+        return $this->buildJsLabelWrapper(
+            $this->buildJsConstructorForMainControl($oControllerJs) 
+            . ".addStyleClass('{$this->buildCssWidgetClass()}')"
+        );
     }
     
     /**
@@ -165,7 +211,7 @@ JS;
         if ($widget->getValueWidgetLink()) {
             $targetWidget = $widget->getValueWidgetLink()->getTargetWidget();
             if ($targetWidget instanceof iHaveValue) {
-                $value = str_replace("\n", '', $targetWidget->getValueWithDefaults());
+                $value = str_replace("\n", '', $targetWidget->getValueWithDefaults() ?? '');
                 $value = '"' . $this->escapeJsTextValue($value) . '"';
             }
         } 
@@ -269,6 +315,14 @@ JS;
      */
     protected function buildJsRequiredGetter() : string
     {
+        // Special handling for in-table mode: cannot use ids here, so we forward the call to the table
+        // element in this case.
+        if ($this->getWidget()->isInTable()) {
+            /* @var $col \exface\Core\Widgets\DataColumn */
+            $col = $this->getWidget()->getParentByClass(DataColumn::class);
+            $tableEl = $this->getFacade()->getElement($col->getDataWidget());
+            return $tableEl->buildJsIsCellRequired($this->getWidget());
+        }
         return "sap.ui.getCore().byId('{$this->getId()}').getRequired()";
     }
     
@@ -332,7 +386,7 @@ JS;
     protected function registerOnChangeValidation()
     {
         $validator = $this->buildJsValidator();
-        if ($validator !== 'true') {#
+        if ($validator !== 'true') {
             $invalidText = json_encode($this->getValidationErrorText());
             $revalidateJs = <<<JS
     
@@ -353,12 +407,25 @@ JS;
             
         }
         
-        // If we have an invalid_if, make sure to revalidate this element every time any widgets
-        // used in the conditions change
+        // If we have an invalid_if, make sure to revalidate this element every time any widgets used in the conditions change
+        // and do the same for required_ifs
+        /* example required_ifs : 
+
+            InputA is required if InputB has a value and vice versa.
+
+            - Both inputs have a value at the beginning, so no validation error.
+            - If we empty inputA, the validation happens, and because it is empty and required, its marked invalid.
+            - Then we empty inputB, so none of the two are required (this is handeled correctly in buildJsSetRequired), 
+            - InputA is then not required, but still marked as invalid (errorstate), because the validation is only triggered for the changed element (InputB).
+
+        */
         $widget = $this->getWidget();
-        if (null !== $invalidIf = $widget->getInvalidIf()) {
-            $facade = $this->getFacade();
-            foreach ($invalidIf->getConditionGroup()->getConditionsRecursive() as $cond) {
+        $facade = $this->getFacade();
+
+        // get required and invalid-ifs (if any exist), otherwise skip (empty array)
+        $conditionalProperties = array_filter([$widget->getInvalidIf(), $widget->getRequiredIf()], null);
+        foreach ($conditionalProperties as $conditionalProp) {
+            foreach ($conditionalProp->getConditionGroup()->getConditionsRecursive() as $cond) {
                 /* @var $cond ConditionalPropertyCondition */
                 $expr = $cond->getValueLeftExpression();
                 if ($expr->isReference() && $expr->getWidgetLink($widget)->getTargetWidget() !== $widget) {
@@ -423,7 +490,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsChangesGetter()
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         $widget = $this->getWidget();
         
@@ -555,7 +622,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === Input::FUNCTION_FOCUS:
@@ -563,7 +630,7 @@ JS;
             case $functionName === Input::FUNCTION_EMPTY:
                 return "setTimeout(function(){ {$this->buildJsEmpty()} }, 0);";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**

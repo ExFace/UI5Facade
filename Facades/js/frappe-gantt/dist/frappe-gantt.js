@@ -162,8 +162,8 @@ var Gantt = (function () {
 
             return date_string + (with_time ? ' ' + time_string : '');
         },
-
-        format(date, format_string = 'YYYY-MM-DD HH:mm:ss.SSS') {
+      
+          format(date, format_string = 'yyyy-MM-dd HH:mm:ss.SSS') {
             return exfTools.date.format(date, format_string);
         },
 
@@ -447,10 +447,17 @@ var Gantt = (function () {
 
         prepare_values() {
             this.invalid = this.task.invalid;
-            this.height = this.gantt.options.bar_height;
+            
+            this.height = this.gantt.get_bar_height_for_task(this.task);
+          
             this.x = this.compute_x();
             this.y = this.compute_y();
-            this.corner_radius = this.gantt.options.bar_corner_radius;
+
+            this.corner_radius = Math.min(this.gantt.options.bar_corner_radius, this.height / 2);
+            
+            const p = Number.isFinite(+this.task.progress) ? +this.task.progress : 0;
+            this.task.progress = Math.min(100, Math.max(0, p));
+            
             this.duration =
                 date_utils.diff(this.task._end, this.task._start, 'hour') /
                 this.gantt.options.step;
@@ -510,6 +517,77 @@ var Gantt = (function () {
                 append_to: this.bar_group,
             });
 
+            /**
+             * +n-block bar buildup
+             * 
+             * here, the +N-block look is made. 
+             * It contains all the bars that overlaps more than 2 times with another bars.
+             */
+            let defs = this.gantt.$svg.querySelector('defs');
+            if (!defs) defs = createSVG('defs', { append_to: this.gantt.$svg });
+  
+            const inset = 1.5; // px: minimum distance to edge/frame
+            const clipId = `clip-legend-${String(this.task.id).replace(/[^a-zA-Z0-9_-]/g, '')}`;
+
+            const oldClip = this.gantt.$svg.querySelector(`#${clipId}`);
+            if (oldClip) oldClip.remove();
+  
+            // ClipPath: ClipPath: rounded rectangle within the bar
+            const $cp = createSVG('clipPath', { id: clipId, append_to: defs });
+            createSVG('rect', {
+              x: this.x + inset,
+              y: this.y + inset,
+              width: Math.max(0, this.width - inset * 2),
+              height: Math.max(0, this.height - inset * 2),
+              rx: Math.max(0, this.corner_radius - inset),
+              ry: Math.max(0, this.corner_radius - inset),
+              append_to: $cp
+            });
+  
+            // +n-block color stripes
+            if (this.task._isAggregate && Array.isArray(this.task._members)) {
+              const colorSwatches = this.task._members.map(m => m && m.color).filter(Boolean);
+  
+              if (colorSwatches.length) {
+                const stripeW = 8;     // The wide of shown stripes in pixel
+                const gapX    = 1;     // the gap between the stipes
+                const h       = Math.max(0, this.height - inset * 2);
+                let xStripe   = this.x + inset; // starting from the left
+  
+                // Gruppe der Streifen mit Clip
+                const stripesGroup = createSVG('g', {
+                  append_to: this.bar_group
+                });
+                stripesGroup.setAttribute('clip-path', `url(#${clipId})`);
+
+                colorSwatches.forEach(c => {
+                  const r = createSVG('rect', {
+                    x: xStripe,
+                    y: this.y + inset,
+                    width: stripeW,
+                    height: h,
+                    class: 'agg-stripe-v',
+                    append_to: stripesGroup
+                  });
+                  r.setAttribute('fill', c);
+                  r.setAttribute('pointer-events', 'none');
+                  xStripe += stripeW + gapX;
+                  if (xStripe > this.x + this.width - inset) return; // Safety, if the block is too narrow
+                });
+              }
+            }
+            
+            // Sets the custom background colour (SVG fill) – overrides default from CSS
+            if (this.task.color) {
+              this.$bar.style.setProperty('--bar-fill', String(this.task.color));
+            }
+            if (this.task.colorHover) {
+              this.$bar.style.setProperty('--bar-fill-hover', String(this.task.colorHover));
+            }
+            if (this.task.colorActive) {
+              this.$bar.style.setProperty('--bar-fill-active', String(this.task.colorActive));
+            }
+
             animateSVG(this.$bar, 'width', 0, this.width);
 
             if (this.invalid) {
@@ -530,17 +608,38 @@ var Gantt = (function () {
                 append_to: this.bar_group,
             });
 
+            // custom progress colors
+            if (this.task.progressColor) {
+              this.$bar_progress.style.setProperty('--bar-progress-fill', String(this.task.progressColor));
+            }
+            if (this.task.progressColorHover) {
+              this.$bar_progress.style.setProperty('--bar-progress-fill-hover', String(this.task.progressColorHover));
+            }
+            if (this.task.progressColorActive) {
+              this.$bar_progress.style.setProperty('--bar-progress-fill-active', String(this.task.progressColorActive));
+            }
+
             animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
         }
 
         draw_label() {
-            createSVG('text', {
+          const $label = createSVG('text', {
                 x: this.x + this.width / 2,
                 y: this.y + this.height / 2,
                 innerHTML: this.task.name,
                 class: 'bar-label',
                 append_to: this.bar_group,
             });
+          
+          // In-Bar label color
+          if (this.task.textColor) {
+            $label.style.fill = String(this.task.textColor);
+            $label.dataset.inBarColor = String(this.task.textColor);
+          } else {
+            // Places an empty marker if no colour has been set.
+            $label.dataset.inBarColor = '';
+          }
+            
             // labels get BBox in the next tick
             requestAnimationFrame(() => this.update_label_position());
         }
@@ -595,7 +694,6 @@ var Gantt = (function () {
         }
 
         bind() {
-            if (this.invalid) return;
             this.setup_click_event();
         }
 
@@ -624,16 +722,35 @@ var Gantt = (function () {
         show_popup() {
             if (this.gantt.bar_being_dragged) return;
 
-            const start_date = date_utils.format(
-                this.task._start,
-                this.gantt.options.date_format,
-            );
-            const end_date = date_utils.format(
-                date_utils.add(this.task._end, -1, 'second'),
-                this.gantt.options.date_format,
-            );
-            const subtitle = start_date + ' - ' + end_date;
+            let subtitle = '';
 
+            if (!this.task._isAggregate) {
+                // normal task-blocks
+                const hasRealStart = !!this.task.start;
+                const hasRealEnd = !!this.task.end;
+                
+                if (hasRealStart || hasRealEnd) {
+                  const start_date = date_utils.format(
+                      this.task._start,
+                      this.gantt.options.date_format,
+                  );
+                  const adjEnd = (this.gantt.options.step >= 24
+                      && (this.gantt.options.step % 24) === 0)
+                      ? date_utils.add(this.task._end, -24, 'hour')
+                      : date_utils.add(this.task._end, -1, 'second');
+
+                  const end_date = date_utils.format(adjEnd,
+                      this.gantt.options.date_format);
+
+                  if (hasRealStart && hasRealEnd) {
+                    subtitle = `${start_date} - ${end_date}`;
+                  } else if (hasRealStart && !hasRealEnd) {
+                    subtitle = `${start_date} - ...`;
+                  } else if (!hasRealStart && hasRealEnd) {
+                    subtitle = `... - ${end_date}`;
+                  }
+                }
+            }
             this.gantt.show_popup({
                 target_element: this.$bar,
                 title: this.task.name,
@@ -685,13 +802,13 @@ var Gantt = (function () {
             if (!changed) return;
 
             // Remove a bit from the end date (not quite sure why)
-	    // If the step is a multiple of 24h, subtract the 24h offset that is added to the end date
-	    // Otherwise keep the original solution with -1 second
-	    this.gantt.trigger_event('date_change', [
-	    	this.task,
-	    	new_start_date,
-	    	this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0 ? date_utils.add(new_end_date, -24, 'hour') : date_utils.add(new_end_date, -1, 'second'),
-	    ]);
+	          // If the step is a multiple of 24h, subtract the 24h offset that is added to the end date
+	          // Otherwise keep the original solution with -1 second
+            this.gantt.trigger_event('date_change', [
+              this.task,
+              new_start_date,
+              this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0 ? date_utils.add(new_end_date, -24, 'hour') : date_utils.add(new_end_date, -1, 'second'),
+            ]);
         }
 
         progress_changed() {
@@ -736,6 +853,7 @@ var Gantt = (function () {
 
         compute_x() {
             const { step, column_width } = this.gantt.options;
+            
             const task_start = this.task._start;
             const gantt_start = this.gantt.gantt_start;
 
@@ -750,42 +868,54 @@ var Gantt = (function () {
         }
 
         compute_y() {
-            return (
+            const rowIndex = (this.task._rowIndex != null) ? this.task._rowIndex : this.task._index;
+            const lane = (this.task._lane != null) ? this.task._lane : 0;
+    
+            const baseY =
                 this.gantt.options.header_height +
                 this.gantt.options.padding +
-                this.task._index * (this.height + this.gantt.options.padding)
-            );
+                this.gantt.rowTop(rowIndex);
+    
+            const innerTop = (this.gantt.options.bar_inner_padding || 0) / 2;
+    
+            // Lane offset remains the same, but starts below the inner top padding
+            return baseY + innerTop + lane * (this.height + this.gantt.options.lane_padding);
         }
 
         get_snap_position(dx) {
             let odx = dx,
                 rem,
                 position;
-
+  
             if (this.gantt.view_is('Week')) {
-                rem = dx % (this.gantt.options.column_width / 7);
-                position =
-                    odx -
-                    rem +
-                    (rem < this.gantt.options.column_width / 14
-                        ? 0
-                        : this.gantt.options.column_width / 7);
+              rem = dx % (this.gantt.options.column_width / 7);
+              position =
+                  odx -
+                  rem +
+                  (rem < this.gantt.options.column_width / 14
+                      ? 0
+                      : this.gantt.options.column_width / 7);
             } else if (this.gantt.view_is('Month')) {
-                rem = dx % (this.gantt.options.column_width / 30);
-                position =
-                    odx -
-                    rem +
-                    (rem < this.gantt.options.column_width / 60
-                        ? 0
-                        : this.gantt.options.column_width / 30);
+              rem = dx % (this.gantt.options.column_width / 30);
+              position =
+                  odx -
+                  rem +
+                  (rem < this.gantt.options.column_width / 60
+                      ? 0
+                      : this.gantt.options.column_width / 30);
+              
+              //TODO SR INFO: Month Weeks View:
+  /*           } else if (this.gantt.view_is('MonthWeeks')) {
+               rem = dx % (this.gantt.options.column_width / 30);
+               position = odx - rem + (rem < this.gantt.options.column_width / 60 ? 0 : this.gantt.options.column_width / 30);*/
             } else {
-                rem = dx % this.gantt.options.column_width;
-                position =
-                    odx -
-                    rem +
-                    (rem < this.gantt.options.column_width / 2
-                        ? 0
-                        : this.gantt.options.column_width);
+              rem = dx % this.gantt.options.column_width;
+              position =
+                  odx -
+                  rem +
+                  (rem < this.gantt.options.column_width / 2
+                      ? 0
+                      : this.gantt.options.column_width);
             }
             return position;
         }
@@ -799,37 +929,127 @@ var Gantt = (function () {
         }
 
         update_progressbar_position() {
-            this.$bar_progress.setAttribute('x', this.$bar.getX());
-            this.$bar_progress.setAttribute(
-                'width',
-                this.$bar.getWidth() * (this.task.progress / 100)
-            );
+          if (!this.$bar_progress) return;
+          
+          const bw = this.$bar.getWidth();
+          const raw = Number.isFinite(+this.task.progress) ? +this.task.progress : 0;
+          const progress = Math.min(100, Math.max(0, raw)); //0–100 clamp
+  
+          this.$bar_progress.setAttribute('x', this.$bar.getX());
+          this.$bar_progress.setAttribute('width', bw * (progress / 100));
         }
 
+        // This is a part of the label_overflow logic
         update_label_position() {
-            const bar = this.$bar,
-                label = this.group.querySelector('.bar-label');
+          const bar = this.$bar;
+          const label = this.group.querySelector('.bar-label');
+          if (!label) return;
+  
+          const overflow = this.gantt.options.label_overflow || 'outside';
+          const padding = 6;
+          const fits = label.getBBox().width <= Math.max(0, bar.getWidth() - padding);
 
-            if (label.getBBox().width > bar.getWidth()) {
-                label.classList.add('big');
-                label.setAttribute('x', bar.getX() + bar.getWidth() + 5);
+          const isStacked = (this.task._clusterLanes || 1) > 1;
+          const isLowHeight = this.height <= 14;
+  
+          // Basis: Always align labels centrally
+          label.classList.remove('big');
+          label.classList.remove('clip-left');
+          label.classList.remove('small');
+
+          if (isStacked || isLowHeight) {
+            label.classList.add('small');
+          }
+
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
+          label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
+
+          // Restore in-bar colour (if available), otherwise delete inline colour
+          const restoreInBarColor = () => {
+            const inBar = label.dataset.inBarColor || '';
+            if (inBar) {
+              label.style.fill = inBar;
             } else {
-                label.classList.remove('big');
-                label.setAttribute('x', bar.getX() + bar.getWidth() / 2);
+              // no specific colour => remove inline colour, CSS takes care of it
+              label.style.removeProperty('--bar-fill');
             }
+          };
+  
+          if (fits) {
+            // shows the label if it fits inside the bar
+            label.style.display = '';
+            label.removeAttribute('clip-path');
+            restoreInBarColor();
+            return;
+          }
+  
+          // If the label doesn't fit inside the bar:
+          if (overflow === 'outside') {
+            // The label is displayed on the right outside the bar.
+            label.classList.add('big');
+            label.style.display = '';
+            label.setAttribute('text-anchor', 'start');
+            label.setAttribute('x', bar.getX() + bar.getWidth() + 5);
+            label.removeAttribute('clip-path');
+
+            const outside = this.gantt.options.label_outside_color || '#555';
+            label.style.fill = String(outside);
+          } else if (overflow === 'hide') {
+            label.style.display = 'none';
+            label.removeAttribute('clip-path');
+          } else if (overflow === 'clip') {
+            // The label is clipped inside the bar. 
+            // It is useful if multiple bars are at the same line index, 
+            // so that the labels do not overlap. 
+            label.style.display = '';
+            label.classList.remove('big');
+            const insetX = 2;
+            const insetY = 1;
+            
+            label.classList.add('clip-left');
+            label.setAttribute('x', bar.getX() + insetX);
+            label.setAttribute('y', bar.getY() + bar.getHeight() / 2);
+
+            restoreInBarColor();
+
+            // ClipPath: cuts ONLY on the right (and top/bottom), not on the left
+            const clipId = `clip-label-${String(this.task.id).replace(/[^a-zA-Z0-9_-]/g,'')}`;
+            let defs = this.gantt.$svg.querySelector('defs');
+            if (!defs) defs = createSVG('defs', { append_to: this.gantt.$svg });
+
+            // Remove old clip if necessary to avoid duplicates.
+            const old = this.gantt.$svg.querySelector(`#${clipId}`);
+            if (old) old.remove();
+
+            const cp = createSVG('clipPath', { id: clipId, append_to: defs });
+            createSVG('rect', {
+              x: bar.getX() + insetX,
+              y: bar.getY() + insetY,
+              width: Math.max(0, bar.getWidth() - insetX * 2),
+              height: Math.max(0, bar.getHeight() - insetY * 2),
+              rx: Math.max(0, this.corner_radius - insetX),
+              ry: Math.max(0, this.corner_radius - insetY),
+              append_to: cp
+            });
+
+            label.setAttribute('clip-path', `url(#${clipId})`);
+          }
         }
 
         update_handle_position() {
-            const bar = this.$bar;
-            this.handle_group
-                .querySelector('.handle.left')
-                .setAttribute('x', bar.getX() + 1);
-            this.handle_group
-                .querySelector('.handle.right')
-                .setAttribute('x', bar.getEndX() - 9);
-            const handle = this.group.querySelector('.handle.progress');
-            handle &&
-                handle.setAttribute('points', this.get_progress_polygon_points());
+          const bar = this.$bar;
+          const leftHandle  = this.handle_group.querySelector('.handle.left');
+          const rightHandle = this.handle_group.querySelector('.handle.right');
+  
+          // Invalid tasks have no handles.
+          if (this.invalid && (!leftHandle || !rightHandle)) return;
+  
+          leftHandle.setAttribute('x', bar.getX() + 1);
+          rightHandle.setAttribute('x', bar.getEndX() - 9);
+  
+          const handle = this.group.querySelector('.handle.progress');
+          handle && handle.setAttribute('points', this.get_progress_polygon_points());
         }
 
         update_arrow_position() {
@@ -850,78 +1070,56 @@ var Gantt = (function () {
             this.draw();
         }
 
-        calculate_path() {
-            let start_x =
-                this.from_task.$bar.getX() + this.from_task.$bar.getWidth() / 2;
+      calculate_path() {
+        let start_x = this.from_task.$bar.getX() + this.from_task.$bar.getWidth() / 2;
 
-            const condition = () =>
-                this.to_task.$bar.getX() < start_x + this.gantt.options.padding &&
-                start_x > this.from_task.$bar.getX() + this.gantt.options.padding;
+        const condition = () =>
+            this.to_task.$bar.getX() < start_x + this.gantt.options.padding &&
+            start_x > this.from_task.$bar.getX() + this.gantt.options.padding;
 
-            while (condition()) {
-                start_x -= 10;
-            }
+        while (condition()) start_x -= 10;
+        
+        const start_y = this.from_task.$bar.getY() + this.from_task.$bar.getHeight() / 2;
+        const end_x   = this.to_task.$bar.getX() - this.gantt.options.padding / 2;
+        const end_y   = this.to_task.$bar.getY() + this.to_task.$bar.getHeight() / 2;
 
-            const start_y =
-                this.gantt.options.header_height +
-                this.gantt.options.bar_height +
-                (this.gantt.options.padding + this.gantt.options.bar_height) *
-                    this.from_task.task._index +
-                this.gantt.options.padding;
+        const from_is_below_to = start_y > end_y;
+        const curve = this.gantt.options.arrow_curve;
+        const clockwise = from_is_below_to ? 1 : 0;
+        const curve_y = from_is_below_to ? -curve : curve;
+        const offset = from_is_below_to ? end_y + curve : end_y - curve;
 
-            const end_x = this.to_task.$bar.getX() - this.gantt.options.padding / 2;
-            const end_y =
-                this.gantt.options.header_height +
-                this.gantt.options.bar_height / 2 +
-                (this.gantt.options.padding + this.gantt.options.bar_height) *
-                    this.to_task.task._index +
-                this.gantt.options.padding;
+        this.path = `
+          M ${start_x} ${start_y}
+          V ${offset}
+          a ${curve} ${curve} 0 0 ${clockwise} ${curve} ${curve_y}
+          L ${end_x} ${end_y}
+          m -5 -5
+          l 5 5
+          l -5 5`;
 
-            const from_is_below_to =
-                this.from_task.task._index > this.to_task.task._index;
-            const curve = this.gantt.options.arrow_curve;
-            const clockwise = from_is_below_to ? 1 : 0;
-            const curve_y = from_is_below_to ? -curve : curve;
-            const offset = from_is_below_to
-                ? end_y + this.gantt.options.arrow_curve
-                : end_y - this.gantt.options.arrow_curve;
+        if (this.to_task.$bar.getX() <
+            this.from_task.$bar.getX() + this.gantt.options.padding) {
+          const down_1 = this.gantt.options.padding / 2 - curve;
+          const down_2 = end_y - curve_y;
+          const left   = this.to_task.$bar.getX() - this.gantt.options.padding;
 
-            this.path = `
-            M ${start_x} ${start_y}
-            V ${offset}
-            a ${curve} ${curve} 0 0 ${clockwise} ${curve} ${curve_y}
-            L ${end_x} ${end_y}
-            m -5 -5
-            l 5 5
-            l -5 5`;
-
-            if (
-                this.to_task.$bar.getX() <
-                this.from_task.$bar.getX() + this.gantt.options.padding
-            ) {
-                const down_1 = this.gantt.options.padding / 2 - curve;
-                const down_2 =
-                    this.to_task.$bar.getY() +
-                    this.to_task.$bar.getHeight() / 2 -
-                    curve_y;
-                const left = this.to_task.$bar.getX() - this.gantt.options.padding;
-
-                this.path = `
-                M ${start_x} ${start_y}
-                v ${down_1}
-                a ${curve} ${curve} 0 0 1 -${curve} ${curve}
-                H ${left}
-                a ${curve} ${curve} 0 0 ${clockwise} -${curve} ${curve_y}
-                V ${down_2}
-                a ${curve} ${curve} 0 0 ${clockwise} ${curve} ${curve_y}
-                L ${end_x} ${end_y}
-                m -5 -5
-                l 5 5
-                l -5 5`;
-            }
+          this.path = `
+              M ${start_x} ${start_y}
+              v ${down_1}
+              a ${curve} ${curve} 0 0 1 -${curve} ${curve}
+              H ${left}
+              a ${curve} ${curve} 0 0 ${clockwise} -${curve} ${curve_y}
+              V ${down_2}
+              a ${curve} ${curve} 0 0 ${clockwise} ${curve} ${curve_y}
+              L ${end_x} ${end_y}
+              m -5 -5
+              l 5 5
+              l -5 5`;
         }
+      }
 
-        draw() {
+      draw() {
             this.element = createSVG('path', {
                 d: this.path,
                 'data-from': this.from_task.task.id,
@@ -966,6 +1164,10 @@ var Gantt = (function () {
             }
             const target_element = options.target_element;
 
+            // Keep the pop-up invisible while we calculate the content and layout. 
+            this.parent.style.visibility = 'hidden';
+            this.parent.style.opacity = 0;
+
             if (this.custom_html) {
                 let html = this.custom_html(options.task);
                 html += '<div class="pointer"></div>';
@@ -975,8 +1177,82 @@ var Gantt = (function () {
                 // set data
                 this.title.innerHTML = options.title;
                 this.subtitle.innerHTML = options.subtitle;
-                this.parent.style.width = this.parent.clientWidth + 'px';
+
+                // aggregates the data of overlapping bars for the +n-block
+                const t = options.task;
+                this.current_task_id = t && t.id;
+                const members = t._isAggregate ? (t._members || []) : (t._aggMembers || []);
+  
+                // Remove existing old list (when reopening)
+                const old = this.parent.querySelector('.agg-list');
+                if (old) old.remove();
+  
+                if (members && members.length) {
+                  const ul = document.createElement('ul');
+                  ul.className = 'agg-list';
+                  const fmt = (d) => this.gantt.dateUtils.format(d, this.gantt.options.date_format || 'yyyy-MM-dd');
+
+                  // gleiche Logik wie bei normalen Bars:
+                  const adjustEnd = (d) => {
+                    const step = this.gantt.options.step;
+                    const du = this.gantt.dateUtils;
+                    return (step >= 24 && (step % 24) === 0)
+                        ? du.add(d, -24, 'hour')     // Tages-/Wochen-/Monats-Skalierung: -24h
+                        : du.add(d, -1, 'second');   // Feiner als Tag: -1s
+                  };
+                  
+                  // filling the n-block popup
+                  members.forEach(m => {
+                    const li = document.createElement('li');
+
+                    // Color-Swatch at the left
+                    const swatch = document.createElement('span');
+                    swatch.className = 'agg-color-swatch';
+                    if (m.color) {
+                      swatch.style.backgroundColor = String(m.color);
+                    }
+                    li.appendChild(swatch);
+
+                    // Getting the original task to know real start/end
+                    const originalTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+                    const hasRealStart = !!(originalTask && originalTask.start);
+                    const hasRealEnd = !!(originalTask && originalTask.end);
+
+                    let labelText = m.name;
+                    let rangeText = '';
+
+                    if (hasRealStart || hasRealEnd) {
+                      const start_date = fmt(m._start);
+                      const endAdj = adjustEnd(m._end);
+                      const end_date = fmt(endAdj);
+
+                      if (hasRealStart && hasRealEnd) {
+                        rangeText = ` (${start_date} - ${end_date})`;
+                      } else if (hasRealStart && !hasRealEnd) {
+                        rangeText = ` (${start_date} - ... )`;
+                      } else if (hasRealEnd && !hasRealStart) {
+                        rangeText = ` ( ... - ${end_date})`;
+                      }
+                    }
+
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = labelText + rangeText;
+                    li.appendChild(textSpan);
+
+                    ul.appendChild(li);
+                  });
+                  
+                  this.parent.appendChild(ul);
+                }
             }
+            
+            this.parent.style.width = 'auto';
+            this.parent.style.left = '0px';
+            this.parent.style.top = '0px';
+  
+            // popup width calculation (title & aggregate list length)
+            const bounds = this.parent.getBoundingClientRect();
+            this.parent.style.width = bounds.width + 'px';
 
             // set position
             let position_meta;
@@ -997,12 +1273,16 @@ var Gantt = (function () {
             }
 
             // show
+            this.parent.style.visibility = 'visible';
             this.parent.style.opacity = 1;
         }
 
         hide() {
             this.parent.style.opacity = 0;
             this.parent.style.left = 0;
+            this.parent.style.width = '';
+            this.parent.style.visibility = 'hidden';
+            this.current_task_id = null;
         }
 
         move(options = {}) {
@@ -1010,18 +1290,45 @@ var Gantt = (function () {
 
             const { new_start_date, new_end_date } = bar.compute_start_end_date(target_element)
 
-            const start_date = date_utils.format(
-                new_start_date,
-                this.gantt.options.date_format,
-            );
-            const end_date = date_utils.format(
-                date_utils.add(new_end_date, -1, 'day'),
-                this.gantt.options.date_format,
-            );
+            const isAggregate= !!bar?.task?._isAggregate;
+            const hasRealStart = !!bar?.task?.start;
+            const hasRealEnd = !!bar?.task?.end;
+  
+            this.title.innerHTML = bar?.task?.name || '';
 
-            this.title.innerHTML = bar?.task?.name;
-            this.subtitle.innerHTML = start_date + ' - ' + end_date;
-            this.parent.style.width = this.parent.clientWidth + 'px';
+            let subtitleText = '';
+            
+            if (!isAggregate) {
+              if (hasRealStart || hasRealEnd) {
+                const start_date = date_utils.format(
+                    new_start_date,
+                    this.gantt.options.date_format,
+                );
+                
+                const adjEnd = (this.gantt.options.step >= 24 && (this.gantt.options.step % 24) === 0)
+                    ? date_utils.add(new_end_date, -24, 'hour')
+                    : date_utils.add(new_end_date, -1, 'second');
+  
+                const end_date = date_utils.format(adjEnd, this.gantt.options.date_format);
+  
+                if (hasRealStart && hasRealEnd) {
+                  subtitleText = `${start_date} - ${end_date}`;
+                } else if (hasRealStart && !hasRealEnd) {
+                  subtitleText = `${start_date} - ...`;
+                } else if (!hasRealStart && hasRealEnd) {
+                  subtitleText = `... - ${end_date}`;
+                }
+              }
+
+              //cleans the old aggregate titels in popup.
+              const oldList = this.parent.querySelector('.agg-list');
+              if (oldList) oldList.remove();
+            } else {
+              // The subtitle should not include a date interval for aggregate blocks.
+              subtitleText = '';
+            }
+
+            this.subtitle.innerHTML = subtitleText;
 
             if (!options?.target_element) {
                 throw new Error('target_element is required to move popup');
@@ -1069,7 +1376,16 @@ var Gantt = (function () {
         WEEK: 'Week',
         MONTH: 'Month',
         YEAR: 'Year',
+       // MONTH_WEEKS: 'MonthWeeks', //TODO SR INFO: Month Weeks View:
     };
+
+    //TODO SR INFO: Month Weeks View (figure out how to set the start of the week day and adjust this function):
+  
+    /*function start_of_week_sunday(d) {
+      // 0=So,1=Mo,... also "wie viele Tage seit Sonntag" zurückspringen
+      const day = d.getDay(); // 0..6
+      return date_utils.add(date_utils.start_of(d, 'day'), -day, 'day');
+    }*/
 
     class Gantt {
         constructor(wrapper, tasks, options) {
@@ -1122,6 +1438,9 @@ var Gantt = (function () {
             parent_element.appendChild(this.$container);
             this.$container.appendChild(this.$svg);
 
+            // initial scroll 
+            this._initialScrollDone = false;
+
             // popup wrapper
             this.popup_wrapper = document.createElement('div');
             this.popup_wrapper.classList.add('popup-wrapper');
@@ -1139,20 +1458,102 @@ var Gantt = (function () {
                 arrow_curve: 5,
                 padding: 18,
                 view_mode: 'Day',
-                date_format: 'YYYY-MM-DD',
+                date_format: 'yyyy-MM-dd',
                 popup_trigger: 'click',
                 custom_popup_html: null,
                 language: 'en',
+                label_overflow: 'outside', // 'outside' | 'hide' | 'clip'
+                keep_scroll_position: false,
+                lane_padding: 4, // vertical distance between lanes in the same row
+                // Automatically rearrange when dragging/resizing. 
+                // Necessary if multiple bars are at the same lineIndex:
+                auto_relayout_on_change: false, 
+                row_height: null, //is calculated automatically, if set to null
+                bar_inner_padding: 6, // Total vertical padding within the row for each task
+                default_duration: 1,
+                view_mode_column_width_quarter_day: 38,
+                view_mode_column_width_half_day: 38,
+                view_mode_column_width_day: 38,
+                view_mode_column_width_week: 140,
+                view_mode_column_width_month: 20,
+                view_mode_column_width_year: 12,
+                label_outside_color: '#555',
+                // The formats are in ICU:
+                header_formats: {
+                  'Quarter Day': {
+                    upper: { date_format: '',   date_format_at_border: 'd MMM', interval: 'Date' },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH',   interval: 'Date' }
+                  },
+                  // Display only format if the day changes; and use border format if the month also changes.
+                  'Half Day': {
+                    upper: {
+                      date_format: 'd',
+                      date_format_at_border: 'd MMM',
+                      interval: 'Date',
+                      showOnChangeOf: 'Date',
+                      borderOnChangeOf: 'Month',
+                    },
+                    lower: { date_format: 'HH', date_format_at_border: 'HH', interval: 'Date' }
+                  },
+                  'Day': {
+                    upper: { date_format: '',    date_format_at_border: 'MMM',  interval: 'Month' },
+                    lower: { date_format: '',    date_format_at_border: 'd',    interval: 'Date' }
+                  },
+                  'Week': {
+                    upper: { date_format: '',    date_format_at_border: 'M',     interval: 'Month' },
+                    lower: { date_format: 'd',   date_format_at_border: 'd MMM', interval: 'Month' }
+                  },
+                  'Month': {
+                    upper: { date_format: '',    date_format_at_border: 'yyyy',  interval: 'Year' },
+                    lower: { date_format: 'M',   date_format_at_border: 'M',     interval: 'Month' }
+                  },
+                  'Year': {
+                    upper: { date_format: '',     date_format_at_border: 'yyyy', interval: 'Year' },
+                    lower: { date_format: 'yyyy', date_format_at_border: 'yyyy', interval: 'Year' }
+                  }
+                },
+              // row_keys contains the keys of all visible rows to shown, 
+              // including the empty rows with no task data:
+              row_keys: null, 
+              
             };
-            this.options = Object.assign({}, default_options, options);
+            
+            this.options = Object.assign({}, default_options, (options || {}));
+            
+            // also merges the inside objects of the header_formats with the default options.
+            this.options.header_formats = this.deepMerge(default_options.header_formats, this.options.header_formats);
+            
+            if (this.options.row_height == null) {
+              this.options.row_height = this.options.bar_height + this.options.padding;
+            }
+  
+            if (this.options.bar_inner_padding == null) {
+              this.options.bar_inner_padding = 6;
+            }
+        }
+        
+        deepMerge(target, src) {
+          if (!src) return target;
+          for (const k of Object.keys(src)) {
+            if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+              target[k] = this.deepMerge(target[k] ? {...target[k]} : {}, src[k]);
+            } else {
+              target[k] = src[k];
+            }
+          }
+          return target;
         }
 
         setup_tasks(tasks) {
             // prepare tasks
             this.tasks = tasks.map((task, i) => {
-                // convert to Date objects
-                task._start = date_utils.parse(task.start);
-                task._end = date_utils.parse(task.end);
+              
+              const hadStartObj = !!task._start;
+              const hadEndObj = !!task._end;
+              
+              // convert to Date objects
+              task._start = hadStartObj ? task._start : date_utils.parse(task.start);
+              task._end = hadEndObj ? task._end : date_utils.parse(task.end);
 
                 // make task invalid if duration too large
                 if (date_utils.diff(task._end, task._start, 'year') > 10) {
@@ -1166,25 +1567,33 @@ var Gantt = (function () {
                 if (!task.start && !task.end) {
                     const today = date_utils.today();
                     task._start = today;
-                    task._end = date_utils.add(today, 2, 'day');
+                  //TODO SR: The "-1" makes the task-block to disappear, but it breaks the overlapping logik a little bit
+                    task._end = date_utils.add(today, this.options.default_duration, 'day');
                 }
 
                 if (!task.start && task.end) {
-                    task._start = date_utils.add(task._end, -2, 'day');
+                    task._start = date_utils.add(task._end, - this.options.default_duration, 'day');
                 }
 
                 if (task.start && !task.end) {
-                    task._end = date_utils.add(task._start, 2, 'day');
+                    task._end = date_utils.add(task._start, this.options.default_duration, 'day');
                 }
+
+              
+                // only add +24 hours to the FIRST parse (not with every refresh)
+                // This is necessary if the start and end dates are on the same day, 
+                // to ensure that the bar can still be displayed.
 
                 // if hours is not set, assume the last day is full day
                 // e.g: 2018-09-09 becomes 2018-09-09 23:59:59
-                if (this.options.step >= 24 && (this.options.step % 24) === 0) {
-                    task._end = date_utils.add(task._end, 24, 'hour');
+                if (this.options.step >= 24 && (this.options.step % 24) === 0) { //TODO SR: Check, why here is a ">=" in the condition.
+                  task._end = date_utils.add(task._end, 24, 'hour');
                 }
             
                 // invalid flag
                 if (!task.start || !task.end) {
+                  // If the invalid tasks should be draggable again, delete this line.
+                    task.draggable = false;
                     task.invalid = true;
                 }
 
@@ -1209,6 +1618,9 @@ var Gantt = (function () {
             });
 
             this.setup_dependencies();
+            this.compute_rows_and_lanes();
+            this.compute_overlap_aggregates();
+            this.relayout_visible_rows();
         }
 
         setup_dependencies() {
@@ -1227,8 +1639,10 @@ var Gantt = (function () {
         }
 
         change_view_mode(mode = this.options.view_mode) {
+            const changed = mode !== this.options.view_mode;
             this.update_view_scale(mode);
             this.setup_dates();
+            if (changed) this._initialScrollDone = false;
             this.render();
             // fire viewmode_change event
             this.trigger_event('view_change', [mode]);
@@ -1239,23 +1653,26 @@ var Gantt = (function () {
 
             if (view_mode === VIEW_MODE.DAY) {
                 this.options.step = 24;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_day ?? 38;
             } else if (view_mode === VIEW_MODE.HALF_DAY) {
                 this.options.step = 24 / 2;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_half_day ?? 38;
             } else if (view_mode === VIEW_MODE.QUARTER_DAY) {
                 this.options.step = 24 / 4;
-                this.options.column_width = 38;
+                this.options.column_width = this.options.view_mode_column_width_quarter_day ?? 38;
             } else if (view_mode === VIEW_MODE.WEEK) {
                 this.options.step = 24 * 7;
-                this.options.column_width = 140;
+                this.options.column_width = this.options.view_mode_column_width_week ?? 140;
             } else if (view_mode === VIEW_MODE.MONTH) {
                 this.options.step = 24 * 30;
-                this.options.column_width = 20;
+                this.options.column_width = this.options.view_mode_column_width_month ?? 20;
             } else if (view_mode === VIEW_MODE.YEAR) {
                 this.options.step = 24 * 365;
-                this.options.column_width = 12;
-            }
+                this.options.column_width = this.options.view_mode_column_width_year ?? 12;
+            } /*else if (view_mode === VIEW_MODE.MONTH_WEEKS) {  //TODO SR INFO: Month Weeks View:
+              this.options.step = 24 * 7;
+              this.options.column_width = 38;
+            }*/
         }
 
         setup_dates() {
@@ -1266,35 +1683,67 @@ var Gantt = (function () {
         setup_gantt_dates() {
             this.gantt_start = this.gantt_end = null;
 
-            for (let task of this.tasks) {
+            if (!this.tasks || this.tasks.length === 0) {
+              // Fallback: If no tasks are given, the start and end 
+              // of the Gantt view are set to one month before and after the current date.
+              const today = date_utils.start_of(date_utils.today(), 'day');
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(today, today));
+            } else {
+              
+              for (let task of this.tasks) {
                 // set global start and end date
                 if (!this.gantt_start || task._start < this.gantt_start) {
-                    this.gantt_start = task._start;
+                  this.gantt_start = task._start;
                 }
                 if (!this.gantt_end || task._end > this.gantt_end) {
-                    this.gantt_end = task._end;
+                  this.gantt_end = task._end;
                 }
-            }
+              }
 
-            this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
-            this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
+              this.gantt_start = date_utils.start_of(this.gantt_start, 'day');
+              this.gantt_end = date_utils.start_of(this.gantt_end, 'day');
 
-            // add date padding on both sides
-            if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
-                this.gantt_start = date_utils.add(this.gantt_start, -7, 'day');
-                this.gantt_end = date_utils.add(this.gantt_end, 7, 'day');
-            } else if (this.view_is(VIEW_MODE.MONTH)) {
-                this.gantt_start = date_utils.start_of(this.gantt_start, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'year');
-            } else if (this.view_is(VIEW_MODE.YEAR)) {
-                this.gantt_start = date_utils.add(this.gantt_start, -2, 'year');
-                this.gantt_end = date_utils.add(this.gantt_end, 2, 'year');
-            } else {
-                this.gantt_start = date_utils.add(this.gantt_start, -1, 'month');
-                this.gantt_end = date_utils.add(this.gantt_end, 1, 'month');
+              ({
+                gantt_start: this.gantt_start,
+                gantt_end: this.gantt_end,
+              } = this.get_setup_gantt_dates_padding(this.gantt_start, this.gantt_end));
             }
 
             this.gantt_start = date_utils.add(this.gantt_start, -1 * this.gantt_start.getTimezoneOffset(), 'minute');
+        }
+        
+        get_setup_gantt_dates_padding(start, end) {
+          
+          let gantt_start;
+          let gantt_end;
+          
+          // add date padding on both sides
+          if (this.view_is([VIEW_MODE.QUARTER_DAY, VIEW_MODE.HALF_DAY])) {
+            gantt_start = date_utils.add(start, -7, 'day');
+            gantt_end = date_utils.add(end, 7, 'day');
+          } else if (this.view_is(VIEW_MODE.MONTH)) {
+            gantt_start = date_utils.start_of(start, 'year');
+            gantt_end = date_utils.add(end, 1, 'year');
+          } else if (this.view_is(VIEW_MODE.YEAR)) {
+            gantt_start = date_utils.add(start, -2, 'year');
+            gantt_end = date_utils.add(end, 2, 'year');
+            /* } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+               const s = start_of_week_sunday(date_utils.add(start, -7, 'day'));
+               const e = start_of_week_sunday(date_utils.add(end,   14, 'day'));
+               gantt_start = s;
+               gantt_end = date_utils.add(e, 7, 'day');*/
+          } else {
+            gantt_start = date_utils.add(start, -1, 'month');
+            gantt_end = date_utils.add(end, 1, 'month');
+          }
+          
+          return {
+            gantt_start: gantt_start,
+            gantt_end: gantt_end
+          }
         }
 
         setup_date_values() {
@@ -1304,11 +1753,17 @@ var Gantt = (function () {
             while (cur_date === null || cur_date < this.gantt_end) {
                 if (!cur_date) {
                     cur_date = date_utils.clone(this.gantt_start);
+/*                  if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+                    cur_date = start_of_week_sunday(date_utils.clone(this.gantt_start));
+                  }*/
                 } else {
                     if (this.view_is(VIEW_MODE.YEAR)) {
                         cur_date = date_utils.add(cur_date, 1, 'year');
                     } else if (this.view_is(VIEW_MODE.MONTH)) {
                         cur_date = date_utils.add(cur_date, 1, 'month');
+/*                    } else if (this.view_is(VIEW_MODE.MONTH_WEEKS)) { //TODO SR INFO: Month Weeks View:
+                      cur_date = date_utils.add(cur_date, 7, 'day');*/
+
                     } else {
                         cur_date = date_utils.add(
                             cur_date,
@@ -1324,9 +1779,14 @@ var Gantt = (function () {
         bind_events() {
             this.bind_grid_click();
             this.bind_bar_events();
+            this.bind_outside_click();
         }
 
         render() {
+          // container merken (Eltern-Element des SVG)
+          const container = this.$svg ? this.$svg.parentElement : null;
+          const prevScrollLeft = container ? container.scrollLeft : null;
+          
             this.clear();
             this.setup_layers();
             this.make_grid();
@@ -1335,7 +1795,18 @@ var Gantt = (function () {
             this.make_arrows();
             this.map_arrows_on_bars();
             this.set_width();
-            this.set_scroll_position();
+
+            // Scroll strategy:
+            // 1) For the very first render: always centre on the first tasks
+            // 2) Then: if keep_scroll_position: Keep scroll position exactly
+            if (!this._initialScrollDone) {
+              this.set_scroll_position();
+              this._initialScrollDone = true;
+            } else if (this.options.keep_scroll_position && container) {
+              container.scrollLeft = prevScrollLeft;
+            } else {
+              this.set_scroll_position();
+            }
         }
 
         setup_layers() {
@@ -1359,58 +1830,50 @@ var Gantt = (function () {
         }
 
         make_grid_background() {
-            const grid_width = this.dates.length * this.options.column_width;
-            const grid_height =
-                this.options.header_height +
-                this.options.padding +
-                (this.options.bar_height + this.options.padding) *
-                    this.tasks.length;
-
-            createSVG('rect', {
-                x: 0,
-                y: 0,
-                width: grid_width,
-                height: grid_height,
-                class: 'grid-background',
-                append_to: this.layers.grid,
-            });
-
-            $.attr(this.$svg, {
-                height: grid_height + this.options.padding + 100,
-                width: '100%',
-            });
+          const grid_width = this.dates.length * this.options.column_width;
+          const grid_height =
+              this.options.header_height +
+              this.options.padding +
+              this.get_content_height();
+  
+          createSVG('rect', {
+            x: 0, y: 0,
+            width: grid_width,
+            height: grid_height,
+            class: 'grid-background',
+            append_to: this.layers.grid,
+          });
+  
+          $.attr(this.$svg, {
+            height: grid_height + this.options.padding + 100,
+            width: '100%',
+          });
         }
 
         make_grid_rows() {
-            const rows_layer = createSVG('g', { append_to: this.layers.grid });
-            const lines_layer = createSVG('g', { append_to: this.layers.grid });
-
-            const row_width = this.dates.length * this.options.column_width;
-            const row_height = this.options.bar_height + this.options.padding;
-
-            let row_y = this.options.header_height + this.options.padding / 2;
-
-            for (let task of this.tasks) {
-                createSVG('rect', {
-                    x: 0,
-                    y: row_y,
-                    width: row_width,
-                    height: row_height,
-                    class: 'grid-row',
-                    append_to: rows_layer,
-                });
-
-                createSVG('line', {
-                    x1: 0,
-                    y1: row_y + row_height,
-                    x2: row_width,
-                    y2: row_y + row_height,
-                    class: 'row-line',
-                    append_to: lines_layer,
-                });
-
-                row_y += this.options.bar_height + this.options.padding;
-            }
+          const rows_layer  = createSVG('g', { append_to: this.layers.grid });
+          const lines_layer = createSVG('g', { append_to: this.layers.grid });
+  
+          const row_width  = this.dates.length * this.options.column_width;
+  
+          this._rowMeta.forEach(r => {
+            const row_y = this.options.header_height + this.options.padding + r.top;
+            const row_h = this.options.row_height;
+  
+            createSVG('rect', {
+              x: 0, y: row_y,
+              width: row_width, height: row_h,
+              class: 'grid-row',
+              append_to: rows_layer,
+            });
+  
+            createSVG('line', {
+              x1: 0, y1: row_y + row_h,
+              x2: row_width, y2: row_y + row_h,
+              class: 'row-line',
+              append_to: lines_layer,
+            });
+          });
         }
 
         make_grid_header() {
@@ -1425,13 +1888,21 @@ var Gantt = (function () {
                 append_to: this.layers.grid,
             });
         }
-
+        
         make_grid_ticks() {
             let tick_x = 0;
             let tick_y = this.options.header_height + this.options.padding / 2;
-            let tick_height =
-                (this.options.bar_height + this.options.padding) *
-                this.tasks.length;
+
+            let tick_height = this.get_content_height();
+
+            //TODO SR INFO: Month Weeks View:
+/*          
+            const header_box_height = this.options.header_height + 10;
+
+            const full_height = header_box_height + this.options.padding / 2 + tick_height;
+
+              for (let i= 0; i<this.dates.length; i++) {
+                const date = this.dates[i];*/
 
             for (let date of this.dates) {
                 let tick_class = 'tick';
@@ -1455,6 +1926,38 @@ var Gantt = (function () {
                     tick_class += ' thick';
                 }
 
+                  //TODO SR INFO: Month Weeks View:
+
+/*                if (this.view_is(VIEW_MODE.MONTH_WEEKS)) {
+                  createSVG('path', {
+                    d: `M ${tick_x} ${tick_y} v ${tick_height}`,
+                    class: 'tick',
+                    append_to: this.layers.grid,
+                  });
+
+                  const weekStart = date; // dies ist bereits Sonntag
+                  const weekEnd   = date_utils.add(weekStart, 7, 'day');
+
+                  const monthStart    = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+                  const monthBoundary = date_utils.add(monthStart, 1, 'month'); // 1. des Folgemonats
+
+                  if (monthBoundary > weekStart && monthBoundary <= weekEnd) {
+                    const msWeek = weekEnd - weekStart;
+                    const msToBoundary = monthBoundary - weekStart;
+                    const ratio = msToBoundary / msWeek; // 0..1 innerhalb der Spalte
+                    const xBoundary = tick_x + ratio * this.options.column_width;
+
+                    createSVG('path', {
+                      d: `M ${xBoundary} 0 v ${full_height}`,
+                      class: 'tick boundary month-end',
+                      append_to: this.layers.grid,
+                    });
+                  }
+
+                  tick_x += this.options.column_width;
+                  continue;
+                }*/
+
                 createSVG('path', {
                     d: `M ${tick_x} ${tick_y} v ${tick_height}`,
                     class: tick_class,
@@ -1473,125 +1976,187 @@ var Gantt = (function () {
         }
 
         make_grid_highlights() {
-            // highlight today's date
-            if (this.view_is(VIEW_MODE.DAY)) {
-                const x =
-                    (date_utils.diff(date_utils.today(), this.gantt_start, 'hour') /
-                        this.options.step) *
-                    this.options.column_width;
-                const y = 0;
-
-                const width = this.options.column_width;
-                const height =
-                    (this.options.bar_height + this.options.padding) *
-                        this.tasks.length +
-                    this.options.header_height +
-                    this.options.padding / 2;
-
-                createSVG('rect', {
-                    x,
-                    y,
-                    width,
-                    height,
-                    class: 'today-highlight',
-                    append_to: this.layers.grid,
-                });
-            }
+          // highlight today's date
+          if (this.view_is(VIEW_MODE.DAY)) {
+            const x = (date_utils.diff(date_utils.today(), this.gantt_start, 'hour') / this.options.step) * this.options.column_width;
+            const y = 0;
+            const width = this.options.column_width;
+            const height =
+                this.get_content_height() +
+                this.options.header_height +
+                this.options.padding / 2;
+  
+            createSVG('rect', {
+              x, y, width, height,
+              class: 'today-highlight',
+              append_to: this.layers.grid,
+            });
+          }
         }
 
         make_dates() {
-            for (let date of this.get_dates_to_draw()) {
-                createSVG('text', {
-                    x: date.lower_x,
-                    y: date.lower_y,
-                    innerHTML: date.lower_text,
-                    class: 'lower-text',
-                    append_to: this.layers.date,
-                });
-
-                if (date.upper_text) {
-                    const $upper_text = createSVG('text', {
-                        x: date.upper_x,
-                        y: date.upper_y,
-                        innerHTML: date.upper_text,
-                        class: 'upper-text',
-                        append_to: this.layers.date,
-                    });
-
-                    // remove out-of-bound dates
-                    if (
-                        $upper_text.getBBox().x2 > this.layers.grid.getBBox().width
-                    ) {
-                        $upper_text.remove();
-                    }
-                }
+          for (let date of this.get_dates_to_draw()) {
+            createSVG('text', {
+              x: date.lower_x,
+              y: date.lower_y,
+              innerHTML: date.lower_text,
+              class: 'lower-text',
+              append_to: this.layers.date,
+            });
+  
+            if (date.upper_text) {
+              const $upper_text = createSVG('text', {
+                x: date.upper_x,
+                y: date.upper_y,
+                innerHTML: date.upper_text,
+                class: 'upper-text',
+                append_to: this.layers.date,
+              });
+  
+              // remove out-of-bound dates
+              if (
+                  $upper_text.getBBox().x2 > this.layers.grid.getBBox().width
+              ) {
+                $upper_text.remove();
+              }
             }
+          }
         }
 
-        get_dates_to_draw() {
-            let last_date = null;
-            const dates = this.dates.map((date, i) => {
-                const d = this.get_date_info(date, last_date, i);
-                last_date = date;
-                return d;
+      //TODO SR INFO: Month Weeks View:
+
+     /* make_dates() {
+        const isMonthWeeks = this.view_is && this.view_is('MonthWeeks');
+
+        this.layers.date.innerHTML = '';
+
+        // draw once, cache
+        const draw = this.get_dates_to_draw();
+
+        for (let i = 0; i < draw.length; i++) {
+          const d = draw[i];
+
+          createSVG('text', {
+            x: d.lower_x,
+            y: d.lower_y,
+            innerHTML: d.lower_text,
+            class: 'lower-text',
+            append_to: this.layers.date,
+          });
+
+          if (!isMonthWeeks && d.upper_text) {
+            const $upper_text = createSVG('text', {
+              x: d.upper_x,
+              y: d.upper_y,
+              innerHTML: d.upper_text,
+              class: 'upper-text',
+              append_to: this.layers.date,
             });
-            return dates;
+            // out-of-bounds entfernen
+            if ($upper_text.getBBox().x2 > this.layers.grid.getBBox().width) {
+              $upper_text.remove();
+            }
+          }
+        }
+
+        if (isMonthWeeks) {
+          this.draw_monthweeks_upper_labels();
+        }
+      }
+
+      draw_monthweeks_upper_labels() {
+        const cw = this.options.column_width;
+        const upperY = this.options.header_height - 25;
+
+        const localMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const addDaysLocal  = (d, days) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
+
+        const xForDate = (dt) => {
+          const weekMs = 7 * 24 * 60 * 60 * 1000;
+          // finde Woche k, so dass dt in [dates[k], dates[k]+7)
+          let k = -1;
+          for (let i = 0; i < this.dates.length; i++) {
+            const ws = localMidnight(this.dates[i]);
+            const we = addDaysLocal(ws, 7);
+            if (dt >= ws && dt < we) { k = i; break; }
+          }
+          if (k < 0) {
+            // außerhalb → clamp an Rand
+            if (dt < this.dates[0]) return 0;
+            return this.dates.length * cw;
+          }
+          const ws = localMidnight(this.dates[k]);
+          const ratio = Math.max(0, Math.min(1, (dt - ws) / (7 * 24 * 60 * 60 * 1000)));
+          return k * cw + ratio * cw;
+        };
+
+        const firstVisible = localMidnight(this.dates[0]);
+        const lastVisible  = localMidnight(this.dates[this.dates.length - 1]);
+
+        let cursor = new Date(firstVisible.getFullYear(), firstVisible.getMonth(), 1);
+
+        if (firstVisible > cursor) {
+        }
+
+        while (cursor <= lastVisible) {
+          const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+          const nextMonthStart = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+
+          if (nextMonthStart > this.dates[0] && monthStart < addDaysLocal(localMidnight(this.dates[this.dates.length - 1]), 7)) {
+            const xStart = xForDate(monthStart);
+            const xEnd   = xForDate(nextMonthStart);
+            const xMid   = (xStart + xEnd) / 2;
+
+            const $t = createSVG('text', {
+              x: xMid,
+              y: upperY,
+              innerHTML: date_utils.format(monthStart, 'MMM yyyy'),
+              class: 'upper-text',
+              append_to: this.layers.date,
+            });
+
+            if ($t.getBBox().x2 > this.layers.grid.getBBox().width) {
+              $t.remove();
+            }
+          }
+
+          cursor = nextMonthStart;
+        }
+      }
+*/
+
+        get_dates_to_draw() {
+              let last_date = null;
+              const dates = this.dates.map((date, i) => {
+                  const d = this.get_date_info(date, last_date, i);
+                  last_date = date;
+                  return d;
+              });
+              return dates;
         }
 
         get_date_info(date, last_date, i) {
             if (!last_date) {
                 last_date = date_utils.add(date, 1, 'year');
             }
-            const date_text = {
-                'Quarter Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                'Half Day_lower': date_utils.format(
-                    date,
-                    'HH',
-                ),
-                Day_lower:
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'D')
+            
+/*            const date_text = {
+               
+              
+              //TODO SR INFO: Month Weeks View:
+              //TODO SR INFO: the "date_text" is deprecated. Take the Formats from here and put then into "options.header_formats"!
+              
+                //MonthWeeks_lower: date_utils.format(date, 'd MMM'),
+                MonthWeeks_lower: date_utils.format(date, 'd'),
+                MonthWeeks_upper:
+                    (!last_date || date.getMonth() !== last_date.getMonth())
+                        ? date_utils.format(date, 'MMM yyyy')
                         : '',
-                Week_lower:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'D MMM')
-                        : date_utils.format(date, 'D'),
-                Month_lower: date_utils.format(date, 'M'),
-                Year_lower: date_utils.format(date, 'YYYY'),
-                'Quarter Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date_utils.format(date, 'D MMM')
-                        : '',
-                'Half Day_upper':
-                    date.getDate() !== last_date.getDate()
-                        ? date.getMonth() !== last_date.getMonth()
-                            ? date_utils.format(
-                                  date,
-                                  'D MMM',
-                              )
-                            : date_utils.format(date, 'D')
-                        : '',
-                Day_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'M')
-                        : '',
-                Week_upper:
-                    date.getMonth() !== last_date.getMonth()
-                        ? date_utils.format(date, 'M')
-                        : '',
-                Month_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
-                Year_upper:
-                    date.getFullYear() !== last_date.getFullYear()
-                        ? date_utils.format(date, 'YYYY')
-                        : '',
-            };
+       
+            };*/
 
+            const view = this.options.view_mode;
+          
             const base_pos = {
                 x: i * this.options.column_width,
                 lower_y: this.options.header_height,
@@ -1611,46 +2176,126 @@ var Gantt = (function () {
                 Month_upper: (this.options.column_width * 12) / 2,
                 Year_lower: this.options.column_width / 2,
                 Year_upper: (this.options.column_width * 30) / 2,
+              
+                //TODO SR INFO: Month Weeks View:
+/*              MonthWeeks_lower: this.options.column_width / 2, 
+                MonthWeeks_upper: (this.options.column_width * 4) / 2, */
             };
-
+            
             return {
-                upper_text: date_text[`${this.options.view_mode}_upper`],
-                lower_text: date_text[`${this.options.view_mode}_lower`],
+                lower_text: this.formatHeaderPart(date, last_date, view, 'lower'),
+                upper_text: this.formatHeaderPart(date, last_date, view, 'upper'),
                 upper_x: base_pos.x + x_pos[`${this.options.view_mode}_upper`],
                 upper_y: base_pos.upper_y,
                 lower_x: base_pos.x + x_pos[`${this.options.view_mode}_lower`],
                 lower_y: base_pos.lower_y,
             };
         }
+        
+      formatHeaderPart(date, last_date, viewMode, part) {
+        const spec = this.options.header_formats?.[viewMode]?.[part];
+        if (!spec) return '';
 
-        make_bars() {
-            this.bars = this.tasks.map((task) => {
+        const {
+          date_format = '',
+          date_format_at_border = '',
+          interval = 'Date',
+          showOnChangeOf = null,
+          borderOnChangeOf = null
+        } = spec;
+
+        const changed = (which) => {
+          switch (which) {
+            case 'Date':  return date.getDate() !== last_date.getDate();
+            case 'Month': return date.getMonth() !== last_date.getMonth();
+            case 'Year':  return date.getFullYear() !== last_date.getFullYear();
+            default: return false;
+          }
+        };
+
+        // The "showOnChangeOf" and "borderOnChangeOf" parameters are used here to cover "Half Day_upper" case:
+        // Old code:
+        /*
+          'Half Day_upper':
+             date.getDate() !== last_date.getDate()
+                 ? date.getMonth() !== last_date.getMonth()
+                     ? date_utils.format(
+                           date,
+                           'd MMM',
+                       )
+                     : date_utils.format(date, 'd')
+                 : '',
+         */
+        if (showOnChangeOf && !changed(showOnChangeOf)) return '';
+        
+        const useBorder =
+            date_format_at_border && (
+                borderOnChangeOf ? changed(borderOnChangeOf) : changed(interval)
+            );
+
+        const format = useBorder ? date_format_at_border : date_format;
+        return format ? this.dateUtils.format(date, format) : '';
+      }
+
+      make_bars() {
+          // Only render non-hidden tasks + all aggregates
+          const renderTasks = this.tasks.filter(t => !t._hidden)
+          .concat(this._aggregateBars || []);
+          
+          // Draw the lower lanes first, then the upper ones (lane 0 last).
+          renderTasks.sort((a, b) => {
+            const ra = (a._rowIndex ?? a._index) - (b._rowIndex ?? b._index);
+            if (ra !== 0) return ra;
+            // Draw the larger lane first so that the smaller ones (above) lie on top of it.
+            const la = (a._lane ?? 0), lb = (b._lane ?? 0);
+            if (la !== lb) return lb - la;
+            // stabile Tie-Breaker
+            if (+a._start !== +b._start) return +a._start - +b._start;
+            const ia = isFinite(+a.id) ? +a.id : String(a.id);
+            const ib = isFinite(+b.id) ? +b.id : String(b.id);
+            return ia > ib ? 1 : ia < ib ? -1 : 0;
+          });
+        
+            this.bars = renderTasks.map((task) => {
                 const bar = new Bar(this, task);
                 this.layers.bar.appendChild(bar.group);
                 return bar;
             });
         }
 
-        make_arrows() {
-            this.arrows = [];
-            for (let task of this.tasks) {
-                let arrows = [];
-                arrows = task.dependencies
-                    .map((task_id) => {
-                        const dependency = this.get_task(task_id);
-                        if (!dependency) return;
-                        const arrow = new Arrow(
-                            this,
-                            this.bars[dependency._index], // from_task
-                            this.bars[task._index] // to_task
-                        );
-                        this.layers.arrow.appendChild(arrow.element);
-                        return arrow;
-                    })
-                    .filter(Boolean); // filter falsy values
-                this.arrows = this.arrows.concat(arrows);
-            }
+      make_arrows() {
+        this.arrows = [];
+        if (!this.bars || !this.bars.length) return;
+
+        // Quick access: taskId -> Bar (rendered bars only)
+        const barById = new Map();
+        for (const bar of this.bars) {
+          if (bar && bar.task && bar.task.id != null) {
+            barById.set(bar.task.id, bar);
+          }
         }
+
+        for (const task of this.tasks) {
+          if (!task || !Array.isArray(task.dependencies) || !task.dependencies.length) continue;
+
+          // Target bar must be visible
+          const toBar = barById.get(task.id);
+          if (!toBar) continue;
+
+          for (const depId of task.dependencies) {
+            const depTask = this.get_task(depId);
+            if (!depTask) continue; // ungültige ID
+
+            // Source bar (dependency) must be visible
+            const fromBar = barById.get(depTask.id);
+            if (!fromBar) continue;
+
+            const arrow = new Arrow(this, fromBar, toBar);
+            this.layers.arrow.appendChild(arrow.element);
+            this.arrows.push(arrow);
+          }
+        }
+      }
 
         map_arrows_on_bars() {
             for (let bar of this.bars) {
@@ -1675,7 +2320,7 @@ var Gantt = (function () {
 
         set_scroll_position() {
             const parent_element = this.$svg.parentElement;
-            if (!parent_element) return;
+          if (!parent || !this.tasks || !this.tasks.length) return;
 
             const hours_before_first_task = date_utils.diff(
                 this.get_oldest_starting_date(),
@@ -1739,7 +2384,19 @@ var Gantt = (function () {
                     ...this.get_all_dependent_tasks(parent_bar_id),
                 ];
                 bars = ids.map((id) => this.get_bar(id));
-
+                
+                const mainBar = this.get_bar(parent_bar_id);
+                
+                // Only rebuild the pop-up if it is missing or belongs to another task
+                if (
+                    mainBar
+                    && !mainBar.invalid
+                    && (!this.popup || this.popup.current_task_id !== parent_bar_id)
+                )
+                {
+                  mainBar.show_popup();
+                }
+              
                 this.bar_being_dragged = parent_bar_id;
 
                 bars.forEach((bar) => {
@@ -1757,14 +2414,14 @@ var Gantt = (function () {
                 var bDraggable = true;
                 bars.forEach((bar) => {
                     if (bar.task.draggable === false) {
-						bDraggable = false;
-					}
-				});
-				if (bDraggable === false) {
-					e.preventDefault(); 
-					e.stopPropagation(); 
-					return false;
-				}
+						          bDraggable = false;
+					          }
+				        });
+				        if (bDraggable === false) {
+				        	e.preventDefault(); 
+				        	e.stopPropagation(); 
+				        	return false;
+				        }
 
                 bars.forEach((bar) => {
                     const $bar = bar.$bar;
@@ -1805,18 +2462,45 @@ var Gantt = (function () {
                 is_resizing_left = false;
                 is_resizing_right = false;
             });
-
+            
             $.on(this.$svg, 'mouseup', (e) => {
-                this.bar_being_dragged = null;
-                bars.forEach((bar) => {
-                    const $bar = bar.$bar;
-                    if (!$bar.finaldx) return;
-                    bar.date_changed();
-                    bar.set_action_completed();
-                });
+              // only react if an action was actually performed
+              if (!(is_dragging || is_resizing_left || is_resizing_right)) {
+                return;
+              }
+  
+              this.bar_being_dragged = null;
+  
+              bars.forEach((bar) => {
+                const $bar = bar.$bar;
+                if (!$bar.finaldx) return;
+                
+                bar.date_changed();
+                bar.set_action_completed();
+  
+                // Resets delta, otherwise each subsequent click will trigger it again
+                $bar.finaldx = 0;
+              });
             });
 
             this.bind_bar_progress();
+        }
+        
+        bind_outside_click() {
+          this._onDocClick = (e) => {
+            
+            if (this.bar_being_dragged) return;
+  
+            const container = this.$container;
+            const target = e.target;
+            
+            if (container && container.contains(target)) return;
+            
+            // If clicked outside the gantt chard
+            this.hide_popup();
+            this.unselect_all();
+          };
+          document.addEventListener('mousedown', this._onDocClick, true);
         }
 
         bind_bar_progress() {
@@ -1908,6 +2592,12 @@ var Gantt = (function () {
                     (rem < this.options.column_width / 60
                         ? 0
                         : this.options.column_width / 30);
+
+              //TODO SR INFO: Month Weeks View:
+              
+/*            } else if (this.view_is('MonthWeeks')) {
+              rem = dx % (this.options.column_width / 7);
+              position = odx - rem + (rem < this.options.column_width / 14 ? 0 : this.options.column_width / 7);*/
             } else {
                 rem = dx % this.options.column_width;
                 position =
@@ -2010,6 +2700,342 @@ var Gantt = (function () {
          * 
          */
         dateUtils = date_utils;
+        
+        compute_rows_and_lanes() {
+          // 1) Row key per task (lineIndex preferred)
+          this.tasks.forEach(t => {
+            t._rowKey = (t.lineIndex !== undefined) ? t.lineIndex : t._index;
+          });
+  
+          // 2) Group by row
+          const rowMap = new Map();
+          this.tasks.forEach(t => {
+            if (!rowMap.has(t._rowKey)) rowMap.set(t._rowKey, []);
+            rowMap.get(t._rowKey).push(t);
+          });
+  
+          // 3) Sorting row list
+          let rows;
+          if (Array.isArray(this.options.row_keys) && this.options.row_keys.length) {
+            rows = this.options.row_keys.slice();
+          } else {
+            rows = Array.from(rowMap.keys()).sort((a, b) => (a>b?1:a<b?-1:0));
+          }
+  
+          // 4) Lane allocation per row (greedy)
+          const rowMeta = [];
+          rows.forEach((rowKey, rowIndex) => {
+            const list = (rowMap.get(rowKey) || []).slice().sort((a,b) => +a._start - +b._start);
+            const laneEnds = []; // laneIndex -> Date
+  
+            list.forEach(task => {
+              let lane = 0;
+              while (lane < laneEnds.length && !(laneEnds[lane] <= task._start)) lane++;
+              task._lane = lane;
+              task._rowIndex = rowIndex;
+              laneEnds[lane] = task._end;
+            });
+            
+            // calculates the overlap cluster size per task
+            list.forEach(task => {
+              // All tasks in the same row that overlap with another task bar:
+              const overlapping = list.filter(t =>
+                  // classical interval overlap: [start_a, end_a) ∩ [start_b, end_b) ≠ ∅
+                  (t !== task) && (t._start < task._end) && (task._start < t._end)
+              );
+              // Number of lanes occupied during THIS time slot:
+              const lanesSet = new Set([task._lane, ...overlapping.map(t => t._lane)]);
+              task._clusterLanes = Math.max(1, lanesSet.size);
+            });
+  
+            rowMeta.push({
+              key: rowKey,
+              index: rowIndex,
+              lanes: Math.max(1, laneEnds.length),
+              height: this.options.row_height,
+            });
+          });
+  
+          // 5) Top offsets with fixed row height
+          let cum = 0;
+          rowMeta.forEach(r => {
+            r.top = cum;
+            cum += r.height; // fix for each row
+          });
+  
+          this._rows = rows;
+          this._rowMeta = rowMeta;
+        }
+
+        // Row top & content height (fixed)
+        rowTop(rowIndex) {
+          return this._rowMeta[rowIndex]?.top || 0;
+        }
+        get_content_height() {
+          // Height of the content zone = rows * row_height
+          return (this._rows?.length || 0) * this.options.row_height;
+        }
+        
+      
+        get_bar_height_for_task(task) {
+          const lanes = Math.max(1, task._clusterLanes || 1);
+          const inner = Math.max(0, this.options.bar_inner_padding || 0);
+          const laneGaps = (lanes - 1) * this.options.lane_padding;
+  
+          // available height = row height minus inner padding minus gaps between lanes
+          const available = this.options.row_height - inner - laneGaps;
+  
+          const h = available / lanes;
+          return Math.max(6, h); // small lower limit so that handles/labels remain usable
+        }
+
+      /**
+       * Here, overlapping tasks are aggregated into an +n-block.
+       */
+        compute_overlap_aggregates() {
+            // Reset
+            this.tasks.forEach(t => {
+              t._hidden = false;
+              t._isAggregate = false;
+              t._aggMembers = undefined;
+              t._aggregatedBy = undefined;
+            });
+            this._aggregateBars = [];
+    
+            const byEndStartId = (a,b) => {
+              // Greedy für Top-Lane: sort by end, then start, then id
+              if (+a._end !== +b._end) return +a._end - +b._end;
+              if (+a._start !== +b._start) return +a._start - +b._start;
+              const ia = isFinite(+a.id) ? +a.id : String(a.id);
+              const ib = isFinite(+b.id) ? +b.id : String(b.id);
+              return ia > ib ? 1 : ia < ib ? -1 : 0;
+            };
+            const byStartThenId = (a,b) => {
+              if (+a._start !== +b._start) return +a._start - +b._start;
+              const ia = isFinite(+a.id) ? +a.id : String(a.id);
+              const ib = isFinite(+b.id) ? +b.id : String(b.id);
+              return ia > ib ? 1 : ia < ib ? -1 : 0;
+            };
+            const fmt = this.options.date_format || 'yyyy-MM-dd';
+    
+            // group rows
+            const rows = new Map();
+            this.tasks.forEach(t => {
+              const key = (t._rowIndex != null) ? t._rowIndex : t._index;
+              if (!rows.has(key)) rows.set(key, []);
+              rows.get(key).push(t);
+            });
+    
+            for (const [rowIndex, listRaw] of rows.entries()) {
+              if (!listRaw.length) continue;
+    
+              // 1) top lane via interval scheduling (max. non-overlapping tasks)
+              const candidates = listRaw.slice().sort(byEndStartId);
+              const topLane = [];
+              let lastEnd = null;
+              for (const t of candidates) {
+                if (lastEnd == null || t._start >= lastEnd) {
+                  topLane.push(t);
+                  lastEnd = t._end;
+                }
+              }
+    
+              const topSet = new Set(topLane);
+              const hidden = listRaw.filter(t => !topSet.has(t)); // everything that is not at the top
+    
+              // Set lanes
+              topLane.forEach(t => { t._lane = 0; t._rowIndex = rowIndex; });
+              const rowHasAggregates = hidden.length > 0;
+    
+              if (!rowHasAggregates) {
+                // 1. lane if not hidden
+                topLane.forEach(t => { t._clusterLanes = 1; });
+                continue;
+              }
+    
+              // 2) Summarise hidden: sort with start and form union
+              hidden.sort(byStartThenId);
+    
+              const aggs = [];
+              let curStart = null, curEnd = null;
+              let curMembers = new Set();
+    
+              const bottomSingles = []; // collect visible individual tasks
+    
+              const flush = () => {
+                if (!curStart) return;
+    
+                const membersArr = Array.from(curMembers);
+                if (membersArr.length >= 2) {
+                  // === Aggregat bauen (wie bisher) ===
+                  let minStart = membersArr[0]._start, maxEnd = membersArr[0]._end;
+                  for (const m of membersArr) {
+                    if (m._start < minStart) minStart = m._start;
+                    if (m._end   > maxEnd)   maxEnd   = m._end;
+                  }
+    
+                  const agg = {
+                    id: `agg_${rowIndex}_${this._aggregateBars.length + aggs.length}`,
+                    name: `+${membersArr.length}`,
+                    start: this.dateUtils.format(minStart, fmt),
+                    end:   this.options.step >= 24 && (this.options.step % 24) === 0
+                        ? this.dateUtils.format(this.dateUtils.add(maxEnd, -24, 'hour'), fmt)
+                        : this.dateUtils.format(this.dateUtils.add(maxEnd, -1, 'second'), fmt),
+    
+                    _start: minStart,
+                    _end:   maxEnd,
+                    _rowIndex: rowIndex,
+                    _lane: 1,                 // always at the bottom lane
+                    _clusterLanes: 2,         // (Relayout sets real value later)
+                    lineIndex: membersArr[0].lineIndex,
+    
+                    draggable: false,
+                    progress: 0,
+                    
+                    //TODO: The standart colours of the +n-block are given here. They can be set via UXON later.
+                    color: '#d2d2ef',
+                    colorHover: '#c1c1dd',
+                    colorActive: '#c1c1dd',
+                    progressColor: '#a3a3ff',
+                    textColor: '#fff',
+    
+                    custom_class: 'aggregate',
+                    _isAggregate: true,
+    
+                    _members: membersArr.map(m => ({
+                      id: m.id, name: m.name, _start: m._start, _end: m._end, color: m.color
+                    })),
+                    _memberNames: membersArr.map(m => m.name),
+                  };
+    
+                  // hide members
+                  membersArr.forEach(m => { m._hidden = true; m._aggregatedBy = agg.id; });
+                  aggs.push(agg);
+    
+                } else if (membersArr.length === 1) {
+                  // No aggregation, if the bottom lane have only one task
+                  const single = membersArr[0];
+                  single._hidden = false;
+                  single._aggregatedBy = undefined;
+                  single._lane = 1;
+                  single._rowIndex = rowIndex;
+                  bottomSingles.push(single);
+                }
+    
+                curStart = curEnd = null;
+                curMembers.clear();
+              };
+    
+              for (const t of hidden) {
+                if (curStart == null) {
+                  curStart = t._start;
+                  curEnd   = t._end;
+                  curMembers.add(t);
+                } else if (t._start < curEnd) {
+                  // overlaps -> in this union segment
+                  if (t._end > curEnd) curEnd = t._end;
+                  curMembers.add(t);
+                } else {
+                  // Gap -> flush old segment and start a new one
+                  flush();
+                  curStart = t._start;
+                  curEnd = t._end;
+                  curMembers.add(t);
+                }
+              }
+              flush();
+    
+              // Take over aggregate bars
+              this._aggregateBars.push(...aggs);
+            }
+        }
+      
+        relayout_visible_rows() {
+          const visible = this.tasks.filter(t => !t._hidden)
+          .concat(this._aggregateBars || []);
+  
+          const overlaps = (a,b) => (a._start < b._end) && (b._start < a._end);
+  
+          const rowMap = new Map();
+          visible.forEach(t => {
+            const key = (t._rowIndex != null) ? t._rowIndex : t._index;
+            if (!rowMap.has(key)) rowMap.set(key, []);
+            rowMap.get(key).push(t);
+          });
+  
+          const idKey = (t) => (Number.isFinite(+t.id) ? +t.id : String(t.id));
+          const byStartThenId = (a,b) => {
+            const da = +a._start, db = +b._start;
+            if (da !== db) return da - db;
+            const ia = idKey(a), ib = idKey(b);
+            return ia > ib ? 1 : ia < ib ? -1 : 0;
+          };
+          
+          rowMap.forEach((list, rowIndex) => {
+            // hard resets for each row
+            list.forEach(t => {
+              t._rowIndex = rowIndex;
+              t._lane = undefined;
+              t._clusterLanes = 1; // Default
+            });
+
+            const overlaps = (a,b) => (a._start < b._end) && (b._start < a._end);
+
+            const aggs = list.filter(t => t._isAggregate === true);
+            const topsAll = list.filter(t => !t._isAggregate).sort(byStartThenId);
+
+            // 1) Aggregates always on lane 1, cluster=2 (they have a partner ‘above’)
+            aggs.forEach(a => {
+              a._lane = 1;
+              a._clusterLanes = 2;
+            });
+
+            // Top-Tasks:
+            // 2) Tasks that intersect an aggregate in time -> Lane 0, cluster=2 (partner of the aggregate)
+            const hitAgg = [];
+            const noAgg  = [];
+            topsAll.forEach(t => (aggs.some(a => overlaps(t,a)) ? hitAgg : noAgg).push(t));
+
+            hitAgg.forEach(t => {
+              t._lane = 0;
+              t._clusterLanes = 2;
+            });
+
+            // 3) Collect allocations per lane (by time)
+            const laneTasks = new Map(); // lane -> Array<Task>
+            const assignToLane = (task, lane) => {
+              task._lane = lane;
+              if (!laneTasks.has(lane)) laneTasks.set(lane, []);
+              laneTasks.get(lane).push(task);
+            };
+
+            // Seed: already assigned (aggregate + hitAgg)
+            aggs.forEach(a => assignToLane(a, 1));
+            hitAgg.forEach(t => assignToLane(t, 0));
+
+            // 4) Place noAgg in the first collision-free lane, sorted by start
+            noAgg.forEach(t => {
+              let lane = 0;
+              while (true) {
+                const arr = laneTasks.get(lane) || [];
+                const collides = arr.some(x => overlaps(t, x));
+                if (!collides) {
+                  assignToLane(t, lane);
+                  break;
+                }
+                lane++;
+              }
+            });
+
+            // 5) edefine cluster lanes (visible only)
+            const visible = list;
+            visible.forEach(t => {
+              const sameRow = visible.filter(o => o !== t && overlaps(o, t));
+              const laneSet = new Set([t._lane, ...sameRow.map(o => o._lane)]);
+              t._clusterLanes = Math.max(1, laneSet.size);
+            });
+          });
+        }
     }
 
     Gantt.VIEW_MODE = VIEW_MODE;

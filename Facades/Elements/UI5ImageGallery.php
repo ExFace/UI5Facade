@@ -5,11 +5,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Elements\SlickGalleryTrait;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\StringDataType;
-use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsDateFormatter;
-use exface\Core\Factories\DataTypeFactory;
-use exface\Core\DataTypes\DateTimeDataType;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsUploaderTrait;
-use exface\Core\CommonLogic\DataSheets\DataColumn;
 use exface\Core\Widgets\Parts\Uploader;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
@@ -27,11 +23,12 @@ use exface\Core\DataTypes\ByteSizeDataType;
 class UI5ImageGallery extends UI5AbstractElement
 {
     use SlickGalleryTrait, UI5DataElementTrait {
+        SlickGalleryTrait::buildJsEditableChangesGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsDataGetter as buildJsSlickDataGetter;
         SlickGalleryTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsUploadStore as buildJsUploadStoreViaTrait;
-        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
+        UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaDataElementTrait;
     }
     
     use JsUploaderTrait;
@@ -113,12 +110,11 @@ JS;
      */
     protected function buildJsDataLoaderOnLoaded(string $oModelJs = 'oModel') : string
     {
-        return $this->buildJsDataLoaderOnLoadedViaTrait($oModelJs) . <<<JS
+        return 
+            $this->buildJsDataLoaderOnLoadedViaDataElementTrait($oModelJs) . <<<JS
 
                 var carousel = $('#{$this->getIdOfSlick()}');
-                    
                 {$this->buildJsSlickSlidesFromData('carousel', 'oModel.getData()')}
-
 JS;
     }
     
@@ -238,7 +234,7 @@ JS;
      */
     protected function isEditable()
     {
-        return false;
+        return $this->getWidget()->isEditable();
     }
     
     /**
@@ -293,18 +289,13 @@ JS;
     
     protected function buildHtmlNoDataOverlay() : string
     {
-        if ($this->getWidget()->isUploadEnabled()) {
-            $message = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.IMAGEGALLERY.HINT_UPLOAD');
-        } else {
-            $message = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.IMAGEGALLERY.HINT_EMPTY');
-        }
         return <<<HTML
         
             <div id="{$this->getIdOfSlick()}-nodata" class="imagecarousel-overlay">
                 <li class="sapMLIB sapMUCNoDataPage sapMLIBFocusable imagecarousel-nodata">
                     <span role="presentation" aria-hidden="true" aria-label="document" class="sapUiIcon sapUiIconMirrorInRTL" style="font-family: 'SAP\2dicons'; font-size: 6rem;"></span>
                     <div class="sapMUCNoDataDescription">
-                        {$message}
+                        {$this->buildHtmlNoDataMessage()}
                     </div>
                 </li>
             </div>
@@ -362,6 +353,9 @@ JS;
         if ($popoverEl === null) {
             return '';
         }
+        // Trim the validator script because if it start on a new line, the return statement will
+        // return undefined.
+        $validationJs = trim($popoverEl->buildJsValidator());
         $popoverEl->getWidget()->addButton($popoverEl->getWidget()->createButton(new UxonObject([
             'caption' => 'OK',
             'show_icon' => false,
@@ -371,12 +365,22 @@ JS;
                 'alias' => 'exface.Core.CustomFacadeScript',
                 'script' => <<<JS
 
+                    var fnValidator = function(){
+                        return {$validationJs};
+                    };
                     var jqCarousel = $('#{$this->getIdOfSlick()}');
                     var oDataPopover = {$popoverEl->buildJsDataGetter()};
                     var oDataSlick = jqCarousel.data('_exfData');
-                    $.extend(oDataSlick.rows[jqCarousel.data('_exfUploadIdx')], oDataPopover.rows[0]);
-                    jqCarousel.data(oDataSlick);
-                    {$popoverEl->buildJsCloseDialog()}
+                    var oRowSlick = oDataSlick.rows[jqCarousel.data('_exfUploadIdx')];
+                    var oRowPopover = oDataPopover.rows[0];
+                    if (fnValidator() === false) {
+                        {$popoverEl->buildJsValidationError()}
+                        return;
+                    } else {
+                        $.extend(oRowSlick, oRowPopover);
+                        jqCarousel.data(oDataSlick);
+                        {$popoverEl->buildJsCloseDialog()}
+                    }
 JS
             ]
         ])));
@@ -397,6 +401,8 @@ JS
                 }
                 return oPopover;
             }();
+            oPopover.setModel(new sap.ui.model.json.JSONModel());
+            
             var jqSlide = $(oEvent.target).closest('.slick-slide');
             var jqSlides = $('#{$this->getId()} .slick-slide');
             var iClickedSlideIdx = jqSlides.index(jqSlide);
@@ -407,5 +413,26 @@ JS
         });
     })($oControllerJs)
 JS;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false): string
+    {
+        return <<<JS
+
+(function (aOld, aChanges){
+    return aChanges.length === 0 ? [] : [
+        {
+            elementId: '{$this->getId()}',
+            caption: {$this->escapeString($this->getCaption())},
+            valueOld: aOld,
+            valueNew: aChanges
+        }
+    ];    
+})(({$this->buildJsLastLoadedGetter()}?.rows || []), {$this->buildJsEditableChangesGetter()})
+JS;
+
     }
 }

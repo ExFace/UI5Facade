@@ -1,0 +1,7 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Element","sap/ui/fl/apply/api/FlexRuntimeInfoAPI","sap/ui/fl/write/api/ChangesWriteAPI","sap/ui/rta/command/FlexCommand"],function(e,t,n,o){"use strict";const a=o.extend("sap.ui.rta.command.ExtendControllerCommand",{metadata:{library:"sap.ui.rta",properties:{changeType:{type:"string",defaultValue:"codeExt"},codeRef:{type:"string"},viewId:{type:"string"},instanceSpecific:{type:"boolean"}},associations:{},events:{}}});a.prototype._createChange=function(o){const a=this.getViewId();const r=this.getCodeRef();const i=e.getElementById(a);const c=this.getAppComponent();const s=i.getControllerModuleName()?`module:${i.getControllerModuleName()}`:i.getController()?.getMetadata().getName();const p=t.getFlexReference({element:c});const l=`${p.replace(/\.Component/g,"").replace(/\./g,"/")}/changes/${r.replace(/\.js/g,"")}`;const d={changeType:this.getChangeType(),layer:o.layer,codeRef:this.getCodeRef(),controllerName:s,reference:p,moduleName:l,generator:"sap.ui.rta.command.ExtendControllerCommand"};if(this.getInstanceSpecific()){d.viewId=a}return n.create({changeSpecificData:d,selector:c})};a.prototype.execute=function(){return Promise.resolve()};a.prototype.undo=function(){return Promise.resolve()};a.prototype.needsReload=true;return a});
+//# sourceMappingURL=ExtendControllerCommand.js.map

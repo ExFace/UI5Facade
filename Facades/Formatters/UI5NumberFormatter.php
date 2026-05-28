@@ -23,25 +23,25 @@ class UI5NumberFormatter extends AbstractUI5BindingFormatter
     public function buildJsBindingProperties()
     {
         $type = $this->getDataType();
-        $options = '';
+        $formatOptions = '';
         $otherProps = '';
         
         if (! is_null($type->getPrecisionMin())){
-            $options .= <<<JS
+            $formatOptions .= <<<JS
 
                     minFractionDigits: {$type->getPrecisionMin()},
 JS;
         }
             
         if (! is_null($type->getPrecisionMax())){
-            $options .= <<<JS
+            $formatOptions .= <<<JS
 
                     maxFractionDigits: {$type->getPrecisionMax()},
 JS;
         }
          
         if ($type->getGroupDigits()) {
-            $options .= <<<JS
+            $formatOptions .= <<<JS
 
                     groupingEnabled: true,
                     groupingSize: {$type->getGroupLength()},
@@ -49,59 +49,29 @@ JS;
                     
 JS;
         } else {
-            $options .= <<<JS
+            $formatOptions .= <<<JS
 
                     groupingEnabled: false,
                     groupingSeparator: "",
 JS;
         }
-        
-        // Add a custom formatter if required for
-        // - prefix/suffix
-        // - `+`-sign
-        // TODO handle NumberDataType::getEmptyFormat() here too?
-        if (($type instanceof NumberDataType) 
-        && (
-            $type->getPrefix() !== null 
-            || $type->getSuffix() !== null 
-            || $type->getShowPlusSign() === true
-        )) {
-            $prefix = $type->getPrefix();
-            $prefixJs = $prefix === '' || $prefix === null ? '""' : json_encode($prefix . ' ');
-            $suffix = $type->getSuffix();
-            $suffixJs = $suffix === '' || $suffix === null ? '""' : json_encode(' ' . $suffix);
-            $plusSignJs = $type->getShowPlusSign() ? 'true' : 'false';
-            
-            $otherProps = <<<JS
 
-                formatter: function(mVal) {
-                    var sPrefix = $prefixJs;
-                    var sSuffix = $suffixJs;
-                    var bPlusSign = $plusSignJs;
-
-                    if (mVal === '' || mVal === null || mVal === undefined) return mVal;
-
-                    if (bPlusSign === true && {$this->getJsFormatter()->buildJsFormatParser('mVal')} > 0) {
-                        mVal = '+' + mVal;
-                    }
-
-                    if (sPrefix !== '') {
-                        mVal = sPrefix + mVal;
-                    }
-                    if (sSuffix !== '') {
-                        mVal = mVal + sSuffix;
-                    }                    
-
-                    return mVal;
+        if($type instanceof NumberDataType) {
+            $otherProps .= <<<JS
+                formatter: function(mVal){
+                    return ({$this->getJsFormatter()->buildJsFormatter('mVal')});
                 },
 JS;
         }
-        
+
+        // We do NOT need `constraints` here because they will be handled by the validator
+        // see. JsNumberFormatter::buildJsValidator().
+
         return <<<JS
 
                 type: '{$this->getSapDataType()}',
                 formatOptions: {
-                    {$options}
+                    {$formatOptions}
                 }, $otherProps
 
 JS;

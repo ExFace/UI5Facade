@@ -159,93 +159,147 @@ JS;
             }
         }
         
-        if (! $this->isValueBoundToModel() && $value = $widget->getValueWithDefaults()) {
+        switch (true) {
             // If the widget value is set explicitly, we either set the key only or the 
             // key and the text (= value of the input)
-            if ($widget->getValueText() === null || $widget->getValueText() === '') {
-                $valueJs = '"' . $this->escapeJsTextValue($value) . '"';
-                $value_init_js = <<<JS
+            case ! $this->isValueBoundToModel() && $value = $widget->getValueWithDefaults():
+                if ($widget->getValueText() === null || $widget->getValueText() === '') {
+                    $valueJs = '"' . $this->escapeJsTextValue($value) . '"';
+                    $valueInitJs = <<<JS
 
-        .{$this->buildJsSetSelectedKeyMethod($valueJs, null, true)}.fireChange({value: {$valueJs}})
+                .{$this->buildJsSetSelectedKeyMethod($valueJs, null, true)}.fireChange({value: {$valueJs}})
 JS;
-            } else {
-                $value_init_js = <<<JS
+                } else {
+                    $valueInitJs = <<<JS
 
-        .{$this->buildJsSetSelectedKeyMethod($this->escapeJsTextValue($value), $widget->getValueText())}
+                .{$this->buildJsSetSelectedKeyMethod($this->escapeJsTextValue($value), $widget->getValueText())}
 JS;
-            }
-        } elseif ($widget->getValueAttribute() !== $widget->getTextAttribute()) {
+                }
+                break;
+
             // If the value is to be taken from a model, we need to check if both - key
             // and value are there. If not, the value needs to be fetched from the server.
             // Same goes for the case when some additional columns are required by widget
             // links - the values for these columns need to be fetched to.
             // NOTE: in sap.m.MultiInput there are no tokens yet, so we tell the getter
             // method not to rely on them explicitly!!!
-            $missingValueJs = <<<JS
+            case $widget->getValueAttribute() !== $widget->getTextAttribute():
+                $missingValueJs = <<<JS
 
-                var sKey = oInput.{$this->buildJsValueGetterMethod(false)};
-                var sVal = oInput.getValue();
-                var bNeedAllCols = {$allColumnsRequiredJs};
-                if (sKey !== '' && (sVal === '' || bNeedAllCols)) {
-                    oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('sKey')});
-                } else {
-                    oInput.setValueState(sap.ui.core.ValueState.None);
-                    oInput._invalidKey = false;
-                }
-JS;
-            // Do the missing-text-check every time the model of the sap.m.Input changes
-            $value_init_js = <<<JS
-
-        .attachModelContextChange(function(oEvent) {
-            var oInput = oEvent.getSource();
-            $missingValueJs
-        })
-JS;
-            // Also do the check with every prefill (the model-change-trigger for some reason does not
-            // work on non-maximized dialogs, but this check does)
-            $this->getController()->addOnPrefillDataChangedScript("
-            setTimeout(function(){
-                var oInput = sap.ui.getCore().byId('{$this->getId()}');
-                {$missingValueJs} 
-            }, 0);");
-            
-            // Finally, if the value is bound to model, but the text is not, all the above logic will only
-            // work once, because after that one time, there will be a text (value) and it won't change
-            // with the model. To avoid this, the following code will empty the value of the input every
-            // time the selectedKey changes to empty. This happens at least before every prefill.
-            // The logic is different for Input and MultiInput: while Input can just be emptied if 
-            // the current selectedKey is empty, the MultiInput selectedKey is also empty if there are
-            // only tokens and no non-token text. For the MultiSelect we need to double check if the
-            // value in the model is really empty then.
-            // NOTE: without setTimeout() the oInput is sometimes not initialized yet when init() of the
-            // view is called in dialogs. In particular, this happens if the InputComboTable is a filter
-            // in a table, that is the only direct child of a dialog.
-            if ($this->isValueBoundToModel() && ! $this->getView()->getModel()->hasBinding($widget, 'value_text')) {
-                $emptyValueWithKeyJs = <<<JS
-
-            setTimeout(function(){
-                var oInput = sap.ui.getCore().byId('{$this->getId()}');
-                var oModel = oInput.getModel();
-                var oKeyBinding = new sap.ui.model.Binding(oModel, '{$this->getValueBindingPath()}', oModel.getContext('{$this->getValueBindingPath()}'));
-                oKeyBinding.attachChange(function(oEvent){
-                    var sBindingPath, mModelVal;
-                    if (oInput.getSelectedKey() === '') {
-                        if (oInput.getTokens !== undefined) {
-                            sBindingPath = oInput.getBinding('selectedKey').sPath;
-                            mModelVal = oEvent.getSource().getModel().getProperty(sBindingPath);
-                            if (mModelVal === undefined || mModelVal === undefined) {
-                                oInput.destroyTokens();
-                                oInput.setValue('');
-                            }
-                        } else {
-                            oInput.setValue('');
-                        }
+                    var sKey = oInput.{$this->buildJsValueGetterMethod(false)};
+                    var sVal = oInput.getValue();
+                    var bNeedAllCols = {$allColumnsRequiredJs};
+                    if (sKey !== '' && (sVal === '' || bNeedAllCols)) {
+                        oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('sKey')});
+                    } else {
+                        oInput.setValueState(sap.ui.core.ValueState.None);
+                        oInput._invalidKey = false;
                     }
-                });
-            }, 0);
 JS;
-                $this->getController()->addOnInitScript($emptyValueWithKeyJs);
-            }
+                // Do the missing-text-check every time the model of the sap.m.Input changes
+                $valueInitJs = <<<JS
+
+                .attachModelContextChange(function(oEvent) {
+                    var oInput = oEvent.getSource();
+                    $missingValueJs
+                })
+JS;
+                // Also do the check with every prefill (the model-change-trigger for some reason does not
+                // work on non-maximized dialogs, but this check does)
+                $this->getController()->addOnPrefillDataChangedScript(<<<JS
+
+                    setTimeout(function(){
+                        var oInput = sap.ui.getCore().byId('{$this->getId()}');
+                        if (oInput === undefined) {
+                            return;
+                        }
+                        {$missingValueJs} 
+                    }, 0);
+JS);
+                
+                // Finally, if the value is bound to model, but the text is not, all the above logic will only
+                // work once, because after that one time, there will be a text (value) and it won't change
+                // with the model. To avoid this, the following code will empty the value of the input every
+                // time the selectedKey changes to empty. This happens at least before every prefill.
+                // The logic is different for Input and MultiInput: while Input can just be emptied if 
+                // the current selectedKey is empty, the MultiInput selectedKey is also empty if there are
+                // only tokens and no non-token text. For the MultiSelect we need to double check if the
+                // value in the model is really empty then.
+                // NOTE: without setTimeout() the oInput is sometimes not initialized yet when init() of the
+                // view is called in dialogs. In particular, this happens if the InputComboTable is a filter
+                // in a table, that is the only direct child of a dialog.
+                // NOTE: Event with setTimeout() it does not always work because hidden controls may even no
+                // be rendered at init(). In this case, the binding is attached to the view model. This should
+                // work for most cases too!
+                if ($this->isValueBoundToModel() && ! $this->getView()->getModel()->hasBinding($widget, 'value_text')) {
+                    $emptyValueWithKeyJs = <<<JS
+
+                    setTimeout(function(){
+                        var oInput = sap.ui.getCore().byId('{$this->getId()}');
+                        var oModel, oKeyBinding;
+                        if (oInput) {
+                            oModel = oInput.getModel();
+                        } else if (oController) {
+                            oModel = oController.getView().getModel();
+                        } else {
+                            return;
+                        }
+                        oKeyBinding = new sap.ui.model.Binding(oModel, '{$this->getValueBindingPath()}', oModel.getContext('{$this->getValueBindingPath()}'));
+                        oKeyBinding.attachChange(function(oEvent){
+                            var sBindingPath, mModelVal;
+                            if (! oInput) {
+                                return;
+                            }
+                            if (oInput.getSelectedKey() === '') {
+                                if (oInput.getTokens !== undefined) {
+                                    sBindingPath = oInput.getBinding('selectedKey').sPath;
+                                    mModelVal = oEvent.getSource().getModel().getProperty(sBindingPath);
+                                    if (mModelVal === undefined || mModelVal === undefined) {
+                                        oInput.destroyTokens();
+                                        oInput.setValue('');
+                                    }
+                                } else {
+                                    oInput.setValue('');
+                                }
+                            }
+                        });
+                    }, 0);
+JS;
+                    $this->getController()->addOnInitScript($emptyValueWithKeyJs);
+                }
+                break;
+
+            // If value and text are the same attribut, there are still issues to fix:
+            // - When the inner value (selectedKey) changes programmatically (e.g. with a prefill), the tokes are
+            // not updated for some reason - need to do it manually. Previously we updated them manually
+            // onPrefillDataChange, but this was not enough - the values still disappeared if the InputComboTable
+            // was in a big dialog and that dialog had other buttons, that would cause a refresh on-change.
+            // - TODO sometimes the input remains empty even in single-select widgets. For example, if an object
+            // has no LABEL and the UID should be used as value and text at the same time. Still need investigation
+            // here!
+            case $widget->getValueAttribute() === $widget->getTextAttribute() && $widget->getMultiSelect() === true:
+                $delim = $widget->getValueAttribute()->getValueListDelimiter();
+                if ($delim === '') {
+                    $delim = EXF_LIST_SEPARATOR;
+                }
+                $this->getController()->addOnInitScript(<<<JS
+
+                    (function(oInput){
+                        var oKeyBinding = oInput?.getBinding('selectedKey');
+                        if (! oKeyBinding) {
+                            return;
+                        }
+                        oKeyBinding.attachChange(function(oEvent){
+                            var sKeys = oEvent.getSource().getValue();
+                            oInput.destroyTokens();
+                            if (sKeys !== undefined && sKeys !== null && sKeys !== '') {
+                                sKeys.toString().split({$this->escapeString($delim)}).forEach(function(sVal){
+                                    oInput.addToken(new sap.m.Token({key: sVal, text: sVal}));
+                                })
+                            }
+                        });
+                    })(sap.ui.getCore().byId('{$this->getId()}'));
+JS);
         }
         
         // See if there are promoted columns. If not, make the first two visible columns 
@@ -289,15 +343,17 @@ JS;
         // Now generate columns and cells from the column widgets
         $columns = '';
         $cells = '';
+        $valueColName = $widget->getValueColumn()->getDataColumnName();
+        $textColName = $widget->getTextColumn()->getDataColumnName();
         foreach ($widget->getTable()->getColumns() as $idx => $col) {
             /* @var $element \exface\UI5Facade\Facades\Elements\UI5DataColumn */
             $element = $this->getFacade()->getElement($col);
             $columns .= ($columns ? ",\n" : '') . $element->buildJsConstructorForMColumn();
             $cells .= ($cells ? ",\n" : '') . $element->buildJsConstructorForCell($this->getModelNameForAutosuggest());
-            if ($col->getId() === $widget->getValueColumn()->getId()) {
+            if ($col->getDataColumnName() === $valueColName) {
                 $value_idx = $idx;
             }
-            if ($col->getId() === $widget->getTextColumn()->getId()) {
+            if ($col->getDataColumnName() === $textColName) {
                 $text_idx = $idx;
             }
         }
@@ -311,29 +367,54 @@ JS;
         
         $control = $widget->getMultiSelect() ? 'sap.m.MultiInput' : 'sap.m.Input';
         $vhpOptions = "showValueHelp: true, valueHelpRequest: {$this->buildJsPropertyValueHelpRequest()}";
-        /*if ($widget->isRelation()) {
-            $vhpOptions = "showValueHelp: true, valueHelpRequest: {$this->buildJsPropertyValueHelpRequest()}";
-        } else {
-            $vhpOptions = "showValueHelp: false";
-        }*/
         
+        // Add some tweaks for sap.m.MultiInput
         $tokenUpdateJs = '';
         if ($widget->getMultiSelect()) {
             //Removing a token does not fire a change event, which means linked widgets do not react to it,
             //therefor so we do it manually in a timeout function.
             $tokenUpdateJs = <<<JS
-        .attachTokenUpdate(function(oEvent){
-            if (oEvent.getParameters().type !== 'removed') {
-                return;
-            }
-            setTimeout(function(){
-                var oInput = sap.ui.getCore().byId('{$this->getId()}'); 
-                var sVal = {$this->buildJsValueGetter()};
-                oInput.fireChange({value: sVal});
-            },0);
-        })
 
+            .attachTokenUpdate(function(oEvent){
+                if (oEvent.getParameters().type !== 'removed') {
+                    return;
+                }
+                        setTimeout(function(){
+                            var oInput = sap.ui.getCore().byId('{$this->getId()}'); 
+                            var sVal = {$this->buildJsValueGetter()};
+                            oInput.fireChange({value: sVal});
+                        },0);
+            })
 JS;
+            // Also make sure tokens are destroyed when the bound model value is emptied. This does not happen
+            // automatically!
+            // In particular, this means, when a dialog is closed and reopened for another instance, the previous value
+            // remains in place until the new prefill finished loading. This looks stupid as all the other inputs are
+            // emptied right away. The setTimeout() is required to ensure, all bindings are already instantiated.
+            // BUT: emptying a control on binding change should not always fire a control change event. For example, a
+            // prefill does binding-changes, but should not fire control-changes as all sorts of validators will
+            // listen to them - i.e. widgets with required_if would turn red immediately when a dialog is opened, which
+            // is distracting. Especially since it would only happen when controls are emptied.
+            $this->getController()->addOnInitScript(<<<JS
+
+            setTimeout(function(){
+                var oInput = sap.ui.getCore().byId('{$this->getId()}');
+                if (! oInput) {
+                    return;
+                }
+                var oBinding = oInput.getBinding('selectedKey');
+                if (! oBinding) {
+                    return;
+                }
+                oBinding.attachChange(function(oEvent){
+                    var sVal = oBinding.getValue();
+                    if (sVal === undefined || sVal === null || sVal === '') {
+                        {$this->buildJsEmpty(false)};
+                    }
+                });
+            }, 0);
+            
+JS);
         }
         
         // Render a function to initialize the control. Need to wrap the initialization in
@@ -359,6 +440,7 @@ JS;
 			textFormatMode: "ValueKey",
 			showSuggestion: true,
             maxSuggestionWidth: "{$this->buildCssDropdownWidth()}",
+            valueHelpIconSrc: "sap-icon://sys-find",
             startSuggestion: function(){
                 return sap.ui.Device.system.phone ? 0 : 1;
             }(),
@@ -384,7 +466,7 @@ JS;
 
         setTimeout(function(){
             oCombo
-            {$value_init_js}
+            {$valueInitJs}
             {$tokenUpdateJs}
         }, 0);
 
@@ -409,12 +491,16 @@ JS;
         // suggestion is selected automatically (see buildJsDataLoader()), aCells is not set yet, so
         // we need to fetch the first row of the suggestion table - in this case we know, that there
         // is only a single row!
+        $valueDataType = $this->getWidget()->getValueColumn()->getDataType();
         return <<<JS
             function(oEvent){
                 var oItem = oEvent.getParameter("selectedRow");
                 if (! oItem) return;
 				var aCells = oEvent.getParameter("selectedRow").getCells();
                 var oInput = oEvent.getSource();
+                var fnValueParser = function(mVal) {
+                    return {$this->getFacade()->getDataTypeFormatter($valueDataType)->buildJsFormatParser('mVal')};
+                }
                 if (oInput.getTokens !== undefined) {
                     if (oInput.getTokens().filter(function(oToken){
                             return oToken.getKey() === aCells[ {$valueColIdx} ].getText();
@@ -426,7 +512,7 @@ JS;
                     var oSuggestTable = sap.ui.getCore().byId('{$this->getId()}-popup-table');
                     aCells = oSuggestTable.getItems()[0].getCells();
                 }
-                oInput.{$this->buildJsSetSelectedKeyMethod("aCells[ {$valueColIdx} ].getText()", "aCells[ {$textColIdx} ].getText()")};
+                oInput.{$this->buildJsSetSelectedKeyMethod("fnValueParser(aCells[ {$valueColIdx} ].getText())", "aCells[ {$textColIdx} ].getText()")};
                 oInput.setValueState(sap.ui.core.ValueState.None);
                 oInput._invalidKey = false;
                 oInput.fireChange({value: aCells[ {$valueColIdx} ].getText()});
@@ -504,13 +590,24 @@ JS;
                 var aFoundKeys = [];
                 var bNewKeysAllowed = {$allowNewValues};
                 var aNewKeys = [];
-                var curTokens = [];
                 var sMultiValDelim = {$this->escapeString($widget->getMultipleValuesDelimiter())};
-                if (oInput.getTokens !== undefined) {
-                    curTokens = oInput.getTokens();
+
+                // deduplicate the data array and update the row count if changed
+                // this is needed, if a query returns multiple entries with the same content
+                // in that case, it doesnt matter which one we take to match the key 
+                var aSeen = new Set();
+                data = data.filter(item => {
+                    const str = JSON.stringify(item);
+                    if (aSeen.has(str)) return false;
+                    aSeen.add(str);
+                    return true;
+                });
+                if (iRowsCnt !== data.length){
+                    iRowsCnt = data.length;
                 }
 
                 if (bSilent) {
+                    // Just loading the suggest data - the key does not change
                     if (iRowsCnt === 1 && (curKey === '' || data[0]['{$widget->getValueColumn()->getDataColumnName()}'] == curKey)) {
                         if (oInput.destroyTokens !== undefined) {
                             oInput.destroyTokens();
@@ -519,7 +616,10 @@ JS;
                         oInput.closeSuggestions();
                         oInput.setValueState(sap.ui.core.ValueState.None);
                         oInput._invalidKey = false;
-                    } else if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
+                        oInput.fireChange({value: curKey});
+                    } else 
+                    // Just loading the suggest data for multi-select: loaded as many rows as we have keys
+                    if (iRowsCnt > 0 && iRowsCnt === curKeys.length && oInput.addToken !== undefined) {
                         oInput.destroyTokens();
                         curKeys.forEach(function(sKey) {
                             sKey = sKey.trim();
@@ -559,14 +659,14 @@ JS;
                                 break;
                             case curKey === '' && (! curText || curText.trim() === ''):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
                             // If it is not a MultiInput, but the value is a delimited list, do not use it!
                             case oInput.getTokens === undefined && curKey != null && (curKey + '').includes(sMultiValDelim):
                                 oInput
-                                    .{$this->buildJsEmptyMethod()}
+                                    .{$this->buildJsEmptyMethod(false)}
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
@@ -664,6 +764,11 @@ JS;
 				    start: 0,
                     data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
                 };
+                // if the autosuggest is silent, meaning its loading data for already existing values (for example after a prefill) we remove the length parameter
+                // else the autosuggest might not read all data, wenn already existing keys are more than the max suggestion propety
+                if (bSilent === true) {
+                    delete params.length;
+                }
                 $.extend(params, qParams);
 
                 var oModel = oInput.getModel('{$this->getModelNameForAutosuggest()}');
@@ -838,7 +943,7 @@ JS;
                 return;
             }
             if (val === undefined || val === null || val === '') {
-                oInput.{$this->buildJsEmptyMethod('val', '""')};
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oInput.fireChange({value: val});
             } else {
                 if (oInput.destroyTokens !== undefined) {
@@ -878,14 +983,31 @@ JS;
     {
         return 'suggest';
     }
+
+    /**
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsEmpty()
+     */
+    public function buildJsEmpty(bool $fireChange = true) : string
+    {
+        return "sap.ui.getCore().byId('{$this->getId()}').{$this->buildJsEmptyMethod($fireChange)}";
+    }
     
-    protected function buildJsEmptyMethod() : string
+    /**
+     * 
+     * @return string
+     */
+    protected function buildJsEmptyMethod(bool $fireChange = true) : string
     {
         if ($this->getWidget()->getMultiSelect() === false) {
-            return "setValue('').setSelectedKey('')";
+            $js = "setValue('').setSelectedKey('')";
         } else {
-            return "setValue('').setSelectedKey('').destroyTokens()";
+            $js = "setValue('').setSelectedKey('').destroyTokens()";
         }
+        if ($fireChange === true) {
+            $js .= ".fireChange({mValue: ''})";
+        }
+        return $js;
     }
     
     /**
@@ -1012,11 +1134,13 @@ JS;
     var oInput = sap.ui.getCore().byId("{$this->getId()}");
     var mVal;
     var aVals = [];
-    if (oData !== undefined && Array.isArray(oData.rows) && oData.rows.length > 0) {
-        if (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}") {
+    if (oData !== undefined && Array.isArray(oData.rows) && (oData.oId == "{$this->getWidget()->getTable()->getMetaObject()->getId()}" || oData.oId === "{$this->getWidget()->getTable()->getMetaObject()->getAliasWithNamespace()}")) {
+        if (oData.rows.length === 0) {
+            {$this->buildJsValueSetter("''")};
+        } else {
             oInput.getModel('{$this->getModelNameForAutosuggest()}').setData(oData);
-            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] != undefined){
-                oInput.{$this->buildJsEmptyMethod()};
+            if (oData.rows[0]['{$widget->getTextColumn()->getDataColumnName()}'] !== undefined){
+                oInput.{$this->buildJsEmptyMethod(false)};
                 oData.rows.forEach(function(oRow){
                     oInput.{$this->buildJsSetSelectedKeyMethod("oRow['{$colName}']", "oRow['{$widget->getTextColumn()->getDataColumnName()}']")};
                     aVals.push(oRow['{$colName}']);
@@ -1035,9 +1159,9 @@ JS;
                 }
                 {$this->buildJsValueSetter("mVal")}
             }
-        } else {
-            $parentSetter;
-        }
+        } 
+    } else {
+        $parentSetter;
     }
 })({$jsData})
 
@@ -1142,5 +1266,18 @@ JS;
             ), 
             self::DROPDOWN_WIDTH_MAX
         ) . 'px';
+    }
+
+    /**
+     * 
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsResetter()
+     */
+    public function buildJsResetter() : string
+    {
+        $prepareJs = '';
+        if ($this->getWidget()->getMultiSelect() === true) {
+            $prepareJs = "sap.ui.getCore().byId('{$this->getId()}').destroyTokens(); ";
+        }
+        return $prepareJs . parent::buildJsResetter();
     }
 }

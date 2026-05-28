@@ -8,7 +8,7 @@ use exface\Core\Widgets\Input;
  *
  * @author Andrej Kabachnik
  * 
- * @method InputButton getWidget()
+ * @method \exface\Core\Widgets\InputButton getWidget()
  *        
  */
 class UI5InputButton extends UI5Input
@@ -22,11 +22,22 @@ class UI5InputButton extends UI5Input
     {
         $widget = $this->getWidget();
         $btnElement = $this->getFacade()->getElement($this->getWidget()->getButton());
+        $updateOwnValueJs = '';
+        if ($widget->willUpdateValueWithActionResult()) {
+            $updateOwnValueJs = <<<JS
+
+    var mNewVal = ((response.rows || [])[0] || {})['{$widget->getDataColumnName()}'];
+    if (mNewVal !== undefined && mNewVal !== '' && mNewVal !== null) {
+        {$this->buildJsValueSetter('mNewVal')}
+    }
+JS;
+        } 
         $saveDataToModelJs = <<<JS
 
 var oInput = sap.ui.getCore().byId("{$this->getId()}");
 if (typeof response !== 'undefined') {
     oInput.getModel('action_result').setData(response);
+    {$updateOwnValueJs}
 }
 oInput.fireChange();
 
@@ -121,7 +132,6 @@ function(sColName, iRowIdx){
         return '';
     }
 }('$dataColumnName', $iRowJs)
-
 JS;
     }
 }

@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\DataColumn;
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Widgets\DataTable;
@@ -56,9 +58,9 @@ class UI5DataColumn extends UI5AbstractElement
         $widthMin = $col->getWidthMin();
         $widthJson = json_encode([
             'auto' => $col->getNowrap() && ($width->isUndefined() || strtolower($width->getValue()) === 'auto'),
-            'fixed' => $width->getValue(),
-            'min' => $widthMin->isFacadeSpecific() ? $widthMin->getValue() : null,
-            'max' => $widthMax->isFacadeSpecific() ? $widthMax->getValue() : null
+            'fixed' => $this->buildCssWidth($width),
+            'min' => $this->buildCssWidth($widthMin),
+            'max' => $this->buildCssWidth($widthMax)
         ]);
         $labelWrappingJs = $col->getNowrap() ? 'wrapping: false,' : 'wrapping: true,';
         
@@ -69,6 +71,27 @@ class UI5DataColumn extends UI5AbstractElement
             $formatParserJs = $formatter->buildJsFormatParser('mVal');
         }
         
+        $caption = $this->getCaption();
+        $iconJs = '';
+        $labelClass = '';
+        if ($icon = $col->getIcon()) {
+            $iconAlignConfig = $this->getFacade()->getConfig()->getOption("ICON_ALIGNMENT.DATA_COLUMN") ?? 'Center';
+            $iconJs = "icon: {$this->escapeString($this->getIconSrc($icon))}, textAlign: sap.ui.core.TextAlign.{$iconAlignConfig},";
+            
+            // Icons should replace the caption in the colum header
+            $caption = '';
+            $labelClass = 'exf-icon-only';
+            
+            // SVG icons need a special CSS class to fix their positioning and color
+            $iconSet = $col->getIconSet();
+            if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+                $labelClass .= ' exf-svg-icon exf-svg-colored';
+            } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
+                $labelClass .= ' exf-svg-icon';
+            }
+        }
+        $labelClassJs = $labelClass ? ".addStyleClass('$labelClass')" : '';
+        
         // The tooltips for columns of the UI table also include the column caption
         // because columns may get quite narrow and in this case there would not be
         // any way to see the entire caption except for using the tooltip.
@@ -76,10 +99,11 @@ class UI5DataColumn extends UI5AbstractElement
 
 	 new sap.ui.table.Column('{$this->getId()}', {
 	    label: new sap.ui.commons.Label({
-            text: "{$this->getCaption()}",
+            text: "{$caption}",
             {$this->buildJsPropertyTooltip(true)}
+            {$iconJs}
             {$labelWrappingJs}
-        }),
+        }){$labelClassJs},
         autoResizable: true,
         template: {$this->buildJsConstructorForCell()},
 	    {$this->buildJsPropertyShowSortMenuEntry()}
@@ -87,13 +111,109 @@ class UI5DataColumn extends UI5AbstractElement
 	    {$this->buildJsPropertyVisibile()}
 	    {$this->buildJsPropertyWidth()}
         {$this->buildJsPropertyWidthMin()}
+        {$this->buildJsAddFilterResetBtn()}
         {$grouped}
 	})
-	.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
-	.data('_exfDataColumnName', '{$col->getDataColumnName()}')
+	{$this->buildJsSetDataProperties($col)}
 	.data('_exfWidth', {$widthJson})
     .data('_exfFilterParser', function(mVal){ return {$formatParserJs} })
 JS;
+    }
+
+    /**
+     * Adds an additional reset filter button to the column menu (via on columnMenuOpen) if the column is filterable.
+     * 
+     * @return string
+     */
+    private function buildJsAddFilterResetBtn()
+    {
+        $col = $this->getWidget();
+        $isFilterable = $col->isFilterable() === true;
+        $dataTable = $this->getFacade()->getElement($this->getWidget()->getDataWidget());
+        $configurator = $this->getFacade()->getElement($dataTable->getWidget()->getConfiguratorWidget());
+
+        // only add reset button for filterable columns
+        if ($isFilterable){
+            return <<<JS
+            columnMenuOpen: function(oEvent) {
+
+            // get column, menu and id from event params
+            let sResetBtnId = oEvent.getParameter('id') + "_resetBtn";
+            let oColumn = sap.ui.getCore().byId(oEvent.getParameter('id'));
+            let oMenu = oEvent.getParameter('menu');
+
+            if (!oMenu) {
+                return;
+            }
+
+            // columnMenuOpen fires before menu is there, so timeout prevents lifecycle issues here
+            setTimeout(function() {
+                
+                // since adding menu items to the default column menu was not encouraged in documentation, wrap in try/catch
+                // see https://ui5.sap.com/1.136.9/#/api/sap.ui.table.ColumnMenu
+                try {
+                    // check if the button already exists, otherwsie add it
+                    let bButtonExists = oMenu.getItems().some(function(oItem) {
+                        return oItem.getId() === sResetBtnId;
+                    });
+
+                    if (!bButtonExists) {
+                        oMenu.addItem(
+                            new sap.ui.unified.MenuItem({
+                                id: sResetBtnId,
+                                icon: "sap-icon://clear-filter",
+                                text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_CLEAR'))},
+                                select: function(oEvent) {
+                                    
+                                    let oSearchPanel = sap.ui.getCore().byId('{$configurator->getIdOfSearchPanel()}');
+                                    if (oSearchPanel && oColumn) {
+                                        let aFilterItems = oSearchPanel.getFilterItems();
+                                        let aMatchingFilters = aFilterItems.filter(oFilterItem => oFilterItem.getColumnKey() === oColumn.getFilterProperty());
+
+                                        // remove all matching filter items
+                                        aMatchingFilters.forEach(oMatchingFilter => {
+                                            oSearchPanel.removeFilterItem(oMatchingFilter);
+                                        });
+
+                                        // reset filter value (input field in column menu)
+                                        oColumn.setFilterValue(null);
+                                    }
+                                    // reload data
+                                    {$dataTable->getController()->buildJsMethodCallFromController('onLoadData', $dataTable, '')}
+                                }
+                            })
+                        );
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }, 0);  
+        },
+JS;
+        }
+        else{
+            // if not filterable, add/do nothing
+            return '';
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::getWidthRelativeUnit()
+     */
+    public function getWidthRelativeUnit()
+    {
+        return $this->getFacade()->getConfig()->getOption('WIDGET.DATACOLUMN.WIDTH_RELATIVE_UNIT');
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildCssWidthDefaultValue()
+     */
+    protected function buildCssWidthDefaultValue() : string
+    {
+        return '';
     }
     
     /**
@@ -195,17 +315,51 @@ JS;
 						{$this->buildJsPropertyWidth()}
 						header: [
                             new sap.m.Label({
-                                text: "{$this->getCaption()}",
+                                text: {$this->escapeString($this->getCaption())},
                                 {$this->buildJsPropertyTooltip()}
                             })
                         ],
                         {$alignment}
                         {$this->buildJsPropertyVisibile()}
 					})
-					.data('_exfAttributeAlias', '{$col->getAttributeAlias()}')
-					.data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					
+					{$this->buildJsSetDataProperties($col)}
 JS;
+    }
+
+    /**
+     * Generates a JS snippet with a series of `.data()` calls for important additional column properties
+     * 
+     * @param DataColumn $col
+     * @return string
+     */
+    protected function buildJsSetDataProperties(DataColumn $col) : string
+    {
+        $captionJs = $this->escapeString($this->getCaption());
+        $result = <<<JS
+
+                    .data('_exfDataColumnName', '{$col->getDataColumnName()}')
+					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
+					.data('_exfCaption', {$captionJs})
+JS;
+        
+        if ($col->getAttributeAlias() !== null) {
+            $abbreviation = $col->getAttribute()->getAbbreviation() ?? $this->getCaption();
+            $abbreviation = $this->escapeString($abbreviation);
+            
+            return $result . <<<JS
+
+                    .data('_exfAttributeAlias', {$this->escapeString($col->getAttributeAlias())})
+                    .data('_exfAbbreviation', {$abbreviation})
+JS;
+        } elseif ($col->getCalculationExpression() !== null) {
+            return $result . <<<JS
+
+                    .data('_exfCalculation', {$this->escapeString($col->getCalculationExpression()->__toString())})
+                    .data('_exfAbbreviation', {$captionJs})
+JS;
+        }
+        
+        return '';
     }
                         
     protected function buildJsPropertyVisibile()
@@ -298,11 +452,9 @@ JS;
     }
     
     protected function buildJsPropertyWidth()
-    {
-        $dim = $this->getWidget()->getWidth();
-        
-        if ($dim->isFacadeSpecific()) {
-            return 'width: "' . $dim->getValue() . '",';
+    {        
+        if ($val = $this->buildCssWidth()) {
+            return 'width: "' . $val . '",';
         }   
         
         return '';
@@ -312,8 +464,11 @@ JS;
     {
         $dim = $this->getWidget()->getWidthMin();
         
-        if ($dim->isFacadeSpecific() && StringDataType::endsWith($dim->getValue(), 'px')) {
-            return 'minWidth: ' . StringDataType::substringBefore($dim->getValue(), 'px') . ',';
+        switch (true) {
+            case $dim->isFacadeSpecific() && StringDataType::endsWith($dim->getValue(), 'px'):
+                return 'minWidth: ' . StringDataType::substringBefore($dim->getValue(), 'px') . ',';
+            case $dim->isRelative():
+                return 'minWidth: ' . ($dim->getValue() * $this->getWidthRelativeUnit()) . ',';
         }
         
         return '';

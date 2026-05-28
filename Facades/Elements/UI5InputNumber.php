@@ -1,15 +1,17 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Interfaces\DataTypes\DataTypeInterface;
-use exface\Core\Factories\DataTypeFactory;
 use exface\Core\DataTypes\NumberDataType;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait;
+use exface\Core\Factories\DataTypeFactory;
+use exface\Core\Interfaces\DataTypes\DataTypeInterface;
+use exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface;
+use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 
 /**
- * Renders a sap.m.Input with input type Number.
+ * Renders a sap.m.Input with for numbers.
  * 
- * @method InputNumber getWidget()
+ * @method \exface\Core\Widgets\InputNumber getWidget()
  * 
  * @author Andrej Kabachnik
  *        
@@ -22,8 +24,15 @@ class UI5InputNumber extends UI5Input
      * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsPropertyType()
      */
     protected function buildJsPropertyType()
-    {        
-        return 'type: sap.m.InputType.Number,';
+    {
+        // Note: `type: sap.m.InputType.Number` does not work properly with model binding. The control remains
+        // empty. The number type also does not allow binding formatting like min/max fraction digits.
+        // TODO how to handle InputNumber NOT bound to the model properly? Using the built-in InputType.Number
+        // does not allow precision customizing.
+        if ($this->isValueBoundToModel() === false) {
+            return 'type: sap.m.InputType.Number,';
+        }
+        return parent::buildJsPropertyType();
     }
         
     /**
@@ -37,7 +46,25 @@ class UI5InputNumber extends UI5Input
         $val = $this->getWidget()->getValueWithDefaults();
         return (is_null($val) || $val === '') ? '""' : $val;
     }
-    
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter()
+    {
+        $jsFormatter = $this->getValueBindingFormatter()->getJsFormatter();
+        return <<<JS
+(function(oInput){
+    var sVal = oInput.getValue();
+    var nVal = {$jsFormatter->buildJsFormatParser('sVal')};
+    return nVal;
+})(sap.ui.getCore().byId('{$this->getId()}'))
+JS;
+
+    }
+
     /**
      * 
      * {@inheritDoc}
@@ -48,6 +75,37 @@ class UI5InputNumber extends UI5Input
         return parent::buildJsProperties() . <<<JS
             textAlign: sap.ui.core.TextAlign.Right,
 JS;
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Value::buildJsValueBindingOptions()
+     */
+    public function buildJsValueBindingOptions()
+    {
+        return $this->getValueBindingFormatter()->buildJsBindingProperties();
+    }
+
+    /**
+     *
+     * @return UI5BindingFormatterInterface
+     */
+    protected function getValueBindingFormatter() : UI5BindingFormatterInterface
+    {
+        return $this->getFacade()->getDataTypeFormatterForUI5Bindings($this->getWidget()->getValueDataType());
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::registerExternalModules()
+     */
+    public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
+    {
+        parent::registerExternalModules($controller);
+        $this->getValueBindingFormatter()->registerExternalModules($controller);
+        return $this;
     }
     
     /**
@@ -75,8 +133,32 @@ JS;
             $constraintsJs .= <<<JS
 
                     if($numberValidator !== true) {$onFailJs};
+            JS;
+        }
+        
+        // If the formatted value differs from that show in the control, update the control.
+        // This makes only sense, if the control has an id. If it is an in-table control, we
+        // will not know, which one of them to update.
+        if ($this->getUseWidgetId() === true && $this->isValueBoundToModel() === true) {
+            $constraintsJs .= <<<JS
+
+                    (function(oInput, sValue){
+                        // Don't bother if the control is not there anymore
+                        if (oInput === undefined) {
+                            return;
+                        }
+                        // sValue is already parsed at this point.
+                        // Now get the unformatted value from the control
+                        let inputValue = oInput.getValue();
+                        if (! isNaN(sValue) && sValue !== inputValue) {
+                            oInput.getModel().setProperty('{$this->getValueBindingPath()}', sValue);
+                            // refresh(true) forces the widget to refresh its value
+                            oInput.getBinding('value')?.refresh(true);
+                        }
+                    })(sap.ui.getCore().byId('{$this->getId()}'), $valueJs);
 JS;
         }
+
         return $constraintsJs;
     }
 }

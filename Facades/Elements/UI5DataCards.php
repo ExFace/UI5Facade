@@ -106,7 +106,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isMList()
      */
-    protected function isMList() : bool
+    public function isMList() : bool
     {
         return true;
     }
@@ -116,7 +116,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isMTable()
      */
-    protected function isMTable() : bool
+    public function isMTable() : bool
     {
         return false;
     }
@@ -126,7 +126,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isUiTable()
      */
-    protected function isUiTable() : bool
+    public function isUiTable() : bool
     {
         return false;
     }

@@ -26,7 +26,7 @@ class UI5DiffHtml extends UI5Value
     public function registerExternalModules(\exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface $controller) : UI5AbstractElement
     {
         $controller->addExternalModule('libs.exface.custom.htmlDiff', $this->getFacade()->buildUrlToSource('LIBS.HTMLDIFF.JS'), 'htmldiff');
-        $controller->addExternalCss('vendor/exface/UI5Facade/Facades/js/HtmlDiff/HtmlDiff.css');
+        $controller->addExternalCss('vendor/exface/ui5facade/Facades/js/HtmlDiff/HtmlDiff.css');
         return $this;
     }
 

@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Interfaces\WidgetInterface;
+use exface\Core\Widgets\Tab;
+
 /**
  * Renders a sap.m.IconTabBar for the Tabs widget
  * 
@@ -11,6 +14,7 @@ namespace exface\UI5Facade\Facades\Elements;
  */
 class UI5Tabs extends UI5Container
 {
+    private $onTabSelectScripts = [];
 
     /**
      * 
@@ -21,7 +25,10 @@ class UI5Tabs extends UI5Container
     {
         $iconTabBar = $this->buildJsIconTabBar();
         
-        if ($this->hasPageWrapper() === true) {
+        if ($this->hasPageWrapper() === true
+            || ($this->widgetHasTourGuide($this->getWidget()) 
+                && $this->getWidget()->hasParent() === false)
+        ) {
             return $this->buildJsPageWrapper($iconTabBar);
         }
         
@@ -43,6 +50,17 @@ class UI5Tabs extends UI5Container
         if ($widget->getActiveTabIndex() > 0) {
             $options .= 'selectedKey: ' . $this->escapeString($this->getFacade()->getElement($selectedTab)->getId()) . ',';
         }
+        foreach ($widget->getTabs() as $tab) {
+            if ($tab->isFilledBySingleWidget() === true) {
+                $tabEl = $this->getFacade()->getElement($tab);
+                $resizeContentJs .= <<<JS
+
+                    if (sKey === '{$tabEl->getId()}') {
+                        {$this->getFacade()->getElement($tab->getFillerWidget())->getOnResizeScript()}
+                    }
+JS;
+            } 
+        }
         
         return <<<JS
 
@@ -56,6 +74,10 @@ class UI5Tabs extends UI5Container
         ],
         select: function(oEvent) {
             {$this->buildJsOnChangeScript('oEvent')}
+
+            setTimeout(function(sKey){
+                {$resizeContentJs}
+            }, 0, oEvent.getParameters().key);
         }
     })
     {$this->buildJsPseudoEventHandlers()}
@@ -113,12 +135,66 @@ JS;
             var oTabBar = $oEventJs.getSource();
             var sKey = oParams.selectedKey;
             var aTabIdsNoPadding = $filledTabIdsJSON;
-            if (aTabIdsNoPadding.indexOf('sKey') !== -1) {
-                oTabBar.setApplyContentPadding(true);
-            } else {
+            if (aTabIdsNoPadding.indexOf(sKey) !== -1) {
                 oTabBar.setApplyContentPadding(false);
+            } else {
+                oTabBar.setApplyContentPadding(true);
             }
-JS . $this->getOnChangeScript();
+JS
+            . $this->getOnChangeScript() 
+            . $this->buildJsOnTabSelectScript();
+    }
+
+    /**
+     * builds JS that executes the given js on a specified tab.
+     * 
+     * @return string
+     */
+    protected function buildJsOnTabSelectScript() : string
+    {
+        $js = '';
+        foreach ($this->getWidget()->getWidgets() as $tab) {
+            $script = $this->getOnTabSelectScript($tab);
+            $tabEl = $this->getFacade()->getElement($tab);
+            if ($script) {
+                $js .= <<<JS
+
+                if (sKey === '{$tabEl->getId()}') {
+                    $script
+                }
+JS;
+
+            }
+        }
+        return $js;
+    }
+    
+    /**
+     * Gets all the JavaScripts for specified tab
+     * 
+     * @param WidgetInterface|null $tab
+     * @return string
+     */
+    protected function getOnTabSelectScript(WidgetInterface $tab = null) : string
+    {
+        $scripts = $this->onTabSelectScripts[($tab ? $tab->getId() : -1)];
+        if ($scripts === null) {
+            return '';
+        }
+        return implode("\n\n", array_unique($scripts));
+    }
+
+    /**
+     * the $js will be executed if the specified $tab is selected.
+     * 
+     * @param string $js
+     * @param Tab|null $tab
+     * @return $this
+     */
+    public function addOnTabSelectScript(string $js, Tab $tab = null) : UI5Tabs
+    {
+        $this->onTabSelectScripts[($tab ? $tab->getId() : -1)][] = $js;
+        return $this;
     }
 }
 ?>

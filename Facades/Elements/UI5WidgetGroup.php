@@ -9,12 +9,20 @@ class UI5WidgetGroup extends UI5Container
         if ($this->getWidget()->isHidden()) {
             return parent::buildJsConstructor($oControllerJs);
         }
-        
-        $captionText = $this->getCaption() ? 'text: "' . $this->getCaption() . '",' : '';
-        return  <<<JS
-                new sap.ui.core.Title({
+        //TODO check hide caption? -> DONE
+        $caption = '';
+        if (! $this->getWidget()->getHideCaption()) {
+            $captionText = $this->getCaption() ? 'text: "' . $this->getCaption() . '",' : '';
+            $caption = <<<JS
+            new sap.ui.core.Title({
                     {$captionText}
                 }),
+
+JS;
+        }
+        
+        return  <<<JS
+                {$caption}}
                 {$this->buildJsChildrenConstructors()}
 JS;
     }

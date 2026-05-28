@@ -3,6 +3,8 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryContainerTrait;
 use exface\Core\Widgets\Input;
+use exface\UI5Facade\Facades\Elements\Traits\UI5SidebarTrait;
+use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 
 /**
  * Renders a sap.m.Panel with no margins or paddings for a simple Container widget.
@@ -17,6 +19,8 @@ class UI5Container extends UI5AbstractElement
     const CONTROLLER_METHOD_GET_DATA = 'getData';
     
     use JqueryContainerTrait;
+    use UI5TourGuideTrait;
+    use UI5SidebarTrait;
     
     /**
      * 
@@ -32,7 +36,9 @@ class UI5Container extends UI5AbstractElement
         $js = $this->buildJsPanelWrapper($this->buildJsChildrenConstructors());
         
         if ($this->hasPageWrapper() === true) {
-            return $this->buildJsPageWrapper($js);
+            return $this->buildJsPageWrapper($js) . $this->buildJsAddCssWidgetClasses();
+        } else {
+            $js .= $this->buildJsAddCssWidgetClasses();
         }
         
         return $js;
@@ -56,6 +62,7 @@ class UI5Container extends UI5AbstractElement
             {$heading}
             {$this->buildJsPropertyHeight()}
             {$this->buildJsPropertyWidth()}
+            {$this->buildJsPropertyVisibile()}
             content: [
                 {$contentJs}
             ]
@@ -159,10 +166,18 @@ JS;
         
         $showNavButton = $this->getView()->isWebAppRoot() ? 'false' : 'true';
         
+        $widget = $this->getWidget();
         $caption = $this->getCaption();
-        if ($caption === '' && $this->getWidget()->hasParent() === false) {
-            $caption = $this->getWidget()->getPage()->getName();
+        if ($caption === '' && $widget->hasParent() === false) {
+            $caption = $widget->getPage()->getName();
         }
+        
+        // Adds tour guide dropdown to the header content:
+        if ($widget->hasParent() === false) {
+            $headerContentJs = $this->buildJsTourGuideDropdown($widget, $this->getController()) . $headerContentJs;
+        }
+        
+        $headerContentJs = rtrim(rtrim($headerContentJs), ',') . $this->buildJsSidebarToggleButton();
         
         return <<<JS
         
@@ -191,8 +206,17 @@ JS;
     public function buildJsChildrenConstructors() : string
     {
         $js = '';
-        foreach ($this->getWidget()->getWidgets() as $widget) {
-            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($widget)->buildJsConstructor();
+        $widget = $this->getWidget();
+        // DO NOT use foreach() here because while we generate the code for child widgets, the
+        // container might receive new widgets. Using a for() here ensures, dynamically added
+        // widgets are also iterated over. Dynamically added widgets can happen for example,
+        // when a Button has `hidden_if_input_invalid` or `hidden_if_access_denied` and the
+        // conditions for these require data, that is not yet present in the container. The
+        // Button widgets will add more widgets to make sure, it has all data for its conditional
+        // properties.
+        for ($i = 0; $i < $widget->countWidgets(); $i++) {
+            $child = $widget->getWidget($i);
+            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($child)->buildJsConstructor();
         }
         
         return $js;
@@ -240,7 +264,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Container::buildJsChangesGetter()
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         $checks = [];
         foreach ($this->getWidget()->getWidgets() as $w) {
@@ -254,7 +278,22 @@ JS;
             return '[]';
         }
         
-        return "([]).concat(\n" . implode(",\n", $checks) . "\n)";
+        $js = "([]).concat(\n" . implode(",\n", $checks) . "\n)";
+        if ($onlyVisible === true) {
+            $js .= <<<JS
+.filter(function(oChange) {
+                    var oCtrl;
+                    if (! oChange.elementId) return true;
+                    oCtrl = sap.ui.getCore().byId(oChange.elementId);
+                    if (oCtrl && oCtrl.getVisible !== undefined) {
+                        return oCtrl.getVisible();
+                    }
+                    return true;
+                })
+JS;
+        }
+        
+        return $js;
     }
     
     /**

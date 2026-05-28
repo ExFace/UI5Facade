@@ -50,7 +50,7 @@ class UI5NavTiles extends UI5Container
                 alignItems: "Center",
                 items: [
                     new sap.m.Text({
-                        text: "{$this->getWidget()->getEmptyText()}"
+                        text: {$this->escapeString($this->getWidget()->getEmptyText())}
                     })
                 ]
             })

@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Actions\GoBack;
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\Dashboard;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -13,6 +16,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
+use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
  * In OpenUI5 dialog widgets are either rendered as sap.m.Page (if maximized) or as sap.m.Dialog.
@@ -40,7 +44,7 @@ use exface\Core\Widgets\Split;
  *        
  */
 class UI5Dialog extends UI5Form
-{
+{    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -51,6 +55,7 @@ class UI5Dialog extends UI5Form
     const CONTROLLER_METHOD_FIX_HEIGHT = 'fixHeight';
     const CONTROLLER_METHOD_CLOSE_DIALOG = 'closeDialog';
     const CONTROLLER_METHOD_PREFILL = 'prefill';
+    const CONTROLLER_METHOD_GET_VISIBLE_CHANGES = 'getVisibleChanges';
     
     /**
      * 
@@ -85,9 +90,12 @@ class UI5Dialog extends UI5Form
         
         // Focus the first editable control when the dialog is opened
         $controller->addOnShowViewScript($this->buildJsFocusFirstInput());
+
+        // Register changes getter as a controller method to avoid printing it to JS every time
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '', 'return ' . parent::buildJsChangesGetter(true));
         
         // Reload the dialog after it is shown if prefill refresh is needed (e.g. because of action effects)
-        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise some required
+        // Use setTimeout() to make sure all controls are rendered when refreshing. Otherwise, some required
         // filters may not resolve - e.g. in Charts inside the dialog
         $controller->addOnShowViewScript("(function(oCtrl){
             if(oCtrl.getModel('view').getProperty('/_prefill/refresh_needed') === true) {
@@ -102,7 +110,7 @@ class UI5Dialog extends UI5Form
         // Listen to action affecting the data in this dialog
         $controller->addOnInitScript($this->buildJsRegisterOnActionPerformed(<<<JS
 
-            (function(oController){
+            (function(oController, oEventParams){
                 var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
                 var jqCtrl;
                 // Avoid errors if the view/dialog is closed
@@ -114,10 +122,9 @@ class UI5Dialog extends UI5Form
                 if (jqCtrl.length === 0 || jqCtrl.is(':visible') === false) {
                     oCtrl.getModel('view').setProperty('/_prefill/refresh_needed', true);
                 } else {
-                    // TODO Do not refresh silently if there are changes as they will be lost
                     {$this->buildJsRefresh(true)};
                 }
-            })($oControllerJs);
+            })($oControllerJs, oEventParams);
 JS, false));
         
         // Add a controller method to close the dialog
@@ -125,11 +132,19 @@ JS, false));
             $closeDialogJs = "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget)->getId()}').close();";
         } else {
             $closeDialogJs = "this.navBack(oEvent);";
-        }    
+        } 
+        
+        
+        $closeAction = ActionFactory::createFromString($this->getWorkbench(), GoBack::class, $widget);
+        $closeConfirmationEl = $this->getFacade()->getElement($closeAction->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst());
+        if (! $closeConfirmationEl instanceof UI5ConfirmationElementInterface) {
+            throw new FacadeRuntimeError('Cannot use widget "' . $closeConfirmationEl->getWidget()->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+        }
         $controller->addMethod(self::CONTROLLER_METHOD_CLOSE_DIALOG, $this, 'oEvent', <<<JS
             
                 try {
                     var oViewModel = this.getView().getModel('view');
+                    var aChanges = [];
                     var bCheckChanges = ! (oEvent !== undefined && oEvent.getParameters().bCheckChanges === false);
                     var fnClose = function(){
                         oViewModel.setProperty('/_prefill/current_data_hash', null);
@@ -138,10 +153,12 @@ JS, false));
                         {$closeDialogJs}
                         {$dialogOpenerBtnEl->buildJsTriggerActionEffects($dialogOpenerAction)}
                     }.bind(this);
-
+                    
                     // Check for unsaved changes if required.
                     if (bCheckChanges === true) {
-                        if (true === {$this->buildJsCheckForUnsavedChanges(true, 'fnClose')}) {
+                        aChanges = {$this->buildJsChangesGetter(true)};
+                        if (aChanges && aChanges.length > 0) {
+                            {$closeConfirmationEl->buildJsConfirmation('{}', 'fnClose()')}
                             return;
                         }
                     }
@@ -154,7 +171,7 @@ JS
         
         // Build the dialog and return its JS constructor
         if ($this->isMaximized() === false) {
-            return $this->buildJsDialog();
+            return $this->buildJsDialog($oControllerJs);
         } else {
             // Controller method to apply height-fix for inner controls with virtual scrolling
             if ($this->isObjectPageLayout()) {
@@ -169,9 +186,9 @@ JS
                             {$fixInnerPanelHeightJs}
                         });
                         
-                        sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
+                        /*sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getContent()[0]._getHeaderContent(), function(){
                             {$fixInnerPanelHeightJs}
-                        });
+                        });*/
 JS
                 );
             }
@@ -179,7 +196,7 @@ JS
             if ($this->isObjectPageLayout()) {
                 return $this->buildJsPage($this->buildJsObjectPageLayout($oControllerJs), $oControllerJs);
             } else {
-                return $this->buildJsPage($this->buildJsChildrenConstructors());
+                return $this->buildJsPage($this->buildJsChildrenConstructors(), $oControllerJs);
             }
         }        
     }
@@ -241,7 +258,7 @@ JS
      * Returns TRUE if the dialog is maximized (i.e. should be rendered as a page) and FALSE otherwise (i.e. rendering as dialog).
      * @return boolean
      */
-    public function isMaximized()
+    public function isMaximized() : bool
     {
         $widget = $this->getWidget();
         $widget_setting = $widget->isMaximized();
@@ -270,8 +287,8 @@ JS
         // useIconTabBar: true did not work for some reason as tables were not shown when
         // entering a tab for the first time - just at the second time. There was also no
         // difference between creating tables with new sap.ui.table.table or function(){ ... }()
-        return <<<JS
-
+        $js = <<<JS
+   
         new sap.uxap.ObjectPageLayout('{$this->getIdOfObjectPageLayout()}', {
             useIconTabBar: false,
             upperCaseAnchorBar: false,
@@ -283,19 +300,46 @@ JS
 		})
 
 JS;
+        if ($this->getWidget()->hasSidebar()) {
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
+        }
+        return $js;
     }
-				
+
+    /**
+     * @param string $oControllerJs
+     * @return string
+     */
     protected function buildJsPageHeaderContent(string $oControllerJs = 'oController') : string
     {
-        return $this->buildJsHelpButtonConstructor($oControllerJs);
+        $widget = $this->getWidget();
+        if ($widget->hasHeader()) {
+            $header = $widget->getHeader();
+            $headerButtonsJs = '';
+            foreach ($header->getButtons() as $button) {
+                $headerButtonsJs .= $this->getFacade()->getElement($button)->buildJsConstructor($oControllerJs) . ',';
+            }
+        }
+        return <<<JS
+                
+                {$this->buildJsTourGuideDropdown($widget, $this->getController())}
+                {$headerButtonsJs}
+                {$this->buildJsHelpButtonConstructor($oControllerJs)}
+                {$this->buildJsSidebarToggleButton()}
+JS;
     }
         
     protected function buildJsHeader(string $oControllerJs = 'oController')
     {
         $widget = $this->getWidget();
-        
+        $alwaysShowContentHeader = 'false';
+
         if ($widget->hasHeader()) {
-            foreach ($widget->getHeader()->getChildren() as $child) {
+            $header = $widget->getHeader();
+            foreach ($header->getChildren() as $child) {
                 if ($child instanceof Image) {
                     $imageElement = $this->getFacade()->getElement($child);
                     $image = <<<JS
@@ -308,13 +352,14 @@ JS;
                 }
             }
             
-            
+            $alwaysShowContentHeader = $header->isCollapsible(true) ? 'false' : 'true';
             $header_content = $this->getFacade()->getElement($widget->getHeader())->buildJsConstructor();
         }
         
         return <<<JS
 
             showTitleInHeaderContent: true,
+            alwaysShowContentHeader: {$alwaysShowContentHeader},
             headerTitle:
 				new sap.uxap.ObjectPageHeader({
 					objectTitle: {$this->buildJsObjectTitle()},
@@ -325,7 +370,6 @@ JS;
                     isActionAreaAlwaysVisible: false,
                     {$image}
 					actions: [
-						
 					]
 				}),
 			headerContent:[
@@ -416,7 +460,7 @@ JS;
         return $found;
     }
 				
-    protected function buildJsDialog()
+    protected function buildJsDialog(string $oControllerJs) : string
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
@@ -491,7 +535,7 @@ JS;
                     oDialog.destroy();
                 }
             }
-		}).addStyleClass('{$this->buildCssElementClass()}')
+		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
 JS;
     }
@@ -586,8 +630,12 @@ JS;
         
         // Append the object name to the caption unless
         // - The dialog has a custom caption (= not qual to the button caption)
-        // - The caption is the same as the object name (would look stupid then)
-        return $caption === $objectName || $caption !== $buttonCaption ? $caption : $caption . ': ' . $objectName;
+        // - The object name is already part of the caption (having it there twice would look stupid)
+        $buttonHasCustomCaption = $caption !== $buttonCaption;
+        if (! $buttonHasCustomCaption && mb_stripos($caption, $objectName) === false) {
+            $caption .= ': ' . $objectName;
+        }
+        return $caption;
     }
     
     /**
@@ -620,7 +668,7 @@ JS;
                 {$this->buildJsPageHeaderContent($oControllerJs)}
             ],
             footer: {$this->buildJsFloatingToolbar()}
-        }).addStyleClass('{$this->buildCssElementClass()}')
+        }).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
 
 JS;
@@ -721,8 +769,14 @@ JS;
 JS;
         }
         
-        // FIXME use buildJsPrefillLoaderSuccess here somewere?
+        // FIXME use buildJsPrefillLoaderSuccess here somewhere?
         
+        // TODO #ui5-model-everywhere make sure the data model is always created - even if no prefill request is done
+        
+        // The prefill will fill two UI5 models:
+        // - the data model - `oView.getModel()` - holding the loaded prefill data
+        // - the view model - `oView.getModel('view')` - holding all sorts of metadata about like the prefill url,
+        // pending state, etc.
         return <<<JS
 
             //FIXME for some reason the prefill is called multiple times for a EditDialog with a spreadsheet
@@ -755,7 +809,6 @@ JS;
                 oViewModel.setProperty('/_prefill/pending', false);
                 return;
             } else {
-                {$oViewJs}.getModel().setData({});
                 oViewModel.setProperty('/_prefill/current_data_hash', oCurrentRouteString);    
             }
 
@@ -949,9 +1002,14 @@ JS;
             $fillerWidget = $tab->getFillerWidget();
             switch (true) {
                 case $fillerWidget instanceof Split:
+                    $cssClass .= ' exf-tab-split';
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
+                    break;
+                case $fillerWidget instanceof Dashboard:
+                    $cssClass .= ' exf-tab-dashboard';
+                    break;
             }
         } else {
             $cssClass = null;
@@ -987,14 +1045,17 @@ JS;
     }
     
     /**
-     * Returns the button constructors for the dialog buttons.
+     * Returns the button constructors for the sap.m.Dialog buttons.
      * 
      * @return string
      */
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
-        $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
+        $widget = $this->getWidget();
+        $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
+        
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
+        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }
@@ -1051,6 +1112,7 @@ JS;
                         }
                         oPanel.setHeight((iHeightContent - iHeightHeaderTitle - iHeightHeaderDetails) + 'px');
                     });
+                    {$this->getOnResizeScript()}
 JS;
     }
     
@@ -1090,6 +1152,7 @@ JS;
      */
     public function buildJsRefresh(bool $forcePrefillRefresh = false)
     { 
+        $prefillJs = '';
         if ($this->needsPrefill()) {
             $prefillJs .= $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_PREFILL, $this, 'oView, ' . ($forcePrefillRefresh ? 'true' : 'false'));
         } else {
@@ -1128,7 +1191,7 @@ JS;
      * @param string $scriptJs
      * @return string
      */
-    protected function buildJsRegisterOnActionPerformed(string $scriptJs) : string
+    protected function buildJsRegisterOnActionPerformed(string $scriptJs, bool $doNotCallOnUnhandledChanges = true) : string
     {
         if ($this->needsPrefill() === false) {
             return '';
@@ -1154,6 +1217,22 @@ JS;
      */
     public function buildJsResetter() : string
     {
-        return $this->getController()->getView()->buildJsViewGetter($this) . ".getModel().setData({});";
+        return $this->getController()->getView()->buildJsViewGetter($this) 
+            . ".getModel().setData({});";
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Form::buildJsChangesGetter()
+     */
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
+    {
+        // Since getting visible changes will be needed on multiple locations in the dialog, put the typically
+        // large logic in a controller method to avoid replication of JS code.
+        // TODO perhaps we should put change getter for all containers into controller methods?
+        if ($onlyVisible === true) {
+            return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
+        }
+        return parent::buildJsChangesGetter($onlyVisible);
     }
 }

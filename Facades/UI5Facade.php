@@ -1,19 +1,28 @@
 <?php
 namespace exface\UI5Facade\Facades;
 
+use exface\Core\CommonLogic\Debugger;
+use exface\Core\Contexts\DebugContext;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Tours\DriverJsTourDriver;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsDateFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsTimeFormatter;
+use exface\Core\Interfaces\Facades\TourableFacadeInterface;
+use exface\Core\Interfaces\Tours\TourDriverInterface;
 use exface\UI5Facade\Facades\Formatters\UI5DateFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5DefaultFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5BooleanFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsNumberFormatter;
+use exface\UI5Facade\Facades\Formatters\UI5ListFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5NumberFormatter;
+use exface\UI5Facade\Facades\Formatters\UI5StringFormatter;
 use exface\UI5Facade\Facades\Middleware\UI5TableUrlParamsReader;
 use exface\UI5Facade\Facades\Middleware\UI5WebappRouter;
 use exface\UI5Facade\Webapp;
@@ -86,7 +95,7 @@ use exface\Core\Interfaces\Facades\PWAFacadeInterface;
  * @author Andrej Kabachnik
  *
  */
-class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
+class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface, TourableFacadeInterface
 {
     private $webapp = null;
     
@@ -98,6 +107,8 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
     
     private $themeHeaderTextColor = null;
     
+    private TourDriverInterface $tourDriver;
+    
     /**
      * Cache for config key WIDGET.DIALOG.MAXIMIZE_BY_DEFAULT_IN_ACTIONS:
      * @var array [ action_alias => true/false ]
@@ -107,8 +118,9 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface
     public function __construct(FacadeSelectorInterface $selector)
     {
         parent::__construct($selector);
-        $this->setClassPrefix('ui5');
+        $this->setClassPrefix('UI5');
         $this->setClassNamespace(__NAMESPACE__);
+        $this->tourDriver = new DriverJsTourDriver($this);
     }
     
     /**
@@ -232,11 +244,6 @@ JS;
         return false;
     }
     
-    public function getDataTypeFormatter(DataTypeInterface $dataType)
-    {
-        return parent::getDataTypeFormatter($dataType);
-    }
-    
     /**
      * 
      * {@inheritDoc}
@@ -247,6 +254,8 @@ JS;
         $formatter = $this->getDataTypeFormatter($dataType);
         
         switch (true) {
+            case $formatter instanceof JsListFormatter:
+                return new UI5ListFormatter($formatter);
             case $formatter instanceof JsBooleanFormatter:
                 return new UI5BooleanFormatter($formatter);
             case ($formatter instanceof JsNumberFormatter) && $formatter->getDataType()->getBase() === 10:
@@ -257,6 +266,8 @@ JS;
                 return new UI5DateFormatter($formatter);
             case $formatter instanceof JsEnumFormatter:
                 return new UI5EnumFormatter($formatter);
+            case $formatter instanceof JsStringFormatter:
+                return new UI5StringFormatter($formatter);
         }
         
         return new UI5DefaultFormatter($formatter);
@@ -369,7 +380,15 @@ JS;
         $controller->addExternalModule('libs.exface.custom_controls', $this->buildUrlToSource('LIBS.FACADE.CUSTOM_CONTROLS'));
         
         UI5DateFormatter::registerMoment($this, $controller);
+        // Include our main toolbax exfTools
         $controller->addExternalModule('libs.exface.exfTools', $this->buildUrlToSource("LIBS.EXFTOOLS.JS"), null, 'exfTools');
+        
+        // Include the setup manager library, in order to use exfSetupManager in CallWidgetFunction actions
+        $controller->addExternalModule('exface.openui5.exfSetupManager', $this->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+        
+        if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
+            $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');
+        }
         
         return $controller;
     }
@@ -423,7 +442,7 @@ JS;
     {
         $tags = $this->buildHtmlHeadIcons();
         $webapp = $this->getWebapp();
-        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';
+        $tags[] = '<link rel="manifest" href="' . $webapp->getComponentUrl() . 'manifest.json">';        
         return $tags;
     }
     
@@ -435,6 +454,7 @@ JS;
     public function buildResponseData(DataSheetInterface $data_sheet, WidgetInterface $widget = null)
     {
         $data = [];
+        $data['oId'] = $data_sheet->getMetaObject()->getId();
         $data['rows'] = array_merge($this->buildResponseDataRowsSanitized($data_sheet, true, false), $data_sheet->getTotalsRows());
         $data['recordsFiltered'] = $data_sheet->countRowsInDataSource();
         $data['recordsTotal'] = $data_sheet->countRowsInDataSource();
@@ -475,7 +495,7 @@ JS;
             return '';
         }
         if ($request !== null && $this->isRequestFrontend($request)) {
-            return $this->getWorkbench()->getDebugger()->printException($exception);
+            return Debugger::printExceptionAsHtml($exception);
         } else {
             return htmlspecialchars($exception->getMessage());
         }
@@ -532,14 +552,14 @@ JS;
      */
     public function getTheme() : string
     {
-        return $this->theme ?? 'sap_belize';
+        return $this->theme ?? 'sap_fiori_3';
     }
     
     /**
      * 
      * @uxon-property theme
-     * @uxon-type [sap_belize,sap_fiori_3]
-     * @uxon-default sap_belize
+     * @uxon-type [sap_belize,sap_fiori_3,sap_fiori_3_dark,sap_horizon,sap_horizon_dark,sap_horizon_hcw,sap_horizon_hcb]
+     * @uxon-default sap_fiori_3
      * 
      * @param string $value
      * @return UI5Facade
@@ -737,5 +757,37 @@ JS;
     public function buildUrlToVendorFile(string $configOption, bool $addVersionHash = false) : string
     {
         return parent::buildUrlToVendorFile($configOption, $addVersionHash);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see HtmlPageFacadeInterface::buildUrlToWidget()
+     */
+    public function buildUrlToWidget(WidgetInterface $widget, DataSheetInterface $prefillData = null) : string
+    {
+        $page = $widget->getPage();
+        $pageUrl = $this->buildUrlToPage($page);
+        
+        $webappId = $page->getAliasWithNamespace();
+        $webappConfig = $this->getWebappDefaultConfig($webappId);
+        $webapp = new Webapp($this, $webappId, $this->getWebappFacadeFolder(), $webappConfig);
+        $pageUrl .= '#/' . $webapp->getViewNameWithoutNamespace($widget);
+
+        if ($prefillData !== null) {
+            $prefillUrl = urlencode('{"data":' . $prefillData->exportUxonObject()->toJson() . '}');
+            $pageUrl .= '/' . $prefillUrl;
+        }
+        
+        return $pageUrl;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see TourableFacadeInterface::getTourDriver()
+     */
+    public function getTourDriver(WidgetInterface $widget): TourDriverInterface
+    {
+        // TODO create a separate tour driver for very view/controller?
+        return $this->tourDriver;
     }
 }

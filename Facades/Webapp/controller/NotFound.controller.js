@@ -80,7 +80,6 @@ sap.ui.define([
 			
 			oXHRSettings.data['_notFoundRecovered']++;
 			oController.getView().setBusyIndicatorDelay(0).setBusy(true);
-			console.log('goTo', sPageAlias, sWidgetId);
 			oXHR = oController.navTo(sPageAlias, sWidgetId, oXHRSettings, true);
 			if (oXHR) {
 				oXHR.fail(function() {

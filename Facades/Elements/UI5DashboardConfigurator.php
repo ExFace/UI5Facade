@@ -16,7 +16,6 @@ class UI5DashboardConfigurator extends UI5DataConfigurator
      */
     public function buildJsResetter() : string
     {
-        $resetJs = "console.log('Reset');";
         foreach ($this->getFilterElements() as $el) {
             $resetJs .= PHP_EOL . $el->buildJsResetter();
         }

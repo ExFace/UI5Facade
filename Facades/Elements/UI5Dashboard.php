@@ -1,5 +1,5 @@
 <?php
-namespace exface\UI5FAcade\Facades\Elements;
+namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\WidgetVisibilityDataType;
@@ -140,6 +140,14 @@ class UI5Dashboard extends UI5Container
     {
         $resetJs = "";
         $resetJs .= $this->getConfiguratorElement()->buildJsResetter();
+
+        // if we have tables in the dashboard, reset them too, otherwise column filters etc. would remain
+        foreach ($this->getDataElements() as $el) {
+            if ($el instanceof UI5DataTable) {
+                $resetJs .= PHP_EOL . $el->buildJsResetter();
+            }
+        }
+
         $resetJs .= <<<JS
         
 setTimeout(function() {
@@ -497,6 +505,7 @@ JS;
             $dynamicPage->setContentJs($contentJs);
             $dynamicPage->setHeaderToolbarJs($this->buildJsHeaderButtons());
             $dynamicPage->setId($this->getId() . '_page');
+            $dynamicPage->addOnResizeScript($this->getOnResizeScript());
             return $dynamicPage->buildJsConstructor();
         } else {
             return parent::buildJsPageWrapper($contentJs, $footerConstructor, $headerContentJs);

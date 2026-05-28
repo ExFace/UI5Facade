@@ -72,6 +72,9 @@ class UI5PWA extends AbstractPWA
         }
         
         switch (true) {
+            // Exclude any widget setup widgets/actions!
+            case $widget->getMetaObject()->getAliasWithNamespace() === 'exface.Core.WIDGET_SETUP':
+                return;
             // Data widgets with lazy loading
             case $widget instanceof iSupportLazyLoading:
                 if ($this->isWidgetLazyLoading($widget) && $widget->hasAction()) {
@@ -93,10 +96,10 @@ class UI5PWA extends AbstractPWA
                 }
                 $action = $widget->getAction();
                 
-                // Some actions are ignored - e.g. iRefreshInputWidget
+                // Some actions are ignored - e.g. iRefreshInputWidget - stop here and do not process children of the trigger
                 // There is no point even marking them as client-only as they only will bloat the PWA model
                 if ($this->isActionIgnored($action)) {
-                    break;
+                    return;
                 }
                 
                 // Add the action to the PWA model in any case
@@ -121,7 +124,7 @@ class UI5PWA extends AbstractPWA
                     case $action instanceof iShowWidget:
                         // If the action shows a specific widget (e.g. dialog) within a page
                         // - add the route in any case
-                        // - add prefill data set if the action if it should work offline
+                        // - add prefill data set if the action should work offline
                         // - continue to search for actions within that widget if it should work offline
                         // Otherwise, if the action points to an entire page, simply call generateModelForWidget for
                         // the root of that page - it will take care of everything.
@@ -135,16 +138,22 @@ class UI5PWA extends AbstractPWA
                             $this->addRoute($route);
                             yield $logIndent . 'Route for ' . $this->getDescriptionOf($route) . PHP_EOL;
                             
-                            if ($this->getActionOfflineStrategy($action) !== OfflineStrategyDataType::ONLINE_ONLY) {
-                                // Make sure, prefill data is available offline if the action is not online-only
-                                $this->addDataForPrefill($widgetActionWidget, $action);
-                                yield $logIndent . 'Prefill data for ' . $this->getDescriptionOf($route) . PHP_EOL;
-                                
-                                // Continue to search for actions inside the dialog/widget
-                                yield from $this->generateModelForWidget($widgetActionWidget, ($linkDepth-1), $logIndent . '  ');
-                            } else {
+                            // Stop here if the action is online-only. Remember, that the "ignore" strategy is
+                            // handled above already! Thus, we will have in the PWA model:
+                            // - the route but saying, that it is online-only)
+                            // - No prefill data
+                            // - Nothing for child widgets
+                            if ($this->getActionOfflineStrategy($action) === OfflineStrategyDataType::ONLINE_ONLY) {
                                 yield $logIndent . $logIndent . 'Online-only route: stop processing nested routes' . PHP_EOL;
+                                return;
                             }
+                            
+                            // Make sure, prefill data is available offline if the action is not online-only
+                            $this->addDataForPrefill($widgetActionWidget, $action);
+                            yield $logIndent . 'Prefill data for ' . $this->getDescriptionOf($route) . PHP_EOL;
+                            
+                            // Continue to search for actions inside the dialog/widget
+                            yield from $this->generateModelForWidget($widgetActionWidget, ($linkDepth-1), $logIndent . '  ');
                             
                         } elseif (null !== $widgetActionPage = $widget->getAction()->getPage()) {
                             yield from $this->generateModelForWidget($widgetActionPage->getWidgetRoot(), ($linkDepth-1), $logIndent . '  ');
@@ -182,6 +191,8 @@ class UI5PWA extends AbstractPWA
             case $action instanceof iRefreshInputWidget:
                 return true;
             case $action instanceof iResetWidgets:
+                return true;
+            case $action->getOfflineStrategy() === OfflineStrategyDataType::IGNORE:
                 return true;
         }
         return false;

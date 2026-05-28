@@ -35,10 +35,11 @@ class UI5Tab extends UI5Panel
     }
     
     /**
+     * Returns true if this Tab is rendered as an ObjectPageSection inside a Dialog
      * 
      * @return bool
      */
-    protected function isObjectPageSection() : bool
+    public function isObjectPageSection() : bool
     {
         $tabsWidget = $this->getWidget()->getTabs();
         if ($tabsWidget->hasParent() && ($tabsWidget->getParent() instanceof Dialog)) {
@@ -115,8 +116,10 @@ JS;
         $widget = $this->getWidget();
         if ($this->isObjectPageSection()) {
             $dialogEl = $this->getFacade()->getElement($widget->getTabs()->getParent());
-            return "sap.ui.getCore().byId('{$dialogEl->getIdOfObjectPageLayout()}').setSelectedSection('{$this->getId()}')";
+            $js = "sap.ui.getCore().byId('{$dialogEl->getIdOfObjectPageLayout()}').setSelectedSection('{$this->getId()}')";
+        } else {
+            $js = "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget->getTabs())->getId()}').setSelectedKey('{$widget->getTabIndex()}');";
         }
-        return "sap.ui.getCore().byId('{$this->getFacade()->getElement($widget->getTabs())->getId()}').setSelectedKey('{$widget->getTabIndex()}')";
+        return $js;
     }
 }

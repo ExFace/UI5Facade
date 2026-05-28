@@ -30,7 +30,12 @@ JS;
     protected function buildJsPropertyValue()
     {
         if ($this->isValueBoundToModel()) {
-            $value = $this->buildJsValueBinding();
+            $value = $this->buildJsValueBinding(<<<JS
+                formatter: function(value) {
+                    if (value === "1" || value === "true" || value === 1 || value === true) return true;
+                    else return false;
+                },
+JS);
         } else {
             $value = $this->getWidget()->getValueWithDefaults() ? 'true' : 'false';
         }
@@ -181,7 +186,7 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsCallFunction()
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === InputCheckBox::FUNCTION_CHECK:
@@ -189,7 +194,7 @@ JS;
             case $functionName === InputCheckBox::FUNCTION_UNCHECK:
                 return "setTimeout(function(){ {$this->buildJsValueSetter(0)} }, 0);";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**

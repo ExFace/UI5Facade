@@ -35,8 +35,15 @@
 			}
 			
 			header.sapUiUfdShellHead > div, 
-			hr.sapUiUfdShellBrand {background-color: [#~facade:theme_header_color#] !important}
-			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner, 
+			hr.sapUiUfdShellBrand {background-color: [#~facade:theme_header_color#] !important;}
+
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink, 
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink > .sapMSltIcon::before,
+			header.sapUiUfdShellHead .sapMBreadcrumbsLink > .sapMSltIcon::after,
+			header.sapUiUfdShellHead .sapMBreadcrumbsSeparator {color: [#~facade:theme_header_text_color#] !important;}
+
+			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner,
+			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner > .sapMBtnContent,
 			header.sapUiUfdShellHead .sapMBtn:not(:hover) > .sapMBtnInner > .sapMBtnIcon {color: [#~facade:theme_header_text_color#];}
 		</style>
 		
@@ -61,7 +68,7 @@
 		</script>
 		
 		<!-- Load SAPUI5, select theme and control library -->
-		<script src="vendor/exface/UI5Facade/Facades/js_openui5/resources/sap-ui-core.js"
+		<script src="vendor/exface/ui5facade/Facades/js_openui5/resources/sap-ui-core.js"
 				id="sap-ui-bootstrap"
 				data-sap-ui-libs="sap.m,sap.tnt,sap.ui.unified,sap.ui.commons,sap.ui.table,sap.f,sap.uxap"
 				data-sap-ui-theme="[#~facade:theme#]"
@@ -75,9 +82,9 @@
 		</script>
 		
 		<script type="text/javascript" src="vendor/npm-asset/dexie/dist/dexie.min.js?[#~facade:file_version_hash#]"></script>
-		<script type="text/javascript" src="vendor/exface/Core/Facades/AbstractPWAFacade/exfPWA.js?[#~facade:file_version_hash#]"></script>
-		<script type="module" src="vendor/exface/UI5Facade/Facades/js/openui5.facade.js?[#~facade:file_version_hash#]"></script>
-		<script type="text/javascript" src="vendor/exface/UI5Facade/Facades/js/sparkline/sparkline.min.js?[#~facade:file_version_hash#]"></script>
+		<script type="text/javascript" src="vendor/exface/core/Facades/AbstractPWAFacade/exfPWA.js?[#~facade:file_version_hash#]"></script>
+		<script type="module" src="vendor/exface/ui5facade/Facades/js/openui5.facade.js?[#~facade:file_version_hash#]"></script>
+		<script type="text/javascript" src="vendor/exface/ui5facade/Facades/js/sparkline/sparkline.min.js?[#~facade:file_version_hash#]"></script>
 		[#~facade:external_scripts#]
 		<script type="text/javascript">
 			// Main menu
@@ -91,9 +98,8 @@
 				sap.ui.require([
 					"sap/ui/unified/Shell",
 					"sap/ui/core/ComponentContainer",
-					"sap/f/Avatar",
 					"sap/tnt/NavigationList"
-				], function (Shell, ComponentContainer, Avatar, NavigationList) {
+				], function (Shell, ComponentContainer, NavigationList) {
 					var oShell = exfLauncher.initShell();
 					oShell.addContent(
 			    		new sap.ui.core.ComponentContainer({
@@ -111,22 +117,28 @@
 				    );
 					
 					initMainMenu(oShell);
+
+					oShell.getModel().setProperty('/_app', {
+						home_title: '[#~page:name#]',
+						home_url: './',
+						app_url: '[#~page:url#]'
+					});
+					
+					oShell.placeAt("[#~page:alias#]");
 					
 					setTimeout(function(){
-						oShell.getModel().setProperty('/_app', {
-							home_title: '[#~page:name#]',
-							home_url: './',
-							app_url: '[#~page:url#]'
-						});
-						
-						oShell.placeAt("[#~page:alias#]");
+						$('#exf-loader').hide();
 					}, 1000);
 				});
 			});
 		</script>
 		
 	</head>
-	<body id="[#~page:alias#]" class="[#ui5:density_body_class#]">
-		<div id="exf-loader" style="width: 100%; height: 100vh; background: white; position: absolute;"><div id="exf-loader-spinner"></div></div>
+	<body class="[#ui5:density_body_class#]">
+		<div id="exf-announcements"></div>
+		<div id="[#~page:alias#]" class="exf-launcher"></div>
+		<div id="exf-loader">
+			<div id="exf-loader-spinner"></div>
+		</div>
 	</body>
 </html>

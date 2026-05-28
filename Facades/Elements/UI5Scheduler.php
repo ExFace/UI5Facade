@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\Scheduler;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
@@ -25,6 +26,7 @@ class UI5Scheduler extends UI5AbstractElement implements UI5DataElementInterface
         buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
         buildJsValueGetter as buildJsValueGetterViaTrait;
         buildJsDataResetter as buildJsDataResetterViaTrait;
+        init as initDataElementTrait;
     }
     
     use JsValueScaleTrait;
@@ -35,6 +37,12 @@ class UI5Scheduler extends UI5AbstractElement implements UI5DataElementInterface
     
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
+    protected function init() 
+    {
+        $this->initDataElementTrait();
+        $this->addOnResizeScript($this->buildJsHeightAdjustToParent());
+    }
+
     /**
      * 
      * {@inheritDoc}
@@ -43,7 +51,8 @@ class UI5Scheduler extends UI5AbstractElement implements UI5DataElementInterface
     public function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $controller = $this->getController();
-        $this->initConfiguratorControl($controller);
+        $this->initConfiguratorControl($controller, $oControllerJs);
+        $this->registerResizeListeners();
         
         $cssClasses = '';
         $customViewsJs = <<<JS
@@ -84,7 +93,7 @@ JS;
         
         // Add event handler for changing the view/time or any other redrawing operation
         $this->registerEventTimeshift();
-        
+
         $this->getController()->addOnInitScript(<<<JS
 
 $(document).on('click', '#{$this->getId()} .sapUiCalItemText', function(){
@@ -92,8 +101,7 @@ $(document).on('click', '#{$this->getId()} .sapUiCalItemText', function(){
         {$this->getController()->buildJsEventHandler($this, self::EVENT_NAME_TIMELINE_SHIFT, false)} 
     }, 0);
 });
-
-JS, false);
+JS);
         
         if ($this->getWidget()->isPaged()) {
             $refreshOnNavigation = <<<JS
@@ -171,6 +179,7 @@ new sap.m.PlanningCalendar("{$this->getId()}", {
         $customViewsJs
     ],
     viewKey: $viewKey,
+    stickyHeader: true,
 	showRowHeaders: {$showRowHeaders},
     showEmptyIntervalHeaders: false,
     showIntervalHeaders: true,
@@ -247,17 +256,7 @@ JS;
 					key: "{{$this->getMetaObject()->getUidAttributeAlias()}}",
                     {$this->buildJsAppointmentPropertyColor($calItem)}
 				})
-            },/*
-			intervalHeaders: {
-                path: 'headers', 
-                templateShareable: true,
-                template: new sap.ui.unified.CalendarAppointment({
-					startDate: "{start}",
-					endDate: "{end}",
-					icon: "{pic}",
-					title: "{title}"
-				})
-            },*/
+            }
 		})
 JS;
     }
@@ -485,6 +484,10 @@ JS;
             setTimeout(function(){               
                 oPCal.fireRowSelectionChange();
             }, 0);
+            // resize to fit parent
+            setTimeout(function(){               
+                {$this->buildJsHeightAdjustToParent()};
+            }, 500);
 			
 JS;
     }
@@ -500,9 +503,10 @@ JS;
                         sap.ui.getCore().byId('{$this->getIdOfBigNavButtonPrev()}').setVisible(true);
                         sap.ui.getCore().byId('{$this->getIdOfBigNavButtonNext()}').setVisible(true);
                         setTimeout(function(){
-                            var iTop = oPCal.$().find('.sapMListInfoTBarContainer').innerHeight() + oPCal.$().find('.sapMPCHead').innerHeight();
-                            oPCal.$().find('.exf-scheduler-nav').css('top', iTop);
-                            oPCal.$().find('.exf-scheduler-nav').height(oPCal.$().find('.sapMTableTBody').height());
+                            var jqCal = oPCal.$();
+                            var iTop = jqCal.find('.sapMListInfoTBarContainer').innerHeight() + jqCal.find('.sapMPCHead').innerHeight();
+                            jqCal.find('.exf-scheduler-nav').css('top', iTop);
+                            jqCal.find('.exf-scheduler-nav').height(jqCal.find('.sapMList').height() - jqCal.find('.sapMListTbl').position()?.top);
                         }, 0)
                     }
                 })($oPCalJs)
@@ -522,7 +526,9 @@ JS;
         $js = '';
         
         // If we are paging, page via start/end dates of the currently visible timeline
+        // Actually
         if ($this->getWidget()->isPaged()) {
+            $hasStartDate = $this->getWidget()->getStartDate() !== null;
             $dateFormat = DateTimeDataType::DATETIME_ICU_FORMAT_INTERNAL;
             return <<<JS
         
@@ -530,7 +536,8 @@ JS;
             var oSchedulerModel = oPCal.getModel().getProperty('/_scheduler');
             var oStartDate = oPCal.getStartDate();
             var oEndDate = oPCal.getEndDate !== undefined ? oPCal.getEndDate() : oPCal._getFirstAndLastRangeDate().oEndDate.oDate;
-            if (oSchedulerModel !== undefined && oPCal.getViewKey() !== 'All') {
+            var bHasNoStartDate = oSchedulerModel === undefined && ! {$this->escapeBool($hasStartDate)};
+            if (! bHasNoStartDate && oPCal.getViewKey() !== 'All') {
                 if ($oParamsJs.data.filters === undefined) {
                     $oParamsJs.data.filters = {operator: "AND", conditions: []};
                 }
@@ -636,13 +643,13 @@ JS;
     {
         if ($dataColumnName !== null) {
             $dateFormat = DateTimeDataType::DATETIME_ICU_FORMAT_INTERNAL;
-            if (mb_strtolower($dataColumnName) === '~start_date') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_START_DATE) {
                 return "exfTools.date.format(sap.ui.getCore().byId('{$this->getId()}').getStartDate(), '$dateFormat')";
             }
-            if (mb_strtolower($dataColumnName) === '~end_date') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_END_DATE) {
                 return "exfTools.date.format(function(oPCal){return oPCal.getEndDate !== undefined ? oPCal.getEndDate() : oPCal._getFirstAndLastRangeDate().oEndDate.oDate}(sap.ui.getCore().byId('{$this->getId()}')), '$dateFormat')";
             }            
-            if (mb_strtolower($dataColumnName) === '~resources_title') {
+            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_RESOUCES_TITLE) {
                 $col = $this->getWidget()->getResourcesConfig()->getTitleColumn();
                 $delim = $col && $col->isBoundToAttribute() ? $col->getAttribute()->getValueListDelimiter() : EXF_LIST_SEPARATOR;
                 return <<<JS
@@ -728,5 +735,25 @@ JS;
         })($oDomElementClickedJs)
 JS;
         return "sap.ui.getCore().byId($({$oDomElementClickedJs}).parents('div.sapUiCalendarApp').data('data-sap-ui')).getKey()";
+    }
+
+    protected function buildJsHeightAdjustToParent() : string
+    {
+        return <<<JS
+        
+        var jqScheduler = $('#{$this->getId()}');
+        var jqSchedCnt = jqScheduler.children('.sapMListTblCnt');
+        var jqParent = jqScheduler.parent();
+        var iHeightParent = jqParent.innerHeight();
+        var iParentPaddingTop = jqParent.innerHeight() - jqParent.height()
+        var iSchedCntTop = jqSchedCnt.position() ? jqSchedCnt.position().top : 0;
+        jqSchedCnt.height(iHeightParent - iSchedCntTop - iParentPaddingTop);
+        {$this->buildJsNavRefresh("sap.ui.getCore().byId('{$this->getId()}')")}        
+JS;
+    }
+
+    protected function buildCssDynamicPageClasses() : string
+    {
+        return 'noscroll';
     }
 }

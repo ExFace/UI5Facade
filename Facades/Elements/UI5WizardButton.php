@@ -72,16 +72,26 @@ JS;
             $this->addOnSuccessScript($goToStepJs);
             $actionJs = parent::buildJsClickFunction($action, $jsRequestData);
             $goToStepJs = '';
+        } else {
+            $actionJs = '{}';
         }
         
+        // Make sure to start the JS without a blank line to make sure it can be
+        // used with assignments: e.g. `return {$this->buildJsClickFunction()}`
         return <<<JS
-        
-					var jqTabs = $('#{$tabsElement->getId()}');
-                    {$validateJs}
-                    {$actionJs}
-                    {$goToStepJs}
+            (function(requestData){
+                var jqTabs = $('#{$tabsElement->getId()}');
+                var oResult;
+                {$validateJs}
+                
+                oResult = {$actionJs}
+                {$goToStepJs}
+
+                return oResult;
+            })({$jsRequestData});
                     
 JS;
+
     }
     
     /**

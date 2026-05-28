@@ -103,8 +103,8 @@ JS;
      */
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        $controller->addExternalModule('libs.exface.ui5Custom.PdfViewer', 'vendor/exface/UI5Facade/Facades/js/ui5Custom/PDFViewer');
-        $controller->addExternalModule('libs.exface.ui5Custom.libs.pdf', 'vendor/exface/UI5Facade/Facades/js/ui5Custom/libs/pdf');
+        $controller->addExternalModule('libs.exface.ui5Custom.PdfViewer', 'vendor/exface/ui5facade/Facades/js/ui5Custom/PDFViewer');
+        $controller->addExternalModule('libs.exface.ui5Custom.libs.pdf', 'vendor/exface/ui5facade/Facades/js/ui5Custom/libs/pdf');
         return $this;
     }
     

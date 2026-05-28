@@ -3,8 +3,10 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\Interfaces\Exceptions\ExceptionInterface;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\StringDataType;
+use exface\UI5Facade\Exceptions\UI5ControllerNotInitializedException;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Exceptions\LogicException;
 use exface\UI5Facade\Facades\Interfaces\UI5ServerAdapterInterface;
@@ -43,6 +45,8 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     
     private $layoutData = null;
     
+    private array $listenersForControllerSet = [];
+    
     /**
      * 
      * {@inheritDoc}
@@ -52,6 +56,13 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     {
         parent::init();
         $this->addOnControllerSet([$this, 'registerConditionalProperties']);
+        
+        // Register tour steps if there are any
+        $widget = $this->getWidget();
+        //TODO: currently if we are in a dialog, one step from the calling page will be also registered. This should be fixed.
+        foreach ($widget->getTourSteps() as $tourStep) {
+            $this->getFacade()->getTourDriver($widget)->registerWaypointStep($tourStep);
+        }
     }
     
     /**
@@ -165,11 +176,17 @@ JS;
     {
         return <<<JS
 
-        sap.m.MessageToast.show(function(){
-            var tmp = document.createElement("DIV");
-            tmp.innerHTML = {$message_body_js};
-            return tmp.textContent || tmp.innerText || "";
-        }());
+        (function(sBody, sTitle){
+            if (sBody.length > 200) {
+               {$this->getController()->buildJsComponentGetter()}.showHtmlInDialog(sTitle, '<pre style="margin: 1rem; white-space: break-spaces">' + sBody + '</pre>', sap.ui.core.ValueState.Success);
+            } else {
+                sap.m.MessageToast.show(function(){
+                    var tmp = document.createElement("DIV");
+                    tmp.innerHTML = sBody;
+                    return tmp.textContent || tmp.innerText || "";
+                }());
+            }
+        })({$message_body_js}, {$this->escapeString($title)});
 JS;
     }
     
@@ -188,7 +205,7 @@ JS;
         
         switch (true) {
             // Icon properties of some controls like sap.m.Button accept data-URLs for SVG
-            case $iconSet === iHaveIcon::ICON_SET_SVG:
+            case Icons::isIconSetSVG($iconSet) === true:
                 $path = 'data:image/svg+xml;utf8,';
                 try {
                     $xml = SvgDataType::cast($icon_name);
@@ -295,12 +312,12 @@ JS;
         }
         
         // json_encode() escapes " and ' really well
-        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text));
+        $escaped = json_encode(str_replace(['\u'], ['&#92;u'], $text), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         // however, the result is enclosed in double quotes if it's a string. If so, we
         // need to remove the first an last character (the quotes). Note: trim() won't
         // work here because if the $text was already beginning or ending with " it will
         // get trimmed off too!
-        if (substr($escaped, 0, 1) === '"') {
+        if (mb_substr($escaped, 0, 1) === '"') {
             $escaped = substr($escaped, 1, -1);   
         }
         
@@ -337,6 +354,9 @@ JS;
      * Additionally the DOM element MUST fire the custom `visibleChange` event, so other controls
      * can react to visibility changes. UI5 itself does not seem to provide a hide/show event.
      * 
+     * NOTE sah: we now fire this custom event from the ui5 control instead of the DOM element, 
+     * to avoid issues with destroying/reinstating the jquery dom element (see UI5MenuButton)
+     * 
      * @param bool $hidden
      * @param string $elementId
      * @return string
@@ -348,7 +368,8 @@ JS;
         return <<<JS
 (function(bVisible, oCtrl){
     if (! oCtrl || bVisible === oCtrl.getVisible()) return;
-    oCtrl.setVisible(bVisible).$()?.trigger('visibleChange', [{visible: bVisible}]);
+    oCtrl.setVisible(bVisible);
+    oCtrl.fireEvent("visibleChange", { visible: bVisible });
 })($bVisibleJs, sap.ui.getCore().byId('{$elementId}'))
 JS;
     }
@@ -477,10 +498,10 @@ JS;
     /**
      * Executes given PHP code once the element has a controller.
      * 
-     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise it is
+     * If a UI5 controller is already assigned, the code is executed immediately. Otherwise, it is
      * postponed till a controller is assigned to this element or one of its parents.
      * 
-     * This method is mainly usefull for `Element::init()` logic, that requires a UI5 controller.
+     * This method is mainly useful for `Element::init()` logic, that requires a UI5 controller.
      * The `init()` method is often called before a controller was initialized, so it may not yet
      * be accessible. 
      * 
@@ -492,7 +513,14 @@ JS;
         try {
             $controller = $this->getController();
             $function($controller);
-        } catch (FacadeRuntimeError $e) {
+        } catch (ExceptionInterface $e) {
+            if (! ($e instanceof UI5ControllerNotInitializedException || null !== $e->findPrevious(UI5ControllerNotInitializedException::class))) {
+                throw $e;
+            }
+            if (in_array($function, $this->listenersForControllerSet, true) === true) {
+                return $this;
+            }
+            $this->listenersForControllerSet[] = $function;
             $this->getWorkbench()->eventManager()->addListener(OnControllerSetEvent::getEventName(), function(OnControllerSetEvent $event) use ($function) {
                 $thisWidget = $this->getWidget();
                 $eventWidget = $event->getWidget();
@@ -518,10 +546,11 @@ JS;
     public function getController() : UI5ControllerInterface
     {
         if ($this->controller === null) {
-            if ($this->getWidget()->hasParent()) {
-                return $this->getFacade()->getElement($this->getWidget()->getParent())->getController();
+            if (null !== $parent = $this->getWidget()->getParent()) {
+                $parentEl = $this->getFacade()->getElement($parent);
+                $this->controller = $parentEl->getController();
             } else {
-                throw new FacadeRuntimeError('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
+                throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
             }
         }
         return $this->controller;
@@ -753,7 +782,7 @@ JS;
     {
         return ! (($this->getWidget() instanceof iFillEntireContainer) || $this->getWidget()->getWidth()->isMax());
     }
-    
+
     /**
      * Returns TRUE if the element requires a container height to scale properly (like sap.ui.table.Table).
      * 
@@ -815,41 +844,17 @@ JS;
      * 
      * @return string
      */
-    public function buildJsChangesGetter() : string
+    public function buildJsChangesGetter(bool $onlyVisible = false) : string
     {
         return '[]';
     }
 
     /**
-     * Returns an inline JS snippet (without ending `;`) that shows a warning there are unsaved changes or returns FALSE otherwise.
+     * Returns a JS snippet that yields TRUE if there are unsaved changes in this widget or FALSE otherwise
      * 
-     * This can be easily used in if-statements. To check if there are unsaved changes do:
-     * 
-     * ```javascript
-     * if ({$element->buildJsHasUnsavedChanges()} === true) {
-     *  // show error
-     * } else {
-     *  // everything is fine
-     * }
-     * 
-     * ```
-     * 
-     * Or to show a user warning, where the user can pick from "discard and continue" or "cancel"
-     * 
-     * ```javascript
-     * var fnAction = function() {
-     *  // do something here
-     * }
-     * if ({$element->buildJsHasUnsavedChanges('fnAction')} === false) {
-     *  fnAction();
-     * }
-     * 
-     * ```
-     * 
-     * @param string $fnOnDiscardJs
      * @return string
      */
-    public function buildJsCheckForUnsavedChanges(bool $showWarning = true, string $fnOnDiscardJs = '') : string
+    public function buildJsCheckUnsavedChanges() : string
     {
         // only do the check if the controller of the element is actually initialized
         // for the Buttons opening HelpDialog, the NotificationDialog etc. in the UI5 header toolbar
@@ -857,35 +862,26 @@ JS;
         try {
             $controller = $this->getController();
         } catch (FacadeRuntimeError $e) {
-            return <<<JS
-            
-                    (function(fnDiscardAndContinue){
-                        return false;
-                    })({$fnOnDiscardJs})
-JS;
+            return 'false';
         }
         
-        $showWarningJs = $showWarning === false ? '' : "{$controller->buildJsControllerGetter($this)}.showWarningAboutUnsavedChanges(fnDiscardAndContinue)";
         return <<<JS
 
-                    (function(fnDiscardAndContinue){
-                        var aChanges = {$this->buildJsChangesGetter()};
-                        // Ignore changes in invisible controls because the user does not see them!
-                        aChanges = aChanges.filter(function(oChange) {
-                            var oCtrl;
-                            if (! oChange.elementId) return true;
-                            oCtrl = sap.ui.getCore().byId(oChange.elementId);
-                            if (oCtrl && oCtrl.getVisible !== undefined) {
-                                return oCtrl.getVisible();
-                            }
-                            return true;
-                        });
-                        if (aChanges.length > 0) {
-                            {$showWarningJs};
-                            return true;
-                        }
-                        return false;
-                    })({$fnOnDiscardJs})
+            (function(){
+                var aChanges = {$this->buildJsChangesGetter()};
+                // Ignore changes in invisible controls because the user does not see them!
+                aChanges = aChanges.filter(function(oChange) {
+                    var oCtrl;
+                    if (! oChange.elementId) return true;
+                    oCtrl = sap.ui.getCore().byId(oChange.elementId);
+                    if (oCtrl && oCtrl.getVisible !== undefined) {
+                        return oCtrl.getVisible();
+                    }
+                    return true;
+                });
+                
+                return aChanges.length > 0;
+            })()
 JS;
     }
     
@@ -929,6 +925,59 @@ JS;
 JS, false);
         
         $this->getController()->addOnHideViewScript("$('#{$cssId}').remove();");
+        
+        return $this;
+    }
+
+    /**
+     * Returns inline JS function calls like `.addStyleClass('.exfw .exfw-InputComboTable')`
+     * @return string
+     */
+    protected function buildJsAddCssWidgetClasses() : string
+    {
+        return ".addStyleClass('{$this->buildCssWidgetClass()}')";
+        
+    }
+
+    /**
+     * Registers resize listeners on controller init, that will call this elements resize script.
+     * 
+     * Many facade elements must react to their parent being resized. UI5 seems to provide a
+     * comfortable ResizeHandler, but it turns out, it does not always work. 
+     * 
+     * Known issues of the ResizeHandler being solved here:
+     * - Cannot attach a ResizeHandler to sap.m.IconTabFilter - JS error (missing DOM element?)
+     * - Extending/collapsing the header of a sap.f.DynamicPage does not trigger ResizeHandler at all
+     * 
+     * @return UI5AbstractElement
+     */
+    protected function registerResizeListeners() : UI5AbstractElement
+    {
+        $this->getController()->addOnInitScript(<<<JS
+
+(function(oController, oControl){
+    var oDynamicPage = oController.findParentOfType(oControl, sap.f.DynamicPage);
+    var oParent = oControl.getParent();
+    
+    while (oParent instanceof sap.m.IconTabFilter) {
+        oParent = oParent.getParent();
+    }
+    if (oParent) {
+        sap.ui.core.ResizeHandler.register(oParent, function(){
+            setTimeout(function(){
+                {$this->getOnResizeScript()}
+            }, 0);
+        });
+    }
+    if (oDynamicPage) {
+        sap.ui.core.ResizeHandler.register(oDynamicPage.getHeader(), function(){
+            setTimeout(function(){
+                {$this->getOnResizeScript()}
+            }, 0);
+        });
+    }
+})(oController, sap.ui.getCore().byId('{$this->getId()}'));
+JS);
         
         return $this;
     }

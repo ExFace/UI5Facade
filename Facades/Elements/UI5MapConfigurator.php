@@ -2,6 +2,8 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryContainerTrait;
+use exface\Core\Widgets\MapConfigurator;
+use exface\Core\Widgets\Parts\Maps\Interfaces\DataMapLayerInterface;
 
 /**
  * 
@@ -94,5 +96,30 @@ JS;
     protected function hasTabColumns() : bool
     {
         return false;
+    }
+
+    /**
+     * @return array
+     * @see JqueryContainerTrait::getWidgetsToValidate()
+     */
+    protected function getWidgetsToValidate() : array
+    {
+        $widget = $this->getWidget();
+        if(!$widget instanceof MapConfigurator) {
+            return parent::getWidgetsToValidate();
+        }
+
+        $result = [];
+        
+        foreach ($widget->getMap()->getLayers() as $layer) {
+            if ($layer instanceof DataMapLayerInterface) {
+                $c = $layer->getDataWidget()->getConfiguratorWidget();
+                foreach ($c->getFilters() as $filter) {
+                    $result[] = $filter;
+                }
+            }
+        }
+        
+        return $result;
     }
 }

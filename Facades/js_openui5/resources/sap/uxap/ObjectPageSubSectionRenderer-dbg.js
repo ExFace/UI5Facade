@@ -1,38 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(function () {
+sap.ui.define(["sap/ui/core/ControlBehavior"], function (ControlBehavior) {
 	"use strict";
 
 	/**
-	 * @class Section renderer.
-	 * @static
+	 * SubSection renderer.
+	 * @namespace
 	 */
 	var ObjectPageSubSectionRenderer = {
 		apiVersion: 2
 	};
 
 	ObjectPageSubSectionRenderer.render = function (oRm, oControl) {
-		var aActions, bHasTitle, bShowTitle, bHasTitleLine, bHasActions, bUseTitleOnTheLeft, bHasVisibleActions,
-			bAccessibilityOn = sap.ui.getCore().getConfiguration().getAccessibility();
+		var bHasTitle, bHasTitleLine, bUseTitleOnTheLeft,
+			bAccessibilityOn = ControlBehavior.isAccessibilityEnabled(),
+			oLabelledByTitleID = oControl._getAriaLabelledById(),
+			bIsPromoted = oControl._isPromoted();
 
 		if (!oControl.getVisible() || !oControl._getInternalVisible()) {
 			return;
 		}
 
-		aActions = oControl.getActions() || [];
-		bHasActions = aActions.length > 0;
-		bShowTitle = oControl.getShowTitle();
-		bHasTitle = (oControl._getInternalTitleVisible() && (oControl.getTitle().trim() !== "")) && bShowTitle;
-		bHasTitleLine = bHasTitle || bHasActions;
-		bHasVisibleActions = oControl._hasVisibleActions();
+		bHasTitle = oControl.getTitleVisible();
+		bHasTitleLine = oControl._shouldHaveVisibleTitleLine();
 
 		oRm.openStart("div", oControl)
-			.attr("role", "region")
-			.style("height", oControl._getHeight());
+		.style("height", oControl._getHeight());
+
+		if (bHasTitle && !bIsPromoted) {
+			oRm.attr("role", "region");
+		}
 
 		if (oControl._bBlockHasMore) {
 			oRm.class("sapUxAPObjectPageSubSectionWithSeeMore");
@@ -42,23 +43,17 @@ sap.ui.define(function () {
 			.class("ui-helper-clearfix");
 
 
-		if (bAccessibilityOn) {
-			if (bHasTitle) {
-				oRm.attr("aria-labelledby", oControl.getId() + "-headerTitle");
-			} else {
-				oRm.attr("aria-label", sap.uxap.ObjectPageSubSection._getLibraryResourceBundle().getText("SUBSECTION_CONTROL_NAME"));
-			}
+		if (bAccessibilityOn && oLabelledByTitleID && oControl.getTitleVisible()) {
+			oRm.attr("aria-labelledby", oLabelledByTitleID);
 		}
 
 		oRm.openEnd();
 
+		oRm.openStart("span").class("sapUxAPObjectPageSubSectionFocusSpan").openEnd().close("span");
+
 		if (bHasTitleLine) {
 			oRm.openStart("div", oControl.getId() + "-header")
 				.class("sapUxAPObjectPageSubSectionHeader");
-
-			if (!bHasTitle && !bHasVisibleActions) {
-				oRm.class("sapUiHidden");
-			}
 
 			bUseTitleOnTheLeft = oControl._getUseTitleOnTheLeft();
 			if (bUseTitleOnTheLeft) {
@@ -67,36 +62,8 @@ sap.ui.define(function () {
 
 			oRm.openEnd();
 
-			oRm.openStart("div", oControl.getId() + "-headerTitle");
-
-			if (bHasTitle) {
-				oRm.attr("role", "heading")
-					.attr("aria-level",  oControl._getARIALevel());
-			}
-
-			oRm.class('sapUxAPObjectPageSubSectionHeaderTitle');
-
-			if (oControl.getTitleUppercase()) {
-				oRm.class("sapUxAPObjectPageSubSectionHeaderTitleUppercase");
-			}
-
-			oRm.attr("data-sap-ui-customfastnavgroup", true)
-				.openEnd();
-
-			if (bHasTitle) {
-				oRm.text(oControl.getTitle());
-			}
-
-			oRm.close("div");
-
-			if (bHasActions) {
-				oRm.openStart("div")
-					.class('sapUxAPObjectPageSubSectionHeaderActions')
-					.attr("data-sap-ui-customfastnavgroup", true)
-					.openEnd();
-				aActions.forEach(oRm.renderControl, oRm);
-				oRm.close("div");
-			}
+			oRm.renderControl(oControl._getHeaderToolbar());
+			oRm.renderControl(oControl._getShowHideButton());
 
 			oRm.close("div");
 		}

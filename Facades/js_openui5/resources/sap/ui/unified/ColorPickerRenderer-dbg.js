@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.ColorPicker
-sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
-	function(ColorPickerDisplayMode, Device) {
+sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device", "sap/ui/core/Lib"],
+	function(ColorPickerDisplayMode, Device, Library) {
 	"use strict";
 
 
@@ -18,17 +18,26 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		apiVersion: 2
 	};
 
+	// shortcut for library resource bundle
+	var oRb = Library.getResourceBundleFor("sap.ui.unified");
+
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.unified.ColorPicker} oControl an object representation of the control that should be rendered
 	 */
 	ColorPickerRenderer.render = function(oRm, oControl){
 		var sDisplayMode = oControl.getDisplayMode(),
 			bResponsive = oControl.bResponsive;
 
 		oRm.openStart("div", oControl);
+
+		oRm.accessibilityState(oControl, {
+			role: "group",
+			label: oRb.getText("COLOR_PICKER_TITLE")
+		});
+
 		if (bResponsive) {
 			oRm.class("sapUiColorPicker-ColorPickerMatrix");
 			oRm.class("sapUiColorPicker-" + sDisplayMode);
@@ -62,6 +71,19 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.close("div");
 	};
 
+	ColorPickerRenderer.renderSliders = function(oRm, oControl) {
+		oRm.openStart("div");
+		oRm.class("sapUiCPSlidersWrapper");
+		oRm.accessibilityState({
+			role: "group",
+			label: oRb.getText("COLORPICKER_SLIDERS_GROUP_LABEL")
+		});
+		oRm.openEnd();
+		oRm.renderControl(oControl.getAggregation("_oSlider"));
+		oRm.renderControl(oControl.getAggregation("_oAlphaSlider"));
+		oRm.close("div");
+	};
+
 	ColorPickerRenderer.renderDefaultColorPicker = function(oRm, oControl) {
 		oRm.renderControl(oControl.getAggregation("_oCPBox"));
 		if (Device.system.phone) { //mobile
@@ -71,14 +93,12 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 			oRm.openStart("div");
 			oRm.class("sapUiCPSlidersPhone");
 			oRm.openEnd();
-			oRm.renderControl(oControl.getAggregation("_oSlider"));
-			oRm.renderControl(oControl.getAggregation("_oAlphaSlider"));
+			this.renderSliders(oRm, oControl);
 			oRm.close("div");
 			this.renderMobileSwatches(oRm, oControl);
 			oRm.close("div");
 		} else { //desktop or tablet
-			oRm.renderControl(oControl.getAggregation("_oSlider"));
-			oRm.renderControl(oControl.getAggregation("_oAlphaSlider"));
+			this.renderSliders(oRm, oControl);
 			this.renderDesktopSwatchesAndHexFields(oRm, oControl);
 		}
 
@@ -142,8 +162,7 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 
 	ColorPickerRenderer.renderLargeColorPicker = function(oRm, oControl) {
 		oRm.renderControl(oControl.getAggregation("_oCPBox"));
-		oRm.renderControl(oControl.getAggregation("_oSlider"));
-		oRm.renderControl(oControl.getAggregation("_oAlphaSlider"));
+		this.renderSliders(oRm, oControl);
 		this.renderDesktopSwatchesAndHexFields(oRm, oControl);
 		oRm.renderControl(oControl.oRGBorHSLRBUnifiedGroup);
 		oRm.openStart("div");
@@ -169,7 +188,23 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.openEnd();
 		oRm.text("%");
 		oRm.close("div");
-		oControl.getMode() === "HSL" ?  this.renderLFirst(oRm, oControl) : this.renderVFirst(oRm, oControl);
+
+		const bHSL = oControl.getMode() === "HSL";
+		if (bHSL) {
+			oRm.renderControl(oControl.getAggregation("_oLitField"));
+		} else {
+			oRm.renderControl(oControl.getAggregation("_oValField"));
+		}
+		oRm.openStart("div");
+		oRm.class("sapUiCPPercentSymbol");
+		if (!bHSL) {
+			oRm.style("visibility", "hidden");
+		}
+		oRm.openEnd();
+		oRm.text("%");
+		oRm.close("div");
+
+		oRm.renderControl(oControl.getAggregation("_oAlphaField2"));
 		oRm.close("div");
 		this.renderHSLVLabel(oRm, oControl);
 	};
@@ -207,7 +242,7 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 	 * Renders the ColorPicker's swatches and hex field.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.unified.ColorPicker} oControl an object representation of the control that should be rendered
 	 */
 	ColorPickerRenderer.renderDesktopSwatchesAndHexFields = function(oRm, oControl) {
 		oRm.openStart("div");
@@ -215,10 +250,12 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.openEnd();
 		oRm.openStart("div", oControl.getId() + "-ocBox");
 		oRm.class("sapUiColorPicker-ColorPickerOldColor");
+		oRm.attr("title", oRb.getText("COLOR_PICKER_CURRENT_COLOR_TOOLTIP"));
 		oRm.openEnd();
 		oRm.close("div");
 		oRm.openStart("div", oControl.getId() + "-ncBox");
 		oRm.class("sapUiColorPicker-ColorPickerNewColor");
+		oRm.attr("title", oRb.getText("COLOR_PICKER_NEW_COLOR_TOOLTIP"));
 		oRm.openEnd();
 		oRm.close("div");
 		oRm.close("div");
@@ -239,7 +276,7 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 	 * Renders the ColorPicker's swatches when mobile for both Default & Simplified display mode.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.ui.unified.ColorPicker} oControl an object representation of the control that should be rendered
 	 */
 	ColorPickerRenderer.renderMobileSwatches = function(oRm, oControl) {
 		oRm.openStart("div");
@@ -255,24 +292,6 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.openEnd();
 		oRm.close("div");
 		oRm.close("div");
-	};
-
-	//Renders Lit first and sets visibility hidden to Val because of flex rendering reasons.
-	ColorPickerRenderer.renderLFirst = function(oRm, oControl) {
-		oRm.renderControl(oControl.getAggregation("_oLitField"));
-		oRm.openStart("div");
-		oRm.class("sapUiCPPercentSymbol");
-		oRm.openEnd();
-		oRm.text("%");
-		oRm.close("div");
-		oRm.renderControl(oControl.getAggregation("_oValField"));
-	};
-
-	//Renders Val first and sets visibility hidden to Lit because of flex rendering reasons.
-	ColorPickerRenderer.renderVFirst = function(oRm, oControl) {
-		oRm.renderControl(oControl.getAggregation("_oValField"));
-		this.renderEmptyDiv(oRm);
-		oRm.renderControl(oControl.getAggregation("_oLitField"));
 	};
 
 	//Renders empty div because of display flex rendering reasons.

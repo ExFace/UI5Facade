@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Formatters;
 
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
+use exface\Core\Facades\AbstractAjaxFacade\Interfaces\JsDataTypeFormatterInterface;
 
 /**
  * 
@@ -11,22 +12,18 @@ use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
  *
  */
 class UI5BooleanFormatter extends AbstractUI5BindingFormatter
-{    
+{
     /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface::buildJsBindingProperties()
+     * @inerhitDoc 
+     * @see AbstractUI5BindingFormatter::setJsFormatter()
      */
-    public function buildJsBindingProperties()
+    protected function setJsFormatter(JsDataTypeFormatterInterface $jsFormatter)
     {
-        return <<<JS
-
-                type: 'sap.ui.model.type.Boolean',
-                formatter: function(value) {
-                    if (value === "1" || value === "true" || value === 1 || value === true) return true;
-                    else return false;
-                },
-
-JS;
+        if($jsFormatter instanceof JsBooleanFormatter) {
+            $jsFormatter->setHtmlChecked('sap-icon://accept');
+            $jsFormatter->setHtmlUnchecked('');
+        }
+        
+        return parent::setJsFormatter($jsFormatter);
     }
 }

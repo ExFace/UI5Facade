@@ -1,16 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.table.RowActionItem.
 sap.ui.define([
-	"./library", "./utils/TableUtils", "sap/ui/core/Element", "sap/ui/unified/MenuItem", "sap/ui/core/IconPool"
-], function(library, TableUtils, Element, MenuItem, IconPool) {
+	"./library",
+	"./utils/TableUtils",
+	"sap/ui/core/Element",
+	"sap/ui/core/Icon",
+	"sap/ui/core/IconPool",
+	"sap/ui/unified/MenuItem"
+], function(
+	library,
+	TableUtils,
+	Element,
+	Icon,
+	IconPool,
+	MenuItem
+) {
 	"use strict";
 
-	var RowActionType = library.RowActionType;
+	const RowActionType = library.RowActionType;
 
 	/**
 	 * Constructor for a new RowActionItem.
@@ -24,15 +36,14 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @since 1.45
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.table.RowActionItem
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Item = Element.extend("sap.ui.table.RowActionItem", /** @lends sap.ui.table.RowActionItem.prototype */ {
+	const Item = Element.extend("sap.ui.table.RowActionItem", /** @lends sap.ui.table.RowActionItem.prototype */ {
 		metadata: {
 			library: "sap.ui.table",
 			properties: {
@@ -63,29 +74,20 @@ sap.ui.define([
 				 * The <code>press</code> is fired when the user triggers the corresponding action.
 				 */
 				press: {
-					/**
-					 * The item which was pressed.
-					 */
-					item: {type: "sap.ui.table.RowActionItem"},
-					/**
-					 * The table row to which the pressed item belongs to.
-					 */
-					row: {type: "sap.ui.table.Row"}
+					parameters: {
+						/**
+						 * The item which was pressed.
+						 */
+						item: {type: "sap.ui.table.RowActionItem"},
+						/**
+						 * The table row to which the pressed item belongs to.
+						 */
+						row: {type: "sap.ui.table.Row"}
+					}
 				}
 			}
 		}
 	});
-
-	Item.prototype.init = function() {
-		this._oMenuItem = null;
-	};
-
-	Item.prototype.exit = function() {
-		if (this._oMenuItem) {
-			this._oMenuItem.destroy();
-			this._oMenuItem = null;
-		}
-	};
 
 	/**
 	 * Gets the instance of the row action this control belongs to.
@@ -94,8 +96,24 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype.getRowAction = function() {
-		var oParent = this.getParent();
+		const oParent = this.getParent();
 		return TableUtils.isA(oParent, "sap.ui.table.RowAction") ? oParent : null;
+	};
+
+	Item.prototype.setIcon = function(sIcon) {
+		this.setProperty("icon", sIcon, true);
+		if (this._oIcon) {
+			this._oIcon.setSrc(this._getIconUri());
+		}
+		return this;
+	};
+
+	Item.prototype.setText = function(sText) {
+		this.setProperty("text", sText, true);
+		if (this._oIcon) {
+			this._oIcon.setTooltip(sText);
+		}
+		return this;
 	};
 
 	/**
@@ -104,7 +122,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Item.prototype._firePress = function() {
-		var oRowAction = this.getRowAction();
+		const oRowAction = this.getRowAction();
 
 		this.firePress({
 			item: this,
@@ -113,31 +131,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates, updates and returns the corresponding menu item.
-	 *
-	 * @returns {sap.ui.unified.MenuItem} The corresponding menu item
-	 * @private
-	 */
-	Item.prototype._getMenuItem = function() {
-		if (!this._oMenuItem) {
-			this._oMenuItem = new MenuItem({
-				select: [this._firePress, this]
-			});
-		}
-		this._oMenuItem.setIcon(this._getIcon());
-		this._oMenuItem.setVisible(this.getVisible());
-		this._oMenuItem.setText(this._getText(false));
-		return this._oMenuItem;
-	};
-
-	/**
-	 * Computes which icon should be used for this item.
+	 * Computes which icon should be used for this action item.
 	 *
 	 * @returns {string} The name of the icon in the icon font.
 	 * @private
 	 */
-	Item.prototype._getIcon = function() {
-		var oIcon = this.getIcon();
+	Item.prototype._getIconUri = function() {
+		const oIcon = this.getIcon();
 		if (oIcon) {
 			return oIcon;
 		}
@@ -151,14 +151,33 @@ sap.ui.define([
 	};
 
 	/**
-	 * Computes which text should be used for this item.
+	 * Returns an icon control which represents this action item.
+	 * @returns {sap.ui.core.Icon} The icon control.
+	 * @private
+	 */
+	Item.prototype._getIcon = function() {
+		if (!this._oIcon) {
+			this._oIcon = new Icon({
+				src: this._getIconUri(),
+				decorative: false,
+				tooltip: this._getText(),
+				press: [this._firePress, this]
+			});
+			this.addDependent(this._oIcon);
+		}
+
+		return this._oIcon;
+	};
+
+	/**
+	 * Computes which text should be used for this actionitem.
 	 *
 	 * @param {boolean} bPreferTooltip Whether the tooltip or text is preferred
 	 * @returns {string} The item text
 	 * @private
 	 */
 	Item.prototype._getText = function(bPreferTooltip) {
-		var sText = bPreferTooltip ? (this.getTooltip_AsString() || this.getText()) : (this.getText() || this.getTooltip_AsString());
+		const sText = bPreferTooltip ? (this.getTooltip_AsString() || this.getText()) : (this.getText() || this.getTooltip_AsString());
 		if (sText) {
 			return sText;
 		}
@@ -172,14 +191,16 @@ sap.ui.define([
 	};
 
 	/**
-	 * Updates the given icon control with the property values of this item.
-	 *
-	 * @param {sap.ui.core.Icon} oIcon The icon control to update
+	 * Returns a menu item representing this action item.
+	 * @returns {sap.ui.unified.MenuItem} A menu item representing this action item
 	 * @private
 	 */
-	Item.prototype._syncIcon = function(oIcon) {
-		oIcon.setSrc(this._getIcon());
-		oIcon.setTooltip(this._getText(true));
+	Item.prototype._getOverflowMenuItem = function() {
+		return new MenuItem({
+			text: this._getText(),
+			icon: this._getIconUri(),
+			select: [this._firePress, this]
+		});
 	};
 
 	return Item;

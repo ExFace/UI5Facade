@@ -54,20 +54,5 @@ class UI5WidgetCarousel extends UI5Tabs
     })
 JS;
     }
-    
-    /**
-     * 
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5Container::buildJsChildrenConstructors()
-     */
-    public function buildJsChildrenConstructors(bool $useFormLayout = true) : string
-    {
-        $js = '';
-        foreach ($this->getWidget()->getWidgets() as $widget) {
-            $js .= ($js ? ",\n" : '') . $this->getFacade()->getElement($widget)->buildJsConstructor();
-        }
-        
-        return $js;
-    }
 }
 ?>

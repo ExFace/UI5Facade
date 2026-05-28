@@ -8,10 +8,13 @@ use exface\UI5Facade\Facades\Elements\Traits\UI5JExcelTrait;
 
 class UI5DataSpreadSheet extends UI5AbstractElement implements UI5DataElementInterface
 {    
-    use UI5JExcelTrait;
+    use UI5JExcelTrait {
+        UI5JExcelTrait::buildJsIsCellRequired insteadof UI5DataElementTrait;
+    }
     use UI5DataElementTrait {
         UI5DataElementTrait::buildJsDataResetter as buildJsDataResetterViaTrait;
         UI5DataElementTrait::buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
+        UI5DataElementTrait::buildJsCallFunction as buildJsCallFunctionViaUI5DataDataElementTrait;
         UI5JExcelTrait::buildJsDataResetter as buildJsJExcelResetter;
         UI5JExcelTrait::buildJsDataGetter as buildJsJExcelDataGetter;
         UI5JExcelTrait::buildJsValueGetter insteadof UI5DataElementTrait;
@@ -145,5 +148,17 @@ JS;
             return ({$this->buildJsJExcelDataGetter($action)});
         }())
 JS;
+    }
+
+    /**
+     * 
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+        if (null !== $js = $this->buildJsCallFunctionOfJExcel($functionName, $parameters, $jsRequestData)) {
+            return $js;
+        }
+        return $this->buildJsCallFunctionViaUI5DataDataElementTrait($functionName, $parameters, $jsRequestData);
     }
 }

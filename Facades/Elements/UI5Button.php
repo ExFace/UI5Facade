@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Interfaces\Widgets\ConfirmationWidgetInterface;
+use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\Core\Widgets\ContextBar;
 use exface\Core\Widgets\DialogButton;
 use exface\Core\Interfaces\Actions\ActionInterface;
@@ -14,6 +17,7 @@ use exface\Core\CommonLogic\Constants\Icons;
 use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\Exceptions\Facades\FacadeUnsupportedWidgetPropertyWarning;
 use exface\Core\Actions\SendToWidget;
+use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\Factories\UiPageFactory;
 use exface\UI5Facade\Facades\UI5Facade;
@@ -86,10 +90,11 @@ use exface\UI5Facade\Facades\UI5Facade;
  */
 class UI5Button extends UI5AbstractElement
 {
+    const EVENT_NAME_PRESS = 'press';
+
     use JqueryButtonTrait {
         buildJsNavigateToPage as buildJsNavigateToPageViaTrait;
         buildJsClickSendToWidget as buildJsClickSendToWidgetViaTrait;
-        buildJsRequestDataCollector as buildJsRequestDataCollectorViaTrait;
     }
     
     private $button_type = null;
@@ -108,7 +113,7 @@ class UI5Button extends UI5AbstractElement
         new sap.m.Button("{$this->getId()}", { 
             {$this->buildJsProperties()}
         })
-        .addStyleClass("{$this->buildCssElementClass()}")
+        .addStyleClass("{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
         {$this->buildJsPseudoEventHandlers()}
 
 JS;
@@ -229,8 +234,8 @@ JS;
     {
         $controller = $this->getController();
         $clickJs = $this->buildJsClickFunction();
-        $controller->addOnEventScript($this, 'press', ($clickJs ? $clickJs : $default));
-        return $this->getController()->buildJsEventHandler($this, 'press', true);        
+        $controller->addOnEventScript($this, self::EVENT_NAME_PRESS, ($clickJs ? "return {$clickJs}" : $default));
+        return $this->getController()->buildJsEventHandler($this, self::EVENT_NAME_PRESS, true);        
     }
     
     /**
@@ -240,7 +245,7 @@ JS;
      */
     public function buildJsClickEventHandlerCall(string $oControllerJsVar = null) : string
     {
-        $methodName = $this->getController()->buildJsEventHandlerMethodName('press');
+        $methodName = $this->getController()->buildJsEventHandlerMethodName(self::EVENT_NAME_PRESS);
         if ($oControllerJsVar === null) {
             return $this->getController()->buildJsMethodCallFromController($methodName, $this, '');
         } else {
@@ -256,7 +261,7 @@ JS;
     public function buildJsClickFunctionName()
     {
         $controller = $this->getController();
-        return $controller->buildJsMethodName($controller->buildJsEventHandlerMethodName('press'), $this);
+        return $controller->buildJsMethodName($controller->buildJsEventHandlerMethodName(self::EVENT_NAME_PRESS), $this);
     }
 
     /**
@@ -295,15 +300,6 @@ JS;
             $closeDialogJs = $this->buildJsCloseDialog();
         } else {
             $closeDialogJs = '';
-        }
-
-        $checkChangesJs = '';
-        if ($this->isCheckForUnsavedChangesRequired()) {
-            $checkChangesJs = <<<JS
-                        if(true === {$this->getInputElement()->buildJsCheckForUnsavedChanges(true, 'fnAction')}) {
-                            return;
-                        }
-JS;
         }
         
         // Build the AJAX request
@@ -471,22 +467,7 @@ JS;
                         
 JS;
         }
-        
-        // Place the code for the action in a callable. Perform confirmation checks, etc. and
-        // call the code at the very end giving the checks the possibility to cancel the whole
-        // thing.
-        // TODO #confirmation move this to JqueryButtonTrait!
-        return <<<JS
-                    
-                    var fnAction = function() {
-                        $js
-                    };
-
-                    {$checkChangesJs}
-
-                    fnAction();
-
-JS;
+        return $js;
     }
     
     protected function buildJsOpenDialogForUnexpectedView(string $oViewContent) : string
@@ -553,7 +534,7 @@ JS;
             		            oUrlParams[pair[0]] = val;
                             }
                     	} 
-                        this.navTo("{$pageSelector}", '', {
+                        {$this->getController()->buildJsControllerGetter($this)}.navTo("{$pageSelector}", '', {
                             data: oUrlParams,
                             success: function(){ 
                                 {$inputElement->buildJsBusyIconHide()} 
@@ -586,9 +567,19 @@ JS;
     {
         $widget = $this->getWidget();
         if (($widget instanceof DialogButton) && $widget->getCloseDialogAfterActionSucceeds()) {
-            $checkChanges = $checkChanges ?? $this->isCheckForUnsavedChangesRequired();
+            // If there is no explicit information about checking changes, try to ask the
+            // action for its settings. If there is no action and we are closing a dialog,
+            // then it is probably the default close button and we should check for changes!
+            if ($checkChanges === null) {
+                if ($widget->hasAction()) {
+                    $cnfWidget = $widget->getAction()->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst();
+                    $checkChanges = $cnfWidget !== null && ! $cnfWidget->isDisabled();
+                } else {
+                    $checkChanges = true;
+                }
+            }
             return $this->getFacade()->getElement($widget->getDialog())->buildJsCloseDialog($checkChanges);
-        }
+         }
         return '';
     }
     
@@ -625,12 +616,9 @@ JS;
     
     /**
      * 
-     * @param ActionInterface $action
-     * @param string $jsRequestData
-     * @param string $jsOnSuccess
-     * @return string
+     * @see JqueryButtonTrait::buildJsClickCallServerAction()
      */
-    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '') : string
+    protected function buildJsClickCallServerAction(ActionInterface $action, string $jsRequestData, string $jsOnSuccess = '', string $oResultDataJsVar = 'oResultData') : string
     {
         $widget = $this->getWidget();
         $input_element = $this->getInputElement();
@@ -643,7 +631,7 @@ JS;
         if ($input_element && $input_element->getWidget() instanceof ContextBar) {
             $skipEffectsJs = 'false /* Always trigger effects on context bar actions! */';
         } else {
-            $skipEffectsJs = '(sap.ui.getCore().byId("{$input_element->getId()}") === undefined)';
+            $skipEffectsJs = '(sap.ui.getCore().byId("{$input_element->getId()}") !== undefined)';
         }
         $onModelLoadedJs = <<<JS
 
@@ -684,6 +672,8 @@ JS;
                                         a.click();
                                         document.body.removeChild(a);
                    					}
+                                    
+                                    var {$oResultDataJsVar} = oResultModel.getData();
                                     {$jsOnSuccess}
 								}
 JS;
@@ -703,7 +693,7 @@ JS;
                             
                 var fnRequest = function() {
                     if ({$input_element->buildJsValidator()}) {
-                        {$this->buildJsCheckRequestDataSize($jsRequestData, $this->getAjaxPostSizeMax())}
+                        {$this->buildJsRequestDataCheckSize($jsRequestData, $this->getAjaxPostSizeMax())}
                         {$this->buildJsBusyIconShow()}
                         var oResultModel = new sap.ui.model.json.JSONModel();
                         var params = {
@@ -761,28 +751,11 @@ JS;
     }
     
     /**
-     * 
-     * @see JqueryButtonTrait::buildJsRequestDataCollector()
-     */
-    protected function buildJsRequestDataCollector(ActionInterface $action, AbstractJqueryElement $input_element, string $jsVariable = 'requestData')
-    {
-        $js = $this->buildJsRequestDataCollectorViaTrait($action, $input_element, $jsVariable);
-        
-        /*if ($facadeOptUxon = $this->getWidget()->getFacadeOptions($this->getFacade())) {
-            if ($facadeOptUxon->hasProperty('custom_request_data_script')) {
-                $js .= $facadeOptUxon->getProperty('custom_request_data_script');
-            }
-        }*/
-        
-        return $js;
-    }
-    
-    /**
      *
      * @param string $functionName
      * @return string
      */
-    public function buildJsCallFunction(string $functionName = null, array $parameters = []) : string
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
         switch (true) {
             case $functionName === null:
@@ -791,7 +764,7 @@ JS;
             case $functionName === Button::FUNCTION_FOCUS:
                 return "sap.ui.getCore().byId('{$this->getId()}').focus()";
         }
-        return parent::buildJsCallFunction($functionName, $parameters);
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
     }
     
     /**
@@ -802,9 +775,14 @@ JS;
     public function buildCssElementClass()
     {
         $cls = parent::buildCssElementClass();
-        if ($this->getWidget()->getIconSet() === 'svg') {
+        
+        $iconSet = $this->getWidget()->getIconSet();
+        if ($iconSet === iHaveIcon::ICON_SET_SVG_COLORED) {
+            $cls .= ' exf-svg-icon exf-svg-colored';
+        } else if ($iconSet === iHaveIcon::ICON_SET_SVG) {
             $cls .= ' exf-svg-icon';
         }
+        
         return $cls;
     }
     
@@ -812,5 +790,38 @@ JS;
     {
         $this->button_type = $button_type;
         return $this;
+    }
+
+    protected function buildJsConfirmation(ConfirmationWidgetInterface $widget, string $jsRequestData, string $onContinueJs, string $onCancelJs = null)
+    {
+        $confirmationEl = $this->getFacade()->getElement($widget);
+        if (! $confirmationEl instanceof UI5ConfirmationElementInterface) {
+            throw new FacadeRuntimeError('Cannot use widget "' . $widget->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+        }
+
+        if (null !== $conditionalProperty = $widget->getDisabledIf()) {
+            $checkDisabledJs = $this->buildJsConditionalPropertyIf($conditionalProperty->getConditionGroup());
+        } else {
+            $checkDisabledJs = 'false';
+        }
+        return <<<JS
+        
+        var bDisabled = ({$checkDisabledJs});
+        if (bDisabled) {
+            {$onContinueJs}
+        } else {
+            {$confirmationEl->buildJsConfirmation($jsRequestData, $onContinueJs, $onCancelJs ?? '')};
+        }
+JS;
+    }
+
+    public function buildCssWidgetClass() : string
+    {
+        $classes = parent::buildCssWidgetClass();
+        $widget = $this->getWidget();
+        if (($widget instanceof DialogButton) && ($widget->getCloseDialogAfterActionSucceeds() || $widget->getCloseDialogAfterActionFails())) {
+            $classes .= ' exf-dialog-close';
+        }
+        return $classes;
     }
 }

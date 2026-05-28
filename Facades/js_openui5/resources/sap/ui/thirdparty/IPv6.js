@@ -2,7 +2,7 @@
  * URI.js - Mutating URLs
  * IPv6 Support
  *
- * Version: 1.19.1
+ * Version: 1.19.11
  *
  * Author: Rodney Rehm
  * Web: http://medialize.github.io/URI.js/
@@ -11,4 +11,5 @@
  *   MIT License http://www.opensource.org/licenses/mit-license
  *
  */
-(function(r,f){'use strict';if(typeof module==='object'&&module.exports){module.exports=f();}else if(typeof define==='function'&&define.amd){define(f);}else{r.IPv6=f(r);}}(this,function(r){'use strict';var _=r&&r.IPv6;function b(a){var c=a.toLowerCase();var s=c.split(':');var l=s.length;var t=8;if(s[0]===''&&s[1]===''&&s[2]===''){s.shift();s.shift();}else if(s[0]===''&&s[1]===''){s.shift();}else if(s[l-1]===''&&s[l-2]===''){s.pop();}l=s.length;if(s[l-1].indexOf('.')!==-1){t=7;}var p;for(p=0;p<l;p++){if(s[p]===''){break;}}if(p<t){s.splice(p,1,'0000');while(s.length<t){s.splice(p,0,'0000');}}var d;for(var i=0;i<t;i++){d=s[i].split('');for(var j=0;j<3;j++){if(d[0]==='0'&&d.length>1){d.splice(0,1);}else{break;}}s[i]=d.join('');}var e=-1;var f=0;var g=0;var h=-1;var k=false;for(i=0;i<t;i++){if(k){if(s[i]==='0'){g+=1;}else{k=false;if(g>f){e=h;f=g;}}}else{if(s[i]==='0'){k=true;h=i;g=1;}}}if(g>f){e=h;f=g;}if(f>1){s.splice(e,f,'');}l=s.length;var m='';if(s[0]===''){m=':';}for(i=0;i<l;i++){m+=s[i];if(i===l-1){break;}m+=':';}if(s[l-1]===''){m+=':';}return m;}function n(){if(r.IPv6===this){r.IPv6=_;}return this;}return{best:b,noConflict:n};}));
+(function(e,i){"use strict";if(typeof module==="object"&&module.exports){module.exports=i()}else if(typeof define==="function"&&define.amd){define(i)}else{e.IPv6=i(e)}})(this,function(e){"use strict";var i=e&&e.IPv6;function f(e){var i=e.toLowerCase();var f=i.split(":");var r=f.length;var t=8;if(f[0]===""&&f[1]===""&&f[2]===""){f.shift();f.shift()}else if(f[0]===""&&f[1]===""){f.shift()}else if(f[r-1]===""&&f[r-2]===""){f.pop()}r=f.length;if(f[r-1].indexOf(".")!==-1){t=7}var s;for(s=0;s<r;s++){if(f[s]===""){break}}if(s<t){f.splice(s,1,"0000");while(f.length<t){f.splice(s,0,"0000")}}var l;for(var n=0;n<t;n++){l=f[n].split("");for(var o=0;o<3;o++){if(l[0]==="0"&&l.length>1){l.splice(0,1)}else{break}}f[n]=l.join("")}var a=-1;var v=0;var u=0;var c=-1;var h=false;for(n=0;n<t;n++){if(h){if(f[n]==="0"){u+=1}else{h=false;if(u>v){a=c;v=u}}}else{if(f[n]==="0"){h=true;c=n;u=1}}}if(u>v){a=c;v=u}if(v>1){f.splice(a,v,"")}r=f.length;var p="";if(f[0]===""){p=":"}for(n=0;n<r;n++){p+=f[n];if(n===r-1){break}p+=":"}if(f[r-1]===""){p+=":"}return p}function r(){if(e.IPv6===this){e.IPv6=i}return this}return{best:f,noConflict:r}});
+//# sourceMappingURL=IPv6.js.map

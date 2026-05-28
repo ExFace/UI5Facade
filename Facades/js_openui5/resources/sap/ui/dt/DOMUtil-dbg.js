@@ -1,43 +1,53 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides object sap.ui.dt.DOMUtil.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Element",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/Device",
-	// jQuery Plugin "zIndex"
-	"sap/ui/dom/jquery/zIndex"
-],
-function(
+	"sap/ui/dom/jquery/zIndex",
+	"sap/ui/dom/jquery/scrollLeftRTL"
+], function(
+	Localization,
+	Element,
 	jQuery,
 	Device
 ) {
 	"use strict";
 
 	/**
-	 * Class for DOM Utils.
+	 * Utility functionality for DOM operations.
 	 *
-	 * @class
-	 * Utility functionality for DOM
-	 *
+	 * @namespace
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @private
-	 * @static
 	 * @since 1.30
 	 * @alias sap.ui.dt.DOMUtil
-	 * @experimental Since 1.30. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 
 	var DOMUtil = {};
 
 	/**
-	 *
+	 * Returns the offset for an element
+	 * @param {HTMLElement} oElement - Element
+	 * @returns {PositionObject} the calculated offset containing left and top values
 	 */
+	DOMUtil.getOffset = function(oElement) {
+		var oBox = oElement.getBoundingClientRect();
+		var oDocElement = document.documentElement;
+		return {
+			top: oBox.top + window.scrollY - oDocElement.clientTop,
+			left: oBox.left + window.scrollX - oDocElement.clientLeft
+		};
+	};
+
 	DOMUtil.getSize = function(oDomRef) {
 		var oClientRec = oDomRef.getBoundingClientRect();
 		return {
@@ -47,26 +57,42 @@ function(
 	};
 
 	/**
+	 * Returns the parents for an element
+	 * @param {HTMLElement} oElement - Element
+	 * @param {string} sSelector - CSS selector to search for
+	 * @returns {Array} aParents - Array containing Parents which match selector
+	 */
+	DOMUtil.getParents = function(oElement, sSelector) {
+		var aParents = [];
+		while ((oElement = oElement.parentNode) && oElement !== document) {
+			if (!sSelector || oElement.matches(sSelector)) {
+				aParents.unshift(oElement);
+			}
+		}
+		return aParents;
+	};
+
+	/**
 	 * Returns the offset for an element based on the parent position and scrolling
 	 * @typedef {object} SizeObject
-	 * @property {number} width Element width
-	 * @property {number} height Element height
+	 * @property {number} width - Element width
+	 * @property {number} height - Element height
 	 * @typedef {object} PositionObject
-	 * @property {number} left Element left coordinate
-	 * @property {number} top Element top coordinate
+	 * @property {number} left - Element left coordinate
+	 * @property {number} top - Element top coordinate
 	 * @typedef {object} GeometryObject
-	 * @property {SizeObject} size Element size
-	 * @property {PositionObject} position Element position
-	 * @property {boolean} visible Element visibility
+	 * @property {SizeObject} size - Element size
+	 * @property {PositionObject} position - Element position
+	 * @property {boolean} visible - Element visibility
 	 * @param {GeometryObject} oGeometry - Position object containing left and top values
 	 * @param {HTMLElement} oParent - Parent element
-	 * @return {PositionObject} - Returns the calculated offset containing left and top values
+	 * @returns {PositionObject} the calculated offset containing left and top values
 	 */
 	DOMUtil.getOffsetFromParent = function(oGeometry, oParent) {
-		var $Parent = oParent ? jQuery(oParent) : null;
-		var iScrollTop = $Parent ? $Parent.scrollTop() : null;
+		var iScrollTop = oParent ? oParent.scrollTop : null;
 		var iScrollLeft = oParent ? DOMUtil.getScrollLeft(oParent) : null;
-		var mParentOffset = $Parent ? $Parent.offset() : null;
+
+		var mParentOffset = oParent ? DOMUtil.getOffset(oParent) : null;
 
 		var mOffset = {
 			left: oGeometry.position.left,
@@ -78,10 +104,10 @@ function(
 			mOffset.top -= (mParentOffset.top - (iScrollTop || 0));
 		}
 
-		if (sap.ui.getCore().getConfiguration().getRTL()) {
-			var iParentWidth = $Parent ? $Parent.outerWidth() : jQuery(window).outerWidth();
-			//TODO: Workaround - remove when bug in Safari (issue 336512063) is solved
-			if (Device.browser.safari && !Device.browser.mobile && DOMUtil.hasVerticalScrollBar($Parent)) {
+		if (Localization.getRTL()) {
+			var iParentWidth = oParent ? oParent.offsetWidth : window.innerWidth;
+			// TODO: Workaround - remove when bug in Safari (issue 336512063) is solved
+			if (Device.browser.safari && !Device.browser.mobile && DOMUtil.hasVerticalScrollBar(oParent)) {
 				mOffset.left -= DOMUtil.getScrollbarWidth();
 			}
 			// Workaround end
@@ -96,101 +122,88 @@ function(
 	 * The specification for the behavior of scrollLeft values in Right-to-Left (RTL)
 	 * is still in draft, so different browsers calculate it differently.
 	 * We return the result from Webkit/Gecko, which is becoming the standard.
-	 * @param {HTMLElement} oElement Element to read scrollLeft from
-	 * @return {number} returns browser agnostic scrollLeft value (negative in RTL)
+	 * @param {HTMLElement} oElement - Element to read scrollLeft from
+	 * @returns {number} browser agnostic scrollLeft value (negative in RTL)
 	 */
 	DOMUtil.getScrollLeft = function(oElement) {
-		var iScrollLeft = oElement.scrollLeft;
-		// The adjustment is only required in RTL mode
 		if (
-			!sap.ui.getCore().getConfiguration().getRTL()
+			!Localization.getRTL()
 			|| !DOMUtil.hasHorizontalScrollBar(oElement)
 		) {
-			return iScrollLeft;
+			return oElement.scrollLeft;
 		}
-		// Blink (Chrome) considers zero scrollLeft when the scrollBar is all the way to the left
+
+		var iScrollLeftRTL = jQuery(oElement).scrollLeftRTL();
+
+		// jQuery scrollLeftRTL function considers zero scrollLeft when the scrollBar is all the way to the left
 		// and moves positively to the right
-		if (Device.browser.blink) {
-			var iMaxScrollValue = oElement.scrollWidth - oElement.clientWidth;
-			return iScrollLeft - iMaxScrollValue;
-		// Internet Explorer considers zero scrollLeft when the scrollbar is all the way
-		// to the right (initial position) and moves positively to the left
-		} else if (Device.browser.msie || Device.browser.edge) {
-			return -iScrollLeft;
-		// Firefox (Gecko) & Safari (Webkit) consider zero scrollLeft when the scrollbar is
-		// all the way to the right (initial position) and moves negatively to the left [desired behavior]
-		}
-
-		return iScrollLeft;
+		var iMaxScrollValue = oElement.scrollWidth - oElement.clientWidth;
+		return iScrollLeftRTL - iMaxScrollValue;
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.getZIndex = function(oDomRef) {
-		var zIndex;
-		var $ElementDomRef = jQuery(oDomRef);
-		if ($ElementDomRef.length) {
-			zIndex = $ElementDomRef.zIndex() || $ElementDomRef.css("z-index");
-		}
-		return zIndex;
+		let zIndex = null;
+		let oCurrentDomRef = oDomRef;
+		do {
+			zIndex = window.getComputedStyle(oCurrentDomRef).getPropertyValue("z-index");
+			oCurrentDomRef = oCurrentDomRef.parentElement;
+			if (!oCurrentDomRef || (oCurrentDomRef.id && Element.getElementById(oCurrentDomRef.id))) {
+				break;
+			}
+		} while (isNaN(zIndex));
+		return isNaN(zIndex) ? zIndex : +zIndex;
 	};
 
-	/**
-	 * @private
-	 */
-	DOMUtil._getElementDimensions = function (oDomRef, sMeasure, aDirection) {
+	DOMUtil._getElementDimensions = function(oDomRef, sMeasure, aDirection) {
 		var oRelevantDomRef = oDomRef[0] || oDomRef;
-		var iOffsetWidth = oRelevantDomRef["offset" + sMeasure];
+		var iOffsetWidth = oRelevantDomRef[`offset${sMeasure}`];
 		var iValue = 0;
 		for (var i = 0; i < 2; i++) {
 			// remove border
-			var sBorderMeasure = window.getComputedStyle(oRelevantDomRef, null)["border" + aDirection[ i ] + sMeasure];
+			var sBorderMeasure = window.getComputedStyle(oRelevantDomRef, null)[`border${aDirection[ i ]}${sMeasure}`];
 			iValue -= sBorderMeasure ? parseInt(sBorderMeasure.slice(0, -2)) : 0;
 		}
 		return iOffsetWidth + iValue;
 	};
 
-	/**
-	 * @private
-	 */
-	DOMUtil._getElementWidth = function (oDomRef) {
+	DOMUtil._getElementWidth = function(oDomRef) {
 		return DOMUtil._getElementDimensions(oDomRef, "Width", ["Right", "Left"]);
 	};
 
-	/**
-	 * @private
-	 */
-	DOMUtil._getElementHeight = function (oDomRef) {
+	DOMUtil._getElementHeight = function(oDomRef) {
 		return DOMUtil._getElementDimensions(oDomRef, "Height", ["Top", "Bottom"]);
 	};
 
 	/**
 	 * Checks whether DOM Element has vertical scrollbar
 	 * @param {HTMLElement} oDomRef - DOM Element
-	 * @return {boolean} <code>true</code> if vertical scrollbar is available on DOM Element.
+	 * @returns {boolean} <code>true</code> if vertical scrollbar is available on DOM Element.
 	 */
 	DOMUtil.hasVerticalScrollBar = function(oDomRef) {
-		var $DomRef = jQuery(oDomRef);
-		var bOverflowYScroll = $DomRef.css("overflow-y") === "auto" || $DomRef.css("overflow-y") === "scroll";
-		return bOverflowYScroll && $DomRef.get(0).scrollHeight > DOMUtil._getElementHeight(oDomRef);
+		if (oDomRef) {
+			var bOverflowYScroll = window.getComputedStyle(oDomRef)["overflow-y"] === "auto" || window.getComputedStyle(oDomRef)["overflow-y"] === "scroll";
+			return bOverflowYScroll && oDomRef.scrollHeight > DOMUtil._getElementHeight(oDomRef);
+		}
+		return false;
 	};
 
 	/**
 	 * Checks whether DOM Element has horizontal scrollbar
 	 * @param {HTMLElement} oDomRef - DOM Element
-	 * @return {boolean} <code>true</code> if horizontal scrollbar is available on DOM Element
+	 * @returns {boolean} <code>true</code> if horizontal scrollbar is available on DOM Element
 	 */
-	DOMUtil.hasHorizontalScrollBar = function (oDomRef) {
-		var $DomRef = jQuery(oDomRef);
-		var bOverflowXScroll = $DomRef.css("overflow-x") === "auto" || $DomRef.css("overflow-x") === "scroll";
-		return bOverflowXScroll && $DomRef.get(0).scrollWidth > DOMUtil._getElementWidth(oDomRef);
+	DOMUtil.hasHorizontalScrollBar = function(oDomRef) {
+		if (oDomRef) {
+			var bOverflowXScroll = window.getComputedStyle(oDomRef)["overflow-x"] === "auto" || window.getComputedStyle(oDomRef)["overflow-x"] === "scroll";
+			return bOverflowXScroll && oDomRef.scrollWidth > DOMUtil._getElementWidth(oDomRef);
+		}
+		return false;
 	};
 
 	/**
 	 * Checks whether DOM Element has vertical or horizontal scrollbar
-	 * @param oDomRef {HTMLElement} - DOM Element
-	 * @return {boolean}
+	 * @param {HTMLElement} oDomRef - DOM element
+	 * @returns {boolean} <code>true</code> if the DOM element has a scrollbar
 	 */
 	DOMUtil.hasScrollBar = function(oDomRef) {
 		return DOMUtil.hasVerticalScrollBar(oDomRef) || DOMUtil.hasHorizontalScrollBar(oDomRef);
@@ -198,29 +211,27 @@ function(
 
 	/**
 	 * Gets scrollbar width in the running browser
-	 * @return {number} - returns width in pixels
+	 * @returns {number} returns width in pixels
 	 */
 	DOMUtil.getScrollbarWidth = function() {
-		if (typeof DOMUtil.getScrollbarWidth._cache === 'undefined') {
+		if (typeof DOMUtil.getScrollbarWidth._cache === "undefined") {
 			// add outer div
-			var oOuter = jQuery('<div></div>')
-				.css({
-					position: 'absolute',
-					top: '-9999px',
-					left: '-9999px',
-					width: '100px'
-				})
-				.appendTo('body');
+			var oOuter = document.createElement("div");
+			oOuter.style.position = "absolute";
+			oOuter.style.top = "-9999px";
+			oOuter.style.left = "-9999px";
+			oOuter.style.width = "100px";
+			document.body.append(oOuter);
 
-			var iWidthNoScroll = oOuter.width();
-			oOuter.css('overflow', 'scroll');
+			var iWidthNoScroll = oOuter.offsetWidth;
+			oOuter.style.overflow = "scroll";
 
 			// add inner div
-			var oInner = jQuery('<div></div>')
-				.css('width', '100%')
-				.appendTo(oOuter);
+			var oInner = document.createElement("div");
+			oInner.style.width = "100%";
+			oOuter.append(oInner);
 
-			var iWidthWithScroll = oInner.width();
+			var iWidthWithScroll = oInner.offsetWidth;
 
 			// clean up
 			oOuter.remove();
@@ -231,116 +242,93 @@ function(
 		return DOMUtil.getScrollbarWidth._cache;
 	};
 
-
 	/**
-	 * @param {HTMLElement} oDomRef
+	 * @param {HTMLElement} oDomRef - DOM element
+	 * @returns {object} Object with overflowX and overflowY
 	 */
 	DOMUtil.getOverflows = function(oDomRef) {
-		var $DomRef = jQuery(oDomRef);
-
 		return {
-			overflowX: $DomRef.css("overflow-x"),
-			overflowY: $DomRef.css("overflow-y")
+			overflowX: window.getComputedStyle(oDomRef)["overflow-x"],
+			overflowY: window.getComputedStyle(oDomRef)["overflow-y"]
 		};
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.getGeometry = function(oDomRef, bUseWindowOffset) {
 		if (oDomRef) {
-			var oOffset = jQuery(oDomRef).offset();
+			var oOffset = DOMUtil.getOffset(oDomRef);
 			if (bUseWindowOffset) {
-				oOffset.left = oOffset.left - jQuery(window).scrollLeft();
-				oOffset.top = oOffset.top - jQuery(window).scrollTop();
+				oOffset.left = oOffset.left - window.scrollX;
+				oOffset.top = oOffset.top - window.scrollY;
 			}
 
 			return {
-				domRef : oDomRef,
-				size : this.getSize(oDomRef),
-				position :  oOffset,
-				visible : this.isVisible(oDomRef)
+				domRef: oDomRef,
+				size: DOMUtil.getSize(oDomRef),
+				position: oOffset,
+				visible: DOMUtil.isVisible(oDomRef)
 			};
 		}
+		return undefined;
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.syncScroll = function(oSourceDom, oTargetDom) {
-		var $target = jQuery(oTargetDom);
-		var oTargetScrollTop = $target.scrollTop();
-		var oTargetScrollLeft = $target.scrollLeft();
-
-		var $source = jQuery(oSourceDom);
-		var oSourceScrollTop = $source.scrollTop();
-		var oSourceScrollLeft = $source.scrollLeft();
+		var oTargetScrollTop = oTargetDom.scrollTop;
+		var oTargetScrollLeft = oTargetDom.scrollLeft;
+		var oSourceScrollTop = oSourceDom.scrollTop;
+		var oSourceScrollLeft = oSourceDom.scrollLeft;
 
 		if (oSourceScrollTop !== oTargetScrollTop) {
-			$target.scrollTop(oSourceScrollTop);
+			oTargetDom.scrollTop = oSourceScrollTop;
 		}
+
 		if (oSourceScrollLeft !== oTargetScrollLeft) {
-			$target.scrollLeft(oSourceScrollLeft);
+			oTargetDom.scrollLeft = oSourceScrollLeft;
 		}
 	};
 
 	/**
-	 * returns jQuery object found in oDomRef for sCSSSelector
-	 * @param  {Element|jQuery} oDomRef to search in
-	 * @param  {string} sCSSSelector jQuery (CSS-like) selector to look for
-	 * @return {jQuery} found domRef
+	 * Returns HTML Element found in oDomRef for sCSSSelector
+	 * @param {Element} oDomRef - to search in
+	 * @param {string} sCSSSelector - CSS-like selector to look for
+	 * @returns {Element} found domRef
 	 */
+
 	DOMUtil.getDomRefForCSSSelector = function(oDomRef, sCSSSelector) {
 		if (sCSSSelector && oDomRef) {
-			var $domRef = jQuery(oDomRef);
-
 			if (sCSSSelector === ":sap-domref") {
-				return $domRef;
+				return oDomRef;
 			}
 
-			// ":sap-domref > sapMPage" scenario
+			// Replace ":sap-domref" with ":scope" to make the selector compatible with browsers.
+			// Example: ":sap-domref > sapMPage" becomes ":scope > sapMPage", scoping the query to oDomRef.
 			if (sCSSSelector.indexOf(":sap-domref") > -1) {
-				return $domRef.find(sCSSSelector.replace(/:sap-domref/g, ""));
+				const sModifiedSelector = sCSSSelector.replace(/:sap-domref/g, ":scope");
+				return oDomRef.querySelector(sModifiedSelector);
 			}
 
-			// normal selector
-			return $domRef.find(sCSSSelector);
+			// Prefix ":scope" to child selectors (>) to scope the query to oDomRef.
+			// Example: "div > p, span > a" becomes "div :scope > p, span :scope > a".
+			const sScopedSelector = sCSSSelector.replace(/(^|,)\s*(>)/g, "$1:scope$2");
+			return oDomRef.querySelector(sScopedSelector);
 		}
 
-		// empty jQuery object for typing
-		return jQuery();
+		return undefined;
 	};
 
 	/**
-	 *
+	 * Checks whether DOM Element is visible by evaluating offsetWidth and offsetHeight
+	 * For SVG Groups (tag `g`) getBBox is used, which returns a SVGRect object, defining the bounding box.
+	 * @param {HTMLElement} oDomRef - DOM Element
+	 * @returns {boolean} <code>true</code> if element is visible.
 	 */
 	DOMUtil.isVisible = function(oDomRef) {
-		return oDomRef ? oDomRef.offsetWidth > 0 && oDomRef.offsetHeight > 0 : false;
-	};
-
-	/**
-	 * Sets the draggable attribute to a specified node
-	 * @param {HTMLElement} oNode - Target node to add the attribute to
-	 * @param {boolean} bValue - Attribute value
-	 */
-	DOMUtil.setDraggable = function (oNode, bValue) {
-		oNode.setAttribute("draggable", bValue);
-	};
-
-	/**
-	 * Sets the draggable attribute of a specified node
-	 * @param {HTMLElement} oNode - Target node to set the draggable attribute on
-	 * @return {boolean|undefined} - returns undefined when draggable is not set to the node
-	 */
-	DOMUtil.getDraggable = function (oNode) {
-		switch (oNode.getAttribute("draggable")) {
-			case "true":
-				return true;
-			case "false":
-				return false;
-			default:
-				return;
+		if (oDomRef) {
+			var oBBox = oDomRef.getBBox && oDomRef.getBBox();
+			var iWidth = oBBox ? oBBox.width : oDomRef.offsetWidth;
+			var iHeight = oBBox ? oBBox.height : oDomRef.offsetHeight;
+			return iWidth > 0 && iHeight > 0;
 		}
+		return false;
 	};
 
 	/**
@@ -356,7 +344,7 @@ function(
 		// Styles is an array, but has some special access functions
 		for (var i = 0; i < iLength; i++) {
 			sStyle = oStyles[i];
-			sStyles = sStyles + sStyle + ":" + oStyles.getPropertyValue(sStyle) + ";";
+			sStyles = `${sStyles + sStyle}:${oStyles.getPropertyValue(sStyle)};`;
 		}
 
 		oDest.style.cssText = sStyles;
@@ -378,25 +366,20 @@ function(
 
 			// pseudo elements can't be inserted via js, so we should create a real elements,
 			// which copy pseudo styling
-			var oPseudoElement = jQuery("<span></span>");
+			var oPseudoElement = document.createElement("span");
 			if (sPseudoElement === ":after") {
-				oPseudoElement.appendTo(oDest);
+				oDest.appendChild(oPseudoElement);
 			} else {
-				oPseudoElement.prependTo(oDest);
+				oDest.insertBefore(oPseudoElement, oDest.firstChild);
 			}
 
-			oPseudoElement.text(sContent.replace(/(^['"])|(['"]$)/g, ""));
-			DOMUtil._copyStylesTo(mStyles, oPseudoElement.get(0));
-			oPseudoElement.css("display", "inline");
+			oPseudoElement.textContent = sContent.replace(/(^['"])|(['"]$)/g, "");
+			DOMUtil._copyStylesTo(mStyles, oPseudoElement);
+			oPseudoElement.style.display = "inline";
 		}
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.copyComputedStyle = function(oSrc, oDest) {
-		oSrc = jQuery(oSrc).get(0);
-		oDest = jQuery(oDest).get(0);
 		var mStyles = window.getComputedStyle(oSrc);
 
 		if (mStyles.getPropertyValue("display") === "none") {
@@ -406,64 +389,41 @@ function(
 
 		DOMUtil._copyStylesTo(mStyles, oDest);
 
-		this._copyPseudoElement(":after", oSrc, oDest);
-		this._copyPseudoElement(":before", oSrc, oDest);
+		DOMUtil._copyPseudoElement(":after", oSrc, oDest);
+		DOMUtil._copyPseudoElement(":before", oSrc, oDest);
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.copyComputedStyles = function(oSrc, oDest) {
-		oSrc = jQuery(oSrc).get(0);
-		oDest = jQuery(oDest).get(0);
-
 		for (var i = 0; i < oSrc.children.length; i++) {
-			this.copyComputedStyles(oSrc.children[i], oDest.children[i]);
+			DOMUtil.copyComputedStyles(oSrc.children[i], oDest.children[i]);
 		}
 
 		// we shouldn't copy classes because they can affect styling
-		jQuery(oDest).removeClass();
+		oDest.removeAttribute("class");
 		// remove all special attributes, which can affect app behaviour
-		jQuery(oDest).attr("id", "");
-		jQuery(oDest).attr("role", "");
-		jQuery(oDest).attr("data-sap-ui", "");
-		jQuery(oDest).attr("for", "");
+		oDest.setAttribute("id", "");
+		oDest.setAttribute("role", "");
+		oDest.setAttribute("data-sap-ui", "");
+		oDest.setAttribute("for", "");
+		oDest.setAttribute("tabindex", -1);
 
-		jQuery(oDest).attr("tabindex", -1);
-		this.copyComputedStyle(oSrc, oDest);
+		DOMUtil.copyComputedStyle(oSrc, oDest);
 	};
 
-	/**
-	 *
-	 */
 	DOMUtil.cloneDOMAndStyles = function(oNode, oTarget) {
-		oNode = jQuery(oNode).get(0);
-
 		var oCopy = oNode.cloneNode(true);
-		this.copyComputedStyles(oNode, oCopy);
+		DOMUtil.copyComputedStyles(oNode, oCopy);
 
-		jQuery(oTarget).append(oCopy);
-	};
-
-	/**
-	 * Inserts a &lt;style> tag with specified styles into #overlay-container
-	 * @param {string} sStyles - Plain CSS as a string to be added into the page
-	 * @param {HTMLElement} oTarget - Target DOM Node where to add &lt;style> tag with CSS
-	 */
-	DOMUtil.insertStyles = function (sStyles, oTarget) {
-		var oStyle = document.createElement('style');
-		oStyle.type = 'text/css';
-		oStyle.appendChild(document.createTextNode(sStyles));
-		oTarget.appendChild(oStyle);
+		oTarget.append(oCopy);
 	};
 
 	/**
 	 * Check whether the target node is a descendant of a node referenced by id
 	 * @param {string} sId - ID of a potential parent node
-	 * @param oTargetNode - Node to look for in a potential parent node
-	 * @returns {boolean} - true if a potential parent contains the target node
+	 * @param {HTMLElement} oTargetNode - Node to look for in a potential parent node
+	 * @returns {boolean} <code>true</code> if a potential parent contains the target node
 	 */
-	DOMUtil.contains = function (sId, oTargetNode) {
+	DOMUtil.contains = function(sId, oTargetNode) {
 		var oNode = document.getElementById(sId);
 		return !!oNode && oNode.contains(oTargetNode);
 	};
@@ -473,7 +433,7 @@ function(
 	 * @param {HTMLElement} oTargetNode - Target node to whom child has to be appended
 	 * @param {HTMLElement} oChildNode - Child node to be appended to specified target
 	 */
-	DOMUtil.appendChild = function (oTargetNode, oChildNode) {
+	DOMUtil.appendChild = function(oTargetNode, oChildNode) {
 		var iScrollTop = oChildNode.scrollTop;
 		var iScrollLeft = oChildNode.scrollLeft;
 		oTargetNode.appendChild(oChildNode);
@@ -481,40 +441,5 @@ function(
 		oChildNode.scrollLeft = iScrollLeft;
 	};
 
-	/**
-	 * Set the Focus to the DOM Element without scrolling
-	 * @param {HTMLElement} oTargetNode - Target node to whom focus should be set
-	 */
-	DOMUtil.focusWithoutScrolling = function (oTargetNode) {
-		// Only for Newer Devices
-		if (Device.browser.name !== "ie") {
-			oTargetNode.focus({preventScroll: true});
-			return;
-		}
-
-		var aScrollHierarchy = [];
-		var oParentNode = oTargetNode.parentNode;
-
-		while (oParentNode) {
-			aScrollHierarchy.push([oParentNode, oParentNode.scrollLeft, oParentNode.scrollTop]);
-			oParentNode = oParentNode.parentNode;
-		}
-
-		oTargetNode.focus();
-
-		aScrollHierarchy.forEach(function (oItem) {
-			var oElementNode = oItem[0];
-
-			// Check first to avoid triggering unnecessary `scroll` events
-			if (oElementNode.scrollLeft !== oItem[1]) {
-				oElementNode.scrollLeft = oItem[1];
-			}
-
-			if (oElementNode.scrollTop !== oItem[2]) {
-				oElementNode.scrollTop = oItem[2];
-			}
-		});
-	};
-
 	return DOMUtil;
-}, /* bExport= */ true);
+});

@@ -1,16 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * The types in this namespace are {@link sap.ui.model.SimpleType simple types} corresponding
  * to OData primitive types for both
- * {@link http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem OData V2}
+ * {@link https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338 OData V4.01}
  * and
- * {@link http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html OData V4} (see
- * "4.4 Primitive Types").
+ * {@link https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem OData V2}.
  *
  * They can be used in any place where simple types are allowed (and the model representation
  * matches), but they are of course most valuable when used in bindings to a
@@ -27,7 +26,7 @@
  * </pre>
  *
  * All types support formatting from the representation used in ODataModel ("model format") to
- * various representations used by UI elements ("target type") and vice versa. Additionally they
+ * various representations used by UI elements ("target type") and vice versa. Additionally, they
  * support validating a given value against the type's constraints.
  *
  * The following target types may be supported:
@@ -43,8 +42,8 @@
  * <tr><td><code>float</code></td><td>The value is converted to a <code>number</code>. Supported by
  * all numeric types.</td></tr>
  * <tr><td><code>object</code></td><td>The value is converted to a <code>Date</code> so that it can
- * be displayed in a date or time picker. Supported by {@link sap.ui.model.odata.type.Date} and
- * {@link sap.ui.model.odata.type.DateTimeOffset} since 1.69.0.
+ * be displayed in a date or time picker. Supported by {@link sap.ui.model.odata.type.Date},
+ * {@link sap.ui.model.odata.type.DateTime} and {@link sap.ui.model.odata.type.DateTimeOffset} since 1.69.0.
  * </td></tr>
  * <tr><td><code>any</code></td><td>A technical format. The value is simply passed through. Only
  * supported by <code>format</code>, not by <code>parse</code>. Supported by all types.</td></tr>
@@ -65,14 +64,14 @@
  * accepted and leads to a (locale-dependent) <code>ParseException</code>.
  *
  * This ensures that the user cannot clear an input field bound to an attribute with non-nullable
- * type. However it does not ensure that the user really entered something if the field was empty
+ * type. However, it does not ensure that the user really entered something if the field was empty
  * before.
  *
  * <b><code>Date</code> vs. <code>DateTime</code></b>:
  *
- * The type {@link sap.ui.model.odata.type.Date} is only valid for an OData V4 service. If you use
- * the type for an OData V2 service, displaying is possible but you get an error message from server
- * if you try to save changes.
+ * The type {@link sap.ui.model.odata.type.Date} is only valid for an OData V4 service. Displaying
+ * data is possible if you use the type for an OData V2 service, but you will receive an error
+ * message from the server once you try to save any changes.
  *
  * For an OData V2 service use {@link sap.ui.model.odata.type.DateTime} with the constraint
  * <code>displayFormat: "Date"</code> to display only a date.
@@ -83,21 +82,22 @@
  */
 
 sap.ui.define([
+	"sap/base/Log",
 	"sap/ui/model/SimpleType"
-], function (SimpleType) {
+], function (Log, SimpleType) {
 	"use strict";
 
 	/**
 	 * Constructor for a new <code>ODataType</code>.
 	 *
 	 * @class This class is an abstract base class for all OData primitive types (see {@link
-	 * http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/part3-csdl/odata-v4.0-errata02-os-part3-csdl-complete.html#_The_edm:Documentation_Element
-	 * OData V4 Edm Types} and
-	 * {@link http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem
+	 * https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338
+	 * OData V4.01 Edm Types} and
+	 * {@link https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem
 	 * OData V2 Edm Types}). All subtypes implement the interface of
 	 * {@link sap.ui.model.SimpleType}. That means they implement next to the constructor:
 	 * <ul>
-	 * <li>{@link sap.ui.model.SimpleType#getName getName}</li>
+	 * <li>{@link sap.ui.model.Type#getName getName}</li>
 	 * <li>{@link sap.ui.model.SimpleType#formatValue formatValue}</li>
 	 * <li>{@link sap.ui.model.SimpleType#parseValue parseValue}</li>
 	 * <li>{@link sap.ui.model.SimpleType#validateValue validateValue}</li>
@@ -115,7 +115,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.ODataType
@@ -137,13 +137,75 @@ sap.ui.define([
 		);
 
 	/**
-	 * @see sap.ui.base.Object#getInterface
+	 * Returns a format converting between the internal and external representation of a value for this type. The
+	 * implementation of this method by subclasses is optional.
 	 *
-	 * @returns {object} this
+	 * @returns {object}
+	 *   A format converting between the internal and external representation
+	 *
+	 * @abstract
+	 * @function
+	 * @name sap.ui.model.ODataType.prototype.getFormat
+	 * @private
+	 */
+
+	/**
+	 * Checks the <code>parseEmptyValueToZero</code> format option of this type and logs a warning
+	 * in case it is ignored.
+	 *
+	 * @private
+	 */
+	ODataType.prototype.checkParseEmptyValueToZero = function () {
+		if (this.oFormatOptions && this.oFormatOptions.parseEmptyValueToZero
+			&& (!this.oConstraints || this.oConstraints.nullable !== false)) {
+			Log.warning("The parseEmptyValueToZero format option is ignored as the nullable constraint"
+				+ " is not false.", null, this.getName());
+		}
+	};
+
+	/**
+	 * Returns this type's empty model value for the given value.
+	 * <b>Note:</b> This function is only to be used by numeric OData types.
+	 *
+	 * @param {number|string} vValue
+	 *   The value to check
+	 * @param {boolean} [bNumeric]
+	 *   Whether the type requires the empty value as number
+	 * @returns {null | "0" | 0 | undefined}
+	 *   <ul>
+	 *     <li><code>undefined</code> if the given value is not empty</li>
+	 *     <li><code>"0"</code> or <code>0</code> (if bNumeric is set <code>true</code>) if the
+	 *       <code>parseEmptyValueToZero</code> format option is set to <code>true</code> and the <code>nullable</code>
+	 *       constraint is set to <code>false</code></li>
+	 *     <li><code>null</code> otherwise</li>
+	 *   </ul>
+	 *
+	 * @private
+	 */
+	ODataType.prototype.getEmptyValue = function (vValue, bNumeric) {
+		if (vValue !== null && vValue !== "") {
+			return undefined;
+		}
+
+		if (this.oFormatOptions && this.oFormatOptions.parseEmptyValueToZero
+				&& this.oConstraints && this.oConstraints.nullable === false) {
+			return bNumeric ? 0 : "0";
+		}
+
+		return null;
+	};
+
+	/**
+	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
+	 * using this type.
+	 *
+	 * @returns {string|undefined}
+	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
+	 *
 	 * @public
 	 */
-	ODataType.prototype.getInterface = function () {
-		return this;
+	ODataType.prototype.getPlaceholderText = function () {
+		return this.getFormat && this.getFormat().getPlaceholderText && this.getFormat().getPlaceholderText();
 	};
 
 	/**

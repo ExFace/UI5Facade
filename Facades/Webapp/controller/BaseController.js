@@ -218,30 +218,6 @@ sap.ui.define([
 			}
 		},
 		
-		showWarningAboutUnsavedChanges : function(fnDiscard) {
-			var oDialog = new sap.m.Dialog({
-				type: sap.m.DialogType.Message,
-				title: "{i18n>MESSAGE.DISCARD_CHANGES.TITLE}",
-				content: new sap.m.Text({ text: "{i18n>MESSAGE.DISCARD_CHANGES.TEXT}" }),
-				beginButton: new sap.m.Button({
-					type: sap.m.ButtonType.Emphasized,
-					text: "{i18n>MESSAGE.DISCARD_CHANGES.DISCARD}",
-					press: function () {
-						oDialog.close().destroy();
-						fnDiscard()
-					}.bind(this)
-				}),
-				endButton: new sap.m.Button({
-					text: "{i18n>COMMON.CANCEL}",
-					press: function () {
-						oDialog.close().destroy();
-					}.bind(this)
-				})
-			})
-			.setModel(this.getNavContainer().getModel('i18n'), 'i18n');
-			oDialog.open();
-		},
-		
 		/**
 		 * Produces a string to be used as route parameter from a given object.
 		 * @param Object oParams
@@ -263,7 +239,56 @@ sap.ui.define([
 		isPreloaded: function(sModuleName, sExtension) {
 			sExtension = sExtension || '.js';
 			return sap.ui.loader._.getModuleState(sModuleName + sExtension) !== 0;
-		}
+		},
+
+		/**
+		 * 
+		 * @param {jQuery} jqElement
+		 * @return {jQuery}
+		 */
+		setZIndexToMax: function (jqElement) {
+			//set the z-index of the fullscreen dynamically so it works with popovers
+			var iZIndex = 0;
+			var iMaxZIndex = 0;
+			var parent = jqElement.parent();
+			if (isNaN(jqElement.css('z-index'))) {
+				//get the maximum z-index of parent elements of the data element
+				while (parent.length !== 0 && parent[0].tagName !== "BODY") {
+					iZIndex = parseInt(parent.css("z-index"));
+
+					if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
+						iMaxZIndex = iZIndex;
+					}
+					parent = parent.parent();
+				}
+
+				//check if the currently found maximum z-index is bigger than the z-index of the app header 
+				var jqHeaderElement = $('.sapUiUfdShellHead');
+				iZIndex = parseInt(jqHeaderElement.css("z-index"));
+				if (!isNaN(iZIndex) && iZIndex > iMaxZIndex) {
+					iMaxZIndex = iZIndex;
+				}
+
+				iMaxZIndex = iMaxZIndex + 1;
+				jqElement.css('z-index', iMaxZIndex);
+			}
+			return jqElement;
+		},
+
+		/**
+		 * E.g. oController.findParentOfType(oTable, sap.ui.layout.form.Form)
+		 * 
+		 * @param {sap.ui.core.Element} oControl
+		 * @param {object} oClass
+		 * @return {sap.ui.core.Element}
+		 */
+		findParentOfType: function(oControl, oClass) {
+			while (oControl && oControl.getParent) {
+				oControl = oControl.getParent();
+				if (oControl instanceof oClass){
+					return oControl;
+				}
+		    }
+		},
 	});
 });
-
