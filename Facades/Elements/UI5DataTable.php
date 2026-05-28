@@ -476,8 +476,7 @@ JS;
                         new sap.ui.unified.Menu()
                     ]
                 })
-                .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
-                .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
+                {$this->buildJsHeaderFilterFunctions()}
                 {$this->buildJsClickHandlers('oController')}
                 {$this->buildJsPseudoEventHandlers()}
                 ,
@@ -485,6 +484,17 @@ JS;
             ]
         })
         
+JS;
+    }
+
+    /**
+     * Adds functions to reset and set header filters as data attributes to an object (constructor)
+     * @return string
+     */
+    protected function buildJsHeaderFilterFunctions(){
+        return <<<JS
+            .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
+            .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
 JS;
     }
 
@@ -793,8 +803,7 @@ JS;
                 ],
                 rows: "{/rows}"
         	}).addStyleClass('rowAlternate-'+{$striped})
-            .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
-            .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
+            {$this->buildJsHeaderFilterFunctions()}
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
 
