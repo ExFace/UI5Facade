@@ -142,7 +142,12 @@ JS;
 
     protected function buildJsIconTabBarItem(Tiles $tileGroup) : string
     {
-        $tabCaption = StringDataType::substringAfter($tileGroup->getCaption(), ' > ');
+        $tabCaption = $tileGroup->getCaption();
+
+        // only show the last part of the caption, if there is a parent path included (parent > child)
+        if ($this->getWidget()->getShowParentPath()) {
+            $tabCaption = StringDataType::substringAfter($tabCaption, ' > ');
+        }
         $tabElement = $this->getFacade()->getElement($tileGroup);
         return <<<JS
 
