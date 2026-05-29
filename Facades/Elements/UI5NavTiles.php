@@ -140,7 +140,7 @@ JS;
 
                 // hide the first tile group (the overview), but only if the depth is not 1,
                 // otherwise we get issues with landing pages etc, as they dont display any data then
-                if ($this->getWidget()->getDepth() === 1) {
+                if ($this->getWidget()->getDepth() === 1 || count($this->getWidget()->getTiles()) === 1) {
                     $tileGroup->setHidden(false);
                     continue;
                 }
