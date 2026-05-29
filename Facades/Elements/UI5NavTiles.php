@@ -71,6 +71,8 @@ JS;
      */
     protected function buildJsIconTabBar() : string
     {
+        // note sah: switched from flexbox to overflow toolbar because of layout issues
+        // the page was otherwise rendering content/headings underneath the tabbar, and the overflow didnt work correctly
         return <<<JS
 
         new sap.m.OverflowToolbar("{$this->getId()}_navbox", {
@@ -93,7 +95,7 @@ JS;
                     ]
                 })
                 .addStyleClass('customHeader exf-navtiles-tab-header').setLayoutData(new sap.m.OverflowToolbarLayoutData({
-                    priority: sap.m.OverflowToolbarPriority.NeverOverflow,
+                    priority: sap.m.OverflowToolbarPriority.Low,
                     shrinkable: true,
                     minWidth: "14rem"
                 })),

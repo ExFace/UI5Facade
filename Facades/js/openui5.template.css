@@ -518,8 +518,9 @@ the entire text from disappearing (...) if the text overflows */
 
 .navTilesToolbar .exf-navtiles-tab-header {
     min-width: 14rem;
-    max-width: none;
-    flex: 1 1 14rem;
+    max-width: 75%;
+    width: 75%;
+    flex: 0 1 75%;
 }
 
 .navTilesToolbar .exf-navtiles-search {
@@ -530,27 +531,16 @@ the entire text from disappearing (...) if the text overflows */
     padding-top: 0.5rem;
 }
 
-/* todo: fix mobile */
+/* mobile layout for navtiles searchbar */
 @media (max-width: 1024px) {
-    .navTilesToolbar {
-        flex-wrap: nowrap;
-        align-items: center;
-    }
-
     .navTilesToolbar .sapMTBSpacer {
-        display: block;
-    }
-
-    .navTilesToolbar .exf-navtiles-tab-header {
-        min-width: 14rem;
-        max-width: none;
-        flex: 1 1 14rem;
+        display: none;
     }
 
     .navTilesToolbar .exf-navtiles-search {
-        width: 14rem;
-        min-width: 14rem;
-        flex: 0 0 14rem;
+        width: 100%;
+        min-width: 0;
+        flex: 0 1 18rem;
     }
 }
 
