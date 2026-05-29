@@ -110,7 +110,20 @@ JS;
                     shrinkable: false
                 }))
             ]
-        }).addStyleClass('navTilesToolbar'),
+        }).addStyleClass('navTilesToolbar')
+        .addEventDelegate({
+            onAfterRendering: function() {
+                // after rendering, auto-focus the search field 
+                // (so the user can start typing immediately)
+                var oToolbar = sap.ui.getCore().byId("{$this->getId()}_navbox");
+                var oSearch = oToolbar.getContent().find(function(oCtrl) {
+                    return oCtrl.isA("sap.m.SearchField");
+                });
+                if (oSearch) {
+                    setTimeout(function() { oSearch.focus(); }, 0);
+                }
+            }
+        }),
 
 JS;
     }
