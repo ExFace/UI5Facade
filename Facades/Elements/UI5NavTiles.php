@@ -90,6 +90,16 @@ JS;
                             if (oPanel && oPanel.getDomRef()) {
                                 oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
                             }
+
+                            // briefly flash the panel heading to give visual feedback
+                            // (useful for short sections that don't actually scroll)
+                            var oHeading = oPanel.getDomRef().querySelector(".sapMPanelHdr, .sapMPanelHeader, .sapUiPanelHdr");
+                            if (oHeading) {
+                                oHeading.classList.add("exf-navtiles-heading-flash");
+                                setTimeout(function() {
+                                    oHeading.classList.remove("exf-navtiles-heading-flash");
+                                }, 800);
+                            }
                         }, 0);
                     },
                     items: [

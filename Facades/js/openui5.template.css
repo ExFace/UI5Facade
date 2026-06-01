@@ -516,6 +516,15 @@ the entire text from disappearing (...) if the text overflows */
     border-bottom: solid .0625rem var(--sapGroup_TitleBorderColor);
 }
 
+@keyframes exf-navtiles-heading-flash {
+    0%   { color: var(--sapHighlightColor, #0070f2); }
+    50%  { color: var(--sapHighlightColor, #0070f2); }
+    100% { color: inherit; }
+}
+.exf-navtiles-heading-flash {
+    animation: exf-navtiles-heading-flash 0.8s ease-out forwards;
+}
+
 .navTilesToolbar .exf-navtiles-tab-header {
     min-width: 14rem;
     max-width: 75%;
