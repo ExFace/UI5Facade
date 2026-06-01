@@ -173,7 +173,7 @@ JS;
 
     protected function hasIconTabBar() : bool
     {
-        return true;
+        return $this->getWidget()->hasNavBar();
     }
     
     /**
