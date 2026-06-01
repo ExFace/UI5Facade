@@ -81,14 +81,28 @@ JS;
                 new sap.m.IconTabHeader("{$this->getId()}_iconTabHeader", {
                     mode: "Inline",
                     select: function(oEvent) {
-                        // Get the selected key
-                        var sKey = oEvent.getParameter("key");
+                        setTimeout(function() {
+                            // Get the selected key
+                            var sKey = oEvent.getParameter("key");
 
-                        // Find the corresponding panel that matches the key and scroll it into view
-                        var oPanel = sap.ui.getCore().byId(sKey);
-                        if (oPanel && oPanel.getDomRef()) {
-                            oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
-                        }
+                            // Find the corresponding panel that matches the key and scroll it into view
+                            var oPanel = sap.ui.getCore().byId(sKey);
+                            var oPanelDom = oPanel ? oPanel.getDomRef() : null;
+                            if (!oPanelDom) {
+                                return;
+                            }
+                            oPanelDom.scrollIntoView({ behavior: "smooth" , block: "start" });
+
+                            // briefly flash the panel heading to give visual feedback
+                            // (useful for short sections that don't actually scroll)
+                            var oHeading = oPanelDom.querySelector(".sapMPanelHdr, .sapMPanelHeader, .sapUiPanelHdr");
+                            if (oHeading) {
+                                oHeading.classList.add("exf-navtiles-heading-flash");
+                                setTimeout(function() {
+                                    oHeading.classList.remove("exf-navtiles-heading-flash");
+                                }, 800);
+                            }
+                        }, 0);
                     },
                     items: [
                         {$this->buildJsIconTabBarItems()}
@@ -122,6 +136,75 @@ JS;
                 if (oSearch) {
                     setTimeout(function() { oSearch.focus(); }, 0);
                 }
+
+                // scrollObserver: highlight the matching tab when the user scrolls to a section
+                // (register this once per toolbar instance)
+                if (oToolbar.data("_exfScrollObserverActive")) {
+                    return;
+                }
+                oToolbar.data("_exfScrollObserverActive", true);
+
+                // short delay so all child panels are rendered before we observe them
+                setTimeout(function() {
+                    var oTabHeader = sap.ui.getCore().byId("{$this->getId()}_iconTabHeader");
+                    if (!oTabHeader || !oTabHeader.getItems().length) { return; }
+
+                    var oToolbarDom = oToolbar.getDomRef();
+                    var iToolbarHeight = oToolbarDom ? Math.round(oToolbarDom.getBoundingClientRect().height) : 44;
+
+                    // find the nearest scrollable ancestor; null = viewport (required by IntersectionObserver)
+                    var oScrollRoot = null;
+                    var oDom = oToolbarDom;
+                    while (oDom && oDom !== document.body) {
+                        oDom = oDom.parentElement;
+                        if (!oDom) { break; }
+                        var sOverflow = window.getComputedStyle(oDom).overflowY;
+                        if (sOverflow === "auto" || sOverflow === "scroll") {
+                            oScrollRoot = oDom;
+                            break;
+                        }
+                    }
+
+                    // track which panel keys are currently inside the active viewport zone
+                    var aVisibleKeys = [];
+
+                    var oObserver = new IntersectionObserver(function(aEntries) {
+                        aEntries.forEach(function(oEntry) {
+                            var sId = oEntry.target.id;
+                            if (oEntry.isIntersecting) {
+                                if (aVisibleKeys.indexOf(sId) === -1) { aVisibleKeys.push(sId); }
+                            } else {
+                                aVisibleKeys = aVisibleKeys.filter(function(k) { return k !== sId; });
+                            }
+                        });
+
+                        // always highlight the topmost visible panel if multiple are visible; 
+                        var sActiveKey = null;
+                        oTabHeader.getItems().forEach(function(oItem) {
+                            if (sActiveKey === null && aVisibleKeys.indexOf(oItem.getKey()) !== -1) {
+                                sActiveKey = oItem.getKey();
+                            }
+                        });
+
+                        if (sActiveKey && oTabHeader.getSelectedKey() !== sActiveKey) {
+                            oTabHeader.setSelectedKey(sActiveKey);
+                        }
+                    }, {
+                        root: oScrollRoot,
+                        // active zone: from just below the sticky toolbar down to 50% of the viewport
+                        rootMargin: '-' + iToolbarHeight + 'px 0px -50% 0px',
+                        threshold: 0
+                    });
+
+                    // register observer on panels
+                    oTabHeader.getItems().forEach(function(oItem) {
+                        var oPanel = sap.ui.getCore().byId(oItem.getKey());
+                        if (oPanel && oPanel.getDomRef()) {
+                            oObserver.observe(oPanel.getDomRef());
+                        }
+                    });
+                }, 200);
+
             }
         }),
 

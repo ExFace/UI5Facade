@@ -494,10 +494,18 @@ the entire text from disappearing (...) if the text overflows */
     box-shadow: none;
 } 
 
+/* show sidenavigation popups over tabbar */
+.sapTntSideNavigation  .sapTntNLPopover.sapMPopover {
+    z-index: 2 !important;
+}
+.sapTntSideNavigation  .sapTntNLCollapsed .sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive):not(.sapTntNLINoHoverEffect) [tabindex]:hover {
+    z-index: 2;
+}
+
 /* set the toolbar sticky/to the top of the control */
 .navTilesToolbar {
     z-index: 1;
-    background: var(--sapBackgroundColor);
+    background: var(--sapObjectHeader_Background) !important;
     position: sticky;
     top: 0;
     width: 100%;
@@ -514,6 +522,15 @@ the entire text from disappearing (...) if the text overflows */
     height: 100%;
     overflow: visible;
     border-bottom: solid .0625rem var(--sapGroup_TitleBorderColor);
+}
+
+@keyframes exf-navtiles-heading-flash {
+    0%   { color: var(--sapHighlightColor, #0070f2); }
+    50%  { color: var(--sapHighlightColor, #0070f2); }
+    100% { color: inherit; }
+}
+.exf-navtiles-heading-flash {
+    animation: exf-navtiles-heading-flash 0.8s ease-out forwards;
 }
 
 .navTilesToolbar .exf-navtiles-tab-header {
