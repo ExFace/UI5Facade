@@ -81,14 +81,16 @@ JS;
                 new sap.m.IconTabHeader("{$this->getId()}_iconTabHeader", {
                     mode: "Inline",
                     select: function(oEvent) {
-                        // Get the selected key
-                        var sKey = oEvent.getParameter("key");
+                        setTimeout(function() {
+                            // Get the selected key
+                            var sKey = oEvent.getParameter("key");
 
-                        // Find the corresponding panel that matches the key and scroll it into view
-                        var oPanel = sap.ui.getCore().byId(sKey);
-                        if (oPanel && oPanel.getDomRef()) {
-                            oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
-                        }
+                            // Find the corresponding panel that matches the key and scroll it into view
+                            var oPanel = sap.ui.getCore().byId(sKey);
+                            if (oPanel && oPanel.getDomRef()) {
+                                oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
+                            }
+                        }, 0);
                     },
                     items: [
                         {$this->buildJsIconTabBarItems()}
