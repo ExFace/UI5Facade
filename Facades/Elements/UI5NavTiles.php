@@ -87,13 +87,15 @@ JS;
 
                             // Find the corresponding panel that matches the key and scroll it into view
                             var oPanel = sap.ui.getCore().byId(sKey);
-                            if (oPanel && oPanel.getDomRef()) {
-                                oPanel.getDomRef().scrollIntoView({ behavior: "smooth" , block: "start" });
+                            var oPanelDom = oPanel ? oPanel.getDomRef() : null;
+                            if (!oPanelDom) {
+                                return;
                             }
+                            oPanelDom.scrollIntoView({ behavior: "smooth" , block: "start" });
 
                             // briefly flash the panel heading to give visual feedback
                             // (useful for short sections that don't actually scroll)
-                            var oHeading = oPanel.getDomRef().querySelector(".sapMPanelHdr, .sapMPanelHeader, .sapUiPanelHdr");
+                            var oHeading = oPanelDom.querySelector(".sapMPanelHdr, .sapMPanelHeader, .sapUiPanelHdr");
                             if (oHeading) {
                                 oHeading.classList.add("exf-navtiles-heading-flash");
                                 setTimeout(function() {
