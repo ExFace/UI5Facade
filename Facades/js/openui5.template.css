@@ -494,10 +494,18 @@ the entire text from disappearing (...) if the text overflows */
     box-shadow: none;
 } 
 
+/* show sidenavigation popups over tabbar */
+.sapTntSideNavigation  .sapTntNLPopover.sapMPopover {
+    z-index: 2 !important;
+}
+.sapTntSideNavigation  .sapTntNLCollapsed .sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive):not(.sapTntNLINoHoverEffect) [tabindex]:hover {
+    z-index: 2;
+}
+
 /* set the toolbar sticky/to the top of the control */
 .navTilesToolbar {
     z-index: 1;
-    background: var(--sapBackgroundColor);
+    background: var(--sapObjectHeader_Background) !important;
     position: sticky;
     top: 0;
     width: 100%;
