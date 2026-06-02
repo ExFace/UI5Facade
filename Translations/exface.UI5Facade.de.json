@@ -119,6 +119,8 @@
 	"WIDGET.DATACAROUSEL.DETAILS_EMPTY_HINT": "Bitte wählen Sie einen Eintrag!",
 	
 	"WIDGET.DATATPAGINATOR.SHOWING": "Zeige %from% - %to% aus %total%",
+
+	"WIDGET.NAVTILES.SEARCH": "Menü durchsuchen",
 	
 	"WIDGET.DATATABLE.FILTERED_BY": "Filter",
 	"WIDGET.DATATABLE.FILTERED_BY_NONE": "Keine",
