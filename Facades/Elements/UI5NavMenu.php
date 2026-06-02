@@ -143,6 +143,7 @@ JS;
             $url = $this->getFacade()->buildUrlToPage($node->getPageAlias());
             $isCurrentPage = $this->currentPage !== null && $node->isPage($this->currentPage);
             $isInCurrentPath = $this->currentPage !== null && ($isCurrentPage || $node->isAncestorOf($this->currentPage));
+            $tooltip = $node->getDescription() ? $this->escapeString($node->getDescription(), false) : '';
             if ($level === 1) {
                 $icon = ($node->getIcon() && ! Icons::isIconSetSVG($node->getIconSet())) ? $this->getIconSrc($node->getIcon()) : "folder-blank";
             } else {
@@ -157,6 +158,7 @@ JS;
             key: "{$node->getPageAlias()}",
             icon: "{$icon}",
             text: "{$node->getName()}",
+            tooltip: "{$tooltip}",
             expanded: {$expanded},
             items: [
                 // BOF {$node->getName()} SubMenu
@@ -176,6 +178,7 @@ JS;
             key: "{$node->getPageAlias()}",
             icon: "{$icon}", 
             text: "{$node->getName()}", 
+            tooltip: "{$tooltip}",
             select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
         }),
 
