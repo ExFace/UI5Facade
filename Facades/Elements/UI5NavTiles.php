@@ -115,7 +115,7 @@ JS;
                 })),
                 new sap.m.ToolbarSpacer(),
                 new sap.m.SearchField({
-                    placeholder: "{$this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME')}", 
+                    placeholder: "{$this->translate('WIDGET.NAVTILES.SEARCH')}", 
                     liveChange: {$this->buildJsSearchTilesFunction()}
                 })
                 .addStyleClass('exf-navtiles-search')

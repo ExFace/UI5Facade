@@ -120,6 +120,8 @@
 	"WIDGET.DATACAROUSEL.DETAILS_EMPTY_HINT": "Please select an item!",
 	
 	"WIDGET.DATATPAGINATOR.SHOWING": "Showing %from% - %to% of %total%",
+
+	"WIDGET.NAVTILES.SEARCH": "Search Menu",
 	
 	"WIDGET.DATATABLE.FILTERED_BY": "Filtered by",
 	"WIDGET.DATATABLE.FILTERED_BY_NONE": "None",
