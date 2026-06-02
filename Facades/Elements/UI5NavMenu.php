@@ -32,6 +32,7 @@ class UI5NavMenu extends UI5AbstractElement
         $menu = $this->getWidget()->setExpandAll(true)->getMenu();
         $this->currentPage = $this->getWidget()->getPage();
         $selectedKey = $this->currentPage->getAliasWithNamespace();
+        $searchItemVisible = count($menu) > 0 ? 'true' : 'false';
         $output = <<<JS
 
 new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
@@ -46,6 +47,7 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
                 icon: "sap-icon://search",
                 text: "{$this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME')}",
                 design: "Action",
+                visible: {$searchItemVisible},
                 select: function(oEvent) {
                     var oSideNav = sap.ui.getCore().byId("{$this->getId()}_scrollContainer");
                     var oItem = oEvent.getSource();
