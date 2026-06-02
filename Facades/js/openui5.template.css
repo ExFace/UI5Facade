@@ -650,6 +650,20 @@ html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.
     color: var(--sapTextColor);
 }
 
+/* make sidenavigation icons match icon color */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI .sapTntNLIIcon > img {
+    filter: brightness(0) saturate(100%) invert(13%) sepia(93%) saturate(7319%) hue-rotate(202deg) brightness(85%) contrast(94%);
+}
+/* make sidenavigation icons white when clicked on */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI.sapTntNLIActive .sapTntNLIIcon > img {
+    filter: brightness(0) invert(1);
+}
+
+/* more padding in between sidenavigation items in fiori 3 */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNL li.sapTntNLINotExpandedTriangle {
+    padding-top: 7px;
+}
+
 /* CHANGES AFTER UI5 UPGRADE */
 
 /* fix custom colors background */

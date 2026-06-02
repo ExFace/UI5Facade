@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\Model\UiPageTreeNode;
 use exface\Core\CommonLogic\Constants\Icons;
+use exface\Core\DataTypes\SvgDataType;
 use exface\Core\Interfaces\Model\UiPageInterface;
 use exface\Core\Interfaces\Model\UiPageTreeNodeInterface;
 
@@ -143,20 +144,32 @@ JS;
             $url = $this->getFacade()->buildUrlToPage($node->getPageAlias());
             $isCurrentPage = $this->currentPage !== null && $node->isPage($this->currentPage);
             $isInCurrentPath = $this->currentPage !== null && ($isCurrentPage || $node->isAncestorOf($this->currentPage));
+            $isSvgIcon = $level === 1 && $node->getIcon() && Icons::isIconSetSVG($node->getIconSet());
             $tooltip = $node->getDescription() ? $this->escapeString($node->getDescription(), false) : '';
+
             if ($level === 1) {
-                $icon = ($node->getIcon() && ! Icons::isIconSetSVG($node->getIconSet())) ? $this->getIconSrc($node->getIcon()) : "folder-blank";
+                if ($isSvgIcon) {
+                    $icon = 'sap-icon://background'; // placeholder for collapsed sidebar popup
+                    $svgIcon = 'data:image/svg+xml;utf8,' . rawurlencode(SvgDataType::cast($node->getIcon()));
+                } else {
+                    $icon = ($node->getIcon()) ? $this->getIconSrc($node->getIcon()) : 'folder-blank';
+                    $svgIcon = '';
+                }
             } else {
                 $icon = '';
+                $svgIcon = '';
             }
             if ($node->hasChildNodes() === true && ($this->maxDepth === null || $level < $this->maxDepth)) {
-                $icon = $icon === "folder-blank" ? "open-folder" : $icon ;
+                if (! $isSvgIcon) {
+                    $icon = $icon === 'folder-blank' ? 'open-folder' : $icon;
+                }
                 $expanded = $isInCurrentPath ? 'true' : 'false';
                 $output .= <<<JS
             
         new exface.ui5Custom.MultiLevelNavItem({
             key: "{$node->getPageAlias()}",
             icon: "{$icon}",
+            svgIcon: "{$svgIcon}",
             text: "{$node->getName()}",
             tooltip: "{$tooltip}",
             expanded: {$expanded},
@@ -177,6 +190,7 @@ JS;
         new exface.ui5Custom.MultiLevelNavItem({
             key: "{$node->getPageAlias()}",
             icon: "{$icon}", 
+            svgIcon: "{$svgIcon}",
             text: "{$node->getName()}", 
             tooltip: "{$tooltip}",
             select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
