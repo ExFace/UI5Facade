@@ -146,7 +146,9 @@ JS;
             $isInCurrentPath = $this->currentPage !== null && ($isCurrentPage || $node->isAncestorOf($this->currentPage));
             $isSvgIcon = $level === 1 && $node->getIcon() && Icons::isIconSetSVG($node->getIconSet());
             $tooltip = $node->getDescription() ? $this->escapeString($node->getDescription(), false) : '';
-
+            $menuItemText = $this->escapeString($node->getName(), false);
+            $menuItemKey = $this->escapeString($node->getPageAlias(), false);
+            
             if ($level === 1) {
                 if ($isSvgIcon) {
                     $icon = 'sap-icon://background'; // placeholder for collapsed sidebar popup
@@ -167,10 +169,10 @@ JS;
                 $output .= <<<JS
             
         new exface.ui5Custom.MultiLevelNavItem({
-            key: "{$node->getPageAlias()}",
+            key: "{$menuItemKey}",
             icon: "{$icon}",
             svgIcon: "{$svgIcon}",
-            text: "{$node->getName()}",
+            text: "{$menuItemText}",
             tooltip: "{$tooltip}",
             expanded: {$expanded},
             items: [
@@ -188,10 +190,10 @@ JS;
                 $output .= <<<JS
 
         new exface.ui5Custom.MultiLevelNavItem({
-            key: "{$node->getPageAlias()}",
+            key: "{$menuItemKey}",
             icon: "{$icon}", 
             svgIcon: "{$svgIcon}",
-            text: "{$node->getName()}", 
+            text: "{$menuItemText}", 
             tooltip: "{$tooltip}",
             select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
         }),
