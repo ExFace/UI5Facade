@@ -1,1 +1,2 @@
-ace.define("ace/snippets/mushcode",["require","exports","module"],function(r,e,m){"use strict";e.snippetText="";e.scope="mushcode";});(function(){ace.require(["ace/snippets/mushcode"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/mushcode"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=mushcode.js.map

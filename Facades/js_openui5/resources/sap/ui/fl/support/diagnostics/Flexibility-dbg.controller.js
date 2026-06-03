@@ -1,35 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
 sap.ui.define([
-	"sap/ui/core/mvc/Controller",
-	"sap/ui/fl/support/apps/uiFlexibilityDiagnostics/helper/Extractor"
-], function (Controller, Extractor) {
+	"sap/ui/core/mvc/Controller"
+], function(
+	Controller
+) {
 	"use strict";
 
 	/**
-	 * Controller for displaying detail of the flexibility support frame
+	 * Controller for the flexibility diagnostics view.
 	 *
 	 * @constructor
-	 * @alias sap.ui.fl.support.Flexibility
+	 * @alias sap.ui.fl.support.diagnostics.Flexibility
 	 * @author SAP SE
-	 * @version 1.82.0
-	 * @experimental Since 1.52
+	 * @version 1.144.0
 	 */
 	return Controller.extend("sap.ui.fl.support.diagnostics.Flexibility", {
-
-		refreshApps: function () {
-			this.getView().getViewData().plugin.onRefresh();
-		},
-
-		extractAppData: function (oEvent) {
-			var oSelectedItem = oEvent.getSource();
-			var oBindingContext = oSelectedItem.getBindingContext("flexApps");
-			var oData = oBindingContext.getProperty("data");
-			Extractor.createDownloadFile(oData);
+		onDownloadPress() {
+			const bAnonymizeData = this.getView().getModel("flexToolSettings").getProperty("/anonymizeData");
+			const oFlexibilityPlugin = this.getView().getViewData().plugin;
+			// The download is handled by the plugin
+			oFlexibilityPlugin.sendGetDataEvent(bAnonymizeData);
 		}
 	});
 });

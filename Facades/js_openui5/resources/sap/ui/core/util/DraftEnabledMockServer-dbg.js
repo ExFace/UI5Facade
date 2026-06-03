@@ -1,13 +1,15 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquery.sap.sjax"], function(MockServer/*, jQuerySapSjax*/, jQuery) {
+sap.ui.define([
+	"sap/ui/thirdparty/jquery",
+	"sap/base/util/isEmptyObject"
+], function(jQuery, isEmptyObject) {
 	"use strict";
-	return {
 
-		_oDraftMetadata: {},
+	return {
 		_oConstants: {
 			COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT: "com.sap.vocabularies.Common.v1.DraftRoot",
 			COM_SAP_VOCABULARIES_COMMON_V1_DRAFTNODE: "com.sap.vocabularies.Common.v1.DraftNode",
@@ -24,10 +26,13 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 
 		/**
 		 * Enriches MockServer with draft capabilities based on the given OData service annotations.
-		 * @param {object} oAnnotations annotation object of sap.ui.model.odata.ODataModel
+		 * @param {object} oAnnotations annotation object of ODataModel
 		 * @param {object} oMockServer
 		 */
 		handleDraft: function(oAnnotations, oMockServer) {
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
+			var syncAjax = MockServer._syncAjax;
+
 			// callback function to update draft specific properties post creation
 			var fnNewDraftPost = function(oEvent) {
 				var oNewEntity = oEvent.getParameter("oEntity");
@@ -38,7 +43,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 			// callback function to update draft specific properties pre deletion
 			var fnDraftDelete = function(oEvent) {
 				var oXhr = oEvent.getParameter("oXhr");
-				var oEntry = jQuery.sap.sjax({
+				var oEntry = syncAjax({
 					url: oXhr.url,
 					dataType: "json"
 				}).data.d;
@@ -46,7 +51,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 				for (var i = 0; i < this._oDraftMetadata.draftNodes.length; i++) {
 					for (var navprop in this._mEntitySets[this._oDraftMetadata.draftRootName].navprops) {
 						if (this._mEntitySets[this._oDraftMetadata.draftRootName].navprops[navprop].to.entitySet === this._oDraftMetadata.draftNodes[i]) {
-							var oResponse = jQuery.sap.sjax({
+							var oResponse = syncAjax({
 								url: oEntry[navprop].__deferred.uri,
 								dataType: "json"
 							});
@@ -54,7 +59,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 								var oNode;
 								for (var j = 0; j < oResponse.data.d.results.length; j++) {
 									oNode = oResponse.data.d.results[j];
-									jQuery.sap.sjax({
+									syncAjax({
 										url: oNode.__metadata.uri,
 										type: "DELETE"
 									});
@@ -64,62 +69,68 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 					}
 				}
 			};
+			const oDraftMetadata = oMockServer._oDraftMetadata || {};
+
 			if (oAnnotations && oAnnotations.EntityContainer) {
 				var oEntitySetsAnnotations = oAnnotations.EntityContainer[Object.keys(oAnnotations.EntityContainer)[0]];
 				//iterate over entitysets annotations
 				for (var sEntityset in oEntitySetsAnnotations) {
 					//get entity set annotations and look for DraftRoot annotation
 					var oEntitySetAnnotations = oEntitySetsAnnotations[sEntityset];
-					if (oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT]) {
-						this._oDraftMetadata.draftRootName = sEntityset;
-						this._oDraftMetadata.annotations = oAnnotations;
-						this._oDraftMetadata.mockServerRootUri = oMockServer.getRootUri();
-						if (oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT][this._oConstants.ACTIVATION_ACTION]){
-							this._oDraftMetadata.draftRootActivationName = oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT][this
-								._oConstants.ACTIVATION_ACTION
-								].String;
+					const sActivationAction = this._oConstants.ACTIVATION_ACTION;
+					const sCommonVocabularyDraftRoot = this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT;
+					if (oEntitySetAnnotations[sCommonVocabularyDraftRoot]) {
+						oDraftMetadata.draftRootName = sEntityset;
+						oDraftMetadata.annotations = oAnnotations;
+						oDraftMetadata.mockServerRootUri = oMockServer.getRootUri();
+						if (oEntitySetAnnotations[sCommonVocabularyDraftRoot][sActivationAction]) {
+							oDraftMetadata.draftRootActivationName = oEntitySetAnnotations[sCommonVocabularyDraftRoot]
+								[sActivationAction].String;
 						}
-						if (this._oDraftMetadata.draftRootActivationName) {
-							this._oDraftMetadata.draftRootActivationName = this._oDraftMetadata.draftRootActivationName.substring(this._oDraftMetadata.draftRootActivationName
-								.lastIndexOf("/") + 1);
+						if (oDraftMetadata.draftRootActivationName) {
+							oDraftMetadata.draftRootActivationName = oDraftMetadata.draftRootActivationName
+								.substring(oDraftMetadata.draftRootActivationName.lastIndexOf("/") + 1);
 						}
-						this._oDraftMetadata.draftRootEditName = oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT][this
-							._oConstants.EDIT_ACTION
-						];
-						this._oDraftMetadata.draftRootEditName = this._oDraftMetadata.draftRootEditName ? this._oDraftMetadata.draftRootEditName.String :
-							undefined;
-						if (this._oDraftMetadata.draftRootEditName) {
-							this._oDraftMetadata.draftRootEditName = this._oDraftMetadata.draftRootEditName.substring(this._oDraftMetadata.draftRootEditName
-								.lastIndexOf("/") + 1);
+						oDraftMetadata.draftRootEditName = oEntitySetAnnotations[sCommonVocabularyDraftRoot]
+								[this._oConstants.EDIT_ACTION];
+						oDraftMetadata.draftRootEditName = oDraftMetadata.draftRootEditName
+							? oDraftMetadata.draftRootEditName.String
+							: undefined;
+						if (oDraftMetadata.draftRootEditName) {
+							oDraftMetadata.draftRootEditName = oDraftMetadata.draftRootEditName
+								.substring(oDraftMetadata.draftRootEditName.lastIndexOf("/") + 1);
 						}
-						this._oDraftMetadata.draftRootValidationName = oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT][this
-							._oConstants.VALIDATE_ACTION
-						];
-						this._oDraftMetadata.draftRootValidationName = this._oDraftMetadata.draftRootValidationName ? this._oDraftMetadata.draftRootValidationName
-							.String : undefined;
-						if (this._oDraftMetadata.draftRootValidationName) {
-							this._oDraftMetadata.draftRootValidationName = this._oDraftMetadata.draftRootValidationName.substring(this._oDraftMetadata.draftRootValidationName
-								.lastIndexOf("/") + 1);
+						oDraftMetadata.draftRootValidationName = oEntitySetAnnotations[sCommonVocabularyDraftRoot]
+							[this._oConstants.VALIDATE_ACTION];
+						oDraftMetadata.draftRootValidationName = oDraftMetadata.draftRootValidationName
+							? oDraftMetadata.draftRootValidationName.String
+							: undefined;
+						if (oDraftMetadata.draftRootValidationName) {
+							oDraftMetadata.draftRootValidationName = oDraftMetadata.draftRootValidationName
+								.substring(oDraftMetadata.draftRootValidationName.lastIndexOf("/") + 1);
 						}
-						this._oDraftMetadata.draftRootPreparationtionName = oEntitySetAnnotations[this._oConstants.COM_SAP_VOCABULARIES_COMMON_V1_DRAFTROOT]
-						[this
-							._oConstants.PREPARE_ACTION
-						];
-						this._oDraftMetadata.draftRootPreparationtionName = this._oDraftMetadata.draftRootPreparationtionName ? this._oDraftMetadata.draftRootPreparationtionName
-							.String : undefined;
-						if (this._oDraftMetadata.draftRootPreparationtionName) {
-							this._oDraftMetadata.draftRootPreparationtionName = this._oDraftMetadata.draftRootPreparationtionName.substring(this._oDraftMetadata
-								.draftRootPreparationtionName
-								.lastIndexOf("/") + 1);
+						oDraftMetadata.draftRootPreparationtionName = oEntitySetAnnotations[sCommonVocabularyDraftRoot]
+							[this._oConstants.PREPARE_ACTION];
+						oDraftMetadata.draftRootPreparationtionName = oDraftMetadata.draftRootPreparationtionName
+							? oDraftMetadata.draftRootPreparationtionName.String
+							: undefined;
+						if (oDraftMetadata.draftRootPreparationtionName) {
+							oDraftMetadata.draftRootPreparationtionName = oDraftMetadata.draftRootPreparationtionName
+								.substring(oDraftMetadata.draftRootPreparationtionName.lastIndexOf("/") + 1);
 						}
 						// extend the mockserver with addtional draft functionality encapsulated in this file
 						jQuery.extend(oMockServer, this);
+						oMockServer._oDraftMetadata  = oDraftMetadata;
 						// A new draft is created with a POST request on the entity set for the root entities.
-						oMockServer.attachAfter(MockServer.HTTPMETHOD.POST, fnNewDraftPost, this._oDraftMetadata.draftRootName);
-						// A new draft can be deleted with a DELETE request to the root entity of the new draft; the root entity and all dependent entities will be deleted
-						oMockServer.attachBefore(MockServer.HTTPMETHOD.DELETE, fnDraftDelete, this._oDraftMetadata.draftRootName);
+						oMockServer.attachAfter(MockServer.HTTPMETHOD.POST, fnNewDraftPost,
+							oDraftMetadata.draftRootName);
+						// A new draft can be deleted with a DELETE request to the root entity of the new draft;
+						// the root entity and all dependent entities will be deleted
+						oMockServer.attachBefore(MockServer.HTTPMETHOD.DELETE, fnDraftDelete,
+							oDraftMetadata.draftRootName);
 						// Active documents without a related draft should return null for DraftAdministrativeData
-						oMockServer.attachAfter(MockServer.HTTPMETHOD.GET, this._fnDraftAdministrativeData, this._oDraftMetadata.draftRootName);
+						oMockServer.attachAfter(MockServer.HTTPMETHOD.GET, this._fnDraftAdministrativeData,
+							oDraftMetadata.draftRootName);
 					}
 				}
 			}
@@ -156,6 +167,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 		 */
 		_prepareDraftMetadata: function(mEntitySets) {
 			var that = this;
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			this._oDraftMetadata.draftNodes = [];
 			this._oDraftMetadata.draftRootKey = mEntitySets[this._oDraftMetadata.draftRootName].keys.filter(function(x) {
 				return that._calcSemanticKeys(that._oDraftMetadata.draftRootName, mEntitySets).indexOf(x) < 0;
@@ -188,7 +200,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 				if (aData.results) {
 					aData = aData.results;
 				} else {
-					if (jQuery.isEmptyObject(aData)) {
+					if (isEmptyObject(aData)) {
 						aData = null;
 						return;
 					}
@@ -343,6 +355,8 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 		 * @param {object} oEntry the draft document
 		 */
 		_activate: function(oEntry) {
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
+			var syncAjax = MockServer._syncAjax;
 			var oResponse;
 			var fnGrep = function(aContains, aContained) {
 				return aContains.filter(function(x) {
@@ -353,7 +367,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 			for (var i = 0; i < this._oDraftMetadata.draftNodes.length; i++) {
 				for (var navprop in this._mEntitySets[this._oDraftMetadata.draftRootName].navprops) {
 					if (this._mEntitySets[this._oDraftMetadata.draftRootName].navprops[navprop].to.entitySet === this._oDraftMetadata.draftNodes[i]) {
-						oResponse = jQuery.sap.sjax({
+						oResponse = syncAjax({
 							url: oEntry[navprop].__deferred.uri,
 							dataType: "json"
 						});
@@ -368,7 +382,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 								var aSemanticDraftNodeKeys = this._calcSemanticKeys(this._oDraftMetadata.draftNodes[i], this._mEntitySets);
 								var sDraftKey = fnGrep(this._mEntitySets[this._oDraftMetadata.draftNodes[i]].keys, aSemanticDraftNodeKeys);
 								oNode[sDraftKey] = this._oConstants.EMPTY_GUID;
-								jQuery.sap.sjax({
+								syncAjax({
 									url: oNode.__metadata.uri,
 									type: "PATCH",
 									data: JSON.stringify(oNode)
@@ -382,7 +396,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 			oEntry.HasActiveEntity = false;
 			oEntry.HasDraftEntity = false;
 			oEntry[this._oDraftMetadata.draftRootKey] = this._oConstants.EMPTY_GUID;
-			jQuery.sap.sjax({
+			syncAjax({
 				url: oEntry.__metadata.uri,
 				type: "PATCH",
 				data: JSON.stringify(oEntry)
@@ -396,6 +410,8 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 
 		setRequests: function(aRequests) {
 			var that = this;
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
+			var syncAjax = MockServer._syncAjax;
 			aRequests.push({
 				method: "POST",
 				path: new RegExp(that._oDraftMetadata.draftRootActivationName),
@@ -405,7 +421,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 					for (var property in oRequestBody) {
 						aFilter.push(property + " eq " + oRequestBody[property]);
 					}
-					var oResponse = jQuery.sap.sjax({
+					var oResponse = syncAjax({
 						url: that._oDraftMetadata.mockServerRootUri + that._oDraftMetadata.draftRootName + "?$filter=" + aFilter.join(" and "),
 						dataType: "json"
 					});
@@ -421,13 +437,13 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 					if (oEntry.HasActiveEntity) {
 						// edit draft activiation --> delete active sibling
 						var oSiblingEntityUri = oEntry.SiblingEntity.__deferred.uri;
-						oResponse = jQuery.sap.sjax({
+						oResponse = syncAjax({
 							url: oSiblingEntityUri,
 							dataType: "json"
 						});
 						if (oResponse.success && oResponse.data && oResponse.data.d.__metadata) {
 							var oSibling = oResponse.data.d;
-							oResponse = jQuery.sap.sjax({
+							oResponse = syncAjax({
 								url: oSibling.__metadata.uri,
 								type: "DELETE"
 							});
@@ -449,7 +465,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 					response: function(oXhr, sUrlParams) {
 						var aFilter = [];
 						var oRequestBody = JSON.parse(oXhr.requestBody);
-						if (oRequestBody && !jQuery.isEmptyObject(oRequestBody)) {
+						if (oRequestBody && !isEmptyObject(oRequestBody)) {
 							for (var property in oRequestBody) {
 								aFilter.push(property + " eq " + oRequestBody[property]);
 							}
@@ -466,7 +482,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 								}
 							}
 						}
-						var oResponse = jQuery.sap.sjax({
+						var oResponse = syncAjax({
 							url: that._oDraftMetadata.mockServerRootUri + that._oDraftMetadata.draftRootName + "?$filter=" + aFilter.join(" and "),
 							dataType: "json"
 						});
@@ -504,7 +520,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 						});
 						that._oMockdata[that._oDraftMetadata.draftRootName].push(oDraftEntry);
 						// update the active with HasDraftEntity = true
-						oResponse = jQuery.sap.sjax({
+						oResponse = syncAjax({
 							url: oEntry.__metadata.uri,
 							type: "PATCH",
 							data: JSON.stringify({
@@ -575,7 +591,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 						for (var property in oRequestBody) {
 							aFilter.push(property + " eq " + oRequestBody[property]);
 						}
-						var oResponse = jQuery.sap.sjax({
+						var oResponse = syncAjax({
 							url: that._oDraftMetadata.mockServerRootUri + that._oDraftMetadata.draftRootName + "?$filter=" + aFilter.join(" and "),
 							dataType: "json"
 						});
@@ -605,20 +621,21 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 		},
 
 		_generateMockdata: function(mEntitySets, sBaseUrl) {
-
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			MockServer.prototype._generateMockdata.apply(this, [mEntitySets, sBaseUrl]);
 
 			this._handleDraftArtifacts(mEntitySets);
 		},
 
 		_loadMockdata: function(mEntitySets, sBaseUrl) {
-
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			MockServer.prototype._loadMockdata.apply(this, [mEntitySets, sBaseUrl]);
 
 			this._handleDraftArtifacts(mEntitySets);
 		},
 
 		_resolveNavigation: function(sEntitySetName, oFromRecord, sNavProp, oEntry) {
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			var aEntries = MockServer.prototype._resolveNavigation.apply(this, [sEntitySetName, oFromRecord, sNavProp, oEntry]);
 			if (sNavProp === this._oConstants.SIBLINGENTITY_NAVIGATION) {
 				if (oEntry && oEntry.IsActiveEntity) {
@@ -639,12 +656,14 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 		},
 
 		_findEntitySets: function(oMetadata) {
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			var mEntitySets = MockServer.prototype._findEntitySets.apply(this, [oMetadata]);
 			this._prepareDraftMetadata(mEntitySets);
 			return mEntitySets;
 		},
 
 		getEntitySetData: function(sEntitySet) {
+			var MockServer = sap.ui.require("sap/ui/core/util/MockServer");
 			var aEntitySet = MockServer.prototype.getEntitySetData.apply(this, [sEntitySet]);
 			var fnGetParameter = function() {
 				return aEntitySet;

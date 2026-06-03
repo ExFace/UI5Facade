@@ -42,4 +42,23 @@ class UI5RangeFilter extends UI5Filter
         
         return $this;
     }
+
+    /**
+     * Returns the two inner filter elements (from/to) of this range filter.
+     * Used by UI5DataConfigurator::buildJsFilterValueSetter to generate separate
+     * setter conditions for the from and to comparators.
+     *
+     * @return \exface\UI5Facade\Facades\Elements\UI5Filter[]
+     */
+    public function getInnerFilterElements() : array
+    {
+        $elements = [];
+        foreach ($this->getWidgetInlineGroup()->getWidgets() as $widget) {
+            $element = $this->getFacade()->getElement($widget);
+            if ($element instanceof UI5Filter) {
+                $elements[] = $element;
+            }
+        }
+        return $elements;
+    }
 }

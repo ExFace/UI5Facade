@@ -24,7 +24,7 @@ class UI5Display extends UI5Value
     use JsValueScaleTrait;
     
     const ICON_YES_TABLE = "sap-icon://accept";
-    const ICON_NO_TABLE = "null";
+    const ICON_NO_TABLE = "";
     const ICON_YES_FORM = "sap-icon://message-success";
     const ICON_NO_FORM = "sap-icon://border";
 

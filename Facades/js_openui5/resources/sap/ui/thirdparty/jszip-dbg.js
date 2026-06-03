@@ -292,7 +292,13 @@ function JSZip(data, options) {
     //   "folder/" : {...},
     //   "folder/data.txt" : {...}
     // }
-    this.files = {};
+    // ##### BEGIN: MODIFIED BY SAP
+    // this.files = {};
+    // NOTE: we use a null prototype because we do not
+    // want filenames like "toString" coming from a zip file
+    // to overwrite methods and attributes in a normal Object.
+    this.files = Object.create(null);
+    // ##### END: MODIFIED BY SAP
 
     // Where we are in the hierarchy
     this.root = "";
@@ -322,6 +328,9 @@ module.exports = JSZip;
 'use strict';
 var base64 = require('./base64');
 var ZipEntries = require('./zipEntries');
+// ##### BEGIN: MODIFIED BY SAP
+var utils = require('./utils');
+// ##### END: MODIFIED BY SAP
 module.exports = function(data, options) {
     var files, zipEntries, i, input;
     options = options || {};
@@ -333,18 +342,30 @@ module.exports = function(data, options) {
     files = zipEntries.files;
     for (i = 0; i < files.length; i++) {
         input = files[i];
-        this.file(input.fileName, input.decompressed, {
+        // ##### BEGIN: MODIFIED BY SAP
+        // this.file(input.fileName, input.decompressed, {
+        var unsafeName = input.fileName;
+        var safeName = utils.resolve(input.fileName);
+        this.file(safeName, input.decompressed, {
+        // ##### END: MODIFIED BY SAP
             binary: true,
             optimizedBinaryString: true,
             date: input.date,
             dir: input.dir
         });
+        // ##### BEGIN: MODIFIED BY SAP
+        if (!input.dir) {
+            this.file(safeName).unsafeOriginalName = unsafeName;
+        }
+        // ##### END: MODIFIED BY SAP
     }
 
     return this;
 };
 
-},{"./base64":1,"./zipEntries":15}],9:[function(require,module,exports){
+// ##### BEGIN: MODIFIED BY SAP
+},{"./base64":1,"./zipEntries":15, './utils': 14}],9:[function(require,module,exports){
+// ##### END: MODIFIED BY SAP
 'use strict';
 var support = require('./support');
 var utils = require('./utils');
@@ -905,9 +926,11 @@ var out = {
         var result = [],
             filename, relativePath, file, fileClone;
         for (filename in this.files) {
-            if (!this.files.hasOwnProperty(filename)) {
-                continue;
-            }
+            // ##### BEGIN: MODIFIED BY SAP
+            // if (!this.files.hasOwnProperty(filename)) {
+            //    continue;
+            // }
+            // ##### END: MODIFIED BY SAP
             file = this.files[filename];
             // return a new object, don't let the user mess with our internal objects :)
             fileClone = new ZipObject(file.name, file._data, extend(file.options));
@@ -1036,9 +1059,11 @@ var out = {
 
         // first, generate all the zip parts.
         for (var name in this.files) {
-            if (!this.files.hasOwnProperty(name)) {
-                continue;
-            }
+            // ##### BEGIN: MODIFIED BY SAP
+            // if (!this.files.hasOwnProperty(name)) {
+            //     continue;
+            // }
+            // ##### END: MODIFIED BY SAP
             var file = this.files[name];
 
             var compressionName = file.options.compression || options.compression.toUpperCase();
@@ -1600,6 +1625,33 @@ exports.transformTo = function(outputType, input) {
     var result = transform[inputType][outputType](input);
     return result;
 };
+
+// ##### BEGIN: MODIFIED BY SAP
+/**
+ * Resolve all relative path components, "." and "..", in a path. If these relative components
+ * traverse above the root then the resulting path will only contain the final path component.
+ *
+ * All empty components, e.g. "//", are removed.
+ * @param {string} path A path with / or \ separators
+ * @returns {string} The path with all relative path components resolved.
+ */
+exports.resolve = function(path) {
+    var parts = path.split("/");
+    var result = [];
+    for (var index = 0; index < parts.length; index++) {
+        var part = parts[index];
+        // Allow the first and last component to be empty for trailing slashes.
+        if (part === "." || (part === "" && index !== 0 && index !== parts.length - 1)) {
+            continue;
+        } else if (part === "..") {
+            result.pop();
+        } else {
+            result.push(part);
+        }
+    }
+    return result.join("/");
+};
+// ##### END: MODIFIED BY SAP
 
 /**
  * Return the type of the input.

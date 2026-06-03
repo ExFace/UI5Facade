@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the JSON model implementation of a property binding
 sap.ui.define([
 	'sap/ui/model/ChangeReason',
@@ -32,9 +32,18 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientPropertyBinding
 	 * @protected
 	 */
-	var JSONPropertyBinding = ClientPropertyBinding.extend("sap.ui.model.json.JSONPropertyBinding");
+	var JSONPropertyBinding = ClientPropertyBinding.extend("sap.ui.model.json.JSONPropertyBinding", /** @lends sap.ui.model.json.JSONPropertyBinding.prototype */ {
 
-	/**
+		constructor : function(oModel, sPath, oContext, mParameters){
+			ClientPropertyBinding.apply(this, arguments);
+			if (this.isRelative()) {
+				this.sPreviousResolvedPath = this.getResolvedPath();
+			}
+		}
+
+	});
+
+	/*
 	 * @see sap.ui.model.PropertyBinding.prototype.setValue
 	 */
 	JSONPropertyBinding.prototype.setValue = function(oValue){
@@ -51,10 +60,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Check whether this Binding would provide new values and in case it changed,
-	 * inform interested parties about this.
+	 * Check whether this Binding would provide new values and in case it changed, fire a change
+	 * event with change reason <code>Change</code>.
 	 *
-	 * @param {boolean} bForceupdate
+	 * @param {boolean} [bForceupdate]
+	 *   Whether the change event will be fired regardless of the bindings state
 	 *
 	 */
 	JSONPropertyBinding.prototype.checkUpdate = function(bForceupdate){
@@ -63,10 +73,13 @@ sap.ui.define([
 		}
 
 		var oValue = this._getValue();
-		if (!deepEqual(oValue, this.oValue) || bForceupdate) {// optimize for not firing the events when unneeded
+		if (!deepEqual(oValue, this.oValue)
+				|| (this.isRelative() && this.sPreviousResolvedPath !== this.getResolvedPath())
+				|| bForceupdate) {
 			this.oValue = oValue;
 			this.getDataState().setValue(this.oValue);
 			this.checkDataState();
+			this.sPreviousResolvedPath = this.getResolvedPath();
 			this._fireChange({reason: ChangeReason.Change});
 		}
 	};

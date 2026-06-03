@@ -1,18 +1,21 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.QuickViewBase.
 sap.ui.define([
+	"./NavContainer",
+	"./Page",
 	"./library",
 	"sap/ui/core/Control",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "firstFocusableDomRef"
 	"sap/ui/dom/jquery/Focusable"
-], function (library, Control, KeyCodes, jQuery) {
+
+], function (NavContainer, Page, library, Control, KeyCodes, jQuery) {
 	"use strict";
 
 	/**
@@ -27,13 +30,12 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.28.11
 	 * @alias sap.m.QuickViewBase
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var QuickViewBase = Control.extend("sap.m.QuickViewBase", /** @lends sap.m.QuickViewBase.prototype */ {
 		metadata: {
@@ -54,15 +56,18 @@ sap.ui.define([
 					multiple: true,
 					singularName: "page",
 					bindable: "bindable"
-				}
+				},
+
+				/**
+				 * The navigation container managed by the QuickViewBase control.
+				 */
+				_navContainer : {type : "sap.m.NavContainer", multiple : false, visibility : "hidden"}
 			},
 			events: {
 
 				/**
 				 * The event is fired when navigation between two pages has been triggered.
 				 * The transition (if any) to the new page has not started yet.
-				 * This event can be aborted by the application with preventDefault(),
-				 * which means that there will be no navigation.
 				 */
 				navigate: {
 					allowPreventDefault : true,
@@ -204,6 +209,19 @@ sap.ui.define([
 			render: function () {}
 		}
 	});
+
+	/**
+	 * Initialize the control.
+	 *
+	 * @private
+	 */
+	QuickViewBase.prototype.init = function() {
+		this._oNavContainer = new NavContainer(this.getId() + "-navContainer");
+		this.setAggregation("_navContainer", this._oNavContainer);
+		this._oNavContainer.addPage(new Page());
+		this._oNavContainer.attachNavigate(this._navigate.bind(this));
+		this._oNavContainer.attachAfterNavigate(this._afterNavigate.bind(this));
+	};
 
 	/**
 	 * Navigates to the previous page if there is such.

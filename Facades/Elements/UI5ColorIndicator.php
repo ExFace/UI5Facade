@@ -3,7 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\ColorIndicator;
 use exface\Core\CommonLogic\Constants\Colors;
-use exface\UI5FAcade\Facades\UI5PropertyBinding;
+use exface\UI5Facade\Facades\UI5PropertyBinding;
 
 /**
  * Renders a ColorIndicator widget as sap.ui.core.Icon with a colored circle.

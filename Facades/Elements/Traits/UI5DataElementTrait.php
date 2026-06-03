@@ -9,6 +9,7 @@ use exface\Core\Exceptions\Widgets\WidgetFunctionArgumentError;
 use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
+use exface\Core\Interfaces\Widgets\iHaveSidebar;
 use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
@@ -17,6 +18,7 @@ use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
+use exface\UI5Facade\Facades\Elements\UI5Sidebar;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -116,6 +118,8 @@ use exface\Core\Widgets\DataLookupDialog;
 trait UI5DataElementTrait {
     
     use UI5HelpButtonTrait;
+    use UI5TourGuideTrait;
+    use UI5SidebarTrait;
     
     private $quickSearchElement = null;
     
@@ -312,10 +316,21 @@ JS;
         }
         
         if ($this->isWrappedInDynamicPage()){
-            return $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
+            $js = $this->buildJsPage($js, $oControllerJs) . $initModels . $this->buildJsAddCssWidgetClasses();
         } else {
-            return $js . $initModels . $this->buildJsAddCssWidgetClasses();
+            $js = $js . $initModels . $this->buildJsAddCssWidgetClasses();
         }
+        
+        if ($this->getWidget() instanceof iHaveSidebar && $this->getWidget()->hasSidebar()) {
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
+        }
+        
+        $controller->addOnInitScript($this->buildJsWindowTourContent());
+        
+        return $js;
     }
 
     /**
@@ -539,7 +554,9 @@ JS;
             return '';
         }
         
-        $setupsTable = $this->getP13nElement()->getWidget()->getSetupsTab()->getWidgetFirst();
+        /* @var $configuratorWidget \exface\Core\Widgets\DataTableConfigurator */
+        $configuratorWidget = $this->getP13nElement()->getWidget();
+        $setupsTable = $configuratorWidget->getSetupsTab()->getWidgetFirst();
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
 
         // default captions
@@ -586,6 +603,7 @@ JS;
 JS;
 
         // button to save a new setup
+        $saveSetupBtnEl = $this->getFacade()->getElement($configuratorWidget->getButtonToSaveSetup());
         $saveSetupBtnJs = <<<JS
             new sap.m.Button({
                 text: "{$translator->translate('WIDGET.DATACONFIGURATOR.SETUPS_TAB_SAVE')}",
@@ -597,7 +615,7 @@ JS;
                     // generated: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator_saveSetupBtn
                     // expected: x11eeaef721a6f716aef7005056bef75d__SplitHorizontal_SplitPanel_DataTable_DataToolbar_ButtonGroup_DataButton04_Dialog_Tabs_Tab03_DataTable_DataTableConfigurator"+'_saveSetupBtn'
 
-                    let oSaveSetupBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'_saveSetupBtn');
+                    let oSaveSetupBtn = sap.ui.getCore().byId('{$saveSetupBtnEl->getId()}');
                     if (oSaveSetupBtn){
                         oSaveSetupBtn.firePress();
                     }
@@ -863,7 +881,7 @@ JS;
                             var oPopover = sap.ui.getCore().byId(sPopoverId);
                             if (oPopover === undefined) {
                                 oPopover = new sap.m.Popover(sPopoverId, {
-                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}}',
+                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
                                     content: [
                                         new sap.m.List({
                                             mode: "Delete",
@@ -1062,12 +1080,13 @@ if (jqFullscreenContainer.length == 0){
     return;
 }
 
-
-//set the z-index of the fullscreen dynamically so it works with popovers
-var iZIndex = 0;
-var iMaxZIndex = 0;
-var parent = jqFullscreenContainer.parent();
-if (isNaN(jqFullscreenContainer.css('z-index'))) {
+if (jqFullscreenContainer.hasClass('fullscreen') === false) {
+    // Enter full-screen
+    //set the z-index of the fullscreen dynamically so it works with popovers
+    var iZIndex = 0;
+    var iMaxZIndex = 0;
+    var parent = jqFullscreenContainer.parent();
+    jqButton._zIndexDefault = jqFullscreenContainer.css('z-index');
     //get the maximum z-index of parent elements of the data element
     while (parent.length !== 0 && parent[0].tagName !== "BODY") {
         iZIndex = parseInt(parent.css("z-index"));
@@ -1090,15 +1109,15 @@ if (isNaN(jqFullscreenContainer.css('z-index'))) {
     });    
     iMaxZIndex = iMaxZIndex + 1;
     jqFullscreenContainer.css('z-index', iMaxZIndex);
-}
 
-if (jqFullscreenContainer.hasClass('fullscreen') === false) {
     jqButton._originalParent = jqFullscreenContainer.parent();
     jqFullscreenContainer.appendTo($('#sap-ui-static')[0]).addClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE')}");
     oButton.setIcon('sap-icon://exit-full-screen');
 } else {
+    // Exit full-screen
+    jqFullscreenContainer.css('z-index', jqButton._zIndexDefault);
     jqFullscreenContainer.appendTo(jqButton._originalParent).removeClass('fullscreen');
     oButton.setTooltip("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
     oButton.setText("{$this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE')}");
@@ -1870,9 +1889,7 @@ JS;
             $this->getController()->addOnInitScript($this->buildJsPrefillFiltersFromRouteParams());
         }
         
-        $top_buttons = '';
-        
-        $this->addTourDropdownToToolbar();
+        $top_buttons = $this->buildJsTourGuideDropdown($widget, $this->getController());
         
         // Add the search-button
         $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
@@ -1893,6 +1910,7 @@ JS;
             }
             $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
+        $top_buttons .= $this->buildJsSidebarToggleButton(true);
         
         // Add a title. If the dynamic page is actually the view, the title should be the name
         // of the page, the view represents - otherwise it's the caption of the table widget.
@@ -3330,7 +3348,7 @@ JS;
 
     /**
      * 
-     * @see \exface\UI5FAcade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsCallFunction()
      */
     public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
     {
@@ -3383,55 +3401,5 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
-    }
-
-    /**
-     * Places a dropdown menu in the toolbar with all available tours for a widget.
-     */
-    protected function addTourDropdownToToolbar() : void
-    {
-        $widget = $this->getWidget();
-        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return;
-        }
-        
-        $this->registerDriverJsAsExternalModule();
-
-        $tours = $widget->getTourGuide()->getTours();
-        $driver = $this->getFacade()->getTourDriver($widget);
-        $toolbar = $this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions();
-
-        $buttons = [];
-        foreach ($tours as $tour) {
-            $buttons[] = [
-                    'caption' => $tour->getTitle(),
-                    'action'  => [
-                        'alias'  => 'exface.Core.CustomFacadeScript',
-                        'icon' => $tour->getIcon() ?? '',
-                        'script' => $driver->buildJsStartTour($tour)
-                    ],
-                ];
-        }
-        
-        $toolbar->addButton($toolbar->createButton(new UxonObject([
-            'widget_type' => 'MenuButton',
-            'icon' => 'road',
-            'caption' => 'Tour guide',
-            'hide_caption' => true,
-            'buttons' => $buttons
-        ])), 0);
-    }
-
-    /**
-     * imports the driver.js library and adds the necessary CSS for the tours to work.
-     * 
-     * @return void
-     */
-    protected function registerDriverJsAsExternalModule() : void
-    {
-        $controller = $this->getController();
-        $facade = $this->getFacade();
-        $controller->addExternalModule('libs.exface.Driver', $facade->buildUrlToSource("LIBS.DRIVER.JS"), null, 'driver');
-        $controller->addExternalCss($facade->buildUrlToSource("LIBS.DRIVER.CSS")); 
     }
 }

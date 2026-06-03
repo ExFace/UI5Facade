@@ -28,6 +28,7 @@ class UI5DataConfigurator extends UI5Tabs
     use JqueryDataConfiguratorTrait {
         buildJsDataGetter as buildJsDataGetterViaTrait;
         buildJsResetter as buildJsResetterViaTrait;
+        buildJsFilterGetter as buildJsFilterGetterViaTrait;
     }
     
     const EVENT_BUTTON_OK = 'ok';
@@ -122,7 +123,9 @@ class UI5DataConfigurator extends UI5Tabs
         if ($dataElement instanceof UI5DataTable) {
             // Need to add a controller variable here because the configurator constructor is
             // rendered BEFORE the constrcutor of the table.
-            $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+            } 
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -262,13 +265,167 @@ function(){
                 "columns": columns,
                 "sortables": sortables,
                 "searchables": searchables,
-                "sorters": [{$this->buildJsonModelForInitialSorters()}]
+                "sorters": [{$this->buildJsonModelForInitialSorters()}],
+                "header_filters": []
             }
             oModel.setData(data);
             return oModel;        
         }()
 JS;
     }
+    
+    /**
+     * Returns JavaScript code to reset all visible, non-optional filters to empty values.
+     * This is used before applying a new set of filter values, ensuring all filters are cleared first.
+     *
+     * @return string JavaScript function to clear visible, non-optional filters
+     */
+    public function buildJsResetVisibleFilters() : string
+    {
+        $resetJs = '';
+        foreach ($this->getWidget()->getFilters() as $filter) {
+            $filterElement = $this->getFacade()->getElement($filter);
+            
+            // only reset visible, non-optional filters
+            if (! $filterElement->isVisible() || $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL) {
+                continue;
+            }
+
+            // Range filters expand into two inner from/to filter elements; regular filters produce one
+            $elementsToProcess = $filterElement instanceof UI5RangeFilter
+                ? $filterElement->getInnerFilterElements()
+                : [$filterElement];
+
+            foreach ($elementsToProcess as $el) {
+                $resetter = $el->buildJsResetter();
+                $resetJs .= <<<JS
+try {
+    $resetter;
+} catch (error) {
+    console.warn("Could not reset filter value: ", error);
+}
+JS;
+            }
+        }
+
+        return <<<JS
+function() {
+    // reset all visible filters 
+    {$resetJs}
+}
+JS;
+    }
+
+    /**
+     * Returns a JS function expression that, when called with an array of condition objects and values, sets the provided filter values.
+     *
+     * Each item in the array must be a condition object. Two formats are supported: Regular conditions (filters with a simple attribute alias)
+     * and nested condition groups (filters with a `condition_group` UXON). For normal filters, the `expression` and `comparator` properties 
+     * are compared to determine which filter to set. For nested groups, the whole group is compared.
+     *
+     * Only visible, non-optional filters are considered. After applying all values, the configured widget
+     * is refreshed to load data with the new filter state.
+     * 
+     * Example usage:
+     * 
+     * var aVals = [
+     *   {expression: "STATUS", comparator: "=", value: "1"},
+     *   {group: {nested: true, group: [{expression: "A"}, {expression: "B"}]}, value: "foo"}
+     * ];
+     * var fnSet = {$this->buildJsVisibleFilterValueSetter()};
+     * fnSet(aVals);
+     *
+     * @return string JS function expression
+     */
+    public function buildJsVisibleFilterValueSetter() : string
+    {
+        $conditions = '';
+        $busyControlIds = [];
+        $refreshWidget = $this->getFacade()->getElement($this->getWidget()->getWidgetConfigured())->buildJsRefresh();
+        
+        foreach ($this->getWidget()->getFilters() as $filter) {
+            
+            /** @var \exface\Core\Widgets\Filter $filter */
+            $filterElement = $this->getFacade()->getElement($filter);
+            $alias = $filter->getAttributeAlias();
+                
+            // only consider visible filters
+            if (! $filterElement->isVisible() || $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL) {
+                continue;
+            }
+
+            // Range filters expand into two inner from/to filter elements; regular filters produce one
+            $elementsToProcess = $filterElement instanceof UI5RangeFilter
+                ? $filterElement->getInnerFilterElements()
+                : [$filterElement];
+
+            // build JS if/else conditions to set the data of each visible filter element using its ValueSetter
+            foreach ($elementsToProcess as $el) {
+                // get the inner input element ID for the busy check (those are the ones that actaully are set busy)
+                $inputEl = $el instanceof UI5Filter ? $this->getFacade()->getElement($el->getWidget()->getInputWidget()) : $el;
+                $busyControlIds[] = $inputEl->getId();
+                $setter = $el->buildJsValueSetter('mVal');
+                $comparatorGetter = $el->buildJsComparatorGetter();
+                $prefix = $conditions === '' ? 'if' : ' else if';
+                
+                if ($filter->hasCustomConditionGroup()) {
+                    // For filters with custom (nested) condition groups, compare by group structure instead of alias
+                    $expectedGroupUxon = $filter->getCustomConditionGroup()->exportUxonObject()->toJson();
+                    $matchCondition = "oCondition.nested && exfTools.data.compareJSONObjects(oCondition.group, {$expectedGroupUxon}, ['value'])";
+                    $errorMessage = 'Error setting filter value for nested condition group from widget setup: ';
+                } else {
+                    // otherwise chekc for alias and comparator
+                    $matchCondition = "oCondition.expression === {$this->escapeString($alias)} && oCondition.comparator === {$comparatorGetter}";
+                    $errorMessage = "Error setting filter value for filter with alias {$alias} from widget setup: ";
+                }
+
+                $conditions .= <<<JS
+{$prefix} ({$matchCondition}) {
+    try {
+        {$setter};
+    } catch (error) {
+        console.error("{$errorMessage}", error);
+    }
+}
+JS;
+            }
+        }
+        $busyControlIdsJs = json_encode(array_values(array_unique($busyControlIds)));
+
+        return <<<JS
+function(aValues) {
+
+    // set new values
+    aValues.forEach(function(oCondition) {
+        var mVal = oCondition.value;
+        {$conditions}
+    });
+
+    // wait until all updated filter controls are not busy anymore
+    var aWaitControlIds = {$busyControlIdsJs} || [];
+    var iWaitStepMs = 50;
+
+    var fnHasBusyControls = function() {
+        return aWaitControlIds.some(function(sId) {
+            var oControl = sap.ui.getCore().byId(sId);
+            return oControl && typeof oControl.getBusy === 'function' && oControl.getBusy() === true;
+        });
+    };
+
+    var fnRefreshWhenReady = function() {
+        if (!fnHasBusyControls()) {
+            // refresh the widget after values have been set to request data with new filters
+            {$refreshWidget}
+            return;
+        }
+        setTimeout(fnRefreshWhenReady, iWaitStepMs);
+    };
+
+    setTimeout(fnRefreshWhenReady, 0);
+}
+JS;
+    }
+
                
     /**
      * 
@@ -461,7 +618,7 @@ JS;
          * and allows table designers to position optional columns meaningfully.
          */
         if ($resetSelection === true) {
-            $resetSelection = "oItem.persistentSelected = oColConfig._initialVisibility; oColConfig.visible = oColConfig._initialVisibility; oItem.persistentIndex = iItemIdx";
+            $resetSelection = "oItem.persistentSelected = oColConfig.visibleInitially; oColConfig.visible = oColConfig.visibleInitially; oItem.persistentIndex = iItemIdx";
         } else {
             $resetSelection = '';
         }
@@ -472,7 +629,14 @@ JS;
                 // and changes are then only applied when panel is openend for the second time
                 setTimeout(function(){
                     try {
-                            var oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
+                            let oTable = null;
+                            if (oPanel.getAggregation('content')[1] !== undefined){
+                                oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
+                            }
+                            else{
+                                // UI5-Upgrade - structure changed, need to get table content differently
+                                oTable = oPanel.getAggregation('content')[0];
+                            }
                             var oTableModel = oTable.getModel();
                             var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
                             if (oTableModel === undefined || oConfigModel === undefined) return;
@@ -577,7 +741,7 @@ JS;
                     "column_name" => $col->getDataColumnName(),
                     "caption" => $col->getCaption(),
                     "visible" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
-                    "_initialVisibility" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
+                    "visibleInitially" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "toggleable" => $col->isHidden() ? false : true
                 ];
             }
@@ -589,7 +753,9 @@ JS;
     {
         $data = [];
         $widget = $this->getWidget();
+        $filterableAliases = [];
 
+        // Allow filtering over all columns - directly visible or optional column selectable on-demand
         if ($this->hasTabColumns() === true) {
             $cols = $widget->getDataWidget()->getColumns();
             // Add all optional columns from the configurator here
@@ -601,13 +767,61 @@ JS;
                 if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
                     continue;
                 }
-                $data[] = [
+                $filterableAliases[] = $col->getAttributeAlias();
+                // Use captions as keys avoid duplicates
+                $data[$col->getCaption()] = [
                     "attribute_alias" => $col->getAttributeAlias(),
                     "caption" => $col->getCaption()
                 ];
             }
         }
-        return json_encode($data);
+
+        // Also add all regular filters to the advanced search filters
+        foreach ($widget->getFilters() as $filter) {
+            // Prevent duplicates
+            switch (true) {
+                // If this caption is already in the list (same caption simply is useless even if the aliases are different)
+                case array_key_exists($filter->getCaption(), $data):
+                // If this alias is already in the list
+                case in_array($filter->getAttributeAlias(), $filterableAliases):
+                // Skip hidden filters in general
+                case ! $this->getFacade()->getElement($filter)->isVisible():
+                    continue 2;
+            }
+            $filterAttr = $filter->getAttribute();
+            $filterAttrAlias = $filter->getAttributeAlias();
+            switch (true) {              
+                case $filterAttr === null:
+                    // If the filter has no attribute, skip it
+                    continue 2;
+                // Relation filters will produce InputComboTables, so to transform them to a text-filter, we
+                // need to filter over the corresponding LABEL. This will not work on aggregations though.
+                case $filterAttr->isRelation() && ! DataAggregation::hasAggregation($filterAttrAlias):
+                    $filterRightObj = $filterAttr->getRelation()->getRightObject();
+                    if ($filterRightObj->hasLabelAttribute()) {
+                        $data[$filter->getCaption()] = [
+                            "attribute_alias" => RelationPath::join($filterAttr->getAliasWithRelationPath(), $filterRightObj->getLabelAttributeAlias()),
+                            "caption" => $filter->getCaption()
+                        ];
+                    } else {
+                        // If we do not have a LABEL - what should we filter over? The UID?
+                        // Skip this case for now
+                        continue 2;
+                    }
+                    break;
+                // Regular filters can be added as-is
+                default:
+                    $data[$filter->getCaption()] = [
+                        'attribute_alias' => $filter->getAttributeAlias(),
+                        "caption" => $filter->getCaption()
+                    ];
+                    break;
+            }
+        }
+        // Sort sortables by caption
+        ksort($data);
+        
+        return json_encode(array_values($data), JSON_UNESCAPED_UNICODE);
     }
     
     
@@ -701,10 +915,18 @@ JS;
         $filters_hidden = '';
         foreach ($this->getWidget()->getFilters() as $filter) {
             $filter_element = $this->getFacade()->getElement($filter);
-            if (! $filter_element->isVisible()) {
-                $filters_hidden .= $this->buildJsFilter($filter_element);
-            } else {
-                $filters .= $this->buildJsFilter($filter_element);
+            switch(true) { 
+                case ! $filter_element->isVisible(): 
+                    $filters_hidden .= $this->buildJsFilter($filter_element);
+                    break;
+                case $filter->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL:
+                    $filter->setHidden(true);
+                    $filters_hidden .= $this->buildJsFilter($filter_element);
+                    // Optional filters will be rendered in `buildJsonModelForSearchables()` only
+                    break;
+                default:
+                    $filters .= $this->buildJsFilter($filter_element);
+                    break;
             }
         }
         return $filters . $filters_hidden;
@@ -851,12 +1073,29 @@ JS;
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
 
         // if we are exporting, send only visible columns; otherwise send all columns
-        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));        
+        $isExportAction = $this->escapeBool($action && $action->implementsInterface('iExportData'));
         
+        $configuratorFiltersJs = $this->buildJsFilterGetterViaTrait();
+        if ($configuratorFiltersJs === '') {
+            $configuratorFiltersJs = '{}';
+        }
         return <<<JS
 
 function(){
     var oData = {$this->buildJsDataGetterViaTrait($action)};
+
+    if (oData.filters) {
+        // save current state of filters in model (to be used in widget setups)
+        try {
+            let oFilters = {$configuratorFiltersJs};
+            var oDialog = sap.ui.getCore().byId('{$this->getId()}');
+            var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
+            oCurrentModel.setProperty('/header_filters', oFilters);
+        } catch (error) {
+            console.error("Error saving filters to model: ", error);
+        }
+    }
+
     var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getFilterItems();
     var i = 0;
     var fnNot = function(oCondition) {
@@ -875,7 +1114,8 @@ function(){
                 expression: oFilter.getColumnKey(), 
                 comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
                 value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
-                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}"
+                object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
+                apply_to_aggregates: false
             };
             includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
         });
@@ -902,11 +1142,19 @@ JS;
     /**
      * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
      * 
-     * This method needs an array of column definitions. It is actually not important what type/class of columns
+     * The AJAX request will include all visible columns (including optional columns, that were made visible by the user)
+     * and globally hidden columns (e.g. those added by buttons or conditions). Each AJAX column will have the following
+     * data:
+     * - name
+     * - attribute_alias (if bound to attribute and the alias differs from the column name)
+     * - expression (if not bound to an attribute, but using a calculation instead)
+     * 
+     * This method needs an array of column definitions. It is actually not important what JS type/class of columns
      * they are - each must only have:
      * - .data('_exfDataColumnName')
      * - .data('_exfAttributeAlias')
      * - .data('_exfCalculation')
+     * - .data('_exfHiddenColumn')
      * 
      * @param string $aCurrentColumnsJs
      * @param string $oDataJs
@@ -928,26 +1176,25 @@ JS;
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns 
-                    // do this only for export actions: otherwise it throws an error 
-                    // if we are doing a normal read for a datatable that only has optional columns
-                    // TODO/FIXME: if no columns are visible in a table by default, do we need to read at all? 
-                    if (bIsExportAction === true && oColumn.getVisible() === false) {
+                    // skip invisible columns unless they are explicitly hidden columns, which we still need to read
+                    // beacause they are always hidden
+                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn')) {
                         return;
                     }
-
                     var oColParam;
-                    if (oColumn.data('_exfDataColumnName')) {
-                        if (oColumn.data('_exfAttributeAlias')) {
+                    var sColName = oColumn.data('_exfDataColumnName');
+                    var sAttrAlias = oColumn.data('_exfAttributeAlias');
+                    if (sColName) {
+                        if (sAttrAlias) {
                             oColParam = {
-                                attribute_alias: oColumn.data('_exfAttributeAlias')
+                                attribute_alias: sAttrAlias
                             };
-                            if (oColumn.data('_exfDataColumnName') !== oColParam.attribute_alias) {
-                                oColParam.name = oColumn.data('_exfDataColumnName');
+                            if (sColName !== oColParam.attribute_alias) {
+                                oColParam.name = sColName;
                             }
                         } else if (oColumn.data('_exfCalculation')) {
                             oColParam = {
-                                name: oColumn.data('_exfDataColumnName'),
+                                name: sColName,
                                 expression: oColumn.data('_exfCalculation')
                             };
                         }
@@ -1059,6 +1306,12 @@ JS;
         if ($this->hasTabColumns() === true) {
             $dataElement = $this->getDataElement();
             if ($dataElement instanceof UI5DataTable) {
+                $controller = $this->getController();
+                // Need to add a controller variable here because the configurator constructor is
+                // rendered BEFORE the constrcutor of the table.
+                if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
+                    $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
+                }                
                 $refreshP13n = $dataElement->buildJsRefreshPersonalization();
             }
             

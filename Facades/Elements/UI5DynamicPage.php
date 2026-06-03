@@ -11,7 +11,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Interfaces\AjaxFacadeElementInterface
  * 
  * @author Andrej Kabachnik
  *
- * @method \exface\UI5FAcade\Facades\UI5Facade getFacade()
+ * @method \exface\UI5Facade\Facades\UI5Facade getFacade()
  */
 class UI5DynamicPage extends UI5AbstractElement 
 {    

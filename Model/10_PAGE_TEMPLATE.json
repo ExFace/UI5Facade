@@ -80,33 +80,64 @@
             }
         },
         {
-            "_EXPORT_SUMMARY": "SAP Fiori 3",
+            "_EXPORT_SUMMARY": "SAP Fiori 3 (Quartz)",
             "CREATED_ON": "2020-03-10 12:48:54",
-            "MODIFIED_ON": "2020-03-25 12:36:33",
+            "MODIFIED_ON": "2025-05-16 16:46:09",
             "CREATED_BY_USER": "0x11e9545e8e69e0d8b95b00505689aada",
             "MODIFIED_BY_USER": "0x31000000000000000000000000000000",
             "UID": "0x11ea62c5217900d48cf48c04ba002958",
             "APP": "0x11e837e87a640bfd91380205857feb80",
-            "NAME": "SAP Fiori 3",
-            "DESCRIPTION": "Responsive template based on OpenUI5 and the SAP Fiori 3 theme",
-            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
+            "NAME": "SAP Fiori 3 (Quartz)",
+            "DESCRIPTION": "Responsive template based on OpenUI5 and the SAP Fiori 3 \"Quartz\" theme",
+            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "theme": "sap_fiori_3"
             }
         },
         {
-            "_EXPORT_SUMMARY": "SAP Fiori 3 mobile",
+            "_EXPORT_SUMMARY": "SAP Fiori 3 mobile (Quartz)",
             "CREATED_ON": "2020-03-10 12:49:17",
-            "MODIFIED_ON": "2020-03-25 12:36:10",
+            "MODIFIED_ON": "2025-05-16 16:46:18",
             "CREATED_BY_USER": "0x11e9545e8e69e0d8b95b00505689aada",
             "MODIFIED_BY_USER": "0x31000000000000000000000000000000",
             "UID": "0x11ea62c52f90ca6d8cf48c04ba002958",
             "APP": "0x11e837e87a640bfd91380205857feb80",
-            "NAME": "SAP Fiori 3 mobile",
-            "DESCRIPTION": "Mobile template based on OpenUI5 and the SAP Fiori 3 theme",
-            "FACADE": "exface/ui5facade/Facades/UI5Facade.php",
+            "NAME": "SAP Fiori 3 mobile (Quartz)",
+            "DESCRIPTION": "Mobile template based on OpenUI5 and the SAP Fiori 3 \"Quartz\" theme",
+            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
             "FACADE_UXON": {
                 "theme": "sap_fiori_3",
+                "content_density": "cozy"
+            }
+        },
+        {
+            "_EXPORT_SUMMARY": "SAP Fiori 4 (Horizon)",
+            "CREATED_ON": "2025-05-16 16:45:18",
+            "MODIFIED_ON": "2025-05-16 16:45:18",
+            "CREATED_BY_USER": "0x31000000000000000000000000000000",
+            "MODIFIED_BY_USER": "0x31000000000000000000000000000000",
+            "UID": "0x11f09b3362c144fa9b33025041000001",
+            "APP": "0x11e837e87a640bfd91380205857feb80",
+            "NAME": "SAP Fiori 4 (Horizon)",
+            "DESCRIPTION": "Responsive template based on OpenUI5 and the SAP Fiori 4 \"Horizon\" theme",
+            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE_UXON": {
+                "theme": "sap_horizon"
+            }
+        },
+        {
+            "_EXPORT_SUMMARY": "SAP Fiori 4 mobile (Horizon)",
+            "CREATED_ON": "2025-05-16 16:45:51",
+            "MODIFIED_ON": "2025-05-16 16:45:51",
+            "CREATED_BY_USER": "0x31000000000000000000000000000000",
+            "MODIFIED_BY_USER": "0x31000000000000000000000000000000",
+            "UID": "0x11f0a36976720296a369025041000001",
+            "APP": "0x11e837e87a640bfd91380205857feb80",
+            "NAME": "SAP Fiori 4 mobile (Horizon)",
+            "DESCRIPTION": "Mobile template based on OpenUI5 and the SAP Fiori 4 \"Horizon\" theme",
+            "FACADE": "exface/UI5Facade/Facades/UI5Facade.php",
+            "FACADE_UXON": {
+                "theme": "sap_horizon",
                 "content_density": "cozy"
             }
         }

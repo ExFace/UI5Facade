@@ -175,7 +175,8 @@ JS;
         
         return <<<JS
 
-            {$dataElem->buildJsConstructor()},
+            {$dataElem->buildJsConstructor()}
+            .addStyleClass("exf-datacarousel-data-element"),
             new sap.m.Panel('{$this->getId()}-DetailPanel', {
                 headerText: {$headerText},
                 height: "{$detailsHeightCss}",
@@ -265,7 +266,23 @@ JS;
             var oTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}');
             var oRowSelected = {$this->getDataElement()->buildJsDataGetter($action)}.rows[0];
             var oModel = oTable.getModel();
+            let aData = oModel.getData().rows;
+
+            // if data is empty, return
+            if (aData === undefined) {
+                return;
+            }
+
             var iRowIdx = exfTools.data.indexOfRow(oModel.getData().rows, oRowSelected);
+
+            if (oRowSelected === undefined && oSplit.getModel('_innerState').getProperty('/currentRowIdx') !== undefined) {
+                // try and restore selection if index was saved in the state of control
+                iRowIdx = oSplit.getModel('_innerState').getProperty('/currentRowIdx');
+                if (aData.length > iRowIdx) {
+                    {$this->getDataElement()->buildJsSelectRowByIndex('oTable', 'iRowIdx')}
+                }
+            }
+            
             var sPath = '/rows/' + iRowIdx;
             var oControl, oBindingInfo;
             var oBtnPrev = sap.ui.getCore().byId('{$this->getId()}-details-btn-prev');
@@ -301,11 +318,25 @@ JS;
         })();
         
 JS;
+
+        $resetBindingScript = <<<JS
+
+        (function() {
+            var oSplit = sap.ui.getCore().byId('{$this->getId()}');
+            oSplit.getModel('_innerState').setProperty('/currentRowIdx', undefined);
+        })();
+
+JS;
+
         if (method_exists($this->getDataElement(), 'addOnSelectScript')) {
             $this->getDataElement()->addOnSelectScript($bindingScript);
         } else {
             $this->getDataElement()->addOnChangeScript($bindingScript);
         }
+
+        // reset selection on show
+        $this->getController()->addOnShowViewScript($resetBindingScript);
+
         return $this;
     }
     
@@ -437,13 +468,17 @@ JS;
     {
         return <<<JS
 
-        sap.ui.getCore().byId('{$this->getId()}-DetailPanel')
-        .setBusyIndicatorDelay(0)
-        .setBusy(true)
-        .addStyleClass('exf-busy-text');
-        setTimeout(function(){
-            $('#{$this->getId()}-DetailPanel .sapUiLocalBusyIndicator').prepend($('<div class="exf-busy-text-content">{$this->translate('WIDGET.DATACAROUSEL.DETAILS_EMPTY_HINT')}</div>'));
-        },0);
+        var oDetailPanel = sap.ui.getCore().byId('{$this->getId()}-DetailPanel');
+        oDetailPanel.setBusyIndicatorDelay(0).setBusy(true);
+        oDetailPanel.addStyleClass('exf-busy-text');
+
+        // add text overlay only once
+        setTimeout(function() {
+            var busyIndicator = $('#{$this->getId()}-DetailPanel .sapUiLocalBusyIndicator');
+            if (busyIndicator.find('.exf-busy-text-content').length === 0) {
+                busyIndicator.prepend($('<div class="exf-busy-text-content">{$this->translate('WIDGET.DATACAROUSEL.DETAILS_EMPTY_HINT')}</div>'));
+            }
+        }, 0);
 JS;
     }
     

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -66,27 +66,11 @@ sap.ui.define([
 		 */
 
 		/**
-		 * Whether the current operating system is BlackBerry
-		 * @type {boolean}
-		 * @public
-		 * @deprecated since 1.20 use {@link sap.ui.Device.os.blackberry} instead
-		 * @name jQuery.os.blackberry
-		 */
-
-		/**
 		 * Whether the current operating system is Apple iOS
 		 * @type {boolean}
 		 * @public
 		 * @deprecated since 1.20 use {@link sap.ui.Device.os.ios} instead
 		 * @name jQuery.os.ios
-		 */
-
-		/**
-		 * Whether the current operating system is Windows Phone
-		 * @type {boolean}
-		 * @public
-		 * @deprecated since 1.20 use {@link sap.ui.Device.os.windows_phone} instead
-		 * @name jQuery.os.winphone
 		 */
 
 		/**
@@ -176,10 +160,19 @@ sap.ui.define([
 			android_tablet: Device.system.tablet && Device.os.android,
 
 			/**
-			 * Whether the running device is a tablet.
-			 * If a desktop browser runs in mobile device simulation mode (with URL parameter
-			 * sap-ui-xx-test-mobile), this property will also be set according to the simulated platform. This
-			 * property will be false when runs in desktop browser.
+			 * If this flag is set to <code>true</code>, the device is recognized as a tablet.
+			 *
+			 * Furthermore, a CSS class <code>sap-tablet</code> is added to the document root element.
+			 *
+			 * <b>Note:</b> This flag is also <code>true</code> for some browsers running on desktop devices. See the documentation for {@link sap.ui.Device.system.combi} devices.
+			 * You can use the following logic to ensure that the current device is a tablet device:
+			 *
+			 * <pre>
+			 * if(sap.ui.Device.system.tablet && !sap.ui.Device.system.desktop){
+			 *	...tablet related commands...
+			 * }
+			 * </pre>
+			 *
 			 * @type {boolean}
 			 * @deprecated since 1.17.0 use {@link sap.ui.Device.system.tablet} instead
 			 * @public
@@ -187,10 +180,14 @@ sap.ui.define([
 			tablet: Device.system.tablet,
 
 			/**
-			 * Whether the running device is a phone.
-			 * If a desktop browser runs in mobile device simulation mode (with URL parameter
-			 * sap-ui-xx-test-mobile), this property will also be set according to the simulated platform. This
-			 * property will be false when runs in desktop browser.
+			 * If this flag is set to <code>true</code>, the device is recognized as a phone.
+			 *
+			 * Furthermore, a CSS class <code>sap-phone</code> is added to the document root element.
+			 *
+			 * <b>Note:</b> In case a phone requests a web page as a "Desktop Page", it is possible
+			 * that all properties except <code>Device.system.phone</code> are set to <code>true</code>.
+			 * In this case it is not possible to differentiate between tablet and phone relying on the user agent.
+			 *
 			 * @type {boolean}
 			 * @deprecated since 1.17.0 use {@link sap.ui.Device.system.phone} instead
 			 * @public
@@ -198,9 +195,14 @@ sap.ui.define([
 			phone: Device.system.phone,
 
 			/**
-			 * Whether the running device is a desktop browser.
-			 * If a desktop browser runs in mobile device simulation mode (with URL parameter
-			 * sap-ui-xx-test-mobile), this property will be false.
+			 * If this flag is set to <code>true</code>, the device is recognized as a desktop system.
+			 *
+			 * Furthermore, a CSS class <code>sap-desktop</code> is added to the document root element.
+			 *
+			 * <b>Note:</b> This flag is by default also true for Safari on iPads running on iOS 13 or higher.
+			 * The end user can change this behavior by disabling "Request Desktop Website -> All websites" within the iOS settings.
+			 * See also the documentation for {@link sap.ui.Device.system.combi} devices.
+			 *
 			 * @type {boolean}
 			 * @deprecated since 1.17.0 use {@link sap.ui.Device.system.desktop} instead
 			 * @public
@@ -222,16 +224,12 @@ sap.ui.define([
 	 * <ul>
 	 * <li>viewport: whether to set the viewport in a way that disables zooming (default: true)</li>
 	 * <li>statusBar: the iOS status bar color, "default", "black" or "black-translucent" (default: "default")</li>
-	 * <li>hideBrowser: whether the browser UI should be hidden as far as possible to make the app feel more native
-	 * (default: true)</li>
 	 * <li>preventScroll: whether native scrolling should be disabled in order to prevent the "rubber-band" effect
 	 * where the whole window is moved (default: true)</li>
 	 * <li>preventPhoneNumberDetection: whether Safari Mobile should be prevented from transforming any numbers
 	 * that look like phone numbers into clickable links; this should be left as "true", otherwise it might break
 	 * controls because Safari actually changes the DOM. This only affects all page content which is created after
 	 * initMobile is called.</li>
-	 * <li>rootId: the ID of the root element that should be made fullscreen; only used when hideBrowser is set
-	 * (default: the document.body)</li>
 	 * <li>useFullScreenHeight: a boolean that defines whether the height of the html root element should be set to
 	 * 100%, which is required for other elements to cover the full height (default: true)</li>
 	 * <li>homeIcon: deprecated since 1.12, use {@link jQuery.sap.setIcons} instead.
@@ -243,14 +241,10 @@ sap.ui.define([
 	 * @param {boolean} [options.viewport=true] whether to set the viewport in a way that disables zooming
 	 * @param {string}  [options.statusBar='default'] the iOS status bar color, "default", "black" or
 	 *     "black-translucent"
-	 * @param {boolean} [options.hideBrowser=true] whether the browser UI should be hidden as far as possible to
-	 *     make the app feel more native
 	 * @param {boolean} [options.preventScroll=true] whether native scrolling should be disabled in order to
 	 *     prevent the "rubber-band" effect where the whole window is moved
 	 * @param {boolean} [options.preventPhoneNumberDetection=true] whether Safari mobile should be prevented from
 	 *     transforming any numbers that look like phone numbers into clickable links
-	 * @param {string}  [options.rootId] the ID of the root element that should be made fullscreen; only used when
-	 *     hideBrowser is set. If not set, the body is used
 	 * @param {boolean} [options.useFullScreenHeight=true] whether the height of the html root element should be
 	 *     set to 100%, which is required for other elements to cover the full height
 	 * @param {string}  [options.homeIcon=undefined] deprecated since 1.12, use {@link jQuery.sap.setIcons} instead.
@@ -276,8 +270,8 @@ sap.ui.define([
 	 *
 	 * The home icons must be in PNG format and given in different sizes for iPad/iPhone with and without retina
 	 * display. The favicon is used in the browser and for desktop shortcuts and should optimally be in ICO format:
-	 * PNG does not seem to be supported by Internet Explorer and ICO files can contain different image sizes for
-	 * different usage locations. E.g. a 16x16px version is used inside browsers.
+	 * ICO files can contain different image sizes for different usage locations. E.g. a 16x16px version is used
+	 * inside browsers.
 	 *
 	 * All icons are given in an an object holding icon URLs and other settings. The properties of this object are:
 	 * <ul>

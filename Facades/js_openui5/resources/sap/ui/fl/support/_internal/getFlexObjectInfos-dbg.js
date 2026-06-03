@@ -1,0 +1,50 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+
+sap.ui.define([
+	"sap/ui/fl/apply/_internal/flexState/changes/UIChangesState",
+	"sap/ui/fl/apply/_internal/flexState/controlVariants/VariantManagementState",
+	"sap/ui/fl/apply/_internal/flexState/FlexObjectState",
+	"sap/ui/fl/apply/_internal/flexState/FlexState",
+	"sap/ui/fl/initial/_internal/ManifestUtils"
+], function(
+	UIChangesState,
+	VariantManagementState,
+	FlexObjectState,
+	FlexState,
+	ManifestUtils
+) {
+	"use strict";
+
+	/**
+	 * Returns an array with several FlexObject infos for the application.
+	 * WARNING: No deep clone - Returns original object references to ensure that prototype methods
+	 * stay intact. Do not mutate.
+	 *
+	 * @namespace sap.ui.fl.support._internal.getFlexObjectInfos
+	 * @since 1.128
+	 * @version 1.144.0
+	 * @private
+	 * @ui5-restricted sap.ui.fl.support.api.SupportAPI
+	 */
+
+	function getFlexObjectInfos(oCurrentAppContainerObject) {
+		const oAppComponent = oCurrentAppContainerObject.oContainer.getComponentInstance();
+		const sReference = ManifestUtils.getFlexReferenceForControl(oAppComponent);
+		return {
+			allUIChanges: UIChangesState.getAllUIChanges(sReference),
+			allFlexObjects: FlexState.getFlexObjectsDataSelector().get({ reference: sReference }),
+			dirtyFlexObjects: FlexObjectState.getDirtyFlexObjects(sReference),
+			completeDependencyMap: FlexObjectState.getCompleteDependencyMap(sReference),
+			liveDependencyMap: FlexObjectState.getLiveDependencyMap(sReference),
+			variantManagementMap: VariantManagementState.getVariantManagementMap().get({ reference: sReference })
+		};
+	}
+
+	return function(oAppComponent) {
+		return Promise.resolve(getFlexObjectInfos(oAppComponent));
+	};
+});

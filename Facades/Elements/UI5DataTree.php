@@ -99,6 +99,7 @@ class UI5DataTree extends UI5DataTable
                 {$this->buildJsOnOpenScript('oEvent')}
             },
         })
+        {$this->buildJsHeaderFilterFunctions()}
         {$this->buildJsClickHandlers('oController')}
         {$this->buildJsPseudoEventHandlers()}
 JS;

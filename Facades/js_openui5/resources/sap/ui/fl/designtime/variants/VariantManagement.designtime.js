@@ -1,6 +1,7 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/fl/Utils"],function(f){"use strict";var s=function(v,d){var a=f.getAppComponentForControl(v);var c=v.getId();var m=a.getModel(f.VARIANT_MODEL_NAME);var V=a.getLocalId(c)||c;if(!m){return;}m.setModelPropertiesForControl(V,d,v);m.checkUpdate(true);};return{annotations:{},properties:{showExecuteOnSelection:{ignore:false},showSetAsDefault:{ignore:false},manualVariantKey:{ignore:false},inErrorState:{ignore:false},editable:{ignore:false},modelName:{ignore:false},updateVariantInURL:{ignore:false}},variantRenameDomRef:function(v){return v.getTitle().getDomRef("inner");},customData:{},tool:{start:function(v){var d=true;s(v,d);},stop:function(v){var d=false;s(v,d);}}};});
+sap.ui.define(["sap/ui/core/Lib","sap/ui/fl/apply/api/ControlVariantApplyAPI","sap/ui/fl/Utils"],function(e,t,r){"use strict";async function a(e,a){var n=r.getAppComponentForControl(e);var o=e.getId();var i=n.getModel(t.getVariantModelName());var s=n.getLocalId(o)||o;if(!i){return}if(a){await e.waitForInit()}i.setModelPropertiesForControl(s,a,e);i.checkUpdate(true)}return{annotations:{},properties:{showSetAsDefault:{ignore:false},inErrorState:{ignore:false},editable:{ignore:false},modelName:{ignore:false},updateVariantInURL:{ignore:true},resetOnContextChange:{ignore:true},executeOnSelectionForStandardDefault:{ignore:false},displayTextForExecuteOnSelectionForStandardVariant:{ignore:false},headerLevel:{ignore:false}},variantRenameDomRef(e){return e.getTitle().getDomRef("inner")},customData:{},tool:{start(e){var t=true;a(e,t);e.enteringDesignMode()},stop(e){var t=false;a(e,t);e.leavingDesignMode()}},actions:{controlVariant(t){return{validators:["noEmptyText",{validatorFunction(e){return!t.getVariants().some(function(r){if(r.getKey()===t.getCurrentVariantReference()){return false}return e.toLowerCase()===r.getTitle().toLowerCase()&&r.getVisible()})},errorMessage:e.getResourceBundleFor("sap.m").getText("VARIANT_MANAGEMENT_ERROR_DUPLICATE")}]}}}}});
+//# sourceMappingURL=VariantManagement.designtime.js.map

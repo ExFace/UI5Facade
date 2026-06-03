@@ -50,6 +50,7 @@ class UI5KPI extends UI5Display
         return <<<JS
         
                 new sap.m.NumericContent("{$this->getId()}", {
+                    truncateValueTo: 7, 
                     nullifyValue: false,
                     withMargin: false,
                     {$this->buildJsPropertyIcon()}

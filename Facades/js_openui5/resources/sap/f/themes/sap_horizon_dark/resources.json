@@ -1,0 +1,108 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".theming",
+			"size": 95,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "AvatarGroup.less",
+			"size": 1957,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "Card.less",
+			"size": 659,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "CardHeaders.less",
+			"size": 461,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "DynamicPage.less",
+			"size": 5432,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "DynamicPageHeader.less",
+			"size": 887,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "DynamicPageTitle.less",
+			"size": 4234,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "FlexibleColumnLayout.less",
+			"size": 1483,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "GridList.less",
+			"size": 402,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "GridListItem.less",
+			"size": 460,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "ShellBar.less",
+			"size": 15956,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "SidePanel.less",
+			"size": 728,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 156229,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "sap/f/themes/sap_horizon_dark/library-parameters.json",
+			"size": 3125,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "library.css",
+			"size": 156248,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "library.less",
+			"size": 33868,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "library.source.less",
+			"size": 640,
+			"designtime": true,
+			"theme": "sap_horizon_dark"
+		},
+		{
+			"name": "resources.json",
+			"size": 1957
+		}
+	]
+}

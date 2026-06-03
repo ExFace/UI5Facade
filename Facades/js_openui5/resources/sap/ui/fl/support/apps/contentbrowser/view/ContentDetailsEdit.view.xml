@@ -3,7 +3,6 @@
 		  xmlns:f="sap.ui.layout.form">
 	<Page title="{path: 'selectedContent>/', formatter: '.oDataUtils.formatItemTitle'}">
 		<f:SimpleForm
-				minWidth="1024"
 				maxContainerCols="1"
 				editable="false"
 				layout="ResponsiveGridLayout"
@@ -18,6 +17,7 @@
 				<ToolbarSpacer />
 				<Button text="{i18n>save}" press=".onSave" />
 				<Button text="{i18n>cancel}" press=".onCancel" />
+				<CheckBox id="activeVersionCheckBox" text="{i18n>onActiveVersion}" valueState="Warning" visible="false"/>
 			</Toolbar>
 		</footer>
 	</Page>

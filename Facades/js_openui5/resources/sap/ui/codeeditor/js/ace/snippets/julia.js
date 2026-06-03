@@ -1,1 +1,2 @@
-ace.define("ace/snippets/julia",["require","exports","module"],function(r,e,m){"use strict";e.snippetText="";e.scope="julia";});(function(){ace.require(["ace/snippets/julia"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/julia"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=julia.js.map

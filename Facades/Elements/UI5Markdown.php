@@ -80,28 +80,7 @@ JS;
 
     protected function buildJsMarkdownInitEditor(bool $isViewer = false) : string
     {
-        $widget = $this->getWidget();
-        $contentJs = $this->escapeString($widget->getValueWithDefaults(), true, false);
-        
-        return <<<JS
-
-            function(){
-                var ed = toastui.Editor.factory({
-                    el: document.querySelector('#{$this->getId()}'),
-                    height: '100%',
-                    initialValue: ($contentJs || ''),
-                    autofocus: false,
-                    viewer: true,
-                    events: {
-                        change: function(){
-                            {$this->getOnChangeScript()} 
-                        }    
-                    }
-                });
-                
-                return ed;
-            }();
-JS;
+        return $this->buildJsMarkdownInitViewer();
     }
 
     /**
@@ -112,8 +91,10 @@ JS;
     public function registerExternalModules(\exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface $controller) : UI5AbstractElement
     {
         $controller->addExternalModule('libs.exface.custom.toastUi', $this->getFacade()->buildUrlToSource('LIBS.TOASTUI.EDITOR.JS'), 'toastui');
-        //$controller->addExternalModule('libs.exface.custom.mermaid', $this->getFacade()->buildUrlToSource('LIBS.MERMAID.JS'), 'mermaid');
         $controller->addExternalCss('vendor/npm-asset/toast-ui--editor/dist/toastui-editor.css');
+        if ($this->getWidget()->hasRenderMermaidDiagrams()) {
+            $controller->addExternalModule('libs.exface.custom.mermaid', $this->getFacade()->buildUrlToSource('LIBS.MERMAID.JS'), 'mermaid');
+        }
         return $this;
     }
 

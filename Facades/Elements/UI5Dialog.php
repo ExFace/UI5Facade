@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\Dashboard;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -43,7 +44,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  *        
  */
 class UI5Dialog extends UI5Form
-{
+{    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -297,9 +298,13 @@ JS
 				{$this->buildJsObjectPageSections($oControllerJs)}
 			]
 		})
+
 JS;
         if ($this->getWidget()->hasSidebar()) {
-            $js = $this->buildJsSidebarWrapperConstructor($js, $oControllerJs);
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
         }
         return $js;
     }
@@ -320,6 +325,7 @@ JS;
         }
         return <<<JS
                 
+                {$this->buildJsTourGuideDropdown($widget, $this->getController())}
                 {$headerButtonsJs}
                 {$this->buildJsHelpButtonConstructor($oControllerJs)}
                 {$this->buildJsSidebarToggleButton()}
@@ -996,9 +1002,14 @@ JS;
             $fillerWidget = $tab->getFillerWidget();
             switch (true) {
                 case $fillerWidget instanceof Split:
+                    $cssClass .= ' exf-tab-split';
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
+                    break;
+                case $fillerWidget instanceof Dashboard:
+                    $cssClass .= ' exf-tab-dashboard';
+                    break;
             }
         } else {
             $cssClass = null;
@@ -1034,14 +1045,17 @@ JS;
     }
     
     /**
-     * Returns the button constructors for the dialog buttons.
+     * Returns the button constructors for the sap.m.Dialog buttons.
      * 
      * @return string
      */
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
-        $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
+        $widget = $this->getWidget();
+        $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
+        
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
+        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }
@@ -1220,63 +1234,5 @@ JS;
             return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
         }
         return parent::buildJsChangesGetter($onlyVisible);
-    }
-
-    /**
-     * @return string
-     */
-    protected function buildJsSidebarToggleButton() : string
-    {
-        if ($this->getWidget()->hasSidebar()) {
-            $sidebar = $this->getWidget()->getSidebar();
-            $icon = $sidebar->getIcon();
-            if ($icon !== null) {
-                $icon = $this->buildCssIconClass($icon);
-            } else {
-                $icon = 'sap-icon://screen-split-one';
-            }
-            return <<<JS
-
-                        new sap.m.Button({
-                            icon: '{$icon}',
-                            press: function(){
-                                var oSidebar = sap.ui.getCore().byId('{$this->getId()}_sidebar');
-                                oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
-                            }
-                        }),
-JS;
-
-        }
-        return '';
-    }
-
-    /**
-     * @param string $mainContentJs
-     * @param string $oControllerJs
-     * @return string
-     */
-    protected function buildJsSidebarWrapperConstructor(string $mainContentJs, string $oControllerJs) : string
-    {
-        if (! $this->getWidget()->hasSidebar()) {
-            return '';
-        }
-        $sidebar = $this->getWidget()->getSidebar();
-        $sideEl = $this->getFacade()->getElement($sidebar);
-        $sideEl->registerConditionalProperties();
-        
-        
-        return <<<JS
-
-new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
-    showSideContent: {$this->escapeBool($sidebar->isCollapsed() !== true)},
-    sideContent: [
-        {$sideEl->buildJsConstructor($oControllerJs)}
-    ],      
-    mainContent: [
-        $mainContentJs
-    ]
-})
-JS;
-
     }
 }

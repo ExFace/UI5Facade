@@ -386,10 +386,15 @@ JS);
                         },0);
             })
 JS;
-            // Also make sure tokens are destroyed when the bound model value is emptied. This does not happen automatically!
-            // In particular, this means, when a dialog is closed and reopened for another instance, the previous value remains
-            // in place until the new prefill finished loading. This looks stupid as all the other inputs are emptied right away.
-            // The setTimeout() is required to ensure, all bindings are already instantiated 
+            // Also make sure tokens are destroyed when the bound model value is emptied. This does not happen
+            // automatically!
+            // In particular, this means, when a dialog is closed and reopened for another instance, the previous value
+            // remains in place until the new prefill finished loading. This looks stupid as all the other inputs are
+            // emptied right away. The setTimeout() is required to ensure, all bindings are already instantiated.
+            // BUT: emptying a control on binding change should not always fire a control change event. For example, a
+            // prefill does binding-changes, but should not fire control-changes as all sorts of validators will
+            // listen to them - i.e. widgets with required_if would turn red immediately when a dialog is opened, which
+            // is distracting. Especially since it would only happen when controls are emptied.
             $this->getController()->addOnInitScript(<<<JS
 
             setTimeout(function(){
@@ -435,6 +440,7 @@ JS);
 			textFormatMode: "ValueKey",
 			showSuggestion: true,
             maxSuggestionWidth: "{$this->buildCssDropdownWidth()}",
+            valueHelpIconSrc: "sap-icon://sys-find",
             startSuggestion: function(){
                 return sap.ui.Device.system.phone ? 0 : 1;
             }(),
@@ -758,6 +764,11 @@ JS;
 				    start: 0,
                     data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
                 };
+                // if the autosuggest is silent, meaning its loading data for already existing values (for example after a prefill) we remove the length parameter
+                // else the autosuggest might not read all data, wenn already existing keys are more than the max suggestion propety
+                if (bSilent === true) {
+                    delete params.length;
+                }
                 $.extend(params, qParams);
 
                 var oModel = oInput.getModel('{$this->getModelNameForAutosuggest()}');
@@ -975,11 +986,11 @@ JS;
 
     /**
      * {@inheritDoc}
-     * @see \exface\UI5FAcade\Facades\Elements\UI5Input::buildJsEmpty()
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsEmpty()
      */
-    public function buildJsEmpty() : string
+    public function buildJsEmpty(bool $fireChange = true) : string
     {
-        return "sap.ui.getCore().byId('{$this->getId()}').{$this->buildJsEmptyMethod()}";
+        return "sap.ui.getCore().byId('{$this->getId()}').{$this->buildJsEmptyMethod($fireChange)}";
     }
     
     /**

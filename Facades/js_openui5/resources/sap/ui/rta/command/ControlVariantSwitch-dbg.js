@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/rta/command/BaseCommand",
-	"sap/ui/core/util/reflection/JsControlTreeModifier",
-	"sap/ui/fl/Utils"
+	"sap/ui/fl/apply/api/ControlVariantApplyAPI",
+	"sap/ui/fl/variants/VariantManager",
+	"sap/ui/fl/Utils",
+	"sap/ui/rta/command/BaseCommand"
 ], function(
-	BaseCommand,
-	JsControlTreeModifier,
-	flUtils
+	ControlVariantApplyAPI,
+	VariantManager,
+	flUtils,
+	BaseCommand
 ) {
 	"use strict";
 
@@ -20,47 +22,65 @@ sap.ui.define([
 	 * @class
 	 * @extends sap.ui.rta.command.BaseCommand
 	 * @author SAP SE
-	 * @version 1.82.0
+	 * @version 1.144.0
 	 * @constructor
 	 * @private
 	 * @since 1.50
 	 * @alias sap.ui.rta.command.ControlVariantSwitch
 	 */
-	var ControlVariantSwitch = BaseCommand.extend("sap.ui.rta.command.ControlVariantSwitch", {
-		metadata : {
-			library : "sap.ui.rta",
-			properties : {
-				targetVariantReference : {
-					type : "string"
+	const ControlVariantSwitch = BaseCommand.extend("sap.ui.rta.command.ControlVariantSwitch", {
+		metadata: {
+			library: "sap.ui.rta",
+			properties: {
+				targetVariantReference: {
+					type: "string"
 				},
-				sourceVariantReference : {
-					type : "string"
+				sourceVariantReference: {
+					type: "string"
+				},
+				discardVariantContent: {
+					type: "boolean"
+				},
+				/**
+				 * Discarded changes when user switches from a dirty variant choosing "discard"
+				 */
+				discardedChanges: {
+					type: "array"
 				}
 			},
-			associations : {},
-			events : {}
+			associations: {},
+			events: {}
+		},
+		constructor: function(...aArgs) {
+			BaseCommand.apply(this, aArgs);
+			this.setRelevantForSave(false);
 		}
 	});
 
-	ControlVariantSwitch.prototype._getAppComponent = function () {
-		var oElement = this.getElement();
-		return oElement ? flUtils.getAppComponentForControl(oElement) : this.getSelector().appComponent;
-	};
-
+	async function discardVariantContent(sVReference) {
+		const aDirtyChanges = await VariantManager.eraseDirtyChangesOnVariant(
+			this.sVariantManagementReference,
+			sVReference,
+			this.getElement()
+		);
+		this.setDiscardedChanges(aDirtyChanges);
+	}
 
 	/**
 	 * Template Method to implement execute logic, with ensure precondition Element is available.
+	 *
 	 * @public
 	 * @returns {Promise} Returns resolve after execution
 	 */
-	ControlVariantSwitch.prototype.execute = function() {
-		var oElement = this.getElement();
-		var oAppComponent = this._getAppComponent();
-		var sNewVariantReference = this.getTargetVariantReference();
+	ControlVariantSwitch.prototype.execute = async function() {
+		const oElement = this.getElement();
+		const sNewVariantReference = this.getTargetVariantReference();
+		this.sVariantManagementReference = oElement.getVariantManagementReference();
 
-		this.oModel = oAppComponent.getModel(flUtils.VARIANT_MODEL_NAME);
-		this.sVariantManagementReference = JsControlTreeModifier.getSelector(oElement, oAppComponent).id;
-		return this._updateModelVariant(sNewVariantReference, oAppComponent);
+		if (this.getDiscardVariantContent()) {
+			await discardVariantContent.call(this, this.getSourceVariantReference());
+		}
+		this._updateVariant(sNewVariantReference);
 	};
 
 	/**
@@ -68,22 +88,24 @@ sap.ui.define([
 	 * @public
 	 * @returns {Promise} Returns resolve after undo
 	 */
-	ControlVariantSwitch.prototype.undo = function() {
-		var sOldVariantReference = this.getSourceVariantReference();
-		var oAppComponent = this._getAppComponent();
-		return this._updateModelVariant(sOldVariantReference, oAppComponent);
+	ControlVariantSwitch.prototype.undo = async function() {
+		const sSourceVariantReference = this.getSourceVariantReference();
+
+		await this._updateVariant(sSourceVariantReference);
+		// When discarding, dirty changes on source variant need to be applied AFTER the switch
+		if (this.getDiscardVariantContent()) {
+			await VariantManager.addAndApplyChangesOnVariant(this.getDiscardedChanges(), this.getElement());
+			this.setDiscardedChanges([]);
+		}
 	};
 
-	/**
-	 * Update variant for the underlying model.
-	 * @private
-	 * @returns {Promise} Returns promise resolve
-	 */
-	ControlVariantSwitch.prototype._updateModelVariant = function (sVariantReference, oAppComponent) {
+	ControlVariantSwitch.prototype._updateVariant = async function(sVariantReference) {
 		if (this.getTargetVariantReference() !== this.getSourceVariantReference()) {
-			return Promise.resolve(this.oModel.updateCurrentVariant(this.sVariantManagementReference, sVariantReference, oAppComponent));
+			await ControlVariantApplyAPI.activateVariant({
+				element: this.getElement(),
+				variantReference: sVariantReference
+			});
 		}
-		return Promise.resolve();
 	};
 
 	return ControlVariantSwitch;

@@ -22,9 +22,18 @@ class UI5InputDateTime extends UI5InputDate
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
+        
+        // We need to analyze the formatting choice for this widget, to choose the right widget class.
+        $format = $this->getDateFormatter()->getFormat();
+        $isDateTime = preg_match('/[hHkKmsSA]/', $format) === 1;
+        
+        $class = $isDateTime ?
+            'DateTimePicker' :  // If the format does not include hours or seconds, DatePicker will suffice.
+            'DatePicker';       // If it DOES include hours or seconds, we need a DateTimePicker.
+        
         return <<<JS
 
-        new sap.m.DateTimePicker("{$this->getId()}", {
+        new sap.m.{$class}("{$this->getId()}", {
             {$this->buildJsProperties()}
 		})
         {$this->buildJsInternalModelInit()}

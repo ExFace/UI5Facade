@@ -1,1 +1,2 @@
-ace.define("ace/snippets/mysql",["require","exports","module"],function(r,e,m){"use strict";e.snippetText="";e.scope="mysql";});(function(){ace.require(["ace/snippets/mysql"],function(m){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=m;}});})();
+(function(){ace.require(["ace/snippets/mysql"],function(e){if(typeof module=="object"&&typeof exports=="object"&&module){module.exports=e}})})();
+//# sourceMappingURL=mysql.js.map
