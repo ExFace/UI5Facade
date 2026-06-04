@@ -113,6 +113,7 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .exf-tile > .sapMGTHdrContent.OneByOne > .sapMGTSubHdrTxt > .sapMText {white-space: normal;max-height: 3rem;  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;text-overflow: -o-ellipsis-lastline;}
 /* Fix remove grayish background on busy-indicator in tile content */
 .sapMTileCntContent > .sapMNC  > .sapUiLocalBusyIndicator {background-color: transparent;}
+.exf-card-with-tiles .exf-tiles > .sapMPanelContent {padding: 0; margin-top: -6px; margin-left: -6px; overflow: visible;}
 /* Fix to force 2-column tile menus even on phones with long narrow screens (centering on wider phones) */
 html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%} 
 /* Panels */
@@ -159,15 +160,18 @@ table.jexcel.jexcel_overflow {border-top: none; border-left: none;}
 .jdropdown-container.slide-bottom-in {bottom: initial !important;}
 .jexcel .editor > input {font-family: inherit; font-size: inherit; text-align: inherit !important; padding: 6px;}
 /* jExcel style as UI5 tables */
-table.jexcel > thead > tr > td {padding-left: 8px; padding-right: 8px; text-align: left !important;}
+table.jexcel > thead > tr > td {padding-left: 8px; padding-right: 8px; text-align: left !important; font-family: var(--sapFontFamily);}
 table.jexcel > tbody > tr, table.jexcel > thead > tr {height: 33px;}
 table.jexcel > tbody > tr.selected {background-color: #e5f0fa}
-table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) {border-top-color: #89919a; border-left-color: #89919a;}
+/* input cells: differentiate through darker borders */
+table.jexcel > tbody > tr > td:not(:first-child):not(.readonly):not(.highlight-selected) {
+    border-left-color: #666;
+    border-bottom: 1.5px solid #666;
+}
 table.jexcel > tbody > tr > td:not(.readonly):not(.highlight-selected) + td.readonly {border-left-color: #89919a;}
 table.jexcel > tbody > tr > td:last-child:not(.readonly):not(.highlight-selected) {border-right-color: #89919a}
-table.jexcel > tbody > tr:last-child > td:not(:first-child):not(.readonly):not(.highlight-selected) {border-bottom-color: #89919a;}
-table.jexcel > thead > tr > td {border-top-color: rgb(229, 229, 229); border-left-color: rgb(229, 229, 229); background-color: #f2f2f2;}
-table.jexcel > tbody > tr > td.jexcel_row {background-color: #f2f2f2; border-top-color: rgb(229, 229, 229) !important;}
+table.jexcel > thead > tr > td {border-top-color: rgb(140, 140, 140); border-left-color: rgb(140, 140, 140); background-color: #dcdcdc;}
+table.jexcel > tbody > tr > td.jexcel_row {background-color: #dcdcdc; border-top-color: rgb(140, 140, 140); border-left-color: rgb(140, 140, 140);}
 /*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
@@ -180,34 +184,88 @@ table.jexcel > tbody > tr > td.jexcel_dropdown {
     position: relative; 
 }
 
-table.jexcel > tbody > tr > td.jexcel_dropdown .dropdown-open  {
+table.jexcel > tbody > tr > td.jexcel_dropdown::after  {
+    content: '';
     position: absolute;
     right: 0px; 
     top: 0;
     width: 35px; 
     height: 100%;
-    aria-hidden: true; 
 }
 
-/* mark hitbox on hover */
-table.jexcel > tbody > tr > td.jexcel_dropdown:not(.readonly) .dropdown-open:hover  {
+/* mark hitbox on hover, class is set dynamically in JexcelTrait */
+table.jexcel > tbody > tr > td.jexcel_dropdown.exf-dropdown-hitbox-hover:not(.readonly)::after  {
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.05);  
 }
 
 /* flip arrow when dropdown is open */
 table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
+    background-color: transparent;
     background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray' transform='rotate(180 12 12)'/%3E%3C/svg%3E");
 }
 
+/* dropdown in header should not have white background */
+table.jexcel > thead .jdropdown{
+    background-color: #dcdcdc;
+}
+
+/* replace filter icon */
+table.jexcel .jexcel_column_filter {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='darkgray'%3E%3Cg transform='translate(4.8 4.8) scale(0.6)'%3E%3Cpath d='M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
 /* if wrapping is enabled for captions, hypenate and break lines */
-.exf-wrap-captions table.jexcel > thead > tr > td {
+.exf-wrap-captions table.jexcel > thead > tr > td:not(.jexcel_column_filter) {
     overflow: visible;
     overflow-wrap: normal;
     white-space: normal;
     vertical-align: text-top;
     hyphens: auto;
     padding-top: 4px !important;
+}
+
+/* contetx menu indicator above first cell in top left corner */
+table.jexcel > thead > tr > td.jexcel_selectall:hover {
+    background-color: #9c9c9c;
+}
+
+table.jexcel > thead > tr > td.jexcel_selectall::after {
+    content: "...";
+    position: absolute;
+    right: 36%;
+    top: 45%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    font-weight: bold;
+    color: #555;
+    pointer-events: none;
+}
+
+/* stop next cell from overlapping filter dropdown */
+table.jexcel > thead > tr:last-child > td.jexcel_column_filter {
+    position: inherit;
+}
+
+/* stripe dataspreadsheets */ 
+.exf-stripe-table table.jexcel > tbody > tr:nth-child(even):not(.selected) {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Border under header */
+table.jexcel > thead > tr:last-child > td {border-bottom: 1px solid rgb(140, 140, 140);}
+
+/* readonly: striped background and dotted/light borders */
+table.jexcel > tbody > tr:not(.selected) > td.readonly:not(.highlight-selected) {
+    background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.02) 4px, rgba(0, 0, 0, 0.02) 8px);
+    border-top: 0px dashed #a7a7a74d;
+    border-left: 1px solid #a7a7a74d; 
+}
+
+/* use disallowed cursor to differentiate readonly cells, but make text dark enough to read */
+table.jexcel > tbody > tr > td.readonly {
+    color: rgb(73, 73, 73);
+    cursor: not-allowed;
 }
 
 table.jexcel > tbody > tr > td.jexcel_dropdown { background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E");}
@@ -246,6 +304,9 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .sapUxAPObjectPageHeaderContent .sapUiVltCell > .sapMFT {margin-top: 0.25rem}
 /* TextHeading widgets in dialog headers*/
 .sapUxAPObjectPageHeaderContent .sapMLabel.exf-textheading {vertical-align: middle}
+/* Dialog with Split */
+html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterV > .sapUiLoSplitterBar {border-top-color:transparent; border-bottom-color: transparent;}
+html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterH > .sapUiLoSplitterBar {border-left-color: transparent; border-right-color: transparent;}
 /* Dialog (non-max) */
 html.sap-phone .sapMDialog {min-width: 20rem !important}
 html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !important}
@@ -428,13 +489,76 @@ the entire text from disappearing (...) if the text overflows */
     color: transparent;
 }
 
-/* NavTiles IconTabBar */
-.tileHeaderMarginTop {margin-top: 50px;}
-.customHeader {box-shadow: none;}
-.responsiveFlexbox {position: sticky; z-index: 1000; width: auto;}
-@media (max-width: 966px) {
-    .responsiveFlexbox {flex-direction: column;}
-    .customSearchField {padding-left: 16px;padding-right: 16px;}
+/* NavTiles IconTabBar & SearchFilter */
+.customHeader {
+    box-shadow: none;
+} 
+
+/* show sidenavigation popups over tabbar */
+.sapTntSideNavigation  .sapTntNLPopover.sapMPopover {
+    z-index: 2 !important;
+}
+.sapTntSideNavigation  .sapTntNLCollapsed .sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive):not(.sapTntNLINoHoverEffect) [tabindex]:hover {
+    z-index: 2;
+}
+
+/* set the toolbar sticky/to the top of the control */
+.navTilesToolbar {
+    z-index: 1;
+    background: var(--sapObjectHeader_Background) !important;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: auto;
+    min-height: 2.75rem;
+    overflow: visible;
+}
+
+.navTilesToolbar .sapMBarChild,
+.navTilesToolbar .sapMBarChildWrapper,
+.navTilesToolbar .sapMITH,
+.navTilesToolbar .sapMITHWrapper {
+    /* otherwise parts of the tabBar (the selected inicators) are clipped */
+    height: 100%;
+    overflow: visible;
+    border-bottom: solid .0625rem var(--sapGroup_TitleBorderColor);
+}
+
+@keyframes exf-navtiles-heading-flash {
+    0%   { color: var(--sapHighlightColor, #0070f2); }
+    50%  { color: var(--sapHighlightColor, #0070f2); }
+    100% { color: inherit; }
+}
+.exf-navtiles-heading-flash {
+    animation: exf-navtiles-heading-flash 0.8s ease-out forwards;
+}
+
+.navTilesToolbar .exf-navtiles-tab-header {
+    min-width: 14rem;
+    max-width: 75%;
+    width: 75%;
+    flex: 0 1 75%;
+}
+
+.navTilesToolbar .exf-navtiles-search {
+    width: 18rem;
+    min-width: 18rem;
+    flex: 0 0 18rem;
+    border-bottom: none;
+    padding-top: 0.5rem;
+}
+
+/* mobile layout for navtiles searchbar */
+@media (max-width: 1024px) {
+    .navTilesToolbar .sapMTBSpacer {
+        display: none;
+    }
+
+    .navTilesToolbar .exf-navtiles-search {
+        width: 100%;
+        min-width: 0;
+        flex: 0 1 18rem;
+    }
 }
 
 /* ColorPalette */
@@ -524,6 +648,20 @@ html.sapUiTheme-sap_fiori_3 .sapMTableTH {
 /* set header content darker */
 html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusText, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusText, .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapUxAPObjectPageHeaderContentItem .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon, .sapMObjStatusNone:not(.sapMObjStatusInverted).sapUxAPObjectPageHeaderContentItem .sapMObjStatusIcon, .sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent .sapMObjStatusNone:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
     color: var(--sapTextColor);
+}
+
+/* make sidenavigation icons match icon color */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI .sapTntNLIIcon > img {
+    filter: brightness(0) saturate(100%) invert(13%) sepia(93%) saturate(7319%) hue-rotate(202deg) brightness(85%) contrast(94%);
+}
+/* make sidenavigation icons white when clicked on */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI.sapTntNLIActive .sapTntNLIIcon > img {
+    filter: brightness(0) invert(1);
+}
+
+/* more padding in between sidenavigation items in fiori 3 */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNL li.sapTntNLINotExpandedTriangle {
+    padding-top: 7px;
 }
 
 /* CHANGES AFTER UI5 UPGRADE */
@@ -702,6 +840,9 @@ html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
 
 /* Tab "bubbles" in ObjectPageLayout */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUiTableCCnt {border-bottom: none;}
+
+/* Dashboard inside a tab in ObjectPageLayout*/
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection.exf-tab-dashboard .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {background: transparent; box-shadow: none}
 
 /* Split inside a tab in ObjectPageLayout */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection.exf-tab-split .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {padding-bottom: 0; padding-top: 0}
@@ -902,3 +1043,5 @@ html.sapUiTheme-sap_horizon_dark .sapMBtn.exf-svg-icon > .sapMBtnInner > .sapMIm
 html.sapUiTheme-sap_horizon_dark .sapMTileCntContent > .sapMImageContent > img {
     filter: invert(50%) sepia(10%) saturate(500%) hue-rotate(165deg) brightness(100%) contrast(100%);
 }
+
+.exf-sidebar {border-left: 1px solid var(--sapGroup_TitleBorderColor)}

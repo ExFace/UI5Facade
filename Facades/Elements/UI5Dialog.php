@@ -3,10 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Actions\GoBack;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
-use exface\Core\Interfaces\Widgets\iHaveButtons;
-use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
-use exface\Core\Widgets\DialogButton;
-use exface\Core\Widgets\MenuButton;
+use exface\Core\Widgets\Dashboard;
 use exface\Core\Widgets\Tabs;
 use exface\Core\Widgets\Tab;
 use exface\Core\Widgets\Image;
@@ -19,7 +16,6 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Widgets\Split;
-use exface\UI5Facade\Facades\Elements\Traits\UI5TourGuideTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
 
 /**
@@ -48,9 +44,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5ConfirmationElementInterface;
  *        
  */
 class UI5Dialog extends UI5Form
-{
-    use UI5TourGuideTrait;
-    
+{    
     const PREFILL_WITH_INPUT = 'input';
     const PREFILL_WITH_PREFILL = 'prefill';
     const PREFILL_WITH_CONTEXT = 'context';
@@ -304,9 +298,13 @@ JS
 				{$this->buildJsObjectPageSections($oControllerJs)}
 			]
 		})
+
 JS;
         if ($this->getWidget()->hasSidebar()) {
-            $js = $this->buildJsSidebarWrapperConstructor($js, $oControllerJs);
+            $sidebarEl = $this->getFacade()->getElement($this->getWidget()->getSidebar());
+            if ($sidebarEl instanceof UI5Sidebar) {
+                $js = $sidebarEl->buildJsConstructorForDynamicSideContent($js, $oControllerJs);
+            }
         }
         return $js;
     }
@@ -327,6 +325,7 @@ JS;
         }
         return <<<JS
                 
+                {$this->buildJsTourGuideDropdown($widget, $this->getController())}
                 {$headerButtonsJs}
                 {$this->buildJsHelpButtonConstructor($oControllerJs)}
                 {$this->buildJsSidebarToggleButton()}
@@ -654,10 +653,6 @@ JS;
         $this->getController()->addOnRouteMatchedScript($this->buildJsRefresh(false), 'loadPrefill');
         if ($this->getWidget()->isCacheable() === false) {
             $this->getController()->addOnHideViewScript("sap.ui.getCore().byId('{$this->getId()}').destroy()");
-        }
-
-        if (null !== $header = $this->getWidget()->getHeader()) {
-            $this->addTourDropdownTo($this->getWidget()->getHeader());
         }
         
         return <<<JS
@@ -1011,6 +1006,10 @@ JS;
                     if ($fillerWidget->getHeight()->isUndefined() || $fillerWidget->getHeight()->isMax()) {
                         $fillerWidget->setHeight('70vh');
                     }
+                    break;
+                case $fillerWidget instanceof Dashboard:
+                    $cssClass .= ' exf-tab-dashboard';
+                    break;
             }
         } else {
             $cssClass = null;
@@ -1052,13 +1051,11 @@ JS;
      */
     protected function buildJsDialogButtons(bool $addSpacer = true)
     {
-        $toolbarEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
-        
-        // TODO:
-        //  - Better place should also be found for this button. The maximized dialogs 
-        $this->addTourDropdownTo($this->getWidget()->getToolbarMain());
+        $widget = $this->getWidget();
+        $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
         
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
+        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }
@@ -1237,88 +1234,5 @@ JS;
             return $this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_VISIBLE_CHANGES, $this, '');
         }
         return parent::buildJsChangesGetter($onlyVisible);
-    }
-
-    /**
-     * @return string
-     */
-    protected function buildJsSidebarToggleButton() : string
-    {
-        if ($this->getWidget()->hasSidebar()) {
-            $sidebar = $this->getWidget()->getSidebar();
-            $icon = $sidebar->getIcon();
-            if ($icon !== null) {
-                $icon = $this->buildCssIconClass($icon);
-            } else {
-                $icon = 'sap-icon://screen-split-one';
-            }
-            return <<<JS
-
-                        new sap.m.Button({
-                            icon: '{$icon}',
-                            press: function(){
-                                var oSidebar = sap.ui.getCore().byId('{$this->getId()}_sidebar');
-                                oSidebar.setShowSideContent(! oSidebar.getShowSideContent());
-                            }
-                        }),
-JS;
-
-        }
-        return '';
-    }
-
-    /**
-     * @param string $mainContentJs
-     * @param string $oControllerJs
-     * @return string
-     */
-    protected function buildJsSidebarWrapperConstructor(string $mainContentJs, string $oControllerJs) : string
-    {
-        if (! $this->getWidget()->hasSidebar()) {
-            return '';
-        }
-        $sidebar = $this->getWidget()->getSidebar();
-        $sideEl = $this->getFacade()->getElement($sidebar);
-        $sideEl->registerConditionalProperties();
-        
-        
-        return <<<JS
-
-new sap.ui.layout.DynamicSideContent('{$this->getId()}_sidebar', {
-    showSideContent: {$this->escapeBool($sidebar->isCollapsed() !== true)},
-    sideContent: [
-        {$sideEl->buildJsConstructor($oControllerJs)}
-    ],      
-    mainContent: [
-        $mainContentJs
-    ]
-})
-JS;
-
-    }
-
-    /**
-     * Places a dropdown menu inside the given place (e.g. toolbar or a header) with all available tours for a widget.
-     *
-     * @param iHaveButtons $placeToAddButton
-     * @return MenuButton|null
-     */
-    protected function addTourDropdownTo(iHaveButtons $placeToAddButton) : ?MenuButton
-    {
-        $widget = $this->getWidget();
-        if (! ($widget instanceof IHaveTourGuideInterface) || ! $widget->hasTourGuide()) {
-            return null;
-        }
-        
-        $this->registerDriverJsAsExternalModule();
-        
-        $tourGuideButton = $placeToAddButton->createButton(
-            $this->buildTourGuideDropDownAsUxonObject($widget, $this->getController())
-        );
-        if ($tourGuideButton instanceof DialogButton) {
-            $tourGuideButton->setCloseDialog(false);
-        }
-        $placeToAddButton->addButton($tourGuideButton, 0);
-        return $tourGuideButton;
     }
 }

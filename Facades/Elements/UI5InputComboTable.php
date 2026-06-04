@@ -986,7 +986,7 @@ JS;
 
     /**
      * {@inheritDoc}
-     * @see \exface\UI5FAcade\Facades\Elements\UI5Input::buildJsEmpty()
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsEmpty()
      */
     public function buildJsEmpty(bool $fireChange = true) : string
     {

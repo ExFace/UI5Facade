@@ -289,18 +289,13 @@ JS;
     
     protected function buildHtmlNoDataOverlay() : string
     {
-        if ($this->getWidget()->isUploadEnabled()) {
-            $message = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.IMAGEGALLERY.HINT_UPLOAD');
-        } else {
-            $message = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('WIDGET.IMAGEGALLERY.HINT_EMPTY');
-        }
         return <<<HTML
         
             <div id="{$this->getIdOfSlick()}-nodata" class="imagecarousel-overlay">
                 <li class="sapMLIB sapMUCNoDataPage sapMLIBFocusable imagecarousel-nodata">
                     <span role="presentation" aria-hidden="true" aria-label="document" class="sapUiIcon sapUiIconMirrorInRTL" style="font-family: 'SAP\2dicons'; font-size: 6rem;"></span>
                     <div class="sapMUCNoDataDescription">
-                        {$message}
+                        {$this->buildHtmlNoDataMessage()}
                     </div>
                 </li>
             </div>

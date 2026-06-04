@@ -169,7 +169,7 @@ JS;
             return '';
         }        
         if ($this->getRenderCaptionAsLayout() === true) {
-            $caption .= ':';
+            $caption .= ":\u{00A0}";
         }
         $caption = $this->escapeJsTextValue($caption);
         $labelAppearance = '';

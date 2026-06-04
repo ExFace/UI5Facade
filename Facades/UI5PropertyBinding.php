@@ -1,5 +1,5 @@
 <?php
-namespace exface\UI5FAcade\Facades;
+namespace exface\UI5Facade\Facades;
 
 use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
 use exface\Core\Interfaces\WidgetInterface;

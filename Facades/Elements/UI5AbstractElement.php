@@ -58,8 +58,10 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
         $this->addOnControllerSet([$this, 'registerConditionalProperties']);
         
         // Register tour steps if there are any
-        foreach ($this->getWidget()->getTourSteps() as $tourStep) {
-            $this->getFacade()->getTourDriver($this->getWidget())->registerStep($tourStep);
+        $widget = $this->getWidget();
+        //TODO: currently if we are in a dialog, one step from the calling page will be also registered. This should be fixed.
+        foreach ($widget->getTourSteps() as $tourStep) {
+            $this->getFacade()->getTourDriver($widget)->registerWaypointStep($tourStep);
         }
     }
     

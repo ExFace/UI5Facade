@@ -87,7 +87,10 @@ JS;
         }
         
         // Add the page wrapper if needed
-        if ($this->hasPageWrapper() === true) {
+        if ($this->hasPageWrapper() === true
+            || ($this->widgetHasTourGuide($this->getWidget()) 
+                && $this->getWidget()->hasParent() === false)
+        ) {
             return $this->buildJsPageWrapper($splitter);
         }
         
