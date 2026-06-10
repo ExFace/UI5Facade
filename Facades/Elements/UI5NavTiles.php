@@ -220,16 +220,10 @@ JS;
         $js = '';
         foreach ($this->getWidget()->getTiles() as $i => $tileGroup) {
             if ($i === 0) {
-
-                // hide the first tile group (the overview), but only if the depth is not 1,
-                // otherwise we get issues with landing pages etc, as they dont display any data then
-                if ($this->getWidget()->getDepth() === 1 || count($this->getWidget()->getTiles()) === 1 || $this->getWidget()->getShowOverviewGroup() === true) {
-                    $tileGroup->setHidden(false);
+                // only add to icontabbar if visible, and we have more that 1 group
+                if ($this->getWidget()->getDepth() === 1 || count($this->getWidget()->getTiles()) === 1 || $tileGroup->isHidden()) {
                     continue;
                 }
-
-                $tileGroup->setHidden(true);
-                continue;
             }
             $js .= $this->buildJsIconTabBarItem($tileGroup);
         }
@@ -240,8 +234,8 @@ JS;
     {
         $tabCaption = $tileGroup->getCaption();
 
-        // only show the last part of the caption, if there is a parent path included (parent > child)
-        if ($this->getWidget()->getShowParentPath()) {
+        // only show the last part of the caption, (only if there is a parent path included (parent > child))
+        if ($this->getWidget()->getShowParentPath() && strpos($tabCaption, ' > ') !== false) {
             $tabCaption = StringDataType::substringAfter($tabCaption, ' > ');
         }
         $tabElement = $this->getFacade()->getElement($tileGroup);
@@ -323,6 +317,22 @@ JS;
                         return;
                     }
 
+                    // Keep tiles hidden when they were hidden initially.
+                    var bTileInitiallyVisible;
+                    if (oTile.data) {
+                        bTileInitiallyVisible = oTile.data("_exfInitialVisible");
+                        if (typeof bTileInitiallyVisible !== "boolean") {
+                            bTileInitiallyVisible = oTile.getVisible() !== false;
+                            oTile.data("_exfInitialVisible", bTileInitiallyVisible);
+                        }
+                    } else {
+                        bTileInitiallyVisible = oTile.getVisible() !== false;
+                    }
+                    if (bTileInitiallyVisible === false) {
+                        oTile.setVisible(false);
+                        return;
+                    }
+
                     // keep searchable text in data attribute to avoid rebuilding on every key stroke.
                     var sSearchText = oTile.data("_exfSearchText");
                     if (!sSearchText) {
@@ -353,6 +363,7 @@ JS;
                         }
                     }
 
+                    // tile visibility
                     var bVisible = (sQuery === "") || (sSearchText.indexOf(sQuery) !== -1);
                     if (bVisible) {
                         bAnyTileVisible = true;
