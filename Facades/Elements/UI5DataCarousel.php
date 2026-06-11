@@ -9,6 +9,7 @@ use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataCarouselTrait;
 use exface\Core\Factories\ActionFactory;
 use exface\Core\Actions\ShowDialog;
 use exface\Core\Interfaces\Widgets\iFillEntireContainer;
+use exface\Core\Interfaces\Widgets\iTakeInput;
 use exface\Core\Widgets\WidgetGrid;
 
 /**
@@ -249,6 +250,21 @@ JS;
 JS;
             }
         }
+
+        // By default only inputs in the details area are reset on selection change.
+        // If explicitly configured, reset all detail widgets.
+        $detailResetJs = '';
+        $detailsWidget = $this->getWidget()->getDetailsWidget();
+        if ($this->getWidget()->getResetDetailOnSelect() === true) {
+            $detailResetJs = $this->getDetailsElement()->buildJsResetter();
+        } else {
+            foreach ($detailsWidget->getChildren() as $child) {
+                if (! ($child instanceof iTakeInput)) {
+                    continue;
+                }
+                $detailResetJs .= $this->getFacade()->getElement($child)->buildJsResetter() . ";\n";
+            }
+        }
         
         // Determine the currently selected row and replace the binding path of each
         // details widget with the path to the selected row in the model of the data
@@ -304,7 +320,8 @@ JS;
                 oBtnNext.setEnabled(iRowIdx !== oModel.getData().rows.length - 1);
             }
 
-            {$this->getDetailsElement()->buildJsResetter()};
+            // reset input widgets in the detail section
+            {$detailResetJs}
 
             {$bindings}
             

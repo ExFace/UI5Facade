@@ -401,10 +401,7 @@ JS;
                 
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                
-                if (aTasks.length > 0 || rowKeys.length > 0) {
-                    oGantt.refresh(aTasks);
-                }
+                oGantt.refresh(aTasks);
             };
 
             let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};

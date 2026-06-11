@@ -20,6 +20,11 @@
  * would normally appear. The public API (addItem / getItems / setExpanded / etc.)
  * is identical to the standard control.
  *
+ * To display an SVG image as the item icon (level-0 only), set the `svgIcon`
+ * property to a data-URI (`data:image/svg+xml;utf8,...`). When `svgIcon` is set
+ * the standard SAP `icon` property is ignored for rendering purposes and an
+ * `<img>` element is rendered in its place.
+ *
  * ## Implementation Notes 
  *
  * The override strategy follows the technique described by Musa Arda in the SAP
@@ -80,6 +85,17 @@ sap.ui.define([
 
         metadata: {
             library: "exface.ui5Custom",
+
+            properties: {
+                /**
+                 * Optional SVG icon rendered as an `<img>` element instead of the
+                 * standard SAP icon font glyph. Set this to a data-URI of the form
+                 * `data:image/svg+xml;utf8,...` (URL-encoded SVG). When non-empty
+                 * the `icon` property is still required by the parent control for
+                 * the collapsed sidebar popup but is not visible in expanded mode.
+                 */
+                svgIcon: { type: "string", defaultValue: "" }
+            },
 
             /**
              * Override the inherited `items` aggregation to accept our own type,
@@ -342,6 +358,41 @@ sap.ui.define([
             }
 
             oRM.openEnd();
+        },
+
+        /**
+         * Renders the icon area of the item.
+         *
+         * When `svgIcon` is set, renders an `<img>` element with the data-URI as
+         * its `src` instead of the standard SAP icon font glyph. This allows
+         * arbitrary SVG images to appear as navigation icons.
+         *
+         * Falls back to the standard `NavigationListItem._renderIcon` when no SVG
+         * is configured.
+         *
+         * @param {sap.ui.core.RenderManager} oRM
+         * @private
+         */
+        _renderIcon: function (oRM) {
+            var sSvgSrc = this.getSvgIcon();
+            if (sSvgSrc) {
+                oRM.openStart("span")
+                    .class("sapUiIcon")
+                    .class("sapTntNLIIcon")
+                    .attr("role", "presentation")
+                    .attr("aria-hidden", "true")
+                    .openEnd();
+                oRM.openStart("img")
+                    .attr("src", sSvgSrc)
+                    .attr("alt", "")
+                    .style("width", "1rem")
+                    .style("height", "1rem")
+                    .openEnd()
+                    .close("img");
+                oRM.close("span");
+            } else {
+                NavigationListItem.prototype._renderIcon.call(this, oRM);
+            }
         },
 
         /**
