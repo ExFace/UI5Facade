@@ -816,7 +816,7 @@ JS;
             return parent::findUrlWidget($uri);
         }
         // `my.app.page_alias.widget_id/...`
-        $hash = ltrim($uri->getPath(), '/');
+        $hash = ltrim($hash, '/');
         // `my.app.page_alias.widget_id`
         $hash = StringDataType::substringBefore($hash, '/', $hash);
         // Explode by `.`, but make 4 parts at most. Theoretically there can be more due to widget id spaces: e.g.
