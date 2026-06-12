@@ -145,7 +145,11 @@ JS;
             $isCurrentPage = $this->currentPage !== null && $node->isPage($this->currentPage);
             $isInCurrentPath = $this->currentPage !== null && ($isCurrentPage || $node->isAncestorOf($this->currentPage));
             $isSvgIcon = $level === 1 && $node->getIcon() && Icons::isIconSetSVG($node->getIconSet());
-            $tooltip = $node->getDescription() ? $this->escapeString($node->getDescription(), false) : '';
+
+            // either use the description as the tooltip or, if there is no description and it's a top level item, use the name as tooltip
+            $tooltip = $node->getDescription() 
+                ? $this->escapeString($node->getDescription(), false) 
+                : ($level === 1 ? $this->escapeString($node->getName(), false) : '');
             $menuItemText = $this->escapeString($node->getName(), false);
             $menuItemKey = $this->escapeString($node->getPageAlias(), false);
             
