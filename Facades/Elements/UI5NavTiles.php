@@ -82,6 +82,12 @@ JS;
                     mode: "Inline",
                     select: function(oEvent) {
                         setTimeout(function() {
+
+                            // mark that the user selected a tab, so scroll observer 
+                            // wont immediately override it in small screens
+                            var oTabHeader = oEvent.getSource();
+                            oTabHeader.data("_exfUserSelected", true);
+
                             // Get the selected key
                             var sKey = oEvent.getParameter("key");
 
@@ -100,6 +106,7 @@ JS;
                                 oHeading.classList.add("exf-navtiles-heading-flash");
                                 setTimeout(function() {
                                     oHeading.classList.remove("exf-navtiles-heading-flash");
+                                    oTabHeader.data("_exfUserSelected", false);
                                 }, 800);
                             }
                         }, 0);
@@ -186,7 +193,8 @@ JS;
                             }
                         });
 
-                        if (sActiveKey && oTabHeader.getSelectedKey() !== sActiveKey) {
+                        // skip auto-select if user just clicked a tab
+                        if (sActiveKey && oTabHeader.getSelectedKey() !== sActiveKey && !oTabHeader.data("_exfUserSelected")) {
                             oTabHeader.setSelectedKey(sActiveKey);
                         }
                     }, {
