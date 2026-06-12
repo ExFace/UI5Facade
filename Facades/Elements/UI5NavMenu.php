@@ -108,9 +108,13 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
                                 }));
                             });
 
+                            // set history controls hidden if there are no stored queries to show
                             var bHasHistory = aStoredQueries.length > 0;
                             oSideNav._searchHistoryToolbar.setVisible(bHasHistory);
                             oSideNav._searchHistoryList.setVisible(bHasHistory);
+                            if (oSideNav._searchHistoryContainer) {
+                                oSideNav._searchHistoryContainer.setVisible(bHasHistory);
+                            }
                         };
 
                         // Insert query at top, remove duplicates and keep max history size.
@@ -174,6 +178,10 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
                                     }
                                 }
                             });
+                            oSideNav._searchHistoryContainer = new sap.m.VBox({
+                                visible: false,
+                                items: [oSideNav._searchHistoryToolbar, oSideNav._searchHistoryList]
+                            }).addStyleClass("sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginBottom");
 
                             // the popover, containing the search field and the history controls
                             return new sap.m.Popover({
@@ -189,9 +197,7 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
                                     new sap.m.VBox({
                                         items: [oSideNav._searchField]
                                     }).addStyleClass("sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginTop sapUiSmallMarginBottom"),
-                                    new sap.m.VBox({
-                                        items: [oSideNav._searchHistoryToolbar, oSideNav._searchHistoryList]
-                                    }).addStyleClass("sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginBottom")
+                                    oSideNav._searchHistoryContainer
                                 ]
                             });
                         };
