@@ -8,6 +8,13 @@
 }
 /* <<< bar and bar hover colors */
 
+/* >>> popup overflow fix */
+.exf-gantt .gantt-container .popup-wrapper .agg-list {
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+/* <<< popup overflow fix */
+
 /* >>> Aggregation bar popup list */
 .exf-gantt .gantt-container .popup-wrapper .agg-list {
   margin: 6px 0px 0px;

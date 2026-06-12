@@ -2035,12 +2035,19 @@ var Gantt = function() {
       for (let date of this.dates) {
         tick_x = this.get_position_by_date(date);
         let tick_class = "tick";
-        const isThick = this.config.view_mode.thick_line && this.config.view_mode.thick_line(date);
+        const thickLineResult = this.config.view_mode.thick_line && this.config.view_mode.thick_line(date, {
+          gantt: this,
+          step: this.config.step,
+          unit: this.config.unit
+        });
+        const isThick = !!thickLineResult;
+        const thickLineDate = thickLineResult instanceof Date ? thickLineResult : date;
+        const line_x = isThick ? this.get_position_by_date(thickLineDate) : tick_x;
         if (isThick) {
           tick_class += " thick";
         }
         const attrs = {
-          d: `M ${tick_x} ${tick_y} v ${tick_height}`,
+          d: `M ${line_x} ${tick_y} v ${tick_height}`,
           class: tick_class,
           append_to: this.layers.grid
         };
