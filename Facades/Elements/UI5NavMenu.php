@@ -34,6 +34,8 @@ class UI5NavMenu extends UI5AbstractElement
         $this->currentPage = $this->getWidget()->getPage();
         $selectedKey = $this->currentPage->getAliasWithNamespace();
         $searchItemVisible = count($menu) > 0 ? 'true' : 'false';
+        $queryActionLabel = $this->escapeString($this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME'), false);
+        $previousSearchesLabel = $this->escapeString($this->translate('WIDGET.NAVMENU.PREVIOUS_SEARCHES'), false);
         $output = <<<JS
 
 new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
@@ -41,42 +43,167 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
     item: new sap.tnt.NavigationList("{$this->getId()}",{
         selectedKey: "{$selectedKey}",
         items: [
-            new sap.tnt.NavigationListItem("{$this->getId()}_queryItem", {
-                icon: "sap-icon://clear-filter",
-                text: "",
-                tooltip: '{$this->translate("WIDGET.NAVMENU.RESET_SEARCH")}',
-                enabled: true,
-                visible: false,
-                design: "Action",
-                select: function() {
-                    // reset current search
-                    var oSideNav = sap.ui.getCore().byId("{$this->getId()}_scrollContainer");
-                    if (oSideNav._searchField) {
-                        oSideNav._searchField.setValue("");
-                        oSideNav._searchField.fireLiveChange({ newValue: "" });
-                    }
-                }
-            }),
-            {$this->buildNavigationListItems($menu)}
-        ]
-    }),
-    fixedItem: new sap.tnt.NavigationList({
-        items: [
-            new sap.tnt.NavigationListItem({
+            new sap.tnt.NavigationListItem("{$this->getId()}_searchItem", {
                 icon: "sap-icon://search",
                 text: "{$this->translate('WIDGET.NAVMENU.SEARCH')}",
                 design: "Action",
                 visible: {$searchItemVisible},
                 select: function(oEvent) {
+                    // when selecting the search item, open the SideNavigation
                     var oSideNav = sap.ui.getCore().byId("{$this->getId()}_scrollContainer");
+                    if (oSideNav && oSideNav.setExpanded) {
+                        oSideNav.setExpanded(true);
+                    }
+
+                    // instantiate the search popover and re-use it afterwards
                     var oItem = oEvent.getSource();
                     if (!oSideNav._searchPopover) {
+                        oSideNav._searchHistoryStorageKey = 'exface.ui5.navmenu.previousSearches';
+
+                        // Read and normalize at most 5 persisted search queries.
+                        oSideNav._getStoredSearchQueries = function() {
+                            try {
+                                var sStoredQueries = window.localStorage.getItem(oSideNav._searchHistoryStorageKey);
+                                var aStoredQueries = sStoredQueries ? JSON.parse(sStoredQueries) : [];
+                                if (!Array.isArray(aStoredQueries)) {
+                                    return [];
+                                }
+                                return aStoredQueries.filter(function(sStoredQuery) {
+                                    return typeof sStoredQuery === "string" && sStoredQuery.trim() !== "";
+                                }).slice(0, 5);
+                            } catch (oError) {
+                                return [];
+                            }
+                        };
+
+                        // Persist normalized query history back to localStorage.
+                        oSideNav._storeSearchQueries = function(aQueries) {
+                            try {
+                                window.localStorage.setItem(oSideNav._searchHistoryStorageKey, JSON.stringify(aQueries.slice(0, 5)));
+                            } catch (oError) {
+                                // Ignore storage errors and keep search functional.
+                            }
+                        };
+
+                        // Rebuild the history list controls from persisted data.
+                        oSideNav._refreshSearchHistory = function() {
+                            if (!oSideNav._searchHistoryList || !oSideNav._searchHistoryToolbar) {
+                                return;
+                            }
+
+                            var aStoredQueries = oSideNav._getStoredSearchQueries();
+                            oSideNav._searchHistoryList.destroyItems();
+                            aStoredQueries.forEach(function(sStoredQuery) {
+
+                                // add each stored query as an item to the history list with the query as custom data for later retrieval
+                                oSideNav._searchHistoryList.addItem(new sap.m.StandardListItem({
+                                    title: sStoredQuery,
+                                    type: sap.m.ListType.Active,
+                                    customData: [
+                                        new sap.ui.core.CustomData({
+                                            key: "query",
+                                            value: sStoredQuery
+                                        })
+                                    ]
+                                }));
+                            });
+
+                            var bHasHistory = aStoredQueries.length > 0;
+                            oSideNav._searchHistoryToolbar.setVisible(bHasHistory);
+                            oSideNav._searchHistoryList.setVisible(bHasHistory);
+                        };
+
+                        // Insert query at top, remove duplicates and keep max history size.
+                        oSideNav._saveSearchQuery = function(sQuery) {
+                            var sNormalizedQuery = typeof sQuery === "string" ? sQuery.trim() : "";
+                            if (sNormalizedQuery === "") {
+                                return;
+                            }
+
+                            var aStoredQueries = oSideNav._getStoredSearchQueries().filter(function(sStoredQuery) {
+                                return sStoredQuery !== sNormalizedQuery;
+                            });
+                            aStoredQueries.unshift(sNormalizedQuery);
+                            oSideNav._storeSearchQueries(aStoredQueries);
+                            oSideNav._refreshSearchHistory();
+                        };
+
+                        // Apply query to the search field
+                        oSideNav._applySearchQuery = function(sQuery, bRemember) {
+                            if (!oSideNav._searchField) {
+                                return;
+                            }
+
+                            oSideNav._searchField.setValue(sQuery);
+                            oSideNav._searchField.fireLiveChange({ newValue: sQuery });
+                            if (bRemember === true) {
+                                oSideNav._saveSearchQuery(sQuery);
+                            }
+                        };
+
+                        // Create the search popover with history and controls.
+                        oSideNav._createSearchPopover = function() {
+
+                            // toolbar with title and clear history button
+                            oSideNav._searchHistoryToolbar = new sap.m.Toolbar({
+                                visible: false,
+                                content: [
+                                    new sap.m.Title({ text: '{$previousSearchesLabel}', level: 'H6', titleStyle: 'H6' }),
+                                    new sap.m.ToolbarSpacer(),
+                                    new sap.m.Button({
+                                        icon: "sap-icon://delete",
+                                        type: sap.m.ButtonType.Transparent,
+                                        press: function() {
+                                            oSideNav._storeSearchQueries([]);
+                                            oSideNav._refreshSearchHistory();
+                                        }
+                                    })
+                                ]
+                            });
+
+                            // list to show previous search queries, initially hidden
+                            oSideNav._searchHistoryList = new sap.m.List({
+                                visible: false,
+                                mode: sap.m.ListMode.None,
+                                itemPress: function(oPressEvent) {
+                                    // when pressing a history item, apply the stored query
+                                    var oListItem = oPressEvent.getParameter("listItem");
+                                    var sStoredQuery = oListItem && oListItem.data("query");
+                                    if (sStoredQuery) {
+                                        oSideNav._applySearchQuery(sStoredQuery, true);
+                                    }
+                                }
+                            });
+
+                            // the popover, containing the search field and the history controls
+                            return new sap.m.Popover({
+                                showHeader: false,
+                                placement: sap.m.PlacementType.Auto,
+                                beforeClose: function() {
+                                    // when closing the popover, save the current query to the history
+                                    if (oSideNav._searchField) {
+                                        oSideNav._saveSearchQuery(oSideNav._searchField.getValue());
+                                    }
+                                },
+                                content: [
+                                    new sap.m.VBox({
+                                        items: [oSideNav._searchField]
+                                    }).addStyleClass("sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginTop sapUiSmallMarginBottom"),
+                                    new sap.m.VBox({
+                                        items: [oSideNav._searchHistoryToolbar, oSideNav._searchHistoryList]
+                                    }).addStyleClass("sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiSmallMarginBottom")
+                                ]
+                            });
+                        };
+
+                        // search field with fitlering logic
                         oSideNav._searchField = new sap.m.SearchField({
                             liveChange: function(oEvent) {
                                 var sQuery = oEvent.getParameter("newValue").toLowerCase();
                                 var sRaw = oEvent.getParameter("newValue");
                                 var oNavList = sap.ui.getCore().byId("{$this->getId()}");
                                 var oQueryItem = sap.ui.getCore().byId("{$this->getId()}_queryItem");
+                                var oSearchItem = sap.ui.getCore().byId("{$this->getId()}_searchItem");
                                 if (!oNavList) return;
                                 // set items invisible if they dont match query
                                 // keep parent items visible, if they have visible children or match query 
@@ -101,28 +228,61 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
                                     });
                                     return bAnyVisible;
                                 }
-                                filterItems(oNavList.getItems().filter(function(o) { return o !== oQueryItem; }));
 
-                                // show active query as item at the top
+                                // exclude search field and query item from filtering
+                                // (they should always be visible)
+                                filterItems(oNavList.getItems().filter(function(o) {
+                                    return o !== oQueryItem && o !== oSearchItem;
+                                }));
+
+                                // show active query as action item
                                 if (oQueryItem) {
                                     if (sRaw !== "") {
-                                        oQueryItem.setText('{$this->getWorkbench()->getCoreApp()->getTranslator()->translate('ACTION.SHOWLOOKUPDIALOG.NAME')}: "' + sRaw + '"');
+                                        oQueryItem.setText('{$queryActionLabel}: "' + sRaw + '"');
                                         oQueryItem.setVisible(true);
                                     } else {
                                         oQueryItem.setVisible(false);
                                     }
                                 }
+                            },
+                            search: function(oEvent) {
+                                var sValue = oEvent.getParameter("query") || oEvent.getSource().getValue();
+                                if (oEvent.getParameter("clearButtonPressed") === true) {
+                                    // reset search query
+                                    oSideNav._applySearchQuery("", false);
+                                    return;
+                                }
+                                // Apply the entered query and close the popover on Enter.
+                                oSideNav._applySearchQuery(sValue, true);
+                                if (oSideNav._searchPopover) {
+                                    oSideNav._searchPopover.close();
+                                }
                             }
                         });
-                        oSideNav._searchPopover = new sap.m.Popover({
-                            showHeader: false,
-                            placement: sap.m.PlacementType.Auto,
-                            content: [oSideNav._searchField]
-                        });
+                        oSideNav._searchPopover = oSideNav._createSearchPopover();
                     }
+
+                    // Refresh each time before opening in case history changed in another tab
+                    oSideNav._refreshSearchHistory();
                     oSideNav._searchPopover.openBy(oItem.getDomRef() || oItem);
                 }
-            })
+            }),
+            new sap.tnt.NavigationListItem("{$this->getId()}_queryItem", {
+                icon: "sap-icon://clear-filter",
+                text: "",
+                tooltip: '{$this->translate("WIDGET.NAVMENU.RESET_SEARCH")}',
+                enabled: true,
+                visible: false,
+                design: "Action",
+                select: function() {
+                    // reset current search
+                    var oSideNav = sap.ui.getCore().byId("{$this->getId()}_scrollContainer");
+                    if (oSideNav._applySearchQuery) {
+                        oSideNav._applySearchQuery("", false);
+                    }
+                }
+            }),
+            {$this->buildNavigationListItems($menu)}
         ]
     })
 });
