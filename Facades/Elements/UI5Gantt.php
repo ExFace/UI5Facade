@@ -37,6 +37,27 @@ class UI5Gantt extends UI5DataTree
     
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
     
+    private $viewModeDefaults = [
+        DataTimeline::GRANULARITY_DAYS => [
+            'name' => 'Day',
+            'description' => 'Day View',
+            'granularity' => DataTimeline::GRANULARITY_DAYS,
+            'column_width' => 62,
+            'header_lines' => [
+                [
+                    'interval' => 'Month',
+                    'date_format' => '',
+                    'date_format_at_border' => 'MMMM',
+                ],
+                [
+                    'interval' => 'Month',
+                    'date_format' => '',
+                    'date_format_at_border' => 'MMMM'
+                ]
+            ]
+        ]
+    ];
+    
     /**
      * 
      * {@inheritDoc}
@@ -779,24 +800,35 @@ JS
         $simple_view_modes = [];
         
         foreach ($viewModes as $viewMode) {
-            $simple_view_mode = [];
             
             $name = $viewMode->getName();
             $step = $this->convertDataTimelineGranularityToGanttStep($viewMode->getGranularity());
-            $date_format = $viewMode->getDateFormat();
-            $column_width = $viewMode->getColumnWidth()?->getValue();
-            $padding = $viewMode->getPadding();
             $snap_at = $this->convertDataTimelineSnapToGanttSnap($viewMode->getSnapAt());
             $upper_text_frequency = $viewMode->getUpperTextFrequency();
             $headerLines = $viewMode->getHeaderLines() ?? [];
             $thickLines = $viewMode->getThickLines() ?? [];
             
-
-            $simple_view_mode['name'] = $name; // //TODO SR: Default unique name required if empty
-            $simple_view_mode['step'] = $step ?? '1d';
-            $simple_view_mode['date_format'] = ($date_format ?? 'yyyy-MM-dd');
-            $simple_view_mode['column_width'] = is_numeric($column_width) ? (int) $column_width : null;
-            $simple_view_mode['padding'] = $padding ?? '7d';
+            $simple_view_mode = [
+                'name' => $name,
+                'step' => $step
+            ];
+            if (null !== $val = $viewMode->getDateFormat()) {
+                $simple_view_mode['date_format'] = $val;
+            }
+            if (null !== $dim = $viewMode->getColumnWidth()) {
+                switch (true) {
+                    case $dim->isFacadeSpecific() && is_numeric($dim->getValue()):
+                        $val = $dim->getValue();
+                        break;
+                    default:
+                        throw new FacadeRuntimeError('Only numbers are supported in column_width for Gantt timeline views');
+                }
+                $simple_view_mode['column_width'] = $val;
+            }
+            if (null !== $val = $viewMode->getPadding()) {
+                $simple_view_mode['padding'] = $val;
+            }
+            // TODO same for other properties
             $simple_view_mode['snap_at'] = $snap_at ?? null;
             $simple_view_mode['upper_text_frequency'] = is_numeric($upper_text_frequency) ? (int) $upper_text_frequency : null;
             
@@ -857,9 +889,21 @@ JS
                 $simple_view_mode['thick_line'] = $aThickLine;
             }
             
+            $baseViewMode = $this->getViewModeDefault($viewMode->getGranularity());
+            $simple_view_mode = array_merge_recursive($baseViewMode, $simple_view_mode);
+            
             $simple_view_modes[$name] = $simple_view_mode;
         }
         return $simple_view_modes;
+    }
+    
+    protected function getViewModeDefault(string $granularity) : array
+    {
+        $default = $this->viewModeDefaults[$granularity] ?? null;
+        if (null !== $default) {
+            // TODO throw error? Have a global default?
+        }
+        return $default;
     }
     
 }
