@@ -650,6 +650,7 @@ html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageContainer .sapMObjStatusNone:not(.
     color: var(--sapTextColor);
 }
 
+/* SIDENAVIGATION FOR FIORI 3 */
 /* make sidenavigation icons match icon color */
 html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI .sapTntNLIIcon > img {
     filter: brightness(0) saturate(100%) invert(13%) sepia(93%) saturate(7319%) hue-rotate(202deg) brightness(85%) contrast(94%);
@@ -658,10 +659,23 @@ html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI .sapTntNLIIcon > im
 html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI.sapTntNLIActive .sapTntNLIIcon > img {
     filter: brightness(0) invert(1);
 }
-
-/* more padding in between sidenavigation items in fiori 3 */
-html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNL li.sapTntNLINotExpandedTriangle {
-    padding-top: 7px;
+/* more space for sidenavigation items in fiori 3 */
+html.sapUiTheme-sap_fiori_3 .sapUiSizeCompact .sapTntNLMenu.sapMMenu li.sapMMenuItem, 
+html.sapUiTheme-sap_fiori_3 .sapUiSizeCompact .sapTntNLI {
+    height: 2.4rem;
+}
+/* remove corners of sidenavigation in fiori 3 */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigationNotExpanded .sapTntNLINotExpandedTriangle:not(.sapTntNLIDisabled):after {
+    display: none;
+}
+/* make collapsed navigation wider in firoi 3 */
+html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation.sapTntSideNavigationNotExpandedWidth,
+html.sapUiTheme-sap_fiori_3 .sapTntNLCollapsed {
+    width: 4rem;
+}
+/* remove background on action items in navbar */
+html.sapUiTheme-sap_fiori_3 .sapTntNLIAction.sapTntNLISelected:not(.sapTntNLIDisabled) {
+    background: none;
 }
 
 /* CHANGES AFTER UI5 UPGRADE */
