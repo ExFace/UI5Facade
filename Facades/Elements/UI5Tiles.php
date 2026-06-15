@@ -81,9 +81,10 @@ JS;
     protected function buildJsPropertyHeaderText() : string
     {
         if ($caption = $this->getCaption()) {
+            $escapedCaption = $this->escapeString($caption, false, false);
             return <<<JS
 
-                    headerText: "{$caption}",
+                    headerText: "{$escapedCaption}",
 
 JS;
         }
