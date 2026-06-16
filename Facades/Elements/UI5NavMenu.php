@@ -204,6 +204,7 @@ new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
 
                         // search field with fitlering logic
                         oSideNav._searchField = new sap.m.SearchField({
+                            placeholder: "{$this->translate('WIDGET.NAVMENU.SEARCH')}",
                             liveChange: function(oEvent) {
                                 var sQuery = oEvent.getParameter("newValue").toLowerCase();
                                 var sRaw = oEvent.getParameter("newValue");
