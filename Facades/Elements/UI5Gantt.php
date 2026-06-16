@@ -4,7 +4,9 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Exceptions\InvalidArgumentException;
 use exface\Core\Widgets\ButtonGroup;
+use exface\Core\Widgets\Parts\DataTimelineThicklines;
 use exface\Core\Widgets\Parts\DataTimelineView;
+use exface\Core\Widgets\Parts\DataTimelineHeader;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Widgets\Parts\DataTimeline;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsValueScaleTrait;
@@ -36,6 +38,140 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
     
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
+    
+    // Default Gantt ViewModes: hours, days, weeks, months, years
+    // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
+    // that translates it to the FrappeGantt specific structure.
+    // Keep in mind to add "TRANSLATE:" prefix to the name of the view
+    // and make sure it gets translated bevor usage.
+    private array $viewModeDefaults = [
+        DataTimeline::GRANULARITY_HOURS => [
+            'name' => 'TRANSLATE:WIDGET.GANTT_CHARD.VIEW_MODE_HOUR',
+            'step' => '1h',
+            'date_format' => 'YYYY-MM-dd HH:',
+            'column_width' => null,
+            'padding' => '7d',
+            'snap_at' => null,
+            'upper_text_frequency' => 24,
+            'header' => [
+                'upper' => [
+                    'interval' => 'Date',
+                    'date_format' => 'dd',
+                    'date_format_at_border' => null,
+                ],
+                'lower' => [
+                    'interval' => 'Date',
+                    'date_format' => 'HH',
+                    'date_format_at_border' => null,
+                ]
+            ]
+        ],
+        DataTimeline::GRANULARITY_DAYS => [
+            'name' => 'TRANSLATE:WIDGET.GANTT_CHARD.VIEW_MODE_DAY', 
+            'step' => '1d',
+            'date_format' => 'yyyy-MM-dd',
+            'column_width' => null,
+            'padding' => '7d',
+            'snap_at' => null,
+            'upper_text_frequency' => null,
+            'header' => [
+                'upper' => [
+                    'interval' => 'Month',
+                    'date_format' => '',
+                    'date_format_at_border' => 'MMMM'
+                ], 
+                'lower' => [
+                    'interval' => 'Date',
+                    'date_format' => 'dd',
+                    'date_format_at_border' => null,
+                ]
+            ],
+            'thick_line' => [
+                'from' => null,
+                'to' => null,
+                'interval' => 'week',
+                'value' => 1
+            ],
+            'thick_line_color' => null,
+        ],
+        DataTimeline::GRANULARITY_WEEKS => [
+            'name' => 'TRANSLATE:WIDGET.GANTT_CHARD.VIEW_MODE_WEEK',
+            'step' => '7d',
+            'date_format' => 'yyyy-MM-dd',
+            'column_width' => 140,
+            'padding' => '1m',
+            'snap_at' => null,
+            'upper_text_frequency' => 4,
+            'header' => [
+                'upper' => [
+                    'interval' => 'Month',
+                    'date_format' => '',
+                    'date_format_at_border' => 'MMMM'
+                ],
+                'lower' => [
+                    'interval' => null,
+                    'date_format' => '~weekRange',
+                    'date_format_at_border' => null,
+                ]
+            ],
+            'thick_line' => [
+                'interval' => 'month_range_in_days',
+                'from' => 1,
+                'to' => 7,
+                'value' => null
+            ],
+            'thick_line_color' => null,
+        ],
+        DataTimeline::GRANULARITY_MONTHS => [
+            'name' => 'TRANSLATE:WIDGET.GANTT_CHARD.VIEW_MODE_MONTH',
+            'step' => '1m',
+            'date_format' => 'yyyy-MM',
+            'column_width' => 120,
+            'padding' => '2m',
+            'snap_at' => '7d',
+            'upper_text_frequency' => null,
+            'header' => [
+                'upper' => [
+                    'interval' => 'Year',
+                    'date_format' => '',
+                    'date_format_at_border' => 'YYYY',
+                ],
+                'lower' => [
+                    'interval' => null,
+                    'date_format' => 'MMMM',
+                    'date_format_at_border' => null,
+                ]
+            ],
+            'thick_line' => [
+                'interval' => 'month_range_in_days',
+                'from' => 1,
+                'to' => 7,
+                'value' => null
+            ],
+            'thick_line_color' => null,
+        ],
+        DataTimeline::GRANULARITY_YEARS => [
+            'name' => 'TRANSLATE:WIDGET.GANTT_CHARD.VIEW_MODE_YEAR',
+            'step' => '1y',
+            'date_format' => 'YYYY',
+            'column_width' => 120,
+            'padding' => '2y',
+            'snap_at' => '30d',
+            'upper_text_frequency' => null,
+            'header' => [
+                'upper' => [
+                    'interval' => 'Decade',
+                    'date_format' => '',
+                    'date_format_at_border' => '~decade',
+                ],
+                'lower' => [
+                    'interval' => 'Year',
+                    'date_format' => 'YYYY',
+                    'date_format_at_border' => null,
+                ]
+            ],
+        ],
+    ];
     
     /**
      * 
@@ -780,86 +916,135 @@ JS
         
         foreach ($viewModes as $viewMode) {
             $simple_view_mode = [];
-            
             $name = $viewMode->getName();
-            $step = $this->convertDataTimelineGranularityToGanttStep($viewMode->getGranularity());
-            $date_format = $viewMode->getDateFormat();
-            $column_width = $viewMode->getColumnWidth()?->getValue();
-            $padding = $viewMode->getPadding();
-            $snap_at = $this->convertDataTimelineSnapToGanttSnap($viewMode->getSnapAt());
-            $upper_text_frequency = $viewMode->getUpperTextFrequency();
             $headerLines = $viewMode->getHeaderLines() ?? [];
             $thickLines = $viewMode->getThickLines() ?? [];
-            
 
-            $simple_view_mode['name'] = $name; // //TODO SR: Default unique name required if empty
-            $simple_view_mode['step'] = $step ?? '1d';
-            $simple_view_mode['date_format'] = ($date_format ?? 'yyyy-MM-dd');
-            $simple_view_mode['column_width'] = is_numeric($column_width) ? (int) $column_width : null;
-            $simple_view_mode['padding'] = $padding ?? '7d';
-            $simple_view_mode['snap_at'] = $snap_at ?? null;
-            $simple_view_mode['upper_text_frequency'] = is_numeric($upper_text_frequency) ? (int) $upper_text_frequency : null;
-            
+            if (null !== $val = $viewMode->getName()) {
+                $simple_view_mode['name'] = $val;
+            }
+
+            if (null !== $val = $this->convertDataTimelineGranularityToGanttStep($viewMode->getGranularity())) {
+                $simple_view_mode['step'] = $val;
+            }
+
+            if (null !== $val = $viewMode->getDateFormat()) {
+                $simple_view_mode['date_format'] = $val;
+            }
+
+            if (null !== $dim = $viewMode->getColumnWidth()) {
+                if (!is_numeric($dim->getValue())) {
+                    throw new FacadeRuntimeError('Only numbers are supported in column_width for Gantt timeline views');
+                }
+                $simple_view_mode['column_width'] = (int) $dim->getValue();
+            }
+
+            if (null !== $val = $viewMode->getPadding()) {
+                $simple_view_mode['padding'] = $val;
+            }
+
+            if (null !== $val = $this->convertDataTimelineSnapToGanttSnap($viewMode->getSnapAt())) {
+                $simple_view_mode['snap_at'] = $val;
+            }
+
+            if (null !== $val = $viewMode->getUpperTextFrequency()) {
+                if (!is_numeric($val)) {
+                    throw new FacadeRuntimeError('Only numbers are supported in column_width for Gantt timeline views');
+                }
+                $simple_view_mode['upper_text_frequency'] = (int) $val;
+            }
+
             // Gantt only supports 2 header lines, so we just take the first 2.
+            /** @var DataTimelineHeader|null $upper */
             $upper = $headerLines[0] ?? null;
+            /** @var DataTimelineHeader|null $lower */
             $lower = $headerLines[1] ?? null;
+            /** @var DataTimelineThicklines|null $thickLine */
             $thickLine = $thickLines[0] ?? null;
 
-            // Default values for header lines. Took from a day view mode.
-            $upperDefaults = [
-                'interval' => 'Month',
-                'date_format' => '',
-                'date_format_at_border' => 'MMMM',
-            ];
-
-            $lowerDefaults = [
-                'interval' => 'Date',
-                'date_format' => 'dd',
-                'date_format_at_border' => null,
-            ];
-            
-            $self = $this;
-            $headerLineToArray = static function ($line = null, array $defaults = []) use ($self) {
-                if ($line === null) {
-                    return $defaults;
+            if ($upper !== null) {
+                if (null !== $val = $upper->getDateFormat()) {
+                    $simple_view_mode['header']['upper']['date_format'] = $val;
                 }
 
-                return [
-                    'date_format' => (string)($line->getDateFormat() ?? $defaults['date_format']),
-                    'date_format_at_border' => $line->getDateFormatAtBorder() ?? $defaults['date_format_at_border'],
-                    'interval' => $self->convertDataTimeLineIntervalToGanttInterval($line->getInterval())
-                        ?? $defaults['interval'],
-                ];
-            };
+                if (null !== $val = $upper->getDateFormatAtBorder()) {
+                    $simple_view_mode['header']['upper']['date_format_at_border'] = $val;
+                }
 
-            $thicklineToArray = static function ($line) {
-                return [
-                    'from' => $line->getFrom() ?? null,
-                    'to' => $line->getTo() ?? null,
-                    'value' => $line->getValue() ?? null,
-                    'interval' => $line->getInterval() ?? null,
-                ];
-            };
-            
-            $aHeaderLine = [
-                'upper' => $headerLineToArray($upper, $upperDefaults),
-                'lower' => $headerLineToArray($lower, $lowerDefaults),
-            ];
+                if (null !== $val = $upper->getInterval()) {
+                    $simple_view_mode['header']['upper']['interval'] = $this->convertDataTimeLineIntervalToGanttInterval($val);
+                }
+            }
 
-            if (!empty($aHeaderLine)) {
-                $simple_view_mode['header'] = $aHeaderLine;
+            if ($lower !== null) {
+                if (null !== $val = $lower->getDateFormat()) {
+                    $simple_view_mode['header']['lower']['date_format'] = $val;
+                }
+
+                if (null !== $val = $lower->getDateFormatAtBorder()) {
+                    $simple_view_mode['header']['lower']['date_format_at_border'] = $val;
+                }
+
+                if (null !== $val = $lower->getInterval()) {
+                    $simple_view_mode['header']['lower']['interval'] = $this->convertDataTimeLineIntervalToGanttInterval($val);
+                }
             }
             
             if ($thickLine !== null) {
-                $simple_view_mode['thick_line_color'] = $thickLine->getColor() ?? null;
-                
-                $aThickLine = $thicklineToArray($thickLine);
-                $simple_view_mode['thick_line'] = $aThickLine;
+                if (null !== $val = $thickLine->getColor()) {
+                    $simple_view_mode['thick_line_color'] = $val;
+                }
+
+                if (null !== $val = $thickLine->getFrom()) {
+                    $simple_view_mode['thick_line']['from'] = $val;
+                }
+
+                if (null !== $val = $thickLine->getTo()) {
+                    $simple_view_mode['thick_line']['to'] = $val;
+                }
+
+                if (null !== $val = $thickLine->getValue()) {
+                    $simple_view_mode['thick_line']['value'] = $val;
+                }
+
+                if (null !== $val = $thickLine->getInterval()) {
+                    $simple_view_mode['thick_line']['interval'] = $val;
+                }
+            }
+            
+            $baseViewMode = $this->getViewModeDefault($viewMode->getGranularity());
+            $simple_view_mode = array_replace_recursive($baseViewMode, $simple_view_mode);
+            
+            if (str_starts_with($simple_view_mode['name'],'TRANSLATE:'))
+            {
+                $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+                $untranslatedName = substr(
+                    $simple_view_mode['name'],
+                    strlen('TRANSLATE:')
+                );
+                $simple_view_mode['name'] = $translator->translate($untranslatedName);
             }
             
             $simple_view_modes[$name] = $simple_view_mode;
         }
         return $simple_view_modes;
     }
-    
+
+    /**
+     * Returns an array with default values for each granularity
+     * 
+     * @param string $granularity
+     * @return array
+     */
+    protected function getViewModeDefault(string $granularity) : array
+    {
+        $default = $this->viewModeDefaults[$granularity] ?? null;
+        if ($default === null) {
+            // If no specific defaults for the granularity are defined,
+            // we take the defaults of the 'days' granularity,
+            // as it is the most common one and also the default granularity for the gantt chart.
+            return $this->viewModeDefaults['days'];
+        }
+        return $default;
+    }
 }
