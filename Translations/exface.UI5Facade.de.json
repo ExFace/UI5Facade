@@ -33,7 +33,8 @@
 	"WEBAPP.ROUTING.OFFLINE.TEXT": "Diese Funktion is offline nicht verfügbar!",
 	"WEBAPP.ROUTING.OFFLINE.DESCRIPTION": "Stellen Sie eine Verbindung zum Netzwerk her und versuchen Sie es erneut.",
 	
-	"WEBAPP.SHELL.HOME.TITLE": "Home",	
+	"WEBAPP.SHELL.HOME.TITLE": "Home",
+	"WEBAPP.SHELL.MENU.TITLE": "Menü",	
 	"WEBAPP.SHELL.NETWORK.CONFIRM_HEADER": "Bestätigen",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_TEXT": "Wollen Sie die ausgewählten Aktionen löschen?",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_YES": "Ja",

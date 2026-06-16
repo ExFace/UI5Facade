@@ -26,6 +26,7 @@
 	"WEBAPP.ROUTING.OFFLINE.DESCRIPTION": "Установите соединение и попробуйте еще раз.",
 	
 	"WEBAPP.SHELL.HOME.TITLE": "Старт",
+	"WEBAPP.SHELL.MENU.TITLE": "Меню",
 	"WEBAPP.SHELL.NETWORK.ONLINE": "Сейчас ОНЛАЙН",
 	"WEBAPP.SHELL.NETWORK.OFFLINE": "Сейчас ОФФЛАЙН",
 	"WEBAPP.SHELL.NETWORK.SYNC_MENU": "Действия в очереди",

@@ -362,6 +362,7 @@ const exfLauncher = {};
 					design: "Transparent",
 					content: [
 						new sap.m.Button('exf_menu_toggle_btn', {
+							tooltip: "{i18n>WEBAPP.SHELL.MENU.TITLE}",
 							icon: "sap-icon://menu2",
 							layoutData: new sap.m.OverflowToolbarLayoutData({ priority: "NeverOverflow" }),
 							press: function () {
@@ -373,6 +374,7 @@ const exfLauncher = {};
 							}
 						}),
 						new sap.m.OverflowToolbarButton("exf-home", {
+							tooltip: "{i18n>WEBAPP.SHELL.HOME.TITLE}",
 							text: "{i18n>WEBAPP.SHELL.HOME.TITLE}",
 							icon: "sap-icon://home",
 							press: function (oEvent) {
