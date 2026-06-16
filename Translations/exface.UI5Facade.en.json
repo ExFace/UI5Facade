@@ -32,7 +32,8 @@
 	"WEBAPP.ROUTING.OFFLINE.TEXT": "This function is not available offline!",
 	"WEBAPP.ROUTING.OFFLINE.DESCRIPTION": "Connect to the network and try again.",
 	
-	"WEBAPP.SHELL.HOME.TITLE": "Home",		
+	"WEBAPP.SHELL.HOME.TITLE": "Home",
+	"WEBAPP.SHELL.MENU.TITLE": "Menü",		
 	"WEBAPP.SHELL.NETWORK.CONFIRM_HEADER": "Confirm",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_TEXT": "Do you want to delete the selected actions?",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_YES": "Yes",
@@ -145,6 +146,7 @@
 	"WIDGET.DATATABLE.SETTINGS_DIALOG.ADVANCED_SEARCH": "Advanced Search",
 
 	"WIDGET.NAVMENU.RESET_SEARCH": "Reset Search",
+	"WIDGET.NAVMENU.PREVIOUS_SEARCHES": "Previously searched",
 	"WIDGET.NAVMENU.SEARCH": "Search Menu",
 	
 	"WIDGET.DATALOOKUPDIALOG.SELECTED_ITEMS": "Selected Items",
