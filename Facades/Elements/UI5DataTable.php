@@ -1528,7 +1528,35 @@ JS;
     protected function buildJsClickGetRowIndex(string $oDomElementClickedJs) : string
     {
         if ($this->isUiTable()) {
-            return "sap.ui.getCore().byId('{$this->getId()}').getFirstVisibleRow() + $({$oDomElementClickedJs}).parents('tr').index()";
+            return <<<JS
+(function(domEl){
+    var oTable = sap.ui.getCore().byId('{$this->getId()}');
+    var jqTr = $(domEl).parents('tr');
+    var oRow;
+    var oContext;
+    var sPath;
+    var iRowIdx;
+
+    // In grouped tables, the DOM row index includes group headers. The binding path
+    // (/rows/N) points to the actual model row and is safer to use for selection.
+    if (jqTr.length > 0) {
+        oRow = sap.ui.getCore().byId(jqTr[0].id);
+        if (oRow && typeof oRow.getBindingContext === 'function') {
+            oContext = oRow.getBindingContext();
+            sPath = oContext ? oContext.getPath() : '';
+            if (sPath.indexOf('/rows/') === 0) {
+                iRowIdx = parseInt(sPath.substring('/rows/'.length), 10);
+                if (! Number.isNaN(iRowIdx)) {
+                    return iRowIdx;
+                }
+            }
+        }
+    }
+
+    // (old) fallback for unexpected rendering variants
+    return oTable.getFirstVisibleRow() + $(domEl).parents('tr').index();
+})({$oDomElementClickedJs})
+JS;
         } 
         
         if ($this->isMTable()) {
@@ -2085,6 +2113,8 @@ JS;
                     var oBinding = oTable.getBinding("rows");
                     var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
+                        // iRowIdx is a model index (/rows/N). The rendered table index can differ
+                        // when grouping inserts additional header rows, so we map via context path.
                         for (var i = 0; i < oBinding.getLength(); i++) {
                             var context = oBinding.getContexts(i, 1)[0]; // Get context for each row
                             if (context && context.getPath() === `/rows/` + iRowIdx) {
@@ -2099,13 +2129,34 @@ JS;
                     // oTable.clearSelection();
                     // UPDATE sah 2026-04-14: deselect branch is needed, for example in the small menu that pops up in multi-selects (where you can unselect items)
                     // so we try and remove the selection using removeSelectionInterval, to avoid the events of clearSelection()
+                    // UPDATE sah 2026-06-15: removing oTable.setSelectedIndex(iTableIdx); in the else branch previously fixed a faulty double selection
+                    // when right clicking in grouped tables; However, this apparently also broke the re-selection logic in buildJsDataLoaderOnLoadedRestoreSelection()
+                    // Now, when exiting action dialogues, not all previously selected rows got re-selected, because the indices were incorrect (including group headers)
+                    // We now fix this by adding the setSelectedIndex back in and always using the model row idx, also in buildJsClickGetRowIndex() 
+                    
+                    if (iTableIdx === undefined || iTableIdx < 0) {
+                        return;
+                    }
                     if (bDeselect === true) {
                         oTable.removeSelectionInterval(iTableIdx, iTableIdx);
                     }
                     else {
-                        // removed for now, to avoid a faulty double selection when right-clicking in grouped tables
-                        //oTable.setSelectedIndex(iTableIdx);
-                        oTable.addSelectionInterval(iRowIdx, iRowIdx);
+                        // Explanation index mapping/previous issues:
+                        // 1) iRowIdx (input) is a MODEL index in /rows/N.
+                        //    Source: buildJsClickGetRowIndex() now reads binding context path (/rows/N)
+                        //    and returns N (model space), not a DOM/rendered row position.
+                        // 2) iTableIdx is a RENDERED table index.
+                        //    Source: fnFindTableIdx(iRowIdx) scans row binding contexts and finds the
+                        //    rendered row whose context path equals "/rows/" + iRowIdx.
+                        // 3) setSelectedIndex()/addSelectionInterval() require rendered table indices,
+                        //    so we must call them with iTableIdx, not with iRowIdx.
+                        // This is required in grouped tables where rendered rows include group headers,
+                        // so model index and rendered index are different values.
+                        // -> Previosuly, some cases passed a rendered index (for example right click), and some the model index (for example buildJsDataLoaderOnLoadedRestoreSelection), 
+                        // so the results were inconsistent/faulty in some cases. 
+
+                        oTable.setSelectedIndex(iTableIdx);
+                        oTable.addSelectionInterval(iTableIdx, iTableIdx);
                         bUpdatedSelection = true;
                     }
                     
