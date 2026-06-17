@@ -152,6 +152,14 @@ JS;
                 }
             }
         }
+        if ($this->getWidget()->getColor() && ! Colors::isSemantic($this->getWidget()->getColor())) {
+            $controller->addExternalModule(
+                'libs.exface.exfColorTools',
+                $this->getFacade()->buildUrlToSource('LIBS.EXFCOLORTOOLS.JS'),
+                null,
+                'exfColorTools'
+            );
+        }
         return parent::registerExternalModules($controller);
     }
     
@@ -206,6 +214,9 @@ JS;
                             $this->getWorkbench()->getLogger()->logException($err);
                             $type = "type: '{$defaultButtonType}',";
                         }
+                    } else {
+                        $this->registerCssButtonColor($color);
+                        $type = "type: '{$defaultButtonType}',";
                     }
                 } else {
                     $type = "type: '{$defaultButtonType}',";
@@ -726,6 +737,58 @@ JS;
         }
     }
     
+    /**
+     * Registers custom CSS to apply a CSS named color or hex color to this button.
+     * 
+     * @param string $color
+     * @return void
+     */
+    protected function registerCssButtonColor(string $color) : void
+    {
+        try {
+            Colors::toHex($color);
+        } catch (\UnexpectedValueException $e) {
+            $err = new FacadeUnsupportedWidgetPropertyWarning('Color "' . $color . '" is not a valid CSS or hex color for button widget in UI5!');
+            $this->getWorkbench()->getLogger()->logException($err);
+            return;
+        }
+        $id = $this->getId();
+        $cssId = $id . '_btn_color';
+        $colorEscaped = $this->escapeString($color, false);
+        $cssRulesJs = $this->buildJsCssColorRules($id);
+        $this->getController()->addOnShowViewScript(<<<JS
+
+(function(){
+    var sColor = '{$colorEscaped}';
+    var sCssId = '{$cssId}';
+    if ($('#' + sCssId).length === 0) {
+        var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, 0.5);
+        var sCss = {$cssRulesJs};
+        $('head').append($('<style type="text/css" id="' + sCssId + '"></style>').text(sCss));
+    }
+})();
+
+JS, false);
+        $this->getController()->addOnHideViewScript("$('#{$id}_btn_color').remove();");
+    }
+    
+    /**
+    * Returns a JavaScript expression string that builds the CSS rules for the custom button color.
+    * 
+    * The expression may reference the JS variables `sColor` (background) and `sTextColor` (text/icon),
+    * and helper functions on `exfColorTools` (e.g. for hover shade calculation).
+    * Override this in subclasses to adapt the selectors for different UI5 controls.
+    * 
+    * @param string $id element id
+    * @return string JS expression evaluating to a CSS string
+    */
+    protected function buildJsCssColorRules(string $id) : string
+    {
+        return "'#{$id}.sapMBtn .sapMBtnInner { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; color: ' + sTextColor + ' !important; }'
+            + ' #{$id}.sapMBtn .sapMBtnInner .sapMBtnIcon { color: ' + sTextColor + ' !important; }'
+            + ' #{$id}.sapMBtn:hover .sapMBtnInner, #{$id}.sapMBtn:hover .sapMBtnHoverable { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; color: ' + sTextColor + ' !important; }'";
+    }
+
     protected function getColorSemanticMap() : array
     {
         $semCols = [];
