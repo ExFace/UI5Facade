@@ -684,7 +684,7 @@ JS;
     			groupHeaderFactory: function(oGroup) {
                     // TODO add support for counters
                     return new sap.m.GroupHeaderListItem({
-        				title: "{$caption}" + (oGroup.key !== null ? oGroup.key : "{$this->escapeJsTextValue($grouper->getEmptyText())}"),
+    					title: "{$caption}" + (oGroup.key !== null && oGroup.key !== undefined && oGroup.key !== '' ? oGroup.key : "{$this->escapeJsTextValue($grouper->getEmptyText())}"),
                         type: "Active",
                         press: function(oEvent) {
                             var oHeaderItem = oEvent.getSource();
