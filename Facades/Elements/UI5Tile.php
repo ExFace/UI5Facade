@@ -165,11 +165,11 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5Button::buildJsCssColorRules()
      */
-    protected function buildJsCssColorRules(string $id) : string
+    protected function buildJsCssColorRules(string $colorClassName) : string
     {
-        return "'#{$id}.sapMGT { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; }'
-            + ' #{$id}.sapMGT .sapMGTHdrTxt, #{$id}.sapMGT .sapMGTSubHdrTxt, #{$id}.sapMGT .sapMGTFtrTxt, #{$id}.sapMGT .sapMGTHdrTxt .sapMText, #{$id}.sapMGT .sapMGTSubHdrTxt .sapMText, #{$id}.sapMGT .sapMGTFtrTxt .sapMText, #{$id}.sapMGT .sapMText, #{$id}.sapMGT .sapMText span, #{$id}.sapMGT .sapUiIcon { color: ' + sTextColor + ' !important; }'
-            + ' #{$id}.sapMGT:hover:not(.sapMGTPressActive) { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; }'";
+        return "'.{$colorClassName}.sapMGT { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; }'"
+            . " + '.{$colorClassName}.sapMGT .sapMGTHdrTxt, .{$colorClassName}.sapMGT .sapMGTSubHdrTxt, .{$colorClassName}.sapMGT .sapMGTFtrTxt, .{$colorClassName}.sapMGT .sapMGTHdrTxt .sapMText, .{$colorClassName}.sapMGT .sapMGTSubHdrTxt .sapMText, .{$colorClassName}.sapMGT .sapMGTFtrTxt .sapMText, .{$colorClassName}.sapMGT .sapMText, .{$colorClassName}.sapMGT .sapMText span, .{$colorClassName}.sapMGT .sapUiIcon { color: ' + sTextColor + ' !important; }'"
+            . " + '.{$colorClassName}.sapMGT:hover:not(.sapMGTPressActive) { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; }'";
     }
 
     /**

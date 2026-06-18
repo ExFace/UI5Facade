@@ -752,41 +752,45 @@ JS;
             $this->getWorkbench()->getLogger()->logException($err);
             return;
         }
-        $id = $this->getId();
-        $cssId = $id . '_btn_color';
         $colorEscaped = $this->escapeString($color, false);
-        $cssRulesJs = $this->buildJsCssColorRules($id);
+        $colorClassName = 'exf_btn_color_' . md5($color);
+        $cssSelectorRules = $this->buildJsCssColorRules($colorClassName);
+        
         $this->getController()->addOnShowViewScript(<<<JS
 
 (function(){
     var sColor = '{$colorEscaped}';
-    var sCssId = '{$cssId}';
+    var sColorClass = '{$colorClassName}';
+    var sCssId = 'exf_btn_color_css_' + sColorClass;
+    
+    // Only inject CSS if not already injected for this color
     if ($('#' + sCssId).length === 0) {
         var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, 0.5);
-        var sCss = {$cssRulesJs};
+        var sCss = {$cssSelectorRules};
         $('head').append($('<style type="text/css" id="' + sCssId + '"></style>').text(sCss));
     }
 })();
 
 JS, false);
-        $this->getController()->addOnHideViewScript("$('#{$id}_btn_color').remove();");
     }
     
     /**
-    * Returns a JavaScript expression string that builds the CSS rules for the custom button color.
-    * 
-    * The expression may reference the JS variables `sColor` (background) and `sTextColor` (text/icon),
-    * and helper functions on `exfColorTools` (e.g. for hover shade calculation).
-    * Override this in subclasses to adapt the selectors for different UI5 controls.
-    * 
-    * @param string $id element id
-    * @return string JS expression evaluating to a CSS string
-    */
-    protected function buildJsCssColorRules(string $id) : string
+     * Returns a JavaScript expression string that builds the CSS rules for the custom button color.
+     * 
+     * Uses class-based selectors so multiple buttons with the same color can share the same CSS rules.
+     * The expression may reference the JS variables `sColor` (background) and `sTextColor` (text/icon),
+     * and helper functions on `exfColorTools` (e.g. for hover shade calculation).
+     * 
+     * Override this in subclasses to adapt the selectors for different UI5 controls.
+     * 
+     * @param string $colorClassName CSS class name for this color (e.g. 'exf_btn_color_abc123')
+     * @return string JS expression evaluating to a CSS string
+     */
+    protected function buildJsCssColorRules(string $colorClassName) : string
     {
-        return "'#{$id}.sapMBtn .sapMBtnInner { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; color: ' + sTextColor + ' !important; }'
-            + ' #{$id}.sapMBtn .sapMBtnInner .sapMBtnIcon { color: ' + sTextColor + ' !important; }'
-            + ' #{$id}.sapMBtn:hover .sapMBtnInner, #{$id}.sapMBtn:hover .sapMBtnHoverable { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; color: ' + sTextColor + ' !important; }'";
+        return "'.{$colorClassName}.sapMBtn .sapMBtnInner { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn .sapMBtnInner .sapMBtnIcon { color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn:hover .sapMBtnInner, .{$colorClassName}.sapMBtn:hover .sapMBtnHoverable { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; color: ' + sTextColor + ' !important; }'";
     }
 
     protected function getColorSemanticMap() : array
@@ -882,6 +886,9 @@ JS;
     {
         $classes = parent::buildCssWidgetClass();
         $widget = $this->getWidget();
+        if (($color = $widget->getColor()) && ! Colors::isSemantic($color)) {
+            $classes .= ' exf_btn_color_' . md5($color);
+        }
         if (($widget instanceof DialogButton) && ($widget->getCloseDialogAfterActionSucceeds() || $widget->getCloseDialogAfterActionFails())) {
             $classes .= ' exf-dialog-close';
         }
