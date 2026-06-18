@@ -1836,7 +1836,7 @@ JS;
                 for (var i = 0; i < iRowCnt; i++) {
                     if (aCtxts[i].__groupInfo) {
                         aCtxts[i].__groupInfo.name = (function(mVal) {
-                            if (mVal === null || mVal === undefined) {
+                            if (mVal === null || mVal === undefined || mVal === '') {
                                 return '{$groupCaption}{$this->escapeJsTextValue($grouper->getEmptyText())}';
                             }
                             return '{$groupCaption}' + {$groupFormatterJs}
