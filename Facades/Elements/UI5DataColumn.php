@@ -129,6 +129,7 @@ JS;
     {
         $col = $this->getWidget();
         $isFilterable = $col->isFilterable() === true;
+        $filterInputTooltipJs = $this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_INPUT_TOOLTIP'));
         $dataTable = $this->getFacade()->getElement($this->getWidget()->getDataWidget());
         $configurator = $this->getFacade()->getElement($dataTable->getWidget()->getConfiguratorWidget());
 
@@ -136,7 +137,6 @@ JS;
         if ($isFilterable){
             return <<<JS
             columnMenuOpen: function(oEvent) {
-
             // get column, menu and id from event params
             let sResetBtnId = oEvent.getParameter('id') + "_resetBtn";
             let oColumn = sap.ui.getCore().byId(oEvent.getParameter('id'));
@@ -148,6 +148,7 @@ JS;
 
             // columnMenuOpen fires before menu is there, so timeout prevents lifecycle issues here
             setTimeout(function() {
+                var sFilterInputTooltip = {$filterInputTooltipJs};
                 
                 // since adding menu items to the default column menu was not encouraged in documentation, wrap in try/catch
                 // see https://ui5.sap.com/1.136.9/#/api/sap.ui.table.ColumnMenu
@@ -183,6 +184,20 @@ JS;
                                 }
                             })
                         );
+                    }
+
+                    // add a tooltip to the built-in filter input to explain additional filter syntax
+                    if (sFilterInputTooltip) {
+                        try {
+                            var oFilterFieldItem = oMenu.getItems().find(function(oItem) {
+                                return oItem && typeof oItem.isA === 'function' && oItem.isA('sap.ui.unified.MenuTextFieldItem');
+                            });
+                            if (oFilterFieldItem && typeof oFilterFieldItem.setTooltip === 'function') {
+                                oFilterFieldItem.setTooltip(sFilterInputTooltip);
+                            }
+                        } catch (e) {
+                            console.warn('Could not set custom tooltip on column filter field: ', e);
+                        }
                     }
                 }
                 catch (e) {
