@@ -2191,7 +2191,7 @@ JS;
         } elseif ($this->isUiTable()) {
             $setNoData = "sap.ui.getCore().byId('{$this->getIdOfNoDataOverlay()}').setText({$this->escapeString($hint)})";
         }
-        return $this->buildJsDataResetter() . ';' . $setNoData;
+        return $this->buildJsDataResetter() . ';' . $setNoData . ';';
     }
     
     public function buildJsRefreshPersonalization() : string

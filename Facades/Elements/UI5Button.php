@@ -813,7 +813,6 @@ JS, false);
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
-        $this->getFacade()->createController($this->getFacade()->getElement($this->getWidget()->getPage()->getWidgetRoot()));
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
