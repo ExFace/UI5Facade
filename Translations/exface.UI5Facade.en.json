@@ -131,6 +131,7 @@
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE": "Include",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE": "Exclude",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR": "Clear filter over this column",
+	"WIDGET.DATATABLE.FILTER_INPUT_TOOLTIP": "By default, filters whether the value is contained. Additional operators: == exact, !== not exact, != not contains, >=, <=, >, <. (Example: !==Value)",
 	"WIDGET.DATATABLE.FILTER_CLEAR": "Clear filters",
 	"WIDGET.DATATABLE.GO_BUTTON_TEXT": "Search",
 	"WIDGET.DATATABLE.OFFLINE_HINT": "The requested data is only available online!",

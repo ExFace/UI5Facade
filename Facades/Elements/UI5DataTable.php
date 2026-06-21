@@ -1090,7 +1090,11 @@ JS;
                         var sFltrProp = oColumn.getFilterProperty();
                         var sFltrVal = oEvent.getParameters().value;
                         var fnParser = oColumn.data('_exfFilterParser'); 
-                        var mFltrParsed = fnParser !== undefined ? fnParser(sFltrVal) : sFltrVal;
+                        var oParsedInput = exfTools.filter.parseOperator(String(sFltrVal));
+                        var mFltrRaw = oParsedInput.value;
+                        var mFltrParsed = fnParser !== undefined ? fnParser(mFltrRaw) : mFltrRaw;
+                        var oComponent = {$this->getController()->buildJsComponentGetter()};
+                        var oP13nMapped = oComponent.mapOperatorToP13n(oParsedInput.operator);
     
                         {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
                         
@@ -1115,8 +1119,8 @@ JS;
                             // create new filter item if value is valid/not empty
                             var oFilterItem = new sap.m.P13nFilterItem({
                                 "columnKey": sFltrProp,
-                                "exclude": false,
-                                "operation": "Contains",
+                                "exclude": oP13nMapped.exclude,
+                                "operation": oP13nMapped.operation,
                                 "value1": mFltrParsed
                             });
     

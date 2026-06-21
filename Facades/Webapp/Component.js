@@ -62,6 +62,29 @@ sap.ui.define([
 				throw 'UI5 Condintion operation "'+operation+'" cannot be mapped to a condition group operator!';
 			}
         },
+
+        /**
+         * Maps raw filter operator string to P13n operation + exclude flag.
+         * Used by header filters to convert user-entered operator syntax to P13n equivalents.
+		 * 
+		 * If no match is found, defaults to "Contains" operation with exclude=false, which results in a "like" filter.
+         * 
+         * @param {string} sOperator - Raw operator ('!==', '==', '!=', '>=', '<=', '>', '<', '=', or '')
+         * @return {object} Object with operation and exclude properties
+         */
+        mapOperatorToP13n: function(sOperator) {
+            var mOperatorMap = {
+                '!==': { operation: 'EQ', exclude: true },
+                '==': { operation: 'EQ', exclude: false },
+                '!=': { operation: 'Contains', exclude: true },
+                '>=': { operation: 'GE', exclude: false },
+                '<=': { operation: 'LE', exclude: false },
+                '>': { operation: 'GT', exclude: false },
+                '<': { operation: 'LT', exclude: false },
+                '=': { operation: 'Contains', exclude: false }
+            };
+            return mOperatorMap[sOperator] || { operation: 'Contains', exclude: false };
+        },
         
         /**
 		 * Convenience method to create and open a dialog.
