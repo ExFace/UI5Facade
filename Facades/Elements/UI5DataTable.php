@@ -771,6 +771,43 @@ JS;
         		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
                 rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                 firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
+                columnMove: function (oEvent) {
+                    // store drag and drop column re-ordering in the model/p13n dialogue, so it can be saved in a setup
+                    setTimeout(() => {
+                        let oDialog = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}');
+                        if (!oDialog) return;
+                        let oP13nModel = oDialog.getModel('{$this->getConfiguratorElement()->getModelNameForConfig()}');
+                        if (!oP13nModel) return;
+                        let aModelCols = oP13nModel.getProperty('/columns') || [];
+                        if (!aModelCols.length) return;
+
+                        // Build new /columns order directly from the table (which already reflects the drag/drop).
+                        // Map column configs by their ID for quick lookup
+                        let oColumnConfigById = {};
+                        aModelCols.forEach(o => { if (o && o.column_id) oColumnConfigById[o.column_id] = o; });
+                        
+                        // Iterate through visible table columns and rebuild the model in their current order
+                        let mSeen = {}, aNewModelCols = [];
+                        (this.getColumns ? this.getColumns() : []).forEach(oCol => {
+                            let oColConfig = oColumnConfigById[oCol.getId()];
+                            if (oColConfig && !mSeen[oCol.getId()]) { aNewModelCols.push(oColConfig); mSeen[oCol.getId()] = true; }
+                        });
+                        
+                        // Append model-only entries (hidden/optional columns not rendered in the table) at the end
+                        aModelCols.forEach(o => { if (o && o.column_id && !mSeen[o.column_id]) aNewModelCols.push(o); });
+
+                        // update the model
+                        oP13nModel.setProperty('/columns', aNewModelCols);
+                        oP13nModel.refresh(true);
+
+                        // update the UI of the columns panel in the configurator, to refelect the new column order
+                        var oColumnsPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfColumnsPanel()}');
+                        var fnUpdateColumns = oColumnsPanel && oColumnsPanel.data('_exfTabColumnsUpdate');
+                        if (typeof fnUpdateColumns === 'function') {
+                            fnUpdateColumns.call(oColumnsPanel, false);
+                        }
+                    }, 0);
+                },
         		columnResize: function (oEvent) {
                     // skip if the table is currently auto-resizing
                     if (this.data("_exfIsAutoResizing")) {
