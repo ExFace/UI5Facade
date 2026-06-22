@@ -252,6 +252,10 @@ table.jexcel > thead > tr:last-child > td.jexcel_column_filter {
     background-color: rgba(0, 0, 0, 0.04);
 }
 
+/* if auto column width is enabled, use auto table layout to allow columns to grow with content. */
+.exf-auto-column-width table.jexcel { table-layout: auto; }
+.exf-auto-column-width table.jexcel > thead > tr > td.jexcel_selectall { min-width: 2.5rem; }
+
 /* Border under header */
 table.jexcel > thead > tr:last-child > td {border-bottom: 1px solid rgb(140, 140, 140);}
 
