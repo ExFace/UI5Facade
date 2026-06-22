@@ -40,6 +40,7 @@ class UI5NavMenu extends UI5AbstractElement
 
 new sap.tnt.SideNavigation("{$this->getId()}_scrollContainer", {
     expanded: false,
+    visible: false,
     item: new sap.tnt.NavigationList("{$this->getId()}",{
         selectedKey: "{$selectedKey}",
         items: [
