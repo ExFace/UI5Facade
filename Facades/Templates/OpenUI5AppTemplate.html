@@ -111,14 +111,14 @@
 				// so that sap-icon://font-awesome/ icons work in the NavMenu.
 				jQuery.sap.registerModulePath('libs.font_awesome.plugin', 'vendor/bower-asset/font-awesome-openui5/dist/font-awesome-openui5.min');
 				jQuery.sap.registerModulePath('libs.exface.ui5Custom', 'vendor/exface/ui5facade/Facades/js/ui5Custom');
-				sap.ui.require(['libs/font_awesome/plugin'], function () {
-					sap.ui.require([
-						"sap/ui/unified/Shell",
-						"sap/ui/core/ComponentContainer",
-						"sap/tnt/NavigationList",
-						"sap/m/HBox",
-						"libs/exface/ui5Custom/MultiLevelNavItem"
-					], function (Shell, ComponentContainer, NavigationList, HBox, MultiLevelNavItem) {
+				sap.ui.require([
+					"libs/font_awesome/plugin",
+					"sap/ui/unified/Shell",
+					"sap/ui/core/ComponentContainer",
+					"sap/tnt/NavigationList",
+					"sap/m/HBox",
+					"libs/exface/ui5Custom/MultiLevelNavItem"
+				], function (FontAwesomePlugin, Shell, ComponentContainer, NavigationList, HBox, MultiLevelNavItem) {
 						var oShell = exfLauncher.initShell();
 
 						var oNavMenu = [#~widget:NavMenu#]
@@ -172,8 +172,61 @@
 						setTimeout(function(){
 							$('#exf-loader').hide();
 						}, 1000);
+
+						// Only show the nav menu once the FontAwesome icon font is actually rendered, 
+						// otherwise the icons show as empty boxes and look ugly.
+						// We cannot rely on the callback from document.fonts here, because the @font-face for "FontAwesome" is injected 
+						// by the icon CSS of UI5 asynchronously, so at the time the page boots there may be no matching font face yet 
+						// and the promise would resolve immediately. (The plugin registers the icons under font-family FontAwesome 
+						// via IconPool.addIcon, but the actual @font-face for FontAwesome is injected by the icon CSS later.)
+						// Instead we measure the rendered width of a FontAwesome glyph against the fallback font: as long as the glyph falls back, its width matches the fallback; 
+						// once the icon font is loaded the width changes, and we set the menu visible
+						var fnShowNavMenu = function(){
+							oNavMenu.setVisible(true);
+						};
+
+						var fnWhenFontAwesomeReady = function(fnReady){
+							var sGlyph = '\uf015'; // fa-home, glyph from FontAwesome
+							var fnMeasure = function(sFamily){
+								var oSpan = document.createElement('span');
+								oSpan.style.position = 'absolute';
+								oSpan.style.left = '-9999px';
+								oSpan.style.top = '-9999px';
+								oSpan.style.fontSize = '100px';
+								oSpan.style.lineHeight = 'normal';
+								oSpan.style.whiteSpace = 'nowrap';
+								oSpan.style.fontFamily = sFamily;
+								oSpan.textContent = sGlyph;
+								document.body.appendChild(oSpan);
+								var iWidth = oSpan.offsetWidth;
+								document.body.removeChild(oSpan);
+								return iWidth;
+							};
+							var iStart = Date.now();
+							var iTimeout = 15000; // give up after 15s and show the menu anyway
+
+							// check if font is loaded/compare glyphs
+							var fnCheck = function(){
+								var iFallback = fnMeasure('monospace');
+								var iFa = fnMeasure('FontAwesome, monospace');
+								// When the FontAwesome font is loaded, the glyph is rendered
+								// from it and its width differs from the pure fallback.
+								if (iFa !== iFallback) {
+									fnReady();
+									return;
+								}
+								if (Date.now() - iStart > iTimeout) {
+									fnReady();
+									return;
+								}
+								setTimeout(fnCheck, 100);
+							};
+							fnCheck();
+						};
+
+						// check fontawesome and set menu visible if loaded
+						fnWhenFontAwesomeReady(fnShowNavMenu);
 					});
-				}); // sap.ui.require font_awesome/plugin
 			});
 		</script>
 		
