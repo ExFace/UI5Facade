@@ -603,75 +603,87 @@ JS;
                         })
                     },
                     beforeNavigationTo: function(oEvent) {
-                        {$this->buildJsTabColumnsUpdate('oEvent.getSource()')}                        
+                        var fnUpdateColumns = this.data('_exfTabColumnsUpdate');
+                        if (typeof fnUpdateColumns === 'function') {
+                            fnUpdateColumns.call(this, false);
+                        }
                     }
-                }),
+                })
+                .data('_exfTabColumnsUpdate', {$this->buildJsTabColumnsUpdateFunction()})
+                ,
 JS;
     }
     
-    protected function buildJsTabColumnsUpdate(string $oPanelJs, bool $resetSelection = false) : string
+    protected function buildJsTabColumnsUpdateFunction() : string
     {
-        /* This script sorts the columns in the panel's list to be sorted exactly the way, they
-         * are positioned in the table - regardless of their visibility. By default, unchecked
-         * columns are placed at the end of the the list. This forces the user to move them
-         * after enabling. This fix makes sure, the position of the column is kept when enabling/disabling
-         * and allows table designers to position optional columns meaningfully.
-         */
-        if ($resetSelection === true) {
-            $resetSelection = "oItem.persistentSelected = oColConfig.visibleInitially; oColConfig.visible = oColConfig.visibleInitially; oItem.persistentIndex = iItemIdx";
-        } else {
-            $resetSelection = '';
-        }
         return <<<JS
-                var oPanel = $oPanelJs;
+function(bResetSelection) {
+    /* This script sorts the columns in the panel's list to be sorted exactly the way, they
+     * are positioned in the table - regardless of their visibility. By default in UI5, unchecked
+     * columns are placed at the end of the the list. This forces the user to move them
+     * after enabling. This fix makes sure, the position of the column is kept when enabling/disabling
+     * and allows table designers to position optional columns meaningfully.
+     */
+    var oPanel = this;
 
-                // settimeout needed here bc. otherwise the data is not there yet, 
-                // and changes are then only applied when panel is openend for the second time
-                setTimeout(function(){
+    if (bResetSelection === true) {
+        bResetSelection = function(oItem, oColConfig, iItemIdx) {
+            oItem.persistentSelected = oColConfig.visibleInitially;
+            oColConfig.visible = oColConfig.visibleInitially;
+            oItem.persistentIndex = iItemIdx;
+        };
+    } else {
+        bResetSelection = function() {};
+    }
+
+    // settimeout needed here bc. otherwise the data is not there yet,
+    // and changes are then only applied when panel is openend for the second time
+    setTimeout(function(){
+        try {
+                let oTable = null;
+                if (oPanel.getAggregation('content')[1] !== undefined){
+                    oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
+                }
+                else{
+                    // UI5-Upgrade - structure changed, need to get table content differently
+                    oTable = oPanel.getAggregation('content')[0];
+                }
+                var oTableModel = oTable.getModel();
+                var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
+                if (oTableModel === undefined || oConfigModel === undefined) return;
+                
                     try {
-                            let oTable = null;
-                            if (oPanel.getAggregation('content')[1] !== undefined){
-                                oTable = oPanel.getAggregation('content')[1].getAggregation('content')[0];
-                            }
-                            else{
-                                // UI5-Upgrade - structure changed, need to get table content differently
-                                oTable = oPanel.getAggregation('content')[0];
-                            }
-                            var oTableModel = oTable.getModel();
-                            var oConfigModel = oPanel.getModel('{$this->getModelNameForConfig()}');
-                            if (oTableModel === undefined || oConfigModel === undefined) return;
-                            
-                                try {
-                                    var aColsConfig = oConfigModel.getProperty('/columns');
-                                    
-                                    // only use items that are toggleable
-                                    var oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
-                                    oPanel.getBinding("items").filter(oVisibleFilter);
-                                    
-                                    var aItems = oTableModel.getProperty('/items');
-                                    var aItemsNew = [];
-                                    
-                                    aColsConfig.forEach(function(oColConfig){
-                                        aItems.forEach(function(oItem, iItemIdx){
-                                            if (oItem.columnKey === oColConfig.column_id) {
-                                                $resetSelection;
-                                                aItemsNew.push(oItem);
-                                                return;
-                                            }
-                                        })
-                                    });
-                                    oTableModel.setProperty('/items', aItemsNew);
-                                    // update counts of selected items, else the counter is wrong after a reset
-                                    oPanel._updateCounts(aItemsNew);
-                                } catch (e) {
-                                    console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
+                        var aColsConfig = oConfigModel.getProperty('/columns');
+                        
+                        // only use items that are toggleable
+                        var oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
+                        oPanel.getBinding("items").filter(oVisibleFilter);
+                        
+                        var aItems = oTableModel.getProperty('/items');
+                        var aItemsNew = [];
+                        
+                        aColsConfig.forEach(function(oColConfig){
+                            aItems.forEach(function(oItem, iItemIdx){
+                                if (oItem.columnKey === oColConfig.column_id) {
+                                    oItem.persistentSelected = oColConfig.visible;
+                                    bResetSelection(oItem, oColConfig, iItemIdx);
+                                    aItemsNew.push(oItem);
+                                    return;
                                 }
-                        } 
-                    catch (e) {
+                            })
+                        });
+                        oTableModel.setProperty('/items', aItemsNew);
+                        // update counts of selected items, else the counter is wrong after a reset
+                        oPanel._updateCounts(aItemsNew);
+                    } catch (e) {
                         console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
                     }
-                }, 0); 
-                        
+            } 
+        catch (e) {
+            console.warn('Cannot properly sort columns for personalization - using default sorting: ', e);
+        }
+    }, 0); 
+}
 JS;
     }
         
@@ -1318,7 +1330,14 @@ JS;
             $resetColumns = <<<JS
 // reset columns
                 oCurrentModel.setProperty('/columns', JSON.parse(JSON.stringify(oInitModel.getProperty('/columns'))));
-                {$this->buildJsTabColumnsUpdate("sap.ui.getCore().byId('{$this->getId()}_ColumnsPanel')", true)}
+
+                // reset the columns panel UI
+                var oColumnsPanel = sap.ui.getCore().byId('{$this->getId()}_ColumnsPanel');
+                var fnUpdateColumns = oColumnsPanel && oColumnsPanel.data('_exfTabColumnsUpdate');
+                if (typeof fnUpdateColumns === 'function') {
+                    fnUpdateColumns.call(oColumnsPanel, true);
+                }
+
                 {$refreshP13n}
 JS;
         } else {
