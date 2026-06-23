@@ -1420,8 +1420,9 @@ JS;
     protected function buildJsDataLoaderFromLocal($oControlEventJsVar = 'oControlEvent', $keepPagePosJsVar = 'bKeepPagingPos')
     {
         $widget = $this->getWidget();
-        $data = $widget->prepareDataSheetToRead($widget->getValuesDataSheet());
-        if (! $data->isFresh() && $widget->getMetaObject()->isReadable()) {
+        $dataWidget = $this->getDataWidget();
+        $data = $widget->prepareDataSheetToRead($dataWidget->getValuesDataSheet());
+        if (! $data->isFresh() && $data->getMetaObject()->isReadable()) {
             $data->dataRead();
         }
         
@@ -1867,7 +1868,8 @@ JS;
      */
     protected function isLazyLoading()
     {
-        return $this->getDataWidget()->getLazyLoading($this->getMetaObject()->isReadable());
+        $dataWidget = $this->getDataWidget();
+        return $dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable());
     }
     
     protected abstract function isEditable();

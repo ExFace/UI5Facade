@@ -470,4 +470,24 @@ JS;
     {
         return true;
     }
+
+
+
+    /**
+     * Returns TRUE if this table uses a remote data source and FALSE otherwise.
+     *
+     * @see UI5DataElementTrait::isLazyLoading()
+     */
+    protected function isLazyLoading()
+    {
+        foreach ($this->getWidget()->getDataLayers() as $layer) {
+            if ($layer instanceof DataMapLayerInterface && ! $layer->getDataWidgetLink()) {
+                $dataWidget = $layer->getDataWidget();
+                if ($dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
