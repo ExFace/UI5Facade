@@ -20,6 +20,7 @@ class UI5DataSpreadSheet extends UI5AbstractElement implements UI5DataElementInt
         UI5JExcelTrait::buildJsValueGetter insteadof UI5DataElementTrait;
         UI5JExcelTrait::registerExternalModules insteadof UI5DataElementTrait;
         UI5JExcelTrait::buildJsChangesGetter insteadof UI5DataElementTrait;
+        UI5JExcelTrait::buildJsDataSetter insteadof UI5DataElementTrait;
     }
     
     /**
