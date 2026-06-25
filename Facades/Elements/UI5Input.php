@@ -63,11 +63,14 @@ class UI5Input extends UI5Value
         // data model even for non-prefill widgets (which would probably not work if the entire dialog has no prefill).
         // Instead we should probably always use UI5 models instead of optional value bindings.
         if (
-            // Empty on dialog reset if the value is not bound to model OR prefill is generally disabled
+            // Empty/reset on dialog reset if the value is not bound to model OR prefill is generally disabled
             (! $this->isValueBoundToModel() || $widget->getDoNotPrefill() === true) 
             // But NOT if the widget has a static value - otherwise that static value would get removed
-            && (! $widget->hasValue() || $widget->getValueExpression()->isReference())
+            && (! $widget->hasValue() || ($widget->getValueExpression() && $widget->getValueExpression()->isReference()))
         ) {
+            // if we have a default value, we do want to reset it here, but not to empty, but the default value
+            $bHasDefaultValue = $this->escapeBool($widget->hasDefaultValue());
+
             // The data-model of the current widget is mostly populated in UI5Dialog. It is set to `{}` whenever
             // the dependent widgets are to be emptied - see `UI5Dialog::buildJsPrefillLoader()`,
             // `UI5Dialog::buildJsResetter()` and possibly other places.
@@ -84,7 +87,13 @@ class UI5Input extends UI5Value
                     if ($.isEmptyObject(oModel.getData())) {
                         mCurVal = {$this->buildJsValueGetter()};
                         if (mCurVal !== undefined && mCurVal !== null && mCurVal !== '') {
-                            {$this->buildJsEmpty()};
+                            if ({$bHasDefaultValue} === true) {
+                                // if we have a default value, we want to reset it, and not empty it
+                                // otherwise the default values get removed on init
+                                {$this->buildJsResetter()};
+                            } else {
+                                {$this->buildJsEmpty()};
+                            }
                         }
                     }
                 });
