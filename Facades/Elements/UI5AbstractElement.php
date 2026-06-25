@@ -548,7 +548,7 @@ JS;
         if ($this->controller === null) {
             if (null !== $parent = $this->getWidget()->getParent()) {
                 $parentEl = $this->getFacade()->getElement($parent);
-                $this->controller = $parentEl->getController();
+                $this->controller = $parentEl->getController(); // caches controller, but doesnt dispatch event (?)
             } else {
                 throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
             }
@@ -578,14 +578,53 @@ JS;
      */
     public function setController(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        if (! $this->controller === null) {
+        // NOTE: the original check 'if (! $this->controller === null)' was a bug, because PHP
+        // evaluates it as 'if ((! $this->controller) === null)', which is always false. 
+        // now: a controller may only be assigned once. Re-assigning the
+        // exact same controller is tolerated, but switching to a different one gives an error.
+        if ($this->controller !== null && $this->controller !== $controller) {
             throw new LogicException('Cannot change the controller of a UI5 element after it had been set initially!');
         }
         $this->controller = $controller;
         $this->getWorkbench()->eventManager()->dispatch(new OnControllerSetEvent($controller, $this));
         return $this;
     }
-    
+
+    /**
+     * Re-dispatches OnControllerSetEvent for this element to flush callbacks parked via addOnControllerSet().
+     *
+     * Callbacks registered through `addOnControllerSet()` while no controller was available yet are parked
+     * and only executed when an `OnControllerSetEvent` is dispatched (i.e. from `setController()`). That event
+     * is a one-shot: a callback parked AFTER the controller was initially set never runs, because the event
+     * is not replayed for late subscribers.
+     *
+     * This becomes a problem for cross-view live references: a dependent widget in a lazily loaded view (e.g.
+     * a filter inside a lookup dialog) registers its `onChange` handler on a SOURCE widget that lives in
+     * another (e.g. the calling) view. That registration must happen while the source view's controller is
+     * still collecting scripts - i.e. during that view's render. Calling this method on the view root forces
+     * the parked callbacks for that subtree to run at the right moment.
+     *
+     * If no controller exists for this element yet, one is created (which dispatches the event as well).
+     *
+     * @return UI5AbstractElement
+     */
+    public function flushControllerSetListeners() : UI5AbstractElement
+    {
+        try {
+            $controller = $this->getController();
+        } catch (UI5ControllerNotInitializedException $e) {
+            // No controller for this subtree yet - creating one dispatches OnControllerSetEvent
+            // and flushes the parked queue.
+            $this->getFacade()->createController($this);
+            return $this;
+        }
+
+        // A controller already exists, re-dispatch the event to flush any callbacks that were
+        // parked after it was initially set.
+        $this->getWorkbench()->eventManager()->dispatch(new OnControllerSetEvent($controller, $this));
+        return $this;
+    }
+
     public final function buildHtmlHeadTags()
     {
         return [];

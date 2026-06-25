@@ -9,6 +9,7 @@ use exface\Core\Widgets\Input;
 use exface\Core\Interfaces\Widgets\iShowDataColumn;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\NumberDataType;
+use exface\UI5Facade\Exceptions\UI5ControllerNotInitializedException;
 
 /**
  * Generates sap.m.Text controls for Value widgets
@@ -487,6 +488,26 @@ JS;
      */
     public function registerLiveReferenceAtLinkedElement() 
     {
+        // Make sure the source's view root has a controller before attaching to it.
+        // otherwise, create one and flush any parked onChange registrations for the source widget.
+        // Idea here is: Flush controller-set callbacks for the PAGE ROOT (not just this view) so that cross-view
+        // live references get registered correctly. The dependent widget of such a reference (e.g. a
+        // filter inside this lookup dialog) lives in this view, but its SOURCE widget (e.g. a value in
+        // the calling form) lives OUTSIDE this view, higher up in the page tree. To attach the onChange
+        // handler, that source widget needs a controller - and in this separately loaded http request (lookup dialog)
+        // only this dialog view has one. Creating/flushing at the page root gives the out-of-view source a
+        // controller and flushes the dependent's parked registration in one go
+        // see UI5AbstractElement::flushControllerSetListeners() for details.
+        if (null !== $linkedElement = $this->getLinkedFacadeElement()) {
+            try {
+                $linkedElement->getController();
+            } catch (UI5ControllerNotInitializedException $e) {
+                $this->getFacade()
+                    ->getElement($linkedElement->getWidget()->getPage()->getWidgetRoot())
+                    ->flushControllerSetListeners();
+            }
+        }
+
         $this->registerLiveReferenceAtLinkedElementViaTrait();
         // Also refresh the live reference each time the view is prefilled!
         // But use setTimeout() to make sure all widgets binding-events affected

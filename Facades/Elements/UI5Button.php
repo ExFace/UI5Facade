@@ -813,6 +813,11 @@ JS, false);
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
+        // NOTE: cross-view live references (e.g. a filter inside this lookup dialog referencing a value
+        // in the calling form) used to be wired up from here by flushing the page-root controller. That
+        // responsibility now lives in the live-reference registration itself - see
+        // UI5Value::registerLiveReferenceAtLinkedElement(), which ensures the source widget's view root
+        // has a controller before attaching the onChange handler. So nothing extra is needed here (?)
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
