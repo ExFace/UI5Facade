@@ -813,17 +813,11 @@ JS, false);
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
-        // Flush controller-set callbacks for the PAGE ROOT (not just this view) so that cross-view
-        // live references get registered correctly. The dependent widget of such a reference (e.g. a
-        // filter inside this lookup dialog) lives in this view, but its SOURCE widget (e.g. a value in
-        // the calling form) lives OUTSIDE this view, higher up in the page tree. To attach the onChange
-        // handler, that source widget needs a controller - and in this separately loaded http request (lookup dialog)
-        // only this dialog view has one. Creating/flushing at the page root gives the out-of-view source a
-        // controller and flushes the dependent's parked registration in one go
-        // see UI5AbstractElement::flushControllerSetListeners() for details.
-        // NOTE: PHP rebuilds the widget/element tree from scratch on every request, so the page root has no controller
-        // since the lookup dialogue is a seperate request.
-        $this->getFacade()->getElement($this->getWidget()->getPage()->getWidgetRoot())->flushControllerSetListeners();
+        // NOTE: cross-view live references (e.g. a filter inside this lookup dialog referencing a value
+        // in the calling form) used to be wired up from here by flushing the page-root controller. That
+        // responsibility now lives in the live-reference registration itself - see
+        // UI5Value::registerLiveReferenceAtLinkedElement(), which ensures the source widget's view root
+        // has a controller before attaching the onChange handler. So nothing extra is needed here (?)
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
