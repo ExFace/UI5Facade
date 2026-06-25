@@ -68,7 +68,7 @@ class UI5Input extends UI5Value
             // But NOT if the widget has a static value - otherwise that static value would get removed
             && (! $widget->hasValue() || ($widget->getValueExpression() && $widget->getValueExpression()->isReference()))
         ) {
-            // if we have a default value, we do want to reset it here, but not to empty, but the default value
+            // if we have a default value, we do want to reset it here and not empty it
             $bHasDefaultValue = $this->escapeBool($widget->hasDefaultValue());
 
             // The data-model of the current widget is mostly populated in UI5Dialog. It is set to `{}` whenever
