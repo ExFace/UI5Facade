@@ -159,6 +159,10 @@ JS;
                 $this->registerColorClasses(['icon'], "#{$this->getId()}.exf-svg-icon:before", 'content: url("data:image/svg+xml,' . rawurlencode($this->getWidget()->getIcon()) . '")');
             }
         }
+        
+        // see if we have a fallback/empty icon configured, and if so, use it as the default value for the formatter
+        $emptyIcon = $widget->getEmptyIcon();
+        $emptyIconJs = $emptyIcon ? $this->escapeString($this->getIconSrc($emptyIcon)) : 'null';
 
         $bSvgJs = $bSvgJs ?? 'false';
         return parent::buildJsValueBindingOptions() . <<<JS
@@ -183,7 +187,7 @@ JS;
                         case sIcon === undefined:
                         case sIcon === null:
                         case sIcon === '':
-                            return null;
+                            return {$emptyIconJs};
                         case bSvg:
 
                             // helper function to hash icons
