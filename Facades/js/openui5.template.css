@@ -860,6 +860,11 @@ html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
     background-color: var(--sapTile_Hover_Background);
 }
 
+/* move tile icons further to the bottom, to avoid overlapping in tiles with long heading/subtitles */
+html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMTileCnt {
+    align-content: end;
+}
+
 /* Tab "bubbles" in ObjectPageLayout */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUiTableCCnt {border-bottom: none;}
 
