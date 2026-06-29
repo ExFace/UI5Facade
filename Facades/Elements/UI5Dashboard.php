@@ -428,6 +428,7 @@ JS;
                     layout: [
                         {
                             columnSize: "calc((100% - 9 * 10px) / 10)",
+                            rowSize: "20px",
                             gap: "10px"
                         }
                     ],

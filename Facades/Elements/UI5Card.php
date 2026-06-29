@@ -77,7 +77,7 @@ JS;
         
         $dim = $widget->getHeight();
         if ($dim->isUndefined() === true) {
-            $height = '"300px"';
+            $height = '"380px"';
         } elseif ($dim->isMax()) {
             $height = '"100%"';
         } else {

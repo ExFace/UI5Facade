@@ -4,7 +4,7 @@ namespace exface\UI5Facade\Facades\Elements;
 class UI5DataCards extends UI5DataTable
 {
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsConstructorForTable()
      */
@@ -43,7 +43,7 @@ class UI5DataCards extends UI5DataTable
 
 JS;
     }
-                
+
     protected function buildJsConstructorForCard() : string
     {
         return <<<JS
@@ -56,13 +56,13 @@ JS;
                                     items: [
                                         {$this->buildJsCellsForMTable()}
                                     ]
-                                }).addStyleClass("sapUiSmallMargin")
+                                }).addStyleClass("sapUiSmallMargin exf-datacard")
 
 JS;
     }
-           
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsCellsForMTable()
      */
@@ -87,12 +87,12 @@ JS;
             }
             $cells .= ($cells ? ", " : '') . $this->getFacade()->getElement($column)->buildJsConstructorForCell(null, false) . ($class !== '' ? '.addStyleClass("' . $class . '")' : '');
         }
-        
+
         return $cells;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsClickIsTargetRowCheck()
      */
@@ -100,9 +100,9 @@ JS;
     {
         return "{$oTargetDomJs} !== undefined && $({$oTargetDomJs}).parents('ul.sapFGridListDefault').length > 0";
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isMList()
      */
@@ -110,9 +110,9 @@ JS;
     {
         return true;
     }
-        
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isMTable()
      */
@@ -120,9 +120,9 @@ JS;
     {
         return false;
     }
-    
+
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::isUiTable()
      */
