@@ -116,6 +116,7 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 .exf-card-with-tiles .exf-tiles > .sapMPanelContent {padding: 0; margin-top: -6px; margin-left: -6px; overflow: visible;}
 .exf-card-with-tiles > .sapMPanelContent {padding: 0;}
 html[class*="sapUiTheme-sap_horizon"] .exf-card-with-tiles > .sapMPanelContent {background-color: var(--sapBackgroundColor)}
+.exf-card-with-tiles > .sapMPanelContent > .exf-tiles {height: 100% !important}
 /* Fix to force 2-column tile menus even on phones with long narrow screens (centering on wider phones) */
 html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%}
 /* Panels */
