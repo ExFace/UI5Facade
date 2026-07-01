@@ -152,6 +152,14 @@ JS;
                 }
             }
         }
+        if ($this->getWidget()->getColor() && ! Colors::isSemantic($this->getWidget()->getColor())) {
+            $controller->addExternalModule(
+                'libs.exface.exfColorTools',
+                $this->getFacade()->buildUrlToSource('LIBS.EXFCOLORTOOLS.JS'),
+                null,
+                'exfColorTools'
+            );
+        }
         return parent::registerExternalModules($controller);
     }
     
@@ -206,6 +214,9 @@ JS;
                             $this->getWorkbench()->getLogger()->logException($err);
                             $type = "type: '{$defaultButtonType}',";
                         }
+                    } else {
+                        $this->registerCssButtonColor($color);
+                        $type = "type: '{$defaultButtonType}',";
                     }
                 } else {
                     $type = "type: '{$defaultButtonType}',";
@@ -726,6 +737,62 @@ JS;
         }
     }
     
+    /**
+     * Registers custom CSS to apply a CSS named color or hex color to this button.
+     * 
+     * @param string $color
+     * @return void
+     */
+    protected function registerCssButtonColor(string $color) : void
+    {
+        try {
+            Colors::toHex($color);
+        } catch (\UnexpectedValueException $e) {
+            $err = new FacadeUnsupportedWidgetPropertyWarning('Color "' . $color . '" is not a valid CSS or hex color for button widget in UI5!');
+            $this->getWorkbench()->getLogger()->logException($err);
+            return;
+        }
+        $colorEscaped = $this->escapeString($color, false);
+        $colorClassName = 'exf_btn_color_' . md5($color);
+        $cssSelectorRules = $this->buildJsCssColorRules($colorClassName);
+        
+        $this->getController()->addOnShowViewScript(<<<JS
+
+(function(){
+    var sColor = '{$colorEscaped}';
+    var sColorClass = '{$colorClassName}';
+    var sCssId = 'exf_btn_color_css_' + sColorClass;
+    
+    // Only inject CSS if not already injected for this color
+    if ($('#' + sCssId).length === 0) {
+        var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, 0.5);
+        var sCss = {$cssSelectorRules};
+        $('head').append($('<style type="text/css" id="' + sCssId + '"></style>').text(sCss));
+    }
+})();
+
+JS, false);
+    }
+    
+    /**
+     * Returns a JavaScript expression string that builds the CSS rules for the custom button color.
+     * 
+     * Uses class-based selectors so multiple buttons with the same color can share the same CSS rules.
+     * The expression may reference the JS variables `sColor` (background) and `sTextColor` (text/icon),
+     * and helper functions on `exfColorTools` (e.g. for hover shade calculation).
+     * 
+     * Override this in subclasses to adapt the selectors for different UI5 controls.
+     * 
+     * @param string $colorClassName CSS class name for this color (e.g. 'exf_btn_color_abc123')
+     * @return string JS expression evaluating to a CSS string
+     */
+    protected function buildJsCssColorRules(string $colorClassName) : string
+    {
+        return "'.{$colorClassName}.sapMBtn .sapMBtnInner { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn .sapMBtnInner .sapMBtnIcon { color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn:hover .sapMBtnInner, .{$colorClassName}.sapMBtn:hover .sapMBtnHoverable { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; color: ' + sTextColor + ' !important; }'";
+    }
+
     protected function getColorSemanticMap() : array
     {
         $semCols = [];
@@ -746,7 +813,11 @@ JS;
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
-        $this->getFacade()->createController($this->getFacade()->getElement($this->getWidget()->getPage()->getWidgetRoot()));
+        // NOTE: cross-view live references (e.g. a filter inside this lookup dialog referencing a value
+        // in the calling form) used to be wired up from here by flushing the page-root controller. That
+        // responsibility now lives in the live-reference registration itself - see
+        // UI5Value::registerLiveReferenceAtLinkedElement(), which ensures the source widget's view root
+        // has a controller before attaching the onChange handler. So nothing extra is needed here (?)
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
@@ -819,6 +890,9 @@ JS;
     {
         $classes = parent::buildCssWidgetClass();
         $widget = $this->getWidget();
+        if (($color = $widget->getColor()) && ! Colors::isSemantic($color)) {
+            $classes .= ' exf_btn_color_' . md5($color);
+        }
         if (($widget instanceof DialogButton) && ($widget->getCloseDialogAfterActionSucceeds() || $widget->getCloseDialogAfterActionFails())) {
             $classes .= ' exf-dialog-close';
         }

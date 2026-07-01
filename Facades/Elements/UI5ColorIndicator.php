@@ -38,6 +38,10 @@ JS;
         } else {
             $objStatus = new UI5ObjectStatus($widget, $this->getFacade());
             $objStatus->setTitle('');
+            // use the id setting from the parent, otherwise duplicate ids might be re-registeed which causes JS errors
+            // for example with ColorIndicators in sap.m.Tables where the template is re-used
+            // see UI5DataColumn->buildJsConstructorForCell
+            $objStatus->setUseWidgetId($this->getUseWidgetId()); 
             $objStatus->setValueBindingPrefix($this->getValueBindingPrefix());
             if ($widget->getFill() === true) {
                 $objStatus->setInverted(true);

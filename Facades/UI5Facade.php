@@ -3,17 +3,23 @@ namespace exface\UI5Facade\Facades;
 
 use exface\Core\CommonLogic\Debugger;
 use exface\Core\Contexts\DebugContext;
+use exface\Core\DataTypes\StringDataType;
+use exface\Core\Exceptions\Facades\FacadeRoutingError;
 use exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsListFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsStringFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Tours\DriverJsTourDriver;
+use exface\Core\Facades\AbstractHttpFacade\FacadeResolver;
 use exface\Core\Facades\AbstractHttpFacade\Middleware\ServerTimingMiddleware;
+use exface\Core\Factories\UiPageFactory;
+use exface\Core\Factories\WidgetFactory;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsDateFormatter;
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsTimeFormatter;
 use exface\Core\Interfaces\Facades\TourableFacadeInterface;
+use exface\Core\Interfaces\Selectors\AliasSelectorInterface;
 use exface\Core\Interfaces\Tours\TourDriverInterface;
 use exface\UI5Facade\Facades\Formatters\UI5DateFormatter;
 use exface\UI5Facade\Facades\Formatters\UI5DefaultFormatter;
@@ -51,6 +57,7 @@ use exface\Core\Interfaces\Selectors\PWASelectorInterface;
 use exface\Core\CommonLogic\Selectors\PWASelector;
 use exface\Core\Interfaces\Exceptions\AuthorizationExceptionInterface;
 use exface\Core\Interfaces\Facades\PWAFacadeInterface;
+use Psr\Http\Message\UriInterface;
 
 /**
  * Renders SAP Fiori apps using OpenUI5 or SAP UI5.
@@ -789,5 +796,56 @@ JS;
     {
         // TODO create a separate tour driver for very view/controller?
         return $this->tourDriver;
+    }
+
+    /**
+     * Returns the widget that the facade would render for this URL
+     *
+     * E.g. http://127.0.0.1/exface/my.app.root_alias.html#/my.app.page_alias.widget_id/... -> `NavTiles` of page `exface.core.administration`
+     * because this is the root widget of the administration page
+     *
+     * @param UriInterface|string $url
+     * @return WidgetInterface
+     */
+    public function findUrlWidget(UriInterface|string $url) : WidgetInterface
+    {
+        $uri = is_string($url) ? new Uri($url) : $url;
+        // `/my.app.page_alias.widget_id/...`
+        $hash = $uri->getFragment();
+        if (! $hash) {
+            return parent::findUrlWidget($uri);
+        }
+        // `my.app.page_alias.widget_id/...`
+        $hash = ltrim($hash, '/');
+        // `my.app.page_alias.widget_id`
+        $hash = StringDataType::substringBefore($hash, '/', $hash);
+        // Explode by `.`, but make 4 parts at most. Theoretically there can be more due to widget id spaces: e.g.
+        // `my.app.page_alias.id_space.widget_id`
+        $parts = explode('.', $hash, 4);
+        switch (count($parts)) {
+            // Page alias and widget id: `my.app.page_alias.widget_id`
+            case 4: 
+            // page alias without widget id: `my.app.page_alias`
+            case 3:
+                $pageAlias = $parts[0] . AliasSelectorInterface::ALIAS_NAMESPACE_DELIMITER . $parts[1] . AliasSelectorInterface::ALIAS_NAMESPACE_DELIMITER . $parts[2];
+                $widgetId = $parts[3] ?? null;
+                break;
+            // Page alias without namespace and widget id: `page_alias.widget_id`
+            case 2:
+            // Page alias without namespace and without widget id: `page-alias`
+            case 1:
+                $pageAlias = $parts[0];
+                $widgetId = $parts[1] ?? null;
+                break;
+            default:
+                throw new FacadeRoutingError('Cannot parse URL `' . $uri->__toString() . '`');
+        }
+        $page = UiPageFactory::createFromModel($this->getWorkbench(), $pageAlias);
+        if ($widgetId !== null) {
+            $widget = $page->getWidget($widgetId);
+        } else {
+            $widget = $page->getWidgetRoot();
+        }
+        return $widget;
     }
 }

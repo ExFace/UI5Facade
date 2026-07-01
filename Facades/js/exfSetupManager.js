@@ -746,29 +746,11 @@
 
                 // toggle checkboxes in columns tab according to setup
                 // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
-                let oTable = null;
-                if (oDialog.getAggregation('content')[1] !== undefined){
-                    oTable = oDialog.getAggregation('content')[1].getAggregation('content')[0];
+                // for this, we use the update function attached to the panel, see Ui5DataConfigurator
+                let fnUpdateColumnsPanel = oDialog && oDialog.data('_exfTabColumnsUpdate');
+                if (typeof fnUpdateColumnsPanel === 'function') {
+                    fnUpdateColumnsPanel.call(oDialog, false);
                 }
-                else{
-                    // UI5-Upgrade - structure changed, need to get table content differently
-                    oTable = oDialog.getAggregation('content')[0];
-                }
-                
-                let oTableModel = oTable.getModel();
-                let aColsConfig = oModel.getProperty('/columns');
-                let oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
-                oDialog.getBinding("items").filter(oVisibleFilter);
-                let aItems = oTableModel.getProperty('/items');
-                
-                aColsConfig.forEach(function(oColConfig){
-                    aItems.forEach(function(oItem, iItemIdx){
-                        if (oItem.columnKey === oColConfig.column_id) {
-                            oItem.persistentSelected = oColConfig.visible; 
-                            return;
-                        }
-                    })
-                }); 
 
             }
             if (oSetupUxon.sorters !== undefined) {

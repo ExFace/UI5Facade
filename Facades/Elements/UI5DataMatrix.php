@@ -113,6 +113,7 @@ JS;
     var oTransposed = {$this->buildJsTranspose('oData', 'oTable._exfColModels')}
     
     oTable.removeAllColumns();
+    var oColsToCopy = {};
     oTable._exfColControls.forEach(function(oColCtrl){
         var sDataColumnName = oColCtrl.data('_exfDataColumnName');
         if (sDataColumnName === undefined) return;
@@ -126,19 +127,48 @@ JS;
                 oColModel.aReplacedWithColumnKeys.forEach(function(sColKey){
                     var oColModelNew = oTransposed.oColModelsTransposed[sColKey];
                     var oColModelToCopy = oTable._exfColModels[oColModelNew.aTransposedDataKeys[0]];
-                    var oColToCopy = oTable._exfColControls.find(function(oCol){
-                        return oCol.data('_exfDataColumnName') === oColModelToCopy.sDataColumnName;
-                    });
-                    var oColNew = oColToCopy.clone();
+                    var oColToCopy;
+                    
+                    if (! (oColToCopy = oColsToCopy[oColModelToCopy.sDataColumnName])) {
+                        oColToCopy = oTable._exfColControls.find(function(oCol){
+                            return oCol.data('_exfDataColumnName') === oColModelToCopy.sDataColumnName;
+                        });
+                        oColsToCopy[oColModelToCopy.sDataColumnName] = oColToCopy;
+                    } 
                     
                     // Modify all bindings replacing the original column name with the transposed one
-                    var oTplNew = oColNew.getTemplate();
-                    var oBindingInfos = oTplNew.mBindingInfos;
-                    for (var sProp in oBindingInfos) {
-                        for (var i = 0; i < oBindingInfos[sProp].parts.length; i++) {
-                            oBindingInfos[sProp].parts[i].path = oBindingInfos[sProp].parts[i].path.replaceAll(oColModelToCopy.sDataColumnName, oColModelNew.sDataColumnName);
+                    var oColNew = oColToCopy.clone();
+                    var oTplNew = oColToCopy.getTemplate().clone();
+                    oColNew.setTemplate(oTplNew);
+                    // Get existing binding keys and use them to clone+modify all bindings
+                    Object.keys(oTplNew.mBindingInfos).forEach(function (sProp) {
+                        var oInfo = oTplNew.getBindingInfo(sProp);                    
+                        var oInfoNew = {...oInfo};
+                    
+                        if (oInfo.parts) {
+                            var aPartsNew = [];
+                            oInfo.parts.forEach(function (oPart, i) {
+                                oPart = {...oPart};
+                                if (oPart.path) {
+                                    oPart.path = oPart.path.replaceAll(
+                                        oColModelToCopy.sDataColumnName,
+                                        oColModelNew.sDataColumnName
+                                    );
+                                }
+                                aPartsNew.push(oPart);
+                            });
+                            oInfoNew.parts = aPartsNew;
                         }
-                    }
+                    
+                        if (oInfoNew.path) {
+                            oInfoNew.path = oInfoNew.path.replaceAll(
+                                oColModelToCopy.sDataColumnName,
+                                oColModelNew.sDataColumnName
+                            );
+                        }
+                    
+                        oTplNew.bindProperty(sProp, oInfoNew);
+                    });
 
                     oColNew.getLabel()
                         .setText(oColModelNew.sCaption)

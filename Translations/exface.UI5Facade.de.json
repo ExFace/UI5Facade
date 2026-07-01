@@ -33,7 +33,8 @@
 	"WEBAPP.ROUTING.OFFLINE.TEXT": "Diese Funktion is offline nicht verfügbar!",
 	"WEBAPP.ROUTING.OFFLINE.DESCRIPTION": "Stellen Sie eine Verbindung zum Netzwerk her und versuchen Sie es erneut.",
 	
-	"WEBAPP.SHELL.HOME.TITLE": "Home",	
+	"WEBAPP.SHELL.HOME.TITLE": "Home",
+	"WEBAPP.SHELL.MENU.TITLE": "Menü",	
 	"WEBAPP.SHELL.NETWORK.CONFIRM_HEADER": "Bestätigen",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_TEXT": "Wollen Sie die ausgewählten Aktionen löschen?",
 	"WEBAPP.SHELL.NETWORK.CONFIRM_YES": "Ja",
@@ -129,6 +130,7 @@
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE": "Einschließen",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE": "Ausschließen",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR": "Filter von dieser Spalte zurücksetzen",
+	"WIDGET.DATATABLE.FILTER_INPUT_TOOLTIP": "Filtert standardmäßig, ob der Wert enthalten ist. Zusätzliche Operatoren: == genau, !== nicht genau, != enthält nicht, >=, <=, >, <. (Bsp: !==Wert)",
 	"WIDGET.DATATABLE.FILTER_CLEAR": "Filter zurücksetzen",
 	"WIDGET.DATATABLE.GO_BUTTON_TEXT": "Suchen",
 	"WIDGET.DATATABLE.OFFLINE_HINT": "Diese Daten sind nur online verfügbar!",
@@ -144,6 +146,7 @@
 	"WIDGET.DATATABLE.SETTINGS_DIALOG.ADVANCED_SEARCH": "Erweiterte Suche",
 
 	"WIDGET.NAVMENU.RESET_SEARCH": "Suche zurücksetzen",
+	"WIDGET.NAVMENU.PREVIOUS_SEARCHES": "Zuletzt gesucht",
 	"WIDGET.NAVMENU.SEARCH": "Menü durchsuchen",
 	
 	"WIDGET.DATALOOKUPDIALOG.SELECTED_ITEMS": "Ausgewählt",
