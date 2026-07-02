@@ -46,13 +46,42 @@ JS);
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
+                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+                var sBindingPath = '{$this->getValueBindingPath()}';
+
                 // Sometimes the DOM structure of ToastUI gets disrupted during initialization.
+                // This also happens whenever the surrounding UI5 container is invalidated (e.g. because
+                // a sibling widget toggles its visibility via hidden_if), because the sap.ui.core.HTML
+                // content is re-injected on every re-render, wiping the ToastUI DOM.
                 // We can detect if the DOM structure was disrupted and repeat initialization if necessary.
                 if (($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
+                    // Remember whether this is a genuine first init or a re-init after a wipe. Only re-inits
+                    // should restore the value from the model - on first inits the PHP-time initialValue
+                    // already reflects the prefill state and the model may not be populated yet.
+                    var bIsReInit = oHtml && oHtml._toastUiInitialized === true;
                     {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()};
+                    if (oHtml) {
+                        oHtml._toastUiInitialized = true;
+                    }
+
+                    // The initialValue used by the init snippet is the value at PHP render time and
+                    // is outdated after a re-render caused by container invalidation. Restore the current
+                    // value from the model so user input entered before the re-render is not lost.
+                    if (bIsReInit) {
+                        (function(){
+                            var oModelRestore = oHtml ? oHtml.getModel() : undefined;
+                            if (oModelRestore === undefined) {
+                                return;
+                            }
+                            var sVal = oModelRestore.getProperty(sBindingPath);
+                            if (sVal === undefined || sVal === null || sVal === '') {
+                                return;
+                            }
+                            {$this->buildJsValueSetter("sVal")}
+                        })();
+                    }
                 }
-                
-                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+
                 if (oHtml && "_toastUiBinding" in oHtml && oHtml._toastUiBinding) {
                     return;
                 }
