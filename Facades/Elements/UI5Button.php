@@ -813,11 +813,26 @@ JS, false);
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
-        // NOTE: cross-view live references (e.g. a filter inside this lookup dialog referencing a value
-        // in the calling form) used to be wired up from here by flushing the page-root controller. That
-        // responsibility now lives in the live-reference registration itself - see
-        // UI5Value::registerLiveReferenceAtLinkedElement(), which ensures the source widget's view root
-        // has a controller before attaching the onChange handler. So nothing extra is needed here (?)
+        // Make sure, there is always a controller initialized! This may not be the case if we pass data to a
+        // widget in a different id space. Actually, this always seems to be the case in InputComboTable lookup
+        // dialogs, whose primary button will send data to the InputComboTable. The InputComboTable is located in some
+        // UI5 view and the lookup dialog creates its own UI5 view because it is lazy loaded. So when the lookup dialog
+        // is rendered, this method is called, but the target widget is the InputComboTable and sits in the previous
+        // view - and we have no chance to know, what were the boundaries of that view because we do not know, for
+        // which widget it was created. This results in "no controller initialized" errors when trying to build JS
+        // code for the InputComboTable. As a workaround we just create a view for the root widget of the page, so 
+        // there is some controller there.
+        // TODO this is probably unreliable as the controller created here probably is NOT the same as really was
+        // created for the InputComboTable! A possible alternative would be a ready-to-use method in the
+        // UI5InputComboTable to call from the primary button of the lookup dialog - that would not require any JS
+        // builders and, thus, no controller in the the combo facade element.
+        $thisWidget = $this->getWidget();
+        $linkedWidget = $thisWidget->getPage()->getWidget($action->getTargetWidgetId());
+        if ($linkedWidget->getIdSpace() !== $thisWidget->getIdSpace()) {
+            $pageRootEl = $this->getFacade()->getElement($thisWidget->getPage()->getWidgetRoot());
+            $linkedController = $this->getFacade()->createController($pageRootEl);
+            $pageRootEl->setController($linkedController);
+        }
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
