@@ -107,6 +107,11 @@ JS;
             && $parentEl->hasHeader():
                 $valJs = 'false';
                 break;
+            case ($parentEl instanceof UI5Tab):
+                // we dont want to stretch the content height if we are a tabs widget inside a tab
+                // otherwise the content is not placed correctly inside the tab containers and gets overlapped by other content 
+                $valJs = 'false';
+                break;
             default:
                 $valJs = 'true';
         }
