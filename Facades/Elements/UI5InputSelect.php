@@ -100,6 +100,9 @@ JS;
                     case $val === null:
                         $value = '[]';
                         break;
+                    case is_bool($val) === true:
+                        $value = $val === true ? '["1"]' : '["0"]';
+                        break;
                     case (stripos($val, $widget->getMultiSelectValueDelimiter()) !== false):
                         $vals = explode($widget->getMultiSelectValueDelimiter(), $val);
                         $value = json_encode($vals);
