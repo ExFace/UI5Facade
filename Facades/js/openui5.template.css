@@ -1043,6 +1043,10 @@ html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection:focus::before {
     border: .125rem dotted #00000050;
 }
 
+/* remove bottom border of tables inside content 'bubbles', (objectpage layout/tabs) */
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapMITBContent {
+    border-bottom: none;
+}
 
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */
