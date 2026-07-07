@@ -23,16 +23,20 @@ class UI5DisplayTemplate extends UI5Display
     {
         $this->registerExternalModules($this->getController());
         $widget = $this->getWidget();
-
         $html = $widget->getTemplate();
+
+        // Use the original placeholder texts as keys (not getBindingExpression()->__toString()), because
+        // after a server-side prefill setValue() is called on the binding, which changes getBindingExpression()
+        // to return the prefilled value instead of the attribute alias, causing replacePlaceholders() to fail.
+        // (otherwise use outside of tables/in dialogues didnt work)
+        $phs = StringDataType::findPlaceholders($html);
         $phVals = [];
-        foreach ($widget->getBindings() as $widgetBinding) {
+        foreach ($widget->getBindings() as $i => $widgetBinding) {
+            $ph = $phs[$i];
             $ui5Binding = new UI5PropertyBinding($this, 'content', $widgetBinding);
             $ui5BindingPath = $ui5Binding->getModelBindingPath();
-            $phVals[$widgetBinding->getBindingExpression()->__toString()] = '{' . $ui5BindingPath . '}';
+            $phVals[$ph] = '{' . $ui5BindingPath . '}';
         }
-        $html = StringDataType::replacePlaceholders($html, $phVals);
-        $html = $this->escapeString($html);
 
         // replace placeholders, and pass workbench to evaluate formulas 
         $html = StringDataType::replacePlaceholders($html, $phVals, true, false, $this->getWorkbench());
@@ -56,9 +60,12 @@ class UI5DisplayTemplate extends UI5Display
         $styles .= $this->buildCssInlineStyles() ?? '';
         */
 
+        // removed id for now, to avoid duplicates (?)
+        // TODO: should we sanitize here (?) turned it on for now
         return <<<JS
-        new sap.ui.core.HTML("{$this->getId()}", {
+        new sap.ui.core.HTML({
             content: {$html},
+            sanitizeContent: true,
             afterRendering: function() {
                 /*
                 {$scripts}
