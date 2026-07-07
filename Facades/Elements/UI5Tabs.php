@@ -91,9 +91,23 @@ JS;
     protected function buildJsPropertyStretchContent() : string
     {
         $widget = $this->getWidget();
+        $bIsTabsInsideTabsDialog = false;
+
         if ($widget->hasParent()) {
             $parentWidget = $widget->getParent();
             $parentEl = $this->getFacade()->getElement($parentWidget);
+
+            // we dont want to stretch the content height if we are a tabs widget inside a tab
+            // otherwise the content is not placed correctly inside the tab containers and gets overlapped by other content 
+            // But this only applies if the tabs are inside a (maximized) dialog, otherwise we want to stretch the content height
+            if ($parentEl instanceof UI5Tab) {
+                if ($parentWidget->hasParent() && $parentWidget->getParent()->hasParent()) {
+                    $grandParentEl = $this->getFacade()->getElement($parentWidget->getParent()->getParent());
+                    if ($grandParentEl instanceof UI5Dialog) {
+                        $bIsTabsInsideTabsDialog = true;
+                    }
+                }
+            }
         }
         switch (true) {
             /* If the tabs are inside a non-maximized dialog with an ObjectPageLayout and a header,
@@ -107,9 +121,8 @@ JS;
             && $parentEl->hasHeader():
                 $valJs = 'false';
                 break;
-            case ($parentEl instanceof UI5Tab):
-                // we dont want to stretch the content height if we are a tabs widget inside a tab
-                // otherwise the content is not placed correctly inside the tab containers and gets overlapped by other content 
+            case ($bIsTabsInsideTabsDialog === true)
+            && $grandParentEl->isMaximized() === true:
                 $valJs = 'false';
                 break;
             default:
