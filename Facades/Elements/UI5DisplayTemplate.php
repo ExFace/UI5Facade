@@ -34,6 +34,9 @@ class UI5DisplayTemplate extends UI5Display
         $html = StringDataType::replacePlaceholders($html, $phVals);
         $html = $this->escapeString($html);
 
+        // replace placeholders, and pass workbench to evaluate formulas 
+        $html = StringDataType::replacePlaceholders($html, $phVals, true, false, $this->getWorkbench());
+
         /* TODO do we need ot inject script/style tags in the HTML head?
         // Extract <script></script>
         foreach ($this->getTagsFromHtml($html, 'script') as $tag => $script) {
