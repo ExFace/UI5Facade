@@ -37,6 +37,10 @@ class UI5DisplayTemplate extends UI5Display
         // replace placeholders, and pass workbench to evaluate formulas 
         $html = StringDataType::replacePlaceholders($html, $phVals, true, false, $this->getWorkbench());
 
+        // Wrap in an outer div: otherwise the html content might duplicate in tables during scrolling 
+        // when there is no central control to replace the bindings in 
+        $html = $this->escapeString('<div>' . $html . '</div>');
+
         /* TODO do we need ot inject script/style tags in the HTML head?
         // Extract <script></script>
         foreach ($this->getTagsFromHtml($html, 'script') as $tag => $script) {
