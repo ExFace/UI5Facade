@@ -260,7 +260,7 @@ JS;
         										response.error = data;
         									}
                                         }
-    				                   	if (response.success){
+    				                   	if (response.success !== undefined) {
                                             $oModelJs.setData(response);
     										fnOnModelLoaded();
     				                    } else {
@@ -333,7 +333,7 @@ JS;
 								response.error = data;
 							}
                         }
-	                   	if (response.success){
+	                   	if (response.success !== undefined) {
                             $oModelJs.setData(response);
 							{$onModelLoadedJs}
 	                    } else {
