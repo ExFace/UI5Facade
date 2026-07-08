@@ -5,7 +5,9 @@ use exface\Core\Widgets\DataColumn;
 use exface\Core\Interfaces\Widgets\iHaveIcon;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
+use exface\Core\Widgets\DataColumnTransposed;
 use exface\Core\Widgets\DataTable;
+use exface\Core\Interfaces\Widgets\iHaveMultipleBindings;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\Widgets\DataColumnResponsive;
@@ -289,7 +291,17 @@ JS;
                 }
                 $tpl->setPropertyMaxLines($maxLines ?? $this->getWrapLinesMax());
             }
-            $tpl->setValueBindingPrefix($modelPrefix);
+            // For DisplayTemplate (iHaveMultipleBindings) inside a transposed column each placeholder
+            // binding must resolve to 'colDataName/attr' so that:
+            //  1. The transposing algorithm can store all attribute values as a sub-object under the
+            //     column key (e.g. {key: {placeholderKey1: 10, placeHolderKey2: 20}}).
+            //  2. The matrix column-clone code can rewrite the paths from
+            //     originalColName/attr -> transposedColName/attr using a simple replaceAll().
+            if ($cellWidget instanceof iHaveMultipleBindings && $widget instanceof DataColumnTransposed) {
+                $tpl->setValueBindingPrefix($widget->getDataColumnName() . '/');
+            } else {
+                $tpl->setValueBindingPrefix($modelPrefix);
+            }
             $tpl->setAlignment($this->buildJsAlignment());
         } elseif ($tpl instanceof UI5ValueBindingInterface) {
             $tpl->setValueBindingPrefix($modelPrefix);
