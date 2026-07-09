@@ -344,6 +344,7 @@ JS;
         $defaultDurationHours = $calItem->getDefaultDurationHours(48);
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
+        $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
                 
@@ -391,7 +392,25 @@ JS;
         lower_header_height: 25,
         auto_move_label: true,
         view_modes: buildedViewModes,
+        view_mode: '{$initialViewName}',
         infinite_padding: true,
+        // <<< New properties-----------------------------------------------------------------------
+        // TODO SR: Build uxon properties if ready:
+        popup_on: 'click', //hover, click
+        holidays: null, // { 'var(--g-weekend-highlight-color)': 'weekend' }
+        stripe_rows: true,
+        date_formatter: exfTools.date.format, // Uses or exfTools formatter
+        date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
+        row_height: 33, //33 //TODO SR: Default value. Change it only after the row hight of the left UI5Table is implemented and is set to the same value!
+        row_lanes: 2, //2 //TODO SR: Default value. Increase it only after the increase of the row_height to keep the text of the bars readable.
+        popup_aggregate_expand_tasks: false, //TODO SR: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
+        include_today_in_padding: false, //TODO SR: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
+        popup_aggregate_gantt_width: 360, // Width in px for the Gantt shown inside aggregation popups.
+        popup_aggregate_style: 'list', // 'list' | 'table'
+        popup_aggregate_include_upper_row_tasks: false, // Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        popup: {$this->buildJsRenderPopup()},
+        start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
+        //
         readonly: !($editableJs),
         //column_width: 30,
         //step: 24,
@@ -1046,5 +1065,57 @@ JS
             return $this->viewModeDefaults['days'];
         }
         return $default;
+    }
+
+    /**
+     * Builds JS for the normal popup renderer.
+     * This has no effect on the aggregated popups.
+     * 
+     * @return string
+     */
+    protected function buildJsRenderPopup() : string
+    {
+        
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        
+        return <<< JS
+          (ctx) => {
+                ctx.set_title(ctx.task.name);
+                if (ctx.task.description) ctx.set_subtitle(ctx.task.description);
+                else ctx.set_subtitle('');
+        
+                const start_date = exfTools.date.format(
+                    ctx.task._start,
+                    'dd.MM.yy',
+                    ctx.chart.options.language,
+                );
+                const end_date = exfTools.date.format(
+                    exfTools.date.add(ctx.task.orig_end, -1, 'second'),
+                    'dd.MM.yy',
+                    ctx.chart.options.language,
+                );
+                
+                const hasRealStart = !!(ctx.task.start);
+                const hasRealEnd = (!!(ctx.task.end) || ctx.task.duration !== undefined);
+        
+                if (hasRealStart || hasRealEnd) {
+                  if (hasRealStart && hasRealEnd) {
+                    // Note: You can include the "progress" value as followed:  <br/>Progress: \${Math.floor(ctx.task.progress * 100) / 100}%
+                    ctx.set_details(
+                        `\${start_date} - \${end_date} 
+                        (\${ctx.task.actual_duration} {$translator->translate('WIDGET.GANTT_CHARD.POPUP_CAPTION_DAYS')}\${ctx.task.ignored_duration ? ' + ' + ctx.task.ignored_duration + ' {$translator->translate('WIDGET.GANTT_CHARD.POPUP_CAPTION_EXCLUDED')}' : ''})`,
+                    );
+                  } else if (hasRealStart && !hasRealEnd) {
+                    ctx.set_details(
+                        `\${start_date} - ...`,
+                    );
+                  } else if (hasRealEnd && !hasRealStart) {
+                    ctx.set_details(
+                        `... - \${end_date}`,
+                    );
+                  }
+                }
+          }
+JS;
     }
 }

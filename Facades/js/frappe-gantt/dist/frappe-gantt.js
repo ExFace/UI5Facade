@@ -8,6 +8,22 @@ var Gantt = function() {
   const SECOND = "second";
   const MILLISECOND = "millisecond";
   const date_utils = {
+    // >>> SR: Configurable date formatter ------------------------------------
+    _date_formatter: null,
+    _date_format_default: "YYYY-MM-DD HH:mm:ss.SSS",
+    /**
+     * Configures the date formatter used by date_utils.format().
+     * The formatter is prepared once so format() can stay cheap because it is
+     * called very often while rendering headers, popups and bars.
+     */
+    set_date_formatter(date_formatter = null, date_format_default = "YYYY-MM-DD HH:mm:ss.SSS") {
+      this._date_format_default = date_format_default || "YYYY-MM-DD HH:mm:ss.SSS";
+      if (date_formatter != null && typeof date_formatter !== "function") {
+        console.warn("date_formatter must be a function or null. Falling back to default_formatter().");
+      }
+      this._date_formatter = typeof date_formatter === "function" ? date_formatter : (date, format_string, lang) => this.default_formatter(date, format_string, lang);
+    },
+    // <<< SR: Configurable date formatter ------------------------------------
     parse_duration(duration) {
       const regex = /([0-9]+)(y|m|d|h|min|s|ms)/gm;
       const matches = regex.exec(duration);
@@ -69,52 +85,55 @@ var Gantt = function() {
     },
     // >>> SR: Bar Aggregation -------------------------------------------------
     // TODO SR: Complete the time formating testing and clean the old code here:
-    format(date, format_string = "YYYY-MM-dd HH:mm:ss.SSS") {
-      return exfTools.date.format(date, format_string);
+    /*    format(date, format_string = 'YYYY-MM-dd HH:mm:ss.SSS') {
+          return exfTools.date.format(date, format_string);
+        },*/
+    format(date, date_format, lang = "en") {
+      return this._date_formatter(date, date_format || this._date_format_default, lang);
     },
-    /*    format(date, date_format = 'YYYY-MM-DD HH:mm:ss.SSS', lang = 'en') {
-                const dateTimeFormat = new Intl.DateTimeFormat(lang, {
-                    month: 'long',
-                });
-                const dateTimeFormatShort = new Intl.DateTimeFormat(lang, { //TODO SR: that is new. Check it.
-                    month: 'short',
-                });
-                const month_name = dateTimeFormat.format(date);
-                const month_name_capitalized =
-                    month_name.charAt(0).toUpperCase() + month_name.slice(1);
-    
-                const values = this.get_date_values(date).map((d) => padStart(d, 2, 0));
-                const format_map = {
-                    YYYY: values[0],
-                    MM: padStart(+values[1] + 1, 2, 0),
-                    DD: values[2],
-                    HH: values[3],
-                    mm: values[4],
-                    ss: values[5],
-                    SSS: values[6],
-                    D: values[2],
-                    MMMM: month_name_capitalized,
-                    MMM: dateTimeFormatShort.format(date), //TODO SR: that is new. Check it.
-                };
-    
-                let str = date_format;
-                const formatted_values = [];
-    
-                Object.keys(format_map)
-                    .sort((a, b) => b.length - a.length) // big string first
-                    .forEach((key) => {
-                        if (str.includes(key)) {
-                            str = str.replaceAll(key, `$${formatted_values.length}`); //TODO SR: replaceAll instead of replace is new
-                            formatted_values.push(format_map[key]);
-                        }
-                    });
-    
-                formatted_values.forEach((value, i) => {
-                    str = str.replaceAll(`$${i}`, value);
-                });
-    
-                return str;
-            },*/
+    default_formatter(date, date_format = "YYYY-MM-DD HH:mm:ss.SSS", lang = "en") {
+      const dateTimeFormat = new Intl.DateTimeFormat(lang, {
+        month: "long"
+      });
+      const dateTimeFormatShort = new Intl.DateTimeFormat(lang, {
+        //TODO SR: that is new. Check it.
+        month: "short"
+      });
+      const month_name = dateTimeFormat.format(date);
+      const month_name_capitalized = month_name.charAt(0).toUpperCase() + month_name.slice(1);
+      const values = this.get_date_values(date).map(
+          (d, i) => padStart(d, i === 6 ? 3 : 2, 0)
+      );
+      const format_map = {
+        YYYY: values[0],
+        yyyy: values[0],
+        yy: String(values[0]).slice(-2),
+        MM: padStart(+values[1] + 1, 2, 0),
+        DD: values[2],
+        dd: values[2],
+        d: date.getDate(),
+        HH: values[3],
+        mm: values[4],
+        ss: values[5],
+        SSS: values[6],
+        D: values[2],
+        MMMM: month_name_capitalized,
+        MMM: dateTimeFormatShort.format(date)
+        //TODO SR: that is new. Check it.
+      };
+      let str = date_format;
+      const formatted_values = [];
+      Object.keys(format_map).sort((a, b) => b.length - a.length).forEach((key) => {
+        if (str.includes(key)) {
+          str = str.replaceAll(key, `$${formatted_values.length}`);
+          formatted_values.push(format_map[key]);
+        }
+      });
+      formatted_values.forEach((value, i) => {
+        str = str.replaceAll(`$${i}`, value);
+      });
+      return str;
+    },
     // <<< SR: Bar Aggregation -------------------------------------------------
     diff(date_a, date_b, scale = "day") {
       let milliseconds, seconds, hours, minutes, days, months, years;
@@ -229,6 +248,7 @@ var Gantt = function() {
       return date.getFullYear() % 4 ? 365 : 366;
     }
   };
+  date_utils.set_date_formatter(null);
   function padStart(str, targetLength, padString) {
     str = str + "";
     targetLength = targetLength >> 0;
@@ -846,11 +866,14 @@ var Gantt = function() {
         changed = true;
         this.task._start = new_start_date;
       }
-      if (Number(this.task.orig_end) !== Number(new_end_date)) {
+      const current_end_date = this.task.orig_end ?? this.task._end;
+      if (Number(current_end_date) !== Number(new_end_date)) {
         changed = true;
+        this.task._end = new_end_date;
         this.task.orig_end = new_end_date;
       }
       if (!changed) return;
+      this.sync_task_date_values(new_start_date, new_end_date);
       this.gantt.trigger_event("date_change", [
         this.task,
         new_start_date,
@@ -870,18 +893,16 @@ var Gantt = function() {
     }
     compute_start_end_date() {
       const bar = this.$bar;
-      const x_in_units = bar.getX() / this.gantt.config.column_width;
-      let new_start_date = date_utils.add(
-          this.gantt.gantt_start,
-          x_in_units * this.gantt.config.step,
-          this.gantt.config.unit
-      );
-      const width_in_units = bar.getWidth() / this.gantt.config.column_width;
-      const new_end_date = date_utils.add(
-          new_start_date,
-          width_in_units * this.gantt.config.step,
-          this.gantt.config.unit
-      );
+      let new_start_date = this.gantt.get_date_by_position(bar.getX());
+      const width_changed = bar.owidth != null && Math.abs(bar.getWidth() - bar.owidth) > 1e-3;
+      let new_end_date;
+      if (!width_changed) {
+        const current_end_date = this.task.orig_end ?? this.task._end;
+        const duration = current_end_date - this.task._start;
+        new_end_date = new Date(new_start_date.getTime() + duration);
+      } else {
+        new_end_date = this.gantt.get_date_by_position(bar.getEndX());
+      }
       return { new_start_date, new_end_date };
     }
     compute_progress() {
@@ -1060,6 +1081,36 @@ var Gantt = function() {
       }
     }
     // >>> SR: Bar Aggregation -------------------------------------------------
+    // >>> SR: Date calculation after change fix ---------------------------------
+    sync_task_date_values(new_start_date, new_end_date) {
+      if (this.task.start) {
+        this.task.start = this.format_task_date_like_original(
+            new_start_date,
+            this.task.start
+        );
+      }
+      if (this.task.end) {
+        this.task.end = this.format_task_date_like_original(
+            date_utils.add(new_end_date, -1, "second"),
+            this.task.end
+        );
+      }
+    }
+    format_task_date_like_original(date, original_value) {
+      if (original_value instanceof Date) {
+        return date_utils.clone(date);
+      }
+      if (typeof original_value === "string") {
+        const has_time = original_value.trim().includes(" ");
+        return date_utils.format(
+            date,
+            has_time ? this.gantt.options.date_format : "YYYY-MM-dd",
+            this.gantt.options.language
+        );
+      }
+      return date;
+    }
+    // <<< SR: Date calculation after change fix ---------------------------------
     // >>> SR: Date calculation Fix --------------------------------------------
     compute_width() {
       const endDate = this.task.orig_end ?? this.task._end;
@@ -1233,6 +1284,7 @@ var Gantt = function() {
       this.actions = this.parent.querySelector(".actions");
     }
     show({ x, y, task, target }) {
+      this.parent.style.pointerEvents = this.gantt.options.popup_on === "hover" ? "none" : "";
       this.actions.innerHTML = "";
       let html = this.popup_func({
         task,
@@ -1262,9 +1314,43 @@ var Gantt = function() {
       const members = task._isAggregate ? task._members || [] : task._aggMembers || [];
       if (members == null ? void 0 : members.length) {
         this.parent.querySelector(".details").innerHTML = "";
-        this.parent.appendChild(
-            this.build_aggregation_list(members)
-        );
+        let appendTarget = this.parent;
+        let popupGanttTarget = null;
+        let popupGanttListContent = null;
+        const append = (element) => appendTarget.appendChild(element);
+        let upperRowTasks;
+        if (this.gantt.options.popup_aggregate_include_upper_row_tasks === true && task._isAggregate) {
+          upperRowTasks = this.get_overlapping_upper_row_tasks(task);
+        }
+        const aggregationTasks = (upperRowTasks == null ? void 0 : upperRowTasks.length) ? upperRowTasks.concat(members) : members;
+        if (this.gantt.options.popup_aggregate_expand_tasks === true) {
+          const layout = this.build_aggregation_popup_layout();
+          this.move_popup_content_to_aggregation_layout(layout.listHeader);
+          appendTarget = layout.listContent;
+          popupGanttTarget = layout.ganttPane;
+          popupGanttListContent = layout.listContent;
+          this.parent.appendChild(layout.wrapper);
+        }
+        if (upperRowTasks == null ? void 0 : upperRowTasks.length) {
+          if (this.gantt.options.popup_aggregate_style === "table") {
+            append(this.build_aggregation_table(
+                upperRowTasks.concat(members),
+                upperRowTasks.length
+            ));
+          } else {
+            append(this.build_aggregation_part(upperRowTasks));
+            append(this.build_aggregation_part(members));
+          }
+        } else {
+          append(this.build_aggregation_part(members));
+        }
+        if (popupGanttTarget) {
+          this.render_aggregation_popup_gantt(
+              popupGanttTarget,
+              aggregationTasks
+          );
+          this.align_aggregation_popup_rows(popupGanttListContent);
+        }
       }
       this.position_inside_visible_container(x, y);
       this.parent.classList.remove("hide");
@@ -1292,11 +1378,291 @@ var Gantt = function() {
     }
     // >>> SR: Popup outside container fix ---------------------------------------------
     hide() {
+      var _a;
+      (_a = this.destroy_popup_gantt) == null ? void 0 : _a.call(this);
       this.parent.classList.add("hide");
     }
+    build_aggregation_part(members, sectionStartIndex = null) {
+      switch (this.gantt.options.popup_aggregate_style) {
+        case "list":
+          return this.build_aggregation_list(members);
+        case "table":
+          return this.build_aggregation_table(members, sectionStartIndex);
+        default:
+          console.warn(`Unknown aggregation style: ${this.gantt.options.popup_aggregate_style}. Falling back to 'list'.`);
+          return this.build_aggregation_list(members);
+      }
+    }
+    // >>> SR: Aggregation popup Gantt ----------------------------------------
+    /**
+     * Builds the two-column popup body used when the aggregation popup also
+     * shows a small Gantt next to the task list.
+     * @returns {{wrapper: HTMLDivElement, listPane: HTMLDivElement, listHeader: HTMLDivElement, listContent: HTMLDivElement, ganttPane: HTMLDivElement}}
+     */
+    build_aggregation_popup_layout() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "agg-popup-expanded";
+      wrapper.style.display = "inline-flex";
+      wrapper.style.flexDirection = "row";
+      wrapper.style.flexWrap = "nowrap";
+      wrapper.style.alignItems = "flex-start";
+      const listPane = document.createElement("div");
+      listPane.className = "agg-popup-list-pane";
+      listPane.style.flex = "0 0 auto";
+      wrapper.appendChild(listPane);
+      const listHeader = document.createElement("div");
+      listHeader.className = "agg-popup-list-header";
+      listPane.appendChild(listHeader);
+      const listContent = document.createElement("div");
+      listContent.className = "agg-popup-list-content";
+      listPane.appendChild(listContent);
+      const ganttPane = document.createElement("div");
+      ganttPane.className = "agg-popup-gantt-pane";
+      const width = this.get_popup_gantt_width();
+      ganttPane.style.width = `${width}px`;
+      ganttPane.style.flexBasis = `${width}px`;
+      ganttPane.style.flexGrow = "0";
+      ganttPane.style.flexShrink = "0";
+      wrapper.appendChild(ganttPane);
+      return { wrapper, listPane, listHeader, listContent, ganttPane };
+    }
+    /**
+     * Moves the standard popup title/subtitle/details/actions into the left
+     * pane of the expanded aggregation popup. This lets the popup Gantt on the
+     * right start at the very top instead of below the popup title.
+     * @param listHeader
+     */
+    move_popup_content_to_aggregation_layout(listHeader) {
+      [this.title, this.subtitle, this.details, this.actions].forEach((node) => {
+        if (node == null ? void 0 : node.parentElement) {
+          listHeader.appendChild(node);
+        }
+      });
+    }
+    /**
+     * Creates the small Gantt instance displayed inside the aggregation popup.
+     * Every popup task gets its own lineIndex so the right-side Gantt mirrors
+     * the left-side task list one entry per row.
+     * @param target
+     * @param tasks
+     */
+    render_aggregation_popup_gantt(target, tasks) {
+      var _a, _b;
+      if (!target || !(tasks == null ? void 0 : tasks.length)) return;
+      this.destroy_popup_gantt();
+      const popupTasks = tasks.map((task, index) => this.create_popup_gantt_task(task, index)).filter(Boolean);
+      if (!popupTasks.length) return;
+      const PopupGantt = this.gantt.constructor;
+      this.popup_gantt = new PopupGantt(
+          target,
+          popupTasks,
+          this.get_popup_gantt_options(popupTasks)
+      );
+      if ((_b = (_a = this.gantt.config) == null ? void 0 : _a.view_mode) == null ? void 0 : _b.name) {
+        this.popup_gantt.change_view_mode(this.gantt.config.view_mode.name);
+      }
+    }
+    /**
+     * Returns a copied task object that is safe to pass to a nested Gantt.
+     * @param task
+     * @param index
+     * @returns {object|null}
+     */
+    create_popup_gantt_task(task, index) {
+      const originalTask = this.gantt.get_task ? this.gantt.get_task(task.id) : null;
+      const taskEnd = this.get_task_end(task);
+      if (!(task == null ? void 0 : task._start) || !taskEnd) return null;
+      const start = (originalTask == null ? void 0 : originalTask.start) || this.format_popup_gantt_date(task._start);
+      const end = (originalTask == null ? void 0 : originalTask.end) || this.format_popup_gantt_date(
+          date_utils.add(taskEnd, -1, "second")
+      );
+      if (!start || !end) return null;
+      return {
+        id: `popup_${index}_${task.id}`,
+        name: task.name,
+        start,
+        end,
+        progress: (originalTask == null ? void 0 : originalTask.progress) ?? task.progress ?? 0,
+        dependencies: [],
+        lineIndex: index,
+        readonly: true,
+        color: (originalTask == null ? void 0 : originalTask.color) ?? task.color,
+        colorHover: (originalTask == null ? void 0 : originalTask.colorHover) ?? task.colorHover,
+        progressColor: (originalTask == null ? void 0 : originalTask.progressColor) ?? task.progressColor,
+        textColor: (originalTask == null ? void 0 : originalTask.textColor) ?? task.textColor,
+        custom_class: (originalTask == null ? void 0 : originalTask.custom_class) ?? task.custom_class
+      };
+    }
+    /**
+     * Formats Date objects for popup Gantt input without losing time-of-day.
+     * @param date
+     * @returns {string|null}
+     */
+    format_popup_gantt_date(date) {
+      if (!date) return null;
+      return date_utils.to_string(date, true);
+    }
+    /**
+     * Creates safe options for the nested popup Gantt and prevents recursive
+     * aggregation popups inside that nested chart.
+     * @param popupTasks
+     * @returns {object}
+     */
+    get_popup_gantt_options(popupTasks) {
+      var _a, _b;
+      return {
+        ...this.gantt.options,
+        view_modes: this.gantt.options.view_modes,
+        view_mode: ((_b = (_a = this.gantt.config) == null ? void 0 : _a.view_mode) == null ? void 0 : _b.name) || this.gantt.options.view_mode,
+        row_keys: popupTasks.map((_, index) => index),
+        row_height: 30,
+        upper_header_height: 30,
+        lower_header_height: 25,
+        container_height: "auto",
+        infinite_padding: false,
+        keep_scroll_position: false,
+        scroll_to: "start",
+        view_mode_select: this.gantt.options.view_mode_select,
+        today_button: this.gantt.options.today_button,
+        readonly: true,
+        readonly_dates: true,
+        readonly_progress: true,
+        move_dependencies: false,
+        popup: false,
+        stripe_rows: true,
+        holidays: null,
+        //popup_on: 'click', //TODO SR: currently dont work.
+        popup_aggregate_expand_tasks: false,
+        popup_aggregate_include_upper_row_tasks: false
+      };
+    }
+    /**
+     * Aligns the first left list/table row with the first task row of the
+     * nested popup Gantt and applies the popup Gantt row height to list rows.
+     * @param listContent
+     */
+    align_aggregation_popup_rows(listContent) {
+      var _a, _b, _c;
+      if (!listContent || !this.popup_gantt) return;
+      const listHeader = (_a = listContent.parentElement) == null ? void 0 : _a.querySelector(
+          ".agg-popup-list-header"
+      );
+      const popupHeaderHeight = ((_b = this.popup_gantt.config) == null ? void 0 : _b.header_height) || 0;
+      const leftHeaderHeight = (listHeader == null ? void 0 : listHeader.offsetHeight) || 0;
+      const rowHeight = ((_c = this.popup_gantt.options) == null ? void 0 : _c.row_height) || 0;
+      listContent.style.marginTop = `${Math.max(
+          0,
+          popupHeaderHeight - leftHeaderHeight - 15
+      )}px`;
+      if (!rowHeight) return;
+      listContent.querySelectorAll(".agg-table .agg-list-row, .agg-list li").forEach((row) => {
+        row.style.height = `${rowHeight}px`;
+        row.style.minHeight = `${rowHeight}px`;
+      });
+    }
+    /**
+     * Returns the configured popup Gantt width in px.
+     * @returns {number}
+     */
+    get_popup_gantt_width() {
+      return Math.max(
+          120,
+          Number(this.gantt.options.popup_aggregate_gantt_width) || 360
+      );
+    }
+    /**
+     * Destroys the previous nested popup Gantt before a new popup body is built.
+     */
+    destroy_popup_gantt() {
+      var _a;
+      if ((_a = this.popup_gantt) == null ? void 0 : _a.destroy) {
+        this.popup_gantt.destroy();
+      }
+      this.popup_gantt = null;
+    }
+    // <<< SR: Aggregation popup Gantt ----------------------------------------
     // >>> SR: Bar Aggregation ---------------------------------------------------
     /**
-     * Builds the aggregation list for given aggregation members.
+     * Builds the aggregation table for given aggregation members.
+     *
+     * @param members
+     * @param sectionStartIndex index where the member section starts after upper-row tasks
+     * @returns {HTMLTableElement}
+     */
+    build_aggregation_table(members, sectionStartIndex = null) {
+      const table = document.createElement("table");
+      table.className = "agg-table";
+      const tbody = document.createElement("tbody");
+      table.appendChild(tbody);
+      members.forEach((m, index) => {
+        const tr = document.createElement("tr");
+        tr.className = "agg-list-row";
+        if (sectionStartIndex != null && index === sectionStartIndex) {
+          tr.classList.add("agg-section-start");
+        }
+        const colorCell = document.createElement("td");
+        colorCell.className = "agg-color-cell";
+        const swatch = document.createElement("span");
+        swatch.className = "agg-color-swatch";
+        if (m.color) {
+          swatch.style.backgroundColor = String(m.color);
+        }
+        colorCell.appendChild(swatch);
+        tr.appendChild(colorCell);
+        const originalTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+        const hasRealStart = !!(originalTask && originalTask.start);
+        const hasRealEnd = !!(originalTask && originalTask.end);
+        let ogTask = this.gantt.get_task ? this.gantt.get_task(m.id) : null;
+        this.compute_duration(ogTask);
+        let labelText = m.name;
+        let durationText = "";
+        const start_date = date_utils.format(
+            m._start,
+            "dd.MM.yy",
+            this.gantt.options.language
+        );
+        let org_end = m.orig_end ?? m._end;
+        const end_date = date_utils.format(
+            //date_utils.add(m._end, -1, 'second'),
+            date_utils.add(org_end, -1, "second"),
+            //TODO SR: Date without hours fix. Test it.
+            "dd.MM.yy",
+            this.gantt.options.language
+        );
+        let startText = hasRealStart ? start_date : "...";
+        let endText = hasRealEnd ? end_date : "...";
+        if (hasRealStart || hasRealEnd) {
+          if (hasRealStart && hasRealEnd) {
+            durationText = `${ogTask.actual_duration} Tage${ogTask.ignored_duration ? " + " + ogTask.ignored_duration + " Ausgeschlossen" : ""}`;
+          }
+        }
+        const startCell = document.createElement("td");
+        startCell.className = "agg-start-date";
+        startCell.textContent = startText;
+        tr.appendChild(startCell);
+        const separatorCell = document.createElement("td");
+        separatorCell.className = "agg-interval-separator";
+        separatorCell.textContent = "-";
+        tr.appendChild(separatorCell);
+        const endCell = document.createElement("td");
+        endCell.className = "agg-end-date";
+        endCell.textContent = endText;
+        tr.appendChild(endCell);
+        const titleCell = document.createElement("td");
+        titleCell.className = "agg-title";
+        titleCell.textContent = labelText;
+        tr.appendChild(titleCell);
+        const durationCell = document.createElement("td");
+        durationCell.className = "agg-duration";
+        durationCell.textContent = durationText;
+        tr.appendChild(durationCell);
+        tbody.appendChild(tr);
+      });
+      return table;
+    }
+    /**
+     * This is the list overlapping popup version
+     * This one may be removed in the future.
      *
      * @param members
      * @returns {HTMLUListElement}
@@ -1321,7 +1687,7 @@ var Gantt = function() {
         let rangeText = "";
         const start_date = date_utils.format(
             m._start,
-            "MMM dd",
+            "dd.MM.yy",
             this.gantt.options.language
         );
         let org_end = m.orig_end ?? m._end;
@@ -1329,20 +1695,20 @@ var Gantt = function() {
             //date_utils.add(m._end, -1, 'second'),
             date_utils.add(org_end, -1, "second"),
             //TODO SR: Date without hours fix. Test it.
-            "MMM dd",
+            "dd.MM.yy",
             this.gantt.options.language
         );
         if (hasRealStart || hasRealEnd) {
           if (hasRealStart && hasRealEnd) {
-            rangeText = `${start_date} - ${end_date} (${ogTask.actual_duration} Tage${ogTask.ignored_duration ? " + " + ogTask.ignored_duration + " Ausgeschlossen" : ""})`;
+            rangeText = ` (${start_date} - ${end_date}) (${ogTask.actual_duration} Tage${ogTask.ignored_duration ? " + " + ogTask.ignored_duration + " Ausgeschlossen" : ""})`;
           } else if (hasRealStart && !hasRealEnd) {
-            rangeText = `${start_date} - ... `;
+            rangeText = ` (${start_date} - ... )`;
           } else if (hasRealEnd && !hasRealStart) {
-            rangeText = `... - ${end_date}`;
+            rangeText = ` (... - ${end_date})`;
           }
         }
         const textSpan = document.createElement("span");
-        textSpan.textContent = labelText + " [ " + rangeText + " ]";
+        textSpan.textContent = labelText + rangeText;
         li.appendChild(textSpan);
         ul.appendChild(li);
       });
@@ -1352,9 +1718,63 @@ var Gantt = function() {
      * Removes existing old aggregation list.
      */
     clear_aggregation_list() {
-      var _a;
-      (_a = this.parent.querySelector(".agg-list")) == null ? void 0 : _a.remove();
+      this.destroy_popup_gantt();
+      this.restore_popup_content_from_aggregation_layout();
+      this.parent.querySelectorAll(".agg-popup-expanded, .agg-list, .agg-table").forEach((list) => list.remove());
     }
+    /**
+     * Moves title/subtitle/details/actions back to the popup root before an old
+     * expanded aggregation layout is removed. This keeps normal popups working
+     * after an expanded popup was shown once.
+     */
+    restore_popup_content_from_aggregation_layout() {
+      [this.title, this.subtitle, this.details, this.actions].forEach((node) => {
+        var _a;
+        if ((_a = node == null ? void 0 : node.closest) == null ? void 0 : _a.call(node, ".agg-popup-expanded")) {
+          this.parent.appendChild(node);
+        }
+      });
+    }
+    // >>> SR: upperRowTasks ---------------------------------------------------
+    /**
+     * Returns the tasks from the same row that are overlapping with the aggregate task and are not members of the aggregate task.
+     * This is needed to show all relevant tasks in the popup of an aggregate task,
+     * even those that are not part of the aggregation but are visually overlapping with it in the same row.
+     * @param aggregateTask
+     * @returns {T[]|*[]}
+     */
+    get_overlapping_upper_row_tasks(aggregateTask) {
+      const aggregateStart = aggregateTask == null ? void 0 : aggregateTask._start;
+      const aggregateEnd = this.get_task_end(aggregateTask);
+      const aggregationLane = this.gantt.get_aggregation_lane_index ? this.gantt.get_aggregation_lane_index() : 1;
+      if (!aggregateStart || !aggregateEnd) return [];
+      const memberIds = new Set(
+          (aggregateTask._members || []).map((member) => String(member.id))
+      );
+      return (this.gantt.tasks || []).filter((task) => task && !task._hidden && !task._isAggregate).filter((task) => task._rowIndex === aggregateTask._rowIndex).filter((task) => (task._lane ?? 0) < aggregationLane).filter((task) => !memberIds.has(String(task.id))).filter((task) => this.tasks_overlap(task, aggregateTask)).sort((a, b) => {
+        if (+a._start !== +b._start) return +a._start - +b._start;
+        const aId = Number.isFinite(+a.id) ? +a.id : String(a.id);
+        const bId = Number.isFinite(+b.id) ? +b.id : String(b.id);
+        return aId > bId ? 1 : aId < bId ? -1 : 0;
+      });
+    }
+    /**
+     * Checks if two tasks overlap in time. Used to find upper row tasks that are overlapping with the aggregate task.
+     *
+     * @param a
+     * @param b
+     * @returns {boolean}
+     */
+    tasks_overlap(a, b) {
+      const aEnd = this.get_task_end(a);
+      const bEnd = this.get_task_end(b);
+      if (!(a == null ? void 0 : a._start) || !(b == null ? void 0 : b._start) || !aEnd || !bEnd) return false;
+      return a._start < bEnd && b._start < aEnd;
+    }
+    get_task_end(task) {
+      return (task == null ? void 0 : task.orig_end) ?? (task == null ? void 0 : task._end) ?? null;
+    }
+    // <<< SR: upperRowTasks ---------------------------------------------------
     compute_duration(task) {
       if (task == null) return;
       task.orig_end = task.orig_end ?? date_utils.clone(task._end);
@@ -1529,6 +1949,7 @@ var Gantt = function() {
       }
     },
     popup_on: "click",
+    //hover
     readonly_progress: false,
     readonly_dates: false,
     readonly: false,
@@ -1555,8 +1976,28 @@ var Gantt = function() {
     // For empty lines
     default_duration: 2,
     // Default duration in days for tasks without start / end date and duration
-    start_of_week: "monday"
+    start_of_week: "monday",
     // 'monday' | 'sunday'
+    include_today_in_padding: false,
+    // Set to true to extend the padded date range until today is included.
+    stripe_rows: false,
+    // Set to false to disable alternating row background colors.
+    popup_aggregate_style: "list",
+    // 'list' | 'table'
+    popup_aggregate_include_upper_row_tasks: true,
+    // Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+    date_formatter: null,
+    // null | function(date, format_string, lang)
+    date_format_default: "YYYY-MM-DD HH:mm:ss.SSS",
+    // fallback format for date_utils.format(date)
+    row_lanes: 2,
+    // Number of vertical lanes per row. The lowest lane is used for single lower tasks or aggregate bars.
+    // >>> SR: Aggregation popup Gantt ----------------------------------------
+    popup_aggregate_expand_tasks: false,
+    // Shows a compact Gantt next to the aggregation popup task list.
+    popup_aggregate_gantt_width: 360
+    // Width in px for the Gantt shown inside aggregation popups.
+    // <<< SR: Aggregation popup Gantt ----------------------------------------
     // <<< SR: Bar Aggregation -------------------------------------------------
   };
   class Gantt2 {
@@ -1612,6 +2053,7 @@ var Gantt = function() {
     setup_options(options) {
       this.original_options = options;
       if (options == null ? void 0 : options.view_modes) {
+        const requested_view_mode = options.view_mode;
         options.view_modes = options.view_modes.map((mode) => {
           if (typeof mode === "string") {
             const predefined_mode = DEFAULT_VIEW_MODES.find(
@@ -1625,15 +2067,26 @@ var Gantt = function() {
           }
           return mode;
         });
-        options.view_mode = options.view_modes[0];
+        const resolved_view_mode = typeof requested_view_mode === "string" ? options.view_modes.find(
+            (mode) => (mode == null ? void 0 : mode.name) === requested_view_mode
+        ) : requested_view_mode;
+        options.view_mode = resolved_view_mode || options.view_modes[0];
       }
       this.options = { ...DEFAULT_OPTIONS, ...options };
+      date_utils.set_date_formatter(
+          this.options.date_formatter,
+          this.options.date_format_default
+      );
       if (this.options.row_height == null) {
         this.options.row_height = this.options.bar_height + this.options.padding;
       }
       if (this.options.bar_inner_padding == null) {
         this.options.bar_inner_padding = 6;
       }
+      this.options.row_lanes = Math.max(
+          2,
+          Math.floor(Number(this.options.row_lanes) || 2)
+      );
       const CSS_VARIABLES = {
         "grid-height": "container_height",
         "bar-height": "bar_height",
@@ -1765,6 +2218,18 @@ var Gantt = function() {
       this.setup_tasks(tasks);
       this.change_view_mode();
     }
+    // >>> SR: Date calculation after change fix -------------------------------
+    refresh_overlap_aggregates_after_drop() {
+      const scroll_left = this.$container.scrollLeft;
+      const scroll_top = this.$container.scrollTop;
+      this.compute_rows_and_lanes();
+      this.compute_overlap_aggregates();
+      this.relayout_visible_rows();
+      this.render();
+      this.$container.scrollLeft = scroll_left;
+      this.$container.scrollTop = scroll_top;
+    }
+    // <<< SR: Date calculation after change fix -------------------------------
     update_task(id, new_details) {
       let task = this.tasks.find((t) => t.id === id);
       let bar = this.bars[task._index];
@@ -1850,6 +2315,7 @@ var Gantt = function() {
             padding_end.duration,
             padding_end.scale
         );
+        this.extend_gantt_range_to_include_today();
         if (this.should_align_to_week_start()) {
           this.gantt_start = this.align_to_week_start(this.gantt_start);
         }
@@ -1940,20 +2406,25 @@ var Gantt = function() {
         this.$container.style.height = grid_height + "px";
     }
     make_grid_rows() {
+      var _a;
       const rows_layer = createSVG("g", { append_to: this.layers.grid });
       const row_width = this.dates.length * this.config.column_width;
-      const row_height = this.options.bar_height + this.options.padding;
-      this.config.header_height;
-      for (let y = this.config.header_height; y < this.grid_height; y += row_height) {
+      const rows = ((_a = this._rowMeta) == null ? void 0 : _a.length) ? this._rowMeta : Array.from({ length: this.tasks.length }, (_, index) => ({
+        index,
+        top: index * this.options.row_height,
+        height: this.options.row_height
+      }));
+      rows.forEach((row) => {
+        const row_class = "grid-row" + (this.options.stripe_rows && row.index % 2 === 1 ? " grid-row-striped" : "");
         createSVG("rect", {
           x: 0,
-          y,
+          y: this.config.header_height + row.top,
           width: row_width,
-          height: row_height,
-          class: "grid-row",
+          height: row.height,
+          class: row_class,
           append_to: rows_layer
         });
-      }
+      });
     }
     make_grid_header() {
       this.$header = this.create_el({
@@ -2007,6 +2478,7 @@ var Gantt = function() {
       }
     }
     make_grid_ticks() {
+      var _a;
       if (this.options.lines === "none") return;
       let tick_x = 0;
       let tick_y = this.config.header_height;
@@ -2017,19 +2489,22 @@ var Gantt = function() {
       });
       let row_y = this.config.header_height;
       const row_width = this.dates.length * this.config.column_width;
-      const row_height = this.options.bar_height + this.options.padding;
       if (this.options.lines !== "vertical") {
-        for (let y = this.config.header_height; y < this.grid_height; y += row_height) {
+        const rows = ((_a = this._rowMeta) == null ? void 0 : _a.length) ? this._rowMeta : Array.from({ length: this.tasks.length }, (_, index) => ({
+          top: index * this.options.row_height,
+          height: this.options.row_height
+        }));
+        rows.forEach((row) => {
+          row_y = this.config.header_height + row.top;
           createSVG("line", {
             x1: 0,
-            y1: row_y + row_height,
+            y1: row_y + row.height,
             x2: row_width,
-            y2: row_y + row_height,
+            y2: row_y + row.height,
             class: "row-line",
             append_to: $lines_layer
           });
-          row_y += row_height;
-        }
+        });
       }
       if (this.options.lines === "horizontal") return;
       for (let date of this.dates) {
@@ -2147,7 +2622,7 @@ var Gantt = function() {
     make_grid_highlights() {
       this.highlight_holidays();
       this.config.ignored_positions = [];
-      const height = (this.options.bar_height + this.options.padding) * this.tasks.length;
+      const height = this.get_content_height();
       this.layers.grid.innerHTML += `<pattern id="diagonalHatch" patternUnits="userSpaceOnUse" width="4" height="4">
           <path d="M-1,1 l2,-2
                    M0,4 l4,-4
@@ -2375,7 +2850,8 @@ var Gantt = function() {
     get_closest_date() {
       let now = /* @__PURE__ */ new Date();
       if (now < this.gantt_start || now > this.gantt_end) return null;
-      let current = /* @__PURE__ */ new Date(), el = this.$container.querySelector(
+      const current = this.get_date_tick_for_date(now);
+      const el = current ? this.$container.querySelector(
           ".date_" + sanitize(
               date_utils.format(
                   current,
@@ -2383,21 +2859,8 @@ var Gantt = function() {
                   this.options.language
               )
           )
-      );
-      let c = 0;
-      while (!el && c < this.config.step) {
-        current = date_utils.add(current, -1, this.config.unit);
-        el = this.$container.querySelector(
-            ".date_" + sanitize(
-                date_utils.format(
-                    current,
-                    this.config.date_format,
-                    this.options.language
-                )
-            )
-        );
-        c++;
-      }
+      ) : null;
+      if (!el) return null;
       return [
         date_utils.parse(
             date_utils.format(
@@ -2414,7 +2877,9 @@ var Gantt = function() {
           this.$container,
           "click",
           ".grid-row, .grid-header, .ignored-bar, .holiday-highlight",
-          () => {
+          (e) => {
+            var _a;
+            if ((_a = this.$popup_wrapper) == null ? void 0 : _a.contains(e.target)) return;
             this.unselect_all();
             this.hide_popup();
           }
@@ -2463,8 +2928,33 @@ var Gantt = function() {
       let is_resizing_right = false;
       let parent_bar_id = null;
       let bars = [];
+      let bar_action_started = false;
       this.bar_being_dragged = null;
       const action_in_progress = () => is_dragging || is_resizing_left || is_resizing_right;
+      const reset_bar_action_state = () => {
+        bars.forEach((bar) => {
+          if (bar == null ? void 0 : bar.$bar) bar.$bar.finaldx = 0;
+        });
+        bars = [];
+        bar_action_started = false;
+      };
+      const finish_bar_action = () => {
+        this.bar_being_dragged = null;
+        if (!bar_action_started) return;
+        let should_refresh_overlap_aggregates = false;
+        bars.forEach((bar) => {
+          const $bar = bar == null ? void 0 : bar.$bar;
+          if (!($bar == null ? void 0 : $bar.finaldx)) return;
+          bar.date_changed();
+          bar.compute_progress();
+          bar.set_action_completed();
+          should_refresh_overlap_aggregates = true;
+        });
+        reset_bar_action_state();
+        if (should_refresh_overlap_aggregates) {
+          this.refresh_overlap_aggregates_after_drop();
+        }
+      };
       this.$svg.onclick = (e) => {
         if (e.target.classList.contains("grid-row")) this.unselect_all();
       };
@@ -2487,6 +2977,7 @@ var Gantt = function() {
         if (this.popup) this.popup.hide();
         x_on_start = e.offsetX || e.layerX;
         parent_bar_id = bar_wrapper.getAttribute("data-id");
+        bar_action_started = true;
         let ids;
         if (this.options.move_dependencies) {
           ids = [
@@ -2628,22 +3119,17 @@ var Gantt = function() {
           }
         });
       });
-      document.addEventListener("mouseup", () => {
+      this._onDocumentMouseup = () => {
         var _a, _b, _c;
         is_dragging = false;
         is_resizing_left = false;
         is_resizing_right = false;
         (_c = (_b = (_a = this.$container.querySelector(".visible")) == null ? void 0 : _a.classList) == null ? void 0 : _b.remove) == null ? void 0 : _c.call(_b, "visible");
-      });
-      $.on(this.$svg, "mouseup", (e) => {
-        this.bar_being_dragged = null;
-        bars.forEach((bar) => {
-          const $bar = bar.$bar;
-          if (!$bar.finaldx) return;
-          bar.date_changed();
-          bar.compute_progress();
-          bar.set_action_completed();
-        });
+        finish_bar_action();
+      };
+      document.addEventListener("mouseup", this._onDocumentMouseup);
+      $.on(this.$svg, "mouseup", () => {
+        finish_bar_action();
       });
       this.bind_bar_progress();
     }
@@ -2829,6 +3315,25 @@ var Gantt = function() {
       (_h = (_g = this.$extras) == null ? void 0 : _g.remove) == null ? void 0 : _h.call(_g);
       (_j = (_i = this.popup) == null ? void 0 : _i.hide) == null ? void 0 : _j.call(_i);
     }
+    // >>> SR: Aggregation popup Gantt ----------------------------------------
+    /**
+     * Removes global listeners and DOM nodes created by this Gantt instance.
+     * This is mainly used for nested Gantt charts rendered inside aggregation
+     * popups, which are recreated whenever the popup content changes.
+     */
+    destroy() {
+      var _a, _b;
+      if (this._onDocumentMouseup) {
+        document.removeEventListener("mouseup", this._onDocumentMouseup);
+        this._onDocumentMouseup = null;
+      }
+      if (this._onDocClick) {
+        document.removeEventListener("mousedown", this._onDocClick, true);
+        this._onDocClick = null;
+      }
+      (_b = (_a = this.$container) == null ? void 0 : _a.remove) == null ? void 0 : _b.call(_a);
+    }
+    // <<< SR: Aggregation popup Gantt ----------------------------------------
     // >>> SR: Bar Aggregation ---------------------------------------------------
     // >>> SR: Date calculation Fix ----------------------------------------------
     get_infinite_padding_extend_units() {
@@ -2894,6 +3399,32 @@ var Gantt = function() {
       const days_since_week_start = (aligned.getDay() - start_day + 7) % 7;
       return date_utils.add(aligned, -days_since_week_start, "day");
     }
+    // >>> SR: include_today_in_padding ------------------------------------------
+    should_include_today_in_padding() {
+      return Boolean(this.options.include_today_in_padding);
+    }
+    extend_gantt_range_to_include_today() {
+      if (!this.should_include_today_in_padding()) return;
+      const today_start = date_utils.today();
+      const today_end = date_utils.add(today_start, 1, "day");
+      if (today_start < this.gantt_start) {
+        this.gantt_start = date_utils.start_of(today_start, this.config.unit);
+      }
+      if (today_end > this.gantt_end) {
+        this.gantt_end = today_end;
+      }
+    }
+    get_date_tick_for_date(date) {
+      var _a;
+      if (!((_a = this.dates) == null ? void 0 : _a.length)) return null;
+      for (let i = this.dates.length - 1; i >= 0; i--) {
+        if (this.dates[i] <= date) {
+          return this.dates[i];
+        }
+      }
+      return this.dates[0];
+    }
+    // <<< SR: include_today_in_padding ------------------------------------------
     get_position_by_date(date) {
       if (!date) return 0;
       if (this.config.unit === "month") {
@@ -2913,6 +3444,49 @@ var Gantt = function() {
       const diff_in_units = date_utils.diff(date, this.gantt_start, this.config.unit);
       return diff_in_units / this.config.step * this.config.column_width;
     }
+    // >>> SR: Date calculation after change fix ---------------------------------
+    get_date_by_position(x) {
+      if (!x) return date_utils.clone(this.gantt_start);
+      const units = x / this.config.column_width * this.config.step;
+      if (this.config.unit === "month") {
+        return this.get_date_by_month_position(units);
+      }
+      if (this.config.unit === "year") {
+        return this.get_date_by_year_position(units);
+      }
+      return this.add_precise_units(this.gantt_start, units, this.config.unit);
+    }
+    get_date_by_month_position(month_units) {
+      const gantt_month_start = date_utils.start_of(this.gantt_start, "month");
+      const whole_months = Math.floor(month_units);
+      const month_fraction = month_units - whole_months;
+      const month_start = date_utils.add(gantt_month_start, whole_months, "month");
+      const day_offset = month_fraction * date_utils.get_days_in_month(month_start);
+      return this.add_precise_units(month_start, day_offset, "day");
+    }
+    get_date_by_year_position(year_units) {
+      const gantt_year_start = date_utils.start_of(this.gantt_start, "year");
+      const whole_years = Math.floor(year_units);
+      const year_fraction = year_units - whole_years;
+      const year_start = date_utils.add(gantt_year_start, whole_years, "year");
+      const day_offset = year_fraction * date_utils.get_days_in_year(year_start);
+      return this.add_precise_units(year_start, day_offset, "day");
+    }
+    add_precise_units(date, qty, unit) {
+      const MS_PER_UNIT = {
+        millisecond: 1,
+        second: 1e3,
+        minute: 60 * 1e3,
+        hour: 60 * 60 * 1e3,
+        day: 24 * 60 * 60 * 1e3
+      };
+      const ms_per_unit = MS_PER_UNIT[unit];
+      if (ms_per_unit) {
+        return new Date(date.getTime() + qty * ms_per_unit);
+      }
+      return date_utils.add(date, qty, unit);
+    }
+    // <<< SR: Date calculation after change fix ---------------------------------
     // <<< SR: Date calculation Fix ----------------------------------------------
     /**
      * It computes the row and lane allocation for all tasks.
@@ -2988,6 +3562,54 @@ var Gantt = function() {
         const ib = isFinite(+b.id) ? +b.id : String(b.id);
         return ia > ib ? 1 : ia < ib ? -1 : 0;
       };
+      const hasPriority = (task) => Number.isFinite(Number(task == null ? void 0 : task.priority));
+      const overlaps = (a, b) => a._start < b._end && b._start < a._end;
+      const byPriorityThenEndStartId = (a, b) => {
+        const aHasPriority = hasPriority(a);
+        const bHasPriority = hasPriority(b);
+        if (aHasPriority || bHasPriority) {
+          if (aHasPriority && bHasPriority) {
+            const priorityDiff = Number(b.priority) - Number(a.priority);
+            if (priorityDiff !== 0) return priorityDiff;
+          } else {
+            return aHasPriority ? -1 : 1;
+          }
+        }
+        return byEndStartId(a, b);
+      };
+      const selectUpperLanes = (listRaw, upperLaneCount) => {
+        const rowHasPriority = listRaw.some(hasPriority);
+        const candidates = listRaw.slice().sort(
+            rowHasPriority ? byPriorityThenEndStartId : byEndStartId
+        );
+        const lanes = Array.from({ length: upperLaneCount }, () => []);
+        if (rowHasPriority) {
+          for (const t of candidates) {
+            const targetLaneIndex = lanes.findIndex(
+                (lane) => !lane.some((selected) => overlaps(selected, t))
+            );
+            if (targetLaneIndex !== -1) {
+              lanes[targetLaneIndex].push(t);
+              t._lane = targetLaneIndex;
+            }
+          }
+        } else {
+          const remaining = new Set(candidates);
+          lanes.forEach((lane, laneIndex) => {
+            let lastEnd = null;
+            for (const t of candidates) {
+              if (!remaining.has(t)) continue;
+              if (lastEnd == null || t._start >= lastEnd) {
+                lane.push(t);
+                t._lane = laneIndex;
+                lastEnd = t._end;
+                remaining.delete(t);
+              }
+            }
+          });
+        }
+        return lanes.flat().sort(byStartThenId);
+      };
       const byStartThenId = (a, b) => {
         if (+a._start !== +b._start) return +a._start - +b._start;
         const ia = isFinite(+a.id) ? +a.id : String(a.id);
@@ -3003,19 +3625,11 @@ var Gantt = function() {
       });
       for (const [rowIndex, listRaw] of rows.entries()) {
         if (!listRaw.length) continue;
-        const candidates = listRaw.slice().sort(byEndStartId);
-        const topLane = [];
-        let lastEnd = null;
-        for (const t of candidates) {
-          if (lastEnd == null || t._start >= lastEnd) {
-            topLane.push(t);
-            lastEnd = t._end;
-          }
-        }
+        const bottomLane = this.get_aggregation_lane_index();
+        const topLane = selectUpperLanes(listRaw, bottomLane);
         const topSet = new Set(topLane);
         const hidden = listRaw.filter((t) => !topSet.has(t));
         topLane.forEach((t) => {
-          t._lane = 0;
           t._rowIndex = rowIndex;
         });
         const rowHasAggregates = hidden.length > 0;
@@ -3051,10 +3665,12 @@ var Gantt = function() {
               _start: minStart,
               _end: maxEnd,
               _rowIndex: rowIndex,
-              _lane: 1,
-              // always at the bottom lane
-              _clusterLanes: 2,
+              // >>> SR: Configurable row lanes -------------------------------
+              _lane: bottomLane,
+              // always at the configured bottom lane
+              _clusterLanes: this.options.row_lanes,
               // (Relayout sets real value later)
+              // <<< SR: Configurable row lanes -------------------------------
               lineIndex: membersArr[0].lineIndex,
               draggable: false,
               progress: 0,
@@ -3073,6 +3689,9 @@ var Gantt = function() {
                 end: m.end,
                 //TODO SR: Date without hours fix. Test it.
                 color: m.color,
+                // >>> SR: Priority aggregation top lane ----------------------
+                priority: m.priority,
+                // <<< SR: Priority aggregation top lane ----------------------
                 actual_duration: m.actual_duration,
                 //TODO SR: It is undefined here because it is only set under "bar.compute_duration()".
                 ignored_duration: m.ignored_duration
@@ -3089,7 +3708,7 @@ var Gantt = function() {
             const single = membersArr[0];
             single._hidden = false;
             single._aggregatedBy = void 0;
-            single._lane = 1;
+            single._lane = bottomLane;
             single._rowIndex = rowIndex;
           }
           curStart = curEnd = null;
@@ -3135,34 +3754,35 @@ var Gantt = function() {
       rowMap.forEach((list, rowIndex) => {
         list.forEach((t) => {
           t._rowIndex = rowIndex;
-          t._lane = void 0;
+          t._lane = Number.isInteger(t._lane) ? t._lane : void 0;
           t._clusterLanes = 1;
         });
         const overlaps = (a, b) => a._start < b._end && b._start < a._end;
         const aggs = list.filter((t) => t._isAggregate === true);
         const topsAll = list.filter((t) => !t._isAggregate).sort(byStartThenId);
+        const bottomLane = this.get_aggregation_lane_index();
+        const upperLaneCount = bottomLane;
         aggs.forEach((a) => {
-          a._lane = 1;
-          a._clusterLanes = 2;
+          a._lane = bottomLane;
+          a._clusterLanes = this.options.row_lanes;
         });
         const hitAgg = [];
         const noAgg = [];
         topsAll.forEach((t) => (aggs.some((a) => overlaps(t, a)) ? hitAgg : noAgg).push(t));
-        hitAgg.forEach((t) => {
-          t._lane = 0;
-          t._clusterLanes = 2;
-        });
         const laneTasks = /* @__PURE__ */ new Map();
         const assignToLane = (task, lane) => {
           task._lane = lane;
           if (!laneTasks.has(lane)) laneTasks.set(lane, []);
           laneTasks.get(lane).push(task);
         };
-        aggs.forEach((a) => assignToLane(a, 1));
-        hitAgg.forEach((t) => assignToLane(t, 0));
-        noAgg.forEach((t) => {
+        aggs.forEach((a) => assignToLane(a, bottomLane));
+        hitAgg.forEach((t) => {
+          const lane = Number.isInteger(t._lane) && t._lane < upperLaneCount ? t._lane : 0;
+          assignToLane(t, lane);
+        });
+        const placeInFirstFreeLane = (t) => {
           let lane = 0;
-          while (true) {
+          while (lane < this.options.row_lanes) {
             const arr = laneTasks.get(lane) || [];
             const collides = arr.some((x) => overlaps(t, x));
             if (!collides) {
@@ -3171,15 +3791,42 @@ var Gantt = function() {
             }
             lane++;
           }
+          if (t._lane == null) {
+            assignToLane(t, bottomLane);
+          }
+        };
+        const unassignedNoAgg = [];
+        const noAggWithLane = noAgg.filter(
+            (t) => Number.isInteger(t._lane) && t._lane < this.options.row_lanes
+        );
+        const noAggWithoutLane = noAgg.filter((t) => !noAggWithLane.includes(t));
+        noAggWithLane.sort((a, b) => a._lane - b._lane || byStartThenId(a, b)).forEach((t) => {
+          const arr = laneTasks.get(t._lane) || [];
+          if (!arr.some((x) => overlaps(t, x))) {
+            assignToLane(t, t._lane);
+          } else {
+            t._lane = void 0;
+            unassignedNoAgg.push(t);
+          }
         });
+        noAggWithoutLane.concat(unassignedNoAgg).sort(byStartThenId).forEach(placeInFirstFreeLane);
         const visible2 = list;
         visible2.forEach((t) => {
           const sameRow = visible2.filter((o) => o !== t && overlaps(o, t));
-          const laneSet = /* @__PURE__ */ new Set([t._lane, ...sameRow.map((o) => o._lane)]);
-          t._clusterLanes = Math.max(1, laneSet.size);
+          const overlappingLanes = [t._lane, ...sameRow.map((o) => o._lane)].filter((lane) => Number.isInteger(lane));
+          t._clusterLanes = Math.max(0, ...overlappingLanes) + 1;
         });
       });
     }
+    // >>> SR: Configurable row lanes -----------------------------------------
+    /**
+     * Returns the lane index reserved for single lower-row tasks or aggregate
+     * bars. The value depends on the configured row_lanes option.
+     */
+    get_aggregation_lane_index() {
+      return Math.max(1, this.options.row_lanes - 1);
+    }
+    // <<< SR: Configurable row lanes -----------------------------------------
     /**
      * Gets the total content height based on the number of rows and row height
      * @returns {number}
@@ -3193,10 +3840,11 @@ var Gantt = function() {
      */
     bind_outside_click() {
       this._onDocClick = (e) => {
+        var _a;
         if (this.bar_being_dragged) return;
         const container = this.$container;
         const target = e.target;
-        if (container && container.contains(target)) return;
+        if (container && container.contains(target) || ((_a = this.$popup_wrapper) == null ? void 0 : _a.contains(target))) return;
         this.hide_popup();
         this.unselect_all();
       };
