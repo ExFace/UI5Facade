@@ -279,7 +279,7 @@ JS;
      */
     protected function buildJsPropertyColumnHeaderHeight() : string
     {
-        return 'columnHeaderHeight: 73,';
+        return 'columnHeaderHeight: 75,';
     }
     
     /**
