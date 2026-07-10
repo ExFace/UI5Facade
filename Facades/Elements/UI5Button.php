@@ -152,6 +152,14 @@ JS;
                 }
             }
         }
+        if ($this->getWidget()->getColor() && ! Colors::isSemantic($this->getWidget()->getColor())) {
+            $controller->addExternalModule(
+                'libs.exface.exfColorTools',
+                $this->getFacade()->buildUrlToSource('LIBS.EXFCOLORTOOLS.JS'),
+                null,
+                'exfColorTools'
+            );
+        }
         return parent::registerExternalModules($controller);
     }
     
@@ -206,6 +214,9 @@ JS;
                             $this->getWorkbench()->getLogger()->logException($err);
                             $type = "type: '{$defaultButtonType}',";
                         }
+                    } else {
+                        $this->registerCssButtonColor($color);
+                        $type = "type: '{$defaultButtonType}',";
                     }
                 } else {
                     $type = "type: '{$defaultButtonType}',";
@@ -726,6 +737,62 @@ JS;
         }
     }
     
+    /**
+     * Registers custom CSS to apply a CSS named color or hex color to this button.
+     * 
+     * @param string $color
+     * @return void
+     */
+    protected function registerCssButtonColor(string $color) : void
+    {
+        try {
+            Colors::toHex($color);
+        } catch (\UnexpectedValueException $e) {
+            $err = new FacadeUnsupportedWidgetPropertyWarning('Color "' . $color . '" is not a valid CSS or hex color for button widget in UI5!');
+            $this->getWorkbench()->getLogger()->logException($err);
+            return;
+        }
+        $colorEscaped = $this->escapeString($color, false);
+        $colorClassName = 'exf_btn_color_' . md5($color);
+        $cssSelectorRules = $this->buildJsCssColorRules($colorClassName);
+        
+        $this->getController()->addOnShowViewScript(<<<JS
+
+(function(){
+    var sColor = '{$colorEscaped}';
+    var sColorClass = '{$colorClassName}';
+    var sCssId = 'exf_btn_color_css_' + sColorClass;
+    
+    // Only inject CSS if not already injected for this color
+    if ($('#' + sCssId).length === 0) {
+        var sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, 0.5);
+        var sCss = {$cssSelectorRules};
+        $('head').append($('<style type="text/css" id="' + sCssId + '"></style>').text(sCss));
+    }
+})();
+
+JS, false);
+    }
+    
+    /**
+     * Returns a JavaScript expression string that builds the CSS rules for the custom button color.
+     * 
+     * Uses class-based selectors so multiple buttons with the same color can share the same CSS rules.
+     * The expression may reference the JS variables `sColor` (background) and `sTextColor` (text/icon),
+     * and helper functions on `exfColorTools` (e.g. for hover shade calculation).
+     * 
+     * Override this in subclasses to adapt the selectors for different UI5 controls.
+     * 
+     * @param string $colorClassName CSS class name for this color (e.g. 'exf_btn_color_abc123')
+     * @return string JS expression evaluating to a CSS string
+     */
+    protected function buildJsCssColorRules(string $colorClassName) : string
+    {
+        return "'.{$colorClassName}.sapMBtn .sapMBtnInner { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn .sapMBtnInner .sapMBtnIcon { color: ' + sTextColor + ' !important; }'
+            + ' .{$colorClassName}.sapMBtn:hover .sapMBtnInner, .{$colorClassName}.sapMBtn:hover .sapMBtnHoverable { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; color: ' + sTextColor + ' !important; }'";
+    }
+
     protected function getColorSemanticMap() : array
     {
         $semCols = [];
@@ -746,7 +813,26 @@ JS;
      */
     protected function buildJsClickSendToWidget(SendToWidget $action, string $jsRequestData) : string
     {
-        $this->getFacade()->createController($this->getFacade()->getElement($this->getWidget()->getPage()->getWidgetRoot()));
+        // Make sure, there is always a controller initialized! This may not be the case if we pass data to a
+        // widget in a different id space. Actually, this always seems to be the case in InputComboTable lookup
+        // dialogs, whose primary button will send data to the InputComboTable. The InputComboTable is located in some
+        // UI5 view and the lookup dialog creates its own UI5 view because it is lazy loaded. So when the lookup dialog
+        // is rendered, this method is called, but the target widget is the InputComboTable and sits in the previous
+        // view - and we have no chance to know, what were the boundaries of that view because we do not know, for
+        // which widget it was created. This results in "no controller initialized" errors when trying to build JS
+        // code for the InputComboTable. As a workaround we just create a view for the root widget of the page, so 
+        // there is some controller there.
+        // TODO this is probably unreliable as the controller created here probably is NOT the same as really was
+        // created for the InputComboTable! A possible alternative would be a ready-to-use method in the
+        // UI5InputComboTable to call from the primary button of the lookup dialog - that would not require any JS
+        // builders and, thus, no controller in the the combo facade element.
+        $thisWidget = $this->getWidget();
+        $linkedWidget = $thisWidget->getPage()->getWidget($action->getTargetWidgetId());
+        if ($linkedWidget->getIdSpace() !== $thisWidget->getIdSpace()) {
+            $pageRootEl = $this->getFacade()->getElement($thisWidget->getPage()->getWidgetRoot());
+            $linkedController = $this->getFacade()->createController($pageRootEl);
+            $pageRootEl->setController($linkedController);
+        }
         return $this->buildJsClickSendToWidgetViaTrait($action, $jsRequestData);
     }
     
@@ -819,6 +905,9 @@ JS;
     {
         $classes = parent::buildCssWidgetClass();
         $widget = $this->getWidget();
+        if (($color = $widget->getColor()) && ! Colors::isSemantic($color)) {
+            $classes .= ' exf_btn_color_' . md5($color);
+        }
         if (($widget instanceof DialogButton) && ($widget->getCloseDialogAfterActionSucceeds() || $widget->getCloseDialogAfterActionFails())) {
             $classes .= ' exf-dialog-close';
         }

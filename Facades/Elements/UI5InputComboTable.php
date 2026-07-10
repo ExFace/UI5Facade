@@ -671,8 +671,20 @@ JS;
                                 oInput._invalidKey = false;
                                 break;
                             default:
+                                var sErrorText = curText;
+                                if ((! sErrorText || sErrorText.toString().trim() === '') && oInput.getTokens !== undefined) {
+                                    sErrorText = oInput
+                                        .getTokens()
+                                        .map(function(oToken){
+                                            return oToken.getText() || oToken.getKey();
+                                        })
+                                        .join(sMultiValDelim);
+                                }
+                                if (! sErrorText || sErrorText.toString().trim() === '') {
+                                    sErrorText = curKey;
+                                }
                                 oInput
-                                    .setValueStateText("'" + (curKey + " " + curText).trim() + "' {$this->translate('WIDGET.INPUTCOMPBOTABLE.ERROR_INVALID_KEY')}")
+                                    .setValueStateText("'" + sErrorText.toString().trim() + "' {$this->translate('WIDGET.INPUTCOMPBOTABLE.ERROR_INVALID_KEY')}")
                                     .setValueState(sap.ui.core.ValueState.Error);
                                 oInput._invalidKey = true;
                                 break;

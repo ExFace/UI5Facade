@@ -1,7 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
-use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
@@ -10,7 +9,6 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\Core\Interfaces\Widgets\iCanBeRequired;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\Interfaces\Widgets\iHaveSidebar;
-use exface\Core\Interfaces\Widgets\IHaveTourGuideInterface;
 use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\Data;
 use exface\Core\Widgets\DataColumn;
@@ -1422,8 +1420,9 @@ JS;
     protected function buildJsDataLoaderFromLocal($oControlEventJsVar = 'oControlEvent', $keepPagePosJsVar = 'bKeepPagingPos')
     {
         $widget = $this->getWidget();
-        $data = $widget->prepareDataSheetToRead($widget->getValuesDataSheet());
-        if (! $data->isFresh()) {
+        $dataWidget = $this->getDataWidget();
+        $data = $widget->prepareDataSheetToRead($dataWidget->getValuesDataSheet());
+        if (! $data->isFresh() && $data->getMetaObject()->isReadable()) {
             $data->dataRead();
         }
         
@@ -1434,14 +1433,19 @@ JS;
         // FIXME make filtering, sorting, pagination, etc. work in non-lazy mode too!
         
         return <<<JS
-        
+            
+            (function(oCtrl){
                 try {
-        			var data = {$this->getFacade()->encodeData($this->getFacade()->buildResponseData($data, $widget))};
+        			var oServerData = {$this->getFacade()->encodeData($this->getFacade()->buildResponseData($data, $widget))};
         		} catch (err){
                     console.error('Cannot load data into widget {$this->getId()}!');
                     return;
         		}
-                sap.ui.getCore().byId("{$this->getId()}").getModel().setData(data);
+                if (oCtrl._exfServerData === undefined) {
+                    oCtrl._exfServerData = oServerData;
+                } 
+                oCtrl.getModel().setData($.extend({}, oCtrl._exfServerData));
+            })(sap.ui.getCore().byId("{$this->getId()}"))
                 
 JS;
     }
@@ -1864,7 +1868,8 @@ JS;
      */
     protected function isLazyLoading()
     {
-        return $this->getDataWidget()->getLazyLoading(true);
+        $dataWidget = $this->getDataWidget();
+        return $dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable());
     }
     
     protected abstract function isEditable();
@@ -1892,23 +1897,25 @@ JS;
         $top_buttons = $this->buildJsTourGuideDropdown($widget, $this->getController());
         
         // Add the search-button
-        $searchButtons = $widget->getToolbarMain()->getButtonGroupForSearchActions()->getButtons();
-        $searchButtons = array_reverse($searchButtons);
-        foreach ($searchButtons as $btn) {
-            if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')){
-                $btn->setShowIcon(false);
-                $btn->setHint($btn->getCaption());
-                $btn->setCaption($this->translate('WIDGET.DATATABLE.GO_BUTTON_TEXT'));
-                $btn->setVisibility(WidgetVisibilityDataType::PROMOTED);
+        if (null !== $searchButtonGrp = $widget->getToolbarMain()->getButtonGroupForSearchActions()) {
+            $searchButtons = $searchButtonGrp->getButtons();
+            $searchButtons = array_reverse($searchButtons);
+            foreach ($searchButtons as $btn) {
+                if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.RefreshWidget')) {
+                    $btn->setShowIcon(false);
+                    $btn->setHint($btn->getCaption());
+                    $btn->setCaption($this->translate('WIDGET.DATATABLE.GO_BUTTON_TEXT'));
+                    $btn->setVisibility(WidgetVisibilityDataType::PROMOTED);
+                }
+
+                if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.ResetWidget')) {
+                    $btn->setShowIcon(false);
+                    $btn->setHint($btn->getCaption());
+                    $btn->setCaption($this->translate('WIDGET.DATATABLE.RESET_BUTTON_TEXT'));
+                    $this->getFacade()->getElement($btn)->setUI5ButtonType('Transparent');
+                }
+                $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
             }
-            
-            if ($btn->getAction() && $btn->getAction()->isExactly('exface.Core.ResetWidget')){
-                $btn->setShowIcon(false);
-                $btn->setHint($btn->getCaption());
-                $btn->setCaption($this->translate('WIDGET.DATATABLE.RESET_BUTTON_TEXT'));
-                $this->getFacade()->getElement($btn)->setUI5ButtonType('Transparent');
-            }
-            $top_buttons .= $this->getFacade()->getElement($btn)->buildJsConstructor() . ',';
         }
         $top_buttons .= $this->buildJsSidebarToggleButton(true);
         
@@ -3401,5 +3408,22 @@ JS;
         }
         // TODO how to determine, if a column is required?
         return 'false';
+    }
+    
+    public function buildJsDataSetter(string $jsData) : string
+    {
+        if (! $this->isLazyLoading()) {
+            $setNonLazyDataJs = 'oCtrl._exfServerData = ' . $jsData . ';';
+        } else {
+            $setNonLazyDataJs = '';
+        }
+        return <<<JS
+
+        (function(oCtrl){
+            oCtrl.getModel().setData({$jsData});
+            $setNonLazyDataJs;
+        })(sap.ui.getCore().byId('{$this->getId()}'));
+JS;
+
     }
 }

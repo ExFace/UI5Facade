@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\Display;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\CommonLogic\Constants\Colors;
 
 /**
  * Tile widget for OpenUI5-Facade.
@@ -25,6 +26,12 @@ class UI5Tile extends UI5Button
         $widget = $this->getWidget();
         
         $this->registerExternalModules($this->getController());
+
+        if ($color = $widget->getColor()) {
+            if (! Colors::isSemantic($color)) {
+                $this->registerCssButtonColor($color);
+            }
+        }
         
         $header = $this->getCaption() ? 'header: ' . $this->escapeString($widget->getTitle(), true) . ',' : '';
         $handler = $this->buildJsClickViewEventHandlerCall();
@@ -154,6 +161,17 @@ JS;
         return '';
     }
     
+    /**
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Button::buildJsCssColorRules()
+     */
+    protected function buildJsCssColorRules(string $colorClassName) : string
+    {
+        return "'.{$colorClassName}.sapMGT { background-color: ' + sColor + ' !important; border-color: ' + sColor + ' !important; }'"
+            . " + '.{$colorClassName}.sapMGT .sapMGTHdrTxt, .{$colorClassName}.sapMGT .sapMGTSubHdrTxt, .{$colorClassName}.sapMGT .sapMGTFtrTxt, .{$colorClassName}.sapMGT .sapMGTHdrTxt .sapMText, .{$colorClassName}.sapMGT .sapMGTSubHdrTxt .sapMText, .{$colorClassName}.sapMGT .sapMGTFtrTxt .sapMText, .{$colorClassName}.sapMGT .sapMText, .{$colorClassName}.sapMGT .sapMText span, .{$colorClassName}.sapMGT .sapUiIcon { color: ' + sTextColor + ' !important; }'"
+            . " + '.{$colorClassName}.sapMGT:hover:not(.sapMGTPressActive) { background-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; border-color: ' + exfColorTools.shadeCssColor(sColor, -0.08) + ' !important; }'";
+    }
+
     /**
      *
      * {@inheritDoc}

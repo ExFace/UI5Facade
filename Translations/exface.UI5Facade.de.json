@@ -130,6 +130,7 @@
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE": "Einschließen",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE": "Ausschließen",
 	"WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR": "Filter von dieser Spalte zurücksetzen",
+	"WIDGET.DATATABLE.FILTER_INPUT_TOOLTIP": "Filtert standardmäßig, ob der Wert enthalten ist. Zusätzliche Operatoren: == genau, !== nicht genau, != enthält nicht, >=, <=, >, <. (Bsp: !==Wert)",
 	"WIDGET.DATATABLE.FILTER_CLEAR": "Filter zurücksetzen",
 	"WIDGET.DATATABLE.GO_BUTTON_TEXT": "Suchen",
 	"WIDGET.DATATABLE.OFFLINE_HINT": "Diese Daten sind nur online verfügbar!",

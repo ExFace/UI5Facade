@@ -7,7 +7,7 @@
 .exf-promoted {font-weight: bold;}
 
 /* Symfony Debugger */
-.exception .container {width: auto !important;} 
+.exception .container {width: auto !important;}
 pre.sf-dump {background: none !important; border: none !important;}
 pre.sf-dump span.sf-dump-key {color: black !important;}
 pre.sf-dump span.sf-dump-str {color: black !important;}
@@ -50,7 +50,7 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .sapMGHLICell + .sapMListTblNavCol { border-top: 2px solid #ccc !important; }
 /* Fix misaligned text on smartphones if table inside an editable form */
 .sapUiFormEdit .sapMListTblSubCnt .sapMText {min-height: inherit; padding-bottom: inherit; line-height: inherit;}
-.sapUiFormEdit .sapMListTblCell .sapMText {min-height: inherit; padding-bottom: inherit; line-height: inherit; padding-top: inherit; } 
+.sapUiFormEdit .sapMListTblCell .sapMText {min-height: inherit; padding-bottom: inherit; line-height: inherit; padding-top: inherit; }
 /* Fix to stretch InputSelect buttons to full width in mobile sap.m.Table */
 .sapMListTblSubCntRow > .sapMListTblSubCntVal {width: 100%}
 /* Move all values in mobile sap.m.Table to the left for better readability */
@@ -65,7 +65,7 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 
 /* sap.m.GridList */
 .sapFGridListDefault {padding: 0 0.5rem}
-.sapFGridListDefault > .sapMLIB {max-width: 11rem;}
+.sapFGridListDefault > .sapMLIB {max-width: 22rem;}
 
 /* sap.f.DynamicPage */
 .exf-page-heading-btn {margin-right: 0.2rem;}
@@ -114,8 +114,11 @@ body:not(.sapUiSizeCompact) .sapFDynamicPageTitleMainHeadingInner .sapMTitle > s
 /* Fix remove grayish background on busy-indicator in tile content */
 .sapMTileCntContent > .sapMNC  > .sapUiLocalBusyIndicator {background-color: transparent;}
 .exf-card-with-tiles .exf-tiles > .sapMPanelContent {padding: 0; margin-top: -6px; margin-left: -6px; overflow: visible;}
+.exf-card-with-tiles > .sapMPanelContent {padding: 0;}
+html[class*="sapUiTheme-sap_horizon"] .exf-card-with-tiles > .sapMPanelContent {background-color: var(--sapBackgroundColor)}
+.exf-card-with-tiles > .sapMPanelContent > .exf-tiles {height: 100% !important}
 /* Fix to force 2-column tile menus even on phones with long narrow screens (centering on wider phones) */
-html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%} 
+html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; width: 23.5rem; max-width: 100%}
 /* Panels */
 .exf-panel > .sapMPanelContent {border-bottom: none;}
 
@@ -175,39 +178,50 @@ table.jexcel > tbody > tr > td.jexcel_row {background-color: #dcdcdc; border-top
 /*table.jexcel > tbody > tr > td.readonly {color:inherit;}*/
 table.jexcel td > input,
 table.jexcel td > textarea {font-family: inherit;}
-table.jexcel > tbody > tr > td.readonly > input[type=checkbox], 
+table.jexcel > tbody > tr > td.readonly > input[type=checkbox],
 table.jexcel > tbody > tr > td.readonly > input[type=radio] {opacity: 1;}
 html.sapUiTheme-sap_fiori_3 table.jexcel td > textarea {padding-top: 10px !important; padding: 2px 4px; margin-bottom: -1px; margin-top: -1px;}
 
 /* adjustments to allow opening dropdowns with single click */
 table.jexcel > tbody > tr > td.jexcel_dropdown {
-    position: relative; 
+    position: relative;
 }
 
 table.jexcel > tbody > tr > td.jexcel_dropdown::after  {
     content: '';
     position: absolute;
-    right: 0px; 
+    right: 0px;
     top: 0;
-    width: 35px; 
+    width: 35px;
     height: 100%;
 }
 
 /* mark hitbox on hover, class is set dynamically in JexcelTrait */
 table.jexcel > tbody > tr > td.jexcel_dropdown.exf-dropdown-hitbox-hover:not(.readonly)::after  {
     cursor: pointer;
-    background-color: rgba(0, 0, 0, 0.05);  
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* flip arrow when dropdown is open */
+/* keep padding so text does not overlap the arrow */
 table.jexcel .jdropdown-default.jdropdown-focus .jdropdown-header {
+    padding-right: 35px;
     background-color: transparent;
+    background-image: none;
+}
+
+/* flip the cell arrow when the dropdown is open */
+table.jexcel > tbody > tr > td.jexcel_dropdown:has(.jdropdown-focus) {
     background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray' transform='rotate(180 12 12)'/%3E%3C/svg%3E");
 }
 
 /* dropdown in header should not have white background */
 table.jexcel > thead .jdropdown{
     background-color: #dcdcdc;
+}
+
+/* add padding to dropdown cells, to avoid overlap with text and dropdown arrow */
+table.jexcel > tbody > tr > td.jexcel_dropdown {
+    padding-right: 35px;
 }
 
 /* replace filter icon */
@@ -247,10 +261,14 @@ table.jexcel > thead > tr:last-child > td.jexcel_column_filter {
     position: inherit;
 }
 
-/* stripe dataspreadsheets */ 
+/* stripe dataspreadsheets */
 .exf-stripe-table table.jexcel > tbody > tr:nth-child(even):not(.selected) {
     background-color: rgba(0, 0, 0, 0.04);
 }
+
+/* if auto column width is enabled, use auto table layout to allow columns to grow with content. */
+.exf-auto-column-width table.jexcel { table-layout: auto; }
+.exf-auto-column-width table.jexcel > thead > tr > td.jexcel_selectall { min-width: 2.5rem; }
 
 /* Border under header */
 table.jexcel > thead > tr:last-child > td {border-bottom: 1px solid rgb(140, 140, 140);}
@@ -259,7 +277,7 @@ table.jexcel > thead > tr:last-child > td {border-bottom: 1px solid rgb(140, 140
 table.jexcel > tbody > tr:not(.selected) > td.readonly:not(.highlight-selected) {
     background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.02) 4px, rgba(0, 0, 0, 0.02) 8px);
     border-top: 0px dashed #a7a7a74d;
-    border-left: 1px solid #a7a7a74d; 
+    border-left: 1px solid #a7a7a74d;
 }
 
 /* use disallowed cursor to differentiate readonly cells, but make text dark enough to read */
@@ -358,9 +376,9 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 
 /* Slick carousel: ImageGallery */
 .slick-carousel.horizontal .slick-list {padding: 10px; box-sizing: border-box;}
-.slick-carousel.horizontal .slick-list, 
-.slick-carousel.horizontal .slick-track, 
-.slick-carousel.horizontal .slick-slide, 
+.slick-carousel.horizontal .slick-list,
+.slick-carousel.horizontal .slick-track,
+.slick-carousel.horizontal .slick-slide,
 .slick-carousel.horizontal .slick-slide img {height: 100%}
 .slick-carousel.horizontal .slick-slide {margin-left: 10px; box-sizing: border-box;}
 .slick-carousel.horizontal .slick-prev.slick-arrow {left: 5px; z-index: 1;}
@@ -390,12 +408,15 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     z-index: 10;
 }
 
+/* DataCards */
+.exf-datacard > .sapMFlexItem {margin: 2px 0;}
+
 /* within a datacarousel, mark the selected data row more strongly */
 .exf-datacarousel-data-element .sapUiTableRowSel>.sapUiTableCell:first-child {
     box-shadow: inset 4px 0 0 var(--sapList_SelectionBorderColor);
 }
 
-    /* DocScanner */
+/* DocScanner */
 .docScanner {aspect-ratio: 210 / 297; max-height: 100%; max-width: 100%; border: 1px solid #0854a0; box-sizing: border-box; margin: 10px; background-color: white;}
 .docScannerUploader {display: none;}
 .docScannerDialog .sapMDialogSection {background-color: lightgrey;}
@@ -406,7 +427,7 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 /* Display widgets in DialogHeader + ColorIndicator anywhere */
 .sapMObjStatus {
     display: inline-flex;
-    width: 100%; 
+    width: 100%;
     vertical-align: top;   /* prevents alignment expansion (height would increase otherwise) */
     max-width: 100%;       /* limit overflow inside layout */
 }
@@ -417,11 +438,11 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
 }
 
 /* manage the overflow properties here in the child object, to prevent 
-the entire text from disappearing (...) if the text overflows */ 
+the entire text from disappearing (...) if the text overflows */
 .sapMObjStatus .sapMObjStatusText {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;  
+    text-overflow: ellipsis;
     max-height: fit-content;
 }
 
@@ -434,6 +455,9 @@ the entire text from disappearing (...) if the text overflows */
 /* Split */
 /* No padding for tables with header (DynamicPage contents) filling a split panel */
 .sapUiLoSplitterContent > .sapUiNoContentPadding > .sapMPanelContent  > .sapFDynamicPage > .sapFDynamicPageContentWrapper > .sapFDynamicPageContent > .sapFDynamicPageContentFitContainer {padding: 0}
+/* No border lines for split panel borders */
+html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter.sapUiLoSplitterH>.sapUiLoSplitterBar {border-left-color: transparent; border-right-color: transparent;}
+html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter.sapUiLoSplitterV>.sapUiLoSplitterBar {border-bottom-color: transparent; border-top-color: transparent;}
 
 /* Fullscreen */
 .fullscreen {position: fixed!important; top: 0; left: 0; padding: 0; width: 100vw!important; height: 100vh!important; background: rgba(255,255,255);}
@@ -445,8 +469,9 @@ the entire text from disappearing (...) if the text overflows */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}
 
 /* Gantt */
+/* TODO SR: Move all gantt css to the "exf-frappe-gantt.js" */
 .exf-gantt .gantt-container {height: 100%; overflow-y: hidden;}
-.exf-gantt .gantt .tick {stroke: #ddd}
+/*.exf-gantt .gantt .tick {stroke: #ddd}*/ /*TODO SR: Previously, all ticks were coloured the same. Now you can adjust this with thick_lines.*/
 .bar-folder {filter: drop-shadow(0px -3px 0px rgb(0 0 0 / 0.8))}
 
 /* Scheduler */
@@ -457,7 +482,7 @@ the entire text from disappearing (...) if the text overflows */
 .sapMPlanCal.halfHeight>.sapMList .sapMListTblCell.sapMPlanCalAppRow {height: inherit;}
 .sapMPlanCal.halfHeight>.sapMList .sapMPlanCalAppRow>.sapUiCalendarRow {height: 100%}
 /* Stick headers + scrolling */
-.sapMPlanCal.sapMPCSticky > .sapMList > .sapMListInfoTBarContainer {top: 0 !important;} 
+.sapMPlanCal.sapMPCSticky > .sapMList > .sapMListInfoTBarContainer {top: 0 !important;}
 .sapMPlanCal.sapMPCSticky > .sapMList {overflow: auto;}
 /* Nav buttons */
 .sapMBtn.exf-scheduler-nav {position: absolute; padding: 0;}
@@ -478,7 +503,7 @@ the entire text from disappearing (...) if the text overflows */
 .sapMTileCntContent > .sapMImageContent > img {filter: invert(47%) sepia(36%) saturate(427%) hue-rotate(169deg) brightness(92%) contrast(94%);}
 .sapUiIcon.exf-svg-icon::before {padding-top: 1px; width: 16px; display: block; margin-left: auto; margin-right: auto;}
 .sapUiTableCellInner > .sapUiIcon::before {padding-top: 2px}
-/* SVG icon for sap.ui.table.Table columns */ 
+/* SVG icon for sap.ui.table.Table columns */
 .sapUiLbl.exf-svg-icon .sapUiLblIco {height: 18px; margin-top: auto; margin-bottom: auto;}
 .sapUiLbl.exf-svg-icon:not(.exf-svg-colored) .sapUiLblIco {filter: brightness(0) saturate(100%) invert(19%) sepia(1%) saturate(3230%) hue-rotate(174deg) brightness(105%) contrast(97%);}
 .sapUiLbl.exf-icon-only > img {margin-right: 0; height: 22px !important}
@@ -492,7 +517,7 @@ the entire text from disappearing (...) if the text overflows */
 /* NavTiles IconTabBar & SearchFilter */
 .customHeader {
     box-shadow: none;
-} 
+}
 
 /* show sidenavigation popups over tabbar */
 .sapTntSideNavigation  .sapTntNLPopover.sapMPopover {
@@ -584,22 +609,22 @@ html.sapUiTheme-sap_fiori_3 .sapUxAPObjectPageSectionHeader { border-bottom: .06
 /* navtiles margin to navbar */
 html.sapUiTheme-sap_fiori_3 .exf-tiles > .sapMPanelHeadingDiv
 {
-  margin-top: 1rem;
+    margin-top: 1rem;
 }
 
 /* panel title margin to navbar */
 html.sapUiTheme-sap_fiori_3 .exf-panel .sapMPanelHdr{
-  margin-top: 1rem;
+    margin-top: 1rem;
 }
 
 /* context menu button styling */
 html.sapUiTheme-sap_fiori_3 .sapMPopover .sapMBtnInner {
-  border: none;
+    border: none;
 }
 
 /* fix table background if not full width */
 html.sapUiTheme-sap_fiori_3 .sapUiTableContentRow .sapUiTableCellDummy {
-  background-color: var(--sapList_Background) !important;
+    background-color: var(--sapList_Background) !important;
 }
 
 /* if table has stripes, stripe dummy cells too  */
@@ -660,7 +685,7 @@ html.sapUiTheme-sap_fiori_3 .sapTntSideNavigation .sapTntNLI.sapTntNLIActive .sa
     filter: brightness(0) invert(1);
 }
 /* more space for sidenavigation items in fiori 3 */
-html.sapUiTheme-sap_fiori_3 .sapUiSizeCompact .sapTntNLMenu.sapMMenu li.sapMMenuItem, 
+html.sapUiTheme-sap_fiori_3 .sapUiSizeCompact .sapTntNLMenu.sapMMenu li.sapMMenuItem,
 html.sapUiTheme-sap_fiori_3 .sapUiSizeCompact .sapTntNLI {
     height: 2.4rem;
 }
@@ -688,7 +713,7 @@ html.sapUiTheme-sap_fiori_3 .sapTntNLIAction.sapTntNLISelected:not(.sapTntNLIDis
     display: inline-block;
 }
 
- .exf-custom-color .sapMObjStatusWrapper {
+.exf-custom-color .sapMObjStatusWrapper {
     background-color: transparent !important;
 }
 
@@ -716,13 +741,13 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPI {
     background: #ffffff00;
     min-height: 1.2rem;
     padding: 0;
-    border: 1px solid var(--sapProgress_BorderColor); 
+    border: 1px solid var(--sapProgress_BorderColor);
     border-radius: 0.6rem;
     overflow: hidden;
 }
 
 /* remove semantic border color */
-html[class*="sapUiTheme-sap_horizon"] :is(.sapMPIBarNegative, .sapMPIBarCritical, .sapMPIBarPositive, .sapMPIBarNeutral) 
+html[class*="sapUiTheme-sap_horizon"] :is(.sapMPIBarNegative, .sapMPIBarCritical, .sapMPIBarPositive, .sapMPIBarNeutral)
 + .sapMPIBarRemaining {
     border-color: transparent;
 }
@@ -773,14 +798,14 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIBarRemaining::after {
     display: none;
 }
 
-html.sapUiTheme-sap_horizon .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining,
 html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining {
     background-color: var(--sapBackgroundColor);
 }
 
-html.sapUiTheme-sap_horizon .sapMPIBarPositive+.sapMPIBarRemaining, 
-html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining, 
-html.sapUiTheme-sap_horizon .sapMPIBarNegative+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon .sapMPIBarPositive+.sapMPIBarRemaining,
+html.sapUiTheme-sap_horizon .sapMPIBarNeutral+.sapMPIBarRemaining,
+html.sapUiTheme-sap_horizon .sapMPIBarNegative+.sapMPIBarRemaining,
 html.sapUiTheme-sap_horizon .sapMPIBarCritical+.sapMPIBarRemaining {
     background-color: var(--sapBackgroundColor);
 }
@@ -809,7 +834,7 @@ html[class*="sapUiTheme-sap_horizon"] .sapMPIBarCritical .sapMPIText.sapMPITextL
     color: #fff;
 }
 
-html[class*="sapUiTheme-sap_horizon"] .sapMPITextLeft, 
+html[class*="sapUiTheme-sap_horizon"] .sapMPITextLeft,
 html[class*="sapUiTheme-sap_horizon"]  .sapMPITextRight {
     padding: 0;
     margin-left: 0.375rem;
@@ -844,12 +869,17 @@ html[class*="sapUiTheme-sap_horizon"]  .sapMObjStatusInverted.sapMObjStatusNone 
 .sapMTileCntContent > .sapMImageContent > img {
     filter:  brightness(0) saturate(100%) invert(39%) sepia(16%) saturate(752%) hue-rotate(170deg) brightness(98%) contrast(90%);
 }
- 
+
 
 /* tile menu drop shadow on hover */
 html[class*="sapUiTheme-sap_horizon"] .sapMGT:hover:not(.sapMGTPressActive) {
     box-shadow: var(--sapContent_Shadow0) !important;
     background-color: var(--sapTile_Hover_Background);
+}
+
+/* move tile icons further to the bottom, to avoid overlapping in tiles with long heading/subtitles */
+html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMTileCnt {
+    align-content: end;
 }
 
 /* Tab "bubbles" in ObjectPageLayout */
@@ -867,7 +897,7 @@ html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitterH > .sapUiLoSplitterConten
 
 /* context menu button styling */
 html[class*="sapUiTheme-sap_horizon"] .sapMPopover .sapMBtnInner {
-  border: none;
+    border: none;
 }
 
 /* if table has stripes, stripe dummy cells too  */
@@ -933,7 +963,7 @@ html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageHeaderContent div.sapUxA
     padding-left: 1rem;
 }
 
-/* header font styling */ 
+/* header font styling */
 html[class*="sapUiTheme-sap_horizon"] header .sapMObjStatus>.sapMObjStatusTitle, html.sapUiTheme-sap_horizon header .sapUxAPObjectPageHeaderDetails .sapMLabel {
     font-weight: normal;
 }
@@ -964,7 +994,7 @@ html[class*="sapUiTheme-sap_horizon"] [data-sap-ui*="DataPaginator"] bdi {
 }
 
 /* nav-tiles background */
-html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMPanelBGTranslucent, 
+html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMPanelBGTranslucent,
 html[class*="sapUiTheme-sap_horizon"] .exf-tiles .sapMPanelHeadingDiv>.sapMPanelHdr,
 html[class*="sapUiTheme-sap_horizon"] .exf-navtiles .sapMPanelContent {
     background-color:  var(--sapBackgroundColor);
@@ -972,16 +1002,16 @@ html[class*="sapUiTheme-sap_horizon"] .exf-navtiles .sapMPanelContent {
 
 /* remove background inside pad */
 html[class*="sapUiTheme-sap_horizon"] .exf-pad  .sapMPanelBGTranslucent {
-    background-color: transparent; 
+    background-color: transparent;
 }
 
- /* remove the darker tiles background for landing page with other widgets */
+/* remove the darker tiles background for landing page with other widgets */
 html[class*="sapUiTheme-sap_horizon"] .exfw-Container .exf-tiles .sapMPanelBGTranslucent {
     background-color:  var(--sapGroup_ContentBackground);
 }
 
 /* make datacarousel empty indicator match normal background */
-html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiBlockLayer, 
+html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiBlockLayer,
 html[class*="sapUiTheme-sap_horizon"] .exf-datacarousel-details > .sapUiLocalBusyIndicator {
     background-color: var(--sapTab_Background);
 }
@@ -1008,11 +1038,15 @@ html[class*="sapUiTheme-sap_horizon"] [id$="-popup-table"].sapMList.sapMListBGTr
     overflow-x: unset;
 }
 
-/* make focus around sections less intense */ 
+/* make focus around sections less intense */
 html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection:focus::before {
     border: .125rem dotted #00000050;
 }
 
+/* remove bottom border of tables inside content 'bubbles', (objectpage layout/tabs) */
+html[class*="sapUiTheme-sap_horizon"] .sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapMITBContent {
+    border-bottom: none;
+}
 
 /* DARK MODE SPECIFIC CHANGES */
 /* progress bar */
@@ -1031,21 +1065,21 @@ html.sapUiTheme-sap_horizon_dark .sapMPI {
     overflow: hidden;
 }
 
-html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral+.sapMPIBarRemaining,
 html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral+.sapMPIBarRemaining {
     background-color: #ffffff20;
 }
 
-html.sapUiTheme-sap_horizon_dark .sapMPIBarPositive+.sapMPIBarRemaining, 
-html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral+.sapMPIBarRemaining, 
-html.sapUiTheme-sap_horizon_dark .sapMPIBarNegative+.sapMPIBarRemaining, 
+html.sapUiTheme-sap_horizon_dark .sapMPIBarPositive+.sapMPIBarRemaining,
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral+.sapMPIBarRemaining,
+html.sapUiTheme-sap_horizon_dark .sapMPIBarNegative+.sapMPIBarRemaining,
 html.sapUiTheme-sap_horizon_dark .sapMPIBarCritical+.sapMPIBarRemaining {
     background-color: #ffffff20;
     border-color: #89919a;;
 }
 
 /* progress bar text left */
-html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral .sapMPIText.sapMPITextLeft, 
+html.sapUiTheme-sap_horizon_dark .sapMPIDisplayOnly:not(.sapMPIBarDisabled) .sapMPIBarNeutral .sapMPIText.sapMPITextLeft,
 html.sapUiTheme-sap_horizon_dark .sapMPIBarNeutral .sapMPIText.sapMPITextLeft{
     color: var(--sapButton_Success_TextColor);
 }

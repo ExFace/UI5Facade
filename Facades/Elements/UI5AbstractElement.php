@@ -521,6 +521,9 @@ JS;
                 return $this;
             }
             $this->listenersForControllerSet[] = $function;
+            // Listen to new controllers being initialized for any widget. When this happens, see if the widget, that
+            // is the root for the new controller is one of the parents of this widget. If so, run the function
+            // because this widget is inside the controller tree.
             $this->getWorkbench()->eventManager()->addListener(OnControllerSetEvent::getEventName(), function(OnControllerSetEvent $event) use ($function) {
                 $thisWidget = $this->getWidget();
                 $eventWidget = $event->getWidget();
@@ -548,6 +551,13 @@ JS;
         if ($this->controller === null) {
             if (null !== $parent = $this->getWidget()->getParent()) {
                 $parentEl = $this->getFacade()->getElement($parent);
+                // Cache controller, but do not dispatch OnControllerSetEvent because it is only to be fired for
+                // the root widget of the controller.
+                // IDEA it might actually be better to fire the event for every widget.
+                // Firing for every widget will make listeners know exactly what controller they belong to. On the
+                // other hand, that would produce A LOT of events. Right now listeners like
+                // `UI5AbstractElement::addOnControllerSet()` have to "guess" if the initialized controller is theirs
+                // or not.
                 $this->controller = $parentEl->getController();
             } else {
                 throw new UI5ControllerNotInitializedException('No controller was initialized for page "' . $this->getWidget()->getPage()->getAliasWithNamespace() . '"!');
@@ -578,14 +588,14 @@ JS;
      */
     public function setController(UI5ControllerInterface $controller) : UI5AbstractElement
     {
-        if (! $this->controller === null) {
+        if ($this->controller !== null && $this->controller !== $controller) {
             throw new LogicException('Cannot change the controller of a UI5 element after it had been set initially!');
         }
         $this->controller = $controller;
         $this->getWorkbench()->eventManager()->dispatch(new OnControllerSetEvent($controller, $this));
         return $this;
     }
-    
+
     public final function buildHtmlHeadTags()
     {
         return [];
