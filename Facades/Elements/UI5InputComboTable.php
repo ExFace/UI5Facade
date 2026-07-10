@@ -132,7 +132,9 @@ JS;
             
             $this->getController()->addOnShowViewScript($jsSearchSingleSuggestion, false);
             //TODO should we also look for a single suggestion on prefill change?
-            //$this->getController()->addOnPrefillDataChangedScript($jsSearchSingleSuggestion);
+            // NOTE sah 10-07-2026: this seems to be needed, in case the prefill takes longer than the autosuggest:
+            // in that case, the single-suggest might fill the value, then the prefill will overwrite it with a potentially empty value
+            $this->getController()->addOnPrefillDataChangedScript($jsSearchSingleSuggestion);
         }
     }
     
