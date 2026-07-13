@@ -25,6 +25,7 @@ use exface\Core\CommonLogic\UxonObject;
 use exface\Core\DataTypes\OfflineStrategyDataType;
 use exface\Core\CommonLogic\Model\UiPage;
 use exface\Core\Factories\WidgetFactory;
+use exface\Core\Widgets\DisplayTemplate;
 
 /**
  *
@@ -2802,9 +2803,13 @@ JS;
     protected function hasFixedRowHeight() : bool
     {
         foreach ($this->getWidget()->getColumns() as $col) {
+            $cellWidget = $col->getCellWidget();
             switch (true) {
                 case $col->isHidden() === true:
                     continue 2;
+                case $cellWidget instanceof DisplayTemplate:
+                    // DisplayTemplate can render variable-height HTML, so force row-height recalculation.
+                    return false;
                 case $col->getCellWidget()->getHeight()->isUndefined() === false:
                     continue 2;
                 case $col->getNowrap() === false:
