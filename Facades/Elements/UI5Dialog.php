@@ -764,9 +764,13 @@ JS;
             $closeDelay = self::PREFILL_ERROR_CLOSE_DELAY;
             $onErrorJs .=  <<<JS
                 // Before closing the dialog in prefill state, we should wait and guarantee that afterOpen lifcycle
-                // method was executed completely.
-                setTimeout(function(){ {$this->buildJsCloseDialog()}}, {$closeDelay});
+                // method was executed completely. We do not check for changes, because the user should have no control over shutdowns.
+                setTimeout(function(){ {$this->buildJsCloseDialog(false)}}, {$closeDelay});
 JS;
+        } else {
+            // If the dialog is maximized we have to display the error in the dialog instead. This is less appealing
+            // but at least reliable.
+            $widget->getOpenAction()?->isAuthorized(null, false);
         }
         
         // FIXME use buildJsPrefillLoaderSuccess here somewhere?
