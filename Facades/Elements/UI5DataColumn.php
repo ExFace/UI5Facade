@@ -366,6 +366,7 @@ JS;
 
                     .data('_exfDataColumnName', '{$col->getDataColumnName()}')
 					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
+                    .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
 					.data('_exfCaption', {$captionJs})
 JS;
         

@@ -1155,8 +1155,8 @@ JS;
      * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
      * 
      * The AJAX request will include all visible columns (including optional columns, that were made visible by the user)
-     * and globally hidden columns (e.g. those added by buttons or conditions). Each AJAX column will have the following
-     * data:
+     * and globally hidden columns (e.g. those added by buttons or conditions), as well as hidden_if columns. 
+     * Each AJAX column will have the following data:
      * - name
      * - attribute_alias (if bound to attribute and the alias differs from the column name)
      * - expression (if not bound to an attribute, but using a calculation instead)
@@ -1188,9 +1188,9 @@ JS;
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns unless they are explicitly hidden columns, which we still need to read
-                    // beacause they are always hidden
-                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn')) {
+                    // skip invisible columns unless they are explicitly hidden or hidden_if columns, which we still need to read
+                    // otherwise hidden_if columns cant be used in filters etc. because their data is never used in the requests
+                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn') && ! oColumn.data('_exfHiddenIfColumn')) {
                         return;
                     }
                     var oColParam;
