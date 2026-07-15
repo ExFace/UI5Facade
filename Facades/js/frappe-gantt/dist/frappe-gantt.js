@@ -1853,6 +1853,9 @@ var Gantt = function() {
     {
       name: "Day",
       padding: "7d",
+      // >>> SR: Today button left scroll padding --------------------------
+      today_button_left_scroll_padding: null,
+      // <<< SR: Today button left scroll padding --------------------------
       date_format: "YYYY-MM-dd",
       step: "1d",
       lower_text: (d, ld, lang) => !ld || d.getDate() !== ld.getDate() ? date_utils.format(d, "dd", lang) : "",
@@ -1862,6 +1865,9 @@ var Gantt = function() {
     {
       name: "Week",
       padding: "1m",
+      // >>> SR: Today button left scroll padding --------------------------
+      today_button_left_scroll_padding: null,
+      // <<< SR: Today button left scroll padding --------------------------
       step: "7d",
       date_format: "YYYY-MM-dd",
       column_width: 140,
@@ -1873,6 +1879,9 @@ var Gantt = function() {
     {
       name: "Month",
       padding: "2m",
+      // >>> SR: Today button left scroll padding --------------------------
+      today_button_left_scroll_padding: null,
+      // <<< SR: Today button left scroll padding --------------------------
       step: "1m",
       column_width: 120,
       date_format: "YYYY-MM",
@@ -1884,6 +1893,9 @@ var Gantt = function() {
     {
       name: "Year",
       padding: "2y",
+      // >>> SR: Today button left scroll padding --------------------------
+      today_button_left_scroll_padding: null,
+      // <<< SR: Today button left scroll padding --------------------------
       step: "1y",
       column_width: 120,
       date_format: "YYYY",
@@ -1980,6 +1992,12 @@ var Gantt = function() {
     // 'monday' | 'sunday'
     include_today_in_padding: false,
     // Set to true to extend the padded date range until today is included.
+    // >>> SR: Global minimum view interval ------------------------------------
+    global_min_view_start: null,
+    // Minimum date that should be included before view padding is applied.
+    global_min_view_end: null,
+    // Maximum date that should be included before view padding is applied.
+    // <<< SR: Global minimum view interval ------------------------------------
     stripe_rows: false,
     // Set to false to disable alternating row background colors.
     popup_aggregate_style: "list",
@@ -2048,6 +2066,7 @@ var Gantt = function() {
         append_to: this.$container
       });
       this._initialScroll = true;
+      this._suppress_scroll_strategy = false;
       this._extending_infinite_padding = false;
     }
     setup_options(options) {
@@ -2214,10 +2233,31 @@ var Gantt = function() {
         }
       }
     }
-    refresh(tasks) {
+    // >>> SR: Refresh scroll control -----------------------------------------
+    /**
+     * Refreshes the Gantt tasks. By default, the current horizontal scroll
+     * position is preserved so repeated data refreshes do not jump back to
+     * `scroll_to` (for example `today`).
+     *
+     * @param tasks
+     * @param scroll_after_refresh false keeps the exact current pixel position;
+     * true applies options.scroll_to; a string or Date is used as explicit
+     * scroll target.
+     */
+    refresh(tasks, scroll_after_refresh = false) {
       this.setup_tasks(tasks);
-      this.change_view_mode();
+      if (scroll_after_refresh === false || scroll_after_refresh == null) {
+        this.change_view_mode(void 0, true, true);
+        return;
+      }
+      const original_scroll_to = this.options.scroll_to;
+      if (scroll_after_refresh !== true) {
+        this.options.scroll_to = scroll_after_refresh;
+      }
+      this.change_view_mode(void 0, false);
+      this.options.scroll_to = original_scroll_to;
     }
+    // <<< SR: Refresh scroll control -----------------------------------------
     // >>> SR: Date calculation after change fix -------------------------------
     refresh_overlap_aggregates_after_drop() {
       const scroll_left = this.$container.scrollLeft;
@@ -2236,7 +2276,7 @@ var Gantt = function() {
       Object.assign(task, new_details);
       bar.refresh();
     }
-    change_view_mode(mode = this.options.view_mode, maintain_pos = false) {
+    change_view_mode(mode = this.options.view_mode, maintain_pos = false, maintain_exact_scroll_left = false) {
       if (typeof mode === "string") {
         mode = this.options.view_modes.find((d) => d.name === mode);
       }
@@ -2245,20 +2285,29 @@ var Gantt = function() {
         old_pos = this.$container.scrollLeft;
         old_scroll_op = this.options.scroll_to;
         this.options.scroll_to = null;
-        anchor_date = date_utils.add(
-            this.gantt_start,
-            old_pos / this.config.column_width * this.config.step,
-            this.config.unit
-        );
+        if (!maintain_exact_scroll_left) {
+          anchor_date = this.get_date_by_position ? this.get_date_by_position(old_pos) : date_utils.add(
+              this.gantt_start,
+              old_pos / this.config.column_width * this.config.step,
+              this.config.unit
+          );
+        }
       }
       this.options.view_mode = mode.name;
       this.config.view_mode = mode;
       this.update_view_scale(mode);
       this.setup_dates(false);
-      this.render();
+      this._suppress_scroll_strategy = maintain_pos;
+      try {
+        this.render();
+      } finally {
+        this._suppress_scroll_strategy = false;
+      }
       if (maintain_pos) {
-        if (anchor_date) {
-          this.set_scroll_position(anchor_date);
+        if (maintain_exact_scroll_left) {
+          this.$container.scrollLeft = old_pos;
+        } else if (anchor_date) {
+          this.set_scroll_position(anchor_date, false);
         } else {
           this.$container.scrollLeft = old_pos;
         }
@@ -2295,6 +2344,10 @@ var Gantt = function() {
           gantt_end = task._end;
         }
       }
+      ({ gantt_start, gantt_end } = this.apply_global_min_view_interval(
+          gantt_start,
+          gantt_end
+      ));
       gantt_start = date_utils.start_of(gantt_start, this.config.unit);
       gantt_end = date_utils.start_of(gantt_end, this.config.unit);
       if (!refresh) {
@@ -2323,6 +2376,43 @@ var Gantt = function() {
       this.config.date_format = this.config.view_mode.date_format || this.options.date_format;
       this.gantt_start.setHours(0, 0, 0, 0);
     }
+    // >>> SR: Global minimum view interval -----------------------------------
+    /**
+     * Extends the task-derived base date range with configured global minimum
+     * view boundaries before the active view padding is applied.
+     * @param gantt_start
+     * @param gantt_end
+     * @returns {{gantt_start: Date, gantt_end: Date}}
+     */
+    apply_global_min_view_interval(gantt_start, gantt_end) {
+      const global_start = this.get_global_min_view_date("global_min_view_start");
+      const global_end = this.get_global_min_view_date("global_min_view_end");
+      if (global_start && (!gantt_start || gantt_start > global_start)) {
+        gantt_start = global_start;
+      }
+      if (global_end && (!gantt_end || gantt_end < global_end)) {
+        gantt_end = global_end;
+      }
+      return { gantt_start, gantt_end };
+    }
+    /**
+     * Parses one configured global minimum view boundary. The option accepts
+     * the same values as task start/end, for example '2027-07-01'.
+     * @param option_name
+     * @returns {Date|null}
+     */
+    get_global_min_view_date(option_name) {
+      var _a;
+      const value = (_a = this.options) == null ? void 0 : _a[option_name];
+      if (!value) return null;
+      const date = date_utils.parse(value);
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        console.warn(`${option_name} must be a valid date value. Ignoring it.`);
+        return null;
+      }
+      return date;
+    }
+    // <<< SR: Global minimum view interval -----------------------------------
     setup_date_values() {
       let cur_date = this.gantt_start;
       this.dates = [cur_date];
@@ -2793,7 +2883,14 @@ var Gantt = function() {
         this.$svg.setAttribute("width", actual_width);
       }
     }
-    set_scroll_position(date) {
+    // >>> SR: Refresh without scroll animation ---------------------------------
+    /**
+     * Scrolls the Gantt horizontally to a date or keyword.
+     * @param date Date, string keyword, or parsable date string.
+     * @param animate true keeps the existing smooth scroll behavior; false sets
+     * the final scroll position immediately, used by refresh position restore.
+     */
+    set_scroll_position(date, animate = true) {
       if (this.options.infinite_padding && (!date || date === "start")) {
         let [min_start, ..._] = this.get_start_end_positions();
         this.$container.scrollLeft = min_start;
@@ -2804,15 +2901,20 @@ var Gantt = function() {
       } else if (date === "end") {
         date = this.gantt_end;
       } else if (date === "today") {
-        return this.scroll_current();
+        return this.scroll_current(animate);
       } else if (typeof date === "string") {
         date = date_utils.parse(date);
       }
       const scroll_pos = this.get_position_by_date(date);
-      this.$container.scrollTo({
-        left: scroll_pos - this.config.column_width / 6,
-        behavior: "smooth"
-      });
+      const scroll_left = scroll_pos - this.config.column_width / 6;
+      if (animate) {
+        this.$container.scrollTo({
+          left: scroll_left,
+          behavior: "smooth"
+        });
+      } else {
+        this.$container.scrollLeft = scroll_left;
+      }
       if (this.$current) {
         this.$current.classList.remove("current-upper");
       }
@@ -2843,10 +2945,45 @@ var Gantt = function() {
       $el.classList.add("current-upper");
       this.$current = $el;
     }
-    scroll_current() {
+    // >>> SR: Refresh without scroll animation ---------------------------------
+    /**
+     * Scrolls to the current day. The optional animate flag allows refresh()
+     * position restoration to reuse the same date logic without smooth scrolling.
+     */
+    scroll_current(animate = true) {
       let res = this.get_closest_date();
-      if (res) this.set_scroll_position(res[0]);
+      if (res) this.set_scroll_position(this.get_today_scroll_target_date(), animate);
     }
+    // >>> SR: Today button left scroll padding -------------------------------
+    /**
+     * Returns the date that should be placed at the left side of the viewport
+     * when the Today button is used. The current date stays highlighted at its
+     * real position, while this optional padding moves it further to the right.
+     * @returns {Date}
+     */
+    get_today_scroll_target_date() {
+      const today = /* @__PURE__ */ new Date();
+      const padding = this.get_today_button_left_scroll_padding();
+      if (!padding) return today;
+      const target = date_utils.add(today, -padding.duration, padding.scale);
+      return target < this.gantt_start ? this.gantt_start : target;
+    }
+    /**
+     * Reads and parses the current view mode's today-button left scroll padding.
+     * The value uses the same format as view mode padding. If an array is given,
+     * the left-side value is used.
+     * @returns {{duration: number, scale: string}|null}
+     */
+    get_today_button_left_scroll_padding() {
+      var _a;
+      const padding_config = (_a = this.config.view_mode) == null ? void 0 : _a.today_button_left_scroll_padding;
+      const left_padding = Array.isArray(padding_config) ? padding_config[0] : padding_config;
+      if (!left_padding) return null;
+      const parsed = date_utils.parse_duration(left_padding);
+      if (!(parsed == null ? void 0 : parsed.duration) || !(parsed == null ? void 0 : parsed.scale)) return null;
+      return parsed;
+    }
+    // <<< SR: Today button left scroll padding -------------------------------
     get_closest_date() {
       let now = /* @__PURE__ */ new Date();
       if (now < this.gantt_start || now > this.gantt_end) return null;
@@ -3407,13 +3544,29 @@ var Gantt = function() {
       if (!this.should_include_today_in_padding()) return;
       const today_start = date_utils.today();
       const today_end = date_utils.add(today_start, 1, "day");
-      if (today_start < this.gantt_start) {
-        this.gantt_start = date_utils.start_of(today_start, this.config.unit);
+      const today_scroll_start = this.get_today_scroll_padding_start_date(today_start);
+      if (today_scroll_start < this.gantt_start) {
+        this.gantt_start = date_utils.start_of(today_scroll_start, this.config.unit);
       }
       if (today_end > this.gantt_end) {
         this.gantt_end = today_end;
       }
     }
+    // >>> SR: Today button left scroll padding ---------------------------------
+    /**
+     * Returns the earliest date that must be included when today is added to the
+     * rendered Gantt range. This keeps enough left-side room for the Today button
+     * scroll padding if today was outside the original task interval.
+     * @param today_start
+     * @returns {Date}
+     */
+    get_today_scroll_padding_start_date(today_start) {
+      var _a;
+      const padding = (_a = this.get_today_button_left_scroll_padding) == null ? void 0 : _a.call(this);
+      if (!padding) return today_start;
+      return date_utils.add(today_start, -padding.duration, padding.scale);
+    }
+    // <<< SR: Today button left scroll padding ---------------------------------
     get_date_tick_for_date(date) {
       var _a;
       if (!((_a = this.dates) == null ? void 0 : _a.length)) return null;
@@ -3854,6 +4007,7 @@ var Gantt = function() {
      * Calls set_scroll_position according to the "keep_scroll_position" option.
      */
     set_scroll_strategy(scroll_to) {
+      if (this._suppress_scroll_strategy) return;
       if (this._initialScroll || !this.options.keep_scroll_position) {
         this.set_scroll_position(scroll_to);
       }

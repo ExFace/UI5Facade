@@ -36,8 +36,8 @@ class UI5Gantt extends UI5DataTree
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
-    
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
+    const CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES = 'getGlobalStartEndDates';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
     // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
@@ -183,8 +183,11 @@ class UI5Gantt extends UI5DataTree
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
-        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
+        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, scrollToToday', $this->buildJsSyncTreeToGantt('oTable', 'scrollToToday'));
         $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this,'oAllRows', $this->buildJsGetGlobalStartEndDates('oAllRows'));
+        
+        //TODO SR: New rerender logic was implemented. Check if this is still necessary:
         $keepScrollPosition = json_encode($widget->getKeepScrollPosition());
         
         if ($calItem->hasColorScale()) {
@@ -240,7 +243,17 @@ JS
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
-                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                                    
+                                    // Calculating the interval of the gantt view (start and end):
+                                    let allRows = sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows;
+                                    let globalStartEndDates = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this, 'allRows')};
+                                    
+                                    if (!!globalStartEndDates) {
+                                        oCtrl.gantt.options.global_min_view_start = exfTools.date.format( globalStartEndDates.start, 'yyyy-MM-dd', 'en');
+                                        oCtrl.gantt.options.global_min_view_end = exfTools.date.format( globalStartEndDates.end, 'yyyy-MM-dd', 'en');
+                                    }
+                                    
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                                 });
                                 
 
@@ -480,8 +493,15 @@ JS;
 
 JS;
     }
-    
-    protected function buildJsSyncTreeToGantt(string $oTableJs) : string
+
+    /**
+     * Builds the Gantt tasks and re-renders it.
+     * 
+     * @param string $oTableJs
+     * @param string $scrollToToday // If set to TRUE, gantt scrolls to todays date.
+     * @return string
+     */
+    protected function buildJsSyncTreeToGantt(string $oTableJs, string $scrollToToday) : string
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
@@ -496,7 +516,7 @@ JS;
             $nestedDataColName = 'null';
         }
         return <<<JS
-            const syncTreeToGantt = function(oTable) {
+            const syncTreeToGantt = function(oTable, scrollToToday) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
                 
@@ -556,17 +576,17 @@ JS;
                 
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                oGantt.refresh(aTasks);
+                oGantt.refresh(aTasks, scrollToToday);
             };
 
             let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};
             if (isTableReady) {
               setTimeout(function(){
-                syncTreeToGantt($oTableJs);
+                syncTreeToGantt($oTableJs, $scrollToToday);
               },0);
             } else {
               setTimeout(function(){
-                syncTreeToGantt($oTableJs);
+                syncTreeToGantt($oTableJs, $scrollToToday);
               },200);
             }
             
@@ -586,6 +606,85 @@ JS;
               const oTableRows = oTable.getRows();
               return oTableRows.some(row => !!row.getBindingContext());
             })($oTableJs);
+JS;
+
+    }
+
+    /**
+     * Takes all the rows and gives the earliest "start" and latest "end" of all rows.
+     * If only start or end is missing, then we add / subtracts the default duration to it. 
+     * 
+     * @param string $oAllRows
+     * @return string
+     */
+    public function buildJsGetGlobalStartEndDates(string $oAllRows) : string
+    {
+        $widget = $this->getWidget();
+        $calItem = $widget->getTasksConfig();
+
+        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
+            $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
+        } else {
+            $nestedDataColName = 'null';
+        }
+
+        $defaultDurationHours = $calItem->getDefaultDurationHours(48);
+        
+        return <<<JS
+
+            return (function getGlobalStartEndDates(oAllRows) {
+              
+                if (!oAllRows) return;
+                let globalStartDate = null;
+                let globalEndDate = null;
+                let sNestedColName = {$nestedDataColName}
+                let defaultDuration = Math.ceil('$defaultDurationHours' / 24);
+
+                function fnCheckRowsDates(oRow) {
+                    const startDateValue = oRow['{$calItem->getStartTimeColumn()->getDataColumnName()}'];
+                    const endDateValue = oRow['{$calItem->getEndTimeColumn()->getDataColumnName()}'];
+                    let startDate = startDateValue ? new Date(startDateValue) : null;
+                    let endDate = endDateValue ? new Date(endDateValue) : null;
+
+                    if (startDate !== null && isNaN(startDate.getTime())) {
+                      startDate = null;
+                    }
+                    
+                    if (endDate !== null && isNaN(endDate.getTime())) {
+                      endDate = null;
+                    }
+                    
+                    if (startDate === null && endDate === null) return;
+
+                    if (startDate === null) {
+                        startDate = exfTools.date.add(endDate, -defaultDuration);
+                    }
+                    if (endDate === null) {
+                        endDate = exfTools.date.add(startDate, defaultDuration);
+                    }
+
+                    if (!globalStartDate || startDate < globalStartDate) {
+                        globalStartDate = startDate;
+                    }
+                    if (!globalEndDate || endDate > globalEndDate) {
+                        globalEndDate = endDate;
+                    }
+                }
+
+                oAllRows.forEach(function(oRow) {
+                  
+                     if (sNestedColName !== null) {
+                        let oNestedData = oRow[sNestedColName];
+                        oNestedData.rows.forEach(function(oNestedRow) {
+                            fnCheckRowsDates(oNestedRow);
+                        })
+                    } else {
+                        fnCheckRowsDates(oRow);
+                    }
+                });
+                
+                return { start: globalStartDate, end: globalEndDate };
+            })($oAllRows);
 JS;
 
     }
