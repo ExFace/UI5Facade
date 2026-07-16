@@ -1,14 +1,14 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Widgets\DataList;
+use exface\Core\Widgets\DataMatrix;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTransposerTrait;
 use exface\Core\Widgets\DataColumnTransposed;
 use exface\Core\DataTypes\StringDataType;
 
 /**
  *
- * @method DataList getWidget()
+ * @method DataMatrix getWidget()
  *        
  * @author Andrej Kabachnik
  *        
@@ -198,8 +198,12 @@ JS;
 JS;
     }
 
+    /**
+     * Determines whether or not the transposed values, including labels, will be formatted or raw. Default is false for UI5
+     * @return bool
+     */
     protected function willFormatValuesOnTranspose() : bool
     {
-        return false;
+        return $this->getWidget()->getFormatValuesOnTranspose(false);
     }
 }
