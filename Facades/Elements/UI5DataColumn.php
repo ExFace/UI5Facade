@@ -367,6 +367,7 @@ JS;
                     .data('_exfDataColumnName', '{$col->getDataColumnName()}')
 					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
                     .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
+                    {$this->buildJsHiddenIfEvaluatorData($col)}
 					.data('_exfCaption', {$captionJs})
 JS;
         
@@ -388,6 +389,35 @@ JS;
         }
         
         return '';
+    }
+
+    /**
+     * Returns a `.data('_exfHiddenIfEval', function(){...})` snippet that attaches a live evaluator
+     * for the column's `hidden_if` condition to the column control - or an empty string if the
+     * column has no `hidden_if`.
+     * 
+     * The attached function returns TRUE when the condition currently resolves to hidden, and FALSE otherwise
+     * 
+     * @param DataColumn $col
+     * @return string
+     */
+    protected function buildJsHiddenIfEvaluatorData(DataColumn $col) : string
+    {
+        $hiddenIf = $col->getHiddenIf();
+        if ($hiddenIf === null) {
+            return '';
+        }
+        try {
+            $ifJs = $this->buildJsConditionalPropertyIf($hiddenIf->getConditionGroup());
+        } catch (\Throwable $e) {
+            // If the condition cannot be rendered to JS (e.g. unsupported expression), skip it
+            // the column will simply be treated as not hidden by condition.
+            return '';
+        }
+        return <<<JS
+
+                    .data('_exfHiddenIfEval', function(){ return ({$ifJs}); })
+JS;
     }
                         
     protected function buildJsPropertyVisibile()
