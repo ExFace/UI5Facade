@@ -655,6 +655,29 @@ function(bResetSelection) {
                     try {
                         var aColsConfig = oConfigModel.getProperty('/columns');
                         
+                        // Set toggleability for hidden_if columns in configurator:
+                        // a column with a hidden_if should only appear in the configurator (be toggleable)
+                        // if its condition resolves to false at runtime (the column is not hidden; so its either optional or visible and MUST be toggleable).
+                        aColsConfig.forEach(function(oColConfig) {
+                            if (oColConfig.has_hidden_if) {
+                                var oColElement = sap.ui.getCore().byId(oColConfig.column_id);
+                                var fnEvalHiddenIf = oColElement && typeof oColElement.data === 'function' ? oColElement.data('_exfHiddenIfEval') : null;
+                                var bHidden = false;
+
+                                // get the hidden_if evaluator function from the column element and call it
+                                if (typeof fnEvalHiddenIf === 'function') {
+                                    try {
+                                        bHidden = fnEvalHiddenIf() === true;
+                                    } catch (e) {
+                                        console.warn('Could not evaluate hidden_if for column ' + oColConfig.column_id + ': ', e);
+                                        bHidden = false;
+                                    }
+                                }
+                                // show column in configurator, only if hidden_if is false (column is not hidden)
+                                oColConfig.toggleable = ! bHidden;
+                            }
+                        });
+                        
                         // only use items that are toggleable
                         var oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
                         oPanel.getBinding("items").filter(oVisibleFilter);
@@ -754,7 +777,8 @@ JS;
                     "caption" => $col->getCaption(),
                     "visible" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "visibleInitially" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
-                    "toggleable" => $col->isHidden() ? false : true
+                    "toggleable" => $col->isHidden() ? false : true,
+                    "has_hidden_if" => $col->getHiddenIf() !== null
                 ];
             }
         }
