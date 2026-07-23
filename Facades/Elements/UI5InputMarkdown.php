@@ -49,6 +49,69 @@ JS);
                 var oHtml = sap.ui.getCore().byId('{$this->getId()}');
                 var sBindingPath = '{$this->getValueBindingPath()}';
 
+                // overwrite error states for the editor, sap.ui.core.HTML has no native setValueState, 
+                // so validation from UI5Input would otherwise have no effect for InputMarkdown.
+                (function(oCtrl) {
+                    if (oCtrl === undefined || oCtrl === null || oCtrl.setValueState !== undefined) {
+                        return;
+                    }
+
+                    oCtrl._valueState = 'None';
+                    oCtrl._valueStateText = '';
+
+                    oCtrl.getValueState = function() {
+                        return this._valueState || 'None';
+                    };
+
+                    oCtrl.getValueStateText = function() {
+                        return this._valueStateText || '';
+                    };
+
+                    oCtrl.setValueStateText = function(sText) {
+                        this._valueStateText = (sText === undefined || sText === null) ? '' : String(sText);
+                        // Keep browser-native tooltip text in sync while invalid.
+                        if (this.getValueState() === 'Error') {
+                            var jqEditorMain = $('#{$this->getId()} .toastui-editor-defaultUI');
+                            if (jqEditorMain.length === 0) {
+                                jqEditorMain = $('#{$this->getId()} .toastui-editor-main');
+                            }
+                            jqEditorMain.attr('title', this._valueStateText);
+                        }
+                        return this;
+                    };
+
+                    oCtrl.setValueState = function(sState) {
+                        // error or valid state
+                        var sNormalizedState = (sState === undefined || sState === null || sState === '') ? 'None' : String(sState);
+                        var bError = (sNormalizedState === 'Error');
+                        var jqEditorRoot = $('#{$this->getId()} .toastui-editor-defaultUI');
+
+                        this._valueState = sNormalizedState;
+                        if (jqEditorRoot.length === 0) {
+                            jqEditorRoot = $('#{$this->getId()} .toastui-editor-main');
+                        }
+
+                        // error css on toast editor 
+                        jqEditorRoot.css('box-sizing', 'border-box');
+                        jqEditorRoot.css('outline', bError ? '2px solid #bb0000' : '');
+                        jqEditorRoot.css('outline-offset', bError ? '-2px' : '');
+                        if (bError) {
+                            // validtion error tooltip 
+                            if (!this.getValueStateText()) {
+                                this._valueStateText = {$this->escapeString($this->getValidationErrorText())};
+                            }
+                            jqEditorRoot.attr('title', this.getValueStateText());
+                        } else {
+                            jqEditorRoot.removeAttr('title');
+                        }
+
+                        // aria state for testing and accessibility
+                        $('#{$this->getId()}').attr('aria-invalid', bError ? 'true' : 'false');
+
+                        return this;
+                    };
+                })(oHtml);
+
                 // Sometimes the DOM structure of ToastUI gets disrupted during initialization.
                 // This also happens whenever the surrounding UI5 container is invalidated (e.g. because
                 // a sibling widget toggles its visibility via hidden_if), because the sap.ui.core.HTML
