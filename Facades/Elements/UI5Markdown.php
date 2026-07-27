@@ -44,9 +44,19 @@ JS);
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                // Sometimes the DOM structure of ToastUI gets disrupted during initialization.
-                // We can detect if the DOM structure was disrupted and repeat initialization if necessary.
-                if (($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
+                // The editor value is baked into the ToastUI instance via `initialValue` at creation time.
+                // sap.ui.core.HTML preserves its DOM in the UI5 preserve area keyed by control id. Notification
+                // dialogs share the same control id, so when a different notification is opened, UI5 restores the
+                // previous (already destroyed) editor's DOM into this control. 
+                //
+                // {$this->buildJsMarkdownVar()} holds the live editor instance for THIS controller. After a
+                // non-cacheable dialog is reopened the controller is fresh and this is null, which reliably tells
+                // us that any editor DOM currently present belongs to a previous control and must be discarded.
+                // We therefore rebuild the editor whenever there is no live instance (or the DOM was disrupted),
+                // clearing leftover DOM first so the correct baked value is rendered.
+                var oExistingEditor = {$this->buildJsMarkdownVar()};
+                if (! oExistingEditor || ($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
+                    $('#{$this->getId()}').empty();
                     {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()};
                 }
                 
