@@ -162,10 +162,26 @@ JS);
                     if (oLinkParams.data.columns && oMapParams.data && oMapParams.data.oId === oLinkParams.data.oId) {
                         oMergedParams.data.columns = (oMergedParams.data.columns || []).concat(oLinkParams.data.columns);
                     }
-                } else if (oMapParams.data) {
-                    if (oMapParams.data.oId === oMergedParams.data.oId) {
-                        oMergedParams.data.filters = oMapParams.data.filters;
+                } else if (oMapParams.data.filters) {
+                    // Ensure condition group.
+                    if (!oMergedParams.data.filters) {
+                        oMergedParams.data.filters = {
+                            "operator": "AND",
+                            "ignore_empty_values": true,
+                            "conditions": [],
+                            "nested_groups": []
+                        }
                     }
+                    
+                    // Copy filters with matching object.
+                    // TODO Handle nested conditions.
+                    oMapParams.data.filters.conditions.forEach(function(condition){
+                        // Objects match if either an explicitly exists and is a match OR if the objects IDs match.
+                        if ((condition.object_alias && condition.object_alias === oMergedParams.data.alias) ||
+                            oMapParams.data.oId === oMergedParams.data.oId) {
+                            oMergedParams.data.filters.conditions.push(condition);
+                        }
+                    });
                 }
                 return oMergedParams;
             })({$oParamsJs}, oLeafletParams, oLinkParams);    
