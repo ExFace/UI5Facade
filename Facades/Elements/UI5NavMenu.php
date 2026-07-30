@@ -338,6 +338,8 @@ JS;
                     $icon = $icon === 'folder-blank' ? 'open-folder' : $icon;
                 }
                 $expanded = $isInCurrentPath ? 'true' : 'false';
+                // the href attribute makes the item a real link, so the browser offers 'open in new tab' and similar opitons on right-click.
+                // The navigation itself is now done by UI5 in NavigationListItem._selectItem()
                 $output .= <<<JS
             
         new exface.ui5Custom.MultiLevelNavItem({
@@ -347,6 +349,7 @@ JS;
             text: "{$menuItemText}",
             tooltip: "{$tooltip}",
             expanded: {$expanded},
+            href: "{$url}",
             items: [
                 // BOF {$node->getName()} SubMenu
                 
@@ -354,7 +357,7 @@ JS;
                 
                 // EOF {$node->getName()} SubMenu
                 ],
-            select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';}
+            select: function(){sap.ui.core.BusyIndicator.show(0);}
         }),
 
 JS;
@@ -367,7 +370,8 @@ JS;
             svgIcon: "{$svgIcon}",
             text: "{$menuItemText}", 
             tooltip: "{$tooltip}",
-            select: function(){sap.ui.core.BusyIndicator.show(0); window.location.href = '{$url}';} 
+            href: "{$url}",
+            select: function(){sap.ui.core.BusyIndicator.show(0);} 
         }),
 
 JS;
