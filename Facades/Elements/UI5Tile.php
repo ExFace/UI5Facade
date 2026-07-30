@@ -4,6 +4,9 @@ namespace exface\UI5Facade\Facades\Elements;
 use exface\Core\Widgets\Display;
 use exface\Core\DataTypes\NumberDataType;
 use exface\Core\CommonLogic\Constants\Colors;
+use exface\Core\Actions\GoToPage;
+use exface\Core\Widgets\NavTiles;
+use exface\Core\Widgets\Tiles;
 
 /**
  * Tile widget for OpenUI5-Facade.
@@ -37,6 +40,7 @@ class UI5Tile extends UI5Button
         $handler = $this->buildJsClickViewEventHandlerCall();
         $press = $handler !== '' ? 'press: ' . $handler . ',' : '';
         $tileClass = '';
+        $url = '';
         
         if ($widget->getWidth()->isUndefined() === false) {
             $container = $this->getFacade()->getElement($widget->getParent());
@@ -87,6 +91,11 @@ class UI5Tile extends UI5Button
         
         $footerText = $widget->getFooterText() !== null ? $widget->getFooterText() : '';
         
+        // if we are a normal navtile, we can render the tile as a link. This gives us the native context menu of the browser with "open link in new tab"
+        if (null !== $navUrl = $this->getNavigationUrl()) {
+            $url = 'url: ' . $this->escapeString($navUrl) . ',';
+        }
+        
         return <<<JS
 
 new sap.m.GenericTile("{$this->getId()}", {
@@ -94,6 +103,7 @@ new sap.m.GenericTile("{$this->getId()}", {
     {$subheader}
     {$press}
     {$visible}
+    {$url}
     tileContent: [
         new sap.m.TileContent({
             footer: "{$this->escapeJsTextValue($footerText)}",
@@ -104,6 +114,38 @@ new sap.m.GenericTile("{$this->getId()}", {
     ]
 }).addStyleClass("sapUiTinyMarginBegin sapUiTinyMarginTop tileLayout {$tileClass} {$this->buildCssElementClass()} {$this->buildCssWidgetClass()}")
 JS;
+    }
+    
+    /**
+     * Returns the URL of the page this tile navigates to or NULL if the tile is not a simple navigation tile.
+     * 
+     * If a sap.m.GenericTile has a url, it is rendered as an <a> element. This gives us the
+     * native context menu of the browser with "open link in new tab". 
+     * 
+     * Only navigation tiles without any data dependency can be turned into links because the URL
+     * is static, it cannot include prefill data or filters read from the current page.
+     * 
+     * @return string|NULL
+     */
+    protected function getNavigationUrl() : ?string
+    {
+        // only return url for pure navigation tiles, i.e. NavTiles that have a GoToPage action without any data dependency
+        $widget = $this->getWidget();
+        if (! $widget->hasAction()) {
+            return null;
+        }
+        $action = $widget->getAction();
+        if (! ($action instanceof GoToPage) || $action->getOpenInNewWindow() === true) {
+            return null;
+        }
+        if (! empty($action->getTakeAlongFilters()) || null === $pageAlias = $action->getPageAlias()) {
+            return null;
+        }
+        $tilesGroup = $widget->getParent();
+        if (! ($tilesGroup instanceof Tiles) || ! ($tilesGroup->getParent() instanceof NavTiles)) {
+            return null;
+        }
+        return $this->getFacade()->buildUrlToPage($pageAlias);
     }
      
     /**
