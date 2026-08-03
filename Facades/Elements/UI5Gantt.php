@@ -406,7 +406,7 @@ JS;
         auto_move_label: true,
         view_modes: buildedViewModes,
         view_mode: '{$initialViewName}',
-        infinite_padding: true,
+        infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
         // TODO SR: Build uxon properties if ready:
         popup_on: 'click', //hover, click
