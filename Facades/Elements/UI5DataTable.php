@@ -78,9 +78,14 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
             $colsOptionalInitJs = '';
             if (! empty($colsOptional)) {
                 foreach ($colsOptional as $col) {
+                    $colEl = $this->getFacade()->getElement($col);
                     $colsOptionalInitJs .= <<<JS
                 
-                        oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+                        var oCol = sap.ui.getCore().byId({$this->escapeString($colEl->getId())});
+                        if (! oCol) {
+                            oCol = {$colEl->buildJsConstructor()};
+                        }
+                        oColsOptional['{$col->getDataColumnName()}'] = oCol;
 JS;
                 }
             }
