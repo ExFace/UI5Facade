@@ -594,7 +594,14 @@ JS;
         return '';
     }
     
-    protected function opensDialogPage()
+        /**
+     * Returns TRUE if the action of this button opens a maximized dialog - i.e. one rendered as a page.
+     * 
+     * Only such dialogs have their own route in the UI5 app and can therefore be opened via a URL.
+     * 
+     * @return bool
+     */
+    public function opensDialogPage()
     {
         $action = $this->getAction();
         
@@ -603,6 +610,30 @@ JS;
         } 
         
         return false;
+    }
+    
+    /**
+     * Returns the JS to open the maximized dialog of this button in a new browser tab.
+     * 
+     * Maximized dialogs are rendered as pages, so they have their own hash route within the UI5 app:
+     * `<page>.html#/<view name>/<route params>`. This is the same route `navTo()` would produce for
+     * an in-app navigation. On a cold load the route is not registered yet and gets resolved by
+     * NotFound.controller.js::_loadViewFromHash(), which loads the view from the server.
+     * 
+     * @return string
+     */
+    public function buildJsOpenDialogInNewTab() : string
+    {
+        $action = $this->getAction();
+        $dialogWidget = $action->getDialogWidget();
+        $viewName = $this->getController()->getWebapp()->getViewNameWithoutNamespace($dialogWidget);
+        $pageUrl = $this->getFacade()->buildUrlToPage($dialogWidget->getPage());
+        $requestDataJs = $this->buildJsRequestDataCollector($action, $this->getInputElement());
+        $controllerJs = $this->getController()->buildJsControllerGetter($this);
+        return <<<JS
+
+                                window.open('{$pageUrl}' + {$controllerJs}._encodeRouteHash('{$viewName}', {data: {$requestDataJs}}), '_blank')
+JS;
     }
    
     /**
