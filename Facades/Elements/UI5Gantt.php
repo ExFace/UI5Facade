@@ -198,6 +198,7 @@ class UI5Gantt extends UI5DataTree
         $aViewModes = $widget->getTimelineConfig()->getViews();
         $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aViewModes);
         $this->addGanttScrollButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
+        $this->addGanttRowsZoomButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -960,6 +961,104 @@ JS
 JS
             ],
         ];
+
+        $this->createButtonsFromButtonArrayAndAddToButtonGroup($buttons, $btnGrp, $index);
+    }
+
+    /**
+     * Adds the rows zoom buttons to the button group at the toolbar:
+     * "+": Increases the height of the rows of the table and the gantt-chart (rowHeight). 
+     *     Also increments the number of the lanes per row (newRowLanesCount) in gantt
+     * 
+     *  "-": Decreases the height of the rows of the table and the gantt-chart.
+     *      Also decrements the number of the lanes per row in gantt
+     * 
+     * Height Calculation formula: rowHeight = (baseRowHeight / minRowLanes) * newRowLanesCount;
+     * 
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @return void
+     */
+    protected function addGanttRowsZoomButtons(ButtonGroup $btnGrp, int $index = 0) : void
+    {
+        
+        $buttons = [
+            [
+                'caption' => '',
+                'icon' => 'plus',
+                'script' => <<<JS
+
+                    let oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                    if (oGantt === undefined) return;
+                    let oTable = sap.ui.getCore().getElementById('{$this->getId()}')
+                    let newLanesPerRowNumber = oGantt.options.row_lanes + 1;
+                  
+                    // TODO SR: create Uxon properties "baseRowHeight" and "minRowLanes" (minRowLanes can not be lower than 2). 
+                    //  Use this values to set the row_lanes and row_height at the Gantt init and here:
+                    const baseRowHeight = 33; // TODO: Use this value as default for the baseRowHeight property!
+                    const minRowLanes = 2; // TODO: Use this value as default for the minRowLanes property!
+                    
+                    let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
+                    
+                    // Setting the height to the table (left)
+                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    
+                    // Setting the height to the Gantt (right)
+                    oGantt.options.row_lanes = newLanesPerRowNumber;
+                    oGantt.options.row_height = Math.floor(rowHeight);
+                    
+                    setTimeout(function(){
+                               {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                    },100);
+                
+JS
+            ],
+            [
+                'caption' => '',
+                'icon' => 'minus',
+                'script' => <<<JS
+
+                    let oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                    if (oGantt === undefined) return;
+                    let oTable = sap.ui.getCore().getElementById('{$this->getId()}')
+                    let newLanesPerRowNumber = oGantt.options.row_lanes - 1;
+                    if (newLanesPerRowNumber < 2) return;
+  
+                    // TODO SR: create Uxon properties "baseRowHeight" and "minRowLanes" (minRowLanes can not be lower than 2). 
+                    //  Use this values to set the row_lanes and row_height at the Gantt init and here:
+                    const baseRowHeight = 33; // TODO: Use this value as default for the baseRowHeight property!
+                    const minRowLanes = 2; // TODO: Use this value as default for the minRowLanes property!
+                    
+                    let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
+                  
+                    // Setting the height to the table (left)
+                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    
+                    // Setting the height to the Gantt (right)
+                    oGantt.options.row_lanes = newLanesPerRowNumber;
+                    oGantt.options.row_height = Math.floor(rowHeight);
+                    
+                    setTimeout(function(){
+                               {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                    },100);
+                    
+JS
+            ],
+        ];
+        
+        $this->createButtonsFromButtonArrayAndAddToButtonGroup($buttons, $btnGrp, $index);
+    }
+
+    /**
+     * Creates buttons from the given string array and adds it to the given ButtonGroup ant the given index.
+     * 
+     * @param array $buttons
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @return void
+     */
+    protected function createButtonsFromButtonArrayAndAddToButtonGroup(array $buttons, ButtonGroup $btnGrp, int $index = 0): void
+    {
         
         foreach ($buttons as $i => $button) {
             $btnGrp->addButton($btnGrp->createButton(new UxonObject([
