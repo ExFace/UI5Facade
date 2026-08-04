@@ -43,6 +43,7 @@ class UI5MenuItem extends UI5Button
                             {$press}
                         })
                         {$this->buildJsPseudoEventHandlers()}
+                        .addStyleClass("{$this->buildCssWidgetClass()}")
                         
 JS;
     }
