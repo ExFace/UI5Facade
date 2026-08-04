@@ -194,11 +194,8 @@ class UI5Gantt extends UI5DataTree
             $this->registerColorClasses($calItem->getColorScale());
         }
         
-        // adds the view mode buttons to the toolbar
-        $aViewModes = $widget->getTimelineConfig()->getViews();
-        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aViewModes);
-        $this->addGanttScrollButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
-        $this->addGanttRowsZoomButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
+        // adds the Gantt buttons to the toolbar as separate group.
+        $this->addGanttButtons();
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -868,6 +865,34 @@ JS;
     }
 
     /**
+     * Adds following Gantt buttons as separate group to the toolbar:
+     * - scroll buttons "<< today >>>"
+     * - row zoom buttons "+ -"
+     * - view mode button "Months"
+     * 
+     * Read more on each button in the respective methods.
+     * 
+     * @return void
+     */
+    protected function addGanttButtons() : void
+    {
+        $widget = $this->getWidget();
+        $ganttBtnGroup = $widget->getToolbarMain()->createButtonGroup();
+        $aViewModes = $widget->getTimelineConfig()->getViews();
+        
+        
+        $this->addGanttScrollButtons($ganttBtnGroup);
+        
+        if ($widget->getTimelineConfig()->getRowZoom()) {
+            $this->addGanttRowsZoomButtons($ganttBtnGroup);
+        }
+        
+        $this->addGanttViewModeButtons($ganttBtnGroup, $aViewModes);
+        $this->getWidget()->getToolbarMain()->addButtonGroup($ganttBtnGroup);
+    }
+
+
+    /**
      * Adds gantt view mode selection buttons to the toolbar
      *
      * @param ButtonGroup $btnGrp
@@ -875,7 +900,7 @@ JS;
      * @param array $viewModes
      * @return void
      */
-    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes) : void 
+    public function addGanttViewModeButtons(ButtonGroup $btnGrp, array $viewModes) : void 
     {
         if (empty($viewModes)) {
             return;
@@ -921,7 +946,7 @@ JS
             'icon' => 'calendar',
             'caption' => $initialViewName,
             'buttons' => $buttons
-        ])), $index);
+        ])));
     }
 
     /**
