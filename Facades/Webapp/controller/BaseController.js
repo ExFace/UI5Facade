@@ -229,6 +229,19 @@ sap.ui.define([
 		},
 		
 		/**
+		 * Produces the hash the router would produce for the given view - e.g. to build deep links.
+		 * 
+		 * @param String sViewName
+		 * @param Object oParams
+		 * @return String
+		 */
+		_encodeRouteHash : function(sViewName, oParams) {
+			// The router encodes the params once more on top of _encodeRouteParams() and hasher
+			// strips exactly one of those layers again when the hash is read back
+			return '#/' + sViewName + '/' + encodeURIComponent(this._encodeRouteParams(oParams));
+		},
+		
+		/**
 		 * @param String sParams
 		 * @return Object
 		 */

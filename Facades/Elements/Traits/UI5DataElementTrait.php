@@ -16,6 +16,7 @@ use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
+use exface\UI5Facade\Facades\Elements\UI5Button;
 use exface\UI5Facade\Facades\Elements\UI5Sidebar;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
@@ -2581,7 +2582,7 @@ JS;
         }
         return <<<JS
                 var domTarget = $eventJsVar !== undefined ? $eventJsVar.target : null;
-                var oMenu = {$this->buildJsContextMenu($this->getWidget()->getButtons(), 'domTarget')};
+                var oMenu = {$this->buildJsContextMenu($this->getWidget()->getButtons(), 'domTarget', true)};
                 var eFocused = $(':focus');
                 var eDock = sap.ui.core.Popup.Dock;
                 oMenu.open(true, eFocused, eDock.CenterCenter, eDock.CenterBottom,  {$eventJsVar}.target);         
@@ -2786,7 +2787,7 @@ JS;
      * @param Button[]
      * @return string
      */
-    protected function buildJsContextMenu(array $buttons, string $domTargetJs = "null")
+    protected function buildJsContextMenu(array $buttons, string $domTargetJs = "null", bool $isRootMenu = false)
     {
         $coreTltr = $this->getWorkbench()->getCoreApp()->getTranslator();
         
@@ -2897,6 +2898,7 @@ JS;
                                 })
                             });
                         })($domTargetJs),
+                        {$this->buildJsContextMenuItemOpenInNewTab($isRootMenu)}
                         {$this->buildJsContextMenuButtons($buttons, true)}
                     ],
                     itemSelect: function(oEvent) {
@@ -2907,6 +2909,62 @@ JS;
                         }
                     }
                 })
+JS;
+    }
+    
+    /**
+     * Returns the JS constructor for the context menu item to open the default action of a row in a new tab.
+     * 
+     * The item is only rendered if `WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB` is enabled in the facade
+     * config. The default action is the one bound to double-click on a row. Only maximized dialogs can
+     * be opened this way because only they have their own route in the UI5 app.
+     * 
+     * @return string
+     */
+    protected function buildJsContextMenuItemOpenInNewTab(bool $isRootMenu) : string
+    {
+        if ($isRootMenu === false) {
+            return '';
+        }
+        if (! $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB')) {
+            return '';
+        }
+        $btnEl = null;
+
+        // get the first (non-disabled) button bound to double-click that opens a dialog page
+        // disabled/hidden_ifs should be evaluated at runtime by checking whether to original button is visible/enabled
+        foreach ($this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK) as $btn) {
+            if ($btn->isHidden() || $btn->isDisabled() === true) {
+                continue;
+            }
+            $el = $this->getFacade()->getElement($btn);
+            if (($el instanceof UI5Button) && $el->opensDialogPage()) {
+                $btnEl = $el;
+                break;
+            }
+        }
+        if ($btnEl === null) {
+            return '';
+        }
+        
+        return <<<JS
+
+                        new sap.ui.unified.MenuItem({
+                            icon: "sap-icon://positive",
+                            text: {$this->escapeString($this->translate('WIDGET.DATATABLE.OPEN_IN_NEW_TAB'))},
+                            enabled: function(){
+                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
+                                return oBtn ? oBtn.getEnabled() : false;
+                            }(),
+                            visible: function(){
+                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
+                                return oBtn ? oBtn.getVisible() : false;
+                            }(),
+                            startsSection: true,
+                            select: function(oEvent) {
+                                {$btnEl->buildJsOpenDialogInNewTab()};
+                            }
+                        }),
 JS;
     }
     
