@@ -585,14 +585,24 @@ JS;
                             
                 var bAutoSelectSingle = {$autoSelectSingleJs};
                 var data = oModel.getProperty('/rows');
-                var curKey = oInput.{$this->buildJsValueGetterMethod(false)};
-                var curText = oInput.getValue();
+                // Default key/text to '' defensively: if either is null/undefined here (e.g. right
+                // after a prefill, before the selectedKey binding has fully settled), calling .split()
+                // on it below would throw and abort this handler BEFORE the busy indicators are hidden
+                // further down - leaving them stuck even though the request itself was successful.
+                var curKey = oInput.{$this->buildJsValueGetterMethod(false)} || '';
+                var curText = oInput.getValue() || '';
                 var curKeys = curKey.split({$delim});
                 var iRowsCnt = parseInt(oModel.getProperty("/recordsTotal"));
                 var aFoundKeys = [];
                 var bNewKeysAllowed = {$allowNewValues};
                 var aNewKeys = [];
                 var sMultiValDelim = {$this->escapeString($widget->getMultipleValuesDelimiter())};
+
+                // Wrap the response processing in try/finally: if anything throws while interpreting
+                // the suggestion data, the busy indicators below must still be cleared - otherwise the
+                // control (and/or the suggestion popup table) would remain busy forever even though the
+                // autosuggest request itself completed successfully.
+                try {
 
                 // deduplicate the data array and update the row count if changed
                 // this is needed, if a query returns multiple entries with the same content
@@ -693,10 +703,13 @@ JS;
                         }
                     }
                 }
-                {$this->buildJsBusyIconHide()}
 
-                if (oSuggestTable) {
-                    oSuggestTable.setBusy(false);
+                } finally {
+                    {$this->buildJsBusyIconHide()}
+
+                    if (oSuggestTable) {
+                        oSuggestTable.setBusy(false);
+                    }
                 }
 
                 if (bAutoSelectSingle && iRowsCnt === 1 && (curKey === '' || data[0]['{$widget->getValueColumn()->getDataColumnName()}'] == curKey)) {

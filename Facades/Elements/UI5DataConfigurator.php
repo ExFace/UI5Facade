@@ -655,6 +655,29 @@ function(bResetSelection) {
                     try {
                         var aColsConfig = oConfigModel.getProperty('/columns');
                         
+                        // Set toggleability for hidden_if columns in configurator:
+                        // a column with a hidden_if should only appear in the configurator (be toggleable)
+                        // if its condition resolves to false at runtime (the column is not hidden; so its either optional or visible and MUST be toggleable).
+                        aColsConfig.forEach(function(oColConfig) {
+                            if (oColConfig.has_hidden_if) {
+                                var oColElement = sap.ui.getCore().byId(oColConfig.column_id);
+                                var fnEvalHiddenIf = oColElement && typeof oColElement.data === 'function' ? oColElement.data('_exfHiddenIfEval') : null;
+                                var bHidden = false;
+
+                                // get the hidden_if evaluator function from the column element and call it
+                                if (typeof fnEvalHiddenIf === 'function') {
+                                    try {
+                                        bHidden = fnEvalHiddenIf() === true;
+                                    } catch (e) {
+                                        console.warn('Could not evaluate hidden_if for column ' + oColConfig.column_id + ': ', e);
+                                        bHidden = false;
+                                    }
+                                }
+                                // show column in configurator, only if hidden_if is false (column is not hidden)
+                                oColConfig.toggleable = ! bHidden;
+                            }
+                        });
+                        
                         // only use items that are toggleable
                         var oVisibleFilter = new sap.ui.model.Filter("toggleable", sap.ui.model.FilterOperator.EQ, true);
                         oPanel.getBinding("items").filter(oVisibleFilter);
@@ -754,7 +777,8 @@ JS;
                     "caption" => $col->getCaption(),
                     "visible" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "visibleInitially" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
-                    "toggleable" => $col->isHidden() ? false : true
+                    "toggleable" => $col->isHidden() ? false : true,
+                    "has_hidden_if" => $col->getHiddenIf() !== null
                 ];
             }
         }
@@ -1155,8 +1179,8 @@ JS;
      * Returns JS code, that will add an array of columns to the AJAX request data sent to the server
      * 
      * The AJAX request will include all visible columns (including optional columns, that were made visible by the user)
-     * and globally hidden columns (e.g. those added by buttons or conditions). Each AJAX column will have the following
-     * data:
+     * and globally hidden columns (e.g. those added by buttons or conditions), as well as hidden_if columns. 
+     * Each AJAX column will have the following data:
      * - name
      * - attribute_alias (if bound to attribute and the alias differs from the column name)
      * - expression (if not bound to an attribute, but using a calculation instead)
@@ -1188,9 +1212,9 @@ JS;
                 // Add currently visible columns to data.columns array
                 aColumns.forEach(oColumn => {
 
-                    // skip invisible columns unless they are explicitly hidden columns, which we still need to read
-                    // beacause they are always hidden
-                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn')) {
+                    // skip invisible columns unless they are explicitly hidden or hidden_if columns, which we still need to read
+                    // otherwise hidden_if columns cant be used in filters etc. because their data is never used in the requests
+                    if (oColumn.getVisible() === false && ! oColumn.data('_exfHiddenColumn') && ! oColumn.data('_exfHiddenIfColumn')) {
                         return;
                     }
                     var oColParam;

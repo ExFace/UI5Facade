@@ -1,3 +1,4 @@
+/*! frappe-gantt | MIT License | Copyright (c) 2024 Frappe Technologies Pvt. Ltd. | https://github.com/frappe/gantt */
 var Gantt = function() {
   "use strict";
   const YEAR = "year";

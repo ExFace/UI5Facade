@@ -879,7 +879,46 @@ JS;
                             var oPopover = sap.ui.getCore().byId(sPopoverId);
                             if (oPopover === undefined) {
                                 oPopover = new sap.m.Popover(sPopoverId, {
-                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
+                                    contentWidth: "16rem",
+                                    // place deselect all button in custom header layout next to title
+                                    customHeader: new sap.m.Bar({
+                                        contentLeft: [
+                                            new sap.m.Title({
+                                                text: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
+                                                wrapping: false
+                                            })
+                                        ],
+                                        contentRight: [
+                                            // clear-all button: deselects every selected row and empties the list
+                                            new sap.m.Button({
+                                                icon: 'sap-icon://decline',
+                                                type: 'Transparent',
+                                                tooltip: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
+                                                press: function(oEvent) {
+                                                    // deselect everything (visible) in the table
+                                                    var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                                                    var oModel = oTable.getModel('{$modelName}');
+                                                    oTable.__modifyingSelection = true;
+                                                    if (typeof oTable.clearSelection === 'function') {
+                                                        // sap.ui.table.Table
+                                                        oTable.clearSelection();
+                                                    } else if (typeof oTable.removeSelections === 'function') {
+                                                        // sap.m.List / sap.m.Table
+                                                        oTable.removeSelections(true);
+                                                    }
+                                                    oTable.__modifyingSelection = false;
+
+                                                    // empty model and force refresh model binding, see comment in the delete-handler below
+                                                    oModel.setProperty('/rows', []);
+                                                    oModel.refresh(true);
+
+                                                    // Tell everything bound to this widget, that the selection changed
+                                                    {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_CHANGE, false)};
+                                                    oPopover.close();
+                                                }
+                                            })
+                                        ]
+                                    }),
                                     content: [
                                         new sap.m.List({
                                             mode: "Delete",
@@ -909,26 +948,7 @@ JS;
                                                 }
                                             }
                                         })
-                                    ],/* TODO
-                                    footer: [
-                                        new sap.m.OverflowToolbar({
-                                            content: [
-                                                new sap.m.Button({
-                                                    text: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
-                                                    press: function(oEvent) {
-                                                        var oBtn = oEvent.getSource();
-                                                        var oList = oPopover.getContent()[0];
-                                                        // oList.removeAllItems();
-                                                        oList.getItems().forEach(function(oItem){
-                                                            oList.fireDelete({
-                                                                listItem: oItem
-                                                            });
-                                                        });
-                                                    }
-                                                })
-                                            ]
-                                        })
-                                    ]*/
+                                    ]
                                 }).setModel(oBtn.getModel('{$modelName}'), '{$modelName}');
                                 {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oPopover);
                             }
