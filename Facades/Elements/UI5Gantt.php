@@ -358,13 +358,14 @@ JS;
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
         } else {
-            $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
+            $dateFormat = $translator->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
         
         // see if this particular child(oChildRow)is to be moved along with its parent if the parent is moved
@@ -399,7 +400,7 @@ JS;
         duration: '3d',
       }
     ], {
-        view_mode_select: false, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
+        view_mode_select: false, // Keep at false, we use here UI5 MenuButton for view mode selection instead.
         today_button: false,
         upper_header_height: 40,
         lower_header_height: 25,
@@ -414,13 +415,13 @@ JS;
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
         date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
-        row_height: 33, //33 //TODO SR: Default value. Change it only after the row hight of the left UI5Table is implemented and is set to the same value!
-        row_lanes: 2, //2 //TODO SR: Default value. Increase it only after the increase of the row_height to keep the text of the bars readable.
-        popup_aggregate_expand_tasks: false, //TODO SR: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
-        include_today_in_padding: false, //TODO SR: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
+        row_height: 33, // Initial value. Row zoom can modify this.
+        row_lanes: 2, // Initial value. Row zoom can modify this.
+        popup_aggregate_expand_tasks: false, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
+        include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
         popup_aggregate_gantt_width: 360, // Width in px for the Gantt shown inside aggregation popups.
-        popup_aggregate_style: 'list', // 'list' | 'table'
-        popup_aggregate_include_upper_row_tasks: false, // Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        popup_aggregate_style: 'list', // 'list' | 'table' TODO SR (@experimental)
+        popup_aggregate_include_upper_row_tasks: false, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
         popup: {$this->buildJsRenderPopup()},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
@@ -431,13 +432,19 @@ JS;
         //bar_corner_radius: 3,
         //arrow_curve: 5,
         padding: 14,
-        //view_mode: 'Tage', //TODO SR: Currently still overwritten by ‘view_modes’ and only works if no custom ‘view_modes’ have been passed.
         label_overflow: '$titleOverflow',
         keep_scroll_position: '$keepScrollPosition',
         default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
-        //custom_popup_html: null,
+        on_today_missing: function() {
+          // Called if all given tasks are entirely in the past or future and does not include today's date.
+          const todayMissingPopupText = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TEXT')}';
+          const todayMissingPopupTitle = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TITLE')}';
+          {$this->buildJsShowMessageError('todayMissingPopupText', 'todayMissingPopupTitle')}
+        },
     	on_date_change: function(oTask, dStart, dEnd) {
+            // TODO: frappe-gantt lib supports editing, but currently this PowerUI part dont work yet:
+            //  Test and fix this code, if the Gantt should be editable again:
     		var oTable = sap.ui.getCore().byId('{$this->getId()}');
             var oModel = oTable.getModel();
             var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
@@ -873,6 +880,8 @@ JS;
             return;
         }
 
+        $initialViewName = $this->getWidget()->getTimelineConfig()->getInitialViewName();
+
         $buttons = [];
 
         foreach ($viewModes as $viewMode) {
@@ -885,7 +894,22 @@ JS;
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'icon' => $viewIcon,
                     'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
+
+                        (function() {
+                          // Setting the caption of the MenuButton:
+                          let oControl = sap.ui.getCore().byId('[#element_id:~self#]');
+                          // element_id:~parent gives only the group inside the menu, 
+                          // so we iterate the parents until the MenuButton is found:
+                          while (oControl && !(oControl.isA && oControl.isA('sap.m.MenuButton'))) {
+                              oControl = oControl.getParent && oControl.getParent();
+                          }
+                          
+                          if (oControl) {
+                              oControl.setText('$viewName');
+                          }
+                          // Sets the view:
+                          sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
+                      })();
 JS
                 ],
             ];
@@ -894,7 +918,7 @@ JS
         $btnGrp->addButton($btnGrp->createButton(new UxonObject([
             'widget_type' => 'MenuButton',
             'icon' => 'calendar',
-            'hide_caption' => true,
+            'caption' => $initialViewName,
             'buttons' => $buttons
         ])), $index);
     }
@@ -925,7 +949,7 @@ JS
                 'caption' => $sToday,
                 'icon' => '',
                 'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current();
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current(true, true);
 JS
             ],
             [

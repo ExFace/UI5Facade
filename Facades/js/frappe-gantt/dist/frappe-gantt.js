@@ -1905,20 +1905,21 @@ var Gantt = function() {
     }
   ];
   const DEFAULT_OPTIONS = {
-    //TODO SR Info: This is the old "default_options"
     arrow_curve: 5,
     auto_move_label: false,
     bar_corner_radius: 3,
+    // The height of the individual bars:
     bar_height: 30,
-    //TODO SR Info: The height of the individual bars
     container_height: "auto",
     column_width: null,
     date_format: "YYYY-MM-dd HH:mm",
+    //There is no longer a ‘header_height’. Now it is "upper + lower + 10px"
     upper_header_height: 45,
-    //TODO SR: There is no longer a ‘header_height’. Now it is "upper + lower + 10px"
     lower_header_height: 30,
     snap_at: null,
-    infinite_padding: true,
+    // At Wheel scroll it automatically expands the Gantt borders, regards of if we scroll in the middle or at the border.
+    // @not-stable
+    infinite_padding: false,
     holidays: { "var(--g-weekend-highlight-color)": "weekend" },
     ignore: [],
     language: "en",
@@ -1968,53 +1969,64 @@ var Gantt = function() {
     scroll_to: "today",
     show_expected_progress: false,
     today_button: true,
+    // Today missing callback.
+    // function(today, gantt_start, gantt_end)
+    on_today_missing: null,
     view_mode: "Day",
     view_mode_select: false,
     view_modes: DEFAULT_VIEW_MODES,
     is_weekend: (d) => d.getDay() === 0 || d.getDay() === 6,
     // >>> SR: Bar Aggregation -------------------------------------------------
+    // Values: 'outside' | 'clip' //TODO SR: The “hide” option has been removed for now.
     label_overflow: "outside",
-    // 'outside' | 'clip' //TODO SR: The “hide” option has been removed for now.
     label_outside_color: "#555",
-    keep_scroll_position: false,
     //TODO SR: Take a look at the new ‘maintain_pos’ in Bar. Maybe this is unnecessary here.
-    lane_padding: 4,
+    keep_scroll_position: false,
     // vertical distance between lanes in the same row
+    lane_padding: 4,
+    //is calculated automatically, if set to null.
     row_height: null,
-    //is calculated automatically, if set to null. //TODO SR: Check whether this should also depend on the view_mode.
-    bar_inner_padding: 6,
     // Total vertical padding within the row for each task
+    bar_inner_padding: 6,
+    // Defines the number of visible lines regardless if they have task-bars or not.
     row_keys: null,
-    // For empty lines
-    default_duration: 2,
     // Default duration in days for tasks without start / end date and duration
+    default_duration: 2,
+    // Defines the start of the week. The 'sunday' option is currently @not-stable. Use only 'monday' or fix it!
+    // Values: 'monday' | 'sunday' (@not-stable)
     start_of_week: "monday",
-    // 'monday' | 'sunday'
-    include_today_in_padding: false,
     // Set to true to extend the padded date range until today is included.
+    // @experimental
+    include_today_in_padding: false,
     // >>> SR: Global minimum view interval ------------------------------------
-    global_min_view_start: null,
     // Minimum date that should be included before view padding is applied.
-    global_min_view_end: null,
+    global_min_view_start: null,
     // Maximum date that should be included before view padding is applied.
+    global_min_view_end: null,
     // <<< SR: Global minimum view interval ------------------------------------
+    // Set to true to enable classic alternating row background colors.
     stripe_rows: false,
-    // Set to false to disable alternating row background colors.
+    // Defines the look of the aggregate popup.
+    // 'table' is @experimental
+    // Values: 'list' | 'table'
     popup_aggregate_style: "list",
-    // 'list' | 'table'
+    // Includes tasks that are in the top lane of the row in the aggregate popup. 
+    // Set false to only include tasks inside the aggregation block.
+    // @experimental
     popup_aggregate_include_upper_row_tasks: true,
-    // Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+    // Values: null | function(date, format_string, lang)
     date_formatter: null,
-    // null | function(date, format_string, lang)
-    date_format_default: "YYYY-MM-DD HH:mm:ss.SSS",
     // fallback format for date_utils.format(date)
-    row_lanes: 2,
+    date_format_default: "YYYY-MM-DD HH:mm:ss.SSS",
     // Number of vertical lanes per row. The lowest lane is used for single lower tasks or aggregate bars.
+    row_lanes: 2,
     // >>> SR: Aggregation popup Gantt ----------------------------------------
-    popup_aggregate_expand_tasks: false,
     // Shows a compact Gantt next to the aggregation popup task list.
-    popup_aggregate_gantt_width: 360
+    // @experimental
+    popup_aggregate_expand_tasks: false,
     // Width in px for the Gantt shown inside aggregation popups.
+    // Works only with popup_aggregate_expand_tasks set to TRUE.
+    popup_aggregate_gantt_width: 360
     // <<< SR: Aggregation popup Gantt ----------------------------------------
     // <<< SR: Bar Aggregation -------------------------------------------------
   };
@@ -2562,7 +2574,7 @@ var Gantt = function() {
         let $today_button = document.createElement("button");
         $today_button.classList.add("today-button");
         $today_button.textContent = "Today";
-        $today_button.onclick = this.scroll_current.bind(this);
+        $today_button.onclick = this.scroll_current.bind(this, true, true);
         this.$side_header.prepend($today_button);
         this.$today_button = $today_button;
       }
@@ -2949,10 +2961,23 @@ var Gantt = function() {
     /**
      * Scrolls to the current day. The optional animate flag allows refresh()
      * position restoration to reuse the same date logic without smooth scrolling.
+     * @param animate true keeps the existing smooth scroll behavior.
+     * @param trigger_today_missing true calls on_today_missing when today is outside the Gantt interval.
      */
-    scroll_current(animate = true) {
+    scroll_current(animate = true, trigger_today_missing = false) {
       let res = this.get_closest_date();
-      if (res) this.set_scroll_position(this.get_today_scroll_target_date(), animate);
+      if (res) {
+        this.set_scroll_position(this.get_today_scroll_target_date(), animate);
+        return;
+      }
+      const today = /* @__PURE__ */ new Date();
+      if (trigger_today_missing && (today < this.gantt_start || today > this.gantt_end)) {
+        this.trigger_event("today_missing", [
+          today,
+          this.gantt_start,
+          this.gantt_end
+        ]);
+      }
     }
     // >>> SR: Today button left scroll padding -------------------------------
     /**
