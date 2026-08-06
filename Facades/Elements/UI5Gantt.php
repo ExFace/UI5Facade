@@ -38,6 +38,7 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
     const CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES = 'getGlobalStartEndDates';
+    const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
     // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
@@ -185,10 +186,8 @@ class UI5Gantt extends UI5DataTree
         $controller = $this->getController();
         $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, scrollToToday', $this->buildJsSyncTreeToGantt('oTable', 'scrollToToday'));
         $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
-        $controller->addMethod(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this,'oAllRows', $this->buildJsGetGlobalStartEndDates('oAllRows'));
-        
-        //TODO SR: New rerender logic was implemented. Check if this is still necessary:
-        $keepScrollPosition = json_encode($widget->getKeepScrollPosition());
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this,'', $this->buildJsGetGlobalStartEndDates());
+        $controller->addMethod(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this,'gantt', $this->buildJsSetGlobalStartEndDatesToGantt('gantt'));
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -209,14 +208,6 @@ class UI5Gantt extends UI5DataTree
                  let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
                  if (toolbarOffsetHeight !== undefined) {
                    sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanelContent').css("height", "calc(100% - " + toolbarOffsetHeight + "px)");
-                 }
-                 
-                 // In some cases (tab switch or back navigation) the gantt shows the left coner of the diagram. 
-                 // This is a fix for this behaviour.
-                 if ($keepScrollPosition) {
-                    setTimeout(function(){
-                      oCtrl.gantt.set_scroll_position("today");
-                    },150);
                  }
                },0);
 JS
@@ -239,31 +230,30 @@ JS
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
+                                
+                                // This code part is only executed if the TreeTable data has changed (also on filter) and not by scroll or Tab switch:
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
                                     
-                                    // Calculating the interval of the gantt view (start and end):
-                                    let allRows = sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows;
-                                    let globalStartEndDates = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this, 'allRows')};
-                                    
-                                    if (!!globalStartEndDates) {
-                                        oCtrl.gantt.options.global_min_view_start = exfTools.date.format( globalStartEndDates.start, 'yyyy-MM-dd', 'en');
-                                        oCtrl.gantt.options.global_min_view_end = exfTools.date.format( globalStartEndDates.end, 'yyyy-MM-dd', 'en');
-                                    }
-                                    
+                                    // Calculating the interval of the Gantt view (start and end):
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
+                                    // Re-rendering the Gantt with the new data:
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                                 });
-                                
 
+                                // Resize handler:
                                 sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
                                 });
-                            } else if ($keepScrollPosition) {
-                              setTimeout(function(){
-                                oCtrl.gantt.set_scroll_position("today");
-                              },100);
                             }
-                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                            
+                            // If there are a Tab with another initialized Gantt, 
+                            // it will not calculate the global_min_view values because the data is not loaded there yet.
+                            // This code part is executed on each render, also on each Tab switch so we check if the global_min_view values are initialized.
+                            if (oCtrl.gantt.options.global_min_view_start === null && oCtrl.gantt.options.global_min_view_end === null) {
+                              {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
+                            }
+                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                         },0);
                     }
                 })
@@ -351,7 +341,6 @@ JS;
         $endCol = $calItem->getEndTimeColumn();
         $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
-        $keepScrollPosition = $widget->getKeepScrollPosition();
         $defaultDurationHours = $calItem->getDefaultDurationHours(48);
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
@@ -431,8 +420,7 @@ JS;
         //arrow_curve: 5,
         padding: 14,
         label_overflow: '$titleOverflow',
-        keep_scroll_position: '$keepScrollPosition',
-        default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
+        default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. maybe add support for hours in the future.
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         on_today_missing: function() {
           // Called if all given tasks are entirely in the past or future and does not include today's date.
@@ -622,7 +610,7 @@ JS;
      * @param string $oAllRows
      * @return string
      */
-    public function buildJsGetGlobalStartEndDates(string $oAllRows) : string
+    public function buildJsGetGlobalStartEndDates() : string
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
@@ -637,8 +625,9 @@ JS;
         
         return <<<JS
 
-            return (function getGlobalStartEndDates(oAllRows) {
-              
+            return (function getGlobalStartEndDates() {
+                
+                let oAllRows = sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows;
                 if (!oAllRows) return;
                 let globalStartDate = null;
                 let globalEndDate = null;
@@ -689,9 +678,38 @@ JS;
                 });
                 
                 return { start: globalStartDate, end: globalEndDate };
-            })($oAllRows);
+            })();
 JS;
 
+    }
+
+    /**
+     * It calls the getGlobalStartEndDates function that takes all the rows and gives 
+     * the earliest "start" and latest "end" of all rows + default duration.
+     * Then it sets the global Gantt view start and end.
+     * 
+     * The Gantt itself only gets the tasks that are currently visible on the left table.
+     * So witch each scroll the set of tasks changes and the Gantt automatically resizes to the new set of tasks. 
+     * This causes the "scroll jumps" on each scroll, 
+     * so we set a global start and end date for the Gantt view so the Gantt does not resize on each scroll.
+     * 
+     * @param string $ganttJs
+     * @return string
+     */
+    public function buildJsSetGlobalStartEndDatesToGantt(string $ganttJs) : string
+    {
+        $controller = $this->getController();
+        
+        return <<<JS
+
+          return (function setGlobalStartEndDatesToGantt(gantt) {
+                let globalStartEndDates = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this, '')};
+                if (!!globalStartEndDates) {
+                          gantt.options.global_min_view_start = exfTools.date.format( globalStartEndDates.start, 'yyyy-MM-dd', 'en');
+                          gantt.options.global_min_view_end = exfTools.date.format( globalStartEndDates.end, 'yyyy-MM-dd', 'en');
+                }
+          })($ganttJs);
+JS;
     }
     
     /**
