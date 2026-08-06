@@ -1,4 +1,3 @@
-/*! frappe-gantt | MIT License | Copyright (c) 2024 Frappe Technologies Pvt. Ltd. | https://github.com/frappe/gantt */
 var Gantt = function() {
   "use strict";
   const YEAR = "year";
@@ -1521,7 +1520,6 @@ var Gantt = function() {
         lower_header_height: 25,
         container_height: "auto",
         infinite_padding: false,
-        keep_scroll_position: false,
         scroll_to: "start",
         view_mode_select: this.gantt.options.view_mode_select,
         today_button: this.gantt.options.today_button,
@@ -1981,8 +1979,6 @@ var Gantt = function() {
     // Values: 'outside' | 'clip' //TODO SR: The “hide” option has been removed for now.
     label_overflow: "outside",
     label_outside_color: "#555",
-    //TODO SR: Take a look at the new ‘maintain_pos’ in Bar. Maybe this is unnecessary here.
-    keep_scroll_position: false,
     // vertical distance between lanes in the same row
     lane_padding: 4,
     //is calculated automatically, if set to null.
@@ -2078,7 +2074,6 @@ var Gantt = function() {
         classes: "popup-wrapper",
         append_to: this.$container
       });
-      this._initialScroll = true;
       this._suppress_scroll_strategy = false;
       this._extending_infinite_padding = false;
     }
@@ -2454,7 +2449,9 @@ var Gantt = function() {
       this.make_arrows();
       this.map_arrows_on_bars();
       this.set_dimensions();
-      this.set_scroll_strategy(this.options.scroll_to);
+      if (!this._suppress_scroll_strategy) {
+        this.set_scroll_position(this.options.scroll_to);
+      }
     }
     setup_layers() {
       this.layers = {};
@@ -4028,23 +4025,6 @@ var Gantt = function() {
         this.unselect_all();
       };
       document.addEventListener("mousedown", this._onDocClick, true);
-    }
-    /**
-     * Calls set_scroll_position according to the "keep_scroll_position" option.
-     */
-    set_scroll_strategy(scroll_to) {
-      if (this._suppress_scroll_strategy) return;
-      if (this._initialScroll || !this.options.keep_scroll_position) {
-        this.set_scroll_position(scroll_to);
-      }
-      if (this._initialScroll) {
-        const hasRealTasks = this.tasks.length > 0 && this.tasks[0].name !== "Loading...";
-        if (hasRealTasks) {
-          this._initialScroll = false;
-        }
-      } else if (this.options.keep_scroll_position && this.tasks.length === 0) {
-        this._initialScroll = true;
-      }
     }
     // <<< SR: Bar Aggregation ---------------------------------------------------
   }
