@@ -832,33 +832,92 @@ var Gantt = function() {
       this.update_arrow_position();
       this.update_invalid_overlay_position(x, width);
     }
-    //TODO SR: Fix image scroll position.
+    // >>> SR: Initial auto moving labels ------------------------------------------
+    /**
+     * Aligns an inside-bar label with the current horizontal viewport center and
+     * keeps it clamped inside the task bar, so long task titles are visible even
+     * before the user has scrolled back and forth.
+     */
+    update_label_position_for_current_viewport(sx = this.gantt.$container.scrollLeft) {
+      const container = this.gantt.$container;
+      const label = this.group.querySelector(".bar-label");
+      const img = this.group.querySelector(".bar-img") || "";
+      const img_mask = this.bar_group.querySelector(".img_mask") || "";
+      if (!container || !label || label.classList.contains("big")) return;
+      const padding = 5;
+      const trailingPadding = 7;
+      const barStartX = this.$bar.getX();
+      const barEndX = this.$bar.getEndX();
+      const barWidth = this.$bar.getWidth();
+      const labelWidth = label.getBBox().width;
+      const imgWidth = img && img.getBBox().width + trailingPadding || 0;
+      if (labelWidth > barWidth) return;
+      const viewportStart = sx;
+      const viewportEnd = sx + container.clientWidth;
+      const currentLabelX = label.getX();
+      const currentLabelEndX = currentLabelX + labelWidth + trailingPadding;
+      const labelIsFullyVisible = currentLabelX >= viewportStart && currentLabelEndX <= viewportEnd;
+      if (barWidth <= container.clientWidth && labelIsFullyVisible) return;
+      const minLabelX = barStartX + (img ? imgWidth : padding);
+      const maxLabelX = barEndX - labelWidth - trailingPadding;
+      if (maxLabelX < minLabelX) return;
+      const viewportCentral = sx + container.clientWidth / 2;
+      const centeredLabelX = viewportCentral - labelWidth - trailingPadding;
+      const nextLabelX = Math.min(
+          Math.max(centeredLabelX, minLabelX),
+          maxLabelX
+      );
+      if (Math.abs(currentLabelX - nextLabelX) < 0.1) return;
+      label.setAttribute("x", nextLabelX);
+      if (img) {
+        const nextImgX = Math.max(barStartX + padding, nextLabelX - imgWidth);
+        img.setAttribute("x", nextImgX);
+        img_mask.setAttribute("x", nextImgX);
+      }
+    }
+    // >>> SR: Continuous auto moving labels --------------------------------------
+    /**
+     * Moves inside-bar labels continuously with the horizontal scroll delta once
+     * the viewport center reaches the label, preserving the original scrolling
+     * behavior while initial rendering can still pre-align long task labels.
+     */
     update_label_position_on_horizontal_scroll({ x, sx }) {
       const container = this.gantt.$container;
       const label = this.group.querySelector(".bar-label");
       const img = this.group.querySelector(".bar-img") || "";
       const img_mask = this.bar_group.querySelector(".img_mask") || "";
-      let barWidthLimit = this.$bar.getX() + this.$bar.getWidth();
-      let newLabelX = label.getX() + x;
-      let newImgX = img && img.getX() + x || 0;
-      let imgWidth = img && img.getBBox().width + 7 || 7;
-      let labelEndX = newLabelX + label.getBBox().width + 7;
-      let viewportCentral = sx + container.clientWidth / 2;
-      if (label.classList.contains("big")) return;
-      if (labelEndX < barWidthLimit && x > 0 && labelEndX < viewportCentral) {
-        label.setAttribute("x", newLabelX);
+      if (!container || !label || label.classList.contains("big")) return;
+      const padding = 5;
+      const trailingPadding = 7;
+      const barStartX = this.$bar.getX();
+      const barEndX = this.$bar.getEndX();
+      const labelWidth = label.getBBox().width;
+      const imgWidth = img && img.getBBox().width + trailingPadding || trailingPadding;
+      const minLabelX = barStartX + (img ? imgWidth : padding);
+      const currentLabelX = label.getX();
+      const currentImgX = img && img.getX() || 0;
+      const viewportCentral = sx + container.clientWidth / 2;
+      const scrollDelta = x;
+      if (!scrollDelta) return;
+      const nextLabelX = currentLabelX + scrollDelta;
+      const nextImgX = currentImgX + scrollDelta;
+      const nextLabelEndX = nextLabelX + labelWidth + trailingPadding;
+      if (scrollDelta > 0 && nextLabelEndX <= viewportCentral && nextLabelEndX < barEndX) {
+        label.setAttribute("x", nextLabelX);
         if (img) {
-          img.setAttribute("x", newImgX);
-          img_mask.setAttribute("x", newImgX);
+          img.setAttribute("x", nextImgX);
+          img_mask.setAttribute("x", nextImgX);
         }
-      } else if (newLabelX - imgWidth > this.$bar.getX() && x < 0 && labelEndX > viewportCentral) {
-        label.setAttribute("x", newLabelX);
+      } else if (scrollDelta < 0 && nextLabelEndX >= viewportCentral && nextLabelX >= minLabelX) {
+        label.setAttribute("x", nextLabelX);
         if (img) {
-          img.setAttribute("x", newImgX);
-          img_mask.setAttribute("x", newImgX);
+          img.setAttribute("x", nextImgX);
+          img_mask.setAttribute("x", nextImgX);
         }
       }
     }
+    // <<< SR: Continuous auto moving labels --------------------------------------
+    // <<< SR: Initial auto moving labels ------------------------------------------
     date_changed() {
       let changed = false;
       const { new_start_date, new_end_date } = this.compute_start_end_date();
@@ -1024,6 +1083,9 @@ var Gantt = function() {
         );
         label.removeAttribute("clip-path");
         label.style.fill = this.task.textColor;
+        if (this.gantt.options.auto_move_label) {
+          this.update_label_position_for_current_viewport();
+        }
         return;
       }
       if (overflow === "outside") {
