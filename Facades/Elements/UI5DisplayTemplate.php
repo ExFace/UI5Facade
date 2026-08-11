@@ -41,38 +41,54 @@ class UI5DisplayTemplate extends UI5Display
         // replace placeholders, and pass workbench to evaluate formulas 
         $html = StringDataType::replacePlaceholders($html, $phVals, true, false, $this->getWorkbench());
 
+        // if the lighter rendering option 'render_as_formatted_text' is set, use a sap.m.FormattedText control instead of sap.ui.core.HTML
+        if ($widget->isInTable()) {
+            if ($widget->getRenderAsFormattedText() === true) {
+                return $this->buildJsConstructorForFormattedText($html);
+            }
+        }
+
+        // otherwise use the full sap.ui.core.HTML control
+        return $this->buildJsConstructorForHtmlControl($html);
+    }
+
+    /**
+     * Builds a lightweight sap.m.FormattedText constructor for table cells.
+     *
+     * @param string $html
+     * @return string
+     */
+    protected function buildJsConstructorForFormattedText(string $html) : string
+    {
+        // Compact pretty-printed templates to avoid excessive whitespace nodes in table cells.
+        $html = preg_replace('/>\s+</', '><', trim($html));
+        $html = $this->escapeString($html);
+
+        return <<<JS
+        new sap.m.FormattedText({
+            htmlText: {$html}
+        })
+JS;
+    }
+
+    /**
+     * Builds the full sap.ui.core.HTML constructor.
+     *
+     * @param string $html
+     * @return string
+     */
+    protected function buildJsConstructorForHtmlControl(string $html) : string
+    {
         // Wrap in an outer div: otherwise the html content might duplicate in tables during scrolling 
         // when there is no central control to replace the bindings in 
         $html = $this->escapeString('<div>' . $html . '</div>');
-
-        /* TODO do we need ot inject script/style tags in the HTML head?
-        // Extract <script></script>
-        foreach ($this->getTagsFromHtml($html, 'script') as $tag => $script) {
-            $scripts .= $script;
-            $html = str_replace($tag, '', $html);
-        }
-
-        // Extract <style></style>
-        foreach ($this->getTagsFromHtml($html, 'style') as $tag => $style) {
-            $styles .= str_replace("\n", "\\n", $style);
-            $html = str_replace($tag, '', $html);
-        }
-        $styles .= $this->buildCssInlineStyles() ?? '';
-        */
 
         // removed id for now, to avoid duplicates (?)
         // TODO: should we sanitize here (?) turned it on for now
         return <<<JS
         new sap.ui.core.HTML({
             content: {$html},
-            sanitizeContent: true,
-            afterRendering: function() {
-                /*
-                {$scripts}
-                if ($('#{$this->getId()}_styles').length === 0) {
-                    $('head').append('<style id="{$this->getId()}_styles">{$styles}</style>');
-                }*/
-            }
+            sanitizeContent: true
         })
 JS;
     }
