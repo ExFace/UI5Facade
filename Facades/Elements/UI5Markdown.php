@@ -42,7 +42,7 @@ JS);
         return <<<JS
 
         new sap.ui.core.HTML("{$this->getId()}", {
-            content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
+            content: {$this->escapeString("<div class=\"{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}\" style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
                 // The editor value is baked into the ToastUI instance via `initialValue` at creation time.
                 // sap.ui.core.HTML preserves its DOM in the UI5 preserve area keyed by control id. Notification
