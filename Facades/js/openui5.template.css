@@ -348,6 +348,7 @@ html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !imp
 .exf-wizard-step-hide-caption > .sapMWizardStepTitle {visibility: hidden; height: 0px; margin: 0;}
 /* FIX next-button of mobile wizzards floating in the upper part of the screen - even if the wizard itself is not visible! */
 html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !important; left: inherit !important; bottom: inherit !important;}
+.exf-wizard-step-toolbar-sticky {height: 3rem !important; position: sticky; bottom: 0; z-index: 1; margin: 0 0.5rem; background: var(--sapGroup_ContentBackground, #fff); border-radius: var(--sapElement_BorderCornerRadius, 0.5rem); box-shadow: var(--sapContent_Shadow2, 0 0.25rem 1rem rgba(0,0,0,.15));}
 
 /* Map */
 .exf-map {z-index: 0}
