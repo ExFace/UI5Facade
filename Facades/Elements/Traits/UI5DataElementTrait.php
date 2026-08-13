@@ -2919,6 +2919,9 @@ JS;
      * config. The default action is the one bound to double-click on a row. Only maximized dialogs can
      * be opened this way because only they have their own route in the UI5 app.
      * 
+     * If multiple buttons are bound to double-click, the first one that is enabled and visible at
+     * runtime is used - just like buildJsClickHandlerDoubleClick() does for the double-click itself.
+     * 
      * @return string
      */
     protected function buildJsContextMenuItemOpenInNewTab(bool $isRootMenu) : string
@@ -2929,40 +2932,57 @@ JS;
         if (! $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB')) {
             return '';
         }
-        $btnEl = null;
+        $btnEls = [];
 
-        // get the first (non-disabled) button bound to double-click that opens a dialog page
-        // disabled/hidden_ifs should be evaluated at runtime by checking whether to original button is visible/enabled
+        // Collect all buttons bound to double-click that open a dialog page. Buttons hidden or
+        // disabled via hidden_if/disabled_if are sorted out at runtime by checking the original button
         foreach ($this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK) as $btn) {
             if ($btn->isHidden() || $btn->isDisabled() === true) {
                 continue;
             }
             $el = $this->getFacade()->getElement($btn);
             if (($el instanceof UI5Button) && $el->opensDialogPage()) {
-                $btnEl = $el;
-                break;
+                $btnEls[] = $el;
             }
         }
-        if ($btnEl === null) {
+        if (empty($btnEls)) {
             return '';
         }
+        
+        $btnIdsJs = '';
+        $openJs = '';
+        foreach ($btnEls as $btnEl) {
+            $btnIdsJs .= ($btnIdsJs ? ',' : '') . "'{$btnEl->getId()}'";
+            $openJs .= <<<JS
+
+                                oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
+                                if (oBtn && oBtn.getEnabled() && oBtn.getVisible()) {
+                                    {$btnEl->buildJsOpenDialogInNewTab()};
+                                    return;
+                                }
+JS;
+        }
+        $rowsSelectedJs = $this->buildJsGetRowsSelected("sap.ui.getCore().byId('{$this->getId()}')");
         
         return <<<JS
 
                         new sap.ui.unified.MenuItem({
                             icon: "sap-icon://positive",
                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.OPEN_IN_NEW_TAB'))},
-                            enabled: function(){
-                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
-                                return oBtn ? oBtn.getEnabled() : false;
-                            }(),
-                            visible: function(){
-                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
-                                return oBtn ? oBtn.getVisible() : false;
-                            }(),
+                            enabled: (function(){
+                                // open in new tab should only be available for one row selected
+                                if (({$rowsSelectedJs} || []).length > 1) {
+                                    return false;
+                                }
+                                return [{$btnIdsJs}].some(function(sBtnId){
+                                    var oBtn = sap.ui.getCore().byId(sBtnId);
+                                    return oBtn ? oBtn.getEnabled() && oBtn.getVisible() : false;
+                                });
+                            })(),
                             startsSection: true,
                             select: function(oEvent) {
-                                {$btnEl->buildJsOpenDialogInNewTab()};
+                                var oBtn;
+                                {$openJs}
                             }
                         }),
 JS;
