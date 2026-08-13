@@ -58,6 +58,13 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
      * @var string
      */
     const CONTROLLER_VAR_OPTIONAL_COLS = 'optionalCols';
+
+    /**
+     * This JS controller property will hold an object of pre-built, correctly formatted
+     * cell controls for optional columns of a responsive sap.m.Table (data_column_name as key).
+     * @var string
+     */
+    const CONTROLLER_VAR_OPTIONAL_CELLS = 'optionalCells';
     
     protected function init()
     {
@@ -88,14 +95,27 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
                         }
                         oColsOptional['{$col->getDataColumnName()}'] = oCol;
 JS;
+                    // For sap.m.Table (responsive), the cell template is a separate aggregation from
+                    // the column header, so it needs to be pre-built explicitly here too. Otherwise
+                    // optional columns toggled on later via personalization would fall back to a plain,
+                    // unformatted binding (e.g. showing raw internal date/time values instead of the
+                    // properly formatted ones).
+                    if ($this->isMTable()) {
+                        $colsOptionalInitJs .= <<<JS
+                
+                        oCellsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructorForCell()};
+JS;
+                    }
                 }
             }
             $controller->addOnInitScript(<<<JS
             
                 (function(){
                     var oColsOptional = {};
+                    var oCellsOptional = {};
                     {$colsOptionalInitJs}
                     {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, $oControllerJs)} = oCellsOptional;
                 })();
 JS
             );
@@ -2248,8 +2268,10 @@ JS;
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
         $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
         $colsOptionalJs = "var oColsOptional = {};";
+        $cellsOptionalJs = "var oCellsOptional = {};";
         if (! empty($colsOptional)) {
             $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+            $cellsOptionalJs = "var oCellsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, 'oController')};";
         }
         if ($this->isUiTable() === true) {
             return <<<JS
@@ -2320,6 +2342,7 @@ JS;
                         var aColumnsNew = [];
                         var oController = {$this->getController()->buildJsControllerGetter($this)};
                         {$colsOptionalJs}
+                        {$cellsOptionalJs}
 
                         var bOrderChanged = false;
 
@@ -2387,11 +2410,16 @@ JS;
                                     aNewCells.push(mColumnIdToCell[colId]);
                                 } 
                                 else {
-                                    // if is new/optional column, bind data to col name from config
+                                    // if is new/optional column, use the pre-built, correctly formatted
+                                    // cell control for it. Falling back to a plain sap.m.Text bound
+                                    // directly to the raw property would show unformatted values
+                                    // (e.g. raw internal date/time strings instead of properly
+                                    // formatted dates).
                                     var oColConfig = aColsConfig.find(c => c.column_id === colId);
                                     var sProperty = oColConfig.column_name;
+                                    var oCell = oCellsOptional[sProperty];
                                     
-                                    aNewCells.push(new sap.m.Text({
+                                    aNewCells.push(oCell !== undefined ? oCell : new sap.m.Text({
                                         text: '{' + sProperty + '}'
                                     }));
                                 }
