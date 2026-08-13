@@ -2096,6 +2096,7 @@ var Gantt = function() {
       this.setup_tasks(tasks);
       this.change_view_mode();
       this.bind_events();
+      this.date_utils = date_utils;
     }
     setup_wrapper(element) {
       let svg_element, wrapper_element;
@@ -3315,6 +3316,17 @@ var Gantt = function() {
       $.on(this.$svg, "mousemove", (e) => {
         if (!action_in_progress()) return;
         const dx = (e.offsetX || e.layerX) - x_on_start;
+        let bDraggable = true;
+        bars.forEach((bar) => {
+          if (bar.task.draggable === false) {
+            bDraggable = false;
+          }
+        });
+        if (bDraggable === false) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
         bars.forEach((bar) => {
           const $bar = bar.$bar;
           $bar.finaldx = this.get_snap_position(dx, $bar.ox);
