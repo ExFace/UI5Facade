@@ -362,10 +362,18 @@ JS;
     protected function buildJsSetDataProperties(DataColumn $col) : string
     {
         $captionJs = $this->escapeString($this->getCaption());
+        // The group-by column is invisible, but the client still needs its data for the row
+        // grouping to work (UI5's experimental grouping sorts the binding by the group column and
+        // inserts a group header whenever the value changes). Without the column data, sort-triggered
+        // reloads would drop the column from the request and grouping would break. So we make sure
+        // it is always included in data requests by treating it like an explicitly hidden column.
+        $table = $col->getDataWidget();
+        $isGroupByColumn = ($table instanceof DataTable) && $table->hasRowGroups() && $col === $table->getRowGrouper()->getGroupByColumn();
+        $mustAlwaysLoad = $col->isHidden() || $isGroupByColumn;
         $result = <<<JS
 
                     .data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
+					.data('_exfHiddenColumn', {$this->escapeBool($mustAlwaysLoad)})
                     .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
                     {$this->buildJsHiddenIfEvaluatorData($col)}
 					.data('_exfCaption', {$captionJs})
