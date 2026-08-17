@@ -41,8 +41,8 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
-    // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
-    // that translates it to the FrappeGantt specific structure.
+    // The defaults are written in the simple view mode config structure.
+    // Read more about the simple view mode config here: https://www.npmjs.com/package/riel-gantt?activeTab=readme
     // Keep in mind to add "TRANSLATE:" prefix to the name of the view
     // and make sure it gets translated bevor usage.
     private array $viewModeDefaults = [
@@ -345,6 +345,7 @@ JS;
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $popupOn = $widget->getTimelineConfig()->getPopupOn('click');
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
@@ -373,8 +374,6 @@ JS;
         return <<<JS
 
 (function() {
-    // Builds frappe-gantt readable view modes from the simplified config
-    const buildedViewModes = viewModeBuilder.buildViewModesFromSimpleConfig({$viewModesConfigJson});
   
     return new Gantt("#{$this->getId()}_gantt", [
       {
@@ -392,12 +391,12 @@ JS;
         upper_header_height: 40,
         lower_header_height: 25,
         auto_move_label: true,
-        view_modes: buildedViewModes,
+        view_modes: {$viewModesConfigJson},
         view_mode: '{$initialViewName}',
         infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
+        popup_on: '{$popupOn}', //click, hover
         // TODO SR: Build uxon properties if ready:
-        popup_on: 'click', //hover, click
         holidays: null, // { 'var(--g-weekend-highlight-color)': 'weekend' }
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
@@ -429,7 +428,7 @@ JS;
           {$this->buildJsShowMessageError('todayMissingPopupText', 'todayMissingPopupTitle')}
         },
     	on_date_change: function(oTask, dStart, dEnd) {
-            // TODO: frappe-gantt lib supports editing, but currently this PowerUI part dont work yet:
+            // TODO: riel-gantt lib supports editing, but currently this PowerUI part dont work yet:
             //  Test and fix this code, if the Gantt should be editable again:
     		var oTable = sap.ui.getCore().byId('{$this->getId()}');
             var oModel = oTable.getModel();
@@ -735,13 +734,12 @@ JS;
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         
-        $controller->addExternalModule('libs.exface.gantt.Gantt', $f->buildUrlToSource("LIBS.FRAPPE_GANTT.JS"), null, 'Gantt');
-        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.CSS"));
-        // task overlapping feature css:
-        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.EXF.CSS"));
+        $controller->addExternalModule('libs.exface.gantt.Gantt', $f->buildUrlToSource("LIBS.RIEL_GANTT.JS"), null, 'Gantt');
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.RIEL_GANTT.CSS"));
+        // UI5 specific riel-gantt CSS:
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.RIEL_GANTT.EXF.CSS"));
         // additional tools for color manipulation and view mode generation
         $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
-        $controller->addExternalModule('libs.exface.viewModeBuilder.viewModeBuilder',  $f->buildUrlToSource("LIBS.FRAPPE_GANTT.VIEW_BUILDER.JS"), null, 'viewModeBuilder');
         
         return $this;
     }
@@ -1158,7 +1156,7 @@ JS
     
     /**
      * It maps uxon DataTimelineView views to a simplified array structure, 
-     * that can be converted with view-mode-builder.js to the required gantt view mode structure.
+     * that the riel-gantt uses to render the gantt chart.
      * 
      * Example output:
      * ```
