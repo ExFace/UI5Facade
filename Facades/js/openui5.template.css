@@ -311,7 +311,13 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .exf-dialog-page.exf-dialog-filled .sapUxAPObjectPageSection.sapUiNoContentPadding + .sapUxAPObjectPageSection.sapUiNoContentPadding {margin-top: 1rem;}
 .exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem}
 /* Dialog header with different controls */
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle}
+/* HorizontalLayout (label + value) does not wrap and sizes each cell to its content by default, so a
+long value (e.g. ColorIndicator) just overflows past the layout instead of shrinking - turn it into a
+flex row instead, where the label keeps its natural width and the value cell shrinks/truncates */
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal {display: flex; max-width: 100%;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle; display: block; min-width: 0;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper:first-of-type {flex: 0 0 auto;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper:last-of-type {flex: 1 1 auto; overflow: hidden;}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.5rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
@@ -322,6 +328,12 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .sapUxAPObjectPageHeaderContent .sapUiVltCell > .sapMFT {margin-top: 0.25rem}
 /* TextHeading widgets in dialog headers*/
 .sapUxAPObjectPageHeaderContent .sapMLabel.exf-textheading {vertical-align: middle}
+/* Allow header items (and widget groups) to shrink below their content's natural width, so that
+long values (e.g. ColorIndicator) get truncated with ellipsis instead of overlapping neighboring
+items - flex items default to min-width: auto, which prevents shrinking below their content size */
+.sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHeaderContentItem,
+.sapUxAPObjectPageHeaderContent .sapUiVltCell {min-width: 0;}
+.sapUxAPObjectPageHeaderContent .sapUiVlt {min-width: 0; max-width: 100%; overflow: hidden;}
 /* Dialog with Split */
 html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterV > .sapUiLoSplitterBar {border-top-color:transparent; border-bottom-color: transparent;}
 html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterH > .sapUiLoSplitterBar {border-left-color: transparent; border-right-color: transparent;}
@@ -348,6 +360,7 @@ html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !imp
 .exf-wizard-step-hide-caption > .sapMWizardStepTitle {visibility: hidden; height: 0px; margin: 0;}
 /* FIX next-button of mobile wizzards floating in the upper part of the screen - even if the wizard itself is not visible! */
 html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !important; left: inherit !important; bottom: inherit !important;}
+.exf-wizard-step-toolbar-sticky {height: 3rem !important; position: sticky; bottom: 0; z-index: 1; margin: 0 0.5rem; background: var(--sapGroup_ContentBackground, #fff); border-radius: var(--sapElement_BorderCornerRadius, 0.5rem); box-shadow: var(--sapContent_Shadow2, 0 0.25rem 1rem rgba(0,0,0,.15));}
 
 /* Map */
 .exf-map {z-index: 0}
