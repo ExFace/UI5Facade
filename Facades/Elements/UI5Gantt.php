@@ -345,6 +345,7 @@ JS;
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $popupOn = $widget->getTimelineConfig()->getPopupOn('click');
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
@@ -394,8 +395,8 @@ JS;
         view_mode: '{$initialViewName}',
         infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
+        popup_on: '{$popupOn}', //click, hover
         // TODO SR: Build uxon properties if ready:
-        popup_on: 'click', //hover, click
         holidays: null, // { 'var(--g-weekend-highlight-color)': 'weekend' }
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
