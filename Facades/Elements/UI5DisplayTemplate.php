@@ -2,10 +2,15 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\DataTypes\StringDataType;
+use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\UI5PropertyBinding;
 
 /**
- * Renders a `sap.ui.core.HTML` control with bindings for placeholders in an HTML tempalte.
+ * Renders an `exface.ui5Custom.DisplayTemplate` control with bindings for placeholders in an HTML tempalte.
+ * 
+ * The custom control parses the template markup once and lets UI5 patch only the changed texts into
+ * the DOM afterwards. This is significantly faster than `sap.ui.core.HTML` inside of data tables,
+ * where every scroll tick would otherwise rebuild the entire markup of every visible cell.
  * 
  * @method \exface\Core\Widgets\DisplayTemplate getWidget()
  *        
@@ -31,50 +36,75 @@ class UI5DisplayTemplate extends UI5Display
         // (otherwise use outside of tables/in dialogues didnt work)
         $phs = StringDataType::findPlaceholders($html);
         $phVals = [];
+        $partsJs = [];
+        // Each placeholder becomes a numbered slot in the markup and a part of the values binding at the
+        // same position - that index is what tells the control which value belongs to which slot.
         foreach ($widget->getBindings() as $i => $widgetBinding) {
             $ph = $phs[$i];
-            $ui5Binding = new UI5PropertyBinding($this, 'content', $widgetBinding);
-            $ui5BindingPath = $ui5Binding->getModelBindingPath();
-            $phVals[$ph] = '{' . $ui5BindingPath . '}';
+            $ui5Binding = new UI5PropertyBinding($this, 'values', $widgetBinding);
+            $partsJs[] = $this->buildJsBindingPart($ui5Binding->getModelBindingPath());
+            $phVals[$ph] = '[[exf-slot-' . $i . ']]';
         }
 
         // replace placeholders, and pass workbench to evaluate formulas 
         $html = StringDataType::replacePlaceholders($html, $phVals, true, false, $this->getWorkbench());
 
-        // Wrap in an outer div: otherwise the html content might duplicate in tables during scrolling 
-        // when there is no central control to replace the bindings in 
-        $html = $this->escapeString('<div>' . $html . '</div>');
+        // Binding all placeholders as a single composite binding means one property update per row
+        // instead of one per placeholder. The formatter just collects the parts into an array.
+        if (empty($partsJs)) {
+            $settingsJs = '';
+        } else {
+            $parts = implode(', ', $partsJs);
+            $settingsJs = <<<JS
 
-        /* TODO do we need ot inject script/style tags in the HTML head?
-        // Extract <script></script>
-        foreach ($this->getTagsFromHtml($html, 'script') as $tag => $script) {
-            $scripts .= $script;
-            $html = str_replace($tag, '', $html);
-        }
-
-        // Extract <style></style>
-        foreach ($this->getTagsFromHtml($html, 'style') as $tag => $style) {
-            $styles .= str_replace("\n", "\\n", $style);
-            $html = str_replace($tag, '', $html);
-        }
-        $styles .= $this->buildCssInlineStyles() ?? '';
-        */
-
-        // removed id for now, to avoid duplicates (?)
-        // TODO: should we sanitize here (?) turned it on for now
-        return <<<JS
-        new sap.ui.core.HTML({
-            content: {$html},
-            sanitizeContent: true,
-            afterRendering: function() {
-                /*
-                {$scripts}
-                if ($('#{$this->getId()}_styles').length === 0) {
-                    $('head').append('<style id="{$this->getId()}_styles">{$styles}</style>');
-                }*/
+            values: {
+                parts: [{$parts}],
+                formatter: function() {
+                    return Array.prototype.slice.call(arguments);
+                }
             }
-        })
+
 JS;
+        }
+
+        // The template is applied via setTemplate() and not as a constructor property because UI5
+        // would try to interpret curly braces inside the markup as binding syntax.
+        return <<<JS
+        new exface.ui5Custom.DisplayTemplate({{$settingsJs}})
+        .setTemplate({$this->escapeString($html)})
+JS;
+    }
+
+    /**
+     * Builds a single `parts` entry of the composite `values` binding from a UI5 binding path
+     * 
+     * Paths of named models look like `modelName>path`, but parts of a composite binding need the
+     * model and the path as separate options.
+     * 
+     * @param string $path
+     * @return string
+     */
+    protected function buildJsBindingPart(string $path) : string
+    {
+        $pos = strpos($path, '>');
+        if ($pos !== false) {
+            $model = substr($path, 0, $pos);
+            $path = substr($path, $pos + 1);
+            return '{path: ' . $this->escapeString($path) . ', model: ' . $this->escapeString($model) . '}';
+        }
+        return '{path: ' . $this->escapeString($path) . '}';
+    }
+
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::registerExternalModules()
+     */
+    public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
+    {
+        parent::registerExternalModules($controller);
+        $controller->addExternalModule('libs.exface.ui5Custom.DisplayTemplate', 'vendor/exface/ui5facade/Facades/js/ui5Custom/DisplayTemplate');
+        return $this;
     }
     
     /**
