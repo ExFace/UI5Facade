@@ -372,10 +372,10 @@ JS;
         $mustAlwaysLoad = $col->isHidden() || $isGroupByColumn;
         $result = <<<JS
 
-                    .data('_exfDataColumnName', '{$col->getDataColumnName()}')
+					.data('_exfDataColumnName', '{$col->getDataColumnName()}')
 					.data('_exfHiddenColumn', {$this->escapeBool($mustAlwaysLoad)})
-                    .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
-                    {$this->buildJsHiddenIfEvaluatorData($col)}
+					.data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
+					{$this->buildJsHiddenIfEvaluatorData($col)}
 					.data('_exfCaption', {$captionJs})
 JS;
         
