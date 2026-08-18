@@ -29,20 +29,39 @@ class UI5DisplayMarkdown extends UI5Value
         new sap.ui.core.HTML("{$this->getId()}", {
             content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
-                // Sometimes the DOM structure of ToastUI gets disrupted during initialization.
+                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
+                var oModel = oHtml ? oHtml.getModel() : undefined;
+                var sBindingPath = '{$this->getValueBindingPath()}';
+
+                var bWasInitialized = oHtml && "_toastUiBinding" in oHtml && oHtml._toastUiBinding;
+
+                // Sometimes the DOM structure of ToastUI gets disrupted during initialization
+                // or gets wiped when the control is re-rendered (e.g. when switching tabs).
                 // We can detect if the DOM structure was disrupted and repeat initialization if necessary.
                 if (($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
                     {$markdownVar} = {$this->buildJsMarkdownInitViewer()};
+
+                    // On a re-render (e.g. after a tab switch) the viewer is recreated empty,
+                    // because its actual value came from the model at runtime and not from the
+                    // initialValue rendered into the page. Re-apply the current model value here -
+                    // otherwise the text would be lost, since the binding change handler below is
+                    // only attached once and does not fire again if the model value is unchanged.
+                    // This must NOT run on the very first initialization: at that point the model
+                    // may still be loading and could hold an empty value that would clobber the
+                    // correct initialValue. The initial value is handled by initialValue + binding.
+                    if (bWasInitialized && oModel !== undefined) {
+                        var sModelVal = oModel.getProperty(sBindingPath);
+                        if (sModelVal !== undefined) {
+                            {$this->buildJsValueSetter("sModelVal")}
+                        }
+                    }
                 }
                 
-                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
                 if (oHtml && "_toastUiBinding" in oHtml && oHtml._toastUiBinding) {
                     return;
                 }
                 
-                var oModel = oHtml.getModel();
                 if(oModel !== undefined) {
-                    var sBindingPath = '{$this->getValueBindingPath()}';
                     var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
                     
                     oValueBinding.attachChange(function(oEvent){
