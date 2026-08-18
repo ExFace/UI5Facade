@@ -5,10 +5,12 @@ use exface\Core\Widgets\Filter;
 use exface\UI5Facade\Facades\Interfaces\UI5ValueBindingInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5CompoundControlInterface;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryLiveReferenceTrait;
+use exface\Core\Facades\AbstractAjaxFacade\Elements\JsValueScaleTrait;
 use exface\Core\Widgets\Input;
 use exface\Core\Interfaces\Widgets\iShowDataColumn;
 use exface\Core\Interfaces\Widgets\iHaveValue;
 use exface\Core\DataTypes\NumberDataType;
+use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
 
 /**
  * Generates sap.m.Text controls for Value widgets
@@ -26,6 +28,7 @@ class UI5Value extends UI5AbstractElement implements UI5ValueBindingInterface, U
     use JqueryLiveReferenceTrait {
         registerLiveReferenceAtLinkedElement as registerLiveReferenceAtLinkedElementViaTrait;
     }
+    use JsValueScaleTrait;
     
     private $valueBindingPath = null;
     
@@ -183,11 +186,152 @@ JS;
         return <<<JS
         new sap.m.Label('{$this->getIdOfLabel()}', {
             text: "{$caption}",
-            {$this->buildJsPropertyTooltip()}
+            {$this->buildJsPropertyTooltipForLabel()}
             {$labelAppearance}
         }),
         
 JS;
+    }
+    
+    /**
+     * Returns the tooltip property for the caption label - defaults to the attribute's hint/description.
+     * 
+     * If the value itself has a hint or label (e.g. an enum), that is shown on the value control instead
+     * (see `buildJsPropertyTooltip()`), so the caption only needs to show the attribute's hint/description
+     * here to avoid duplicating information. Otherwise, the caption gets the exact same tooltip as the
+     * value control, as it always did before value hints/labels were resolved.
+     * 
+     * @return string
+     */
+    protected function buildJsPropertyTooltipForLabel() : string
+    {
+        if (! $this->hasValueHintOrLabel()) {
+            return $this->buildJsPropertyTooltip();
+        }
+        
+        $widget = $this->getWidget();
+        $hint = $widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption());
+        if ($hint === '') {
+            return '';
+        }
+        return 'tooltip: "' . $this->escapeJsTextValue($hint) . '",';
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * If the widget is used as cell widget in a DataColumn, the tooltip will contain the value instead
+     * of a description, because ui5 tables tend to cut off long values on smaller screens. On the other
+     * hand, the description is already there in the column header.
+     * 
+     * If the value has its own hint or label (e.g. an enum value), that is shown instead of the raw
+     * technical value - see `buildJsValueOrLabelJs()`.
+     * 
+     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsPropertyTooltip()
+     */
+    protected function buildJsPropertyTooltip()
+    {
+        $widget = $this->getWidget();
+        // isInTable() and the value-hint resolution below only apply to widgets showing a value
+        // (e.g. not to containers like InlineGroup, which don't have these methods)
+        if (! ($widget instanceof iHaveValue)) {
+            return parent::buildJsPropertyTooltip();
+        }
+        
+        if ($widget->isInTable() === true) {
+            if ($this->isValueBoundToModel()) {
+                $value = $this->buildJsValueBinding('formatter: function(value){' . $this->buildJsValueFormatterForTableTooltip() . '},');
+            } else {
+                $value = $this->buildJsValue();
+            }
+            
+            return 'tooltip: ' . $value .',';
+        }
+
+        if ($this->isValueBoundToModel() && $this->getShowValueInTooltip() === true) {
+            if ($this->hasValueHintOrLabel()) {
+                // Show only the value's own hint/label - the attribute's hint/description is shown
+                // separately on the caption label instead - see buildJsPropertyTooltipForLabel()
+                return "tooltip: {$this->buildJsValueBinding("
+                    formatter: function(value){
+                        return (value === null || value === undefined) ? '' : {$this->buildJsValueOrLabelJs('value')};
+                    },")},";
+            }
+            // No special hint/label for the value - show the combined "value - description" tooltip,
+            // just like the caption label does in this case (see buildJsPropertyTooltipForLabel())
+            $sHint = $widget->getHint() ? $widget->getHint() : '';
+            if ($sHint === '') {
+                $sHint = $widget->getCaption() ? $widget->getCaption() : '';
+            }
+            $sinfo = $this->escapeString($widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption()));
+            return "tooltip: {$this->buildJsValueBinding("
+                formatter: function(value) {
+                    var sInfo = {$sinfo};
+                    var sVal = (value === null || value === undefined) ? '' : value.toString();
+                    return sVal + (sInfo  !== '' && sVal !== '' ? ' - ' : '') + sInfo;
+                },")},";
+        } else {
+            return parent::buildJsPropertyTooltip();
+        }
+    }
+    
+    protected function getShowValueInTooltip() : bool
+    {
+        return true;
+    }
+    
+    /**
+     * Returns TRUE if the value's data type provides a hint or label for the current value (e.g. an enum).
+     * 
+     * @return bool
+     */
+    protected function hasValueHintOrLabel() : bool
+    {
+        if (! ($this->getWidget() instanceof iHaveValue)) {
+            return false;
+        }
+        $dataType = $this->getWidget()->getValueDataType();
+        if ($dataType instanceof EnumDataTypeInterface) {
+            return ! empty($dataType->getValueHints()) || ! empty($dataType->getLabels());
+        }
+        return false;
+    }
+    
+    /**
+     * Returns the body of a JS formatter function (variable `value` in scope) for the in-table tooltip.
+     * 
+     * @return string
+     */
+    protected function buildJsValueFormatterForTableTooltip() : string
+    {
+        return "return (value === null || value === undefined) ? value : {$this->buildJsValueOrLabelJs('value')};";
+    }
+    
+    /**
+     * Returns a JS expression resolving a non-null value to its display text.
+     * 
+     * For enum data types, the technical value alone is not very helpful in a tooltip, so this resolves
+     * it to its value hint (if defined) or its label instead - falling back to the stringified raw value.
+     * 
+     * @param string $valueJs
+     * @return string
+     */
+    protected function buildJsValueOrLabelJs(string $valueJs) : string
+    {
+        $dataType = $this->getWidget()->getValueDataType();
+        if ($dataType instanceof EnumDataTypeInterface) {
+            $hints = $dataType->getValueHints();
+            $scale = ! empty($hints) ? $hints : $dataType->getLabels();
+            if (! empty($scale)) {
+                return <<<JS
+(function(mVal){
+    var sHint = {$this->buildJsScaleResolverForValues('mVal', $scale)};
+    return sHint !== '' ? sHint : mVal.toString();
+})({$valueJs})
+JS;
+            }
+        }
+        return "{$valueJs}.toString()";
     }
     
     /**

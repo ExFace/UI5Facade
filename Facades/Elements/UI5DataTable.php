@@ -1,7 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Factories\MetaObjectFactory;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -21,10 +20,7 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
-use exface\Core\CommonLogic\UxonObject;
-use exface\Core\DataTypes\OfflineStrategyDataType;
-use exface\Core\CommonLogic\Model\UiPage;
-use exface\Core\Factories\WidgetFactory;
+use exface\Core\Widgets\DisplayTemplate;
 
 /**
  *
@@ -56,6 +52,13 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
      * @var string
      */
     const CONTROLLER_VAR_OPTIONAL_COLS = 'optionalCols';
+
+    /**
+     * This JS controller property will hold an object of pre-built, correctly formatted
+     * cell controls for optional columns of a responsive sap.m.Table (data_column_name as key).
+     * @var string
+     */
+    const CONTROLLER_VAR_OPTIONAL_CELLS = 'optionalCells';
     
     protected function init()
     {
@@ -77,18 +80,36 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
             $colsOptionalInitJs = '';
             if (! empty($colsOptional)) {
                 foreach ($colsOptional as $col) {
+                    $colEl = $this->getFacade()->getElement($col);
                     $colsOptionalInitJs .= <<<JS
                 
-                        oColsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructor()};
+                        var oCol = sap.ui.getCore().byId({$this->escapeString($colEl->getId())});
+                        if (! oCol) {
+                            oCol = {$colEl->buildJsConstructor()};
+                        }
+                        oColsOptional['{$col->getDataColumnName()}'] = oCol;
 JS;
+                    // For sap.m.Table (responsive), the cell template is a separate aggregation from
+                    // the column header, so it needs to be pre-built explicitly here too. Otherwise
+                    // optional columns toggled on later via personalization would fall back to a plain,
+                    // unformatted binding (e.g. showing raw internal date/time values instead of the
+                    // properly formatted ones).
+                    if ($this->isMTable()) {
+                        $colsOptionalInitJs .= <<<JS
+                
+                        oCellsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructorForCell()};
+JS;
+                    }
                 }
             }
             $controller->addOnInitScript(<<<JS
             
                 (function(){
                     var oColsOptional = {};
+                    var oCellsOptional = {};
                     {$colsOptionalInitJs}
                     {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, $oControllerJs)} = oCellsOptional;
                 })();
 JS
             );
@@ -1267,7 +1288,6 @@ JS;
         return $commonParams . $tableParams;
     }
 
-    
     /**
      * Returns inline JS code to refresh the table.
      *
@@ -1843,6 +1863,84 @@ JS;
             
         }
         
+        $groupCol = $grouper->getGroupByColumn();
+        $groupColName = $groupCol->getDataColumnName();
+        $groupColId = $this->getFacade()->getElement($groupCol)->getId();
+        
+        // Determine the desired group order. The native experimental grouping can only sort the
+        // group column ascending (it does `new Sorter(sortProperty)` without a descending flag),
+        // so we detect a descending sorter on the group-by attribute here and reproduce the order
+        // via a synthetic ordering key (see $groupOrderSetupJs below).
+        $groupDesc = false;
+        foreach ($this->getWidget()->getSorters() as $sorterUxon) {
+            if ($sorterUxon->getProperty('attribute_alias') === $groupCol->getAttributeAlias()) {
+                $groupDesc = (strtoupper($sorterUxon->getProperty('direction') ?? '') === SortingDirectionsDataType::DESC);
+                break;
+            }
+        }
+        
+        // Compare distinct group values the way their data type would be ordered: numerically for
+        // numbers, locale-aware for everything else. Null/empty values sort to the top (and end up
+        // at the bottom once the order is reversed for descending grouping).
+        if ($groupCol->getDataType() instanceof NumberDataType) {
+            $comparatorJs = 'function(a, b) { var fA = (a === null || a === undefined || a === "") ? -Infinity : parseFloat(a); var fB = (b === null || b === undefined || b === "") ? -Infinity : parseFloat(b); return fA - fB; }';
+        } else {
+            $comparatorJs = 'function(a, b) { return String(a === null || a === undefined ? "" : a).localeCompare(String(b === null || b === undefined ? "" : b)); }';
+        }
+        $reverseJs = $groupDesc ? 'aValues.reverse();' : '';
+        
+        // Build a synthetic numeric ordering key per distinct group value and group by that key
+        // instead of the raw group column. Native grouping sorts the key ascending, so by assigning
+        // the keys in the desired order we fully control the order of the groups - including
+        // descending, which the native experimental grouping cannot do on its own. The visible group
+        // label is still taken from the real group value (see the label formatter below), so the
+        // synthetic key stays invisible to the user.
+        $groupOrderSetupJs = <<<JS
+
+                (function(oModel) {
+                    var aRows = oModel.getProperty('/rows') || [];
+                    if (aRows.length === 0) {
+                        return;
+                    }
+                    var sCol = "{$groupColName}";
+                    var aValues = [];
+                    var oSeen = {};
+                    // Traverse all rows and extract unique group headers.
+                    aRows.forEach(function(oRow) {
+                        var mVal = oRow[sCol];
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        // Process each header only once.
+                        if (oSeen[sKey] !== true) {
+                            oSeen[sKey] = true;
+                            aValues.push(mVal);
+                        }
+                    });
+                    // Sort the group headers.
+                    aValues.sort({$comparatorJs});
+                    // Reverse, if needed (generated snippet from UI5DataTable::buildJsUiTableInitRowGrouping). 
+                    {$reverseJs}
+                    // Associate headers with their sorting ranks.
+                    var oRank = {};
+                    aValues.forEach(function(mVal, iRank) {
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        oRank[sKey] = iRank;
+                    });
+                    // Write header rankings into the new (virtual) column "__exfGroupSortKey".
+                    aRows.forEach(function(oRow) {
+                        var mVal = oRow[sCol];
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        oRow.__exfGroupSortKey = oRank[sKey];
+                    });
+                    // Apply changes.
+                    oModel.setProperty('/rows', aRows);
+                })({$oModelJs});
+                // Set "__exfGroupSortKey" as the sort property. We have now functionally overridden the native sorting.
+                var oGroupColumn = sap.ui.getCore().byId('{$groupColId}');
+                if (oGroupColumn) {
+                    oGroupColumn.setSortProperty('__exfGroupSortKey');
+                }
+JS;
+        
         // NOTE: sap.ui.table.utils._GroupingUtils.resetExperimentalGrouping($oTableJs) did not work: it produced
         // empty group titles whenever their content was to change
         return  <<<JS
@@ -1852,7 +1950,16 @@ JS;
                     return;
                 }
                 oTable.setEnableGrouping(true);
-                oTable.setGroupBy('{$this->getFacade()->getElement($grouper->getGroupByColumn())->getId()}');
+                {$groupOrderSetupJs}
+                // Force the experimental grouping to rebuild on every (re)load. Native grouping
+                // guards its one-time sort/group pass with `oBinding._modified` and never re-runs it
+                // on the same binding. Since `setGroupBy()` is a no-op when the group column does not
+                // change, after a header-sort reload the binding would keep its stale group structure
+                // (all rows collapsed into a single, wrong group). Toggling `groupBy` via null forces
+                // a fresh row binding, so the grouping is rebuilt against the freshly computed
+                // __exfGroupSortKey order.
+                oTable.setGroupBy(null);
+                oTable.setGroupBy('{$groupColId}');
                 
                 var oBinding = oTable.getBinding('rows');
                 var iRowCnt = oTable._getTotalRowCount();
@@ -1881,7 +1988,7 @@ JS;
                                 return '{$groupCaption}{$this->escapeJsTextValue($grouper->getEmptyText())}';
                             }
                             return '{$groupCaption}' + {$groupFormatterJs}
-                        })(aCtxts[i].__groupInfo.name);
+                        })(aCtxts[i].__groupInfo.oContext.getProperty("{$groupColName}"));
                     }
 
                     // collapse headers according to configuration: (first, all, none)
@@ -2241,8 +2348,10 @@ JS;
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
         $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
         $colsOptionalJs = "var oColsOptional = {};";
+        $cellsOptionalJs = "var oCellsOptional = {};";
         if (! empty($colsOptional)) {
             $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+            $cellsOptionalJs = "var oCellsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, 'oController')};";
         }
         if ($this->isUiTable() === true) {
             return <<<JS
@@ -2313,6 +2422,7 @@ JS;
                         var aColumnsNew = [];
                         var oController = {$this->getController()->buildJsControllerGetter($this)};
                         {$colsOptionalJs}
+                        {$cellsOptionalJs}
 
                         var bOrderChanged = false;
 
@@ -2380,11 +2490,16 @@ JS;
                                     aNewCells.push(mColumnIdToCell[colId]);
                                 } 
                                 else {
-                                    // if is new/optional column, bind data to col name from config
+                                    // if is new/optional column, use the pre-built, correctly formatted
+                                    // cell control for it. Falling back to a plain sap.m.Text bound
+                                    // directly to the raw property would show unformatted values
+                                    // (e.g. raw internal date/time strings instead of properly
+                                    // formatted dates).
                                     var oColConfig = aColsConfig.find(c => c.column_id === colId);
                                     var sProperty = oColConfig.column_name;
+                                    var oCell = oCellsOptional[sProperty];
                                     
-                                    aNewCells.push(new sap.m.Text({
+                                    aNewCells.push(oCell !== undefined ? oCell : new sap.m.Text({
                                         text: '{' + sProperty + '}'
                                     }));
                                 }
@@ -2802,9 +2917,13 @@ JS;
     protected function hasFixedRowHeight() : bool
     {
         foreach ($this->getWidget()->getColumns() as $col) {
+            $cellWidget = $col->getCellWidget();
             switch (true) {
                 case $col->isHidden() === true:
                     continue 2;
+                case $cellWidget instanceof DisplayTemplate:
+                    // DisplayTemplate can render variable-height HTML, so force row-height recalculation.
+                    return false;
                 case $col->getCellWidget()->getHeight()->isUndefined() === false:
                     continue 2;
                 case $col->getNowrap() === false:

@@ -36,8 +36,9 @@ class UI5Gantt extends UI5DataTree
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
     const CONTROLLER_METHOD_SYNC_TO_GANTT = 'syncTreeToGantt';
-    
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
+    const CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES = 'getGlobalStartEndDates';
+    const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
     // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
@@ -183,18 +184,17 @@ class UI5Gantt extends UI5DataTree
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
-        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable', $this->buildJsSyncTreeToGantt('oTable'));
+        $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, scrollToToday', $this->buildJsSyncTreeToGantt('oTable', 'scrollToToday'));
         $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
-        $keepScrollPosition = json_encode($widget->getKeepScrollPosition());
+        $controller->addMethod(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this,'', $this->buildJsGetGlobalStartEndDates());
+        $controller->addMethod(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this,'gantt', $this->buildJsSetGlobalStartEndDatesToGantt('gantt'));
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
         }
         
-        // adds the view mode buttons to the toolbar
-        $aViewModes = $widget->getTimelineConfig()->getViews();
-        $this->addGanttViewModeButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),2, $aViewModes);
-        $this->addGanttScrollButtons($this->getWidget()->getToolbarMain()->getButtonGroup(0),1);
+        // adds the Gantt buttons to the toolbar as separate group.
+        $this->addGanttButtons();
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -208,14 +208,6 @@ class UI5Gantt extends UI5DataTree
                  let toolbarOffsetHeight = sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanel').children('.exf-datatoolbar')[0]?.offsetHeight
                  if (toolbarOffsetHeight !== undefined) {
                    sap.ui.getCore().byId('{$this->getId()}').$().parents('.sapMPanelContent').css("height", "calc(100% - " + toolbarOffsetHeight + "px)");
-                 }
-                 
-                 // In some cases (tab switch or back navigation) the gantt shows the left coner of the diagram. 
-                 // This is a fix for this behaviour.
-                 if ($keepScrollPosition) {
-                    setTimeout(function(){
-                      oCtrl.gantt.set_scroll_position("today");
-                    },150);
                  }
                },0);
 JS
@@ -238,21 +230,30 @@ JS
                                 oCtrl.gantt = {$this->buildJsGanttInit()}
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
+                                
+                                // This code part is only executed if the TreeTable data has changed (also on filter) and not by scroll or Tab switch:
                                 oRowsBinding.attachChange(function(oEvent){
                                     var oBinding = oEvent.getSource();
-                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                                    
+                                    // Calculating the interval of the Gantt view (start and end):
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
+                                    // Re-rendering the Gantt with the new data:
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                                 });
-                                
 
+                                // Resize handler:
                                 sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
                                 });
-                            } else if ($keepScrollPosition) {
-                              setTimeout(function(){
-                                oCtrl.gantt.set_scroll_position("today");
-                              },100);
                             }
-                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                            
+                            // If there are a Tab with another initialized Gantt, 
+                            // it will not calculate the global_min_view values because the data is not loaded there yet.
+                            // This code part is executed on each render, also on each Tab switch so we check if the global_min_view values are initialized.
+                            if (oCtrl.gantt.options.global_min_view_start === null && oCtrl.gantt.options.global_min_view_end === null) {
+                              {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
+                            }
+                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                         },0);
                     }
                 })
@@ -340,18 +341,18 @@ JS;
         $endCol = $calItem->getEndTimeColumn();
         $endFormatter = $this->getFacade()->getDataTypeFormatter($endCol->getDataType());
         $titleOverflow = $calItem->getTitleOverflow() ?? 'outside';
-        $keepScrollPosition = $widget->getKeepScrollPosition();
         $defaultDurationHours = $calItem->getDefaultDurationHours(48);
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
                 
         if ($startCol->getDataType() instanceof DateDataType) {
             $dateFormat = $startFormatter->getFormat();
         } else {
-            $dateFormat = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.DATE_FORMAT');
+            $dateFormat = $translator->translate('LOCALIZATION.DATE.DATE_FORMAT');
         }
         
         // see if this particular child(oChildRow)is to be moved along with its parent if the parent is moved
@@ -386,14 +387,14 @@ JS;
         duration: '3d',
       }
     ], {
-        view_mode_select: false, // TODO SR: Remove this property, as we now have custom buttons for view mode selection
+        view_mode_select: false, // Keep at false, we use here UI5 MenuButton for view mode selection instead.
         today_button: false,
         upper_header_height: 40,
         lower_header_height: 25,
         auto_move_label: true,
         view_modes: buildedViewModes,
         view_mode: '{$initialViewName}',
-        infinite_padding: true,
+        infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
         // TODO SR: Build uxon properties if ready:
         popup_on: 'click', //hover, click
@@ -401,13 +402,13 @@ JS;
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
         date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
-        row_height: 33, //33 //TODO SR: Default value. Change it only after the row hight of the left UI5Table is implemented and is set to the same value!
-        row_lanes: 2, //2 //TODO SR: Default value. Increase it only after the increase of the row_height to keep the text of the bars readable.
-        popup_aggregate_expand_tasks: false, //TODO SR: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
-        include_today_in_padding: false, //TODO SR: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
+        row_height: 33, // Initial value. Row zoom can modify this.
+        row_lanes: 2, // Initial value. Row zoom can modify this.
+        popup_aggregate_expand_tasks: false, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
+        include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
         popup_aggregate_gantt_width: 360, // Width in px for the Gantt shown inside aggregation popups.
-        popup_aggregate_style: 'list', // 'list' | 'table'
-        popup_aggregate_include_upper_row_tasks: false, // Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        popup_aggregate_style: 'list', // 'list' | 'table' TODO SR (@experimental)
+        popup_aggregate_include_upper_row_tasks: false, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
         popup: {$this->buildJsRenderPopup()},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
@@ -418,13 +419,18 @@ JS;
         //bar_corner_radius: 3,
         //arrow_curve: 5,
         padding: 14,
-        //view_mode: 'Tage', //TODO SR: Currently still overwritten by ‘view_modes’ and only works if no custom ‘view_modes’ have been passed.
         label_overflow: '$titleOverflow',
-        keep_scroll_position: '$keepScrollPosition',
-        default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. mybe add support for hours in the future.
+        default_duration: Math.ceil('$defaultDurationHours' / 24), //TODO SR: default_duration is currently only available in days. maybe add support for hours in the future.
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
-        //custom_popup_html: null,
+        on_today_missing: function() {
+          // Called if all given tasks are entirely in the past or future and does not include today's date.
+          const todayMissingPopupText = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TEXT')}';
+          const todayMissingPopupTitle = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TITLE')}';
+          {$this->buildJsShowMessageError('todayMissingPopupText', 'todayMissingPopupTitle')}
+        },
     	on_date_change: function(oTask, dStart, dEnd) {
+            // TODO: frappe-gantt lib supports editing, but currently this PowerUI part dont work yet:
+            //  Test and fix this code, if the Gantt should be editable again:
     		var oTable = sap.ui.getCore().byId('{$this->getId()}');
             var oModel = oTable.getModel();
             var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
@@ -435,8 +441,8 @@ JS;
             var sColNameEnd = '{$endCol->getDataColumnName()}';
             var bMoveChildrenWithParent = Boolean({$this->getWidget()->getChildrenMoveWithParent()});
 
-            var oldStart = moment(oGantt.dateUtils.parse(oRow[sColNameStart])); // string '10.04.2024' -> date object 10.04.2024 02:00:00 GMT+2 
-            var oldEnd = moment(oGantt.dateUtils.parse(oRow[sColNameEnd])); // string '11.04.2024' -> date object 11.04.2024 02:00:00 GMT+2 
+            var oldStart = moment(oGantt.date_utils.parse(oRow[sColNameStart])); // string '10.04.2024' -> date object 10.04.2024 02:00:00 GMT+2 
+            var oldEnd = moment(oGantt.date_utils.parse(oRow[sColNameEnd])); // string '11.04.2024' -> date object 11.04.2024 02:00:00 GMT+2 
             var newStart = moment(dStart);
             var newEnd = moment(dEnd);
             
@@ -480,8 +486,15 @@ JS;
 
 JS;
     }
-    
-    protected function buildJsSyncTreeToGantt(string $oTableJs) : string
+
+    /**
+     * Builds the Gantt tasks and re-renders it.
+     * 
+     * @param string $oTableJs
+     * @param string $scrollToToday // If set to TRUE, gantt scrolls to todays date.
+     * @return string
+     */
+    protected function buildJsSyncTreeToGantt(string $oTableJs, string $scrollToToday) : string
     {
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
@@ -496,7 +509,7 @@ JS;
             $nestedDataColName = 'null';
         }
         return <<<JS
-            const syncTreeToGantt = function(oTable) {
+            const syncTreeToGantt = function(oTable, scrollToToday) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
                 
@@ -520,7 +533,7 @@ JS;
                             progress: 0,
                             dependencies: '',
                             lineIndex: lineIndex,
-                            draggable: $draggableJs, //TODO SR: depricated. Use readonly property of gantt instead.
+                            draggable: $draggableJs,
                             color: sColor,
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
@@ -556,17 +569,17 @@ JS;
                 
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                oGantt.refresh(aTasks);
+                oGantt.refresh(aTasks, scrollToToday);
             };
 
             let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};
             if (isTableReady) {
               setTimeout(function(){
-                syncTreeToGantt($oTableJs);
+                syncTreeToGantt($oTableJs, $scrollToToday);
               },0);
             } else {
               setTimeout(function(){
-                syncTreeToGantt($oTableJs);
+                syncTreeToGantt($oTableJs, $scrollToToday);
               },200);
             }
             
@@ -588,6 +601,115 @@ JS;
             })($oTableJs);
 JS;
 
+    }
+
+    /**
+     * Takes all the rows and gives the earliest "start" and latest "end" of all rows.
+     * If only start or end is missing, then we add / subtracts the default duration to it. 
+     * 
+     * @param string $oAllRows
+     * @return string
+     */
+    public function buildJsGetGlobalStartEndDates() : string
+    {
+        $widget = $this->getWidget();
+        $calItem = $widget->getTasksConfig();
+
+        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
+            $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
+        } else {
+            $nestedDataColName = 'null';
+        }
+
+        $defaultDurationHours = $calItem->getDefaultDurationHours(48);
+        
+        return <<<JS
+
+            return (function getGlobalStartEndDates() {
+                
+                let oAllRows = sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows;
+                if (!oAllRows) return;
+                let globalStartDate = null;
+                let globalEndDate = null;
+                let sNestedColName = {$nestedDataColName}
+                let defaultDuration = Math.ceil('$defaultDurationHours' / 24);
+
+                function fnCheckRowsDates(oRow) {
+                    const startDateValue = oRow['{$calItem->getStartTimeColumn()->getDataColumnName()}'];
+                    const endDateValue = oRow['{$calItem->getEndTimeColumn()->getDataColumnName()}'];
+                    let startDate = startDateValue ? new Date(startDateValue) : null;
+                    let endDate = endDateValue ? new Date(endDateValue) : null;
+
+                    if (startDate !== null && isNaN(startDate.getTime())) {
+                      startDate = null;
+                    }
+                    
+                    if (endDate !== null && isNaN(endDate.getTime())) {
+                      endDate = null;
+                    }
+                    
+                    if (startDate === null && endDate === null) return;
+
+                    if (startDate === null) {
+                        startDate = exfTools.date.add(endDate, -defaultDuration);
+                    }
+                    if (endDate === null) {
+                        endDate = exfTools.date.add(startDate, defaultDuration);
+                    }
+
+                    if (!globalStartDate || startDate < globalStartDate) {
+                        globalStartDate = startDate;
+                    }
+                    if (!globalEndDate || endDate > globalEndDate) {
+                        globalEndDate = endDate;
+                    }
+                }
+
+                oAllRows.forEach(function(oRow) {
+                  
+                     if (sNestedColName !== null) {
+                        let oNestedData = oRow[sNestedColName];
+                        oNestedData.rows.forEach(function(oNestedRow) {
+                            fnCheckRowsDates(oNestedRow);
+                        })
+                    } else {
+                        fnCheckRowsDates(oRow);
+                    }
+                });
+                
+                return { start: globalStartDate, end: globalEndDate };
+            })();
+JS;
+
+    }
+
+    /**
+     * It calls the getGlobalStartEndDates function that takes all the rows and gives 
+     * the earliest "start" and latest "end" of all rows + default duration.
+     * Then it sets the global Gantt view start and end.
+     * 
+     * The Gantt itself only gets the tasks that are currently visible on the left table.
+     * So witch each scroll the set of tasks changes and the Gantt automatically resizes to the new set of tasks. 
+     * This causes the "scroll jumps" on each scroll, 
+     * so we set a global start and end date for the Gantt view so the Gantt does not resize on each scroll.
+     * 
+     * @param string $ganttJs
+     * @return string
+     */
+    public function buildJsSetGlobalStartEndDatesToGantt(string $ganttJs) : string
+    {
+        $controller = $this->getController();
+        
+        return <<<JS
+
+          return (function setGlobalStartEndDatesToGantt(gantt) {
+                let globalStartEndDates = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this, '')};
+                if (!!globalStartEndDates) {
+                          gantt.options.global_min_view_start = exfTools.date.format( globalStartEndDates.start, 'yyyy-MM-dd', 'en');
+                          gantt.options.global_min_view_end = exfTools.date.format( globalStartEndDates.end, 'yyyy-MM-dd', 'en');
+                }
+          })($ganttJs);
+JS;
     }
     
     /**
@@ -761,6 +883,34 @@ JS;
     }
 
     /**
+     * Adds following Gantt buttons as separate group to the toolbar:
+     * - scroll buttons "<< today >>>"
+     * - row zoom buttons "+ -"
+     * - view mode button "Months"
+     * 
+     * Read more on each button in the respective methods.
+     * 
+     * @return void
+     */
+    protected function addGanttButtons() : void
+    {
+        $widget = $this->getWidget();
+        $ganttBtnGroup = $widget->getToolbarMain()->createButtonGroup();
+        $aViewModes = $widget->getTimelineConfig()->getViews();
+        
+        
+        $this->addGanttScrollButtons($ganttBtnGroup);
+        
+        if ($widget->getTimelineConfig()->getRowZoom()) {
+            $this->addGanttRowsZoomButtons($ganttBtnGroup);
+        }
+        
+        $this->addGanttViewModeButtons($ganttBtnGroup, $aViewModes);
+        $this->getWidget()->getToolbarMain()->addButtonGroup($ganttBtnGroup);
+    }
+
+
+    /**
      * Adds gantt view mode selection buttons to the toolbar
      *
      * @param ButtonGroup $btnGrp
@@ -768,11 +918,13 @@ JS;
      * @param array $viewModes
      * @return void
      */
-    public function addGanttViewModeButtons(ButtonGroup $btnGrp, int $index = 0, array $viewModes) : void 
+    public function addGanttViewModeButtons(ButtonGroup $btnGrp, array $viewModes) : void 
     {
         if (empty($viewModes)) {
             return;
         }
+
+        $initialViewName = $this->getWidget()->getTimelineConfig()->getInitialViewName();
 
         $buttons = [];
 
@@ -786,7 +938,22 @@ JS;
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'icon' => $viewIcon,
                     'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
+
+                        (function() {
+                          // Setting the caption of the MenuButton:
+                          let oControl = sap.ui.getCore().byId('[#element_id:~self#]');
+                          // element_id:~parent gives only the group inside the menu, 
+                          // so we iterate the parents until the MenuButton is found:
+                          while (oControl && !(oControl.isA && oControl.isA('sap.m.MenuButton'))) {
+                              oControl = oControl.getParent && oControl.getParent();
+                          }
+                          
+                          if (oControl) {
+                              oControl.setText('$viewName');
+                          }
+                          // Sets the view:
+                          sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
+                      })();
 JS
                 ],
             ];
@@ -795,9 +962,9 @@ JS
         $btnGrp->addButton($btnGrp->createButton(new UxonObject([
             'widget_type' => 'MenuButton',
             'icon' => 'calendar',
-            'hide_caption' => true,
+            'caption' => $initialViewName,
             'buttons' => $buttons
-        ])), $index);
+        ])));
     }
 
     /**
@@ -826,7 +993,7 @@ JS
                 'caption' => $sToday,
                 'icon' => '',
                 'script' => <<<JS
-                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current();
+                        sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current(true, true);
 JS
             ],
             [
@@ -837,6 +1004,104 @@ JS
 JS
             ],
         ];
+
+        $this->createButtonsFromButtonArrayAndAddToButtonGroup($buttons, $btnGrp, $index);
+    }
+
+    /**
+     * Adds the rows zoom buttons to the button group at the toolbar:
+     * "+": Increases the height of the rows of the table and the gantt-chart (rowHeight). 
+     *     Also increments the number of the lanes per row (newRowLanesCount) in gantt
+     * 
+     *  "-": Decreases the height of the rows of the table and the gantt-chart.
+     *      Also decrements the number of the lanes per row in gantt
+     * 
+     * Height Calculation formula: rowHeight = (baseRowHeight / minRowLanes) * newRowLanesCount;
+     * 
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @return void
+     */
+    protected function addGanttRowsZoomButtons(ButtonGroup $btnGrp, int $index = 0) : void
+    {
+        
+        $buttons = [
+            [
+                'caption' => '',
+                'icon' => 'plus',
+                'script' => <<<JS
+
+                    let oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                    if (oGantt === undefined) return;
+                    let oTable = sap.ui.getCore().getElementById('{$this->getId()}')
+                    let newLanesPerRowNumber = oGantt.options.row_lanes + 1;
+                  
+                    // TODO SR: create Uxon properties "baseRowHeight" and "minRowLanes" (minRowLanes can not be lower than 2). 
+                    //  Use this values to set the row_lanes and row_height at the Gantt init and here:
+                    const baseRowHeight = 33; // TODO: Use this value as default for the baseRowHeight property!
+                    const minRowLanes = 2; // TODO: Use this value as default for the minRowLanes property!
+                    
+                    let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
+                    
+                    // Setting the height to the table (left)
+                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    
+                    // Setting the height to the Gantt (right)
+                    oGantt.options.row_lanes = newLanesPerRowNumber;
+                    oGantt.options.row_height = Math.floor(rowHeight);
+                    
+                    setTimeout(function(){
+                               {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                    },100);
+                
+JS
+            ],
+            [
+                'caption' => '',
+                'icon' => 'minus',
+                'script' => <<<JS
+
+                    let oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
+                    if (oGantt === undefined) return;
+                    let oTable = sap.ui.getCore().getElementById('{$this->getId()}')
+                    let newLanesPerRowNumber = oGantt.options.row_lanes - 1;
+                    if (newLanesPerRowNumber < 2) return;
+  
+                    // TODO SR: create Uxon properties "baseRowHeight" and "minRowLanes" (minRowLanes can not be lower than 2). 
+                    //  Use this values to set the row_lanes and row_height at the Gantt init and here:
+                    const baseRowHeight = 33; // TODO: Use this value as default for the baseRowHeight property!
+                    const minRowLanes = 2; // TODO: Use this value as default for the minRowLanes property!
+                    
+                    let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
+                  
+                    // Setting the height to the table (left)
+                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    
+                    // Setting the height to the Gantt (right)
+                    oGantt.options.row_lanes = newLanesPerRowNumber;
+                    oGantt.options.row_height = Math.floor(rowHeight);
+                    
+                    setTimeout(function(){
+                               {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                    },100);
+                    
+JS
+            ],
+        ];
+        
+        $this->createButtonsFromButtonArrayAndAddToButtonGroup($buttons, $btnGrp, $index);
+    }
+
+    /**
+     * Creates buttons from the given string array and adds it to the given ButtonGroup ant the given index.
+     * 
+     * @param array $buttons
+     * @param ButtonGroup $btnGrp
+     * @param int $index
+     * @return void
+     */
+    protected function createButtonsFromButtonArrayAndAddToButtonGroup(array $buttons, ButtonGroup $btnGrp, int $index = 0): void
+    {
         
         foreach ($buttons as $i => $button) {
             $btnGrp->addButton($btnGrp->createButton(new UxonObject([

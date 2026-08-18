@@ -125,7 +125,10 @@ class UI5DataConfigurator extends UI5Tabs
             // rendered BEFORE the constrcutor of the table.
             if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
                 $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
-            } 
+            }
+            if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement) === false) {
+                $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement, 'null');
+            }
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -1347,7 +1350,10 @@ JS;
                 // rendered BEFORE the constrcutor of the table.
                 if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
                     $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
-                }                
+                }
+                if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement) === false) {
+                    $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement, 'null');
+                }                                
                 $refreshP13n = $dataElement->buildJsRefreshPersonalization();
             }
             

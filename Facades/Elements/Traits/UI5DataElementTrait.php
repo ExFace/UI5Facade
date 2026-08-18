@@ -16,6 +16,7 @@ use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
+use exface\UI5Facade\Facades\Elements\UI5Button;
 use exface\UI5Facade\Facades\Elements\UI5Sidebar;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
@@ -879,7 +880,46 @@ JS;
                             var oPopover = sap.ui.getCore().byId(sPopoverId);
                             if (oPopover === undefined) {
                                 oPopover = new sap.m.Popover(sPopoverId, {
-                                    title: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
+                                    contentWidth: "16rem",
+                                    // place deselect all button in custom header layout next to title
+                                    customHeader: new sap.m.Bar({
+                                        contentLeft: [
+                                            new sap.m.Title({
+                                                text: '{= \${{$modelName}>/rows}.length} {$translator->translate('WIDGET.DATATABLE.SELECTED_ROWS')}',
+                                                wrapping: false
+                                            })
+                                        ],
+                                        contentRight: [
+                                            // clear-all button: deselects every selected row and empties the list
+                                            new sap.m.Button({
+                                                icon: 'sap-icon://decline',
+                                                type: 'Transparent',
+                                                tooltip: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
+                                                press: function(oEvent) {
+                                                    // deselect everything (visible) in the table
+                                                    var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                                                    var oModel = oTable.getModel('{$modelName}');
+                                                    oTable.__modifyingSelection = true;
+                                                    if (typeof oTable.clearSelection === 'function') {
+                                                        // sap.ui.table.Table
+                                                        oTable.clearSelection();
+                                                    } else if (typeof oTable.removeSelections === 'function') {
+                                                        // sap.m.List / sap.m.Table
+                                                        oTable.removeSelections(true);
+                                                    }
+                                                    oTable.__modifyingSelection = false;
+
+                                                    // empty model and force refresh model binding, see comment in the delete-handler below
+                                                    oModel.setProperty('/rows', []);
+                                                    oModel.refresh(true);
+
+                                                    // Tell everything bound to this widget, that the selection changed
+                                                    {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_CHANGE, false)};
+                                                    oPopover.close();
+                                                }
+                                            })
+                                        ]
+                                    }),
                                     content: [
                                         new sap.m.List({
                                             mode: "Delete",
@@ -909,26 +949,7 @@ JS;
                                                 }
                                             }
                                         })
-                                    ],/* TODO
-                                    footer: [
-                                        new sap.m.OverflowToolbar({
-                                            content: [
-                                                new sap.m.Button({
-                                                    text: "{$translator->translate('WIDGET.DATATABLE.SELECTED_CLEAR')}",
-                                                    press: function(oEvent) {
-                                                        var oBtn = oEvent.getSource();
-                                                        var oList = oPopover.getContent()[0];
-                                                        // oList.removeAllItems();
-                                                        oList.getItems().forEach(function(oItem){
-                                                            oList.fireDelete({
-                                                                listItem: oItem
-                                                            });
-                                                        });
-                                                    }
-                                                })
-                                            ]
-                                        })
-                                    ]*/
+                                    ]
                                 }).setModel(oBtn.getModel('{$modelName}'), '{$modelName}');
                                 {$this->getController()->getView()->buildJsViewGetter($this)}.addDependent(oPopover);
                             }
@@ -2561,7 +2582,7 @@ JS;
         }
         return <<<JS
                 var domTarget = $eventJsVar !== undefined ? $eventJsVar.target : null;
-                var oMenu = {$this->buildJsContextMenu($this->getWidget()->getButtons(), 'domTarget')};
+                var oMenu = {$this->buildJsContextMenu($this->getWidget()->getButtons(), 'domTarget', true)};
                 var eFocused = $(':focus');
                 var eDock = sap.ui.core.Popup.Dock;
                 oMenu.open(true, eFocused, eDock.CenterCenter, eDock.CenterBottom,  {$eventJsVar}.target);         
@@ -2766,7 +2787,7 @@ JS;
      * @param Button[]
      * @return string
      */
-    protected function buildJsContextMenu(array $buttons, string $domTargetJs = "null")
+    protected function buildJsContextMenu(array $buttons, string $domTargetJs = "null", bool $isRootMenu = false)
     {
         $coreTltr = $this->getWorkbench()->getCoreApp()->getTranslator();
         
@@ -2877,6 +2898,7 @@ JS;
                                 })
                             });
                         })($domTargetJs),
+                        {$this->buildJsContextMenuItemOpenInNewTab($isRootMenu)}
                         {$this->buildJsContextMenuButtons($buttons, true)}
                     ],
                     itemSelect: function(oEvent) {
@@ -2887,6 +2909,82 @@ JS;
                         }
                     }
                 })
+JS;
+    }
+    
+    /**
+     * Returns the JS constructor for the context menu item to open the default action of a row in a new tab.
+     * 
+     * The item is only rendered if `WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB` is enabled in the facade
+     * config. The default action is the one bound to double-click on a row. Only maximized dialogs can
+     * be opened this way because only they have their own route in the UI5 app.
+     * 
+     * If multiple buttons are bound to double-click, the first one that is enabled and visible at
+     * runtime is used - just like buildJsClickHandlerDoubleClick() does for the double-click itself.
+     * 
+     * @return string
+     */
+    protected function buildJsContextMenuItemOpenInNewTab(bool $isRootMenu) : string
+    {
+        if ($isRootMenu === false) {
+            return '';
+        }
+        if (! $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB')) {
+            return '';
+        }
+        $btnEls = [];
+
+        // Collect all buttons bound to double-click that open a dialog page. Buttons hidden or
+        // disabled via hidden_if/disabled_if are sorted out at runtime by checking the original button
+        foreach ($this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK) as $btn) {
+            if ($btn->isHidden() || $btn->isDisabled() === true) {
+                continue;
+            }
+            $el = $this->getFacade()->getElement($btn);
+            if (($el instanceof UI5Button) && $el->opensDialogPage()) {
+                $btnEls[] = $el;
+            }
+        }
+        if (empty($btnEls)) {
+            return '';
+        }
+        
+        $btnIdsJs = '';
+        $openJs = '';
+        foreach ($btnEls as $btnEl) {
+            $btnIdsJs .= ($btnIdsJs ? ',' : '') . "'{$btnEl->getId()}'";
+            $openJs .= <<<JS
+
+                                oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
+                                if (oBtn && oBtn.getEnabled() && oBtn.getVisible()) {
+                                    {$btnEl->buildJsOpenDialogInNewTab()};
+                                    return;
+                                }
+JS;
+        }
+        $rowsSelectedJs = $this->buildJsGetRowsSelected("sap.ui.getCore().byId('{$this->getId()}')");
+        
+        return <<<JS
+
+                        new sap.ui.unified.MenuItem({
+                            icon: "sap-icon://positive",
+                            text: {$this->escapeString($this->translate('WIDGET.DATATABLE.OPEN_IN_NEW_TAB'))},
+                            enabled: (function(){
+                                // open in new tab should only be available for one row selected
+                                if (({$rowsSelectedJs} || []).length > 1) {
+                                    return false;
+                                }
+                                return [{$btnIdsJs}].some(function(sBtnId){
+                                    var oBtn = sap.ui.getCore().byId(sBtnId);
+                                    return oBtn ? oBtn.getEnabled() && oBtn.getVisible() : false;
+                                });
+                            })(),
+                            startsSection: true,
+                            select: function(oEvent) {
+                                var oBtn;
+                                {$openJs}
+                            }
+                        }),
 JS;
     }
     
