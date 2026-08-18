@@ -1951,6 +1951,14 @@ JS;
                 }
                 oTable.setEnableGrouping(true);
                 {$groupOrderSetupJs}
+                // Force the experimental grouping to rebuild on every (re)load. Native grouping
+                // guards its one-time sort/group pass with `oBinding._modified` and never re-runs it
+                // on the same binding. Since `setGroupBy()` is a no-op when the group column does not
+                // change, after a header-sort reload the binding would keep its stale group structure
+                // (all rows collapsed into a single, wrong group). Toggling `groupBy` via null forces
+                // a fresh row binding, so the grouping is rebuilt against the freshly computed
+                // __exfGroupSortKey order.
+                oTable.setGroupBy(null);
                 oTable.setGroupBy('{$groupColId}');
                 
                 var oBinding = oTable.getBinding('rows');
