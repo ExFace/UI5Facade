@@ -441,8 +441,8 @@ JS;
             var sColNameEnd = '{$endCol->getDataColumnName()}';
             var bMoveChildrenWithParent = Boolean({$this->getWidget()->getChildrenMoveWithParent()});
 
-            var oldStart = moment(oGantt.dateUtils.parse(oRow[sColNameStart])); // string '10.04.2024' -> date object 10.04.2024 02:00:00 GMT+2 
-            var oldEnd = moment(oGantt.dateUtils.parse(oRow[sColNameEnd])); // string '11.04.2024' -> date object 11.04.2024 02:00:00 GMT+2 
+            var oldStart = moment(oGantt.date_utils.parse(oRow[sColNameStart])); // string '10.04.2024' -> date object 10.04.2024 02:00:00 GMT+2 
+            var oldEnd = moment(oGantt.date_utils.parse(oRow[sColNameEnd])); // string '11.04.2024' -> date object 11.04.2024 02:00:00 GMT+2 
             var newStart = moment(dStart);
             var newEnd = moment(dEnd);
             
@@ -533,7 +533,7 @@ JS;
                             progress: 0,
                             dependencies: '',
                             lineIndex: lineIndex,
-                            draggable: $draggableJs, //TODO SR: depricated. Use readonly property of gantt instead.
+                            draggable: $draggableJs,
                             color: sColor,
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker

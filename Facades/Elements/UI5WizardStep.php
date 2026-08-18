@@ -84,7 +84,7 @@ JS;
         content: [
             {$introText}
             {$this->buildJsLayoutConstructor()},
-            {$this->getFacade()->getElement($toolbar)->buildJsConstructor()}.setStyle('Clear')
+            {$this->getFacade()->getElement($toolbar)->buildJsConstructor()}.setStyle('Clear').addStyleClass('exf-wizard-step-toolbar-sticky')
         ]
     }).addStyleClass('{$cssClasses}')
 JS;
