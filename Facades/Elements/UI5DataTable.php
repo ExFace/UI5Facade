@@ -601,6 +601,17 @@ JS;
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
             var aSelected = null;
             
+            // Ignore programmatic selection clears caused by data reloads (e.g. the refresh
+            // performed after an Edit/Save action). Such events fire with userInteraction=false
+            // and an empty selection. Overwriting the selection model here would erase the stored
+            // selection before buildJsDataLoaderOnLoadedRestoreSelection() can restore it, so the
+            // user's row selection would be lost on every action. Keep the stored selection instead
+            // - a genuine user "deselect all" always reports userInteraction=true and is unaffected.
+            var bUserInteraction = (typeof $oEventJs.getParameter === 'function' && $oEventJs.getParameter('userInteraction') !== undefined) ? $oEventJs.getParameter('userInteraction') : true;
+            if (bUserInteraction === false && aRowsSelectedVisible.length === 0 && (oModelSelected.getProperty('/rows') || []).length > 0) {
+                return;
+            }
+            
             // Exclude footers from selections.
             if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
                 var aSelectedIndices = oTable.getSelectedIndices();
