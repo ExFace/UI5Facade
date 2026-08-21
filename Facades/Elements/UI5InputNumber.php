@@ -5,6 +5,7 @@ use exface\Core\DataTypes\NumberDataType;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait;
 use exface\Core\Factories\DataTypeFactory;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
+use exface\Core\Widgets\InputNumber;
 use exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 
@@ -34,18 +35,6 @@ class UI5InputNumber extends UI5Input
         }
         return parent::buildJsPropertyType();
     }
-        
-    /**
-     * Returns the initial value defined in UXON as number or an quoted empty string
-     * if not initial value was set.
-     * 
-     * @return string|NULL
-     */
-    protected function buildJsInitialValue() : string
-    {
-        $val = $this->getWidget()->getValueWithDefaults();
-        return (is_null($val) || $val === '') ? '""' : $val;
-    }
 
     /**
      *
@@ -54,6 +43,18 @@ class UI5InputNumber extends UI5Input
      */
     public function buildJsValueGetter()
     {
+        // If not bound to a model, the control uses the native HTML5 `type="Number"` input
+        // (see buildJsPropertyType()), which only ever holds a plain, unformatted number - so
+        // parse it directly instead of via the formatter, which expects the locale-formatted
+        // display value of a model-bound control and would otherwise mis-parse (or reject) it.
+        // An empty string must yield `null` explicitly - `parseFloat('')` would produce `NaN`.
+        if ($this->isValueBoundToModel() === false) {
+            return <<<JS
+(function(sVal){
+    return (sVal === null || sVal === undefined || sVal === '') ? null : parseFloat(sVal);
+})(sap.ui.getCore().byId('{$this->getId()}').getValue())
+JS;
+        }
         $jsFormatter = $this->getValueBindingFormatter()->getJsFormatter();
         return <<<JS
 (function(oInput){
@@ -106,6 +107,61 @@ JS;
         parent::registerExternalModules($controller);
         $this->getValueBindingFormatter()->registerExternalModules($controller);
         return $this;
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+        switch (true) {
+            case $functionName === InputNumber::FUNCTION_ADD:
+                return $this->buildJsCallFunctionAddSubtract($parameters);
+        }
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+    
+    /**
+     * Adds (or subtracts) a number to the current value of the input.
+     * 
+     * @param array $parameters
+     * @return string
+     */
+    protected function buildJsCallFunctionAddSubtract(array $parameters = []) : string
+    {
+        $jsFormatter = $this->getValueBindingFormatter()->getJsFormatter();
+        $isBoundToModel = $this->isValueBoundToModel();
+        // If the value is NOT bound to a model, the control uses the native HTML5
+        // `type="Number"` input (see buildJsPropertyType()), which only ever holds a plain
+        // number (no grouping/decimal-separator formatting, no prefix/suffix, no empty-format
+        // sentinel) - so write it back directly instead of going through the formatter, which
+        // is tailored towards the formatted display of a model-bound value.
+        $newValueJs = $isBoundToModel ? $jsFormatter->buildJsFormatter('nNew') : 'String(nNew)';
+        // `setValue()` alone does not reliably push the new value through the model's binding
+        // type (e.g. `sap.ui.model.type.Float` uses locale-based parsing, which may not match
+        // our custom formatting), so the model property is updated explicitly here too - the
+        // same way it is done in buildJsValidatorConstraints().
+        $modelSyncJs = '';
+        if ($this->getUseWidgetId() === true && $isBoundToModel === true) {
+            $modelSyncJs = <<<JS
+
+    sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', nNew);
+    sap.ui.getCore().byId('{$this->getId()}').getBinding('value')?.refresh(true);
+JS;
+        }
+        return <<<JS
+(function(nStep){
+    var nVal = {$this->buildJsValueGetter()};
+    if (nVal === null || nVal === undefined || isNaN(nVal)) {
+        nVal = 0;
+    }
+    var nNew = nVal + nStep;
+    {$this->buildJsValueSetter($newValueJs)};{$modelSyncJs}
+})(parseFloat('{$parameters[0]}'));
+
+JS;
     }
     
     /**

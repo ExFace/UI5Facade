@@ -35,11 +35,9 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .sapMInputBaseDisabledWrapper>.sapMInputBaseInner {color: black;}
 
 /* RangeSpinnerFilter */
-.exf-spinner-filter > div {margin-right: 0 !important}
+.exf-spinner-filter > div {margin-right: 4px !important}
+.exf-spinner-filter > div:last-of-type {margin-right: 0 !important; overflow: hidden}
 .exf-spinner-filter .sapMBtnInner {border: .0625rem solid #89919a}
-.exf-spinner-filter > div:first-of-type button {margin-right: -3px}
-.exf-spinner-filter > div:last-of-type button {margin-left: -3px;}
-.exf-spinner-filter > div:last-of-type {overflow: hidden}
 
 /* sap.m.Table */
 .sapMList.sapMListBGTranslucent.sapMListTblCnt {overflow-x: scroll}

@@ -7,6 +7,8 @@ use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Exceptions\Facades\FacadeLogicError;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
+use exface\Core\Widgets\InputComboTable;
+use exface\Core\Facades\AbstractAjaxFacade\Interfaces\JsValueValidityCheckerInterface;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 
 /**
@@ -25,13 +27,34 @@ use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
  * - If a selectedKey is set and the user types an input which does not correspond to any item's text, the selectedKey will be set to an empty string ("")
  * - If a selectedKey is set and the user selects an item, the selectedKey will be updated to match the selected item's key.
  * - If a selectedKey is bound and the user types before the data is loaded, the user's input will be overwritten by the binding update.
+ * 
+ * ### autosearch_single_suggestion
+ * 
+ * If `autosearch_single_suggestion` is enabled on the widget, a silent autosuggest lookup (i.e. one
+ * that does not open the suggestion popup) is fired for an empty key whenever the value could
+ * potentially resolve to exactly one row:
+ * 
+ * - when the view is shown (`addOnShowViewScript()`)
+ * - when a prefill changes the data of the view (`addOnPrefillDataChangedScript()`)
+ * - when the value of a widget, that a required table filter is linked to, changes and the combo
+ *   currently has no key selected
+ * 
+ * This lookup is only fired if every table filter that is `required` and bound to another widget
+ * via a widget link currently has a value (see `buildJsRequiredFiltersFilledCondition()`). This
+ * prevents pointless (and potentially expensive) requests while mandatory filters are still empty -
+ * e.g. right after the view was shown and the widgets they depend on have not been filled in yet.
+ * 
+ * If the value of a linked filter changes while this combo already has a key selected, the key is
+ * revalidated against the new filter instead (silent lookup for the current key). If that lookup
+ * finds no matching row at all, the control is emptied automatically instead of keeping the
+ * now-invalid, stale value selected.
  *
  * @method \exface\Core\Widgets\InputComboTable getWidget()
  *
  * @author Andrej Kabachnik
  *        
  */
-class UI5InputComboTable extends UI5Input
+class UI5InputComboTable extends UI5Input implements JsValueValidityCheckerInterface
 {
     const DROPDOWN_WIDTH_MIN = 400;
     
@@ -96,9 +119,12 @@ JS;
         // new filter, nothing changes. If the new filter excludes the current value, the suggest
         // will return an empty result, which will invalidate the field, and the user will need
         // to select another value.
+        // If there is no current value and autosearch_single_suggestion is enabled, search for a
+        // single matching suggestion instead - the filter change might now yield exactly one match.
         // The setTimeout() had something to do with async prefills. No sure, if it is still needed
         // as the logic had change a couple of times.
         if ($widget->getTable()->hasFilters()) {
+            $autoSearchSingleJs = $widget->getAutoSearchSingleSuggestion() ? "if ({$this->buildJsRequiredFiltersFilledCondition()}) { oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')}); }" : '';
             foreach ($widget->getTable()->getFilters() as $fltr) {
                 if ($link = $fltr->getValueWidgetLink()) {
                     $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
@@ -109,6 +135,8 @@ JS;
                     var mKey = oInput.getSelectedKey();
                     if (mKey !== undefined && mKey !== null && mKey !== '') {
                         oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('mKey')});
+                    } else {
+                        {$autoSearchSingleJs}
                     }
                 },0);
 JS);
@@ -117,13 +145,12 @@ JS);
         }
         
         // lookup if only a single suggestion is found if the view is shown or the prefill changes
-        // TODO idea: also do that if widgets bound to that combo as filters change values (similar as above)
         if ($widget->getAutoSearchSingleSuggestion()) {
             $jsSearchSingleSuggestion = <<<JS
             setTimeout(function(){
                     var oInput = sap.ui.getCore().byId('{$this->getId()}');
                     var mKey = oInput.getSelectedKey();
-                    if (mKey == undefined || mKey == null || mKey == '') {
+                    if ((mKey == undefined || mKey == null || mKey == '') && ({$this->buildJsRequiredFiltersFilledCondition()})) {
                         oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')});
                     }
             },0);
@@ -578,12 +605,14 @@ JS;
         $delim = json_encode($widget->getMultiSelectValueDelimiter());
         $allowNewValues = $widget->getAllowNewValues() ? 'true' : 'false';
         $autoSelectSingleJs = $widget->getAutoselectSingleSuggestion() ? 'true' : 'false';
+        $autoSearchSingleJs = $widget->getAutosearchSingleSuggestion() ? 'true' : 'false';
         
         // NOTE: in sap.m.MultiInput there are no tokens yet, so we tell the getter
         // method not to rely on the explicitly!!!
         $onSuggestLoadedJs = <<<JS
                             
                 var bAutoSelectSingle = {$autoSelectSingleJs};
+                var bAutoSearchSingle = {$autoSearchSingleJs};
                 var data = oModel.getProperty('/rows');
                 // Default key/text to '' defensively: if either is null/undefined here (e.g. right
                 // after a prefill, before the selectedKey binding has fully settled), calling .split()
@@ -682,6 +711,16 @@ JS;
                                     .setValueState(sap.ui.core.ValueState.None);
                                 oInput._invalidKey = false;
                                 break;
+                            // No rows matched the current key at all (e.g. a filter this widget depends on
+                            // changed and the previously selected value no longer qualifies) - empty the
+                            // control instead of leaving a stale, no-longer-valid value selected.
+                            case iRowsCnt === 0 && bAutoSearchSingle === true:
+                                oInput
+                                    .{$this->buildJsEmptyMethod(false)}
+                                    .setValueState(sap.ui.core.ValueState.None);
+                                oInput._invalidKey = false;
+                                oInput.fireChange({value: ''});
+                                break;
                             default:
                                 var sErrorText = curText;
                                 if ((! sErrorText || sErrorText.toString().trim() === '') && oInput.getTokens !== undefined) {
@@ -759,6 +798,10 @@ JS;
                     oInput._openSuggestionPopup();
                 }
                 
+                if (fnCallback) {
+                    fnCallback();
+                }
+                
 JS;
         
         return <<<JS
@@ -799,13 +842,6 @@ JS;
                 $.extend(params, qParams);
 
                 var oModel = oInput.getModel('{$this->getModelNameForAutosuggest()}');
-                
-                if (fnCallback) {
-                    oModel.attachRequestCompleted(function(){
-                        fnCallback();
-                        oModel.detachRequestCompleted(fnCallback);
-                    });
-                }
 
                 if (bSilent) {
                     {$this->buildJsBusyIconShow()}
@@ -818,6 +854,28 @@ JS;
                 {$serverAdapter->buildJsServerRequest($widget->getLazyLoadingAction(), 'oModel', 'params', $onSuggestLoadedJs, $this->buildJsBusyIconHide())}
 
 JS;
+    }
+    
+    /**
+     * Returns a JS boolean expression that evaluates to TRUE only if every required table filter,
+     * that is bound to another widget via a widget link, currently has a value.
+     * 
+     * Filters, that are not required or not linked to another widget, are not taken into account,
+     * because their value does not depend on user interaction the way linked required filters do.
+     * 
+     * @return string
+     */
+    protected function buildJsRequiredFiltersFilledCondition() : string
+    {
+        $conditionsJs = [];
+        foreach ($this->getWidget()->getTable()->getFilters() as $fltr) {
+            if ($fltr->isRequired() === false || ! $link = $fltr->getValueWidgetLink()) {
+                continue;
+            }
+            $linkedElement = $this->getFacade()->getElement($link->getTargetWidget());
+            $conditionsJs[] = "(function(){ var v = {$linkedElement->buildJsValueGetter()}; return v !== undefined && v !== null && v !== ''; })()";
+        }
+        return empty($conditionsJs) ? 'true' : implode(' && ', $conditionsJs);
     }
     
     /**
@@ -994,6 +1052,89 @@ JS;
     public function buildJsValueSetterMethod($value)
     {
         throw new FacadeLogicError('Cannot use UI5InputComboTable::buildJsValueSetterMethod() - use buildJsValueSetter() instead!');
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsCallFunction()
+     */
+    public function buildJsCallFunction(string $functionName = null, array $parameters = [], ?string $jsRequestData = null) : string
+    {
+        switch (true) {
+            case $functionName === InputComboTable::FUNCTION_ADD:
+                return $this->buildJsCallFunctionAddSubtract($parameters);
+        }
+        return parent::buildJsCallFunction($functionName, $parameters, $jsRequestData);
+    }
+    
+    /**
+     * Adds (or subtracts) a number to the current value column value.
+     * 
+     * Only meaningful if the value attribute has a numeric data type. If the resulting value
+     * does not match any row, the change is reverted back to the value it had before.
+     * 
+     * @param array $parameters
+     * @return string
+     */
+    protected function buildJsCallFunctionAddSubtract(array $parameters = []) : string
+    {
+        $filterParam = UrlDataType::urlEncode($this->getFacade()->getUrlFilterPrefix() . $this->getWidget()->getValueColumn()->getAttributeAlias());
+        return <<<JS
+(function(nStep){
+    var oInput = sap.ui.getCore().byId('{$this->getId()}');
+    if (oInput === undefined) {
+        return;
+    }
+    var sPrevKey = oInput.{$this->buildJsValueGetterMethod(false)};
+    var sPrevText = oInput.getValue();
+    var nVal = parseFloat({$this->buildJsValueGetter()});
+    if (nVal === null || nVal === undefined || isNaN(nVal)) {
+        nVal = 0;
+    }
+    var sNewKey = (nVal + nStep).toString();
+    oInput.setSelectedKey(sNewKey);
+})(parseFloat('{$parameters[0]}'));
+
+JS;
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Interfaces\JsValueValidityCheckerInterface::buildJsCheckValueValid()
+     */
+    public function buildJsCheckValueValid(string $jsCandidateValue, string $jsCallback) : string
+    {
+        $widget = $this->getWidget();
+        $configuratorElement = $this->getFacade()->getElement($widget->getTable()->getConfiguratorWidget());
+        $serverAdapter = $this->getFacade()->getElement($widget->getTable())->getServerAdapter();
+        $filterParam = UrlDataType::urlEncode($this->getFacade()->getUrlFilterPrefix() . $widget->getValueColumn()->getAttributeAlias());
+        // Use a throw-away model here instead of the control's own suggest model/selectedKey -
+        // this check must not have any side effects on the control itself.
+        $onLoadedJs = "({$jsCallback})(parseInt(oCheckModel.getProperty('/recordsTotal')) > 0);";
+        $onErrorJs = "({$jsCallback})(false);";
+        return <<<JS
+(function(sVal){
+    if (sVal === undefined || sVal === null || sVal === '') {
+        ({$jsCallback})(false);
+        return;
+    }
+    var oCheckModel = new sap.ui.model.json.JSONModel();
+    var params = {
+        action: "{$widget->getLazyLoadingActionAlias()}",
+        resource: "{$this->getPageId()}",
+        element: "{$widget->getTable()->getId()}",
+        object: "{$widget->getTable()->getMetaObject()->getId()}",
+        length: "1",
+        start: 0,
+        data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
+    };
+    params['{$filterParam}'] = sVal;
+    {$serverAdapter->buildJsServerRequest($widget->getLazyLoadingAction(), 'oCheckModel', 'params', $onLoadedJs, $onErrorJs)}
+})({$jsCandidateValue});
+
+JS;
     }
     
     /**
