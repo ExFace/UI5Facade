@@ -27,27 +27,6 @@ use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
  * - If a selectedKey is set and the user types an input which does not correspond to any item's text, the selectedKey will be set to an empty string ("")
  * - If a selectedKey is set and the user selects an item, the selectedKey will be updated to match the selected item's key.
  * - If a selectedKey is bound and the user types before the data is loaded, the user's input will be overwritten by the binding update.
- * 
- * ### autosearch_single_suggestion
- * 
- * If `autosearch_single_suggestion` is enabled on the widget, a silent autosuggest lookup (i.e. one
- * that does not open the suggestion popup) is fired for an empty key whenever the value could
- * potentially resolve to exactly one row:
- * 
- * - when the view is shown (`addOnShowViewScript()`)
- * - when a prefill changes the data of the view (`addOnPrefillDataChangedScript()`)
- * - when the value of a widget, that a required table filter is linked to, changes and the combo
- *   currently has no key selected
- * 
- * This lookup is only fired if every table filter that is `required` and bound to another widget
- * via a widget link currently has a value (see `buildJsRequiredFiltersFilledCondition()`). This
- * prevents pointless (and potentially expensive) requests while mandatory filters are still empty -
- * e.g. right after the view was shown and the widgets they depend on have not been filled in yet.
- * 
- * If the value of a linked filter changes while this combo already has a key selected, the key is
- * revalidated against the new filter instead (silent lookup for the current key). If that lookup
- * finds no matching row at all, the control is emptied automatically instead of keeping the
- * now-invalid, stale value selected.
  *
  * @method \exface\Core\Widgets\InputComboTable getWidget()
  *
@@ -124,7 +103,7 @@ JS;
         // The setTimeout() had something to do with async prefills. No sure, if it is still needed
         // as the logic had change a couple of times.
         if ($widget->getTable()->hasFilters()) {
-            $autoSearchSingleJs = $widget->getAutoSearchSingleSuggestion() ? "if ({$this->buildJsRequiredFiltersFilledCondition()}) { oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')}); }" : '';
+            $autoSearchSingleJs = $widget->getAutoSearchSingleSuggestion() ? "oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')});" : '';
             foreach ($widget->getTable()->getFilters() as $fltr) {
                 if ($link = $fltr->getValueWidgetLink()) {
                     $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
@@ -150,7 +129,7 @@ JS);
             setTimeout(function(){
                     var oInput = sap.ui.getCore().byId('{$this->getId()}');
                     var mKey = oInput.getSelectedKey();
-                    if ((mKey == undefined || mKey == null || mKey == '') && ({$this->buildJsRequiredFiltersFilledCondition()})) {
+                    if (mKey == undefined || mKey == null || mKey == '') {
                         oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')});
                     }
             },0);
@@ -857,28 +836,6 @@ JS;
     }
     
     /**
-     * Returns a JS boolean expression that evaluates to TRUE only if every required table filter,
-     * that is bound to another widget via a widget link, currently has a value.
-     * 
-     * Filters, that are not required or not linked to another widget, are not taken into account,
-     * because their value does not depend on user interaction the way linked required filters do.
-     * 
-     * @return string
-     */
-    protected function buildJsRequiredFiltersFilledCondition() : string
-    {
-        $conditionsJs = [];
-        foreach ($this->getWidget()->getTable()->getFilters() as $fltr) {
-            if ($fltr->isRequired() === false || ! $link = $fltr->getValueWidgetLink()) {
-                continue;
-            }
-            $linkedElement = $this->getFacade()->getElement($link->getTargetWidget());
-            $conditionsJs[] = "(function(){ var v = {$linkedElement->buildJsValueGetter()}; return v !== undefined && v !== null && v !== ''; })()";
-        }
-        return empty($conditionsJs) ? 'true' : implode(' && ', $conditionsJs);
-    }
-    
-    /**
      * The value and selectedKey properties of input controls do not seem to work before
      * a model is bound, so we set initial value programmatically at the end of the constructor.
      * 
@@ -1093,7 +1050,10 @@ JS;
         nVal = 0;
     }
     var sNewKey = (nVal + nStep).toString();
-    oInput.setSelectedKey(sNewKey);
+    oInput._invalidKey = false;
+    oInput
+        .setSelectedKey(sNewKey)
+        .fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('sNewKey')});
 })(parseFloat('{$parameters[0]}'));
 
 JS;
