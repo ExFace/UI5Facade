@@ -48,6 +48,7 @@ class UI5Wizard extends UI5Container
     protected function buildJsConstructorForWizard(string $oControllerJs) : string
     {           
         $this->checkWizardStepIconAttributes();
+        $this->registerStepHints();
         
         if ($this->getWidget()->hasButtons() === true) {
             $wizardTbEl = $this->getFacade()->getElement($this->getWidget()->getToolbarMain());
@@ -75,6 +76,54 @@ class UI5Wizard extends UI5Container
         })
 
 JS;
+    }
+ 
+    /**
+     * Adds native tooltips (from each step's `hint`) to the steps in the progress navigator.
+     * 
+     * The `sap.m.WizardStep` control does not expose its tooltip on the numbered step in the
+     * progress navigator (the timeline at the top). The navigator renders every step as an
+     * `<li data-sap-ui-wpn-step="N">`, so we set the `title` attribute on those elements after
+     * every render of the view.
+     * 
+     * @return UI5Wizard
+     */
+    protected function registerStepHints() : UI5Wizard
+    {
+        $hints = [];
+        foreach ($this->getWidget()->getSteps() as $step) {
+            $hint = $step->getHint();
+            if ($hint !== null && $hint !== '') {
+                $hints[$step->getStepNumber()] = $hint;
+            }
+        }
+        if (empty($hints)) {
+            return $this;
+        }
+        $hintsJson = $this->escapeString($hints, false);
+        $js = <<<JS
+
+            (function(){
+                var oHints = {$hintsJson};
+                var fnApplyHints = function(){
+                    var jqNav = $('#{$this->getId()}-progressNavigator');
+                    Object.keys(oHints).forEach(function(sStep){
+                        jqNav.find('li[data-sap-ui-wpn-step="' + sStep + '"]').attr('title', oHints[sStep]);
+                    });
+                };
+                // Defer to let UI5 finish rendering the navigator before patching titles
+                setTimeout(fnApplyHints, 0);
+                var oWizard = sap.ui.getCore().byId('{$this->getId()}');
+                // The navigator regenerates its <li> elements on step changes, dropping our titles - reapply
+                if (oWizard && !oWizard.data('exfHintsBound')) {
+                    oWizard.data('exfHintsBound', true);
+                    oWizard.attachStepActivate(function(){ setTimeout(fnApplyHints, 0); });
+                }
+            })();
+
+JS;
+        $this->getController()->addOnShowViewScript($js, false);
+        return $this;
     }
  
     /**
