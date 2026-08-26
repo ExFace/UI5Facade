@@ -194,21 +194,19 @@ JS;
     }
     
     /**
-     * Returns the tooltip property for the caption label - defaults to the attribute's hint/description.
+     * Returns the tooltip property for the caption label - always the attribute's hint/description.
      * 
-     * If the value itself has a hint or label (e.g. an enum), that is shown on the value control instead
-     * (see `buildJsPropertyTooltip()`), so the caption only needs to show the attribute's hint/description
-     * here to avoid duplicating information. Otherwise, the caption gets the exact same tooltip as the
-     * value control, as it always did before value hints/labels were resolved.
+     * The caption label is a sibling of the value control, so any model set on the value control
+     * (e.g. an internal date model with a named model) is not propagated to the label - UI5 only
+     * propagates models downwards to a control's own children. A model-bound tooltip would therefore
+     * never resolve on the label and show nothing at all. Hence the caption always uses a static
+     * tooltip built from the attribute's hint (or caption as fallback), while the value control keeps
+     * its own - possibly model-bound - tooltip (see `buildJsPropertyTooltip()`).
      * 
      * @return string
      */
     protected function buildJsPropertyTooltipForLabel() : string
     {
-        if (! $this->hasValueHintOrLabel()) {
-            return $this->buildJsPropertyTooltip();
-        }
-        
         $widget = $this->getWidget();
         $hint = $widget->getHideCaption() ? '' : ($widget->getHint() ? $widget->getHint() : $widget->getCaption());
         if ($hint === '') {
