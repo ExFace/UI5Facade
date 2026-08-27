@@ -1400,6 +1400,14 @@ JS;
 
                 // reset current custom width properties of the table columns
                 let oDataTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}'); 
+
+                // clear the setup flag on all columns (any table type) so hidden_if manages them again
+                if (oDataTable && typeof oDataTable.getColumns === 'function') {
+                    oDataTable.getColumns().forEach(oCol => {
+                        oCol.data("_exfChangedBySetup", false);
+                    });
+                }
+
                 if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
 
                     // clear custom width data
