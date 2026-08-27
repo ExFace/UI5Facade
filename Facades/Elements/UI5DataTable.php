@@ -2353,6 +2353,33 @@ JS;
         return $this->buildJsDataResetter() . ';' . $setNoData . ';';
     }
     
+    /**
+     * Returns the JS defining `var fnEffVisible = function(oColConfig, oColumn){...}` used by
+     * buildJsRefreshPersonalization() in both table variants.
+     * 
+     * A hidden_if column must stay hidden if its condition currently resolves to hidden, even when
+     * the (server-side) personalization config marks it visible. This helper ANDs config.visible with
+     * the client-side hidden_if evaluator (`_exfHiddenIfEval`).
+     * 
+     * @return string
+     */
+    protected function buildJsColumnEffectiveVisibleFunction() : string
+    {
+        return <<<JS
+
+                        var fnEffVisible = function(oColConfig, oColumn){
+                            var bVisible = oColConfig.visible;
+                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
+                                var fnEval = oColumn.data('_exfHiddenIfEval');
+                                if (typeof fnEval === 'function') {
+                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
+                                }
+                            }
+                            return bVisible;
+                        };
+JS;
+    }
+
     public function buildJsRefreshPersonalization() : string
     {
         $widget = $this->getWidget();
@@ -2383,18 +2410,7 @@ JS;
                             aColumnsNew.push(oDirtyColumn);  
                         }
 
-                        // A hidden_if column must stay hidden if its condition currently resolves to hidden,
-                        // even when the personalization config marks it visible.
-                        var fnEffVisible = function(oColConfig, oColumn){
-                            var bVisible = oColConfig.visible;
-                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
-                                var fnEval = oColumn.data('_exfHiddenIfEval');
-                                if (typeof fnEval === 'function') {
-                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
-                                }
-                            }
-                            return bVisible;
-                        };
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
                         
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
@@ -2450,18 +2466,7 @@ JS;
 
                         var bOrderChanged = false;
 
-                        // A hidden_if column must stay hidden if its condition currently resolves to hidden,
-                        // even when the personalization config marks it visible.
-                        var fnEffVisible = function(oColConfig, oColumn){
-                            var bVisible = oColConfig.visible;
-                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
-                                var fnEval = oColumn.data('_exfHiddenIfEval');
-                                if (typeof fnEval === 'function') {
-                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
-                                }
-                            }
-                            return bVisible;
-                        };
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
 
                         // add dirty column first
                         var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
