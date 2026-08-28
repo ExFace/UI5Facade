@@ -2353,6 +2353,33 @@ JS;
         return $this->buildJsDataResetter() . ';' . $setNoData . ';';
     }
     
+    /**
+     * Returns the JS defining `var fnEffVisible = function(oColConfig, oColumn){...}` used by
+     * buildJsRefreshPersonalization() in both table variants.
+     * 
+     * A hidden_if column must stay hidden if its condition currently resolves to hidden, even when
+     * the (server-side) personalization config marks it visible. This helper ANDs config.visible with
+     * the client-side hidden_if evaluator (`_exfHiddenIfEval`).
+     * 
+     * @return string
+     */
+    protected function buildJsColumnEffectiveVisibleFunction() : string
+    {
+        return <<<JS
+
+                        var fnEffVisible = function(oColConfig, oColumn){
+                            var bVisible = oColConfig.visible;
+                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
+                                var fnEval = oColumn.data('_exfHiddenIfEval');
+                                if (typeof fnEval === 'function') {
+                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
+                                }
+                            }
+                            return bVisible;
+                        };
+JS;
+    }
+
     public function buildJsRefreshPersonalization() : string
     {
         $widget = $this->getWidget();
@@ -2382,6 +2409,8 @@ JS;
                             iConfOffset += 1;
                             aColumnsNew.push(oDirtyColumn);  
                         }
+
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
                         
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
@@ -2391,7 +2420,7 @@ JS;
                                 oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
                                     if (iColIdx !== iConfIdx + iConfOffset) bOrderChanged = true;
-                                    oColumn.setVisible(oColConfig.visible);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn);
                                     bFoundCol = true;
                                     return;
@@ -2401,7 +2430,7 @@ JS;
                             if (oColConfig.visible === true) {
                                 oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     bOrderChanged = true;
                                 }   
@@ -2437,6 +2466,8 @@ JS;
 
                         var bOrderChanged = false;
 
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
+
                         // add dirty column first
                         var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
                         if (oDirtyColumn) {
@@ -2447,8 +2478,9 @@ JS;
                             // table columns
                             aColumns.forEach(function(oColumn, iColIdx) {
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    if (oColumn.getVisible() !== oColConfig.visible) {
-                                        oColumn.setVisible(oColConfig.visible);
+                                    var bEff = fnEffVisible(oColConfig, oColumn);
+                                    if (oColumn.getVisible() !== bEff) {
+                                        oColumn.setVisible(bEff);
                                     }
                                     aColumnsNew.push(oColumn);                                    
                                     return;
@@ -2458,7 +2490,7 @@ JS;
                             if (oColConfig.visible === true && oColsOptional !== null) {
                                 var oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     return;
                                 }   

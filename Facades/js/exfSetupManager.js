@@ -770,6 +770,19 @@
                 });
                 oModel.setProperty('/columns', aNewColModel);
 
+                // Flag the actual table columns whose visibility this setup governs, so a hidden_if
+                // condition does not re-show a column the setup has hidden (see UI5DataColumn::buildJsSetHidden).
+                if (oDataTable) {
+                    aNewColModel.forEach(function(oEntry){
+                        let oCol = oDataTable.getColumns().find(function(c){
+                            return c.data('_exfDataColumnName') === oEntry.column_name || c.getId() === oEntry.column_id;
+                        });
+                        if (oCol) {
+                            oCol.data('_exfChangedBySetup', oEntry.visible === false);
+                        }
+                    });
+                }
+
                 // toggle checkboxes in columns tab according to setup
                 // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
                 // for this, we use the update function attached to the panel, see Ui5DataConfigurator

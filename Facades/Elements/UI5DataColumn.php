@@ -376,6 +376,7 @@ JS;
 					.data('_exfHiddenColumn', {$this->escapeBool($mustAlwaysLoad)})
                     .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
                     {$this->buildJsHiddenIfEvaluatorData($col)}
+                    .data('_exfChangedBySetup', false)
 					.data('_exfCaption', {$captionJs})
 JS;
         
@@ -425,6 +426,39 @@ JS;
         return <<<JS
 
                     .data('_exfHiddenIfEval', function(){ return ({$ifJs}); })
+JS;
+    }
+                        
+    /**
+     * Column visibility is managed by the DataConfigurator/personalization and widget setups, not by
+     * directly toggling the column control.
+     * 
+     * The generic `hidden_if` handling in UI5AbstractElement::registerConditionalProperties() toggles
+     * the control's visibility on every prefill/init. For a column that fights the personalization:
+     * when the condition is FALSE it would force `setVisible(true)`, re-showing a column that a widget
+     * setup had hidden. So here the "show" branch is skipped for columns a setup has hidden - those are
+     * flagged with `_exfChangedBySetup` when the setup is applied (see exfSetupManager.applyConfiguration).
+     * Hiding (condition TRUE) keeps the default behaviour so `hidden_if` can still hide the column.
+     * 
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsSetHidden()
+     */
+    protected function buildJsSetHidden(bool $hidden, string $elementId = null) : string
+    {
+        // Hiding is unconditional - hidden_if must be able to hide the column.
+        if ($hidden === true) {
+            return parent::buildJsSetHidden($hidden, $elementId);
+        }
+        $elementId = $elementId ?? $this->getId();
+        return <<<JS
+(function(oCtrl){
+    if (! oCtrl) return;
+    // Do not re-show a column that a widget setup has hidden
+    if (oCtrl.data('_exfChangedBySetup') === true) return;
+    if (oCtrl.getVisible() === true) return;
+    oCtrl.setVisible(true);
+    oCtrl.fireEvent("visibleChange", { visible: true });
+})(sap.ui.getCore().byId('{$elementId}'))
 JS;
     }
                         
