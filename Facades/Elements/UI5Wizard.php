@@ -111,9 +111,15 @@ JS;
                         jqNav.find('li[data-sap-ui-wpn-step="' + sStep + '"]').attr('title', oHints[sStep]);
                     });
                 };
-                // Defer to let UI5 finish rendering the navigator before patching titles
-                setTimeout(fnApplyHints, 0);
                 var oWizard = sap.ui.getCore().byId('{$this->getId()}');
+                var oProgressNavigator = oWizard && oWizard.getProgressNavigator ? oWizard.getProgressNavigator() : sap.ui.getCore().byId('{$this->getId()}-progressNavigator');
+                if (oProgressNavigator && !oProgressNavigator.data('exfHintsBound')) {
+                    oProgressNavigator.data('exfHintsBound', true);
+                    oProgressNavigator.addEventDelegate({
+                        onAfterRendering: function(){ fnApplyHints(); }
+                    });
+                }
+                fnApplyHints();
                 // The navigator regenerates its <li> elements on step changes, dropping our titles - reapply
                 if (oWizard && !oWizard.data('exfHintsBound')) {
                     oWizard.data('exfHintsBound', true);
