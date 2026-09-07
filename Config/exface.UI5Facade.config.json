@@ -8,6 +8,7 @@
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.CONNECT_SRC": "'self'",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.SCRIPT_SRC": "'self' 'unsafe-eval' 'unsafe-inline'",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.SCRIPT_SRC_ELEM": "'self' 'unsafe-inline' blob:",
+	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.WORKER_SRC": "'self' blob:",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.FONT_SRC": "'self' 'unsafe-eval' 'unsafe-inline' blob: data:",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.IMG_SRC": "* 'self' 'unsafe-inline' blob: data: filesystem:",
 	"FACADE.HEADERS.CONTENT_SECURITY_POLICY.MEDIA_SRC": "* 'self' 'unsafe-inline' blob: data: filesystem: mediastream:",
@@ -203,6 +204,14 @@
 
 	"LIBS.MERMAID.JS": "exface/ui5facade/Facades/js/mermaid.iife.min.js",
 	"LIBS.PANZOOM.JS": "exface/core/Facades/AbstractAjaxFacade/js/svg-pan-zoom.min.js",
+
+	"LIBS.PERSPECTIVE.LOADER.JS": "exface/core/Facades/AbstractAjaxFacade/js/perspective/perspective-loader.js",
+	"LIBS.PERSPECTIVE.CLIENT.JS": "npm-asset/perspective-dev--client/dist/esm/perspective.inline.js",
+	"LIBS.PERSPECTIVE.VIEWER.JS": "npm-asset/perspective-dev--viewer/dist/cdn/perspective-viewer.js",
+	"LIBS.PERSPECTIVE.DATAGRID.JS": "npm-asset/perspective-dev--viewer-datagrid/dist/cdn/perspective-viewer-datagrid.js",
+	"LIBS.PERSPECTIVE.CHARTS.JS": "npm-asset/perspective-dev--viewer-charts/dist/cdn/perspective-viewer-charts.js",
+	"LIBS.PERSPECTIVE.THEME.CSS": "npm-asset/perspective-dev--viewer/dist/css/pro.css",
+	"LIBS.PERSPECTIVE.FACADE.CSS": "exface/core/Facades/AbstractAjaxFacade/js/perspective/perspective.css",
 	
 	"LIBS.SLICK.SLICK_JS": "npm-asset/slick-carousel/slick/slick.min.js",
 	"LIBS.SLICK.SLICK_CSS": "npm-asset/slick-carousel/slick/slick.css",
@@ -271,6 +280,7 @@
 	"WIDGET.DATATABLE.PAGE_SIZE": 30,
 	"WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT": 5,
 	"WIDGET.DATATABLE.MAX_TEXT_LINES_PER_CELL": 4,
+	"WIDGET.PIVOTTABLE.RENDERER": "PivotTable.js",
 	
 	"WIDGET.DIALOG.MAXIMIZE_BY_DEFAULT_IN_ACTIONS": [
 		"exface.Core.ShowObjectInfoDialog",
