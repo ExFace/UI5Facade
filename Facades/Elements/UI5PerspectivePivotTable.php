@@ -24,10 +24,11 @@ class UI5PerspectivePivotTable extends UI5AbstractElement
      */
     protected function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
+        $language = $this->escapeString($this->getPerspectiveLocale(), false);
         $pivotTable = <<<JS
 
 		new sap.ui.core.HTML("{$this->getId()}", {
-                    content: "<perspective-viewer id=\"{$this->getId()}\" class=\"exf-perspective-viewer\" style=\"width:100%; height:100%; min-height:100px;\"></perspective-viewer>",
+                    content: "<perspective-viewer id=\"{$this->getId()}\" class=\"exf-perspective-viewer\" lang=\"{$language}\" style=\"width:100%; height:100%; min-height:100px;\"></perspective-viewer>",
                 })
 JS;
 
@@ -54,6 +55,10 @@ JS;
         $controller->addExternalModule('libs.exface.perspective.loader', $facade->buildUrlToSource('LIBS.PERSPECTIVE.LOADER.JS'));
         $controller->addExternalCss($facade->buildUrlToSource('LIBS.PERSPECTIVE.THEME.CSS'));
         $controller->addExternalCss($facade->buildUrlToSource('LIBS.PERSPECTIVE.FACADE.CSS'));
+        $localeStylesheet = $this->buildUrlToPerspectiveLocaleStylesheet();
+        if ($localeStylesheet !== null) {
+            $controller->addExternalCss($localeStylesheet);
+        }
         return $this;
     }
 

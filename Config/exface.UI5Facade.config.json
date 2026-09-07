@@ -211,6 +211,7 @@
 	"LIBS.PERSPECTIVE.DATAGRID.JS": "npm-asset/perspective-dev--viewer-datagrid/dist/cdn/perspective-viewer-datagrid.js",
 	"LIBS.PERSPECTIVE.CHARTS.JS": "npm-asset/perspective-dev--viewer-charts/dist/cdn/perspective-viewer-charts.js",
 	"LIBS.PERSPECTIVE.THEME.CSS": "npm-asset/perspective-dev--viewer/dist/css/pro.css",
+	"LIBS.PERSPECTIVE.LOCALES_FOLDER": "npm-asset/perspective-dev--viewer/dist/css/intl/",
 	"LIBS.PERSPECTIVE.FACADE.CSS": "exface/core/Facades/AbstractAjaxFacade/js/perspective/perspective.css",
 	
 	"LIBS.SLICK.SLICK_JS": "npm-asset/slick-carousel/slick/slick.min.js",
