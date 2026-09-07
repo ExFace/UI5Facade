@@ -345,7 +345,16 @@ JS;
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $fillPaddingToBorder = $widget->getTimelineConfig()->getFillPaddingToBorder();
         $popupOn = $widget->getTimelineConfig()->getPopupOn('click');
+        $popupAggregationSettings = $widget->getTimelineConfig()->getPopupAggregation();
+
+        $popupAggregateExpandTasks = ($popupAggregationSettings->getExpandTasks()) ? 'true' : 'false';
+        $popupAggregateGanttWidth = $popupAggregationSettings->getGanttWidth(); // Width in px for the Gantt shown inside aggregation popups.
+        $popupAggregateStyle = $popupAggregationSettings->getStyle(); // 'list' | 'table'
+        $popupAggregateIncludeUpperRowTasks = ($popupAggregationSettings->getIncludeUpperRowTasks()) ? 'true' : 'false';
+        
+        
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
@@ -403,11 +412,12 @@ JS;
         date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
         row_height: 33, // Initial value. Row zoom can modify this.
         row_lanes: 2, // Initial value. Row zoom can modify this.
-        popup_aggregate_expand_tasks: false, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
         include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
-        popup_aggregate_gantt_width: 360, // Width in px for the Gantt shown inside aggregation popups.
-        popup_aggregate_style: 'list', // 'list' | 'table' TODO SR (@experimental)
-        popup_aggregate_include_upper_row_tasks: false, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        window_fill_padding_to_border: '{$fillPaddingToBorder}',
+        popup_aggregate_expand_tasks: {$popupAggregateExpandTasks}, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
+        popup_aggregate_gantt_width: {$popupAggregateGanttWidth}, // Width in px for the Gantt shown inside aggregation popups. @experimental
+        popup_aggregate_style: '{$popupAggregateStyle}', // 'list' | 'table' TODO SR (@experimental)
+        popup_aggregate_include_upper_row_tasks: {$popupAggregateIncludeUpperRowTasks}, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
         popup: {$this->buildJsRenderPopup()},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
@@ -1234,6 +1244,10 @@ JS
                     throw new FacadeRuntimeError('Only numbers are supported in column_width for Gantt timeline views');
                 }
                 $simple_view_mode['upper_text_frequency'] = (int) $val;
+            }
+            
+            if (null !== $val = $viewMode->getTodayButtonLeftScrollPadding()) {
+                $simple_view_mode['today_button_left_scroll_padding'] = $val;
             }
 
             // Gantt only supports 2 header lines, so we just take the first 2.
