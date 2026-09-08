@@ -142,7 +142,7 @@
 									change: fnNotify
 								}).addStyleClass("sapUiTinyMarginEnd sapUiTinyMarginBottom"),
 								new sap.m.Text({
-									text: "...",
+									text: "..",
 									visible: "{= ${" + sPrefix + "comparator} === '..' }"
 								}).addStyleClass("sapUiTinyMarginEnd sapUiTinyMarginBottom"),
 								new sap.m.Input({
