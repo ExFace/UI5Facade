@@ -1159,41 +1159,31 @@ JS;
                         var sFltrProp = oColumn.getFilterProperty();
                         var sFltrVal = oEvent.getParameters().value;
                         var fnParser = oColumn.data('_exfFilterParser'); 
-                        var oParsedInput = exfTools.filter.parseOperator(String(sFltrVal));
-                        var mFltrRaw = oParsedInput.value;
-                        var mFltrParsed = fnParser !== undefined ? fnParser(mFltrRaw) : mFltrRaw;
-                        var oComponent = {$this->getController()->buildJsComponentGetter()};
-                        var oP13nMapped = oComponent.mapOperatorToP13n(oParsedInput.operator);
+                        var oParsedInput = exfTools.data.filterComparator.extract(String(sFltrVal));
+                        var oParsedValue = exfTools.data.filterComparator.parseValue(oParsedInput, fnParser);
+                        var mFltrParsed = oParsedValue.value;
+                        var bHasFilter = oParsedValue.hasValue;
     
                         {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
                         
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
+                        if (bHasFilter) {
                             oColumn.setFiltered(true).setFilterValue(sFltrVal);
                         } else {
                             oColumn.setFiltered(false).setFilterValue('');
                         }  
     
-                        // also set the filter as an advanced search item in the p13n panel
+                        // Also synchronize the filter with its explicitly linked advanced-search condition.
                         let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
-    
-                        // Check if a filter for the property already exists
-                        let aFilterItems = oFilterPanel.getFilterItems();
-                        let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
-    
-                        if (oExistingFilter) {
-                            // delete exiting property (if any)
-                            oFilterPanel.removeFilterItem(oExistingFilter);
-                        } 
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
-                            // create new filter item if value is valid/not empty
-                            var oFilterItem = new sap.m.P13nFilterItem({
-                                "columnKey": sFltrProp,
-                                "exclude": oP13nMapped.exclude,
-                                "operation": oP13nMapped.operation,
-                                "value1": mFltrParsed
+                        if (bHasFilter) {
+                            oFilterPanel.upsertHeaderCondition({
+                                expression: sFltrProp,
+                                comparator: oParsedInput.comparator || '=',
+                                value: oParsedInput.comparator === '..' ? '' : oParsedInput.value,
+                                value_from: oParsedInput.value_from || '',
+                                value_to: oParsedInput.value_to || ''
                             });
-    
-                            oFilterPanel.addFilterItem(oFilterItem);
+                        } else {
+                            oFilterPanel.removeHeaderCondition(sFltrProp);
                         }
     
                         // Also make sure the built-in UI5-filtering is not applied.
@@ -1258,7 +1248,7 @@ JS;
             // Make sure, the column filter indicator is ON if the column is filtered over via advanced search 
             (function(){
                 var oSearchPanel = sap.ui.getCore().byId('{$this->getConfiguratorElement()->getIdOfSearchPanel()}');
-                var aSearchFItems = oSearchPanel.getFilterItems();
+                var aSearchFItems = oSearchPanel.getConditions();
                 var aColumns = oTable.getColumns();
                 aColumns.forEach(function(oColumn) {
                     var sFilterVal = oColumn.getFilterValue();
@@ -1267,7 +1257,7 @@ JS;
                         return;
                     }
                     aSearchFItems.forEach(function(oItem){
-                        if (oItem.getColumnKey() === oColumn.data('_exfAttributeAlias')) {
+                        if (oItem.expression === oColumn.data('_exfAttributeAlias')) {
                             bFiltered = true;
                         }
                     });

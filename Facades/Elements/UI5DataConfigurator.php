@@ -258,19 +258,44 @@ JS;
      */
     protected function buildJsCreateModel() : string
     {
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        $comparators = [];
+        foreach ([
+            'IS' => ComparatorDataType::IS,
+            'IS_NOT' => ComparatorDataType::IS_NOT,
+            'EQUALS' => ComparatorDataType::EQUALS,
+            'EQUALS_NOT' => ComparatorDataType::EQUALS_NOT,
+            'LESS_THAN' => ComparatorDataType::LESS_THAN,
+            'LESS_THAN_OR_EQUALS' => ComparatorDataType::LESS_THAN_OR_EQUALS,
+            'GREATER_THAN' => ComparatorDataType::GREATER_THAN,
+            'GREATER_THAN_OR_EQUALS' => ComparatorDataType::GREATER_THAN_OR_EQUALS,
+            'IN' => ComparatorDataType::IN,
+            'NOT_IN' => ComparatorDataType::NOT_IN,
+            'BETWEEN' => ComparatorDataType::BETWEEN,
+        ] as $constant => $comparator) {
+            $comparators[] = [
+                'key' => $comparator,
+                'text' => $translator->translate('GLOBAL.COMPARATOR.' . $constant . '_NAME'),
+                'hint' => $translator->translate('GLOBAL.COMPARATOR.' . $constant . '_HINT'),
+            ];
+        }
+        $comparatorsJson = json_encode($comparators, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         return <<<JS
 function(){
             var oModel = new sap.ui.model.json.JSONModel();
             var columns = {$this->buildJsonModelForColumns()};
             var sortables = {$this->buildJsonModelForSortables()};
-            var searchables = {$this->buildJsonModelForSearchables()}
+            var searchables = {$this->buildJsonModelForSearchables()};
             var data = {
                 "columns": columns,
                 "sortables": sortables,
                 "searchables": searchables,
+                "comparators": $comparatorsJson,
+                "advanced_search": [],
                 "sorters": [{$this->buildJsonModelForInitialSorters()}],
                 "header_filters": []
-            }
+            };
             oModel.setData(data);
             return oModel;        
         }()
@@ -717,42 +742,16 @@ JS;
     {
         return <<<JS
                 function() {
-                    var oPanel = new sap.m.P13nFilterPanel("{$this->getIdOfSearchPanel()}", {
+                    return new exface.openui5.P13AdvancedSearchPanel("{$this->getIdOfSearchPanel()}", {
                         title: "{$this->translate('WIDGET.DATATABLE.SETTINGS_DIALOG.ADVANCED_SEARCH')}",
                         visible: true,
-                        layoutMode: "Desktop",
-                        addFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            var oFilterItem = new sap.m.P13nFilterItem(oParameters.filterItemData.mProperties);
-                            oEvent.getSource().insertFilterItem(oFilterItem, oParameters.index);
-                        },
-                        updateFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            var oPanel = oEvent.getSource();
-                            var idx = oParameters.index;
-                            var oFilterItem = new sap.m.P13nFilterItem(oParameters.filterItemData.mProperties);
-                            oPanel.removeFilterItem(idx);
-                            oPanel.insertFilterItem(oFilterItem, idx);
-                        },
-                        removeFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            oEvent.getSource().removeFilterItem(oParameters.index);
-                        },
-                        items: {
-                            path: '{$this->getModelNameForConfig()}>/searchables',
-                            template: new sap.m.P13nItem({
-                                columnKey: "{{$this->getModelNameForConfig()}>attribute_alias}",
-                                text: "{{$this->getModelNameForConfig()}>caption}"
-                            })
-                        },
-                        filterItems: [
-    
-                        ]
+                        modelName: "{$this->getModelNameForConfig()}",
+                        dataTableId: "{$this->getDataElement()->getId()}",
+                        includeTitle: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE'))}",
+                        excludeTitle: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE'))}",
+                        logicalOperatorText: "{$this->escapeJsTextValue(strtoupper($this->getWorkbench()->getCoreApp()->getTranslator()->translate('DATATYPE.VALIDATION.AND')))}",
+                        headerFilterTooltip: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.HEADER_FILTER_HINT'))}"
                     });
-
-                    oPanel.setIncludeOperations(["Contains", "EQ", "LT", "LE", "GT", "GE"]);
-                    oPanel.setExcludeOperations(["Contains", "EQ", "LT", "LE", "GT", "GE"]);
-                    return oPanel;
                 }(),
 JS;
     }
@@ -1094,13 +1093,13 @@ JS;
 
         // Add filters from the advanced search tab
         $notMap = [];
-        foreach (ComparatorDataType::getValuesStatic() as $comp) {
-            if (ComparatorDataType::isInvertable($comp)) {
-                $notMap[$comp] = ComparatorDataType::invert($comp);
+        foreach (ComparatorDataType::getValuesStatic() as $comparator) {
+            if (ComparatorDataType::isInvertable($comparator)) {
+                $notMap[$comparator] = ComparatorDataType::invert($comparator);
             }
         }
         $notMapJs = json_encode($notMap);
-        
+
         $parsers = [];
         foreach ($this->getWidget()->getDataWidget()->getColumns() as $col) {
             if (! $col->isFilterable() || ! $col->isBoundToAttribute()) {
@@ -1135,28 +1134,56 @@ function(){
         }
     }
 
-    var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getFilterItems();
-    var i = 0;
-    var fnNot = function(oCondition) {
-        var oNotMap = $notMapJs;
-        oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
-        return oCondition;
-    };
+    var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getConditions();
     var aParsers = $parsersJs;
     if (aFilters.length > 0) {
-        var includeGroup = {operator: "AND", ignore_empty_values: true, conditions: []};
-        var oComponent = {$this->getController()->buildJsComponentGetter()};
+        var includeGroup = {operator: "AND", ignore_empty_values: true, conditions: [], nested_groups: []};
+        var oNotMap = $notMapJs;
         aFilters.forEach(function(oFilter){
-            var mVal = oFilter.getValue1();
-            var fnParser = aParsers[oFilter.getColumnKey()];
+            var fnParser = aParsers[oFilter.expression];
+            var oParsedValue = exfTools.data.filterComparator.parseValue(oFilter, fnParser);
+            if (oFilter.comparator === '..' && !oParsedValue.hasValue) {
+                return;
+            }
             var oCondition = {
-                expression: oFilter.getColumnKey(), 
-                comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
-                value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
+                expression: oFilter.expression,
+                comparator: oFilter.comparator,
+                value: oParsedValue.value,
                 object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
                 apply_to_aggregates: false
             };
-            includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
+            // Unlike scalar comparators, BETWEEN has no single inverse comparator. Its exclusion is
+            // the outside range: value < lower OR value > upper. With one open bound, only the
+            // corresponding comparison is needed.
+            if (oFilter.exclude === true && oFilter.comparator === '..') {
+                var aOutsideRange = [];
+                if (oParsedValue.value_from !== '') {
+                    aOutsideRange.push(Object.assign({}, oCondition, {
+                        comparator: '<',
+                        value: oParsedValue.value_from
+                    }));
+                }
+                if (oParsedValue.value_to !== '') {
+                    aOutsideRange.push(Object.assign({}, oCondition, {
+                        comparator: '>',
+                        value: oParsedValue.value_to
+                    }));
+                }
+                if (aOutsideRange.length === 1) {
+                    includeGroup.conditions.push(aOutsideRange[0]);
+                } else if (aOutsideRange.length > 1) {
+                    includeGroup.nested_groups.push({
+                        operator: 'OR',
+                        ignore_empty_values: true,
+                        conditions: aOutsideRange
+                    });
+                }
+            } else {
+                if (oFilter.exclude === true) {
+                    oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
+                }
+                includeGroup.conditions.push(oCondition);
+            }
         });
         
         if (oData.filters === undefined) {
@@ -1392,7 +1419,7 @@ JS;
                 var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
                 
                 // reset advanced search filters
-                sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllFilterItems();
+                sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllConditions();
                 
                 // reset sorters (use deep copy to allow multiple resets; otherwise the initial model gets modified after resetting)
                 oCurrentModel.setProperty('/sorters', JSON.parse(JSON.stringify(oInitModel.getProperty('/sorters'))));

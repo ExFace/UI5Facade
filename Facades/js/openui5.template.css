@@ -60,6 +60,10 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 
 /* sap.m.List */
 .sapMLIB.sapMSLIIcon {padding-left: 0;}
+.exf-p13n-advanced-search-row {box-sizing: border-box; padding-left: 0.5rem;}
+.exf-p13n-advanced-search-operator {text-align: center;}
+.exf-p13n-advanced-search-action {transform: translateY(-0.125rem);}
+
 
 /* sap.m.GridList */
 .sapFGridListDefault {padding: 0 0.5rem}

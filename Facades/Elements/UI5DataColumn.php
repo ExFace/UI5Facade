@@ -170,16 +170,10 @@ JS;
                                     
                                     let oSearchPanel = sap.ui.getCore().byId('{$configurator->getIdOfSearchPanel()}');
                                     if (oSearchPanel && oColumn) {
-                                        let aFilterItems = oSearchPanel.getFilterItems();
-                                        let aMatchingFilters = aFilterItems.filter(oFilterItem => oFilterItem.getColumnKey() === oColumn.getFilterProperty());
-
-                                        // remove all matching filter items
-                                        aMatchingFilters.forEach(oMatchingFilter => {
-                                            oSearchPanel.removeFilterItem(oMatchingFilter);
-                                        });
+                                        oSearchPanel.removeConditionsByExpression(oColumn.getFilterProperty());
 
                                         // reset filter value (input field in column menu)
-                                        oColumn.setFilterValue(null);
+                                        oColumn.setFilterValue(null).setFiltered(false);
                                     }
                                     // reload data
                                     {$dataTable->getController()->buildJsMethodCallFromController('onLoadData', $dataTable, '')}

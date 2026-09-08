@@ -2827,7 +2827,7 @@ JS;
                             }
                             var aFilterableAliases = $filterableAliasesJs;
                             var oSearchPanel = sap.ui.getCore().byId('{$this->getConfiguratorElement()->getIdOfSearchPanel()}');
-                            var aFilterItems = oSearchPanel ? oSearchPanel.getFilterItems() : [];
+                            var aFilterItems = oSearchPanel ? oSearchPanel.getConditions() : [];
                             var sAttrAlias = {$this->buildJsClickGetColumnAttributeAlias('domClicked')};
                             var mCellValue = $(domClicked).text();
                             var bIsAttribute = (sAttrAlias !== undefined && sAttrAlias !== null && sAttrAlias !== '');
@@ -2840,7 +2840,7 @@ JS;
                             }
 
                             aFilterItems.forEach(function(oItem){
-                                if (oItem.getColumnKey() === sAttrAlias) {
+                                if (oItem.expression === sAttrAlias) {
                                     oFilterItem = oItem;
                                 }
                             });   
@@ -2861,7 +2861,7 @@ JS;
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR'))},
                                             visible: (oFilterItem ? true : false),
                                             select: function(oEvent) {
-                                                oSearchPanel.removeFilterItem(oFilterItem);
+                                                oSearchPanel.removeConditionsByExpression(sAttrAlias);
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         }),
@@ -2870,13 +2870,12 @@ JS;
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE'))} + ' ' + JSON.stringify(sValueTrunc),
                                             visible: (oFilterItem ? false : true),
                                             select: function(oEvent) {
-                                                var oFilterItem;
-                                                oSearchPanel.addFilterItem(new sap.m.P13nFilterItem({
-                                                    columnKey: sAttrAlias,
-                                                    exclude: false,
-                                                    operation: 'EQ',
-                                                    value1: mCellValue
-                                                }));
+                                                oSearchPanel.addCondition({
+                                                    expression: sAttrAlias,
+                                                    comparator: '==',
+                                                    value: mCellValue,
+                                                    exclude: false
+                                                });
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         }),
@@ -2884,13 +2883,12 @@ JS;
                                             icon: "sap-icon://sys-minus",
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE'))} + ' ' + JSON.stringify(sValueTrunc),
                                             select: function(oEvent) {
-                                                var oFilterItem;
-                                                oSearchPanel.addFilterItem(new sap.m.P13nFilterItem({
-                                                    columnKey: sAttrAlias,
-                                                    exclude: true,
-                                                    operation: 'EQ',
-                                                    value1: mCellValue
-                                                }));
+                                                oSearchPanel.addCondition({
+                                                    expression: sAttrAlias,
+                                                    comparator: '==',
+                                                    value: mCellValue,
+                                                    exclude: true
+                                                });
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         })
