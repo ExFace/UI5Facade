@@ -1542,9 +1542,11 @@ JS;
                 var oController = this;
                 var aSortItems = [];
                 var fnCheckPendingData;
+                var bFilterValidity = ({$this->buildJsCheckRequiredFilters()});
 
-                if(!{$this->buildJsCheckRequiredFilters()}) {
-                    {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
+
+                if(!bFilterValidity) {
+                    {$this->buildJsShowMessageOverlay($widget->getEmptyTextIfInvalidFilters())}
                     return Promise.resolve(oModel);
                  }
                 
