@@ -3,13 +3,11 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\DataSheets\DataAggregation;
 use exface\Core\CommonLogic\Model\RelationPath;
-use exface\Core\DataTypes\StringDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
-use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
@@ -17,6 +15,10 @@ use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\DataTypes\ComparatorDataType;
 
 /**
+ * Renders a custom sap.m.P13nDialog with tabs for filters, sorters, and optional columns for a DataTableConfigurator widget.
+ * 
+ * See [architecture documentation](../../Docs/developer_docs/Facade_elements/UI5DataConfigurator.md) for technical
+ * details.
  * 
  * @method \exface\Core\Widgets\DataConfigurator getWidget()
  * 
@@ -1093,12 +1095,17 @@ JS;
 
         // Add filters from the advanced search tab
         $notMap = [];
+        $negativeMap = [];
         foreach (ComparatorDataType::getValuesStatic() as $comparator) {
             if (ComparatorDataType::isInvertable($comparator)) {
                 $notMap[$comparator] = ComparatorDataType::invert($comparator);
+                if (ComparatorDataType::isNegative($comparator)) {
+                    $negativeMap[$comparator] = $notMap[$comparator];
+                }
             }
         }
         $notMapJs = json_encode($notMap);
+        $negativeMapJs = json_encode($negativeMap);
 
         $parsers = [];
         foreach ($this->getWidget()->getDataWidget()->getColumns() as $col) {
@@ -1106,7 +1113,7 @@ JS;
                 continue;
             }
             $formatter = $this->getFacade()->getDataTypeFormatter($col->getDataType());
-            $parsers[] = "'{$col->getAttributeAlias()}': function(mVal){ return {$formatter->buildJsFormatParser('mVal')} }";
+            $parsers[] = "'{$col->getAttributeAlias()}': function(mVal, sComparator){ return {$formatter->buildJsFilterParser('mVal', 'sComparator')} }";
         }
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
 
@@ -1117,6 +1124,7 @@ JS;
         if ($configuratorFiltersJs === '') {
             $configuratorFiltersJs = '{}';
         }
+        $between = ComparatorDataType::BETWEEN;
         return <<<JS
 
 function(){
@@ -1139,15 +1147,32 @@ function(){
     if (aFilters.length > 0) {
         var includeGroup = {operator: "AND", ignore_empty_values: true, conditions: [], nested_groups: []};
         var oNotMap = $notMapJs;
+        var oNegativeMap = $negativeMapJs;
         aFilters.forEach(function(oFilter){
             var fnParser = aParsers[oFilter.expression];
-            var oParsedValue = exfTools.data.filterComparator.parseValue(oFilter, fnParser);
-            if (oFilter.comparator === '..' && !oParsedValue.hasValue) {
+            var bExclude = oFilter.exclude === true;
+            var sComparator = oFilter.comparator;
+            // Keep negation in the UI5 include/exclude model so data-type parsers only normalize values.
+            if (oNegativeMap[sComparator] !== undefined) {
+                sComparator = oNegativeMap[sComparator];
+                bExclude = !bExclude;
+            }
+            var mRawValue = oFilter.comparator === '{$between}'
+                ? String(oFilter.value_from || '') + '{$between}' + String(oFilter.value_to || '')
+                : oFilter.value;
+            var oParsedFilter = typeof fnParser === 'function'
+                ? fnParser(mRawValue, sComparator)
+                : {comparator: sComparator, value: mRawValue};
+            var oParsedInput = oParsedFilter.comparator === '{$between}'
+                ? exfTools.data.filterComparator.extract(String(oParsedFilter.value))
+                : {comparator: oParsedFilter.comparator, value: oParsedFilter.value};
+            var oParsedValue = exfTools.data.filterComparator.parseValue(oParsedInput);
+            if (oParsedFilter.comparator === '{$between}' && !oParsedValue.hasValue) {
                 return;
             }
             var oCondition = {
                 expression: oFilter.expression,
-                comparator: oFilter.comparator,
+                comparator: oParsedFilter.comparator,
                 value: oParsedValue.value,
                 object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
                 apply_to_aggregates: false
@@ -1155,7 +1180,7 @@ function(){
             // Unlike scalar comparators, BETWEEN has no single inverse comparator. Its exclusion is
             // the outside range: value < lower OR value > upper. With one open bound, only the
             // corresponding comparison is needed.
-            if (oFilter.exclude === true && oFilter.comparator === '..') {
+            if (bExclude && oParsedFilter.comparator === '{$between}') {
                 var aOutsideRange = [];
                 if (oParsedValue.value_from !== '') {
                     aOutsideRange.push(Object.assign({}, oCondition, {
@@ -1179,7 +1204,7 @@ function(){
                     });
                 }
             } else {
-                if (oFilter.exclude === true) {
+                if (bExclude) {
                     oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
                 }
                 includeGroup.conditions.push(oCondition);

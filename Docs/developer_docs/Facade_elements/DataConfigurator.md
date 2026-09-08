@@ -208,12 +208,21 @@ Synchronization is bidirectional:
 The compact header syntax is reconstructed from the canonical condition. A range is written as
 `from..to`; other conditions use the comparator prefix followed by the value.
 
-Parsing a canonical condition for transport is intentionally not a panel responsibility.
-`exfTools.data.filterComparator.parseValue()` accepts a condition and an optional data-type parser
-and returns the parsed transport value plus an emptiness flag. It handles the structured bounds of
-`BETWEEN`, leaves `IN` and `NOT_IN` list strings intact, and handles all other comparators as scalar
-values. Both `UI5DataTable` header filtering and `UI5DataConfigurator` request generation use this
-helper, so code that does not render the Advanced Search panel is not coupled to a UI control.
+Parsing a canonical condition for transport is intentionally not a panel responsibility. Each
+data-type formatter provides `buildJsFilterParser()`. The generated parser returns a normalized
+comparator and value. The default implementation parses scalar values and preserves `IN` and
+`NOT_IN` list strings. Date and number formatters additionally parse both
+serialized `BETWEEN` bounds. Date-time formatters also turn equality comparisons with day or minute
+precision into `BETWEEN` ranges. `exfTools.date.getDateTimePrecision()` and `findFilterRange()` centralize
+detection and range calculation, including relative date expressions such as `-1d`. Partial
+precision is retained by generic text inputs and the Advanced Search model. Dedicated date/time
+inputs continue to expose their normalized value, including any time components added visibly by
+the control.
+
+`exfTools.data.filterComparator.parseValue()` serializes the normalized condition for transport and
+returns an emptiness flag. Both `UI5DataTable` header filtering and `UI5DataConfigurator` request
+generation use the same canonical condition model, so code that does not render the Advanced Search
+panel is not coupled to a UI control.
 
 ### Context-menu integration
 
@@ -232,8 +241,8 @@ header value and indicator, and reloads the table.
 
 `UI5DataConfigurator::buildJsDataGetter()` reads the canonical conditions and appends one nested
 `AND` group to the normal ExFace filter tree. Empty placeholder rows are ignored. Column-specific
-format parsers are passed to `exfTools.data.filterComparator.parseValue()` to convert scalar and
-range values before transport.
+filter parsers normalize comparators and values before
+`exfTools.data.filterComparator.parseValue()` prepares them for transport.
 
 Most requests send this filter tree to the normal ExFace backend. Direct adapters must translate
 the same canonical comparators themselves. `OData2ServerAdapter` maps atomic comparators to UI5

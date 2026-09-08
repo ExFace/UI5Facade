@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\DataTypes\ComparatorDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -1142,7 +1143,8 @@ JS;
     {
         $commonParams = $this->buildJsDataLoaderParamsPaging($oParamsJs, $keepPagePosJsVar);
                   
-        if ($this->isUiTable() === true) {            
+        if ($this->isUiTable() === true) {       
+            $between = ComparatorDataType::BETWEEN;
             $tableParams = <<<JS
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
@@ -1178,7 +1180,7 @@ JS;
                             oFilterPanel.upsertHeaderCondition({
                                 expression: sFltrProp,
                                 comparator: oParsedInput.comparator || '=',
-                                value: oParsedInput.comparator === '..' ? '' : oParsedInput.value,
+                                value: oParsedInput.comparator === '{$between}' ? '' : oParsedInput.value,
                                 value_from: oParsedInput.value_from || '',
                                 value_to: oParsedInput.value_to || ''
                             });
