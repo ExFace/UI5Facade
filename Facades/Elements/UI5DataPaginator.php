@@ -14,6 +14,18 @@ use exface\Core\Widgets\DataPaginator;
 class UI5DataPaginator extends UI5AbstractElement
 {    
     /**
+     * Maps DataPaginator::PAGE_BUTTON_PRIORITY_xxx values to sap.m.OverflowToolbarPriority values.
+     * 
+     * @var string[]
+     */
+    const PAGE_BUTTON_PRIORITY_JS_MAP = [
+        DataPaginator::PAGE_BUTTON_PRIORITY_HIDDEN => 'Disappear',
+        DataPaginator::PAGE_BUTTON_PRIORITY_HIGH => 'High',
+        DataPaginator::PAGE_BUTTON_PRIORITY_LOW => 'Low',
+        DataPaginator::PAGE_BUTTON_PRIORITY_ALWAYS_VISIBLE => 'NeverOverflow'
+    ];
+    
+    /**
      * 
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsConstructor()
@@ -24,7 +36,11 @@ class UI5DataPaginator extends UI5AbstractElement
         $pageButtonsPriority = 'Low';
         
         if ($this->getFacade()->getConfig()->hasOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY')) {
-            $pageButtonsPriority = $this->getFacade()->getConfig()->getOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY');
+            $pageButtonsPriority  = $this->getFacade()->getConfig()->getOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY');
+        }
+        
+        if (null !== $priority = $this->getWidget()->getPageButtonPriority()) {
+            $pageButtonsPriority = self::PAGE_BUTTON_PRIORITY_JS_MAP[$priority];
         }
         
         return <<<JS
