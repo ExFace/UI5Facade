@@ -517,6 +517,10 @@ JS;
      */
     public function hasToolbarTop() : bool
     {
+        // An explicit hide_toolbar override always wins over the header/caption-based default logic below.
+        if (($hideToolbar = $this->getDataWidget()->getHideToolbar()) !== null) {
+            return ! $hideToolbar;
+        }
         return ! ($this->getWidget()->getHideHeader() === true && $this->getWidget()->getHideCaption());
     }
 
