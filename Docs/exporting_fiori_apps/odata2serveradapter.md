@@ -11,6 +11,10 @@ The server adapter adds the success and error handlers for the server response t
 - `oDataModel.remove`
 - `oDataModel.callFunction`
 
+## Filter comparators
+
+The adapter accepts the canonical ExFace comparators emitted by DataTable filters. Atomic comparators are mapped to their corresponding OData filter operators. `BETWEEN` (`..`) is mapped to `BT`; a range with only its lower or upper bound is mapped to `GE` or `LE`. `IN` (`[`) is expanded into an OR group of `EQ` filters, while `NOT_IN` (`![`) becomes an AND group of `NE` filters.
+
 It is configurable if multiple `CREATE, READ, UPDATE, DELETE` actions should be send to the server as one request, stacked by a batch, or if each action should be send as an own request. The default implementation of CRUD operations in OData2 services does not support multiple action calls stacked by a batch in one server request. Therefore by default the usage of batch requests is disabled.
 
 To enable batch requests go to the UI5 Facade configuration json file (`exface.UI5Facade.config.json`) and change the following options:

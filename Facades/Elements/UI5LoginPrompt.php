@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\Form;
+
 class UI5LoginPrompt extends UI5Container
 {
 
@@ -17,6 +19,8 @@ class UI5LoginPrompt extends UI5Container
         foreach ($this->getWidget()->getInputWidgets() as $input) {
             $this->getFacade()->getElement($input)->setValueBindingDisabled(true);
         }
+        
+        $this->registerFocusFirstInput();
         
         $iconTabBar = $this->buildJsIconTabBar($oControllerJs);
         $captionJs = json_encode($this->getCaption());
@@ -55,6 +59,36 @@ JS;
         }
     }
             
+    /**
+     * Gives keyboard focus to the first visible input (e.g. the "User Name" field) of the
+     * first login form once the login prompt has been shown, so the user can start typing
+     * right away.
+     * 
+     * @return void
+     */
+    protected function registerFocusFirstInput()
+    {
+        $forms = $this->getWidget()->getWidgets();
+        $firstForm = $forms[0] ?? null;
+        if ($firstForm === null) {
+            return;
+        }
+        if ($firstForm instanceof Form && $firstForm->getAutofocusFirstInput() === false) {
+            return;
+        }
+        foreach ($firstForm->getInputWidgets() as $input) {
+            if ($input->isHidden() === true) {
+                continue;
+            }
+            $firstInputEl = $this->getFacade()->getElement($input);
+            if ($firstInputEl instanceof UI5Input) {
+                $this->getController()->addOnShowViewScript("setTimeout(function(){ {$firstInputEl->buildJsSetFocus()}; }, 0);", false);
+            }
+            break;
+        }
+        return;
+    }
+    
     /**
      * 
      * @param string $oControllerJs

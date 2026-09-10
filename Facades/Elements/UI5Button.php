@@ -91,6 +91,18 @@ use exface\UI5Facade\Facades\UI5Facade;
 class UI5Button extends UI5AbstractElement
 {
     const EVENT_NAME_PRESS = 'press';
+    
+    /**
+     * Maps Button::PRIORITY_xxx values to sap.m.OverflowToolbarPriority values.
+     * 
+     * @var string[]
+     */
+    const PRIORITY_JS_MAP = [
+        Button::PRIORITY_ALWAYS_OVERFLOW => 'AlwaysOverflow',
+        Button::PRIORITY_LOW => 'Low',
+        Button::PRIORITY_NORMAL => 'High',
+        Button::PRIORITY_NEVER_OVERFLOW => 'NeverOverflow'
+    ];
 
     use JqueryButtonTrait {
         buildJsNavigateToPage as buildJsNavigateToPageViaTrait;
@@ -222,6 +234,10 @@ JS;
                     $type = "type: '{$defaultButtonType}',";
                 }
                 
+        }
+        // An explicit `priority` always wins over the visibility-derived layoutData above.
+        if (null !== $priority = $widget->getOverflowPriority()) {
+            $layoutData = 'layoutData: new sap.m.OverflowToolbarLayoutData({priority: "' . self::PRIORITY_JS_MAP[$priority] . '"}),';
         }
         return $type . $layoutData;
     }

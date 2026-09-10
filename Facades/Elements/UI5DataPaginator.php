@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\DataPaginator;
+use exface\UI5Facade\Facades\Elements\UI5Button;
 
 /**
  * Generates buttons an labels to be used in a sap.m.Toolbar for pagination.
@@ -13,6 +14,7 @@ use exface\Core\Widgets\DataPaginator;
  */
 class UI5DataPaginator extends UI5AbstractElement
 {    
+    
     /**
      * 
      * {@inheritDoc}
@@ -24,7 +26,11 @@ class UI5DataPaginator extends UI5AbstractElement
         $pageButtonsPriority = 'Low';
         
         if ($this->getFacade()->getConfig()->hasOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY')) {
-            $pageButtonsPriority = $this->getFacade()->getConfig()->getOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY');
+            $pageButtonsPriority  = $this->getFacade()->getConfig()->getOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY');
+        }
+        
+        if (null !== $priority = $this->getWidget()->getPageButtonOverflowPriority()) {
+            $pageButtonsPriority = UI5Button::PRIORITY_JS_MAP[$priority];
         }
         
         return <<<JS

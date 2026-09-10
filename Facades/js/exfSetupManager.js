@@ -480,13 +480,7 @@
                     });
                 }
                 if (oFilterPanel) {
-                    oFilterPanel.attachEvent("addFilterItem", (oEvent) => {
-                        exfSetupManager._onConfigChange(sDataTableId); 
-                    });
-                    oFilterPanel.attachEvent("updateFilterItem", (oEvent) => {
-                        exfSetupManager._onConfigChange(sDataTableId);
-                    });
-                    oFilterPanel.attachEvent("removeFilterItem", (oEvent) => {
+                    oFilterPanel.attachEvent("conditionChange", (oEvent) => {
                         exfSetupManager._onConfigChange(sDataTableId);
                     });
                 }
@@ -505,7 +499,7 @@
         /**
          * Collects and returns the current configuration of a ui5 data table (columns, advanced search, sorters) in JSON format.
          *  - Columns: column_name, show, custom_width (if manually resized)
-         *  - Advanced Search: attribute_alias, comparator, value, exclude
+         *  - Advanced Search: attribute_alias, comparator, value, value_from, value_to, exclude, linked_to_header
          *  - Sorters: attribute_alias, direction
          * 
          * Example: 
@@ -517,7 +511,7 @@
          *      ],
          *  "advanced_search": 
          *      [ 
-         *          { "attribute_alias": "ATTR1", "comparator": "Contains", "value": "Test", "exclude": false },
+         *          { "attribute_alias": "ATTR1", "comparator": "=", "value": "Test", "exclude": false, "linked_to_header": false },
          *      ],
          * "sorters": 
          *      [
@@ -549,7 +543,7 @@
             let aColumns = oP13nModel.getProperty('/columns');
             let aSorters = oP13nModel.getProperty('/sorters');
             let aHeaderFilters = oP13nModel.getProperty('/header_filters');
-            let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getFilterItems();
+            let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getConditions();
 
             // save current column config
             if (aColumns !== undefined && aColumns.length > 0) {
@@ -600,11 +594,20 @@
             // save filters/advanced search
             if (aFilters !== undefined && aFilters.length > 0) {
                 aFilters.forEach(function(oFilter){
+                    var bHasValue = oFilter.comparator === '..'
+                        ? oFilter.value_from !== '' || oFilter.value_to !== ''
+                        : oFilter.value !== '' && oFilter.value !== null && oFilter.value !== undefined;
+                    if (!bHasValue) {
+                        return;
+                    }
                     oSetupJson.advanced_search.push({
-                        attribute_alias: oFilter.mProperties.columnKey,
-                        comparator: oFilter.mProperties.operation,
-                        value: oFilter.mProperties.value1,
-                        exclude: oFilter.mProperties.exclude
+                        attribute_alias: oFilter.expression,
+                        comparator: oFilter.comparator,
+                        value: oFilter.value,
+                        value_from: oFilter.value_from,
+                        value_to: oFilter.value_to,
+                        exclude: oFilter.exclude === true,
+                        linked_to_header: oFilter.linked_to_header === true
                     });
                 });
             }
@@ -770,6 +773,19 @@
                 });
                 oModel.setProperty('/columns', aNewColModel);
 
+                // Flag the actual table columns whose visibility this setup governs, so a hidden_if
+                // condition does not re-show a column the setup has hidden (see UI5DataColumn::buildJsSetHidden).
+                if (oDataTable) {
+                    aNewColModel.forEach(function(oEntry){
+                        let oCol = oDataTable.getColumns().find(function(c){
+                            return c.data('_exfDataColumnName') === oEntry.column_name || c.getId() === oEntry.column_id;
+                        });
+                        if (oCol) {
+                            oCol.data('_exfChangedBySetup', oEntry.visible === false);
+                        }
+                    });
+                }
+
                 // toggle checkboxes in columns tab according to setup
                 // otherwise the UI doesnt seem to get updated, since we dont manually interact with the checkboxes
                 // for this, we use the update function attached to the panel, see Ui5DataConfigurator
@@ -798,20 +814,9 @@
             if (oSetupUxon.advanced_search !== undefined) {
                 // ADVANCED SEARCH SETUP
 
-                // remove and re-add filters from config
                 let aFilterSetup = oSetupUxon.advanced_search;
                 let oDialog = sap.ui.getCore().byId(sP13nSearchPanelId);
-                oDialog.removeAllFilterItems();
-
-                aFilterSetup.forEach(oItem => {
-                    var oFilterItem = new sap.m.P13nFilterItem({
-                        "columnKey": oItem.attribute_alias,
-                        "exclude": oItem.exclude,
-                        "operation": oItem.comparator,
-                        "value1": oItem.value
-                    });
-                    oDialog.addFilterItem(oFilterItem);
-                });
+                oDialog.setConditions(aFilterSetup);
             }
 
             // reset header filters when switching setups

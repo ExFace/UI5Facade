@@ -41,8 +41,8 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
-    // The defaults are written in simplified array structure that is used by the "view-mode-builder.js"
-    // that translates it to the FrappeGantt specific structure.
+    // The defaults are written in the simple view mode config structure.
+    // Read more about the simple view mode config here: https://www.npmjs.com/package/riel-gantt?activeTab=readme
     // Keep in mind to add "TRANSLATE:" prefix to the name of the view
     // and make sure it gets translated bevor usage.
     private array $viewModeDefaults = [
@@ -345,6 +345,16 @@ JS;
         $viewModesConfig = $this->getViewModesConfig();
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
+        $fillPaddingToBorder = $widget->getTimelineConfig()->getFillPaddingToBorder();
+        $popupOn = $widget->getTimelineConfig()->getPopupOn('click');
+        $popupAggregationSettings = $widget->getTimelineConfig()->getPopupAggregation();
+
+        $popupAggregateExpandTasks = ($popupAggregationSettings->getExpandTasks()) ? 'true' : 'false';
+        $popupAggregateGanttWidth = $popupAggregationSettings->getGanttWidth(); // Width in px for the Gantt shown inside aggregation popups.
+        $popupAggregateStyle = $popupAggregationSettings->getStyle(); // 'list' | 'table'
+        $popupAggregateIncludeUpperRowTasks = ($popupAggregationSettings->getIncludeUpperRowTasks()) ? 'true' : 'false';
+        
+        
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
         $viewModesConfigJson = json_encode($viewModesConfig, JSON_UNESCAPED_SLASHES);
@@ -373,8 +383,6 @@ JS;
         return <<<JS
 
 (function() {
-    // Builds frappe-gantt readable view modes from the simplified config
-    const buildedViewModes = viewModeBuilder.buildViewModesFromSimpleConfig({$viewModesConfigJson});
   
     return new Gantt("#{$this->getId()}_gantt", [
       {
@@ -392,23 +400,24 @@ JS;
         upper_header_height: 40,
         lower_header_height: 25,
         auto_move_label: true,
-        view_modes: buildedViewModes,
+        view_modes: {$viewModesConfigJson},
         view_mode: '{$initialViewName}',
         infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
+        popup_on: '{$popupOn}', //click, hover
         // TODO SR: Build uxon properties if ready:
-        popup_on: 'click', //hover, click
         holidays: null, // { 'var(--g-weekend-highlight-color)': 'weekend' }
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
         date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
         row_height: 33, // Initial value. Row zoom can modify this.
         row_lanes: 2, // Initial value. Row zoom can modify this.
-        popup_aggregate_expand_tasks: false, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
         include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
-        popup_aggregate_gantt_width: 360, // Width in px for the Gantt shown inside aggregation popups.
-        popup_aggregate_style: 'list', // 'list' | 'table' TODO SR (@experimental)
-        popup_aggregate_include_upper_row_tasks: false, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        window_fill_padding_to_border: '{$fillPaddingToBorder}',
+        popup_aggregate_expand_tasks: {$popupAggregateExpandTasks}, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
+        popup_aggregate_gantt_width: {$popupAggregateGanttWidth}, // Width in px for the Gantt shown inside aggregation popups. @experimental
+        popup_aggregate_style: '{$popupAggregateStyle}', // 'list' | 'table' TODO SR (@experimental)
+        popup_aggregate_include_upper_row_tasks: {$popupAggregateIncludeUpperRowTasks}, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
         popup: {$this->buildJsRenderPopup()},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
@@ -429,7 +438,7 @@ JS;
           {$this->buildJsShowMessageError('todayMissingPopupText', 'todayMissingPopupTitle')}
         },
     	on_date_change: function(oTask, dStart, dEnd) {
-            // TODO: frappe-gantt lib supports editing, but currently this PowerUI part dont work yet:
+            // TODO: riel-gantt lib supports editing, but currently this PowerUI part dont work yet:
             //  Test and fix this code, if the Gantt should be editable again:
     		var oTable = sap.ui.getCore().byId('{$this->getId()}');
             var oModel = oTable.getModel();
@@ -735,13 +744,12 @@ JS;
         $f = $this->getFacade();
         $controller->addExternalModule('libs.moment.moment', $f->buildUrlToSource("LIBS.MOMENT.JS"), null, 'moment');
         
-        $controller->addExternalModule('libs.exface.gantt.Gantt', $f->buildUrlToSource("LIBS.FRAPPE_GANTT.JS"), null, 'Gantt');
-        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.CSS"));
-        // task overlapping feature css:
-        $controller->addExternalCss($f->buildUrlToSource("LIBS.FRAPPE_GANTT.EXF.CSS"));
+        $controller->addExternalModule('libs.exface.gantt.Gantt', $f->buildUrlToSource("LIBS.RIEL_GANTT.JS"), null, 'Gantt');
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.RIEL_GANTT.CSS"));
+        // UI5 specific riel-gantt CSS:
+        $controller->addExternalCss($f->buildUrlToSource("LIBS.RIEL_GANTT.EXF.CSS"));
         // additional tools for color manipulation and view mode generation
         $controller->addExternalModule('libs.exface.exfColorTools', $f->buildUrlToSource("LIBS.EXFCOLORTOOLS.JS"), null, 'exfColorTools');
-        $controller->addExternalModule('libs.exface.viewModeBuilder.viewModeBuilder',  $f->buildUrlToSource("LIBS.FRAPPE_GANTT.VIEW_BUILDER.JS"), null, 'viewModeBuilder');
         
         return $this;
     }
@@ -1158,7 +1166,7 @@ JS
     
     /**
      * It maps uxon DataTimelineView views to a simplified array structure, 
-     * that can be converted with view-mode-builder.js to the required gantt view mode structure.
+     * that the riel-gantt uses to render the gantt chart.
      * 
      * Example output:
      * ```
@@ -1236,6 +1244,10 @@ JS
                     throw new FacadeRuntimeError('Only numbers are supported in column_width for Gantt timeline views');
                 }
                 $simple_view_mode['upper_text_frequency'] = (int) $val;
+            }
+            
+            if (null !== $val = $viewMode->getTodayButtonLeftScrollPadding()) {
+                $simple_view_mode['today_button_left_scroll_padding'] = $val;
             }
 
             // Gantt only supports 2 header lines, so we just take the first 2.

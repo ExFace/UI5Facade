@@ -35,11 +35,9 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .sapMInputBaseDisabledWrapper>.sapMInputBaseInner {color: black;}
 
 /* RangeSpinnerFilter */
-.exf-spinner-filter > div {margin-right: 0 !important}
+.exf-spinner-filter > div {margin-right: 4px !important}
+.exf-spinner-filter > div:last-of-type {margin-right: 0 !important; overflow: hidden}
 .exf-spinner-filter .sapMBtnInner {border: .0625rem solid #89919a}
-.exf-spinner-filter > div:first-of-type button {margin-right: -3px}
-.exf-spinner-filter > div:last-of-type button {margin-left: -3px;}
-.exf-spinner-filter > div:last-of-type {overflow: hidden}
 
 /* sap.m.Table */
 .sapMList.sapMListBGTranslucent.sapMListTblCnt {overflow-x: scroll}
@@ -62,6 +60,10 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 
 /* sap.m.List */
 .sapMLIB.sapMSLIIcon {padding-left: 0;}
+.exf-p13n-advanced-search-row {box-sizing: border-box; padding-left: 0.5rem;}
+.exf-p13n-advanced-search-operator {text-align: center;}
+.exf-p13n-advanced-search-action {transform: translateY(-0.125rem);}
+
 
 /* sap.m.GridList */
 .sapFGridListDefault {padding: 0 0.5rem}
@@ -480,12 +482,6 @@ html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter.sapUiLoSplitterV>.sapUiLo
 
 /* SegmentedButtons */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}
-
-/* Gantt */
-/* TODO SR: Move all gantt css to the "exf-frappe-gantt.js" */
-.exf-gantt .gantt-container {height: 100%; overflow-y: hidden;}
-/*.exf-gantt .gantt .tick {stroke: #ddd}*/ /*TODO SR: Previously, all ticks were coloured the same. Now you can adjust this with thick_lines.*/
-.bar-folder {filter: drop-shadow(0px -3px 0px rgb(0 0 0 / 0.8))}
 
 /* Scheduler */
 /* Decrease height of sing-line rows */

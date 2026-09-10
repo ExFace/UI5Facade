@@ -1,6 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\DataTypes\ComparatorDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -1142,7 +1143,8 @@ JS;
     {
         $commonParams = $this->buildJsDataLoaderParamsPaging($oParamsJs, $keepPagePosJsVar);
                   
-        if ($this->isUiTable() === true) {            
+        if ($this->isUiTable() === true) {       
+            $between = ComparatorDataType::BETWEEN;
             $tableParams = <<<JS
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
@@ -1159,41 +1161,31 @@ JS;
                         var sFltrProp = oColumn.getFilterProperty();
                         var sFltrVal = oEvent.getParameters().value;
                         var fnParser = oColumn.data('_exfFilterParser'); 
-                        var oParsedInput = exfTools.filter.parseOperator(String(sFltrVal));
-                        var mFltrRaw = oParsedInput.value;
-                        var mFltrParsed = fnParser !== undefined ? fnParser(mFltrRaw) : mFltrRaw;
-                        var oComponent = {$this->getController()->buildJsComponentGetter()};
-                        var oP13nMapped = oComponent.mapOperatorToP13n(oParsedInput.operator);
+                        var oParsedInput = exfTools.data.filterComparator.extract(String(sFltrVal));
+                        var oParsedValue = exfTools.data.filterComparator.parseValue(oParsedInput, fnParser);
+                        var mFltrParsed = oParsedValue.value;
+                        var bHasFilter = oParsedValue.hasValue;
     
                         {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
                         
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
+                        if (bHasFilter) {
                             oColumn.setFiltered(true).setFilterValue(sFltrVal);
                         } else {
                             oColumn.setFiltered(false).setFilterValue('');
                         }  
     
-                        // also set the filter as an advanced search item in the p13n panel
+                        // Also synchronize the filter with its explicitly linked advanced-search condition.
                         let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
-    
-                        // Check if a filter for the property already exists
-                        let aFilterItems = oFilterPanel.getFilterItems();
-                        let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
-    
-                        if (oExistingFilter) {
-                            // delete exiting property (if any)
-                            oFilterPanel.removeFilterItem(oExistingFilter);
-                        } 
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
-                            // create new filter item if value is valid/not empty
-                            var oFilterItem = new sap.m.P13nFilterItem({
-                                "columnKey": sFltrProp,
-                                "exclude": oP13nMapped.exclude,
-                                "operation": oP13nMapped.operation,
-                                "value1": mFltrParsed
+                        if (bHasFilter) {
+                            oFilterPanel.upsertHeaderCondition({
+                                expression: sFltrProp,
+                                comparator: oParsedInput.comparator || '=',
+                                value: oParsedInput.comparator === '{$between}' ? '' : oParsedInput.value,
+                                value_from: oParsedInput.value_from || '',
+                                value_to: oParsedInput.value_to || ''
                             });
-    
-                            oFilterPanel.addFilterItem(oFilterItem);
+                        } else {
+                            oFilterPanel.removeHeaderCondition(sFltrProp);
                         }
     
                         // Also make sure the built-in UI5-filtering is not applied.
@@ -1258,7 +1250,7 @@ JS;
             // Make sure, the column filter indicator is ON if the column is filtered over via advanced search 
             (function(){
                 var oSearchPanel = sap.ui.getCore().byId('{$this->getConfiguratorElement()->getIdOfSearchPanel()}');
-                var aSearchFItems = oSearchPanel.getFilterItems();
+                var aSearchFItems = oSearchPanel.getConditions();
                 var aColumns = oTable.getColumns();
                 aColumns.forEach(function(oColumn) {
                     var sFilterVal = oColumn.getFilterValue();
@@ -1267,7 +1259,7 @@ JS;
                         return;
                     }
                     aSearchFItems.forEach(function(oItem){
-                        if (oItem.getColumnKey() === oColumn.data('_exfAttributeAlias')) {
+                        if (oItem.expression === oColumn.data('_exfAttributeAlias') && oSearchPanel.hasConditionValue(oItem)) {
                             bFiltered = true;
                         }
                     });
@@ -2353,6 +2345,33 @@ JS;
         return $this->buildJsDataResetter() . ';' . $setNoData . ';';
     }
     
+    /**
+     * Returns the JS defining `var fnEffVisible = function(oColConfig, oColumn){...}` used by
+     * buildJsRefreshPersonalization() in both table variants.
+     * 
+     * A hidden_if column must stay hidden if its condition currently resolves to hidden, even when
+     * the (server-side) personalization config marks it visible. This helper ANDs config.visible with
+     * the client-side hidden_if evaluator (`_exfHiddenIfEval`).
+     * 
+     * @return string
+     */
+    protected function buildJsColumnEffectiveVisibleFunction() : string
+    {
+        return <<<JS
+
+                        var fnEffVisible = function(oColConfig, oColumn){
+                            var bVisible = oColConfig.visible;
+                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
+                                var fnEval = oColumn.data('_exfHiddenIfEval');
+                                if (typeof fnEval === 'function') {
+                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
+                                }
+                            }
+                            return bVisible;
+                        };
+JS;
+    }
+
     public function buildJsRefreshPersonalization() : string
     {
         $widget = $this->getWidget();
@@ -2382,6 +2401,8 @@ JS;
                             iConfOffset += 1;
                             aColumnsNew.push(oDirtyColumn);  
                         }
+
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
                         
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
@@ -2391,7 +2412,7 @@ JS;
                                 oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
                                     if (iColIdx !== iConfIdx + iConfOffset) bOrderChanged = true;
-                                    oColumn.setVisible(oColConfig.visible);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn);
                                     bFoundCol = true;
                                     return;
@@ -2401,7 +2422,7 @@ JS;
                             if (oColConfig.visible === true) {
                                 oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     bOrderChanged = true;
                                 }   
@@ -2437,6 +2458,8 @@ JS;
 
                         var bOrderChanged = false;
 
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
+
                         // add dirty column first
                         var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
                         if (oDirtyColumn) {
@@ -2447,8 +2470,9 @@ JS;
                             // table columns
                             aColumns.forEach(function(oColumn, iColIdx) {
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    if (oColumn.getVisible() !== oColConfig.visible) {
-                                        oColumn.setVisible(oColConfig.visible);
+                                    var bEff = fnEffVisible(oColConfig, oColumn);
+                                    if (oColumn.getVisible() !== bEff) {
+                                        oColumn.setVisible(bEff);
                                     }
                                     aColumnsNew.push(oColumn);                                    
                                     return;
@@ -2458,7 +2482,7 @@ JS;
                             if (oColConfig.visible === true && oColsOptional !== null) {
                                 var oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     return;
                                 }   
