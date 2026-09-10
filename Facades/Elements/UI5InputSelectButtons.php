@@ -181,8 +181,8 @@ JS;
                     if (oBindingCtx) {
                         oRow = oBindingCtx.getObject();
                     }
-                    // Hand the row to the trigger function as its `oRow` argument (see $triggerJs
-                    // above): in cell mode it is injected as requestData.rows, in dialog mode ignored.
+                    // Hand the row to the trigger function as its `oRow` argument (the trigger
+                    // built above): in cell mode it is injected as requestData.rows, in dialog mode ignored.
                     oCfg.trigger(oRow);
                     if (oCfg.lock === {$lockUntilChangeJs}) {
                         oCtrl._exfLockedKey = sKey;
