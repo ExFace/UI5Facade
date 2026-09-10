@@ -517,6 +517,10 @@ JS;
      */
     public function hasToolbarTop() : bool
     {
+        // An explicit hide_header_toolbar override always wins over the header/caption-based default logic below.
+        if (($hideToolbar = $this->getDataWidget()->getHideHeaderToolbar()) !== null) {
+            return ! $hideToolbar;
+        }
         return ! ($this->getWidget()->getHideHeader() === true && $this->getWidget()->getHideCaption());
     }
 
@@ -1542,9 +1546,11 @@ JS;
                 var oController = this;
                 var aSortItems = [];
                 var fnCheckPendingData;
+                var bFilterValidity = ({$this->buildJsCheckRequiredFilters()});
 
-                if(!{$this->buildJsCheckRequiredFilters()}) {
-                    {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
+
+                if(!bFilterValidity) {
+                    {$this->buildJsShowMessageOverlay($widget->getEmptyTextIfInvalidFilters())}
                     return Promise.resolve(oModel);
                  }
                 

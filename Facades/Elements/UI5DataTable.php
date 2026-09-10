@@ -1259,7 +1259,7 @@ JS;
                         return;
                     }
                     aSearchFItems.forEach(function(oItem){
-                        if (oItem.expression === oColumn.data('_exfAttributeAlias')) {
+                        if (oItem.expression === oColumn.data('_exfAttributeAlias') && oSearchPanel.hasConditionValue(oItem)) {
                             bFiltered = true;
                         }
                     });

@@ -241,6 +241,17 @@
 			return this._getConditionsReference();
 		},
 
+		hasConditionValue: function (oCondition) {
+			if (!oCondition) {
+				return false;
+			}
+			if (oCondition.comparator === "..") {
+				return oCondition.value_from !== "" && oCondition.value_from !== null && oCondition.value_from !== undefined
+					|| oCondition.value_to !== "" && oCondition.value_to !== null && oCondition.value_to !== undefined;
+			}
+			return oCondition.value !== "" && oCondition.value !== null && oCondition.value !== undefined;
+		},
+
 		_ensureGroupRows: function () {
 			var aConditions = this._getConditionsReference();
 			var bHasInclude = aConditions.some(function (oCondition) { return oCondition.exclude !== true; });
@@ -392,7 +403,8 @@
 				return;
 			}
 			var sValue = "";
-			if (!bRemove) {
+			var bHasValue = !bRemove && this.hasConditionValue(oCondition);
+			if (bHasValue) {
 				sValue = oCondition.comparator === ".."
 					? String(oCondition.value_from || "") + ".." + String(oCondition.value_to || "")
 					: String(oCondition.comparator || "=") + String(oCondition.value || "");
@@ -400,7 +412,7 @@
 			oTable.getColumns().forEach(function (oColumn) {
 				if (oColumn.getFilterProperty && oColumn.getFilterProperty() === oCondition.expression) {
 					oColumn.setFilterValue(sValue);
-					oColumn.setFiltered(!bRemove && sValue !== "");
+					oColumn.setFiltered(bHasValue);
 				}
 			});
 		}
