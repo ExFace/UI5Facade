@@ -473,6 +473,8 @@ JS;
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
                     noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
+                    // Select a row on left-click (row body), mirroring sap.ui.table.Table's SelectionBehavior.Row
+                    includeItemInSelection: true,
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
                     selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
