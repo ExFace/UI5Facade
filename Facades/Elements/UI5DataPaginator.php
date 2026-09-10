@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Widgets\DataPaginator;
+use exface\UI5Facade\Facades\Elements\UI5Button;
 
 /**
  * Generates buttons an labels to be used in a sap.m.Toolbar for pagination.
@@ -13,17 +14,6 @@ use exface\Core\Widgets\DataPaginator;
  */
 class UI5DataPaginator extends UI5AbstractElement
 {    
-    /**
-     * Maps DataPaginator::PAGE_BUTTON_PRIORITY_xxx values to sap.m.OverflowToolbarPriority values.
-     * 
-     * @var string[]
-     */
-    const PAGE_BUTTON_PRIORITY_JS_MAP = [
-        DataPaginator::PAGE_BUTTON_PRIORITY_HIDDEN => 'Disappear',
-        DataPaginator::PAGE_BUTTON_PRIORITY_HIGH => 'High',
-        DataPaginator::PAGE_BUTTON_PRIORITY_LOW => 'Low',
-        DataPaginator::PAGE_BUTTON_PRIORITY_ALWAYS_VISIBLE => 'NeverOverflow'
-    ];
     
     /**
      * 
@@ -39,8 +29,8 @@ class UI5DataPaginator extends UI5AbstractElement
             $pageButtonsPriority  = $this->getFacade()->getConfig()->getOption('WIDGET.DATA.PAGE_BUTTON_PRIORITY');
         }
         
-        if (null !== $priority = $this->getWidget()->getPageButtonPriority()) {
-            $pageButtonsPriority = self::PAGE_BUTTON_PRIORITY_JS_MAP[$priority];
+        if (null !== $priority = $this->getWidget()->getPageButtonOverflowPriority()) {
+            $pageButtonsPriority = UI5Button::PRIORITY_JS_MAP[$priority];
         }
         
         return <<<JS
