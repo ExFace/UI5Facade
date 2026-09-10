@@ -124,10 +124,11 @@ JS;
             var {$btnVar} = {$btnEl->buildJsConstructor($oControllerJs)};
             {$oControllerJs}.getView().addDependent({$btnVar});
 JS;
-                // Inject the toggled row (passed in as `oRow`) as the action's input data. Passing
-                // `requestData` makes buildJsClickFunction() skip its default input-widget
-                // collection, so the action runs on this exact row without touching the table
-                // selection. `oId` is the row object's meta object id (the cell's object = the row).
+                // Inject the toggled row as the action's input data. The row is NOT read here -
+                // it arrives as the `oRow` parameter when fnOnOptionSelected() calls trigger(oRow)
+                // below. Passing `requestData` makes buildJsClickFunction() skip its default
+                // input-widget collection, so the action runs on this exact row without touching
+                // the table selection. `oId` is the row object's meta object id (cell object = row).
                 $requestDataJs = "{ oId: {$objIdJs}, rows: (oRow !== undefined && oRow !== null ? [oRow] : []) }";
                 $triggerJs = "function(oRow) { {$btnEl->buildJsClickFunction(null, $requestDataJs)}; }";
             } else {
@@ -180,6 +181,8 @@ JS;
                     if (oBindingCtx) {
                         oRow = oBindingCtx.getObject();
                     }
+                    // Hand the row to the trigger function as its `oRow` argument (see $triggerJs
+                    // above): in cell mode it is injected as requestData.rows, in dialog mode ignored.
                     oCfg.trigger(oRow);
                     if (oCfg.lock === {$lockUntilChangeJs}) {
                         oCtrl._exfLockedKey = sKey;
