@@ -809,7 +809,7 @@ JS;
                     resource: "{$this->getPageId()}",
                     element: "{$widget->getTable()->getId()}",
                     object: "{$widget->getTable()->getMetaObject()->getId()}",
-                    length: "{$widget->getMaxSuggestions()}",
+                    length: {$this->escapeNumber($widget->getMaxSuggestions())},
 				    start: 0,
                     data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
                 };
