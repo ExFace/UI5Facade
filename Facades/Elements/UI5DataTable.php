@@ -212,8 +212,8 @@ JS, false);
 
         // get required setup info/Ids
         $dataWidget = $this->getDataWidget();
-        $screenSlug = $this->escapeString($dataWidget->findUiContainer()->getSlug());
-        $widgetId = $this->escapeString($dataWidget->getIdWithinUiContainer());
+        $screenSlug = $this->escapeString($dataWidget->getUiScreen()->getUrlSlug());
+        $widgetId = $this->escapeString($dataWidget->getIdInScreen());
         $objectId = $this->escapeString($dataWidget->getMetaObject()->getId());
   
         switch (true) {

@@ -161,7 +161,7 @@ JS;
                 
                 (function (){ 
                     // if a setup exists for this table in the indexedDB, apply it 
-                    exfSetupManager.dexie.getCurrentSetup('{$dataElement->getWidget()->findUiContainer()->getSlug()}', '{$dataElement->getWidget()->getIdWithinUiContainer()}', '{$dataElement->getWidget()->getMetaObject()->getId()}')
+                    exfSetupManager.dexie.getCurrentSetup('{$dataElement->getWidget()->getUiScreen()->getUrlSlug()}', '{$dataElement->getWidget()->getIdInScreen()}', '{$dataElement->getWidget()->getMetaObject()->getId()}')
                     .then(entry => {
                         if (entry) {
                             {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
@@ -1485,8 +1485,8 @@ JS;
                 // Reset stored setup in indexedDB:
                 // if a setup exists for this table in the indexedDB, delete it
                 exfSetupManager.dexie.deleteCurrentSetup(
-                    '{$this->getDataElement()->getWidget()->findUiContainer()->getSlug()}' ,
-                    '{$this->getDataElement()->getWidget()->getIdWithinUiContainer()}',
+                    '{$this->getDataElement()->getWidget()->getUiScreen()->getUrlSlug()}' ,
+                    '{$this->getDataElement()->getWidget()->getIdInScreen()}',
                     '{$this->getDataElement()->getWidget()->getMetaObject()->getId()}'
                 );
 
