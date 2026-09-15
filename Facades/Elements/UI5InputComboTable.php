@@ -589,6 +589,10 @@ JS;
         // NOTE: in sap.m.MultiInput there are no tokens yet, so we tell the getter
         // method not to rely on the explicitly!!!
         $onSuggestLoadedJs = <<<JS
+console.log('row length', oModel.getProperty('/rows')?.length);
+                if (oModel.getProperty('/rows')?.length > 100) {
+                    oModel.setSizeLimit(oModel.getProperty('/rows').length);
+                }
                             
                 var bAutoSelectSingle = {$autoSelectSingleJs};
                 var bAutoSearchSingle = {$autoSearchSingleJs};
@@ -813,6 +817,7 @@ JS;
 				    start: 0,
                     data: {$configuratorElement->buildJsDataGetter($widget->getTable()->getLazyLoadingAction(), true)}
                 };
+                console.log('{$widget->getAttributeAlias()}', params);
                 // if the autosuggest is silent, meaning its loading data for already existing values (for example after a prefill) we remove the length parameter
                 // else the autosuggest might not read all data, wenn already existing keys are more than the max suggestion propety
                 if (bSilent === true) {
