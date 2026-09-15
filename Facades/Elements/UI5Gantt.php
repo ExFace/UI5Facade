@@ -736,7 +736,9 @@ JS;
      */
     protected function hasPaginator() : bool
     {
-        return $this->getWidget()->isPaged();
+        // do not use the hasPaginator implementation form UI5DataTree, instead use the one form UI5DataTable,
+        // which uses the implementation from the UI5DataElementTrait right now
+        return UI5DataTable::hasPaginator();
     }
     
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
