@@ -520,6 +520,43 @@ JS;
 JS;
     }
 
+    /**
+     * Prevents a text selection in a group header from toggling the group.
+     *
+     * @return string
+     */
+    protected function buildJsPreserveGroupHeaderSelection() : string
+    {
+        if (! $this->getWidget()->hasRowGroups()) {
+            return '';
+        }
+        return <<<JS
+
+            .addEventDelegate({
+                onAfterRendering: function(oEvent) {
+                    var oTableDom = oEvent.srcControl.getDomRef();
+                    if (!oTableDom) {
+                        return;
+                    }
+                    oTableDom.addEventListener("click", function(oEvent) {
+                        var oGroupHeader = oEvent.target.closest(".sapUiTableGroupIcon");
+                        var oSelection = window.getSelection();
+                        if (
+                            oGroupHeader
+                            && oSelection
+                            && ! oSelection.isCollapsed
+                            && oSelection.toString().length > 0
+                            && oGroupHeader.contains(oSelection.anchorNode)
+                            && oGroupHeader.contains(oSelection.focusNode)
+                        ) {
+                            oEvent.stopPropagation();
+                        }
+                    }, true);
+                }
+            })
+JS;
+    }
+
     
     /**
      * 
@@ -873,6 +910,7 @@ JS;
                 ],
                 rows: "{/rows}"
         	}).addStyleClass('rowAlternate-'+{$striped})
+            {$this->buildJsPreserveGroupHeaderSelection()}
             {$this->buildJsHeaderFilterFunctions()}
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
