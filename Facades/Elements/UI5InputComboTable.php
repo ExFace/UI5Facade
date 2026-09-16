@@ -888,7 +888,8 @@ JS;
             }*/
             return "getSelectedKey()";
         } else {
-            $delim = $this->getWidget()->getMultiSelectTextDelimiter();
+            // Value getter must join keys with the value delimiter, not the space-decorated display one
+            $delim = $this->getWidget()->getMultipleValuesDelimiter();
             return "getTokens().reduce(function(sList, oToken, iIdx, aTokens){ return sList + (sList !== '' ? '$delim' : '') + oToken.getKey() }, '')";
         }
     }
@@ -897,7 +898,7 @@ JS;
     {
         $allowNewValuesJs = $this->getWidget()->getAllowNewValues() ? 'true' : 'false';
         $valueColName = $this->getWidget()->getValueColumn()->getDataColumnName();
-        $delim = $this->getWidget()->getMultiSelectTextDelimiter();
+        $delim = $this->getWidget()->getMultipleValuesDelimiter();
         return <<<JS
 function(sColName){
     var oInput = sap.ui.getCore().byId('{$this->getId()}');
@@ -1189,7 +1190,7 @@ JS;
     {
         $widget = $this->getWidget();
         $validJs = '';
-        $delim = $this->getWidget()->getMultiSelectTextDelimiter();
+        $delim = $this->getWidget()->getMultipleValuesDelimiter();
         if ($widget->getAllowNewValues() === false) {
             // check if the vale state is `ERROR` and an actual invalid key is selected, else it could be possible to
             // safe values that are not actually valid
@@ -1330,7 +1331,7 @@ JS;
         if ($widget->getMultiSelect() === false) { 
             $rows = "[{ {$widget->getDataColumnName()}: {$this->buildJsValueGetter()} }]";
         } else {
-            $delim = str_replace("'", "\\'", $this->getWidget()->getMultiSelectTextDelimiter());
+            $delim = str_replace("'", "\\'", $this->getWidget()->getMultipleValuesDelimiter());
             $rows = <<<JS
                             function(){
                                 var aVals = ({$this->buildJsValueGetter()} || '').split('{$delim}');
