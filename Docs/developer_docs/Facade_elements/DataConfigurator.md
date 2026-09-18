@@ -1,8 +1,10 @@
 # Data configurator dialogs in UI5
 
-The UI5 data configurator is the personalization dialog used by data widgets, most notably
-data tables. It combines normal ExFace filter widgets with UI5 personalization controls for
-sorting and columns, a custom advanced-search control, and optional persisted table setups.
+The `UI5DataConfigurator` facade element is the UI5 implementation of the Core
+`DataConfigurator` widget model. It generates the personalization dialog used by data widgets,
+most notably data tables. The generated UI combines normal ExFace filter widgets with UI5
+personalization controls for sorting and columns, a custom advanced-search control, and optional
+persisted table setups.
 
 The server-side entry point is
 [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php). It renders a
@@ -19,9 +21,9 @@ documented in [Data_widget_setups.md](Data_widget_setups.md).
 
 | Component | Responsibility |
 |---|---|
-| [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php) | Builds the dialog, panels, configuration models, reset logic, and request data. |
-| `exface\Core\Widgets\DataConfigurator` | Core widget model exposed by the facade element. |
-| `exface\Core\Widgets\DataTableConfigurator` | Adds table-specific optional columns and saved setups. |
+| [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php) | Facade element that generates the dialog, panels, configuration models, reset logic, and request data. |
+| `exface\Core\Widgets\DataConfigurator` | Facade-independent widget model implemented by `UI5DataConfigurator`. |
+| `exface\Core\Widgets\DataTableConfigurator` | Widget model that adds table-specific optional columns and saved setups. |
 | `JqueryDataConfiguratorTrait` | Implements common filter serialization, setters, reset behavior, and apply-on-change registration. |
 | `UI5Tabs` | Base UI5 facade element and controller integration. |
 | [`UI5DataTable`](../../../Facades/Elements/UI5DataTable.php) | Applies column personalization, synchronizes table-header sorting and filtering, sets indicators, and reloads data. |
@@ -54,9 +56,9 @@ The current model contains these main paths:
 
 The dialog buttons have deliberately small responsibilities:
 
-- **OK** closes the dialog, asks the data element to apply column personalization, and refreshes
-  the configured data widget. During refresh, the configurator state is converted into request
-  filters, sorters, and columns.
+- **OK** closes the dialog, asks the configured data widget's facade element to apply column
+	personalization, and refreshes the widget. During refresh, the configurator state is converted
+	into request filters, sorters, and columns.
 - **Cancel** only closes the dialog. It does not restore the current model from the initial model.
 - **Reset** clears Advanced Search, restores initial sorters and columns, resets regular filters,
   table indicators and custom widths, removes the locally remembered setup, and closes the dialog.
@@ -89,8 +91,8 @@ flowchart LR
 ## Setups tab
 
 The Setups tab embeds the widget tree produced by `DataTableConfigurator::getSetupsTab()` in a
-custom `P13nLayoutPanel`. The table and its actions are Core widget configuration; the UI5 facade
-only renders those children and connects their actions to the configured data table.
+custom `P13nLayoutPanel`. The table and its actions are Core widget models; the UI5 facade elements
+generate controls for those children and connect their actions to the configured data table.
 
 From the configurator's point of view, the tab only reads and writes the same state the other tabs
 use: `/columns`, `/sorters`, `/header_filters`, and the Advanced Search panel's conditions. All
@@ -284,7 +286,7 @@ This tab needs:
 When extending the configurator, keep these contracts intact:
 
 1. Treat the named JSON model as dialog state, not as the final table state. Apply changes through
-	the owning table or filter element.
+	the owning table or filter facade element.
 2. Use `P13AdvancedSearchPanel` methods instead of mutating `/advanced_search` externally. They
 	preserve normalization, placeholder rows, header synchronization, and `conditionChange` events.
 3. Keep canonical ExFace comparators in saved setups and requests. Translate them only at the final

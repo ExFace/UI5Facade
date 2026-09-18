@@ -6,6 +6,10 @@ values of the regular configurator filters. Users can save setups, share or publ
 as favorites and re-apply them later. The setup last applied on a device is remembered locally and
 re-applied automatically the next time the view is shown.
 
+In UI-facade terms, the Core widget models define which setup widgets and actions exist and the
+facade-independent UXON payload they use. UI5 facade elements generate the controls and JavaScript
+that capture, apply and track that state in the browser.
+
 This page describes the UI5-specific architecture. The personalization dialog that produces and
 consumes the setup state is documented in [DataConfigurator.md](DataConfigurator.md).
 
@@ -38,16 +42,16 @@ of a mutation if needed.
 | Setups tab inside the P13n dialog, auto-apply on view show, reset behavior | [`Facades/Elements/UI5DataConfigurator.php`](../../../Facades/Elements/UI5DataConfigurator.php) |
 | Setups quick-select menu in the data toolbar | [`Facades/Elements/Traits/UI5DataElementTrait.php`](../../../Facades/Elements/Traits/UI5DataElementTrait.php), `buildJsSetupQuickSelectMenu()` |
 | `exface.openui5.P13nLayoutPanel` (host panel for the setups tab) | [`Facades/js/openui5.controls.js`](../../../Facades/js/openui5.controls.js) |
-| Setups table, its filters, columns and buttons (model side) | `exface\Core\Widgets\DataTableConfigurator` |
-| Widget function constants and their UXON docs | `exface\Core\Widgets\DataTable` (`FUNCTION_APPLY_SETUP`, `FUNCTION_DUMP_SETUP`, …) |
+| Setups table, its filters, columns and buttons (widget models) | `exface\Core\Widgets\DataTableConfigurator` |
+| Widget model function constants and their UXON docs | `exface\Core\Widgets\DataTable` (`FUNCTION_APPLY_SETUP`, `FUNCTION_DUMP_SETUP`, …) |
 | Persisted setups | Meta objects `exface.Core.WIDGET_SETUP` and `exface.Core.WIDGET_SETUP_USER` |
 | UXON schema of the stored configuration | the setup prototype for the widget type, currently only `exface\Core\Mutations\Prototypes\DataTableSetup` |
 | Schema of a single configurable aspect | the mutation rules in `exface\Core\Mutations\MutationRules\` - `DataColumnSetupRule`, `FilterSetupRule`, `AdvancedSearchSetupRule`, `SorterSetupRule` |
 
-The UI5 facade owns only the client-side behavior. *Which* setups exist, how they are filtered per
-user and which buttons the setups tab offers is Core widget configuration in
-`DataTableConfigurator`; the facade merely renders those children and wires their actions to the
-configured table.
+The UI5 facade elements own only the client-side behavior. *Which* setups exist, how they are
+filtered per user and which buttons the setups tab offers are defined by the
+`DataTableConfigurator` widget model. The facade elements generate UI5 controls for those child
+widget models and wire their actions to the configured table's facade element.
 
 ## Identity of a setup
 
@@ -144,7 +148,7 @@ Notes on the contract:
 
 ## Client-side API
 
-All of it lives in `exfSetupManager`; PHP only generates calls into it.
+All of it lives in `exfSetupManager`; the PHP facade elements only generate calls into it.
 
 | Function | Purpose |
 |---|---|
