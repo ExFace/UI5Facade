@@ -576,6 +576,12 @@ JS;
                     lineIndex++
                 });
                 
+                // filling the rowKeys array with the remaining visible empty rows from the table, 
+                // so the Gantt has always the same number of rows as the table:
+                while (lineIndex < oTable.getVisibleRowCount()) {
+                    rowKeys.push(lineIndex++);
+                }
+                
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
                 oGantt.refresh(aTasks, scrollToToday);
