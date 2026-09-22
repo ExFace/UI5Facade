@@ -323,6 +323,7 @@ flex row instead, where the label keeps its natural width and the value cell shr
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper:last-of-type {flex: 1 1 auto; overflow: hidden;}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.5rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-progressbar {min-height: 1.5rem; align-items: center;}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
 /* Custom margins for Text widgets in dialog header*/
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-text > .sapUiHLayoutChildWrapper:first-of-type {vertical-align: top}
