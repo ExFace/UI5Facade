@@ -1064,7 +1064,7 @@ JS;
                             {$tabElement->buildJsLayoutConstructor()}
                         ]
 					})
-				}).addStyleClass('{$cssClass}'),
+				}).addStyleClass('{$cssClass} {$tabElement->buildCssElementClass()} {$tabElement->buildCssWidgetClass()}'),
                 // EOF ObjectPageSection
                 
 JS;

@@ -22,7 +22,7 @@ class UI5InlineGroup extends UI5Value
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs));
+        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs) . $this->buildJsAddCssWidgetClasses());
     }
     
     /**
