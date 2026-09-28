@@ -48,7 +48,7 @@ class UI5DataLookupDialog extends UI5Dialog
         if ($table->getMetaObject()->hasLabelAttribute()) {
             $labelColExists = false;
             foreach ($table->getColumns() as $col) {
-                if ($col->isBoundToAttribute() && $col->getAttribute()->isLabelForObject()) {
+                if ($col->isBoundToAttribute() && $col->getAttribute()->getObject()->isExactly($table->getMetaObject()) && $col->getAttribute()->isLabelForObject()) {
                     $this->tokenNameColumn = $col;
                     $labelColExists = true;
                     break;

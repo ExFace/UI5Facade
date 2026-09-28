@@ -28,6 +28,7 @@ use exface\Core\Interfaces\WidgetInterface;
 use exface\UI5Facade\Exceptions\UI5ExportUnsupportedWidgetException;
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Actions\Autosuggest;
+use exface\Core\DataTypes\ComparatorDataType;
 use exface\Core\DataTypes\DateTimeDataType;
 use exface\Core\Factories\DataTypeFactory;
 use exface\Core\Interfaces\Model\CompoundAttributeInterface;
@@ -403,6 +404,13 @@ JS;
         $opISNOT = EXF_COMPARATOR_IS_NOT;
         $opEQ = EXF_COMPARATOR_EQUALS;
         $opNE = EXF_COMPARATOR_EQUALS_NOT;
+        $opLT = EXF_COMPARATOR_LESS_THAN;
+        $opLE = EXF_COMPARATOR_LESS_THAN_OR_EQUALS;
+        $opGT = EXF_COMPARATOR_GREATER_THAN;
+        $opGE = EXF_COMPARATOR_GREATER_THAN_OR_EQUALS;
+        $opBetween = ComparatorDataType::BETWEEN;
+        $opIn = ComparatorDataType::IN;
+        $opNotIn = ComparatorDataType::NOT_IN;
         $dateTimeFormat = DateTimeDataType::DATETIME_ICU_FORMAT_INTERNAL;
         
         return <<<JS
@@ -411,7 +419,6 @@ JS;
             var oDataReadParams = {};
             var oDataReadFiltersSearch = [];
             var oDataReadFiltersQuickSearch = [];
-            var oDataReadFiltersTempGroup = [];
             var oDataReadFiltersGroups = [];
             var oDataReadFilters = [];
             var oDataReadFiltersArray = [];
@@ -486,21 +493,34 @@ JS;
 
             // Settings menu Filters 
             if ({$oParamsJs}.data && {$oParamsJs}.data.filters && {$oParamsJs}.data.filters.nested_groups) {
-                var groupsCount = {$oParamsJs}.data.filters.nested_groups.length;
-                for (var j = 0; j < groupsCount; j++) {
-                    var conditions = {$oParamsJs}.data.filters.nested_groups[j].conditions 
-                    var conditionsCount = conditions.length;              
-                    for (var i = 0; i < conditionsCount; i++) {
+                var fnCreateFilterGroup = function(oGroup) {
+                    var aGroupFilters = [];
+                    var conditions = oGroup.conditions || [];
+                    for (var i = 0; i < conditions.length; i++) {
                         var cond = conditions[i];
                         if (compoundAttributes[cond.expression] !== undefined) {                        
-                            {$this->buildJsCompoundAttributeAddFilters('compoundAttributes', 'cond', 'oAttrsByDataType', 'oDataReadFiltersTempGroup', $onErrorJs)}
+                            {$this->buildJsCompoundAttributeAddFilters('compoundAttributes', 'cond', 'oAttrsByDataType', 'aGroupFilters', $onErrorJs)}
                         } else {                        
-                            {$this->buildJsAddConditionToFilter('oAttrsByDataType', 'oDataReadFiltersTempGroup', 'cond')}
+                            {$this->buildJsAddConditionToFilter('oAttrsByDataType', 'aGroupFilters', 'cond')}
                         }
                     }
-                    if (oDataReadFiltersTempGroup.length !== 0) {
-                        var tempFilter = new sap.ui.model.Filter({filters: oDataReadFiltersTempGroup, and: true})
-                        oDataReadFiltersGroups.push(tempFilter);
+                    var aNestedGroups = oGroup.nested_groups || [];
+                    for (var iNested = 0; iNested < aNestedGroups.length; iNested++) {
+                        var oNestedFilter = fnCreateFilterGroup(aNestedGroups[iNested]);
+                        if (oNestedFilter !== null) {
+                            aGroupFilters.push(oNestedFilter);
+                        }
+                    }
+                    return aGroupFilters.length === 0 ? null : new sap.ui.model.Filter({
+                        filters: aGroupFilters,
+                        and: oGroup.operator !== 'OR'
+                    });
+                };
+                var groupsCount = {$oParamsJs}.data.filters.nested_groups.length;
+                for (var j = 0; j < groupsCount; j++) {
+                    var oFilterGroup = fnCreateFilterGroup({$oParamsJs}.data.filters.nested_groups[j]);
+                    if (oFilterGroup !== null) {
+                        oDataReadFiltersGroups.push(oFilterGroup);
                     }
                 }
             }
@@ -663,6 +683,31 @@ JS;
                                                 return row[cond.expression] !== cond.value
                                             });
                                             break;
+                                        case '{$opLT}':
+                                            resultRows = resultRows.filter(row => row[cond.expression] < cond.value);
+                                            break;
+                                        case '{$opLE}':
+                                            resultRows = resultRows.filter(row => row[cond.expression] <= cond.value);
+                                            break;
+                                        case '{$opGT}':
+                                            resultRows = resultRows.filter(row => row[cond.expression] > cond.value);
+                                            break;
+                                        case '{$opGE}':
+                                            resultRows = resultRows.filter(row => row[cond.expression] >= cond.value);
+                                            break;
+                                        case '{$opBetween}':
+                                            var aBounds = String(cond.value).split('..');
+                                            resultRows = resultRows.filter(row => {
+                                                return (aBounds[0] === '' || row[cond.expression] >= aBounds[0])
+                                                    && (aBounds[1] === '' || row[cond.expression] <= aBounds[1]);
+                                            });
+                                            break;
+                                        case '{$opIn}':
+                                        case '{$opNotIn}':
+                                            var aValues = String(cond.value).split(',');
+                                            var bNotIn = cond.comparator === '{$opNotIn}';
+                                            resultRows = resultRows.filter(row => bNotIn !== aValues.includes(String(row[cond.expression])));
+                                            break;
                                         case '{$opISNOT}':
                                             var val = cond.value.toString().toLowerCase();
                                             resultRows = resultRows.filter(row => {
@@ -724,10 +769,14 @@ JS;
         $opLE = EXF_COMPARATOR_LESS_THAN_OR_EQUALS;
         $opGT = EXF_COMPARATOR_GREATER_THAN;
         $opGE = EXF_COMPARATOR_GREATER_THAN_OR_EQUALS;
+        $opBetween = ComparatorDataType::BETWEEN;
+        $opIn = ComparatorDataType::IN;
+        $opNotIn = ComparatorDataType::NOT_IN;
+        $listSeparator = EXF_LIST_SEPARATOR;
         
         return <<<JS
                     
-                    var sOperator, value;
+                var sOperator;
                     switch ({$condJs}.comparator) {
                         case '{$opIS}':
                             sOperator = "Contains";
@@ -753,47 +802,76 @@ JS;
                         case '{$opGE}':
                             sOperator ="GE";
                             break;
+                        case '{$opBetween}':
+                            sOperator = "BT";
+                            break;
                         default:
-                            var sOperator = "EQ";
+                            sOperator = "EQ";
                     }
                     if ({$condJs}.value !== "" && {$condJs}.value !== undefined && {$condJs}.value !== null) {
-                        var filterPush = true;
-                        if ({$oAttrsByDataTypeJs}.time.indexOf({$condJs}.expression) > -1) {
-                            var d = {$condJs}.value;
-                            var timeParts = d.split(':');
-                            if (timeParts[3] === undefined || timeParts[3]=== null || timeParts[3] === "") {
-                                timeParts[3] = "00";
-                            }
-                            for (var j = 0; j < timeParts.length; j++) {
-                                timeParts[j] = ('0'+(timeParts[j])).slice(-2);
-                            }                            
-                            var timeString = "PT" + timeParts[0] + "H" + timeParts[1] + "M" + timeParts[3] + "S";
-                            value = timeString;
-                            if (sOperator === "Contains") {
-                                sOperator = "EQ";
-                            }
-                        } else if ({$oAttrsByDataTypeJs}.date.indexOf({$condJs}.expression) > -1) {
-                            var d = exfTools.date.parse({$condJs}.value);
-                            if (d === null) {
-                                filterPush = false;
-                            } else {
-                                var date = d.toISOString();
-                                var datestring = date.replace(/\.[0-9]{3}/, '');
-                                var value = datestring;
-                                if (sOperator === "Contains") {
-                                    sOperator = "EQ";
+                        var fnNormalizeValue = function(mValue) {
+                            if ({$oAttrsByDataTypeJs}.time.indexOf({$condJs}.expression) > -1) {
+                                var timeParts = String(mValue).split(':');
+                                if (timeParts[3] === undefined || timeParts[3] === null || timeParts[3] === "") {
+                                    timeParts[3] = "00";
                                 }
+                                for (var iPart = 0; iPart < timeParts.length; iPart++) {
+                                    timeParts[iPart] = ('0' + timeParts[iPart]).slice(-2);
+                                }
+                                return "PT" + timeParts[0] + "H" + timeParts[1] + "M" + timeParts[3] + "S";
+                            }
+                            if ({$oAttrsByDataTypeJs}.date.indexOf({$condJs}.expression) > -1) {
+                                var oDate = exfTools.date.parse(mValue);
+                                return oDate === null ? null : oDate.toISOString().replace(/\.[0-9]{3}/, '');
+                            }
+                            return mValue;
+                        };
+                        if ({$condJs}.comparator === '{$opIn}' || {$condJs}.comparator === '{$opNotIn}') {
+                            var bNotIn = {$condJs}.comparator === '{$opNotIn}';
+                            var aListFilters = String({$condJs}.value).split('{$listSeparator}').filter(function(sValue) {
+                                return sValue.trim() !== '';
+                            }).map(function(sValue) {
+                                return new sap.ui.model.Filter({
+                                    path: {$condJs}.expression,
+                                    operator: bNotIn ? "NE" : "EQ",
+                                    value1: fnNormalizeValue(sValue.trim())
+                                });
+                            });
+                            if (aListFilters.length > 0) {
+                                {$filterArrayJs}.push(new sap.ui.model.Filter({filters: aListFilters, and: bNotIn}));
                             }
                         } else {
-                            value = {$condJs}.value;
-                        }
-                        if (filterPush === true) {
-                            var filter = new sap.ui.model.Filter({
-                                path: {$condJs}.expression,
-                                operator: sOperator,
-                                value1: value
-                            });
-                            {$filterArrayJs}.push(filter);
+                            var mValue = {$condJs}.value;
+                            var mValue2;
+                            if (sOperator === "BT") {
+                                var iBetween = String(mValue).indexOf('..');
+                                mValue2 = iBetween > -1 ? String(mValue).slice(iBetween + 2) : '';
+                                mValue = iBetween > -1 ? String(mValue).slice(0, iBetween) : mValue;
+                                if (mValue === '' && mValue2 !== '') {
+                                    sOperator = "LE";
+                                    mValue = mValue2;
+                                    mValue2 = undefined;
+                                } else if (mValue !== '' && mValue2 === '') {
+                                    sOperator = "GE";
+                                    mValue2 = undefined;
+                                }
+                            }
+                            var value = fnNormalizeValue(mValue);
+                            var value2 = sOperator === "BT" ? fnNormalizeValue(mValue2) : undefined;
+                            var filterPush = value !== null && (sOperator !== "BT" || value2 !== null);
+                            if ((sOperator === "Contains" || sOperator === "NotContains")
+                                && ({$oAttrsByDataTypeJs}.time.indexOf({$condJs}.expression) > -1 || {$oAttrsByDataTypeJs}.date.indexOf({$condJs}.expression) > -1)) {
+                                sOperator = sOperator === "Contains" ? "EQ" : "NE";
+                            }
+                            if (filterPush === true) {
+                                var filter = new sap.ui.model.Filter({
+                                    path: {$condJs}.expression,
+                                    operator: sOperator,
+                                    value1: value,
+                                    value2: value2
+                                });
+                                {$filterArrayJs}.push(filter);
+                            }
                         }
                     }
 

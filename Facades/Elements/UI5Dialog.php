@@ -135,10 +135,40 @@ JS, false));
         } 
         
         
-        $closeAction = ActionFactory::createFromString($this->getWorkbench(), GoBack::class, $widget);
-        $closeConfirmationEl = $this->getFacade()->getElement($closeAction->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst());
-        if (! $closeConfirmationEl instanceof UI5ConfirmationElementInterface) {
+        // The unsaved-changes confirmation for closing the dialog is taken from the close button's
+        // action if one is configured (see Dialog::close_button_action) - so designers can disable it
+        // via `confirmation_for_unsaved_changes: false`. If no close button action is set, fall back
+        // to a default GoBack action, which enables the confirmation by default.
+        $closeButton = $widget->getCloseButton();
+        if ($closeButton->hasAction()) {
+            $closeAction = $closeButton->getAction();
+        } else {
+            $closeAction = ActionFactory::createFromString($this->getWorkbench(), GoBack::class, $widget);
+        }
+        // A disabled confirmation must never be shown - treat it as if there were none.
+        $closeConfirmation = $closeAction->getConfirmations()->getConfirmationsForUnsavedChanges()->getFirst();
+        if ($closeConfirmation !== null && $closeConfirmation->isDisabled()) {
+            $closeConfirmation = null;
+        }
+        $closeConfirmationEl = $closeConfirmation !== null ? $this->getFacade()->getElement($closeConfirmation) : null;
+        if ($closeConfirmationEl !== null && ! $closeConfirmationEl instanceof UI5ConfirmationElementInterface) {
             throw new FacadeRuntimeError('Cannot use widget "' . $closeConfirmationEl->getWidget()->getWidgetType() . '" for confirmations in UI5 facade: UI5 element does not implement required UI5ConfirmationElementInterface!');
+        }
+        // Only render the change-check if a confirmation is actually enabled. Otherwise close directly.
+        if ($closeConfirmationEl !== null) {
+            $checkChangesJs = <<<JS
+
+                    // Check for unsaved changes if required.
+                    if (bCheckChanges === true) {
+                        aChanges = {$this->buildJsChangesGetter(true)};
+                        if (aChanges && aChanges.length > 0) {
+                            {$closeConfirmationEl->buildJsConfirmation('{}', 'fnClose()')}
+                            return;
+                        }
+                    }
+JS;
+        } else {
+            $checkChangesJs = '';
         }
         $controller->addMethod(self::CONTROLLER_METHOD_CLOSE_DIALOG, $this, 'oEvent', <<<JS
             
@@ -153,15 +183,7 @@ JS, false));
                         {$closeDialogJs}
                         {$dialogOpenerBtnEl->buildJsTriggerActionEffects($dialogOpenerAction)}
                     }.bind(this);
-                    
-                    // Check for unsaved changes if required.
-                    if (bCheckChanges === true) {
-                        aChanges = {$this->buildJsChangesGetter(true)};
-                        if (aChanges && aChanges.length > 0) {
-                            {$closeConfirmationEl->buildJsConfirmation('{}', 'fnClose()')}
-                            return;
-                        }
-                    }
+                    {$checkChangesJs}
                 } catch (e) {
                     console.error('Error while closing dialog: ', e);
                 }

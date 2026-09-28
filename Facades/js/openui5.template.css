@@ -35,11 +35,9 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 .sapMInputBaseDisabledWrapper>.sapMInputBaseInner {color: black;}
 
 /* RangeSpinnerFilter */
-.exf-spinner-filter > div {margin-right: 0 !important}
+.exf-spinner-filter > div {margin-right: 4px !important}
+.exf-spinner-filter > div:last-of-type {margin-right: 0 !important; overflow: hidden}
 .exf-spinner-filter .sapMBtnInner {border: .0625rem solid #89919a}
-.exf-spinner-filter > div:first-of-type button {margin-right: -3px}
-.exf-spinner-filter > div:last-of-type button {margin-left: -3px;}
-.exf-spinner-filter > div:last-of-type {overflow: hidden}
 
 /* sap.m.Table */
 .sapMList.sapMListBGTranslucent.sapMListTblCnt {overflow-x: scroll}
@@ -62,6 +60,11 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 
 /* sap.m.List */
 .sapMLIB.sapMSLIIcon {padding-left: 0;}
+.exf-p13n-advanced-search-row {box-sizing: border-box; padding-left: 0.5rem;}
+.exf-p13n-advanced-search-operator {text-align: center;}
+.exf-p13n-advanced-search-action {transform: translateY(-0.125rem);}
+.sapMLIB.exf-p13n-advanced-search-item {background: transparent;}
+
 
 /* sap.m.GridList */
 .sapFGridListDefault {padding: 0 0.5rem}
@@ -311,9 +314,16 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .exf-dialog-page.exf-dialog-filled .sapUxAPObjectPageSection.sapUiNoContentPadding + .sapUxAPObjectPageSection.sapUiNoContentPadding {margin-top: 1rem;}
 .exf-dialog-btn-header-collapse {position: absolute; right: 0; top: 0; margin-top: 0.75rem}
 /* Dialog header with different controls */
-.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle}
+/* HorizontalLayout (label + value) does not wrap and sizes each cell to its content by default, so a
+long value (e.g. ColorIndicator) just overflows past the layout instead of shrinking - turn it into a
+flex row instead, where the label keeps its natural width and the value cell shrinks/truncates */
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal {display: flex; max-width: 100%;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper {min-height: 0; vertical-align: middle; display: block; min-width: 0;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper:first-of-type {flex: 0 0 auto;}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper:last-of-type {flex: 1 1 auto; overflow: hidden;}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMLabel {padding-right: 0.5rem}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapMPI {margin-bottom: 0rem}
+.sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-progressbar {min-height: 1.5rem; align-items: center;}
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal > .sapUiHLayoutChildWrapper > .sapUiIcon  {vertical-align: inherit}
 /* Custom margins for Text widgets in dialog header*/
 .sapUxAPObjectPageHeaderContent .exf-label-horizontal.exf-label-for-text > .sapUiHLayoutChildWrapper:first-of-type {vertical-align: top}
@@ -322,6 +332,12 @@ table.jexcel > tbody > tr > td.jexcel_dropdown.readonly { background-image: none
 .sapUxAPObjectPageHeaderContent .sapUiVltCell > .sapMFT {margin-top: 0.25rem}
 /* TextHeading widgets in dialog headers*/
 .sapUxAPObjectPageHeaderContent .sapMLabel.exf-textheading {vertical-align: middle}
+/* Allow header items (and widget groups) to shrink below their content's natural width, so that
+long values (e.g. ColorIndicator) get truncated with ellipsis instead of overlapping neighboring
+items - flex items default to min-width: auto, which prevents shrinking below their content size */
+.sapUxAPObjectPageHeaderContent .sapUxAPObjectPageHeaderContentItem,
+.sapUxAPObjectPageHeaderContent .sapUiVltCell {min-width: 0;}
+.sapUxAPObjectPageHeaderContent .sapUiVlt {min-width: 0; max-width: 100%; overflow: hidden;}
 /* Dialog with Split */
 html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterV > .sapUiLoSplitterBar {border-top-color:transparent; border-bottom-color: transparent;}
 html.sapUiTheme-sap_horizon .sapUxAPObjectPageSectionContainer .sapUiLoSplitter.sapUiLoSplitterH > .sapUiLoSplitterBar {border-left-color: transparent; border-right-color: transparent;}
@@ -348,6 +364,7 @@ html.sap-tablet .sapMDialog, html.sap-desktop .sapMDialog {min-width: 25rem !imp
 .exf-wizard-step-hide-caption > .sapMWizardStepTitle {visibility: hidden; height: 0px; margin: 0;}
 /* FIX next-button of mobile wizzards floating in the upper part of the screen - even if the wizard itself is not visible! */
 html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !important; left: inherit !important; bottom: inherit !important;}
+.exf-wizard-step-toolbar-sticky {height: 3rem !important; position: sticky; bottom: 0; z-index: 1; margin: 0 0.5rem; background: var(--sapGroup_ContentBackground, #fff); border-radius: var(--sapElement_BorderCornerRadius, 0.5rem); box-shadow: var(--sapContent_Shadow2, 0 0.25rem 1rem rgba(0,0,0,.15));}
 
 /* Map */
 .exf-map {z-index: 0}
@@ -467,12 +484,6 @@ html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter.sapUiLoSplitterV>.sapUiLo
 
 /* SegmentedButtons */
 .segmentedButtonsError {border-color: #b00 !important; border-width: 2px !important; color: #b00 !important;}
-
-/* Gantt */
-/* TODO SR: Move all gantt css to the "exf-frappe-gantt.js" */
-.exf-gantt .gantt-container {height: 100%; overflow-y: hidden;}
-/*.exf-gantt .gantt .tick {stroke: #ddd}*/ /*TODO SR: Previously, all ticks were coloured the same. Now you can adjust this with thick_lines.*/
-.bar-folder {filter: drop-shadow(0px -3px 0px rgb(0 0 0 / 0.8))}
 
 /* Scheduler */
 /* Decrease height of sing-line rows */

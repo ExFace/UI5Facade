@@ -1,7 +1,7 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Factories\MetaObjectFactory;
+use exface\Core\DataTypes\ComparatorDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -21,10 +21,6 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
-use exface\Core\CommonLogic\UxonObject;
-use exface\Core\DataTypes\OfflineStrategyDataType;
-use exface\Core\CommonLogic\Model\UiPage;
-use exface\Core\Factories\WidgetFactory;
 use exface\Core\Widgets\DisplayTemplate;
 
 /**
@@ -57,6 +53,13 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
      * @var string
      */
     const CONTROLLER_VAR_OPTIONAL_COLS = 'optionalCols';
+
+    /**
+     * This JS controller property will hold an object of pre-built, correctly formatted
+     * cell controls for optional columns of a responsive sap.m.Table (data_column_name as key).
+     * @var string
+     */
+    const CONTROLLER_VAR_OPTIONAL_CELLS = 'optionalCells';
     
     protected function init()
     {
@@ -87,14 +90,27 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
                         }
                         oColsOptional['{$col->getDataColumnName()}'] = oCol;
 JS;
+                    // For sap.m.Table (responsive), the cell template is a separate aggregation from
+                    // the column header, so it needs to be pre-built explicitly here too. Otherwise
+                    // optional columns toggled on later via personalization would fall back to a plain,
+                    // unformatted binding (e.g. showing raw internal date/time values instead of the
+                    // properly formatted ones).
+                    if ($this->isMTable()) {
+                        $colsOptionalInitJs .= <<<JS
+                
+                        oCellsOptional['{$col->getDataColumnName()}'] = {$this->getFacade()->getElement($col)->buildJsConstructorForCell()};
+JS;
+                    }
                 }
             }
             $controller->addOnInitScript(<<<JS
             
                 (function(){
                     var oColsOptional = {};
+                    var oCellsOptional = {};
                     {$colsOptionalInitJs}
                     {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, $oControllerJs)} = oColsOptional;
+                    {$controller->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, $oControllerJs)} = oCellsOptional;
                 })();
 JS
             );
@@ -194,13 +210,11 @@ JS, false);
             $jsRequestData = 'null';
         }
 
-        // setups table id is needed to dynamically mark applied setup
-        $jsSetupsTableId = $this->escapeString('null');
-        if ($functionName === DataTable::FUNCTION_APPLY_SETUP) {
-            if ($this->getP13nElement()->getSetupsTableId() !== null){
-                $jsSetupsTableId = $this->escapeString($this->getP13nElement()->getSetupsTableId()); 
-            }
-        }
+        // get required setup info/Ids
+        $dataWidget = $this->getDataWidget();
+        $screenSlug = $this->escapeString($dataWidget->getUiScreen()->getUrlSlug());
+        $widgetId = $this->escapeString($dataWidget->getIdInScreen());
+        $objectId = $this->escapeString($dataWidget->getMetaObject()->getId());
   
         switch (true) {
             case $functionName === DataTable::FUNCTION_CLEAR_APPLIED_SETUP:
@@ -218,11 +232,11 @@ JS, false);
 
                     // if the deleted setup is the one currently saved in dexie for this page and widget,
                     // delete it and reset the table to original state
-                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}')
+                    exfSetupManager.dexie.getCurrentSetup({$screenSlug}, {$widgetId}, {$objectId})
                     .then(entry => {
                         if (entry && entry.setup_uid === {$jsRequestData}.rows[0]['UID']) {
                             // delete from dexie db
-                            exfSetupManager.dexie.deleteCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$this->getDataWidget()->getId()}');
+                            exfSetupManager.dexie.deleteCurrentSetup({$screenSlug}, {$widgetId}, {$objectId});
 
                             // reset table
                             let oP13nDialogResetBtn = sap.ui.getCore().byId('{$this->getP13nElement()->getId()}'+'-reset');
@@ -284,12 +298,12 @@ JS;
             case $functionName === DataTable::FUNCTION_DUMP_SETUP:
                 
                 /*
-                    Parameters/column names: dump_setup(SETUP_UXON, PAGE, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER, true/false)
+                    Parameters/column names: dump_setup(SETUP_UXON, SLUG, WIDGET_ID, PROTOTYPE_FILE, OBJECT, PRIVATE_FOR_USER, true/false)
 
                     - SETUP_UXON:
                         The name of the column where the setup UXON will be stored
-                    - PAGE:
-                        the name of the column for the current page UID
+                    - SLUG:
+                        the name of the column for the current screen slug
                     - WIDGET_ID:
                         the name of the column for the current widget ID
                     - PROTOTYPE_FILE:
@@ -313,7 +327,7 @@ JS;
                     console.warn('dump_setup() called with invalid parameters:', aParams);
                     return;
                 }
-                let [sColNameCol, sPageCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
+                let [sColNameCol, sSlugCol, sWidgetIdCol, sPrototypeFileCol, sObjectCol, sUserIdCol] = aParams.map(p => typeof p === 'string' ? p.trim() : p);
                 let bAutoApply = (aParams[6] !== undefined && aParams[6] !== null) ? (aParams[6].trim() === 'true' || aParams[6].trim() === true) : false;
 
                 // get the current setup as json in widget_setup format
@@ -337,10 +351,10 @@ JS;
 
                 // write the current setup and info into to the input data
                 {$jsRequestData}.rows[0][sColNameCol] = JSON.stringify(oSetupJson);
-                {$jsRequestData}.rows[0][sPageCol] = '{$this->getWidget()->getPage()->getUid()}';
-                {$jsRequestData}.rows[0][sWidgetIdCol] = '{$this->getDataWidget()->getId()}';
+                {$jsRequestData}.rows[0][sSlugCol] = {$screenSlug};
+                {$jsRequestData}.rows[0][sWidgetIdCol] = {$widgetId};
                 {$jsRequestData}.rows[0][sPrototypeFileCol] = 'exface/core/Mutations/Prototypes/DataTableSetup.php';
-                {$jsRequestData}.rows[0][sObjectCol] = '{$this->getDataWidget()->getMetaObject()->getId()}';
+                {$jsRequestData}.rows[0][sObjectCol] = {$objectId};
 
                 if (bAutoApply === true){
                     {$this->buildJsCallFunction(DataTable::FUNCTION_APPLY_SETUP, [ '[#' . $parameters[0] . '#]' ], $jsRequestData)}
@@ -357,8 +371,9 @@ JS;
                 // get currently selected data from request
                 let oResultData = {$jsRequestData};
                 let oSetupUxon = null;
-                let sPageId = '{$this->getWidget()->getPage()->getUid()}';
-                let sWidgetId = '{$this->getDataWidget()->getId()}';
+                let sSlug = {$screenSlug};
+                let sWidgetId = {$widgetId};
+                let sObjectId = {$objectId};
 
                 // if the function is not called with 'localStorage' parameter,
                 // and there is data in the request, get the setup Uxon from the request data
@@ -376,7 +391,7 @@ JS;
 
                 // either use the passed oSetupUxon, or try and load the data from IndexedDB (onLoad)
                 // then apply the setup and update the related ui elements (quick select caption, active column in setups table, reset the change tracking)
-                exfSetupManager.getSetupProperty(sPageId, sWidgetId, oSetupUxon, 'setup_uxon')
+                exfSetupManager.getSetupProperty(sSlug, sWidgetId, sObjectId, oSetupUxon, 'setup_uxon')
                 .then(oSetupUxon => {
                     if (oSetupUxon) {
 
@@ -394,8 +409,9 @@ JS;
                         // do this only if it was actively applied (not when loading from indexedDb)
                         if ({$passedParameters}[0] !== 'localStorage'){
                             exfSetupManager.dexie.saveLastAppliedSetup(
-                                oResultData.rows[0]['PAGE'],
+                                oResultData.rows[0]['SLUG'],
                                 oResultData.rows[0]['WIDGET_ID'],
+                                oResultData.rows[0]['OBJECT'],
                                 oResultData.rows[0]['UID'],
                                 oResultData.rows[0]['SETUP_UXON'],
                                 oResultData.rows[0]['NAME']
@@ -457,6 +473,8 @@ JS;
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
                     noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
+                    // Select a row on left-click (row body), mirroring sap.ui.table.Table's SelectionBehavior.Row
+                    includeItemInSelection: true,
             		itemPress: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
                     selectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
                     updateFinished: function(oEvent) { {$this->buildJsColumnStylers()} },
@@ -501,6 +519,43 @@ JS;
         return <<<JS
             .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
             .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
+JS;
+    }
+
+    /**
+     * Prevents a text selection in a group header from toggling the group.
+     *
+     * @return string
+     */
+    protected function buildJsPreserveGroupHeaderSelection() : string
+    {
+        if (! $this->getWidget()->hasRowGroups()) {
+            return '';
+        }
+        return <<<JS
+
+            .addEventDelegate({
+                onAfterRendering: function(oEvent) {
+                    var oTableDom = oEvent.srcControl.getDomRef();
+                    if (!oTableDom) {
+                        return;
+                    }
+                    oTableDom.addEventListener("click", function(oEvent) {
+                        var oGroupHeader = oEvent.target.closest(".sapUiTableGroupIcon");
+                        var oSelection = window.getSelection();
+                        if (
+                            oGroupHeader
+                            && oSelection
+                            && ! oSelection.isCollapsed
+                            && oSelection.toString().length > 0
+                            && oGroupHeader.contains(oSelection.anchorNode)
+                            && oGroupHeader.contains(oSelection.focusNode)
+                        ) {
+                            oEvent.stopPropagation();
+                        }
+                    }, true);
+                }
+            })
 JS;
     }
 
@@ -585,6 +640,17 @@ JS;
             var aRowsMerged = [];
             var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
             var aSelected = null;
+            
+            // Ignore programmatic selection clears caused by data reloads (e.g. the refresh
+            // performed after an Edit/Save action). Such events fire with userInteraction=false
+            // and an empty selection. Overwriting the selection model here would erase the stored
+            // selection before buildJsDataLoaderOnLoadedRestoreSelection() can restore it, so the
+            // user's row selection would be lost on every action. Keep the stored selection instead
+            // - a genuine user "deselect all" always reports userInteraction=true and is unaffected.
+            var bUserInteraction = (typeof $oEventJs.getParameter === 'function' && $oEventJs.getParameter('userInteraction') !== undefined) ? $oEventJs.getParameter('userInteraction') : true;
+            if (bUserInteraction === false && aRowsSelectedVisible.length === 0 && (oModelSelected.getProperty('/rows') || []).length > 0) {
+                return;
+            }
             
             // Exclude footers from selections.
             if (typeof oTable.getFixedBottomRowCount === 'function' && oTable.getFixedBottomRowCount() > 0) {
@@ -846,6 +912,7 @@ JS;
                 ],
                 rows: "{/rows}"
         	}).addStyleClass('rowAlternate-'+{$striped})
+            {$this->buildJsPreserveGroupHeaderSelection()}
             {$this->buildJsHeaderFilterFunctions()}
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
@@ -1116,7 +1183,8 @@ JS;
     {
         $commonParams = $this->buildJsDataLoaderParamsPaging($oParamsJs, $keepPagePosJsVar);
                   
-        if ($this->isUiTable() === true) {            
+        if ($this->isUiTable() === true) {       
+            $between = ComparatorDataType::BETWEEN;
             $tableParams = <<<JS
           
             // If filtering just now, make sure the filter from the event is set too (eventually overwriting the previous one)
@@ -1133,41 +1201,31 @@ JS;
                         var sFltrProp = oColumn.getFilterProperty();
                         var sFltrVal = oEvent.getParameters().value;
                         var fnParser = oColumn.data('_exfFilterParser'); 
-                        var oParsedInput = exfTools.filter.parseOperator(String(sFltrVal));
-                        var mFltrRaw = oParsedInput.value;
-                        var mFltrParsed = fnParser !== undefined ? fnParser(mFltrRaw) : mFltrRaw;
-                        var oComponent = {$this->getController()->buildJsComponentGetter()};
-                        var oP13nMapped = oComponent.mapOperatorToP13n(oParsedInput.operator);
+                        var oParsedInput = exfTools.data.filterComparator.extract(String(sFltrVal));
+                        var oParsedValue = exfTools.data.filterComparator.parseValue(oParsedInput, fnParser);
+                        var mFltrParsed = oParsedValue.value;
+                        var bHasFilter = oParsedValue.hasValue;
     
                         {$oParamsJs}['{$this->getFacade()->getUrlFilterPrefix()}' + sFltrProp] = mFltrParsed;
                         
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== '') {
+                        if (bHasFilter) {
                             oColumn.setFiltered(true).setFilterValue(sFltrVal);
                         } else {
                             oColumn.setFiltered(false).setFilterValue('');
                         }  
     
-                        // also set the filter as an advanced search item in the p13n panel
+                        // Also synchronize the filter with its explicitly linked advanced-search condition.
                         let oFilterPanel = sap.ui.getCore().byId('{$this->getP13nElement()->getIdOfSearchPanel()}');
-    
-                        // Check if a filter for the property already exists
-                        let aFilterItems = oFilterPanel.getFilterItems();
-                        let oExistingFilter = aFilterItems.find(oFilterItem => oFilterItem.getColumnKey() === sFltrProp);
-    
-                        if (oExistingFilter) {
-                            // delete exiting property (if any)
-                            oFilterPanel.removeFilterItem(oExistingFilter);
-                        } 
-                        if (mFltrParsed !== null && mFltrParsed !== undefined && mFltrParsed !== ''){
-                            // create new filter item if value is valid/not empty
-                            var oFilterItem = new sap.m.P13nFilterItem({
-                                "columnKey": sFltrProp,
-                                "exclude": oP13nMapped.exclude,
-                                "operation": oP13nMapped.operation,
-                                "value1": mFltrParsed
+                        if (bHasFilter) {
+                            oFilterPanel.upsertHeaderCondition({
+                                expression: sFltrProp,
+                                comparator: oParsedInput.comparator || '=',
+                                value: oParsedInput.comparator === '{$between}' ? '' : oParsedInput.value,
+                                value_from: oParsedInput.value_from || '',
+                                value_to: oParsedInput.value_to || ''
                             });
-    
-                            oFilterPanel.addFilterItem(oFilterItem);
+                        } else {
+                            oFilterPanel.removeHeaderCondition(sFltrProp);
                         }
     
                         // Also make sure the built-in UI5-filtering is not applied.
@@ -1232,7 +1290,7 @@ JS;
             // Make sure, the column filter indicator is ON if the column is filtered over via advanced search 
             (function(){
                 var oSearchPanel = sap.ui.getCore().byId('{$this->getConfiguratorElement()->getIdOfSearchPanel()}');
-                var aSearchFItems = oSearchPanel.getFilterItems();
+                var aSearchFItems = oSearchPanel.getConditions();
                 var aColumns = oTable.getColumns();
                 aColumns.forEach(function(oColumn) {
                     var sFilterVal = oColumn.getFilterValue();
@@ -1241,7 +1299,7 @@ JS;
                         return;
                     }
                     aSearchFItems.forEach(function(oItem){
-                        if (oItem.getColumnKey() === oColumn.data('_exfAttributeAlias')) {
+                        if (oItem.expression === oColumn.data('_exfAttributeAlias') && oSearchPanel.hasConditionValue(oItem)) {
                             bFiltered = true;
                         }
                     });
@@ -1273,7 +1331,6 @@ JS;
         return $commonParams . $tableParams;
     }
 
-    
     /**
      * Returns inline JS code to refresh the table.
      *
@@ -1849,6 +1906,84 @@ JS;
             
         }
         
+        $groupCol = $grouper->getGroupByColumn();
+        $groupColName = $groupCol->getDataColumnName();
+        $groupColId = $this->getFacade()->getElement($groupCol)->getId();
+        
+        // Determine the desired group order. The native experimental grouping can only sort the
+        // group column ascending (it does `new Sorter(sortProperty)` without a descending flag),
+        // so we detect a descending sorter on the group-by attribute here and reproduce the order
+        // via a synthetic ordering key (see $groupOrderSetupJs below).
+        $groupDesc = false;
+        foreach ($this->getWidget()->getSorters() as $sorterUxon) {
+            if ($sorterUxon->getProperty('attribute_alias') === $groupCol->getAttributeAlias()) {
+                $groupDesc = (strtoupper($sorterUxon->getProperty('direction') ?? '') === SortingDirectionsDataType::DESC);
+                break;
+            }
+        }
+        
+        // Compare distinct group values the way their data type would be ordered: numerically for
+        // numbers, locale-aware for everything else. Null/empty values sort to the top (and end up
+        // at the bottom once the order is reversed for descending grouping).
+        if ($groupCol->getDataType() instanceof NumberDataType) {
+            $comparatorJs = 'function(a, b) { var fA = (a === null || a === undefined || a === "") ? -Infinity : parseFloat(a); var fB = (b === null || b === undefined || b === "") ? -Infinity : parseFloat(b); return fA - fB; }';
+        } else {
+            $comparatorJs = 'function(a, b) { return String(a === null || a === undefined ? "" : a).localeCompare(String(b === null || b === undefined ? "" : b)); }';
+        }
+        $reverseJs = $groupDesc ? 'aValues.reverse();' : '';
+        
+        // Build a synthetic numeric ordering key per distinct group value and group by that key
+        // instead of the raw group column. Native grouping sorts the key ascending, so by assigning
+        // the keys in the desired order we fully control the order of the groups - including
+        // descending, which the native experimental grouping cannot do on its own. The visible group
+        // label is still taken from the real group value (see the label formatter below), so the
+        // synthetic key stays invisible to the user.
+        $groupOrderSetupJs = <<<JS
+
+                (function(oModel) {
+                    var aRows = oModel.getProperty('/rows') || [];
+                    if (aRows.length === 0) {
+                        return;
+                    }
+                    var sCol = "{$groupColName}";
+                    var aValues = [];
+                    var oSeen = {};
+                    // Traverse all rows and extract unique group headers.
+                    aRows.forEach(function(oRow) {
+                        var mVal = oRow[sCol];
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        // Process each header only once.
+                        if (oSeen[sKey] !== true) {
+                            oSeen[sKey] = true;
+                            aValues.push(mVal);
+                        }
+                    });
+                    // Sort the group headers.
+                    aValues.sort({$comparatorJs});
+                    // Reverse, if needed (generated snippet from UI5DataTable::buildJsUiTableInitRowGrouping). 
+                    {$reverseJs}
+                    // Associate headers with their sorting ranks.
+                    var oRank = {};
+                    aValues.forEach(function(mVal, iRank) {
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        oRank[sKey] = iRank;
+                    });
+                    // Write header rankings into the new (virtual) column "__exfGroupSortKey".
+                    aRows.forEach(function(oRow) {
+                        var mVal = oRow[sCol];
+                        var sKey = (mVal === null || mVal === undefined) ? '' : String(mVal);
+                        oRow.__exfGroupSortKey = oRank[sKey];
+                    });
+                    // Apply changes.
+                    oModel.setProperty('/rows', aRows);
+                })({$oModelJs});
+                // Set "__exfGroupSortKey" as the sort property. We have now functionally overridden the native sorting.
+                var oGroupColumn = sap.ui.getCore().byId('{$groupColId}');
+                if (oGroupColumn) {
+                    oGroupColumn.setSortProperty('__exfGroupSortKey');
+                }
+JS;
+        
         // NOTE: sap.ui.table.utils._GroupingUtils.resetExperimentalGrouping($oTableJs) did not work: it produced
         // empty group titles whenever their content was to change
         return  <<<JS
@@ -1858,7 +1993,16 @@ JS;
                     return;
                 }
                 oTable.setEnableGrouping(true);
-                oTable.setGroupBy('{$this->getFacade()->getElement($grouper->getGroupByColumn())->getId()}');
+                {$groupOrderSetupJs}
+                // Force the experimental grouping to rebuild on every (re)load. Native grouping
+                // guards its one-time sort/group pass with `oBinding._modified` and never re-runs it
+                // on the same binding. Since `setGroupBy()` is a no-op when the group column does not
+                // change, after a header-sort reload the binding would keep its stale group structure
+                // (all rows collapsed into a single, wrong group). Toggling `groupBy` via null forces
+                // a fresh row binding, so the grouping is rebuilt against the freshly computed
+                // __exfGroupSortKey order.
+                oTable.setGroupBy(null);
+                oTable.setGroupBy('{$groupColId}');
                 
                 var oBinding = oTable.getBinding('rows');
                 var iRowCnt = oTable._getTotalRowCount();
@@ -1887,7 +2031,7 @@ JS;
                                 return '{$groupCaption}{$this->escapeJsTextValue($grouper->getEmptyText())}';
                             }
                             return '{$groupCaption}' + {$groupFormatterJs}
-                        })(aCtxts[i].__groupInfo.name);
+                        })(aCtxts[i].__groupInfo.oContext.getProperty("{$groupColName}"));
                     }
 
                     // collapse headers according to configuration: (first, all, none)
@@ -2241,14 +2385,43 @@ JS;
         return $this->buildJsDataResetter() . ';' . $setNoData . ';';
     }
     
+    /**
+     * Returns the JS defining `var fnEffVisible = function(oColConfig, oColumn){...}` used by
+     * buildJsRefreshPersonalization() in both table variants.
+     * 
+     * A hidden_if column must stay hidden if its condition currently resolves to hidden, even when
+     * the (server-side) personalization config marks it visible. This helper ANDs config.visible with
+     * the client-side hidden_if evaluator (`_exfHiddenIfEval`).
+     * 
+     * @return string
+     */
+    protected function buildJsColumnEffectiveVisibleFunction() : string
+    {
+        return <<<JS
+
+                        var fnEffVisible = function(oColConfig, oColumn){
+                            var bVisible = oColConfig.visible;
+                            if (bVisible === true && oColConfig.has_hidden_if && oColumn && typeof oColumn.data === 'function') {
+                                var fnEval = oColumn.data('_exfHiddenIfEval');
+                                if (typeof fnEval === 'function') {
+                                    try { if (fnEval() === true) bVisible = false; } catch (e) {}
+                                }
+                            }
+                            return bVisible;
+                        };
+JS;
+    }
+
     public function buildJsRefreshPersonalization() : string
     {
         $widget = $this->getWidget();
         $uidColName = $widget->hasUidColumn() ? $widget->getUidColumn()->getDataColumnName() : "''";
         $colsOptional = $widget->getConfiguratorWidget()->getOptionalColumns();
         $colsOptionalJs = "var oColsOptional = {};";
+        $cellsOptionalJs = "var oCellsOptional = {};";
         if (! empty($colsOptional)) {
             $colsOptionalJs = "var oColsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_COLS, $this, 'oController')};";
+            $cellsOptionalJs = "var oCellsOptional = {$this->getController()->buildJsDependentObjectGetter(self::CONTROLLER_VAR_OPTIONAL_CELLS, $this, 'oController')};";
         }
         if ($this->isUiTable() === true) {
             return <<<JS
@@ -2268,6 +2441,8 @@ JS;
                             iConfOffset += 1;
                             aColumnsNew.push(oDirtyColumn);  
                         }
+
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
                         
                         aColsConfig.forEach(function(oColConfig, iConfIdx) {
                             var bFoundCol = false;
@@ -2277,7 +2452,7 @@ JS;
                                 oColumn = aColumns[iColIdx];
                                 if (oColumn.getId() === oColConfig.column_id) {
                                     if (iColIdx !== iConfIdx + iConfOffset) bOrderChanged = true;
-                                    oColumn.setVisible(oColConfig.visible);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn);
                                     bFoundCol = true;
                                     return;
@@ -2287,7 +2462,7 @@ JS;
                             if (oColConfig.visible === true) {
                                 oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     bOrderChanged = true;
                                 }   
@@ -2319,8 +2494,11 @@ JS;
                         var aColumnsNew = [];
                         var oController = {$this->getController()->buildJsControllerGetter($this)};
                         {$colsOptionalJs}
+                        {$cellsOptionalJs}
 
                         var bOrderChanged = false;
+
+                        {$this->buildJsColumnEffectiveVisibleFunction()}
 
                         // add dirty column first
                         var oDirtyColumn = aColumns.find(col => col.getId() === "{$this->getDirtyFlagAlias()}");
@@ -2332,8 +2510,9 @@ JS;
                             // table columns
                             aColumns.forEach(function(oColumn, iColIdx) {
                                 if (oColumn.getId() === oColConfig.column_id) {
-                                    if (oColumn.getVisible() !== oColConfig.visible) {
-                                        oColumn.setVisible(oColConfig.visible);
+                                    var bEff = fnEffVisible(oColConfig, oColumn);
+                                    if (oColumn.getVisible() !== bEff) {
+                                        oColumn.setVisible(bEff);
                                     }
                                     aColumnsNew.push(oColumn);                                    
                                     return;
@@ -2343,7 +2522,7 @@ JS;
                             if (oColConfig.visible === true && oColsOptional !== null) {
                                 var oColumn = oColsOptional[oColConfig.column_name];
                                 if (oColumn !== undefined) {
-                                    oColumn.setVisible(true);
+                                    oColumn.setVisible(fnEffVisible(oColConfig, oColumn));
                                     aColumnsNew.push(oColumn); 
                                     return;
                                 }   
@@ -2386,11 +2565,16 @@ JS;
                                     aNewCells.push(mColumnIdToCell[colId]);
                                 } 
                                 else {
-                                    // if is new/optional column, bind data to col name from config
+                                    // if is new/optional column, use the pre-built, correctly formatted
+                                    // cell control for it. Falling back to a plain sap.m.Text bound
+                                    // directly to the raw property would show unformatted values
+                                    // (e.g. raw internal date/time strings instead of properly
+                                    // formatted dates).
                                     var oColConfig = aColsConfig.find(c => c.column_id === colId);
                                     var sProperty = oColConfig.column_name;
+                                    var oCell = oCellsOptional[sProperty];
                                     
-                                    aNewCells.push(new sap.m.Text({
+                                    aNewCells.push(oCell !== undefined ? oCell : new sap.m.Text({
                                         text: '{' + sProperty + '}'
                                     }));
                                 }

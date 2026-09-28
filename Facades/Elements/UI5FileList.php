@@ -235,6 +235,13 @@ JS;
         
             $onFileCheckedSaveIt = <<<JS
 
+                var iFilesOnServer = (oUploadSet.getModel().rows || []).length;
+                var iFilesIncomplete = oUploadSet.getIncompleteItems().length;
+                var bWithinMaxFiles = {$this->buildJsMaxFilesValidator('iFilesOnServer + iFilesIncomplete', '0', 'function(sError) { ' . $this->buildJsShowError('sError') . ' oUploadSet.removeIncompleteItem(oItem); oItem.destroy(); }', '"' . $this->translate('WIDGET.FILELIST.ERROR_MAX_FILES') . '"')};
+                if (bWithinMaxFiles === false) {
+                    return;
+                }
+
                 fileReader.onload = function () {
                     var oResponseModel = new sap.ui.model.json.JSONModel({
                         oId: "{$widget->getMetaObject()->getId()}",
@@ -260,17 +267,14 @@ JS;
             $onFileCheckedSaveIt = <<<JS
             
                 var iFilesOnServer = (oUploadSet.getModel().rows || []).length;
-                var iFilesPending = 0;
                 var oModelPending = oUploadSet.getModel('uploads_pending');
                 if (oModelPending === undefined) {
                     oModelPending = new sap.ui.model.json.JSONModel({rows: []})
                     oUploadSet.setModel(oModelPending, 'uploads_pending');
                 }
-                iFilesPending = oModelPending.getData().rows.length;
-                if (iMaxFiles !== null && iFilesOnServer + iFilesPending >= iMaxFiles) {
-                    {$this->buildJsShowError('"' . $this->translate('WIDGET.FILELIST.ERROR_MAX_FILES') . '"')};
-                    oUploadSet.removeIncompleteItem(oItem);
-                    oItem.destroy();
+                var iFilesPending = oModelPending.getData().rows.length;
+                var bWithinMaxFiles = {$this->buildJsMaxFilesValidator('iFilesOnServer + iFilesPending', '1', 'function(sError) { ' . $this->buildJsShowError('sError') . ' oUploadSet.removeIncompleteItem(oItem); oItem.destroy(); }', '"' . $this->translate('WIDGET.FILELIST.ERROR_MAX_FILES') . '"')};
+                if (bWithinMaxFiles === false) {
                     return;
                 }
                 
@@ -285,13 +289,10 @@ JS;
 JS;
         }
         
-        $maxFilesJs = $uploader->getMaxFiles() ?? 'null';
-        
         return <<<JS
 
                 var oItem = $oEventJs.getParameters().item;
                 var oUploadSet = $oEventJs.getSource();
-                var iMaxFiles = $maxFilesJs;
 
                 var file = oItem.getFileObject();
                 var fileReader = new FileReader( );

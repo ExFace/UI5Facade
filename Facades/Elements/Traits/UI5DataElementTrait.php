@@ -206,8 +206,8 @@ trait UI5DataElementTrait {
                         
                         // Update UI Elements onchange of widget setup 
                         oWidget.attachEvent('appliedWidgetSetup', function (oEvent) {
-                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', true);
-                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getWidget()->getPage()->getUid()}' , '{$this->getDataWidget()->getId()}', '{$this->getId()}');
+                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getDataWidget()->getUiScreen()->getUrlSlug()}' , '{$this->getDataWidget()->getIdInScreen()}', '{$this->getDataWidget()->getMetaObject()->getId()}', true);
+                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getDataWidget()->getUiScreen()->getUrlSlug()}' , '{$this->getDataWidget()->getIdInScreen()}', '{$this->getDataWidget()->getMetaObject()->getId()}', '{$this->getId()}');
                             oWidget.data('_exfWidgetSetupChangeListenerAttached', true);
                         });
                     }
@@ -424,12 +424,6 @@ JS;
     protected function buildJsPanelWrapper(string $contentConstructorsJs, string $oControllerJs = 'oController', string $toolbar = null, bool $padding = true)  : string
     {
         $toolbar = $toolbar ?? $this->buildJsToolbar($oControllerJs);
-        $hDim = $this->getWidget()->getHeight();
-        if (! $hDim->isUndefined()) {
-            $height = $this->getHeight();
-        } else {
-            $height = $this->buildCssHeightDefaultValue();
-        }
         
         $panelCssClass = $padding === false ? 'sapUiNoContentPadding' : '';
         if ($this->isFillingContainer()) {
@@ -438,7 +432,7 @@ JS;
         return <<<JS
 
         new sap.m.Panel("{$this->getId()}_panel", {
-            height: "$height",
+            height: {$this->buildJsPanelHeight()},
             headerToolbar: [
                 {$toolbar}
             ],
@@ -448,6 +442,21 @@ JS;
         })
         .addStyleClass('{$panelCssClass}')        
 JS;
+    }
+
+    /**
+     * Returns a JS snippet for the height of the panel wrapper around the data control
+     * @return string
+     */
+    protected function buildJsPanelHeight() : string
+    {
+        $hDim = $this->getWidget()->getHeight();
+        if (! $hDim->isUndefined()) {
+            $height = $this->getHeight();
+        } else {
+            $height = $this->buildCssHeightDefaultValue();
+        }
+        return $this->escapeString($height);
     }
     
     protected function isFillingContainer() : bool
@@ -517,6 +526,10 @@ JS;
      */
     public function hasToolbarTop() : bool
     {
+        // An explicit hide_header_toolbar override always wins over the header/caption-based default logic below.
+        if (($hideToolbar = $this->getDataWidget()->getHideHeaderToolbar()) !== null) {
+            return ! $hideToolbar;
+        }
         return ! ($this->getWidget()->getHideHeader() === true && $this->getWidget()->getHideCaption());
     }
 
@@ -1542,9 +1555,11 @@ JS;
                 var oController = this;
                 var aSortItems = [];
                 var fnCheckPendingData;
+                var bFilterValidity = ({$this->buildJsCheckRequiredFilters()});
 
-                if(!{$this->buildJsCheckRequiredFilters()}) {
-                    {$this->buildJsShowMessageOverlay($widget->getAutoloadDisabledHint())}
+
+                if(!bFilterValidity) {
+                    {$this->buildJsShowMessageOverlay($widget->getEmptyTextIfInvalidFilters())}
                     return Promise.resolve(oModel);
                  }
                 
@@ -2827,7 +2842,7 @@ JS;
                             }
                             var aFilterableAliases = $filterableAliasesJs;
                             var oSearchPanel = sap.ui.getCore().byId('{$this->getConfiguratorElement()->getIdOfSearchPanel()}');
-                            var aFilterItems = oSearchPanel ? oSearchPanel.getFilterItems() : [];
+                            var aFilterItems = oSearchPanel ? oSearchPanel.getConditions() : [];
                             var sAttrAlias = {$this->buildJsClickGetColumnAttributeAlias('domClicked')};
                             var mCellValue = $(domClicked).text();
                             var bIsAttribute = (sAttrAlias !== undefined && sAttrAlias !== null && sAttrAlias !== '');
@@ -2840,7 +2855,7 @@ JS;
                             }
 
                             aFilterItems.forEach(function(oItem){
-                                if (oItem.getColumnKey() === sAttrAlias) {
+                                if (oItem.expression === sAttrAlias) {
                                     oFilterItem = oItem;
                                 }
                             });   
@@ -2861,7 +2876,7 @@ JS;
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_CLEAR'))},
                                             visible: (oFilterItem ? true : false),
                                             select: function(oEvent) {
-                                                oSearchPanel.removeFilterItem(oFilterItem);
+                                                oSearchPanel.removeConditionsByExpression(sAttrAlias);
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         }),
@@ -2870,13 +2885,12 @@ JS;
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE'))} + ' ' + JSON.stringify(sValueTrunc),
                                             visible: (oFilterItem ? false : true),
                                             select: function(oEvent) {
-                                                var oFilterItem;
-                                                oSearchPanel.addFilterItem(new sap.m.P13nFilterItem({
-                                                    columnKey: sAttrAlias,
-                                                    exclude: false,
-                                                    operation: 'EQ',
-                                                    value1: mCellValue
-                                                }));
+                                                oSearchPanel.addCondition({
+                                                    expression: sAttrAlias,
+                                                    comparator: '==',
+                                                    value: mCellValue,
+                                                    exclude: false
+                                                });
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         }),
@@ -2884,13 +2898,12 @@ JS;
                                             icon: "sap-icon://sys-minus",
                                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE'))} + ' ' + JSON.stringify(sValueTrunc),
                                             select: function(oEvent) {
-                                                var oFilterItem;
-                                                oSearchPanel.addFilterItem(new sap.m.P13nFilterItem({
-                                                    columnKey: sAttrAlias,
-                                                    exclude: true,
-                                                    operation: 'EQ',
-                                                    value1: mCellValue
-                                                }));
+                                                oSearchPanel.addCondition({
+                                                    expression: sAttrAlias,
+                                                    comparator: '==',
+                                                    value: mCellValue,
+                                                    exclude: true
+                                                });
                                                 {$this->getController()->buildJsMethodCallFromController('onLoadData', $this, '')}
                                             }
                                         })
@@ -2919,6 +2932,9 @@ JS;
      * config. The default action is the one bound to double-click on a row. Only maximized dialogs can
      * be opened this way because only they have their own route in the UI5 app.
      * 
+     * If multiple buttons are bound to double-click, the first one that is enabled and visible at
+     * runtime is used - just like buildJsClickHandlerDoubleClick() does for the double-click itself.
+     * 
      * @return string
      */
     protected function buildJsContextMenuItemOpenInNewTab(bool $isRootMenu) : string
@@ -2929,40 +2945,57 @@ JS;
         if (! $this->getFacade()->getConfig()->getOption('WIDGET.DATA.SHOW_BUTTON_OPEN_IN_NEW_TAB')) {
             return '';
         }
-        $btnEl = null;
+        $btnEls = [];
 
-        // get the first (non-disabled) button bound to double-click that opens a dialog page
-        // disabled/hidden_ifs should be evaluated at runtime by checking whether to original button is visible/enabled
+        // Collect all buttons bound to double-click that open a dialog page. Buttons hidden or
+        // disabled via hidden_if/disabled_if are sorted out at runtime by checking the original button
         foreach ($this->getWidget()->getButtonsBoundToMouseAction(EXF_MOUSE_ACTION_DOUBLE_CLICK) as $btn) {
             if ($btn->isHidden() || $btn->isDisabled() === true) {
                 continue;
             }
             $el = $this->getFacade()->getElement($btn);
             if (($el instanceof UI5Button) && $el->opensDialogPage()) {
-                $btnEl = $el;
-                break;
+                $btnEls[] = $el;
             }
         }
-        if ($btnEl === null) {
+        if (empty($btnEls)) {
             return '';
         }
+        
+        $btnIdsJs = '';
+        $openJs = '';
+        foreach ($btnEls as $btnEl) {
+            $btnIdsJs .= ($btnIdsJs ? ',' : '') . "'{$btnEl->getId()}'";
+            $openJs .= <<<JS
+
+                                oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
+                                if (oBtn && oBtn.getEnabled() && oBtn.getVisible()) {
+                                    {$btnEl->buildJsOpenDialogInNewTab()};
+                                    return;
+                                }
+JS;
+        }
+        $rowsSelectedJs = $this->buildJsGetRowsSelected("sap.ui.getCore().byId('{$this->getId()}')");
         
         return <<<JS
 
                         new sap.ui.unified.MenuItem({
                             icon: "sap-icon://positive",
                             text: {$this->escapeString($this->translate('WIDGET.DATATABLE.OPEN_IN_NEW_TAB'))},
-                            enabled: function(){
-                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
-                                return oBtn ? oBtn.getEnabled() : false;
-                            }(),
-                            visible: function(){
-                                var oBtn = sap.ui.getCore().byId('{$btnEl->getId()}');
-                                return oBtn ? oBtn.getVisible() : false;
-                            }(),
+                            enabled: (function(){
+                                // open in new tab should only be available for one row selected
+                                if (({$rowsSelectedJs} || []).length > 1) {
+                                    return false;
+                                }
+                                return [{$btnIdsJs}].some(function(sBtnId){
+                                    var oBtn = sap.ui.getCore().byId(sBtnId);
+                                    return oBtn ? oBtn.getEnabled() && oBtn.getVisible() : false;
+                                });
+                            })(),
                             startsSection: true,
                             select: function(oEvent) {
-                                {$btnEl->buildJsOpenDialogInNewTab()};
+                                var oBtn;
+                                {$openJs}
                             }
                         }),
 JS;

@@ -3,13 +3,11 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\CommonLogic\DataSheets\DataAggregation;
 use exface\Core\CommonLogic\Model\RelationPath;
-use exface\Core\DataTypes\StringDataType;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
 use exface\Core\DataTypes\SortingDirectionsDataType;
 use exface\Core\Interfaces\Actions\ActionInterface;
-use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataTable;
 use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
@@ -17,6 +15,10 @@ use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\DataTypes\ComparatorDataType;
 
 /**
+ * Renders a custom sap.m.P13nDialog with tabs for filters, sorters, and optional columns for a DataTableConfigurator widget.
+ * 
+ * See [architecture documentation](../../Docs/developer_docs/Facade_elements/UI5DataConfigurator.md) for technical
+ * details.
  * 
  * @method \exface\Core\Widgets\DataConfigurator getWidget()
  * 
@@ -125,7 +127,10 @@ class UI5DataConfigurator extends UI5Tabs
             // rendered BEFORE the constrcutor of the table.
             if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
                 $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
-            } 
+            }
+            if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement) === false) {
+                $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement, 'null');
+            }
             $refreshP13n = $dataElement->buildJsRefreshPersonalization();
         }
         
@@ -156,7 +161,7 @@ JS;
                 
                 (function (){ 
                     // if a setup exists for this table in the indexedDB, apply it 
-                    exfSetupManager.dexie.getCurrentSetup('{$this->getWidget()->getPage()->getUid()}', '{$dataElement->getWidget()->getId()}')
+                    exfSetupManager.dexie.getCurrentSetup('{$dataElement->getWidget()->getUiScreen()->getUrlSlug()}', '{$dataElement->getWidget()->getIdInScreen()}', '{$dataElement->getWidget()->getMetaObject()->getId()}')
                     .then(entry => {
                         if (entry) {
                             {$dataElement->buildJsCallFunction('apply_setup', ['localStorage'])}
@@ -255,19 +260,44 @@ JS;
      */
     protected function buildJsCreateModel() : string
     {
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        $comparators = [];
+        foreach ([
+            'IS' => ComparatorDataType::IS,
+            'IS_NOT' => ComparatorDataType::IS_NOT,
+            'EQUALS' => ComparatorDataType::EQUALS,
+            'EQUALS_NOT' => ComparatorDataType::EQUALS_NOT,
+            'LESS_THAN' => ComparatorDataType::LESS_THAN,
+            'LESS_THAN_OR_EQUALS' => ComparatorDataType::LESS_THAN_OR_EQUALS,
+            'GREATER_THAN' => ComparatorDataType::GREATER_THAN,
+            'GREATER_THAN_OR_EQUALS' => ComparatorDataType::GREATER_THAN_OR_EQUALS,
+            'IN' => ComparatorDataType::IN,
+            'NOT_IN' => ComparatorDataType::NOT_IN,
+            'BETWEEN' => ComparatorDataType::BETWEEN,
+        ] as $constant => $comparator) {
+            $comparators[] = [
+                'key' => $comparator,
+                'text' => $translator->translate('GLOBAL.COMPARATOR.' . $constant . '_NAME'),
+                'hint' => $translator->translate('GLOBAL.COMPARATOR.' . $constant . '_HINT'),
+            ];
+        }
+        $comparatorsJson = json_encode($comparators, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         return <<<JS
 function(){
             var oModel = new sap.ui.model.json.JSONModel();
             var columns = {$this->buildJsonModelForColumns()};
             var sortables = {$this->buildJsonModelForSortables()};
-            var searchables = {$this->buildJsonModelForSearchables()}
+            var searchables = {$this->buildJsonModelForSearchables()};
             var data = {
                 "columns": columns,
                 "sortables": sortables,
                 "searchables": searchables,
+                "comparators": $comparatorsJson,
+                "advanced_search": [],
                 "sorters": [{$this->buildJsonModelForInitialSorters()}],
                 "header_filters": []
-            }
+            };
             oModel.setData(data);
             return oModel;        
         }()
@@ -714,42 +744,16 @@ JS;
     {
         return <<<JS
                 function() {
-                    var oPanel = new sap.m.P13nFilterPanel("{$this->getIdOfSearchPanel()}", {
+                    return new exface.openui5.P13AdvancedSearchPanel("{$this->getIdOfSearchPanel()}", {
                         title: "{$this->translate('WIDGET.DATATABLE.SETTINGS_DIALOG.ADVANCED_SEARCH')}",
                         visible: true,
-                        layoutMode: "Desktop",
-                        addFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            var oFilterItem = new sap.m.P13nFilterItem(oParameters.filterItemData.mProperties);
-                            oEvent.getSource().insertFilterItem(oFilterItem, oParameters.index);
-                        },
-                        updateFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            var oPanel = oEvent.getSource();
-                            var idx = oParameters.index;
-                            var oFilterItem = new sap.m.P13nFilterItem(oParameters.filterItemData.mProperties);
-                            oPanel.removeFilterItem(idx);
-                            oPanel.insertFilterItem(oFilterItem, idx);
-                        },
-                        removeFilterItem: function(oEvent){
-                            var oParameters = oEvent.getParameters();
-                            oEvent.getSource().removeFilterItem(oParameters.index);
-                        },
-                        items: {
-                            path: '{$this->getModelNameForConfig()}>/searchables',
-                            template: new sap.m.P13nItem({
-                                columnKey: "{{$this->getModelNameForConfig()}>attribute_alias}",
-                                text: "{{$this->getModelNameForConfig()}>caption}"
-                            })
-                        },
-                        filterItems: [
-    
-                        ]
+                        modelName: "{$this->getModelNameForConfig()}",
+                        dataTableId: "{$this->getDataElement()->getId()}",
+                        includeTitle: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_INCLUDE'))}",
+                        excludeTitle: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.FILTER_BY_VALUE_EXCLUDE'))}",
+                        logicalOperatorText: "{$this->escapeJsTextValue(strtoupper($this->getWorkbench()->getCoreApp()->getTranslator()->translate('DATATYPE.VALIDATION.AND')))}",
+                        headerFilterTooltip: "{$this->escapeJsTextValue($this->translate('WIDGET.DATATABLE.HEADER_FILTER_HINT'))}"
                     });
-
-                    oPanel.setIncludeOperations(["Contains", "EQ", "LT", "LE", "GT", "GE"]);
-                    oPanel.setExcludeOperations(["Contains", "EQ", "LT", "LE", "GT", "GE"]);
-                    return oPanel;
                 }(),
 JS;
     }
@@ -785,117 +789,36 @@ JS;
         return json_encode($data);
     }
 
+    /**
+     * @return string
+     */
     protected function buildJsonModelForSearchables() : string
     {
         $data = [];
-        $widget = $this->getWidget();
-        $filterableAliases = [];
-
-        // Allow filtering over all columns - directly visible or optional column selectable on-demand
-        if ($this->hasTabColumns() === true) {
-            $cols = $widget->getDataWidget()->getColumns();
-            // Add all optional columns from the configurator here
-            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
-                $cols = array_merge($cols, $widget->getOptionalColumns());
-            }
-            foreach ($cols as $col) {
-                // columns that aren't filterable or are hidden and not the UID attribute should not appear in the filter tab
-                if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
-                    continue;
-                }
-                $filterableAliases[] = $col->getAttributeAlias();
-                // Use captions as keys avoid duplicates
-                $data[$col->getCaption()] = [
-                    "attribute_alias" => $col->getAttributeAlias(),
-                    "caption" => $col->getCaption()
-                ];
-            }
+        foreach ($this->getWidget()->getFilterableAttributes() as $title => $alias) {
+            $data[] = [
+                "attribute_alias" => $alias,
+                "caption" => $title
+            ];
         }
 
-        // Also add all regular filters to the advanced search filters
-        foreach ($widget->getFilters() as $filter) {
-            // Prevent duplicates
-            switch (true) {
-                // If this caption is already in the list (same caption simply is useless even if the aliases are different)
-                case array_key_exists($filter->getCaption(), $data):
-                // If this alias is already in the list
-                case in_array($filter->getAttributeAlias(), $filterableAliases):
-                // Skip hidden filters in general
-                case ! $this->getFacade()->getElement($filter)->isVisible():
-                    continue 2;
-            }
-            $filterAttr = $filter->getAttribute();
-            $filterAttrAlias = $filter->getAttributeAlias();
-            switch (true) {              
-                case $filterAttr === null:
-                    // If the filter has no attribute, skip it
-                    continue 2;
-                // Relation filters will produce InputComboTables, so to transform them to a text-filter, we
-                // need to filter over the corresponding LABEL. This will not work on aggregations though.
-                case $filterAttr->isRelation() && ! DataAggregation::hasAggregation($filterAttrAlias):
-                    $filterRightObj = $filterAttr->getRelation()->getRightObject();
-                    if ($filterRightObj->hasLabelAttribute()) {
-                        $data[$filter->getCaption()] = [
-                            "attribute_alias" => RelationPath::join($filterAttr->getAliasWithRelationPath(), $filterRightObj->getLabelAttributeAlias()),
-                            "caption" => $filter->getCaption()
-                        ];
-                    } else {
-                        // If we do not have a LABEL - what should we filter over? The UID?
-                        // Skip this case for now
-                        continue 2;
-                    }
-                    break;
-                // Regular filters can be added as-is
-                default:
-                    $data[$filter->getCaption()] = [
-                        'attribute_alias' => $filter->getAttributeAlias(),
-                        "caption" => $filter->getCaption()
-                    ];
-                    break;
-            }
-        }
-        // Sort sortables by caption
-        ksort($data);
-        
-        return json_encode(array_values($data), JSON_UNESCAPED_UNICODE);
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
     }
-    
-    
+
     /**
-     * 
+     *
      * @return string
      */
     protected function buildJsonModelForSortables() : string
     {
-        $widget = $this->getWidget();
         $data = [];
-        $sorters = [];
-        $table = $widget->getDataWidget();
-        $cols = $table->getColumns();
-        foreach ($table->getSorters() as $sorter) {
-            $sorters[] = $sorter->getProperty('attribute_alias');
+        foreach ($this->getWidget()->getSortableAttributes() as $title => $alias) {
             $data[] = [
-                "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => $this->getSorterCaption($sorter, $cols)
+                "attribute_alias" => $alias,
+                "caption" => $title
             ];
         }
-        // Also add all optional columns from the configurator - if they are sortable, of course.
-        if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
-            $cols = array_merge($cols, $widget->getOptionalColumns());
-        }
-        foreach ($cols as $col) {
-            if (! $col->isSortable()) {
-                continue;
-            }
-            if (in_array($col->getAttributeAlias(), $sorters)) {
-                continue;
-            }
-            $data[] = [
-                "attribute_alias" => $col->getAttributeAlias(),
-                "caption" => $col->getCaption()
-            ];
-        }
-        return json_encode($data);
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -1091,20 +1014,25 @@ JS;
 
         // Add filters from the advanced search tab
         $notMap = [];
-        foreach (ComparatorDataType::getValuesStatic() as $comp) {
-            if (ComparatorDataType::isInvertable($comp)) {
-                $notMap[$comp] = ComparatorDataType::invert($comp);
+        $negativeMap = [];
+        foreach (ComparatorDataType::getValuesStatic() as $comparator) {
+            if (ComparatorDataType::isInvertable($comparator)) {
+                $notMap[$comparator] = ComparatorDataType::invert($comparator);
+                if (ComparatorDataType::isNegative($comparator)) {
+                    $negativeMap[$comparator] = $notMap[$comparator];
+                }
             }
         }
         $notMapJs = json_encode($notMap);
-        
+        $negativeMapJs = json_encode($negativeMap);
+
         $parsers = [];
         foreach ($this->getWidget()->getDataWidget()->getColumns() as $col) {
             if (! $col->isFilterable() || ! $col->isBoundToAttribute()) {
                 continue;
             }
             $formatter = $this->getFacade()->getDataTypeFormatter($col->getDataType());
-            $parsers[] = "'{$col->getAttributeAlias()}': function(mVal){ return {$formatter->buildJsFormatParser('mVal')} }";
+            $parsers[] = "'{$col->getAttributeAlias()}': function(mVal, sComparator){ return {$formatter->buildJsFilterParser('mVal', 'sComparator')} }";
         }
         $parsersJs = '{' . implode(",\n", $parsers) . '}';
 
@@ -1115,6 +1043,7 @@ JS;
         if ($configuratorFiltersJs === '') {
             $configuratorFiltersJs = '{}';
         }
+        $between = ComparatorDataType::BETWEEN;
         return <<<JS
 
 function(){
@@ -1132,28 +1061,73 @@ function(){
         }
     }
 
-    var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getFilterItems();
-    var i = 0;
-    var fnNot = function(oCondition) {
-        var oNotMap = $notMapJs;
-        oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
-        return oCondition;
-    };
+    var aFilters = sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').getConditions();
     var aParsers = $parsersJs;
     if (aFilters.length > 0) {
-        var includeGroup = {operator: "AND", ignore_empty_values: true, conditions: []};
-        var oComponent = {$this->getController()->buildJsComponentGetter()};
+        var includeGroup = {operator: "AND", ignore_empty_values: true, conditions: [], nested_groups: []};
+        var oNotMap = $notMapJs;
+        var oNegativeMap = $negativeMapJs;
         aFilters.forEach(function(oFilter){
-            var mVal = oFilter.getValue1();
-            var fnParser = aParsers[oFilter.getColumnKey()];
+            var fnParser = aParsers[oFilter.expression];
+            var bExclude = oFilter.exclude === true;
+            var sComparator = oFilter.comparator;
+            // Keep negation in the UI5 include/exclude model so data-type parsers only normalize values.
+            if (oNegativeMap[sComparator] !== undefined) {
+                sComparator = oNegativeMap[sComparator];
+                bExclude = !bExclude;
+            }
+            var mRawValue = oFilter.comparator === '{$between}'
+                ? String(oFilter.value_from || '') + '{$between}' + String(oFilter.value_to || '')
+                : oFilter.value;
+            var oParsedFilter = typeof fnParser === 'function'
+                ? fnParser(mRawValue, sComparator)
+                : {comparator: sComparator, value: mRawValue};
+            var oParsedInput = oParsedFilter.comparator === '{$between}'
+                ? exfTools.data.filterComparator.extract(String(oParsedFilter.value))
+                : {comparator: oParsedFilter.comparator, value: oParsedFilter.value};
+            var oParsedValue = exfTools.data.filterComparator.parseValue(oParsedInput);
+            if (oParsedFilter.comparator === '{$between}' && !oParsedValue.hasValue) {
+                return;
+            }
             var oCondition = {
-                expression: oFilter.getColumnKey(), 
-                comparator: oComponent.convertConditionOperationToConditionGroupOperator(oFilter.getOperation()), 
-                value: (fnParser !== undefined ? fnParser(mVal) : mVal), 
+                expression: oFilter.expression,
+                comparator: oParsedFilter.comparator,
+                value: oParsedValue.value,
                 object_alias: "{$this->getWidget()->getMetaObject()->getAliasWithNamespace()}",
                 apply_to_aggregates: false
             };
-            includeGroup.conditions.push(oFilter.getExclude() === false ? oCondition : fnNot(oCondition));
+            // Unlike scalar comparators, BETWEEN has no single inverse comparator. Its exclusion is
+            // the outside range: value < lower OR value > upper. With one open bound, only the
+            // corresponding comparison is needed.
+            if (bExclude && oParsedFilter.comparator === '{$between}') {
+                var aOutsideRange = [];
+                if (oParsedValue.value_from !== '') {
+                    aOutsideRange.push(Object.assign({}, oCondition, {
+                        comparator: '<',
+                        value: oParsedValue.value_from
+                    }));
+                }
+                if (oParsedValue.value_to !== '') {
+                    aOutsideRange.push(Object.assign({}, oCondition, {
+                        comparator: '>',
+                        value: oParsedValue.value_to
+                    }));
+                }
+                if (aOutsideRange.length === 1) {
+                    includeGroup.conditions.push(aOutsideRange[0]);
+                } else if (aOutsideRange.length > 1) {
+                    includeGroup.nested_groups.push({
+                        operator: 'OR',
+                        ignore_empty_values: true,
+                        conditions: aOutsideRange
+                    });
+                }
+            } else {
+                if (bExclude) {
+                    oCondition.comparator = oNotMap[oCondition.comparator] || oCondition.comparator;
+                }
+                includeGroup.conditions.push(oCondition);
+            }
         });
         
         if (oData.filters === undefined) {
@@ -1347,7 +1321,10 @@ JS;
                 // rendered BEFORE the constrcutor of the table.
                 if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement) === false) {
                     $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_COLS, $dataElement, 'null');
-                }                
+                }
+                if ($controller->hasDependent(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement) === false) {
+                    $controller->addDependentObject(UI5DataTable::CONTROLLER_VAR_OPTIONAL_CELLS, $dataElement, 'null');
+                }                                
                 $refreshP13n = $dataElement->buildJsRefreshPersonalization();
             }
             
@@ -1386,7 +1363,7 @@ JS;
                 var oCurrentModel = oDialog.getModel('{$this->getModelNameForConfig()}');
                 
                 // reset advanced search filters
-                sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllFilterItems();
+                sap.ui.getCore().byId('{$this->getIdOfSearchPanel()}').removeAllConditions();
                 
                 // reset sorters (use deep copy to allow multiple resets; otherwise the initial model gets modified after resetting)
                 oCurrentModel.setProperty('/sorters', JSON.parse(JSON.stringify(oInitModel.getProperty('/sorters'))));
@@ -1394,6 +1371,14 @@ JS;
 
                 // reset current custom width properties of the table columns
                 let oDataTable = sap.ui.getCore().byId('{$this->getDataElement()->getId()}'); 
+
+                // clear the setup flag on all columns (any table type) so hidden_if manages them again
+                if (oDataTable && typeof oDataTable.getColumns === 'function') {
+                    oDataTable.getColumns().forEach(oCol => {
+                        oCol.data("_exfChangedBySetup", false);
+                    });
+                }
+
                 if (oDataTable && oDataTable instanceof sap.ui.table.Table) {
 
                     // clear custom width data
@@ -1419,8 +1404,9 @@ JS;
                 // Reset stored setup in indexedDB:
                 // if a setup exists for this table in the indexedDB, delete it
                 exfSetupManager.dexie.deleteCurrentSetup(
-                    '{$this->getWidget()->getPage()->getUid()}' , 
-                    '{$this->getDataElement()->getWidget()->getId()}'
+                    '{$this->getDataElement()->getWidget()->getUiScreen()->getUrlSlug()}' ,
+                    '{$this->getDataElement()->getWidget()->getIdInScreen()}',
+                    '{$this->getDataElement()->getWidget()->getMetaObject()->getId()}'
                 );
 
                 {$resetColumns}

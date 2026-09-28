@@ -170,16 +170,10 @@ JS;
                                     
                                     let oSearchPanel = sap.ui.getCore().byId('{$configurator->getIdOfSearchPanel()}');
                                     if (oSearchPanel && oColumn) {
-                                        let aFilterItems = oSearchPanel.getFilterItems();
-                                        let aMatchingFilters = aFilterItems.filter(oFilterItem => oFilterItem.getColumnKey() === oColumn.getFilterProperty());
-
-                                        // remove all matching filter items
-                                        aMatchingFilters.forEach(oMatchingFilter => {
-                                            oSearchPanel.removeFilterItem(oMatchingFilter);
-                                        });
+                                        oSearchPanel.removeConditionsByExpression(oColumn.getFilterProperty());
 
                                         // reset filter value (input field in column menu)
-                                        oColumn.setFilterValue(null);
+                                        oColumn.setFilterValue(null).setFiltered(false);
                                     }
                                     // reload data
                                     {$dataTable->getController()->buildJsMethodCallFromController('onLoadData', $dataTable, '')}
@@ -362,12 +356,21 @@ JS;
     protected function buildJsSetDataProperties(DataColumn $col) : string
     {
         $captionJs = $this->escapeString($this->getCaption());
+        // The group-by column is invisible, but the client still needs its data for the row
+        // grouping to work (UI5's experimental grouping sorts the binding by the group column and
+        // inserts a group header whenever the value changes). Without the column data, sort-triggered
+        // reloads would drop the column from the request and grouping would break. So we make sure
+        // it is always included in data requests by treating it like an explicitly hidden column.
+        $table = $col->getDataWidget();
+        $isGroupByColumn = ($table instanceof DataTable) && $table->hasRowGroups() && $col === $table->getRowGrouper()->getGroupByColumn();
+        $mustAlwaysLoad = $col->isHidden() || $isGroupByColumn;
         $result = <<<JS
 
                     .data('_exfDataColumnName', '{$col->getDataColumnName()}')
-					.data('_exfHiddenColumn', {$this->escapeBool($col->isHidden())})
+					.data('_exfHiddenColumn', {$this->escapeBool($mustAlwaysLoad)})
                     .data('_exfHiddenIfColumn', {$this->escapeBool($col->getHiddenIf() !== null)})
                     {$this->buildJsHiddenIfEvaluatorData($col)}
+                    .data('_exfChangedBySetup', false)
 					.data('_exfCaption', {$captionJs})
 JS;
         
@@ -417,6 +420,39 @@ JS;
         return <<<JS
 
                     .data('_exfHiddenIfEval', function(){ return ({$ifJs}); })
+JS;
+    }
+                        
+    /**
+     * Column visibility is managed by the DataConfigurator/personalization and widget setups, not by
+     * directly toggling the column control.
+     * 
+     * The generic `hidden_if` handling in UI5AbstractElement::registerConditionalProperties() toggles
+     * the control's visibility on every prefill/init. For a column that fights the personalization:
+     * when the condition is FALSE it would force `setVisible(true)`, re-showing a column that a widget
+     * setup had hidden. So here the "show" branch is skipped for columns a setup has hidden - those are
+     * flagged with `_exfChangedBySetup` when the setup is applied (see exfSetupManager.applyConfiguration).
+     * Hiding (condition TRUE) keeps the default behaviour so `hidden_if` can still hide the column.
+     * 
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsSetHidden()
+     */
+    protected function buildJsSetHidden(bool $hidden, string $elementId = null) : string
+    {
+        // Hiding is unconditional - hidden_if must be able to hide the column.
+        if ($hidden === true) {
+            return parent::buildJsSetHidden($hidden, $elementId);
+        }
+        $elementId = $elementId ?? $this->getId();
+        return <<<JS
+(function(oCtrl){
+    if (! oCtrl) return;
+    // Do not re-show a column that a widget setup has hidden
+    if (oCtrl.data('_exfChangedBySetup') === true) return;
+    if (oCtrl.getVisible() === true) return;
+    oCtrl.setVisible(true);
+    oCtrl.fireEvent("visibleChange", { visible: true });
+})(sap.ui.getCore().byId('{$elementId}'))
 JS;
     }
                         

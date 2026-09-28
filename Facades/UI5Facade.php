@@ -58,6 +58,8 @@ use exface\Core\CommonLogic\Selectors\PWASelector;
 use exface\Core\Interfaces\Exceptions\AuthorizationExceptionInterface;
 use exface\Core\Interfaces\Facades\PWAFacadeInterface;
 use Psr\Http\Message\UriInterface;
+use exface\Core\Widgets\PivotTable;
+use exface\UI5Facade\Facades\Elements\UI5PerspectivePivotTable;
 
 /**
  * Renders SAP Fiori apps using OpenUI5 or SAP UI5.
@@ -128,6 +130,19 @@ class UI5Facade extends AbstractAjaxFacade implements PWAFacadeInterface, Tourab
         $this->setClassPrefix('UI5');
         $this->setClassNamespace(__NAMESPACE__);
         $this->tourDriver = new DriverJsTourDriver($this);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\AbstractAjaxFacade::getElementClassForWidget()
+     */
+    protected function getElementClassForWidget(WidgetInterface $widget) : string
+    {
+        /* TODO #perspective-pivottable remove PivotTable.js integration once perspective covers all use-cases */
+        if ($widget instanceof PivotTable && strcasecmp((string) $this->getConfig()->getOption('WIDGET.PIVOTTABLE.RENDERER'), 'Perspective') === 0) {
+            return UI5PerspectivePivotTable::class;
+        }
+        return parent::getElementClassForWidget($widget);
     }
     
     /**
