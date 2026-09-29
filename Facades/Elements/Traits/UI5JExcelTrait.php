@@ -143,18 +143,113 @@ trait UI5JExcelTrait {
                             var fnOnEditStart = jExcel.options.oneditionstart;
                             var fnOnEditEnd = jExcel.options.oneditionend;
                             var jqScroller = null; // we need to keep track of the scroll element
+
+                            // Finds the scroll element wrapping the spreadsheet once so the repositioning
+                            // logic below always has something to attach its scroll listener to
+                            var fnEnsureScroller = function() {
+                                if (jqScroller !== null) {
+                                    return;
+                                }
+                                // UI5-Upgrade: the old scroll element (sapMPanelContent) didnt seem to work anymore in some pages, not sure why.
+                                // so we take the new scroll delegate element instead in those cases
+                                jqScroller = jqExcel.parents('.sapUiScrollDelegate').first(); 
+                                if (jqScroller.length === 0){
+                                    jqScroller = jqExcel.parents('.sapMPanelContent').first();
+                                }
+                                // Fall back to the window if no known scroll wrapper was found (e.g. inside a
+                                // wizard step) - an empty jQuery set here would silently break the fix below
+                                if (jqScroller.length === 0) {
+                                    jqScroller = $(window);
+                                }
+                            };
+
+                            // Escapes a jSuites dropdown (.jdropdown-container) from the overflow:hidden of its
+                            // containing UI5 control by switching it to position:fixed and keeping it synced with
+                            // scrolling/cell movement. Used both for cell editor dropdowns and column filter
+                            // dropdowns, since both are the very same jSuites dropdown widget under the hood.
+                            // Returns a cleanup function to be called once the dropdown is closed again.
+                            var fnFixDropdownPosition = function(jqCell, jqDC) {
+                                var domDC = jqDC[0];
+
+                                // Find the nearest CSS-transformed ancestor (if any). Such ancestors break
+                                // position:fixed (making it relative to that ancestor instead of the viewport),
+                                // so we must use its boundaries to position the dropdown. This is not limited to
+                                // dialogs - wizard steps and other containers can have the same effect.
+                                var domFixedContainer = null;
+                                var parentEl = domDC.parentElement;
+                                while (parentEl && parentEl !== document.documentElement) {
+                                    var cs = window.getComputedStyle(parentEl);
+                                    if (cs.transform !== 'none' || cs.perspective !== 'none' || (cs.filter && cs.filter !== 'none' && cs.filter !== 'blur(0px)')) {
+                                        domFixedContainer = parentEl;
+                                        break;
+                                    }
+                                    parentEl = parentEl.parentElement;
+                                }
+
+                                // If inside a dialog, prefer its scroll container to track the scroll position
+                                var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
+                                if (jqScrollerDlg.length !== 0) {
+                                    jqScroller = jqScrollerDlg;
+                                }
+
+                                // capture initial document-relative positions of cell and dropdown container (before position:fixed)
+                                var oPosCellInit = jqCell.offset();
+                                var oPosDCInit = jqDC.offset();
+
+                                // Determine if the dropdown needs to flip upwards
+                                // Class .sapMDialog also has overflow: hidden, which cuts off the dropdown when it exceeds the dialogue
+                                // Similarly, if the spreadsheet is in a dialogue and wrapped in a scroll element, we also need to flip the 
+                                // dropdown upwards if it exceeds the scroll container of the dialogue
+                                // so we check if the spreadsheet is inside a scrollable dialogue, or if it exceeds the viewport: 
+                                var iBottomBoundary = domFixedContainer
+                                    ? domFixedContainer.getBoundingClientRect().bottom
+                                    : window.innerHeight;
+                                var bFlippedUp = iBottomBoundary < jqCell[0].getBoundingClientRect().bottom + jqDC.outerHeight();
+
+                                var fnFixPosition = function() {
+                                    var bScrollerIsWindow = (jqScroller[0] === window);
+                                    var oPosCellCur = jqCell.offset();
+                                    var iViewTop = bScrollerIsWindow ? $(window).scrollTop() : jqScroller.offset().top;
+                                    var iViewHeight = bScrollerIsWindow ? window.innerHeight : jqScroller.innerHeight();
+                                    var iScrollTop = oPosCellCur.top - oPosCellInit.top;
+                                    var iScrollLeft = oPosCellCur.left - oPosCellInit.left;
+                                    var bVisible = (oPosCellCur.top > iViewTop && oPosCellCur.top < iViewTop + iViewHeight);
+                                    
+                                    // only show dropdown if in viewport, otherwise close it
+                                    if (bVisible) {
+                                        jqDC.show();
+                                        if (bFlippedUp) {
+                                            // if its flipped up, we cannot use the jQuery offset function because we need to set the bottom property (which offset() doesnt have)
+                                            // so, if the flip the dropdown up, the bottom must be anchored to the top of the cell
+                                            // otherwise (if we use the top property like previously), if we type in the field, the dropdown opeions get shorter and the dropdown seems disconnected
+                                            var rect = jqCell[0].getBoundingClientRect();
+                                            var fcRect = domFixedContainer ? domFixedContainer.getBoundingClientRect() : {bottom: window.innerHeight, left: 0};
+                                            domDC.style.top = '';
+                                            domDC.style.bottom = (fcRect.bottom - rect.top) + 1 + 'px';
+                                            domDC.style.left = (rect.left - fcRect.left) + 'px';
+                                        } else {
+                                            domDC.style.bottom = '';
+                                            jqDC.offset({
+                                                top: oPosDCInit.top + iScrollTop,
+                                                left: oPosDCInit.left + iScrollLeft
+                                            });
+                                        }
+                                    } else {
+                                        jqDC.hide();
+                                    }
+                                };
+                                jqDC.css('position', 'fixed');
+                                fnFixPosition();
+                                jqScroller.on('scroll.{$this->getId()}', fnFixPosition);
+
+                                return function() {
+                                    jqScroller.off('scroll.{$this->getId()}', fnFixPosition);
+                                };
+                            };
                             
                             jExcel.options.oneditionstart = function(el, domCell, x, y){
                                 var jqCell = $(domCell);
-
-                                // UI5-Upgrade: the old scroll element (sapMPanelContent) didnt seem to work anymore in some pages, not sure why.
-                                // so we take the new scroll delegate element instead in those cases
-                                if (jqScroller === null) {
-                                    jqScroller = jqExcel.parents('.sapUiScrollDelegate').first(); 
-                                    if (jqScroller.length === 0){
-                                        jqScroller = jqExcel.parents('.sapMPanelContent').first();
-                                    }
-                                }
+                                fnEnsureScroller();
 
                                 // The dropdown is not instantiated yet! There is just the cell
                                 if (jqCell.hasClass('jexcel_dropdown')) {
@@ -162,74 +257,7 @@ trait UI5JExcelTrait {
                                         // Now the dropdown is here (if not, return)
                                         var jqDC = jqCell.find('.jdropdown-container');
                                         if (jqDC.length === 0) return;
-                                        var domDC = jqDC[0];
-
-                                        // If inside a dialog, update jqScroller and find the actual CSS-transformed ancestor.
-                                        // CSS transforms break position:fixed (making it relative to the transformed element
-                                        // instead of the viewport), so we must use that to position the dropdown
-                                        var jqScrollerDlg = jqExcel.parents('.sapMDialogSection').first();
-                                        var domFixedContainer = null;
-                                        if (jqScrollerDlg.length !== 0) {
-                                            jqScroller = jqScrollerDlg;
-                                            var parentEl = domDC.parentElement;
-                                            while (parentEl && parentEl !== document.documentElement) {
-                                                var cs = window.getComputedStyle(parentEl);
-                                                if (cs.transform !== 'none' || cs.perspective !== 'none' || (cs.filter && cs.filter !== 'none' && cs.filter !== 'blur(0px)')) {
-                                                    domFixedContainer = parentEl;
-                                                    break;
-                                                }
-                                                parentEl = parentEl.parentElement;
-                                            }
-                                        }
-
-                                        // capture initial document-relative positions of cell and dropdown container (before position:fixed)
-                                        var oPosCellInit = jqCell.offset();
-                                        var oPosDCInit = jqDC.offset();
-
-                                        // Determine if the dropdown needs to flip upwards
-                                        // Class .sapMDialog also has overflow: hidden, which cuts off the dropdown when it exceeds the dialogue
-                                        // Similarly, if the spreadsheet is in a dialogue and wrapped in a scroll element, we also need to flip the 
-                                        // dropdown upwards if it exceeds the scroll container of the dialogue
-                                        // so we check if the spreadsheet is inside a scrollable dialogue, or if it exceeds the viewport: 
-                                        var iBottomBoundary = domFixedContainer
-                                            ? domFixedContainer.getBoundingClientRect().bottom
-                                            : window.innerHeight;
-                                        var bFlippedUp = iBottomBoundary < jqCell[0].getBoundingClientRect().bottom + jqDC.outerHeight();
-
-                                        var fnFixPosition = function() {
-                                            var oPosCellCur = jqCell.offset();
-                                            var iViewTop = jqScroller.offset().top;
-                                            var iViewHeight = jqScroller.innerHeight();
-                                            var iScrollTop = oPosCellCur.top - oPosCellInit.top;
-                                            var iScrollLeft = oPosCellCur.left - oPosCellInit.left;
-                                            var bVisible = (oPosCellCur.top > iViewTop && oPosCellCur.top < iViewTop + iViewHeight);
-                                            
-                                            // only show dropdown if in viewport, otherwise close it
-                                            if (bVisible) {
-                                                jqDC.show();
-                                                if (bFlippedUp) {
-                                                    // if its flipped up, we cannot use the jQuery offset function because we need to set the bottom property (which offset() doesnt have)
-                                                    // so, if the flip the dropdown up, the bottom must be anchored to the top of the cell
-                                                    // otherwise (if we use the top property like previously), if we type in the field, the dropdown opeions get shorter and the dropdown seems disconnected
-                                                    var rect = jqCell[0].getBoundingClientRect();
-                                                    var fcRect = domFixedContainer ? domFixedContainer.getBoundingClientRect() : {bottom: window.innerHeight, left: 0};
-                                                    domDC.style.top = '';
-                                                    domDC.style.bottom = (fcRect.bottom - rect.top) + 1 + 'px';
-                                                    domDC.style.left = (rect.left - fcRect.left) + 'px';
-                                                } else {
-                                                    domDC.style.bottom = '';
-                                                    jqDC.offset({
-                                                        top: oPosDCInit.top + iScrollTop,
-                                                        left: oPosDCInit.left + iScrollLeft
-                                                    });
-                                                }
-                                            } else {
-                                                jqDC.hide();
-                                            }
-                                        };
-                                        jqDC.css('position', 'fixed');
-                                        fnFixPosition();
-                                        jqScroller.on('scroll.{$this->getId()}', fnFixPosition);
+                                        fnFixDropdownPosition(jqCell, jqDC);
                                     }, 0);
                                 }
                                 
@@ -248,6 +276,46 @@ trait UI5JExcelTrait {
                                     fnOnEditEnd(el, domCell, x, y);
                                 }
                             };
+
+                            // Column header filter dropdowns are opened via jexcel.openFilter(), which - unlike
+                            // cell editors - never fires oneditionstart/oneditionend. We cannot hook this via a
+                            // click handler either: jexcel's own onload rebinds a plain (non-namespaced) 'click'
+                            // handler on '.jexcel_column_filter' after this code runs, and jQuery's .off('click', sel)
+                            // silently removes namespaced handlers on the same selector too. So the dropdown being
+                            // opened is detected via mutation observer instead. The jSuites dropdown toggles its own
+                            // "jdropdown-focus" class when it closes, which we use to clean up the scroll listener.
+                            var aFixedFilterDropdowns = [];
+                            var oFilterDropdownObserver = new MutationObserver(function(aMutations) {
+                                aMutations.forEach(function(oMutation) {
+                                    // addedNodes is a NodeList, which has no .forEach in IE11
+                                    Array.prototype.forEach.call(oMutation.addedNodes, function(domNode) {
+                                        if (domNode.nodeType !== 1) {
+                                            return;
+                                        }
+                                        var jqDC = $(domNode).is('.jdropdown-container') ? $(domNode) : $(domNode).find('.jdropdown-container');
+                                        if (jqDC.length === 0 || aFixedFilterDropdowns.indexOf(jqDC[0]) !== -1) {
+                                            return;
+                                        }
+                                        var jqCell = jqDC.closest('.jexcel_column_filter');
+                                        var jqDropdown = jqCell.find('.jdropdown').first();
+                                        if (jqCell.length === 0 || jqDropdown.length === 0) {
+                                            return;
+                                        }
+                                        aFixedFilterDropdowns.push(jqDC[0]);
+                                        fnEnsureScroller();
+                                        var fnCleanup = fnFixDropdownPosition(jqCell, jqDC);
+                                        var oCloseObserver = new MutationObserver(function() {
+                                            if (!jqDropdown.hasClass('jdropdown-focus')) {
+                                                fnCleanup();
+                                                oCloseObserver.disconnect();
+                                                aFixedFilterDropdowns.splice(aFixedFilterDropdowns.indexOf(jqDC[0]), 1);
+                                            }
+                                        });
+                                        oCloseObserver.observe(jqDropdown[0], {attributes: true, attributeFilter: ['class']});
+                                    });
+                                });
+                            });
+                            oFilterDropdownObserver.observe(jqExcel[0], {childList: true, subtree: true});
                         })();
                         
 JS;
