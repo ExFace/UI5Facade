@@ -44,7 +44,7 @@ JS);
         return <<<JS
 
         new sap.ui.core.HTML("{$this->getId()}", {
-            content: {$this->escapeString("<div style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
+            content: {$this->escapeString("<div class=\"exf-inputmarkdown-wrapper\" style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
             afterRendering: function(oEvent) {
                 var oHtml = sap.ui.getCore().byId('{$this->getId()}');
                 var sBindingPath = '{$this->getValueBindingPath()}';
@@ -154,7 +154,9 @@ JS);
                 sap.ui.core.ResizeHandler.register(oHtml, function(){
                     var jqHtml = $('#{$this->getId()}');
                     let oModel = oHtml.getModel();
-                    {$this->buildJsMarkdownVar()}.setHeight('{$this->getHeight()}');
+                    // While in fullscreen mode, keep filling the whole overlay instead of the configured height.
+                    var bIsFullScreen = jqHtml.closest('.exf-inputmarkdown-wrapper').parent().hasClass('fullscreen');
+                    {$this->buildJsMarkdownVar()}.setHeight(bIsFullScreen ? '100%' : '{$this->getHeight()}');
 
                     //for some reason the markdown seems to loose its value after a resize (but only after the first resize?)
                     //so we load the value saved in the binding and call the value setter again
@@ -242,7 +244,11 @@ JS;
         
         return <<<JS
 
-                        var jqFullScreenContainer = $('#{$this->getId()}').parent();
+                        // The wrapper carries the fixed configured height inline, so it has to be looked
+                        // up via its class rather than the element id, which is not guaranteed to be unique
+                        // here (sap.ui.core.HTML re-uses the control id on the wrapper's root tag).
+                        var jqEditorWrapper = $('#{$this->getId()}').closest('.exf-inputmarkdown-wrapper');
+                        var jqFullScreenContainer = jqEditorWrapper.parent();
                         {$jsController}.setZIndexToMax(jqFullScreenContainer);
                         
                         var oEditor = {$markdownVarJs};
@@ -259,6 +265,11 @@ JS;
                             }
                             oEditor._originalParent = jqFullScreenContainer.parent();
                             oEditor._originalIndex = jqFullScreenContainer.index();
+                            // Remember the configured height and let the wrapper (and the editor inside it)
+                            // fill the whole fullscreen overlay instead of keeping their normal fixed height.
+                            oEditor._originalWrapperHeight = jqEditorWrapper[0].style.height;
+                            jqEditorWrapper.css('height', '100%');
+                            oEditor.setHeight('100%');
                             jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
                             jqFullScreenContainer.addClass('fullscreen');
                         } else {
@@ -272,6 +283,8 @@ JS;
                             
                             oEditor.changePreviewStyle('tab');
                             jqFullScreenContainer.removeClass('fullscreen');
+                            jqEditorWrapper.css('height', oEditor._originalWrapperHeight || '{$this->getHeight()}');
+                            oEditor.setHeight('{$this->getHeight()}');
                         }
 JS;
     }
