@@ -307,10 +307,12 @@ JS
 
                                 // Resize handler:
                                 sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
-                                    setTimeout(function(){
+                                    cancelAnimationFrame(oTable._exfVerticalGanttResizeFrame);
+                                    oTable._exfVerticalGanttResizeFrame = requestAnimationFrame(function(){
+                                        oTable._exfVerticalGanttResizeFrame = null;
                                         {$resizeVerticalLayoutJs}
                                         {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
-                                    }, 0);
+                                    });
                                 });
                             }
                             
@@ -415,14 +417,19 @@ JS;
             if (aContentAreas.length < 2 || ! domTable) {
                 return;
             }
+
+            var iDefaultScrollbarHeight = {$oTableJs}._exfDefaultScrollbarHeight;
+            if (! Number.isFinite(iDefaultScrollbarHeight)) {
+                var domScrollbarTest = document.createElement('div');
+                domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
+                document.body.appendChild(domScrollbarTest);
+                iDefaultScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
+                domScrollbarTest.remove();
+                {$oTableJs}._exfDefaultScrollbarHeight = iDefaultScrollbarHeight;
+            }
             
-            var domScrollbarTest = document.createElement('div');
-            domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
-            document.body.appendChild(domScrollbarTest);
-            var iDefaultScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
-            domScrollbarTest.remove();
-            
-            var jqTableScrollbar = {$oTableJs}.$().find('.sapUiTableHSb:visible').first();
+            var jqTable = {$oTableJs}.$();
+            var jqTableScrollbar = jqTable.find('.sapUiTableHSb:visible').first();
             var domTableRows = {$oTableJs}.getDomRef('tableCCnt');
             var domTablePlaceholder = {$oTableJs}.getDomRef('placeholder-bottom');
             var iTablePlaceholderHeight = domTablePlaceholder?.clientHeight || 0;
@@ -433,7 +440,8 @@ JS;
                 iTableChromeHeight += iDefaultScrollbarHeight;
             }
             
-            var domGanttContainer = document.querySelector('#{$this->getId()}_gantt .gantt-container');
+            var domSplitter = oSplitter.getDomRef();
+            var domGanttContainer = domSplitter?.querySelector('#{$this->getId()}_gantt .gantt-container');
             var bGanttScrollbarVisible = domGanttContainer
                 ? domGanttContainer.scrollWidth > domGanttContainer.clientWidth
                 : false;
@@ -464,14 +472,17 @@ JS;
             var oPanel = oSplitter.getParent();
             var oToolbar = oPanel?.getHeaderToolbar();
             var iToolbarHeight = oToolbar?.getDomRef() ? oToolbar.$().outerHeight() : 0;
-            var iPanelContentHeight = iTableAreaHeight + {$splitterBarHeight} + iGanttAreaHeight;
+            var domSplitterBar = oSplitter.getDomRef('splitbar-0');
+            var iSplitterBarHeight = domSplitterBar?.offsetHeight || {$splitterBarHeight};
+            var iPanelContentHeight = iTableAreaHeight + iSplitterBarHeight + iGanttAreaHeight;
             var sPanelHeight = (iToolbarHeight + iPanelContentHeight) + 'px';
             if (oPanel?.getHeight() !== sPanelHeight) {
                 oPanel.setProperty('height', sPanelHeight, true);
                 bLayoutChanged = true;
             }
-            oPanel?.$().css('height', sPanelHeight);
-            oPanel?.$().children('.sapMPanelContent').css('height', iPanelContentHeight + 'px');
+            var jqPanel = oPanel?.$();
+            jqPanel?.css('height', sPanelHeight);
+            jqPanel?.children('.sapMPanelContent').css('height', iPanelContentHeight + 'px');
             
             if (bLayoutChanged) {
                 oSplitter.triggerResize(true);
