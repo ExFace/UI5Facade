@@ -941,7 +941,7 @@ JS;
         $heightInRows = $widget instanceof DataTable ? $widget->getHeightInRows() : null;
         $heightInRowsDefault = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
         $height = $widget->getHeight();
-        $singleRowHeightPx = '33';
+        $singleRowHeightPx = $this->getTableRowHeightPx();
 
         switch (true) {
             case $heightInRows !== null:
@@ -1038,6 +1038,16 @@ JS;
         }
         
         return "minAutoRowCount: {$minAutoRowCount},";
+    }
+
+    /**
+     * Returns the table row height used to calculate automatic row counts.
+     *
+     * @return int
+     */
+    protected function getTableRowHeightPx() : int
+    {
+        return 33;
     }
     
     /**
