@@ -789,117 +789,36 @@ JS;
         return json_encode($data);
     }
 
+    /**
+     * @return string
+     */
     protected function buildJsonModelForSearchables() : string
     {
         $data = [];
-        $widget = $this->getWidget();
-        $filterableAliases = [];
-
-        // Allow filtering over all columns - directly visible or optional column selectable on-demand
-        if ($this->hasTabColumns() === true) {
-            $cols = $widget->getDataWidget()->getColumns();
-            // Add all optional columns from the configurator here
-            if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
-                $cols = array_merge($cols, $widget->getOptionalColumns());
-            }
-            foreach ($cols as $col) {
-                // columns that aren't filterable or are hidden and not the UID attribute should not appear in the filter tab
-                if (! $col->isFilterable() || ($col->isHidden() && ! ($col->isBoundToAttribute() && $col->getAttribute()->isUidForObject()))) {
-                    continue;
-                }
-                $filterableAliases[] = $col->getAttributeAlias();
-                // Use captions as keys avoid duplicates
-                $data[$col->getCaption()] = [
-                    "attribute_alias" => $col->getAttributeAlias(),
-                    "caption" => $col->getCaption()
-                ];
-            }
+        foreach ($this->getWidget()->getFilterableAttributes() as $title => $alias) {
+            $data[] = [
+                "attribute_alias" => $alias,
+                "caption" => $title
+            ];
         }
 
-        // Also add all regular filters to the advanced search filters
-        foreach ($widget->getFilters() as $filter) {
-            // Prevent duplicates
-            switch (true) {
-                // If this caption is already in the list (same caption simply is useless even if the aliases are different)
-                case array_key_exists($filter->getCaption(), $data):
-                // If this alias is already in the list
-                case in_array($filter->getAttributeAlias(), $filterableAliases):
-                // Skip hidden filters in general
-                case ! $this->getFacade()->getElement($filter)->isVisible():
-                    continue 2;
-            }
-            $filterAttr = $filter->getAttribute();
-            $filterAttrAlias = $filter->getAttributeAlias();
-            switch (true) {              
-                case $filterAttr === null:
-                    // If the filter has no attribute, skip it
-                    continue 2;
-                // Relation filters will produce InputComboTables, so to transform them to a text-filter, we
-                // need to filter over the corresponding LABEL. This will not work on aggregations though.
-                case $filterAttr->isRelation() && ! DataAggregation::hasAggregation($filterAttrAlias):
-                    $filterRightObj = $filterAttr->getRelation()->getRightObject();
-                    if ($filterRightObj->hasLabelAttribute()) {
-                        $data[$filter->getCaption()] = [
-                            "attribute_alias" => RelationPath::join($filterAttr->getAliasWithRelationPath(), $filterRightObj->getLabelAttributeAlias()),
-                            "caption" => $filter->getCaption()
-                        ];
-                    } else {
-                        // If we do not have a LABEL - what should we filter over? The UID?
-                        // Skip this case for now
-                        continue 2;
-                    }
-                    break;
-                // Regular filters can be added as-is
-                default:
-                    $data[$filter->getCaption()] = [
-                        'attribute_alias' => $filter->getAttributeAlias(),
-                        "caption" => $filter->getCaption()
-                    ];
-                    break;
-            }
-        }
-        // Sort sortables by caption
-        ksort($data);
-        
-        return json_encode(array_values($data), JSON_UNESCAPED_UNICODE);
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
     }
-    
-    
+
     /**
-     * 
+     *
      * @return string
      */
     protected function buildJsonModelForSortables() : string
     {
-        $widget = $this->getWidget();
         $data = [];
-        $sorters = [];
-        $table = $widget->getDataWidget();
-        $cols = $table->getColumns();
-        foreach ($table->getSorters() as $sorter) {
-            $sorters[] = $sorter->getProperty('attribute_alias');
+        foreach ($this->getWidget()->getSortableAttributes() as $title => $alias) {
             $data[] = [
-                "attribute_alias" => $sorter->getProperty('attribute_alias'),
-                "caption" => $this->getSorterCaption($sorter, $cols)
+                "attribute_alias" => $alias,
+                "caption" => $title
             ];
         }
-        // Also add all optional columns from the configurator - if they are sortable, of course.
-        if ($widget instanceof DataTableConfigurator && $widget->hasOptionalColumns()) {
-            $cols = array_merge($cols, $widget->getOptionalColumns());
-        }
-        foreach ($cols as $col) {
-            if (! $col->isSortable()) {
-                continue;
-            }
-            if (in_array($col->getAttributeAlias(), $sorters)) {
-                continue;
-            }
-            $data[] = [
-                "attribute_alias" => $col->getAttributeAlias(),
-                "caption" => $col->getCaption()
-            ];
-        }
-        return json_encode($data);
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
     }
 
     /**
