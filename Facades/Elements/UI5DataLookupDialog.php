@@ -2,29 +2,30 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Interfaces\Widgets\iHaveHeader;
-use exface\Core\Interfaces\Widgets\iSupportMultiSelect;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
 
 /**
- * The `DataLookupDialog` is a `ValueHelpDialog` which may be used to search for values from `DataTables`.
- * On opening a `DataLookupDialog` a new `Dialog` is being rendered, containing a `DataTable` to select
- * one (or multiple) items from. It's apperance and functionallity is based on UI5's ValueHelpDialog.
+ * Renders a sap.m.Dialog for a DataLookupDialog widget, which looks similar to the native UI5 ValueHelpDialog.
+ * 
+ * The native `sap.ui.comp.valuehelpdialog.ValueHelpDialog` is not available in OpenUI5 and also not flexible
+ * enough for our needs, so we have implemented our own version of a lookup dialog.
+ * 
+ * The lookup dialog works with any data widget, not only a table.
  * 
  * It's features include:
- *  - a basic searchbar, extended search and filters
- *  - a panel at the bottom of the dialog, displaying the current selection of items in a tokenized form
- *  
+ * - quick-search bar
+ * - collapsible header with filters
+ * - collapsible tokenized `MultiInput` with current selections - independently of the data widget used for selection
+ * - auto-prefill of the current selection when the dialog is opened
  * 
- * @method DataLookupDialog getWidget()
- * @author tmc
+ * @method \exface\Core\Widgets\DataLookupDialog getWidget()
+ * @author tmc, Andrej Kabachnik
  *
  */
 class UI5DataLookupDialog extends UI5Dialog 
-{    
-    private $tokenNameColumn = null;
-    
+{
     /**
      * 
      * {@inheritDoc}
@@ -45,29 +46,7 @@ class UI5DataLookupDialog extends UI5Dialog
         }
         
         // Make sure, a label column exists, so the label can be used in the selection-chips
-        if ($table->getMetaObject()->hasLabelAttribute()) {
-            $labelColExists = false;
-            foreach ($table->getColumns() as $col) {
-                if ($col->isBoundToAttribute() && $col->getAttribute()->getObject()->isExactly($table->getMetaObject()) && $col->getAttribute()->isLabelForObject()) {
-                    $this->tokenNameColumn = $col;
-                    $labelColExists = true;
-                    break;
-                }
-            }
-            if ($labelColExists === false) {
-                $labelAttr = $table->getMetaObject()->getLabelAttribute();
-                if (! $table->hasAggregations() || $table->hasAggregationOverAttribute($labelAttr)) {
-                    $this->tokenNameColumn = $table->createColumnFromAttribute($labelAttr);
-                    $table->addColumn($this->tokenNameColumn);
-                    //TODO data for added Label Column might be not loaded by the datasheet because column not part of the widget
-                    //Shouldn't we use the attribute defined as label in the Widget calling the Lookup Dialog?
-                } else {
-                    $this->tokenNameColumn = $table->getColumns()[0];
-                }
-            }
-        } elseif ($table->hasColumns()) {
-            $this->tokenNameColumn = $table->getColumns()[0];
-        } else {
+        if (! $table->hasColumns()) {
             throw new FacadeRuntimeError('Cannot render lookup dialog "' . $this->getWidget()->getId() . '" - no columns found!');
         }
         
@@ -402,7 +381,7 @@ JS;
      */
     protected function getTokenNameColumn() : DataColumn
     {
-        return $this->tokenNameColumn;
+        return $this->getWidget()->getLabelColumn();
     }
     
     /**
@@ -411,6 +390,6 @@ JS;
      */
     protected function getTokenKeyColumn() : DataColumn
     {
-        return $this->getWidget()->getDataWidget()->getUidColumn();
+        return $this->getWidget()->getUidColumn();
     }
 }
