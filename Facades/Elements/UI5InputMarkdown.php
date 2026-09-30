@@ -270,6 +270,13 @@ JS;
                             oEditor._originalWrapperHeight = jqEditorWrapper[0].style.height;
                             jqEditorWrapper.css('height', '100%');
                             oEditor.setHeight('100%');
+                            // A non-maximized Dialog is a modal sap.m.Dialog (sap.ui.core.Popup), which
+                            // forces focus back into its own DOM as soon as something outside it gets
+                            // focused. Since we are about to reparent the editor into #sap-ui-static (i.e.
+                            // out of the Dialog's DOM), mark it so the Popup treats it as part of itself
+                            // and does not steal focus back (see data-sap-ui-integration-popup-content in
+                            // the sap.ui.core.Popup API docs, available since UI5 1.75).
+                            jqFullScreenContainer.attr('data-sap-ui-integration-popup-content', '');
                             jqFullScreenContainer.appendTo($('#sap-ui-static')[0]);
                             jqFullScreenContainer.addClass('fullscreen');
                         } else {
@@ -280,6 +287,7 @@ JS;
                             } else {
                                 jqFullScreenContainer.appendTo(oEditor._originalParent);
                             }
+                            jqFullScreenContainer.removeAttr('data-sap-ui-integration-popup-content');
                             
                             oEditor.changePreviewStyle('tab');
                             jqFullScreenContainer.removeClass('fullscreen');
