@@ -1246,7 +1246,6 @@ JS
         $btnGrp->addButton($btnGrp->createButton(new UxonObject([
             'widget_type' => 'MenuButton',
             'icon' => 'calendar',
-            'id' => 'ganttViews',
             'caption' => $initialViewName,
             'buttons' => $buttons
         ])));
