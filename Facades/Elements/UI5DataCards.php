@@ -4,6 +4,21 @@ namespace exface\UI5Facade\Facades\Elements;
 class UI5DataCards extends UI5DataTable
 {
     /**
+     * DataCards has model columns but no UI5 column controls to personalize.
+     *
+     * WHY THIS MUST NOT USE THE DATATABLE IMPLEMENTATION: its responsive-table branch calls
+     * getColumns() on the rendered control. DataCards renders a sap.f.GridList, which has no such
+     * API, so applying or resetting filters caused an uncaught TypeError after the data reloaded.
+     * Column request serialization already excludes DataCards for the same renderer invariant.
+     *
+     * @return string
+     */
+    public function buildJsRefreshPersonalization() : string
+    {
+        return '';
+    }
+
+    /**
      *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5DataTable::buildJsConstructorForTable()

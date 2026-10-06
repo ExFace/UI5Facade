@@ -212,8 +212,8 @@ JS, false);
 
         // get required setup info/Ids
         $dataWidget = $this->getDataWidget();
-        $screenSlug = $this->escapeString($dataWidget->findUiContainer()->getSlug());
-        $widgetId = $this->escapeString($dataWidget->getIdWithinUiContainer());
+        $screenSlug = $this->escapeString($dataWidget->getUiScreen()->getUrlSlug());
+        $widgetId = $this->escapeString($dataWidget->getIdInScreen());
         $objectId = $this->escapeString($dataWidget->getMetaObject()->getId());
   
         switch (true) {
@@ -519,6 +519,43 @@ JS;
         return <<<JS
             .data('fnSetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsVisibleFilterValueSetter()})
             .data('fnResetVisibleHeaderFilters', {$this->getConfiguratorElement()->buildJsResetVisibleFilters()})
+JS;
+    }
+
+    /**
+     * Prevents a text selection in a group header from toggling the group.
+     *
+     * @return string
+     */
+    protected function buildJsPreserveGroupHeaderSelection() : string
+    {
+        if (! $this->getWidget()->hasRowGroups()) {
+            return '';
+        }
+        return <<<JS
+
+            .addEventDelegate({
+                onAfterRendering: function(oEvent) {
+                    var oTableDom = oEvent.srcControl.getDomRef();
+                    if (!oTableDom) {
+                        return;
+                    }
+                    oTableDom.addEventListener("click", function(oEvent) {
+                        var oGroupHeader = oEvent.target.closest(".sapUiTableGroupIcon");
+                        var oSelection = window.getSelection();
+                        if (
+                            oGroupHeader
+                            && oSelection
+                            && ! oSelection.isCollapsed
+                            && oSelection.toString().length > 0
+                            && oGroupHeader.contains(oSelection.anchorNode)
+                            && oGroupHeader.contains(oSelection.focusNode)
+                        ) {
+                            oEvent.stopPropagation();
+                        }
+                    }, true);
+                }
+            })
 JS;
     }
 
@@ -875,6 +912,7 @@ JS;
                 ],
                 rows: "{/rows}"
         	}).addStyleClass('rowAlternate-'+{$striped})
+            {$this->buildJsPreserveGroupHeaderSelection()}
             {$this->buildJsHeaderFilterFunctions()}
             {$this->buildJsClickHandlers('oController')}
             {$this->buildJsPseudoEventHandlers()}
@@ -903,7 +941,7 @@ JS;
         $heightInRows = $widget instanceof DataTable ? $widget->getHeightInRows() : null;
         $heightInRowsDefault = $this->getFacade()->getConfig()->getOption('WIDGET.DATATABLE.ROWS_SHOWN_BY_DEFAULT');
         $height = $widget->getHeight();
-        $singleRowHeightPx = '33';
+        $singleRowHeightPx = $this->getTableRowHeightPx();
 
         switch (true) {
             case $heightInRows !== null:
@@ -1000,6 +1038,16 @@ JS;
         }
         
         return "minAutoRowCount: {$minAutoRowCount},";
+    }
+
+    /**
+     * Returns the table row height used to calculate automatic row counts.
+     *
+     * @return int
+     */
+    protected function getTableRowHeightPx() : int
+    {
+        return 33;
     }
     
     /**

@@ -206,8 +206,8 @@ trait UI5DataElementTrait {
                         
                         // Update UI Elements onchange of widget setup 
                         oWidget.attachEvent('appliedWidgetSetup', function (oEvent) {
-                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getDataWidget()->findUiContainer()->getSlug()}' , '{$this->getDataWidget()->getIdWithinUiContainer()}', '{$this->getDataWidget()->getMetaObject()->getId()}', true);
-                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getDataWidget()->findUiContainer()->getSlug()}' , '{$this->getDataWidget()->getIdWithinUiContainer()}', '{$this->getDataWidget()->getMetaObject()->getId()}', '{$this->getId()}');
+                            exfSetupManager.markCurrentSetupAsActive('{$this->getP13nElement()->getSetupsTableId()}', '{$this->getDataWidget()->getUiScreen()->getUrlSlug()}' , '{$this->getDataWidget()->getIdInScreen()}', '{$this->getDataWidget()->getMetaObject()->getId()}', true);
+                            exfSetupManager.updateQuickSelectButtonCaption('{$this->getDataWidget()->getUiScreen()->getUrlSlug()}' , '{$this->getDataWidget()->getIdInScreen()}', '{$this->getDataWidget()->getMetaObject()->getId()}', '{$this->getId()}');
                             oWidget.data('_exfWidgetSetupChangeListenerAttached', true);
                         });
                     }
@@ -424,12 +424,6 @@ JS;
     protected function buildJsPanelWrapper(string $contentConstructorsJs, string $oControllerJs = 'oController', string $toolbar = null, bool $padding = true)  : string
     {
         $toolbar = $toolbar ?? $this->buildJsToolbar($oControllerJs);
-        $hDim = $this->getWidget()->getHeight();
-        if (! $hDim->isUndefined()) {
-            $height = $this->getHeight();
-        } else {
-            $height = $this->buildCssHeightDefaultValue();
-        }
         
         $panelCssClass = $padding === false ? 'sapUiNoContentPadding' : '';
         if ($this->isFillingContainer()) {
@@ -438,7 +432,7 @@ JS;
         return <<<JS
 
         new sap.m.Panel("{$this->getId()}_panel", {
-            height: "$height",
+            height: {$this->buildJsPanelHeight()},
             headerToolbar: [
                 {$toolbar}
             ],
@@ -448,6 +442,21 @@ JS;
         })
         .addStyleClass('{$panelCssClass}')        
 JS;
+    }
+
+    /**
+     * Returns a JS snippet for the height of the panel wrapper around the data control
+     * @return string
+     */
+    protected function buildJsPanelHeight() : string
+    {
+        $hDim = $this->getWidget()->getHeight();
+        if (! $hDim->isUndefined()) {
+            $height = $this->getHeight();
+        } else {
+            $height = $this->buildCssHeightDefaultValue();
+        }
+        return $this->escapeString($height);
     }
     
     protected function isFillingContainer() : bool

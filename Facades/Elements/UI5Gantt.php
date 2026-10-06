@@ -19,6 +19,7 @@ use exface\Core\DataTypes\ComparatorDataType;
 use exface\Core\Interfaces\Widgets\iShowSingleAttribute;
 use exface\Core\Interfaces\Widgets\iHaveColumns;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Widgets\Gantt;
 
 /**
  * 
@@ -32,6 +33,16 @@ class UI5Gantt extends UI5DataTree
     use JsValueScaleTrait;
     use UI5ColorClassesTrait;
 
+    private const TABLE_HEADER_HEIGHT_PX = 75;
+    private const GANTT_UPPER_HEADER_HEIGHT_PX = 40;
+    private const GANTT_LOWER_HEADER_HEIGHT_PX = 25;
+    private const GANTT_HEADER_PADDING_PX = 10;
+    private const VERTICAL_TABLE_HEADER_HEIGHT_PX = 36;
+    private const VERTICAL_GANTT_UPPER_HEADER_HEIGHT_PX = 35;
+    private const VERTICAL_GANTT_LOWER_HEADER_HEIGHT_PX = 25;
+    private const VERTICAL_GANTT_HEADER_PADDING_PX = 10;
+    private const VERTICAL_SPLITTER_BAR_HEIGHT_PX = 16;
+
     const EVENT_NAME_TIMELINE_SHIFT = 'timeline_shift';
     const EVENT_NAME_ROW_SELECTION_CHANGE = 'row_selection_change';
     
@@ -39,6 +50,7 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_CHECK_TABLE_IS_READY = 'checkTableIsReady';
     const CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES = 'getGlobalStartEndDates';
     const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
+    const CONTROLLER_METHOD_RESIZE_VERTICAL_LAYOUT = 'resizeVerticalLayout';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
     // The defaults are written in the simple view mode config structure.
@@ -182,12 +194,31 @@ class UI5Gantt extends UI5DataTree
     public function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
         $widget = $this->getWidget();
+        $heightInRows = $widget->getHeightInRows();
+        $autoSizeVertical = $widget->getOrientation() === Gantt::ORIENTATION_VERTICAL && $heightInRows !== null;
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
         $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, scrollToToday', $this->buildJsSyncTreeToGantt('oTable', 'scrollToToday'));
         $controller->addMethod(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this,'oTable', $this->buildJsCheckTableIsReady('oTable'));
         $controller->addMethod(self::CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES, $this,'', $this->buildJsGetGlobalStartEndDates());
         $controller->addMethod(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this,'gantt', $this->buildJsSetGlobalStartEndDatesToGantt('gantt'));
+        if ($autoSizeVertical) {
+            $controller->addMethod(
+                self::CONTROLLER_METHOD_RESIZE_VERTICAL_LAYOUT,
+                $this,
+                'oTable',
+                $this->buildJsResizeVerticalLayout('oTable')
+            );
+            $resizeVerticalLayoutJs = $controller->buildJsMethodCallFromController(
+                self::CONTROLLER_METHOD_RESIZE_VERTICAL_LAYOUT,
+                $this,
+                'oTable'
+            ) . ';';
+        } else {
+            $resizeVerticalLayoutJs = '';
+        }
+        $orientation = ucfirst($widget->getOrientation());
+        $splitterResizableJs = $widget->getHideSplitBar() ? 'false' : 'true';
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -195,6 +226,35 @@ class UI5Gantt extends UI5DataTree
         
         // adds the Gantt buttons to the toolbar as separate group.
         $this->addGanttButtons();
+
+        if ($autoSizeVertical) {
+            $tableHeaderHeight = $this->getTableHeaderHeightPx();
+            $ganttHeaderHeight = $this->getGanttUpperHeaderHeightPx()
+                + $this->getGanttLowerHeaderHeightPx()
+                + $this->getGanttHeaderPaddingPx();
+            $rowHeight = $this->getTableRowHeightPx();
+            $splitterPreparationJs = <<<JS
+
+                (function(){
+                    var domScrollbarTest = document.createElement('div');
+                    domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
+                    document.body.appendChild(domScrollbarTest);
+                    var iScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
+                    domScrollbarTest.remove();
+                    var iRowsHeight = {$heightInRows} * {$rowHeight};
+                    var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
+                    var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
+                    return (
+JS;
+            $splitterCompletionJs = ')})()';
+            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: iTableAreaHeight + 'px', resizable: {$splitterResizableJs}}))";
+            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: iGanttAreaHeight + 'px', resizable: {$splitterResizableJs}}),";
+        } else {
+            $splitterPreparationJs = '';
+            $splitterCompletionJs = '';
+            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({resizable: {$splitterResizableJs}}))";
+            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({resizable: {$splitterResizableJs}}),";
+        }
         
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
@@ -214,13 +274,17 @@ JS
             ,false);
         
         $gantt = <<<JS
+        {$splitterPreparationJs}
         new sap.ui.layout.Splitter({
+            orientation: '{$orientation}',
             {$this->buildJsProperties()}
             contentAreas: [
                 {$this->buildJsConstructorForTreeTable($oControllerJs)}
+                {$tableLayoutDataJs}
                 ,
                 new sap.ui.core.HTML("{$this->getId()}_wrapper", {
                     content: "<div id=\"{$this->getId()}_gantt\" class=\"exf-gantt\" style=\"height:100%; min-height: 100px; overflow: hidden;\"></div>",
+                    {$ganttLayoutDataJs}
                     afterRendering: function(oEvent) {
                         setTimeout(function() {
                             var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
@@ -243,7 +307,12 @@ JS
 
                                 // Resize handler:
                                 sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
-                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};  
+                                    cancelAnimationFrame(oTable._exfVerticalGanttResizeFrame);
+                                    oTable._exfVerticalGanttResizeFrame = requestAnimationFrame(function(){
+                                        oTable._exfVerticalGanttResizeFrame = null;
+                                        {$resizeVerticalLayoutJs}
+                                        {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                                    });
                                 });
                             }
                             
@@ -254,11 +323,13 @@ JS
                               {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
                             }
                             {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
+                            {$resizeVerticalLayoutJs}
                         },0);
                     }
                 })
             ]
         })
+        {$splitterCompletionJs}
 
 JS;
         return $this->buildJsPanelWrapper($gantt, $oControllerJs) . ".addStyleClass('sapUiNoContentPadding')";
@@ -272,6 +343,152 @@ JS;
     {
         return true;
     }
+
+    /**
+     * Derives the panel height of a vertical Gantt from the configured number of visible rows.
+     *
+     * Toolbar and scrollbar heights are measured at runtime so the result follows the active UI5
+     * theme and browser. Table and Gantt headers contribute independently because the vertical
+     * layout does not require them to have the same height.
+     *
+     * @return string
+     * @see UI5DataElementTrait::buildJsPanelHeight()
+     */
+    protected function buildJsPanelHeight() : string
+    {
+        $widget = $this->getWidget();
+        $heightInRows = $widget->getHeightInRows();
+
+        if ($widget->getOrientation() !== Gantt::ORIENTATION_VERTICAL || $heightInRows === null) {
+            return parent::buildJsPanelHeight();
+        }
+
+        $tableHeaderHeight = $this->getTableHeaderHeightPx();
+        $ganttHeaderHeight = $this->getGanttUpperHeaderHeightPx()
+            + $this->getGanttLowerHeaderHeightPx()
+            + $this->getGanttHeaderPaddingPx();
+        $rowHeight = $this->getTableRowHeightPx();
+        $splitterBarHeight = self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
+
+        return <<<JS
+
+                (function(){
+                    var jqToolbarTest = $('<div class="sapMTB sapMTBHeader-CTX"></div>').appendTo('body');
+                    var iToolbarHeight = jqToolbarTest.outerHeight();
+                    var domScrollbarTest = document.createElement('div');
+                    domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
+                    document.body.appendChild(domScrollbarTest);
+                    var iScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
+                    jqToolbarTest.remove();
+                    domScrollbarTest.remove();
+
+                    var iRowsHeight = {$heightInRows} * {$rowHeight};
+                    var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
+                    var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
+                    return (iToolbarHeight + iTableAreaHeight + {$splitterBarHeight} + iGanttAreaHeight) + 'px';
+                })()
+JS;
+    }
+
+    /**
+     * Recalculates vertical splitter sizes without invalidating the rendered Gantt.
+     *
+     * The table chrome is measured like UI5's automatic row mode, including the scrollbar space
+     * UI5 reserves even when no horizontal scrollbar is visible. Splitter and panel properties are
+     * updated without rerendering because rerendering would detach the Gantt DOM from its instance.
+     *
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsResizeVerticalLayout(string $oTableJs) : string
+    {
+        $heightInRows = $this->getWidget()->getHeightInRows();
+        $tableHeaderHeight = $this->getTableHeaderHeightPx();
+        $ganttHeaderHeight = $this->getGanttUpperHeaderHeightPx()
+            + $this->getGanttLowerHeaderHeightPx()
+            + $this->getGanttHeaderPaddingPx();
+        $rowHeight = $this->getTableRowHeightPx();
+        $splitterBarHeight = self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
+
+        return <<<JS
+            var oSplitter = {$oTableJs}.getParent();
+            var aContentAreas = oSplitter?.getContentAreas() ?? [];
+            var domTable = {$oTableJs}.getDomRef();
+            if (aContentAreas.length < 2 || ! domTable) {
+                return;
+            }
+
+            var iDefaultScrollbarHeight = {$oTableJs}._exfDefaultScrollbarHeight;
+            if (! Number.isFinite(iDefaultScrollbarHeight)) {
+                var domScrollbarTest = document.createElement('div');
+                domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
+                document.body.appendChild(domScrollbarTest);
+                iDefaultScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
+                domScrollbarTest.remove();
+                {$oTableJs}._exfDefaultScrollbarHeight = iDefaultScrollbarHeight;
+            }
+            
+            var jqTable = {$oTableJs}.$();
+            var jqTableScrollbar = jqTable.find('.sapUiTableHSb:visible').first();
+            var domTableRows = {$oTableJs}.getDomRef('tableCCnt');
+            var domTablePlaceholder = {$oTableJs}.getDomRef('placeholder-bottom');
+            var iTablePlaceholderHeight = domTablePlaceholder?.clientHeight || 0;
+            var iTableChromeHeight = domTableRows
+                ? Math.max(0, domTable.scrollHeight - domTableRows.clientHeight - iTablePlaceholderHeight)
+                : {$tableHeaderHeight} + (jqTableScrollbar.outerHeight() || 0);
+            if (jqTableScrollbar.length === 0) {
+                iTableChromeHeight += iDefaultScrollbarHeight;
+            }
+            
+            var domSplitter = oSplitter.getDomRef();
+            var domGanttContainer = domSplitter?.querySelector('#{$this->getId()}_gantt .gantt-container');
+            var bGanttScrollbarVisible = domGanttContainer
+                ? domGanttContainer.scrollWidth > domGanttContainer.clientWidth
+                : false;
+            var iGanttScrollbarHeight = bGanttScrollbarVisible
+                ? Math.max(iDefaultScrollbarHeight, domGanttContainer.offsetHeight - domGanttContainer.clientHeight)
+                : 0;
+            var domFirstTableRow = {$oTableJs}.getRows()[0]?.getDomRef();
+            var iTableRowHeight = domFirstTableRow?.offsetHeight || {$rowHeight};
+            var oGantt = {$oTableJs}.gantt;
+            var iGanttRowHeight = oGantt?.options?.row_height || {$rowHeight};
+            var iTableAreaHeight = iTableChromeHeight + ({$heightInRows} * iTableRowHeight);
+            var iGanttAreaHeight = {$ganttHeaderHeight} + iGanttScrollbarHeight + ({$heightInRows} * iGanttRowHeight);
+            var sTableAreaHeight = iTableAreaHeight + 'px';
+            var sGanttAreaHeight = iGanttAreaHeight + 'px';
+            var oTableLayoutData = aContentAreas[0].getLayoutData();
+            var oGanttLayoutData = aContentAreas[1].getLayoutData();
+            var bLayoutChanged = false;
+            
+            if (oTableLayoutData.getSize() !== sTableAreaHeight) {
+                oTableLayoutData.setProperty('size', sTableAreaHeight, true);
+                bLayoutChanged = true;
+            }
+            if (oGanttLayoutData.getSize() !== sGanttAreaHeight) {
+                oGanttLayoutData.setProperty('size', sGanttAreaHeight, true);
+                bLayoutChanged = true;
+            }
+            
+            var oPanel = oSplitter.getParent();
+            var oToolbar = oPanel?.getHeaderToolbar();
+            var iToolbarHeight = oToolbar?.getDomRef() ? oToolbar.$().outerHeight() : 0;
+            var domSplitterBar = oSplitter.getDomRef('splitbar-0');
+            var iSplitterBarHeight = domSplitterBar?.offsetHeight || {$splitterBarHeight};
+            var iPanelContentHeight = iTableAreaHeight + iSplitterBarHeight + iGanttAreaHeight;
+            var sPanelHeight = (iToolbarHeight + iPanelContentHeight) + 'px';
+            if (oPanel?.getHeight() !== sPanelHeight) {
+                oPanel.setProperty('height', sPanelHeight, true);
+                bLayoutChanged = true;
+            }
+            var jqPanel = oPanel?.$();
+            jqPanel?.css('height', sPanelHeight);
+            jqPanel?.children('.sapMPanelContent').css('height', iPanelContentHeight + 'px');
+            
+            if (bLayoutChanged) {
+                oSplitter.triggerResize(true);
+            }
+JS;
+    }
     
     /**
      * This method builds the JS property for column header height of the left table.
@@ -280,7 +497,55 @@ JS;
      */
     protected function buildJsPropertyColumnHeaderHeight() : string
     {
-        return 'columnHeaderHeight: 75,';
+        return 'columnHeaderHeight: ' . $this->getTableHeaderHeightPx() . ',';
+    }
+
+    /**
+     * Returns the table header height for the configured Gantt orientation.
+     *
+     * @return int
+     */
+    protected function getTableHeaderHeightPx() : int
+    {
+        return $this->getWidget()->getOrientation() === Gantt::ORIENTATION_VERTICAL
+            ? self::VERTICAL_TABLE_HEADER_HEIGHT_PX
+            : self::TABLE_HEADER_HEIGHT_PX;
+    }
+
+    /**
+     * Returns the upper Gantt header height for the configured orientation.
+     *
+     * @return int
+     */
+    protected function getGanttUpperHeaderHeightPx() : int
+    {
+        return $this->getWidget()->getOrientation() === Gantt::ORIENTATION_VERTICAL
+            ? self::VERTICAL_GANTT_UPPER_HEADER_HEIGHT_PX
+            : self::GANTT_UPPER_HEADER_HEIGHT_PX;
+    }
+
+    /**
+     * Returns the lower Gantt header height for the configured orientation.
+     *
+     * @return int
+     */
+    protected function getGanttLowerHeaderHeightPx() : int
+    {
+        return $this->getWidget()->getOrientation() === Gantt::ORIENTATION_VERTICAL
+            ? self::VERTICAL_GANTT_LOWER_HEADER_HEIGHT_PX
+            : self::GANTT_LOWER_HEADER_HEIGHT_PX;
+    }
+
+    /**
+     * Returns the Gantt header padding for the configured orientation.
+     *
+     * @return int
+     */
+    protected function getGanttHeaderPaddingPx() : int
+    {
+        return $this->getWidget()->getOrientation() === Gantt::ORIENTATION_VERTICAL
+            ? self::VERTICAL_GANTT_HEADER_PADDING_PX
+            : self::GANTT_HEADER_PADDING_PX;
     }
     
     /**
@@ -334,6 +599,9 @@ JS;
     protected function buildJsGanttInit() : string
     {
         $widget = $this->getWidget();
+        $upperHeaderHeight = $this->getGanttUpperHeaderHeightPx();
+        $lowerHeaderHeight = $this->getGanttLowerHeaderHeightPx();
+        $rowHeight = $this->getTableRowHeightPx();
         
         $calItem = $widget->getTasksConfig();
         $startCol = $calItem->getStartTimeColumn();
@@ -397,8 +665,8 @@ JS;
     ], {
         view_mode_select: false, // Keep at false, we use here UI5 MenuButton for view mode selection instead.
         today_button: false,
-        upper_header_height: 40,
-        lower_header_height: 25,
+        upper_header_height: {$upperHeaderHeight},
+        lower_header_height: {$lowerHeaderHeight},
         auto_move_label: true,
         view_modes: {$viewModesConfigJson},
         view_mode: '{$initialViewName}',
@@ -410,7 +678,7 @@ JS;
         stripe_rows: true,
         date_formatter: exfTools.date.format, // Uses or exfTools formatter
         date_format_default: 'yyyy-MM-dd HH:mm:ss.SSS',
-        row_height: 33, // Initial value. Row zoom can modify this.
+        row_height: {$rowHeight}, // Initial value. Row zoom can modify this.
         row_lanes: 2, // Initial value. Row zoom can modify this.
         include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
         window_fill_padding_to_border: '{$fillPaddingToBorder}',
@@ -576,6 +844,12 @@ JS;
                     lineIndex++
                 });
                 
+                // filling the rowKeys array with the remaining visible empty rows from the table, 
+                // so the Gantt has always the same number of rows as the table:
+                while (lineIndex < oTable.getVisibleRowCount()) {
+                    rowKeys.push(lineIndex++);
+                }
+                
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
                 oGantt.refresh(aTasks, scrollToToday);
@@ -736,7 +1010,9 @@ JS;
      */
     protected function hasPaginator() : bool
     {
-        return $this->getWidget()->isPaged();
+        // do not use the hasPaginator implementation form UI5DataTree, instead use the one form UI5DataTable,
+        // which uses the implementation from the UI5DataElementTrait right now
+        return UI5DataTable::hasPaginator();
     }
     
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
@@ -1018,11 +1294,11 @@ JS
 
     /**
      * Adds the rows zoom buttons to the button group at the toolbar:
-     * "+": Increases the height of the rows of the table and the gantt-chart (rowHeight). 
-     *     Also increments the number of the lanes per row (newRowLanesCount) in gantt
+     * "+": Increases the Gantt row height and the number of lanes per row.
+     *      For horizontal Gantts, it also adjusts the table row height to match.
      * 
-     *  "-": Decreases the height of the rows of the table and the gantt-chart.
-     *      Also decrements the number of the lanes per row in gantt
+     * "-": Decreases the Gantt row height and the number of lanes per row.
+     *      For horizontal Gantts, it also adjusts the table row height to match.
      * 
      * Height Calculation formula: rowHeight = (baseRowHeight / minRowLanes) * newRowLanesCount;
      * 
@@ -1032,6 +1308,21 @@ JS
      */
     protected function addGanttRowsZoomButtons(ButtonGroup $btnGrp, int $index = 0) : void
     {
+        $widget = $this->getWidget();
+        if ($widget->getOrientation() === Gantt::ORIENTATION_VERTICAL && $widget->getHeightInRows() !== null) {
+            $resizeVerticalLayoutJs = $this->getController()->buildJsMethodCallFromController(
+                self::CONTROLLER_METHOD_RESIZE_VERTICAL_LAYOUT,
+                $this,
+                'oTable'
+            ) . ';';
+        } else {
+            $resizeVerticalLayoutJs = '';
+        }
+        if ($widget->getOrientation() === Gantt::ORIENTATION_HORIZONTAL) {
+            $setTableRowHeightJs = 'oTable.setRowHeight(Math.floor(rowHeight - 1));';
+        } else {
+            $setTableRowHeightJs = '';
+        }
         
         $buttons = [
             [
@@ -1051,8 +1342,7 @@ JS
                     
                     let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
                     
-                    // Setting the height to the table (left)
-                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    {$setTableRowHeightJs}
                     
                     // Setting the height to the Gantt (right)
                     oGantt.options.row_lanes = newLanesPerRowNumber;
@@ -1060,6 +1350,7 @@ JS
                     
                     setTimeout(function(){
                                {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                               {$resizeVerticalLayoutJs}
                     },100);
                 
 JS
@@ -1082,8 +1373,7 @@ JS
                     
                     let rowHeight = (baseRowHeight / minRowLanes) * newLanesPerRowNumber;
                   
-                    // Setting the height to the table (left)
-                    oTable.setRowHeight(Math.floor(rowHeight - 1));
+                    {$setTableRowHeightJs}
                     
                     // Setting the height to the Gantt (right)
                     oGantt.options.row_lanes = newLanesPerRowNumber;
@@ -1091,6 +1381,7 @@ JS
                     
                     setTimeout(function(){
                                {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                               {$resizeVerticalLayoutJs}
                     },100);
                     
 JS

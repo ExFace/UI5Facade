@@ -180,7 +180,7 @@
 								}).addStyleClass("exf-p13n-advanced-search-action")
 							]
 						}).addStyleClass("exf-p13n-advanced-search-row")
-						})
+						}).addStyleClass("exf-p13n-advanced-search-item")
 					}
 				});
 			};

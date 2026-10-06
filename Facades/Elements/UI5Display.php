@@ -45,7 +45,7 @@ class UI5Display extends UI5Value
      */
     public function buildJsConstructor($oControllerJs = 'oController') : string
     {
-        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs));
+        return $this->buildJsLabelWrapper($this->buildJsConstructorForMainControl($oControllerJs) . $this->buildJsAddCssWidgetClasses());
     }
     
     /**
@@ -279,16 +279,31 @@ JS;
      */
     public function buildJsValueSetter($valueJs)
     {
-        // If we are not bound to the model, we need to do the value formatting by hand here
-        // TODO Actually, this is probably not a very good idea as this implies, that the
-        // value getter needs to do the opposite conversion. Maybe it would be smarter to
-        // always use the value binding and set that via value setter. This would cause
-        // quite some refactoring though...
         // #value-binding
+        // If we are not bound to the model, we need to do the value formatting by hand here
+        // and set it directly on the control.
         if (! $this->isValueBoundToModel()) {
             $valueJs = $this->getFacade()->getDataTypeFormatter($this->getWidget()->getValueDataType())->buildJsFormatter($valueJs);
+            return parent::buildJsValueSetter($valueJs);
         }
-        return parent::buildJsValueSetter($valueJs);
+        // If the value IS bound to a model, write the (normalized) value into the model at the
+        // binding's path so the value binding - and its data type formatter - re-resolves it.
+        // Calling the control setter (e.g. setText()) directly would bypass the formatter and
+        // show the raw value: e.g. an enum key instead of its label when the setter is triggered
+        // by a live reference refresh that does not rewrite the bound model path (see #value-binding).
+        $prop = $this->buildJsValueBindingPropertyName();
+        return <<<JS
+(function(mVal){
+            var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
+            if (oCtrl === undefined) { return; }
+            var oBinding = oCtrl.getBinding('{$prop}');
+            if (oBinding) {
+                oBinding.getModel().setProperty(oBinding.getPath(), mVal, oBinding.getContext());
+            } else {
+                oCtrl.{$this->buildJsValueSetterMethod('mVal')};
+            }
+        })({$valueJs})
+JS;
     }
     
     /**

@@ -141,8 +141,8 @@
 	"LIBS.FACADE.CSS": "exface/ui5facade/Facades/js/openui5.template.css",
 	"LIBS.FACADE.CUSTOM_CONTROLS": "exface/ui5facade/Facades/js/openui5.controls.js",
   
-  "LIBS.RIEL_GANTT.JS": "npm-asset/riel-gantt/dist/riel-gantt.js",
-  "LIBS.RIEL_GANTT.CSS": "npm-asset/riel-gantt/dist/riel-gantt.css",
+  "LIBS.RIEL_GANTT.JS": "axenox/gantt-js/dist/riel-gantt.js",
+  "LIBS.RIEL_GANTT.CSS": "axenox/gantt-js/dist/riel-gantt.css",
   "LIBS.RIEL_GANTT.EXF.CSS": "exface/ui5facade/Facades/js/riel-gantt/dist/exf-riel-gantt.css",
 	
 	"LIBS.EXFTOOLS.JS": "exface/core/Facades/AbstractAjaxFacade/js/exfTools.js",

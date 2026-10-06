@@ -1,8 +1,10 @@
 # Data configurator dialogs in UI5
 
-The UI5 data configurator is the personalization dialog used by data widgets, most notably
-data tables. It combines normal ExFace filter widgets with UI5 personalization controls for
-sorting and columns, a custom advanced-search control, and optional persisted table setups.
+The `UI5DataConfigurator` facade element is the UI5 implementation of the Core
+`DataConfigurator` widget model. It generates the personalization dialog used by data widgets,
+most notably data tables. The generated UI combines normal ExFace filter widgets with UI5
+personalization controls for sorting and columns, a custom advanced-search control, and optional
+persisted table setups.
 
 The server-side entry point is
 [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php). It renders a
@@ -10,20 +12,23 @@ The server-side entry point is
 the dialog state into data-loader parameters. The configured data widget remains responsible for
 applying the resulting state and loading data.
 
+Persisting and restoring this dialog state as named, shareable setups is a separate concern and is
+documented in [Data_widget_setups.md](Data_widget_setups.md).
+
 ## Architecture
 
 ### Main components
 
 | Component | Responsibility |
 |---|---|
-| [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php) | Builds the dialog, panels, configuration models, reset logic, and request data. |
-| `exface\Core\Widgets\DataConfigurator` | Core widget model exposed by the facade element. |
-| `exface\Core\Widgets\DataTableConfigurator` | Adds table-specific optional columns and saved setups. |
+| [`UI5DataConfigurator`](../../../Facades/Elements/UI5DataConfigurator.php) | Facade element that generates the dialog, panels, configuration models, reset logic, and request data. |
+| `exface\Core\Widgets\DataConfigurator` | Facade-independent widget model implemented by `UI5DataConfigurator`. |
+| `exface\Core\Widgets\DataTableConfigurator` | Widget model that adds table-specific optional columns and saved setups. |
 | `JqueryDataConfiguratorTrait` | Implements common filter serialization, setters, reset behavior, and apply-on-change registration. |
 | `UI5Tabs` | Base UI5 facade element and controller integration. |
 | [`UI5DataTable`](../../../Facades/Elements/UI5DataTable.php) | Applies column personalization, synchronizes table-header sorting and filtering, sets indicators, and reloads data. |
 | [`P13AdvancedSearchPanel`](../../../Facades/js/openui5.controls.js) | Owns and edits canonical advanced-search conditions in the browser. |
-| [`exfSetupManager`](../../../Facades/js/exfSetupManager.js) | Captures, applies, tracks, and locally remembers table setups. |
+| [`exfSetupManager`](../../../Facades/js/exfSetupManager.js) | Captures, applies, tracks, and locally remembers table setups - see [Data_widget_setups.md](Data_widget_setups.md). |
 | [`UI5DataElementTrait`](../../../Facades/Elements/Traits/UI5DataElementTrait.php) | Adds cell context-menu actions that create or remove advanced-search conditions. |
 | [`UI5DataColumn`](../../../Facades/Elements/UI5DataColumn.php) | Adds the table-column filter reset action and metadata used by personalization. |
 | `exfTools.data.filterComparator` | Parses comparator syntax entered in a table header, including structured `BETWEEN` values. |
@@ -51,12 +56,12 @@ The current model contains these main paths:
 
 The dialog buttons have deliberately small responsibilities:
 
-- **OK** closes the dialog, asks the data element to apply column personalization, and refreshes
-  the configured data widget. During refresh, the configurator state is converted into request
-  filters, sorters, and columns.
+- **OK** closes the dialog, asks the configured data widget's facade element to apply column
+	personalization, and refreshes the widget. During refresh, the configurator state is converted
+	into request filters, sorters, and columns.
 - **Cancel** only closes the dialog. It does not restore the current model from the initial model.
 - **Reset** clears Advanced Search, restores initial sorters and columns, resets regular filters,
-  table indicators and custom widths, removes the locally selected setup, and closes the dialog.
+  table indicators and custom widths, removes the locally remembered setup, and closes the dialog.
 
 The generated request contains regular filters from `JqueryDataConfiguratorTrait` and an additional
 `AND` group for non-empty Advanced Search rows. Values are parsed with the formatter of the matching
@@ -86,25 +91,16 @@ flowchart LR
 ## Setups tab
 
 The Setups tab embeds the widget tree produced by `DataTableConfigurator::getSetupsTab()` in a
-custom `P13nLayoutPanel`. The table and its actions are Core widget configuration; the UI5 facade
-only renders those children and connects their actions to the configured data table.
+custom `P13nLayoutPanel`. The table and its actions are Core widget models; the UI5 facade elements
+generate controls for those children and connect their actions to the configured data table.
 
-`UI5DataTable` exposes the setup-related widget functions. Dumping a setup calls
-`exfSetupManager.datatable.getConfiguration()`, which collects:
+From the configurator's point of view, the tab only reads and writes the same state the other tabs
+use: `/columns`, `/sorters`, `/header_filters`, and the Advanced Search panel's conditions. All
+capture, apply, persistence, change tracking, and quick-select logic lives in `exfSetupManager` and
+in the setup-related widget functions of `UI5DataTable`.
 
-- column order, visibility, and manually assigned widths;
-- active sorters;
-- non-empty canonical Advanced Search conditions;
-- regular filter values from `/header_filters`.
-
-Applying a setup calls `exfSetupManager.datatable.applyConfiguration()`. It updates the Columns,
-Sorting, and Advanced Search panels, resets and restores regular filters, then fires the dialog's
-OK event so the table is updated immediately. The Advanced Search panel normalizes old UI5
-operation names such as `Contains` and `EQ`, which keeps older setup payloads usable.
-
-The manager uses IndexedDB through its Dexie wrapper to remember the current setup for a table.
-On view display, an existing local setup is applied automatically. Change tracking listens to
-`/columns`, `/sorters`, Advanced Search's `conditionChange` event, and manual column resizing.
+See [Data_widget_setups.md](Data_widget_setups.md) for the payload format, the storage model, the
+widget functions, and the rules for adding new persisted state.
 
 This tab needs:
 
@@ -290,7 +286,7 @@ This tab needs:
 When extending the configurator, keep these contracts intact:
 
 1. Treat the named JSON model as dialog state, not as the final table state. Apply changes through
-	the owning table or filter element.
+	the owning table or filter facade element.
 2. Use `P13AdvancedSearchPanel` methods instead of mutating `/advanced_search` externally. They
 	preserve normalization, placeholder rows, header synchronization, and `conditionChange` events.
 3. Keep canonical ExFace comparators in saved setups and requests. Translate them only at the final
@@ -298,6 +294,7 @@ When extending the configurator, keep these contracts intact:
 4. Mark conditions originating from table headers with `linked_to_header: true`; do not infer the
 	relationship solely from the attribute alias.
 5. Update `exfSetupManager` when adding persistent panel state, including capture, application,
-	change tracking, backward compatibility, and reset behavior.
+	change tracking, backward compatibility, and reset behavior - see
+	[Data_widget_setups.md](Data_widget_setups.md).
 6. Update both UI table variants when column behavior changes, and verify `hidden_if`, optional
 	columns, manual widths, and exports independently.
