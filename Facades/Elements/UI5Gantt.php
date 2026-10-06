@@ -291,7 +291,7 @@ JS
                             var oTable = sap.ui.getCore().getElementById('{$this->getId()}');
                              
                             if (oCtrl.gantt === undefined) {
-                                oCtrl.gantt = {$this->buildJsGanttInit()}
+                                oCtrl.gantt = {$this->buildJsGanttInit($oControllerJs)}
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 
@@ -596,7 +596,7 @@ JS;
      * 
      * @return string
      */
-    protected function buildJsGanttInit() : string
+    protected function buildJsGanttInit(string $oControllerJs = 'oController') : string
     {
         $widget = $this->getWidget();
         $upperHeaderHeight = $this->getGanttUpperHeaderHeightPx();
@@ -686,7 +686,7 @@ JS;
         popup_aggregate_gantt_width: {$popupAggregateGanttWidth}, // Width in px for the Gantt shown inside aggregation popups. @experimental
         popup_aggregate_style: '{$popupAggregateStyle}', // 'list' | 'table' TODO SR (@experimental)
         popup_aggregate_include_upper_row_tasks: {$popupAggregateIncludeUpperRowTasks}, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
-        popup: {$this->buildJsRenderPopup()},
+        popup: {$this->buildJsRenderPopup($oControllerJs)},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
         readonly: !($editableJs),
@@ -701,8 +701,8 @@ JS;
         language: 'en', // or 'es', 'it', 'ru', 'ptBr', 'fr', 'tr', 'zh', 'de', 'hu'
         on_today_missing: function() {
           // Called if all given tasks are entirely in the past or future and does not include today's date.
-          const todayMissingPopupText = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TEXT')}';
-          const todayMissingPopupTitle = '{$translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TITLE')}';
+          const todayMissingPopupText = {$this->escapeString($translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TEXT'))};
+          const todayMissingPopupTitle = {$this->escapeString($translator->translate('WIDGET.GANTT_CHARD.TODAY_MISSING_POPUP_TITLE'))};
           {$this->buildJsShowMessageError('todayMissingPopupText', 'todayMissingPopupTitle')}
         },
     	on_date_change: function(oTask, dStart, dEnd) {
@@ -815,6 +815,7 @@ JS;
                             colorHover: exfColorTools.shadeCssColor(sColor, -0.08),    // slightly darker
                             progressColor: exfColorTools.shadeCssColor(sColor, -0.28), // significantly darker
                             textColor: exfColorTools.pickTextColorForBackgroundColor(sColor, {$colorPreference}),
+                            dataRow: oRow
                         };
         
                         if(oRow?._children?.length > 0 && oTask.start && oTask.end) {
@@ -1641,8 +1642,40 @@ JS
      * 
      * @return string
      */
-    protected function buildJsRenderPopup() : string
+    protected function buildJsRenderPopup(string $oControllerJs) : string
     {
+        $popover = $this->getWidget()->getTasksConfig()->getPopup();
+        $popoverEl = $this->getFacade()->getElement($popover);
+        $dataWidget = $popover->getWidgetFirst();
+        $dataEl = $this->getFacade()->getElement($dataWidget);
+        return <<<JS
+        (ctx) => {
+            var oTask = ctx.task;
+            var oPrefillData = {rows: []};
+            var aAllTasks = ctx.chart.popup.get_overlapping_upper_row_tasks(oTask);
+            aAllTasks.forEach(function(oTask) {
+                oPrefillData.rows.push(oTask.dataRow);
+            });
+            console.log('click', oTask);
+            var jqGantt = $('#{$this->getId()}');
+            var oPopover = function() {
+                var oPopover = oController.{$this->getController()->buildJsObjectName('editorPopup', $this)};
+                if (oPopover === undefined) {
+                    oController.{$this->getController()->buildJsObjectName('editorPopup', $this)} 
+                        = oPopover 
+                        = {$popoverEl->buildJsConstructor($oControllerJs)};
+                    oController.getView().addDependent(oPopover);
+                }
+                return oPopover;
+            }();
+            oPopover.setModel(new sap.ui.model.json.JSONModel());
+            {$dataEl->buildJsDataSetter("oPrefillData")}
+            oPopover.openBy(ctx.chart.get_bar(oTask.id).\$bar);
+            // TODO if clicked on a task in a group, which is one of the top 3 tasks, select it in the data widget after
+            // opening the popup.
+        }
+JS;
+        
         
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         

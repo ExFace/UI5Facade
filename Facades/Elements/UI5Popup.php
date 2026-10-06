@@ -52,6 +52,7 @@ class UI5Popup extends UI5Form
             {$this->buildJsPropertyContentHeight()}
             {$this->buildJsPropertyContentWidth()}
             title: {$this->escapeString($this->getCaption())},
+            placement: sap.m.PlacementType.Auto,
 			content : [ {$this->buildJsLayoutConstructor()} ],
             footer: {$this->buildJsFloatingToolbar()},
             afterClose: function(oEvent) {

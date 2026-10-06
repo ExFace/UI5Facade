@@ -393,9 +393,10 @@ JS;
                 // No data refresh. Shows the hint that autoload is disabled.
                 $dataWidget = $this->getDataWidget();
                 $js .= <<<JS
-
-                    {$this->buildJsSelectionModelReset()}
-                    {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+                    if (sap.ui.getCore().byId('{$this->getId()}')) {
+                        {$this->buildJsSelectionModelReset()}
+                        {$this->buildJsShowMessageOverlay($dataWidget->getAutoloadDisabledHint())}
+                    }
 JS;
                 break;
         }
@@ -1456,7 +1457,7 @@ JS;
         $widget = $this->getWidget();
         $dataWidget = $this->getDataWidget();
         $data = $widget->prepareDataSheetToRead($dataWidget->getValuesDataSheet());
-        if (! $data->isFresh() && $data->getMetaObject()->isReadable()) {
+        if (! $data->isFresh() && $data->getMetaObject()->isReadable() && $dataWidget->getAutoloadDataStrategy() !== AutoloadStrategyDataType::NEVER) {
             $data->dataRead();
         }
         
@@ -2735,7 +2736,7 @@ JS;
      */
     protected function buildJsSelectionModelReset() : string
     {
-        return "sap.ui.getCore().byId('{$this->getId()}').getModel('{$this->getModelNameForSelections()}').setData({rows: []});";
+        return "sap.ui.getCore().byId('{$this->getId()}')?.getModel('{$this->getModelNameForSelections()}').setData({rows: []});";
     }
     
     /**
