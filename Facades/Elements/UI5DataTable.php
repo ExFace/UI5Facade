@@ -603,6 +603,20 @@ JS;
         if ($widget->getMultiSelect() === false) {
             return <<<JS
 
+            const oTable = $oEventJs.getSource();
+            const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
+            var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            
+            // Persist the selected row so it can be restored after a reload (e.g. the refresh
+            // performed after an Edit/Save action) - see buildJsDataLoaderOnLoadedRestoreSelection().
+            // Ignore programmatic selection clears, which fire with userInteraction=false and an empty
+            // selection while data is reloaded: keeping the stored row lets it be re-selected afterwards.
+            // A genuine user deselect always reports userInteraction=true and still updates the model.
+            var bUserInteraction = (typeof $oEventJs.getParameter === 'function' && $oEventJs.getParameter('userInteraction') !== undefined) ? $oEventJs.getParameter('userInteraction') : true;
+            if (oModelSelected && ! (bUserInteraction === false && aRowsSelectedVisible.length === 0 && (oModelSelected.getProperty('/rows') || []).length > 0)) {
+                oModelSelected.setProperty('/rows', aRowsSelectedVisible);
+            }
+            
             {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, false)};
 JS;
             
@@ -1522,7 +1536,34 @@ JS;
 
 JS;
         } else {
-            return '';
+            // Single-select: restore the previously selected row by UID after a reload (e.g. the
+            // refresh following an Edit/Save). The row is persisted in the selections model by
+            // buildJsPropertySelectionChange(). Without a UID column the row cannot be matched
+            // reliably after its data changed, so restoration is skipped.
+            if (! $widget->hasUidColumn()) {
+                return '';
+            }
+            $uidColJs = $this->escapeString($widget->getUidColumn()->getDataColumnName());
+            return <<<JS
+                setTimeout(function(oTable) {
+                    const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
+                    if (! oModelSelected) {
+                        return;
+                    }
+                    const aPrevSelectedRows = oModelSelected.getProperty('/rows') || [];
+                    if (aPrevSelectedRows.length === 0) {
+                        return;
+                    }
+                    const aRows = {$this->buildJsGetRowsAll($oTableJs)};
+                    const sUidCol = $uidColJs;
+                    var iRowIdx = exfTools.data.indexOfRow(aRows, aPrevSelectedRows[0], sUidCol);
+                    if (iRowIdx === -1) {
+                        return;
+                    }
+                    {$this->buildJsSelectRowByIndex($oTableJs, 'iRowIdx', false, 'false')}
+                }, 0, {$oTableJs});
+
+JS;
         }
     }
     
