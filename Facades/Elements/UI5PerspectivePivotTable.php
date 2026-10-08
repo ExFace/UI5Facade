@@ -1,12 +1,15 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Widgets\PivotTable;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\PerspectiveTrait;
 
 /**
  * Renders PivotTable widgets with Perspective.
+ *
+ * @method PivotTable getWidget()
  *
  * @author Andrej Kabachnik
  */
@@ -24,11 +27,12 @@ class UI5PerspectivePivotTable extends UI5AbstractElement
      */
     protected function buildJsConstructorForControl($oControllerJs = 'oController') : string
     {
-        $language = $this->escapeString($this->getPerspectiveLocale(), false);
+        $this->addPerspectiveFeatureButtons($this->getWidget()->getToolbarMain()->getButtonGroupForSearchActions());
+        $contentJs = $this->escapeString($this->buildHtmlPerspective());
         $pivotTable = <<<JS
 
 		new sap.ui.core.HTML("{$this->getId()}", {
-                    content: "<perspective-viewer id=\"{$this->getId()}\" class=\"exf-perspective-viewer\" lang=\"{$language}\" style=\"width:100%; height:100%; min-height:100px;\"></perspective-viewer>",
+                    content: {$contentJs},
                 })
 JS;
 
