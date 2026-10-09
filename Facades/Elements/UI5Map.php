@@ -11,6 +11,7 @@ use exface\Core\Widgets\Data;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\Interfaces\Widgets\iUseData;
+use exface\Core\Interfaces\Widgets\iSupportLazyLoading;
 use exface\Core\CommonLogic\DataSheets\DataColumn;
 use exface\Core\Factories\WidgetFactory;
 use exface\Core\Widgets\Parts\Maps\Interfaces\LatLngWidgetLinkMapLayerInterface;
@@ -490,7 +491,7 @@ JS;
 
 
     /**
-     * Returns TRUE if this table uses a remote data source and FALSE otherwise.
+     * Returns TRUE if this element uses a remote data source and FALSE otherwise.
      *
      * @see UI5DataElementTrait::isLazyLoading()
      */
@@ -499,7 +500,36 @@ JS;
         foreach ($this->getWidget()->getDataLayers() as $layer) {
             if ($layer instanceof DataMapLayerInterface && ! $layer->getDataWidgetLink()) {
                 $dataWidget = $layer->getDataWidget();
-                if ($dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable())) {
+                $lazyLoading = $dataWidget instanceof iSupportLazyLoading
+                    ? $dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable())
+                    : $dataWidget->getMetaObject()->isReadable();
+                if ($lazyLoading) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Requires view destruction only when an unlinked data layer uses non-lazy data.
+     *
+     * Linked layers obtain data from their target widgets rather than embedding it in the map.
+     * A map with only linked layers must not destroy the page and its tables on dialog navigation,
+     * even though isLazyLoading() returns FALSE because the map has no own lazy data source.
+     *
+     * @see UI5DataElementTrait::shouldDestroyViewOnHide()
+     * @return bool
+     */
+    protected function shouldDestroyViewOnHide() : bool
+    {
+        foreach ($this->getWidget()->getDataLayers() as $layer) {
+            if ($layer instanceof DataMapLayerInterface && ! $layer->getDataWidgetLink()) {
+                $dataWidget = $layer->getDataWidget();
+                $lazyLoading = $dataWidget instanceof iSupportLazyLoading
+                    ? $dataWidget->getLazyLoading($dataWidget->getMetaObject()->isReadable())
+                    : $dataWidget->getMetaObject()->isReadable();
+                if (! $lazyLoading) {
                     return true;
                 }
             }
