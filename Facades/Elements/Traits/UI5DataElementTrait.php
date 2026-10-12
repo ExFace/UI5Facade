@@ -1450,13 +1450,21 @@ JS;
     }
     
     /**
-     * Builds a loader for local data and invalidates the view cache when it is hidden.
+     * Determines whether the local data loader should register destruction of the containing view on hide.
      *
-     * Popups with autoload disabled retain their containing view because their data
-     * can be supplied at runtime by another widget rather than embedded in the view.
+     * Non-lazy data is embedded in the view, so destroying it prevents reuse of stale data.
+     * Override this independently of loader selection when a control does not embed its own data.
      *
-     * @param string $oControlEventJsVar
-     * @param string $keepPagePosJsVar
+     * @return bool
+     */
+    protected function shouldDestroyViewOnHide() : bool
+    {
+        return $this->isLazyLoading() === false;
+    }
+
+    /**
+     * Builds the JavaScript loader for data embedded in the view.
+     *
      * @return string
      */
     protected function buildJsDataLoaderFromLocal($oControlEventJsVar = 'oControlEvent', $keepPagePosJsVar = 'bKeepPagingPos')
@@ -1464,15 +1472,13 @@ JS;
         $widget = $this->getWidget();
         $dataWidget = $this->getDataWidget();
         $data = $widget->prepareDataSheetToRead($dataWidget->getValuesDataSheet());
-        if (! $data->isFresh() && $data->getMetaObject()->isReadable() && $dataWidget->getAutoloadDataStrategy() !== AutoloadStrategyDataType::NEVER) {
+        if (! $data->isFresh() && $data->getMetaObject()->isReadable()) {
             $data->dataRead();
         }
         
         // Since non-lazy loading means all the data is embedded in the view, we need to make
-        // sure the the view is not cached: so we destroy the view after it was hidden!
-        if ($dataWidget->getAutoloadDataStrategy() !== AutoloadStrategyDataType::NEVER
-            || $widget->getParentByClass(Popup::class) === null
-        ) {
+        // sure the view is not cached: so we destroy it after it was hidden.
+        if ($this->shouldDestroyViewOnHide()) {
             $this->getController()->addOnHideViewScript("var oView = {$this->getController()->getView()->buildJsViewGetter($this)}; if (oView !== undefined) {oView.destroy();}", false);
         }
         

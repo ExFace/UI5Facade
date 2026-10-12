@@ -24,7 +24,7 @@
         "homepage": "https://github.com/dfoverdx/htmldiff-js"
     },
     {
-        "name": "jquery.sparkline",
+        "name": "npm-asset/jquery-sparkline",
         "version": "2.1.2",
         "license": [
 	        "BSD-3-Clause"
@@ -36,15 +36,215 @@
         "homepage": "https://omnipotent.net/jquery.sparkline/"
     },
     {
-      "name": "openui5",
+      "name": "npm-asset/openui5--sap.ui.core",
       "version": "1.144.0",
       "license": [
         "Apache-2.0"
       ],
-      "license_link": [
-        "exface/ui5facade/Facades/js_OpenUI5/LICENSE"
+      "license_file": [
+        "exface/ui5facade/Facades/js_openui5/LICENSE.txt"
       ],
-      "description": "SAP OpenUI5 Distribution",
+      "description": "SAP OpenUI5 sap.ui.core library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.f",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.f library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.m",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.m library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.tnt",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.tnt library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.codeeditor",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.codeeditor library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.commons",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.commons library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.dt",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.dt library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.fl",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.fl library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.integration",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.integration library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.layout",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.layout library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.mdc",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.mdc library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.rta",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.rta library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.suite",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.suite library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.support",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.support library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.table",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.table library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.testrecorder",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.testrecorder library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.unified",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.unified library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.ux3",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.ux3 library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.webc.common",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.webc.common library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.webc.fiori",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.webc.fiori library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.ui.webc.main",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.ui.webc.main library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--sap.uxap",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 sap.uxap library",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--themelib_sap_belize",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 Belize theme",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--themelib_sap_bluecrystal",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 Blue Crystal theme",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--themelib_sap_fiori_3",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 Fiori 3 theme",
+      "homepage": "https://openui5.org/"
+    },
+    {
+      "name": "npm-asset/openui5--themelib_sap_horizon",
+      "version": "1.144.0",
+      "license": ["Apache-2.0"],
+      "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
+      "description": "SAP OpenUI5 Horizon theme",
       "homepage": "https://openui5.org/"
     },
     {
