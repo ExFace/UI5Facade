@@ -1465,6 +1465,10 @@ JS;
     /**
      * Builds the JavaScript loader for data embedded in the view.
      *
+     * Registers view destruction on hide only when shouldDestroyViewOnHide() allows it.
+     * Popups with autoload disabled retain their containing view because their data
+     * can be supplied at runtime by another widget.
+     *
      * @return string
      */
     protected function buildJsDataLoaderFromLocal($oControlEventJsVar = 'oControlEvent', $keepPagePosJsVar = 'bKeepPagingPos')
@@ -1478,7 +1482,10 @@ JS;
         
         // Since non-lazy loading means all the data is embedded in the view, we need to make
         // sure the view is not cached: so we destroy it after it was hidden.
-        if ($this->shouldDestroyViewOnHide()) {
+        if ($this->shouldDestroyViewOnHide()
+            && ($dataWidget->getAutoloadDataStrategy() !== AutoloadStrategyDataType::NEVER
+                || $widget->getParentByClass(Popup::class) === null)
+        ) {
             $this->getController()->addOnHideViewScript("var oView = {$this->getController()->getView()->buildJsViewGetter($this)}; if (oView !== undefined) {oView.destroy();}", false);
         }
         
