@@ -13,6 +13,9 @@ use exface\Core\Widgets\DataTableConfigurator;
 use exface\Core\Widgets\Dialog;
 use exface\Core\Interfaces\Widgets\iCanEditData;
 use exface\Core\DataTypes\ComparatorDataType;
+use exface\Core\DataTypes\AutoloadStrategyDataType;
+use exface\Core\Interfaces\Widgets\iSupportLazyLoading;
+use exface\Core\Widgets\Popup;
 
 /**
  * Renders a custom sap.m.P13nDialog with tabs for filters, sorters, and optional columns for a DataTableConfigurator widget.
@@ -1306,6 +1309,15 @@ JS;
      */
     public function buildJsResetter() : string
     {
+        $dataWidget = $this->getWidget()->getDataWidget();
+        if ($dataWidget instanceof iSupportLazyLoading
+            && $dataWidget->getLazyLoading() === false
+            && $dataWidget->getAutoloadDataStrategy() === AutoloadStrategyDataType::NEVER
+            && $dataWidget->getParentByClass(Popup::class) !== null
+        ) {
+            // Reset externally supplied popup data without restoring it through a refresh.
+            return $this->buildJsResetModel() . parent::buildJsResetter();
+        }
         return $this->buildJsResetModel() . $this->buildJsResetterViaTrait();
     }
     

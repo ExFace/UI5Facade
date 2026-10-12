@@ -45,6 +45,7 @@ class UI5Popup extends UI5Form
         // the popup is opened the next time - in particular if opened in another 
         // context, where not all widgets of the popup explicitly receive values.
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
+        $footer = $widget->getHideFooter() === true ? 'null' : $this->buildJsFloatingToolbar();
         return <<<JS
 
         new sap.m.Popover("{$this->getId()}", {
@@ -54,7 +55,7 @@ class UI5Popup extends UI5Form
             title: {$this->escapeString($this->getCaption())},
             placement: sap.m.PlacementType.Auto,
 			content : [ {$this->buildJsLayoutConstructor()} ],
-            footer: {$this->buildJsFloatingToolbar()},
+            footer: {$footer},
             afterClose: function(oEvent) {
                 {$this->buildJsResetter()};
             }

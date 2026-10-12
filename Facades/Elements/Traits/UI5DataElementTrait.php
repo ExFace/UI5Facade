@@ -41,6 +41,7 @@ use exface\Core\Widgets\DataButton;
 use exface\Core\Interfaces\Widgets\iHaveQuickSearch;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\Core\Widgets\DataLookupDialog;
+use exface\Core\Widgets\Popup;
 
 /**
  * This trait helps wrap thrid-party data widgets (like charts, image galleries, etc.) in 
@@ -1449,7 +1450,13 @@ JS;
     }
     
     /**
+     * Builds a loader for local data and invalidates the view cache when it is hidden.
      *
+     * Popups with autoload disabled retain their containing view because their data
+     * can be supplied at runtime by another widget rather than embedded in the view.
+     *
+     * @param string $oControlEventJsVar
+     * @param string $keepPagePosJsVar
      * @return string
      */
     protected function buildJsDataLoaderFromLocal($oControlEventJsVar = 'oControlEvent', $keepPagePosJsVar = 'bKeepPagingPos')
@@ -1463,7 +1470,11 @@ JS;
         
         // Since non-lazy loading means all the data is embedded in the view, we need to make
         // sure the the view is not cached: so we destroy the view after it was hidden!
-        $this->getController()->addOnHideViewScript("var oView = {$this->getController()->getView()->buildJsViewGetter($this)}; if (oView !== undefined) {oView.destroy();}", false);
+        if ($dataWidget->getAutoloadDataStrategy() !== AutoloadStrategyDataType::NEVER
+            || $widget->getParentByClass(Popup::class) === null
+        ) {
+            $this->getController()->addOnHideViewScript("var oView = {$this->getController()->getView()->buildJsViewGetter($this)}; if (oView !== undefined) {oView.destroy();}", false);
+        }
         
         // FIXME make filtering, sorting, pagination, etc. work in non-lazy mode too!
         

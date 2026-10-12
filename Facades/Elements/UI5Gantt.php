@@ -686,7 +686,7 @@ JS;
         popup_aggregate_gantt_width: {$popupAggregateGanttWidth}, // Width in px for the Gantt shown inside aggregation popups. @experimental
         popup_aggregate_style: '{$popupAggregateStyle}', // 'list' | 'table' TODO SR (@experimental)
         popup_aggregate_include_upper_row_tasks: {$popupAggregateIncludeUpperRowTasks}, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
-        popup: {$this->buildJsRenderPopup($oControllerJs)},
+        on_popup_request: {$this->buildJsRenderPopup($oControllerJs)},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
         readonly: !($editableJs),
@@ -1637,9 +1637,13 @@ JS
     }
 
     /**
-     * Builds JS for the normal popup renderer.
-     * This has no effect on the aggregated popups.
+     * Builds the external popup request handler for task and aggregation bars.
+     *
+     * Reuses a UI5 popover, fills it with overlapping upper-lane task data and
+     * opens it at the pointer position without initializing a native Gantt popup.
+     * Requests without pointer coordinates remain anchored to the requested bar.
      * 
+     * @param string $oControllerJs
      * @return string
      */
     protected function buildJsRenderPopup(string $oControllerJs) : string
@@ -1648,75 +1652,87 @@ JS
         $popoverEl = $this->getFacade()->getElement($popover);
         $dataWidget = $popover->getWidgetFirst();
         $dataEl = $this->getFacade()->getElement($dataWidget);
+        $controller = $this->getController();
+        // Create the popup during controller initialization so its table exists before prefill.
+        if (! $controller->hasDependent('editorPopup', $this)) {
+            $controller->addDependentControl('editorPopup', $this, $popoverEl);
+        }
+        $initialFocusJs = '';
+        if ($dataEl instanceof UI5DataTable && $dataEl->isMList()) {
+            $initialFocusJs = <<<JS
+                var oTable = sap.ui.getCore().byId({$this->escapeString($dataEl->getId())});
+                oTable.removeSelections(true);
+                if (!oTask._isAggregate && !oTask._aggMembers?.length) {
+                    var iTaskRow = aAllTasks.findIndex(function(oCandidate) {
+                        return oCandidate.id === oTask.id;
+                    });
+                    var oTaskItem = oTable.getItems().find(function(oItem) {
+                        var oContext = oItem.getBindingContext();
+                        return oContext && oContext.getPath() === '/rows/' + iTaskRow;
+                    });
+                    if (oTaskItem) {
+                        oTable.setSelectedItem(oTaskItem, true);
+                        oTable.fireSelectionChange({
+                            listItem: oTaskItem,
+                            selected: true
+                        });
+                        oPopover.setInitialFocus(oTaskItem);
+                    }
+                }
+JS;
+        }
         return <<<JS
         (ctx) => {
             var oTask = ctx.task;
             var oPrefillData = {rows: []};
-            var aAllTasks = ctx.chart.popup.get_overlapping_upper_row_tasks(oTask);
-            aAllTasks.forEach(function(oTask) {
-                oPrefillData.rows.push(oTask.dataRow);
-            });
-            console.log('click', oTask);
-            var jqGantt = $('#{$this->getId()}');
-            var oPopover = function() {
-                var oPopover = oController.{$this->getController()->buildJsObjectName('editorPopup', $this)};
-                if (oPopover === undefined) {
-                    oController.{$this->getController()->buildJsObjectName('editorPopup', $this)} 
-                        = oPopover 
-                        = {$popoverEl->buildJsConstructor($oControllerJs)};
-                    oController.getView().addDependent(oPopover);
+            var aAllTasks = ctx.chart.get_overlapping_tasks(oTask);
+
+            for (var oSelectedTask of aAllTasks) {
+                oPrefillData.rows.push(oSelectedTask.dataRow);
+            }
+            var oPopover = {$controller->buildJsDependentControlSelector('editorPopup', $this, $oControllerJs)}.addStyleClass("exfGanttPopup");
+            var fnOpenPopup = function() {
+                var domAnchor = ctx.target;
+                if (Number.isFinite(ctx.x) && Number.isFinite(ctx.y)) {
+                    // Convert viewport coordinates to SVG coordinates so the anchor follows Gantt scrolling.
+                    var domSvg = ctx.chart.\$svg;
+                    var oPointer = new DOMPoint(ctx.x, ctx.y).matrixTransform(domSvg.getScreenCTM().inverse());
+                    domAnchor = document.createElementNS(domSvg.namespaceURI, 'rect');
+                    domAnchor.setAttribute('x', oPointer.x);
+                    domAnchor.setAttribute('y', oPointer.y);
+                    domAnchor.setAttribute('width', '1');
+                    domAnchor.setAttribute('height', '1');
+                    domAnchor.setAttribute('fill', 'none');
+                    domAnchor.setAttribute('pointer-events', 'none');
+                    domAnchor.setAttribute('aria-hidden', 'true');
+                    domAnchor.setAttribute('focusable', 'false');
+                    domSvg.appendChild(domAnchor);
+                    oPopover.attachEventOnce('afterClose', function() {
+                        domAnchor.remove();
+                    });
                 }
-                return oPopover;
-            }();
-            oPopover.setModel(new sap.ui.model.json.JSONModel());
-            {$dataEl->buildJsDataSetter("oPrefillData")}
-            oPopover.openBy(ctx.chart.get_bar(oTask.id).\$bar);
-            // TODO if clicked on a task in a group, which is one of the top 3 tasks, select it in the data widget after
-            // opening the popup.
+                oPopover.setModel(new sap.ui.model.json.JSONModel());
+                {$dataEl->buildJsDataSetter("oPrefillData")}
+                // Keep aggregate popups from automatically focusing the first row.
+                oPopover.setInitialFocus(oPopover);
+                {$initialFocusJs}
+                oPopover.openBy(domAnchor);
+            };
+            if (oPopover.isOpen()) {
+                if (!oPopover.data('pendingGanttPopupOpen')) {
+                    oPopover.attachEventOnce('afterClose', function() {
+                        var fnOpen = oPopover.data('pendingGanttPopupOpen');
+                        oPopover.data('pendingGanttPopupOpen', null);
+                        fnOpen();
+                    });
+                }
+                // Fill the next popup only after the previous close/reset has finished.
+                oPopover.data('pendingGanttPopupOpen', fnOpenPopup);
+                oPopover.close();
+            } else {
+                fnOpenPopup();
+            }
         }
-JS;
-        
-        
-        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
-        
-        return <<< JS
-          (ctx) => {
-                ctx.set_title(ctx.task.name);
-                if (ctx.task.description) ctx.set_subtitle(ctx.task.description);
-                else ctx.set_subtitle('');
-        
-                const start_date = exfTools.date.format(
-                    ctx.task._start,
-                    'dd.MM.yy',
-                    ctx.chart.options.language,
-                );
-                const end_date = exfTools.date.format(
-                    exfTools.date.add(ctx.task.orig_end, -1, 'second'),
-                    'dd.MM.yy',
-                    ctx.chart.options.language,
-                );
-                
-                const hasRealStart = !!(ctx.task.start);
-                const hasRealEnd = (!!(ctx.task.end) || ctx.task.duration !== undefined);
-        
-                if (hasRealStart || hasRealEnd) {
-                  if (hasRealStart && hasRealEnd) {
-                    // Note: You can include the "progress" value as followed:  <br/>Progress: \${Math.floor(ctx.task.progress * 100) / 100}%
-                    ctx.set_details(
-                        `\${start_date} - \${end_date} 
-                        (\${ctx.task.actual_duration} {$translator->translate('WIDGET.GANTT_CHARD.POPUP_CAPTION_DAYS')}\${ctx.task.ignored_duration ? ' + ' + ctx.task.ignored_duration + ' {$translator->translate('WIDGET.GANTT_CHARD.POPUP_CAPTION_EXCLUDED')}' : ''})`,
-                    );
-                  } else if (hasRealStart && !hasRealEnd) {
-                    ctx.set_details(
-                        `\${start_date} - ...`,
-                    );
-                  } else if (hasRealEnd && !hasRealStart) {
-                    ctx.set_details(
-                        `... - \${end_date}`,
-                    );
-                  }
-                }
-          }
 JS;
     }
 }
