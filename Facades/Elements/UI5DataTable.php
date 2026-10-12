@@ -22,6 +22,7 @@ use exface\Core\Widgets\Parts\DataRowGrouper;
 use exface\Core\Widgets\DataTable;
 use exface\Core\DataTypes\NumberDataType;
 use exface\Core\Widgets\DisplayTemplate;
+use exface\Core\Widgets\Popup;
 
 /**
  *
@@ -454,6 +455,12 @@ JS;
     {
         $mode = $this->getWidget()->getMultiSelect() ? 'sap.m.ListMode.MultiSelect' : 'sap.m.ListMode.SingleSelectMaster';
         $striped = $this->getWidget()->getStriped() ? 'true' : 'false';
+        $contextualWidth = 'Auto';
+        $popup = $this->getWidget()->getParentByClass(Popup::class);
+        if ($popup !== null && ($popup->getWidth()->isUndefined() || $popup->getWidth()->isAuto())) {
+            // Do not let popins determine the width used to decide whether those popins are needed.
+            $contextualWidth = 'Inherit';
+        }
         
         if ($this->getDynamicPageShowToolbar() === false) {
             $toolbar = $this->buildJsToolbar($oControllerJs);
@@ -469,7 +476,7 @@ JS;
     		items: [
                 new sap.m.Table("{$this->getId()}", {
             		fixedLayout: false,
-                    contextualWidth: "Auto",
+                    contextualWidth: {$this->escapeString($contextualWidth)},
                     sticky: [sap.m.Sticky.ColumnHeaders, sap.m.Sticky.HeaderToolbar],
                     alternateRowColors: {$striped},
                     noDataText: {$this->escapeString($this->getWidget()->getEmptyText())},
