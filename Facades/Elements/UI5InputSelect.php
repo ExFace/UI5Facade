@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
+use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
 
 /**
  * Generates OpenUI5 CobmoBox or MultiComboBox to represent a select widget
@@ -59,15 +60,18 @@ JS;
     protected function buildJsPropertyItems() : string
     {
         $widget = $this->getWidget();
+        $dataType = $widget->getValueDataType();
         $items = '';
         foreach ($widget->getSelectableOptions() as $key => $value) {
             if ($widget->getMultiSelect() && $key === '') {
                 continue;
             }
+            $tooltip = $dataType instanceof EnumDataTypeInterface ? $this->escapeString($dataType->getHintOfValue($key)) : '';            
             $items .= <<<JS
                 new sap.ui.core.Item({
                     key: {$this->escapeString($key)},
                     text: {$this->escapeString($value)},
+                    tooltip: {$tooltip}
                 }),
 JS;
         }
