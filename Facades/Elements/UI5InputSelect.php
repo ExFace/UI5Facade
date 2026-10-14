@@ -66,12 +66,12 @@ JS;
             if ($widget->getMultiSelect() && $key === '') {
                 continue;
             }
-            $tooltip = $dataType instanceof EnumDataTypeInterface ? $this->escapeString($dataType->getHintOfValue($key)) : '';            
+            $tooltip = $dataType instanceof EnumDataTypeInterface ? $dataType->getHintOfValue($key) : '';            
             $items .= <<<JS
                 new sap.ui.core.Item({
                     key: {$this->escapeString($key)},
-                    text: {$this->escapeString($value)},
-                    tooltip: {$tooltip}
+                    text: {$this->escapeString($value)},                    
+                    tooltip: {$this->escapeString($tooltip)},
                 }),
 JS;
         }
