@@ -51,6 +51,7 @@ class UI5Gantt extends UI5DataTree
     const CONTROLLER_METHOD_GET_GLOBAL_START_END_DATES = 'getGlobalStartEndDates';
     const CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT = 'setGlobalStartEndDatesToGantt';
     const CONTROLLER_METHOD_RESIZE_VERTICAL_LAYOUT = 'resizeVerticalLayout';
+    const CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE = 'fitInitialSplitSize';
     
     // Default Gantt ViewModes: hours, days, weeks, months, years
     // The defaults are written in the simple view mode config structure.
@@ -195,7 +196,8 @@ class UI5Gantt extends UI5DataTree
     {
         $widget = $this->getWidget();
         $heightInRows = $widget->getHeightInRows();
-        $autoSizeVertical = $widget->getOrientation() === Gantt::ORIENTATION_VERTICAL && $heightInRows !== null;
+        $autoSizeVertical = $widget->getOrientation() === Gantt::ORIENTATION_VERTICAL && $heightInRows !== null
+            && $widget->getTableSplitSize()->isUndefined() && $widget->getGanttSplitSize()->isUndefined();
         $calItem = $widget->getTasksConfig();
         $controller = $this->getController();
         $controller->addMethod(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, scrollToToday', $this->buildJsSyncTreeToGantt('oTable', 'scrollToToday'));
@@ -216,6 +218,11 @@ class UI5Gantt extends UI5DataTree
             ) . ';';
         } else {
             $resizeVerticalLayoutJs = '';
+        }
+        $fitInitialSplitSizeJs = '';
+        if ($widget->getTableSplitSize()->isMax() !== $widget->getGanttSplitSize()->isMax()) {
+            $controller->addMethod(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, 'oTable', $this->buildJsFitInitialSplitSize('oTable'));
+            $fitInitialSplitSizeJs = $controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, 'oTable') . ';';
         }
         $orientation = ucfirst($widget->getOrientation());
         $splitterResizableJs = $widget->getHideSplitBar() ? 'false' : 'true';
@@ -244,16 +251,26 @@ class UI5Gantt extends UI5DataTree
                     var iRowsHeight = {$heightInRows} * {$rowHeight};
                     var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
                     var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
+                    var iPaneAreaHeight = Math.max(iTableAreaHeight, iGanttAreaHeight);
                     return (
 JS;
             $splitterCompletionJs = ')})()';
-            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: iTableAreaHeight + 'px', resizable: {$splitterResizableJs}}))";
-            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: iGanttAreaHeight + 'px', resizable: {$splitterResizableJs}}),";
+            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: iPaneAreaHeight + 'px', resizable: {$splitterResizableJs}}))";
+            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: iPaneAreaHeight + 'px', resizable: {$splitterResizableJs}}),";
         } else {
             $splitterPreparationJs = '';
             $splitterCompletionJs = '';
-            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({resizable: {$splitterResizableJs}}))";
-            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({resizable: {$splitterResizableJs}}),";
+            $tableSize = $widget->getTableSplitSize();
+            $ganttSize = $widget->getGanttSplitSize();
+            $tableSizeJs = $tableSize->isUndefined() || $tableSize->isMax() ? 'auto' : $tableSize->getValue();
+            $ganttSizeJs = $ganttSize->isUndefined() || $ganttSize->isMax() ? 'auto' : $ganttSize->getValue();
+            if ($tableSizeJs === 'auto' && $ganttSizeJs === 'auto') {
+                $tableSizeJs = '50%';
+            }
+            $tableSizeJs = $this->escapeString($tableSizeJs);
+            $ganttSizeJs = $this->escapeString($ganttSizeJs);
+            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: {$tableSizeJs}, resizable: {$splitterResizableJs}}))";
+            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: {$ganttSizeJs}, resizable: {$splitterResizableJs}}),";
         }
         
         // reloads the gantt task data at navigation return
@@ -262,6 +279,8 @@ JS;
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
                  var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
+                  var oTable = oTableReload;
+                  {$fitInitialSplitSizeJs}
                  
                  {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTableReload')};
                  
@@ -311,6 +330,7 @@ JS
                                     oTable._exfVerticalGanttResizeFrame = requestAnimationFrame(function(){
                                         oTable._exfVerticalGanttResizeFrame = null;
                                         {$resizeVerticalLayoutJs}
+                                        {$fitInitialSplitSizeJs}
                                         {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                     });
                                 });
@@ -324,6 +344,7 @@ JS
                             }
                             {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                             {$resizeVerticalLayoutJs}
+                            {$fitInitialSplitSizeJs}
                         },0);
                     }
                 })
@@ -333,6 +354,151 @@ JS
 
 JS;
         return $this->buildJsPanelWrapper($gantt, $oControllerJs) . ".addStyleClass('sapUiNoContentPadding')";
+    }
+
+    /**
+     * Expand a max pane only after the inherited asynchronous column optimizer has finished.
+     *
+     * @param string $oTableJs
+     * @param string $oModelJs
+     * @return string
+     */
+    protected function buildJsUiTableColumnResize(string $oTableJs, string $oModelJs) : string
+    {
+        $resizeJs = parent::buildJsUiTableColumnResize($oTableJs, $oModelJs);
+        if ($this->getWidget()->getTableSplitSize()->isMax() === $this->getWidget()->getGanttSplitSize()->isMax()) {
+            return $resizeJs;
+        }
+
+        return <<<JS
+            if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
+                return;
+            }
+            (function(){
+                {$resizeJs}
+            })();
+            setTimeout(function(){
+                setTimeout(function(){
+                    requestAnimationFrame(function(){
+                        if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
+                            return;
+                        }
+                        {$oTableJs}._exfGanttColumnsSized = true;
+                        {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, $oTableJs)};
+                    });
+                }, 0);
+            }, 0);
+JS;
+    }
+
+    /**
+     * Expand the max pane by shrinking the other pane to its content, never above its initial size.
+     *
+     * Hidden tables are retried on rendering/show/resize. Once applied, the splitter is left alone
+     * so data refreshes and navigation do not overwrite a user's manually chosen split.
+     *
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsFitInitialSplitSize(string $oTableJs) : string
+    {
+        $widget = $this->getWidget();
+        $horizontalJs = $this->escapeBool($widget->getOrientation() === Gantt::ORIENTATION_HORIZONTAL);
+        $expandGantt = $widget->getGanttSplitSize()->isMax();
+        $expandGanttJs = $this->escapeBool($expandGantt);
+        $otherSize = $expandGantt ? $widget->getTableSplitSize() : $widget->getGanttSplitSize();
+        $initialSizeJs = $this->escapeString($otherSize->isUndefined() ? '50%' : $otherSize->getValue());
+        $tableHeaderHeight = $this->getTableHeaderHeightPx();
+        $ganttHeaderHeight = $this->getGanttUpperHeaderHeightPx()
+            + $this->getGanttLowerHeaderHeightPx() + $this->getGanttHeaderPaddingPx();
+        $rowHeight = $this->getTableRowHeightPx();
+        return <<<JS
+            if (! {$oTableJs} || {$oTableJs}._exfGanttInitialSplitSizeApplied) {
+                return;
+            }
+            var oSplitter = {$oTableJs}.getParent();
+            var domSplitter = oSplitter?.getDomRef();
+            var domTable = {$oTableJs}.getDomRef();
+            if (! domSplitter || ! domTable || domTable.getBoundingClientRect().width <= 0) {
+                return;
+            }
+            if (! {$oTableJs}._exfGanttColumnsSized) {
+                // A data load in a hidden tab skipped optimization. Run it once visible.
+                if ({$oTableJs}.getModel()?.getProperty('/rows')?.length > 0) {
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_RESIZE_COLUMNS, $this, $oTableJs . ', ' . $oTableJs . '.getModel()')};
+                }
+                return;
+            }
+            var bHorizontal = {$horizontalJs};
+            var bExpandGantt = {$expandGanttJs};
+            var domSplitBar = oSplitter.getDomRef('splitbar-0');
+            var iAvailableSize = bHorizontal
+                ? domSplitter.clientWidth - (domSplitBar?.offsetWidth || 0)
+                : domSplitter.clientHeight - (domSplitBar?.offsetHeight || 0);
+            if (iAvailableSize <= 0 || ! {$oTableJs}.gantt) {
+                return;
+            }
+            var iRequiredSize;
+            if (bHorizontal && bExpandGantt) {
+                var aColumns = {$oTableJs}.getColumns().filter(function(oColumn){ return oColumn.getVisible(); });
+                var iColumnsWidth = 0;
+                for (var oColumn of aColumns) {
+                    // Include fixed columns but not UI5's trailing empty column.
+                    var iWidth = oColumn.getDomRef()?.getBoundingClientRect().width || 0;
+                    if (iWidth <= 0) {
+                        return;
+                    }
+                    iColumnsWidth += iWidth;
+                }
+                if (iColumnsWidth <= 0) {
+                    return;
+                }
+                iRequiredSize = iColumnsWidth
+                    + ({$oTableJs}.$().find('.sapUiTableRowHdrScr').first().outerWidth() || 0)
+                    + ({$oTableJs}.$().find('.sapUiTableVSb').first().outerWidth() || 0)
+                    + (domTable.offsetWidth - domTable.clientWidth);
+            } else if (bHorizontal) {
+                var domSvg = {$oTableJs}.gantt.\$svg;
+                if (! domSvg) {
+                    return;
+                }
+                iRequiredSize = Math.max(parseFloat(domSvg.getAttribute('width')) || 0, domSvg.getBBox().width);
+            } else {
+                var iRows = {$oTableJs}.getBinding('rows')?.getLength();
+                if (! Number.isFinite(iRows) || iRows < 0) {
+                    return;
+                }
+                if (bExpandGantt) {
+                    var iRowHeight = {$oTableJs}.getRows()[0]?.getDomRef()?.offsetHeight || {$rowHeight};
+                    var iHeaderHeight = {$oTableJs}.$().find('.sapUiTableColHdrCnt').first().outerHeight() || {$tableHeaderHeight};
+                    iRequiredSize = iHeaderHeight + iRows * iRowHeight
+                        + ({$oTableJs}.$().find('.sapUiTableHSb').first().outerHeight() || 0)
+                        + (domTable.offsetHeight - domTable.clientHeight);
+                } else {
+                    var domGanttContainer = {$oTableJs}.gantt.\$container;
+                    var iScrollbarHeight = domGanttContainer
+                        ? Math.max(0, domGanttContainer.offsetHeight - domGanttContainer.clientHeight) : 0;
+                    iRequiredSize = {$ganttHeaderHeight} + iRows * ({$oTableJs}.gantt.options.row_height || {$rowHeight}) + iScrollbarHeight;
+                }
+            }
+            var sInitialSize = {$initialSizeJs};
+            var bPixels = sInitialSize.endsWith('px');
+            var iInitialSize = bPixels ? parseFloat(sInitialSize) : iAvailableSize * parseFloat(sInitialSize) / 100;
+            var iOtherSize = Math.min(iAvailableSize, iInitialSize, Math.ceil(iRequiredSize) + 1);
+            var aContentAreas = oSplitter.getContentAreas();
+            var iOtherPane = bExpandGantt ? 0 : 1;
+            var sOtherSize = bPixels ? iOtherSize + 'px' : (iOtherSize / iAvailableSize * 100) + '%';
+            // Suppress invalidation: rerendering would detach the Gantt DOM from its instance.
+            aContentAreas[iOtherPane].getLayoutData().setProperty('size', sOtherSize, true);
+            aContentAreas[1 - iOtherPane].getLayoutData().setProperty('size', 'auto', true);
+            {$oTableJs}._exfGanttInitialSplitSizeApplied = true;
+            oSplitter.triggerResize(true);
+            requestAnimationFrame(function(){
+                if ({$oTableJs}.getDomRef()) {
+                    {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, $oTableJs)};
+                }
+            });
+JS;
     }
     
     /**
@@ -348,8 +514,7 @@ JS;
      * Derives the panel height of a vertical Gantt from the configured number of visible rows.
      *
      * Toolbar and scrollbar heights are measured at runtime so the result follows the active UI5
-     * theme and browser. Table and Gantt headers contribute independently because the vertical
-     * layout does not require them to have the same height.
+     * theme and browser. Both panes use the larger required height to retain the default 1:1 split.
      *
      * @return string
      * @see UI5DataElementTrait::buildJsPanelHeight()
@@ -385,7 +550,7 @@ JS;
                     var iRowsHeight = {$heightInRows} * {$rowHeight};
                     var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
                     var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
-                    return (iToolbarHeight + iTableAreaHeight + {$splitterBarHeight} + iGanttAreaHeight) + 'px';
+                    return (iToolbarHeight + 2 * Math.max(iTableAreaHeight, iGanttAreaHeight) + {$splitterBarHeight}) + 'px';
                 })()
 JS;
     }
@@ -454,6 +619,9 @@ JS;
             var iGanttRowHeight = oGantt?.options?.row_height || {$rowHeight};
             var iTableAreaHeight = iTableChromeHeight + ({$heightInRows} * iTableRowHeight);
             var iGanttAreaHeight = {$ganttHeaderHeight} + iGanttScrollbarHeight + ({$heightInRows} * iGanttRowHeight);
+            var iPaneAreaHeight = Math.max(iTableAreaHeight, iGanttAreaHeight);
+            iTableAreaHeight = iPaneAreaHeight;
+            iGanttAreaHeight = iPaneAreaHeight;
             var sTableAreaHeight = iTableAreaHeight + 'px';
             var sGanttAreaHeight = iGanttAreaHeight + 'px';
             var oTableLayoutData = aContentAreas[0].getLayoutData();
