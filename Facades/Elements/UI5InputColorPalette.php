@@ -124,11 +124,12 @@ JS;
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
         $values = [];
         if ($ui5ColorBinding->isBoundToModel() === false) {
-            $values = [$this->getWidget()->getDefaultColor()];
+            $values = [$widget->getDefaultColor()];
         } else {
-            $values = $this->translateSemanticColors($widget->getColorPresets());
+            $values = $widget->getColorPresets();
         }
-        return json_encode($values);
+        // UI5 requires an array even when the palette contains just one color.
+        return json_encode((array) $this->translateSemanticColors($values));
     }
 
     /**
@@ -139,18 +140,12 @@ JS;
      */
     protected function getColorSemanticMap() : array
     {
-        $semCols = [];
-        foreach (Colors::getSemanticColors() as $semCol) {
-            switch ($semCol) {
-                case Colors::SEMANTIC_ERROR: $cssColor = '#bb0000'; break; # sapThemeNegativeText
-                case Colors::SEMANTIC_WARNING: $cssColor = '#e9730c'; break; # sapThemeCriticalText
-                case Colors::SEMANTIC_OK: $cssColor = '#107e3e'; break; # sapThemePositiveText
-                case Colors::SEMANTIC_INFO: $cssColor = '#0a6ed1'; break; # sapThemeInformation
-            }
-            $semCols[$semCol] = $cssColor;
-        }
-
-        return $semCols;
+        return [
+            Colors::SEMANTIC_ERROR => '#bb0000', // sapThemeNegativeText
+            Colors::SEMANTIC_WARNING => '#e9730c', // sapThemeCriticalText
+            Colors::SEMANTIC_OK => '#107e3e', // sapThemePositiveText
+            Colors::SEMANTIC_INFO => '#0a6ed1' // sapThemeInformation
+        ];
     }
 
     /**
@@ -221,20 +216,27 @@ JS;
 
     /**
      * Returns the associated html colors for each semantic color within the array.
+     * Invalid entries are reported instead of silently replacing a requested color.
      * 
      * @param array $colorPresets
      * @return array|string
+     * @throws \UnexpectedValueException
      */
     public function translateSemanticColors(array $colorPresets): array|string
     {
         $semColsJs = $this->getColorSemanticMap();
         $colorPresetsWithSemCols = [];
-        foreach ($colorPresets as $color) {
-            if (str_starts_with($color, '~')) {
-                $colorPresetsWithSemCols[] = $semColsJs[$color];
-            } else {
-                $colorPresetsWithSemCols[] = $color;
+        foreach ($colorPresets as $key => $color) {
+            if (! is_string($color) || trim($color) === '') {
+                throw new \UnexpectedValueException('Invalid color preset at key ' . var_export($key, true) . ': ' . var_export($color, true));
             }
+            if (str_starts_with($color, '~')) {
+                if (! isset($semColsJs[$color])) {
+                    throw new \UnexpectedValueException('Unknown semantic color preset: ' . $color);
+                }
+                $color = $semColsJs[$color];
+            }
+            $colorPresetsWithSemCols[] = $color;
         }
 
         if (count($colorPresetsWithSemCols) == 1) {
