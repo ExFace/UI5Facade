@@ -107,6 +107,7 @@ class UI5DataColumn extends UI5AbstractElement
             {$labelWrappingJs}
         }){$labelClassJs},
         autoResizable: true,
+        hAlign: {$this->buildJsAlignment()},
         template: {$this->buildJsConstructorForCell()},
 	    {$this->buildJsPropertyShowSortMenuEntry()}
         {$this->buildJsPropertyShowFilterMenuEntry()}
