@@ -1,9 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Widgets\ColorIndicator;
 use exface\Core\CommonLogic\Constants\Colors;
-use exface\Core\Widgets\ColorPalette;
+use exface\Core\DataTypes\ColorDataType;
+use exface\Core\Interfaces\DataTypes\EnumDataTypeInterface;
 use exface\Core\Widgets\InputColorPalette;
 use exface\UI5Facade\Facades\UI5PropertyBinding;
 
@@ -66,15 +66,15 @@ JS;
                                 colorSelect: {$this->buildJsColorSelect()},
                                 {$this->buildJsProperties()}
                             })
+                            {$this->buildJsColorTooltips('oColorPopover')}
                             oColorPopover.openBy(this);
                         },
                     {$this->buildJsProperties()}
                     layoutData: new sap.m.FlexItemData({
                         alignSelf: "Center"
                     })
-                }).addEventDelegate({ onAfterRendering: function (oEvent) {
-                    var icon = sap.ui.getCore().byId("{$this->getId()}_Button-img");
-                    var value = sap.ui.getCore().byId("{$this->getId()}").getValue();
+                }).addEventDelegate({ onAfterRendering: function () {
+                    var icon = sap.ui.core.Element.getElementById("{$this->getId()}_Button-img");
                     icon.bindProperty("color", "{$this->getValueBindingPath()}");
                     icon.bindProperty("activeColor", "{$this->getValueBindingPath()}");
                     icon.bindProperty("hoverColor", "{$this->getValueBindingPath()}");
@@ -119,16 +119,97 @@ JS;
      */
     protected function buildJsColorValues() : string
     {
+        // UI5 requires an array even when the palette contains just one color.
+        return json_encode((array) $this->translateSemanticColors($this->getPaletteColors()));
+    }
+
+    /**
+     * Returns the original presets in the order used by the rendered palette.
+     *
+     * @return string[]
+     */
+    protected function getPaletteColors() : array
+    {
         $widget = $this->getWidget();
         $widgetColorBinding = $widget->getColorBinding();
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
-        $values = [];
         if ($ui5ColorBinding->isBoundToModel() === false) {
-            $values = [$this->getWidget()->getDefaultColor()];
-        } else {
-            $values = $this->translateSemanticColors($widget->getColorPresets());
+            return [$widget->getDefaultColor()];
         }
-        return json_encode($values);
+        return $widget->getColorPresets();
+    }
+
+    /**
+     * Uses configured hints as tooltips, falling back to the color value and scale key.
+     *
+     * @param string[] $colors
+     * @param string[] $hints
+     * @return string[]
+     */
+    protected function formatColorTooltips(array $colors, array $hints) : array
+    {
+        $cssColors = (array) $this->translateSemanticColors($colors);
+        $isScale = $colors !== array_values($colors);
+        $tooltips = [];
+        foreach ($colors as $key => $color) {
+            $cssColor = $cssColors[count($tooltips)];
+            $value = $isScale ? (string) $key : $color;
+            $hint = $hints[$value] ?? $hints[$color] ?? $hints[$cssColor] ?? null;
+            $tooltips[] = $hint !== null && $hint !== ''
+                ? $hint : $cssColor . ($value !== $cssColor ? ' (' . $value . ')' : '');
+        }
+        return $tooltips;
+    }
+
+    /**
+     * Replaces UI5's generic "Color n: Custom" labels after every palette rendering.
+     *
+     * @param string $popoverJs
+     * @return string
+     */
+    protected function buildJsColorTooltips(string $popoverJs) : string
+    {
+        $widget = $this->getWidget();
+        $dataType = $widget->getColorBinding()->getDataType();
+        $hints = [];
+        if ($dataType instanceof ColorDataType) {
+            $hints = $dataType->getColorHints();
+        } elseif ($dataType instanceof EnumDataTypeInterface) {
+            $hints = $dataType->getValueHints();
+        }
+        $hints = array_replace($hints, $widget->getHintScale()->getScaleValues());
+        $tooltipsJs = json_encode($this->formatColorTooltips($this->getPaletteColors(), $hints));
+
+        return <<<JS
+                            // ColorPalettePopover has no public per-swatch tooltip API.
+                            // Its internal palette uses the wrapper ID with the "-palette" suffix.
+                            var oPalette = sap.ui.core.Element.getElementById({$popoverJs}.getId() + "-palette");
+                            if (oPalette) {
+                                var aColorTooltips = {$tooltipsJs};
+                                oPalette.addEventDelegate({onAfterRendering: function () {
+                                    var oDom = oPalette.getDomRef();
+                                    if (!oDom) {
+                                        return;
+                                    }
+                                    var aColors = oPalette.getColors();
+                                    // UI5 renders preset swatches first, then recent colors.
+                                    oDom.querySelectorAll('[data-sap-ui-color]').forEach(function (oSwatch, iIndex) {
+                                        var sColor = oSwatch.getAttribute("data-sap-ui-color");
+                                        if (!sColor) {
+                                            return;
+                                        }
+                                        var iPreset = iIndex < aColors.length ? iIndex : aColors.indexOf(sColor);
+                                        // A recent color cannot identify a preset when multiple values share its color.
+                                        if (iIndex >= aColors.length && iPreset !== aColors.lastIndexOf(sColor)) {
+                                            iPreset = -1;
+                                        }
+                                        var sTooltip = aColorTooltips[iPreset] || sColor;
+                                        oSwatch.setAttribute("title", sTooltip);
+                                        oSwatch.setAttribute("aria-label", sTooltip);
+                                    });
+                                }});
+                            }
+JS;
     }
 
     /**
@@ -139,18 +220,12 @@ JS;
      */
     protected function getColorSemanticMap() : array
     {
-        $semCols = [];
-        foreach (Colors::getSemanticColors() as $semCol) {
-            switch ($semCol) {
-                case Colors::SEMANTIC_ERROR: $cssColor = '#bb0000'; break; # sapThemeNegativeText
-                case Colors::SEMANTIC_WARNING: $cssColor = '#e9730c'; break; # sapThemeCriticalText
-                case Colors::SEMANTIC_OK: $cssColor = '#107e3e'; break; # sapThemePositiveText
-                case Colors::SEMANTIC_INFO: $cssColor = '#0a6ed1'; break; # sapThemeInformation
-            }
-            $semCols[$semCol] = $cssColor;
-        }
-
-        return $semCols;
+        return [
+            Colors::SEMANTIC_ERROR => '#bb0000', // sapThemeNegativeText
+            Colors::SEMANTIC_WARNING => '#e9730c', // sapThemeCriticalText
+            Colors::SEMANTIC_OK => '#107e3e', // sapThemePositiveText
+            Colors::SEMANTIC_INFO => '#0a6ed1' // sapThemeInformation
+        ];
     }
 
     /**
@@ -175,7 +250,7 @@ JS;
 
           // only alow CSS and HEX colors for the input value
           sColor = sColor.startsWith("rgb") ? rgbToHex(sColor) : sColor;          
-          var icon = sap.ui.getCore().byId("{$this->getid()}_Button-img");
+          var icon = sap.ui.core.Element.getElementById("{$this->getId()}_Button-img");
           icon.setColor(sColor);
         }
 JS;
@@ -221,20 +296,27 @@ JS;
 
     /**
      * Returns the associated html colors for each semantic color within the array.
+     * Invalid entries are reported instead of silently replacing a requested color.
      * 
      * @param array $colorPresets
      * @return array|string
+     * @throws \UnexpectedValueException
      */
     public function translateSemanticColors(array $colorPresets): array|string
     {
         $semColsJs = $this->getColorSemanticMap();
         $colorPresetsWithSemCols = [];
-        foreach ($colorPresets as $color) {
-            if (str_starts_with($color, '~')) {
-                $colorPresetsWithSemCols[] = $semColsJs[$color];
-            } else {
-                $colorPresetsWithSemCols[] = $color;
+        foreach ($colorPresets as $key => $color) {
+            if (! is_string($color) || trim($color) === '') {
+                throw new \UnexpectedValueException('Invalid color preset at key ' . var_export($key, true) . ': ' . var_export($color, true));
             }
+            if (str_starts_with($color, '~')) {
+                if (! isset($semColsJs[$color])) {
+                    throw new \UnexpectedValueException('Unknown semantic color preset: ' . $color);
+                }
+                $color = $semColsJs[$color];
+            }
+            $colorPresetsWithSemCols[] = $color;
         }
 
         if (count($colorPresetsWithSemCols) == 1) {
