@@ -415,6 +415,10 @@ html.sap-phone .sapMWizard .sapMWizardNextButtonVisible {position: relative !imp
     max-width: 100%;       /* limit overflow inside layout */
 }
 
+.sapUiTableCell .sapMObjStatus {
+    width: auto;
+}
+
 .sapMObjStatus .sapMObjStatusWrapper {
     max-width: 100%;
     min-width: 0;
