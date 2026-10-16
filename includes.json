@@ -12,6 +12,14 @@
         "homepage": "https://plotly.com/javascript/"
     },
     {
+        "name": "npm-asset/jspreadsheet--formula",
+        "license_used": "MIT"
+    },
+    {
+        "name": "npm-asset/jspreadsheet-ce",
+        "license_used": "MIT"
+    },
+    {
         "name": "npm-asset/htmldiff-js",
         "version": "1.0.5",
         "license": [
