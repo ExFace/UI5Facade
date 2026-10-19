@@ -12,6 +12,18 @@
         "homepage": "https://plotly.com/javascript/"
     },
     {
+        "name": "npm-asset/driver.js",
+        "version": "1.4.0",
+        "license": [
+          "MIT"
+        ],
+        "license_link": [
+          "exface/ui5facade/Facades/js/driver/license.txt"
+        ],
+        "description": "A lightweight, dependency-free JavaScript library for guiding user focus across the page.",
+        "homepage": "https://driverjs.com"
+    },
+    {
         "name": "npm-asset/jspreadsheet--formula",
         "license_used": "MIT"
     },
