@@ -1,7 +1,7 @@
 [
     {
         "name": "npm-asset/plotly.js",
-        "version": "2.32.0",
+        "version": "1.58.5",
         "license": [
 	        "MIT"
 	    ],
@@ -10,6 +10,18 @@
         ],
         "description": "Open-source JavaScript charting library behind Plotly and Dash",
         "homepage": "https://plotly.com/javascript/"
+    },
+    {
+        "name": "npm-asset/driver.js",
+        "version": "1.4.0",
+        "license": [
+          "MIT"
+        ],
+        "license_link": [
+          "exface/ui5facade/Facades/js/driver/license.txt"
+        ],
+        "description": "A lightweight, dependency-free JavaScript library for guiding user focus across the page.",
+        "homepage": "https://driverjs.com"
     },
     {
         "name": "npm-asset/jspreadsheet--formula",
