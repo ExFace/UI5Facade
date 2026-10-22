@@ -220,7 +220,7 @@ class UI5Gantt extends UI5DataTree
             $resizeVerticalLayoutJs = '';
         }
         $fitInitialSplitSizeJs = '';
-        if ($widget->getTableSplitSize()->isMax() !== $widget->getGanttSplitSize()->isMax()) {
+        if ($this->getExpandableSplitPane() !== null) {
             $controller->addMethod(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, 'oTable', $this->buildJsFitInitialSplitSize('oTable'));
             $fitInitialSplitSizeJs = $controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, 'oTable') . ';';
         }
@@ -366,7 +366,7 @@ JS;
     protected function buildJsUiTableColumnResize(string $oTableJs, string $oModelJs) : string
     {
         $resizeJs = parent::buildJsUiTableColumnResize($oTableJs, $oModelJs);
-        if ($this->getWidget()->getTableSplitSize()->isMax() === $this->getWidget()->getGanttSplitSize()->isMax()) {
+        if ($this->getExpandableSplitPane() === null) {
             return $resizeJs;
         }
 
@@ -392,6 +392,27 @@ JS;
     }
 
     /**
+     * Select the pane allowed to expand after rendering. Without configured split sizes,
+     * the diagram expands by default, except when vertical height_in_rows sizes both panes.
+     *
+     * @return string|null
+     */
+    protected function getExpandableSplitPane() : ?string
+    {
+        $widget = $this->getWidget();
+        $tableSize = $widget->getTableSplitSize();
+        $ganttSize = $widget->getGanttSplitSize();
+        if ($tableSize->isUndefined() && $ganttSize->isUndefined()) {
+            return $widget->getOrientation() === Gantt::ORIENTATION_VERTICAL && $widget->getHeightInRows() !== null
+                ? null : 'gantt';
+        }
+        if ($tableSize->isMax() === $ganttSize->isMax()) {
+            return null;
+        }
+        return $ganttSize->isMax() ? 'gantt' : 'table';
+    }
+
+    /**
      * Expand the max pane by shrinking the other pane to its content, never above its initial size.
      *
      * Hidden tables are retried on rendering/show/resize. Once applied, the splitter is left alone
@@ -404,7 +425,7 @@ JS;
     {
         $widget = $this->getWidget();
         $horizontalJs = $this->escapeBool($widget->getOrientation() === Gantt::ORIENTATION_HORIZONTAL);
-        $expandGantt = $widget->getGanttSplitSize()->isMax();
+        $expandGantt = $this->getExpandableSplitPane() === 'gantt';
         $expandGanttJs = $this->escapeBool($expandGantt);
         $otherSize = $expandGantt ? $widget->getTableSplitSize() : $widget->getGanttSplitSize();
         $initialSizeJs = $this->escapeString($otherSize->isUndefined() ? '50%' : $otherSize->getValue());
