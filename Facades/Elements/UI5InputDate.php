@@ -92,6 +92,7 @@ JS;
 
             valueFormat: '{$this->buildJsValueFormat()}',
             displayFormat: '{$this->getDisplayFormat()}',
+                calendarWeekNumbering: 'ISO_8601',
             placeholder: " ",
 JS;
         return $options;
