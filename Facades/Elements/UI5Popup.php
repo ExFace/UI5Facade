@@ -65,6 +65,159 @@ JS;
     }
 
     /**
+     * Builds a content toolbar button that maximizes this entire popup without reparenting its contents.
+     *
+     * Content-specific scripts run against oTable (the initiating control). Capture and restore scripts
+     * share the press handler scope, allowing specialized layouts to retain their normal dimensions.
+     * Closing still uses the regular popup reset; minimizing only restores geometry and modal state.
+     *
+     * @param string $elementId
+     * @param string $buttonType
+     * @param string $priorityJs
+     * @param string $resizeJs
+     * @param string $captureJs
+     * @param string $restoreJs
+     * @return string
+     */
+    public function buildJsFullscreenButtonForContent(
+        string $elementId,
+        string $buttonType,
+        string $priorityJs,
+        string $resizeJs,
+        string $captureJs = '',
+        string $restoreJs = ''
+    ) : string {
+        $this->registerCustomCSS(<<<CSS
+            .exfPopupFullscreen.sapMPopover {
+                position: fixed !important;
+                top: 8px !important;
+                right: 8px !important;
+                bottom: 8px !important;
+                left: 8px !important;
+                width: auto !important;
+                height: auto !important;
+                max-width: none !important;
+                max-height: none !important;
+                margin: 0 !important;
+            }
+            .exfPopupFullscreen > .sapMPopoverWrapper {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            .exfPopupFullscreen > .sapMPopoverWrapper > .sapMPopoverCont {
+                flex: 1 1 0;
+                min-height: 0;
+                width: 100% !important;
+                height: auto !important;
+                max-width: none !important;
+                max-height: none !important;
+            }
+            .exfPopupFullscreen > .sapMPopoverArr {
+                display: none;
+            }
+CSS, '_popup_fullscreen_css');
+
+        $popoverIdJs = $this->escapeString($this->getId());
+        $elementIdJs = $this->escapeString($elementId);
+        $buttonIdJs = $this->escapeString($elementId . '_fullscreenButton');
+        $maximizeJs = $this->escapeString($this->translate('WIDGET.CHART.FULLSCREEN_MAXIMIZE'));
+        $minimizeJs = $this->escapeString($this->translate('WIDGET.CHART.FULLSCREEN_MINIMIZE'));
+        $controller = $this->getController();
+        $controller->addOnHideViewScript(<<<JS
+
+                (function() {
+                    var oPopover = sap.ui.getCore().byId({$popoverIdJs});
+                    if (oPopover.data('popupFullscreenRestore')) {
+                        oPopover.close();
+                    }
+                })();
+JS, true);
+
+        return <<<JS
+
+                    new sap.m.OverflowToolbarButton({
+                        id: {$buttonIdJs},
+                        type: sap.m.ButtonType.{$buttonType},
+                        icon: 'sap-icon://full-screen',
+                        text: {$maximizeJs},
+                        tooltip: {$maximizeJs},
+                        layoutData: new sap.m.OverflowToolbarLayoutData({priority: {$priorityJs}}),
+                        press: function(oEvent) {
+                            var oButton = oEvent.getSource();
+                            var oPopover = sap.ui.getCore().byId({$popoverIdJs});
+                            var oTable = sap.ui.getCore().byId({$elementIdJs});
+                            var fnRestore = oPopover.data('popupFullscreenRestore');
+                            var fnSync = function() {
+                                if (oPopover.isOpen() && oTable.getDomRef()) {
+                                    {$resizeJs}
+                                }
+                            };
+                            if (fnRestore) {
+                                fnRestore();
+                                return;
+                            }
+                            var bModal = oPopover.getModal();
+                            var domPopover = oPopover.getDomRef();
+                            var domContent = oPopover.getDomRef('cont');
+                            var sPopoverStyle = domPopover.style.cssText;
+                            var sContentStyle = domContent.style.cssText;
+                            var oNormalRect = domPopover.getBoundingClientRect();
+                            {$captureJs}
+                            var oAnchor = oPopover.data('ganttPopupAnchor');
+                            if (oAnchor && !oAnchor.fullscreenSvg) {
+                                var domAnchor = oAnchor.node;
+                                var oAnchorRect = domAnchor.getBoundingClientRect();
+                                // Keep Gantt docking targets alive when the outer chart redraws.
+                                var domAnchorSvg = document.createElementNS(domAnchor.namespaceURI, 'svg');
+                                domAnchorSvg.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;';
+                                domAnchorSvg.setAttribute('aria-hidden', 'true');
+                                document.body.appendChild(domAnchorSvg);
+                                domAnchorSvg.appendChild(domAnchor);
+                                domAnchor.setAttribute('x', oAnchorRect.left);
+                                domAnchor.setAttribute('y', oAnchorRect.top);
+                                domAnchor.setAttribute('width', oAnchorRect.width);
+                                domAnchor.setAttribute('height', oAnchorRect.height);
+                                oAnchor.fullscreenSvg = domAnchorSvg;
+                            }
+                            fnRestore = function(oCloseEvent) {
+                                oPopover.detachBeforeClose(fnRestore);
+                                oPopover.data('popupFullscreenRestore', null);
+                                oPopover.removeStyleClass('exfPopupFullscreen');
+                                oPopover.setModal(bModal);
+                                oButton.setIcon('sap-icon://full-screen');
+                                oButton.setText({$maximizeJs});
+                                oButton.setTooltip({$maximizeJs});
+                                domPopover.style.cssText = sPopoverStyle;
+                                domContent.style.cssText = sContentStyle;
+                                {$restoreJs}
+                                if (!oCloseEvent) {
+                                    fnSync();
+                                    var oRestoredRect = domPopover.getBoundingClientRect();
+                                    var iLeft = Math.max(8, Math.min(oNormalRect.left, window.innerWidth - oRestoredRect.width - 8));
+                                    var iTop = Math.max(8, Math.min(oNormalRect.top, window.innerHeight - oRestoredRect.height - 8));
+                                    domPopover.style.right = '';
+                                    domPopover.style.bottom = '';
+                                    domPopover.style.left = (iLeft + (window.scrollX || 0)) + 'px';
+                                    domPopover.style.top = (iTop + (window.scrollY || 0)) + 'px';
+                                    // UI5 has no public reposition API; finish docking before the next paint.
+                                    oPopover._repositionOffset();
+                                }
+                            };
+                            oPopover.data('popupFullscreenRestore', fnRestore);
+                            oPopover.attachBeforeClose(fnRestore);
+                            oPopover.setModal(true);
+                            oPopover.addStyleClass('exfPopupFullscreen');
+                            oButton.setIcon('sap-icon://exit-full-screen');
+                            oButton.setText({$minimizeJs});
+                            oButton.setTooltip({$minimizeJs});
+                            requestAnimationFrame(fnSync);
+                        }
+                    }),
+JS;
+    }
+    
+    /**
      * 
      * @return string
      */

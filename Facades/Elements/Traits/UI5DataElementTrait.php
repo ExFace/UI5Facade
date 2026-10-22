@@ -18,6 +18,7 @@ use exface\Core\Widgets\Tab;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Elements\UI5Button;
 use exface\UI5Facade\Facades\Elements\UI5Sidebar;
+use exface\UI5Facade\Facades\Elements\UI5Popup;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataConfigurator;
@@ -1102,6 +1103,15 @@ JS;
     {
         $btnPriorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
         $id = $this->getId() . '_fullscreenButton';
+        // Creates an extra fullscreen button if it is placed inside a popup.
+        if (null !== $popup = $this->getFullscreenPopup()) {
+            return $popup->buildJsFullscreenButtonForContent(
+                $this->getId(),
+                $buttonType,
+                $btnPriorityJs,
+                $this->getOnResizeScript()
+            );
+        }
         
         $script = <<<JS
 
@@ -1179,6 +1189,26 @@ JS;
                     }),
                     
 JS;
+    }
+
+    /**
+     * Returns the enclosing popup for shared fullscreen behavior, stopping at a separate dialog.
+     *
+     * Nested content uses the nearest popup. A dialog opened from a popup retains its own fullscreen behavior.
+     *
+     * @return UI5Popup|null
+     */
+    protected function getFullscreenPopup() : ?UI5Popup
+    {
+        for ($parent = $this->getWidget()->getParent(); $parent !== null; $parent = $parent->getParent()) {
+            if ($parent instanceof Popup) {
+                return $this->getFacade()->getElement($parent);
+            }
+            if ($parent instanceof Dialog) {
+                return null;
+            }
+        }
+        return null;
     }
     
     /**

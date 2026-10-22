@@ -20,6 +20,7 @@ use exface\Core\Interfaces\Widgets\iShowSingleAttribute;
 use exface\Core\Interfaces\Widgets\iHaveColumns;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\Core\Widgets\Gantt;
+use exface\Core\Widgets\Popup;
 
 /**
  * 
@@ -226,6 +227,39 @@ class UI5Gantt extends UI5DataTree
         }
         $orientation = ucfirst($widget->getOrientation());
         $splitterResizableJs = $widget->getHideSplitBar() ? 'false' : 'true';
+        $popupEventsJs = '';
+        if ($this->isInHorizontalPopup()) {
+            $popupIdJs = $this->escapeString($this->getFacade()->getElement($widget->getParent())->getId());
+            $popupEventsJs = <<<JS
+
+                                var oPopover = sap.ui.getCore().byId({$popupIdJs});
+                                oCtrl.gantt.options.scroll_to = 'today';
+                                var fnSyncPopup = function() {
+                                    cancelAnimationFrame(oTable._exfPopupGanttFrame);
+                                    oTable._exfPopupGanttFrame = requestAnimationFrame(function() {
+                                        oTable._exfPopupGanttFrame = null;
+                                        if (oPopover.isOpen() && oTable.getDomRef()) {
+                                            {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
+                                        }
+                                    });
+                                };
+                                oTable.attachRowsUpdated(fnSyncPopup);
+                                oPopover.attachBeforeOpen(function() {
+                                    oTable.setFirstVisibleRow(0);
+                                });
+                                oPopover.attachAfterOpen(function() {
+                                    window.addEventListener('resize', fnSyncPopup);
+                                    {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SET_GLOBAL_START_END_DATES_TO_GANTT, $this, 'oCtrl.gantt')};
+                                    fnSyncPopup();
+                                });
+                                oPopover.attachBeforeClose(function() {
+                                    window.removeEventListener('resize', fnSyncPopup);
+                                    cancelAnimationFrame(oTable._exfPopupGanttFrame);
+                                    clearTimeout(oTable._exfPopupGanttSyncTimer);
+                                    oTable._exfPopupGanttScrollToToday = false;
+                                });
+JS;
+        }
         
         if ($calItem->hasColorScale()) {
             $this->registerColorClasses($calItem->getColorScale());
@@ -276,6 +310,7 @@ JS;
         // reloads the gantt task data at navigation return
         $controller->addOnShowViewScript(
             <<<JS
+
                setTimeout(function(){
                  const oTableReload = sap.ui.getCore().getElementById('{$this->getId()}');
                  var oCtrl = sap.ui.getCore().byId('{$this->getId()}');
@@ -292,13 +327,17 @@ JS;
 JS
             ,false);
         
+        $tableFlatModeJs = $widget->getTreeParentRelationAlias() ? '' : '.setUseFlatMode(true)';
+
         $gantt = <<<JS
+
         {$splitterPreparationJs}
         new sap.ui.layout.Splitter({
             orientation: '{$orientation}',
             {$this->buildJsProperties()}
             contentAreas: [
                 {$this->buildJsConstructorForTreeTable($oControllerJs)}
+                {$tableFlatModeJs}
                 {$tableLayoutDataJs}
                 ,
                 new sap.ui.core.HTML("{$this->getId()}_wrapper", {
@@ -311,6 +350,7 @@ JS
                              
                             if (oCtrl.gantt === undefined) {
                                 oCtrl.gantt = {$this->buildJsGanttInit($oControllerJs)}
+                                {$popupEventsJs}
                                 
                                 var oRowsBinding = new sap.ui.model.Binding(sap.ui.getCore().byId('{$this->getId()}').getModel(), '/rows', sap.ui.getCore().byId('{$this->getId()}').getModel().getContext('/rows'));
                                 
@@ -371,6 +411,7 @@ JS;
         }
 
         return <<<JS
+
             if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
                 return;
             }
@@ -434,6 +475,7 @@ JS;
             + $this->getGanttLowerHeaderHeightPx() + $this->getGanttHeaderPaddingPx();
         $rowHeight = $this->getTableRowHeightPx();
         return <<<JS
+
             if (! {$oTableJs} || {$oTableJs}._exfGanttInitialSplitSizeApplied) {
                 return;
             }
@@ -597,6 +639,7 @@ JS;
         $splitterBarHeight = self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
 
         return <<<JS
+
             var oSplitter = {$oTableJs}.getParent();
             var aContentAreas = oSplitter?.getContentAreas() ?? [];
             var domTable = {$oTableJs}.getDomRef();
@@ -791,6 +834,8 @@ JS;
         $upperHeaderHeight = $this->getGanttUpperHeaderHeightPx();
         $lowerHeaderHeight = $this->getGanttLowerHeaderHeightPx();
         $rowHeight = $this->getTableRowHeightPx();
+        // Do not start a smooth scroll on the popup's loading placeholder.
+        $initialScrollJs = $this->isInHorizontalPopup() ? "scroll_to: 'start'," : '';
         
         $calItem = $widget->getTasksConfig();
         $startCol = $calItem->getStartTimeColumn();
@@ -803,14 +848,7 @@ JS;
         $editableJs = ($calItem->getStartTimeColumn()->isEditable() && $calItem->getEndTimeColumn()->isEditable()) ? 'true' : 'false';
         $initialViewName = $widget->getTimelineConfig()->getInitialViewName();
         $fillPaddingToBorder = $widget->getTimelineConfig()->getFillPaddingToBorder();
-        $popupOn = $widget->getTimelineConfig()->getPopupOn('click');
-        $popupAggregationSettings = $widget->getTimelineConfig()->getPopupAggregation();
-
-        $popupAggregateExpandTasks = ($popupAggregationSettings->getExpandTasks()) ? 'true' : 'false';
-        $popupAggregateGanttWidth = $popupAggregationSettings->getGanttWidth(); // Width in px for the Gantt shown inside aggregation popups.
-        $popupAggregateStyle = $popupAggregationSettings->getStyle(); // 'list' | 'table'
-        $popupAggregateIncludeUpperRowTasks = ($popupAggregationSettings->getIncludeUpperRowTasks()) ? 'true' : 'false';
-        
+        $showOn = $widget->getHidePopup() ? Popup::SHOW_ON_CLICK : $calItem->getPopup()->getShowOn();
         
         $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
         
@@ -827,6 +865,7 @@ JS;
         /* @var $condProp \exface\Core\Widgets\Parts\ConditionalProperty */
         if (null !== $condProp = $widget->getChildrenMoveWithParentIf()) {
             $rowMoveFilterJs = <<<JS
+
                         // check if the set condition is matching the property of the child. If not, continue with the next item
                         if (false === Boolean({$this->buildJsConditionalPropertyRowCheck($condProp->getConditionGroup(), 'oChildRow')})) {
                             return;
@@ -859,9 +898,10 @@ JS;
         auto_move_label: true,
         view_modes: {$viewModesConfigJson},
         view_mode: '{$initialViewName}',
+        {$initialScrollJs}
         infinite_padding: false, //TODO SR: This triggers at side wheel scrolling and expands the Gantt view interval. Currently unstable and breaks the scroll fix. Let it on "FALSE" until fixed.
         // <<< New properties-----------------------------------------------------------------------
-        popup_on: '{$popupOn}', //click, hover
+        popup_on: {$this->escapeString($showOn)},
         // TODO SR: Build uxon properties if ready:
         holidays: null, // { 'var(--g-weekend-highlight-color)': 'weekend' }
         stripe_rows: true,
@@ -871,10 +911,15 @@ JS;
         row_lanes: 2, // Initial value. Row zoom can modify this.
         include_today_in_padding: false, //TODO SR: @experimental: If the padding is added to the right side, the "today" is currently also at the right side and not an the left.
         window_fill_padding_to_border: '{$fillPaddingToBorder}',
-        popup_aggregate_expand_tasks: {$popupAggregateExpandTasks}, //TODO SR: @experimental: Not ready for prod. Keep at false. // Shows a compact Gantt next to the aggregation popup task list.
-        popup_aggregate_gantt_width: {$popupAggregateGanttWidth}, // Width in px for the Gantt shown inside aggregation popups. @experimental
-        popup_aggregate_style: '{$popupAggregateStyle}', // 'list' | 'table' TODO SR (@experimental)
-        popup_aggregate_include_upper_row_tasks: {$popupAggregateIncludeUpperRowTasks}, //TODO SR @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        // ATTENTION: the "popup_aggregate" prefixed properties are @experimental and not ready for production. 
+        // They only change the default aggregated popup.
+        // Currently, the default popups are not visible because the DataCalendarItem.getPopup() always gives us a custom PowerUI popup. 
+        popup_aggregate_expand_tasks: false, // @experimental: Shows a compact Gantt next to the aggregation popup task list.
+        popup_aggregate_gantt_width: 550, // @experimental: Width in px for the Gantt shown inside aggregation popups..
+        popup_aggregate_style: 'table', // @experimental: 'list' | 'table'
+        popup_aggregate_include_upper_row_tasks: 'true', // @experimental: Includes tasks that are in the top lane of the row in the aggregate popup. Set to false to only include tasks inside the aggregation block.
+        //
+        popup: {$this->escapeBool(! $widget->getHidePopup())},
         on_popup_request: {$this->buildJsRenderPopup($oControllerJs)},
         start_of_week: 'monday', // 'monday' | 'sunday' TODO SR: 'sunday' currentlly dont work properly.
         //
@@ -968,16 +1013,36 @@ JS;
         $colorResolversJs = $this->buildJsColorResolver($calItem, 'oRow');
         $controller = $this->getController();
         $colorPreference = $this->getFacade()->getConfig()->getOption('WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE');
+        $popupLayoutJs = $this->isInHorizontalPopup() ? $this->buildJsResizePopupLayout('oTable') : '';
+        $refreshJs = $this->isInHorizontalPopup()
+            ? $this->buildJsRefreshPopupGantt()
+            : 'oGantt.refresh(aTasks, scrollToToday);';
+        $scheduleJs = $this->isInHorizontalPopup()
+            ? $this->buildJsSchedulePopupGanttSync($oTableJs, $scrollToToday)
+            : <<<JS
+
+                if (isTableReady) {
+                  setTimeout(function(){
+                    syncTreeToGantt($oTableJs, $scrollToToday);
+                  },0);
+                } else {
+                  setTimeout(function(){
+                    syncTreeToGantt($oTableJs, $scrollToToday);
+                  },200);
+                }
+JS;
         
-        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
+        if ($calItem->getNestedDataColumn() !== null) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
         } else {
             $nestedDataColName = 'null';
         }
         return <<<JS
+
             const syncTreeToGantt = function(oTable, scrollToToday) {
                 var oGantt = sap.ui.getCore().byId('{$this->getId()}').gantt;
                 if (oGantt === undefined) return;
+                {$popupLayoutJs}
                 
                 var aTasks = [];
                 var sNestedColName = {$nestedDataColName}
@@ -1042,20 +1107,212 @@ JS;
                 
                 oGantt.options.row_keys = rowKeys;
                 oGantt.tasks = aTasks;
-                oGantt.refresh(aTasks, scrollToToday);
+                {$refreshJs}
             };
 
             let isTableReady = {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_CHECK_TABLE_IS_READY, $this, $oTableJs)};
-            if (isTableReady) {
-              setTimeout(function(){
-                syncTreeToGantt($oTableJs, $scrollToToday);
-              },0);
-            } else {
-              setTimeout(function(){
-                syncTreeToGantt($oTableJs, $scrollToToday);
-              },200);
-            }
+            {$scheduleJs}
             
+JS;
+    }
+
+    /**
+     * Coalesces popup refreshes without losing a pending request to scroll to today.
+     *
+     * Uses the existing table-readiness delay; closing the popup cancels the outstanding timer.
+     *
+     * @param string $oTableJs
+     * @param string $scrollToTodayJs
+     * @return string
+     */
+    protected function buildJsSchedulePopupGanttSync(string $oTableJs, string $scrollToTodayJs) : string
+    {
+        return <<<JS
+
+            (function(oPopupTable, bScrollToToday, bTableReady, fnSyncTreeToGantt) {
+                oPopupTable._exfPopupGanttScrollToToday = oPopupTable._exfPopupGanttScrollToToday === true
+                    || bScrollToToday === true;
+                clearTimeout(oPopupTable._exfPopupGanttSyncTimer);
+                oPopupTable._exfPopupGanttSyncTimer = setTimeout(function() {
+                    oPopupTable._exfPopupGanttSyncTimer = null;
+                    var bPendingScrollToToday = oPopupTable._exfPopupGanttScrollToToday;
+                    oPopupTable._exfPopupGanttScrollToToday = false;
+                    fnSyncTreeToGantt(oPopupTable, bPendingScrollToToday);
+                }, bTableReady ? 0 : 200);
+            })({$oTableJs}, {$scrollToTodayJs}, isTableReady, syncTreeToGantt);
+JS;
+    }
+
+    /**
+     * Renders popup tasks and finishes an automatic today scroll before subsequent layout refreshes.
+     *
+     * Assign the target without animation: restoring scrollLeft during a later positions-preserving
+     * refresh would otherwise cancel a smooth scroll at an arbitrary intermediate position.
+     *
+     * @return string
+     */
+    protected function buildJsRefreshPopupGantt() : string
+    {
+        return <<<JS
+
+                oGantt.refresh(aTasks, false);
+                if (scrollToToday === true) {
+                    oGantt.set_scroll_position(oGantt.options.scroll_to, false);
+                }
+JS;
+    }
+
+    /**
+     * Returns whether this Gantt needs side-by-side layout sizing inside a popup.
+     *
+     * @return bool
+     */
+    protected function isInHorizontalPopup() : bool
+    {
+        return $this->getWidget()->getParent() instanceof Popup
+            && $this->getWidget()->getOrientation() === Gantt::ORIENTATION_HORIZONTAL;
+    }
+
+    /**
+     * Fits popup rows to their data and available viewport, keeping both pane scrollbars visible.
+     *
+     * Explicit widget heights and row counts are retained as upper bounds. Layout changes suppress
+     * invalidation of the splitter and panel so the existing Gantt instance keeps its SVG.
+     * Before Gantt initialization, configured header dimensions allow sizing its first popup frame.
+     *
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsResizePopupLayout(string $oTableJs) : string
+    {
+        $widget = $this->getWidget();
+        $autoHeightJs = $this->escapeBool($widget->getHeight()->isUndefined() || $widget->getHeight()->isAuto());
+        $rowLimitJs = $widget->getHeightInRows() ?? 'null';
+        $rowHeight = $this->getTableRowHeightPx();
+        $headerHeight = $this->getTableHeaderHeightPx();
+        $ganttChrome = $this->getGanttUpperHeaderHeightPx() + $this->getGanttLowerHeaderHeightPx()
+            + $this->getGanttHeaderPaddingPx() + 14;
+        $popoverIdJs = $this->escapeString($this->getFacade()->getElement($widget->getParent())->getId());
+
+        return <<<JS
+
+                (function(oTable) {
+                    var oPopover = sap.ui.getCore().byId({$popoverIdJs});
+                    var oSplitter = oTable.getParent();
+                    var oPanel = oSplitter.getParent();
+                    var domTable = oTable.getDomRef();
+                    var domPanel = oPanel.getDomRef();
+                    var domContent = oPopover.getDomRef('cont');
+                    var domPopover = oPopover.getDomRef();
+                    var oGantt = oTable.gantt;
+                    if (!domTable || !domPanel || !domContent || !domPopover
+                        || domPanel.getBoundingClientRect().width <= 0) {
+                        return;
+                    }
+
+                    var iScrollbarHeight = oTable._exfDefaultScrollbarHeight;
+                    if (!Number.isFinite(iScrollbarHeight)) {
+                        var domTest = document.createElement('div');
+                        domTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
+                        document.body.appendChild(domTest);
+                        iScrollbarHeight = domTest.offsetHeight - domTest.clientHeight;
+                        domTest.remove();
+                        oTable._exfDefaultScrollbarHeight = iScrollbarHeight;
+                    }
+                    var iRowHeight = oTable.getRows()[0]?.getDomRef()?.offsetHeight || {$rowHeight};
+                    var domRows = oTable.getDomRef('tableCCnt');
+                    var domPlaceholder = oTable.getDomRef('placeholder-bottom');
+                    var iTableChrome = domRows
+                        ? Math.max(0, domTable.offsetHeight - domRows.offsetHeight - (domPlaceholder?.offsetHeight || 0))
+                        : {$headerHeight};
+                    var iGanttChrome = oGantt ? oGantt.config.header_height + oGantt.options.padding : {$ganttChrome};
+                    var iChrome = Math.max(iTableChrome, iGanttChrome) + iScrollbarHeight;
+                    var iToolbarHeight = oPanel.getHeaderToolbar()?.getDomRef()?.offsetHeight || 0;
+                    var iZoom = domPanel.getBoundingClientRect().height / domPanel.offsetHeight || 1;
+                    var iPopupChrome = domPopover.getBoundingClientRect().height - domContent.getBoundingClientRect().height;
+                    var iViewportHeight = window.visualViewport?.height || window.innerHeight;
+                    var oPopoverStyle = getComputedStyle(domPopover);
+                    var iMargins = (parseFloat(oPopoverStyle.marginTop) || 0) + (parseFloat(oPopoverStyle.marginBottom) || 0);
+                    var iAvailable = (iViewportHeight - iPopupChrome - iMargins) / iZoom;
+                    var iContentMax = parseFloat(getComputedStyle(domContent).maxHeight);
+                    var bFullscreen = domPopover.classList?.contains('exfPopupFullscreen') === true;
+                    if (Number.isFinite(iContentMax) && iContentMax > 0) {
+                        iAvailable = Math.min(iAvailable, iContentMax);
+                    }
+                    if (bFullscreen || oPopover.getContentHeight() !== 'auto') {
+                        iAvailable = Math.min(iAvailable, domContent.clientHeight);
+                    }
+                    if (bFullscreen) {
+                        var oContentStyle = getComputedStyle(domContent);
+                        iAvailable -= (parseFloat(oContentStyle.paddingTop) || 0) + (parseFloat(oContentStyle.paddingBottom) || 0);
+                    }
+                    if (!bFullscreen && !{$autoHeightJs}) {
+                        if (oTable._exfPopupGanttConfiguredHeight === undefined) {
+                            oTable._exfPopupGanttConfiguredHeight = domPanel.offsetHeight;
+                        }
+                        iAvailable = Math.min(iAvailable, oTable._exfPopupGanttConfiguredHeight);
+                    }
+                    var iMaxRows = Math.max(1, Math.floor((iAvailable - iToolbarHeight - iChrome) / iRowHeight));
+                    var iRows = Math.max(1, Math.min(oTable.getBinding('rows').getLength(), bFullscreen ? Infinity : ({$rowLimitJs} ?? Infinity), iMaxRows));
+                    if (oTable.getVisibleRowCountMode() !== 'Fixed') {
+                        oTable.setVisibleRowCountMode('Fixed');
+                    }
+                    if (oTable.getVisibleRowCount() !== iRows) {
+                        oTable.setVisibleRowCount(iRows);
+                    }
+                    var iPaneHeight = !bFullscreen && {$autoHeightJs}
+                        ? Math.ceil(iChrome + iRows * iRowHeight)
+                        : Math.max(iChrome + iRowHeight, Math.floor(iAvailable - iToolbarHeight));
+                    var sPanelHeight = (iPaneHeight + iToolbarHeight) + 'px';
+                    var bChanged = oPanel.getHeight() !== sPanelHeight;
+                    if (bChanged) {
+                        oPanel.setProperty('height', sPanelHeight, true);
+                    }
+                    oPanel.$().css('height', sPanelHeight).children('.sapMPanelContent').css('height', iPaneHeight + 'px');
+                    oSplitter.getContentAreas().forEach(function(oArea) {
+                        var domArea = oArea.getDomRef()?.parentElement;
+                        if (domArea) {
+                            domArea.style.overflowY = 'hidden';
+                            domArea.scrollTop = 0;
+                        }
+                    });
+                    // Numeric height prevents refresh() from replacing the viewport with SVG content height.
+                    if (oGantt) {
+                        oGantt.options.container_height = iPaneHeight - iScrollbarHeight;
+                        oGantt.\$container.style.height = iPaneHeight + 'px';
+                        oGantt.\$container.style.boxSizing = 'border-box';
+                    }
+                    if (bChanged) {
+                        oSplitter.triggerResize(true);
+                    }
+                })({$oTableJs});
+JS;
+    }
+
+    /**
+     * Renders the current popup rows and fits its geometry synchronously before the browser can paint it.
+     *
+     * Call immediately after openBy(), when UI5 has measurable popup DOM but may still be opening.
+     * The second layout pass uses the updated table DOM before UI5 positions the final popup and arrow.
+     *
+     * @return string
+     */
+    protected function buildJsPreparePopupLayout() : string
+    {
+        $layoutJs = $this->buildJsResizePopupLayout('oTable');
+
+        return <<<JS
+
+                (function() {
+                    var oTable = sap.ui.getCore().byId({$this->escapeString($this->getId())});
+                    sap.ui.getCore().applyChanges();
+                    {$layoutJs}
+                    sap.ui.getCore().applyChanges();
+                    {$layoutJs}
+                    // Unlike _repositionOffset(), these hooks also position an OPENING popover.
+                    oPopover._calcPlacement();
+                    oPopover._adjustPositionAndArrow();
+                })();
 JS;
     }
 
@@ -1068,6 +1325,7 @@ JS;
     public function buildJsCheckTableIsReady(string $oTableJs) : string
     {
         return <<<JS
+
             return (function checkTableIsReady(oTable) {
               const oTableRows = oTable.getRows();
               return oTableRows.some(row => !!row.getBindingContext());
@@ -1088,7 +1346,7 @@ JS;
         $widget = $this->getWidget();
         $calItem = $widget->getTasksConfig();
 
-        if ($calItem->getNestedDataColumn() || $calItem->getColorColumn()) {
+        if ($calItem->getNestedDataColumn() !== null) {
             $nestedDataColName = $this->escapeString($calItem->getNestedDataColumn()->getDataColumnName());
         } else {
             $nestedDataColName = 'null';
@@ -1099,7 +1357,6 @@ JS;
         return <<<JS
 
             return (function getGlobalStartEndDates() {
-                
                 let oAllRows = sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows;
                 if (!oAllRows) return;
                 let globalStartDate = null;
@@ -1234,6 +1491,7 @@ JS;
                 $semanticColorsJs = json_encode(empty($semanticColors) ? new \stdClass() : $semanticColors);
                 if ($calItem->hasColorScale()) {
                     return <<<JS
+
                         (function(oRow){
                             var value = {$oRowJs}['{$colorCol->getDataColumnName()}']
                             var sColor = {$this->buildJsScaleResolver('value', $calItem->getColorScale(), $calItem->isColorScaleRangeBased())};
@@ -1272,6 +1530,42 @@ JS;
     protected function buildJsFullscreenContainerGetter() : string
     {
         return $this->isWrappedInDynamicPage() ? "$('#{$this->getId()}').parents('.sapMPanel').first().parent()" : "$('#{$this->getId()}').parents('.sapMPanel').first()";
+    }
+
+    /**
+     * Uses shared popup fullscreen behavior with additional sizing for horizontal Gantts.
+     *
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::buildJsFullscreenButtonConstructor()
+     */
+    protected function buildJsFullscreenButtonConstructor(string $oControllerJs = 'oController', string $buttonType = 'Default') : string
+    {
+        if (! $this->isInHorizontalPopup()) {
+            return parent::buildJsFullscreenButtonConstructor($oControllerJs, $buttonType);
+        }
+
+        $priorityJs = $this->getDynamicPageShowToolbar() ? '"AlwaysOverflow"' : '"High"';
+        $resizeJs = $this->getController()->buildJsMethodCallFromController(
+            self::CONTROLLER_METHOD_SYNC_TO_GANTT,
+            $this,
+            'oTable'
+        ) . '; oTable.getParent().triggerResize(true);';
+        $captureJs = <<<JS
+                            var oPanel = oTable.getParent().getParent();
+                            var sPanelHeight = oPanel.getHeight();
+JS;
+        $restoreJs = <<<JS
+                                oPanel.setProperty('height', sPanelHeight, true);
+                                oPanel.getDomRef().style.height = sPanelHeight;
+JS;
+        return $this->getFullscreenPopup()->buildJsFullscreenButtonForContent(
+            $this->getId(),
+            $buttonType,
+            $priorityJs,
+            $resizeJs,
+            $captureJs,
+            $restoreJs
+        );
     }
     
     /**
@@ -1375,7 +1669,7 @@ JS;
         
         $this->addGanttScrollButtons($ganttBtnGroup);
         
-        if ($widget->getTimelineConfig()->getRowZoom()) {
+        if ($widget->getRowZoom()) {
             $this->addGanttRowsZoomButtons($ganttBtnGroup);
         }
         
@@ -1399,6 +1693,13 @@ JS;
         }
 
         $initialViewName = $this->getWidget()->getTimelineConfig()->getInitialViewName();
+        $popupViewSyncJs = $this->isInHorizontalPopup()
+            ? $this->getController()->buildJsMethodCallFromController(
+                self::CONTROLLER_METHOD_SYNC_TO_GANTT,
+                $this,
+                "sap.ui.getCore().byId('[#element_id:~input#]'), true"
+            ) . ';'
+            : '';
 
         $buttons = [];
 
@@ -1427,6 +1728,7 @@ JS;
                           }
                           // Sets the view:
                           sap.ui.getCore().byId('[#element_id:~input#]').gantt.change_view_mode('$viewName');
+                          {$popupViewSyncJs}
                       })();
 JS
                 ],
@@ -1837,18 +2139,39 @@ JS
      */
     protected function buildJsRenderPopup(string $oControllerJs) : string
     {
+        if ($this->getWidget()->getHidePopup()) {
+            return 'null';
+        }
+
         $popover = $this->getWidget()->getTasksConfig()->getPopup();
         $popoverEl = $this->getFacade()->getElement($popover);
         $dataWidget = $popover->getWidgetFirst();
         $dataEl = $this->getFacade()->getElement($dataWidget);
         $controller = $this->getController();
+        $hoverEnabled = $popover->getShowOn() === Popup::SHOW_ON_HOVER;
+        $hoverHandlersJs = $hoverEnabled ? $this->buildJsPopupHoverHandlers() : '';
         // Create the popup during controller initialization so its table exists before prefill.
         if (! $controller->hasDependent('editorPopup', $this)) {
             $controller->addDependentControl('editorPopup', $this, $popoverEl);
+            if ($hoverEnabled) {
+                $controller->addOnHideViewScript(<<<JS
+
+                    (function() {
+                        var oController = {$controller->buildJsControllerGetter($this)};
+                        var oPopover = {$controller->buildJsDependentControlSelector('editorPopup', $this, 'oController')};
+                        oPopover.data('pendingGanttPopupOpen', null);
+                        oPopover.close();
+                    })();
+JS);
+            }
         }
         $initialFocusJs = '';
+        $preparePopupJs = $dataEl instanceof self && $dataEl->isInHorizontalPopup()
+            ? $dataEl->buildJsPreparePopupLayout()
+            : '';
         if ($dataEl instanceof UI5DataTable && $dataEl->isMList()) {
             $initialFocusJs = <<<JS
+
                 var oTable = sap.ui.getCore().byId({$this->escapeString($dataEl->getId())});
                 oTable.removeSelections(true);
                 if (!oTask._isAggregate && !oTask._aggMembers?.length) {
@@ -1869,9 +2192,33 @@ JS
                     }
                 }
 JS;
+        } elseif ($dataEl instanceof UI5DataTable && $dataEl->isUiTable()) {
+            $initialFocusJs = <<<JS
+
+                var oTable = sap.ui.getCore().byId({$this->escapeString($dataEl->getId())});
+                oTable.clearSelection();
+                if (!oTask._isAggregate && !oTask._aggMembers?.length) {
+                    var iTaskRow = aAllTasks.findIndex(function(oCandidate) {
+                        return oCandidate.id === oTask.id;
+                    });
+                    if (iTaskRow !== -1) {
+                        //oPopover.setInitialFocus(oTable);
+                        // Opening the inner Gantt resets its scroll position beforeOpen.
+                        oPopover.attachEventOnce('afterOpen', function() {
+                            {$dataEl->buildJsSelectRowByIndex('oTable', 'iTaskRow')}
+                        });
+                    }
+                }
+JS;
         }
         return <<<JS
+
         (ctx) => {
+            var oPopover = {$controller->buildJsDependentControlSelector('editorPopup', $this, $oControllerJs)}.addStyleClass("exfGanttPopup");
+            var domBar = ctx.target && (ctx.target.closest('.bar-wrapper') || ctx.target);
+            if ({$this->escapeBool($hoverEnabled)} && oPopover.data('ganttPopupBar') === domBar) {
+                return;
+            }
             var oTask = ctx.task;
             var oPrefillData = {rows: []};
             var aAllTasks = ctx.chart.get_overlapping_tasks(oTask);
@@ -1879,8 +2226,11 @@ JS;
             for (var oSelectedTask of aAllTasks) {
                 oPrefillData.rows.push(oSelectedTask.dataRow);
             }
-            var oPopover = {$controller->buildJsDependentControlSelector('editorPopup', $this, $oControllerJs)}.addStyleClass("exfGanttPopup");
             var fnOpenPopup = function() {
+                // A queued hover request may outlive the pointer's stay on its bar.
+                if ({$this->escapeBool($hoverEnabled)} && ctx.trigger === 'hover' && !domBar.matches(':hover')) {
+                    return;
+                }
                 var domAnchor = ctx.target;
                 if (Number.isFinite(ctx.x) && Number.isFinite(ctx.y)) {
                     // Convert viewport coordinates to SVG coordinates so the anchor follows Gantt scrolling.
@@ -1896,8 +2246,12 @@ JS;
                     domAnchor.setAttribute('aria-hidden', 'true');
                     domAnchor.setAttribute('focusable', 'false');
                     domSvg.appendChild(domAnchor);
+                    var oPopupAnchor = {node: domAnchor};
+                    oPopover.data('ganttPopupAnchor', oPopupAnchor);
                     oPopover.attachEventOnce('afterClose', function() {
                         domAnchor.remove();
+                        oPopupAnchor.fullscreenSvg?.remove();
+                        oPopover.data('ganttPopupAnchor', null);
                     });
                 }
                 oPopover.setModel(new sap.ui.model.json.JSONModel());
@@ -1905,14 +2259,18 @@ JS;
                 // Keep aggregate popups from automatically focusing the first row.
                 oPopover.setInitialFocus(oPopover);
                 {$initialFocusJs}
+                {$hoverHandlersJs}
                 oPopover.openBy(domAnchor);
+                {$preparePopupJs}
             };
             if (oPopover.isOpen()) {
                 if (!oPopover.data('pendingGanttPopupOpen')) {
                     oPopover.attachEventOnce('afterClose', function() {
                         var fnOpen = oPopover.data('pendingGanttPopupOpen');
                         oPopover.data('pendingGanttPopupOpen', null);
-                        fnOpen();
+                        if (fnOpen) {
+                            fnOpen();
+                        }
                     });
                 }
                 // Fill the next popup only after the previous close/reset has finished.
@@ -1922,6 +2280,107 @@ JS;
                 fnOpenPopup();
             }
         }
+JS;
+    }
+
+    /**
+     * Builds hover tracking for the current bar and popover, removed before closing.
+     *
+     * A short close delay lets the pointer cross the gap between bar and popup.
+     * UI5 menus and other child overlays belong to the popup through their control parents,
+     * even when rendered separately in the static area. Track their pointer and close events too.
+     * Captures domBar and oPopover from the external popup request handler in an isolated IIFE.
+     *
+     * @return string
+     */
+    protected function buildJsPopupHoverHandlers() : string
+    {
+        return <<<JS
+
+                (function(domBar, oPopover) {
+                    var iCloseTimer = null;
+                    var domPopup = null;
+                    var domPointerTarget = null;
+                    var aChildOverlays = [];
+                    var fnCancelClose = function() {
+                        clearTimeout(iCloseTimer);
+                        iCloseTimer = null;
+                    };
+                    var fnIsPopupTarget = function(domTarget) {
+                        if (domTarget?.nodeType !== 1 || !domTarget.isConnected || !domTarget.getClientRects().length) {
+                            return false;
+                        }
+                        var oControl = sap.ui.core.Element.closestTo(domTarget);
+                        var oChildOverlay = null;
+                        while (oControl) {
+                            if (oControl === oPopover) {
+                                if (oChildOverlay && !aChildOverlays.includes(oChildOverlay)) {
+                                    oChildOverlay.attachAfterClose(fnScheduleClose);
+                                    aChildOverlays.push(oChildOverlay);
+                                }
+                                return true;
+                            }
+                            if (!oChildOverlay && oControl.attachAfterClose && oControl.detachAfterClose) {
+                                oChildOverlay = oControl;
+                            }
+                            oControl = oControl.getParent();
+                        }
+                        return false;
+                    };
+                    var fnScheduleClose = function() {
+                        fnCancelClose();
+                        iCloseTimer = setTimeout(function() {
+                            iCloseTimer = null;
+                            var domCurrentPopup = oPopover.getDomRef();
+                            if (!domCurrentPopup?.classList?.contains('exfPopupFullscreen') && !domBar.matches(':hover') && !(domCurrentPopup && domCurrentPopup.matches(':hover')) && !fnIsPopupTarget(domPointerTarget)) {
+                                oPopover.close();
+                            }
+                        }, 250);
+                    };
+                    var fnTrackPointer = function(oEvent) {
+                        domPointerTarget = oEvent.type === 'mouseout' ? oEvent.relatedTarget : oEvent.target;
+                        if (fnIsPopupTarget(domPointerTarget) || domBar.matches(':hover')) {
+                            fnCancelClose();
+                        } else if (iCloseTimer === null) {
+                            fnScheduleClose();
+                        }
+                    };
+                    var fnAfterOpen = function() {
+                        domPopup = oPopover.getDomRef();
+                        domPopup.addEventListener('mouseenter', fnCancelClose);
+                        domPopup.addEventListener('mouseleave', fnScheduleClose);
+                        if (domBar.matches(':hover') || domPopup.matches(':hover')) {
+                            fnCancelClose();
+                        } else {
+                            fnScheduleClose();
+                        }
+                    };
+                    var fnCleanup = function() {
+                        fnCancelClose();
+                        document.removeEventListener('mouseover', fnTrackPointer, true);
+                        document.removeEventListener('mouseout', fnTrackPointer, true);
+                        aChildOverlays.forEach(function(oOverlay) {
+                            oOverlay.detachAfterClose(fnScheduleClose);
+                        });
+                        aChildOverlays = [];
+                        domPointerTarget = null;
+                        domBar.removeEventListener('mouseenter', fnCancelClose);
+                        domBar.removeEventListener('mouseleave', fnScheduleClose);
+                        if (domPopup) {
+                            domPopup.removeEventListener('mouseenter', fnCancelClose);
+                            domPopup.removeEventListener('mouseleave', fnScheduleClose);
+                        }
+                        oPopover.detachAfterOpen(fnAfterOpen);
+                        oPopover.data('ganttPopupBar', null);
+                    };
+                    domBar.addEventListener('mouseenter', fnCancelClose);
+                    domBar.addEventListener('mouseleave', fnScheduleClose);
+                    document.addEventListener('mouseover', fnTrackPointer, true);
+                    document.addEventListener('mouseout', fnTrackPointer, true);
+                    oPopover.data('ganttPopupBar', domBar);
+                    oPopover.attachEventOnce('afterOpen', fnAfterOpen);
+                    oPopover.attachEventOnce('beforeClose', fnCleanup);
+                })(domBar, oPopover);
 JS;
     }
 }
