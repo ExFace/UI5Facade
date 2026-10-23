@@ -68,7 +68,7 @@ class UI5DataTree extends UI5DataTable
             fixedColumnCount: {$this->registerUiTableFixedColumns()},
             enableColumnFreeze: true,
 	        selectionBehavior: {$selection_behavior},
-    		rowSelectionChange: {$controller->buildJsEventHandler($this, self::EVENT_NAME_CHANGE, true)},
+            rowSelectionChange: function (oEvent) { {$this->buildJsPropertySelectionChange('oEvent')} },
             firstVisibleRowChanged: {$controller->buildJsEventHandler($this, self::EVENT_NAME_FIRST_VISIBLE_ROW_CHANGED, true)},
     		filter: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
     		sort: {$controller->buildJsMethodCallFromView('onLoadData', $this)},
