@@ -53,7 +53,8 @@
         "exclude-from-classmap": [
             "/Config/",
             "/Translations/",
-            "/Model/"
+            "/Model/",
+            "/Tests/"
         ]
     },
     "extra": {

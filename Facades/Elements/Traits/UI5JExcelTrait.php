@@ -1,8 +1,11 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JExcelTrait;
 use exface\Core\Interfaces\WidgetInterface;
+use exface\Core\Widgets\ColorIndicator;
+use exface\Core\Widgets\DataColumn;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 
@@ -16,6 +19,92 @@ use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 trait UI5JExcelTrait {
     
     use JExcelTrait;
+
+    /**
+     * Match UI5ColorIndicator while using the shared lightweight spreadsheet renderer.
+     *
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\JExcelDisplayTrait::getJExcelColorOnlyDefault()
+     */
+    protected function getJExcelColorOnlyDefault() : bool
+    {
+        return true;
+    }
+
+    protected function getJExcelDisplayTextColorPreference() : float
+    {
+        $config = $this->getWorkbench()->getApp('exface.UI5Facade')->getConfig();
+        $option = 'WIDGET.OBJECT_STATUS.TEXT_COLOR_PREFERENCE';
+        return $config->hasOption($option) ? (float) $config->getOption($option) : 0.5;
+    }
+
+    /**
+     * Reuse UI5 ObjectStatus theme styles without creating a control for each cell.
+     * Static scales match UI5ObjectStatus::colorToCss(); data-driven CSS colors use
+     * the same client-side contrast helper as its dynamic color injector.
+     *
+     * {@inheritDoc}
+     */
+    protected function buildJsJExcelDisplayStyler(DataColumn $column) : string
+    {
+        $cell = $column->getCellWidget();
+        if (! ($cell instanceof ColorIndicator)) {
+            return 'null';
+        }
+        $preference = $this->getJExcelDisplayTextColorPreference();
+        $textColors = [];
+        foreach ($cell->getColorScale() as $color) {
+            if (substr($color, 0, 1) !== '~') {
+                $textColors[$color] = Colors::isDark($color, 1 - $preference) ? '#ffffff' : '#000000';
+            }
+        }
+        return <<<JS
+        (function() {
+            var oTextColors = Object.assign(Object.create(null), {$this->escapeString($textColors)});
+            return function(domDisplay, oDisplay, sColor) {
+                domDisplay.style.width = 'auto';
+                domDisplay.style.maxWidth = '100%';
+                domDisplay.style.display = 'inline-block';
+                domDisplay.style.verticalAlign = 'middle';
+                if (oDisplay.colorOnly) {
+                    domDisplay.style.width = '1em';
+                    domDisplay.style.height = '1em';
+                    domDisplay.style.borderRadius = '50%';
+                    return;
+                }
+                var domWrapper = document.createElement('span');
+                domWrapper.className = 'sapMObjStatusWrapper';
+                domWrapper.style.maxWidth = '100%';
+                domWrapper.style.overflow = 'hidden';
+                var domText = document.createElement('span');
+                domText.className = 'sapMObjStatusText';
+                domText.style.overflow = 'hidden';
+                domText.style.textOverflow = 'ellipsis';
+                domText.textContent = domDisplay.textContent;
+                domDisplay.textContent = '';
+                domDisplay.style.backgroundColor = '';
+                domDisplay.style.color = '';
+                domDisplay.style.fontWeight = '';
+                domDisplay.classList.add('sapMObjStatus');
+                if (oDisplay.fill && sColor !== 'transparent') {
+                    domDisplay.classList.add('sapMObjStatusInverted');
+                    domWrapper.style.backgroundColor = sColor;
+                    if (sColor !== 'transparent') {
+                        var sTextColor = oTextColors[sColor];
+                        if (!sTextColor) {
+                            sTextColor = exfColorTools.pickTextColorForBackgroundColor(sColor, {$this->escapeString($preference)});
+                        }
+                        domText.style.setProperty('color', sTextColor, 'important');
+                    }
+                } else if (!oDisplay.fill) {
+                    domText.style.color = sColor;
+                }
+                domWrapper.appendChild(domText);
+                domDisplay.appendChild(domWrapper);
+            };
+        })()
+JS;
+    }
     
     /**
      * @see JExcelTrait::buildJsJqueryElement()
@@ -67,6 +156,12 @@ trait UI5JExcelTrait {
         $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS'));
         $controller->addExternalModule('exface.openui5.jsuites', $this->getFacade()->buildUrlToSource("LIBS.JEXCEL.JS_JSUITES"), null, 'jsuites');
         $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS_JSUITES'));
+        $controller->addExternalModule(
+            'libs.exface.exfColorTools',
+            $this->getFacade()->buildUrlToSource('LIBS.EXFCOLORTOOLS.JS'),
+            null,
+            'exfColorTools'
+        );
         
         return $this;
     }
