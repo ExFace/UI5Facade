@@ -415,20 +415,46 @@ JS;
             if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
                 return;
             }
+            if ({$oTableJs}._exfGanttColumnsSizing) {
+                return;
+            }
+            {$oTableJs}._exfGanttColumnsSizing = true;
+            {$oTableJs}._exfGanttColumnsSized = false;
             (function(){
                 {$resizeJs}
             })();
-            setTimeout(function(){
-                setTimeout(function(){
-                    requestAnimationFrame(function(){
-                        if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
-                            return;
-                        }
+            (function(){
+                var sPreviousWidths;
+                var iStableFrames = 0;
+                var iFrames = 0;
+                var fnWaitForColumns = function(){
+                    if (! {$oTableJs}.getDomRef() || {$oTableJs}.getDomRef().getBoundingClientRect().width <= 0) {
+                        {$oTableJs}._exfGanttColumnsSizing = false;
+                        return;
+                    }
+                    // The optimizer can enqueue further header/min/max width updates. Wait for
+                    // both the column properties and the rendered headers to settle, not a timer count.
+                    var sWidths = JSON.stringify({$oTableJs}.getColumns().filter(function(oColumn){
+                        return oColumn.getVisible();
+                    }).map(function(oColumn){
+                        return [oColumn.getWidth(), oColumn.getDomRef()?.getBoundingClientRect().width || 0];
+                    }));
+                    iStableFrames = sWidths === sPreviousWidths && ! {$oTableJs}.data('_exfIsAutoResizing')
+                        ? iStableFrames + 1 : 0;
+                    sPreviousWidths = sWidths;
+                    if (iStableFrames >= 3) {
+                        {$oTableJs}._exfGanttColumnsSizing = false;
                         {$oTableJs}._exfGanttColumnsSized = true;
                         {$this->getController()->buildJsMethodCallFromController(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, $oTableJs)};
-                    });
-                }, 0);
-            }, 0);
+                    } else if (++iFrames < 60) {
+                        requestAnimationFrame(fnWaitForColumns);
+                    } else {
+                        // Leave the initial split intact; rendering/show/resize can retry later.
+                        {$oTableJs}._exfGanttColumnsSizing = false;
+                    }
+                };
+                requestAnimationFrame(fnWaitForColumns);
+            })();
 JS;
     }
 
@@ -508,6 +534,12 @@ JS;
                 for (var oColumn of aColumns) {
                     // Include fixed columns but not UI5's trailing empty column.
                     var iWidth = oColumn.getDomRef()?.getBoundingClientRect().width || 0;
+                    // UI5 may not yet reflect an optimized/custom pixel width in its header DOM.
+                    // Never shrink the pane below the actual width assigned to the column.
+                    var sColumnWidth = oColumn.getWidth();
+                    if (sColumnWidth.endsWith('px')) {
+                        iWidth = Math.max(iWidth, parseFloat(sColumnWidth) || 0);
+                    }
                     if (iWidth <= 0) {
                         return;
                     }
