@@ -375,7 +375,7 @@ JS;
             $js .= <<<JS
 
                         var oController = {$controller->buildJsControllerGetter($this)};
-                        var sViewName = oController.getViewName('{$targetWidget->getPage()->getAliasWithNamespace()}', '{$targetWidget->getId()}'); 
+                        var sViewName = oController.getViewName('{$targetWidget->getPage()->getAliasWithNamespace()}', '{$controller->getWebapp()->getWidgetIdForViewControllerName($targetWidget)}'); 
                         var sViewId = oController.getViewId(sViewName);
                         var oComponent = oController.getOwnerComponent();
                         
