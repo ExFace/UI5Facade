@@ -166,8 +166,32 @@ table.jexcel.jexcel_overflow {border-top: none; border-left: none;}
 .jdropdown-container.slide-bottom-in {bottom: initial !important;}
 .jexcel .editor > input {font-family: inherit; font-size: inherit; text-align: inherit !important; padding: 6px;}
 /* jExcel style as UI5 tables */
-table.jexcel > thead > tr > td {padding-left: 8px; padding-right: 8px; text-align: left !important; font-family: var(--sapFontFamily);}
+table.jexcel > thead > tr > td {padding-left: 0.5rem; padding-right: 0.5rem; text-align: left !important; font-family: var(--sapFontFamily);}
 table.jexcel > tbody > tr, table.jexcel > thead > tr {height: 33px;}
+.sapUiTable table.jexcel > tbody > tr > td[data-x] {
+    padding: 0.25rem 0.5rem;
+    /* Match sapMText instead of inheriting jSpreadsheet's cramped 1em lines. */
+    line-height: normal;
+    vertical-align: middle;
+}
+/* Active editors own their inset; do not add the cell inset a second time. */
+.sapUiTable table.jexcel > tbody > tr > td[data-x].editor {padding: 0;}
+.sapUiTable table.jexcel > tbody > tr > td.editor > input:not([type=checkbox]):not([type=radio]),
+.sapUiTable table.jexcel > tbody > tr > td.editor > textarea {
+    padding: 0.25rem 0.5rem;
+    line-height: normal;
+}
+.sapUiTable table.jexcel > tbody > tr > td.editor > textarea {
+    /* Override the vendor 6px and legacy Fiori 10px offsets. */
+    padding-top: 0.25rem !important;
+}
+.sapUiTable table.jexcel > tbody > tr > td.editor .jdropdown-header {
+    padding-left: 0.5rem !important;
+    padding-right: 35px !important;
+}
+/* Keep the existing dropdown hit area clear, both closed and while editing. */
+.sapUiTable table.jexcel > tbody > tr > td[data-x].jexcel_dropdown {padding-right: 35px;}
+.sapUiTable table.jexcel > tbody > tr > td[data-x].jexcel_dropdown.editor {padding-right: 0;}
 table.jexcel > tbody > tr.selected {background-color: #e5f0fa}
 /* input cells: differentiate through darker borders */
 table.jexcel > tbody > tr > td:not(:first-child):not(.readonly):not(.highlight-selected) {
