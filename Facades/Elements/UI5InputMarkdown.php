@@ -203,7 +203,7 @@ JS;
     public function registerExternalModules(UI5ControllerInterface $controller) : UI5AbstractElement
     {
         $controller->addExternalModule('libs.exface.toastUi', $this->getFacade()->buildUrlToSource('LIBS.TOASTUI.EDITOR.JS'), 'toastui');
-        $controller->addExternalCss('vendor/npm-asset/toast-ui--editor/dist/toastui-editor.css');
+        $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.TOASTUI.EDITOR.CSS'));
         if ($this->getWidget()->hasRenderMermaidDiagrams()) {
             $controller->addExternalModule('libs.exface.mermaid', $this->getFacade()->buildUrlToSource('LIBS.MERMAID.JS'), 'mermaid');
         }

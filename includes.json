@@ -12,6 +12,18 @@
         "homepage": "https://plotly.com/javascript/"
     },
     {
+      "name": "npm-asset/toast-ui--editor",
+      "version": "3.1.7",
+      "description": "Markdown WYSIWYG Editor. GFM Standard + Chart & UML Extensible.",
+      "homepage": "https://ui.toast.com/tui-editor",
+      "license": [
+        "MIT"
+      ],
+      "license_link": [
+        "https://github.com/nhn/tui.editor/blob/master/LICENSE"
+      ]
+    },
+    {
         "name": "npm-asset/driver.js",
         "version": "1.4.0",
         "license": [
