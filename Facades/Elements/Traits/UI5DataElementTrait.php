@@ -1281,6 +1281,7 @@ JS;
         return <<<JS
 
         ;(function(oTable){
+            {$this->buildJsDataLoaderOnBeforeModelUpdate('oTable.getModel()')}
             oTable.getModel().setData({});
             {$resetEditableTable}
                 {$this->getController()->buildJsEventHandler($this, UI5AbstractElement::EVENT_NAME_REFRESH, false)}

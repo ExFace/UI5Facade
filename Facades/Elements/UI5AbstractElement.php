@@ -87,6 +87,19 @@ abstract class UI5AbstractElement extends AbstractJqueryElement
     {
         return '';
     }
+
+    /**
+     * Returns JavaScript to run before loaded data or an explicit reset replaces model contents.
+     *
+     * Sending a request alone does not invoke this hook.
+     *
+     * @param string|null $oModelJs Target model expression; omit for an explicit reset of this element's model.
+     * @return string
+     */
+    public function buildJsDataLoaderOnBeforeModelUpdate(?string $oModelJs = null) : string
+    {
+        return '';
+    }
     
     public function buildJsProperties()
     {

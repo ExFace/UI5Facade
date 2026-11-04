@@ -334,6 +334,7 @@ JS;
 							}
                         }
 	                   	if (response.success !== undefined) {
+                            {$this->getElement()->buildJsDataLoaderOnBeforeModelUpdate($oModelJs)}
                             $oModelJs.setData(response);
 							{$onModelLoadedJs}
 	                    } else {
