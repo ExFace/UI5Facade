@@ -706,12 +706,31 @@ JS;
                 }
             }
 
-            if (bMultiSelect === true && bMultiSelectSave === true) {
+            const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
+            if (bMultiSelect === true && (bMultiSelectSave === true || bGroupedTable)) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
-                // Keep all previously selected rows, that are NOT in the current page
-                // because they definitely could not be deselected
+                const aRowsOnPage = aRowsVisible;
+                // Closed-group rows cannot be deselected by clicking another data row.
+                // An explicit header deselect-all still applies to the whole current page.
+                const bDeselectAll = bGroupedTable && bUserInteraction === true
+                    && $oEventJs.getParameter('rowIndex') === -1
+                    && $oEventJs.getParameter('selectAll') !== true
+                    && aRowsSelectedVisible.length === 0;
+                if (bGroupedTable && !bDeselectAll) {
+                    aRowsVisible = [];
+                    const oBinding = oTable.getBinding('rows');
+                    for (let i = 0; i < oBinding.getLength(); i++) {
+                        const oContext = oTable.getContextByIndex(i);
+                        const oRow = oContext && oContext.getObject();
+                        if (oRow) {
+                            aRowsVisible.push(oRow);
+                        }
+                    }
+                }
+                // Preserve hidden rows; only retain off-page rows when navigation saving is enabled.
                 oModelSelected.getProperty('/rows').forEach(oRowOld => {
-                    if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1) { 
+                    if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1
+                        && (bMultiSelectSave === true || exfTools.data.indexOfRow(aRowsOnPage, oRowOld, sUidCol) !== -1)) {
                         aRowsMerged.push(oRowOld);
                     }
                 });
@@ -1544,16 +1563,31 @@ JS;
                     const oBinding = oTable.getBinding('rows');
                     const aSelectedIndices = oTable.getSelectedIndices();
                     const aRestoreIndices = [];
+                    const aGroupIndices = [];
+                    const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
+                    let bAllRowsSelected = true;
                     const iSelectableLength = oBinding.getLength() - oTable.getFixedBottomRowCount();
                     for (let i = 0; i < iSelectableLength; i++) {
                         if (typeof oBinding.isGroupHeader === 'function' && oBinding.isGroupHeader(i)) {
+                            if (bGroupedTable) {
+                                aGroupIndices.push(i);
+                            }
                             continue;
                         }
                         const oContext = oTable.getContextByIndex(i);
                         const oRow = oContext && oContext.getObject();
                         if (oRow && exfTools.data.indexOfRow(aPrevSelectedRows, oRow, {$uidColJs}) !== -1) {
                             aRestoreIndices.push(i);
+                        } else if (bGroupedTable && oContext && !oRow) {
+                            aGroupIndices.push(i);
+                        } else {
+                            bAllRowsSelected = false;
                         }
+                    }
+                    // Grouped JSON bindings count synthetic headers in the native select-all state.
+                    if (bAllRowsSelected && aRestoreIndices.length > 0 && aGroupIndices.length > 0) {
+                        aRestoreIndices.push(...aGroupIndices);
+                        aRestoreIndices.sort((iLeft, iRight) => iLeft - iRight);
                     }
                     if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0) {
                         return;
@@ -2054,6 +2088,9 @@ JS;
         $groupCol = $grouper->getGroupByColumn();
         $groupColName = $groupCol->getDataColumnName();
         $groupColId = $this->getFacade()->getElement($groupCol)->getId();
+        $restoreSelectionJs = $this->getWidget()->getMultiSelect() === true
+            ? $this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')
+            : '';
         
         // Determine the desired group order. The native experimental grouping can only sort the
         // group column ascending (it does `new Sorter(sortProperty)` without a descending flag),
@@ -2220,6 +2257,8 @@ JS;
                     if (oEvent.getParameters().reason !== undefined) {
                         return;
                     }
+
+                    {$restoreSelectionJs}
 
                     // resize on collapse/expand
                     setTimeout(function(){
