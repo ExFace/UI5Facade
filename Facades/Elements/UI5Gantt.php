@@ -220,6 +220,9 @@ class UI5Gantt extends UI5DataTree
         } else {
             $resizeVerticalLayoutJs = '';
         }
+        $tableResizeEventsJs = $autoSizeVertical
+            ? 'oTable.attachRowsUpdated(fnResizeGantt); oTable.attachColumnResize(fnResizeGantt);'
+            : '';
         $fitInitialSplitSizeJs = '';
         if ($this->getExpandableSplitPane() !== null) {
             $controller->addMethod(self::CONTROLLER_METHOD_FIT_INITIAL_SPLIT_SIZE, $this, 'oTable', $this->buildJsFitInitialSplitSize('oTable'));
@@ -227,6 +230,7 @@ class UI5Gantt extends UI5DataTree
         }
         $orientation = ucfirst($widget->getOrientation());
         $splitterResizableJs = $widget->getHideSplitBar() ? 'false' : 'true';
+        $splitterStyleClassJs = $widget->getHideSplitBar() ? ".addStyleClass('exf-gantt-no-splitbar')" : '';
         $popupEventsJs = '';
         if ($this->isInHorizontalPopup()) {
             $popupIdJs = $this->escapeString($this->getFacade()->getElement($widget->getParent())->getId());
@@ -285,12 +289,11 @@ JS;
                     var iRowsHeight = {$heightInRows} * {$rowHeight};
                     var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
                     var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
-                    var iPaneAreaHeight = Math.max(iTableAreaHeight, iGanttAreaHeight);
                     return (
 JS;
             $splitterCompletionJs = ')})()';
-            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: iPaneAreaHeight + 'px', resizable: {$splitterResizableJs}}))";
-            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: iPaneAreaHeight + 'px', resizable: {$splitterResizableJs}}),";
+            $tableLayoutDataJs = ".setLayoutData(new sap.ui.layout.SplitterLayoutData({size: iTableAreaHeight + 'px', resizable: {$splitterResizableJs}}))";
+            $ganttLayoutDataJs = "layoutData: new sap.ui.layout.SplitterLayoutData({size: iGanttAreaHeight + 'px', resizable: {$splitterResizableJs}}),";
         } else {
             $splitterPreparationJs = '';
             $splitterCompletionJs = '';
@@ -363,9 +366,11 @@ JS
                                     // Re-rendering the Gantt with the new data:
                                     {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable, true')};
                                 });
-
-                                // Resize handler:
-                                sap.ui.core.ResizeHandler.register(sap.ui.getCore().byId('{$this->getId()}').getParent(), function(){
+                                
+                                /**
+                                 * Coalesces splitter and table changes without invalidating the Gantt.
+                                 */
+                                var fnResizeGantt = function(){
                                     cancelAnimationFrame(oTable._exfVerticalGanttResizeFrame);
                                     oTable._exfVerticalGanttResizeFrame = requestAnimationFrame(function(){
                                         oTable._exfVerticalGanttResizeFrame = null;
@@ -373,7 +378,9 @@ JS
                                         {$fitInitialSplitSizeJs}
                                         {$controller->buildJsMethodCallFromController(self::CONTROLLER_METHOD_SYNC_TO_GANTT, $this, 'oTable')};
                                     });
-                                });
+                                };
+                                sap.ui.core.ResizeHandler.register(oTable.getParent(), fnResizeGantt);
+                                {$tableResizeEventsJs}
                             }
                             
                             // If there are a Tab with another initialized Gantt, 
@@ -390,6 +397,7 @@ JS
                 })
             ]
         })
+        {$splitterStyleClassJs}
         {$splitterCompletionJs}
 
 JS;
@@ -609,7 +617,8 @@ JS;
      * Derives the panel height of a vertical Gantt from the configured number of visible rows.
      *
      * Toolbar and scrollbar heights are measured at runtime so the result follows the active UI5
-     * theme and browser. Both panes use the larger required height to retain the default 1:1 split.
+     * theme and browser. Automatic panes are sized independently to avoid blank space above the chart.
+     * Explicit split sizes retain the existing panel height calculation.
      *
      * @return string
      * @see UI5DataElementTrait::buildJsPanelHeight()
@@ -628,7 +637,10 @@ JS;
             + $this->getGanttLowerHeaderHeightPx()
             + $this->getGanttHeaderPaddingPx();
         $rowHeight = $this->getTableRowHeightPx();
-        $splitterBarHeight = self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
+        $splitterBarHeight = $widget->getHideSplitBar() ? 0 : self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
+        $paneAreaHeightJs = $widget->getTableSplitSize()->isUndefined() && $widget->getGanttSplitSize()->isUndefined()
+            ? 'iTableAreaHeight + iGanttAreaHeight'
+            : '2 * Math.max(iTableAreaHeight, iGanttAreaHeight)';
 
         return <<<JS
 
@@ -645,7 +657,7 @@ JS;
                     var iRowsHeight = {$heightInRows} * {$rowHeight};
                     var iTableAreaHeight = {$tableHeaderHeight} + iScrollbarHeight + iRowsHeight;
                     var iGanttAreaHeight = {$ganttHeaderHeight} + iScrollbarHeight + iRowsHeight;
-                    return (iToolbarHeight + 2 * Math.max(iTableAreaHeight, iGanttAreaHeight) + {$splitterBarHeight}) + 'px';
+                    return (iToolbarHeight + {$paneAreaHeightJs} + {$splitterBarHeight}) + 'px';
                 })()
 JS;
     }
@@ -657,6 +669,7 @@ JS;
      * UI5 reserves even when no horizontal scrollbar is visible. Splitter and panel properties are
      * updated without rerendering because rerendering would detach the Gantt DOM from its instance.
      * Cached scrollbar measurements are renewed when browser zoom changes the device pixel ratio.
+     * Each pane keeps its own required height; table row and column updates rerun this calculation.
      *
      * @param string $oTableJs
      * @return string
@@ -669,7 +682,7 @@ JS;
             + $this->getGanttLowerHeaderHeightPx()
             + $this->getGanttHeaderPaddingPx();
         $rowHeight = $this->getTableRowHeightPx();
-        $splitterBarHeight = self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
+        $splitterBarHeight = $this->getWidget()->getHideSplitBar() ? 0 : self::VERTICAL_SPLITTER_BAR_HEIGHT_PX;
 
         return <<<JS
 
@@ -718,9 +731,6 @@ JS;
             var iGanttRowHeight = oGantt?.options?.row_height || {$rowHeight};
             var iTableAreaHeight = iTableChromeHeight + ({$heightInRows} * iTableRowHeight);
             var iGanttAreaHeight = {$ganttHeaderHeight} + iGanttScrollbarHeight + ({$heightInRows} * iGanttRowHeight);
-            var iPaneAreaHeight = Math.max(iTableAreaHeight, iGanttAreaHeight);
-            iTableAreaHeight = iPaneAreaHeight;
-            iGanttAreaHeight = iPaneAreaHeight;
             var sTableAreaHeight = iTableAreaHeight + 'px';
             var sGanttAreaHeight = iGanttAreaHeight + 'px';
             var oTableLayoutData = aContentAreas[0].getLayoutData();
@@ -740,7 +750,7 @@ JS;
             var oToolbar = oPanel?.getHeaderToolbar();
             var iToolbarHeight = oToolbar?.getDomRef() ? oToolbar.$().outerHeight() : 0;
             var domSplitterBar = oSplitter.getDomRef('splitbar-0');
-            var iSplitterBarHeight = domSplitterBar?.offsetHeight || {$splitterBarHeight};
+            var iSplitterBarHeight = domSplitterBar ? domSplitterBar.offsetHeight : {$splitterBarHeight};
             var iPanelContentHeight = iTableAreaHeight + iSplitterBarHeight + iGanttAreaHeight;
             var sPanelHeight = (iToolbarHeight + iPanelContentHeight) + 'px';
             if (oPanel?.getHeight() !== sPanelHeight) {
