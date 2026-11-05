@@ -492,6 +492,7 @@ JS;
      *
      * Hidden tables are retried on rendering/show/resize. Once applied, the splitter is left alone
      * so data refreshes and navigation do not overwrite a user's manually chosen split.
+     * Unchanged split sizes skip resizing and synchronization to preserve ongoing scroll animations.
      *
      * @param string $oTableJs
      * @return string
@@ -591,10 +592,15 @@ JS;
             var aContentAreas = oSplitter.getContentAreas();
             var iOtherPane = bExpandGantt ? 0 : 1;
             var sOtherSize = bPixels ? iOtherSize + 'px' : (iOtherSize / iAvailableSize * 100) + '%';
+            // Unchanged split sizes skip resizing and synchronization to preserve ongoing scroll animations.
+            {$oTableJs}._exfGanttInitialSplitSizeApplied = true;
+            if (aContentAreas[iOtherPane].getLayoutData().getSize() === sOtherSize
+                && aContentAreas[1 - iOtherPane].getLayoutData().getSize() === 'auto') {
+                return;
+            }
             // Suppress invalidation: rerendering would detach the Gantt DOM from its instance.
             aContentAreas[iOtherPane].getLayoutData().setProperty('size', sOtherSize, true);
             aContentAreas[1 - iOtherPane].getLayoutData().setProperty('size', 'auto', true);
-            {$oTableJs}._exfGanttInitialSplitSizeApplied = true;
             oSplitter.triggerResize(true);
             requestAnimationFrame(function(){
                 if ({$oTableJs}.getDomRef()) {
