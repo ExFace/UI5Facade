@@ -88,6 +88,7 @@ JS;
     {
         $element = $this->getElement();
         $widget = $element->getWidget();
+        $beforeModelUpdate = $useFirstRowOnly ? '' : $element->buildJsDataLoaderOnBeforeModelUpdate($oModelJs);
         
         if ($useFirstRowOnly === true) {
             $newData = "aData[0]";
@@ -149,6 +150,7 @@ JS;
                             aData = aData.slice({$oParamsJs}.start, {$oParamsJs}.start+{$oParamsJs}.length);
                         }
                         
+                        {$beforeModelUpdate}
                         {$oModelJs}.setData($newData);
                         {$onModelLoadedJs}
                     } else {

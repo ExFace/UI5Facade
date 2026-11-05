@@ -679,7 +679,7 @@ JS;
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
                 
-                if (bAllRowsSelected && oTable._allRowsSelected) {
+                if (bAllRowsSelected && oTable._allRowsSelected && bUserInteraction !== false) {
                     // Our little hack to exclude footers breaks the "Deselect all" function,
                     // so we need to emulate it.
                     oTable.__modifyingSelection = true;
@@ -706,12 +706,31 @@ JS;
                 }
             }
 
-            if (bMultiSelect === true && bMultiSelectSave === true) {
+            const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
+            if (bMultiSelect === true && (bMultiSelectSave === true || bGroupedTable)) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
-                // Keep all previously selected rows, that are NOT in the current page
-                // because they definitely could not be deselected
+                const aRowsOnPage = aRowsVisible;
+                // Closed-group rows cannot be deselected by clicking another data row.
+                // An explicit header deselect-all still applies to the whole current page.
+                const bDeselectAll = bGroupedTable && bUserInteraction === true
+                    && $oEventJs.getParameter('rowIndex') === -1
+                    && $oEventJs.getParameter('selectAll') !== true
+                    && aRowsSelectedVisible.length === 0;
+                if (bGroupedTable && !bDeselectAll) {
+                    aRowsVisible = [];
+                    const oBinding = oTable.getBinding('rows');
+                    for (let i = 0; i < oBinding.getLength(); i++) {
+                        const oContext = oTable.getContextByIndex(i);
+                        const oRow = oContext && oContext.getObject();
+                        if (oRow) {
+                            aRowsVisible.push(oRow);
+                        }
+                    }
+                }
+                // Preserve hidden rows; only retain off-page rows when navigation saving is enabled.
                 oModelSelected.getProperty('/rows').forEach(oRowOld => {
-                    if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1) { 
+                    if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1
+                        && (bMultiSelectSave === true || exfTools.data.indexOfRow(aRowsOnPage, oRowOld, sUidCol) !== -1)) {
                         aRowsMerged.push(oRowOld);
                     }
                 });
@@ -1492,7 +1511,40 @@ JS;
     }
 
     /**
-     * 
+     * Clears the binding selection while the old rows are still reachable, preserving saved selections.
+     *
+     * Only affects this table's own model; loading another model leaves its selection unchanged.
+     *
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsDataLoaderOnBeforeModelUpdate()
+     */
+    public function buildJsDataLoaderOnBeforeModelUpdate(?string $oModelJs = null) : string
+    {
+        if (!$this->isUiTable() || $this->getWidget()->getMultiSelect() !== true) {
+            return '';
+        }
+        $oModelJs = $oModelJs ?? "sap.ui.getCore().byId('{$this->getId()}').getModel()";
+
+        return <<<JS
+                (function(oTable, oTargetModel) {
+                    if (!oTable || oTable.getModel() !== oTargetModel || !oTable.getBinding('rows')) {
+                        return;
+                    }
+                    const bModifyingSelection = oTable.__modifyingSelection;
+                    oTable.__modifyingSelection = true;
+                    try {
+                        oTable.clearSelection();
+                    } finally {
+                        oTable.__modifyingSelection = bModifyingSelection;
+                    }
+                })(sap.ui.getCore().byId('{$this->getId()}'), {$oModelJs});
+
+JS;
+    }
+
+    /**
+     * Restores saved selections after loading data, batching UI table ranges into one change notification.
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait::buildJsDataLoaderOnLoadedRestoreSelection()
      */
@@ -1501,7 +1553,76 @@ JS;
         $widget = $this->getWidget();
         if ($widget->getMultiSelect() === true ) {
             $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
-                    
+            if ($this->isUiTable()) {
+                return <<<JS
+                setTimeout(function(oTable) {
+                    const aPrevSelectedRows = oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows');
+                    if (aPrevSelectedRows === undefined) {
+                        return;
+                    }
+                    const oBinding = oTable.getBinding('rows');
+                    const aSelectedIndices = oTable.getSelectedIndices();
+                    const aRestoreIndices = [];
+                    const aGroupIndices = [];
+                    const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
+                    let bAllRowsSelected = true;
+                    const iSelectableLength = oBinding.getLength() - oTable.getFixedBottomRowCount();
+                    for (let i = 0; i < iSelectableLength; i++) {
+                        if (typeof oBinding.isGroupHeader === 'function' && oBinding.isGroupHeader(i)) {
+                            if (bGroupedTable) {
+                                aGroupIndices.push(i);
+                            }
+                            continue;
+                        }
+                        const oContext = oTable.getContextByIndex(i);
+                        const oRow = oContext && oContext.getObject();
+                        if (oRow && exfTools.data.indexOfRow(aPrevSelectedRows, oRow, {$uidColJs}) !== -1) {
+                            aRestoreIndices.push(i);
+                        } else if (bGroupedTable && oContext && !oRow) {
+                            aGroupIndices.push(i);
+                        } else {
+                            bAllRowsSelected = false;
+                        }
+                    }
+                    // Grouped JSON bindings count synthetic headers in the native select-all state.
+                    if (bAllRowsSelected && aRestoreIndices.length > 0 && aGroupIndices.length > 0) {
+                        aRestoreIndices.push(...aGroupIndices);
+                        aRestoreIndices.sort((iLeft, iRight) => iLeft - iRight);
+                    }
+                    if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0) {
+                        return;
+                    }
+                    const bSelectionChanged = aSelectedIndices.length !== aRestoreIndices.length
+                        || aSelectedIndices.some((iIndex, i) => iIndex !== aRestoreIndices[i]);
+                    const bModifyingSelection = oTable.__modifyingSelection;
+                    oTable.__modifyingSelection = true;
+                    try {
+                        if (bSelectionChanged) {
+                            oTable.clearSelection();
+                            // Restore contiguous ranges without resetting the selection for each row.
+                            for (let i = 0; i < aRestoreIndices.length; i++) {
+                                const iFrom = aRestoreIndices[i];
+                                let iTo = iFrom;
+                                while (i + 1 < aRestoreIndices.length && aRestoreIndices[i + 1] === iTo + 1) {
+                                    iTo = aRestoreIndices[++i];
+                                }
+                                oTable.addSelectionInterval(iFrom, iTo);
+                            }
+                        }
+                    } finally {
+                        oTable.__modifyingSelection = bModifyingSelection;
+                    }
+                    oTable.fireRowSelectionChange({
+                        rowIndex: -1,
+                        rowIndices: aRestoreIndices,
+                        selectAll: false,
+                        userInteraction: false
+                    });
+                }, 0, {$oTableJs});
+
+JS;
+            }
+
             // Restore previous selection
             return <<<JS
                 setTimeout(function(oTable) {
@@ -1967,6 +2088,9 @@ JS;
         $groupCol = $grouper->getGroupByColumn();
         $groupColName = $groupCol->getDataColumnName();
         $groupColId = $this->getFacade()->getElement($groupCol)->getId();
+        $restoreSelectionJs = $this->getWidget()->getMultiSelect() === true
+            ? $this->buildJsDataLoaderOnLoadedRestoreSelection('oTable')
+            : '';
         
         // Determine the desired group order. The native experimental grouping can only sort the
         // group column ascending (it does `new Sorter(sortProperty)` without a descending flag),
@@ -2133,6 +2257,8 @@ JS;
                     if (oEvent.getParameters().reason !== undefined) {
                         return;
                     }
+
+                    {$restoreSelectionJs}
 
                     // resize on collapse/expand
                     setTimeout(function(){
@@ -2357,10 +2483,8 @@ JS;
             // number inside the rows array of the model.
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
-                    var aSelections = oTable.getSelectedIndices();
                     var iTableIdx = iRowIdx;
                     var oBinding = oTable.getBinding("rows");
-                    var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
                         // iRowIdx is a model index (/rows/N). The rendered table index can differ
                         // when grouping inserts additional header rows, so we map via context path.
@@ -2373,55 +2497,20 @@ JS;
                     };
                     
                     iTableIdx = fnFindTableIdx(iRowIdx);
-                    // TODO geb 2026-03-31: Clearing the selection seems redundant, as well as the deselect branch.
-                    // TODO Removed the clear for now, because it fired faulty events.
-                    // oTable.clearSelection();
-                    // UPDATE sah 2026-04-14: deselect branch is needed, for example in the small menu that pops up in multi-selects (where you can unselect items)
-                    // so we try and remove the selection using removeSelectionInterval, to avoid the events of clearSelection()
-                    // UPDATE sah 2026-06-15: removing oTable.setSelectedIndex(iTableIdx); in the else branch previously fixed a faulty double selection
-                    // when right clicking in grouped tables; However, this apparently also broke the re-selection logic in buildJsDataLoaderOnLoadedRestoreSelection()
-                    // Now, when exiting action dialogues, not all previously selected rows got re-selected, because the indices were incorrect (including group headers)
-                    // We now fix this by adding the setSelectedIndex back in and always using the model row idx, also in buildJsClickGetRowIndex() 
-                    
                     if (iTableIdx === undefined || iTableIdx < 0) {
                         return;
                     }
                     if (bDeselect === true) {
                         oTable.removeSelectionInterval(iTableIdx, iTableIdx);
-                    }
-                    else {
-                        // Explanation index mapping/previous issues:
-                        // 1) iRowIdx (input) is a MODEL index in /rows/N.
-                        //    Source: buildJsClickGetRowIndex() now reads binding context path (/rows/N)
-                        //    and returns N (model space), not a DOM/rendered row position.
-                        // 2) iTableIdx is a RENDERED table index.
-                        //    Source: fnFindTableIdx(iRowIdx) scans row binding contexts and finds the
-                        //    rendered row whose context path equals "/rows/" + iRowIdx.
-                        // 3) setSelectedIndex()/addSelectionInterval() require rendered table indices,
-                        //    so we must call them with iTableIdx, not with iRowIdx.
-                        // This is required in grouped tables where rendered rows include group headers,
-                        // so model index and rendered index are different values.
-                        // -> Previosuly, some cases passed a rendered index (for example right click), and some the model index (for example buildJsDataLoaderOnLoadedRestoreSelection), 
-                        // so the results were inconsistent/faulty in some cases. 
-
+                    } else if ($singleSelectJs) {
                         oTable.setSelectedIndex(iTableIdx);
+                    } else if (!oTable.getSelectedIndices().includes(iTableIdx)) {
                         oTable.addSelectionInterval(iTableIdx, iTableIdx);
-                        bUpdatedSelection = true;
                     }
                     
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
                     }
-                    if ($singleSelectJs === true && bUpdatedSelection === true && oTable.getSelectedIndices().length == 1) {
-                        // do not restore the prev. selection if its single select and was already updated
-                        // otherwise the selection isnt properly updated in some cases
-                        return;
-                    }
-                    aSelections.forEach(function(i){
-                        if (i !== iTableIdx) {
-                            oTable.addSelectionInterval(i, i);
-                        }
-                    });
                 })($oTableJs, $iRowIdxJs, $deSelectJs, $bScrollToJs)
 
 JS;

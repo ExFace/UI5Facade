@@ -335,7 +335,8 @@ JS;
     }
     
     /**
-     * 
+     * Builds an OData read, preparing table selection only for non-prefill loads.
+     *
      * TODO check if filtering over relations an throw a JS error
      * IDEA add support for sparse fieldsets ($select URL parameter) and check for relations there
      * 
@@ -344,12 +345,14 @@ JS;
      * @param string $onModelLoadedJs
      * @param string $onErrorJs
      * @param string $onOfflineJs
+     * @param bool $isPrefill
      * @return string
      */
-    protected function buildJsDataLoader(string $oModelJs, string $oParamsJs, string $onModelLoadedJs, string $onErrorJs = '', string $onOfflineJs = '') : string
+    protected function buildJsDataLoader(string $oModelJs, string $oParamsJs, string $onModelLoadedJs, string $onErrorJs = '', string $onOfflineJs = '', bool $isPrefill = false) : string
     {
         $widget = $this->getElement()->getWidget();
         $object = $widget->getMetaObject();
+        $beforeModelUpdate = $isPrefill ? '' : $this->getElement()->buildJsDataLoaderOnBeforeModelUpdate($oModelJs);
         
         $localFilters = json_encode($this->getAttributeAliasesForLocalFilters($object));
         $quickSearchFilters = [];
@@ -736,6 +739,7 @@ JS;
                             oRowData.recordsTotal = oData.__count;
                         }
     
+                        {$beforeModelUpdate}
                         {$oModelJs}.setData(oRowData);
                         {$onModelLoadedJs}
                         resolve($oModelJs);
@@ -1041,7 +1045,7 @@ JS;
                         {$filters}
                     ]
                 };
-                {$this->buildJsDataLoader($oModelJs, $oParamsJs, $takeFirstRowOnly . $onModelLoadedJs, $onErrorJs, $onOfflineJs)}
+                {$this->buildJsDataLoader($oModelJs, $oParamsJs, $takeFirstRowOnly . $onModelLoadedJs, $onErrorJs, $onOfflineJs, true)}
             } else if ({$oParamsJs}.prefill !== undefined && {$oParamsJs}.prefill.filters !== undefined) {
                 {$onModelLoadedJs}    
             } else {
