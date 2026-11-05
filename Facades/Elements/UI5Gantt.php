@@ -656,6 +656,7 @@ JS;
      * The table chrome is measured like UI5's automatic row mode, including the scrollbar space
      * UI5 reserves even when no horizontal scrollbar is visible. Splitter and panel properties are
      * updated without rerendering because rerendering would detach the Gantt DOM from its instance.
+     * Cached scrollbar measurements are renewed when browser zoom changes the device pixel ratio.
      *
      * @param string $oTableJs
      * @return string
@@ -680,13 +681,15 @@ JS;
             }
 
             var iDefaultScrollbarHeight = {$oTableJs}._exfDefaultScrollbarHeight;
-            if (! Number.isFinite(iDefaultScrollbarHeight)) {
+            if (! Number.isFinite(iDefaultScrollbarHeight)
+                || {$oTableJs}._exfDefaultScrollbarPixelRatio !== window.devicePixelRatio) {
                 var domScrollbarTest = document.createElement('div');
                 domScrollbarTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
                 document.body.appendChild(domScrollbarTest);
                 iDefaultScrollbarHeight = domScrollbarTest.offsetHeight - domScrollbarTest.clientHeight;
                 domScrollbarTest.remove();
                 {$oTableJs}._exfDefaultScrollbarHeight = iDefaultScrollbarHeight;
+                {$oTableJs}._exfDefaultScrollbarPixelRatio = window.devicePixelRatio;
             }
             
             var jqTable = {$oTableJs}.$();
@@ -1211,6 +1214,7 @@ JS;
      * Explicit widget heights and row counts are retained as upper bounds. Layout changes suppress
      * invalidation of the splitter and panel so the existing Gantt instance keeps its SVG.
      * Before Gantt initialization, configured header dimensions allow sizing its first popup frame.
+     * Cached scrollbar measurements are renewed when browser zoom changes the device pixel ratio.
      *
      * @param string $oTableJs
      * @return string
@@ -1243,13 +1247,15 @@ JS;
                     }
 
                     var iScrollbarHeight = oTable._exfDefaultScrollbarHeight;
-                    if (!Number.isFinite(iScrollbarHeight)) {
+                    if (!Number.isFinite(iScrollbarHeight)
+                        || oTable._exfDefaultScrollbarPixelRatio !== window.devicePixelRatio) {
                         var domTest = document.createElement('div');
                         domTest.style.cssText = 'position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll;';
                         document.body.appendChild(domTest);
                         iScrollbarHeight = domTest.offsetHeight - domTest.clientHeight;
                         domTest.remove();
                         oTable._exfDefaultScrollbarHeight = iScrollbarHeight;
+                        oTable._exfDefaultScrollbarPixelRatio = window.devicePixelRatio;
                     }
                     var iRowHeight = oTable.getRows()[0]?.getDomRef()?.offsetHeight || {$rowHeight};
                     var domRows = oTable.getDomRef('tableCCnt');
