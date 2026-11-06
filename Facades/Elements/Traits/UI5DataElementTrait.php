@@ -1635,7 +1635,10 @@ JS;
                     return Promise.resolve(oModel);
                 }
                 
-                {$this->getServerAdapter()->buildJsServerRequest(
+                // Let the element control the adapter's target model and callbacks. UI tables
+                // use this boundary to clean stale selections before live data is replaced;
+                // an ordinary onLoaded callback runs after the adapter has already written data.
+                {$this->buildJsDataLoaderRequest(
                     $widget->getLazyLoadingAction(),
                     'oModel',
                     'params',
@@ -1645,6 +1648,37 @@ JS;
                 )}
                 
 JS;
+    }
+
+    /**
+     * Builds the lazy read request, allowing elements to control how loaded data reaches their model.
+     *
+     * @see buildJsDataLoaderFromServer()
+     * The default delegates unchanged to the adapter. Table elements can stage responses without
+     * adding widget-specific lifecycle hooks to adapters. Prefill requests do not use this method.
+     *
+     * @param ActionInterface $action
+     * @param string $oModelJs
+     * @param string $oParamsJs
+     * @param string $onLoadedJs
+     * @param string $onErrorJs
+     * @param string $onOfflineJs
+     * @return string
+     */
+    protected function buildJsDataLoaderRequest(
+        ActionInterface $action,
+        string $oModelJs,
+        string $oParamsJs,
+        string $onLoadedJs,
+        string $onErrorJs,
+        string $onOfflineJs
+    ) : string
+    {
+        // Default loading remains selection-neutral. Table-specific staging and cleanup
+        // belong to the element override, not to individual server/cache/offline adapters.
+        return $this->getServerAdapter()->buildJsServerRequest(
+            $action, $oModelJs, $oParamsJs, $onLoadedJs, $onErrorJs, $onOfflineJs
+        );
     }
 
     /**
