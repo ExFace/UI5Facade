@@ -679,7 +679,9 @@ JS;
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
                 
-                if (bAllRowsSelected && oTable._allRowsSelected) {
+                // Restoration also reports a full selection. Only a user event may turn
+                // that state into "deselect all"; otherwise a reload would undo restoration.
+                if (bAllRowsSelected && oTable._allRowsSelected && bUserInteraction !== false) {
                     // Our little hack to exclude footers breaks the "Deselect all" function,
                     // so we need to emulate it.
                     oTable.__modifyingSelection = true;
@@ -1492,7 +1494,8 @@ JS;
     }
 
     /**
-     * 
+     * Restores saved selections after loading data, batching UI table ranges into one change notification.
+     *
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait::buildJsDataLoaderOnLoadedRestoreSelection()
      */
@@ -1501,7 +1504,71 @@ JS;
         $widget = $this->getWidget();
         if ($widget->getMultiSelect() === true ) {
             $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
-                    
+            if ($this->isUiTable()) {
+                // Prevent the tab from freezing on reload after "select all":
+                // collect target binding indices once and restore them as a guarded batch
+                // to avoid repeated selection resets and excessive change notifications.
+                return <<<JS
+                setTimeout(function(oTable) {
+                    const aPrevSelectedRows = oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows');
+                    if (aPrevSelectedRows === undefined) {
+                        return;
+                    }
+                    const oBinding = oTable.getBinding('rows');
+                    const aSelectedIndices = oTable.getSelectedIndices();
+                    const aRestoreIndices = [];
+                    // Match saved row identities against the current binding to prevent selecting
+                    // the wrong rows after filtering/reordering. Exclude headers and footers.
+                    const iSelectableLength = oBinding.getLength() - oTable.getFixedBottomRowCount();
+                    for (let i = 0; i < iSelectableLength; i++) {
+                        if (typeof oBinding.isGroupHeader === 'function' && oBinding.isGroupHeader(i)) {
+                            continue;
+                        }
+                        const oContext = oTable.getContextByIndex(i);
+                        const oRow = oContext && oContext.getObject();
+                        if (oRow && exfTools.data.indexOfRow(aPrevSelectedRows, oRow, {$uidColJs}) !== -1) {
+                            aRestoreIndices.push(i);
+                        }
+                    }
+                    if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0) {
+                        return;
+                    }
+                    // Leave an already-correct selection untouched to avoid redundant UI5 events.
+                    const bSelectionChanged = aSelectedIndices.length !== aRestoreIndices.length
+                        || aSelectedIndices.some((iIndex, i) => iIndex !== aRestoreIndices[i]);
+                    // Ignore intermediate clear/add events so they cannot overwrite saved rows
+                    // or trigger dependent widgets before the complete selection is restored.
+                    const bModifyingSelection = oTable.__modifyingSelection;
+                    oTable.__modifyingSelection = true;
+                    try {
+                        if (bSelectionChanged) {
+                            oTable.clearSelection();
+                            // Limit selection mutations by clearing once and adding contiguous ranges.
+                            // A full selection needs only one interval, keeping select-all reloads responsive.
+                            for (let i = 0; i < aRestoreIndices.length; i++) {
+                                const iFrom = aRestoreIndices[i];
+                                let iTo = iFrom;
+                                while (i + 1 < aRestoreIndices.length && aRestoreIndices[i + 1] === iTo + 1) {
+                                    iTo = aRestoreIndices[++i];
+                                }
+                                oTable.addSelectionInterval(iFrom, iTo);
+                            }
+                        }
+                    } finally {
+                        oTable.__modifyingSelection = bModifyingSelection;
+                    }
+                    // Reconcile saved rows and notify dependents once, as a programmatic change.
+                    oTable.fireRowSelectionChange({
+                        rowIndex: -1,
+                        rowIndices: aRestoreIndices,
+                        selectAll: false,
+                        userInteraction: false
+                    });
+                }, 0, {$oTableJs});
+
+JS;
+            }
+
             // Restore previous selection
             return <<<JS
                 setTimeout(function(oTable) {
@@ -2357,10 +2424,8 @@ JS;
             // number inside the rows array of the model.
             return <<<JS
                 (function(oTable, iRowIdx, bDeselect, bScrollTo) {
-                    var aSelections = oTable.getSelectedIndices();
                     var iTableIdx = iRowIdx;
                     var oBinding = oTable.getBinding("rows");
-                    var bUpdatedSelection = false;
                     var fnFindTableIdx = function(iRowIdx) {
                         // iRowIdx is a model index (/rows/N). The rendered table index can differ
                         // when grouping inserts additional header rows, so we map via context path.
@@ -2373,55 +2438,25 @@ JS;
                     };
                     
                     iTableIdx = fnFindTableIdx(iRowIdx);
-                    // TODO geb 2026-03-31: Clearing the selection seems redundant, as well as the deselect branch.
-                    // TODO Removed the clear for now, because it fired faulty events.
-                    // oTable.clearSelection();
-                    // UPDATE sah 2026-04-14: deselect branch is needed, for example in the small menu that pops up in multi-selects (where you can unselect items)
-                    // so we try and remove the selection using removeSelectionInterval, to avoid the events of clearSelection()
-                    // UPDATE sah 2026-06-15: removing oTable.setSelectedIndex(iTableIdx); in the else branch previously fixed a faulty double selection
-                    // when right clicking in grouped tables; However, this apparently also broke the re-selection logic in buildJsDataLoaderOnLoadedRestoreSelection()
-                    // Now, when exiting action dialogues, not all previously selected rows got re-selected, because the indices were incorrect (including group headers)
-                    // We now fix this by adding the setSelectedIndex back in and always using the model row idx, also in buildJsClickGetRowIndex() 
-                    
                     if (iTableIdx === undefined || iTableIdx < 0) {
                         return;
                     }
+                    // Selection APIs need the binding index found above, not the model index.
+                    // Remove only the requested row (e.g. from the selection popup).
                     if (bDeselect === true) {
                         oTable.removeSelectionInterval(iTableIdx, iTableIdx);
-                    }
-                    else {
-                        // Explanation index mapping/previous issues:
-                        // 1) iRowIdx (input) is a MODEL index in /rows/N.
-                        //    Source: buildJsClickGetRowIndex() now reads binding context path (/rows/N)
-                        //    and returns N (model space), not a DOM/rendered row position.
-                        // 2) iTableIdx is a RENDERED table index.
-                        //    Source: fnFindTableIdx(iRowIdx) scans row binding contexts and finds the
-                        //    rendered row whose context path equals "/rows/" + iRowIdx.
-                        // 3) setSelectedIndex()/addSelectionInterval() require rendered table indices,
-                        //    so we must call them with iTableIdx, not with iRowIdx.
-                        // This is required in grouped tables where rendered rows include group headers,
-                        // so model index and rendered index are different values.
-                        // -> Previosuly, some cases passed a rendered index (for example right click), and some the model index (for example buildJsDataLoaderOnLoadedRestoreSelection), 
-                        // so the results were inconsistent/faulty in some cases. 
-
+                    } else if ($singleSelectJs) {
+                        // Replacing the selection is intentional only in single-select mode.
                         oTable.setSelectedIndex(iTableIdx);
+                    } else if (!oTable.getSelectedIndices().includes(iTableIdx)) {
+                        // Preserve other selected rows and avoid duplicate selection events
+                        // when an already-selected row is selected again (e.g. on right-click).
                         oTable.addSelectionInterval(iTableIdx, iTableIdx);
-                        bUpdatedSelection = true;
                     }
                     
                     if (bScrollTo) {
                         oTable.setFirstVisibleRow(iTableIdx);
                     }
-                    if ($singleSelectJs === true && bUpdatedSelection === true && oTable.getSelectedIndices().length == 1) {
-                        // do not restore the prev. selection if its single select and was already updated
-                        // otherwise the selection isnt properly updated in some cases
-                        return;
-                    }
-                    aSelections.forEach(function(i){
-                        if (i !== iTableIdx) {
-                            oTable.addSelectionInterval(i, i);
-                        }
-                    });
                 })($oTableJs, $iRowIdxJs, $deSelectJs, $bScrollToJs)
 
 JS;
