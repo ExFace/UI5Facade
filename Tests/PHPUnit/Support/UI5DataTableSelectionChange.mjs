@@ -19,7 +19,7 @@ function change(oTable, oParameters, sHandler = oTable.handler) {
 }
 
 /**
- * Executes generated UID restoration.
+ * Executes generated UID restoration or the protected model-update hook.
  */
 function run(sName, oTable) {
     new Function('oTable', 'exfTools', 'sap', 'setTimeout', oScripts[sName])(
@@ -99,7 +99,7 @@ function selectedIds(oTable) {
 }
 
 for (const aIndices of [[1], [1, 3], [0, 1, 2, 3]]) {
-    test(`collapse and expand retain the same rows for ${aIndices.length} selected indices`, () => {
+    test(`collapse, expand and reload retain the same rows for ${aIndices.length} selected indices`, () => {
         const oTable = createTable(aIndices);
         const aExpected = ids(oTable.saved);
         oTable.regroup(true);
@@ -107,6 +107,10 @@ for (const aIndices of [[1], [1, 3], [0, 1, 2, 3]]) {
         assert.deepEqual(selectedIds(oTable), aExpected.filter(i => i !== 1));
         oTable.regroup(false);
         assert.deepEqual(ids(oTable.saved), aExpected);
+        assert.deepEqual(selectedIds(oTable), aExpected);
+        run('beforeUpdate', oTable);
+        assert.deepEqual(ids(oTable.saved), aExpected);
+        run('restore', oTable);
         assert.deepEqual(selectedIds(oTable), aExpected);
     });
 }

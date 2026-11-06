@@ -37,6 +37,7 @@ class UI5DataTable extends UI5AbstractElement implements UI5DataElementInterface
     
     use UI5DataElementTrait, JqueryDataTableTrait {
        buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
+       buildJsDataLoaderRequest as buildJsDataLoaderRequestViaTrait;
        buildJsConstructor as buildJsConstructorViaTrait;
        getCaption as getCaptionViaTrait;
        init as initViaTrait;
@@ -1507,6 +1508,89 @@ JS;
 
         return $data;
     }()
+JS;
+    }
+
+    /**
+     * Clears the binding selection while the old rows are still reachable, preserving saved selections.
+     *
+     * Only affects this table's own model; loading another model leaves its selection unchanged.
+     *
+     * @param string|null $oModelJs
+     * @return string
+     */
+    public function buildJsDataLoaderOnBeforeModelUpdate(?string $oModelJs = null) : string
+    {
+        if (!$this->isUiTable() || $this->getWidget()->getMultiSelect() !== true) {
+            return '';
+        }
+        $oModelJs = $oModelJs ?? "sap.ui.getCore().byId('{$this->getId()}').getModel()";
+
+        return <<<JS
+                (function(oTable, oTargetModel) {
+                    if (!oTable || oTable.getModel() !== oTargetModel || !oTable.getBinding('rows')) {
+                        return;
+                    }
+                    const bModifyingSelection = oTable.__modifyingSelection;
+                    oTable.__modifyingSelection = true;
+                    try {
+                        oTable.clearSelection();
+                    } finally {
+                        oTable.__modifyingSelection = bModifyingSelection;
+                    }
+                })(sap.ui.getCore().byId('{$this->getId()}'), {$oModelJs});
+
+JS;
+    }
+
+    /**
+     * Loads UI table reads into a temporary model so stale binding selections are cleared before replacement.
+     *
+     * Errors leave the live model and its selection untouched. Prefill and local loads do not use this path.
+     *
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::buildJsDataLoaderRequest()
+     */
+    protected function buildJsDataLoaderRequest(
+        ActionInterface $action,
+        string $oModelJs,
+        string $oParamsJs,
+        string $onLoadedJs,
+        string $onErrorJs,
+        string $onOfflineJs
+    ) : string
+    {
+        if (!$this->isUiTable() || $this->getWidget()->getMultiSelect() !== true) {
+            return $this->buildJsDataLoaderRequestViaTrait(
+                $action, $oModelJs, $oParamsJs, $onLoadedJs, $onErrorJs, $onOfflineJs
+            );
+        }
+        $applyLoadedJs = <<<JS
+            {$this->buildJsDataLoaderOnBeforeModelUpdate($oModelJs)}
+            try {
+                {$oModelJs}.setData(oReadModel.getData());
+            } finally {
+                fnDestroyReadModel();
+            }
+            {$onLoadedJs}
+JS;
+        $requestJs = $this->getServerAdapter()->buildJsServerRequest(
+            $action,
+            'oReadModel',
+            $oParamsJs,
+            $applyLoadedJs,
+            'fnDestroyReadModel(); ' . $onErrorJs,
+            'fnDestroyReadModel(); ' . $onOfflineJs
+        );
+        return <<<JS
+            var oReadModel = new sap.ui.model.json.JSONModel();
+            const fnDestroyReadModel = function() {
+                if (oReadModel !== {$oModelJs}) {
+                    oReadModel.destroy();
+                    oReadModel = {$oModelJs};
+                }
+            };
+            {$requestJs}
 JS;
     }
 
@@ -3053,7 +3137,8 @@ JS;
             //sap.ui.getCore().byId('{$this->getId()}').removeSelections();
 JS;*/
         }
-        return $resetTableJs . $this->buildJsDataResetterViaTrait();
+        return $this->buildJsDataLoaderOnBeforeModelUpdate()
+            . $resetTableJs . $this->buildJsDataResetterViaTrait();
     }
     
     protected function buildJsFixRowHeight(string $oTableJs) : string

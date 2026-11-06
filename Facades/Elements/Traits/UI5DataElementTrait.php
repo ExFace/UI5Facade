@@ -1635,7 +1635,7 @@ JS;
                     return Promise.resolve(oModel);
                 }
                 
-                {$this->getServerAdapter()->buildJsServerRequest(
+                {$this->buildJsDataLoaderRequest(
                     $widget->getLazyLoadingAction(),
                     'oModel',
                     'params',
@@ -1645,6 +1645,35 @@ JS;
                 )}
                 
 JS;
+    }
+
+    /**
+     * Builds the lazy read request, allowing elements to control how loaded data reaches their model.
+     *
+     * @see buildJsDataLoaderFromServer()
+     * The default delegates unchanged to the adapter. Table elements can stage responses without
+     * adding widget-specific lifecycle hooks to adapters. Prefill requests do not use this method.
+     *
+     * @param ActionInterface $action
+     * @param string $oModelJs
+     * @param string $oParamsJs
+     * @param string $onLoadedJs
+     * @param string $onErrorJs
+     * @param string $onOfflineJs
+     * @return string
+     */
+    protected function buildJsDataLoaderRequest(
+        ActionInterface $action,
+        string $oModelJs,
+        string $oParamsJs,
+        string $onLoadedJs,
+        string $onErrorJs,
+        string $onOfflineJs
+    ) : string
+    {
+        return $this->getServerAdapter()->buildJsServerRequest(
+            $action, $oModelJs, $oParamsJs, $onLoadedJs, $onErrorJs, $onOfflineJs
+        );
     }
 
     /**
