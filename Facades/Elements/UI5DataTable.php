@@ -1534,9 +1534,15 @@ JS;
 
         return <<<JS
                 (function(oTable, oTargetModel) {
+                    // Loading a foreign model must not clear this table's selection.
                     if (!oTable || oTable.getModel() !== oTargetModel || !oTable.getBinding('rows')) {
                         return;
                     }
+                    // Prevent stuck "select all" toggles after filtering: clear the table's
+                    // native selection, including selected TreeBinding nodes, while old rows
+                    // are reachable. After setData(), filtered-out selected nodes can be unreachable.
+                    // The guard keeps these clear events from erasing saved business rows
+                    // in the separate selections model; those rows can be restored by UID.
                     const bModifyingSelection = oTable.__modifyingSelection;
                     oTable.__modifyingSelection = true;
                     try {
@@ -1571,15 +1577,23 @@ JS;
                 $action, $oModelJs, $oParamsJs, $onLoadedJs, $onErrorJs, $onOfflineJs
             );
         }
+        // Adapters write their target model before calling onLoaded, so that callback alone
+        // is too late to clean the live binding. Stage the response at the adapter boundary
+        // for every read source (server/cache/offline), keeping selection logic in this table.
+        // Do not clear on request start: pending or failed requests must preserve selection.
         $applyLoadedJs = <<<JS
+            // Successful load: clear the old live binding first, then replace its model data.
             {$this->buildJsDataLoaderOnBeforeModelUpdate($oModelJs)}
             try {
                 {$oModelJs}.setData(oReadModel.getData());
             } finally {
                 fnDestroyReadModel();
             }
+            // Continue the normal loaded lifecycle, including saved selection restoration.
             {$onLoadedJs}
 JS;
+        // Error/offline callbacks dispose only the response model; live data and saved selection
+        // remain untouched. Prefill and local loads bypass this lazy-read boundary.
         $requestJs = $this->getServerAdapter()->buildJsServerRequest(
             $action,
             'oReadModel',
@@ -1589,10 +1603,15 @@ JS;
             'fnDestroyReadModel(); ' . $onOfflineJs
         );
         return <<<JS
+            // Give the adapter a separate response model so its setData() cannot invalidate
+            // selected nodes in the live table before the guarded cleanup above.
             var oReadModel = new sap.ui.model.json.JSONModel();
             const fnDestroyReadModel = function() {
+                // Error and offline callbacks may both run; destroy the temporary model only once.
                 if (oReadModel !== {$oModelJs}) {
                     oReadModel.destroy();
+                    // Adapters return/resolve their target after the callback. Preserve the
+                    // original live model as the result, never the destroyed response model.
                     oReadModel = {$oModelJs};
                 }
             };
@@ -3165,6 +3184,8 @@ JS;
             //sap.ui.getCore().byId('{$this->getId()}').removeSelections();
 JS;*/
         }
+        // Explicit reset also clears native selection before disabling grouping and before
+        // the trait empties the live model. Keep this table-specific cleanup out of adapters.
         return $this->buildJsDataLoaderOnBeforeModelUpdate()
             . $resetTableJs . $this->buildJsDataResetterViaTrait();
     }

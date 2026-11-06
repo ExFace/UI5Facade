@@ -1635,6 +1635,9 @@ JS;
                     return Promise.resolve(oModel);
                 }
                 
+                // Let the element control the adapter's target model and callbacks. UI tables
+                // use this boundary to clean stale selections before live data is replaced;
+                // an ordinary onLoaded callback runs after the adapter has already written data.
                 {$this->buildJsDataLoaderRequest(
                     $widget->getLazyLoadingAction(),
                     'oModel',
@@ -1671,6 +1674,8 @@ JS;
         string $onOfflineJs
     ) : string
     {
+        // Default loading remains selection-neutral. Table-specific staging and cleanup
+        // belong to the element override, not to individual server/cache/offline adapters.
         return $this->getServerAdapter()->buildJsServerRequest(
             $action, $oModelJs, $oParamsJs, $onLoadedJs, $onErrorJs, $onOfflineJs
         );
