@@ -680,6 +680,8 @@ JS;
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 bAllRowsSelected = aSelectedIndices.length >= aRowsVisible.length - oTable.getFixedBottomRowCount();
                 
+                // Restoration also reports a full selection. Only a user event may turn
+                // that state into "deselect all"; otherwise a reload would undo restoration.
                 if (bAllRowsSelected && oTable._allRowsSelected && bUserInteraction !== false) {
                     // Our little hack to exclude footers breaks the "Deselect all" function,
                     // so we need to emulate it.
@@ -707,17 +709,20 @@ JS;
                 }
             }
 
+            // Keep selections in collapsed groups even when saving across navigation is disabled.
             const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
             if (bMultiSelect === true && (bMultiSelectSave === true || bGroupedTable)) {
                 aRowsVisible = {$this->buildJsGetRowsAll('oTable')};
                 const aRowsOnPage = aRowsVisible;
-                // Closed-group rows cannot be deselected by clicking another data row.
-                // An explicit header deselect-all still applies to the whole current page.
+                // Let a user "deselect all" clear collapsed rows too. A collapse/expand event
+                // or selecting group placeholders must not be mistaken for that user action.
                 const bDeselectAll = bGroupedTable && bUserInteraction === true
                     && $oEventJs.getParameter('rowIndex') === -1
                     && $oEventJs.getParameter('selectAll') !== true
                     && aRowsSelectedVisible.length === 0;
                 if (bGroupedTable && !bDeselectAll) {
+                    // Only rows reachable through the binding can be deselected individually.
+                    // Excluding collapsed rows here prevents visible selection changes from losing them.
                     aRowsVisible = [];
                     const oBinding = oTable.getBinding('rows');
                     for (let i = 0; i < oBinding.getLength(); i++) {
@@ -728,7 +733,8 @@ JS;
                         }
                     }
                 }
-                // Preserve hidden rows; only retain off-page rows when navigation saving is enabled.
+                // Preserve selected rows hidden in collapsed groups on this page.
+                // Rows absent after filtering/paging survive only if navigation saving is enabled.
                 oModelSelected.getProperty('/rows').forEach(oRowOld => {
                     if (exfTools.data.indexOfRow(aRowsVisible, oRowOld, sUidCol) === -1
                         && (bMultiSelectSave === true || exfTools.data.indexOfRow(aRowsOnPage, oRowOld, sUidCol) !== -1)) {
@@ -1606,6 +1612,9 @@ JS;
         if ($widget->getMultiSelect() === true ) {
             $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
             if ($this->isUiTable()) {
+                // Prevent the tab from freezing on reload after "select all":
+                // collect target binding indices once and restore them as a guarded batch
+                // to avoid repeated selection resets and excessive change notifications.
                 return <<<JS
                 setTimeout(function(oTable) {
                     const aPrevSelectedRows = oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows');
@@ -1618,6 +1627,9 @@ JS;
                     const aGroupIndices = [];
                     const bGroupedTable = typeof oTable.getEnableGrouping === 'function' && oTable.getEnableGrouping();
                     let bAllRowsSelected = true;
+                    // Match saved row identities against the current binding to prevent selecting
+                    // the wrong rows after filtering/reordering. Match only business rows, not
+                    // group headers; exclude footers from selection altogether.
                     const iSelectableLength = oBinding.getLength() - oTable.getFixedBottomRowCount();
                     for (let i = 0; i < iSelectableLength; i++) {
                         if (typeof oBinding.isGroupHeader === 'function' && oBinding.isGroupHeader(i)) {
@@ -1631,12 +1643,15 @@ JS;
                         if (oRow && exfTools.data.indexOfRow(aPrevSelectedRows, oRow, {$uidColJs}) !== -1) {
                             aRestoreIndices.push(i);
                         } else if (bGroupedTable && oContext && !oRow) {
+                            // Grouped JSON bindings can expose header contexts without a business row.
                             aGroupIndices.push(i);
                         } else {
                             bAllRowsSelected = false;
                         }
                     }
-                    // Grouped JSON bindings count synthetic headers in the native select-all state.
+                    // Include synthetic headers only when all reachable business rows are selected.
+                    // This keeps "select all" checked after restoration so the next click deselects,
+                    // rather than merely selecting missing headers. Saved rows remain header-free.
                     if (bAllRowsSelected && aRestoreIndices.length > 0 && aGroupIndices.length > 0) {
                         aRestoreIndices.push(...aGroupIndices);
                         aRestoreIndices.sort((iLeft, iRight) => iLeft - iRight);
@@ -1644,14 +1659,18 @@ JS;
                     if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0) {
                         return;
                     }
+                    // Leave an already-correct selection untouched to avoid redundant UI5 events.
                     const bSelectionChanged = aSelectedIndices.length !== aRestoreIndices.length
                         || aSelectedIndices.some((iIndex, i) => iIndex !== aRestoreIndices[i]);
+                    // Ignore intermediate clear/add events so they cannot overwrite saved rows
+                    // or trigger dependent widgets before the complete selection is restored.
                     const bModifyingSelection = oTable.__modifyingSelection;
                     oTable.__modifyingSelection = true;
                     try {
                         if (bSelectionChanged) {
                             oTable.clearSelection();
-                            // Restore contiguous ranges without resetting the selection for each row.
+                            // Limit selection mutations by clearing once and adding contiguous ranges.
+                            // A full selection needs only one interval, keeping select-all reloads responsive.
                             for (let i = 0; i < aRestoreIndices.length; i++) {
                                 const iFrom = aRestoreIndices[i];
                                 let iTo = iFrom;
@@ -1664,6 +1683,7 @@ JS;
                     } finally {
                         oTable.__modifyingSelection = bModifyingSelection;
                     }
+                    // Reconcile saved rows and notify dependents once, as a programmatic change.
                     oTable.fireRowSelectionChange({
                         rowIndex: -1,
                         rowIndices: aRestoreIndices,
@@ -2302,7 +2322,7 @@ JS;
                 oTable.setVisibleRowCountMode(sOldMode);
                 sap.ui.getCore().applyChanges();
 
-                // Resize columns every time a group gets expanded
+                // Keep selection and column widths in sync when groups are expanded or collapsed.
                 oBinding.attachChange(function(oEvent) {
                     
                     // Change-events on expand/collapse do not have a reason. Ignore others
@@ -2310,6 +2330,9 @@ JS;
                         return;
                     }
 
+                    // Group toggles can clear native selection without a user deselection.
+                    // Restore saved row identities at the updated binding indices so checkboxes
+                    // and the selection counter agree, and expanded rows regain their selection.
                     {$restoreSelectionJs}
 
                     // resize on collapse/expand
@@ -2552,11 +2575,16 @@ JS;
                     if (iTableIdx === undefined || iTableIdx < 0) {
                         return;
                     }
+                    // Selection APIs need the binding index found above, not the model index.
+                    // Remove only the requested row (e.g. from the selection popup).
                     if (bDeselect === true) {
                         oTable.removeSelectionInterval(iTableIdx, iTableIdx);
                     } else if ($singleSelectJs) {
+                        // Replacing the selection is intentional only in single-select mode.
                         oTable.setSelectedIndex(iTableIdx);
                     } else if (!oTable.getSelectedIndices().includes(iTableIdx)) {
+                        // Preserve other selected rows and avoid duplicate selection events
+                        // when an already-selected row is selected again (e.g. on right-click).
                         oTable.addSelectionInterval(iTableIdx, iTableIdx);
                     }
                     
