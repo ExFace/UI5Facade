@@ -2646,6 +2646,12 @@ JS;
     
     
     
+    /**
+     * Opens the context menu and preserves outside-focus closing of a containing popover.
+     *
+     * @param string $eventJsVar
+     * @return string
+     */
     protected function buildJsContextMenuTrigger($eventJsVar = 'oEvent') {
         if ($eventJsVar === '') {
             $eventJsVar = 'null';
@@ -2653,6 +2659,23 @@ JS;
         return <<<JS
                 var domTarget = $eventJsVar !== undefined ? $eventJsVar.target : null;
                 var oMenu = {$this->buildJsContextMenu($this->getWidget()->getButtons(), 'domTarget', true)};
+                var domPopover = domTarget && domTarget.closest('.sapMPopover');
+                var oPopover = domPopover && sap.ui.getCore().byId(domPopover.id);
+                if (oPopover) {
+                    oMenu.attachClosed(function() {
+                        // Closing the context menu can swallow the parent popover's focus-loss event,
+                        // leaving it stuck open after an outside click. Wait until UI5 has restored focus
+                        // (e.g. after Escape), then close only if focus is outside the popover and its
+                        // child popups. Keep modal/fullscreen popovers and disabled auto-close unchanged.
+                        setTimeout(function() {
+                            if (oPopover.getDomRef() && oPopover.isOpen() && !oPopover.getModal()
+                                && oPopover.oPopup.getAutoClose()
+                                && !oPopover.oPopup._contains(document.activeElement)) {
+                                oPopover.close();
+                            }
+                        }, 0);
+                    });
+                }
                 var eFocused = $(':focus');
                 var eDock = sap.ui.core.Popup.Dock;
                 oMenu.open(true, eFocused, eDock.CenterCenter, eDock.CenterBottom,  {$eventJsVar}.target);         
