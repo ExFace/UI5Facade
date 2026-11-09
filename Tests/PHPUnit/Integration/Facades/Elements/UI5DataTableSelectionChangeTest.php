@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 /**
- * Executes real selection handlers and restoration with collapsed groups.
+ * Executes real selection handlers and restoration with collapsed groups and reloaded trees.
  */
 class UI5DataTableSelectionChangeTest extends TestCase
 {

@@ -177,3 +177,67 @@ test('responsive programmatic clears retain their existing protection', () => {
     assert.deepEqual(ids(oTable.saved), [1]);
     assert.equal(oTable.changeNotifications, 0);
 });
+
+/**
+ * Models a tree binding whose path-based selection state survives a data reload.
+ */
+function createTreeTable(aRows, aSelectedGroupIds) {
+    const oTreeState = {selected: {}, deselected: {}};
+    aSelectedGroupIds.forEach(sGroupId => { oTreeState.selected[sGroupId] = {groupID: sGroupId}; });
+    const oSelectedModel = {
+        getProperty: () => oTable.saved,
+        setProperty: (sPath, aValue) => { oTable.saved = aValue; }
+    };
+    const fnGroupId = i => `/${i}/`;
+    const oBinding = {
+        _mTreeState: oTreeState,
+        getLength: () => aRows.length,
+        getNodeByIndex: i => ({groupID: fnGroupId(i)})
+    };
+    const oTable = {
+        handler: 'changeSaved',
+        __modifyingSelection: false,
+        saved: [],
+        changeNotifications: 0,
+        getEnableGrouping: () => false,
+        getFixedBottomRowCount: () => 0,
+        getBinding: () => oBinding,
+        getModel: sName => sName === 'selections' ? oSelectedModel : {getData: () => ({rows: aRows})},
+        getSelectedIndices: () => aRows.map((oRow, i) => i).filter(i => oTreeState.selected[fnGroupId(i)]),
+        getContextByIndex: i => ({getObject: () => aRows[i]}),
+        getSelectedContexts: () => oTable.getSelectedIndices().map(i => oTable.getContextByIndex(i)),
+        // Like TreeBindingAdapter, only nodes reachable in the current tree are deselected.
+        clearSelection() {
+            aRows.forEach((oRow, i) => { delete oTreeState.selected[fnGroupId(i)]; });
+        },
+        addSelectionInterval(iFrom, iTo) {
+            for (let i = iFrom; i <= iTo; i++) {
+                oTreeState.selected[fnGroupId(i)] = {groupID: fnGroupId(i)};
+            }
+        },
+        fireRowSelectionChange(oParameters) {
+            change(this, oParameters);
+        }
+    };
+    return oTable;
+}
+
+test('tree reload purges selection state of removed nodes', () => {
+    // Six nodes were selected before a filtered reload left only two of them.
+    const oTable = createTreeTable([{Id: 1}, {Id: 2}], ['/0/', '/1/', '/2/', '/3/', '/4/', '/5/']);
+    oTable.saved = [{Id: 1}, {Id: 2}, {Id: 3}, {Id: 4}, {Id: 5}, {Id: 6}];
+    run('restore', oTable);
+    assert.deepEqual(Object.keys(oTable.getBinding()._mTreeState.selected), ['/0/', '/1/']);
+    assert.deepEqual(oTable.getSelectedIndices(), [0, 1]);
+});
+
+test('tree reload keeps a consistent selection state untouched', () => {
+    const oTable = createTreeTable([{Id: 1}, {Id: 2}], ['/0/']);
+    oTable.saved = [{Id: 1}];
+    let iClears = 0;
+    const fnClear = oTable.clearSelection;
+    oTable.clearSelection = function () { iClears++; fnClear.call(this); };
+    run('restore', oTable);
+    assert.equal(iClears, 0);
+    assert.deepEqual(Object.keys(oTable.getBinding()._mTreeState.selected), ['/0/']);
+});

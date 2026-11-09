@@ -1572,11 +1572,33 @@ JS;
                         aRestoreIndices.push(...aGroupIndices);
                         aRestoreIndices.sort((iLeft, iRight) => iLeft - iRight);
                     }
-                    if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0) {
+                    // Tree bindings (TreeBindingAdapter) keep their selection state keyed by path-based
+                    // group IDs, which survive setData(). Entries of nodes removed by the reload are
+                    // unreachable for clearSelection(), but still counted by getSelectedNodesCount().
+                    // If that count exceeds getLength(), the "select all" header always deselects and
+                    // never selects again. Detect such orphaned entries to purge them below.
+                    // Grouped tables are skipped: they restore on collapse too, where children of
+                    // collapsed groups are legitimately unreachable.
+                    const oTreeState = bGroupedTable ? null : oBinding._mTreeState;
+                    let bTreeStateStale = false;
+                    if (oTreeState && typeof oBinding.getNodeByIndex === 'function') {
+                        const oReachableGroupIds = {};
+                        for (let i = 0; i < oBinding.getLength(); i++) {
+                            const oNode = oBinding.getNodeByIndex(i);
+                            if (oNode && oNode.groupID) {
+                                oReachableGroupIds[oNode.groupID] = true;
+                            }
+                        }
+                        bTreeStateStale = Object.keys(oTreeState.selected || {})
+                            .concat(Object.keys(oTreeState.deselected || {}))
+                            .some(sGroupId => oReachableGroupIds[sGroupId] !== true);
+                    }
+                    if (aPrevSelectedRows.length === 0 && aSelectedIndices.length === 0 && ! bTreeStateStale) {
                         return;
                     }
                     // Leave an already-correct selection untouched to avoid redundant UI5 events.
-                    const bSelectionChanged = aSelectedIndices.length !== aRestoreIndices.length
+                    const bSelectionChanged = bTreeStateStale
+                        || aSelectedIndices.length !== aRestoreIndices.length
                         || aSelectedIndices.some((iIndex, i) => iIndex !== aRestoreIndices[i]);
                     // Ignore intermediate clear/add events so they cannot overwrite saved rows
                     // or trigger dependent widgets before the complete selection is restored.
@@ -1585,6 +1607,12 @@ JS;
                     try {
                         if (bSelectionChanged) {
                             oTable.clearSelection();
+                            if (bTreeStateStale) {
+                                // clearSelection() only deselected reachable nodes; drop the rest.
+                                // Saved rows are re-added by UID below.
+                                oTreeState.selected = {};
+                                oTreeState.deselected = {};
+                            }
                             // Limit selection mutations by clearing once and adding contiguous ranges.
                             // A full selection needs only one interval, keeping select-all reloads responsive.
                             for (let i = 0; i < aRestoreIndices.length; i++) {
