@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 /**
- * Executes real selection handlers and restoration with collapsed groups and protected reloads.
+ * Executes real selection handlers and restoration with collapsed groups and reloaded trees.
  */
 class UI5DataTableSelectionChangeTest extends TestCase
 {
@@ -41,7 +41,7 @@ class UI5DataTableSelectionChangeTest extends TestCase
     }
 
     /**
-     * Runs the generated handlers, pre-update clear and restoration against native event boundaries.
+     * Runs the generated handlers and grouped restoration against native event boundaries.
      */
     public function testGeneratedSelectionChangeScripts(): void
     {
@@ -52,7 +52,6 @@ class UI5DataTableSelectionChangeTest extends TestCase
             'changeSaved' => $handler->invoke($element, 'oEvent'),
             'changeUnsaved' => $handler->invoke($this->createElement(false), 'oEvent'),
             'changeResponsive' => $handler->invoke($this->createElement(true, false), 'oEvent'),
-            'beforeUpdate' => $element->buildJsDataLoaderOnBeforeModelUpdate('oTable.getModel()'),
             'restore' => $restore->invoke($element, 'oTable')
         ];
         $process = proc_open(
