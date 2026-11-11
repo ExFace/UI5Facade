@@ -62,6 +62,9 @@ class UI5DataLookupDialog extends UI5Dialog
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
+        $leftButtonCount = count(array_filter($widget->getToolbarMain()->getButtons(), function($button) {
+            return ! in_array($button->getAlign(), [EXF_ALIGN_OPPOSITE, EXF_ALIGN_RIGHT], true);
+        }));
                     
         // If the dialog requires a prefill, we need to load the data once the dialog is opened.
         if ($this->needsPrefill()) {
@@ -100,11 +103,34 @@ JS      );
 			buttons : [ {$this->buildJsDialogButtons(false)} ],
 			content : [ {$this->buildJsDialogContent()} ],
             afterOpen: function (oEvent) {
+                var oTourDialog = oEvent.getSource();
+                // Keep normal buttons in Dialog.buttons; only the tour menu needs the toolbar.
+                // Remove the previous menu when reopening a cached dialog.
+                (oTourDialog.data('exfLookupTourMenus') || []).forEach(function(oControl) {
+                    oControl.destroy();
+                });
+                var aTourMenus = [{$this->buildJsTourGuideDropdown($widget, $this->getController())}];
+                oTourDialog.data('exfLookupTourMenus', aTourMenus);
+                aTourMenus.forEach(function(oControl, iIndex) {
+                    // Skip UI5's leading spacer and the left buttons to keep the usual group order.
+                    oTourDialog._getToolbar().insertContent(oControl, 1 + {$leftButtonCount} + iIndex);
+                });
+                
                 {$this->buildJsOnDialogAfterOpen('oEvent')}
             },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
 JS;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Dialog::buildJsDialogButtons()
+     */
+    protected function buildJsDialogButtons(bool $addSpacer = true, bool $includeTourGuide = false)
+    {
+        // A MenuButton cannot be in Dialog.buttons, so the lookup adds it separately.
+        return parent::buildJsDialogButtons($addSpacer, $includeTourGuide);
     }
 
     /**

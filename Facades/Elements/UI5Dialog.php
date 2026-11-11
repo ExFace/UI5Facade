@@ -1076,15 +1076,19 @@ JS;
     /**
      * Returns the button constructors for the sap.m.Dialog buttons.
      * 
+     * @param bool $addSpacer
+     * @param bool $includeTourGuide Whether to include the tour menu in this button list.
      * @return string
      */
-    protected function buildJsDialogButtons(bool $addSpacer = true)
+    protected function buildJsDialogButtons(bool $addSpacer = true, bool $includeTourGuide = true)
     {
         $widget = $this->getWidget();
         $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
         
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
-        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
+        if ($includeTourGuide) {
+            $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
+        }
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }
