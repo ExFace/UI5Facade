@@ -329,8 +329,6 @@ JS;
             }
         }
         
-        $controller->addOnInitScript($this->buildJsWindowTourContent());
-        
         return $js;
     }
 

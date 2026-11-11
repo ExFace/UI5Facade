@@ -556,6 +556,9 @@ JS;
                     {$this->getController()->getView()->buildJsViewGetter($this)}.destroy();
                     oDialog.destroy();
                 }
+                // Closing this dialog reveals the page underneath without running its show handlers again.
+                // Tell visible widgets to check whether a tour step requested a tour to continue there.
+                window.dispatchEvent(new Event('exf-tour-resume'));
             }
 		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
