@@ -23,6 +23,20 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 class UI5LookupTourMenuTest extends TestCase
 {
     /**
+     * Closing a lookup notifies the underlying page even without a visible tour menu.
+     */
+    public function testClosingLookupResumesPendingTour() : void
+    {
+        foreach (['', 'new sap.m.MenuButton()'] as $tourJs) {
+            $js = $this->buildDialogScript($tourJs);
+
+            self::assertStringContainsString('afterClose: function () {', $js);
+            self::assertStringContainsString("window.dispatchEvent(new Event('exf-tour-resume'));", $js);
+            self::assertSame(1, substr_count($js, "new Event('exf-tour-resume')"));
+        }
+    }
+
+    /**
      * Normal buttons stay in Dialog.buttons; only the tour menu is added to the toolbar.
      */
     public function testVisibleTourMenuIsAddedToFooterToolbar() : void

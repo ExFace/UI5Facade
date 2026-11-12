@@ -118,6 +118,10 @@ JS      );
                 
                 {$this->buildJsOnDialogAfterOpen('oEvent')}
             },
+            afterClose: function () {
+                // Let the page underneath continue a pending tour after this lookup closes.
+                window.dispatchEvent(new Event('exf-tour-resume'));
+            },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
 JS;
