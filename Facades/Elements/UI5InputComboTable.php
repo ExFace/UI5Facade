@@ -1,14 +1,18 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Exceptions\Widgets\WidgetLogicError;
 use exface\Core\DataTypes\UrlDataType;
 use exface\Core\Interfaces\DataTypes\DataTypeInterface;
 use exface\Core\Exceptions\Facades\FacadeLogicError;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Exceptions\Widgets\WidgetConfigurationError;
+use exface\Core\Interfaces\Tours\TourInterface;
 use exface\Core\Widgets\InputComboTable;
 use exface\Core\Facades\AbstractAjaxFacade\Interfaces\JsValueValidityCheckerInterface;
+use exface\Core\Widgets\Parts\Tours\Tour;
+use exface\Core\Widgets\Parts\Tours\TourStoryStep;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 
 /**
@@ -1413,5 +1417,52 @@ JS;
             $prepareJs = "sap.ui.getCore().byId('{$this->getId()}').destroyTokens(); ";
         }
         return $prepareJs . parent::buildJsResetter();
+    }
+
+    /**
+     * @return TourInterface
+     */
+    public function getTourForSubroute() : TourInterface
+    {
+        $widget = $this->getWidget();
+        /** @var \exface\Core\Widgets\Parts\Tours\InputComboTableSubroute $subroute */
+        $subroute = $widget->getSubroute();
+        $tourOnInput = new Tour($widget, new UxonObject());
+        $tourInLookup = new Tour($widget, new UxonObject());
+        
+        $steps = [];
+        // Focus lookup button
+        $step = new TourStoryStep($tourOnInput, new UxonObject([
+            'title' => 'Lookup',
+            'body' => $subroute->getLookupButton(),
+            'widget_to_focus' => $widget->getId(),
+            'focus_css_query' => '.sapMInputBaseIcon',
+            "on_next_step" => [
+                "browser_click" => "left_click",
+                "autostart_tour_id" => $tourInLookup->getId()
+            ]
+        ]));
+        
+        $lookupButton = $widget->getLookupButton();
+        /** @var \exface\UI5Facade\Facades\Elements\UI5Button $lookupButtonEl */
+        $lookupButtonEl = $this->getFacade()->getElement($lookupButton);
+        $lookupButtonEl->addOnSuccessScript('console.log("Continue tour")');
+        $pressButtonJs = $lookupButtonEl->buildJsClickFunctionName();
+        // TODO
+        $lookupDialog = $widget->getLookupAction()->getDialog();
+        
+        // Focus lookup header
+        $step = new TourStoryStep($tourOnInput, new UxonObject([
+            'title' => 'Lookup header',
+            'body' => $subroute->getLookupHeader(),
+            'widget_to_focus' => $lookupDialog->getId(),
+            'focus_css_query' => '.sapMInputBaseIcon',
+            "on_next_step" => [
+                "browser_click" => "left_click",
+                "autostart_tour_id" => $tourInLookup->getId()
+            ]
+        ]));
+        
+        return $tourOnInput;
     }
 }

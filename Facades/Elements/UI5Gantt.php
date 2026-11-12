@@ -1809,11 +1809,15 @@ JS
      */
     protected function addGanttScrollButtons(ButtonGroup $btnGrp, int $index = 0) : void 
     {
-        $sToday = $this->getWorkbench()->getCoreApp()->getTranslator()->translate('LOCALIZATION.DATE.TODAY');
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        $sToday = $translator->translate('LOCALIZATION.DATE.TODAY');
+        $sScrollStart = $translator->translate('WIDGET.GANTT_CHARD.TOOLBAR_BUTTON_SCROLL_START');
+        $sScrollEnd = $translator->translate('WIDGET.GANTT_CHARD.TOOLBAR_BUTTON_SCROLL_END');
         
         $buttons = [
             [
-                'caption' => '',     
+                'caption' => $sScrollStart,
+                'hide_caption' => true,
                 'icon' => 'angle-double-left',
                 'script' => <<<JS
                         sap.ui.getCore().byId('[#element_id:~input#]').gantt.set_scroll_position("start");
@@ -1827,7 +1831,8 @@ JS
 JS
             ],
             [
-                'caption' => '',     
+                'caption' => $sScrollEnd,
+                'hide_caption' => true,
                 'icon' => 'angle-double-right',
                 'script' => <<<JS
                         sap.ui.getCore().byId('[#element_id:~input#]').gantt.set_scroll_position("end");
@@ -1869,10 +1874,15 @@ JS
         } else {
             $setTableRowHeightJs = '';
         }
-        
+
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        $sZoomIn = $translator->translate('WIDGET.GANTT_CHARD.TOOLBAR_BUTTON_ZOOM_IN');
+        $sZoomOut = $translator->translate('WIDGET.GANTT_CHARD.TOOLBAR_BUTTON_ZOOM_OUT');
+
         $buttons = [
             [
-                'caption' => '',
+                'caption' => $sZoomIn,
+                'hide_caption' => true,
                 'icon' => 'plus',
                 'script' => <<<JS
 
@@ -1902,7 +1912,8 @@ JS
 JS
             ],
             [
-                'caption' => '',
+                'caption' => $sZoomOut,
+                'hide_caption' => true,
                 'icon' => 'minus',
                 'script' => <<<JS
 
@@ -1952,6 +1963,7 @@ JS
             $btnGrp->addButton($btnGrp->createButton(new UxonObject([
                 'widget_type' => 'Button',
                 'caption' => $button['caption'],
+                'hide_caption' => $button['hide_caption'] ?? false,
                 'icon' => $button['icon'],
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
