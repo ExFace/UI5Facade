@@ -77,10 +77,12 @@ JS;
             if ($controller !== null) {
                 if ($tour->getId() !== null)
                 {
+                    // Autostart checks may continue a tour at the step stored by a tour subroute.
+                    $resumeTourJs = $driver->buildJsStartTour($tour, false, '(tourIntent && tourIntent.startStepIndex) || 0');
                     $this->addTourOnShowView($controller, $this->buildJsTourAutostartCheck(
-                        $tour->getId(), $startTourJs, true
+                        $tour->getId(), $resumeTourJs, true
                     ));
-                    $pendingTourChecks[] = $this->buildJsTourAutostartCheck($tour->getId(), $startTourJs);
+                    $pendingTourChecks[] = $this->buildJsTourAutostartCheck($tour->getId(), $resumeTourJs);
                 }
 
                 if ($tour->getAutorun()) {
@@ -189,6 +191,11 @@ JS;
      * Retrieving a matching request removes it, so it is used only once; requests expire after 60 seconds.
      * Repeated initialization preserves an existing request. This storage does not start tours itself.
      * 
+     * Tour subroutes leaving their tour (e.g. to open a lookup dialog) store a return point with the
+     * tour id and the index of the next step. The step finishing the subroute turns it into a pending
+     * tour request with `startStepIndex`, so the original tour continues where it left off. Return
+     * points expire after 10 minutes because users may spend more time in the subroute.
+     * 
      * @return string
      */
     public function buildJsWindowTourContent(): string
@@ -197,6 +204,7 @@ JS;
         
             window.exfTourContext = window.exfTourContext || (function () {
                 let pendingTour = null;
+                let returnPoint = null;
             
                 return {
                     setPendingTour(payload) {
@@ -204,6 +212,26 @@ JS;
                             ...payload,
                             createdAt: Date.now()
                         };
+                    },
+
+                    setReturnPoint(payload) {
+                        returnPoint = {
+                            ...payload,
+                            createdAt: Date.now()
+                        };
+                    },
+
+                    resumeReturnPoint() {
+                        const point = returnPoint;
+                        returnPoint = null;
+                        if (!point || (Date.now() - point.createdAt) > 600000) {
+                            return false;
+                        }
+                        this.setPendingTour({
+                            targetTourId: point.tourId,
+                            startStepIndex: point.stepIndex
+                        });
+                        return true;
                     },
             
                     consumePendingTour(targetTourId) {
@@ -230,6 +258,7 @@ JS;
                 
                     clear() {
                         pendingTour = null;
+                        returnPoint = null;
                     }
               };
             })();
