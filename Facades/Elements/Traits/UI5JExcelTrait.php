@@ -67,6 +67,13 @@ trait UI5JExcelTrait {
         $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS'));
         $controller->addExternalModule('exface.openui5.jsuites', $this->getFacade()->buildUrlToSource("LIBS.JEXCEL.JS_JSUITES"), null, 'jsuites');
         $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.JEXCEL.CSS_JSUITES'));
+        $controller->addExternalModule('libs.exface.exfColorTools',
+            $this->getFacade()->buildUrlToVendorFile('exface/core/Facades/AbstractAjaxFacade/js/exfColorTools.js'),
+            null, 'exfColorTools');
+        $controller->addExternalModule('exface.openui5.jexcelDisplayRenderers',
+            $this->getFacade()->buildUrlToVendorFile('exface/core/Facades/AbstractAjaxFacade/js/exfJExcelDisplayRenderers.js'),
+            null, 'exfJExcelDisplayRenderers');
+        $controller->addExternalCss($this->getFacade()->buildUrlToVendorFile('exface/core/Facades/AbstractAjaxFacade/js/exfJExcelDisplayRenderers.css'));
         
         return $this;
     }
