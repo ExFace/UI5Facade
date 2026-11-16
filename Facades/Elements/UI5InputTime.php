@@ -77,6 +77,25 @@ JS;
 		
 JS;
     }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see \exface\UI5Facade\Facades\Elements\UI5Input::buildJsProperties()
+     */
+    public function buildJsProperties()
+    {
+
+        // UI5-Upgrade - using custom data types with string declarations is no longer supported/throws warnings
+        // so here we need to use the proper constructor now
+        $options = UI5Input::buildJsProperties() . <<<JS
+
+            valueFormat: '{$this->buildJsValueFormat()}',
+            displayFormat: '{$this->getDisplayFormat()}',
+            placeholder: " ",
+JS;
+        return $options;
+    }
     
     /**
      * 
