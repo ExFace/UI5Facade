@@ -86,12 +86,14 @@ JS;
      */
     public function buildJsProperties()
     {
+        $calendarWeekNumbering = $this->getWidget()->getFirstDayOfWeek() === DateDataType::WEEKDAY_MONDAY ? 'ISO_8601' : 'WesternTraditional';
         // UI5-Upgrade - using custom data types with string declarations is no longer supported/throws warnings
         // so here we need to use the proper constructor now
         $options = parent::buildJsProperties() . <<<JS
 
             valueFormat: '{$this->buildJsValueFormat()}',
             displayFormat: '{$this->getDisplayFormat()}',
+            calendarWeekNumbering: {$this->escapeString($calendarWeekNumbering)},
             placeholder: " ",
 JS;
         return $options;
