@@ -36,11 +36,56 @@ class UI5InputSelect extends UI5Input
 JS;
         $this->addPseudoEventHandler('onsapspace', $js);
         
+        if ($this->getWidget()->getMultiSelect() === false) {
+            $this->addFallbackItemForUnknownValue();
+        }
+        
                 return <<<JS
         new {$control}("{$this->getId()}", {
 			{$this->buildJsProperties()}
         }){$this->buildJsPseudoEventHandlers()}
 JS;
+    }
+    /**
+     * Makes sure a value, that is not among the selectable options, is still displayed.
+     * 
+     * A sap.m.ComboBox keeps an unknown selectedKey, but shows an empty text. To display the
+     * current value anyway, a disabled (non-selectable) item is added for it. Its text is taken 
+     * from the labels of the value data type if it is an enum.
+     * 
+     * @return void
+     */
+    protected function addFallbackItemForUnknownValue() : void
+    {
+        $dataType = $this->getWidget()->getValueDataType();
+        $labels = $dataType instanceof EnumDataTypeInterface ? $dataType->getLabels() : [];
+        $labelsJs = json_encode((object) $labels);
+        $id = $this->getId();
+        $js = <<<JS
+
+        (function(){
+            var oCombo = sap.ui.getCore().byId("{$id}");
+            if (! oCombo) return;
+            var oLabels = {$labelsJs};
+            var sKey = oCombo.getSelectedKey();
+            oCombo.getItems().forEach(function(oItem){
+                if (oItem._exfFallbackItem === true && oItem.getKey() !== sKey) {
+                    oCombo.removeItem(oItem);
+                    oItem.destroy();
+                }
+            });
+            if (sKey === undefined || sKey === null || sKey === '' || oCombo.getItemByKey(sKey)) return;
+            var sText = oLabels[sKey] !== undefined && oLabels[sKey] !== null ? String(oLabels[sKey]) : String(sKey);
+            var oFallback = new sap.ui.core.Item({key: sKey, text: sText, enabled: false});
+            oFallback._exfFallbackItem = true;
+            oCombo.addItem(oFallback);
+            oCombo.setSelectedKey(sKey);
+        })();
+JS;
+        $this->getController()->addOnInitScript($js);
+        if ($this->isValueBoundToModel()) {
+            $this->addOnBindingChangeScript($this->buildJsValueBindingPropertyName(), $js);
+        }
     }
 			
     /**
