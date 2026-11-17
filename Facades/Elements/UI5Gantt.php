@@ -1825,7 +1825,8 @@ JS
             ],
             [
                 'caption' => $sToday,
-                'icon' => '',
+                'icon' => 'sap-icon://check-availability',
+                'show_icon' => false,
                 'script' => <<<JS
                         sap.ui.getCore().byId('[#element_id:~input#]').gantt.scroll_current(true, true);
 JS
@@ -1964,7 +1965,8 @@ JS
                 'widget_type' => 'Button',
                 'caption' => $button['caption'],
                 'hide_caption' => $button['hide_caption'] ?? false,
-                'icon' => $button['icon'],
+                'icon' => $button['icon'],                
+                'show_icon' => $button['show_icon'] ?? true,
                 'action'  => [
                     'alias'  => 'exface.Core.CustomFacadeScript',
                     'icon' => '',
