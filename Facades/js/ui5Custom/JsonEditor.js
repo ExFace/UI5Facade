@@ -78,6 +78,13 @@ sap.ui.define([
                 }
             });
             this._oEditor = oJsonEditor.create(this.getDomRef("editor"), oConfig, this.getProperty("value"));
+            var oShell = window.exfLauncher && window.exfLauncher.getShell();
+            if (oShell && oShell.getModel()) {
+                this._oOnlineBinding = oShell.getModel().bindProperty("/_network/online");
+                this._oOnlineBinding.attachChange(function () {
+                    oControl._oEditor.refreshServerAvailability();
+                });
+            }
             if (this._sEditorMode === "code" && this._oEditor.getEditor().getMode() !== "code") {
                 this._oEditor.getEditor().setMode("code");
             }
@@ -89,6 +96,10 @@ sap.ui.define([
         },
 
         _destroyEditor: function () {
+            if (this._oOnlineBinding) {
+                this._oOnlineBinding.destroy();
+                this._oOnlineBinding = null;
+            }
             if (this._oEditor) {
                 this._oEditor.destroy();
                 this._oEditor = null;

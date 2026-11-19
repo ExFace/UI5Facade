@@ -3265,7 +3265,7 @@ JS;
             
             // Otherwise get the selected rows and proceed
             case $rowNr === null:
-                $rows = $this->buildJsGetRowsSelected('oTable');
+                $rows = $this->buildJsGetRowsSelectedForValue('oTable');
                 break;
             default:
                 throw new FacadeRuntimeError('Data row reference "' . $rowNr . '" not supported in UI5 facades!');
@@ -3330,6 +3330,24 @@ JS;
      * @return string
      */
     protected abstract function buildJsGetRowsSelected(string $oControlJs) : string;
+
+    /**
+     * Gets selected rows for live values and change detection, including saved selections on other pages.
+     *
+     * Native selection handling and restoration must continue using buildJsGetRowsSelected()
+     * so that off-page rows are not mistaken for selections in the current binding.
+     *
+     * @param string $oControlJs
+     * @return string
+     */
+    protected function buildJsGetRowsSelectedForValue(string $oControlJs) : string
+    {
+        $widget = $this->getDataWidget();
+        if ($widget instanceof DataTable && $widget->getMultiSelect() === true && $widget->isMultiSelectSavedOnNavigation()) {
+            return "{$oControlJs}.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
+        }
+        return $this->buildJsGetRowsSelected($oControlJs);
+    }
     
     /**
      * 
@@ -3413,7 +3431,7 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var aNewSelection = {$this->buildJsGetRowsSelected('oControl')};
+                    var aNewSelection = {$this->buildJsGetRowsSelectedForValue('oControl')};
                     var aOldSelection = oControl.data('exfPreviousSelection') || [];
                     var bNoChange = exfTools.data.compareData(aOldSelection, aNewSelection);
                     oControl.data('exfPreviousSelection', aNewSelection);

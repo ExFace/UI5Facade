@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsonEditorTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
+use exface\UI5Facade\Facades\Elements\ServerAdapters\UI5FacadeServerAdapter;
 
 /**
  * Hosts the shared JSON editor in a lifecycle-aware, model-bound UI5 control.
@@ -37,6 +38,19 @@ JS;
             return $this->buildCssHeightDefaultValue();
         }
         return parent::getHeight();
+    }
+
+    /**
+     * Checks the configured online backend, including when a PWA wraps it.
+     *
+     * {@inheritDoc}
+     * @see JsonEditorTrait::buildJsJsonEditorServerAvailable()
+     */
+    protected function buildJsJsonEditorServerAvailable() : string
+    {
+        $adapterClass = $this->getFacade()->getConfig()->getOption('DEFAULT_SERVER_ADAPTER_CLASS');
+        return 'function() { return '
+            . $this->escapeBool(is_a($adapterClass, UI5FacadeServerAdapter::class, true)) . '; }';
     }
 
     /**
