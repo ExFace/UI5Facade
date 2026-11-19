@@ -15,7 +15,7 @@ consumes the setup state is documented in [DataConfigurator.md](DataConfigurator
 
 ## Setups are simplified mutations
 
-Setups are closely related to [mutations](https://github.com/ExFace/Core/blob/1.x-dev/Docs/understanding_the_metamodel/Mutations/index.md): they also modify the model of a widget, but under much
+Setups are closely related to [mutations](https://github.com/ExFace/Core/blob/1.x-dev/Docs/Metamodel/Mutations/index.md): they also modify the model of a widget, but under much
 stricter rules - so strict that an end user can safely apply them. Consequently every setup
 prototype implements `MutationInterface` (extending `AbstractMutation`) and can be used inside the
 regular mutation engine as well. The opposite is not true: arbitrary mutations cannot be used as
@@ -63,7 +63,7 @@ A setup is bound to a widget by a triple, used identically in the metamodel and 
 | `widget_id` | `$dataWidget->getIdInScreen()` |
 | `object_id` | `$dataWidget->getMetaObject()->getId()` |
 
-The slug identifies the *screen* (page or dialog - see [global UI structure](https://github.com/ExFace/Core/blob/1.x-dev/Docs/understanding_the_metamodel/Global_UI_principles/index.md)), so a dialog that is reused on
+The slug identifies the *screen* (page or dialog - see [global UI structure](https://github.com/ExFace/Core/blob/1.x-dev/Docs/Widgets/index.md)), so a dialog that is reused on
 several pages keeps its setups. Setups whose screen or widget can no longer be resolved are flagged
 by the Core cleanup handler `DataTableConfigurator::onCleanUp()` and filtered out of the setups
 table.
