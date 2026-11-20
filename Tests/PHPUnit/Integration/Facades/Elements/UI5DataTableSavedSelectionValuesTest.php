@@ -53,7 +53,7 @@ class UI5DataTableSavedSelectionValuesTest extends TestCase
     {
         $scripts = [];
         $selection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelected');
-        $nativeSelection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelectedNative');
+        $nativeSelection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelectedInBinding');
         foreach ([
             'saved' => [true, true, true],
             'responsive' => [true, true, false],
