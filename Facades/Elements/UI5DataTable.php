@@ -3294,4 +3294,20 @@ JS;
             })()
 JS;
     }
+
+    public function buildCssFocusAreaSelector(string $area = null) : string
+    {
+        
+        switch (true) {
+            case StringDataType::startsWith($area, 'column'):
+                $columnName = StringDataType::substringAfter($area, 'column.');
+                // TODO how to select a column??
+                break;
+            case $area === 'header':
+                return '#' . $this->getId() . ' .sapUiTableColHdrCnt';
+            case $area === 'table':
+                return '#' . $this->getId() . ' .sapUiTableCnt';
+        }
+        return '#' . $this->getId();
+    }
 }
