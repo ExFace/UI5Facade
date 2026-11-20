@@ -35,7 +35,10 @@ function execute(name, script, table) {
     return new Function('sap', 'exfTools', 'oTable',
         script === 'change' ? scripts[name][script] : `return (${scripts[name][script]});`)(
         {ui: {getCore: () => ({byId: () => table})}},
-        {data: {compareData: (left, right) => JSON.stringify(left) === JSON.stringify(right)}},
+        {data: {
+            compareData: (left, right) => JSON.stringify(left) === JSON.stringify(right),
+            indexOfRow: (aRows, oRow, sUidCol) => aRows.findIndex(oCandidate => oCandidate[sUidCol] === oRow[sUidCol])
+        }},
         table
     );
 }
@@ -86,12 +89,14 @@ for (const name of ['unsaved', 'single']) {
     test(`${name}: values and change detection continue using the current page`, () => {
         const table = createTable();
         table.indices = [0];
+        table.saved = [table.rows[0]];
         assert.deepEqual(execute(name, 'rows', table), [table.rows[0]]);
         assert.equal(execute(name, 'values', table), 'page-1-a');
         execute(name, 'change', table);
 
         table.rows = [{Id: 'page-2-a'}];
         table.indices = [];
+        table.saved = [];
         assert.deepEqual(execute(name, 'rows', table), []);
         assert.equal(execute(name, 'values', table), '');
         execute(name, 'change', table);
@@ -102,3 +107,40 @@ for (const name of ['unsaved', 'single']) {
         assert.equal(table.changeNotifications, 2, 'Stored off-page data does not affect local-only values');
     });
 }
+
+for (const name of ['saved', 'responsive', 'unsaved']) {
+    test(`${name}: current-page selection includes collapsed rows but excludes off-page rows`, () => {
+        const table = createTable();
+        const aPageSelection = [...table.saved];
+        const oOffPageRow = {Id: 'another-page'};
+        if (name !== 'unsaved') {
+            table.saved = [...table.saved, oOffPageRow];
+        }
+        table.indices = [0];
+        table.rows = table.rows.map(oRow => ({...oRow, label: 'reloaded'}));
+
+        assert.deepEqual(execute(name, 'native', table), [table.rows[0]]);
+        assert.deepEqual(execute(name, 'page', table), aPageSelection);
+        assert.deepEqual(execute(name, 'all', table), table.saved);
+
+        table.indices = [];
+        assert.deepEqual(execute(name, 'page', table), aPageSelection, 'Collapsing every group retains page selections');
+
+        table.rows = [];
+        assert.deepEqual(execute(name, 'page', table), []);
+        assert.deepEqual(execute(name, 'all', table), table.saved);
+        table.saved = [];
+        assert.deepEqual(execute(name, 'page', table), []);
+        assert.deepEqual(execute(name, 'all', table), []);
+    });
+}
+
+test('single: both scopes use native selection rather than the restoration snapshot', () => {
+    const table = createTable();
+    table.indices = [0];
+    assert.deepEqual(execute('single', 'page', table), [table.rows[0]]);
+    assert.deepEqual(execute('single', 'all', table), [table.rows[0]]);
+    table.indices = [];
+    assert.deepEqual(execute('single', 'page', table), []);
+    assert.deepEqual(execute('single', 'all', table), []);
+});

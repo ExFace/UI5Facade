@@ -241,7 +241,7 @@ JS;
      * 
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oControlJs) : string
+    protected function buildJsGetRowsSelected(string $oControlJs, bool $onlyOnCurrentPage = true) : string
     {
         return ''; // TODO
     }

@@ -30,6 +30,8 @@ class UI5DataTableSavedSelectionValuesTest extends TestCase
         $widget->method('getMultiSelect')->willReturn($multiSelect);
         $widget->method('isMultiSelectSavedOnNavigation')->willReturn($saveOnNavigation);
         $widget->method('getColumnByDataColumnName')->willReturn($column);
+        $widget->method('hasUidColumn')->willReturn(true);
+        $widget->method('getUidColumn')->willReturn($column);
         $controller = $this->createStub(UI5ControllerInterface::class);
         $controller->method('buildJsEventHandler')->willReturn('oTable.selectNotifications++;');
         $element = $this->getMockBuilder(UI5DataTable::class)
@@ -50,7 +52,8 @@ class UI5DataTableSavedSelectionValuesTest extends TestCase
     public function testSavedSelectionValuesAndChangeDetection(): void
     {
         $scripts = [];
-        $nativeSelection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelected');
+        $selection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelected');
+        $nativeSelection = new ReflectionMethod(UI5DataTable::class, 'buildJsGetRowsSelectedNative');
         foreach ([
             'saved' => [true, true, true],
             'responsive' => [true, true, false],
@@ -62,6 +65,8 @@ class UI5DataTableSavedSelectionValuesTest extends TestCase
                 'rows' => $element->buildJsValueGetter(),
                 'values' => $element->buildJsValueGetter('Id'),
                 'rowCount' => $element->buildJsValueGetter('~rowcount'),
+                'page' => $selection->invoke($element, 'oTable'),
+                'all' => $selection->invoke($element, 'oTable', false),
                 'native' => $nativeSelection->invoke($element, 'oTable'),
                 'change' => $element->buildJsOnEventScript('change', 'oTable.changeNotifications++;', 'oEvent')
             ];
