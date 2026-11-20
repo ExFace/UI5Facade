@@ -203,7 +203,7 @@
     "LIBS.MOMENT.LOCALES": "npm-asset/moment/locale",
 
 	"LIBS.MERMAID.JS": "exface/ui5facade/Facades/js/mermaid/mermaid.iife.min.js",
-	"LIBS.PANZOOM.JS": "exface/core/Facades/AbstractAjaxFacade/js/svg-pan-zoom.min.js",
+	"LIBS.PANZOOM.JS": "npm-asset/svg-pan-zoom/dist/svg-pan-zoom.min.js",
 
 	"LIBS.PERSPECTIVE.LOADER.JS": "exface/core/Facades/AbstractAjaxFacade/js/perspective/perspective-loader.js",
 	"LIBS.PERSPECTIVE.CLIENT.JS": "npm-asset/perspective-dev--client/dist/esm/perspective.inline.js",

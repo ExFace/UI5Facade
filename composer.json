@@ -24,6 +24,7 @@
         "bower-asset/ui5-qrcode": "~0.9",
         "npm-asset/dexie": "^4.4.6",
         "npm-asset/moment": "^2.24.0",
+        "npm-asset/svg-pan-zoom": "^3.6.2",
         "npm-asset/leaflet": "^1.7",
         "npm-asset/leaflet-extra-markers": "^1.2",
         "npm-asset/leaflet-fullscreen": "^1.0",
