@@ -23,7 +23,7 @@ trait UI5TourGuideTrait {
 
     /**
      * Builds a dropdown menu as sap MenuButton JS for the tour guide of the given widget, if it has one.
-     * Each tour will be represented as a button in the dropdown,
+     * Each tour with `hide_in_menu` set to false will be represented as a button in the dropdown,
      * which when clicked will trigger the corresponding tour using the tour driver.
      * 
      * If a controller is provided and the tour property "autorun" is set to true,
@@ -41,62 +41,86 @@ trait UI5TourGuideTrait {
         if (!$this->widgetHasTourGuide($widget)) {
             return '';
         }
+
+        // Every tour host needs the shared context, including containers and dialogs without data widgets.
+        ($controller ?? $this->getController())->addOnInitScript($this->buildJsWindowTourContent());
         
         $driver = $this->getFacade()->getTourDriver($widget);
         $tours = $widget->getTourGuide()->getTours();
         $buttons = [];
+        $pendingTourChecks = [];
         
         $this->registerDriverLibAsExternalModule($driver);
 
         foreach ($tours as $tour) {
             $startTourJs = $driver->buildJsStartTour($tour);
-            $icon = $this->getIconSrc($tour->getIcon()) ?? '';
+            // Hide only the menu entry: this tour must still be available to automatic starts below.
+            if (!$tour->getHideInMenu()) {
+                // Menu starts skip only actions marked skip_if_standalone; automatic starts run all actions.
+                $manualStartTourJs = $driver->buildJsStartTour($tour, true);
+                $icon = $this->getIconSrc($tour->getIcon()) ?? '';
 
-            $buttons[] = <<<JS
+                $buttons[] = <<<JS
 
                 new sap.m.MenuItem({
                     text: "{$tour->getTitle()}",
                     icon: "{$icon}",
                     press: function () {
-                        {$startTourJs}
+                        // A new manual start replaces any unfinished continuation request.
+                        window.exfTourContext.clear();
+                        {$manualStartTourJs}
                     }
                 })
 JS;
+            }
             
             if ($controller !== null) {
                 if ($tour->getId() !== null)
                 {
-                    $tourId = $this->escapeString($tour->getId());
-                    
-                    // IF the tour is pending (e.g. triggered from another view)
-                    // or the URL contains a query parameter to trigger the tour,
-                    // starts it automatically when the view is shown.
-                    //
-                    // tour query parameter is removed after consumption to prevent
-                    // unwanted retriggering on back/forward navigation.
-                    $js = <<<JS
-                        const tourUrl = new URL(window.location.href);
-                        const tourIdInURL = tourUrl.searchParams.get('tour') === {$tourId}
-                        const tourIntent = window.exfTourContext.consumePendingTour({$tourId})
-                        if (tourIntent || tourIdInURL) {
-                            if (tourIdInURL) {
-                                tourUrl.searchParams.delete('tour')
-                                window.history.replaceState(
-                                    window.history.state, document.title, 
-                                    tourUrl.pathname + tourUrl.search + tourUrl.hash
-                                );
-                            }
-
-                            {$startTourJs}
-                        } 
-JS;
-                    $this->addTourOnShowView($controller, $js);
+                    // Autostart checks may continue a tour at the step stored by a tour subroute.
+                    $resumeTourJs = $driver->buildJsStartTour($tour, false, '(tourIntent && tourIntent.startStepIndex) || 0');
+                    $this->addTourOnShowView($controller, $this->buildJsTourAutostartCheck(
+                        $tour->getId(), $resumeTourJs, true
+                    ));
+                    $pendingTourChecks[] = $this->buildJsTourAutostartCheck($tour->getId(), $resumeTourJs);
                 }
 
                 if ($tour->getAutorun()) {
                     $this->addTourOnShowView($controller, $startTourJs);
                 }
             }
+        }
+
+        if ($controller !== null && $pendingTourChecks !== []) {
+            $checksJs = implode("\n", $pendingTourChecks);
+            // After a dialog closes, the page underneath stays loaded and receives no new show event.
+            // Listen for dialog closure so a tour can continue on that page without reloading its data.
+            $controller->addOnInitScript(<<<JS
+                (function () {
+                    let resumeTimer;
+                    const resumePendingTour = function () {
+                        // Wait briefly for the widgets to become visible; repeated notifications share one timer.
+                        clearTimeout(resumeTimer);
+                        resumeTimer = setTimeout(function () {
+                            const element = {$this->buildJsDomElementGetter()};
+                            if (!element || !jQuery(element).is(':visible')) {
+                                return;
+                            }
+                            {$checksJs}
+                        }, 500);
+                    };
+                    window.addEventListener('exf-tour-resume', resumePendingTour);
+                    oView.attachBeforeExit(function () {
+                        // A destroyed view must neither start a tour nor keep listening for closed dialogs.
+                        clearTimeout(resumeTimer);
+                        window.removeEventListener('exf-tour-resume', resumePendingTour);
+                    });
+                })();
+JS);
+        }
+
+        if ($tours !== [] && $buttons === []) {
+            return '';
         }
 
         $buttonsJs = implode(",\n", $buttons);
@@ -117,8 +141,60 @@ JS;
     }
 
     /**
-     * Builds JS to manage pending tour intents in the global window context. 
-     * This allows tours to be triggered from other views and then automatically started when the user navigates to the relevant view or a dialog.
+     * Builds JavaScript that starts this tour if an earlier step requested it.
+     *
+     * The earlier step stores its `autostart_tour_id` in `window.exfTourContext`.
+     * This check takes that request only if its ID matches this tour and starts it once.
+     * Run the check when a view is shown or when a dialog closes to continue on the page underneath.
+     * It does not reload the page or run its other show handlers.
+     *
+     * When $checkUrl is true, `?tour=<tourId>` can also start the tour. The parameter is
+     * then removed to avoid starting it again. Dialog-close checks ignore URL parameters.
+     *
+     * @param string $tourId ID of the tour to check for.
+     * @param string $startTourJs JavaScript that starts this tour.
+     * @param bool $checkUrl Whether to also accept a tour request from the URL.
+     * @return string JavaScript that checks for a request and starts the matching tour.
+     */
+    protected function buildJsTourAutostartCheck(string $tourId, string $startTourJs, bool $checkUrl = false) : string
+    {
+        $tourIdJs = $this->escapeString($tourId);
+        $urlCheckJs = $checkUrl ? <<<JS
+            const tourUrl = new URL(window.location.href);
+            tourIdInURL = tourUrl.searchParams.get('tour') === {$tourIdJs};
+            if (tourIdInURL) {
+                tourUrl.searchParams.delete('tour');
+                window.history.replaceState(
+                    window.history.state, document.title,
+                    tourUrl.pathname + tourUrl.search + tourUrl.hash
+                );
+            }
+JS : '';
+
+        return <<<JS
+            {
+                let tourIdInURL = false;
+                {$urlCheckJs}
+                const tourIntent = window.exfTourContext.consumePendingTour({$tourIdJs});
+                if (tourIntent || tourIdInURL) {
+                    {$startTourJs}
+                }
+            }
+JS;
+    }
+
+    /**
+     * Builds the shared JavaScript storage for a request to start another tour.
+     *
+     * A step stores the target tour ID before opening or closing a dialog or navigating.
+     * The target tour can then retrieve the request when its widget is visible.
+     * Retrieving a matching request removes it, so it is used only once; requests expire after 60 seconds.
+     * Repeated initialization preserves an existing request. This storage does not start tours itself.
+     * 
+     * Tour subroutes leaving their tour (e.g. to open a lookup dialog) store a return point with the
+     * tour id and the index of the next step. The step finishing the subroute turns it into a pending
+     * tour request with `startStepIndex`, so the original tour continues where it left off. Return
+     * points expire after 10 minutes because users may spend more time in the subroute.
      * 
      * @return string
      */
@@ -128,6 +204,7 @@ JS;
         
             window.exfTourContext = window.exfTourContext || (function () {
                 let pendingTour = null;
+                let returnPoint = null;
             
                 return {
                     setPendingTour(payload) {
@@ -135,6 +212,26 @@ JS;
                             ...payload,
                             createdAt: Date.now()
                         };
+                    },
+
+                    setReturnPoint(payload) {
+                        returnPoint = {
+                            ...payload,
+                            createdAt: Date.now()
+                        };
+                    },
+
+                    resumeReturnPoint() {
+                        const point = returnPoint;
+                        returnPoint = null;
+                        if (!point || (Date.now() - point.createdAt) > 600000) {
+                            return false;
+                        }
+                        this.setPendingTour({
+                            targetTourId: point.tourId,
+                            startStepIndex: point.stepIndex
+                        });
+                        return true;
                     },
             
                     consumePendingTour(targetTourId) {
@@ -161,6 +258,7 @@ JS;
                 
                     clear() {
                         pendingTour = null;
+                        returnPoint = null;
                     }
               };
             })();

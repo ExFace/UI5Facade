@@ -79,6 +79,19 @@ class UI5Dashboard extends UI5Container
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * Include the filter header and its actions when the dashboard has a dynamic-page wrapper.
+     *
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetter()
+     */
+    public function buildJsDomElementGetter() : string
+    {
+        return '(document.getElementById(' . $this->escapeString($this->getId() . '_page') . ')'
+            . ' || ' . parent::buildJsDomElementGetter() . ')';
+    }
+
+    /**
      * Builds the tour menu and filter actions for the dashboard header.
      * @return string
      */
@@ -507,10 +520,17 @@ JS;
             || ($this->widgetHasTourGuide($this->getWidget()) && ! $this->getWidget()->hasParent());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @see UI5Container::buildJsPageWrapper()
+     */
     protected function buildJsPageWrapper(string $contentJs, string $footerConstructor = '', string $headerContentJs = '') : string
     {
         if ($this->isWrappedInDynamicPage()) {
             $dynamicPage = new UI5DynamicPage($this->getWidget(), $this->getFacade());
+            // The helper registers for the same widget; keep the dashboard as its facade element.
+            $this->getFacade()->registerElement($this);
             $dynamicPage->setController($this->getController());
             $dynamicPage->setContentJs($contentJs);
             $dynamicPage->setHeaderToolbarJs($this->buildJsHeaderButtons());

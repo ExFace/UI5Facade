@@ -329,8 +329,6 @@ JS;
             }
         }
         
-        $controller->addOnInitScript($this->buildJsWindowTourContent());
-        
         return $js;
     }
 
@@ -1910,6 +1908,25 @@ JS;
         return $this->getConfiguratorElement();
     }
     
+    /**
+     * {@inheritDoc}
+     *
+     * Return the outermost rendered container of the data widget: the dynamic-page
+     * wrapper (including filters), otherwise the panel, or finally the inner control.
+     * The inner control alone may have zero height and does not necessarily
+     * represent the visible bounds of the complete widget.
+     * Resolve the container in the browser when the expression is evaluated,
+     * since the wrappers may not exist before rendering.
+     *
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetter()
+     */
+    public function buildJsDomElementGetter() : string
+    {
+        return '(document.getElementById(' . $this->escapeString($this->getIdOfDynamicPage()) . ')'
+            . ' || document.getElementById(' . $this->escapeString($this->getId() . '_panel') . ')'
+            . ' || ' . parent::buildJsDomElementGetter() . ')';
+    }
+
     protected function getIdOfDynamicPage() : string
     {
         return $this->getId() . "_DynamicPageWrapper";

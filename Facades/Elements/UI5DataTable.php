@@ -3178,4 +3178,120 @@ JS;
         }
         return true;
     }
+    
+    /**
+     * {@inheritDoc}
+     *
+     * Returns an invisible overlay spanning the header cell and all rendered body cells of the column.
+     * 
+     * The overlay is positioned absolutely inside the content area of the `sap.ui.table.Table`
+     * (`.sapUiTableCnt`), so it moves together with the table when the page or a surrounding container
+     * scrolls. It is clipped to the visible part of the column - e.g. if the column is partially hidden
+     * behind the horizontal scrollbar of a narrow table.
+     * 
+     * Falls back to the whole widget if the column is unknown, hidden or not rendered by a `sap.ui.table`
+     * (e.g. responsive `sap.m.Table`).
+     *
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetterForColumn()
+     */
+    public function buildJsDomElementGetterForColumn(string $columnName) : string
+    {
+        $col = $this->getWidget()->getColumnByDataColumnName($columnName);
+        if ($col === null || ! $this->isUiTable()) {
+            return $this->buildJsDomElementGetter();
+        }
+        $colDomIdJs = $this->escapeString($this->getFacade()->getElement($col)->getId());
+        $boxIdJs = $this->escapeString($this->getId() . '_tourColumnFocus');
+        return <<<JS
+
+            (function() {
+                var domHead = document.getElementById({$colDomIdJs});
+                var domCnt = domHead ? $(domHead).closest('.sapUiTableCnt')[0] : null;
+                if (! domCnt || ! domHead.getClientRects().length) {
+                    return {$this->buildJsDomElementGetter()};
+                }
+                // Clip horizontally to the (fixed or scrollable) column area and vertically to the rows area
+                var rHead = domHead.getBoundingClientRect();
+                var rCnt = domCnt.getBoundingClientRect();
+                var domColArea = $(domHead).closest('.sapUiTableCtrlScr, .sapUiTableCtrlScrFixed')[0] || domCnt;
+                var rColArea = domColArea.getBoundingClientRect();
+                var domRows = domCnt.querySelector('.sapUiTableCtrlCnt');
+                var iRowsBottom = domRows ? domRows.getBoundingClientRect().bottom : rCnt.bottom;
+                var iBottom = rHead.bottom;
+                $(domCnt).find('td[data-sap-ui-colid="' + domHead.id + '"]').each(function() {
+                    iBottom = Math.max(iBottom, this.getBoundingClientRect().bottom);
+                });
+                var iLeft = Math.max(rHead.left, rColArea.left);
+                var iRight = Math.min(rHead.right, rColArea.right);
+                if (iRight <= iLeft) {
+                    return {$this->buildJsDomElementGetter()};
+                }
+                iBottom = Math.min(iBottom, iRowsBottom, rCnt.bottom);
+                
+                var domBox = document.getElementById({$boxIdJs});
+                if (! domBox) {
+                    domBox = $('<div id=' + JSON.stringify({$boxIdJs}) + ' class="exf-tour-column-focus" style="position:absolute;pointer-events:none"></div>')[0];
+                }
+                if (domBox.parentNode !== domCnt) {
+                    domCnt.appendChild(domBox);
+                }
+                // .sapUiTableCnt is position:relative, so coordinates are relative to its padding box
+                $(domBox).css({
+                    left: iLeft - rCnt.left - domCnt.clientLeft + domCnt.scrollLeft, 
+                    top: rHead.top - rCnt.top - domCnt.clientTop + domCnt.scrollTop, 
+                    width: iRight - iLeft, 
+                    height: Math.max(iBottom, rHead.bottom) - rHead.top
+                });
+                return domBox;
+            })()
+JS;
+    }
+    
+    /**
+     * {@inheritDoc}
+     *
+     * Returns the body cell of the column in the given 1-based data row of a `sap.ui.table.Table`.
+     * 
+     * The row number counts from the top of the loaded data (current page), not from the currently visible rows.
+     * If the row is not rendered, the table is scrolled to it via `setFirstVisibleRow()`.
+     * 
+     * Falls back to the column overlay if the row does not exist or is not rendered and to the whole widget if the
+     * column is unknown or the table is a responsive `sap.m.Table`.
+     *
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetterForCell()
+     */
+    public function buildJsDomElementGetterForCell(string $columnName, int $rowNumber) : string
+    {
+        $col = $this->getWidget()->getColumnByDataColumnName($columnName);
+        if ($col === null || ! $this->isUiTable()) {
+            return $this->buildJsDomElementGetter();
+        }
+        $colDomIdJs = $this->escapeString($this->getFacade()->getElement($col)->getId());
+        $rowIdx = $rowNumber - 1;
+        return <<<JS
+
+            (function() {
+                var domHead = document.getElementById({$colDomIdJs});
+                var domCnt = domHead ? $(domHead).closest('.sapUiTableCnt')[0] : null;
+                var oTable = sap.ui.getCore().byId('{$this->getId()}');
+                var oBinding = oTable ? oTable.getBinding('rows') : null;
+                var iIdx = {$rowIdx};
+                var domCell = null;
+                if (domCnt && oBinding && iIdx < oBinding.getLength()) {
+                    // Scroll the virtualized table if the row is not rendered at the moment
+                    var iFirst = oTable.getFirstVisibleRow();
+                    var iRendered = oTable.getRows().length;
+                    if (iIdx < iFirst || iIdx >= iFirst + iRendered) {
+                        oTable.setFirstVisibleRow(Math.max(0, Math.min(iIdx, oBinding.getLength() - iRendered)));
+                    }
+                    // Body cells of the column in rendering order - one per rendered row
+                    domCell = $(domCnt).find('.sapUiTableCtrlCnt td[data-sap-ui-colid="' + domHead.id + '"]')[iIdx - oTable.getFirstVisibleRow()] || null;
+                }
+                if (! domCell || ! domCell.getClientRects().length || $(domCell).closest('.sapUiTableRowHidden').length) {
+                    return {$this->buildJsDomElementGetterForColumn($columnName)};
+                }
+                return domCell;
+            })()
+JS;
+    }
 }
