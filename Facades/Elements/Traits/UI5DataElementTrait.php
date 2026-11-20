@@ -3053,7 +3053,7 @@ JS;
                                 }
 JS;
         }
-        $rowsSelectedJs = $this->buildJsGetRowsSelected("sap.ui.getCore().byId('{$this->getId()}')");
+        $rowsSelectedJs = $this->buildJsGetRowsSelected("sap.ui.getCore().byId('{$this->getId()}')", false);
         
         return <<<JS
 
@@ -3248,7 +3248,7 @@ JS;
             
             // Otherwise get the selected rows and proceed
             case $rowNr === null:
-                $rows = $this->buildJsGetRowsSelectedForValue('oTable');
+                $rows = $this->buildJsGetRowsSelected('oTable', false);
                 break;
             default:
                 throw new FacadeRuntimeError('Data row reference "' . $rowNr . '" not supported in UI5 facades!');
@@ -3302,35 +3302,20 @@ JS;
      * 
      * For single-select widget, this method must return an array with one or zero elements.
      * 
-     * If pagination is used, this method only returns the selections from the current page!
-     * Keeping selections on other pages (depending on `multi_select_saved_on_navigation`) is
-     * handled by syncing via selections model - see `buildJsDataLoaderOnLoadedRestoreSelection()` 
-     * and `buildJsToolbarSelectionCounter()` for more details.
+     * By default, only selected rows belonging to the current page are returned, including
+     * selections hidden in collapsed groups. Pass FALSE to include saved selections from
+     * other pages too, where supported by the widget.
+     *
+     * This is the logical selection, not necessarily the native control's selection.
+     * Selection reconciliation must read native control state before updating saved selections.
      * 
      * @see buildJsDataLoaderOnLoadedRestoreSelection()
      * 
      * @param string $oControlJs
+     * @param bool $onlyOnCurrentPage
      * @return string
      */
-    protected abstract function buildJsGetRowsSelected(string $oControlJs) : string;
-
-    /**
-     * Gets selected rows for live values and change detection, including saved selections on other pages.
-     *
-     * Native selection handling and restoration must continue using buildJsGetRowsSelected()
-     * so that off-page rows are not mistaken for selections in the current binding.
-     *
-     * @param string $oControlJs
-     * @return string
-     */
-    protected function buildJsGetRowsSelectedForValue(string $oControlJs) : string
-    {
-        $widget = $this->getDataWidget();
-        if ($widget instanceof DataTable && $widget->getMultiSelect() === true && $widget->isMultiSelectSavedOnNavigation()) {
-            return "{$oControlJs}.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
-        }
-        return $this->buildJsGetRowsSelected($oControlJs);
-    }
+    protected abstract function buildJsGetRowsSelected(string $oControlJs, bool $onlyOnCurrentPage = true) : string;
     
     /**
      * 
@@ -3414,7 +3399,7 @@ JS;
             if (
                 (function(){
                     var oControl = sap.ui.getCore().byId('{$this->getId()}');
-                    var aNewSelection = {$this->buildJsGetRowsSelectedForValue('oControl')};
+                    var aNewSelection = {$this->buildJsGetRowsSelected('oControl', false)};
                     var aOldSelection = oControl.data('exfPreviousSelection') || [];
                     var bNoChange = exfTools.data.compareData(aOldSelection, aNewSelection);
                     oControl.data('exfPreviousSelection', aNewSelection);

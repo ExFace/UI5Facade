@@ -578,7 +578,7 @@ JS;
      * 
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oCalJs) : string
+    protected function buildJsGetRowsSelected(string $oCalJs, bool $onlyOnCurrentPage = true) : string
     {
         return <<<JS
         function(){
