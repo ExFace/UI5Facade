@@ -556,6 +556,9 @@ JS;
                     {$this->getController()->getView()->buildJsViewGetter($this)}.destroy();
                     oDialog.destroy();
                 }
+                // Closing this dialog reveals the page underneath without running its show handlers again.
+                // Tell visible widgets to check whether a tour step requested a tour to continue there.
+                window.dispatchEvent(new Event('exf-tour-resume'));
             }
 		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
         {$this->buildJsPseudoEventHandlers()}
@@ -1073,15 +1076,19 @@ JS;
     /**
      * Returns the button constructors for the sap.m.Dialog buttons.
      * 
+     * @param bool $addSpacer
+     * @param bool $includeTourGuide Whether to include the tour menu in this button list.
      * @return string
      */
-    protected function buildJsDialogButtons(bool $addSpacer = true)
+    protected function buildJsDialogButtons(bool $addSpacer = true, bool $includeTourGuide = true)
     {
         $widget = $this->getWidget();
         $toolbarEl = $this->getFacade()->getElement($widget->getToolbarMain());
         
         $js = $toolbarEl->buildJsConstructorsForLeftButtons();
-        $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
+        if ($includeTourGuide) {
+            $js .= $this->buildJsTourGuideDropdown($widget, $this->getController());
+        }
         if ($addSpacer === true) {
             $js .= 'new sap.m.ToolbarSpacer(),';
         }

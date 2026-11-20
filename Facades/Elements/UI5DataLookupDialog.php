@@ -5,6 +5,12 @@ use exface\Core\Interfaces\Widgets\iHaveHeader;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Exceptions\Facades\FacadeRuntimeError;
 use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
+use exface\Core\CommonLogic\UxonObject;
+use exface\Core\Facades\AbstractAjaxFacade\Elements\JsTourSubrouteHostTrait;
+use exface\Core\Interfaces\Tours\TourSubrouteInterface;
+use exface\Core\Widgets\InputComboTable;
+use exface\Core\Widgets\Parts\Tours\InputComboTableSubroute;
+use exface\Core\Widgets\Parts\Tours\TourSubrouteStep;
 
 /**
  * Renders a sap.m.Dialog for a DataLookupDialog widget, which looks similar to the native UI5 ValueHelpDialog.
@@ -26,6 +32,8 @@ use exface\UI5Facade\Facades\Interfaces\UI5DataElementInterface;
  */
 class UI5DataLookupDialog extends UI5Dialog 
 {
+    use JsTourSubrouteHostTrait;
+    
     /**
      * 
      * {@inheritDoc}
@@ -50,7 +58,64 @@ class UI5DataLookupDialog extends UI5Dialog
             throw new FacadeRuntimeError('Cannot render lookup dialog "' . $this->getWidget()->getId() . '" - no columns found!');
         }
         
+        $combo = $dialog->getTriggerInputWidget();
+        if ($combo instanceof InputComboTable) {
+            $this->addTourSubrouteTours($combo);
+        }
+        
         return;
+    }
+    
+    /**
+     * Builds the steps explaining this dialog for the subroute of the input, that opened it.
+     * 
+     * The subroute step on the `InputComboTable` clicks its lookup button and auto-starts the tour
+     * with these steps. The last step clicks "Apply" and lets the original tour continue on the page.
+     * 
+     * Each text of the subroute may be `null` (use default text) or an empty string (skip the step).
+     * If the apply step is skipped, the tour ends in the dialog and does not return to the original tour.
+     * 
+     * {@inheritDoc}
+     * @see JsTourSubrouteHostTrait::buildTourSubrouteSteps()
+     */
+    protected function buildTourSubrouteSteps(TourSubrouteInterface $subroute) : array
+    {
+        if (! $subroute instanceof InputComboTableSubroute) {
+            return [];
+        }
+        $dialog = $this->getWidget();
+        $translator = $this->getWorkbench()->getCoreApp()->getTranslator();
+        $definitions = [
+            'HEADER' => [$subroute->getLookupHeader(), '.sapFDynamicPageHeader'],
+            'SEARCH_BUTTON' => [$subroute->getLookupSearchButton(), 'button:has(.sapMBtnEmphasized):not(.exf-dialog-close)'],
+            'TABLE' => [$subroute->getLookupTable(), '.sapUiTable, .sapMList']
+        ];
+        // The selection panel only exists for multi-select lookups.
+        if ($dialog->getMultiSelect() === true) {
+            $definitions['SELECTION'] = [$subroute->getLookupSelection(), '.sapMPanel:has(#' . $this->getIdOfSelectedTokensInput() . ')'];
+        }
+        $definitions['APPLY_BUTTON'] = [$subroute->getLookupApplyButton(), '.sapMDialogFooter button:has(.sapMBtnEmphasized)'];
+        
+        $steps = [];
+        foreach ($definitions as $key => [$body, $cssQuery]) {
+            if ($body === '') {
+                continue;
+            }
+            $uxon = [
+                'title' => $translator->translate('TOUR.SUBROUTE.LOOKUP.' . $key . '.TITLE'),
+                'body' => $body ?? $translator->translate('TOUR.SUBROUTE.LOOKUP.' . $key . '.BODY'),
+                'focus_css_query' => $cssQuery
+            ];
+            if ($key === 'APPLY_BUTTON') {
+                $uxon['on_next_step'] = ['browser_click' => 'left_click'];
+            }
+            $step = new TourSubrouteStep($dialog, new UxonObject($uxon));
+            if ($key === 'APPLY_BUTTON') {
+                $step->setReturningToTour(true);
+            }
+            $steps[] = $step;
+        }
+        return $steps;
     }
 
     /**
@@ -62,6 +127,9 @@ class UI5DataLookupDialog extends UI5Dialog
     {
         $widget = $this->getWidget();
         $icon = $widget->getIcon() ? 'icon: "' . $this->getIconSrc($widget->getIcon()) . '",' : '';
+        $leftButtonCount = count(array_filter($widget->getToolbarMain()->getButtons(), function($button) {
+            return ! in_array($button->getAlign(), [EXF_ALIGN_OPPOSITE, EXF_ALIGN_RIGHT], true);
+        }));
                     
         // If the dialog requires a prefill, we need to load the data once the dialog is opened.
         if ($this->needsPrefill()) {
@@ -100,11 +168,38 @@ JS      );
 			buttons : [ {$this->buildJsDialogButtons(false)} ],
 			content : [ {$this->buildJsDialogContent()} ],
             afterOpen: function (oEvent) {
+                var oTourDialog = oEvent.getSource();
+                // Keep normal buttons in Dialog.buttons; only the tour menu needs the toolbar.
+                // Remove the previous menu when reopening a cached dialog.
+                (oTourDialog.data('exfLookupTourMenus') || []).forEach(function(oControl) {
+                    oControl.destroy();
+                });
+                var aTourMenus = [{$this->buildJsTourGuideDropdown($widget, $this->getController())}];
+                oTourDialog.data('exfLookupTourMenus', aTourMenus);
+                aTourMenus.forEach(function(oControl, iIndex) {
+                    // Skip UI5's leading spacer and the left buttons to keep the usual group order.
+                    oTourDialog._getToolbar().insertContent(oControl, 1 + {$leftButtonCount} + iIndex);
+                });
+                
                 {$this->buildJsOnDialogAfterOpen('oEvent')}
+            },
+            afterClose: function () {
+                // Let the page underneath continue a pending tour after this lookup closes.
+                window.dispatchEvent(new Event('exf-tour-resume'));
             },
             {$prefill}
 		}).addStyleClass('{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}')
 JS;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5Dialog::buildJsDialogButtons()
+     */
+    protected function buildJsDialogButtons(bool $addSpacer = true, bool $includeTourGuide = false)
+    {
+        // A MenuButton cannot be in Dialog.buttons, so the lookup adds it separately.
+        return parent::buildJsDialogButtons($addSpacer, $includeTourGuide);
     }
 
     /**
