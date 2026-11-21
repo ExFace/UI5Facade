@@ -34,6 +34,351 @@ pre.sf-dump .sf-dump-private, pre.sf-dump .sf-dump-public, pre.sf-dump .sf-dump-
 /* make disabled inputs a little more vibrant */
 .sapMInputBaseDisabledWrapper>.sapMInputBaseInner {color: black;}
 
+/* Markian: theme both movable editors and UI5-hosted read-only viewers. */
+.markian.exf-ui5-markian,
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-viewer {
+    --markian-surface: var(--sapField_Background);
+    --markian-text: var(--sapField_TextColor);
+    --markian-muted: var(--sapContent_LabelColor);
+    --markian-line: var(--sapGroup_ContentBorderColor);
+    --markian-accent: var(--sapButton_Lite_TextColor);
+    --markian-soft: var(--sapButton_Lite_Hover_Background);
+    --markian-code: var(--sapBackgroundColor);
+    --markian-font: var(--sapFontFamily);
+    --markian-mono: var(--sapContent_MonospaceFontFamily);
+    --exf-markian-checkbox-size: 1.375rem;
+    --exf-markian-checkbox-icon-size: 1rem;
+}
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-viewer {
+    --markian-surface: transparent;
+    --markian-text: var(--sapTextColor);
+    --exf-markian-text-padding: 0;
+    font: var(--sapFontSize)/var(--sapContent_LineHeight) var(--sapFontFamily);
+}
+.markian.exf-ui5-markian {
+    --markian-button-size: var(--sapElement_Height);
+    --markian-toolbar-button-width: var(--sapElement_Height);
+    --markian-toolbar-button-height: var(--sapElement_Height);
+    --markian-toolbar-height: var(--sapElement_LineHeight);
+    --markian-toolbar-padding: 0 .5rem;
+    --markian-icon-size: var(--sapContent_IconHeight);
+    --markian-toolbar-icon-size: var(--sapContent_IconHeight);
+    --exf-markian-popup-font: var(--sapFontFamily);
+    --exf-markian-popup-hover-border: transparent;
+    --exf-markian-text-padding: .5rem .625rem .4375rem;
+    --exf-markian-field-shadow: var(--sapField_Shadow);
+    --exf-markian-field-background: var(--sapField_BackgroundStyle);
+    box-sizing: border-box;
+    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
+    border-radius: var(--sapField_BorderCornerRadius);
+    box-shadow: none;
+    font: var(--sapFontSize)/var(--sapContent_LineHeight) var(--sapFontFamily);
+}
+/* Horizon's inset border must paint above the opaque visual/source surfaces. */
+.markian.exf-ui5-markian::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: var(--exf-markian-field-shadow);
+    background: var(--exf-markian-field-background);
+}
+.sapUiSizeCompact .markian.exf-ui5-markian,
+.markian.exf-ui5-markian.sapUiSizeCompact {
+    --markian-button-size: var(--sapElement_Compact_Height);
+    --markian-toolbar-button-width: var(--sapElement_Compact_LineHeight);
+    --markian-toolbar-button-height: var(--sapElement_Compact_Height);
+    --markian-toolbar-height: var(--sapElement_Compact_LineHeight);
+    --exf-markian-checkbox-size: 1rem;
+    --exf-markian-checkbox-icon-size: .75rem;
+    --exf-markian-text-padding: .1875rem .5rem .125rem;
+}
+.sapUiSizeCompact :is(.exf-ui5-markdown, .exf-ui5-markian) .markian-viewer,
+.exf-ui5-markian.sapUiSizeCompact .markian-viewer {
+    --exf-markian-checkbox-size: 1rem;
+    --exf-markian-checkbox-icon-size: .75rem;
+}
+html[class*="sapUiTheme-sap_fiori_3"] .markian.exf-ui5-markian {
+    --exf-markian-text-padding: calc(.5rem - var(--sapField_BorderWidth)) calc(.625rem - var(--sapField_BorderWidth));
+}
+html[class*="sapUiTheme-sap_fiori_3"] .sapUiSizeCompact .markian.exf-ui5-markian,
+html[class*="sapUiTheme-sap_fiori_3"] .markian.exf-ui5-markian.sapUiSizeCompact {
+    --exf-markian-text-padding: calc(.1875rem - var(--sapField_BorderWidth)) calc(.5rem - var(--sapField_BorderWidth));
+}
+.markian.exf-ui5-markian:hover:not([data-readonly="true"]):not([aria-invalid="true"]) {
+    border-color: var(--sapField_Hover_BorderColor);
+    --exf-markian-field-shadow: var(--sapField_Hover_Shadow);
+    --exf-markian-field-background: var(--sapField_Hover_BackgroundStyle);
+}
+.markian.exf-ui5-markian[data-readonly="true"] {
+    --exf-markian-field-background: var(--sapField_ReadOnly_BackgroundStyle);
+}
+.markian.exf-ui5-markian:focus-within {
+    border-color: var(--sapField_Focus_BorderColor);
+}
+.markian.exf-ui5-markian:focus-within:not([data-readonly="true"]):not([aria-invalid="true"]) {
+    --exf-markian-field-background: var(--sapField_BackgroundStyle);
+}
+.markian.exf-ui5-markian:focus-within::after {
+    outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+    outline-offset: -.1875rem;
+}
+.markian.exf-ui5-markian[aria-invalid="true"] {
+    border-color: var(--sapField_InvalidColor);
+    --exf-markian-field-shadow: var(--sapField_InvalidShadow);
+    --exf-markian-field-background: var(--sapField_InvalidBackgroundStyle);
+}
+:is(.exf-ui5-markian, .exf-ui5-markdown) .markian-document {
+    padding: var(--exf-markian-text-padding);
+    font-family: var(--markian-font);
+    font-size: var(--sapFontSize);
+    line-height: var(--sapContent_LineHeight);
+    color: var(--markian-text);
+    background: var(--markian-surface);
+}
+:is(.exf-ui5-markian, .exf-ui5-markdown) .markian-document a {color: var(--sapLinkColor);}
+:is(.exf-ui5-markian, .exf-ui5-markdown) .markian-document pre,
+:is(.exf-ui5-markian, .exf-ui5-markdown) .markian-document code {
+    font-family: var(--markian-mono);
+    background-color: var(--markian-code);
+}
+.exf-ui5-markian .cm-scroller {
+    font-family: var(--markian-mono);
+    font-size: var(--sapFontSize);
+    line-height: var(--sapContent_LineHeight);
+}
+.exf-ui5-markian .cm-content {padding: var(--exf-markian-text-padding);}
+.exf-ui5-markian .cm-line {padding-inline: 0;}
+.exf-ui5-markian .markian-button,
+.exf-ui5-markian .markian-menu > summary {
+    border-radius: var(--sapButton_BorderCornerRadius);
+    color: var(--sapButton_Lite_TextColor);
+    font: inherit;
+}
+.exf-ui5-markian .markian-button:disabled {opacity: var(--sapContent_DisabledOpacity);}
+.exf-ui5-markian .markian-toolbar,
+.exf-ui5-markian .markian-floating {
+    --exf-markian-hover-border: transparent;
+}
+html[class*="sapUiTheme-sap_fiori_3"] .exf-ui5-markian .markian-toolbar,
+html[class*="sapUiTheme-sap_fiori_3"] .exf-ui5-markian .markian-floating {
+    --exf-markian-hover-border: var(--sapButton_Lite_Hover_BorderColor);
+}
+.exf-ui5-markian :is(.markian-toolbar, .markian-floating) > .markian-button,
+.exf-ui5-markian .markian-toolbar > .markian-menu > summary {
+    border: .0625rem solid var(--sapButton_Lite_BorderColor);
+    background: var(--sapButton_Lite_Background);
+}
+.exf-ui5-markian .markian-toolbar > .markian-menu[open] > summary {
+    background: var(--markian-soft);
+}
+.exf-ui5-markian :is(.markian-toolbar, .markian-floating) > .markian-button:hover:not(:disabled):not([aria-pressed="true"]),
+.exf-ui5-markian .markian-toolbar > .markian-menu > summary:hover {
+    border-color: var(--exf-markian-hover-border);
+    background: var(--sapButton_Lite_Hover_Background);
+    color: var(--sapButton_Lite_Hover_TextColor);
+}
+.exf-ui5-markian .markian-button:focus-visible,
+.exf-ui5-markian .markian-menu > summary:focus-visible {
+    outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+    outline-offset: -.1875rem;
+}
+.exf-ui5-markian .markian-button[aria-pressed="true"],
+.exf-ui5-markian .markian-menu-items > .markian-button[aria-selected="true"] {
+    background: var(--sapButton_Selected_Background);
+    color: var(--sapButton_Selected_TextColor);
+}
+.exf-ui5-markian .markian-menu-items,
+.exf-ui5-markian .markian-floating,
+.exf-ui5-markian .markian-search,
+.exf-ui5-markian .markian-destination {
+    border-radius: var(--sapPopover_BorderCornerRadius);
+    box-shadow: var(--sapContent_Shadow1);
+}
+.exf-ui5-markian .markian-panel input:not([type="checkbox"]),
+.exf-ui5-markian .markian-panel select {
+    height: var(--markian-button-size);
+    min-height: var(--markian-button-size);
+    padding: var(--exf-markian-text-padding);
+    border: var(--sapField_BorderWidth) var(--sapField_BorderStyle) var(--sapField_BorderColor);
+    border-radius: var(--sapField_BorderCornerRadius);
+    box-shadow: var(--sapField_Shadow);
+    font-size: var(--sapFontSize);
+    color: var(--sapField_TextColor);
+    background-color: var(--sapField_Background);
+    outline: none;
+}
+.exf-ui5-markian .markian-panel :is(input:not([type="checkbox"]), select):hover:not(:disabled):not([readonly]) {
+    border-color: var(--sapField_Hover_BorderColor);
+    background-color: var(--sapField_Hover_Background);
+    box-shadow: var(--sapField_Hover_Shadow);
+}
+.exf-ui5-markian .markian-panel input:not([type="checkbox"]) {
+    background: var(--sapField_BackgroundStyle);
+    background-color: var(--sapField_Background);
+}
+.exf-ui5-markian .markian-panel input:not([type="checkbox"]):hover:not(:focus):not(:disabled):not([readonly]) {
+    background: var(--sapField_Hover_BackgroundStyle);
+    background-color: var(--sapField_Hover_Background);
+}
+.exf-ui5-markian .markian-panel :is(input:not([type="checkbox"]), select):focus-visible {
+    outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+    outline-offset: -.1875rem;
+    background-color: var(--sapField_Focus_Background);
+}
+.exf-ui5-markian .markian-panel :is(input:not([type="checkbox"]), select):disabled {
+    opacity: var(--sapContent_DisabledOpacity);
+    cursor: default;
+}
+.exf-ui5-markian .markian-panel input[readonly] {
+    border-color: var(--sapField_ReadOnly_BorderColor);
+    background: var(--sapField_ReadOnly_BackgroundStyle);
+    background-color: var(--sapField_ReadOnly_Background);
+}
+.exf-ui5-markian .markian-panel input::placeholder {color: var(--sapField_PlaceholderTextColor);}
+.exf-ui5-markian .markian-panel label {
+    font-size: var(--sapFontSize);
+    color: var(--sapContent_LabelColor);
+}
+.exf-ui5-markian .markian-panel label:has(select) {position: relative;}
+.exf-ui5-markian .markian-panel select {
+    appearance: none;
+    padding-inline-end: 2rem;
+    cursor: pointer;
+}
+.exf-ui5-markian .markian-panel label:has(select)::after {
+    content: "\e1ef";
+    position: absolute;
+    inset-inline-end: .625rem;
+    bottom: calc((var(--markian-button-size) - 1rem) / 2);
+    font: 1rem/1 var(--sapContent_IconFontFamily);
+    color: var(--sapField_TextColor);
+    pointer-events: none;
+}
+.exf-ui5-markian .markian-panel label:has(input[type="checkbox"]) {
+    min-height: var(--markian-toolbar-height);
+    gap: .5rem;
+    cursor: pointer;
+}
+.exf-ui5-markian .markian-panel input[type="checkbox"],
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"] {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    flex: 0 0 var(--exf-markian-checkbox-size);
+    order: -1;
+    width: var(--exf-markian-checkbox-size);
+    height: var(--exf-markian-checkbox-size);
+    margin: 0;
+    padding: 0;
+    border: var(--sapField_BorderWidth) solid var(--sapField_BorderColor);
+    border-radius: var(--sapField_BorderCornerRadius);
+    background: var(--sapField_Background);
+    color: var(--sapSelectedColor);
+    cursor: inherit;
+}
+.exf-ui5-markian .markian-panel input[type="checkbox"]:checked::before,
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"]:checked::before {
+    content: "\e05b";
+    font: var(--exf-markian-checkbox-icon-size)/1 var(--sapContent_IconFontFamily);
+    color: inherit;
+}
+.exf-ui5-markian .markian-panel input[type="checkbox"]:indeterminate::before,
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"]:indeterminate::before {
+    content: "";
+    width: .5rem;
+    height: .125rem;
+    background: currentColor;
+}
+.exf-ui5-markian .markian-panel input[type="checkbox"]:focus-visible,
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"]:focus-visible {
+    outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+    outline-offset: .125rem;
+}
+.exf-ui5-markian .markian-panel input[type="checkbox"]:disabled {
+    opacity: var(--sapContent_DisabledOpacity);
+    cursor: default;
+}
+.exf-ui5-markian .markian-panel label:has(input[type="checkbox"]:disabled) {cursor: default;}
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document .task-list-item {
+    position: relative;
+    padding-inline-start: .25rem;
+}
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"] {
+    position: absolute;
+    font: inherit;
+    top: calc((1em * var(--sapContent_LineHeight) - var(--exf-markian-checkbox-size)) / 2);
+    left: auto;
+    inset-inline-start: calc(-1 * var(--exf-markian-checkbox-size) - .25rem);
+    opacity: 1;
+    cursor: pointer;
+}
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"]:disabled {
+    cursor: default;
+}
+:is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document .task-list-item > p:first-child {
+    margin-block-start: 0;
+}
+html[class*="sapUiTheme-sap_horizon"] .exf-ui5-markian {
+    --exf-markian-popup-font: var(--sapFontSemiboldDuplexFamily);
+}
+html[class*="sapUiTheme-sap_fiori_3"] .exf-ui5-markian {
+    --exf-markian-popup-hover-border: var(--sapButton_Lite_Hover_BorderColor);
+}
+html[class*="sapUiTheme-sap_horizon"] .exf-ui5-markian .markian-panel label:has(input[type="checkbox"]) {
+    color: var(--sapTextColor);
+}
+html[class*="sapUiTheme-sap_horizon"] .exf-ui5-markian .markian-panel label:hover input[type="checkbox"]:not(:disabled),
+html[class*="sapUiTheme-sap_horizon"] :is(.exf-ui5-markdown, .exf-ui5-markian) .markian-document :is(li[data-item-type="task"], .task-list-item) input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--sapField_Hover_BorderColor);
+    background: var(--sapContent_Selected_Hover_Background);
+}
+.exf-ui5-markian .markian-menu-items:not(:has(> .markian-swatch)) {
+    padding: .25rem;
+    background: var(--sapGroup_ContentBackground);
+    border-color: var(--sapGroup_ContentBorderColor);
+}
+.exf-ui5-markian .markian-menu-items > .markian-button:not(.markian-swatch),
+.exf-ui5-markian .markian-menu-items > .markian-menu > summary {
+    min-height: var(--markian-button-size);
+    padding: 0 .5rem;
+    gap: .5rem;
+    border: .0625rem solid var(--sapButton_Lite_BorderColor);
+    font-family: var(--exf-markian-popup-font);
+    font-size: var(--sapFontSize);
+    line-height: var(--sapContent_LineHeight);
+    background: var(--sapButton_Lite_Background);
+}
+.exf-ui5-markian .markian-menu-items > .markian-button:not(.markian-swatch):hover:not(:disabled),
+.exf-ui5-markian .markian-menu-items > .markian-menu > summary:hover {
+    border-color: var(--exf-markian-popup-hover-border);
+    background: var(--sapButton_Lite_Hover_Background);
+    color: var(--sapButton_Lite_Hover_TextColor);
+}
+.exf-ui5-markian .markian-menu-items > .markian-button:is([aria-pressed="true"], [aria-selected="true"]) {
+    border-color: var(--sapButton_Selected_BorderColor);
+    background: var(--sapButton_Selected_Background);
+    color: var(--sapButton_Selected_TextColor);
+}
+.exf-ui5-markian .markian-menu-items > .markian-button:is([aria-pressed="true"], [aria-selected="true"]):hover:not(:disabled) {
+    border-color: var(--sapButton_Selected_Hover_BorderColor);
+    background: var(--sapButton_Selected_Hover_Background);
+}
+.exf-ui5-markian .markian-panel-actions > button:not(.markian-button) {
+    min-height: var(--markian-button-size);
+    border: .0625rem solid var(--sapButton_BorderColor);
+    border-radius: var(--sapButton_BorderCornerRadius);
+    color: var(--sapButton_TextColor);
+    background: var(--sapButton_Background);
+    font: inherit;
+}
+.exf-ui5-markian .markian-status,
+.exf-ui5-markian .markian-code-status,
+.exf-ui5-markian .markian-outline-title,
+.exf-ui5-markian .markian-outline button {font-size: var(--sapFontSmallSize);}
+
 /* RangeSpinnerFilter */
 .exf-spinner-filter > div {margin-right: 4px !important}
 .exf-spinner-filter > div:last-of-type {margin-right: 0 !important; overflow: hidden}
@@ -131,6 +476,9 @@ html.sapUiMedia-Std-Phone .exf-tiles > .sapMPanelContent {padding-left: 0; paddi
 .exf-panel.exf-form-mixed-width .sapUiRespGridMedia-Std-Tablet.sapUiRespGridHSpace0>.sapUiRespGridSpanM12 {padding: 0 0.75rem; box-sizing: border-box;}
 .exf-panel.exf-form-mixed-width .sapUiRespGrid {padding-right: 0; padding-left: 0;}
 .sapUiRespGrid > div > .sapMMsgStrip {margin: 0px !important;}
+.sapUiFormResGridMain > div:last-child .sapUiFormResGridCont:has(> div:last-child > .exf-ui5-markdown:last-child) {
+    padding-bottom: 0;
+}
 
 /* HTML widgets */
 .exf-html {font-size: 0.875rem;}
