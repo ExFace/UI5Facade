@@ -12,6 +12,14 @@ highlighting; Mermaid fences use the optional Markian editor/viewer extensions
 with `LIBS.PELE.JS`. Display-only pages do not load the editor bundle.
 `LIBS.MERMAID.JS` remains available for unrelated UI5 integrations.
 
+Editor labels, menus and Help follow the current session language.
+`LIBS.MARKIAN.TRANSLATIONS` points to the vendor-relative dictionary directory
+(`axenox/markian/Translations/` by default). The session locale is reduced to its
+language using `LocaleDataType`, so `de_DE` loads only `de.json` when it exists.
+English is embedded and is never requested; unavailable translations retain English.
+Selected file loading errors still fail editor readiness. Changing locale requires
+a new editor instance. Viewer content and saved Markdown are not translated.
+
 The native `exface.ui5Custom.Markdown` control owns value bindings, conditional
 enabled/required states and validation. Model loads do not fire user-change
 events. Value-bound tooltip changes update the host directly without rebuilding
