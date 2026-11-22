@@ -275,13 +275,5 @@
       "license_file": ["exface/ui5facade/Facades/js_openui5/LICENSE.txt"],
       "description": "SAP OpenUI5 Horizon theme",
       "homepage": "https://openui5.org/"
-    },
-    {
-      "name": "npm-asset/mermaid",
-      "version": "12.2.0",
-      "license": ["MIT"],
-      "license_file": "exface/ui5facade/Facades/js/mermaid/LICENSE.txt",
-      "description": "Generation of diagrams like flowcharts or sequence diagrams from text in a similar manner as markdown",
-      "homepage": "https://mermaid.js.org/"
     }
 ]

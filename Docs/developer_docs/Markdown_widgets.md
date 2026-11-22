@@ -10,7 +10,6 @@ together. Remove installation/user overrides of `LIBS.TOASTUI.EDITOR.JS` and
 Asset URLs are configured by `LIBS.MARKIAN.*`. The Code extension supplies syntax
 highlighting; Mermaid fences use the optional Markian editor/viewer extensions
 with `LIBS.PELE.JS`. Display-only pages do not load the editor bundle.
-`LIBS.MERMAID.JS` remains available for unrelated UI5 integrations.
 
 Editor labels, menus and Help follow the current session language.
 `LIBS.MARKIAN.TRANSLATIONS` points to the vendor-relative dictionary directory
