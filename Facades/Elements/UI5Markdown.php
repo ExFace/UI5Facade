@@ -1,137 +1,41 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Facades\AbstractAjaxFacade\Elements\ToastUIEditorTrait;
+use exface\UI5Facade\Facades\Elements\Traits\UI5MarkianTrait;
 
 /**
- * Renders Markdown widgets as sap.ui.core.HTML with ToastUI Editor in viewer mode inside
- * 
- * @method \exface\Core\Widgets\Markdown getWidget()
+ * Renders Markdown with Markian's independent, sanitized viewer.
  *
- * @author Andrej Kabachnik
- *        
+ * @method \exface\Core\Widgets\Markdown getWidget()
  */
 class UI5Markdown extends UI5Value
 {
-    use ToastUIEditorTrait;
-    
-    protected function init()
-    {
-        parent::init();
-
-        // Make sure to register the controller var as early as possible because it is needed in buildJsValidator(),
-        // which is called by the outer Dialog or Form widget
-        $this->getController()->addDependentObject('editor', $this, 'null');
-    }
-    
+    use UI5MarkianTrait;
 
     /**
-     *
      * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5Text::buildJsConstructorForMainControl()
+     * @see UI5Value::buildJsConstructorForMainControl()
      */
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
-        $this->addOnChangeScript(<<<JS
-
-            (function(sVal){
-                sap.ui.getCore().byId('{$this->getId()}').getModel().setProperty('{$this->getValueBindingPath()}', sVal);
-            })({$this->buildJsValueGetter()})
-JS);
         return <<<JS
-
-        new sap.ui.core.HTML("{$this->getId()}", {
-            content: {$this->escapeString("<div class=\"{$this->buildCssElementClass()} {$this->buildCssWidgetClass()}\" style=\"height:{$this->buildCssHeight()}\"> {$this->buildHtmlMarkdownEditor()} </div>")},
-            afterRendering: function(oEvent) {
-                // The editor value is baked into the ToastUI instance via `initialValue` at creation time.
-                // sap.ui.core.HTML preserves its DOM in the UI5 preserve area keyed by control id. Notification
-                // dialogs share the same control id, so when a different notification is opened, UI5 restores the
-                // previous (already destroyed) editor's DOM into this control. 
-                //
-                // {$this->buildJsMarkdownVar()} holds the live editor instance for THIS controller. After a
-                // non-cacheable dialog is reopened the controller is fresh and this is null, which reliably tells
-                // us that any editor DOM currently present belongs to a previous control and must be discarded.
-                // We therefore rebuild the editor whenever there is no live instance (or the DOM was disrupted),
-                // clearing leftover DOM first so the correct baked value is rendered.
-                var oExistingEditor = {$this->buildJsMarkdownVar()};
-                if (! oExistingEditor || ($('#{$this->getId()}').find('.toastui-editor-contents').length === 0)) {
-                    $('#{$this->getId()}').empty();
-                    {$this->buildJsMarkdownVar()} = {$this->buildJsMarkdownInitEditor()};
-                }
-                
-                var oHtml = sap.ui.getCore().byId('{$this->getId()}');
-                if (oHtml && "_toastUiBinding" in oHtml && oHtml._toastUiBinding) {
-                    return;
-                }
-                
-                var oModel = oHtml.getModel();
-                if(oModel !== undefined) {
-                    var sBindingPath = '{$this->getValueBindingPath()}';
-                    var oValueBinding = new sap.ui.model.Binding(oModel, sBindingPath, oModel.getContext(sBindingPath));
-                    
-                    oValueBinding.attachChange(function(oEvent){
-                        setTimeout(function(){
-                            var sVal = oModel.getProperty(sBindingPath);
-                            // Do not update if the model does not have this property
-                            if (sVal === undefined) {
-                                return;
-                            }
-                            {$this->buildJsValueSetter("sVal")}
-                        }, 0);
-                    });
-                }
-                
-                oHtml._toastUiBinding = true;
-            }
-        })
+new exface.ui5Custom.Markdown({$this->escapeString($this->getId())}, {
+    {$this->buildJsProperties()}
+    {$this->buildJsPropertyWidth()}
+    {$this->buildJsPropertyHeight()}
+    value: {$this->buildJsMarkdownValue()},
+    viewer: true
+}).setEditorConfig({$this->buildJsMarkdownConfig()})
 JS;
     }
 
-    protected function buildJsMarkdownInitEditor(bool $isViewer = false) : string
-    {
-        return $this->buildJsMarkdownInitViewer();
-    }
-
     /**
-     *
      * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::registerExternalModules()
-     */
-    public function registerExternalModules(\exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface $controller) : UI5AbstractElement
-    {
-        $controller->addExternalModule('libs.exface.toastUi', $this->getFacade()->buildUrlToSource('LIBS.TOASTUI.EDITOR.JS'), 'toastui');
-        $controller->addExternalCss($this->getFacade()->buildUrlToSource('LIBS.TOASTUI.EDITOR.CSS'));
-        if ($this->getWidget()->hasRenderMermaidDiagrams()) {
-            $controller->addExternalModule('libs.exface.mermaid', $this->getFacade()->buildUrlToSource('LIBS.MERMAID.JS'), 'mermaid');
-        }
-        return $this;
-    }
-
-    /**
-     *
-     * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5Input::getHeight()
+     * @see UI5Value::getHeight()
      */
     public function getHeight()
     {
-        if ($this->getWidget()->getHeight()->isUndefined()) {
-            return "'auto'";
-        }
-        return parent::getHeight();
-    }
-
-    /**
-     *
-     * @return string
-     */
-    protected function buildJsMarkdownVar() : string
-    {
-        return $this->getController()->buildJsDependentObjectGetter('editor', $this);
-    }
-
-    protected function buildJsImageDataSanitizer(string $value) : string
-    {
-        return '';
+        return $this->getWidget()->getHeight()->isUndefined() ? 'auto' : parent::getHeight();
     }
 }

@@ -612,7 +612,7 @@ JS;
 
             const oTable = $oEventJs.getSource();
             const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
-            var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aRowsSelectedVisible = {$this->buildJsGetRowsSelectedInBinding('oTable')};
             
             // Persist the selected row so it can be restored after a reload (e.g. the refresh
             // performed after an Edit/Save action) - see buildJsDataLoaderOnLoadedRestoreSelection().
@@ -659,7 +659,7 @@ JS;
             const sUidCol = {$uidColJs};
             var aRowsVisible = [];
             var aRowsMerged = [];
-            var aRowsSelectedVisible = {$this->buildJsGetRowsSelected('oTable')};
+            var aRowsSelectedVisible = {$this->buildJsGetRowsSelectedInBinding('oTable')};
             var aSelected = null;
             
             // Ignore programmatic selection clears caused by data reloads (e.g. the refresh
@@ -1491,11 +1491,7 @@ JS;
                 
             // In all other cases the data are the selected rows
             default:
-                if (($widget instanceof iSupportMultiSelect) && $widget->getMultiSelect() === true) {
-                    $aRowsJs = "oTable.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
-                } else {
-                    $aRowsJs = $this->buildJsGetRowsSelected('oTable');
-                }
+                $aRowsJs = $this->buildJsGetRowsSelected('oTable', false);
                 
         }
         
@@ -1644,7 +1640,7 @@ JS;
                 setTimeout(function(oTable) {
                     const oModelSelected = oTable.getModel('{$this->getModelNameForSelections()}');
                     const aPrevSelectedRows = oModelSelected.getProperty('/rows');
-                    const aNowSelectedRows = {$this->buildJsGetRowsSelected($oTableJs, true)};
+                    const aNowSelectedRows = {$this->buildJsGetRowsSelectedInBinding($oTableJs)};
                     const aRows = {$this->buildJsGetRowsAll($oTableJs)};
                     const sUidCol = $uidColJs;
                     const fnSelect = function(iRowIdx) {
@@ -1712,10 +1708,42 @@ JS;
     }
     
     /**
-     * 
+     * {@inheritDoc}
+     *
      * @see UI5DataElementTrait::buildJsGetRowsSelected()
      */
-    protected function buildJsGetRowsSelected(string $oTableJs) : string
+    protected function buildJsGetRowsSelected(string $oControlJs, bool $onlyOnCurrentPage = true) : string
+    {
+        $widget = $this->getWidget();
+        if ($widget->getMultiSelect() === false) {
+            return $this->buildJsGetRowsSelectedInBinding($oControlJs);
+        }
+
+        $rowsSelectedJs = "{$oControlJs}.getModel('{$this->getModelNameForSelections()}').getProperty('/rows')";
+        if ($onlyOnCurrentPage === false) {
+            return $rowsSelectedJs;
+        }
+
+        $uidColJs = $widget->hasUidColumn() ? $this->escapeString($widget->getUidColumn()->getDataColumnName()) : 'null';
+        return <<<JS
+        (function(aSelectedRows, aPageRows) {
+            return aSelectedRows.filter(function(oRow) {
+                return exfTools.data.indexOfRow(aPageRows, oRow, {$uidColJs}) !== -1;
+            });
+        })({$rowsSelectedJs}, {$this->buildJsGetRowsAll($oControlJs)})
+JS;
+    }
+
+    /**
+     * Reads native control selection before reconciling it with saved logical selections.
+     *
+     * Unlike buildJsGetRowsSelected(), this excludes rows unreachable in the current binding,
+     * including selections hidden inside collapsed groups.
+     *
+     * @param string $oTableJs
+     * @return string
+     */
+    protected function buildJsGetRowsSelectedInBinding(string $oTableJs) : string
     {
         if ($this->isUiTable()) {
             if($this->getWidget()->getMultiSelect() === false) {
@@ -3016,7 +3044,7 @@ JS;
                                 oTable.setSelectedItem(oItem, selected);
                             }
                         }                        
-                        var exfSelection = {$this->buildJsGetRowsSelected('oTable')};
+                        var exfSelection = {$this->buildJsGetRowsSelectedInBinding('oTable')};
                         oTable.data('exfPreviousSelection', exfSelection);
                     } else {
                         var error = "Data Column '{$syncDataColumnName}' not found in data columns for widget '{$widget->getId()}'!";

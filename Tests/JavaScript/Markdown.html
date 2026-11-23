@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>UI5 Markian binding regressions</title>
+    <link rel="stylesheet" href="../../../../axenox/markian/dist/markian.css">
+    <link rel="stylesheet" href="../../../../axenox/markian/dist/markian-viewer.css">
+    <link rel="stylesheet" href="../../../../axenox/markian/dist/extensions/code.css">
+    <link rel="stylesheet" href="../../../../axenox/markian/dist/extensions/viewer-mermaid.css">
+    <link rel="stylesheet" href="../../Facades/js/openui5.template.css">
+    <script id="sap-ui-bootstrap"
+        src="../../Facades/js_openui5/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-libs="sap.m"
+        data-sap-ui-async="true"
+        data-sap-ui-resourceroots='{
+            "exface.ui5Custom": "../../Facades/js/ui5Custom",
+            "libs.exface.markian.bridge": "../../../core/Facades/AbstractAjaxFacade/js/markian/MarkianAdapter",
+            "libs.exface.markian.editor": "../../../../axenox/markian/dist/markian.min",
+            "libs.exface.markian.viewer": "../../../../axenox/markian/dist/markian-viewer.min",
+            "libs.exface.markian.code": "../../../../axenox/markian/dist/extensions/code.min",
+            "libs.exface.markian.viewerMermaid": "../../../../axenox/markian/dist/extensions/viewer-mermaid.min"
+        }'></script>
+</head>
+<body class="sapUiBody">
+    <div id="fixtures"></div>
+</body>
+</html>
