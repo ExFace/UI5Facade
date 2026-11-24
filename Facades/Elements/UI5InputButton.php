@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\Widgets\Input;
 
 /**
@@ -110,28 +113,49 @@ JS;
 JS;
     }
     
-    public function buildJsValueGetter(string $dataColumnName = null, string $iRowJs = null)
+    /**
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::validateValueGetterCoordinate()
+     */
+    protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
+        if ($coord->hasAggregator() || ($coord->getRowCoordinate() !== null && !$coord->isTargetingRowNumber())) {
+            throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Only numbered rows without aggregation are supported for UI5 input button coordinates!');
+        }
+        if ($coord->isTargetingRowNumber()
+            && ($coord->getColumnCoordinate() === null || $coord->getColumnCoordinate() === $this->getWidget()->getDataColumnName())) {
+            parent::validateValueGetterCoordinate($coord);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
+    {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
+        $dataColumnName = $coord->getColumnCoordinate();
         $widget = $this->getWidget();
         
         if ($dataColumnName === null || $dataColumnName === '' || $dataColumnName === $widget->getDataColumnName()) {
-            return parent::buildJsValueGetter();
+            return parent::buildJsValueGetter($coord);
         }
         
-        if ($iRowJs === null) {
-            $iRowJs = '0';
-        }
+        $iRowJs = $coord->getRowCoordinate() ?? 0;
+        $columnJs = $this->escapeString($dataColumnName);
         
         return <<<JS
 
 function(sColName, iRowIdx){
     var aData = sap.ui.getCore().byId('{$this->getId()}').getModel('action_result').getData().data;
-    if (aData !== undefined && aData.length > 0) {
+    if (aData !== undefined && aData[iRowIdx] !== undefined) {
         return aData[iRowIdx][sColName];
     } else {
         return '';
     }
-}('$dataColumnName', $iRowJs)
+}({$columnJs}, $iRowJs)
 JS;
     }
 }

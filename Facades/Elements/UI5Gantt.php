@@ -1647,8 +1647,12 @@ JS;
             $leftExpr = $condition->getValueLeftExpression();
             if ($leftExpr->isReference() === true) {
                 $leftLink = $leftExpr->getWidgetLink($widget);
-                if ($leftLink->getTargetWidget() === $widget) {
-                    $leftJs = "{$oRowJs}['{$leftLink->getTargetColumnId()}']";
+                $coord = $leftLink->getTargetCoordinate();
+                if ($leftLink->getTargetWidget() === $widget && $coord !== null && $coord->getRowCoordinate() === null && !$coord->hasAggregator()) {
+                    $column = $coord->findColumn($widget);
+                    if ($column !== null) {
+                        $leftJs = "{$oRowJs}[" . $this->escapeString($column->getDataColumnName()) . "]";
+                    }
                 }
             }
             if ($leftJs === null) {
@@ -1659,8 +1663,12 @@ JS;
             $rightExpr = $condition->getValueRightExpression();
             if ($rightExpr->isReference() === true) {
                 $rightLink = $rightExpr->getWidgetLink($widget);
-                if ($rightLink->getTargetWidget() === $widget) {
-                    $rightJs = "{$oRowJs}['{$rightLink->getTargetColumnId()}']";
+                $coord = $rightLink->getTargetCoordinate();
+                if ($rightLink->getTargetWidget() === $widget && $coord !== null && $coord->getRowCoordinate() === null && !$coord->hasAggregator()) {
+                    $column = $coord->findColumn($widget);
+                    if ($column !== null) {
+                        $rightJs = "{$oRowJs}[" . $this->escapeString($column->getDataColumnName()) . "]";
+                    }
                 }
             }
             if ($rightJs === null) {
@@ -1676,9 +1684,9 @@ JS;
                     $targetWidget = $rightExpr->getWidgetLink()->getTargetWidget();
                     if (($targetWidget instanceof iShowSingleAttribute) && $targetWidget->isBoundToAttribute()) {
                         $delim = $targetWidget->getAttribute()->getValueListDelimiter();
-                    } elseif ($targetWidget instanceof iHaveColumns && $colName = $rightExpr->getWidgetLink()->getTargetColumnId()) {
-                        $targetCol = $targetWidget->getColumnByDataColumnName($colName);
-                        if ($targetCol->isBoundToAttribute() === true) {
+                    } elseif ($targetWidget instanceof iHaveColumns && $coord = $rightExpr->getWidgetLink()->getTargetCoordinate()) {
+                        $targetCol = $coord->findColumn($targetWidget);
+                        if ($targetCol !== null && $targetCol->isBoundToAttribute() === true) {
                             $delim = $targetCol->getAttribute()->getValueListDelimiter();
                         }
                     }

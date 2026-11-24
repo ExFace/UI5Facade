@@ -438,11 +438,11 @@ JS;
                 /* @var $cond ConditionalPropertyCondition */
                 $expr = $cond->getValueLeftExpression();
                 if ($expr->isReference() && $expr->getWidgetLink($widget)->getTargetWidget() !== $widget) {
-                    $facade->getElement($expr->getWidgetLink($widget)->getTargetWidget())->addOnChangeScript("setTimeout(function(){ {$revalidateJs} }, 0);");
+                    $this->addOnWidgetLinkChangeScript($expr->getWidgetLink($widget), "setTimeout(function(){ {$revalidateJs} }, 0);");
                 }
                 $expr = $cond->getValueRightExpression();
                 if ($expr->isReference() && $expr->getWidgetLink($widget)->getTargetWidget() !== $widget) {
-                    $facade->getElement($expr->getWidgetLink($widget)->getTargetWidget())->addOnChangeScript("setTimeout(function(){ {$revalidateJs} }, 0);");
+                    $this->addOnWidgetLinkChangeScript($expr->getWidgetLink($widget), "setTimeout(function(){ {$revalidateJs} }, 0);");
                 }
             }
         }

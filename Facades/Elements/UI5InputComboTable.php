@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Exceptions\Widgets\WidgetLogicError;
 use exface\Core\DataTypes\UrlDataType;
@@ -111,8 +114,7 @@ JS;
             $autoSearchSingleJs = $widget->getAutoSearchSingleSuggestion() ? "oInput.fireSuggest({$this->buildJsFireSuggestParamForSilentKeyLookup('""')});" : '';
             foreach ($widget->getTable()->getFilters() as $fltr) {
                 if ($link = $fltr->getValueWidgetLink()) {
-                    $linked_element = $this->getFacade()->getElement($link->getTargetWidget());
-                    $linked_element->addOnChangeScript(<<<JS
+                    $this->addOnWidgetLinkChangeScript($link, <<<JS
 
                 setTimeout(function(){
                     var oInput = sap.ui.getCore().byId('{$this->getId()}');
@@ -166,7 +168,8 @@ JS;
         // will have empty values.
         $allColumnsRequiredJs = 'false';
         foreach ($widget->getValueLinksToThisWidget() as $link) {
-            if ($link->getTargetColumnId() !== $widget->getValueColumnId() && $link->getTargetColumnId() !== $widget->getTextColumnId()) {
+            $columnCoordinate = $link->getTargetCoordinate()?->getColumnCoordinate();
+            if ($columnCoordinate !== null && $columnCoordinate !== $widget->getValueColumnId() && $columnCoordinate !== $widget->getTextColumnId()) {
                 $allColumnsRequiredJs = 'true';
                 break;
             }
@@ -899,8 +902,26 @@ JS;
         }
     }
     
-    public function buildJsValueGetter($column = null, $row = null)
+    /**
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::validateValueGetterCoordinate()
+     */
+    protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
+        if ($coord->hasAggregator() || ($coord->getRowCoordinate() !== null && $coord->isTargetingSelection() !== true)) {
+            throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Only selected values without aggregation are supported for UI5 combo table coordinates!');
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
+    {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
+        $columnJs = $this->escapeString($coord->getColumnCoordinate() ?? '');
         $allowNewValuesJs = $this->getWidget()->getAllowNewValues() ? 'true' : 'false';
         $valueColName = $this->getWidget()->getValueColumn()->getDataColumnName();
         $delim = $this->getWidget()->getMultipleValuesDelimiter();
@@ -949,7 +970,7 @@ function(sColName){
         }
         return sList + (sList !== '' ? '$delim' : '') + oItem[sColName];
     }, '');
-}('$column')
+}({$columnJs})
 
 JS;
     }

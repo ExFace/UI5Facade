@@ -1,6 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Factories\WidgetLinkFactory;
+
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\DataTypes\MarkdownDataType;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\MarkianTrait;
 use exface\Core\Widgets\Markdown;
@@ -134,8 +138,10 @@ JS;
      * {@inheritDoc}
      * @see UI5AbstractElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter()
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
         return '(function(oControl) { return oControl ? oControl.getValue() : ""; })(sap.ui.getCore().byId(' . $this->escapeString($this->getId()) . '))';
     }
 
