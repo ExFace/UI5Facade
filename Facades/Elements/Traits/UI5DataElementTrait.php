@@ -1,6 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements\Traits;
 
+use exface\Core\Factories\WidgetLinkFactory;
+use exface\Core\Facades\AbstractAjaxFacade\Elements\JsDataValueTrait;
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\DataTypes\TextDataType;
@@ -117,6 +121,8 @@ use exface\Core\Widgets\Popup;
  * @method UI5Facade getFacade()
  */
 trait UI5DataElementTrait {
+    use JsDataValueTrait;
+
     
     use UI5HelpButtonTrait;
     use UI5TourGuideTrait;
@@ -1846,7 +1852,7 @@ JS;
     protected function buildJsDataLoaderOnLoadedHandleWidgetLinks(string $oModelJs) : string
     {
         $addLocalValuesJs = '';
-        $linkedEls = [];
+        $linkedLinks = [];
         foreach ($this->getDataWidget()->getColumns() as $col) {
             $cellWidget = $col->getCellWidget();
             if ($cellWidget->hasValue() === false) {
@@ -1856,10 +1862,10 @@ JS;
             if ($valueExpr->isReference() === true) {
                 $link = $valueExpr->getWidgetLink($cellWidget);
                 $linkedEl = $this->getFacade()->getElement($link->getTargetWidget());
-                $linkedEls[] = $linkedEl;
+                $linkedLinks[] = $link;
                 $addLocalValuesJs .= <<<JS
                 
-                                oRow["{$col->getDataColumnName()}"] = {$linkedEl->buildJsValueGetter($link->getTargetColumnId())};
+                                oRow["{$col->getDataColumnName()}"] = {$linkedEl->buildJsValueGetter($link->getTargetCoordinate())};
 JS;
             } elseif ($valueExpr->isConstant()) {
                 if ($valueExpr->isString()) {
@@ -1887,8 +1893,8 @@ JS;
                             var $oModelJs = sap.ui.getCore().byId("{$this->getId()}").getModel();
                             {$addLocalValuesJs}
 JS;
-            foreach ($linkedEls as $linkedEl) {
-                $linkedEl->addOnChangeScript($addLocalValuesOnChange);
+            foreach ($linkedLinks as $link) {
+                $this->addOnWidgetLinkChangeScript($link, $addLocalValuesOnChange);
             }
         }
         return $addLocalValuesJs;
@@ -2440,6 +2446,12 @@ JS;
         return json_encode($editabelColNames);
     }
     
+    /**
+     * Records edits and updates live scoped references without requiring a selection change.
+     *
+     * @param string $changedDataJs
+     * @return string
+     */
     protected function buildJsEditableChangesWatcherUpdateMethod(string $changedDataJs) : string
     {
         if ($this->getWidget()->hasUidColumn() === false) {
@@ -2493,6 +2505,7 @@ JS;
             });
 
             oChangesModel.setProperty('/changes', oChanges);
+            {$this->getController()->buildJsEventHandler($this, 'coordinateEdit', false)}
 
 JS;
     }
@@ -3217,6 +3230,19 @@ JS;
         $this->getController()->addOnEventScript($this, UI5AbstractElement::EVENT_NAME_REFRESH, $js);
         return $this;
     }
+
+    /**
+     * Registers coordinate-bound updates on edits without invoking unrelated refresh handlers.
+     *
+     * {@inheritDoc}
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::addOnChangeAtCoordinateScript()
+     */
+    public function addOnChangeAtCoordinateScript(string $scriptJs, ?WidgetLinkCoordinateInterface $coord)
+    {
+        parent::addOnChangeAtCoordinateScript($scriptJs, $coord);
+        $this->getController()->addOnEventScript($this, 'coordinateEdit', $scriptJs);
+        return $this;
+    }
     
     /**
      *
@@ -3241,56 +3267,98 @@ JS;
     /**
      *
      * {@inheritDoc}
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::validateValueGetterCoordinate()
      */
-    public function buildJsValueGetter($dataColumnName = null, $rowNr = null)
+    protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
-        $widget = $this->getDataWidget();
-        
-        /* @var $col \exface\Core\Widgets\DataColumn */
-        if ($dataColumnName !== null && ! $col = $widget->getColumnByDataColumnName($dataColumnName)) {
-            if ($col = $widget->getColumnByAttributeAlias($dataColumnName)) {
-                $dataColumnName = $col->getDataColumnName();
+        $column = $coord->getColumnCoordinate();
+        if ($column !== null && mb_strtolower($column) === Data::COORDINATE_ROWCOUNT) {
+            if ($coord->getRowCoordinate() !== null || $coord->hasAggregator()) {
+                throw new FacadeRuntimeError('Row scopes and aggregators are not supported for ~rowcount in UI5 facades!');
             }
+            return;
         }
-        
+        if ($coord->isTargetingRowNumber() && $coord->hasAggregator()) {
+            throw new FacadeRuntimeError('Aggregators are not supported for numbered rows in UI5 facades!');
+        }
+        if ($coord->getRowCoordinate() !== null
+            && ! $coord->isTargetingRowNumber()
+            && $coord->isTargetingLoadedRows() !== true
+            && $coord->isTargetingSelection() !== true) {
+            throw new FacadeRuntimeError('Data row reference "' . $coord->getRowCoordinate() . '" not supported in UI5 facades!');
+        }
+        $this->validateDataValueGetterCoordinate($coord);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5AbstractElement::buildJsValueGetter()
+     */
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
+    {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
+        $widget = $this->getDataWidget();
+        $dataColumnName = $coord->getColumnCoordinate();
+        $rowNr = $coord->getRowCoordinate();
+
+        if ($dataColumnName !== null && mb_strtolower($dataColumnName) === Data::COORDINATE_ROWCOUNT) {
+            return "(sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows || []).length";
+        }
+
+        $col = $dataColumnName !== null || $coord->hasAggregator() ? $coord->findColumn($widget) : null;
+        if ($dataColumnName !== null) {
+            if ($col === null) {
+                throw new WidgetConfigurationError($this->getWidget(), 'Cannot build live value getter for ' . $this->getWidget()->getWidgetType() . ': column "' . $dataColumnName . '" not found!');
+            }
+            $dataColumnName = $col->getDataColumnName();
+        }
+
         switch (true) {
-            // If we are looking for a specific row, get all data and select that row
-            case is_int($rowNr):
-                return "(function(aAllRows){ return ! aAllRows || aAllRows.length === 0 ? '' : (aAllRows[0]['{$dataColumnName}'] || '') })({$this->buildJsDataGetter(null)}.rows)";
-            // IDEA allow to explicitly request all values of a column as a list
-            //case $rowNr !== null && strcasecmp($rowNr, 'list') === 0:
-            //    $rows = $this->buildJsGetRowsAll('oTable');
-            //    break;
-            
-            // Otherwise get the selected rows and proceed
+            // Read the raw model, not the action data projection, for indexed and loaded-row links.
+            case $coord->isTargetingRowNumber():
+                $rows = $this->buildJsGetRowsAll('oTable');
+                $rowValueJs = $dataColumnName === null ? '[oRow]' : 'oRow[' . $this->escapeString($dataColumnName) . ']';
+                $emptyValueJs = $dataColumnName === null ? '[]' : "''";
+                return <<<JS
+(function(){
+    var oTable = sap.ui.getCore().byId('{$this->getId()}');
+    var oRow = {$rows}[{$rowNr}];
+    if (oRow === undefined || oRow === null) {
+        return {$emptyValueJs};
+    }
+    var mValue = {$rowValueJs};
+    return mValue === undefined || mValue === null ? '' : mValue;
+})()
+JS;
+            case $coord->isTargetingLoadedRows() === true:
+                $rows = $this->buildJsGetRowsAll('oTable');
+                break;
+            case $coord->isTargetingSelection() === true:
             case $rowNr === null:
                 $rows = $this->buildJsGetRowsSelected('oTable', false);
                 break;
             default:
                 throw new FacadeRuntimeError('Data row reference "' . $rowNr . '" not supported in UI5 facades!');
-        } 
-        
-        if ($dataColumnName !== null) {
-            if (mb_strtolower($dataColumnName) === '~rowcount') {
-                return "(sap.ui.getCore().byId('{$this->getId()}').getModel().getData().rows || []).length";
-            }
-            if (! $col && ! ($widget->getMetaObject()->getUidAttributeAlias() === $dataColumnName)) {
-                throw new WidgetConfigurationError($this->getWidget(), 'Cannot build live value getter for ' . $this->getWidget()->getWidgetType() . ': column "' . $dataColumnName . '" not found!');
-            }
-            $delim = $col && $col->isBoundToAttribute() ? $col->getAttribute()->getValueListDelimiter() : EXF_LIST_SEPARATOR;
-            $colMapper = '.map(function(value,index) { return value === undefined ? "" : value["' . $dataColumnName . '"];}).join("' . $delim . '")';
-        } else {
-            $colMapper = '';
         }
-        
+
+        if ($coord->hasAggregator()) {
+            if ($col === null) {
+                throw new FacadeRuntimeError('A column is required for aggregation in UI5 facades!');
+            }
+            $valueJs = $this->buildJsAggregateColumnValues($rows, $col, $coord);
+        } elseif ($col !== null) {
+            $delim = $col->isBoundToAttribute() ? $col->getAttribute()->getValueListDelimiter() : EXF_LIST_SEPARATOR;
+            $valueJs = $rows . '.map(function(oRow) { return oRow === undefined ? "" : oRow[' . $this->escapeString($dataColumnName) . ']; }).join(' . $this->escapeString($delim) . ')';
+        } else {
+            $valueJs = $rows;
+        }
+
         return <<<JS
-        
 (function(){
     var oTable = sap.ui.getCore().byId('{$this->getId()}');
-    return {$rows}{$colMapper};
-}() || '')
-
+    return {$valueJs};
+})()
 JS;
     }
     
@@ -3301,7 +3369,7 @@ JS;
      */
     public function addOnChangeScript($js)
     {
-        if (strpos($js, $this->buildJsValueGetter('~rowcount')) !== false) {
+        if (strpos($js, $this->buildJsValueGetter(Data::COORDINATE_ROWCOUNT)) !== false) {
             $this->addOnRefreshScript($js);
             return $this;
         }

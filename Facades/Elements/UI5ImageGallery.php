@@ -25,6 +25,7 @@ class UI5ImageGallery extends UI5AbstractElement
     use SlickGalleryTrait, UI5DataElementTrait {
         SlickGalleryTrait::buildJsEditableChangesGetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsValueGetter insteadof UI5DataElementTrait;
+        SlickGalleryTrait::validateValueGetterCoordinate insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsDataGetter as buildJsSlickDataGetter;
         SlickGalleryTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         SlickGalleryTrait::buildJsUploadStore as buildJsUploadStoreViaTrait;

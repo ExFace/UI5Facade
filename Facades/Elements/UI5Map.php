@@ -28,6 +28,7 @@ class UI5Map extends UI5AbstractElement
 {
     use LeafletTrait, UI5DataElementTrait {
         LeafletTrait::buildJsValueGetter insteadof UI5DataElementTrait;
+        LeafletTrait::validateValueGetterCoordinate insteadof UI5DataElementTrait;
         LeafletTrait::buildJsDataGetter insteadof UI5DataElementTrait;
         UI5DataElementTrait::buildJsGetRowsSelected insteadof LeafletTrait;
         UI5DataElementTrait::buildJsDataLoaderParams as buildJsDataLoaderParamsViaTrait;
@@ -126,8 +127,8 @@ JS);
         foreach ($this->getWidget()->getLayers() as $layer) {
             if ($layer instanceof LatLngWidgetLinkMapLayerInterface) {
                 if (($linkLat = $layer->getLatitudeWidgetLink()) && ($linkLng = $layer->getLongitudeWidgetLink())) {
-                    $this->getFacade()->getElement($linkLat->getTargetWidget())->addOnChangeScript($this->buildJsRefresh());
-                    $this->getFacade()->getElement($linkLng->getTargetWidget())->addOnChangeScript($this->buildJsRefresh());
+                    $this->addOnWidgetLinkChangeScript($linkLat, $this->buildJsRefresh());
+                    $this->addOnWidgetLinkChangeScript($linkLng, $this->buildJsRefresh());
                 }
             }
         }

@@ -11,6 +11,39 @@
 5. [Translations](translations.md)
 6. [Modifications made to UI5](UI5_modifications.md) - things, that could not be handled "outside" and needed a hack.
 
+## Live widget-link values
+
+Value getters accept one coordinate argument: a string, Core's
+`WidgetLinkCoordinateInterface`, or `null`. Forward widget links with
+`$link->getTargetCoordinate()` rather than extracting their column or row.
+
+Value getters normalize their argument with
+`WidgetLinkFactory::createCoordinateFromAnything()` and call
+`validateValueGetterCoordinate()` before generating JavaScript. The base hook
+supports scalar values; data controls override it for their row scopes and custom
+coordinates. Wrappers can forward to a getter that performs this validation.
+Keep missing-column errors where the coordinate's column is resolved.
+
+Data widgets read raw loaded rows, not the action-data projection:
+
+- `AMOUNT$2` reads the zero-based row index, preserving zero and false values.
+- `AMOUNT$~loaded` reads the column from all loaded rows; unloaded pages are not fetched.
+- `AMOUNT$~selected` reads the logical selection, including saved selections from other pages.
+- `AMOUNT$~loaded:SUM` and `AMOUNT$~selected:LIST_DISTINCT` aggregate the requested scope
+  through the shared Core aggregation helper, using the column's value-list delimiter.
+
+Without a column or aggregator, data getters still return rows; aggregation
+without a column uses the UID column. Without a row scope, getters use
+the logical selection. `~rowcount` still counts loaded rows. Explicit scopes
+update on refresh; all/selected scopes also update on changes, including edits.
+Editable data widgets dispatch only coordinate-bound callbacks on cell edits,
+through their dedicated `coordinateEdit` handler; unrelated refresh callbacks
+are not invoked.
+Unknown row scopes are rejected. Scalar controls reject row scopes and aggregators.
+Combo-table inputs support selected values without aggregation; input-button result
+columns support numbered rows. Scheduler custom coordinates do not support row scopes
+or aggregators.
+
 ## JSON and UXON inputs
 
 `UI5InputJson` and `UI5InputUxon` use Core's `JsonEditorTrait` and

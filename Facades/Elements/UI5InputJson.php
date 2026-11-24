@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsonEditorTrait;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\UI5Facade\Facades\Elements\ServerAdapters\UI5FacadeServerAdapter;
@@ -73,9 +75,9 @@ JS;
      * {@inheritDoc}
      * @see UI5AbstractElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter() : string
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
-        return parent::buildJsValueGetter();
+        return parent::buildJsValueGetter($coord);
     }
 
     /**

@@ -1,6 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\Facades\AbstractAjaxFacade\Formatters\JsBooleanFormatter;
 use exface\UI5Facade\Facades\Interfaces\UI5BindingFormatterInterface;
 use exface\Core\DataTypes\BooleanDataType;
@@ -321,8 +325,10 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter()
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
         if ($this->isIcon()) {
             if ($this->getWidget()->isInTable() === true) {
                 $iconYes = self::ICON_YES_TABLE;
@@ -336,7 +342,7 @@ JS;
 JS;
         }
         // always return the normalized value, therefor we have to parse it
-        $rawValueGetter = parent::buildJsValueGetter();
+        $rawValueGetter = parent::buildJsValueGetter($coord);
         return $this->getFacade()->getDataTypeFormatter($this->getWidget()->getValueDataType())->buildJsFormatParser($rawValueGetter);
     }
         

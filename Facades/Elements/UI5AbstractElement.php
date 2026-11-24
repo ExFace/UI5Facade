@@ -1,6 +1,11 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+use exface\Core\Interfaces\Widgets\WidgetLinkInterface;
+
 use exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement;
 use exface\Core\CommonLogic\Constants\Icons;
 use exface\Core\Interfaces\Exceptions\ExceptionInterface;
@@ -243,8 +248,10 @@ JS;
      * {@inheritDoc}
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter()
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
         $widget = $this->getWidget();
         if ($widget instanceof iHaveValue) {
             return "sap.ui.getCore().byId('{$this->getId()}').{$this->buildJsValueGetterMethod()}";
@@ -252,7 +259,7 @@ JS;
             return '""';
         }
     }
-    
+
     /**
      * 
      * {@inheritDoc}
@@ -637,6 +644,19 @@ JS;
         parent::addOnChangeScript($js);
         $this->getController()->addOnEventScript($this, self::EVENT_NAME_REFRESH, $js);
         return $this;
+    }
+
+    /**
+     * Updates linked values on refresh for explicit row scopes and on selection for selected rows.
+     *
+     * @param \exface\Core\Interfaces\Widgets\WidgetLinkInterface $link
+     * @param string $js
+     * @return void
+     */
+    protected function addOnWidgetLinkChangeScript(WidgetLinkInterface $link, string $js) : void
+    {
+        $element = $this->getFacade()->getElement($link->getTargetWidget());
+        $element->addOnChangeAtCoordinateScript($js, $link->getTargetCoordinate());
     }
     
     public function getServerAdapter() : UI5ServerAdapterInterface

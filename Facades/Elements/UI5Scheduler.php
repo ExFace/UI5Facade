@@ -1,6 +1,9 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\Widgets\Scheduler;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
 use exface\Core\Interfaces\WidgetInterface;
@@ -25,6 +28,7 @@ class UI5Scheduler extends UI5AbstractElement implements UI5DataElementInterface
     use UI5DataElementTrait {
         buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
         buildJsValueGetter as buildJsValueGetterViaTrait;
+        validateValueGetterCoordinate as validateValueGetterCoordinateViaTrait;
         buildJsDataResetter as buildJsDataResetterViaTrait;
         init as initDataElementTrait;
     }
@@ -639,17 +643,41 @@ JS;
         return false;
     }
     
-    public function buildJsValueGetter($dataColumnName = null, $rowNr = null)
+    /**
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::validateValueGetterCoordinate()
+     */
+    protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
+        $column = $coord->getColumnCoordinate();
+        if ($column !== null
+            && in_array(mb_strtolower($column), [Scheduler::COORDINATE_START_DATE, Scheduler::COORDINATE_END_DATE, Scheduler::COORDINATE_RESOURCES_TITLE], true)) {
+            if ($coord->getRowCoordinate() !== null || $coord->hasAggregator()) {
+                throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Row scopes and aggregators are not supported for scheduler custom coordinates!');
+            }
+            return;
+        }
+        $this->validateValueGetterCoordinateViaTrait($coord);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see UI5DataElementTrait::buildJsValueGetter()
+     */
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
+    {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
+        $dataColumnName = $coord->getColumnCoordinate();
         if ($dataColumnName !== null) {
             $dateFormat = DateTimeDataType::DATETIME_ICU_FORMAT_INTERNAL;
-            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_START_DATE) {
+            if (mb_strtolower($dataColumnName) === Scheduler::COORDINATE_START_DATE) {
                 return "exfTools.date.format(sap.ui.getCore().byId('{$this->getId()}').getStartDate(), '$dateFormat')";
             }
-            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_END_DATE) {
+            if (mb_strtolower($dataColumnName) === Scheduler::COORDINATE_END_DATE) {
                 return "exfTools.date.format(function(oPCal){return oPCal.getEndDate !== undefined ? oPCal.getEndDate() : oPCal._getFirstAndLastRangeDate().oEndDate.oDate}(sap.ui.getCore().byId('{$this->getId()}')), '$dateFormat')";
             }            
-            if (mb_strtolower($dataColumnName) === Scheduler::VALUE_RESOUCES_TITLE) {
+            if (mb_strtolower($dataColumnName) === Scheduler::COORDINATE_RESOURCES_TITLE) {
                 $col = $this->getWidget()->getResourcesConfig()->getTitleColumn();
                 $delim = $col && $col->isBoundToAttribute() ? $col->getAttribute()->getValueListDelimiter() : EXF_LIST_SEPARATOR;
                 return <<<JS
@@ -670,7 +698,7 @@ JS;
             }
             
         }
-        return $this->buildJsValueGetterViaTrait($dataColumnName, $rowNr);
+        return $this->buildJsValueGetterViaTrait($coord);
     }
     
     /**
@@ -680,11 +708,11 @@ JS;
      */
     public function addOnChangeScript($js)
     {
-        if (strpos($js, $this->buildJsValueGetter('~start_date')) !== false || strpos($js, $this->buildJsValueGetter('~end_date')) !== false) {
+        if (strpos($js, $this->buildJsValueGetter(Scheduler::COORDINATE_START_DATE)) !== false || strpos($js, $this->buildJsValueGetter(Scheduler::COORDINATE_END_DATE)) !== false) {
             $this->getController()->addOnEventScript($this, self::EVENT_NAME_TIMELINE_SHIFT, $js);
             return $this;
         }
-        if (strpos($js, $this->buildJsValueGetter('~resources_title')) !== false) {
+        if (strpos($js, $this->buildJsValueGetter(Scheduler::COORDINATE_RESOURCES_TITLE)) !== false) {
             $this->getController()->addOnEventScript($this, SELF::EVENT_NAME_ROW_SELECTION_CHANGE, $js);
             return $this;
         }

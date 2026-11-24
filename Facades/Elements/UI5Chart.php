@@ -32,6 +32,7 @@ class UI5Chart extends UI5AbstractElement implements UI5DataElementInterface
         buildJsDataLoaderOnLoaded as buildJsDataLoaderOnLoadedViaTrait;
         EChartsTrait::buildJsDataResetter insteadof UI5DataElementTrait;
         EChartsTrait::buildJsValueGetter insteadof UI5DataElementTrait;
+        EChartsTrait::validateValueGetterCoordinate insteadof UI5DataElementTrait;
         EChartsTrait::buildJsDataGetter insteadof UI5DataElementTrait;
     }
     
@@ -496,11 +497,11 @@ JS;
     {
         parent::addOnChangeScript($js);
 
-        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_ACTIVE))) {
+        if (str_contains($js, $this->buildJsValueGetter(Chart::COORDINATE_LEGEND_ACTIVE))) {
             $this->getController()->addOnEventScript($this, 'invokeLegendActiveGetter', $js);
         }
 
-        if (str_contains($js, $this->buildJsValueGetter(Chart::VALUE_LEGEND_INACTIVE))) {
+        if (str_contains($js, $this->buildJsValueGetter(Chart::COORDINATE_LEGEND_INACTIVE))) {
             $this->getController()->addOnEventScript($this, 'invokeLegendDisabledGetter', $js);
         }
         

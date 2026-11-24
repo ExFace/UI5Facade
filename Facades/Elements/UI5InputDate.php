@@ -1,6 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\Widgets\InputDate;
 use exface\Core\DataTypes\DateDataType;
 use exface\Core\DataTypes\TimeDataType;
@@ -153,9 +155,9 @@ JS;
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter()
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
-        $rawValueGetter = parent::buildJsValueGetter();
+        $rawValueGetter = parent::buildJsValueGetter($coord);
         return <<<JS
 function() {
     return {$this->getFacade()->getDataTypeFormatter($this->getWidget()->getValueDataType())->buildJsFormatParser($rawValueGetter)};

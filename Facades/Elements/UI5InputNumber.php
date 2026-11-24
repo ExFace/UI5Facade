@@ -1,6 +1,10 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
+use exface\Core\Factories\WidgetLinkFactory;
+
+use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+
 use exface\Core\DataTypes\NumberDataType;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryInputValidationTrait;
 use exface\Core\Factories\DataTypeFactory;
@@ -41,8 +45,10 @@ class UI5InputNumber extends UI5Input
      * {@inheritDoc}
      * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::buildJsValueGetter()
      */
-    public function buildJsValueGetter()
+    public function buildJsValueGetter(string|WidgetLinkCoordinateInterface|null $coord = null) : string
     {
+        $coord = WidgetLinkFactory::createCoordinateFromAnything($coord);
+        $this->validateValueGetterCoordinate($coord);
         // If not bound to a model, the control uses the native HTML5 `type="Number"` input
         // (see buildJsPropertyType()), which only ever holds a plain, unformatted number - so
         // parse it directly instead of via the formatter, which expects the locale-formatted
