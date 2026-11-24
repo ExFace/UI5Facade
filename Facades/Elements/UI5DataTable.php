@@ -2,6 +2,7 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\DataTypes\ComparatorDataType;
+use exface\Core\Widgets\Parts\FocusArea;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -3214,7 +3215,7 @@ JS;
      * 
      * - `column.<data_column_name>` - the header cell and all rendered body cells of a column
      * - `column.<data_column_name>$<n>` - the cell of a column in the n-th row from the top of the data (1-based).
-     * The table is scrolled to this row by buildJsFocusAreaPreparer() if it is not rendered at the moment.
+     * The table is scrolled to this row by buildJsFocus() if it is not rendered at the moment.
      * - `row$<n>` - the n-th row from the top of the data (1-based)
      * - `row_selector$<n>` - the selection checkbox of the n-th row. Tables without selection checkboxes
      * (single-select) resolve to the row itself, because clicking the row selects it there.
@@ -3225,8 +3226,9 @@ JS;
      * 
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildCssFocusAreaSelector()
      */
-    public function buildCssFocusAreaSelector(string $area = null) : string
+    public function buildCssFocusAreaSelector(?FocusArea $focusArea = null) : string
     {
+        $area = $focusArea?->getIdRelativeToWidget();
         $tableSelector = '#' . $this->getId();
         if ($area === null || ! $this->isUiTable()) {
             return $tableSelector;
@@ -3251,7 +3253,7 @@ JS;
                 return "{$tableSelector} .sapUiTableColHdrCnt td{$colIdAttr}, {$tableSelector} .sapUiTableCtrlCnt tr.sapUiTableContentRow:not(.sapUiTableRowHidden) td{$colIdAttr}";
             case StringDataType::startsWith($area, 'row_selector$') && $rowNumber !== null && $this->getWidget()->getMultiSelect():
                 // Selection cells are rendered in a separate row header area - not inside the `tr` of the row.
-                // Their rows get an `aria-rowindex` from buildJsFocusAreaPreparer().
+                // Their rows get an `aria-rowindex` from buildJsFocus().
                 return "{$tableSelector} .sapUiTableRowHdrScr .sapUiTableRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"] .sapUiTableRowSelectionCell";
             case (StringDataType::startsWith($area, 'row$') || StringDataType::startsWith($area, 'row_selector$')) && $rowNumber !== null:
                 return "{$tableSelector} tr.sapUiTableContentRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"]";
@@ -3267,13 +3269,27 @@ JS;
      * {@inheritDoc}
      * 
      * If the area points to a row (`row$<n>` or `column.<data_column_name>$<n>`), that is not rendered by the
-     * virtualized `sap.ui.table.Table` at the moment, the table is scrolled to make it rendered.
+     * virtualized `sap.ui.table.Table` at the moment, the table is scrolled to make it rendered before focusing.
      * 
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsFocusAreaPreparer()
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsFocus()
      */
-    public function buildJsFocusAreaPreparer(string $area) : string
+    public function buildJsFocus(?FocusArea $area, string $cssClass = 'focus') : string
     {
-        $rowNumber = $this->getFocusAreaRowNumber($area);
+        return $this->buildJsScrollToFocusAreaRow($area) . parent::buildJsFocus($area, $cssClass);
+    }
+    
+    /**
+     * Returns JS to scroll the table to the row of the given area if that row is not rendered at the moment
+     * 
+     * Returns an empty string if the area does not point to a row or the table is not a `sap.ui.table.Table`.
+     * 
+     * @param FocusArea|null $focusArea
+     * @return string
+     */
+    protected function buildJsScrollToFocusAreaRow(?FocusArea $focusArea) : string
+    {
+        $area = $focusArea?->getIdRelativeToWidget();
+        $rowNumber = $area === null ? null : $this->getFocusAreaRowNumber($area);
         if ($rowNumber === null || ! $this->isUiTable()) {
             return '';
         }
