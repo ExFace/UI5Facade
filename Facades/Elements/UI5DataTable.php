@@ -2,7 +2,6 @@
 namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\DataTypes\ComparatorDataType;
-use exface\Core\Widgets\Parts\FocusArea;
 use exface\Core\Interfaces\Actions\ActionInterface;
 use exface\Core\Interfaces\Actions\iReadData;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataTableTrait;
@@ -3226,17 +3225,16 @@ JS;
      * 
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildCssFocusAreaSelector()
      */
-    public function buildCssFocusAreaSelector(?FocusArea $focusArea = null) : string
+    public function buildCssFocusAreaSelector(?string $areaId = null) : string
     {
-        $area = $focusArea?->getIdRelativeToWidget();
         $tableSelector = '#' . $this->getId();
-        if ($area === null || ! $this->isUiTable()) {
+        if ($areaId === null || ! $this->isUiTable()) {
             return $tableSelector;
         }
-        $rowNumber = $this->getFocusAreaRowNumber($area);
+        $rowNumber = $this->getFocusAreaRowNumber($areaId);
         switch (true) {
-            case StringDataType::startsWith($area, 'column.'):
-                $columnName = StringDataType::substringAfter($area, 'column.');
+            case StringDataType::startsWith($areaId, 'column.'):
+                $columnName = StringDataType::substringAfter($areaId, 'column.');
                 if ($rowNumber !== null) {
                     $columnName = StringDataType::substringBefore($columnName, '$', $columnName, false, true);
                 }
@@ -3251,15 +3249,15 @@ JS;
                     return "{$tableSelector} tr[aria-rowindex=\"" . ($rowNumber + 1) . "\"] td{$colIdAttr}";
                 }
                 return "{$tableSelector} .sapUiTableColHdrCnt td{$colIdAttr}, {$tableSelector} .sapUiTableCtrlCnt tr.sapUiTableContentRow:not(.sapUiTableRowHidden) td{$colIdAttr}";
-            case StringDataType::startsWith($area, 'row_selector$') && $rowNumber !== null && $this->getWidget()->getMultiSelect():
+            case StringDataType::startsWith($areaId, 'row_selector$') && $rowNumber !== null && $this->getWidget()->getMultiSelect():
                 // Selection cells are rendered in a separate row header area - not inside the `tr` of the row.
                 // Their rows get an `aria-rowindex` from buildJsFocus().
                 return "{$tableSelector} .sapUiTableRowHdrScr .sapUiTableRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"] .sapUiTableRowSelectionCell";
-            case (StringDataType::startsWith($area, 'row$') || StringDataType::startsWith($area, 'row_selector$')) && $rowNumber !== null:
+            case (StringDataType::startsWith($areaId, 'row$') || StringDataType::startsWith($areaId, 'row_selector$')) && $rowNumber !== null:
                 return "{$tableSelector} tr.sapUiTableContentRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"]";
-            case $area === 'header':
+            case $areaId === 'header':
                 return $tableSelector . ' .sapUiTableColHdrCnt';
-            case $area === 'table':
+            case $areaId === 'table':
                 return $tableSelector . ' .sapUiTableCnt';
         }
         return $tableSelector;
@@ -3273,9 +3271,11 @@ JS;
      * 
      * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsFocus()
      */
-    public function buildJsFocus(?FocusArea $area, string $cssClass = 'focus') : string
+    public function buildJsFocus(?string $areaId, string $cssClass = 'focus') : string
     {
-        return $this->buildJsScrollToFocusAreaRow($area) . parent::buildJsFocus($area, $cssClass);
+        //TODO: commented out the parent call because it actually focused the row, with took the focus from the "Next" button in the tour.
+        // This took the focus away from the tour and made it impossible to continue the tour with the keyboard.
+        return $this->buildJsScrollToFocusAreaRow($areaId); //. parent::buildJsFocus($areaId, $cssClass); 
     }
     
     /**
@@ -3283,13 +3283,12 @@ JS;
      * 
      * Returns an empty string if the area does not point to a row or the table is not a `sap.ui.table.Table`.
      * 
-     * @param FocusArea|null $focusArea
+     * @param string|null $areaId area id relative to the table or NULL for the whole table
      * @return string
      */
-    protected function buildJsScrollToFocusAreaRow(?FocusArea $focusArea) : string
+    protected function buildJsScrollToFocusAreaRow(?string $areaId) : string
     {
-        $area = $focusArea?->getIdRelativeToWidget();
-        $rowNumber = $area === null ? null : $this->getFocusAreaRowNumber($area);
+        $rowNumber = $areaId === null ? null : $this->getFocusAreaRowNumber($areaId);
         if ($rowNumber === null || ! $this->isUiTable()) {
             return '';
         }
@@ -3323,12 +3322,12 @@ JS;
     /**
      * Returns the 1-based row number from a focus area like `row$3` or `column.MY_COL$3` or NULL if there is none
      * 
-     * @param string $area
+     * @param string $areaId
      * @return int|NULL
      */
-    protected function getFocusAreaRowNumber(string $area) : ?int
+    protected function getFocusAreaRowNumber(string $areaId) : ?int
     {
-        $rowNumber = StringDataType::substringAfter($area, '$', null, false, true);
+        $rowNumber = StringDataType::substringAfter($areaId, '$', null, false, true);
         if ($rowNumber === null || ! ctype_digit($rowNumber) || intval($rowNumber) < 1) {
             return null;
         }
