@@ -356,7 +356,7 @@ JS;
     }
     
     /**
-     * Retruns the JS code, that hides or shows the control depending on the $visible argument
+     * Returns the JS code, that hides or shows the control depending on the $visible argument
      * 
      * Additionally the DOM element MUST fire the custom `visibleChange` event, so other controls
      * can react to visibility changes. UI5 itself does not seem to provide a hide/show event.
@@ -761,6 +761,7 @@ JS;
         
         $widget = $this->getWidget();
         
+        // hidden_if
         // hidden_if
         if ($this->isVisible()) {
             if ($condProp = $widget->getHiddenIf()) {
