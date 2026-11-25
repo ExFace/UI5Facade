@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Factories\WidgetLinkFactory;
 use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 
 use exface\Core\Widgets\Input;
 
@@ -120,7 +121,7 @@ JS;
     protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
         if ($coord->hasAggregator() || ($coord->getRowCoordinate() !== null && !$coord->isTargetingRowNumber())) {
-            throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Only numbered rows without aggregation are supported for UI5 input button coordinates!');
+            throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Only numbered rows without aggregation are supported for UI5 input button coordinates!');
         }
         if ($coord->isTargetingRowNumber()
             && ($coord->getColumnCoordinate() === null || $coord->getColumnCoordinate() === $this->getWidget()->getDataColumnName())) {

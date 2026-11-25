@@ -2,12 +2,12 @@
 namespace exface\UI5Facade\Tests\PHPUnit\Unit\Facades\Elements;
 
 use exface\Core\CommonLogic\Workbench;
-use exface\Core\Exceptions\Facades\FacadeOutputError;
-use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 use exface\Core\Factories\UiPageFactory;
 use exface\Core\Factories\WidgetLinkFactory;
 use exface\Core\Widgets\InputButton;
 use exface\UI5Facade\Facades\Elements\UI5Chart;
+use exface\UI5Facade\Facades\Elements\UI5AbstractElement;
 use exface\UI5Facade\Facades\Elements\UI5DataSpreadSheet;
 use exface\UI5Facade\Facades\Elements\UI5DataTable;
 use exface\UI5Facade\Facades\Elements\UI5ImageGallery;
@@ -57,7 +57,7 @@ class UI5ValueGetterCoordinateHookTest extends TestCase
     #[DataProvider('unsupportedCustomScopes')]
     public function testGetterRejectsUnsupportedCustomScopes(string $class, string $coordinate, string $exception) : void
     {
-        $element = (new ReflectionClass($class))->newInstanceWithoutConstructor();
+        $element = $this->element($class);
         $this->expectException($exception);
         $element->buildJsValueGetter($coordinate);
     }
@@ -70,9 +70,9 @@ class UI5ValueGetterCoordinateHookTest extends TestCase
     public static function unsupportedCustomScopes() : array
     {
         return [
-            [UI5Chart::class, '~legend_active$2:SUM', FacadeOutputError::class],
-            [UI5Map::class, 'NAME$~loaded:LIST', FacadeOutputError::class],
-            [UI5DataTable::class, '~rowcount$2', FacadeRuntimeError::class]
+            [UI5Chart::class, '~legend_active$2:SUM', WidgetCoordinateUnresolvableError::class],
+            [UI5Map::class, 'NAME$~loaded:LIST', WidgetCoordinateUnresolvableError::class],
+            [UI5DataTable::class, '~rowcount$2', WidgetCoordinateUnresolvableError::class]
         ];
     }
 
@@ -83,8 +83,8 @@ class UI5ValueGetterCoordinateHookTest extends TestCase
      */
     public function testTableRejectsNumberedRowAggregation() : void
     {
-        $element = (new ReflectionClass(UI5DataTable::class))->newInstanceWithoutConstructor();
-        $this->expectException(FacadeRuntimeError::class);
+        $element = $this->element(UI5DataTable::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('AMOUNT$2:SUM');
     }
 
@@ -95,7 +95,7 @@ class UI5ValueGetterCoordinateHookTest extends TestCase
      */
     public function testInputButtonRejectsRowCoordinateForItsScalarValue() : void
     {
-        $this->expectException(FacadeRuntimeError::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $this->inputButton()->buildJsValueGetter('KEY$2');
     }
 
@@ -113,19 +113,31 @@ class UI5ValueGetterCoordinateHookTest extends TestCase
     }
 
     /**
+     * Provides widget context for coordinate failures without constructing a UI5 facade.
+     *
+     * @param string $class
+     * @return UI5AbstractElement
+     */
+    private function element(string $class) : UI5AbstractElement
+    {
+        $widget = new InputButton(UiPageFactory::createEmpty(new Workbench()));
+        $element = $this->getMockBuilder($class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getWidget'])
+            ->getMock();
+        $element->method('getWidget')->willReturn($widget);
+        return $element;
+    }
+
+    /**
      * Uses real widget metadata without constructing a UI5 facade.
      *
      * @return UI5InputButton
      */
     private function inputButton() : UI5InputButton
     {
-        $widget = new InputButton(UiPageFactory::createEmpty(new Workbench()));
-        $widget->setDataColumnName('KEY');
-        $element = $this->getMockBuilder(UI5InputButton::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['getWidget'])
-            ->getMock();
-        $element->method('getWidget')->willReturn($widget);
+        $element = $this->element(UI5InputButton::class);
+        $element->getWidget()->setDataColumnName('KEY');
         return $element;
     }
 }

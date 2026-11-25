@@ -4,6 +4,7 @@ namespace exface\UI5Facade\Facades\Elements\Traits;
 use exface\Core\Factories\WidgetLinkFactory;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JsDataValueTrait;
 use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 
 use exface\Core\DataTypes\AutoloadStrategyDataType;
 use exface\Core\DataTypes\StringDataType;
@@ -3274,18 +3275,18 @@ JS;
         $column = $coord->getColumnCoordinate();
         if ($column !== null && mb_strtolower($column) === Data::COORDINATE_ROWCOUNT) {
             if ($coord->getRowCoordinate() !== null || $coord->hasAggregator()) {
-                throw new FacadeRuntimeError('Row scopes and aggregators are not supported for ~rowcount in UI5 facades!');
+                throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Row scopes and aggregators are not supported for ~rowcount in UI5 facades!');
             }
             return;
         }
         if ($coord->isTargetingRowNumber() && $coord->hasAggregator()) {
-            throw new FacadeRuntimeError('Aggregators are not supported for numbered rows in UI5 facades!');
+            throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Aggregators are not supported for numbered rows in UI5 facades!');
         }
         if ($coord->getRowCoordinate() !== null
             && ! $coord->isTargetingRowNumber()
             && $coord->isTargetingLoadedRows() !== true
             && $coord->isTargetingSelection() !== true) {
-            throw new FacadeRuntimeError('Data row reference "' . $coord->getRowCoordinate() . '" not supported in UI5 facades!');
+            throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Data row reference "' . $coord->getRowCoordinate() . '" not supported in UI5 facades!');
         }
         $this->validateDataValueGetterCoordinate($coord);
     }
@@ -3309,7 +3310,7 @@ JS;
         $col = $dataColumnName !== null || $coord->hasAggregator() ? $coord->findColumn($widget) : null;
         if ($dataColumnName !== null) {
             if ($col === null) {
-                throw new WidgetConfigurationError($this->getWidget(), 'Cannot build live value getter for ' . $this->getWidget()->getWidgetType() . ': column "' . $dataColumnName . '" not found!');
+                throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Cannot build live value getter for ' . $this->getWidget()->getWidgetType() . ': column "' . $dataColumnName . '" not found!');
             }
             $dataColumnName = $col->getDataColumnName();
         }
@@ -3339,12 +3340,12 @@ JS;
                 $rows = $this->buildJsGetRowsSelected('oTable', false);
                 break;
             default:
-                throw new FacadeRuntimeError('Data row reference "' . $rowNr . '" not supported in UI5 facades!');
+                throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Data row reference "' . $rowNr . '" not supported in UI5 facades!');
         }
 
         if ($coord->hasAggregator()) {
             if ($col === null) {
-                throw new FacadeRuntimeError('A column is required for aggregation in UI5 facades!');
+                throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'A column is required for aggregation in UI5 facades!');
             }
             $valueJs = $this->buildJsAggregateColumnValues($rows, $col, $coord);
         } elseif ($col !== null) {
