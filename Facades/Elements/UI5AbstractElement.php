@@ -608,15 +608,32 @@ JS;
         return [];
     }
     
+    /**
+     * Registers JS code to be executed every time the given binding of this control changes.
+     * 
+     * The handler is attached to the UI5 binding (e.g. `rows`, `items`) in the controller's
+     * onInit phase. If the control or the binding do not exist at that moment (e.g. lazily
+     * created popups or controls without a model yet), the handler is silently skipped.
+     * 
+     * @param string $bindingName name of the UI5 binding (aggregation or property) to observe
+     * @param string $script JS code to run inside the binding change handler
+     * @param string $oEventJs name of the JS variable holding the change event inside $script
+     * 
+     * @return UI5AbstractElement
+     */
     public function addOnBindingChangeScript(string $bindingName, string $script, string $oEventJs = 'oEvent') : UI5AbstractElement
     {
         $handler = <<<JS
 
-                sap.ui.getCore().byId("{$this->getId()}")
-                    .getBinding("{$bindingName}")
-                    .attachChange(function({$oEventJs}){
-                    {$script}
-                });
+                (function(){
+                    // The control may not exist yet (e.g. in lazily created popups) or may not have a model yet.
+                    var oControl = sap.ui.getCore().byId("{$this->getId()}");
+                    var oBinding = oControl ? oControl.getBinding("{$bindingName}") : null;
+                    if (! oBinding) return;
+                    oBinding.attachChange(function({$oEventJs}){
+                        {$script}
+                    });
+                })();
 JS;
         $this->getController()->addOnInitScript($handler);
         return $this;
