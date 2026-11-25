@@ -356,19 +356,6 @@ JS;
     }
     
     /**
-     * Returns TRUE if the hidden_if of this element is bound to the rows of a table (see buildJsPropertyVisibile())
-     * instead of being toggled imperatively by registerConditionalProperties().
-     * 
-     * Imperative toggling would only use a single value of the table and override the per-row binding.
-     * 
-     * @return bool
-     */
-    protected function isHiddenIfEvaluatedPerRow() : bool
-    {
-        return false;
-    }
-
-    /**
      * Returns the JS code, that hides or shows the control depending on the $visible argument
      * 
      * Additionally the DOM element MUST fire the custom `visibleChange` event, so other controls
@@ -758,8 +745,8 @@ JS;
         $widget = $this->getWidget();
         
         // hidden_if
-        // Per-row hidden_if (e.g. in tables) is bound in buildJsPropertyVisibile() - toggling it here would override it.
-        if ($this->isVisible() && ! $this->isHiddenIfEvaluatedPerRow()) {
+        // hidden_if
+        if ($this->isVisible()) {
             if ($condProp = $widget->getHiddenIf()) {
                 $funcOnTrue = $condProp->getFunctionOnTrue();
                 $funcOnFalse = $condProp->getFunctionOnFalse();

@@ -97,20 +97,11 @@ class UI5InputSelectButtons extends UI5InputSelect
      */
     protected function buildJsPropertyVisibile()
     {
-        if ($this->isHiddenIfEvaluatedPerRow() && $this->isVisible()) {
-            $condProp = $this->getWidget()->getHiddenIf();
-            return 'visible: ' . $this->buildJsRowConditionBinding($condProp, true) . ',';
+        $widget = $this->getWidget();
+        if ($widget->isInTable() && $this->isVisible() && $widget->getHiddenIf() !== null) {
+            return 'visible: ' . $this->buildJsRowConditionBinding($widget->getHiddenIf(), true) . ',';
         }
         return parent::buildJsPropertyVisibile();
-    }
-
-    /**
-     * @see \exface\UI5Facade\Facades\Elements\UI5AbstractElement::isHiddenIfEvaluatedPerRow()
-     */
-    protected function isHiddenIfEvaluatedPerRow() : bool
-    {
-        $widget = $this->getWidget();
-        return $widget->isInTable() && $widget->getHiddenIf() !== null;
     }
 
     /**
