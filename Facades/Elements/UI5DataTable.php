@@ -3209,133 +3209,128 @@ JS;
     
     /**
      * {@inheritDoc}
-     *
-     * Returns an invisible overlay spanning the header cell and all rendered body cells of the column.
      * 
-     * The overlay is positioned absolutely inside the content area of the `sap.ui.table.Table`
-     * (`.sapUiTableCnt`), so it moves together with the table when the page or a surrounding container
-     * scrolls. It is clipped to the visible part of the column - e.g. if the column is partially hidden
-     * behind the horizontal scrollbar of a narrow table.
+     * Supported areas for tables rendered by `sap.ui.table.Table`:
      * 
-     * Falls back to the whole widget if the column is unknown, hidden or not rendered by a `sap.ui.table`
-     * (e.g. responsive `sap.m.Table`).
-     *
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetterForColumn()
+     * - `column.<data_column_name>` - the header cell and all rendered body cells of a column
+     * - `column.<data_column_name>$<n>` - the cell of a column in the n-th row from the top of the data (1-based).
+     * The table is scrolled to this row by buildJsFocus() if it is not rendered at the moment.
+     * - `row$<n>` - the n-th row from the top of the data (1-based)
+     * - `row_selector$<n>` - the selection checkbox of the n-th row. Tables without selection checkboxes
+     * (single-select) resolve to the row itself, because clicking the row selects it there.
+     * - `header` - the column headers
+     * - `table` - the content area of the table (headers and rows)
+     * 
+     * Unknown areas and columns as well as responsive tables (`sap.m.Table`) resolve to the whole widget.
+     * 
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildCssFocusAreaSelector()
      */
-    public function buildJsDomElementGetterForColumn(string $columnName) : string
+    public function buildCssFocusAreaSelector(?string $areaId = null) : string
     {
-        $col = $this->getWidget()->getColumnByDataColumnName($columnName);
-        if ($col === null || ! $this->isUiTable()) {
-            return $this->buildJsDomElementGetter();
+        $tableSelector = '#' . $this->getId();
+        if ($areaId === null || ! $this->isUiTable()) {
+            return $tableSelector;
         }
-        $colDomIdJs = $this->escapeString($this->getFacade()->getElement($col)->getId());
-        $boxIdJs = $this->escapeString($this->getId() . '_tourColumnFocus');
-        return <<<JS
-
-            (function() {
-                var domHead = document.getElementById({$colDomIdJs});
-                var domCnt = domHead ? $(domHead).closest('.sapUiTableCnt')[0] : null;
-                if (! domCnt || ! domHead.getClientRects().length) {
-                    return {$this->buildJsDomElementGetter()};
+        $rowNumber = $this->getFocusAreaRowNumber($areaId);
+        switch (true) {
+            case StringDataType::startsWith($areaId, 'column.'):
+                $columnName = StringDataType::substringAfter($areaId, 'column.');
+                if ($rowNumber !== null) {
+                    $columnName = StringDataType::substringBefore($columnName, '$', $columnName, false, true);
                 }
-                // Clip horizontally to the (fixed or scrollable) column area and vertically to the rows area
-                var rHead = domHead.getBoundingClientRect();
-                var rCnt = domCnt.getBoundingClientRect();
-                var domColArea = $(domHead).closest('.sapUiTableCtrlScr, .sapUiTableCtrlScrFixed')[0] || domCnt;
-                var rColArea = domColArea.getBoundingClientRect();
-                var domRows = domCnt.querySelector('.sapUiTableCtrlCnt');
-                var iRowsBottom = domRows ? domRows.getBoundingClientRect().bottom : rCnt.bottom;
-                var iBottom = rHead.bottom;
-                $(domCnt).find('td[data-sap-ui-colid="' + domHead.id + '"]').each(function() {
-                    iBottom = Math.max(iBottom, this.getBoundingClientRect().bottom);
-                });
-                var iLeft = Math.max(rHead.left, rColArea.left);
-                var iRight = Math.min(rHead.right, rColArea.right);
-                if (iRight <= iLeft) {
-                    return {$this->buildJsDomElementGetter()};
+                $col = $this->getWidget()->getColumnByDataColumnName($columnName);
+                if ($col === null) {
+                    return $tableSelector;
                 }
-                iBottom = Math.min(iBottom, iRowsBottom, rCnt.bottom);
-                
-                var domBox = document.getElementById({$boxIdJs});
-                if (! domBox) {
-                    domBox = $('<div id=' + JSON.stringify({$boxIdJs}) + ' class="exf-tour-column-focus" style="position:absolute;pointer-events:none"></div>')[0];
+                // Header and body cells of a column reference the DOM id of the sap.ui.table.Column
+                $colIdAttr = '[data-sap-ui-colid="' . $this->getFacade()->getElement($col)->getId() . '"]';
+                if ($rowNumber !== null) {
+                    // aria-rowindex counts all rows of the table regardless of scrolling - the header row is 1
+                    return "{$tableSelector} tr[aria-rowindex=\"" . ($rowNumber + 1) . "\"] td{$colIdAttr}";
                 }
-                if (domBox.parentNode !== domCnt) {
-                    domCnt.appendChild(domBox);
-                }
-                // .sapUiTableCnt is position:relative, so coordinates are relative to its padding box
-                $(domBox).css({
-                    left: iLeft - rCnt.left - domCnt.clientLeft + domCnt.scrollLeft, 
-                    top: rHead.top - rCnt.top - domCnt.clientTop + domCnt.scrollTop, 
-                    width: iRight - iLeft, 
-                    height: Math.max(iBottom, rHead.bottom) - rHead.top
-                });
-                return domBox;
-            })()
-JS;
+                return "{$tableSelector} .sapUiTableColHdrCnt td{$colIdAttr}, {$tableSelector} .sapUiTableCtrlCnt tr.sapUiTableContentRow:not(.sapUiTableRowHidden) td{$colIdAttr}";
+            case StringDataType::startsWith($areaId, 'row_selector$') && $rowNumber !== null && $this->getWidget()->getMultiSelect():
+                // Selection cells are rendered in a separate row header area - not inside the `tr` of the row.
+                // Their rows get an `aria-rowindex` from buildJsFocus().
+                return "{$tableSelector} .sapUiTableRowHdrScr .sapUiTableRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"] .sapUiTableRowSelectionCell";
+            case (StringDataType::startsWith($areaId, 'row$') || StringDataType::startsWith($areaId, 'row_selector$')) && $rowNumber !== null:
+                return "{$tableSelector} tr.sapUiTableContentRow[aria-rowindex=\"" . ($rowNumber + 1) . "\"]";
+            case $areaId === 'header':
+                return $tableSelector . ' .sapUiTableColHdrCnt';
+            case $areaId === 'table':
+                return $tableSelector . ' .sapUiTableCnt';
+        }
+        return $tableSelector;
     }
     
     /**
      * {@inheritDoc}
-     *
-     * Returns the body cell of the column in the given 1-based data row of a `sap.ui.table.Table`.
      * 
-     * The row number counts from the top of the loaded data (current page), not from the currently visible rows.
-     * If the row is not rendered, the table is scrolled to it via `setFirstVisibleRow()`.
+     * If the area points to a row (`row$<n>` or `column.<data_column_name>$<n>`), that is not rendered by the
+     * virtualized `sap.ui.table.Table` at the moment, the table is scrolled to make it rendered before focusing.
      * 
-     * Falls back to the column overlay if the row does not exist or is not rendered and to the whole widget if the
-     * column is unknown or the table is a responsive `sap.m.Table`.
-     *
-     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsDomElementGetterForCell()
+     * @see \exface\Core\Facades\AbstractAjaxFacade\Elements\AbstractJqueryElement::buildJsFocus()
      */
-    public function buildJsDomElementGetterForCell(string $columnName, int $rowNumber) : string
+    public function buildJsFocus(?string $areaId, string $cssClass = 'focus') : string
     {
-        $col = $this->getWidget()->getColumnByDataColumnName($columnName);
-        if ($col === null || ! $this->isUiTable()) {
-            return $this->buildJsDomElementGetter();
+        //TODO: commented out the parent call because it actually focused the row, with took the focus from the "Next" button in the tour.
+        // This took the focus away from the tour and made it impossible to continue the tour with the keyboard.
+        return $this->buildJsScrollToFocusAreaRow($areaId); //. parent::buildJsFocus($areaId, $cssClass); 
+    }
+    
+    /**
+     * Returns JS to scroll the table to the row of the given area if that row is not rendered at the moment
+     * 
+     * Returns an empty string if the area does not point to a row or the table is not a `sap.ui.table.Table`.
+     * 
+     * @param string|null $areaId area id relative to the table or NULL for the whole table
+     * @return string
+     */
+    protected function buildJsScrollToFocusAreaRow(?string $areaId) : string
+    {
+        $rowNumber = $areaId === null ? null : $this->getFocusAreaRowNumber($areaId);
+        if ($rowNumber === null || ! $this->isUiTable()) {
+            return '';
         }
-        $colDomIdJs = $this->escapeString($this->getFacade()->getElement($col)->getId());
         $rowIdx = $rowNumber - 1;
         return <<<JS
 
             (function() {
-                var domHead = document.getElementById({$colDomIdJs});
-                var domCnt = domHead ? $(domHead).closest('.sapUiTableCnt')[0] : null;
                 var oTable = sap.ui.getCore().byId('{$this->getId()}');
                 var oBinding = oTable ? oTable.getBinding('rows') : null;
                 var iIdx = {$rowIdx};
-                var domCell = null;
-                if (domCnt && oBinding && iIdx < oBinding.getLength()) {
-                    // Scroll the virtualized table if the row is not rendered at the moment
-                    var iFirst = oTable.getFirstVisibleRow();
-                    var iRendered = oTable.getRows().length;
-                    if (iIdx < iFirst || iIdx >= iFirst + iRendered) {
-                        oTable.setFirstVisibleRow(Math.max(0, Math.min(iIdx, oBinding.getLength() - iRendered)));
-                    }
-                    // Body cells of the column in rendering order - one per rendered row
-                    domCell = $(domCnt).find('.sapUiTableCtrlCnt td[data-sap-ui-colid="' + domHead.id + '"]')[iIdx - oTable.getFirstVisibleRow()] || null;
+                if (! oBinding || iIdx >= oBinding.getLength()) {
+                    return;
                 }
-                if (! domCell || ! domCell.getClientRects().length || $(domCell).closest('.sapUiTableRowHidden').length) {
-                    return {$this->buildJsDomElementGetterForColumn($columnName)};
+                var iFirst = oTable.getFirstVisibleRow();
+                var iRendered = oTable.getRows().length;
+                if (iIdx < iFirst || iIdx >= iFirst + iRendered) {
+                    oTable.setFirstVisibleRow(Math.max(0, Math.min(iIdx, oBinding.getLength() - iRendered)));
                 }
-                return domCell;
-            })()
+                // The table re-renders its rows one frame later, but the tour needs the target row right now.
+                // The DOM rows stay in place, so set their aria-rowindex to the values UI5 will render anyway
+                // (header = 1, first data row = first visible row + 2). The rows of the row selectors do not
+                // have an aria-rowindex at all, so give them the same one to make them addressable too.
+                var iNewFirst = oTable.getFirstVisibleRow();
+                Array.prototype.forEach.call(document.querySelectorAll('#{$this->getId()} tr[data-sap-ui-rowindex], #{$this->getId()} .sapUiTableRowHdrScr [data-sap-ui-rowindex]'), function(domRow) {
+                    domRow.setAttribute('aria-rowindex', iNewFirst + parseInt(domRow.getAttribute('data-sap-ui-rowindex'), 10) + 2);
+                });
+            })();
 JS;
     }
-
-    public function buildCssFocusAreaSelector(string $area = null) : string
+    
+    /**
+     * Returns the 1-based row number from a focus area like `row$3` or `column.MY_COL$3` or NULL if there is none
+     * 
+     * @param string $areaId
+     * @return int|NULL
+     */
+    protected function getFocusAreaRowNumber(string $areaId) : ?int
     {
-        
-        switch (true) {
-            case StringDataType::startsWith($area, 'column'):
-                $columnName = StringDataType::substringAfter($area, 'column.');
-                // TODO how to select a column??
-                break;
-            case $area === 'header':
-                return '#' . $this->getId() . ' .sapUiTableColHdrCnt';
-            case $area === 'table':
-                return '#' . $this->getId() . ' .sapUiTableCnt';
+        $rowNumber = StringDataType::substringAfter($areaId, '$', null, false, true);
+        if ($rowNumber === null || ! ctype_digit($rowNumber) || intval($rowNumber) < 1) {
+            return null;
         }
-        return '#' . $this->getId();
+        return intval($rowNumber);
     }
 }
