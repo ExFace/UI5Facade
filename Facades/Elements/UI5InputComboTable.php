@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Factories\WidgetLinkFactory;
 use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 
 use exface\Core\CommonLogic\UxonObject;
 use exface\Core\Exceptions\Widgets\WidgetLogicError;
@@ -909,7 +910,7 @@ JS;
     protected function validateValueGetterCoordinate(WidgetLinkCoordinateInterface $coord) : void
     {
         if ($coord->hasAggregator() || ($coord->getRowCoordinate() !== null && $coord->isTargetingSelection() !== true)) {
-            throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Only selected values without aggregation are supported for UI5 combo table coordinates!');
+            throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Only selected values without aggregation are supported for UI5 combo table coordinates!');
         }
     }
 

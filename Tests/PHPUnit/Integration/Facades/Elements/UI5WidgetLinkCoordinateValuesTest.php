@@ -3,7 +3,7 @@
 namespace exface\UI5Facade\Tests\PHPUnit\Integration\Facades\Elements;
 
 use exface\Core\CommonLogic\WidgetLinkCoordinate;
-use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 use exface\Core\Interfaces\Model\MetaAttributeInterface;
 use exface\Core\Widgets\DataColumn;
 use exface\Core\Widgets\DataTable;
@@ -113,7 +113,7 @@ class UI5WidgetLinkCoordinateValuesTest extends TestCase
     public function testUnknownRowScopeIsRejected() : void
     {
         $element = $this->createElement();
-        $this->expectException(FacadeRuntimeError::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('Amount$~custom');
     }
 
@@ -123,7 +123,7 @@ class UI5WidgetLinkCoordinateValuesTest extends TestCase
     public function testNumberedRowAggregationIsRejected() : void
     {
         $element = $this->createElement();
-        $this->expectException(FacadeRuntimeError::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('Amount$0:SUM');
     }
 }

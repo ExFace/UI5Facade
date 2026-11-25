@@ -3,14 +3,15 @@
 namespace exface\UI5Facade\Tests\PHPUnit\Unit\Facades\Elements;
 
 use exface\Core\CommonLogic\WidgetLinkCoordinate;
-use exface\Core\Exceptions\Facades\FacadeRuntimeError;
+use exface\Core\CommonLogic\Workbench;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
+use exface\Core\Factories\UiPageFactory;
 use exface\Core\Widgets\InputNumber;
 use exface\UI5Facade\Facades\Elements\UI5InputButton;
 use exface\UI5Facade\Facades\Elements\UI5InputComboTable;
 use exface\UI5Facade\Facades\Elements\UI5InputNumber;
 use exface\UI5Facade\Facades\Elements\UI5Scheduler;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 
 /**
  * Covers unsupported coordinate validation before controls need a Workbench or widget model.
@@ -29,7 +30,7 @@ class UI5WidgetLinkCoordinateValidationTest extends TestCase
             ->onlyMethods(['getWidget'])
             ->getMock();
         $element->method('getWidget')->willReturn($widget);
-        $this->expectException(FacadeRuntimeError::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('Amount$~loaded');
     }
 
@@ -38,8 +39,8 @@ class UI5WidgetLinkCoordinateValidationTest extends TestCase
      */
     public function testComboRejectsAggregationObject() : void
     {
-        $element = (new ReflectionClass(UI5InputComboTable::class))->newInstanceWithoutConstructor();
-        $this->expectException(FacadeRuntimeError::class);
+        $element = $this->element(UI5InputComboTable::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter(new WidgetLinkCoordinate('Amount$~selected:SUM'));
     }
 
@@ -48,8 +49,8 @@ class UI5WidgetLinkCoordinateValidationTest extends TestCase
      */
     public function testInputButtonRejectsAllRows() : void
     {
-        $element = (new ReflectionClass(UI5InputButton::class))->newInstanceWithoutConstructor();
-        $this->expectException(FacadeRuntimeError::class);
+        $element = $this->element(UI5InputButton::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('Amount$~loaded');
     }
 
@@ -58,8 +59,25 @@ class UI5WidgetLinkCoordinateValidationTest extends TestCase
      */
     public function testSchedulerRejectsScopedCustomCoordinate() : void
     {
-        $element = (new ReflectionClass(UI5Scheduler::class))->newInstanceWithoutConstructor();
-        $this->expectException(FacadeRuntimeError::class);
+        $element = $this->element(UI5Scheduler::class);
+        $this->expectException(WidgetCoordinateUnresolvableError::class);
         $element->buildJsValueGetter('~start_date$~selected:MIN');
+    }
+
+    /**
+     * Provides a real widget for error details without starting the facade lifecycle.
+     *
+     * @param string $class
+     * @return UI5InputComboTable|UI5InputButton|UI5Scheduler
+     */
+    private function element(string $class) : UI5InputComboTable|UI5InputButton|UI5Scheduler
+    {
+        $widget = new InputNumber(UiPageFactory::createEmpty(new Workbench()));
+        $element = $this->getMockBuilder($class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getWidget'])
+            ->getMock();
+        $element->method('getWidget')->willReturn($widget);
+        return $element;
     }
 }

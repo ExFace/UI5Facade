@@ -3,6 +3,7 @@ namespace exface\UI5Facade\Facades\Elements;
 
 use exface\Core\Factories\WidgetLinkFactory;
 use exface\Core\Interfaces\Widgets\WidgetLinkCoordinateInterface;
+use exface\Core\Exceptions\Widgets\WidgetCoordinateUnresolvableError;
 
 use exface\Core\Widgets\Scheduler;
 use exface\UI5Facade\Facades\Elements\Traits\UI5DataElementTrait;
@@ -653,7 +654,7 @@ JS;
         if ($column !== null
             && in_array(mb_strtolower($column), [Scheduler::COORDINATE_START_DATE, Scheduler::COORDINATE_END_DATE, Scheduler::COORDINATE_RESOURCES_TITLE], true)) {
             if ($coord->getRowCoordinate() !== null || $coord->hasAggregator()) {
-                throw new \exface\Core\Exceptions\Facades\FacadeRuntimeError('Row scopes and aggregators are not supported for scheduler custom coordinates!');
+                throw new WidgetCoordinateUnresolvableError($this->getWidget(), $coord, 'Row scopes and aggregators are not supported for scheduler custom coordinates!');
             }
             return;
         }
