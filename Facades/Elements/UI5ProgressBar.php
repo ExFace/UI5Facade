@@ -1,12 +1,14 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\Interfaces\Widgets\iHaveColorScale;
 use exface\Core\Interfaces\Widgets\iHaveHintScale;
 use exface\UI5Facade\Facades\Elements\Traits\UI5ColorClassesTrait;
 
 /**
  * Renders a sap.m.ProgressIndicator for a ProgressBar widget
+ *
+ * Uses the widget's effective color scale, including its default scale when
+ * neither color_scale nor a fixed color is configured.
  * 
  * @method \exface\Core\Widgets\ProgressBar getWidget()
  *        
@@ -29,8 +31,10 @@ class UI5ProgressBar extends UI5Display
         // Register stuff here, that is needed for in-table rendering where buildJsConstructor()
         // is not called
         $this->registerExternalModules($this->getController());
-        if ($this->getWidget()->hasColorScale()) {
-            $this->registerColorClasses($this->getWidget()->getColorScale(), '.exf-custom-color.exf-color-[#color#] .sapMPIBar', 'background-color: [#color#]');
+        $widget = $this->getWidget();
+        $scale = $widget->getColorScale();
+        if ($scale !== []) {
+            $this->registerColorClasses($scale, '.exf-custom-color.exf-color-[#color#] .sapMPIBar', 'background-color: [#color#]');
         }
         
         
@@ -38,11 +42,10 @@ class UI5ProgressBar extends UI5Display
         // cells! Otherwise it has top and bottom margins and is displayed uneven with the
         // caption.
         
-        return <<<JS
+        $constructorJs = <<<JS
         
         new sap.m.ProgressIndicator("{$this->getid()}", {
             showValue: true,
-            state: "None",
             displayOnly: true,
     		percentValue: {$this->buildJsValuePercent()},
             displayValue: {$this->buildJsDisplayValue()},
@@ -52,6 +55,23 @@ class UI5ProgressBar extends UI5Display
     	})
         {$this->buildJsPseudoEventHandlers()}
     	
+JS;
+
+        // Model-bound values are already handled by the state binding's formatter.
+        if ($scale === [] || $this->isValueBoundToModel()) {
+            return $constructorJs;
+        }
+
+        // Static values have no binding to invoke the formatter. Wrap the constructor
+        // to run it once with the control as `this` for CSS classes, apply its semantic
+        // state, and still return the control to the caller.
+        $formatterJs = $this->buildJsProgressColorFormatter($scale);
+        $valueJs = json_encode($widget->getValue(), JSON_THROW_ON_ERROR);
+        return <<<JS
+        (function(oControl){
+            oControl.setState(($formatterJs).call(oControl, $valueJs));
+            return oControl;
+        })($constructorJs)
 JS;
     }
             
@@ -172,11 +192,19 @@ JS;
      */
     protected function buildJsPropertyState() : string
     {
-        if ($this->getWidget() instanceof iHaveColorScale) {
-            $stateJs = $this->buildJsColorValue();
+        $scale = $this->getWidget()->getColorScale();
+        if ($scale === [] || ! $this->isValueBoundToModel()) {
+            return 'state: "None",';
         }
-        
-        return $stateJs ? 'state: ' . $stateJs . ',' : '';
+
+        return 'state: ' . $this->buildJsValueBinding('formatter: ' . $this->buildJsProgressColorFormatter($scale)) . ',';
+    }
+
+    private function buildJsProgressColorFormatter(array $scale) : string
+    {
+        $widget = $this->getWidget();
+        // The default scale always has numeric thresholds, even for string-valued progress.
+        return $this->buildJsColorScaleFormatter($scale, ! $widget->hasColorScale() || $widget->isColorScaleRangeBased());
     }
     
     protected function buildJsPropertyDisplayAnimation() : string
