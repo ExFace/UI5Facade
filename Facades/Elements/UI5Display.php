@@ -14,7 +14,6 @@ use exface\Core\Interfaces\Widgets\iHaveColorScale;
 use exface\UI5Facade\Facades\Interfaces\UI5ControllerInterface;
 use exface\Core\DataTypes\TextDataType;
 use exface\Core\Interfaces\Widgets\iCanWrapText;
-use exface\Core\Widgets\ColorIndicator;
 
 /**
  * Generates sap.m.Text controls for Display widgets.
@@ -410,35 +409,6 @@ JS;
             $value = $this->buildJsValueBinding($bindingOptions);
         }
         return $value;
-    }
-    
-    /**
-     * Returns the static color of a ColorIndicator or NULL if its color is not static
-     * 
-     * A color is static if the `color` binding has a constant value - e.g. `"color": {"value": "'red'"}`.
-     * If the widget also has a `color_scale`, the static value is resolved via that scale.
-     * 
-     * @return string|NULL
-     */
-    protected function getColorStatic() : ?string
-    {
-        $widget = $this->getWidget();
-        if (! ($widget instanceof ColorIndicator)) {
-            return null;
-        }
-        $binding = $widget->getColorBinding();
-        $expr = $binding->hasValue() ? $binding->getValueExpression() : null;
-        if ($expr === null || ! $expr->isStatic()) {
-            return null;
-        }
-        $color = $expr->evaluate();
-        if ($widget->hasColorScale()) {
-            $color = $widget->getColorForValue($color);
-        }
-        if ($color === null || $color === '') {
-            return null;
-        }
-        return (string) $color;
     }
     
     /**

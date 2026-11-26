@@ -83,7 +83,7 @@ JS;
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
         if (! $ui5ColorBinding->isBoundToModel()) {
             // Static colors: semantic colors are mapped to UI5 icon colors, others are used as CSS colors
-            $staticColor = $this->getColorStatic();
+            $staticColor = $widget->getColorStatic();
             $semCols = $this->getColorSemanticMap();
             switch (true) {
                 case $staticColor === null:

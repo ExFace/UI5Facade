@@ -46,10 +46,11 @@ class UI5ObjectStatus extends UI5Display
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
-        $colorClasses = $this->getWidget()->hasColorScale() ? $this->getWidget()->getColorScale() : [];
-        // A static non-semantic color (e.g. `"color": {"value": "'red'"}`) is applied via CSS class
+        $widget = $this->getWidget();
+        $colorClasses = $widget->hasColorScale() ? $widget->getColorScale() : [];
+        // A static non-semantic color (e.g. `"color": {"value": "red"}`) is applied via CSS class
         // just like colors from the color scale. Semantic colors are applied via `state` property.
-        $staticColor = $this->getColorStatic();
+        $staticColor = $widget instanceof ColorIndicator ? $widget->getColorStatic() : null;
         $staticCssClasses = '';
         if ($staticColor !== null && substr($staticColor, 0, 1) !== '~') {
             $colorClasses['_static'] = $staticColor;
@@ -303,7 +304,7 @@ JS;
         if (! $ui5ColorBinding->isBoundToModel()) {
             // Static semantic colors are set via `state`, other static colors via CSS class
             // in buildJsConstructorForMainControl()
-            $staticColor = $this->getColorStatic();
+            $staticColor = $widget->getColorStatic();
             $semCols = $this->getColorSemanticMap();
             $value = ($staticColor !== null && array_key_exists($staticColor, $semCols)) ? json_encode($semCols[$staticColor]) : '';
         } else {
