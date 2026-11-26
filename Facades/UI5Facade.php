@@ -407,6 +407,7 @@ JS;
         
         // Include the setup manager library, in order to use exfSetupManager in CallWidgetFunction actions
         $controller->addExternalModule('exface.openui5.exfSetupManager', $this->buildUrlToSource("LIBS.SETUPMANAGER.JS"), null, 'exfSetupManager');
+        $controller->addOnInitScript('exfSetupManager.init(' . $element->escapeString($this->getWorkbench()->getInstallationName()) . ');');
         
         if ($this->getWorkbench()->getContext()->getScopeWindow()->hasContext(DebugContext::class)) {
             $controller->addExternalModule('libs.exface.exfDebugger', $this->buildUrlToSource('LIBS.EXFDEBUGGER.JS'), null, 'exfDebugger');

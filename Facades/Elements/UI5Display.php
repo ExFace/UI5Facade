@@ -387,28 +387,29 @@ JS;
         }
         
         if (! $this->isValueBoundToModel()) {
-            $value = ''; // TODO
-        } else {
-            $semColsJs = json_encode($this->getColorSemanticMap());
-            $bindingOptions = <<<JS
-                formatter: function(value){
-                    var sColor = {$this->buildJsScaleResolver('value', $widget->getColorScale(), $widget->isColorScaleRangeBased())};
-                    var sValueColor;
-                    var oCtrl = this;
-                    if (sColor.startsWith('~')) {
-                        var oColorScale = {$semColsJs};
-                        {$this->buildJsColorCssSetter('oCtrl', 'null')}
-                        return oColorScale[sColor];
-                    } else if (sColor) {
-                        {$this->buildJsColorCssSetter('oCtrl', 'sColor')}
-                    }
-                    return {$this->buildJsColorValueNoColor()};
-                }
-                
-JS;
-            $value = $this->buildJsValueBinding($bindingOptions);
+            return ''; // TODO
         }
-        return $value;
+
+        return $this->buildJsValueBinding('formatter: ' . $this->buildJsColorScaleFormatter($widget->getColorScale(), $widget->isColorScaleRangeBased()));
+    }
+
+    protected function buildJsColorScaleFormatter(array $scale, bool $isRangeScale) : string
+    {
+        $semColsJs = json_encode($this->getColorSemanticMap());
+        return <<<JS
+            function(value){
+                var sColor = {$this->buildJsScaleResolver('value', $scale, $isRangeScale)};
+                var oCtrl = this;
+                if (sColor.startsWith('~')) {
+                    var oColorScale = {$semColsJs};
+                    {$this->buildJsColorCssSetter('oCtrl', 'null')}
+                    return oColorScale[sColor];
+                } else if (sColor) {
+                    {$this->buildJsColorCssSetter('oCtrl', 'sColor')}
+                }
+                return {$this->buildJsColorValueNoColor()};
+            }
+JS;
     }
     
     /**

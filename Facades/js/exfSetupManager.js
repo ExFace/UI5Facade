@@ -10,16 +10,31 @@
     // should be appended to the unique parent widget id (e.g. datatable id)
     _quickSelectButtonSuffix: '_setupQuickselectBtn',
 
+    _sInstallationName: null,
+
+    /**
+     * Sets the installation identity before accessing local setup preferences.
+     * @param {string} sInstallationName Workbench installation name
+     */
+    init: function(sInstallationName) {
+        if (typeof sInstallationName !== 'string' || sInstallationName === '') {
+            throw new Error('An installation name is required for widget setup storage.');
+        }
+        exfSetupManager._sInstallationName = sInstallationName;
+    },
+
     /**
      * Dexie IndexedDB configuration for widget setups database
      * 
-     * The primary key matches the identity of a setup in the metamodel: slug + widget_id + object_id
+     * Local preferences are scoped by installation in addition to the metamodel identity.
      */
     _dexieDbConfig: {
         name: 'exf-ui5-widgets',
-        version: 3,
+        version: 4,
         stores: {
-            setups: '[slug+widget_id+object_id], setup_uid, date_last_applied'
+            setups: '[slug+widget_id+object_id], setup_uid, date_last_applied',
+            current_setups: '[installation+slug+widget_id+object_id], setup_uid, date_last_applied',
+            installations: 'installation'
         }
     },
 
@@ -28,6 +43,7 @@
      * 
      * Note: IndexedDB cannot change the primary key of an existing store, so the store of version 1 is
      * deleted in version 2 and recreated with the new key in version 3. Old setups are cleared on that upgrade.
+     * Version 4 retains the legacy store and adds installation-scoped preferences.
      * 
      * @returns {Dexie} Dexie instance with the current schema
      */
@@ -39,8 +55,39 @@
         oSetupsDb.version(2).stores({
             setups: null
         });
+        oSetupsDb.version(3).stores({
+            setups: '[slug+widget_id+object_id], setup_uid, date_last_applied'
+        });
         oSetupsDb.version(exfSetupManager._dexieDbConfig.version).stores(exfSetupManager._dexieDbConfig.stores);
         return oSetupsDb;
+    },
+
+    /**
+     * Imports legacy preferences once per installation and runs a scoped storage operation.
+     * The import and operation share a transaction, so concurrent reads cannot undo a reset or save.
+     * @param {function(Dexie, string): Promise} fnOperation Storage operation
+     * @returns {Promise} Storage operation result
+     */
+    _withSetupsDb: function(fnOperation) {
+        const sInstallationName = exfSetupManager._sInstallationName;
+        if (sInstallationName === null) {
+            return Promise.reject(new Error('Widget setup storage has not been initialized.'));
+        }
+        const oSetupsDb = exfSetupManager._oOpenSetupsDb();
+        return oSetupsDb.transaction('rw', oSetupsDb.setups, oSetupsDb.current_setups, oSetupsDb.installations, async function() {
+            if (!await oSetupsDb.installations.get(sInstallationName)) {
+                const aLegacySetups = await oSetupsDb.setups.toArray();
+                if (aLegacySetups.length > 0) {
+                    await oSetupsDb.current_setups.bulkPut(aLegacySetups.map(oSetup => Object.assign({}, oSetup, {
+                        installation: sInstallationName
+                    })));
+                }
+                await oSetupsDb.installations.put({installation: sInstallationName});
+            }
+            return fnOperation(oSetupsDb, sInstallationName);
+        }).finally(() => {
+            oSetupsDb.close();
+        });
     },
 
     /**
@@ -281,16 +328,11 @@
                 return Promise.resolve(null);
             }
 
-            // open indexedDb connection 
-            const oSetupsDb = exfSetupManager._oOpenSetupsDb();
-
-            // check if setup exists for slug+widget+object pk and return the entry
-            return oSetupsDb.setups.get([sSlug, sWidgetId, sObjectId])
+            return exfSetupManager._withSetupsDb((oSetupsDb, sInstallationName) =>
+                oSetupsDb.current_setups.get([sInstallationName, sSlug, sWidgetId, sObjectId])
+            )
             .catch(err => {
                 console.error('Error reading from IndexedDB:', err);
-            })
-            .finally(() => {
-                oSetupsDb.close();
             });
         },
 
@@ -310,16 +352,11 @@
                 return Promise.resolve(null);
             }
 
-            // open indexedDb connection 
-            const oSetupsDb = exfSetupManager._oOpenSetupsDb();
-
-            // delete entry if it exists
-            return oSetupsDb.setups.delete([sSlug, sWidgetId, sObjectId])
+            return exfSetupManager._withSetupsDb((oSetupsDb, sInstallationName) =>
+                oSetupsDb.current_setups.delete([sInstallationName, sSlug, sWidgetId, sObjectId])
+            )
             .catch(err => {
                 console.error('Error deleting entry from IndexedDB:', err);
-            })
-            .finally(() => {
-                oSetupsDb.close();
             });
         },
 
@@ -332,6 +369,7 @@
          * @param {string} sSetupUid current widget setup uid (used to identify the applied setup/adding checkmark in setups table)
          * @param {string} sSetupUxon current widget setup uxon
          * @param {string} sSetupName current widget setup name
+         * @returns {Promise|undefined} Storage completion, or undefined when Dexie is unavailable
          */
         saveLastAppliedSetup: function(sSlug, sWidgetId, sObjectId, sSetupUid, sSetupUxon, sSetupName) { 
             
@@ -352,16 +390,10 @@
                 return;
             }
 
-            // open indexedDb connection
-            const oSetupsDb = exfSetupManager._oOpenSetupsDb();
-
-            // Save setup in db, then close connection 
-            oSetupsDb.setups.put(
-                oSetupObj
+            return exfSetupManager._withSetupsDb((oSetupsDb, sInstallationName) =>
+                oSetupsDb.current_setups.put(Object.assign(oSetupObj, {installation: sInstallationName}))
             ).catch(err => {
                 console.error('Error accessing IndexedDb:', err);
-            }).finally(() => {
-                oSetupsDb.close();
             });
         }
     },

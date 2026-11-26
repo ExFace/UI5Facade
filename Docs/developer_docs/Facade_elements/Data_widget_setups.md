@@ -55,7 +55,7 @@ widget models and wire their actions to the configured table's facade element.
 
 ## Identity of a setup
 
-A setup is bound to a widget by a triple, used identically in the metamodel and in IndexedDB:
+A setup is bound to a widget by a triple, used identically in the metamodel and in local preferences:
 
 | Part | Source in PHP |
 |---|---|
@@ -83,9 +83,19 @@ Setups are normal metamodel data:
 
 `exfSetupManager` remembers the *last applied* setup per widget in IndexedDB through Dexie:
 
-- database `exf-ui5-widgets`, schema version 3, store `setups`
-- primary key `[slug+widget_id+object_id]`, secondary indexes `setup_uid` and `date_last_applied`
-- entry: `{slug, widget_id, object_id, setup_uid, setup_uxon, setup_name, date_last_applied}`
+- database `exf-ui5-widgets`, schema version 4, store `current_setups`
+- primary key `[installation+slug+widget_id+object_id]`, secondary indexes `setup_uid` and `date_last_applied`
+- entry: `{installation, slug, widget_id, object_id, setup_uid, setup_uxon, setup_name, date_last_applied}`
+
+Each controller initializes the manager with `$this->getWorkbench()->getInstallationName()`.
+Installations sharing an origin (for example `/dev/` and `/prod/`) therefore remember their
+current setups independently. Installation names must be distinct.
+
+The legacy `setups` store is retained. On the first local storage operation for each installation,
+its entries are copied into `current_setups` in the same transaction as the operation, and the
+`installations` store records that the import is complete. Legacy entries have no installation
+identity, so each installation initially inherits the existing shared preferences. Subsequent
+applies and resets affect only that installation; a reset never re-imports a legacy entry.
 
 IndexedDB cannot change the primary key of an existing store, so version 2 deletes the v1 store and
 version 3 recreates it with the current key. Entries created before that upgrade are lost by design.
@@ -234,6 +244,8 @@ regular filters, clears `_exfChangedBySetup` on all table columns, deletes the I
 `dexie.deleteCurrentSetup()` and calls `reset_setup_change_tracking()`. Reset therefore also means
 "stop using the locally remembered setup".
 
+See the [test instructions](../../../Tests/README.md) for setup storage regression coverage.
+
 ## Change tracking and the quick-select menu
 
 `trackConfigChanges()` sets `_exfConfigChanged` on the table and listens to:
@@ -262,8 +274,8 @@ On `appliedWidgetSetup` the trait updates the caption and the active marker in t
 3. A setup prototype describes exactly one configurator widget type. New widget types get a new
 	setup prototype, reusing the existing mutation rules wherever the aspect is the same.
 4. Store canonical ExFace comparators; translate only at the adapter boundary.
-5. Use the identity triple everywhere. Never key local storage by page UID or by the full UI5
-	control id.
+5. Use the identity triple everywhere, with the installation name as an additional local storage
+	scope. Never key local storage by page UID or by the full UI5 control id.
 6. Do not mutate `/advanced_search` directly - use the `P13AdvancedSearchPanel` methods so header
 	synchronization and events stay intact.
 7. Setup-controlled column visibility must keep setting `_exfChangedBySetup`, otherwise `hidden_if`
