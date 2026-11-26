@@ -1,8 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\CommonLogic\DataSheets\DataAggregation;
-use exface\Core\CommonLogic\Model\RelationPath;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
@@ -529,7 +527,7 @@ JS;
                             content: [
                                 {$this->buildJsFilters()}
         					]
-                        })
+                        }).addStyleClass("sapUiSmallMarginTop")
                     ]
                 }),
 JS;
@@ -614,16 +612,24 @@ JS;
                     changeColumnsItems: function(oEvent){
                         var aItems = oEvent.getParameters().items;
                         var oModel = oEvent.getSource().getModel('{$this->getModelNameForConfig()}');
-                        var aNewColModel = [];
+                        // The panel reports only toggleable columns. Treat its items as a partial update:
+                        // a hidden grouping column is not listed, but the table still needs it for grouping.
+                        var aColumns = oModel.getProperty('/columns');
+                        var mUnchangedColumns = new Map(aColumns.map(oColConf => [oColConf.column_id, oColConf]));
+                        var aChangedColumns = [];
                         aItems.forEach(oItem => {
-                            oModel.getData()['columns'].forEach(oColConf => {
-                                if (oColConf.column_id === oItem.columnKey) {
-                                    oColConf.visible = oItem.visible;
-                                    aNewColModel.push(oColConf);
-                                    return;
-                                }
-                            });
+                            var oColConf = mUnchangedColumns.get(oItem.columnKey);
+                            if (oColConf) {
+                                aChangedColumns.push(Object.assign({}, oColConf, {visible: oItem.visible}));
+                                mUnchangedColumns.delete(oItem.columnKey);
+                            }
                         });
+                        // The map now contains only columns omitted by the panel. Keep them in their
+                        // original slots and fill the remaining slots in the order reported by the panel.
+                        var iChangedColumn = 0;
+                        var aNewColModel = aColumns.map(oColConf => mUnchangedColumns.has(oColConf.column_id)
+                            ? oColConf
+                            : aChangedColumns[iChangedColumn++]);
                         oModel.setProperty('/columns', aNewColModel);
                         oModel.refresh(true);
                     },
@@ -783,6 +789,7 @@ JS;
                     "column_id" => $this->getFacade()->getElement($col)->getId(),
                     "column_name" => $col->getDataColumnName(),
                     "caption" => $col->getCaption(),
+                    "hidden" => $col->isHidden(),
                     "visible" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "visibleInitially" => $col->isHidden() || $col->getVisibility() === EXF_WIDGET_VISIBILITY_OPTIONAL ? false : true,
                     "toggleable" => $col->isHidden() ? false : true,

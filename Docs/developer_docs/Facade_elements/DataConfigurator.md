@@ -117,6 +117,9 @@ The Filters tab renders the configurator's regular ExFace filter widgets in a re
 date inputs, range filters, relation inputs, validation, and data-type-specific behavior continue
 to work as configured in the metamodel.
 
+The grid uses `sapUiSmallMarginTop` to separate the filters from the dialog's tab header,
+including when the configured table has `hide_header: true`.
+
 Visible filters are shown in the grid. Hidden filters are still constructed because they may carry
 fixed or programmatically supplied request values. Optional filters are constructed hidden and are
 offered through Advanced Search instead. Pressing Enter in a suitable filter input triggers the
