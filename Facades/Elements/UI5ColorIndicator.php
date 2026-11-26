@@ -82,7 +82,19 @@ JS;
         $widgetColorBinding = $widget->getColorBinding();
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
         if (! $ui5ColorBinding->isBoundToModel()) {
-            $value = $this->buildJsColorValueNoColor(); // TODO
+            // Static colors: semantic colors are mapped to UI5 icon colors, others are used as CSS colors
+            $staticColor = $this->getColorStatic();
+            $semCols = $this->getColorSemanticMap();
+            switch (true) {
+                case $staticColor === null:
+                    $value = $this->buildJsColorValueNoColor();
+                    break;
+                case array_key_exists($staticColor, $semCols):
+                    $value = json_encode($semCols[$staticColor]);
+                    break;
+                default:
+                    $value = json_encode($staticColor);
+            }
         } else {
             $semColsJs = json_encode($this->getColorSemanticMap());
             if ($widget->hasColorScale()) {

@@ -46,7 +46,18 @@ class UI5ObjectStatus extends UI5Display
     public function buildJsConstructorForMainControl($oControllerJs = 'oController')
     {
         $this->registerExternalModules($this->getController());
-        if ($this->getWidget()->hasColorScale()) {
+        $colorClasses = $this->getWidget()->hasColorScale() ? $this->getWidget()->getColorScale() : [];
+        // A static non-semantic color (e.g. `"color": {"value": "'red'"}`) is applied via CSS class
+        // just like colors from the color scale. Semantic colors are applied via `state` property.
+        $staticColor = $this->getColorStatic();
+        $staticCssClasses = '';
+        if ($staticColor !== null && substr($staticColor, 0, 1) !== '~') {
+            $colorClasses['_static'] = $staticColor;
+            $staticCssClasses = ' exf-custom-color exf-color-' . str_replace($this->cssClassNameRemoveChars, '', trim($staticColor));
+        }
+        // Register scale and static colors in one call because registerColorClasses() replaces
+        // previously registered CSS of this element
+        if (! empty($colorClasses)) {
             if ($this->isInverted()) {
                 $colorCss = 'background-color: [#color#]';
             } else {
@@ -54,11 +65,12 @@ class UI5ObjectStatus extends UI5Display
             }
             
             $this->registerColorClasses(
-                $this->getWidget()->getColorScale(),
+                $colorClasses,
                 self::CSS_COLOR_CLASS . self::CSS_OBJECT_STATUS_TEXT,
                 $colorCss
             );
         }
+        $cssClassesJs = $this->escapeString($this->buildCssWidgetClass() . ' ' . $this->buildCssWidgetClass() . $staticCssClasses, false, false);
         return <<<JS
         
         new sap.m.ObjectStatus("{$this->getId()}", {
@@ -68,7 +80,7 @@ class UI5ObjectStatus extends UI5Display
             {$this->buildJsPropertyState()}
             {$this->buildJsPropertyInverted()}
         })
-        .addStyleClass('{$this->buildCssWidgetClass()} {$this->buildCssWidgetClass()}')
+        .addStyleClass('{$cssClassesJs}')
         {$this->buildJsPseudoEventHandlers()}
         
 JS;
@@ -289,7 +301,11 @@ JS;
         $widgetColorBinding = $widget->getColorBinding();
         $ui5ColorBinding = new UI5PropertyBinding($this, 'state', $widgetColorBinding);
         if (! $ui5ColorBinding->isBoundToModel()) {
-            $value = ''; // TODO
+            // Static semantic colors are set via `state`, other static colors via CSS class
+            // in buildJsConstructorForMainControl()
+            $staticColor = $this->getColorStatic();
+            $semCols = $this->getColorSemanticMap();
+            $value = ($staticColor !== null && array_key_exists($staticColor, $semCols)) ? json_encode($semCols[$staticColor]) : '';
         } else {
             $semColsJs = json_encode($this->getColorSemanticMap());
             if ($widget->hasColorScale()) {
