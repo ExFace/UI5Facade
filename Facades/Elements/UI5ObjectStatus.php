@@ -1,8 +1,8 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\CommonLogic\Constants\Colors;
 use exface\Core\DataTypes\BooleanDataType;
+use exface\Core\DataTypes\ColorDataType;
 use exface\Core\DataTypes\StringDataType;
 use exface\Core\Interfaces\Widgets\iHaveColorScale;
 use exface\Core\Interfaces\Widgets\iHaveHintScale;
@@ -361,10 +361,11 @@ JS;
 
     /**
      * @inheritDoc
+     * @see UI5ColorClassesTrait::colorToCss()
      */
     protected function colorToCss(string $color, string $value, string $selector, string $properties): string
     { 
-        $text = Colors::isDark($color, 1 - $this->getTextColorPreference()) ? '#ffffff' : '#000000';
+        $text = ColorDataType::pickTextColorForBackgroundColor($color, $this->getTextColorPreference());
         
         return $this->buildCssClasses(
             ['color' => $color, 'value' => $value, 'text' => $text],
