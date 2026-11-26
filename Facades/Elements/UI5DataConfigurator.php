@@ -1,8 +1,6 @@
 <?php
 namespace exface\UI5Facade\Facades\Elements;
 
-use exface\Core\CommonLogic\DataSheets\DataAggregation;
-use exface\Core\CommonLogic\Model\RelationPath;
 use exface\Core\Exceptions\Widgets\WidgetFunctionUnknownError;
 use exface\Core\Facades\AbstractAjaxFacade\Elements\JqueryDataConfiguratorTrait;
 use exface\Core\DataTypes\BooleanDataType;
@@ -529,7 +527,7 @@ JS;
                             content: [
                                 {$this->buildJsFilters()}
         					]
-                        })
+                        }).addStyleClass("sapUiSmallMarginTop")
                     ]
                 }),
 JS;
