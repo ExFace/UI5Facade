@@ -244,13 +244,7 @@ regular filters, clears `_exfChangedBySetup` on all table columns, deletes the I
 `dexie.deleteCurrentSetup()` and calls `reset_setup_change_tracking()`. Reset therefore also means
 "stop using the locally remembered setup".
 
-### Storage regression test
-
-Serve the installation's `vendor/` directory on a loopback-only static server, open
-[`Tests/JavaScript/SetupStorage.html`](../../../Tests/JavaScript/SetupStorage.html), and run
-`await (await import('./UI5SetupStorage.mjs')).runUI5SetupStorageRegression()` in the browser console.
-The test uses a temporary database and covers installation isolation, legacy import, resets,
-concurrent operations and transaction rollback without touching existing preferences.
+See the [test instructions](../../../Tests/README.md) for setup storage regression coverage.
 
 ## Change tracking and the quick-select menu
 
