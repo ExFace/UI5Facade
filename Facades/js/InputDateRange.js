@@ -41,6 +41,12 @@ sap.ui.define([
         }
     });
 
+    function setGroupExpanded(header, items, expanded) {
+        header.setExpanded(expanded);
+        header.setIcon(expanded ? "sap-icon://navigation-down-arrow" : "sap-icon://navigation-right-arrow");
+        items.forEach(item => item.setVisible(expanded));
+    }
+
     // UI5's native value is a selection object; exface binds to the scalar rangeValue instead.
     const InputDateRange = DynamicDateRange.extend("exface.ui5.InputDateRange", {
         renderer: DynamicDateRangeRenderer,
@@ -105,7 +111,7 @@ sap.ui.define([
         },
 
         open: function (domRef) {
-            // Native open() rebuilds the menu, so the groups start collapsed each time.
+            // Native open() rebuilds the menu and its group state each time.
             this._optionGroups = new WeakMap();
             this._currentOptionGroup = null;
             return DynamicDateRange.prototype.open.call(this, domRef);
@@ -117,6 +123,10 @@ sap.ui.define([
                 // Open the native range details page before the popup is shown,
                 // so the user never has to pass through the options list.
                 this._handleOptionPress({getSource: () => ({getOptionKey: () => "DATERANGE"})});
+            } else if (this._currentOptionGroup
+                && this._oOptionsList.getItems().filter(item => item instanceof GroupHeader).length === 1) {
+                const {header, items} = this._currentOptionGroup;
+                setGroupExpanded(header, items, true);
             }
             return DynamicDateRange.prototype._openPopup.call(this, domRef);
         },
@@ -152,12 +162,7 @@ sap.ui.define([
                 title,
                 type: "Active",
                 icon: "sap-icon://navigation-right-arrow",
-                press: () => {
-                    const expanded = !header.getExpanded();
-                    header.setExpanded(expanded);
-                    header.setIcon(expanded ? "sap-icon://navigation-down-arrow" : "sap-icon://navigation-right-arrow");
-                    items.forEach(item => item.setVisible(expanded));
-                }
+                press: () => setGroupExpanded(header, items, !header.getExpanded())
             });
             this._currentOptionGroup = {header, items};
             return header;
