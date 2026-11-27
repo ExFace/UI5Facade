@@ -577,10 +577,10 @@
             let aHeaderFilters = oP13nModel.getProperty('/header_filters');
             let aFilters = sap.ui.getCore().byId(sP13nSearchPanelId).getConditions();
 
-            // save current column config
+            // Omit permanently hidden columns, but keep visibility preferences for optional and hidden_if columns.
             if (aColumns !== undefined && aColumns.length > 0) {
                 aColumns.forEach(function(oColumn) {
-                    if (oColumn.column_name != null){
+                    if (oColumn.column_name != null && oColumn.hidden !== true){
                         // save column_name and visibility
                         oSetupJson.columns.push({
                             column_name: oColumn.column_name,
