@@ -883,6 +883,25 @@ html[class*="sapUiTheme-sap_horizon"] .sapUiLoSplitter.sapUiLoSplitterV>.sapUiLo
 }
 
 /* show sidenavigation popups over tabbar */
+/* Let the date-range options size the popover before its first paint.
+   The wrapper caps the height while UI5 can still apply viewport limits. */
+.exfDateRangeOptionsPopup > .sapMPopoverWrapper {
+    display: flex;
+    flex-direction: column;
+    max-height: 512px;
+}
+.exfDateRangeOptionsPopup > .sapMPopoverWrapper > .sapMPopoverCont {
+    overflow-y: auto;
+}
+.exfDateRangeOptionsPopup .sapMPopoverScroll,
+.exfDateRangeOptionsPopup .sapMNav {
+    height: auto;
+}
+.exfDateRangeOptionsPopup .exfDateRangeOptionsPage,
+.exfDateRangeOptionsPopup .exfDateRangeOptionsPage > section {
+    position: relative;
+}
+
 .sapTntSideNavigation  .sapTntNLPopover.sapMPopover {
     z-index: 2 !important;
 }
