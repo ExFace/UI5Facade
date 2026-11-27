@@ -9,9 +9,10 @@ sap.ui.define([
     "sap/ui/core/Lib",
     "sap/ui/core/Renderer",
     "sap/ui/core/format/DateFormat",
-    "sap/base/Log"
+    "sap/base/Log",
+    "sap/m/Input"
 ], function (DynamicDateRange, DynamicDateRangeRenderer, DynamicDateFormat, DynamicDateOption, StandardListItem,
-    StandardListItemRenderer, Device, Lib, Renderer, DateFormat, Log) {
+    StandardListItemRenderer, Device, Lib, Renderer, DateFormat, Log, Input) {
     "use strict";
 
     // Internal operators display saved ranges without adding entries to the options menu.
@@ -69,6 +70,7 @@ sap.ui.define([
                 tooltip: Lib.getResourceBundleFor("sap.m").getText("DYNAMIC_DATE_DATERANGE_TITLE"),
                 press: () => this.openCalendar()
             });
+            this._keepPopupOpenOnIconFocus(input);
             input.addEventDelegate({
                 onsapspace: event => {
                     if (event.target !== input.getFocusDomRef() || event.isMarked()
@@ -87,16 +89,44 @@ sap.ui.define([
             });
         },
 
+        _keepPopupOpenOnIconFocus: function (input) {
+            const valueHelpIcon = input._getValueHelpIcon();
+            const firePress = valueHelpIcon.firePress;
+            const onFocusIn = input.onfocusin;
+            let pressingValueHelp = false;
+            // The native value-help icon focuses the textbox before dispatching its request.
+            valueHelpIcon.firePress = function (...args) {
+                pressingValueHelp = true;
+                try {
+                    return firePress.apply(this, args);
+                } finally {
+                    pressingValueHelp = false;
+                }
+            };
+            input.onfocusin = event => {
+                const handler = this._oPopup?.isOpen() && (event.target !== input.getFocusDomRef() || pressingValueHelp)
+                    ? Input.prototype.onfocusin
+                    : onFocusIn;
+                return handler.call(input, event);
+            };
+        },
+
         onBeforeRendering: function () {
             DynamicDateRange.prototype.onBeforeRendering.call(this);
             this._calendarIcon.setVisible(this.getEnabled() && this.getEditable() && !!this.getOption("DATERANGE"));
         },
 
         openCalendar: function () {
-            if (!this.getEnabled() || !this.getEditable() || !this.getOption("DATERANGE") || this._oPopup?.isOpen()) {
+            if (!this.getEnabled() || !this.getEditable() || !this.getOption("DATERANGE")) {
                 return;
             }
             const navigation = this._oNavContainer;
+            if (this._oPopup?.isOpen()) {
+                if (navigation.getCurrentPage() === navigation.getPages()[0] || this._oSelectedOption?.getKey() !== "DATERANGE") {
+                    this._showRangeCalendar();
+                }
+                return;
+            }
             const transition = navigation?.getDefaultTransitionName();
             this._openCalendarDirectly = true;
             try {
@@ -110,6 +140,19 @@ sap.ui.define([
             }
         },
 
+        _toggleOpen: function () {
+            if (this._oPopup?.isOpen()) {
+                const navigation = this._oNavContainer;
+                const optionsPage = navigation.getPages()[0];
+                if (navigation.getCurrentPage() !== optionsPage) {
+                    this._setFooterVisibility(false);
+                    navigation.backToPage(optionsPage.getId());
+                    return;
+                }
+            }
+            return DynamicDateRange.prototype._toggleOpen.call(this);
+        },
+
         open: function (domRef) {
             // Native open() rebuilds the menu and its group state each time.
             this._optionGroups = new WeakMap();
@@ -119,16 +162,20 @@ sap.ui.define([
 
         _openPopup: function (domRef) {
             this._setOptionsPopupLayout?.(!this._openCalendarDirectly);
-            if (this._openCalendarDirectly) {
-                // Open the native range details page before the popup is shown,
-                // so the user never has to pass through the options list.
-                this._handleOptionPress({getSource: () => ({getOptionKey: () => "DATERANGE"})});
-            } else if (this._currentOptionGroup
+            if (this._currentOptionGroup
                 && this._oOptionsList.getItems().filter(item => item instanceof GroupHeader).length === 1) {
                 const {header, items} = this._currentOptionGroup;
                 setGroupExpanded(header, items, true);
             }
+            if (this._openCalendarDirectly) {
+                // Open the native range details page before showing the popup.
+                this._showRangeCalendar();
+            }
             return DynamicDateRange.prototype._openPopup.call(this, domRef);
+        },
+
+        _showRangeCalendar: function () {
+            this._handleOptionPress({getSource: () => ({getOptionKey: () => "DATERANGE"})});
         },
 
         _applyNavContainerPageFocus: function (page) {
